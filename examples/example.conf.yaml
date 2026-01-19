@@ -1,0 +1,342 @@
+# ~/.config/pal/config.yaml
+# One file, three buckets:
+#   1) pal:      core runtime + global behavior
+#   2) palettes: what exists + per-palette knobs
+#   3) frontends: UI/transport adapters + their knobs
+
+pal:
+  name: pal
+  # default execution mode when running `pal` with no args
+  default_frontend: rofi            # rofi | fzf | stdio | rest
+  default_palette: commands         # palette opened when no palette specified
+  shell: /usr/bin/bash
+
+  paths:
+    # where palettes are discovered from
+    builtin_dir: /usr/lib/pal/palettes
+    custom_dir:  ~/.config/pal/palettes.d
+    # data files used by some palettes
+    data_dir:    ~/.config/pal/data
+    # caching
+    cache_dir:   ~/.cache/pal
+    state_dir:   ~/.local/state/pal
+
+  # global list behavior (frontends can override)
+  list:
+    limit: 500
+    fuzzy: true
+    include_desc_in_search: true
+    include_keywords_in_search: true
+    sort:
+      by: score_then_name            # score_then_name | name | none
+
+  # global UX / flow behavior
+  flow:
+    # when a palette returns "next" prompts (select/input/choice/confirm)
+    max_depth: 6
+    remember_context: true           # persist context between nested steps
+    context_ttl_seconds: 300         # how long nested-step context survives
+
+  command_mode:
+    # allows: `pal aud headphones` or `pal wifi connect MySSID`
+    enabled: true
+    # if a palette exposes verbs, allow direct routing
+    allow_verbs: true
+    # optional shortcut aliases (typed like commands)
+    aliases:
+      vol: hsync set_brightness
+      win: windows
+      kill: psg
+
+  integration:
+    clipboard:
+      provider: auto                 # auto | wl-copy | xclip | pbcopy
+    opener:
+      cmd: xdg-open                  # used by cal/bookmarks/tab etc.
+    notifications:
+      enabled: true
+      provider: auto                 # auto | notify-send | none
+
+  logging:
+    level: info                      # trace | debug | info | warn | error
+    file: ~/.local/state/pal/pal.log
+
+palettes:
+  # Builtins shipped with the tool; enable/disable explicitly.
+  builtins:
+    aud:
+      enabled: true
+      backend: pipewire              # pipewire | pulseaudio
+      cache:
+        enabled: true
+        ttl_seconds: 10
+      command:
+        verbs: [list, set]           # enables: `pal aud set <id>`
+        default_verb: set
+        alias:
+          headphones: "name~Headphones"
+          speakers:   "name~Speakers"
+
+    hue:
+      enabled: true
+      cache:
+        enabled: true
+        ttl_seconds: 60
+      hue:
+        bridge_host: 192.168.1.50
+        app_key_file: ~/.config/pal/secret/hue.key
+        rooms:
+          - Living Room
+          - Office
+      command:
+        verbs: [list, activate]
+        default_verb: activate
+
+    hsync:
+      enabled: true
+      cache:
+        enabled: false               # interactive settings are not “list heavy”
+      # these defaults are used when prompting with choice/input
+      defaults:
+        brightness: 60
+        intensity: medium
+        area: full
+        mode: video
+      command:
+        verbs: [on, off, set_brightness, set_intensity, set_area, set_mode]
+
+    cal:
+      enabled: true
+      calendar:
+        provider: ics_url            # ics_url | local_ics | gcal_adapter (later)
+        ics_url: "file:///home/user/.config/pal/data/calendar.ics"
+        days_forward: 14
+      on_pick:
+        action: open_url             # open_url | copy_url | print_url
+      cache:
+        enabled: true
+        ttl_seconds: 120
+
+    tab:
+      enabled: true
+      # JSON-backed list (user editable)
+      source:
+        type: json_file
+        file: ~/.config/pal/data/tabs.json
+      on_pick:
+        action: browser_focus_or_open
+        browser:
+          profile: default
+          # optional “how to focus”
+          focus:
+            method: wm_class         # wm_class | title_regex | none
+      cache:
+        enabled: true
+        ttl_seconds: 300
+
+    otp:
+      enabled: true
+      sources:
+        - type: emaildir
+          path: ~/.mail/personal/Inbox
+          match:
+            regex: "(?i)\\b(otp|code|verification)\\b"
+        - type: sms_log
+          path: ~/.local/share/sms/inbox.log
+      extract:
+        otp_regex: "\\b\\d{4,8}\\b"
+        max_age_minutes: 120
+      on_pick:
+        action: clipboard_copy
+      cache:
+        enabled: false               # wants “recent”; caching can be surprising
+
+    psg:
+      enabled: true
+      list:
+        refresh_seconds: 1           # frontend can trigger refresh
+        show_user: true
+      on_pick:
+        action: kill
+        kill:
+          signal: SIGTERM
+          confirm: true              # returns a confirm prompt before kill
+      cache:
+        enabled: false               # live
+
+    wifi:
+      enabled: true
+      backend: nmcli                 # nmcli | iwd | wpa_supplicant (later)
+      on_pick:
+        action: connect
+        connect:
+          prompt_password_if_needed: true
+      cache:
+        enabled: false               # scanning is “fresh”
+
+    chars:
+      enabled: true
+      source:
+        type: json_file
+        file: ~/.config/pal/data/chars.json
+      on_pick:
+        action: clipboard_copy
+      cache:
+        enabled: true
+        ttl_seconds: 86400
+
+    icons:
+      enabled: true
+      icons:
+        provider: nerdfonts_index
+        # prebuilt index file (generated once) OR dynamic scan
+        index_file: ~/.config/pal/data/nerdfonts-index.json
+      on_pick:
+        action: clipboard_copy
+      cache:
+        enabled: true
+        ttl_seconds: 86400
+
+    windows:
+      enabled: true
+      wm:
+        backend: hyprland            # hyprland | sway | x11 (later)
+      on_pick:
+        action: focus_window
+      cache:
+        enabled: false
+
+    windowpull:
+      enabled: true
+      wm:
+        backend: hyprland
+      on_pick:
+        action: move_window_to_current_workspace
+      cache:
+        enabled: false
+
+    ambient:
+      enabled: true
+      source:
+        type: dir_glob
+        roots:
+          - ~/Videos/Ambient
+        glob: "**/*.{mp4,mkv,webm}"
+      player:
+        cmd: mpv
+        args:
+          - "--fs"
+          - "--loop=inf"
+          - "--no-audio"
+          - "--start=+random"        # pseudo: random start timestamp behavior
+      cache:
+        enabled: true
+        ttl_seconds: 600
+
+    systemd:
+      enabled: true
+      scope: user                    # user | system
+      on_pick:
+        action: restart_service
+      cache:
+        enabled: false               # services change; but could be TTL=5
+
+    bookmarks:
+      enabled: true
+      source:
+        type: json_file
+        file: ~/.config/pal/data/bookmarks.json
+      on_pick:
+        action: open_url
+      cache:
+        enabled: true
+        ttl_seconds: 3600
+
+    commands:
+      enabled: true
+      source:
+        type: json_file
+        file: ~/.config/pal/data/commands.json
+      on_pick:
+        action: run_shell
+        run_shell:
+          cwd: "~"
+          confirm: false
+      cache:
+        enabled: true
+        ttl_seconds: 3600
+
+  # Custom palettes: drop executables into custom_dir or reference absolute paths.
+  # Contract: `list` -> JSON array, `pick <id>` -> action
+  custom:
+    docker:
+      enabled: true
+      exec: ~/.config/pal/palettes.d/docker
+      cache:
+        enabled: false
+      command:
+        verbs: [list, start, stop, logs]
+        default_verb: pick           # `pick` means “use pick <id>”
+    jira:
+      enabled: false                 # wired but disabled for now
+      exec: ~/.config/pal/palettes.d/jira
+      cache:
+        enabled: true
+        ttl_seconds: 30
+
+frontends:
+  rofi:
+    enabled: true
+    theme: "~/.config/rofi/pal.rasi"
+    prompt_prefix: ">"
+    # how rofi interacts with nested prompts
+    flow:
+      show_breadcrumbs: true
+      title_format: "{palette} › {step_title}"
+    # optional overrides for global list behavior
+    list:
+      limit: 1000
+
+  fzf:
+    enabled: true
+    fzf_bin: /usr/bin/fzf
+    height: "50%"
+    layout: reverse
+    preview:
+      enabled: true
+      # palette can supply preview strings via item.meta.preview (frontends ignore if absent)
+      fallback: "echo {name}; echo; echo {desc}"
+    keys:
+      # optional “alternate action” wiring if you ever support item.actions
+      alt_enter: secondary_action
+
+  stdio:
+    enabled: true
+    protocol: json_lines            # json_lines | plain
+    # useful for scripting: `pal --frontend stdio ...`
+    output:
+      print_result_json: true
+
+  rest:
+    enabled: true
+    bind: "127.0.0.1:4312"
+    auth:
+      mode: token
+      token_file: ~/.config/pal/secret/rest.token
+    endpoints:
+      # conceptually: /<palette>/list, /<palette>/pick
+      allow_list: true
+      allow_pick: true
+    cors:
+      enabled: false
+
+data_examples:
+  # not actually read by pal; just showing what the JSON files might look like.
+  # keep these as separate real files under ~/.config/pal/data/
+
+  files:
+    tabs_json: "~/.config/pal/data/tabs.json"
+    bookmarks_json: "~/.config/pal/data/bookmarks.json"
+    commands_json: "~/.config/pal/data/commands.json"
+    chars_json: "~/.config/pal/data/chars.json"
+    nerdfonts_index_json: "~/.config/pal/data/nerdfonts-index.json"
