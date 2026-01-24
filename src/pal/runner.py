@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Dict, List
 
 from .config import load_settings
 from .actions import actions
 from . import frontends
 from . import palettes
+
+CACHE_DIR = Path("~/.cache/pal/fe").expanduser()
 
 
 class Runner:
@@ -17,10 +21,30 @@ class Runner:
 
     def run_palette(self, palname: str) -> None:
         pal_cfg = self._resolve_cfg(palname)
-        items = self._list(palname, pal_cfg)
-        picked = self.fe.run(self.fe_cfg, palname, items)
+
+        if pal_cfg.get("cache"):
+            picked = self._run_cached(palname, pal_cfg)
+        else:
+            items = self._list(palname, pal_cfg)
+            picked = self.fe.run(self.fe_cfg, palname, items)
+
         if picked:
             self._pick(pal_cfg, picked)
+
+    def _run_cached(self, palname: str, pal_cfg: Dict[str, Any]) -> Dict[str, Any] | None:
+        """Cold cache run: list, write cache, run frontend normally."""
+        items = self._list(palname, pal_cfg)
+        cmd, fe_input, clean_items = self.fe.prepare(self.fe_cfg, palname, items)
+        self._write_cache(self._cache_path(palname), cmd, fe_input, clean_items)
+        return self.fe.run(self.fe_cfg, palname, items)
+
+    def _cache_path(self, palname: str) -> Path:
+        path = CACHE_DIR / self.fe_name / f"{palname}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _write_cache(self, path: Path, cmd: List[str], fe_input: str, items: List[Dict[str, Any]]) -> None:
+        path.write_text(json.dumps({"cmd": cmd, "input": fe_input, "items": items}))
 
     def _resolve_cfg(self, palname: str) -> Dict[str, Any]:
         all_palettes = self.cfg.get("PALETTES", {})

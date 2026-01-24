@@ -15,7 +15,8 @@ def _fmt_line(idx: int, palette: str, item: Dict[str, Any]) -> str:
     return f"{idx}\t[{palette}]\t{name}\t{desc}"
 
 
-def run(cfg: Dict[str, Any], palette: str, items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def prepare(cfg: Dict[str, Any], palette: str, items: List[Dict[str, Any]]) -> tuple[List[str], str, List[Dict[str, Any]]]:
+    """Build command and input for fzf. Returns (cmd, input, clean_items)."""
     fzf_bin = _expand(str(cfg.get("bin", "fzf")))
     extra_args = cfg.get("args") or []
     if not isinstance(extra_args, list):
@@ -30,9 +31,6 @@ def run(cfg: Dict[str, Any], palette: str, items: List[Dict[str, Any]]) -> Optio
         clean_items.append(it)
         lines.append(_fmt_line(idx, palette, it))
 
-    if not lines:
-        return None
-
     cmd = [
         fzf_bin,
         "--delimiter=\t",
@@ -42,22 +40,28 @@ def run(cfg: Dict[str, Any], palette: str, items: List[Dict[str, Any]]) -> Optio
         f"{palette}> ",
     ] + [str(a) for a in extra_args]
 
-    p = subprocess.run(
-        cmd,
-        input="\n".join(lines),
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    return cmd, "\n".join(lines), clean_items
 
-    if p.returncode != 0: return None
+
+def run(cfg: Dict[str, Any], palette: str, items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    cmd, fe_input, clean_items = prepare(cfg, palette, items)
+    if not clean_items:
+        return None
+
+    p = subprocess.run(cmd, input=fe_input, text=True, capture_output=True, check=False)
+    if p.returncode != 0:
+        return None
 
     sel = (p.stdout or "").strip()
-    if not sel: return None
+    if not sel:
+        return None
 
     idx_str = sel.split("\t", 1)[0]
-    try: idx = int(idx_str)
-    except ValueError: return None
+    try:
+        idx = int(idx_str)
+    except ValueError:
+        return None
 
-    if idx < 0 or idx >= len(clean_items): return None
-    return clean_items[idx]
+    if 0 <= idx < len(clean_items):
+        return clean_items[idx]
+    return None

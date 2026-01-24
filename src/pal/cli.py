@@ -33,12 +33,12 @@ def run(
     frontend: str = typer.Argument(None),
     palette: str = typer.Argument(None),
 ):
-    """Run the palette picker."""
+    """Run the palette picker (cold path — builds cache)."""
     cfg = load_settings().as_dict()
     palcfg = cfg.get("PAL") or {}
 
-    fe_name = frontend or palcfg.get("default_frontend")
-    palname = palette or palcfg.get("default_palette")
+    fe_name = frontend or palcfg.get("default_frontend") or "fzf"
+    palname = palette or palcfg.get("default_palette") or "combine"
 
     runner = Runner(fe_name, cfg)
     runner.run_palette(palname)
