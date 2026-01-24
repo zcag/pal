@@ -1,0 +1,3 @@
+{"id": "lock", "name": "Lock screen", "cmd": "loginctl lock-session"}
+{"id": "sleep", "name": "Sleep", "cmd": "systemctl suspend"}
+{"id": "reboot", "name": "Reboot", "cmd": "systemctl reboot"}

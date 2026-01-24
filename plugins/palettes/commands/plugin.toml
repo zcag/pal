@@ -1,0 +1,8 @@
+name = "commands"
+desc = "run preset commands"
+version = "0.1"
+
+contract_version = "0.0.1"
+command = ["run.sh"]
+used_capabilities = ["actions/bashcmd"]
+requirements = ["jq"]
