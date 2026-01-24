@@ -7,11 +7,11 @@ venv:
 	python3 -m venv $(VENV)
 	$(PIP) install -U pip
 
-dev: venv
-	$(PIP) install -e .
+dev:
+	pipx install -e .
 
 run: dev
-	$(VENV)/bin/pal --help
+	pal --help
 
 test: venv
 	$(PIP) install -e ".[test]"
