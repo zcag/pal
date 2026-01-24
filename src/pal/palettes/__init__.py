@@ -14,10 +14,14 @@ class Palette(Protocol):
     def pick(self, cfg: Dict[str, Any], name: str, runner: "Runner") -> None: ...
 
 
-def load(name: str) -> Palette:
-    """Dynamically load a palette module by name."""
-    mod = importlib.import_module(f".{name}", package="pal.palettes")
-    return mod
+def load(base: str) -> Palette:
+    """Load a palette by base string (builtin name, github url, or path)."""
+    from ..plugins import resolve, ExecPalette
+
+    resolved = resolve(base)
+    if isinstance(resolved, str):
+        return importlib.import_module(f".{resolved}", package="pal.palettes")
+    return ExecPalette(resolved)
 
 
 def load_data(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:

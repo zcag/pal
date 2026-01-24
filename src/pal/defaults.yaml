@@ -3,7 +3,7 @@ pal:
   default_palette: combine
   default_frontend: fzf
   paths:
-    custom_dir: "~/.config/pal/palettes.d"
+    plugins_dir: "~/.config/pal/plugins"
     data_dir: "~/.config/pal/data"
     cache_dir: "~/.cache/pal"
 
