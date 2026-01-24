@@ -47,8 +47,5 @@ def pick(cfg: Dict[str, Any], name: str, runner: "Runner") -> None:
             pal_cfg = palettes_cfg.get(palname, {}).copy()
             pal_cfg["_palettes_cfg"] = palettes_cfg
             pal_cfg["_paths"] = cfg.get("_paths")
-            if pal_cfg.get("auto_pick", pal_cfg.get("auto_list")):
-                runner._auto_pick(pal_cfg, item)
-            else:
-                load(pal_cfg.get("base", palname), pal_cfg.get("_paths")).pick(pal_cfg, name, runner)
+            runner._pick(pal_cfg, item)
             return
