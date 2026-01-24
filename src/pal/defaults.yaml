@@ -8,42 +8,33 @@ pal:
     cache_dir: "~/.cache/pal"
 
 palettes:
-  builtins:
-    combine:
-      enabled: true
-      include:
-        - palettes
-        - commands
+  combine:
+    base: combine
+    include:
+      - palettes
+      - commands
 
-    palettes:
-      enabled: true
+  palettes:
+    base: palettes
 
-    apps:
-      enabled: true
+  apps:
+    base: apps
 
-    commands:
-      enabled: true
-      data:
-        - name: ls
-          cmd: "ls -larth"
-        - name: tr
-          cmd: "tree"
-        - name: tete
-          cmd: "echo asdkfjlh"
-
-  custom:
-    # example external palette (executable contract: `list`, `pick <id>`)
-    # docker:
-    #   enabled: true
-    #   exec: "~/.config/pal/palettes.d/docker"
+  commands:
+    auto_list: true
+    data:
+      - name: ls
+        cmd: "ls -larth"
+      - name: tr
+        cmd: "tree"
+      - name: tete
+        cmd: "echo asdkfjlh"
 
 frontends:
   fzf:
-    enabled: true
     bin: fzf
     args: []
 
   rofi:
-    enabled: true
     bin: rofi
     args: ["-normal-window"]

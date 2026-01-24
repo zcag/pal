@@ -2,23 +2,29 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, TYPE_CHECKING
 
-from . import load
+from . import load, load_data
 
 if TYPE_CHECKING:
     from ..runner import Runner
+
+
+def _list_palette(palname: str, pal_cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if pal_cfg.get("auto_list"):
+        return load_data(pal_cfg)
+    base = pal_cfg.get("base", palname)
+    return load(base).list(pal_cfg)
 
 
 def list(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """List items from configured palettes."""
     items: List[Dict[str, Any]] = []
     palettes_cfg = cfg.get("_palettes_cfg", {})
-    include = cfg.get("include", [])
 
-    for palname in include:
-        pal_cfg = palettes_cfg.get(palname, {})
+    for palname in cfg.get("include", []):
+        pal_cfg = palettes_cfg.get(palname, {}).copy()
+        pal_cfg["_palettes_cfg"] = palettes_cfg
         try:
-            pal = load(palname)
-            for item in pal.list(pal_cfg):
+            for item in _list_palette(palname, pal_cfg):
                 item = item.copy()
                 item["_palette"] = palname
                 items.append(item)
@@ -35,8 +41,12 @@ def pick(cfg: Dict[str, Any], name: str, runner: "Runner") -> None:
     for item in list(cfg):
         if item.get("name") == name:
             palname = item.get("_palette")
-            if palname:
-                pal = load(palname)
-                pal_cfg = palettes_cfg.get(palname, {})
-                pal.pick(pal_cfg, name, runner)
+            if not palname:
+                return
+            pal_cfg = palettes_cfg.get(palname, {}).copy()
+            pal_cfg["_palettes_cfg"] = palettes_cfg
+            if pal_cfg.get("auto_pick", pal_cfg.get("auto_list")):
+                runner._auto_pick(pal_cfg, item)
+            else:
+                load(pal_cfg.get("base", palname)).pick(pal_cfg, name, runner)
             return

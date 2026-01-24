@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from .config import load_settings
+from .actions import actions
 from . import frontends
 from . import palettes
 
@@ -15,12 +16,31 @@ class Runner:
         self.fe_cfg = self.cfg.get("FRONTENDS", {}).get(fe_name, {})
 
     def run_palette(self, palname: str) -> None:
-        pal = palettes.load(palname)
-        builtins = self.cfg.get("PALETTES", {}).get("builtins", {})
-        pal_cfg = builtins.get(palname, {}).copy()
-        pal_cfg["_palettes_cfg"] = builtins
+        all_palettes = self.cfg.get("PALETTES", {})
+        pal_cfg = all_palettes.get(palname, {}).copy()
+        pal_cfg["_palettes_cfg"] = all_palettes
 
-        items = pal.list(pal_cfg)
+        if pal_cfg.get("auto_list"):
+            items = palettes.load_data(pal_cfg)
+        else:
+            items = palettes.load(pal_cfg.get("base", palname)).list(pal_cfg)
+
         picked = self.fe.run(self.fe_cfg, palname, items)
-        if picked:
-            pal.pick(pal_cfg, picked.get("name"), self)
+        if not picked:
+            return
+
+        if pal_cfg.get("auto_pick", pal_cfg.get("auto_list")):
+            self._auto_pick(pal_cfg, picked)
+        else:
+            palettes.load(pal_cfg.get("base", palname)).pick(pal_cfg, picked.get("name"), self)
+
+    def _auto_pick(self, cfg: Dict[str, Any], item: Dict[str, Any]) -> None:
+        """Dispatch pick action based on item fields."""
+        if "cmd" in item:
+            actions.run_bash(item["cmd"])
+        elif "url" in item:
+            actions.open_url(item["url"])
+        elif "file" in item:
+            actions.open_file(item["file"])
+        elif "copy" in item:
+            actions.copy_to_clipboard(item["copy"])
