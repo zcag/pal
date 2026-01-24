@@ -92,7 +92,7 @@ mod tests {
     fn loads_default_config() {
         let cli = Cli { config: String::new(), log_level: None, command: None };
         let cfg = Config::load("pal.default.toml", &cli).unwrap();
-        assert_eq!(cfg.general.default_palette, "combine");
+        assert_eq!(cfg.general.default_palette, "mycommands");
         assert_eq!(cfg.general.default_frontend, "fzf");
         assert_eq!(cfg.palette.len(), 6);
         assert_eq!(cfg.palette["combine"].include, vec!["palettes", "commands"]);
