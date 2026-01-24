@@ -1,0 +1,7 @@
+{
+  "name": "psg",
+  "description": "Process picker - search and kill processes",
+  "version": "0.1.0",
+  "requirements": ["ps", "kill"],
+  "config": {}
+}

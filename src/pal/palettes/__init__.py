@@ -14,11 +14,11 @@ class Palette(Protocol):
     def pick(self, cfg: Dict[str, Any], name: str, runner: "Runner") -> None: ...
 
 
-def load(base: str) -> Palette:
+def load(base: str, paths: Dict[str, Any] | None = None) -> Palette:
     """Load a palette by base string (builtin name, github url, or path)."""
     from ..plugins import resolve, ExecPalette
 
-    resolved = resolve(base)
+    resolved = resolve(base, paths)
     if isinstance(resolved, str):
         return importlib.import_module(f".{resolved}", package="pal.palettes")
     return ExecPalette(resolved)

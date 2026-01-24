@@ -1,0 +1,28 @@
+#!/bin/bash
+
+list_items() {
+    ps aux --no-headers | awk '{
+        pid=$2; user=$1; cpu=$3; mem=$4;
+        cmd=""; for(i=11;i<=NF;i++) cmd=cmd (i>11?" ":"") $i;
+        if (pid != PROCINFO["pid"] && cmd !~ /pal/) {
+            gsub(/"/, "\\\"", cmd);
+            printf "{\"name\":\"%s\",\"desc\":\"%s cpu=%.1f%% mem=%.1f%%\",\"pid\":\"%s\"}\n", cmd, user, cpu, mem, pid
+        }
+    }'
+}
+
+pick_item() {
+    local name="$1"
+    # find pid from process list
+    local pid
+    pid=$(ps aux --no-headers | awk -v cmd="$name" '{
+        c=""; for(i=11;i<=NF;i++) c=c (i>11?" ":"") $i;
+        if (c == cmd) { print $2; exit }
+    }')
+    [ -n "$pid" ] && kill "$pid"
+}
+
+case "$1" in
+    list) list_items ;;
+    pick) pick_item "$2" ;;
+esac

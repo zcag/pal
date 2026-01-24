@@ -17,13 +17,15 @@ class Runner:
 
     def run_palette(self, palname: str) -> None:
         all_palettes = self.cfg.get("PALETTES", {})
+        paths = self.cfg.get("PAL", {}).get("paths", {})
         pal_cfg = all_palettes.get(palname, {}).copy()
         pal_cfg["_palettes_cfg"] = all_palettes
+        pal_cfg["_paths"] = paths
 
         if pal_cfg.get("auto_list"):
             items = palettes.load_data(pal_cfg)
         else:
-            items = palettes.load(pal_cfg.get("base", palname)).list(pal_cfg)
+            items = palettes.load(pal_cfg.get("base", palname), paths).list(pal_cfg)
 
         picked = self.fe.run(self.fe_cfg, palname, items)
         if not picked:
@@ -32,7 +34,7 @@ class Runner:
         if pal_cfg.get("auto_pick", pal_cfg.get("auto_list")):
             self._auto_pick(pal_cfg, picked)
         else:
-            palettes.load(pal_cfg.get("base", palname)).pick(pal_cfg, picked.get("name"), self)
+            palettes.load(pal_cfg.get("base", palname), paths).pick(pal_cfg, picked.get("name"), self)
 
     def _auto_pick(self, cfg: Dict[str, Any], item: Dict[str, Any]) -> None:
         """Dispatch pick action based on item fields."""

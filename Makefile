@@ -8,7 +8,9 @@ venv:
 	$(PIP) install -U pip
 
 dev:
-	pipx install -e .
+	pipx install --force -e .
+	mkdir -p ~/.cache/pal/plugins/github.com/zcag
+	ln -sfn $(CURDIR) ~/.cache/pal/plugins/github.com/zcag/pal
 
 run: dev
 	pal --help

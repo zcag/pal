@@ -8,29 +8,32 @@ from typing import Any, Dict, List, TYPE_CHECKING
 if TYPE_CHECKING:
     from .runner import Runner
 
-CACHE_DIR = Path("~/.cache/pal/plugins").expanduser()
-PLUGINS_DIR = Path("~/.config/pal/plugins").expanduser()
 BUILTINS = {"apps", "combine", "palettes"}
 
 
-def resolve(base: str) -> str | Path:
+def resolve(base: str, paths: Dict[str, Any] | None = None) -> str | Path:
     """Resolve a base string to either a builtin name or executable path."""
     if base in BUILTINS:
         return base
     if base.startswith("/"):
         return Path(base)
     if base.startswith("github.com/"):
-        return _resolve_github(base)
-    return PLUGINS_DIR / base
+        return _resolve_github(base, paths)
+    # relative path (contains /) resolves from cwd
+    if "/" in base:
+        return Path(base).resolve()
+    # bare name resolves from plugins_dir
+    plugins_dir = Path((paths or {}).get("plugins_dir", "~/.config/pal/plugins")).expanduser()
+    return plugins_dir / base
 
 
-def _resolve_github(base: str) -> Path:
+def _resolve_github(base: str, paths: Dict[str, Any] | None = None) -> Path:
     """Clone github repo if needed, return path to executable."""
+    cache_dir = Path((paths or {}).get("cache_dir", "~/.cache/pal")).expanduser() / "plugins"
     parts = base.split("/")
-    # github.com/user/repo[/name]
     repo_parts = parts[:3]  # github.com/user/repo
     repo_url = f"https://{'/'.join(repo_parts)}.git"
-    clone_dir = CACHE_DIR / "/".join(repo_parts)
+    clone_dir = cache_dir / "/".join(repo_parts)
 
     if not clone_dir.exists():
         clone_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -39,7 +42,6 @@ def _resolve_github(base: str) -> Path:
             check=True, capture_output=True,
         )
 
-    # executable name: explicit path within repo, or repo name
     exec_name = "/".join(parts[3:]) if len(parts) > 3 else parts[2]
     return clone_dir / exec_name
 

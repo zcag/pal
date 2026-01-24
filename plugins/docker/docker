@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+import json
+import subprocess
+import sys
+
+
+def list_items():
+    result = subprocess.run(
+        ["docker", "ps", "-a", "--format", "json"],
+        capture_output=True, text=True,
+    )
+    for line in result.stdout.splitlines():
+        c = json.loads(line)
+        print(json.dumps({
+            "name": c["Names"],
+            "desc": f"{c['Image']} ({c['State']})",
+            "container": c["Names"],
+            "state": c["State"],
+        }))
+
+
+def pick_item(name):
+    subprocess.run(["docker", "restart", name])
+
+
+match sys.argv[1:]:
+    case ["list"]:
+        list_items()
+    case ["pick", name]:
+        pick_item(name)

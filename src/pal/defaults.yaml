@@ -30,6 +30,12 @@ palettes:
       - name: tete
         cmd: "echo asdkfjlh"
 
+  psg:
+    base: github.com/zcag/pal/plugins/psg/psg
+
+  docker:
+    base: github.com/zcag/pal/plugins/docker/docker
+
 frontends:
   fzf:
     bin: fzf

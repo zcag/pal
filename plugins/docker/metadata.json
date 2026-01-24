@@ -1,0 +1,7 @@
+{
+  "name": "docker",
+  "description": "Docker container manager - list and restart containers",
+  "version": "0.1.0",
+  "requirements": ["docker"],
+  "config": {}
+}

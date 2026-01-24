@@ -12,7 +12,7 @@ def _list_palette(palname: str, pal_cfg: Dict[str, Any]) -> List[Dict[str, Any]]
     if pal_cfg.get("auto_list"):
         return load_data(pal_cfg)
     base = pal_cfg.get("base", palname)
-    return load(base).list(pal_cfg)
+    return load(base, pal_cfg.get("_paths")).list(pal_cfg)
 
 
 def list(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -23,6 +23,7 @@ def list(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     for palname in cfg.get("include", []):
         pal_cfg = palettes_cfg.get(palname, {}).copy()
         pal_cfg["_palettes_cfg"] = palettes_cfg
+        pal_cfg["_paths"] = cfg.get("_paths")
         try:
             for item in _list_palette(palname, pal_cfg):
                 item = item.copy()
@@ -45,8 +46,9 @@ def pick(cfg: Dict[str, Any], name: str, runner: "Runner") -> None:
                 return
             pal_cfg = palettes_cfg.get(palname, {}).copy()
             pal_cfg["_palettes_cfg"] = palettes_cfg
+            pal_cfg["_paths"] = cfg.get("_paths")
             if pal_cfg.get("auto_pick", pal_cfg.get("auto_list")):
                 runner._auto_pick(pal_cfg, item)
             else:
-                load(pal_cfg.get("base", palname)).pick(pal_cfg, name, runner)
+                load(pal_cfg.get("base", palname), pal_cfg.get("_paths")).pick(pal_cfg, name, runner)
             return
