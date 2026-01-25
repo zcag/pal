@@ -1,6 +1,5 @@
 use crate::config::Frontend as FrontendConfig;
 use crate::plugin::Plugin;
-use crate::util;
 
 pub struct Frontend {
     plugin: Plugin,
@@ -16,6 +15,6 @@ impl Frontend {
             r#"{{"items": [{items}]}}"#,
             items = items.lines().collect::<Vec<_>>().join(",")
         );
-        util::run_command(self.plugin.exec(), &["run"], Some(&config_with_items))
+        self.plugin.run("run", Some(&config_with_items))
     }
 }

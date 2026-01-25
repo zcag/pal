@@ -30,12 +30,9 @@ impl Plugin {
         }
     }
 
-    pub fn exec(&self) -> &Path {
-        &self.exec
-    }
-
-    pub fn config_str(&self) -> &str {
-        &self.config_str
+    pub fn run(&self, cmd: &str, input: Option<&str>) -> String {
+        let config = input.unwrap_or(&self.config_str);
+        util::run_command(&self.exec, &[cmd], Some(config))
     }
 }
 

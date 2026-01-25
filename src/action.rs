@@ -1,5 +1,4 @@
 use crate::plugin::Plugin;
-use crate::util;
 
 pub struct Action {
     plugin: Plugin,
@@ -16,6 +15,6 @@ impl Action {
     }
 
     pub fn run(&self, value: &str) -> String {
-        util::run_command(self.plugin.exec(), &["run"], Some(value))
+        self.plugin.run("run", Some(value))
     }
 }
