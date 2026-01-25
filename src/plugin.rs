@@ -16,7 +16,7 @@ impl Plugin {
         let plugin_toml = load_plugin_toml(base);
         let config = util::merge_configs(&plugin_toml, user_config);
 
-        let exec = if base.starts_with("src/builtin/") {
+        let exec = if base.starts_with("builtin/") {
             None
         } else {
             let cmd = plugin_toml.get("command")
@@ -48,7 +48,7 @@ impl Plugin {
 }
 
 fn load_plugin_toml(base: &str) -> toml::Value {
-    if let Some(rest) = base.strip_prefix("src/builtin/") {
+    if let Some(rest) = base.strip_prefix("builtin/") {
         load_builtin_toml(rest)
     } else {
         load_toml_file(&Path::new(base).join("plugin.toml"))

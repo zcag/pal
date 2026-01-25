@@ -1,7 +1,7 @@
 mod palettes;
 
 pub fn run(base: &str, cmd: &str, config: &str) -> String {
-    let rest = base.strip_prefix("src/builtin/").unwrap_or(base);
+    let rest = base.strip_prefix("builtin/").unwrap_or(base);
     let (category, name) = rest.split_once('/').unwrap_or((rest, ""));
 
     match category {
