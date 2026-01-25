@@ -12,7 +12,7 @@ default_frontend = "fzf"
   include = ["palettes", "commands"]
 
   [palette.pals]
-  base = "src/builtin/pals"
+  base = "src/builtin/palettes/pals"
   config_file = "pal.default.toml"
 
   [palette.apps]

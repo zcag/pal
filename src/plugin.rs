@@ -48,8 +48,25 @@ impl Plugin {
 }
 
 fn load_plugin_toml(base: &str) -> toml::Value {
-    let path = Path::new(base).join("plugin.toml");
-    match std::fs::read_to_string(&path) {
+    if let Some(rest) = base.strip_prefix("src/builtin/") {
+        load_builtin_toml(rest)
+    } else {
+        load_toml_file(&Path::new(base).join("plugin.toml"))
+    }
+}
+
+fn load_builtin_toml(rest: &str) -> toml::Value {
+    // rest is like "palettes/pals" -> extract [palettes.pals] from builtin.toml
+    let parts: Vec<&str> = rest.split('/').collect();
+    let toml = load_toml_file(Path::new("src/builtin/builtin.toml"));
+
+    parts.iter().fold(toml, |v, key| {
+        v.get(key).cloned().unwrap_or(toml::Value::Table(Default::default()))
+    })
+}
+
+fn load_toml_file(path: &Path) -> toml::Value {
+    match std::fs::read_to_string(path) {
         Ok(s) => s.parse().unwrap_or_else(|e| {
             eprintln!("failed to parse {}: {e}", path.display());
             process::exit(1);
