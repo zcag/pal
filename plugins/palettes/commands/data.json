@@ -1,3 +1,3 @@
-{"id": "ls", "name": "Test ls", "cmd": "ls -larth"}
-{"id": "tree", "name": "Test tree", "cmd": "tree"}
-{"id": "noti", "name": "Test noti", "cmd": "notify-send aaa"}
+{"id": "ls", "name": "Test ls", "icon": "", "cmd": "ls -larth"}
+{"id": "tree", "name": "Test tree", "icon": "", "cmd": "tree"}
+{"id": "noti", "name": "Test noti", "icon": "", "cmd": "notify-send aaa"}

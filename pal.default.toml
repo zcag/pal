@@ -37,9 +37,7 @@ default_frontend = "fzf"
 [frontend]
 
   [frontend.fzf]
-  bin = "fzf"
-  args = []
+  base = "plugins/frontends/fzf"
 
   [frontend.rofi]
-  bin = "rofi"
-  args = ["-normal-window"]
+  base = "plugins/frontends/rofi"

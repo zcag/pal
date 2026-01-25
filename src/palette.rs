@@ -14,4 +14,8 @@ impl Palette {
     pub fn list(&self) -> String {
         util::run_command(self.plugin.exec(), &["list"], Some(self.plugin.config_str()))
     }
+
+    pub fn pick(&self, selected: &str) -> String {
+        util::run_command(self.plugin.exec(), &["pick"], Some(selected))
+    }
 }

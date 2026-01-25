@@ -39,9 +39,7 @@ pub struct Palette {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Frontend {
-    pub bin: String,
-    #[serde(default)]
-    pub args: Vec<String>,
+    pub base: Option<String>,
 }
 
 impl Default for General {
@@ -76,10 +74,7 @@ impl Config {
         Self {
             general: General::default(),
             palette: HashMap::new(),
-            frontend: HashMap::from([(
-                "fzf".into(),
-                Frontend { bin: "fzf".into(), args: vec![] },
-            )]),
+            frontend: HashMap::new(),
         }
     }
 }
@@ -97,6 +92,6 @@ mod tests {
         assert_eq!(cfg.palette.len(), 6);
         assert_eq!(cfg.palette["combine"].include, vec!["palettes", "commands"]);
         assert!(cfg.palette["psg"].auto_pick);
-        assert_eq!(cfg.frontend["rofi"].args, vec!["-normal-window"]);
+        assert_eq!(cfg.frontend["rofi"].base.as_deref(), Some("plugins/frontends/rofi"));
     }
 }

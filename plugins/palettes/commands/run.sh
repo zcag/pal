@@ -7,7 +7,9 @@ list() {
 }
 
 pick() {
-  bash -c "$(jq '.url' <<< $cfg)"
+  item=$(cat)
+  cmd=$(jq -r '.cmd' <<< "$item")
+  bash -c "$cmd"
 }
 
 CMD=$1; shift;
