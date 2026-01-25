@@ -36,9 +36,14 @@ fn pick(input: &str) -> String {
         return String::new();
     }
 
-    Command::new("pal")
-        .args(["run", "--", palette])
-        .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-        .unwrap_or_default()
+    let frontend = std::env::var("PAL_FRONTEND").unwrap_or_default();
+    let mut args = vec!["run"];
+    if !frontend.is_empty() {
+        args.push(&frontend);
+    }
+    args.push(palette);
+
+    let _ = Command::new("pal").args(&args).status();
+
+    String::new()
 }

@@ -67,6 +67,8 @@ fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
     let frontend_name = frontend_arg.unwrap_or(&cfg.general.default_frontend);
     let frontend_cfg = cfg.frontend.get(frontend_name).expect_exit(&format!("frontend not found: {frontend_name}"));
 
+    std::env::set_var("PAL_FRONTEND", frontend_name);
+
     let items = list(palette_cfg);
     let selected = select(frontend_cfg, &items);
     if let Some(selected) = selected {

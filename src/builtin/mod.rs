@@ -1,6 +1,7 @@
 mod pals;
 
-pub fn run(path: &str, cmd: &str, config: &toml::Value, input: Option<&str>) -> String {
+pub fn run(base: &str, cmd: &str, config: &toml::Value, input: Option<&str>) -> String {
+    let path = base.strip_prefix("builtin/").unwrap_or(base);
     match path {
         "palettes/pals" => pals::run(cmd, config, input),
         _ => {
