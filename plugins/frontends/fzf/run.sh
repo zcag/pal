@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 run() {
-  cfg=$(cat)
-  items=$(jq -c '.items[]' <<< "$cfg")
+  items=$(cat)
 
   # display: "id\ticon name" - fzf shows only icon+name, we get id back
   selected=$(echo "$items" | jq -r '"\(.id)\t\(.icon // "") \(.name)"' | fzf --with-nth=2.. --prompt="pal> ")

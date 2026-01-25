@@ -1,9 +1,9 @@
 use std::process::Command;
 use serde_json::json;
 
-pub fn run(cmd: &str, config: &toml::Value, input: Option<&str>) -> String {
+pub fn run(cmd: &str, input: Option<&str>) -> String {
     match cmd {
-        "list" => list(config),
+        "list" => list(),
         "pick" => pick(input.unwrap_or("")),
         _ => {
             eprintln!("pals: unknown command: {cmd}");
@@ -12,8 +12,14 @@ pub fn run(cmd: &str, config: &toml::Value, input: Option<&str>) -> String {
     }
 }
 
-fn list(config: &toml::Value) -> String {
-    let config_file = config.get("config_file")
+fn config() -> serde_json::Value {
+    let s = std::env::var("_PAL_PLUGIN_CONFIG").unwrap_or_default();
+    serde_json::from_str(&s).unwrap_or_default()
+}
+
+fn list() -> String {
+    let cfg = config();
+    let config_file = cfg.get("config_file")
         .and_then(|v| v.as_str())
         .unwrap_or("pal.default.toml");
 

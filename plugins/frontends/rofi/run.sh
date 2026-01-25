@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 run() {
-  cfg=$(cat)
-  items=$(jq -c '.items[]' <<< "$cfg")
+  items=$(cat)
 
   # display: "id\ticon name" - rofi shows only icon+name via -display-columns
   selected=$(echo "$items" | jq -r '"\(.id)\t\(.icon // "") \(.name)"' | rofi -dmenu -i -p "pal" -display-columns 2)

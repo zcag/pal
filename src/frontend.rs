@@ -11,10 +11,6 @@ impl Frontend {
     }
 
     pub fn run(&self, items: &str) -> String {
-        let config_with_items = format!(
-            r#"{{"items": [{items}]}}"#,
-            items = items.lines().collect::<Vec<_>>().join(",")
-        );
-        self.plugin.run("run", Some(&config_with_items))
+        self.plugin.run("run", Some(items))
     }
 }

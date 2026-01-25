@@ -34,12 +34,13 @@ impl Plugin {
     }
 
     pub fn run(&self, cmd: &str, input: Option<&str>) -> String {
+        let config_str = serde_json::to_string(&self.config).unwrap();
+        std::env::set_var("_PAL_PLUGIN_CONFIG", &config_str);
+
         if let Some(exec) = &self.exec {
-            let config_str = serde_json::to_string(&self.config).unwrap();
-            let data = input.unwrap_or(&config_str);
-            util::run_command(exec, &[cmd], Some(data))
+            util::run_command(exec, &[cmd], input)
         } else {
-            builtin::run(&self.base, cmd, &self.config, input)
+            builtin::run(&self.base, cmd, input)
         }
     }
 }

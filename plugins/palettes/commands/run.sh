@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 list() {
-  cfg=$(cat)
-  data=$(jq -r '.data' <<< "$cfg")
+  data=$(jq -r '.data' <<< "$_PAL_PLUGIN_CONFIG")
   cat "$data"
 }
 

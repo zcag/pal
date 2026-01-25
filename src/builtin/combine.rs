@@ -1,9 +1,9 @@
 use crate::config::Config;
 use crate::palette::Palette;
 
-pub fn run(cmd: &str, config: &toml::Value, input: Option<&str>) -> String {
+pub fn run(cmd: &str, input: Option<&str>) -> String {
     match cmd {
-        "list" => list(config),
+        "list" => list(),
         "pick" => pick(input.unwrap_or("")),
         _ => {
             eprintln!("combine: unknown command: {cmd}");
@@ -12,18 +12,24 @@ pub fn run(cmd: &str, config: &toml::Value, input: Option<&str>) -> String {
     }
 }
 
-fn list(config: &toml::Value) -> String {
-    let include = config.get("include")
+fn config() -> serde_json::Value {
+    let s = std::env::var("_PAL_PLUGIN_CONFIG").unwrap_or_default();
+    serde_json::from_str(&s).unwrap_or_default()
+}
+
+fn list() -> String {
+    let cfg = config();
+    let include = cfg.get("include")
         .and_then(|v| v.as_array())
-        .map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
+        .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>())
         .unwrap_or_default();
 
     let config_path = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
-    let cfg = Config::load(&config_path, &crate::Cli::default()).unwrap();
+    let pal_cfg = Config::load(&config_path, &crate::Cli::default()).unwrap();
 
     include.iter()
         .flat_map(|palette_name| {
-            let Some(palette_cfg) = cfg.palette.get(*palette_name) else {
+            let Some(palette_cfg) = pal_cfg.palette.get(palette_name) else {
                 return vec![];
             };
             let Some(base) = &palette_cfg.base else {
