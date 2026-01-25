@@ -1,15 +1,10 @@
-mod palettes;
+mod pals;
 
-pub fn run(base: &str, cmd: &str, config: &str) -> String {
-    let rest = base.strip_prefix("builtin/").unwrap_or(base);
-    let (category, name) = rest.split_once('/').unwrap_or((rest, ""));
-
-    match category {
-        "palettes" => palettes::run(name, cmd, config),
-        "frontends" => todo!("no builtin frontends yet"),
-        "actions" => todo!("no builtin actions yet"),
+pub fn run(path: &str, cmd: &str, config: &toml::Value, input: Option<&str>) -> String {
+    match path {
+        "palettes/pals" => pals::run(cmd, config, input),
         _ => {
-            eprintln!("unknown builtin category: {category}");
+            eprintln!("unknown builtin: {path}");
             std::process::exit(1);
         }
     }

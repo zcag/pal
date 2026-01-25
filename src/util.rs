@@ -30,37 +30,19 @@ pub fn run_command(exec: &Path, args: &[&str], stdin_data: Option<&str>) -> Stri
     String::from_utf8_lossy(&output.stdout).into_owned()
 }
 
-pub fn merge_configs(plugin_toml: &toml::Value, user_config: &impl Serialize) -> serde_json::Value {
-    let mut combined = serde_json::Map::new();
+pub fn merge_configs(plugin_toml: &toml::Value, user_config: &impl Serialize) -> toml::Value {
+    let mut combined = toml::map::Map::new();
     if let toml::Value::Table(t) = plugin_toml {
         for (k, v) in t {
-            combined.insert(k.clone(), toml_to_json(v));
+            combined.insert(k.clone(), v.clone());
         }
     }
-    if let serde_json::Value::Object(obj) = serde_json::to_value(user_config).unwrap() {
-        for (k, v) in obj {
-            if !v.is_null() {
-                combined.insert(k, v);
-            }
+    // Convert user_config to toml::Value and merge
+    let user_toml: toml::Value = toml::Value::try_from(user_config).unwrap_or(toml::Value::Table(Default::default()));
+    if let toml::Value::Table(t) = user_toml {
+        for (k, v) in t {
+            combined.insert(k, v);
         }
     }
-    serde_json::Value::Object(combined)
-}
-
-pub fn toml_to_json(v: &toml::Value) -> serde_json::Value {
-    match v {
-        toml::Value::String(s) => serde_json::Value::String(s.clone()),
-        toml::Value::Integer(i) => serde_json::json!(*i),
-        toml::Value::Float(f) => serde_json::json!(*f),
-        toml::Value::Boolean(b) => serde_json::Value::Bool(*b),
-        toml::Value::Array(a) => serde_json::Value::Array(a.iter().map(toml_to_json).collect()),
-        toml::Value::Table(t) => {
-            let mut map = serde_json::Map::new();
-            for (k, val) in t {
-                map.insert(k.clone(), toml_to_json(val));
-            }
-            serde_json::Value::Object(map)
-        }
-        toml::Value::Datetime(d) => serde_json::Value::String(d.to_string()),
-    }
+    toml::Value::Table(combined)
 }

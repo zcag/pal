@@ -8,7 +8,7 @@ use crate::{builtin, util};
 pub struct Plugin {
     base: String,
     exec: Option<PathBuf>,
-    config_str: String,
+    config: toml::Value,
 }
 
 impl Plugin {
@@ -30,19 +30,16 @@ impl Plugin {
             Some(Path::new(base).join(cmd))
         };
 
-        Self {
-            base: base.to_string(),
-            exec,
-            config_str: serde_json::to_string(&config).unwrap(),
-        }
+        Self { base: base.to_string(), exec, config }
     }
 
     pub fn run(&self, cmd: &str, input: Option<&str>) -> String {
-        let config = input.unwrap_or(&self.config_str);
         if let Some(exec) = &self.exec {
-            util::run_command(exec, &[cmd], Some(config))
+            let config_str = serde_json::to_string(&self.config).unwrap();
+            let data = input.unwrap_or(&config_str);
+            util::run_command(exec, &[cmd], Some(data))
         } else {
-            builtin::run(&self.base, cmd, config)
+            builtin::run(&self.base, cmd, &self.config, input)
         }
     }
 }
