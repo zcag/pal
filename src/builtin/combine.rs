@@ -17,6 +17,11 @@ fn config() -> serde_json::Value {
     serde_json::from_str(&s).unwrap_or_default()
 }
 
+fn pal_config() -> Config {
+    let path = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
+    Config::load(&path, &crate::Cli::default()).unwrap()
+}
+
 fn list() -> String {
     let cfg = config();
     let include = cfg.get("include")
@@ -24,20 +29,16 @@ fn list() -> String {
         .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>())
         .unwrap_or_default();
 
-    let config_path = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
-    let pal_cfg = Config::load(&config_path, &crate::Cli::default()).unwrap();
+    let pal_cfg = pal_config();
 
     include.iter()
         .flat_map(|palette_name| {
             let Some(palette_cfg) = pal_cfg.palette.get(palette_name) else {
                 return vec![];
             };
-            let Some(base) = &palette_cfg.base else {
-                return vec![];
-            };
 
-            let output = Palette::new(base, palette_cfg).list();
-            output.lines()
+            Palette::new(palette_cfg).list()
+                .lines()
                 .filter_map(|line| {
                     let mut item: serde_json::Value = serde_json::from_str(line).ok()?;
                     item.as_object_mut()?.insert("_source".into(), serde_json::json!(palette_name));
@@ -57,15 +58,10 @@ fn pick(input: &str) -> String {
         return String::new();
     }
 
-    let config_path = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
-    let cfg = Config::load(&config_path, &crate::Cli::default()).unwrap();
-
+    let cfg = pal_config();
     let Some(palette_cfg) = cfg.palette.get(source) else {
         return String::new();
     };
-    let Some(base) = &palette_cfg.base else {
-        return String::new();
-    };
 
-    Palette::new(base, palette_cfg).pick(input)
+    Palette::new(palette_cfg).pick(input)
 }

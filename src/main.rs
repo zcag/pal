@@ -8,7 +8,6 @@ mod util;
 
 use std::process;
 
-use action::Action;
 use clap::Parser;
 use config::Config;
 use frontend::Frontend;
@@ -89,13 +88,7 @@ fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
 }
 
 fn list(cfg: &config::Palette) -> String {
-    if cfg.auto_list {
-        let path = cfg.data.as_ref().expect_exit("auto_list requires 'data' path");
-        std::fs::read_to_string(path).expect_exit(&format!("failed to read {path}"))
-    } else {
-        let base = cfg.base.as_ref().expect_exit("palette has no base");
-        Palette::new(base, cfg).list()
-    }
+    Palette::new(cfg).list()
 }
 
 fn select(cfg: &config::Frontend, items: &str) -> Option<String> {
@@ -105,17 +98,7 @@ fn select(cfg: &config::Frontend, items: &str) -> Option<String> {
 }
 
 fn pick(cfg: &config::Palette, selected: &str) {
-    let output = if cfg.auto_pick {
-        let action_name = cfg.default_action.as_ref().expect_exit("auto_pick requires 'default_action'");
-        let action_key = cfg.action_key.as_ref().expect_exit("auto_pick requires 'action_key'");
-        let json: serde_json::Value = serde_json::from_str(selected).expect_exit("failed to parse selected");
-        let value = json.get(action_key).and_then(|v| v.as_str()).expect_exit(&format!("missing '{action_key}'"));
-        Action::new(action_name).run(value)
-    } else {
-        let base = cfg.base.as_ref().expect_exit("palette has no base");
-        Palette::new(base, cfg).pick(selected)
-    };
-    print!("{output}");
+    print!("{}", Palette::new(cfg).pick(selected));
 }
 
 trait ExpectExit<T> {
