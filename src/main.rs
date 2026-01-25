@@ -14,7 +14,7 @@ use config::Config;
 use frontend::Frontend;
 use palette::Palette;
 
-#[derive(Parser)]
+#[derive(Parser, Default)]
 #[command(name = "pal", about = "pal - palette tool")]
 pub struct Cli {
     /// Path to config file
@@ -27,6 +27,16 @@ pub struct Cli {
 
     #[command(subcommand)]
     pub command: Option<Command>,
+}
+
+impl Cli {
+    pub fn default() -> Self {
+        Self {
+            config: "pal.default.toml".into(),
+            log_level: None,
+            command: None,
+        }
+    }
 }
 
 #[derive(clap::Subcommand)]
@@ -53,6 +63,8 @@ fn main() {
 }
 
 fn dispatch(cli: Cli, cfg: Config) {
+    std::env::set_var("_PAL_CONFIG", &cli.config);
+
     match cli.command {
         Some(Command::ShowConfig) => println!("{cfg:#?}"),
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
@@ -67,7 +79,7 @@ fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
     let frontend_name = frontend_arg.unwrap_or(&cfg.general.default_frontend);
     let frontend_cfg = cfg.frontend.get(frontend_name).expect_exit(&format!("frontend not found: {frontend_name}"));
 
-    std::env::set_var("PAL_FRONTEND", frontend_name);
+    std::env::set_var("_PAL_FRONTEND", frontend_name);
 
     let items = list(palette_cfg);
     let selected = select(frontend_cfg, &items);

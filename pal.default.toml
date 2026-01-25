@@ -1,15 +1,13 @@
 [general]
-# default_palette = "combine"
-default_palette = "pals"
+default_palette = "combine"
 default_frontend = "fzf"
 
 
 [palette]
 
   [palette.combine]
-  base = "combine"
-  cache = true
-  include = ["palettes", "commands"]
+  base = "builtin/palettes/combine"
+  include = ["pals", "quickcmds"]
 
   [palette.pals]
   base = "builtin/palettes/pals"

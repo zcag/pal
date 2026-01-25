@@ -36,7 +36,7 @@ fn pick(input: &str) -> String {
         return String::new();
     }
 
-    let frontend = std::env::var("PAL_FRONTEND").unwrap_or_default();
+    let frontend = std::env::var("_PAL_FRONTEND").unwrap_or_default();
     let mut args = vec!["run"];
     if !frontend.is_empty() {
         args.push(&frontend);

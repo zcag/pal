@@ -3,3 +3,9 @@ name = "pals"
 desc = "list and run palettes"
 version = "0.1"
 contract_version = "0.0.1"
+
+[palettes.combine]
+name = "combine"
+desc = "combine multiple palettes"
+version = "0.1"
+contract_version = "0.0.1"
