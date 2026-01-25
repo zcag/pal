@@ -3,10 +3,11 @@ use std::process;
 
 use serde::Serialize;
 
-use crate::util;
+use crate::{builtin, util};
 
 pub struct Plugin {
-    exec: PathBuf,
+    base: String,
+    exec: Option<PathBuf>,
     config_str: String,
 }
 
@@ -15,24 +16,34 @@ impl Plugin {
         let plugin_toml = load_plugin_toml(base);
         let config = util::merge_configs(&plugin_toml, user_config);
 
-        let cmd = plugin_toml.get("command")
-            .and_then(|v| v.as_array())
-            .and_then(|a| a.first())
-            .and_then(|v| v.as_str())
-            .unwrap_or_else(|| {
-                eprintln!("plugin.toml missing 'command'");
-                process::exit(1);
-            });
+        let exec = if base.starts_with("src/builtin/") {
+            None
+        } else {
+            let cmd = plugin_toml.get("command")
+                .and_then(|v| v.as_array())
+                .and_then(|a| a.first())
+                .and_then(|v| v.as_str())
+                .unwrap_or_else(|| {
+                    eprintln!("plugin.toml missing 'command'");
+                    process::exit(1);
+                });
+            Some(Path::new(base).join(cmd))
+        };
 
         Self {
-            exec: Path::new(base).join(cmd),
+            base: base.to_string(),
+            exec,
             config_str: serde_json::to_string(&config).unwrap(),
         }
     }
 
     pub fn run(&self, cmd: &str, input: Option<&str>) -> String {
         let config = input.unwrap_or(&self.config_str);
-        util::run_command(&self.exec, &[cmd], Some(config))
+        if let Some(exec) = &self.exec {
+            util::run_command(exec, &[cmd], Some(config))
+        } else {
+            builtin::run(&self.base, cmd, config)
+        }
     }
 }
 

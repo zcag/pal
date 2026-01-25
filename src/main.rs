@@ -1,4 +1,5 @@
 mod action;
+mod builtin;
 mod config;
 mod frontend;
 mod palette;

@@ -37,11 +37,15 @@ pub struct Palette {
     pub include: Vec<String>,
     pub default_action: Option<String>,
     pub action_key: Option<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Frontend {
     pub base: Option<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
 }
 
 impl Default for General {
