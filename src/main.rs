@@ -1,3 +1,4 @@
+mod action;
 mod config;
 mod frontend;
 mod palette;
@@ -6,6 +7,7 @@ mod util;
 
 use std::process;
 
+use action::Action;
 use clap::Parser;
 use config::Config;
 use frontend::Frontend;
@@ -58,36 +60,61 @@ fn dispatch(cli: Cli, cfg: Config) {
 }
 
 fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
-    // resolve palette
     let palette_name = palette_arg.unwrap_or(&cfg.general.default_palette);
-    let palette_cfg = cfg.palette.get(palette_name).unwrap_or_else(|| {
-        eprintln!("palette not found: {palette_name}");
-        process::exit(1);
-    });
-    let palette_base = palette_cfg.base.as_ref().unwrap_or_else(|| {
-        eprintln!("palette '{palette_name}' has no base");
-        process::exit(1);
-    });
+    let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
 
-    // resolve frontend
     let frontend_name = frontend_arg.unwrap_or(&cfg.general.default_frontend);
-    let frontend_cfg = cfg.frontend.get(frontend_name).unwrap_or_else(|| {
-        eprintln!("frontend not found: {frontend_name}");
-        process::exit(1);
-    });
-    let frontend_base = frontend_cfg.base.as_ref().unwrap_or_else(|| {
-        eprintln!("frontend '{frontend_name}' has no base");
-        process::exit(1);
-    });
+    let frontend_cfg = cfg.frontend.get(frontend_name).expect_exit(&format!("frontend not found: {frontend_name}"));
 
-    let palette = Palette::new(palette_base, palette_cfg);
-    let frontend = Frontend::new(frontend_base, frontend_cfg);
+    let items = list(palette_cfg);
+    let selected = select(frontend_cfg, &items);
+    if let Some(selected) = selected {
+        pick(palette_cfg, &selected);
+    }
+}
 
-    let items = palette.list();
-    let selected = frontend.run(&items);
+fn list(cfg: &config::Palette) -> String {
+    if cfg.auto_list {
+        let path = cfg.data.as_ref().expect_exit("auto_list requires 'data' path");
+        std::fs::read_to_string(path).expect_exit(&format!("failed to read {path}"))
+    } else {
+        let base = cfg.base.as_ref().expect_exit("palette has no base");
+        Palette::new(base, cfg).list()
+    }
+}
 
-    if !selected.trim().is_empty() {
-        let output = palette.pick(&selected);
-        print!("{output}");
+fn select(cfg: &config::Frontend, items: &str) -> Option<String> {
+    let base = cfg.base.as_ref().expect_exit("frontend has no base");
+    let selected = Frontend::new(base, cfg).run(items);
+    if selected.trim().is_empty() { None } else { Some(selected) }
+}
+
+fn pick(cfg: &config::Palette, selected: &str) {
+    let output = if cfg.auto_pick {
+        let action_name = cfg.default_action.as_ref().expect_exit("auto_pick requires 'default_action'");
+        let action_key = cfg.action_key.as_ref().expect_exit("auto_pick requires 'action_key'");
+        let json: serde_json::Value = serde_json::from_str(selected).expect_exit("failed to parse selected");
+        let value = json.get(action_key).and_then(|v| v.as_str()).expect_exit(&format!("missing '{action_key}'"));
+        Action::new(action_name).run(value)
+    } else {
+        let base = cfg.base.as_ref().expect_exit("palette has no base");
+        Palette::new(base, cfg).pick(selected)
+    };
+    print!("{output}");
+}
+
+trait ExpectExit<T> {
+    fn expect_exit(self, msg: &str) -> T;
+}
+
+impl<T> ExpectExit<T> for Option<T> {
+    fn expect_exit(self, msg: &str) -> T {
+        self.unwrap_or_else(|| { eprintln!("{msg}"); process::exit(1); })
+    }
+}
+
+impl<T, E: std::fmt::Display> ExpectExit<T> for Result<T, E> {
+    fn expect_exit(self, msg: &str) -> T {
+        self.unwrap_or_else(|e| { eprintln!("{msg}: {e}"); process::exit(1); })
     }
 }

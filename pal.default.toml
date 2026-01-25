@@ -25,6 +25,13 @@ default_frontend = "fzf"
   base = "plugins/palettes/commands"
   data = "plugins/palettes/commands/data.json"
 
+  [palette.quickcmds]
+  auto_list = true
+  auto_pick = true
+  data = "plugins/palettes/commands/data.json"
+  default_action = "cmd"
+  action_key = "cmd"
+
   [palette.psg]
   base = "builtin/psg"
   auto_pick = true

@@ -35,6 +35,8 @@ pub struct Palette {
     pub data: Option<String>,
     #[serde(default)]
     pub include: Vec<String>,
+    pub default_action: Option<String>,
+    pub action_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -89,7 +91,7 @@ mod tests {
         let cfg = Config::load("pal.default.toml", &cli).unwrap();
         assert_eq!(cfg.general.default_palette, "mycommands");
         assert_eq!(cfg.general.default_frontend, "fzf");
-        assert_eq!(cfg.palette.len(), 6);
+        assert_eq!(cfg.palette.len(), 7);
         assert_eq!(cfg.palette["combine"].include, vec!["palettes", "commands"]);
         assert!(cfg.palette["psg"].auto_pick);
         assert_eq!(cfg.frontend["rofi"].base.as_deref(), Some("plugins/frontends/rofi"));

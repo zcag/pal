@@ -1,0 +1,6 @@
+name = "cmd"
+desc = "execute shell command"
+version = "0.1"
+
+contract_version = "0.0.1"
+command = ["run.sh"]
