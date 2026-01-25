@@ -64,8 +64,15 @@ mod defaults {
 
 impl Config {
     pub fn load(path: &str, cli: &Cli) -> Result<Self, figment::Error> {
+        let user_config = dirs::config_dir()
+            .map(|p| p.join("pal/config.toml"))
+            .unwrap_or_default();
+
         let mut figment = Figment::new()
             .merge(Serialized::defaults(Config::base()))
+            .merge(Toml::file("pal.default.toml"))
+            .merge(Toml::file(user_config))
+            .merge(Toml::file("pal.toml"))
             .merge(Toml::file(path))
             .merge(Env::prefixed("PAL_").split("_"));
 
