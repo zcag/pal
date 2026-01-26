@@ -82,6 +82,37 @@ default_frontend = "fzf"
   icon = "folder-remote"
   # orgs = ["org1", "org2"]  # optional, list org repos too
 
+  [palette.ssh]
+  base = "builtin/palettes/ssh"
+  icon = "network-server"
+
+  [palette.op]
+  base = "plugins/palettes/op"
+  icon = "dialog-password"
+  # vault = "Personal"  # optional, filter by vault
+  # field = "password"  # field to copy (default: password)
+
+  [palette.docker]
+  base = "plugins/palettes/docker"
+  icon = "docker"
+  # action = "logs"  # optional, skip action menu
+
+  [palette.power]
+  icon = "system-shutdown"
+  auto_list = true
+  auto_pick = true
+  data = "plugins/palettes/power/data.json"
+  default_action = "cmd"
+  action_key = "cmd"
+
+  [palette.emoji]
+  icon = "face-smile"
+  auto_list = true
+  auto_pick = true
+  data = "plugins/palettes/emoji/data.json"
+  default_action = "copy"
+  action_key = "icon"
+
 [frontend]
   # Builtin frontends (fzf, rofi, stdin) are available by default
   # Override with plugin implementations if needed:
