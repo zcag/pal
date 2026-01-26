@@ -147,10 +147,24 @@ impl Config {
             extra: HashMap::new(),
         });
 
+        let mut frontend = HashMap::new();
+        frontend.insert("fzf".into(), Frontend {
+            base: Some("builtin/frontends/fzf".into()),
+            extra: HashMap::new(),
+        });
+        frontend.insert("rofi".into(), Frontend {
+            base: Some("builtin/frontends/rofi".into()),
+            extra: HashMap::new(),
+        });
+        frontend.insert("stdin".into(), Frontend {
+            base: Some("builtin/frontends/stdin".into()),
+            extra: HashMap::new(),
+        });
+
         Self {
             general: General::default(),
             palette,
-            frontend: HashMap::new(),
+            frontend,
         }
     }
 }

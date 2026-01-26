@@ -83,8 +83,10 @@ default_frontend = "fzf"
   # orgs = ["org1", "org2"]  # optional, list org repos too
 
 [frontend]
-  [frontend.fzf]
-  base = "plugins/frontends/fzf"
+  # Builtin frontends (fzf, rofi, stdin) are available by default
+  # Override with plugin implementations if needed:
+  # [frontend.fzf]
+  # base = "plugins/frontends/fzf"
 
-  [frontend.rofi]
-  base = "plugins/frontends/rofi"
+  # [frontend.rofi]
+  # base = "plugins/frontends/rofi"

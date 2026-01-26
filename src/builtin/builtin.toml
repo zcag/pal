@@ -27,3 +27,21 @@ name = "combine"
 desc = "combine multiple palettes"
 version = "0.1"
 contract_version = "0.0.1"
+
+[frontends.fzf]
+name = "fzf"
+desc = "fzf fuzzy finder frontend"
+version = "0.1"
+contract_version = "0.0.1"
+
+[frontends.rofi]
+name = "rofi"
+desc = "rofi launcher frontend"
+version = "0.1"
+contract_version = "0.0.1"
+
+[frontends.stdin]
+name = "stdin"
+desc = "simple stdin/stdout frontend"
+version = "0.1"
+contract_version = "0.0.1"
