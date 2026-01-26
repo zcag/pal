@@ -1,0 +1,152 @@
+{"id": "grinning", "name": "grinning face", "icon": "😀"}
+{"id": "smile", "name": "smiling face", "icon": "😊"}
+{"id": "laugh", "name": "laughing", "icon": "😂"}
+{"id": "rofl", "name": "rolling on floor", "icon": "🤣"}
+{"id": "joy", "name": "tears of joy", "icon": "😂"}
+{"id": "wink", "name": "winking", "icon": "😉"}
+{"id": "blush", "name": "blushing", "icon": "😊"}
+{"id": "heart_eyes", "name": "heart eyes", "icon": "😍"}
+{"id": "kiss", "name": "kiss", "icon": "😘"}
+{"id": "thinking", "name": "thinking", "icon": "🤔"}
+{"id": "shrug", "name": "shrug", "icon": "🤷"}
+{"id": "facepalm", "name": "facepalm", "icon": "🤦"}
+{"id": "cool", "name": "cool sunglasses", "icon": "😎"}
+{"id": "nerd", "name": "nerd", "icon": "🤓"}
+{"id": "cry", "name": "crying", "icon": "😢"}
+{"id": "sob", "name": "sobbing", "icon": "😭"}
+{"id": "angry", "name": "angry", "icon": "😠"}
+{"id": "rage", "name": "rage", "icon": "😡"}
+{"id": "scream", "name": "screaming", "icon": "😱"}
+{"id": "fear", "name": "fearful", "icon": "😨"}
+{"id": "surprised", "name": "surprised", "icon": "😮"}
+{"id": "shocked", "name": "shocked", "icon": "😲"}
+{"id": "sleep", "name": "sleeping", "icon": "😴"}
+{"id": "sick", "name": "sick", "icon": "🤢"}
+{"id": "dead", "name": "skull", "icon": "💀"}
+{"id": "ghost", "name": "ghost", "icon": "👻"}
+{"id": "alien", "name": "alien", "icon": "👽"}
+{"id": "robot", "name": "robot", "icon": "🤖"}
+{"id": "poop", "name": "poop", "icon": "💩"}
+{"id": "clown", "name": "clown", "icon": "🤡"}
+{"id": "thumbsup", "name": "thumbs up", "icon": "👍"}
+{"id": "thumbsdown", "name": "thumbs down", "icon": "👎"}
+{"id": "clap", "name": "clapping", "icon": "👏"}
+{"id": "wave", "name": "waving", "icon": "👋"}
+{"id": "pray", "name": "folded hands", "icon": "🙏"}
+{"id": "muscle", "name": "flexed biceps", "icon": "💪"}
+{"id": "point_up", "name": "point up", "icon": "☝️"}
+{"id": "point_down", "name": "point down", "icon": "👇"}
+{"id": "point_left", "name": "point left", "icon": "👈"}
+{"id": "point_right", "name": "point right", "icon": "👉"}
+{"id": "ok_hand", "name": "ok hand", "icon": "👌"}
+{"id": "peace", "name": "peace sign", "icon": "✌️"}
+{"id": "fist", "name": "raised fist", "icon": "✊"}
+{"id": "punch", "name": "fist bump", "icon": "👊"}
+{"id": "handshake", "name": "handshake", "icon": "🤝"}
+{"id": "heart", "name": "red heart", "icon": "❤️"}
+{"id": "orange_heart", "name": "orange heart", "icon": "🧡"}
+{"id": "yellow_heart", "name": "yellow heart", "icon": "💛"}
+{"id": "green_heart", "name": "green heart", "icon": "💚"}
+{"id": "blue_heart", "name": "blue heart", "icon": "💙"}
+{"id": "purple_heart", "name": "purple heart", "icon": "💜"}
+{"id": "black_heart", "name": "black heart", "icon": "🖤"}
+{"id": "broken_heart", "name": "broken heart", "icon": "💔"}
+{"id": "fire", "name": "fire", "icon": "🔥"}
+{"id": "sparkles", "name": "sparkles", "icon": "✨"}
+{"id": "star", "name": "star", "icon": "⭐"}
+{"id": "zap", "name": "lightning", "icon": "⚡"}
+{"id": "sun", "name": "sun", "icon": "☀️"}
+{"id": "moon", "name": "moon", "icon": "🌙"}
+{"id": "rainbow", "name": "rainbow", "icon": "🌈"}
+{"id": "cloud", "name": "cloud", "icon": "☁️"}
+{"id": "rain", "name": "rain", "icon": "🌧️"}
+{"id": "snow", "name": "snow", "icon": "❄️"}
+{"id": "check", "name": "check mark", "icon": "✅"}
+{"id": "x", "name": "cross mark", "icon": "❌"}
+{"id": "warning", "name": "warning", "icon": "⚠️"}
+{"id": "question", "name": "question", "icon": "❓"}
+{"id": "exclamation", "name": "exclamation", "icon": "❗"}
+{"id": "100", "name": "hundred", "icon": "💯"}
+{"id": "rocket", "name": "rocket", "icon": "🚀"}
+{"id": "airplane", "name": "airplane", "icon": "✈️"}
+{"id": "car", "name": "car", "icon": "🚗"}
+{"id": "bike", "name": "bicycle", "icon": "🚲"}
+{"id": "coffee", "name": "coffee", "icon": "☕"}
+{"id": "beer", "name": "beer", "icon": "🍺"}
+{"id": "wine", "name": "wine", "icon": "🍷"}
+{"id": "pizza", "name": "pizza", "icon": "🍕"}
+{"id": "burger", "name": "burger", "icon": "🍔"}
+{"id": "taco", "name": "taco", "icon": "🌮"}
+{"id": "cake", "name": "cake", "icon": "🎂"}
+{"id": "apple", "name": "apple", "icon": "🍎"}
+{"id": "banana", "name": "banana", "icon": "🍌"}
+{"id": "dog", "name": "dog", "icon": "🐕"}
+{"id": "cat", "name": "cat", "icon": "🐈"}
+{"id": "monkey", "name": "monkey", "icon": "🐒"}
+{"id": "unicorn", "name": "unicorn", "icon": "🦄"}
+{"id": "bee", "name": "bee", "icon": "🐝"}
+{"id": "bug", "name": "bug", "icon": "🐛"}
+{"id": "tree", "name": "tree", "icon": "🌳"}
+{"id": "flower", "name": "flower", "icon": "🌸"}
+{"id": "gift", "name": "gift", "icon": "🎁"}
+{"id": "party", "name": "party popper", "icon": "🎉"}
+{"id": "balloon", "name": "balloon", "icon": "🎈"}
+{"id": "trophy", "name": "trophy", "icon": "🏆"}
+{"id": "medal", "name": "medal", "icon": "🏅"}
+{"id": "music", "name": "music", "icon": "🎵"}
+{"id": "guitar", "name": "guitar", "icon": "🎸"}
+{"id": "movie", "name": "movie", "icon": "🎬"}
+{"id": "camera", "name": "camera", "icon": "📷"}
+{"id": "phone", "name": "phone", "icon": "📱"}
+{"id": "laptop", "name": "laptop", "icon": "💻"}
+{"id": "keyboard", "name": "keyboard", "icon": "⌨️"}
+{"id": "mouse", "name": "mouse", "icon": "🖱️"}
+{"id": "printer", "name": "printer", "icon": "🖨️"}
+{"id": "disk", "name": "floppy disk", "icon": "💾"}
+{"id": "cd", "name": "cd", "icon": "💿"}
+{"id": "lock", "name": "lock", "icon": "🔒"}
+{"id": "unlock", "name": "unlock", "icon": "🔓"}
+{"id": "key", "name": "key", "icon": "🔑"}
+{"id": "hammer", "name": "hammer", "icon": "🔨"}
+{"id": "wrench", "name": "wrench", "icon": "🔧"}
+{"id": "gear", "name": "gear", "icon": "⚙️"}
+{"id": "link", "name": "link", "icon": "🔗"}
+{"id": "paperclip", "name": "paperclip", "icon": "📎"}
+{"id": "scissors", "name": "scissors", "icon": "✂️"}
+{"id": "pencil", "name": "pencil", "icon": "✏️"}
+{"id": "pen", "name": "pen", "icon": "🖊️"}
+{"id": "book", "name": "book", "icon": "📖"}
+{"id": "bookmark", "name": "bookmark", "icon": "🔖"}
+{"id": "folder", "name": "folder", "icon": "📁"}
+{"id": "file", "name": "file", "icon": "📄"}
+{"id": "trash", "name": "trash", "icon": "🗑️"}
+{"id": "inbox", "name": "inbox", "icon": "📥"}
+{"id": "outbox", "name": "outbox", "icon": "📤"}
+{"id": "envelope", "name": "envelope", "icon": "✉️"}
+{"id": "bell", "name": "bell", "icon": "🔔"}
+{"id": "speaker", "name": "speaker", "icon": "🔊"}
+{"id": "mute", "name": "mute", "icon": "🔇"}
+{"id": "magnify", "name": "magnifying glass", "icon": "🔍"}
+{"id": "bulb", "name": "light bulb", "icon": "💡"}
+{"id": "battery", "name": "battery", "icon": "🔋"}
+{"id": "plug", "name": "plug", "icon": "🔌"}
+{"id": "hourglass", "name": "hourglass", "icon": "⏳"}
+{"id": "clock", "name": "clock", "icon": "🕐"}
+{"id": "calendar", "name": "calendar", "icon": "📅"}
+{"id": "chart", "name": "chart", "icon": "📊"}
+{"id": "graph", "name": "graph", "icon": "📈"}
+{"id": "pin", "name": "pin", "icon": "📌"}
+{"id": "flag", "name": "flag", "icon": "🚩"}
+{"id": "eyes", "name": "eyes", "icon": "👀"}
+{"id": "brain", "name": "brain", "icon": "🧠"}
+{"id": "tongue", "name": "tongue out", "icon": "😛"}
+{"id": "money", "name": "money", "icon": "💰"}
+{"id": "dollar", "name": "dollar", "icon": "💵"}
+{"id": "gem", "name": "gem", "icon": "💎"}
+{"id": "crown", "name": "crown", "icon": "👑"}
+{"id": "ring", "name": "ring", "icon": "💍"}
+{"id": "pill", "name": "pill", "icon": "💊"}
+{"id": "syringe", "name": "syringe", "icon": "💉"}
+{"id": "dna", "name": "dna", "icon": "🧬"}
+{"id": "microbe", "name": "microbe", "icon": "🦠"}
+{"id": "atom", "name": "atom", "icon": "⚛️"}
