@@ -18,7 +18,7 @@ default_frontend = "fzf"
   data = "plugins/palettes/commands/data.json"
 
   [palette.quickcmds]
-  icon = "utilities-terminal"
+  base = "plugins/palettes/commands"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/commands/data.json"
@@ -26,7 +26,7 @@ default_frontend = "fzf"
   action_key = "cmd"
 
   [palette.chars]
-  icon = "accessories-character-map"
+  base = "plugins/palettes/chars"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/chars/data.json"
@@ -34,7 +34,7 @@ default_frontend = "fzf"
   action_key = "icon"
 
   [palette.icons]
-  icon = "font-x-generic"
+  base = "plugins/palettes/icons"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/icons/data.json"
@@ -84,7 +84,7 @@ default_frontend = "fzf"
   # action = "logs"  # optional, skip action menu
 
   [palette.power]
-  icon = "system-shutdown"
+  base = "plugins/palettes/power"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/power/data.json"
@@ -92,7 +92,7 @@ default_frontend = "fzf"
   action_key = "cmd"
 
   [palette.emoji]
-  icon = "face-smile"
+  base = "plugins/palettes/emoji"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/emoji/data.json"

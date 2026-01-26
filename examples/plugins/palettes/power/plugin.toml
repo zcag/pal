@@ -1,0 +1,4 @@
+name = "power"
+desc = "power options"
+icon = "system-shutdown"
+version = "0.1"

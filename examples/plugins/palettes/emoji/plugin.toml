@@ -1,0 +1,4 @@
+name = "emoji"
+desc = "emoji picker"
+icon = "face-smile"
+version = "0.1"

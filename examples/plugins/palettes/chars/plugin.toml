@@ -1,0 +1,4 @@
+name = "chars"
+desc = "special characters and symbols"
+icon = "accessories-character-map"
+version = "0.1"

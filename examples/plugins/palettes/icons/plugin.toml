@@ -1,0 +1,4 @@
+name = "icons"
+desc = "nerd font icons"
+icon = "font-x-generic"
+version = "0.1"
