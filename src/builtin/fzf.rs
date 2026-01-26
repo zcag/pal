@@ -35,6 +35,7 @@ fn run_fzf(items: &str) -> String {
             let item: serde_json::Value = serde_json::from_str(line).ok()?;
             let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
             let icon = item.get("icon").and_then(|v| v.as_str()).unwrap_or("");
+            let desc = item.get("desc").and_then(|v| v.as_str()).unwrap_or("");
             let keywords = item.get("keywords")
                 .and_then(|v| v.as_array())
                 .map(|arr| arr.iter()
@@ -42,8 +43,14 @@ fn run_fzf(items: &str) -> String {
                     .collect::<Vec<_>>()
                     .join(" "))
                 .unwrap_or_default();
-            // Format: JSON\ticon name\tkeywords
-            Some(format!("{}\t{} {}\t{}", line, icon, name, keywords))
+            // Format: JSON\ticon name (desc)\tkeywords
+            // Use dim ANSI for description
+            let display = if desc.is_empty() {
+                format!("{} {}", icon, name)
+            } else {
+                format!("{} {} \x1b[2m{}\x1b[0m", icon, name, desc)
+            };
+            Some(format!("{}\t{}\t{}", line, display, keywords))
         })
         .collect();
 

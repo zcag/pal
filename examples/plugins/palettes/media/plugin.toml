@@ -1,0 +1,4 @@
+name = "media"
+desc = "control media playback"
+version = "0.1"
+command = ["run.sh"]

@@ -113,6 +113,10 @@ default_frontend = "fzf"
   default_action = "copy"
   action_key = "icon"
 
+  [palette.media]
+  base = "plugins/palettes/media"
+  icon = "multimedia-player"
+
 [frontend]
   # Builtin frontends (fzf, rofi, stdin) are available by default
   # Override with plugin implementations if needed:
