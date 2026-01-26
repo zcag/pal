@@ -45,6 +45,9 @@ default_frontend = "fzf"
   [palette.clipboard]
   base = "plugins/palettes/clipboard"
 
+  [palette.wifi]
+  base = "plugins/palettes/wifi"
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"

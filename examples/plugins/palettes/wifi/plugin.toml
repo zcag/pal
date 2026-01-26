@@ -1,0 +1,4 @@
+name = "wifi"
+desc = "list and connect to wifi networks"
+version = "0.1"
+command = ["run.sh"]
