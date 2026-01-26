@@ -59,6 +59,12 @@ default_frontend = "fzf"
   [palette.ble]
   base = "plugins/palettes/ble"
 
+  [palette.hue]
+  base = "plugins/palettes/hue"
+  # bridge_ip = "192.168.1.x"
+  # api_key = "your-hue-api-key"
+  # scenes_file = "path/to/scenes.json"  # optional, for custom presets
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"

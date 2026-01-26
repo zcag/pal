@@ -1,0 +1,4 @@
+name = "hue"
+desc = "control philips hue scenes"
+version = "0.1"
+command = ["run.sh"]
