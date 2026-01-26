@@ -51,6 +51,11 @@ default_frontend = "fzf"
   [palette.windows]
   base = "plugins/palettes/windows"
 
+  [palette.systemd]
+  base = "plugins/palettes/systemd"
+  # scope = "user"  # or "system" for sudo
+  # action = "restart"  # or "start", "stop", "status"
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"

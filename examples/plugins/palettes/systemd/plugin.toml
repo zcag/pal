@@ -1,0 +1,4 @@
+name = "systemd"
+desc = "list and manage systemd services"
+version = "0.1"
+command = ["run.sh"]
