@@ -19,11 +19,15 @@ fn list() -> String {
     let config_file = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
     let cli = Cli { config: config_file.clone(), ..Default::default() };
     let cfg = Config::load(&config_file, &cli).unwrap_or_else(|_| {
-        // Fallback to parsing palette names from file
         return Config { general: Default::default(), palette: Default::default(), frontend: Default::default() };
     });
 
+    // If inside a combine, only show palettes in its scope
+    let scope: Option<Vec<&str>> = std::env::var("_PAL_COMBINE_SCOPE").ok()
+        .map(|s| s.leak().split(',').collect());
+
     cfg.palette.iter()
+        .filter(|(name, _)| scope.as_ref().map_or(true, |s| s.contains(&name.as_str())))
         .map(|(name, p)| {
             let icon = p.icon.as_deref().unwrap_or("view-list");
             json!({"id": name, "name": name, "icon": icon}).to_string()
