@@ -26,6 +26,7 @@ pub struct General {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Palette {
     pub base: Option<String>,
+    pub icon: Option<String>,
     #[serde(default)]
     pub cache: bool,
     #[serde(default)]
@@ -87,6 +88,7 @@ impl Config {
         let mut palette = HashMap::new();
         palette.insert("apps".into(), Palette {
             base: Some("builtin/palettes/apps".into()),
+            icon: Some("application-x-executable".into()),
             cache: false,
             auto_list: false,
             auto_pick: false,
@@ -98,6 +100,7 @@ impl Config {
         });
         palette.insert("bookmarks".into(), Palette {
             base: Some("builtin/palettes/bookmarks".into()),
+            icon: Some("bookmark".into()),
             cache: false,
             auto_list: false,
             auto_pick: false,
@@ -109,6 +112,7 @@ impl Config {
         });
         palette.insert("pals".into(), Palette {
             base: Some("builtin/palettes/pals".into()),
+            icon: Some("view-list".into()),
             cache: false,
             auto_list: false,
             auto_pick: false,
@@ -120,6 +124,7 @@ impl Config {
         });
         palette.insert("psg".into(), Palette {
             base: Some("builtin/palettes/psg".into()),
+            icon: Some("utilities-system-monitor".into()),
             cache: false,
             auto_list: false,
             auto_pick: false,
@@ -131,6 +136,7 @@ impl Config {
         });
         palette.insert("combine".into(), Palette {
             base: Some("builtin/palettes/combine".into()),
+            icon: Some("view-grid".into()),
             cache: false,
             auto_list: false,
             auto_pick: false,

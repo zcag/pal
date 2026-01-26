@@ -1,6 +1,9 @@
 use std::process::Command;
 use serde_json::json;
 
+use crate::config::Config;
+use crate::Cli;
+
 pub fn run(cmd: &str, input: Option<&str>) -> String {
     match cmd {
         "list" => list(),
@@ -14,14 +17,17 @@ pub fn run(cmd: &str, input: Option<&str>) -> String {
 
 fn list() -> String {
     let config_file = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
+    let cli = Cli { config: config_file.clone(), ..Default::default() };
+    let cfg = Config::load(&config_file, &cli).unwrap_or_else(|_| {
+        // Fallback to parsing palette names from file
+        return Config { general: Default::default(), palette: Default::default(), frontend: Default::default() };
+    });
 
-    let content = std::fs::read_to_string(&config_file).unwrap_or_default();
-    content.lines()
-        .filter_map(|line| {
-            let t = line.trim();
-            t.strip_prefix("[palette.")?.strip_suffix("]")
+    cfg.palette.iter()
+        .map(|(name, p)| {
+            let icon = p.icon.as_deref().unwrap_or("view-list");
+            json!({"id": name, "name": name, "icon": icon}).to_string()
         })
-        .map(|name| json!({"id": name, "name": name, "icon": ""}).to_string())
         .collect::<Vec<_>>()
         .join("\n")
 }

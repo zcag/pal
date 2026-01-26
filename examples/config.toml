@@ -8,17 +8,20 @@ default_frontend = "fzf"
 [palette]
   [palette.combine]
   base = "builtin/palettes/combine"
+  icon = "view-grid"
   include = ["pals", "quickcmds"]
 
   [palette.apps]
   base = "builtin/palettes/apps"
-  include = ["pals", "quickcmds"]
+  icon = "application-x-executable"
 
   [palette.mycommands]
   base = "plugins/palettes/commands"
+  icon = "utilities-terminal"
   data = "plugins/palettes/commands/data.json"
 
   [palette.quickcmds]
+  icon = "utilities-terminal"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/commands/data.json"
@@ -26,6 +29,7 @@ default_frontend = "fzf"
   action_key = "cmd"
 
   [palette.chars]
+  icon = "accessories-character-map"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/chars/data.json"
@@ -33,6 +37,7 @@ default_frontend = "fzf"
   action_key = "icon"
 
   [palette.icons]
+  icon = "font-x-generic"
   auto_list = true
   auto_pick = true
   data = "plugins/palettes/icons/data.json"
@@ -41,26 +46,33 @@ default_frontend = "fzf"
 
   [palette.audio]
   base = "plugins/palettes/audio"
+  icon = "audio-card"
 
   [palette.clipboard]
   base = "plugins/palettes/clipboard"
+  icon = "edit-paste"
 
   [palette.wifi]
   base = "plugins/palettes/wifi"
+  icon = "network-wireless"
 
   [palette.windows]
   base = "plugins/palettes/windows"
+  icon = "preferences-system-windows"
 
   [palette.systemd]
   base = "plugins/palettes/systemd"
+  icon = "system-run"
   # scope = "user"  # or "system" for sudo
   # action = "restart"  # or "start", "stop", "status"
 
   [palette.ble]
   base = "plugins/palettes/ble"
+  icon = "bluetooth"
 
   [palette.hue]
   base = "plugins/palettes/hue"
+  icon = "weather-clear"
   # bridge_ip = "192.168.1.x"
   # api_key = "your-hue-api-key"
   # scenes_file = "path/to/scenes.json"  # optional, for custom presets
