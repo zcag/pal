@@ -1,0 +1,4 @@
+name = "windows"
+desc = "list and focus windows"
+version = "0.1"
+command = ["run.sh"]

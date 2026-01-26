@@ -48,6 +48,9 @@ default_frontend = "fzf"
   [palette.wifi]
   base = "plugins/palettes/wifi"
 
+  [palette.windows]
+  base = "plugins/palettes/windows"
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"
