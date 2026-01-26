@@ -42,6 +42,9 @@ default_frontend = "fzf"
   [palette.audio]
   base = "plugins/palettes/audio"
 
+  [palette.clipboard]
+  base = "plugins/palettes/clipboard"
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"
