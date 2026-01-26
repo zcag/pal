@@ -10,7 +10,11 @@ pub struct Palette<'a> {
 
 impl<'a> Palette<'a> {
     pub fn new(config: &'a PaletteConfig) -> Self {
-        let plugin = config.base.as_ref().map(|base| Plugin::new(base, config));
+        let plugin = if config.auto_list && config.auto_pick {
+            None
+        } else {
+            config.base.as_ref().map(|base| Plugin::new(base, config))
+        };
         Self { config, plugin }
     }
 
