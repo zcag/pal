@@ -25,6 +25,20 @@ default_frontend = "fzf"
   default_action = "cmd"
   action_key = "cmd"
 
+  [palette.chars]
+  auto_list = true
+  auto_pick = true
+  data = "plugins/palettes/chars/data.json"
+  default_action = "copy"
+  action_key = "icon"
+
+  [palette.icons]
+  auto_list = true
+  auto_pick = true
+  data = "plugins/palettes/icons/data.json"
+  default_action = "copy"
+  action_key = "icon"
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"

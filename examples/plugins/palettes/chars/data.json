@@ -1,0 +1,71 @@
+{"icon":"©","name":"Copyright symbol","id":"©"}
+{"icon":"™","name":"tm Trademark symbol","id":"™"}
+{"icon":"°","name":"Degree symbol","id":"°"}
+{"icon":"±","name":"Plus-minus symbol","id":"±"}
+{"icon":"×","name":"Multiplication symbol","id":"×"}
+{"icon":"÷","name":"Division symbol","id":"÷"}
+{"icon":"≠","name":"Not equal to symbol","id":"≠"}
+{"icon":"≈","name":"Approximately equal to symbol","id":"≈"}
+{"icon":"≤","name":"Less than or equal to symbol","id":"≤"}
+{"icon":"≥","name":"Greater than or equal to symbol","id":"≥"}
+{"icon":"∞","name":"Infinity symbol","id":"∞"}
+{"icon":"√","name":"Square root symbol","id":"√"}
+{"icon":"∑","name":"Summation symbol","id":"∑"}
+{"icon":"∏","name":"Product symbol","id":"∏"}
+{"icon":"∫","name":"Integral symbol","id":"∫"}
+{"icon":"∆","name":"Delta symbol","id":"∆"}
+{"icon":"π","name":"Pi symbol","id":"π"}
+{"icon":"µ","name":"Micro symbol","id":"µ"}
+{"icon":"Ω","name":"Ohm symbol","id":"Ω"}
+{"icon":"λ","name":"Lambda symbol","id":"λ"}
+{"icon":"α","name":"Alpha symbol","id":"α"}
+{"icon":"β","name":"Beta symbol","id":"β"}
+{"icon":"γ","name":"Gamma symbol","id":"γ"}
+{"icon":"δ","name":"Delta symbol","id":"δ"}
+{"icon":"ε","name":"Epsilon symbol","id":"ε"}
+{"icon":"θ","name":"Theta symbol","id":"θ"}
+{"icon":"σ","name":"Sigma symbol","id":"σ"}
+{"icon":"τ","name":"Tau symbol","id":"τ"}
+{"icon":"φ","name":"Phi symbol","id":"φ"}
+{"icon":"ψ","name":"Psi symbol","id":"ψ"}
+{"icon":"ω","name":"Omega symbol","id":"ω"}
+{"icon":"€","name":"Euro symbol","id":"€"}
+{"icon":"£","name":"Pound symbol","id":"£"}
+{"icon":"¥","name":"Yen symbol","id":"¥"}
+{"icon":"¢","name":"Cent symbol","id":"¢"}
+{"icon":"§","name":"Section symbol","id":"§"}
+{"icon":"†","name":"Dagger symbol","id":"†"}
+{"icon":"‡","name":"Double dagger symbol","id":"‡"}
+{"icon":"•","name":"Bullet point symbol","id":"•"}
+{"icon":"←","name":"Left arrow symbol","id":"←"}
+{"icon":"→","name":"Right arrow symbol","id":"→"}
+{"icon":"↑","name":"Up arrow symbol","id":"↑"}
+{"icon":"↓","name":"Down arrow symbol","id":"↓"}
+{"icon":"↔","name":"Left-right arrow symbol","id":"↔"}
+{"icon":"↕","name":"Up-down arrow symbol","id":"↕"}
+{"icon":"♠","name":"Spade suit symbol","id":"♠"}
+{"icon":"♥","name":"Heart suit symbol","id":"♥"}
+{"icon":"♦","name":"Diamond suit symbol","id":"♦"}
+{"icon":"♣","name":"Club suit symbol","id":"♣"}
+{"icon":"♪","name":"Eighth note symbol","id":"♪"}
+{"icon":"♫","name":"Beamed eighth notes symbol","id":"♫"}
+{"icon":"☆","name":"White star symbol","id":"☆"}
+{"icon":"★","name":"Black star symbol","id":"★"}
+{"icon":"☮","name":"Peace symbol","id":"☮"}
+{"icon":"☯","name":"Yin yang symbol","id":"☯"}
+{"icon":"♻","name":"Recycling symbol","id":"♻"}
+{"icon":"☢","name":"Radioactive sign symbol","id":"☢"}
+{"icon":"☣","name":"Biohazard sign symbol","id":"☣"}
+{"icon":"₺","name":"Turkish Lira symbol","id":"₺"}
+{"icon":"Ç","name":"Turkish Uppercase C with cedilla","id":"Ç"}
+{"icon":"ç","name":"Turkish Lowercase c with cedilla","id":"ç"}
+{"icon":"Ğ","name":"Turkish Uppercase G with breve","id":"Ğ"}
+{"icon":"ğ","name":"Turkish Lowercase g with breve","id":"ğ"}
+{"icon":"İ","name":"Turkish Uppercase I with dot","id":"İ"}
+{"icon":"ı","name":"Turkish Lowercase i without dot","id":"ı"}
+{"icon":"Ö","name":"Turkish Uppercase O with diaeresis","id":"Ö"}
+{"icon":"ö","name":"Turkish Lowercase o with diaeresis","id":"ö"}
+{"icon":"Ş","name":"Turkish Uppercase S with cedilla","id":"Ş"}
+{"icon":"ş","name":"Turkish Lowercase s with cedilla","id":"ş"}
+{"icon":"Ü","name":"Turkish Uppercase U with diaeresis","id":"Ü"}
+{"icon":"ü","name":"Turkish Lowercase u with diaeresis","id":"ü"}

@@ -1,0 +1,4 @@
+name = "copy"
+desc = "copy value to clipboard"
+version = "0.1"
+command = ["run.sh"]
