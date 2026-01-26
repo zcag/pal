@@ -12,8 +12,13 @@ pub fn run(cmd: &str, input: Option<&str>) -> String {
 }
 
 fn run_fzf(items: &str) -> String {
+    // Use --with-nth=2 to display only the second field (icon + name)
+    // but search includes field 3 (keywords) too
     let mut child = Command::new("fzf")
-        .args(["--ansi", "--no-sort", "--layout=reverse"])
+        .args([
+            "--ansi", "--no-sort", "--layout=reverse",
+            "--delimiter=\t", "--with-nth=2"
+        ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -22,15 +27,23 @@ fn run_fzf(items: &str) -> String {
             std::process::exit(1);
         });
 
-    // Format items for fzf: show name, keep full JSON for output
+    // Format items for fzf: JSON\tdisplay\tkeywords
+    // --with-nth=2 shows only display, but fzf searches all fields
     let display_items: Vec<String> = items
         .lines()
         .filter_map(|line| {
             let item: serde_json::Value = serde_json::from_str(line).ok()?;
             let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
             let icon = item.get("icon").and_then(|v| v.as_str()).unwrap_or("");
-            // Format: JSON\ticon name (fzf shows after \t)
-            Some(format!("{}\t{} {}", line, icon, name))
+            let keywords = item.get("keywords")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter()
+                    .filter_map(|v| v.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" "))
+                .unwrap_or_default();
+            // Format: JSON\ticon name\tkeywords
+            Some(format!("{}\t{} {}\t{}", line, icon, name, keywords))
         })
         .collect();
 

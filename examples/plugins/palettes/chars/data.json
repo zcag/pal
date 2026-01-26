@@ -1,71 +1,102 @@
-{"icon":"©","name":"Copyright symbol","id":"©"}
-{"icon":"™","name":"tm Trademark symbol","id":"™"}
-{"icon":"°","name":"Degree symbol","id":"°"}
-{"icon":"±","name":"Plus-minus symbol","id":"±"}
-{"icon":"×","name":"Multiplication symbol","id":"×"}
-{"icon":"÷","name":"Division symbol","id":"÷"}
-{"icon":"≠","name":"Not equal to symbol","id":"≠"}
-{"icon":"≈","name":"Approximately equal to symbol","id":"≈"}
-{"icon":"≤","name":"Less than or equal to symbol","id":"≤"}
-{"icon":"≥","name":"Greater than or equal to symbol","id":"≥"}
-{"icon":"∞","name":"Infinity symbol","id":"∞"}
-{"icon":"√","name":"Square root symbol","id":"√"}
-{"icon":"∑","name":"Summation symbol","id":"∑"}
-{"icon":"∏","name":"Product symbol","id":"∏"}
-{"icon":"∫","name":"Integral symbol","id":"∫"}
-{"icon":"∆","name":"Delta symbol","id":"∆"}
-{"icon":"π","name":"Pi symbol","id":"π"}
-{"icon":"µ","name":"Micro symbol","id":"µ"}
-{"icon":"Ω","name":"Ohm symbol","id":"Ω"}
-{"icon":"λ","name":"Lambda symbol","id":"λ"}
-{"icon":"α","name":"Alpha symbol","id":"α"}
-{"icon":"β","name":"Beta symbol","id":"β"}
-{"icon":"γ","name":"Gamma symbol","id":"γ"}
-{"icon":"δ","name":"Delta symbol","id":"δ"}
-{"icon":"ε","name":"Epsilon symbol","id":"ε"}
-{"icon":"θ","name":"Theta symbol","id":"θ"}
-{"icon":"σ","name":"Sigma symbol","id":"σ"}
-{"icon":"τ","name":"Tau symbol","id":"τ"}
-{"icon":"φ","name":"Phi symbol","id":"φ"}
-{"icon":"ψ","name":"Psi symbol","id":"ψ"}
-{"icon":"ω","name":"Omega symbol","id":"ω"}
-{"icon":"€","name":"Euro symbol","id":"€"}
-{"icon":"£","name":"Pound symbol","id":"£"}
-{"icon":"¥","name":"Yen symbol","id":"¥"}
-{"icon":"¢","name":"Cent symbol","id":"¢"}
-{"icon":"§","name":"Section symbol","id":"§"}
-{"icon":"†","name":"Dagger symbol","id":"†"}
-{"icon":"‡","name":"Double dagger symbol","id":"‡"}
-{"icon":"•","name":"Bullet point symbol","id":"•"}
-{"icon":"←","name":"Left arrow symbol","id":"←"}
-{"icon":"→","name":"Right arrow symbol","id":"→"}
-{"icon":"↑","name":"Up arrow symbol","id":"↑"}
-{"icon":"↓","name":"Down arrow symbol","id":"↓"}
-{"icon":"↔","name":"Left-right arrow symbol","id":"↔"}
-{"icon":"↕","name":"Up-down arrow symbol","id":"↕"}
-{"icon":"♠","name":"Spade suit symbol","id":"♠"}
-{"icon":"♥","name":"Heart suit symbol","id":"♥"}
-{"icon":"♦","name":"Diamond suit symbol","id":"♦"}
-{"icon":"♣","name":"Club suit symbol","id":"♣"}
-{"icon":"♪","name":"Eighth note symbol","id":"♪"}
-{"icon":"♫","name":"Beamed eighth notes symbol","id":"♫"}
-{"icon":"☆","name":"White star symbol","id":"☆"}
-{"icon":"★","name":"Black star symbol","id":"★"}
-{"icon":"☮","name":"Peace symbol","id":"☮"}
-{"icon":"☯","name":"Yin yang symbol","id":"☯"}
-{"icon":"♻","name":"Recycling symbol","id":"♻"}
-{"icon":"☢","name":"Radioactive sign symbol","id":"☢"}
-{"icon":"☣","name":"Biohazard sign symbol","id":"☣"}
-{"icon":"₺","name":"Turkish Lira symbol","id":"₺"}
-{"icon":"Ç","name":"Turkish Uppercase C with cedilla","id":"Ç"}
-{"icon":"ç","name":"Turkish Lowercase c with cedilla","id":"ç"}
-{"icon":"Ğ","name":"Turkish Uppercase G with breve","id":"Ğ"}
-{"icon":"ğ","name":"Turkish Lowercase g with breve","id":"ğ"}
-{"icon":"İ","name":"Turkish Uppercase I with dot","id":"İ"}
-{"icon":"ı","name":"Turkish Lowercase i without dot","id":"ı"}
-{"icon":"Ö","name":"Turkish Uppercase O with diaeresis","id":"Ö"}
-{"icon":"ö","name":"Turkish Lowercase o with diaeresis","id":"ö"}
-{"icon":"Ş","name":"Turkish Uppercase S with cedilla","id":"Ş"}
-{"icon":"ş","name":"Turkish Lowercase s with cedilla","id":"ş"}
-{"icon":"Ü","name":"Turkish Uppercase U with diaeresis","id":"Ü"}
-{"icon":"ü","name":"Turkish Lowercase u with diaeresis","id":"ü"}
+{"icon":"©","name":"Copyright symbol","id":"©","keywords":["copy","legal","rights","c"]}
+{"icon":"™","name":"Trademark symbol","id":"™","keywords":["tm","brand","registered"]}
+{"icon":"®","name":"Registered symbol","id":"®","keywords":["trademark","brand","legal"]}
+{"icon":"°","name":"Degree symbol","id":"°","keywords":["temperature","angle","celsius","fahrenheit"]}
+{"icon":"±","name":"Plus-minus symbol","id":"±","keywords":["math","tolerance","plusminus"]}
+{"icon":"×","name":"Multiplication symbol","id":"×","keywords":["math","times","multiply","x"]}
+{"icon":"÷","name":"Division symbol","id":"÷","keywords":["math","divide","obelus"]}
+{"icon":"≠","name":"Not equal to symbol","id":"≠","keywords":["math","inequality","different"]}
+{"icon":"≈","name":"Approximately equal to symbol","id":"≈","keywords":["math","almost","about","roughly"]}
+{"icon":"≤","name":"Less than or equal to symbol","id":"≤","keywords":["math","lte","comparison"]}
+{"icon":"≥","name":"Greater than or equal to symbol","id":"≥","keywords":["math","gte","comparison"]}
+{"icon":"∞","name":"Infinity symbol","id":"∞","keywords":["math","forever","endless","infinite"]}
+{"icon":"√","name":"Square root symbol","id":"√","keywords":["math","radical","sqrt"]}
+{"icon":"∑","name":"Summation symbol","id":"∑","keywords":["math","sum","sigma","total"]}
+{"icon":"∏","name":"Product symbol","id":"∏","keywords":["math","multiply","pi"]}
+{"icon":"∫","name":"Integral symbol","id":"∫","keywords":["math","calculus","integration"]}
+{"icon":"∆","name":"Delta symbol","id":"∆","keywords":["math","change","difference","triangle"]}
+{"icon":"π","name":"Pi symbol","id":"π","keywords":["math","circle","3.14"]}
+{"icon":"µ","name":"Micro symbol","id":"µ","keywords":["unit","micro","mu","millionth"]}
+{"icon":"Ω","name":"Ohm symbol","id":"Ω","keywords":["unit","resistance","electrical","omega"]}
+{"icon":"λ","name":"Lambda symbol","id":"λ","keywords":["greek","function","wavelength","programming"]}
+{"icon":"α","name":"Alpha symbol","id":"α","keywords":["greek","first","beginning"]}
+{"icon":"β","name":"Beta symbol","id":"β","keywords":["greek","second","test"]}
+{"icon":"γ","name":"Gamma symbol","id":"γ","keywords":["greek","third"]}
+{"icon":"δ","name":"Delta symbol","id":"δ","keywords":["greek","change","fourth"]}
+{"icon":"ε","name":"Epsilon symbol","id":"ε","keywords":["greek","small","fifth"]}
+{"icon":"θ","name":"Theta symbol","id":"θ","keywords":["greek","angle","theta"]}
+{"icon":"σ","name":"Sigma symbol","id":"σ","keywords":["greek","sum","std","deviation"]}
+{"icon":"τ","name":"Tau symbol","id":"τ","keywords":["greek","time","torque"]}
+{"icon":"φ","name":"Phi symbol","id":"φ","keywords":["greek","golden","ratio"]}
+{"icon":"ψ","name":"Psi symbol","id":"ψ","keywords":["greek","psychology","wave"]}
+{"icon":"ω","name":"Omega symbol","id":"ω","keywords":["greek","last","end","frequency"]}
+{"icon":"€","name":"Euro symbol","id":"€","keywords":["currency","money","europe","eur"]}
+{"icon":"£","name":"Pound symbol","id":"£","keywords":["currency","money","british","gbp"]}
+{"icon":"¥","name":"Yen symbol","id":"¥","keywords":["currency","money","japan","china","jpy","cny"]}
+{"icon":"¢","name":"Cent symbol","id":"¢","keywords":["currency","money","penny"]}
+{"icon":"$","name":"Dollar symbol","id":"$","keywords":["currency","money","usd","cash"]}
+{"icon":"§","name":"Section symbol","id":"§","keywords":["legal","law","paragraph"]}
+{"icon":"†","name":"Dagger symbol","id":"†","keywords":["footnote","death","cross"]}
+{"icon":"‡","name":"Double dagger symbol","id":"‡","keywords":["footnote","reference"]}
+{"icon":"•","name":"Bullet point symbol","id":"•","keywords":["list","dot","item"]}
+{"icon":"…","name":"Ellipsis symbol","id":"…","keywords":["dots","continuation","etc"]}
+{"icon":"←","name":"Left arrow symbol","id":"←","keywords":["arrow","direction","back","west"]}
+{"icon":"→","name":"Right arrow symbol","id":"→","keywords":["arrow","direction","forward","east","next"]}
+{"icon":"↑","name":"Up arrow symbol","id":"↑","keywords":["arrow","direction","north","top"]}
+{"icon":"↓","name":"Down arrow symbol","id":"↓","keywords":["arrow","direction","south","bottom"]}
+{"icon":"↔","name":"Left-right arrow symbol","id":"↔","keywords":["arrow","horizontal","both"]}
+{"icon":"↕","name":"Up-down arrow symbol","id":"↕","keywords":["arrow","vertical","both"]}
+{"icon":"⇒","name":"Double right arrow symbol","id":"⇒","keywords":["arrow","implies","then"]}
+{"icon":"⇔","name":"Double left-right arrow symbol","id":"⇔","keywords":["arrow","equivalent","iff"]}
+{"icon":"♠","name":"Spade suit symbol","id":"♠","keywords":["cards","poker","playing"]}
+{"icon":"♥","name":"Heart suit symbol","id":"♥","keywords":["cards","poker","playing","love"]}
+{"icon":"♦","name":"Diamond suit symbol","id":"♦","keywords":["cards","poker","playing"]}
+{"icon":"♣","name":"Club suit symbol","id":"♣","keywords":["cards","poker","playing"]}
+{"icon":"♪","name":"Eighth note symbol","id":"♪","keywords":["music","note","song"]}
+{"icon":"♫","name":"Beamed eighth notes symbol","id":"♫","keywords":["music","notes","song"]}
+{"icon":"☆","name":"White star symbol","id":"☆","keywords":["rating","favorite","empty"]}
+{"icon":"★","name":"Black star symbol","id":"★","keywords":["rating","favorite","filled"]}
+{"icon":"☮","name":"Peace symbol","id":"☮","keywords":["peace","hippie","antiwar"]}
+{"icon":"☯","name":"Yin yang symbol","id":"☯","keywords":["balance","tao","chinese"]}
+{"icon":"♻","name":"Recycling symbol","id":"♻","keywords":["recycle","environment","green"]}
+{"icon":"☢","name":"Radioactive sign symbol","id":"☢","keywords":["nuclear","danger","radiation"]}
+{"icon":"☣","name":"Biohazard sign symbol","id":"☣","keywords":["danger","toxic","biological"]}
+{"icon":"✓","name":"Check mark symbol","id":"✓","keywords":["done","complete","yes","tick"]}
+{"icon":"✗","name":"Cross mark symbol","id":"✗","keywords":["no","wrong","x","cancel"]}
+{"icon":"✔","name":"Heavy check mark symbol","id":"✔","keywords":["done","complete","yes","tick"]}
+{"icon":"✘","name":"Heavy cross mark symbol","id":"✘","keywords":["no","wrong","x","cancel"]}
+{"icon":"❤","name":"Heavy heart symbol","id":"❤","keywords":["love","like","favorite"]}
+{"icon":"☐","name":"Ballot box symbol","id":"☐","keywords":["checkbox","empty","unchecked"]}
+{"icon":"☑","name":"Ballot box with check symbol","id":"☑","keywords":["checkbox","checked","done"]}
+{"icon":"☒","name":"Ballot box with X symbol","id":"☒","keywords":["checkbox","crossed","rejected"]}
+{"icon":"№","name":"Numero sign symbol","id":"№","keywords":["number","no"]}
+{"icon":"℃","name":"Celsius symbol","id":"℃","keywords":["temperature","degree","centigrade"]}
+{"icon":"℉","name":"Fahrenheit symbol","id":"℉","keywords":["temperature","degree"]}
+{"icon":"₺","name":"Turkish Lira symbol","id":"₺","keywords":["currency","money","turkey","try"]}
+{"icon":"Ç","name":"C with cedilla uppercase","id":"Ç","keywords":["turkish","french","letter"]}
+{"icon":"ç","name":"C with cedilla lowercase","id":"ç","keywords":["turkish","french","letter"]}
+{"icon":"Ğ","name":"G with breve uppercase","id":"Ğ","keywords":["turkish","letter"]}
+{"icon":"ğ","name":"G with breve lowercase","id":"ğ","keywords":["turkish","letter"]}
+{"icon":"İ","name":"I with dot uppercase","id":"İ","keywords":["turkish","letter"]}
+{"icon":"ı","name":"I without dot lowercase","id":"ı","keywords":["turkish","letter"]}
+{"icon":"Ö","name":"O with diaeresis uppercase","id":"Ö","keywords":["turkish","german","letter","umlaut"]}
+{"icon":"ö","name":"O with diaeresis lowercase","id":"ö","keywords":["turkish","german","letter","umlaut"]}
+{"icon":"Ş","name":"S with cedilla uppercase","id":"Ş","keywords":["turkish","letter"]}
+{"icon":"ş","name":"S with cedilla lowercase","id":"ş","keywords":["turkish","letter"]}
+{"icon":"Ü","name":"U with diaeresis uppercase","id":"Ü","keywords":["turkish","german","letter","umlaut"]}
+{"icon":"ü","name":"U with diaeresis lowercase","id":"ü","keywords":["turkish","german","letter","umlaut"]}
+{"icon":"ä","name":"A with diaeresis lowercase","id":"ä","keywords":["german","letter","umlaut"]}
+{"icon":"Ä","name":"A with diaeresis uppercase","id":"Ä","keywords":["german","letter","umlaut"]}
+{"icon":"ß","name":"Sharp S symbol","id":"ß","keywords":["german","letter","eszett"]}
+{"icon":"ñ","name":"N with tilde lowercase","id":"ñ","keywords":["spanish","letter"]}
+{"icon":"Ñ","name":"N with tilde uppercase","id":"Ñ","keywords":["spanish","letter"]}
+{"icon":"¿","name":"Inverted question mark symbol","id":"¿","keywords":["spanish","question"]}
+{"icon":"¡","name":"Inverted exclamation mark symbol","id":"¡","keywords":["spanish","exclamation"]}
+{"icon":"«","name":"Left guillemet symbol","id":"«","keywords":["quote","french","spanish"]}
+{"icon":"»","name":"Right guillemet symbol","id":"»","keywords":["quote","french","spanish"]}
+{"icon":"—","name":"Em dash symbol","id":"—","keywords":["dash","punctuation","long"]}
+{"icon":"–","name":"En dash symbol","id":"–","keywords":["dash","punctuation","range"]}
+{"icon":"'","name":"Left single quote symbol","id":"'","keywords":["quote","apostrophe"]}
+{"icon":"'","name":"Right single quote symbol","id":"'","keywords":["quote","apostrophe"]}
+{"icon":""","name":"Left double quote symbol","id":""","keywords":["quote","quotation"]}
+{"icon":""","name":"Right double quote symbol","id":""","keywords":["quote","quotation"]}

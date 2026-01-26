@@ -1,6 +1,6 @@
-{"id": "lock", "name": "Lock Screen", "icon": "system-lock-screen", "cmd": "loginctl lock-session"}
-{"id": "suspend", "name": "Suspend", "icon": "system-suspend", "cmd": "systemctl suspend"}
-{"id": "reboot", "name": "Reboot", "icon": "system-reboot", "cmd": "systemctl reboot"}
-{"id": "shutdown", "name": "Shutdown", "icon": "system-shutdown", "cmd": "systemctl poweroff"}
-{"id": "hibernate", "name": "Hibernate", "icon": "system-hibernate", "cmd": "systemctl hibernate"}
-{"id": "logout", "name": "Logout", "icon": "system-log-out", "cmd": "loginctl terminate-user $USER"}
+{"id": "lock", "name": "Lock Screen", "icon": "system-lock-screen", "cmd": "loginctl lock-session", "keywords": ["screen", "secure", "away", "afk"]}
+{"id": "suspend", "name": "Suspend", "icon": "system-suspend", "cmd": "systemctl suspend", "keywords": ["sleep", "pause", "standby", "nap"]}
+{"id": "reboot", "name": "Reboot", "icon": "system-reboot", "cmd": "systemctl reboot", "keywords": ["restart", "reset"]}
+{"id": "shutdown", "name": "Shutdown", "icon": "system-shutdown", "cmd": "systemctl poweroff", "keywords": ["off", "poweroff", "halt", "stop"]}
+{"id": "hibernate", "name": "Hibernate", "icon": "system-hibernate", "cmd": "systemctl hibernate", "keywords": ["deep sleep", "disk", "save"]}
+{"id": "logout", "name": "Logout", "icon": "system-log-out", "cmd": "loginctl terminate-user $USER", "keywords": ["signout", "exit", "leave", "quit"]}

@@ -25,18 +25,31 @@ fn run_rofi(items: &str) -> String {
     // Build a map of name -> JSON for lookup after selection
     let mut name_to_json: std::collections::HashMap<String, String> = std::collections::HashMap::new();
 
-    // Format items for rofi with icons: "name\0icon\x1ficon-name"
+    // Format items for rofi with icons and meta (searchable keywords)
+    // Format: "name\0icon\x1ficon-name\x1fmeta\x1fkeywords"
     let display_items: Vec<String> = items
         .lines()
         .filter_map(|line| {
             let item: serde_json::Value = serde_json::from_str(line).ok()?;
             let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
             let icon = item.get("icon").and_then(|v| v.as_str()).unwrap_or("");
+            let keywords = item.get("keywords")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter()
+                    .filter_map(|v| v.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" "))
+                .unwrap_or_default();
 
             name_to_json.insert(name.to_string(), line.to_string());
 
-            // Rofi format: "display\0icon\x1ficon-name"
-            Some(format!("{}\0icon\x1f{}", name, icon))
+            // Rofi format: "display\0icon\x1ficon-name\x1fmeta\x1fkeywords"
+            // meta field is searchable but not displayed
+            if keywords.is_empty() {
+                Some(format!("{}\0icon\x1f{}", name, icon))
+            } else {
+                Some(format!("{}\0icon\x1f{}\x1fmeta\x1f{}", name, icon, keywords))
+            }
         })
         .collect();
 
