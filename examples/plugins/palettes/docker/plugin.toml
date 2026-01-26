@@ -1,0 +1,4 @@
+name = "docker"
+desc = "manage docker containers"
+version = "0.1"
+command = ["run.sh"]
