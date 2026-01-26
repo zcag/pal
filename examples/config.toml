@@ -77,6 +77,11 @@ default_frontend = "fzf"
   # api_key = "your-hue-api-key"
   # scenes_file = "path/to/scenes.json"  # optional, for custom presets
 
+  [palette.repos]
+  base = "plugins/palettes/repos"
+  icon = "folder-remote"
+  # orgs = ["org1", "org2"]  # optional, list org repos too
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"

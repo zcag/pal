@@ -1,0 +1,4 @@
+name = "repos"
+desc = "list and open github repositories"
+version = "0.1"
+command = ["run.sh"]
