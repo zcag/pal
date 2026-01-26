@@ -96,6 +96,17 @@ impl Config {
             action_key: None,
             extra: HashMap::new(),
         });
+        palette.insert("bookmarks".into(), Palette {
+            base: Some("builtin/palettes/bookmarks".into()),
+            cache: false,
+            auto_list: false,
+            auto_pick: false,
+            data: None,
+            include: vec![],
+            default_action: None,
+            action_key: None,
+            extra: HashMap::new(),
+        });
         palette.insert("pals".into(), Palette {
             base: Some("builtin/palettes/pals".into()),
             cache: false,
