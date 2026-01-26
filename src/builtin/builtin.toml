@@ -1,36 +1,42 @@
 [palettes.apps]
 name = "apps"
 desc = "list and launch applications"
+icon = "application-x-executable"
 version = "0.1"
 contract_version = "0.0.1"
 
 [palettes.bookmarks]
 name = "bookmarks"
 desc = "list and open browser bookmarks"
+icon = "bookmark"
 version = "0.1"
 contract_version = "0.0.1"
 
 [palettes.pals]
 name = "pals"
 desc = "list and run palettes"
+icon = "view-list"
 version = "0.1"
 contract_version = "0.0.1"
 
 [palettes.psg]
 name = "psg"
 desc = "list and kill processes"
+icon = "utilities-system-monitor"
 version = "0.1"
 contract_version = "0.0.1"
 
 [palettes.ssh]
 name = "ssh"
 desc = "list and connect to SSH hosts"
+icon = "network-server"
 version = "0.1"
 contract_version = "0.0.1"
 
 [palettes.combine]
 name = "combine"
 desc = "combine multiple palettes"
+icon = "view-grid"
 version = "0.1"
 contract_version = "0.0.1"
 

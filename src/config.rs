@@ -81,7 +81,24 @@ impl Config {
             figment = figment.merge(("general.log_level", level.as_str()));
         }
 
-        figment.extract()
+        let mut config: Self = figment.extract()?;
+        config.resolve_icons();
+        Ok(config)
+    }
+
+    /// Fill in missing palette icons from plugin.toml files
+    fn resolve_icons(&mut self) {
+        for (_name, palette) in self.palette.iter_mut() {
+            if palette.icon.is_some() {
+                continue;
+            }
+            if let Some(base) = &palette.base {
+                let icon = load_plugin_icon(base);
+                if icon.is_some() {
+                    palette.icon = icon;
+                }
+            }
+        }
     }
 
     fn base() -> Self {
@@ -178,6 +195,28 @@ impl Config {
             palette,
             frontend,
         }
+    }
+}
+
+/// Load icon from plugin.toml or builtin.toml
+fn load_plugin_icon(base: &str) -> Option<String> {
+    use crate::util;
+
+    if let Some(rest) = base.strip_prefix("builtin/") {
+        // Load from builtin.toml
+        let parts: Vec<&str> = rest.split('/').collect();
+        let toml: toml::Value = include_str!("builtin/builtin.toml").parse().ok()?;
+        let section = parts.iter().fold(toml, |v, key| {
+            v.get(key).cloned().unwrap_or(toml::Value::Table(Default::default()))
+        });
+        section.get("icon").and_then(|v| v.as_str()).map(String::from)
+    } else {
+        // Load from plugin.toml
+        let expanded = util::expand_path(base);
+        let plugin_toml = expanded.join("plugin.toml");
+        let content = std::fs::read_to_string(plugin_toml).ok()?;
+        let toml: toml::Value = content.parse().ok()?;
+        toml.get("icon").and_then(|v| v.as_str()).map(String::from)
     }
 }
 

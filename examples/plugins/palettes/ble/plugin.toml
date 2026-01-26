@@ -1,4 +1,5 @@
 name = "ble"
 desc = "list and connect bluetooth devices"
+icon = "bluetooth"
 version = "0.1"
 command = ["run.sh"]

@@ -1,7 +1,7 @@
 name = "commands"
 desc = "run preset commands"
+icon = "utilities-terminal"
 version = "0.1"
-
 contract_version = "0.0.1"
 command = ["run.sh"]
 used_capabilities = ["actions/bashcmd"]

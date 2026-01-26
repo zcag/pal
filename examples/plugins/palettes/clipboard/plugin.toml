@@ -1,4 +1,5 @@
 name = "clipboard"
 desc = "clipboard history"
+icon = "edit-paste"
 version = "0.1"
 command = ["run.sh"]

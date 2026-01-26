@@ -1,4 +1,5 @@
 name = "windows"
 desc = "list and focus windows"
+icon = "preferences-system-windows"
 version = "0.1"
 command = ["run.sh"]

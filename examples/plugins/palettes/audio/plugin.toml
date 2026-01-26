@@ -1,4 +1,5 @@
 name = "audio"
 desc = "list and switch audio output devices"
+icon = "audio-card"
 version = "0.1"
 command = ["run.sh"]

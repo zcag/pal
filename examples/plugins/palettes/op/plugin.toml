@@ -1,4 +1,5 @@
 name = "op"
 desc = "1Password vault items"
+icon = "dialog-password"
 version = "0.1"
 command = ["run.sh"]
