@@ -22,12 +22,7 @@ fn list() -> String {
         return Config { general: Default::default(), palette: Default::default(), frontend: Default::default() };
     });
 
-    // If inside a combine, only show palettes in its scope
-    let scope: Option<Vec<&str>> = std::env::var("_PAL_COMBINE_SCOPE").ok()
-        .map(|s| s.leak().split(',').collect());
-
     cfg.palette.iter()
-        .filter(|(name, _)| scope.as_ref().map_or(true, |s| s.contains(&name.as_str())))
         .map(|(name, p)| {
             let icon = p.icon.as_deref().unwrap_or("view-list");
             json!({"id": name, "name": name, "icon": icon}).to_string()

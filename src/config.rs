@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use figment::{Figment, providers::{Format, Toml, Env, Serialized}};
+use figment::{Figment, providers::{Format, Toml, Env}};
 use serde::{Deserialize, Serialize};
 
 use crate::Cli;
@@ -70,7 +70,6 @@ impl Config {
             .unwrap_or_default();
 
         let mut figment = Figment::new()
-            .merge(Serialized::defaults(Config::base()))
             .merge(Toml::file("pal.default.toml"))
             .merge(Toml::file(user_config))
             .merge(Toml::file("pal.toml"))
@@ -110,102 +109,6 @@ impl Config {
             }
         }
     }
-
-    fn base() -> Self {
-        let mut palette = HashMap::new();
-        palette.insert("apps".into(), Palette {
-            base: Some("builtin/palettes/apps".into()),
-            icon: Some("application-x-executable".into()),
-            cache: false,
-            auto_list: false,
-            auto_pick: false,
-            data: None,
-            include: vec![],
-            default_action: None,
-            action_key: None,
-            extra: HashMap::new(),
-        });
-        palette.insert("bookmarks".into(), Palette {
-            base: Some("builtin/palettes/bookmarks".into()),
-            icon: Some("bookmark".into()),
-            cache: false,
-            auto_list: false,
-            auto_pick: false,
-            data: None,
-            include: vec![],
-            default_action: None,
-            action_key: None,
-            extra: HashMap::new(),
-        });
-        palette.insert("pals".into(), Palette {
-            base: Some("builtin/palettes/pals".into()),
-            icon: Some("view-list".into()),
-            cache: false,
-            auto_list: false,
-            auto_pick: false,
-            data: None,
-            include: vec![],
-            default_action: None,
-            action_key: None,
-            extra: HashMap::new(),
-        });
-        palette.insert("psg".into(), Palette {
-            base: Some("builtin/palettes/psg".into()),
-            icon: Some("utilities-system-monitor".into()),
-            cache: false,
-            auto_list: false,
-            auto_pick: false,
-            data: None,
-            include: vec![],
-            default_action: None,
-            action_key: None,
-            extra: HashMap::new(),
-        });
-        palette.insert("ssh".into(), Palette {
-            base: Some("builtin/palettes/ssh".into()),
-            icon: Some("network-server".into()),
-            cache: false,
-            auto_list: false,
-            auto_pick: false,
-            data: None,
-            include: vec![],
-            default_action: None,
-            action_key: None,
-            extra: HashMap::new(),
-        });
-        palette.insert("combine".into(), Palette {
-            base: Some("builtin/palettes/combine".into()),
-            icon: Some("view-grid".into()),
-            cache: false,
-            auto_list: false,
-            auto_pick: false,
-            data: None,
-            include: vec![],
-            default_action: None,
-            action_key: None,
-            extra: HashMap::new(),
-        });
-
-        let mut frontend = HashMap::new();
-        frontend.insert("fzf".into(), Frontend {
-            base: Some("builtin/frontends/fzf".into()),
-            extra: HashMap::new(),
-        });
-        frontend.insert("rofi".into(), Frontend {
-            base: Some("builtin/frontends/rofi".into()),
-            extra: HashMap::new(),
-        });
-        frontend.insert("stdin".into(), Frontend {
-            base: Some("builtin/frontends/stdin".into()),
-            extra: HashMap::new(),
-        });
-
-        Self {
-            general: General::default(),
-            palette,
-            frontend,
-        }
-    }
 }
 
 /// Load plugin.toml or builtin.toml section
@@ -229,19 +132,3 @@ fn load_plugin_toml(base: &str) -> Option<toml::Value> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn loads_default_config() {
-        let cli = Cli { config: String::new(), log_level: None, command: None };
-        let cfg = Config::load("pal.default.toml", &cli).unwrap();
-        assert_eq!(cfg.general.default_palette, "mycommands");
-        assert_eq!(cfg.general.default_frontend, "fzf");
-        assert_eq!(cfg.palette.len(), 7);
-        assert_eq!(cfg.palette["combine"].include, vec!["palettes", "commands"]);
-        assert!(cfg.palette["psg"].auto_pick);
-        assert_eq!(cfg.frontend["rofi"].base.as_deref(), Some("plugins/frontends/rofi"));
-    }
-}

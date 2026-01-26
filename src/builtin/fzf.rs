@@ -43,12 +43,16 @@ fn run_fzf(items: &str) -> String {
                     .collect::<Vec<_>>()
                     .join(" "))
                 .unwrap_or_default();
-            // Format: JSON\ticon name (desc)\tkeywords
-            // Use dim ANSI for description
+
+            // Only show icon if it's a displayable character (emoji/unicode)
+            // Skip freedesktop icon names (ascii-only like "firefox", "audio-card")
+            let show_icon = !icon.is_empty() && !icon.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+            let icon_prefix = if show_icon { format!("{} ", icon) } else { String::new() };
+
             let display = if desc.is_empty() {
-                format!("{} {}", icon, name)
+                format!("{}{}", icon_prefix, name)
             } else {
-                format!("{} {} \x1b[2m{}\x1b[0m", icon, name, desc)
+                format!("{}{} \x1b[2m{}\x1b[0m", icon_prefix, name, desc)
             };
             Some(format!("{}\t{}\t{}", line, display, keywords))
         })

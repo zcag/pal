@@ -42,25 +42,38 @@ fn run_rofi(items: &str) -> String {
                     .join(" "))
                 .unwrap_or_default();
 
+            // Check if icon is a displayable character (emoji/unicode) vs freedesktop icon name
+            let is_char_icon = !icon.is_empty() && !icon.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+
             // Display with Pango markup for description (smaller, dimmed)
-            let display = if desc.is_empty() {
-                name.to_string()
-            } else {
-                // Escape special chars for Pango
-                let desc_escaped = desc.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
-                format!("{} <span size=\"small\" alpha=\"50%\">{}</span>", name, desc_escaped)
+            // For char icons, prepend to display instead of using rofi's icon feature
+            let display = {
+                let name_part = if is_char_icon {
+                    format!("{} {}", icon, name)
+                } else {
+                    name.to_string()
+                };
+                if desc.is_empty() {
+                    name_part
+                } else {
+                    let desc_escaped = desc.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+                    format!("{} <span size=\"small\" alpha=\"50%\">{}</span>", name_part, desc_escaped)
+                }
             };
 
             // Store plain name for lookup (rofi strips markup in output)
-            display_to_json.insert(name.to_string(), line.to_string());
+            let lookup_key = if is_char_icon {
+                format!("{} {}", icon, name)
+            } else {
+                name.to_string()
+            };
+            display_to_json.insert(lookup_key, line.to_string());
 
             // Rofi format: "display\0icon\x1ficon-name\x1fmeta\x1fkeywords"
-            // meta field is searchable but not displayed
-            if keywords.is_empty() {
-                Some(format!("{}\0icon\x1f{}", display, icon))
-            } else {
-                Some(format!("{}\0icon\x1f{}\x1fmeta\x1f{}", display, icon, keywords))
-            }
+            // Only use rofi icon for freedesktop icon names, not char icons
+            let icon_part = if is_char_icon { String::new() } else { format!("\0icon\x1f{}", icon) };
+            let meta_part = if keywords.is_empty() { String::new() } else { format!("\x1fmeta\x1f{}", keywords) };
+            Some(format!("{}{}{}", display, icon_part, meta_part))
         })
         .collect();
 

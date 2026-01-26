@@ -6,12 +6,22 @@ default_palette = "combine"
 default_frontend = "fzf"
 
 [palette]
+  # Builtins
   [palette.combine]
   base = "builtin/palettes/combine"
-  include = ["pals", "quickcmds"]
+  include = ["pals", "cmds"]
+
+  [palette.pals]
+  base = "builtin/palettes/pals"
 
   [palette.apps]
   base = "builtin/palettes/apps"
+
+  [palette.bookmarks]
+  base = "builtin/palettes/bookmarks"
+
+  [palette.psg]
+  base = "builtin/palettes/psg"
 
   [palette.cmds]
   base = "plugins/palettes/commands"
@@ -27,6 +37,10 @@ default_frontend = "fzf"
 
   [palette.audio]
   base = "plugins/palettes/audio"
+  # rules = [
+  #   { pattern = "HDMI", name = "TV", icon = "video-display" },
+  #   { pattern = "Headphones", name = "Headphones", icon = "audio-headphones" },
+  # ]
 
   [palette.clipboard]
   base = "plugins/palettes/clipboard"
@@ -80,10 +94,11 @@ default_frontend = "fzf"
   base = "plugins/palettes/media"
 
 [frontend]
-  # Builtin frontends (fzf, rofi, stdin) are available by default
-  # Override with plugin implementations if needed:
-  # [frontend.fzf]
-  # base = "plugins/frontends/fzf"
+  [frontend.fzf]
+  base = "builtin/frontends/fzf"
 
-  # [frontend.rofi]
-  # base = "plugins/frontends/rofi"
+  [frontend.rofi]
+  base = "builtin/frontends/rofi"
+
+  [frontend.stdin]
+  base = "builtin/frontends/stdin"

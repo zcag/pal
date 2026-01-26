@@ -10,5 +10,12 @@ default_frontend = "fzf"
   base = "builtin/palettes/combine"
   include = []
 
-# Frontends need to be configured - see examples/
 [frontend]
+  [frontend.fzf]
+  base = "builtin/frontends/fzf"
+
+  [frontend.rofi]
+  base = "builtin/frontends/rofi"
+
+  [frontend.stdin]
+  base = "builtin/frontends/stdin"
