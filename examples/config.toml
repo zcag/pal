@@ -39,6 +39,9 @@ default_frontend = "fzf"
   default_action = "copy"
   action_key = "icon"
 
+  [palette.audio]
+  base = "plugins/palettes/audio"
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"
