@@ -1,8 +1,32 @@
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{self, Command, Stdio};
 
 use serde::Serialize;
+
+pub fn expand_path(path: &str) -> PathBuf {
+    if path.starts_with("~/") {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(&path[2..]);
+        }
+    }
+    if path.starts_with('/') {
+        return PathBuf::from(path);
+    }
+    // Relative path - resolve from config directory
+    if let Ok(config_dir) = std::env::var("_PAL_CONFIG_DIR") {
+        let base = if config_dir.starts_with("~/") {
+            dirs::home_dir().map(|h| h.join(&config_dir[2..])).unwrap_or_else(|| PathBuf::from(&config_dir))
+        } else if config_dir.starts_with('/') {
+            PathBuf::from(&config_dir)
+        } else {
+            // config_dir is relative to cwd
+            std::env::current_dir().unwrap_or_default().join(&config_dir)
+        };
+        return base.join(path);
+    }
+    PathBuf::from(path)
+}
 
 pub fn run_command(exec: &Path, args: &[&str], stdin_data: Option<&str>) -> String {
     let mut child = Command::new(exec)

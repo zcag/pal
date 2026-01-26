@@ -49,24 +49,51 @@ pub enum Command {
         /// Palette to use (default from config)
         palette: Option<String>,
     },
+    /// List items from a palette (without frontend)
+    List {
+        /// Palette to list from
+        palette: Option<String>,
+    },
 }
 
 fn main() {
     let cli = Cli::parse();
-    let cfg = Config::load(&cli.config, &cli);
+
+    // Debug: write args and env to file
+    let debug_info = format!(
+        "args: {:?}\ncli.config: {}\nHOME: {:?}\nPWD: {:?}\ncwd: {:?}\n",
+        std::env::args().collect::<Vec<_>>(),
+        cli.config,
+        std::env::var("HOME"),
+        std::env::var("PWD"),
+        std::env::current_dir(),
+    );
+    let _ = std::fs::write("/tmp/pal-debug.log", &debug_info);
+
+    let config_path = util::expand_path(&cli.config);
+    let config_str = config_path.to_string_lossy();
+    let cfg = Config::load(&config_str, &cli);
 
     match cfg {
-        Ok(cfg) => dispatch(cli, cfg),
+        Ok(cfg) => dispatch(&config_str, cli.command, cfg),
         Err(e) => eprintln!("config error: {e}"),
     }
 }
 
-fn dispatch(cli: Cli, cfg: Config) {
-    std::env::set_var("_PAL_CONFIG", &cli.config);
+fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
+    std::env::set_var("_PAL_CONFIG", config_path);
+    if let Some(parent) = std::path::Path::new(config_path).parent() {
+        std::env::set_var("_PAL_CONFIG_DIR", parent);
+    }
 
-    match cli.command {
+    match command {
         Some(Command::ShowConfig) => println!("{cfg:#?}"),
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
+        Some(Command::List { palette }) => {
+            let palette_name = palette.as_deref().unwrap_or(&cfg.general.default_palette);
+            let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
+            print!("{}", list(palette_cfg));
+        }
         None => run(&cfg, None, None),
     }
 }

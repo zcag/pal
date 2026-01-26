@@ -1,0 +1,29 @@
+# Example config - copy to ~/.config/pal/config.toml
+# Run from examples/ dir: cd examples && pal -c config.toml
+
+[general]
+default_palette = "combine"
+default_frontend = "fzf"
+
+[palette]
+  [palette.combine]
+  base = "builtin/palettes/combine"
+  include = ["pals", "quickcmds"]
+
+  [palette.mycommands]
+  base = "plugins/palettes/commands"
+  data = "plugins/palettes/commands/data.json"
+
+  [palette.quickcmds]
+  auto_list = true
+  auto_pick = true
+  data = "plugins/palettes/commands/data.json"
+  default_action = "cmd"
+  action_key = "cmd"
+
+[frontend]
+  [frontend.fzf]
+  base = "plugins/frontends/fzf"
+
+  [frontend.rofi]
+  base = "plugins/frontends/rofi"

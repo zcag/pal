@@ -1,6 +1,7 @@
 use crate::action::Action;
 use crate::config::Palette as PaletteConfig;
 use crate::plugin::Plugin;
+use crate::util;
 
 pub struct Palette<'a> {
     config: &'a PaletteConfig,
@@ -16,7 +17,7 @@ impl<'a> Palette<'a> {
     pub fn list(&self) -> String {
         if self.config.auto_list {
             self.config.data.as_ref()
-                .and_then(|p| std::fs::read_to_string(p).ok())
+                .and_then(|p| std::fs::read_to_string(util::expand_path(p)).ok())
                 .unwrap_or_default()
         } else if let Some(plugin) = &self.plugin {
             plugin.run("list", None)

@@ -13,7 +13,8 @@ pub struct Plugin {
 
 impl Plugin {
     pub fn new(base: &str, user_config: &impl Serialize) -> Self {
-        let plugin_toml = load_plugin_toml(base);
+        let expanded = util::expand_path(base);
+        let plugin_toml = load_plugin_toml(base, &expanded);
         let config = util::merge_configs(&plugin_toml, user_config);
 
         let exec = if base.starts_with("builtin/") {
@@ -27,7 +28,7 @@ impl Plugin {
                     eprintln!("plugin.toml missing 'command'");
                     process::exit(1);
                 });
-            Some(Path::new(base).join(cmd))
+            Some(expanded.join(cmd))
         };
 
         Self { base: base.to_string(), exec, config }
@@ -45,18 +46,18 @@ impl Plugin {
     }
 }
 
-fn load_plugin_toml(base: &str) -> toml::Value {
+fn load_plugin_toml(base: &str, expanded: &Path) -> toml::Value {
     if let Some(rest) = base.strip_prefix("builtin/") {
         load_builtin_toml(rest)
     } else {
-        load_toml_file(&Path::new(base).join("plugin.toml"))
+        load_toml_file(&expanded.join("plugin.toml"))
     }
 }
 
 fn load_builtin_toml(rest: &str) -> toml::Value {
     // rest is like "palettes/pals" -> extract [palettes.pals] from builtin.toml
     let parts: Vec<&str> = rest.split('/').collect();
-    let toml = load_toml_file(Path::new("src/builtin/builtin.toml"));
+    let toml: toml::Value = include_str!("builtin/builtin.toml").parse().unwrap();
 
     parts.iter().fold(toml, |v, key| {
         v.get(key).cloned().unwrap_or(toml::Value::Table(Default::default()))

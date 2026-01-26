@@ -1,49 +1,14 @@
 [general]
-default_palette = "combine"
+default_palette = "pals"
 default_frontend = "fzf"
 
-
 [palette]
+  [palette.pals]
+  base = "builtin/palettes/pals"
 
   [palette.combine]
   base = "builtin/palettes/combine"
-  include = ["pals", "quickcmds"]
+  include = []
 
-  [palette.pals]
-  base = "builtin/palettes/pals"
-  config_file = "pal.default.toml"
-
-  [palette.apps]
-  base = "apps"
-
-  # [palette.commands]
-  # auto_list = true
-  # data = "~/datas/commands.json"
-
-  [palette.mycommands]
-  base = "plugins/palettes/commands"
-  data = "plugins/palettes/commands/data.json"
-
-  [palette.quickcmds]
-  auto_list = true
-  auto_pick = true
-  data = "plugins/palettes/commands/data.json"
-  default_action = "cmd"
-  action_key = "cmd"
-
-  [palette.psg]
-  base = "builtin/psg"
-  auto_pick = true
-
-  [palette.psgv2]
-  base = "github.com/zcag/palplugins/psg/psg"
-  auto_pick = true
-
-
+# Frontends need to be configured - see examples/
 [frontend]
-
-  [frontend.fzf]
-  base = "plugins/frontends/fzf"
-
-  [frontend.rofi]
-  base = "plugins/frontends/rofi"
