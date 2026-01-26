@@ -82,20 +82,30 @@ impl Config {
         }
 
         let mut config: Self = figment.extract()?;
-        config.resolve_icons();
+        config.resolve_plugin_defaults();
         Ok(config)
     }
 
-    /// Fill in missing palette icons from plugin.toml files
-    fn resolve_icons(&mut self) {
+    /// Fill in missing palette fields from plugin.toml files
+    fn resolve_plugin_defaults(&mut self) {
         for (_name, palette) in self.palette.iter_mut() {
-            if palette.icon.is_some() {
-                continue;
-            }
             if let Some(base) = &palette.base {
-                let icon = load_plugin_icon(base);
-                if icon.is_some() {
-                    palette.icon = icon;
+                if let Some(plugin) = load_plugin_toml(base) {
+                    if palette.icon.is_none() {
+                        palette.icon = plugin.get("icon").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if !palette.auto_list {
+                        palette.auto_list = plugin.get("auto_list").and_then(|v| v.as_bool()).unwrap_or(false);
+                    }
+                    if !palette.auto_pick {
+                        palette.auto_pick = plugin.get("auto_pick").and_then(|v| v.as_bool()).unwrap_or(false);
+                    }
+                    if palette.default_action.is_none() {
+                        palette.default_action = plugin.get("default_action").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if palette.action_key.is_none() {
+                        palette.action_key = plugin.get("action_key").and_then(|v| v.as_str()).map(String::from);
+                    }
                 }
             }
         }
@@ -198,8 +208,8 @@ impl Config {
     }
 }
 
-/// Load icon from plugin.toml or builtin.toml
-fn load_plugin_icon(base: &str) -> Option<String> {
+/// Load plugin.toml or builtin.toml section
+fn load_plugin_toml(base: &str) -> Option<toml::Value> {
     use crate::util;
 
     if let Some(rest) = base.strip_prefix("builtin/") {
@@ -209,14 +219,13 @@ fn load_plugin_icon(base: &str) -> Option<String> {
         let section = parts.iter().fold(toml, |v, key| {
             v.get(key).cloned().unwrap_or(toml::Value::Table(Default::default()))
         });
-        section.get("icon").and_then(|v| v.as_str()).map(String::from)
+        Some(section)
     } else {
         // Load from plugin.toml
         let expanded = util::expand_path(base);
         let plugin_toml = expanded.join("plugin.toml");
         let content = std::fs::read_to_string(plugin_toml).ok()?;
-        let toml: toml::Value = content.parse().ok()?;
-        toml.get("icon").and_then(|v| v.as_str()).map(String::from)
+        content.parse().ok()
     }
 }
 

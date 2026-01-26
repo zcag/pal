@@ -19,27 +19,15 @@ default_frontend = "fzf"
 
   [palette.quickcmds]
   base = "plugins/palettes/commands"
-  auto_list = true
-  auto_pick = true
   data = "plugins/palettes/commands/data.json"
-  default_action = "cmd"
-  action_key = "cmd"
 
   [palette.chars]
   base = "plugins/palettes/chars"
-  auto_list = true
-  auto_pick = true
   data = "plugins/palettes/chars/data.json"
-  default_action = "copy"
-  action_key = "icon"
 
   [palette.icons]
   base = "plugins/palettes/icons"
-  auto_list = true
-  auto_pick = true
   data = "plugins/palettes/icons/data.json"
-  default_action = "copy"
-  action_key = "icon"
 
   [palette.audio]
   base = "plugins/palettes/audio"
@@ -70,6 +58,7 @@ default_frontend = "fzf"
   [palette.repos]
   base = "plugins/palettes/repos"
   # orgs = ["org1", "org2"]  # optional, list org repos too
+  orgs = ["ngssio", "ngss-io"]
 
   [palette.ssh]
   base = "builtin/palettes/ssh"
@@ -85,19 +74,11 @@ default_frontend = "fzf"
 
   [palette.power]
   base = "plugins/palettes/power"
-  auto_list = true
-  auto_pick = true
   data = "plugins/palettes/power/data.json"
-  default_action = "cmd"
-  action_key = "cmd"
 
   [palette.emoji]
   base = "plugins/palettes/emoji"
-  auto_list = true
-  auto_pick = true
   data = "plugins/palettes/emoji/data.json"
-  default_action = "copy"
-  action_key = "icon"
 
   [palette.media]
   base = "plugins/palettes/media"

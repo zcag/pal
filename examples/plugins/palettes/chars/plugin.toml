@@ -2,3 +2,7 @@ name = "chars"
 desc = "special characters and symbols"
 icon = "accessories-character-map"
 version = "0.1"
+auto_list = true
+auto_pick = true
+default_action = "copy"
+action_key = "icon"

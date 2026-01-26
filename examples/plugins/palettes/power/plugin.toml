@@ -2,3 +2,7 @@ name = "power"
 desc = "power options"
 icon = "system-shutdown"
 version = "0.1"
+auto_list = true
+auto_pick = true
+default_action = "cmd"
+action_key = "cmd"
