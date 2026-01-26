@@ -3,12 +3,14 @@
 run() {
   items=$(cat)
 
-  # display: "id\ticon name" - rofi shows only icon+name via -display-columns
-  selected=$(echo "$items" | jq -r '"\(.id)\t\(.icon // "") \(.name)"' | rofi -dmenu -i -p "pal" -display-columns 2)
+  # Format for rofi with icons: "display\0icon\x1ficon-name"
+  # \u0000 = null byte separator, \u001f = unit separator for rofi metadata
+  selected=$(echo "$items" | jq -r '"\(.name)\u0000icon\u001f\(.icon // "")"' | rofi -dmenu -i -p "pal" -show-icons)
 
   if [[ -n "$selected" ]]; then
-    id=$(cut -f1 <<< "$selected")
-    echo "$items" | jq -c "select(.id == \"$id\")"
+    # selected is just the name, find matching item
+    escaped=$(printf '%s' "$selected" | jq -Rs '.')
+    echo "$items" | jq -c "select(.name == $escaped)"
   fi
 }
 

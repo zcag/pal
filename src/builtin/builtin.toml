@@ -1,3 +1,9 @@
+[palettes.apps]
+name = "apps"
+desc = "list and launch applications"
+version = "0.1"
+contract_version = "0.0.1"
+
 [palettes.pals]
 name = "pals"
 desc = "list and run palettes"

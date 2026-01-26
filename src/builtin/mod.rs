@@ -1,9 +1,12 @@
+mod apps;
 mod combine;
+mod file_util;
 mod pals;
 
 pub fn run(base: &str, cmd: &str, input: Option<&str>) -> String {
     let path = base.strip_prefix("builtin/").unwrap_or(base);
     match path {
+        "palettes/apps" => apps::run(cmd, input),
         "palettes/pals" => pals::run(cmd, input),
         "palettes/combine" => combine::run(cmd, input),
         _ => {
