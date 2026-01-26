@@ -56,6 +56,9 @@ default_frontend = "fzf"
   # scope = "user"  # or "system" for sudo
   # action = "restart"  # or "start", "stop", "status"
 
+  [palette.ble]
+  base = "plugins/palettes/ble"
+
 [frontend]
   [frontend.fzf]
   base = "plugins/frontends/fzf"

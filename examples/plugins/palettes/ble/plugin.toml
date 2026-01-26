@@ -1,0 +1,4 @@
+name = "ble"
+desc = "list and connect bluetooth devices"
+version = "0.1"
+command = ["run.sh"]
