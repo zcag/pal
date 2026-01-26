@@ -84,9 +84,33 @@ impl Config {
     }
 
     fn base() -> Self {
+        let mut palette = HashMap::new();
+        palette.insert("pals".into(), Palette {
+            base: Some("builtin/palettes/pals".into()),
+            cache: false,
+            auto_list: false,
+            auto_pick: false,
+            data: None,
+            include: vec![],
+            default_action: None,
+            action_key: None,
+            extra: HashMap::new(),
+        });
+        palette.insert("combine".into(), Palette {
+            base: Some("builtin/palettes/combine".into()),
+            cache: false,
+            auto_list: false,
+            auto_pick: false,
+            data: None,
+            include: vec![],
+            default_action: None,
+            action_key: None,
+            extra: HashMap::new(),
+        });
+
         Self {
             general: General::default(),
-            palette: HashMap::new(),
+            palette,
             frontend: HashMap::new(),
         }
     }

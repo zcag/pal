@@ -12,18 +12,10 @@ pub fn run(cmd: &str, input: Option<&str>) -> String {
     }
 }
 
-fn config() -> serde_json::Value {
-    let s = std::env::var("_PAL_PLUGIN_CONFIG").unwrap_or_default();
-    serde_json::from_str(&s).unwrap_or_default()
-}
-
 fn list() -> String {
-    let cfg = config();
-    let config_file = cfg.get("config_file")
-        .and_then(|v| v.as_str())
-        .unwrap_or("pal.default.toml");
+    let config_file = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
 
-    let content = std::fs::read_to_string(config_file).unwrap_or_default();
+    let content = std::fs::read_to_string(&config_file).unwrap_or_default();
     content.lines()
         .filter_map(|line| {
             let t = line.trim();
@@ -42,8 +34,10 @@ fn pick(input: &str) -> String {
         return String::new();
     }
 
+    let config_file = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
     let frontend = std::env::var("_PAL_FRONTEND").unwrap_or_default();
-    let mut args = vec!["run"];
+
+    let mut args = vec!["-c", &config_file, "run"];
     if !frontend.is_empty() {
         args.push(&frontend);
     }

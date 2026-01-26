@@ -58,19 +58,9 @@ pub enum Command {
 
 fn main() {
     let cli = Cli::parse();
-
-    // Debug: write args and env to file
-    let debug_info = format!(
-        "args: {:?}\ncli.config: {}\nHOME: {:?}\nPWD: {:?}\ncwd: {:?}\n",
-        std::env::args().collect::<Vec<_>>(),
-        cli.config,
-        std::env::var("HOME"),
-        std::env::var("PWD"),
-        std::env::current_dir(),
-    );
-    let _ = std::fs::write("/tmp/pal-debug.log", &debug_info);
-
     let config_path = util::expand_path(&cli.config);
+    // Canonicalize to absolute path for nested pal invocations
+    let config_path = std::fs::canonicalize(&config_path).unwrap_or(config_path);
     let config_str = config_path.to_string_lossy();
     let cfg = Config::load(&config_str, &cli);
 
