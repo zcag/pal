@@ -242,6 +242,12 @@ action_key = "cmd"
 - [ ] REST API frontend
 - [ ] More builtin palettes (calendar, OTP, etc.)
 
+## Disclaimer
+
+This is a rewrite of my personal bash spaghetti that I implemented over the years, covering many palettes and frontends for various stuff. Inspired by [Raycast](https://raycast.com/) - an awesome macOS Spotlight alternative that's also quite customizable. Many of the custom palettes here are ported from my custom Raycast plugins after I left macOS.
+
+This is also an experiment for myself on Rust and AI-assisted coding. I have minimal Rust knowledge, and this is my first time properly using an AI agent for development. [Claude Code](https://claude.ai/claude-code) was heavily used in this project - it straight up implemented a ton of the palettes based on my descriptions and reference bash scripts from the original pal.
+
 ## License
 
 MIT
