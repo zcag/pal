@@ -6,6 +6,7 @@ mod fzf;
 mod pals;
 mod psg;
 mod rofi;
+mod ssh;
 mod stdin;
 
 pub fn run(base: &str, cmd: &str, input: Option<&str>) -> String {
@@ -16,6 +17,7 @@ pub fn run(base: &str, cmd: &str, input: Option<&str>) -> String {
         "palettes/bookmarks" => bookmarks::run(cmd, input),
         "palettes/pals" => pals::run(cmd, input),
         "palettes/psg" => psg::run(cmd, input),
+        "palettes/ssh" => ssh::run(cmd, input),
         "palettes/combine" => combine::run(cmd, input),
         // Frontends
         "frontends/fzf" => fzf::run(cmd, input),

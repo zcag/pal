@@ -134,6 +134,18 @@ impl Config {
             action_key: None,
             extra: HashMap::new(),
         });
+        palette.insert("ssh".into(), Palette {
+            base: Some("builtin/palettes/ssh".into()),
+            icon: Some("network-server".into()),
+            cache: false,
+            auto_list: false,
+            auto_pick: false,
+            data: None,
+            include: vec![],
+            default_action: None,
+            action_key: None,
+            extra: HashMap::new(),
+        });
         palette.insert("combine".into(), Palette {
             base: Some("builtin/palettes/combine".into()),
             icon: Some("view-grid".into()),

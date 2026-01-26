@@ -22,6 +22,12 @@ desc = "list and kill processes"
 version = "0.1"
 contract_version = "0.0.1"
 
+[palettes.ssh]
+name = "ssh"
+desc = "list and connect to SSH hosts"
+version = "0.1"
+contract_version = "0.0.1"
+
 [palettes.combine]
 name = "combine"
 desc = "combine multiple palettes"
