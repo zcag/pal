@@ -1,0 +1,4 @@
+name = "op"
+desc = "1Password vault items"
+version = "0.1"
+command = ["run.sh"]
