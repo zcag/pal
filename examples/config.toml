@@ -13,11 +13,7 @@ default_frontend = "fzf"
   [palette.apps]
   base = "builtin/palettes/apps"
 
-  [palette.mycommands]
-  base = "plugins/palettes/commands"
-  data = "plugins/palettes/commands/data.json"
-
-  [palette.quickcmds]
+  [palette.cmds]
   base = "plugins/palettes/commands"
   data = "plugins/palettes/commands/data.json"
 
