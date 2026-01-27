@@ -16,7 +16,7 @@ list() {
     status=""
     [[ -n "$connected" ]] && icon="bluetooth-connected" && status=" (connected)"
 
-    name_escaped=$(echo "$name$status" | jq -Rs '.' | sed 's/^"//;s/"$//')
+    name_escaped=$(printf '%s' "$name$status" | jq -Rs '.' | sed 's/^"//;s/"$//')
     echo "{\"id\":\"$mac\",\"name\":\"$name_escaped\",\"mac\":\"$mac\",\"icon\":\"$icon\"}"
   done | grep -v '^$'
 }

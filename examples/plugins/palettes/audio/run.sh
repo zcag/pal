@@ -28,7 +28,7 @@ apply_rules() {
   fi
 
   # Escape for JSON
-  name=$(echo "$name" | jq -Rs '.' | sed 's/^"//;s/"$//')
+  name=$(printf '%s' "$name" | jq -Rs '.' | sed 's/^"//;s/"$//')
   printf '{"id":"%s","name":"%s","icon":"%s"}\n' "$id" "$name" "$icon"
 }
 
