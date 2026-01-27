@@ -66,13 +66,21 @@ fn list() -> String {
             })
             .unwrap_or(0);
 
+        // Truncate cmdline for display, keep full in cmdline field
+        let display_name = if cmdline.len() > 80 {
+            format!("{}...", &cmdline[..77])
+        } else {
+            cmdline.clone()
+        };
+
         procs.push(json!({
             "id": pid.to_string(),
             "pid": pid,
-            "name": comm,
+            "name": display_name,
+            "comm": comm,
             "cmdline": cmdline,
             "uid": uid,
-            "icon": "process",
+            "icon": "utilities-system-monitor",
         }));
     }
 
