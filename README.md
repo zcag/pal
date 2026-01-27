@@ -20,15 +20,10 @@ pal run fzf combine   # combined view of multiple palettes
 ## Installation
 
 ```bash
-cargo install --path .
+cargo install pal
 ```
 
-Or build manually:
-
-```bash
-cargo build --release
-cp target/release/pal ~/.local/bin/
-```
+Requires Rust 1.70+ ([rustup](https://rustup.rs/))
 
 ## Quick Start
 

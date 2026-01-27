@@ -2,6 +2,11 @@
 name = "pal"
 version = "0.1.0"
 edition = "2021"
+description = "A fast, extensible command palette for Linux"
+license = "MIT"
+repository = "https://github.com/zcag/pal"
+keywords = ["cli", "launcher", "palette", "rofi", "fzf"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
