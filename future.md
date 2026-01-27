@@ -1,130 +1,75 @@
 # Future Ideas
 
-## Palettes
+## Planned
 
-### Development
-| Palette | Description | Implementation |
-|---------|-------------|----------------|
-| `ssh` | SSH hosts from ~/.ssh/config | Builtin (parse config) |
-| `tmux` | Sessions - attach/create/kill | Bash (tmux ls) |
-| `docker` | Containers - start/stop/exec/logs | Bash (docker ps) |
-| `k8s` | Pods/services/deployments | Bash (kubectl) |
-| `git-branches` | Checkout branches | Bash (git branch) |
-| `git-stash` | Apply/pop/drop stash entries | Bash (git stash list) |
-| `git-log` | Commits - cherry-pick/revert/show | Bash (git log) |
-| `projects` | Project dirs - cd/open in editor | Bash (find ~/proj) |
-| `ports` | Listening ports - kill process | Builtin (netstat/ss) |
-| `env` | Environment variables - copy | Builtin (env) |
-
-### Productivity
-| Palette | Description | Implementation |
-|---------|-------------|----------------|
-| `pass` | password-store entries | Bash (pass ls) |
-| `bitwarden` | Vault entries via bw cli | Bash (bw list items) |
-| `notes` | Search markdown/obsidian notes | Builtin (ripgrep) |
-| `snippets` | Code snippets - copy | Autolist (JSON data) |
-| `todo` | Todo list management | Bash (todoist/taskwarrior) |
-| `calendar` | Calendar events | Bash (khal/calcurse) |
-| `contacts` | Contact lookup | Bash (khard/abook) |
-| `mail` | Recent emails | Bash (notmuch/mu) |
-
-### Reference
-| Palette | Description | Implementation |
-|---------|-------------|----------------|
-| `man` | Man pages - open on pick | Bash (man -k) |
-| `tldr` | Tldr pages | Bash (tldr --list) |
-| `emoji` | Emoji picker | Autolist (JSON data) |
-| `http` | HTTP status codes | Autolist (JSON data) |
-| `cheatsheet` | Various cheatsheets | Autolist (JSON data) |
-| `keybinds` | Search keybindings | Bash (parse config) |
-| `aliases` | Shell aliases - run/copy | Bash (alias) |
-| `history` | Shell history - rerun | Bash (fc -l) |
-
-### System
-| Palette | Description | Implementation |
-|---------|-------------|----------------|
-| `power` | Shutdown/reboot/suspend/lock | Bash (systemctl) |
-| `brightness` | Screen brightness | Bash (brightnessctl) |
-| `displays` | Display configuration | Bash (xrandr/wlr-randr) |
-| `vpn` | VPN connections | Bash (nmcli/wg) |
-| `mounts` | Mount points - unmount | Builtin (/proc/mounts) |
-| `trash` | Trash - restore/delete | Bash (trash-cli) |
-| `cron` | Cron jobs | Bash (crontab -l) |
-| `packages` | Installed packages | Bash (pacman/apt) |
-| `updates` | Available updates | Bash (checkupdates) |
-| `logs` | System logs | Bash (journalctl) |
-| `notifications` | Notification history | Bash (dunstctl/swaync) |
-
-### Media & Files
-| Palette | Description | Implementation |
-|---------|-------------|----------------|
-| `media` | Player control - play/pause/next | Bash (playerctl) |
-| `screenshots` | Recent screenshots | Bash (find) |
-| `downloads` | Recent downloads | Bash (find ~/Downloads) |
-| `wallpaper` | Set wallpaper | Bash (swww/feh) |
-| `fonts` | Font picker | Bash (fc-list) |
-| `colors` | Color picker - copy hex/rgb | Autolist (JSON data) |
-
-### Utilities
-| Palette | Description | Implementation |
-|---------|-------------|----------------|
-| `calc` | Calculator - eval expressions | Builtin (bc/python) |
-| `timezones` | Time in different zones | Builtin (chrono) |
-| `units` | Unit converter | Bash (units) |
-| `dns` | DNS lookup | Bash (dig/host) |
-| `ip` | Public/local IP info | Bash (curl/ip) |
+| Item | Type | Description |
+|------|------|-------------|
+| `calendar` | palette | Calendar events via khal/calcurse |
+| `mail` | palette | Recent emails via notmuch/mu |
+| `brightness` | palette | Screen brightness control |
+| `vpn` | palette | VPN connections (nmcli/wg/fortivpn) |
+| `notifications` | palette | Notification history (dunstctl/swaync) |
+| `screenshots` | palette | Recent screenshots - view/copy/delete |
+| `clipboard` | palette | Clipboard history (cliphist/clipman) |
+| `calc` | palette | Calculator with live qalc preview |
+| `colors` | palette | Color picker - hex/rgb/hsl |
+| `ip` | palette | Public/local IP, network info |
+| `tui` | frontend | Custom ratatui TUI |
+| `web` | frontend | Local web interface + REST API |
 
 ---
 
-## Frontends
+## More Ideas
 
-### Terminal
-| Frontend | Description | Notes |
-|----------|-------------|-------|
-| `fzf-tmux` | fzf in tmux popup | `fzf-tmux -p` |
-| `skim` | Rust fzf alternative | Drop-in replacement |
-| `peco` | Another fuzzy finder | Simpler than fzf |
+### Palettes
 
-### Wayland
-| Frontend | Description | Notes |
-|----------|-------------|-------|
-| `wofi` | Wayland rofi | Native wayland |
-| `fuzzel` | Fast wayland launcher | Minimal, fast |
-| `bemenu` | Wayland dmenu | Simple |
-| `tofi` | Tiny rofi alternative | Very minimal |
-| `walker` | GTK4 launcher | Modern look |
+**Integrations**
+- `homeassistant` - Control HA entities (lights, switches, scenes)
+- `spotify` - Spotify playlists, search, queue management via spotifyd/spotify-tui
+- `mpd` - MPD library browser and playlist control
+- `kdeconnect` - Phone notifications, send files, ring phone
+- `syncthing` - Folder status, conflicts, pause/resume
 
-### X11
-| Frontend | Description | Notes |
-|----------|-------------|-------|
-| `dmenu` | Classic suckless | Minimal |
+**Dev Tools**
+- `gh-notifications` - GitHub notifications - mark read, open
+- `gh-prs` - Your open PRs across repos - open, checkout
+- `gh-issues` - Assigned issues - open, close, comment
+- `jira` - Your jira tickets - transition, open
+- `linear` - Linear issues
+- `aws` - AWS profiles, regions, quick console links
+- `kubectl-ctx` - Kubernetes context/namespace switcher
 
-### Desktop Integration
-| Frontend | Description | Notes |
-|----------|-------------|-------|
-| `ulauncher` | Plugin-based launcher | Has own ecosystem |
-| `albert` | C++/Qt launcher | Fast |
-| `zenity` | GTK dialogs | Simple lists |
-| `kdialog` | KDE dialogs | KDE integration |
-| `yad` | Yet another dialog | More features than zenity |
+**Launchers**
+- `recent` - Recently opened files (via tracker/zeitgeist)
+- `frecency` - Most used apps/commands (learn from usage)
+- `web-search` - Quick search Google/DDG/GitHub with query
+- `translate` - Quick translate via translate-shell
 
-### Widget/Bar
-| Frontend | Description | Notes |
-|----------|-------------|-------|
-| `eww` | Eww widget popup | Custom styling |
-| `ags` | AGS widget | JavaScript config |
-| `waybar` | Waybar custom module | Status bar integration |
+**System**
+- `inhibit` - Manage sleep/screen inhibitors
+- `usb` - USB devices - mount/eject/info
+- `displays` - Monitor arrangement, resolution, refresh rate
+- `gamma` - Color temperature (gammastep/redshift)
+- `audio-apps` - Per-app volume control (pavucontrol-like)
 
-### Programmatic
-| Frontend | Description | Notes |
-|----------|-------------|-------|
-| `json` | Raw JSON output | For piping/scripting |
-| `notify` | Show as notification | Quick info display |
-| `clipboard` | Copy first item | Non-interactive |
+**Files**
+- `zoxide` - Zoxide frecent directories
+- `marks` - Shell bookmarks/marks (like bashmarks)
+- `trash` - Trash management - restore/delete/empty
 
-### Advanced
-| Frontend | Description | Notes |
-|----------|-------------|-------|
-| `telescope` | Neovim telescope | Editor integration |
-| `tui` | Custom ratatui TUI | Full control |
-| `web` | Local web interface | REST API + browser |
+### Frontends
+
+- `dmenu` - Classic suckless dmenu
+- `fuzzel` - Fast wayland launcher
+- `bemenu` - Wayland dmenu clone
+- `eww` - Eww widget popup
+- `ags` - AGS widget system
+- `telescope` - Neovim telescope picker
+
+### Actions
+
+- `open` - xdg-open wrapper
+- `term` - Run in new terminal
+- `notify` - Show as notification
+- `type` - Type via wtype/xdotool (for password managers)
+- `qr` - Show as QR code
