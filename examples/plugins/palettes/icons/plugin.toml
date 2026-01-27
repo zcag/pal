@@ -1,8 +1,8 @@
 name = "icons"
-desc = "nerd font icons"
-icon = "font-x-generic"
+desc = "freedesktop icon names"
+icon = "preferences-desktop-theme"
 version = "0.1"
 auto_list = true
 auto_pick = true
 default_action = "copy"
-action_key = "icon"
+action_key = "name"

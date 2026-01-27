@@ -35,6 +35,10 @@ default_frontend = "fzf"
   base = "plugins/palettes/icons"
   data = "plugins/palettes/icons/data.json"
 
+  [palette.nerd]
+  base = "plugins/palettes/nerd"
+  data = "plugins/palettes/nerd/data.json"
+
   [palette.audio]
   base = "plugins/palettes/audio"
   # rules = [
