@@ -12,8 +12,10 @@ pub fn run(cmd: &str, input: Option<&str>) -> String {
 }
 
 fn run_rofi(items: &str) -> String {
+    let lines: Vec<&str> = items.lines().collect();
+
     let mut child = Command::new("rofi")
-        .args(["-dmenu", "-i", "-p", "pal", "-show-icons", "-markup-rows"])
+        .args(["-dmenu", "-i", "-p", "pal", "-show-icons", "-markup-rows", "-format", "i"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -22,13 +24,10 @@ fn run_rofi(items: &str) -> String {
             std::process::exit(1);
         });
 
-    // Build a map of display -> JSON for lookup after selection
-    let mut display_to_json: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-
     // Format items for rofi with icons, description, and meta (searchable keywords)
     // Format: "display\0icon\x1ficon-name\x1fmeta\x1fkeywords"
-    let display_items: Vec<String> = items
-        .lines()
+    let display_items: Vec<String> = lines
+        .iter()
         .filter_map(|line| {
             let item: serde_json::Value = serde_json::from_str(line).ok()?;
             let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
@@ -61,14 +60,6 @@ fn run_rofi(items: &str) -> String {
                 }
             };
 
-            // Store plain name for lookup (rofi strips markup in output)
-            let lookup_key = if is_char_icon {
-                format!("{} {}", icon, name)
-            } else {
-                name.to_string()
-            };
-            display_to_json.insert(lookup_key, line.to_string());
-
             // Rofi format: "display\0icon\x1ficon-name\x1fmeta\x1fkeywords"
             // Only use rofi icon for freedesktop icon names, not char icons
             let icon_part = if is_char_icon { String::new() } else { format!("\0icon\x1f{}", icon) };
@@ -90,8 +81,14 @@ fn run_rofi(items: &str) -> String {
         return String::new();
     }
 
-    let selected_name = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    // rofi returns the index with -format i
+    let selected_idx = String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .parse::<usize>()
+        .ok();
 
-    // Look up the original JSON
-    display_to_json.get(&selected_name).cloned().unwrap_or_default()
+    selected_idx
+        .and_then(|i| lines.get(i))
+        .map(|s| s.to_string())
+        .unwrap_or_default()
 }
