@@ -29,14 +29,6 @@ fn list() -> String {
         .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>())
         .unwrap_or_default();
 
-    // Tell child palettes (like pals) which palettes are in this combine
-    let combine_name = std::env::var("_PAL_PALETTE").unwrap_or_default();
-    let mut allowed: Vec<&str> = include.iter().map(|s| s.as_str()).collect();
-    if !combine_name.is_empty() {
-        allowed.push(&combine_name);
-    }
-    std::env::set_var("_PAL_COMBINE_SCOPE", allowed.join(","));
-
     let pal_cfg = pal_config();
 
     include.iter()

@@ -7,8 +7,8 @@ list() {
   fi
 
   # List paired devices
-  bluetoothctl devices | while read -r _ mac name; do
-    [[ -z "$mac" ]] && continue
+  bluetoothctl devices 2>/dev/null | while read -r _ mac name; do
+    [[ -z "$mac" || -z "$name" ]] && continue
 
     # Check if connected
     connected=$(bluetoothctl info "$mac" 2>/dev/null | grep "Connected: yes")
@@ -18,7 +18,7 @@ list() {
 
     name_escaped=$(echo "$name$status" | jq -Rs '.' | sed 's/^"//;s/"$//')
     echo "{\"id\":\"$mac\",\"name\":\"$name_escaped\",\"mac\":\"$mac\",\"icon\":\"$icon\"}"
-  done
+  done | grep -v '^$'
 }
 
 pick() {
