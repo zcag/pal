@@ -133,51 +133,55 @@ fn pick(input: &str) -> String {
         return String::new();
     }
 
-    // Get terminal from environment or use sensible defaults
-    let terminal = std::env::var("TERMINAL").ok()
-        .or_else(|| {
-            // Try common terminals
-            for term in ["kitty", "alacritty", "wezterm", "foot", "gnome-terminal", "konsole", "xterm"] {
-                if std::process::Command::new("which").arg(term).output()
-                    .map(|o| o.status.success()).unwrap_or(false) {
-                    return Some(term.to_string());
-                }
-            }
-            None
-        });
+    let frontend = std::env::var("_PAL_FRONTEND").unwrap_or_default();
+    let is_stdio = matches!(frontend.as_str(), "fzf" | "stdin" | "");
 
-    match terminal.as_deref() {
-        Some("kitty") => {
-            let _ = std::process::Command::new("kitty")
-                .args(["--", "ssh", host])
-                .spawn();
-        }
-        Some("alacritty") => {
-            let _ = std::process::Command::new("alacritty")
-                .args(["-e", "ssh", host])
-                .spawn();
-        }
-        Some("wezterm") => {
-            let _ = std::process::Command::new("wezterm")
-                .args(["start", "--", "ssh", host])
-                .spawn();
-        }
-        Some("foot") => {
-            let _ = std::process::Command::new("foot")
-                .args(["ssh", host])
-                .spawn();
-        }
-        Some(term) => {
-            // Generic: most terminals support -e
-            let _ = std::process::Command::new(term)
-                .args(["-e", "ssh", host])
-                .spawn();
-        }
-        None => {
-            // Fallback: just print the command
-            println!("ssh {host}");
-        }
+    if is_stdio {
+        // Run ssh directly - we're in a terminal
+        let _ = std::process::Command::new("ssh")
+            .arg(host)
+            .status();
+    } else {
+        // Non-stdio frontend (rofi, etc.) - copy to clipboard and notify
+        let cmd = format!("ssh {}", host);
+        copy_and_notify(&cmd);
     }
 
     String::new()
+}
+
+fn copy_and_notify(text: &str) {
+    use std::process::{Command, Stdio};
+    use std::io::Write;
+
+    // Copy to clipboard
+    let copied = if Command::new("which").arg("wl-copy").output()
+        .map(|o| o.status.success()).unwrap_or(false) {
+        Command::new("wl-copy")
+            .stdin(Stdio::piped())
+            .spawn()
+            .and_then(|mut c| {
+                c.stdin.as_mut().unwrap().write_all(text.as_bytes())?;
+                c.wait()
+            }).is_ok()
+    } else if Command::new("which").arg("xclip").output()
+        .map(|o| o.status.success()).unwrap_or(false) {
+        Command::new("xclip")
+            .args(["-selection", "clipboard"])
+            .stdin(Stdio::piped())
+            .spawn()
+            .and_then(|mut c| {
+                c.stdin.as_mut().unwrap().write_all(text.as_bytes())?;
+                c.wait()
+            }).is_ok()
+    } else {
+        false
+    };
+
+    // Show notification
+    if copied {
+        let _ = Command::new("notify-send")
+            .args(["-t", "2000", "Copied", text])
+            .spawn();
+    }
 }
