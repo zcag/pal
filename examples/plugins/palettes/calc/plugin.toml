@@ -1,0 +1,5 @@
+name = "calc"
+desc = "calculator with qalc"
+icon = "accessories-calculator"
+version = "0.1"
+command = ["run.sh"]

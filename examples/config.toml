@@ -97,6 +97,9 @@ default_frontend = "fzf"
   [palette.media]
   base = "plugins/palettes/media"
 
+  [palette.calc]
+  base = "plugins/palettes/calc"
+
 [frontend]
   [frontend.fzf]
   base = "builtin/frontends/fzf"
