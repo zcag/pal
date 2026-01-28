@@ -1,5 +1,4 @@
 # Example config - copy to ~/.config/pal/config.toml
-# Run from examples/ dir: cd examples && pal -c config.toml
 
 [general]
 default_palette = "combine"
@@ -24,53 +23,53 @@ default_frontend = "fzf"
   base = "builtin/palettes/psg"
 
   [palette.cmds]
-  base = "plugins/palettes/commands"
-  data = "plugins/palettes/commands/data.json"
+  base = "github:zcag/pal/plugins/palettes/commands"
+  data = "github:zcag/pal/plugins/palettes/commands/data.json"
 
   [palette.chars]
-  base = "plugins/palettes/chars"
-  data = "plugins/palettes/chars/data.json"
+  base = "github:zcag/pal/plugins/palettes/chars"
+  data = "github:zcag/pal/plugins/palettes/chars/data.json"
 
   [palette.icons]
-  base = "plugins/palettes/icons"
-  data = "plugins/palettes/icons/data.json"
+  base = "github:zcag/pal/plugins/palettes/icons"
+  data = "github:zcag/pal/plugins/palettes/icons/data.json"
 
   [palette.nerd]
-  base = "plugins/palettes/nerd"
-  data = "plugins/palettes/nerd/data.json"
+  base = "github:zcag/pal/plugins/palettes/nerd"
+  data = "github:zcag/pal/plugins/palettes/nerd/data.json"
 
   [palette.audio]
-  base = "plugins/palettes/audio"
+  base = "github:zcag/pal/plugins/palettes/audio"
   # rules = [
   #   { pattern = "HDMI", name = "TV", icon = "video-display" },
   #   { pattern = "Headphones", name = "Headphones", icon = "audio-headphones" },
   # ]
 
   [palette.clipboard]
-  base = "plugins/palettes/clipboard"
+  base = "github:zcag/pal/plugins/palettes/clipboard"
 
   [palette.wifi]
-  base = "plugins/palettes/wifi"
+  base = "github:zcag/pal/plugins/palettes/wifi"
 
   [palette.windows]
-  base = "plugins/palettes/windows"
+  base = "github:zcag/pal/plugins/palettes/windows"
 
   [palette.systemd]
-  base = "plugins/palettes/systemd"
+  base = "github:zcag/pal/plugins/palettes/systemd"
   # scope = "user"  # or "system" for sudo
   # action = "restart"  # or "start", "stop", "status"
 
   [palette.ble]
-  base = "plugins/palettes/ble"
+  base = "github:zcag/pal/plugins/palettes/ble"
 
   [palette.hue]
-  base = "plugins/palettes/hue"
+  base = "github:zcag/pal/plugins/palettes/hue"
   # bridge_ip = "192.168.1.x"
   # api_key = "your-hue-api-key"
   # scenes_file = "path/to/scenes.json"  # optional, for custom presets
 
   [palette.repos]
-  base = "plugins/palettes/repos"
+  base = "github:zcag/pal/plugins/palettes/repos"
   # orgs = ["org1", "org2"]  # optional, list org repos too
   orgs = ["ngssio", "ngss-io"]
 
@@ -78,35 +77,35 @@ default_frontend = "fzf"
   base = "builtin/palettes/ssh"
 
   [palette.op]
-  base = "plugins/palettes/op"
+  base = "github:zcag/pal/plugins/palettes/op"
   # vault = "Personal"  # optional, filter by vault
   # field = "password"  # field to copy (default: password)
 
   [palette.docker]
-  base = "plugins/palettes/docker"
+  base = "github:zcag/pal/plugins/palettes/docker"
   # action = "logs"  # optional, skip action menu
 
   [palette.power]
-  base = "plugins/palettes/power"
-  data = "plugins/palettes/power/data.json"
+  base = "github:zcag/pal/plugins/palettes/power"
+  data = "github:zcag/pal/plugins/palettes/power/data.json"
 
   [palette.emoji]
-  base = "plugins/palettes/emoji"
-  data = "plugins/palettes/emoji/data.json"
+  base = "github:zcag/pal/plugins/palettes/emoji"
+  data = "github:zcag/pal/plugins/palettes/emoji/data.json"
 
   [palette.media]
-  base = "plugins/palettes/media"
+  base = "github:zcag/pal/plugins/palettes/media"
 
   [palette.calc]
-  base = "plugins/palettes/calc"
+  base = "github:zcag/pal/plugins/palettes/calc"
 
   [palette.colors]
-  base = "plugins/palettes/colors"
-  data = "plugins/palettes/colors/data.json"
+  base = "github:zcag/pal/plugins/palettes/colors"
+  data = "github:zcag/pal/plugins/palettes/colors/data.json"
   # action_key = "rgb"  # or "hsl" for other formats
 
   [palette.ip]
-  base = "plugins/palettes/ip"
+  base = "github:zcag/pal/plugins/palettes/ip"
 
 [frontend]
   [frontend.fzf]
