@@ -20,7 +20,7 @@ pal run fzf combine   # combined view of multiple palettes
 ## Installation
 
 ```bash
-cargo install pal
+cargo install rpal
 ```
 
 Requires Rust 1.70+ ([rustup](https://rustup.rs/))
