@@ -41,6 +41,12 @@ impl Cli {
 
 #[derive(clap::Subcommand)]
 pub enum Command {
+    /// Initialize config at ~/.config/pal/config.toml
+    Init {
+        /// Overwrite existing config
+        #[arg(short, long)]
+        force: bool,
+    },
     /// Show loaded configuration
     ShowConfig,
     /// Run with optional frontend and palette
@@ -59,6 +65,13 @@ pub enum Command {
 
 fn main() {
     let cli = Cli::parse();
+
+    // Handle init before config loading
+    if let Some(Command::Init { force }) = &cli.command {
+        init_config(*force);
+        return;
+    }
+
     let config_path = util::expand_path(&cli.config);
     // Canonicalize to absolute path for nested pal invocations
     let config_path = std::fs::canonicalize(&config_path).unwrap_or(config_path);
@@ -71,6 +84,36 @@ fn main() {
     }
 }
 
+fn init_config(force: bool) {
+    let config_dir = dirs::config_dir()
+        .map(|p| p.join("pal"))
+        .unwrap_or_else(|| {
+            eprintln!("could not determine config directory");
+            process::exit(1);
+        });
+
+    let config_path = config_dir.join("config.toml");
+
+    if config_path.exists() && !force {
+        eprintln!("config already exists: {}", config_path.display());
+        eprintln!("use --force to overwrite");
+        process::exit(1);
+    }
+
+    if let Err(e) = std::fs::create_dir_all(&config_dir) {
+        eprintln!("failed to create {}: {e}", config_dir.display());
+        process::exit(1);
+    }
+
+    let example_config = include_str!("../examples/config.toml");
+    if let Err(e) = std::fs::write(&config_path, example_config) {
+        eprintln!("failed to write {}: {e}", config_path.display());
+        process::exit(1);
+    }
+
+    println!("created {}", config_path.display());
+}
+
 fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
     std::env::set_var("_PAL_CONFIG", config_path);
     if let Some(parent) = std::path::Path::new(config_path).parent() {
@@ -78,6 +121,7 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
     }
 
     match command {
+        Some(Command::Init { .. }) => unreachable!(), // handled before config load
         Some(Command::ShowConfig) => println!("{cfg:#?}"),
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
         Some(Command::List { palette }) => {
