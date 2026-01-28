@@ -123,6 +123,12 @@ fn load_plugin_toml(base: &str) -> Option<toml::Value> {
             v.get(key).cloned().unwrap_or(toml::Value::Table(Default::default()))
         });
         Some(section)
+    } else if base.starts_with("github:") {
+        // Load from remote plugin - ensure it's cloned first
+        let local_path = crate::remote::ensure_github(base)?;
+        let plugin_toml = local_path.join("plugin.toml");
+        let content = std::fs::read_to_string(plugin_toml).ok()?;
+        content.parse().ok()
     } else {
         // Load from plugin.toml
         let expanded = util::expand_path(base);
