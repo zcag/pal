@@ -1,0 +1,5 @@
+name = "ip"
+desc = "network info"
+icon = "network-wired"
+version = "0.1"
+command = ["run.sh"]

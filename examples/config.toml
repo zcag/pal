@@ -105,6 +105,9 @@ default_frontend = "fzf"
   data = "plugins/palettes/colors/data.json"
   # action_key = "rgb"  # or "hsl" for other formats
 
+  [palette.ip]
+  base = "plugins/palettes/ip"
+
 [frontend]
   [frontend.fzf]
   base = "builtin/frontends/fzf"
