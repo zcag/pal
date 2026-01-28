@@ -8,6 +8,10 @@ repository = "https://github.com/zcag/pal"
 keywords = ["cli", "launcher", "palette", "rofi", "fzf"]
 categories = ["command-line-utilities"]
 
+[[bin]]
+name = "pal"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 dirs = "5"
