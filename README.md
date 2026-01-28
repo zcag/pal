@@ -149,14 +149,39 @@ Plugins receive their config via environment variable:
 cfg=$(echo "$_PAL_PLUGIN_CONFIG" | jq -r '.my_setting')
 ```
 
+## Remote Plugins
+
+Load plugins directly from GitHub repositories:
+
+```toml
+[palette.ip]
+base = "github:zcag/pal/plugins/palettes/ip"
+
+# With specific branch or tag
+[palette.ip]
+base = "github:zcag/pal/plugins/palettes/ip@v1.0"
+
+# Data files also support github: URLs
+[palette.colors]
+base = "github:zcag/pal/plugins/palettes/colors"
+data = "github:zcag/pal/plugins/palettes/colors/data.json"
+```
+
+Plugins are cloned on first use to `~/.local/share/pal/plugins/` using git sparse checkout. Requires git to be installed.
+
 ## Example Plugins
 
-The `examples/plugins/` directory contains ready-to-use plugins:
+The [`plugins/`](plugins/) directory contains ready-to-use plugins. Use them directly via GitHub:
+
+```toml
+[palette.audio]
+base = "github:zcag/pal/plugins/palettes/audio"
+```
 
 | Plugin | Description |
 |--------|-------------|
 | `audio` | Switch audio output devices (PipeWire/PulseAudio) |
-| `clipboard` | Clipboard history (cliphist) |
+| `clipboard` | Clipboard history (cliphist/clipman) |
 | `wifi` | Connect to WiFi networks (nmcli) |
 | `windows` | Focus windows (Hyprland/Sway/X11) |
 | `systemd` | Manage systemd services |
@@ -164,7 +189,16 @@ The `examples/plugins/` directory contains ready-to-use plugins:
 | `hue` | Control Philips Hue scenes |
 | `repos` | Browse GitHub repositories (gh cli) |
 | `chars` | Unicode character picker |
-| `icons` | Nerd Font icon picker |
+| `icons` | Freedesktop icon picker |
+| `nerd` | Nerd Font icon picker |
+| `emoji` | Emoji picker |
+| `colors` | Color picker (hex/rgb/hsl) |
+| `calc` | Calculator (qalc/bc) |
+| `ip` | Network info (public/local IP, gateway, DNS) |
+| `docker` | Docker container management |
+| `op` | 1Password items |
+| `media` | Media player control (playerctl) |
+| `power` | Power menu (shutdown, reboot, etc.) |
 
 ## Actions
 
@@ -231,6 +265,7 @@ action_key = "cmd"
 
 ## Roadmap
 
+- [ ] `pal update` to update remote plugins
 - [ ] Prompt support (text input, choice, etc.)
 - [ ] Caching for slow palettes
 - [ ] `pal doctor` for config validation
