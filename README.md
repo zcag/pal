@@ -28,6 +28,9 @@ Requires Rust 1.70+ ([rustup](https://rustup.rs/))
 ## Quick Start
 
 ```bash
+# Initialize config at ~/.config/pal/config.toml
+pal init
+
 # Run with default palette and frontend
 pal
 
