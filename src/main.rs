@@ -4,6 +4,7 @@ mod config;
 mod frontend;
 mod palette;
 mod plugin;
+mod remote;
 mod util;
 
 use std::process;

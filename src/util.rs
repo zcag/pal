@@ -5,6 +5,13 @@ use std::process::{self, Command, Stdio};
 use serde::Serialize;
 
 pub fn expand_path(path: &str) -> PathBuf {
+    // Handle github: remote plugins
+    if path.starts_with("github:") {
+        if let Some(local_path) = crate::remote::ensure_github(path) {
+            return local_path;
+        }
+    }
+
     if path.starts_with("~/") {
         if let Some(home) = dirs::home_dir() {
             return home.join(&path[2..]);
