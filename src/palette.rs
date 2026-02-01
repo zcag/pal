@@ -19,7 +19,7 @@ impl<'a> Palette<'a> {
     }
 
     pub fn list(&self) -> String {
-        if self.config.auto_list {
+        let items = if self.config.auto_list {
             self.config.data.as_ref()
                 .and_then(|p| std::fs::read_to_string(util::expand_path(p)).ok())
                 .unwrap_or_default()
@@ -27,7 +27,8 @@ impl<'a> Palette<'a> {
             plugin.run("list", None)
         } else {
             String::new()
-        }
+        };
+        normalize_items(&items)
     }
 
     pub fn pick(&self, selected: &str) -> String {
@@ -43,4 +44,22 @@ impl<'a> Palette<'a> {
             String::new()
         }
     }
+}
+
+/// Ensure each JSON item has an id field (defaults to name if missing)
+fn normalize_items(items: &str) -> String {
+    items
+        .lines()
+        .filter_map(|line| {
+            let mut item: serde_json::Value = serde_json::from_str(line).ok()?;
+            if item.get("id").is_none() {
+                let name = item.get("name").and_then(|v| v.as_str()).map(String::from);
+                if let (Some(name), Some(obj)) = (name, item.as_object_mut()) {
+                    obj.insert("id".to_string(), serde_json::Value::String(name));
+                }
+            }
+            Some(item.to_string())
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
