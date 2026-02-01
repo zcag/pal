@@ -1,4 +1,5 @@
 use crate::plugin::Plugin;
+use crate::util;
 
 pub struct Action {
     plugin: Plugin,
@@ -6,7 +7,16 @@ pub struct Action {
 
 impl Action {
     pub fn new(name: &str) -> Self {
-        let base = format!("plugins/actions/{name}");
+        // Try local path first (relative to config dir), fall back to github
+        let local_base = format!("plugins/actions/{name}");
+        let local_path = util::expand_path(&local_base);
+
+        let base = if local_path.join("plugin.toml").exists() {
+            local_base
+        } else {
+            format!("github:zcag/pal/plugins/actions/{name}")
+        };
+
         // no user config for actions, pass empty object
         let empty: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
         Self {
