@@ -71,7 +71,7 @@ impl Config {
 
         let mut figment = Figment::new()
             .merge(Toml::file("pal.default.toml"))
-            .merge(Toml::file(user_config))
+            .merge(Toml::file(&user_config))
             .merge(Toml::file("pal.toml"))
             .merge(Toml::file(path))
             .merge(Env::prefixed("PAL_").split("_"));
@@ -82,7 +82,25 @@ impl Config {
 
         let mut config: Self = figment.extract()?;
         config.resolve_plugin_defaults();
+        config.expand_data_paths(&user_config);
         Ok(config)
+    }
+
+    /// Expand relative data paths to absolute paths (relative to user config dir)
+    fn expand_data_paths(&mut self, user_config: &std::path::Path) {
+        let config_dir = user_config.parent().unwrap_or(std::path::Path::new(""));
+        for palette in self.palette.values_mut() {
+            if let Some(data) = palette.data.take() {
+                // Skip if already absolute, home-relative, or remote
+                if data.starts_with('/') || data.starts_with("~/") || data.starts_with("github:") {
+                    palette.data = Some(data);
+                    continue;
+                }
+                // Expand relative to user config dir
+                let expanded = config_dir.join(&data);
+                palette.data = Some(expanded.to_string_lossy().into_owned());
+            }
+        }
     }
 
     /// Fill in missing palette fields from plugin.toml files

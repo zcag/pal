@@ -22,6 +22,7 @@ impl<'a> Palette<'a> {
         let items = if self.config.auto_list {
             self.config.data.as_ref()
                 .and_then(|p| std::fs::read_to_string(util::expand_path(p)).ok())
+                .map(|s| parse_data(&s))
                 .unwrap_or_default()
         } else if let Some(plugin) = &self.plugin {
             plugin.run("list", None)
@@ -43,6 +44,20 @@ impl<'a> Palette<'a> {
         } else {
             String::new()
         }
+    }
+}
+
+/// Parse data file - supports both JSON lines and JSON array format
+fn parse_data(content: &str) -> String {
+    let trimmed = content.trim();
+    if trimmed.starts_with('[') {
+        // JSON array format - convert to JSON lines
+        serde_json::from_str::<Vec<serde_json::Value>>(trimmed)
+            .map(|arr| arr.into_iter().map(|v| v.to_string()).collect::<Vec<_>>().join("\n"))
+            .unwrap_or_else(|_| content.to_string())
+    } else {
+        // Already JSON lines format
+        content.to_string()
     }
 }
 
