@@ -1,0 +1,6 @@
+name = "open"
+desc = "open URL or file with default application"
+version = "0.1"
+
+contract_version = "0.0.1"
+command = ["run.sh"]
