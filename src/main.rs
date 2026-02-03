@@ -15,7 +15,7 @@ use frontend::Frontend;
 use palette::Palette;
 
 #[derive(Parser, Default)]
-#[command(name = "pal", about = "pal - palette tool")]
+#[command(name = "pal", about = "pal - palette tool", version)]
 pub struct Cli {
     /// Path to config file
     #[arg(short, long, default_value = "pal.default.toml")]
