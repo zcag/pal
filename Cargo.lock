@@ -252,6 +252,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
+name = "pal"
+version = "0.1.2"
+dependencies = [
+ "clap",
+ "dirs",
+ "figment",
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "pear"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -314,18 +326,6 @@ dependencies = [
  "getrandom",
  "libredox",
  "thiserror",
-]
-
-[[package]]
-name = "rpal"
-version = "0.1.1"
-dependencies = [
- "clap",
- "dirs",
- "figment",
- "serde",
- "serde_json",
- "toml",
 ]
 
 [[package]]
