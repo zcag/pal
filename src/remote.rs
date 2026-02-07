@@ -109,7 +109,7 @@ fn find_repos() -> Vec<PathBuf> {
     repos
 }
 
-/// List installed remote plugins
+/// List installed remote plugins with up-to-date status
 pub fn list_plugins() {
     let repos = find_repos();
     if repos.is_empty() {
@@ -120,8 +120,42 @@ pub fn list_plugins() {
     for repo in &repos {
         let rel = repo.strip_prefix(&base).unwrap_or(repo);
         let commit = git_short_log(repo);
-        println!("{} {}", rel.display(), commit);
+        let status = check_status(repo);
+        println!("{} {} {}", rel.display(), commit, status);
     }
+}
+
+fn check_status(repo: &PathBuf) -> &'static str {
+    // Fetch remote without merging
+    let _ = Command::new("git")
+        .args(["-C", &repo.to_string_lossy(), "remote", "update"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+
+    let local = git_rev(repo, "HEAD");
+    let remote = git_rev(repo, "@{u}");
+
+    if local.is_empty() || remote.is_empty() {
+        "unknown"
+    } else if local == remote {
+        "up to date"
+    } else {
+        "update available"
+    }
+}
+
+fn git_rev(repo: &PathBuf, rev: &str) -> String {
+    Command::new("git")
+        .args(["-C", &repo.to_string_lossy(), "rev-parse", rev])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default()
 }
 
 /// Update all remote plugins (git pull)
