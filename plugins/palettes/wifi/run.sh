@@ -2,7 +2,7 @@
 
 list() {
   if ! command -v nmcli &>/dev/null; then
-    echo '{"id":"error","name":"nmcli not found","icon":"error"}'
+    echo '{"id":"error","name":"nmcli not found","icon":"dialog-error"}'
     return
   fi
 

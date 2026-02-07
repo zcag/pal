@@ -8,7 +8,7 @@ cfg() {
 
 list() {
   if ! command -v gh &>/dev/null; then
-    echo '{"id":"error","name":"gh cli not found","icon":"error"}'
+    echo '{"id":"error","name":"gh cli not found","icon":"dialog-error"}'
     return
   fi
 

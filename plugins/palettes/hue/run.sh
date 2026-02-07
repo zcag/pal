@@ -12,7 +12,7 @@ list() {
   scenes_file=$(cfg '.scenes_file')
 
   if [[ -z "$bridge" || -z "$api_key" ]]; then
-    echo '{"id":"error","name":"Configure bridge_ip and api_key","icon":"error"}'
+    echo '{"id":"error","name":"Configure bridge_ip and api_key","icon":"dialog-error"}'
     return
   fi
 

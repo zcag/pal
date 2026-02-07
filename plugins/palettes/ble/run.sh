@@ -2,7 +2,7 @@
 
 list() {
   if ! command -v bluetoothctl &>/dev/null; then
-    echo '{"id":"error","name":"bluetoothctl not found","icon":"error"}'
+    echo '{"id":"error","name":"bluetoothctl not found","icon":"dialog-error"}'
     return
   fi
 

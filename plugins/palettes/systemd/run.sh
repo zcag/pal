@@ -12,9 +12,9 @@ list() {
   fi | while read -r unit load active sub desc; do
     [[ -z "$unit" ]] && continue
 
-    icon="service"
-    [[ "$active" == "active" ]] && icon="service-running"
-    [[ "$active" == "failed" ]] && icon="service-failed"
+    icon="system-run"
+    [[ "$active" == "active" ]] && icon="media-playback-start"
+    [[ "$active" == "failed" ]] && icon="dialog-error"
 
     # Escape description for JSON
     desc_escaped=$(echo "$desc" | jq -Rs '.' | sed 's/^"//;s/"$//')

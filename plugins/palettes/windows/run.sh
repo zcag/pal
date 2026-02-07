@@ -8,7 +8,7 @@ list() {
   elif command -v wmctrl &>/dev/null; then
     list_x11
   else
-    echo '{"id":"error","name":"No supported WM found","icon":"error"}'
+    echo '{"id":"error","name":"No supported WM found","icon":"dialog-error"}'
   fi
 }
 
