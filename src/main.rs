@@ -61,6 +61,11 @@ pub enum Command {
         /// Palette to list from
         palette: Option<String>,
     },
+    /// Run an action (reads value from stdin)
+    Action {
+        /// Action name (e.g. copy, open, cmd)
+        name: String,
+    },
 }
 
 fn main() {
@@ -128,6 +133,12 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
             let palette_name = palette.as_deref().unwrap_or(&cfg.general.default_palette);
             let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
             print!("{}", list(palette_cfg));
+        }
+        Some(Command::Action { name }) => {
+            use std::io::Read;
+            let mut value = String::new();
+            std::io::stdin().read_to_string(&mut value).ok();
+            print!("{}", action::Action::new(&name).run(value.trim_end()));
         }
         None => run(&cfg, None, None),
     }
