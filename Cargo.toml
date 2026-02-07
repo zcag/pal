@@ -1,12 +1,21 @@
 [package]
 name = "pal"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "A fast, extensible command palette for Linux"
 license = "MIT"
 repository = "https://github.com/zcag/pal"
 keywords = ["cli", "launcher", "palette", "rofi", "fzf"]
 categories = ["command-line-utilities"]
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/pal-{ target }.tar.gz"
+bin-dir = "pal-{ target }/{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-unknown-linux-gnu]
+pkg-url = "{ repo }/releases/download/v{ version }/pal-x86_64-unknown-linux-musl.tar.gz"
+bin-dir = "pal-x86_64-unknown-linux-musl/{ bin }"
 
 [[bin]]
 name = "pal"
