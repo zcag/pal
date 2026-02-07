@@ -37,11 +37,19 @@ fn list() -> String {
                 return vec![];
             };
 
+            let fallback_icon = palette_cfg.icon.as_deref().unwrap_or("");
             Palette::new(palette_cfg).list()
                 .lines()
                 .filter_map(|line| {
                     let mut item: serde_json::Value = serde_json::from_str(line).ok()?;
-                    item.as_object_mut()?.insert("_source".into(), serde_json::json!(palette_name));
+                    let obj = item.as_object_mut()?;
+                    obj.insert("_source".into(), serde_json::json!(palette_name));
+                    if !fallback_icon.is_empty() {
+                        let has_icon = obj.get("icon").and_then(|v| v.as_str()).is_some_and(|s| !s.is_empty());
+                        if !has_icon {
+                            obj.insert("icon".into(), serde_json::json!(fallback_icon));
+                        }
+                    }
                     Some(item.to_string())
                 })
                 .collect::<Vec<_>>()
