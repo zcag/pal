@@ -33,6 +33,8 @@ impl<'a> Palette<'a> {
     }
 
     pub fn pick(&self, selected: &str) -> String {
+        inject_item_env(selected);
+
         if self.config.auto_pick {
             let action_name = self.config.default_action.as_ref().unwrap();
             let action_key = self.config.action_key.as_ref().unwrap();
@@ -43,6 +45,20 @@ impl<'a> Palette<'a> {
             plugin.run("pick", Some(selected))
         } else {
             String::new()
+        }
+    }
+}
+
+/// Set PAL_<KEY> env vars from a JSON item so child processes can access them
+fn inject_item_env(selected: &str) {
+    let item: serde_json::Value = serde_json::from_str(selected).unwrap_or_default();
+    if let Some(obj) = item.as_object() {
+        for (k, v) in obj {
+            let val = match v {
+                serde_json::Value::String(s) => s.clone(),
+                other => other.to_string(),
+            };
+            std::env::set_var(format!("PAL_{}", k.to_uppercase()), val);
         }
     }
 }

@@ -101,12 +101,21 @@ default_frontend = "fzf"
 
 ### Data Files (auto_list)
 
-For simple palettes, use a JSON lines file:
+For simple palettes, use a JSON lines file or a JSON array:
 
 ```json
-{"id": "1", "name": "List files", "icon": "terminal", "cmd": "ls -la"}
-{"id": "2", "name": "Git status", "icon": "git", "cmd": "git status"}
+{"name": "List files", "icon": "terminal", "cmd": "ls -la"}
+{"name": "Git status", "icon": "git", "cmd": "git status"}
 ```
+
+```json
+[
+  {"name": "List files", "icon": "terminal", "cmd": "ls -la"},
+  {"name": "Git status", "icon": "git", "cmd": "git status"}
+]
+```
+
+The `id` field is optional and defaults to `name` if missing.
 
 ## Plugin Development
 
@@ -216,12 +225,41 @@ default_action = "cmd"    # run as shell command
 action_key = "cmd"        # field containing the command
 ```
 
+### Built-in Actions
+
+| Action | Description |
+|--------|-------------|
+| `cmd` | Execute the value as a shell command |
+| `copy` | Copy value to clipboard (wl-copy/xclip/pbcopy) with notification |
+| `open` | Open value with xdg-open/open |
+
+Actions are resolved locally first (`plugins/actions/` in config dir), then fetched from GitHub as a fallback.
+
+### Item Environment Variables
+
+When an item is picked, all its JSON keys are injected as `PAL_<KEY>` environment variables into the action process:
+
+```json
+{"name": "Red", "hex": "#ff0000", "rgb": "255,0,0"}
+```
+
+```bash
+# Available in your action script:
+echo $PAL_NAME  # Red
+echo $PAL_HEX   # #ff0000
+echo $PAL_RGB   # 255,0,0
+```
+
+This works for both `auto_pick` actions and plugin-based palettes.
+
+### Custom Actions
+
 Create custom actions as plugins in `plugins/actions/`:
 
 ```bash
-# plugins/actions/copy/run.sh
+# plugins/actions/notify/run.sh
 run() {
-  cat | wl-copy
+  notify-send "$PAL_NAME" "$PAL_DESCRIPTION"
 }
 ```
 
@@ -233,6 +271,7 @@ run() {
 | `_PAL_CONFIG_DIR` | Directory of current config file |
 | `_PAL_FRONTEND` | Current frontend name |
 | `_PAL_PLUGIN_CONFIG` | JSON config for current plugin |
+| `PAL_<KEY>` | Item key-value pairs injected on pick (e.g. `PAL_NAME`, `PAL_HEX`) |
 
 ## Tips
 
