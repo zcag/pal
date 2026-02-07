@@ -1,6 +1,6 @@
 name = "colors"
 desc = "color picker"
-icon = "preferences-desktop-color"
+icon = "preferences-desktop-theme"
 icon_utf = "󰏘"
 version = "0.1"
 auto_list = true
