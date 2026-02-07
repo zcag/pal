@@ -66,15 +66,21 @@ pub enum Command {
         /// Action name (e.g. copy, open, cmd)
         name: String,
     },
+    /// List installed remote plugins
+    Plugins,
+    /// Update all remote plugins
+    Update,
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    // Handle init before config loading
-    if let Some(Command::Init { force }) = &cli.command {
-        init_config(*force);
-        return;
+    // Handle commands that don't need config
+    match &cli.command {
+        Some(Command::Init { force }) => { init_config(*force); return; }
+        Some(Command::Plugins) => { remote::list_plugins(); return; }
+        Some(Command::Update) => { remote::update_plugins(); return; }
+        _ => {}
     }
 
     let config_path = util::expand_path(&cli.config);
@@ -126,7 +132,7 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
     }
 
     match command {
-        Some(Command::Init { .. }) => unreachable!(), // handled before config load
+        Some(Command::Init { .. } | Command::Plugins | Command::Update) => unreachable!(),
         Some(Command::ShowConfig) => println!("{cfg:#?}"),
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
         Some(Command::List { palette }) => {

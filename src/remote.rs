@@ -76,6 +76,97 @@ pub fn ensure_github(base: &str) -> Option<PathBuf> {
     Some(plugin_dir)
 }
 
+/// Return the base directory where remote plugins are stored
+fn plugins_base() -> PathBuf {
+    dirs::data_dir()
+        .unwrap_or_else(|| PathBuf::from("~/.local/share"))
+        .join("pal/plugins/github.com")
+}
+
+/// Find all cloned repo directories (dirs containing .git)
+fn find_repos() -> Vec<PathBuf> {
+    let base = plugins_base();
+    if !base.exists() {
+        return vec![];
+    }
+    let mut repos = vec![];
+    // Structure: base/{user}/{repo}/{ref}/.git
+    if let Ok(users) = std::fs::read_dir(&base) {
+        for user in users.flatten() {
+            if let Ok(user_repos) = std::fs::read_dir(user.path()) {
+                for repo in user_repos.flatten() {
+                    if let Ok(refs) = std::fs::read_dir(repo.path()) {
+                        for r in refs.flatten() {
+                            if r.path().join(".git").exists() {
+                                repos.push(r.path());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    repos
+}
+
+/// List installed remote plugins
+pub fn list_plugins() {
+    let repos = find_repos();
+    if repos.is_empty() {
+        println!("no remote plugins installed");
+        return;
+    }
+    let base = plugins_base();
+    for repo in &repos {
+        let rel = repo.strip_prefix(&base).unwrap_or(repo);
+        let commit = git_short_log(repo);
+        println!("{} {}", rel.display(), commit);
+    }
+}
+
+/// Update all remote plugins (git pull)
+pub fn update_plugins() {
+    let repos = find_repos();
+    if repos.is_empty() {
+        println!("no remote plugins to update");
+        return;
+    }
+    let base = plugins_base();
+    for repo in &repos {
+        let rel = repo.strip_prefix(&base).unwrap_or(repo);
+        print!("{} ... ", rel.display());
+        let status = Command::new("git")
+            .args(["-C", &repo.to_string_lossy(), "pull", "--ff-only"])
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output();
+        match status {
+            Ok(out) if out.status.success() => {
+                let msg = String::from_utf8_lossy(&out.stdout);
+                println!("{}", msg.trim());
+            }
+            Ok(out) => {
+                let err = String::from_utf8_lossy(&out.stderr);
+                println!("failed: {}", err.trim());
+            }
+            Err(e) => println!("failed: {e}"),
+        }
+    }
+}
+
+fn git_short_log(repo: &PathBuf) -> String {
+    Command::new("git")
+        .args(["-C", &repo.to_string_lossy(), "log", "-1", "--format=%h %ar"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default()
+}
+
 fn clone_repo(url: &GithubUrl, repo_dir: &PathBuf) {
     // Create parent directories
     if let Some(parent) = repo_dir.parent() {

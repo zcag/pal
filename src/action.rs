@@ -1,5 +1,4 @@
 use crate::plugin::Plugin;
-use crate::util;
 
 pub struct Action {
     plugin: Plugin,
