@@ -1,5 +1,6 @@
 name = "systemd"
 desc = "list and manage systemd services"
 icon = "system-run"
+icon_utf = "󰜎"
 version = "0.1"
 command = ["run.sh"]

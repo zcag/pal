@@ -1,5 +1,6 @@
 name = "repos"
 desc = "list and open github repositories"
 icon = "folder-remote"
+icon_utf = "󰡰"
 version = "0.1"
 command = ["run.sh"]

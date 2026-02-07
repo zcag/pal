@@ -1,5 +1,6 @@
 name = "wifi"
 desc = "list and connect to wifi networks"
 icon = "network-wireless"
+icon_utf = "󰖩"
 version = "0.1"
 command = ["run.sh"]

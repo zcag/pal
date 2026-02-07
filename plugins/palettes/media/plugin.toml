@@ -1,5 +1,6 @@
 name = "media"
 desc = "control media playback"
 icon = "multimedia-player"
+icon_utf = "󰋋"
 version = "0.1"
 command = ["run.sh"]

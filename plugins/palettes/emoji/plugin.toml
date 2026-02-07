@@ -1,6 +1,7 @@
 name = "emoji"
 desc = "emoji picker"
 icon = "face-smile"
+icon_utf = "󰱱"
 version = "0.1"
 auto_list = true
 auto_pick = true

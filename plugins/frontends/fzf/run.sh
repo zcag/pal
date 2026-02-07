@@ -4,7 +4,7 @@ run() {
   items=$(cat)
 
   # display: "id\ticon name" - fzf shows only icon+name, we get id back
-  selected=$(echo "$items" | jq -r '"\(.id)\t\(.icon // "") \(.name)"' | fzf --with-nth=2.. --prompt="pal> ")
+  selected=$(echo "$items" | jq -r '"\(.id)\t\(.icon_utf // .icon // "") \(.name)"' | fzf --with-nth=2.. --prompt="pal> ")
 
   if [[ -n "$selected" ]]; then
     id=$(cut -f1 <<< "$selected")

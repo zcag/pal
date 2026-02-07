@@ -38,16 +38,21 @@ fn list() -> String {
             };
 
             let fallback_icon = palette_cfg.icon.as_deref().unwrap_or("");
+            let fallback_icon_xdg = palette_cfg.icon_xdg.as_deref().unwrap_or("");
+            let fallback_icon_utf = palette_cfg.icon_utf.as_deref().unwrap_or("");
             Palette::new(palette_cfg).list()
                 .lines()
                 .filter_map(|line| {
                     let mut item: serde_json::Value = serde_json::from_str(line).ok()?;
                     let obj = item.as_object_mut()?;
                     obj.insert("_source".into(), serde_json::json!(palette_name));
-                    if !fallback_icon.is_empty() {
-                        let has_icon = obj.get("icon").and_then(|v| v.as_str()).is_some_and(|s| !s.is_empty());
-                        if !has_icon {
-                            obj.insert("icon".into(), serde_json::json!(fallback_icon));
+                    // Inject fallback icons for fields the item doesn't have
+                    for (key, fallback) in [("icon", fallback_icon), ("icon_xdg", fallback_icon_xdg), ("icon_utf", fallback_icon_utf)] {
+                        if !fallback.is_empty() {
+                            let has = obj.get(key).and_then(|v| v.as_str()).is_some_and(|s| !s.is_empty());
+                            if !has {
+                                obj.insert(key.into(), serde_json::json!(fallback));
+                            }
                         }
                     }
                     Some(item.to_string())

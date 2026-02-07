@@ -1,5 +1,6 @@
 name = "hue"
 desc = "control philips hue scenes"
 icon = "weather-clear"
+icon_utf = "󰌵"
 version = "0.1"
 command = ["run.sh"]

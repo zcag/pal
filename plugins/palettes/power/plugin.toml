@@ -1,6 +1,7 @@
 name = "power"
 desc = "power options"
 icon = "system-shutdown"
+icon_utf = "󰐥"
 version = "0.1"
 auto_list = true
 auto_pick = true

@@ -1,6 +1,7 @@
 name = "nerd"
 desc = "nerd font icons"
 icon = "font-x-generic"
+icon_utf = "󰛖"
 version = "0.1"
 auto_list = true
 auto_pick = true

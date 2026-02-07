@@ -27,6 +27,8 @@ pub struct General {
 pub struct Palette {
     pub base: Option<String>,
     pub icon: Option<String>,
+    pub icon_xdg: Option<String>,
+    pub icon_utf: Option<String>,
     #[serde(default)]
     pub cache: bool,
     #[serde(default)]
@@ -110,6 +112,12 @@ impl Config {
                 if let Some(plugin) = load_plugin_toml(base) {
                     if palette.icon.is_none() {
                         palette.icon = plugin.get("icon").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if palette.icon_xdg.is_none() {
+                        palette.icon_xdg = plugin.get("icon_xdg").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if palette.icon_utf.is_none() {
+                        palette.icon_utf = plugin.get("icon_utf").and_then(|v| v.as_str()).map(String::from);
                     }
                     if !palette.auto_list {
                         palette.auto_list = plugin.get("auto_list").and_then(|v| v.as_bool()).unwrap_or(false);
