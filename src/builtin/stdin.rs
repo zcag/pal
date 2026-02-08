@@ -3,11 +3,23 @@ use std::io::{self, BufRead, Write};
 pub fn run(cmd: &str, input: Option<&str>) -> String {
     match cmd {
         "run" => run_stdin(input.unwrap_or("")),
+        "prompt" => prompt(input.unwrap_or("Input")),
         _ => {
             eprintln!("stdin: unknown command: {cmd}");
             std::process::exit(1);
         }
     }
+}
+
+fn prompt(message: &str) -> String {
+    print!("{}: ", message);
+    let _ = io::stdout().flush();
+    let stdin = io::stdin();
+    let mut input = String::new();
+    if stdin.lock().read_line(&mut input).is_err() {
+        return String::new();
+    }
+    input.trim().to_string()
 }
 
 fn run_stdin(items: &str) -> String {

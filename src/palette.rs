@@ -18,14 +18,14 @@ impl<'a> Palette<'a> {
         Self { config, plugin }
     }
 
-    pub fn list(&self) -> String {
+    pub fn list(&self, query: Option<&str>) -> String {
         let items = if self.config.auto_list {
             self.config.data.as_ref()
                 .and_then(|p| std::fs::read_to_string(util::expand_path(p)).ok())
                 .map(|s| parse_data(&s))
                 .unwrap_or_default()
         } else if let Some(plugin) = &self.plugin {
-            plugin.run("list", None)
+            plugin.run("list", query)
         } else {
             String::new()
         };

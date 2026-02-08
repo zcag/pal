@@ -40,7 +40,7 @@ fn list() -> String {
             let fallback_icon = palette_cfg.icon.as_deref().unwrap_or("");
             let fallback_icon_xdg = palette_cfg.icon_xdg.as_deref().unwrap_or("");
             let fallback_icon_utf = palette_cfg.icon_utf.as_deref().unwrap_or("");
-            Palette::new(palette_cfg).list()
+            Palette::new(palette_cfg).list(None)
                 .lines()
                 .filter_map(|line| {
                     let mut item: serde_json::Value = serde_json::from_str(line).ok()?;

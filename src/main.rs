@@ -76,6 +76,19 @@ pub enum Command {
         palette: String,
         frontend: String,
     },
+    /// List + format items for live input reload (internal)
+    #[command(name = "_input-list", hide = true)]
+    InputList {
+        palette: String,
+        frontend: String,
+    },
+    /// Rofi script mode handler for input palettes (internal)
+    #[command(name = "_rofi-input", hide = true)]
+    RofiInput {
+        palette: String,
+        /// Selected text from rofi
+        selected: Option<String>,
+    },
 }
 
 fn main() {
@@ -142,12 +155,18 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
         Some(Command::CacheRegen { palette, frontend }) => {
             regen_cache(&cfg, &palette, &frontend);
         }
+        Some(Command::InputList { palette, frontend }) => {
+            input_list(&cfg, &palette, &frontend);
+        }
+        Some(Command::RofiInput { palette, selected }) => {
+            rofi_input(&cfg, &palette, selected.as_deref());
+        }
         Some(Command::ShowConfig) => println!("{cfg:#?}"),
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
         Some(Command::List { palette }) => {
             let palette_name = palette.as_deref().unwrap_or(&cfg.general.default_palette);
             let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
-            print!("{}", list(palette_cfg));
+            print!("{}", list(palette_cfg, None));
         }
         Some(Command::Action { name }) => {
             use std::io::Read;
@@ -174,7 +193,29 @@ fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
         return;
     }
 
-    let items = list(palette_cfg);
+    if palette_cfg.input {
+        let base = frontend_cfg.base.as_ref().expect_exit("frontend has no base");
+        let msg = palette_cfg.input_prompt.as_deref().unwrap_or(palette_name);
+        if base == "builtin/frontends/fzf" {
+            let fe = Frontend::new(base, frontend_cfg);
+            let sel = fe.input_run(msg);
+            if !sel.trim().is_empty() { pick(palette_cfg, &sel); }
+        } else if base == "builtin/frontends/rofi" {
+            // Rofi script mode handles list + pick internally
+            Frontend::new(base, frontend_cfg).input_run(msg);
+        } else {
+            let fe = Frontend::new(base, frontend_cfg);
+            let q = fe.prompt(msg);
+            if q.is_empty() { return; }
+            let items = list(palette_cfg, Some(&q));
+            if let Some(selected) = select(frontend_cfg, &items) {
+                pick(palette_cfg, &selected);
+            }
+        }
+        return;
+    }
+
+    let items = list(palette_cfg, None);
     let selected = select(frontend_cfg, &items);
     if let Some(selected) = selected {
         pick(palette_cfg, &selected);
@@ -199,7 +240,7 @@ fn run_cached_rofi(palette_name: &str, palette_cfg: &config::Palette) {
         if sel.trim().is_empty() { None } else { Some(sel) }
     } else {
         // No cache yet - generate, cache, then display
-        let items = list(palette_cfg);
+        let items = list(palette_cfg, None);
         let (display, raw_items) = builtin::rofi::format_items(&items);
         std::fs::create_dir_all(&dir).ok();
         std::fs::write(&display_path, &display).ok();
@@ -227,7 +268,7 @@ fn spawn_cache_regen(palette_name: &str) {
 
 fn regen_cache(cfg: &Config, palette_name: &str, frontend_name: &str) {
     let Some(palette_cfg) = cfg.palette.get(palette_name) else { return };
-    let items = list(palette_cfg);
+    let items = list(palette_cfg, None);
     let dir = cache_dir();
     std::fs::create_dir_all(&dir).ok();
 
@@ -238,8 +279,59 @@ fn regen_cache(cfg: &Config, palette_name: &str, frontend_name: &str) {
     }
 }
 
-fn list(cfg: &config::Palette) -> String {
-    Palette::new(cfg).list()
+fn rofi_input(cfg: &Config, palette_name: &str, selected: Option<&str>) {
+    let Some(palette_cfg) = cfg.palette.get(palette_name) else { return };
+    let retv = std::env::var("ROFI_RETV").unwrap_or_default();
+    let info = std::env::var("ROFI_INFO").ok();
+    let msg = palette_cfg.input_prompt.as_deref().unwrap_or(palette_name);
+
+    std::env::set_var("_PAL_PALETTE", palette_name);
+    std::env::set_var("_PAL_FRONTEND", "rofi");
+
+    match retv.as_str() {
+        "" | "0" => {
+            // Initial call - show empty list with prompt
+            print!("\0prompt\x1f{msg}> \x1fmarkup-rows\x1ftrue");
+        }
+        "2" => {
+            // Custom entry - user typed a query
+            let query = selected.unwrap_or("");
+            if query.is_empty() { return; }
+            let items = list(palette_cfg, Some(query));
+            let formatted = builtin::rofi::format_script_items(&items);
+            print!("\0prompt\x1f{msg}> \x1fmarkup-rows\x1ftrue\x1fkeep-filter\x1ffalse");
+            if !formatted.is_empty() {
+                print!("\n{formatted}");
+            }
+        }
+        "1" => {
+            // Selected an entry - run pick action
+            if let Some(json) = info {
+                let _ = Palette::new(palette_cfg).pick(&json);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn input_list(cfg: &Config, palette_name: &str, frontend_name: &str) {
+    use std::io::Read;
+    let mut query = String::new();
+    std::io::stdin().read_to_string(&mut query).ok();
+    let query = query.trim_end();
+
+    let Some(palette_cfg) = cfg.palette.get(palette_name) else { return };
+    let items = list(palette_cfg, if query.is_empty() { None } else { Some(query) });
+
+    match frontend_name {
+        "fzf" => print!("{}", builtin::fzf::format_items(&items)),
+        "rofi" => { let (d, _) = builtin::rofi::format_items(&items); print!("{d}"); }
+        _ => print!("{items}"),
+    }
+}
+
+fn list(cfg: &config::Palette, query: Option<&str>) -> String {
+    Palette::new(cfg).list(query)
 }
 
 fn select(cfg: &config::Frontend, items: &str) -> Option<String> {

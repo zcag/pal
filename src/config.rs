@@ -32,6 +32,9 @@ pub struct Palette {
     #[serde(default)]
     pub cache: bool,
     #[serde(default)]
+    pub input: bool,
+    pub input_prompt: Option<String>,
+    #[serde(default)]
     pub auto_list: bool,
     #[serde(default)]
     pub auto_pick: bool,
@@ -136,6 +139,12 @@ impl Config {
                     }
                     if palette.action_key.is_none() {
                         palette.action_key = plugin.get("action_key").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if !palette.input {
+                        palette.input = plugin.get("input").and_then(|v| v.as_bool()).unwrap_or(false);
+                    }
+                    if palette.input_prompt.is_none() {
+                        palette.input_prompt = plugin.get("input_prompt").and_then(|v| v.as_str()).map(String::from);
                     }
                 }
             }

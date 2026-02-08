@@ -2,7 +2,7 @@ mod apps;
 mod bookmarks;
 mod combine;
 mod file_util;
-mod fzf;
+pub mod fzf;
 mod pals;
 mod psg;
 pub mod rofi;
