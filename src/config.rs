@@ -74,9 +74,15 @@ impl Config {
         let mut figment = Figment::new()
             .merge(Toml::file("pal.default.toml"))
             .merge(Toml::file(&user_config))
-            .merge(Toml::file("pal.toml"))
-            .merge(Toml::file(path))
-            .merge(Env::prefixed("PAL_").split("_"));
+            .merge(Toml::file("pal.toml"));
+
+        // Only merge explicit --config if it's not the default
+        let is_default = path.ends_with("pal.default.toml") || path == "pal.default.toml";
+        if !is_default {
+            figment = figment.merge(Toml::file(path));
+        }
+
+        let mut figment = figment.merge(Env::prefixed("PAL_").split("_"));
 
         if let Some(ref level) = cli.log_level {
             figment = figment.merge(("general.log_level", level.as_str()));

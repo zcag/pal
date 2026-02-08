@@ -22,7 +22,9 @@ fn list() -> String {
         return Config { general: Default::default(), palette: Default::default(), frontend: Default::default() };
     });
 
-    cfg.palette.iter()
+    let mut palettes: Vec<_> = cfg.palette.iter().collect();
+    palettes.sort_by_key(|(name, _)| (*name).clone());
+    palettes.iter()
         .map(|(name, p)| {
             let icon = p.icon.as_deref().unwrap_or("view-list");
             json!({"id": name, "name": name, "icon": icon}).to_string()
