@@ -5,7 +5,7 @@ mod file_util;
 mod fzf;
 mod pals;
 mod psg;
-mod rofi;
+pub mod rofi;
 mod ssh;
 mod stdin;
 

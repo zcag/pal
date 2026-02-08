@@ -70,6 +70,12 @@ pub enum Command {
     Plugins,
     /// Update all remote plugins
     Update,
+    /// Regenerate cache for a palette+frontend (internal)
+    #[command(hide = true)]
+    CacheRegen {
+        palette: String,
+        frontend: String,
+    },
 }
 
 fn main() {
@@ -133,6 +139,9 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
 
     match command {
         Some(Command::Init { .. } | Command::Plugins | Command::Update) => unreachable!(),
+        Some(Command::CacheRegen { palette, frontend }) => {
+            regen_cache(&cfg, &palette, &frontend);
+        }
         Some(Command::ShowConfig) => println!("{cfg:#?}"),
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
         Some(Command::List { palette }) => {
@@ -160,10 +169,72 @@ fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
     std::env::set_var("_PAL_PALETTE", palette_name);
     std::env::set_var("_PAL_FRONTEND", frontend_name);
 
+    if palette_cfg.cache && frontend_cfg.base.as_deref() == Some("builtin/frontends/rofi") {
+        run_cached_rofi(palette_name, palette_cfg);
+        return;
+    }
+
     let items = list(palette_cfg);
     let selected = select(frontend_cfg, &items);
     if let Some(selected) = selected {
         pick(palette_cfg, &selected);
+    }
+}
+
+fn cache_dir() -> std::path::PathBuf {
+    dirs::cache_dir().unwrap_or_default().join("pal")
+}
+
+fn run_cached_rofi(palette_name: &str, palette_cfg: &config::Palette) {
+    let dir = cache_dir();
+    let display_path = dir.join(format!("{palette_name}.rofi.display"));
+    let items_path = dir.join(format!("{palette_name}.rofi.items"));
+
+    let selected = if display_path.exists() && items_path.exists() {
+        let display = std::fs::read_to_string(&display_path).unwrap_or_default();
+        let items_str = std::fs::read_to_string(&items_path).unwrap_or_default();
+        let raw_items: Vec<String> = items_str.lines().map(String::from).collect();
+        let sel = builtin::rofi::pick_display(&display, &raw_items);
+        spawn_cache_regen(palette_name);
+        if sel.trim().is_empty() { None } else { Some(sel) }
+    } else {
+        // No cache yet - generate, cache, then display
+        let items = list(palette_cfg);
+        let (display, raw_items) = builtin::rofi::format_items(&items);
+        std::fs::create_dir_all(&dir).ok();
+        std::fs::write(&display_path, &display).ok();
+        std::fs::write(&items_path, &items).ok();
+        let sel = builtin::rofi::pick_display(&display, &raw_items);
+        if sel.trim().is_empty() { None } else { Some(sel) }
+    };
+
+    if let Some(selected) = selected {
+        pick(palette_cfg, &selected);
+    }
+}
+
+fn spawn_cache_regen(palette_name: &str) {
+    let config_path = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
+    let exe = std::env::current_exe().unwrap_or_else(|_| "pal".into());
+    std::process::Command::new(exe)
+        .args(["--config", &config_path, "cache-regen", palette_name, "rofi"])
+        .stdin(process::Stdio::null())
+        .stdout(process::Stdio::null())
+        .stderr(process::Stdio::null())
+        .spawn()
+        .ok();
+}
+
+fn regen_cache(cfg: &Config, palette_name: &str, frontend_name: &str) {
+    let Some(palette_cfg) = cfg.palette.get(palette_name) else { return };
+    let items = list(palette_cfg);
+    let dir = cache_dir();
+    std::fs::create_dir_all(&dir).ok();
+
+    if frontend_name == "rofi" {
+        let (display, _) = builtin::rofi::format_items(&items);
+        std::fs::write(dir.join(format!("{palette_name}.rofi.display")), &display).ok();
+        std::fs::write(dir.join(format!("{palette_name}.rofi.items")), &items).ok();
     }
 }
 
