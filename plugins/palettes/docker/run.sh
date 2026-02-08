@@ -20,17 +20,12 @@ list() {
 }
 
 pick() {
-  item=$(cat)
-  id=$(echo "$item" | jq -r '.id')
-  name=$(echo "$item" | jq -r '.name')
-  state=$(echo "$item" | jq -r '.state')
-
   # Get action from config or show menu
   action=$(cfg '.action // empty')
 
   if [[ -z "$action" ]]; then
     # Show action menu based on state
-    if [[ "$state" == "running" ]]; then
+    if [[ "$PAL_STATE" == "running" ]]; then
       actions='{"id":"logs","name":"View logs","icon":"text-x-generic"}
 {"id":"exec","name":"Exec shell","icon":"utilities-terminal"}
 {"id":"stop","name":"Stop","icon":"media-playback-stop"}
@@ -42,18 +37,8 @@ pick() {
 {"id":"remove","name":"Remove","icon":"edit-delete"}'
     fi
 
-    # Use pal to pick action if available, otherwise default
-    if [[ -n "$_PAL_CONFIG" ]] && [[ -n "$_PAL_FRONTEND" ]]; then
-      action_item=$(echo "$actions" | pal -c "$_PAL_CONFIG" run "$_PAL_FRONTEND" stdin)
-      action=$(echo "$action_item" | jq -r '.id // empty')
-    else
-      # Default action based on state
-      if [[ "$state" == "running" ]]; then
-        action="logs"
-      else
-        action="start"
-      fi
-    fi
+    action_item=$(echo "$actions" | pal select)
+    action=$(echo "$action_item" | jq -r '.id // empty')
   fi
 
   [[ -z "$action" ]] && exit 0
@@ -63,39 +48,39 @@ pick() {
 
   case "$action" in
     start)
-      docker start "$id"
-      notify-send -t 2000 "Docker" "Started $name"
+      docker start "$PAL_ID"
+      notify-send -t 2000 "Docker" "Started $PAL_NAME"
       ;;
     stop)
-      docker stop "$id"
-      notify-send -t 2000 "Docker" "Stopped $name"
+      docker stop "$PAL_ID"
+      notify-send -t 2000 "Docker" "Stopped $PAL_NAME"
       ;;
     restart)
-      docker restart "$id"
-      notify-send -t 2000 "Docker" "Restarted $name"
+      docker restart "$PAL_ID"
+      notify-send -t 2000 "Docker" "Restarted $PAL_NAME"
       ;;
     logs)
       case "$terminal" in
-        kitty) kitty -- docker logs -f "$id" ;;
-        alacritty) alacritty -e docker logs -f "$id" ;;
-        foot) foot docker logs -f "$id" ;;
-        *) $terminal -e docker logs -f "$id" ;;
+        kitty) kitty -- docker logs -f "$PAL_ID" ;;
+        alacritty) alacritty -e docker logs -f "$PAL_ID" ;;
+        foot) foot docker logs -f "$PAL_ID" ;;
+        *) $terminal -e docker logs -f "$PAL_ID" ;;
       esac
       ;;
     exec)
       # Try common shells
       shell="sh"
-      docker exec "$id" which bash &>/dev/null && shell="bash"
+      docker exec "$PAL_ID" which bash &>/dev/null && shell="bash"
       case "$terminal" in
-        kitty) kitty -- docker exec -it "$id" "$shell" ;;
-        alacritty) alacritty -e docker exec -it "$id" "$shell" ;;
-        foot) foot docker exec -it "$id" "$shell" ;;
-        *) $terminal -e docker exec -it "$id" "$shell" ;;
+        kitty) kitty -- docker exec -it "$PAL_ID" "$shell" ;;
+        alacritty) alacritty -e docker exec -it "$PAL_ID" "$shell" ;;
+        foot) foot docker exec -it "$PAL_ID" "$shell" ;;
+        *) $terminal -e docker exec -it "$PAL_ID" "$shell" ;;
       esac
       ;;
     remove)
-      docker rm -f "$id"
-      notify-send -t 2000 "Docker" "Removed $name"
+      docker rm -f "$PAL_ID"
+      notify-send -t 2000 "Docker" "Removed $PAL_NAME"
       ;;
   esac
 }
