@@ -35,6 +35,8 @@ pub struct Palette {
     pub input: bool,
     pub input_prompt: Option<String>,
     #[serde(default)]
+    pub live: bool,
+    #[serde(default)]
     pub auto_list: bool,
     #[serde(default)]
     pub auto_pick: bool,
@@ -145,6 +147,9 @@ impl Config {
                     }
                     if palette.input_prompt.is_none() {
                         palette.input_prompt = plugin.get("input_prompt").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if !palette.live {
+                        palette.live = plugin.get("live").and_then(|v| v.as_bool()).unwrap_or(false);
                     }
                 }
             }

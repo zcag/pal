@@ -89,6 +89,11 @@ pub enum Command {
         /// Selected text from rofi
         selected: Option<String>,
     },
+    /// Rofi blocks mode handler for live input palettes (internal)
+    #[command(name = "_rofi-blocks-input", hide = true)]
+    RofiBlocksInput {
+        palette: String,
+    },
     /// Prompt user for input via the active frontend
     Prompt {
         /// Prompt spec as JSON object or array (reads stdin if omitted)
@@ -166,6 +171,9 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
         Some(Command::RofiInput { palette, selected }) => {
             rofi_input(&cfg, &palette, selected.as_deref());
         }
+        Some(Command::RofiBlocksInput { palette }) => {
+            rofi_blocks_input(&cfg, &palette);
+        }
         Some(Command::Prompt { spec }) => {
             prompt_cmd(&cfg, spec.as_deref());
         }
@@ -209,8 +217,14 @@ fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
             let sel = fe.input_run(msg);
             if !sel.trim().is_empty() { resolve_and_pick(cfg, palette_cfg, &sel, Some(frontend_name)); }
         } else if base == "builtin/frontends/rofi" {
-            // Rofi script mode handles list + pick internally
-            Frontend::new(base, frontend_cfg).input_run(msg);
+            if palette_cfg.live && builtin::rofi::has_blocks() {
+                builtin::rofi::blocks_input_run(msg);
+            } else {
+                if palette_cfg.live {
+                    eprintln!("pal: rofi-blocks not found, falling back to script mode for live palette '{palette_name}'");
+                }
+                Frontend::new(base, frontend_cfg).input_run(msg);
+            }
         } else {
             let fe = Frontend::new(base, frontend_cfg);
             let q = fe.prompt(msg);
@@ -322,6 +336,57 @@ fn rofi_input(cfg: &Config, palette_name: &str, selected: Option<&str>) {
             }
         }
         _ => {}
+    }
+}
+
+fn rofi_blocks_input(cfg: &Config, palette_name: &str) {
+    let Some(palette_cfg) = cfg.palette.get(palette_name) else { return };
+    let msg = palette_cfg.input_prompt.as_deref().unwrap_or(palette_name);
+
+    std::env::set_var("_PAL_PALETTE", palette_name);
+    std::env::set_var("_PAL_FRONTEND", "rofi");
+
+    // Initial output: enable input events, set prompt, empty list
+    println!("{}", serde_json::json!({
+        "input action": "send",
+        "prompt": format!("{msg}> "),
+        "lines": [],
+    }));
+
+    // Event loop: read JSON events from rofi-blocks via stdin
+    use std::io::BufRead;
+    let stdin = std::io::stdin();
+    for line in stdin.lock().lines() {
+        let Ok(line) = line else { break };
+        let Ok(event) = serde_json::from_str::<serde_json::Value>(&line) else { continue };
+
+        let name = event.get("name").and_then(|v| v.as_str()).unwrap_or("");
+        let value = event.get("value").and_then(|v| v.as_str()).unwrap_or("");
+        let data = event.get("data").and_then(|v| v.as_str()).unwrap_or("");
+
+        match name {
+            "input change" => {
+                if value.is_empty() {
+                    println!("{}", serde_json::json!({"lines": []}));
+                    continue;
+                }
+                let items = list(palette_cfg, Some(value));
+                let lines = builtin::rofi::format_blocks_lines(&items);
+                let count = lines.len();
+                let msg = if count == 1 { "1 result".to_string() } else { format!("{count} results") };
+                println!("{}", serde_json::json!({ "message": msg, "lines": lines }));
+            }
+            "select entry" => {
+                if !data.is_empty() {
+                    let resolved = resolve_prompts(data, cfg, Some("rofi"));
+                    if let Some(resolved) = resolved {
+                        let _ = Palette::new(palette_cfg).pick(&resolved);
+                    }
+                }
+                break;
+            }
+            _ => {}
+        }
     }
 }
 

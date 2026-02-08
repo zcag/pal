@@ -451,10 +451,9 @@ action_key = "cmd"
 
 ## Roadmap
 
-- [x] `pal update` to update remote plugins
-- [x] Prompt support (text input, choice, `pal prompt`)
-- [x] Caching for slow palettes
-- [x] Input palettes (live text input mode)
+- [ ] capability system between palettes (or items of palettes) and fe's
+- [ ] hotlink support. `pal://run?fe=rofi?palette=commands?item="confetti"`
+- [ ] `pal integrate xdg` for registering hotlink
 - [ ] `pal doctor` for config validation
 - [ ] REST API frontend
 
