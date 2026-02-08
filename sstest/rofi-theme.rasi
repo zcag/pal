@@ -1,0 +1,87 @@
+configuration {
+    show-icons: true;
+    icon-theme: "Papirus";
+}
+
+* {
+    font: "FiraCode Nerd Font 10";
+    background:     #303446;
+    background-alt: #292c3c;
+    foreground:     #c6d0f5;
+    selected:       #8caaee;
+    border:         #414559;
+}
+
+window {
+    transparency:    "real";
+    location:        center;
+    anchor:          center;
+    width:           600px;
+    border:          1px solid;
+    border-radius:   10px;
+    border-color:    @border;
+    background-color: @background;
+}
+
+mainbox {
+    spacing:    10px;
+    padding:    30px;
+    background-color: transparent;
+    children:   [ "inputbar", "listview" ];
+}
+
+inputbar {
+    spacing:    10px;
+    padding:    0px;
+    background-color: transparent;
+    text-color: @foreground;
+    children:   [ "entry" ];
+}
+
+entry {
+    padding:          5px 0px;
+    background-color: inherit;
+    text-color:       inherit;
+    cursor:           text;
+    placeholder:      "Search...";
+    placeholder-color: @foreground;
+}
+
+listview {
+    columns:     1;
+    lines:       8;
+    scrollbar:   false;
+    fixed-height: true;
+    spacing:     5px;
+    background-color: transparent;
+    text-color:  @foreground;
+}
+
+element {
+    spacing:          10px;
+    padding:          5px 10px;
+    border-radius:    10px;
+    background-color: transparent;
+    text-color:       @foreground;
+}
+
+element selected.normal {
+    background-color: @selected;
+    text-color:       @background;
+}
+
+element-icon {
+    background-color: transparent;
+    size:             24px;
+}
+
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    vertical-align:   0.5;
+}
+
+message, textbox {
+    background-color: transparent;
+    text-color: @foreground;
+}

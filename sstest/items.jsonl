@@ -1,0 +1,8 @@
+{"id":"firefox","name":"Firefox","icon":"firefox","icon_utf":"","desc":"Web Browser"}
+{"id":"kitty","name":"Kitty","icon":"kitty","icon_utf":"","desc":"Terminal Emulator"}
+{"id":"code","name":"VS Code","icon":"visual-studio-code","icon_utf":"󰨞","desc":"Code Editor"}
+{"id":"files","name":"Files","icon":"system-file-manager","icon_utf":"","desc":"File Manager"}
+{"id":"spotify","name":"Spotify","icon":"spotify","icon_utf":"","desc":"Music Player"}
+{"id":"discord","name":"Discord","icon":"discord","icon_utf":"󰙯","desc":"Chat"}
+{"id":"steam","name":"Steam","icon":"steam","icon_utf":"","desc":"Gaming"}
+{"id":"obs","name":"OBS Studio","icon":"com.obsproject.Studio","icon_utf":"","desc":"Screen Recording"}
