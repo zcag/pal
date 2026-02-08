@@ -1,0 +1,5 @@
+name = "gh-reviews"
+desc = "GitHub PRs needing your review"
+icon_utf = ""
+version = "0.1"
+command = ["run.sh"]

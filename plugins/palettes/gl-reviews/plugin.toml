@@ -1,0 +1,5 @@
+name = "gl-reviews"
+desc = "GitLab MRs needing your review"
+icon_utf = ""
+version = "0.1"
+command = ["run.sh"]
