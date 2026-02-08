@@ -94,6 +94,8 @@ pub enum Command {
     RofiBlocksInput {
         palette: String,
     },
+    /// Pick from items piped via stdin
+    Select,
     /// Prompt user for input via the active frontend
     Prompt {
         /// Prompt spec as JSON object or array (reads stdin if omitted)
@@ -154,10 +156,26 @@ fn init_config(force: bool) {
     println!("created {}", config_path.display());
 }
 
+fn load_env_file(path: &str) {
+    let path = util::expand_path(path);
+    let Ok(content) = std::fs::read_to_string(&path) else { return };
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') { continue; }
+        if let Some((key, val)) = line.split_once('=') {
+            std::env::set_var(key.trim(), val.trim_matches('"').trim_matches('\''));
+        }
+    }
+}
+
 fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
     std::env::set_var("_PAL_CONFIG", config_path);
     if let Some(parent) = std::path::Path::new(config_path).parent() {
         std::env::set_var("_PAL_CONFIG_DIR", parent);
+    }
+
+    if let Some(ref env_file) = cfg.general.env_file {
+        load_env_file(env_file);
     }
 
     match command {
@@ -173,6 +191,16 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
         }
         Some(Command::RofiBlocksInput { palette }) => {
             rofi_blocks_input(&cfg, &palette);
+        }
+        Some(Command::Select) => {
+            use std::io::Read;
+            let mut items = String::new();
+            std::io::stdin().read_to_string(&mut items).ok();
+            let fe_name = std::env::var("_PAL_FRONTEND").unwrap_or(cfg.general.default_frontend.clone());
+            let frontend_cfg = cfg.frontend.get(&fe_name).expect_exit(&format!("frontend not found: {fe_name}"));
+            if let Some(selected) = select(frontend_cfg, items.trim_end()) {
+                print!("{selected}");
+            }
         }
         Some(Command::Prompt { spec }) => {
             prompt_cmd(&cfg, spec.as_deref());
@@ -195,10 +223,16 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
 }
 
 fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
-    let palette_name = palette_arg.unwrap_or(&cfg.general.default_palette);
+    let palette_env = std::env::var("_PAL_PALETTE").ok();
+    let palette_name = palette_arg
+        .or(palette_env.as_deref())
+        .unwrap_or(&cfg.general.default_palette);
     let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
 
-    let frontend_name = frontend_arg.unwrap_or(&cfg.general.default_frontend);
+    let frontend_env = std::env::var("_PAL_FRONTEND").ok();
+    let frontend_name = frontend_arg
+        .or(frontend_env.as_deref())
+        .unwrap_or(&cfg.general.default_frontend);
     let frontend_cfg = cfg.frontend.get(frontend_name).expect_exit(&format!("frontend not found: {frontend_name}"));
 
     std::env::set_var("_PAL_PALETTE", palette_name);

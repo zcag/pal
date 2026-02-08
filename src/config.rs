@@ -21,6 +21,7 @@ pub struct General {
     pub default_palette: String,
     #[serde(default = "defaults::frontend")]
     pub default_frontend: String,
+    pub env_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -61,6 +62,7 @@ impl Default for General {
         Self {
             default_palette: defaults::palette(),
             default_frontend: defaults::frontend(),
+            env_file: None,
         }
     }
 }
