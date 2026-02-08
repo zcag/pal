@@ -1,0 +1,6 @@
+name = "ha-services"
+desc = "Home Assistant services / actions"
+icon = "home"
+icon_utf = "󰟐"
+version = "0.1"
+command = ["run.sh"]

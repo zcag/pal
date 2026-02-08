@@ -1,0 +1,8 @@
+name = "ha-states"
+desc = "Home Assistant entity states & attributes"
+icon = "home"
+icon_utf = "󰟐"
+version = "0.1"
+command = ["run.sh"]
+default_action = "copy"
+action_key = "value"
