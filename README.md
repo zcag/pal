@@ -10,12 +10,15 @@ pal run fzf combine   # combined view of multiple palettes
 
 ## Features
 
-- **Builtin palettes** - Apps, bookmarks, processes, and more - no external dependencies
+- **Builtin palettes** - Apps, bookmarks, SSH hosts, processes, and more
 - **Builtin frontends** - fzf, rofi, and stdin work out of the box
 - **Plugin system** - Extend with bash, python, or any language
 - **Layered config** - Defaults + user config + project config + env vars
-- **Icon support** - Show icons in rofi and other frontends
+- **Icon support** - XDG icons for rofi, UTF/Nerd Font icons for terminal frontends
 - **Combine palettes** - Merge multiple palettes into one view
+- **Input palettes** - Text input mode with live results (calculator, eval, etc.)
+- **Prompts** - Ask for user input on pick, usable from plugins and standalone scripts
+- **Caching** - Pre-computed display for fast startup on heavy palettes
 
 ## Installation
 
@@ -40,6 +43,18 @@ pal run rofi apps
 # List items without frontend (useful for debugging)
 pal list apps
 
+# Prompt user for input
+pal prompt '{"message": "Enter hostname"}'
+
+# Run an action on a value
+echo "hello" | pal action copy
+
+# List installed remote plugins
+pal plugins
+
+# Update all remote plugins
+pal update
+
 # Show loaded configuration
 pal show-config
 ```
@@ -50,6 +65,7 @@ pal show-config
 |---------|-------------|
 | `apps` | List and launch desktop applications |
 | `bookmarks` | Browser bookmarks (Firefox/Chrome) |
+| `ssh` | SSH hosts from `~/.ssh/config` |
 | `pals` | List and run other palettes |
 | `psg` | List and kill processes |
 | `combine` | Combine multiple palettes into one |
@@ -116,6 +132,133 @@ For simple palettes, use a JSON lines file or a JSON array:
 ```
 
 The `id` field is optional and defaults to `name` if missing.
+
+### Icons
+
+Items and palettes support three icon types, used by different frontends:
+
+| Field | Used by | Example |
+|-------|---------|---------|
+| `icon_xdg` | rofi (freedesktop icon names) | `utilities-terminal` |
+| `icon_utf` | fzf (UTF-8/Nerd Font glyphs) | `󰆍` |
+| `icon` | Fallback for either | `terminal` |
+
+Rofi prefers `icon_xdg`, fzf prefers `icon_utf`, both fall back to `icon`. Character icons (non-ASCII) are rendered inline, while XDG icon names are shown as images in rofi.
+
+Set a palette-level icon in config, and it applies to all items that don't have their own:
+
+```toml
+[palette.cmds]
+icon_xdg = "utilities-terminal"
+icon_utf = "󰆍"
+```
+
+## Input Palettes
+
+Input palettes accept text input instead of filtering a static list. The query is passed to the plugin's `list` command via stdin, and the plugin returns items based on it.
+
+```toml
+[palette.calc]
+base = "github:zcag/pal/plugins/palettes/calc"
+input = true
+input_prompt = "Calculate"
+```
+
+| Field | Description |
+|-------|-------------|
+| `input` | Enable text input mode |
+| `input_prompt` | Custom prompt message (defaults to palette name) |
+
+**fzf** reloads results live as you type using `--bind change:reload`. **rofi** uses script mode - type a query, press Enter to see results, then select. Other frontends use a two-step prompt then select flow.
+
+The plugin's `list` command receives the query on stdin:
+
+```bash
+list() {
+  query=$(cat)
+  if [[ -z "$query" ]]; then
+    echo '{"name":"Type an expression..."}'
+    return
+  fi
+  result=$(qalc -t "$query" 2>/dev/null)
+  echo "{\"name\":\"$query = $result\",\"result\":\"$result\"}"
+}
+```
+
+## Prompts
+
+Prompts let you collect user input before or during pick. There are two mechanisms:
+
+### Item-level prompts
+
+Add a `prompts` array to any item. When the item is picked, each prompt is shown to the user via the active frontend. Collected values are substituted into `{{key}}` placeholders in all item fields and injected as `PAL_<KEY>` env vars.
+
+```json
+{"name": "SSH Tunnel", "cmd": "ssh -L {{port}}:localhost:{{port}} {{host}}", "prompts": [
+  {"key": "host", "message": "Hostname"},
+  {"key": "port", "message": "Local port"}
+]}
+```
+
+This works in data files, plugin output, and through the combine palette.
+
+#### Prompt types
+
+| Type | Description | Extra fields |
+|------|-------------|--------------|
+| `text` | Free text input (default) | |
+| `choice` | Select from a list | `options`: array of strings |
+
+```json
+{"name": "Encrypt", "cmd": "gpg -c --cipher-algo {{algo}} file", "prompts": [
+  {"key": "algo", "message": "Algorithm", "type": "choice", "options": ["AES256", "TWOFISH", "CAMELLIA256"]}
+]}
+```
+
+### `pal prompt` command
+
+Prompt the user directly from any script - plugin pick scripts, custom scripts, or anywhere. Uses the same prompt spec format.
+
+```bash
+# Text prompt
+host=$(pal prompt '{"message": "Hostname"}')
+
+# Choice prompt
+algo=$(pal prompt '{"message": "Algorithm", "type": "choice", "options": ["AES256", "TWOFISH"]}')
+
+# Multiple prompts - returns JSON object
+result=$(pal prompt '[{"key": "host", "message": "Host"}, {"key": "port", "message": "Port"}]')
+# → {"host": "myserver", "port": "8080"}
+
+# From stdin
+cat prompts.json | pal prompt
+```
+
+When called inside a pal flow (e.g., from a plugin pick script), it uses the current frontend (`_PAL_FRONTEND`). When called standalone, it uses the config default.
+
+Example plugin pick script using `pal prompt`:
+
+```bash
+pick() {
+  item=$(cat)
+  host=$(pal prompt '{"message": "Hostname"}')
+  [ -z "$host" ] && exit 0
+  ssh "$host"
+}
+```
+
+## Caching
+
+For palettes with expensive list operations (like combine with many sub-palettes), enable caching to pre-compute the frontend display:
+
+```toml
+[palette.combine]
+base = "builtin/palettes/combine"
+include = ["apps", "bookmarks", "cmds"]
+cache = true
+```
+
+On first run, items are listed, formatted, and cached at `~/.cache/pal/`. Subsequent runs read directly from cache and regenerate in the background for next time. Currently supported for the rofi frontend.
 
 ## Plugin Development
 
@@ -269,6 +412,7 @@ run() {
 |----------|-------------|
 | `_PAL_CONFIG` | Path to current config file |
 | `_PAL_CONFIG_DIR` | Directory of current config file |
+| `_PAL_PALETTE` | Current palette name |
 | `_PAL_FRONTEND` | Current frontend name |
 | `_PAL_PLUGIN_CONFIG` | JSON config for current plugin |
 | `PAL_<KEY>` | Item key-value pairs injected on pick (e.g. `PAL_NAME`, `PAL_HEX`) |
@@ -307,12 +451,12 @@ action_key = "cmd"
 
 ## Roadmap
 
-- [ ] `pal update` to update remote plugins
-- [ ] Prompt support (text input, choice, etc.)
-- [ ] Caching for slow palettes
+- [x] `pal update` to update remote plugins
+- [x] Prompt support (text input, choice, `pal prompt`)
+- [x] Caching for slow palettes
+- [x] Input palettes (live text input mode)
 - [ ] `pal doctor` for config validation
 - [ ] REST API frontend
-- [ ] More builtin palettes (calendar, OTP, etc.)
 
 ## Disclaimer
 
