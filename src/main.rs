@@ -98,6 +98,9 @@ pub enum Command {
     Select,
     /// Prompt user for input via the active frontend
     Prompt {
+        /// Frontend to use
+        #[arg(short, long)]
+        frontend: Option<String>,
         /// Prompt spec as JSON object or array (reads stdin if omitted)
         spec: Option<String>,
     },
@@ -202,8 +205,8 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
                 print!("{selected}");
             }
         }
-        Some(Command::Prompt { spec }) => {
-            prompt_cmd(&cfg, spec.as_deref());
+        Some(Command::Prompt { frontend, spec }) => {
+            prompt_cmd(&cfg, spec.as_deref(), frontend.as_deref());
         }
         Some(Command::ShowConfig) => println!("{cfg:#?}"),
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
@@ -547,7 +550,7 @@ fn run_prompts(prompts: &[serde_json::Value], cfg: &Config, frontend_name: Optio
 }
 
 /// `pal prompt` command - prompt user via the frontend, print collected values.
-fn prompt_cmd(cfg: &Config, spec: Option<&str>) {
+fn prompt_cmd(cfg: &Config, spec: Option<&str>, frontend: Option<&str>) {
     let input = match spec {
         Some(s) => s.to_string(),
         None => {
@@ -569,7 +572,7 @@ fn prompt_cmd(cfg: &Config, spec: Option<&str>) {
     };
     if prompts.is_empty() { return; }
 
-    if let Some(values) = run_prompts(&prompts, cfg, None) {
+    if let Some(values) = run_prompts(&prompts, cfg, frontend) {
         if values.len() == 1 {
             print!("{}", values[0].1);
         } else {
