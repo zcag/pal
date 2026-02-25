@@ -21,8 +21,11 @@ impl<'a> Palette<'a> {
     pub fn list(&self, query: Option<&str>) -> String {
         let items = if self.config.auto_list {
             self.config.data.as_ref()
-                .and_then(|p| std::fs::read_to_string(util::expand_path(p)).ok())
-                .map(|s| parse_data(&s))
+                .and_then(|p| {
+                    let path = util::expand_path(p);
+                    let content = std::fs::read_to_string(&path).ok()?;
+                    Some(parse_data(&content, p))
+                })
                 .unwrap_or_default()
         } else if let Some(plugin) = &self.plugin {
             plugin.run("list", query)
@@ -63,8 +66,11 @@ fn inject_item_env(selected: &str) {
     }
 }
 
-/// Parse data file - supports both JSON lines and JSON array format
-fn parse_data(content: &str) -> String {
+/// Parse data file - supports JSON lines, JSON array, and TOML array-of-tables
+fn parse_data(content: &str, path: &str) -> String {
+    if path.ends_with(".toml") {
+        return parse_toml_data(content);
+    }
     let trimmed = content.trim();
     if trimmed.starts_with('[') {
         // JSON array format - convert to JSON lines
@@ -74,6 +80,26 @@ fn parse_data(content: &str) -> String {
     } else {
         // Already JSON lines format
         content.to_string()
+    }
+}
+
+/// Parse TOML data file - finds the first top-level array and converts items to JSON lines
+fn parse_toml_data(content: &str) -> String {
+    let table: toml::Value = match content.parse() {
+        Ok(v) => v,
+        Err(_) => return String::new(),
+    };
+    let arr = table.as_table()
+        .and_then(|t| t.values().find(|v| v.is_array()))
+        .and_then(|v| v.as_array());
+
+    match arr {
+        Some(items) => items.iter()
+            .filter_map(|item| serde_json::to_value(item).ok())
+            .map(|v| v.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"),
+        None => String::new(),
     }
 }
 

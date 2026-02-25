@@ -131,6 +131,36 @@ For simple palettes, use a JSON lines file or a JSON array:
 ]
 ```
 
+TOML is also supported. Use an array-of-tables with any key name:
+
+```toml
+[[items]]
+name = "List files"
+icon = "terminal"
+cmd = "ls -la"
+
+[[items]]
+name = "Git status"
+icon = "git"
+cmd = "git status"
+```
+
+Point `data` at a `.toml` file and pal will parse it automatically:
+
+```toml
+[palette.quickcmds]
+auto_list = true
+auto_pick = true
+data = "~/.config/pal/commands.toml"
+default_action = "cmd"
+action_key = "cmd"
+```
+
+> **Tip:** For syntax highlighting of the `cmd` fields, name your file with a
+> compound extension like `commands.bash.toml`. The
+> [zcag/nvim-dek](https://github.com/zcag/nvim-dek) plugin uses the inner
+> extension to highlight embedded languages within TOML string values.
+
 The `id` field is optional and defaults to `name` if missing.
 
 ### Icons
