@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-warn() { echo "{\"id\":\"warn\",\"icon\":\"󰀪\",\"name\":\"$1\",\"desc\":\"$2\"}"; }
+warn() { jq -cn --arg n "$1" --arg d "$2" '{id:"warn",icon:"󰀪",name:$n,desc:$d}'; }
 
 get_token() {
   if [[ -n "$TEAMS_TOKEN" ]]; then
@@ -53,7 +53,7 @@ list() {
         }'
 }
 
-pick() { xdg-open "$PAL_ID"; }
+pick() { [[ "$PAL_ID" == "warn" ]] && exit 0; xdg-open "$PAL_ID"; }
 
 CMD=$1; shift
 case "$CMD" in
