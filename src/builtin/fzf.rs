@@ -24,7 +24,12 @@ pub fn format_items(items: &str) -> String {
                 .or_else(|| item.get("icon"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let desc = item.get("desc").and_then(|v| v.as_str()).unwrap_or("");
+            // `subtitle` is the schema field; `desc` predates it.
+            let desc = item.get("subtitle")
+                .or_else(|| item.get("desc"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            let accessories = format_accessories(&item);
             let keywords = item.get("keywords")
                 .and_then(|v| v.as_array())
                 .map(|arr| arr.iter()
@@ -36,15 +41,42 @@ pub fn format_items(items: &str) -> String {
             let show_icon = !icon.is_empty() && !icon.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
             let icon_prefix = if show_icon { format!("{} ", icon) } else { String::new() };
 
-            let display = if desc.is_empty() {
-                format!("{}{}", icon_prefix, name)
-            } else {
-                format!("{}{} \x1b[2m{}\x1b[0m", icon_prefix, name, desc)
-            };
+            let mut display = format!("{icon_prefix}{name}");
+            if !desc.is_empty() {
+                display.push_str(&format!(" \x1b[2m{desc}\x1b[0m"));
+            }
+            if !accessories.is_empty() {
+                display.push_str(&format!(" \x1b[2m{accessories}\x1b[0m"));
+            }
             Some(format!("{}\t{}\t{}", line, display, keywords))
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Render `accessories[]` as a trailing dim run. Tags get brackets so they
+/// still read as badges without colour support.
+fn format_accessories(item: &serde_json::Value) -> String {
+    let Some(list) = item.get("accessories").and_then(|v| v.as_array()) else {
+        return String::new();
+    };
+    list.iter()
+        .filter_map(|acc| {
+            let val = |k: &str| {
+                acc.get(k).and_then(|v| {
+                    v.as_str().map(String::from)
+                        .or_else(|| v.get("value").and_then(|v| v.as_str()).map(String::from))
+                })
+            };
+            if let Some(tag) = val("tag") {
+                Some(format!("[{tag}]"))
+            } else {
+                val("text").or_else(|| val("date"))
+            }
+        })
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn prompt(message: &str) -> String {

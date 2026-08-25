@@ -46,6 +46,15 @@ pub struct Palette {
     pub include: Vec<String>,
     pub default_action: Option<String>,
     pub action_key: Option<String>,
+    /// Default actions for items that don't declare their own.
+    #[serde(default)]
+    pub actions: Vec<serde_json::Value>,
+    /// Rendering hint for rich frontends: "list" (default) or "grid".
+    pub view: Option<String>,
+    /// How long a driver may reuse cached items, in seconds.
+    pub ttl: Option<u64>,
+    /// Human description, surfaced by `pal meta`.
+    pub desc: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }
@@ -74,9 +83,7 @@ mod defaults {
 
 impl Config {
     pub fn load(path: &str, cli: &Cli) -> Result<Self, figment::Error> {
-        let user_config = dirs::config_dir()
-            .map(|p| p.join("pal/config.toml"))
-            .unwrap_or_default();
+        let user_config = crate::util::config_dir().join("config.toml");
 
         let mut figment = Figment::new()
             .merge(Toml::file("pal.default.toml"))
@@ -152,6 +159,23 @@ impl Config {
                     }
                     if !palette.live {
                         palette.live = plugin.get("live").and_then(|v| v.as_bool()).unwrap_or(false);
+                    }
+                    if palette.desc.is_none() {
+                        palette.desc = plugin.get("desc").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if palette.view.is_none() {
+                        palette.view = plugin.get("view").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    if palette.ttl.is_none() {
+                        palette.ttl = plugin.get("ttl").and_then(|v| v.as_integer()).map(|v| v as u64);
+                    }
+                    if palette.actions.is_empty() {
+                        if let Some(actions) = plugin.get("actions").and_then(|v| v.as_array()) {
+                            palette.actions = actions
+                                .iter()
+                                .filter_map(|a| serde_json::to_value(a).ok())
+                                .collect();
+                        }
                     }
                 }
             }

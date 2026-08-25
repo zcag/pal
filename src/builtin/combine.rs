@@ -46,6 +46,7 @@ fn list() -> String {
                     let mut item: serde_json::Value = serde_json::from_str(line).ok()?;
                     let obj = item.as_object_mut()?;
                     obj.insert("_source".into(), serde_json::json!(palette_name));
+                    obj.entry("section").or_insert(serde_json::json!(palette_name));
                     // Inject fallback icons for fields the item doesn't have
                     for (key, fallback) in [("icon", fallback_icon), ("icon_xdg", fallback_icon_xdg), ("icon_utf", fallback_icon_utf)] {
                         if !fallback.is_empty() {
@@ -76,5 +77,6 @@ fn pick(input: &str) -> String {
         return String::new();
     };
 
-    Palette::new(palette_cfg).pick(input)
+    let action = std::env::var("_PAL_ACTION").ok();
+    Palette::new(palette_cfg).pick(input, action.as_deref())
 }

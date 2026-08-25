@@ -44,6 +44,22 @@ impl Plugin {
             builtin::run(&self.base, cmd, input)
         }
     }
+
+    /// Like `run`, but hands each output line to `sink` as the plugin emits it.
+    /// Builtins have nothing to stream, so they fall back to running whole.
+    pub fn run_streaming(&self, cmd: &str, input: Option<&str>, sink: &mut impl FnMut(&str)) {
+        let config_str = serde_json::to_string(&self.config).unwrap();
+        std::env::set_var("_PAL_PLUGIN_CONFIG", &config_str);
+
+        match &self.exec {
+            Some(exec) => util::run_command_streaming(exec, &[cmd], input, sink),
+            None => {
+                for line in builtin::run(&self.base, cmd, input).lines() {
+                    sink(line);
+                }
+            }
+        }
+    }
 }
 
 fn load_plugin_toml(base: &str, expanded: &Path) -> toml::Value {

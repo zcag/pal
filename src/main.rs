@@ -5,6 +5,7 @@ mod frontend;
 mod palette;
 mod plugin;
 mod remote;
+mod result;
 mod util;
 
 use std::process;
@@ -48,7 +49,11 @@ pub enum Command {
         force: bool,
     },
     /// Show loaded configuration
-    ShowConfig,
+    ShowConfig {
+        /// Emit as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// Run with optional frontend and palette
     Run {
         /// Frontend to use (default from config)
@@ -59,6 +64,25 @@ pub enum Command {
     /// List items from a palette (without frontend)
     List {
         /// Palette to list from
+        palette: Option<String>,
+        /// Query for input palettes
+        #[arg(short, long)]
+        query: Option<String>,
+        /// Emit items as they are produced instead of all at once
+        #[arg(long)]
+        stream: bool,
+    },
+    /// Pick an item (JSON on stdin) without a frontend
+    Pick {
+        /// Palette the item belongs to
+        palette: Option<String>,
+        /// Which of the item's actions[] to run (id or title)
+        #[arg(short, long)]
+        action: Option<String>,
+    },
+    /// Describe palettes and their capabilities as JSON
+    Meta {
+        /// Palette to describe (all palettes if omitted)
         palette: Option<String>,
     },
     /// Run an action (reads value from stdin)
@@ -130,13 +154,7 @@ fn main() {
 }
 
 fn init_config(force: bool) {
-    let config_dir = dirs::config_dir()
-        .map(|p| p.join("pal"))
-        .unwrap_or_else(|| {
-            eprintln!("could not determine config directory");
-            process::exit(1);
-        });
-
+    let config_dir = util::config_dir();
     let config_path = config_dir.join("config.toml");
 
     if config_path.exists() && !force {
@@ -208,13 +226,54 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
         Some(Command::Prompt { frontend, spec }) => {
             prompt_cmd(&cfg, spec.as_deref(), frontend.as_deref());
         }
-        Some(Command::ShowConfig) => println!("{cfg:#?}"),
+        Some(Command::ShowConfig { json }) => {
+            if json {
+                util::out(&format!("{}\n", serde_json::to_string_pretty(&cfg).unwrap_or_default()));
+            } else {
+                println!("{cfg:#?}");
+            }
+        }
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
-        Some(Command::List { palette }) => {
+        Some(Command::List { palette, query, stream }) => {
             let palette_name = palette.as_deref().unwrap_or(&cfg.general.default_palette);
             let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
-            print!("{}", list(palette_cfg, None));
+            std::env::set_var("_PAL_PALETTE", palette_name);
+            if stream {
+                use std::io::Write;
+                let stdout = std::io::stdout();
+                let mut out = stdout.lock();
+                Palette::new(palette_cfg).list_streaming(query.as_deref(), &mut |line| {
+                    let _ = writeln!(out, "{line}");
+                    let _ = out.flush();
+                });
+            } else {
+                util::out(&format!("{}\n", list(palette_cfg, query.as_deref())));
+            }
         }
+        Some(Command::Pick { palette, action }) => {
+            use std::io::Read;
+            let palette_name = palette.as_deref().unwrap_or(&cfg.general.default_palette);
+            let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
+            std::env::set_var("_PAL_PALETTE", palette_name);
+            if let Some(ref a) = action {
+                std::env::set_var("_PAL_ACTION", a);
+            }
+
+            let mut selected = String::new();
+            std::io::stdin().read_to_string(&mut selected).ok();
+            let selected = selected.trim();
+            if selected.is_empty() {
+                return;
+            }
+            // Prompts are the driver's job here - it has a real UI for them.
+            // Anything left unresolved falls back to the configured frontend.
+            let resolved = match resolve_prompts(selected, &cfg, None) {
+                Some(r) => r,
+                None => return,
+            };
+            util::out(&Palette::new(palette_cfg).pick(&resolved, action.as_deref()));
+        }
+        Some(Command::Meta { palette }) => util::out(&meta(&cfg, palette.as_deref())),
         Some(Command::Action { name }) => {
             use std::io::Read;
             let mut value = String::new();
@@ -282,7 +341,7 @@ fn run(cfg: &Config, frontend_arg: Option<&str>, palette_arg: Option<&str>) {
 }
 
 fn cache_dir() -> std::path::PathBuf {
-    dirs::cache_dir().unwrap_or_default().join("pal")
+    util::cache_dir()
 }
 
 fn run_cached_rofi(cfg: &Config, palette_name: &str, palette_cfg: &config::Palette, frontend_name: &str) {
@@ -368,7 +427,7 @@ fn rofi_input(cfg: &Config, palette_name: &str, selected: Option<&str>) {
             if let Some(json) = info {
                 let resolved = resolve_prompts(&json, cfg, Some("rofi"));
                 if let Some(resolved) = resolved {
-                    let _ = Palette::new(palette_cfg).pick(&resolved);
+                    let _ = Palette::new(palette_cfg).pick(&resolved, None);
                 }
             }
         }
@@ -417,7 +476,7 @@ fn rofi_blocks_input(cfg: &Config, palette_name: &str) {
                 if !data.is_empty() {
                     let resolved = resolve_prompts(data, cfg, Some("rofi"));
                     if let Some(resolved) = resolved {
-                        let _ = Palette::new(palette_cfg).pick(&resolved);
+                        let _ = Palette::new(palette_cfg).pick(&resolved, None);
                     }
                 }
                 break;
@@ -459,10 +518,58 @@ fn resolve_and_pick(full_cfg: &Config, palette_cfg: &config::Palette, selected: 
         Some(r) => r,
         None => return, // user cancelled a prompt
     };
-    let result = Palette::new(palette_cfg).pick(&resolved);
-    if !result.is_empty() {
+    let result = Palette::new(palette_cfg).pick(&resolved, None);
+    if !result.is_empty() && !result::render(&result) {
         print!("{result}");
     }
+}
+
+/// Describe palettes for an external driver: what they are, how they behave,
+/// and what a pick can do. This is what lets a rich frontend configure itself
+/// before it lists anything.
+fn meta(cfg: &Config, palette: Option<&str>) -> String {
+    let describe = |name: &str, p: &config::Palette| {
+        serde_json::json!({
+            "name": name,
+            "desc": p.desc,
+            "base": p.base,
+            "icon": p.icon,
+            "icon_xdg": p.icon_xdg,
+            "icon_utf": p.icon_utf,
+            "view": p.view.as_deref().unwrap_or("list"),
+            "input": p.input,
+            "input_prompt": p.input_prompt,
+            "live": p.live,
+            "cache": p.cache,
+            "ttl": p.ttl,
+            "auto_list": p.auto_list,
+            "auto_pick": p.auto_pick,
+            "default_action": p.default_action,
+            "action_key": p.action_key,
+            "actions": p.actions,
+            "include": p.include,
+        })
+    };
+
+    if let Some(name) = palette {
+        let p = cfg.palette.get(name).expect_exit(&format!("palette not found: {name}"));
+        return format!("{}\n", serde_json::to_string_pretty(&describe(name, p)).unwrap_or_default());
+    }
+
+    let mut names: Vec<_> = cfg.palette.keys().collect();
+    names.sort();
+    let palettes: Vec<_> = names.iter().map(|n| describe(n, &cfg.palette[*n])).collect();
+
+    let mut frontends: Vec<_> = cfg.frontend.keys().cloned().collect();
+    frontends.sort();
+
+    let out = serde_json::json!({
+        "default_palette": cfg.general.default_palette,
+        "default_frontend": cfg.general.default_frontend,
+        "frontends": frontends,
+        "palettes": palettes,
+    });
+    format!("{}\n", serde_json::to_string_pretty(&out).unwrap_or_default())
 }
 
 /// If the item has a `prompts` array, run each prompt and substitute `{{key}}` in fields.

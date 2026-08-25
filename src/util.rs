@@ -61,6 +61,51 @@ pub fn run_command(exec: &Path, args: &[&str], stdin_data: Option<&str>) -> Stri
     String::from_utf8_lossy(&output.stdout).into_owned()
 }
 
+/// Run a plugin and stream its stdout line by line as it is produced.
+pub fn run_command_streaming(
+    exec: &Path,
+    args: &[&str],
+    stdin_data: Option<&str>,
+    sink: &mut impl FnMut(&str),
+) {
+    use std::io::{BufRead, BufReader};
+
+    let mut child = Command::new(exec)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .unwrap_or_else(|e| {
+            eprintln!("failed to run {}: {e}", exec.display());
+            process::exit(1);
+        });
+
+    if let Some(data) = stdin_data {
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(data.as_bytes());
+        }
+    }
+    // Close stdin so plugins that read it aren't left waiting.
+    drop(child.stdin.take());
+
+    if let Some(stdout) = child.stdout.take() {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            sink(&line);
+        }
+    }
+    let _ = child.wait();
+}
+
+/// Write to stdout tolerating a closed pipe - a driver may stop reading early,
+/// and `println!` panics on EPIPE.
+pub fn out(s: &str) {
+    let stdout = std::io::stdout();
+    let mut lock = stdout.lock();
+    let _ = lock.write_all(s.as_bytes());
+    let _ = lock.flush();
+}
+
 pub fn merge_configs(plugin_toml: &toml::Value, user_config: &impl Serialize) -> toml::Value {
     let mut combined = toml::map::Map::new();
     if let toml::Value::Table(t) = plugin_toml {
@@ -76,4 +121,33 @@ pub fn merge_configs(plugin_toml: &toml::Value, user_config: &impl Serialize) ->
         }
     }
     toml::Value::Table(combined)
+}
+
+/// XDG base directory, honoring $XDG_*_HOME on every platform.
+///
+/// `dirs::config_dir()` returns `~/Library/Application Support` on macOS, which
+/// breaks the `~/.config/pal/` layout the docs promise. pal is XDG-native, so
+/// resolve the same way everywhere: $XDG_*_HOME, then the conventional fallback.
+fn xdg_dir(env: &str, fallback: &str) -> PathBuf {
+    if let Ok(dir) = std::env::var(env) {
+        if !dir.is_empty() {
+            return PathBuf::from(dir);
+        }
+    }
+    dirs::home_dir().unwrap_or_default().join(fallback)
+}
+
+/// `~/.config/pal` (or $XDG_CONFIG_HOME/pal)
+pub fn config_dir() -> PathBuf {
+    xdg_dir("XDG_CONFIG_HOME", ".config").join("pal")
+}
+
+/// `~/.local/share/pal` (or $XDG_DATA_HOME/pal)
+pub fn data_dir() -> PathBuf {
+    xdg_dir("XDG_DATA_HOME", ".local/share").join("pal")
+}
+
+/// `~/.cache/pal` (or $XDG_CACHE_HOME/pal)
+pub fn cache_dir() -> PathBuf {
+    xdg_dir("XDG_CACHE_HOME", ".cache").join("pal")
 }

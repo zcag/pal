@@ -7,9 +7,7 @@ pub struct Action {
 impl Action {
     pub fn new(name: &str) -> Self {
         // Try local path first (config dir, then _PAL_CONFIG_DIR), fall back to github
-        let config_dir = dirs::config_dir()
-            .map(|p| p.join("pal"))
-            .unwrap_or_default();
+        let config_dir = crate::util::config_dir();
         let local_path = config_dir.join(format!("plugins/actions/{name}"));
 
         let base = if local_path.join("plugin.toml").exists() {

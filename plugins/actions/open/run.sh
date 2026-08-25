@@ -7,6 +7,7 @@ run() {
   elif command -v open &>/dev/null; then
     open "$url"
   fi
+  jq -cn --arg d "Opened $url" '{hud: $d, close: true}'
 }
 
 CMD=$1; shift

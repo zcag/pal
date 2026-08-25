@@ -36,9 +36,8 @@ impl GithubUrl {
 
     /// Local directory where repo is cloned
     fn repo_dir(&self) -> PathBuf {
-        dirs::data_dir()
-            .unwrap_or_else(|| PathBuf::from("~/.local/share"))
-            .join("pal/plugins/github.com")
+        crate::util::data_dir()
+            .join("plugins/github.com")
             .join(&self.user)
             .join(&self.repo)
             .join(&self.git_ref)
@@ -78,9 +77,8 @@ pub fn ensure_github(base: &str) -> Option<PathBuf> {
 
 /// Return the base directory where remote plugins are stored
 fn plugins_base() -> PathBuf {
-    dirs::data_dir()
-        .unwrap_or_else(|| PathBuf::from("~/.local/share"))
-        .join("pal/plugins/github.com")
+    crate::util::data_dir()
+        .join("plugins/github.com")
 }
 
 /// Find all cloned repo directories (dirs containing .git)
