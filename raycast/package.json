@@ -23,6 +23,21 @@
       "mode": "view"
     },
     {
+      "name": "sync-item-scripts",
+      "title": "Sync Pal Item Scripts",
+      "subtitle": "Pal",
+      "description": "Generate a Raycast script command per palette item so items are reachable from root search",
+      "mode": "no-view",
+      "interval": "1h"
+    },
+    {
+      "name": "sync-palette-commands",
+      "title": "Sync Pal Palette Commands",
+      "subtitle": "Pal",
+      "description": "Regenerate one Raycast command per palette from your pal config",
+      "mode": "no-view"
+    },
+    {
       "name": "palette-apps",
       "title": "Apps",
       "subtitle": "Pal",
@@ -324,6 +339,14 @@
       "type": "directory",
       "required": false,
       "default": ""
+    },
+    {
+      "name": "bakedPalettes",
+      "title": "Palettes to Bake into Root Search",
+      "description": "Comma-separated palettes whose items become script commands. Leave empty to bake every palette with a stable item list.",
+      "type": "textfield",
+      "required": false,
+      "default": "bookmarks,cmds,power,ssh"
     }
   ],
   "dependencies": {
@@ -340,8 +363,7 @@
     "dev": "ray develop",
     "lint": "ray lint",
     "sync": "node scripts/sync-commands.mjs",
-    "test": "node scripts/test-icons.cjs",
-    "sync-scripts": "node scripts/sync-scripts.mjs"
+    "test": "node scripts/test-icons.cjs"
   },
   "overrides": {
     "@types/react": "^19.0.10"

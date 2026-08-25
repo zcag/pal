@@ -103,6 +103,14 @@ export function toColor(value?: string | null): Color.ColorLike | undefined {
   return undefined;
 }
 
+/**
+ * The value if it's an emoji we can use directly (Raycast script commands take
+ * one as their icon), otherwise nothing.
+ */
+export function asEmoji(value?: string | null): string | undefined {
+  return value && isEmoji(value.trim()) ? value.trim() : undefined;
+}
+
 /** An emoji rendered as an inline SVG - List.Item.icon doesn't take emoji. */
 function emojiIcon(emoji: string): Image.ImageLike {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><text x="8" y="13" font-size="13" text-anchor="middle">${escapeXml(

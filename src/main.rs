@@ -79,6 +79,10 @@ pub enum Command {
         /// Which of the item's actions[] to run (id or title)
         #[arg(short, long)]
         action: Option<String>,
+        /// Resolve the item from a fresh list by id instead of reading stdin.
+        /// Lets a caller store a stable pointer rather than a stale copy.
+        #[arg(long, allow_hyphen_values = true)]
+        id: Option<String>,
     },
     /// Describe palettes and their capabilities as JSON
     Meta {
@@ -250,7 +254,7 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
                 util::out(&format!("{}\n", list(palette_cfg, query.as_deref())));
             }
         }
-        Some(Command::Pick { palette, action }) => {
+        Some(Command::Pick { palette, action, id }) => {
             use std::io::Read;
             let palette_name = palette.as_deref().unwrap_or(&cfg.general.default_palette);
             let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
@@ -259,9 +263,21 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
                 std::env::set_var("_PAL_ACTION", a);
             }
 
-            let mut selected = String::new();
-            std::io::stdin().read_to_string(&mut selected).ok();
-            let selected = selected.trim();
+            let selected = match id {
+                Some(ref id) => match find_item(palette_cfg, id) {
+                    Some(item) => item,
+                    None => {
+                        eprintln!("no item '{id}' in palette '{palette_name}'");
+                        process::exit(1);
+                    }
+                },
+                None => {
+                    let mut buf = String::new();
+                    std::io::stdin().read_to_string(&mut buf).ok();
+                    buf.trim().to_string()
+                }
+            };
+            let selected = selected.as_str();
             if selected.is_empty() {
                 return;
             }
@@ -522,6 +538,18 @@ fn resolve_and_pick(full_cfg: &Config, palette_cfg: &config::Palette, selected: 
     if !result.is_empty() && !result::render(&result) {
         print!("{result}");
     }
+}
+
+/// Find an item by id (or name) in a freshly listed palette.
+fn find_item(cfg: &config::Palette, id: &str) -> Option<String> {
+    list(cfg, None).lines().find(|line| {
+        serde_json::from_str::<serde_json::Value>(line)
+            .ok()
+            .is_some_and(|item| {
+                let field = |k: &str| item.get(k).and_then(|v| v.as_str()) == Some(id);
+                field("id") || field("name")
+            })
+    }).map(String::from)
 }
 
 /// Describe palettes for an external driver: what they are, how they behave,

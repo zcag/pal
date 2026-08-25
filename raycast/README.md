@@ -55,20 +55,40 @@ Raycast's root search indexes **commands**, not the items inside them. A
 bookmark listed by this extension only exists once you've opened a Pal
 command - typing its name into Raycast itself will never find it.
 
-For palettes whose items are stable, generate one script command per item.
-Those *are* root search entries, and each one runs the real `pal pick`, so
-behaviour matches the terminal:
+Two ways to close that gap, and they compose.
+
+### Fallback command (everything, always fresh)
+
+Add **Pal** under *Settings -> Advanced -> Fallback Commands*. Now anything you
+type into root search that matches nothing can be sent straight into Pal,
+arriving already typed. Works for live palettes - `otp`, `tabs`, `ha-states` -
+because nothing is stored ahead of time.
+
+### Baked item scripts (direct hits, stable palettes)
+
+**Sync Pal Item Scripts** writes one Raycast script command per item into
+`~/.config/raycast/generated/pal`. Those *are* root search entries, so
+`fileschema` becomes directly reachable.
+
+Each script stores a **pointer**, not a copy:
 
 ```bash
-npm run sync-scripts -- bookmarks cmds power
+exec pal pick bookmarks --id 'fileschema'
 ```
 
-Then register the folder once, in **Raycast Settings -> Extensions -> Script
-Commands -> Add Directory**, pointing at `~/.config/raycast/generated/pal`.
-Re-run the command whenever those palettes change.
+`pal pick --id` re-lists the palette and resolves the item at run time, so the
+action is always current and only the title can go stale. That makes it safe
+for palettes whose state moves even though their identities don't - `ssh`,
+`systemd`, `docker`, `ha-states`.
 
-Only worth doing for stable palettes. Anything live - `otp`, `tabs`,
-`ha-states` - belongs in the extension, which lists it fresh on every open.
+The command runs hourly on its own and can be triggered from root search. Pick
+what gets baked with the **Palettes to Bake into Root Search** preference; left
+empty it bakes every palette with a stable item list, skipping ones whose value
+*is* their content (`otp`, `tabs`, `clipboard`, `psg`, `calc`) where a stored
+entry would just be wrong.
+
+One-time setup: add that folder in **Raycast Settings -> Extensions -> Script
+Commands -> Add Directory**.
 
 ## Item fields it renders
 

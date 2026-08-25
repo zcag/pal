@@ -76,8 +76,9 @@ for (const palette of palettes) {
 
 const pkgPath = join(root, "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
-const root_ = pkg.commands.find((c) => c.name === "pal");
-pkg.commands = [root_, ...commands.sort((a, b) => a.name.localeCompare(b.name))];
+// Keep every hand-written command; only the generated palette-* set is ours.
+const kept = pkg.commands.filter((c) => !c.name.startsWith(PREFIX));
+pkg.commands = [...kept, ...commands.sort((a, b) => a.name.localeCompare(b.name))];
 writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
 
 console.log(
