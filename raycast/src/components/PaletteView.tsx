@@ -39,13 +39,16 @@ import { listMetadata } from "./Metadata";
 export function PaletteView({
   palette,
   meta: seed,
+  initialSearch,
 }: {
   palette: string;
   meta?: PaletteMeta;
+  /** Seed the search bar - used when Pal runs as a fallback command. */
+  initialSearch?: string;
 }) {
   const { push } = useNavigation();
   const { env, ready } = usePalEnv();
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState(initialSearch ?? "");
   const [showDetail, setShowDetail] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -302,7 +305,8 @@ export function PaletteView({
         inset={Grid.Inset.Small}
         filtering={!isInput}
         throttle={isInput}
-        onSearchTextChange={isInput ? setSearchText : undefined}
+        searchText={searchText}
+        onSearchTextChange={setSearchText}
       >
         {groups.map(([section, sectionItems]) => (
           <Grid.Section key={section ?? "_"} title={section ?? undefined}>
@@ -335,7 +339,8 @@ export function PaletteView({
       searchBarPlaceholder={placeholder}
       filtering={!isInput}
       throttle={isInput}
-      onSearchTextChange={isInput ? setSearchText : undefined}
+      searchText={searchText}
+      onSearchTextChange={setSearchText}
       onSelectionChange={setSelectedId}
       isShowingDetail={showDetail && hasDetail}
     >

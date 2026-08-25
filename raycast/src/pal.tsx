@@ -1,4 +1,4 @@
-import { List, getPreferenceValues } from "@raycast/api";
+import { LaunchProps, List, getPreferenceValues } from "@raycast/api";
 import { useExec } from "@raycast/utils";
 import { metaArgs, palBinary, parseMeta } from "./lib/pal";
 import { usePalEnv } from "./lib/useEnv";
@@ -10,7 +10,7 @@ import { PaletteView } from "./components/PaletteView";
  * `default_palette`, so that's what this does by default too - the palette
  * browser is a preference away, and every palette is also its own command.
  */
-export default function Command() {
+export default function Command(props: LaunchProps) {
   const { rootView } = getPreferenceValues<{ rootView?: string }>();
   const { env, ready } = usePalEnv();
 
@@ -21,9 +21,13 @@ export default function Command() {
     keepPreviousData: true,
   });
 
+  // Set as a Raycast fallback command, the root search text arrives here -
+  // so anything you typed carries straight into the palette.
+  const fallback = props.fallbackText;
+
   if (rootView === "browser") return <PaletteBrowser />;
 
   if (!data) return <List isLoading={isLoading || !ready} searchBarPlaceholder="Loading palettes…" />;
 
-  return <PaletteView palette={data.default_palette} />;
+  return <PaletteView palette={data.default_palette} initialSearch={fallback} />;
 }
