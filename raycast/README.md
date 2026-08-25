@@ -49,6 +49,27 @@ regenerating.
 
 Re-run it whenever you add a palette.
 
+## Getting items into Raycast's root search
+
+Raycast's root search indexes **commands**, not the items inside them. A
+bookmark listed by this extension only exists once you've opened a Pal
+command - typing its name into Raycast itself will never find it.
+
+For palettes whose items are stable, generate one script command per item.
+Those *are* root search entries, and each one runs the real `pal pick`, so
+behaviour matches the terminal:
+
+```bash
+npm run sync-scripts -- bookmarks cmds power
+```
+
+Then register the folder once, in **Raycast Settings -> Extensions -> Script
+Commands -> Add Directory**, pointing at `~/.config/raycast/generated/pal`.
+Re-run the command whenever those palettes change.
+
+Only worth doing for stable palettes. Anything live - `otp`, `tabs`,
+`ha-states` - belongs in the extension, which lists it fresh on every open.
+
 ## Item fields it renders
 
 Everything below is optional; palettes that don't set them still work.

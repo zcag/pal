@@ -340,7 +340,8 @@
     "dev": "ray develop",
     "lint": "ray lint",
     "sync": "node scripts/sync-commands.mjs",
-    "test": "node scripts/test-icons.cjs"
+    "test": "node scripts/test-icons.cjs",
+    "sync-scripts": "node scripts/sync-scripts.mjs"
   },
   "overrides": {
     "@types/react": "^19.0.10"
