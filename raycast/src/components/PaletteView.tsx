@@ -122,7 +122,12 @@ export function PaletteView({
       await visitItem(item);
       const output = await pick(palette, item, action?.id);
       await toast.hide();
-      await handleOutput(output, title, { push, revalidate });
+      await handleOutput(output, title, {
+        push,
+        revalidate,
+        // A `pals` item resolves to another palette rather than doing anything.
+        openPalette: (name) => push(<PaletteView palette={name} />),
+      });
     } catch (e) {
       await toast.hide();
       await showFailureToast(e, { title: `"${title}" failed` });

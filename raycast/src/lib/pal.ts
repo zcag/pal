@@ -101,6 +101,8 @@ export type Envelope = {
   show?: ItemDetail;
   reload?: boolean;
   close?: boolean;
+  /** The pick resolved to another palette (the `pals` palette does this). */
+  palette?: string;
 };
 
 const prefs = () =>
@@ -229,7 +231,7 @@ export async function pick(
   return runPal(args, { input: JSON.stringify(item) });
 }
 
-const ENVELOPE_KEYS = ["toast", "hud", "clipboard", "open", "show", "reload", "close"];
+const ENVELOPE_KEYS = ["toast", "hud", "clipboard", "open", "show", "reload", "close", "palette"];
 
 /** Recognise a result envelope; plain output comes back as null. */
 export function parseEnvelope(output: string): Envelope | null {

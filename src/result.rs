@@ -13,6 +13,7 @@
 //! {"show": {"markdown": "...", "metadata": [...]}}
 //! {"reload": true}
 //! {"close": true}
+//! {"palette": "audio"}   // resolved to another palette; show it
 //! ```
 //!
 //! Anything that isn't a JSON object with at least one known key is passed
@@ -20,7 +21,8 @@
 
 use serde_json::Value;
 
-const KEYS: [&str; 7] = ["toast", "hud", "clipboard", "open", "show", "reload", "close"];
+const KEYS: [&str; 8] =
+    ["toast", "hud", "clipboard", "open", "show", "reload", "close", "palette"];
 
 /// Is this a result envelope rather than plain plugin output?
 pub fn is_envelope(out: &str) -> bool {

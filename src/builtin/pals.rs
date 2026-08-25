@@ -41,9 +41,15 @@ fn pick(input: &str) -> String {
         return String::new();
     }
 
-    let config_file = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
     let frontend = std::env::var("_PAL_FRONTEND").unwrap_or_default();
 
+    // Driven headlessly there is no frontend to hand off to, so name the
+    // palette back to the caller and let it navigate.
+    if frontend.is_empty() {
+        return json!({ "palette": palette }).to_string();
+    }
+
+    let config_file = std::env::var("_PAL_CONFIG").unwrap_or_else(|_| "pal.default.toml".into());
     let mut args = vec!["-c", &config_file, "run"];
     if !frontend.is_empty() {
         args.push(&frontend);

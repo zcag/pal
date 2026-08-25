@@ -19,7 +19,7 @@
       "name": "pal",
       "title": "Pal",
       "subtitle": "Palettes",
-      "description": "Browse every configured pal palette",
+      "description": "Run your default pal palette, or browse them all",
       "mode": "view"
     },
     {
@@ -283,6 +283,24 @@
     }
   ],
   "preferences": [
+    {
+      "name": "rootView",
+      "title": "Pal Command Shows",
+      "description": "Whether the root Pal command opens your configured default_palette (matching bare `pal` in a terminal) or lists every palette.",
+      "type": "dropdown",
+      "required": false,
+      "default": "default",
+      "data": [
+        {
+          "title": "Default palette",
+          "value": "default"
+        },
+        {
+          "title": "All palettes",
+          "value": "browser"
+        }
+      ]
+    },
     {
       "name": "palPath",
       "title": "pal Binary",
