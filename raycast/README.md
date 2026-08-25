@@ -17,78 +17,129 @@ it's a resident app - so this extension inverts the flow and drives pal:
 | Configure the view | `pal meta <palette>` |
 | List items | `pal list <palette> [--query …]` |
 | Run an item | `pal pick <palette> [--action id]` (item JSON on stdin) |
+| Run a known item | `pal pick <palette> --id <id>` (resolves it fresh) |
 
 A pick may answer with a result envelope (`toast`, `hud`, `clipboard`, `open`,
-`show`, `reload`, `close`), which becomes the matching Raycast feedback.
+`show`, `reload`, `close`, `palette`), which becomes the matching Raycast feedback.
 
 ## Setup
 
-1. Install pal (`cargo install rpal`) - this extension needs `pal meta` and
-   `pal pick`, so a build with the driver API.
-2. Run the extension. If the `pal` binary isn't found, set its full path in the
-   extension preferences.
+Start to finish, on a fresh machine.
 
-The first run resolves your login shell's `PATH` and caches it, because
-Raycast's node runtime starts with a minimal one and pal's plugins shell out to
-`jq`, `gh`, and whatever else you use. "Reload Shell Environment" in the action
-panel re-resolves it.
+### 1. pal
 
-## Palette commands
-
-By default there's one **Pal** command that lists every palette. To give a
-palette its own root-search keyword and hotkey:
+Needs **0.2.0 or newer** - this extension drives `pal meta`, `pal list --query`
+and `pal pick --id`, which earlier versions don't have.
 
 ```bash
-npm run sync -- --enable otp,tabs,cmds
+cargo install --path .        # from the repo root, or `cargo install rpal`
+pal meta >/dev/null && echo ok
 ```
 
-This reads `pal meta` and writes one Raycast command per palette (plus its
-entry file). Palettes you don't `--enable` are generated but marked
-`disabledByDefault`, so you can switch them on in Raycast's settings without
-regenerating.
+### 2. Install the extension
 
-Re-run it whenever you add a palette.
+```bash
+cd raycast
+npm install
+npm run dev                   # `ray develop` - installs it into Raycast
+```
 
-## Getting items into Raycast's root search
+`npm run dev` is the install mechanism for a local extension, not just a
+watcher: it builds into `~/.config/raycast/extensions/pal/`. Those bundles stay
+put after you stop it, so run it when you change the code and kill it when
+you're done.
+
+### 3. Extension preferences
+
+Raycast Settings -> Extensions -> Pal.
+
+| Preference | Set it to | Why |
+|---|---|---|
+| **Pal Command Shows** | *Default palette* | Root `Pal` opens your `default_palette`, matching bare `pal`. *All palettes* makes it a palette browser instead. |
+| **pal Binary** | `pal` | Only needs a full path if it isn't on your login shell's `PATH`. |
+| **Config File** | *(empty)* | Only for a non-standard `--config` path. |
+| **Extension Source Folder** | the repo's `raycast/` dir | Required by *Sync Pal Palette Commands*, which rewrites this manifest. |
+| **Palettes to Bake into Root Search** | *(empty)* | Empty means your `default_palette` - the same items `pal` shows. Or list palettes explicitly, comma-separated. |
+
+### 4. Two things in Raycast's own settings
+
+**Script Commands** - Settings -> Extensions -> Script Commands -> *Add a
+folder*, pointing at:
+
+```
+~/.config/raycast/generated/pal
+```
+
+Select that **leaf folder**. Raycast does not recurse, so registering the
+parent `generated/` finds nothing.
+
+**Fallback command** - Settings -> **Launcher** -> Fallback Commands -> *Add
+Fallback Command* -> pick **Pal**. (It's under Launcher, not Advanced.) Now a
+root-search query that matches nothing can be handed to Pal, arriving with your
+text already typed - which is how the live palettes stay reachable.
+
+### 5. Generate
+
+Run these two commands once from Raycast's root search:
+
+- **Sync Pal Palette Commands** - one Raycast command per palette
+- **Sync Pal Item Scripts** - one script command per item
+
+### 6. Check it
+
+Type `fileschema` (a bookmark item), `media` (a palette), and `otp` (a live
+palette, reached through the fallback). All three should be one keystroke from
+root search.
+
+## Keeping it in sync
+
+| You changed | Run | Notes |
+|---|---|---|
+| A palette's items, data file, or plugin | nothing | Read live on every open |
+| Items of a *baked* palette | **Sync Pal Item Scripts** | Also runs hourly on its own |
+| Added or removed a palette in `config.toml` | **Sync Pal Palette Commands** | Rewrites the manifest, so it needs a rebuild before the command appears |
+| The extension's own code | `npm run dev` | Rebuilds and reinstalls |
+
+Palette *contents* are never baked - the extension shells out on every open, so
+config edits show up immediately. Only the two command layers need a sync,
+because Raycast reads both from static manifests at install time.
+
+## Why root search needs the extra step
 
 Raycast's root search indexes **commands**, not the items inside them. A
-bookmark listed by this extension only exists once you've opened a Pal
-command - typing its name into Raycast itself will never find it.
+bookmark listed by this extension only exists once you've opened a Pal command
+- typing its name into Raycast itself will never find it. Setup step 4 closes
+that gap two ways, and they compose.
 
-Two ways to close that gap, and they compose.
+**The fallback command** costs nothing and covers everything: a query that
+matches nothing is handed to Pal already typed. Live palettes (`otp`, `tabs`,
+`ha-states`) are reachable this way because nothing is stored ahead of time.
 
-### Fallback command (everything, always fresh)
-
-Add **Pal** under *Settings -> Advanced -> Fallback Commands*. Now anything you
-type into root search that matches nothing can be sent straight into Pal,
-arriving already typed. Works for live palettes - `otp`, `tabs`, `ha-states` -
-because nothing is stored ahead of time.
-
-### Baked item scripts (direct hits, stable palettes)
-
-**Sync Pal Item Scripts** writes one Raycast script command per item into
-`~/.config/raycast/generated/pal`. Those *are* root search entries, so
-`fileschema` becomes directly reachable.
-
-Each script stores a **pointer**, not a copy:
+**Baked item scripts** remove that extra keystroke for stable palettes.
+*Sync Pal Item Scripts* writes one script command per item, and each stores a
+**pointer** rather than a copy:
 
 ```bash
 exec pal pick bookmarks --id 'fileschema'
 ```
 
 `pal pick --id` re-lists the palette and resolves the item at run time, so the
-action is always current and only the title can go stale. That makes it safe
-for palettes whose state moves even though their identities don't - `ssh`,
-`systemd`, `docker`, `ha-states`.
+action is always current and only the title can go stale. That's what makes it
+safe for palettes whose state moves even though their identities don't -
+`ssh`, `systemd`, `docker`, `ha-states`.
 
-The command runs hourly on its own and can be triggered from root search. Pick
-what gets baked with the **Palettes to Bake into Root Search** preference; left
-empty it bakes every palette with a stable item list, skipping ones whose value
-*is* their content (`otp`, `tabs`, `clipboard`, `psg`, `calc`) where a stored
-entry would just be wrong.
+Items from the `pals` palette are a special case: one *is* another palette, so
+its script opens that palette's Raycast command by deeplink instead of running
+a pick.
 
-One-time setup: add that folder in **Raycast Settings -> Extensions -> Script
-Commands -> Add Directory**.
+Palettes whose value *is* their content - `otp`, `tabs`, `clipboard`, `psg`,
+`calc`, `pwatch`, `media` - are never baked, even if you name them. A root
+search entry showing a twenty-minute-old OTP is worse than no entry.
+
+Script command icons take an emoji, a file path or a URL - never Raycast icon
+names, and never the Nerd Font glyphs palettes use in terminals. Freedesktop
+names are mapped to emoji, and items with a `url` get their favicon fetched
+once per sync and cached beside the scripts.
 
 ## Item fields it renders
 

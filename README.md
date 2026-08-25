@@ -307,7 +307,7 @@ echo "$item" | pal pick systemd --action restart   # ...a specific action
 ```
 
 The [`raycast/`](raycast/) directory is a Raycast extension built on exactly
-these commands.
+these commands - see [its README](raycast/README.md) for the full setup.
 
 ### Item actions
 
