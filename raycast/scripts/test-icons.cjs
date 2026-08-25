@@ -58,6 +58,9 @@ const cases = [
   ["an explicit item icon wins", itemIcon({ id: "1", name: "x", icon_xdg: "utilities-terminal" }, tabs), "Icon.Terminal"],
   ["icon_rc names a Raycast icon directly", itemIcon({ id: "1", name: "x", icon_rc: "Rocket" }, tabs), "Icon.Rocket"],
   ["nothing anywhere falls back to a dot", itemIcon({ id: "1", name: "x" }, null), "Icon.Dot"],
+  // Nerd Font glyphs are terminal-only; inlining one hides the favicon.
+  ["a nerd glyph defers to the favicon", itemIcon({ id: "1", name: "ha", url: "https://ha.cagdas.io", icon: "\u{f07d0} " }, null), "favicon(https://ha.cagdas.io)"],
+  ["a nerd glyph alone falls back", itemIcon({ id: "1", name: "x", icon: "\uf073" }, null), "Icon.Dot"],
   ["unresolvable source resolves to nothing", resolveIcon({ icon: "not-a-real-icon-name" }), undefined],
   ["dashed names camel-case into the enum", iconFor({ icon: "arrow-clockwise" }), "Icon.ArrowClockwise"],
   ["named colours map", toColor("green"), "green"],

@@ -316,6 +316,14 @@
       "type": "textfield",
       "required": false,
       "default": ""
+    },
+    {
+      "name": "extensionPath",
+      "title": "Extension Source Folder",
+      "description": "Path to this extension's source (the pal repo's raycast/ directory). Enables the Sync Palette Commands action.",
+      "type": "directory",
+      "required": false,
+      "default": ""
     }
   ],
   "dependencies": {

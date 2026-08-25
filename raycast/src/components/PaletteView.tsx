@@ -82,6 +82,22 @@ export function PaletteView({
   });
   const ordered = isInput ? items : sorted;
 
+  // Frecency ranks items, but it must not reorder the sections themselves -
+  // a palette declares its own order (combine follows `include`), and groups
+  // that shuffle as you use them are unreadable. Take section order from the
+  // raw list, rank within each.
+  const groups = useMemo(() => {
+    const order: Array<string | null> = [];
+    for (const item of items) {
+      const key = item.section ?? null;
+      if (!order.includes(key)) order.push(key);
+    }
+    return order.map(
+      (key) =>
+        [key, ordered.filter((item) => (item.section ?? null) === key)] as const,
+    );
+  }, [items, ordered]);
+
   const hasDetail = useMemo(
     () => ordered.some((item) => item.detail || item.preview),
     [ordered],
@@ -268,7 +284,7 @@ export function PaletteView({
         throttle={isInput}
         onSearchTextChange={isInput ? setSearchText : undefined}
       >
-        {groupBySection(ordered).map(([section, sectionItems]) => (
+        {groups.map(([section, sectionItems]) => (
           <Grid.Section key={section ?? "_"} title={section ?? undefined}>
             {sectionItems.map((item) => (
               <Grid.Item
@@ -303,7 +319,7 @@ export function PaletteView({
       onSelectionChange={setSelectedId}
       isShowingDetail={showDetail && hasDetail}
     >
-      {groupBySection(ordered).map(([section, sectionItems]) => (
+      {groups.map(([section, sectionItems]) => (
         <List.Section key={section ?? "_"} title={section ?? undefined}>
           {sectionItems.map((item) => (
             <List.Item
@@ -350,18 +366,6 @@ function emptyTitle(isInput: boolean, searchText: string) {
 function emptyDescription(isInput: boolean, searchText: string, palette: string) {
   if (!isInput) return `No items in "${palette}"`;
   return searchText ? `"${searchText}" returned nothing` : undefined;
-}
-
-/** Group items by their `section`, preserving first-seen section order. */
-function groupBySection(items: PalItem[]): Array<[string | null, PalItem[]]> {
-  const groups = new Map<string | null, PalItem[]>();
-  for (const item of items) {
-    const key = item.section ?? null;
-    const group = groups.get(key);
-    if (group) group.push(item);
-    else groups.set(key, [item]);
-  }
-  return [...groups.entries()];
 }
 
 /** Grid tiles prefer a real colour swatch when the item describes one. */

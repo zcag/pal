@@ -115,13 +115,17 @@ function escapeXml(s: string) {
   return s.replace(/[<>&'"]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** Does this string look like an emoji/pictograph rather than an icon name? */
+/**
+ * Does this string look like an emoji we can inline as SVG?
+ *
+ * Deliberately excludes the private-use planes: those are Nerd Font glyphs
+ * meant for `icon_utf` in a terminal, and inlining one here renders an empty
+ * box *and* shadows better fallbacks like a favicon.
+ */
 function isEmoji(value: string): boolean {
   if (value.length > 8) return false;
-  // Anything outside the ASCII/latin range that isn't a plain name.
-  return /[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{E000}-\u{F8FF}\u{F0000}-\u{FFFFD}]/u.test(
-    value,
-  );
+  if (/[\u{E000}-\u{F8FF}\u{F0000}-\u{10FFFD}]/u.test(value)) return false;
+  return /[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}]/u.test(value);
 }
 
 /**

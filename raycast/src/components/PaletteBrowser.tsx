@@ -10,6 +10,7 @@ import {
   showToast,
 } from "@raycast/api";
 import { useExec, useFrecencySorting } from "@raycast/utils";
+import { useMemo } from "react";
 import {
   PalMeta,
   PaletteMeta,
@@ -19,6 +20,7 @@ import {
   parseMeta,
 } from "../lib/pal";
 import { usePalEnv } from "../lib/useEnv";
+import { palettesMissingCommands, syncCommands } from "../lib/sync";
 import { iconFor } from "../lib/icon";
 import { PaletteView } from "./PaletteView";
 
@@ -33,6 +35,21 @@ export function PaletteBrowser() {
   });
 
   const palettes = data?.palettes ?? [];
+  const unsynced = useMemo(() => palettesMissingCommands(palettes), [palettes]);
+
+  async function sync() {
+    const toast = await showToast({ style: Toast.Style.Animated, title: "Syncing palette commands" });
+    try {
+      const output = await syncCommands();
+      toast.style = Toast.Style.Success;
+      toast.title = output || "Synced";
+      toast.message = "Reopen Raycast once the rebuild finishes";
+    } catch (e) {
+      toast.style = Toast.Style.Failure;
+      toast.title = "Sync failed";
+      toast.message = e instanceof Error ? e.message : String(e);
+    }
+  }
   const { data: sorted, visitItem } = useFrecencySorting(palettes, {
     namespace: "pal-palettes",
     key: (palette) => palette.name,
@@ -74,6 +91,22 @@ export function PaletteBrowser() {
       isLoading={isLoading || !ready}
       searchBarPlaceholder="Search palettes"
     >
+      {unsynced.length > 0 && (
+        <List.Section title="Out of sync">
+          <List.Item
+            icon={{ source: Icon.Download, tintColor: Color.Orange }}
+            title={`${unsynced.length} palette${unsynced.length === 1 ? "" : "s"} without a command`}
+            subtitle={unsynced.join(", ")}
+            accessories={[{ tag: { value: "sync", color: Color.Orange } }]}
+            actions={
+              <ActionPanel>
+                <Action title="Sync Palette Commands" icon={Icon.Download} onAction={sync} />
+                <Action title="Reload Palettes" icon={Icon.ArrowClockwise} onAction={revalidate} />
+              </ActionPanel>
+            }
+          />
+        </List.Section>
+      )}
       {sorted.map((palette) => (
         <List.Item
           key={palette.name}
@@ -108,6 +141,12 @@ export function PaletteBrowser() {
                 icon={Icon.ArrowClockwise}
                 shortcut={Keyboard.Shortcut.Common.Refresh}
                 onAction={revalidate}
+              />
+              <Action
+                title="Sync Palette Commands"
+                icon={Icon.Download}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "s" }}
+                onAction={sync}
               />
             </ActionPanel>
           }
