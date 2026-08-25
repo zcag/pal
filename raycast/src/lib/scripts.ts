@@ -1,7 +1,6 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { open } from "@raycast/api";
 import { PalItem, PaletteMeta, parseItems, parsePaletteMeta, runPal } from "./pal";
 import { asEmoji } from "./icon";
 
@@ -55,13 +54,6 @@ export async function generateScripts(
     } catch (e) {
       results.push({ palette, count: 0, error: e instanceof Error ? e.message : String(e) });
     }
-  }
-
-  // Nudge Raycast to rescan rather than waiting for its own poll.
-  try {
-    await open("raycast://extensions/raycast/raycast/refresh-script-directories");
-  } catch {
-    // Not fatal - the directory is picked up on the next scan.
   }
 
   return results;
