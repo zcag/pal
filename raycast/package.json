@@ -1,0 +1,353 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "pal",
+  "title": "Pal",
+  "description": "Run pal palettes from Raycast - apps, hosts, services, clipboard, and any palette you have configured.",
+  "icon": "pal.png",
+  "author": "zcag",
+  "platforms": [
+    "macOS"
+  ],
+  "categories": [
+    "Productivity",
+    "Developer Tools",
+    "System"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "pal",
+      "title": "Pal",
+      "subtitle": "Palettes",
+      "description": "Browse every configured pal palette",
+      "mode": "view"
+    },
+    {
+      "name": "palette-apps",
+      "title": "Apps",
+      "subtitle": "Pal",
+      "description": "list and launch applications",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-audio",
+      "title": "Audio",
+      "subtitle": "Pal",
+      "description": "list and switch audio output devices",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-ble",
+      "title": "Ble",
+      "subtitle": "Pal",
+      "description": "list and connect bluetooth devices",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-bookmarks",
+      "title": "Bookmarks",
+      "subtitle": "Pal",
+      "description": "Run the bookmarks palette",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-calc",
+      "title": "Calc",
+      "subtitle": "Pal",
+      "description": "calculator with qalc",
+      "mode": "view"
+    },
+    {
+      "name": "palette-chars",
+      "title": "Chars",
+      "subtitle": "Pal",
+      "description": "special characters and symbols",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-clipboard",
+      "title": "Clipboard",
+      "subtitle": "Pal",
+      "description": "clipboard history",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-cmds",
+      "title": "Cmds",
+      "subtitle": "Pal",
+      "description": "run preset commands",
+      "mode": "view"
+    },
+    {
+      "name": "palette-colors",
+      "title": "Colors",
+      "subtitle": "Pal",
+      "description": "color picker",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-combine",
+      "title": "Combine",
+      "subtitle": "Pal",
+      "description": "combine multiple palettes",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-docker",
+      "title": "Docker",
+      "subtitle": "Pal",
+      "description": "manage docker containers",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-emoji",
+      "title": "Emoji",
+      "subtitle": "Pal",
+      "description": "emoji picker",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-ffbookmarks",
+      "title": "Ffbookmarks",
+      "subtitle": "Pal",
+      "description": "list and open browser bookmarks",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-gh-reviews",
+      "title": "Gh Reviews",
+      "subtitle": "Pal",
+      "description": "GitHub PRs needing your review",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-gl-reviews",
+      "title": "Gl Reviews",
+      "subtitle": "Pal",
+      "description": "GitLab MRs needing your review",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-ha-services",
+      "title": "Ha Services",
+      "subtitle": "Pal",
+      "description": "Home Assistant services / actions",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-ha-states",
+      "title": "Ha States",
+      "subtitle": "Pal",
+      "description": "Home Assistant entity states & attributes",
+      "mode": "view"
+    },
+    {
+      "name": "palette-iconkde",
+      "title": "Iconkde",
+      "subtitle": "Pal",
+      "description": "freedesktop icon names",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-iconnerd",
+      "title": "Iconnerd",
+      "subtitle": "Pal",
+      "description": "nerd font icons",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-ip",
+      "title": "Ip",
+      "subtitle": "Pal",
+      "description": "network info",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-kittysessions",
+      "title": "Kittysessions",
+      "subtitle": "Pal",
+      "description": "Manage kitty sessions",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-media",
+      "title": "Media",
+      "subtitle": "Pal",
+      "description": "control media playback",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-mk",
+      "title": "Mk",
+      "subtitle": "Pal",
+      "description": "Run mk targets from projects",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-op",
+      "title": "Op",
+      "subtitle": "Pal",
+      "description": "1Password vault items",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-otp",
+      "title": "Otp",
+      "subtitle": "Pal",
+      "description": "OTP sms codes to clipboard",
+      "mode": "view"
+    },
+    {
+      "name": "palette-pals",
+      "title": "Pals",
+      "subtitle": "Pal",
+      "description": "list and run palettes",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-power",
+      "title": "Power",
+      "subtitle": "Pal",
+      "description": "power options",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-psg",
+      "title": "Psg",
+      "subtitle": "Pal",
+      "description": "list and kill processes",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-pwatch",
+      "title": "Pwatch",
+      "subtitle": "Pal",
+      "description": "Select a process to watch",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-repos",
+      "title": "Repos",
+      "subtitle": "Pal",
+      "description": "list and open github repositories",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-ssh",
+      "title": "Ssh",
+      "subtitle": "Pal",
+      "description": "list and connect to SSH hosts",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-systemd",
+      "title": "Systemd",
+      "subtitle": "Pal",
+      "description": "list and manage systemd services",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-tabs",
+      "title": "Tabs",
+      "subtitle": "Pal",
+      "description": "List and select browser tabs to focus on",
+      "mode": "view"
+    },
+    {
+      "name": "palette-teams-chats",
+      "title": "Teams Chats",
+      "subtitle": "Pal",
+      "description": "Microsoft Teams recent chats",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-today",
+      "title": "Today",
+      "subtitle": "Pal",
+      "description": "Show today's calendar events",
+      "mode": "view"
+    },
+    {
+      "name": "palette-wifi",
+      "title": "Wifi",
+      "subtitle": "Pal",
+      "description": "list and connect to wifi networks",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-windows",
+      "title": "Windows",
+      "subtitle": "Pal",
+      "description": "list and focus windows",
+      "mode": "view",
+      "disabledByDefault": true
+    }
+  ],
+  "preferences": [
+    {
+      "name": "palPath",
+      "title": "pal Binary",
+      "description": "Path to the pal executable. Leave as 'pal' to resolve it from your login shell PATH.",
+      "type": "textfield",
+      "required": false,
+      "default": "pal"
+    },
+    {
+      "name": "configPath",
+      "title": "Config File",
+      "description": "Optional --config path. Defaults to pal's own resolution (~/.config/pal/config.toml).",
+      "type": "textfield",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^2.0.6",
+    "@raycast/utils": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "lint": "ray lint",
+    "sync": "node scripts/sync-commands.mjs",
+    "test": "node scripts/test-icons.cjs"
+  },
+  "overrides": {
+    "@types/react": "^19.0.10"
+  }
+}

@@ -290,6 +290,93 @@ cache = true
 
 On first run, items are listed, formatted, and cached at `~/.cache/pal/`. Subsequent runs read directly from cache and regenerate in the background for next time. Currently supported for the rofi frontend.
 
+## Driving pal from another app
+
+Frontends are subprocesses pal pipes items through, which only works for
+launchers you can drive from a shell. A resident app like Raycast has to drive
+pal instead, so the same flow is available headlessly:
+
+```bash
+pal meta                        # every palette and what it can do, as JSON
+pal meta ssh                    # one palette
+pal list ssh                    # items as JSON lines
+pal list calc --query "2+2"     # input palettes
+pal list repos --stream         # emit items as they are produced
+echo "$item" | pal pick ssh                  # run the pick
+echo "$item" | pal pick systemd --action restart   # ...a specific action
+```
+
+The [`raycast/`](raycast/) directory is a Raycast extension built on exactly
+these commands.
+
+### Item actions
+
+An item may offer several actions instead of a single pick. `--action` selects
+one by id; without it the `primary` action wins, else the first.
+
+```json
+{"name": "nginx.service", "actions": [
+  {"id": "restart", "title": "Restart", "shortcut": "cmd+r",
+   "action": "cmd", "value": "systemctl restart nginx", "reload": true},
+  {"id": "logs", "title": "Show Logs", "action": "pick"},
+  {"id": "stop", "title": "Stop", "style": "destructive",
+   "confirm": "Stop nginx?", "action": "cmd", "value": "systemctl stop nginx"}
+]}
+```
+
+| Field | Description |
+|-------|-------------|
+| `id`, `title`, `icon` | Identity and display |
+| `action` | Action to run; `pick` hands back to the plugin's own `pick` |
+| `value` / `key` | The value to act on, inline or read from an item field |
+| `shortcut` | `cmd+r` style hint for frontends that bind keys |
+| `style` | `destructive` |
+| `confirm` | Ask before running |
+| `reload` | Refresh the list afterwards |
+| `primary` | Default action for this item |
+
+Palettes can declare `actions` in config as defaults for items that don't
+bring their own.
+
+### Result envelope
+
+A pick may print a JSON envelope saying what should happen next. Terminal
+frontends have no vocabulary for this, so pal renders it for them (a
+notification, a copy); rich frontends consume it directly. Anything that isn't
+an envelope is passed through unchanged.
+
+```json
+{"toast": {"style": "success", "title": "Restarted", "message": "nginx"}}
+{"hud": "Copied 483920"}
+{"clipboard": "483920"}
+{"open": "https://example.com"}
+{"show": {"markdown": "...", "metadata": [{"label": "Memory", "text": "12.4M"}]}}
+{"reload": true}
+{"close": true}
+```
+
+This is how the builtin `copy` and `open` actions report themselves, which is
+why they no longer call `notify-send` directly.
+
+### Richer items
+
+Every field below is optional and ignored by frontends that can't show it.
+
+| Field | Description |
+|-------|-------------|
+| `subtitle` | Secondary text (fzf dims it after the name) |
+| `keywords` | Extra strings to match on |
+| `section` | Group heading; `combine` sets it to the source palette |
+| `color` | Icon tint - a name or `#rrggbb` |
+| `accessories` | Trailing metadata: `{text\|tag\|date, color, icon, tooltip}` |
+| `detail` | `{markdown, metadata: [{label, text, link, tags, icon}]}` |
+| `preview` | Shell command producing detail lazily, with `PAL_*` set |
+| `quicklook` | `{path, name}` for frontends with a file preview |
+| `icon_rc` | Explicit icon name for rich frontends, alongside `icon_xdg`/`icon_utf` |
+
+Palettes may also declare `view = "grid"`, and `ttl` to tell a driver how long
+it may reuse cached items.
+
 ## Plugin Development
 
 Plugins are directories with a `plugin.toml` and an executable.
@@ -481,11 +568,11 @@ action_key = "cmd"
 
 ## Roadmap
 
-- [ ] capability system between palettes (or items of palettes) and fe's
+- [x] capability system between palettes (or items of palettes) and fe's
 - [ ] hotlink support. `pal://run?fe=rofi?palette=commands?item="confetti"`
 - [ ] `pal integrate xdg` for registering hotlink
 - [ ] `pal doctor` for config validation
-- [ ] REST API frontend
+- [ ] REST API frontend (for driving palettes on another host)
 
 ## Disclaimer
 
