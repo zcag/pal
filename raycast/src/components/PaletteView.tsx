@@ -26,6 +26,7 @@ import {
   metaArgs,
   palBinary,
   parseItems,
+  parseMeta,
   parsePaletteMeta,
   pick,
 } from "../lib/pal";
@@ -58,6 +59,25 @@ export function PaletteView({
   });
 
   const isInput = meta?.input ?? false;
+
+  // A combine palette carries items from several palettes, and an item that
+  // brings no usable icon should inherit its *source* palette's, not the
+  // containing one's. Only combines need the extra lookup.
+  const { data: allMeta } = useExec(palBinary(), metaArgs(), {
+    parseOutput: ({ stdout }) => parseMeta(stdout),
+    env,
+    execute: ready && Boolean(meta?.include?.length),
+    keepPreviousData: true,
+  });
+
+  const metaByName = useMemo(() => {
+    const index = new Map<string, PaletteMeta>();
+    for (const palette of allMeta?.palettes ?? []) index.set(palette.name, palette);
+    return index;
+  }, [allMeta]);
+
+  const iconSourceFor = (item: PalItem) =>
+    (typeof item._source === "string" ? metaByName.get(item._source) : undefined) ?? meta;
 
   const {
     data: rawItems,
@@ -290,7 +310,7 @@ export function PaletteView({
               <Grid.Item
                 key={item.id}
                 id={item.id}
-                content={gridContent(item, meta)}
+                content={gridContent(item, iconSourceFor(item))}
                 title={item.name}
                 subtitle={item.subtitle ?? item.desc}
                 keywords={item.keywords}
@@ -328,7 +348,7 @@ export function PaletteView({
               title={item.name}
               subtitle={showDetail ? undefined : (item.subtitle ?? item.desc)}
               keywords={item.keywords}
-              icon={itemIcon(item, meta)}
+              icon={itemIcon(item, iconSourceFor(item))}
               accessories={showDetail ? undefined : accessoriesFor(item)}
               quickLook={item.quicklook}
               detail={
