@@ -278,7 +278,11 @@ export function PaletteView({
             ))}
           </Grid.Section>
         ))}
-        <Grid.EmptyView icon={Icon.MagnifyingGlass} title={emptyTitle(isInput, searchText)} />
+        <Grid.EmptyView
+          icon={Icon.MagnifyingGlass}
+          title={emptyTitle(isInput, searchText)}
+          description={emptyDescription(isInput, searchText, palette)}
+        />
       </Grid>
     );
   }
@@ -322,15 +326,25 @@ export function PaletteView({
       <List.EmptyView
         icon={Icon.MagnifyingGlass}
         title={emptyTitle(isInput, searchText)}
-        description={isInput ? undefined : `No items in "${palette}"`}
+        description={emptyDescription(isInput, searchText, palette)}
       />
     </List>
   );
 }
 
 function emptyTitle(isInput: boolean, searchText: string) {
-  if (isInput && !searchText) return "Type to search";
-  return "Nothing found";
+  if (!isInput) return "Nothing found";
+  return searchText ? "No result" : "Type to search";
+}
+
+/**
+ * An input palette that returns nothing has usually been handed something it
+ * can't parse, so say which query came back empty rather than leaving a bare
+ * "nothing found" that reads like the palette is broken.
+ */
+function emptyDescription(isInput: boolean, searchText: string, palette: string) {
+  if (!isInput) return `No items in "${palette}"`;
+  return searchText ? `"${searchText}" returned nothing` : undefined;
 }
 
 /** Group items by their `section`, preserving first-seen section order. */

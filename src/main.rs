@@ -66,7 +66,7 @@ pub enum Command {
         /// Palette to list from
         palette: Option<String>,
         /// Query for input palettes
-        #[arg(short, long)]
+        #[arg(short, long, allow_hyphen_values = true)]
         query: Option<String>,
         /// Emit items as they are produced instead of all at once
         #[arg(long)]

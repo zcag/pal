@@ -27,32 +27,28 @@
       "title": "Apps",
       "subtitle": "Pal",
       "description": "list and launch applications",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-audio",
       "title": "Audio",
       "subtitle": "Pal",
       "description": "list and switch audio output devices",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-ble",
       "title": "Ble",
       "subtitle": "Pal",
       "description": "list and connect bluetooth devices",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-bookmarks",
       "title": "Bookmarks",
       "subtitle": "Pal",
       "description": "Run the bookmarks palette",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-calc",
@@ -66,16 +62,14 @@
       "title": "Chars",
       "subtitle": "Pal",
       "description": "special characters and symbols",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-clipboard",
       "title": "Clipboard",
       "subtitle": "Pal",
       "description": "clipboard history",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-cmds",
@@ -89,64 +83,56 @@
       "title": "Colors",
       "subtitle": "Pal",
       "description": "color picker",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-combine",
       "title": "Combine",
       "subtitle": "Pal",
       "description": "combine multiple palettes",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-docker",
       "title": "Docker",
       "subtitle": "Pal",
       "description": "manage docker containers",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-emoji",
       "title": "Emoji",
       "subtitle": "Pal",
       "description": "emoji picker",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-ffbookmarks",
       "title": "Ffbookmarks",
       "subtitle": "Pal",
       "description": "list and open browser bookmarks",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-gh-reviews",
       "title": "Gh Reviews",
       "subtitle": "Pal",
       "description": "GitHub PRs needing your review",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-gl-reviews",
       "title": "Gl Reviews",
       "subtitle": "Pal",
       "description": "GitLab MRs needing your review",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-ha-services",
       "title": "Ha Services",
       "subtitle": "Pal",
       "description": "Home Assistant services / actions",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-ha-states",
@@ -160,56 +146,49 @@
       "title": "Iconkde",
       "subtitle": "Pal",
       "description": "freedesktop icon names",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-iconnerd",
       "title": "Iconnerd",
       "subtitle": "Pal",
       "description": "nerd font icons",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-ip",
       "title": "Ip",
       "subtitle": "Pal",
       "description": "network info",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-kittysessions",
       "title": "Kittysessions",
       "subtitle": "Pal",
       "description": "Manage kitty sessions",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-media",
       "title": "Media",
       "subtitle": "Pal",
       "description": "control media playback",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-mk",
       "title": "Mk",
       "subtitle": "Pal",
       "description": "Run mk targets from projects",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-op",
       "title": "Op",
       "subtitle": "Pal",
       "description": "1Password vault items",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-otp",
@@ -223,56 +202,49 @@
       "title": "Pals",
       "subtitle": "Pal",
       "description": "list and run palettes",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-power",
       "title": "Power",
       "subtitle": "Pal",
       "description": "power options",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-psg",
       "title": "Psg",
       "subtitle": "Pal",
       "description": "list and kill processes",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-pwatch",
       "title": "Pwatch",
       "subtitle": "Pal",
       "description": "Select a process to watch",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-repos",
       "title": "Repos",
       "subtitle": "Pal",
       "description": "list and open github repositories",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-ssh",
       "title": "Ssh",
       "subtitle": "Pal",
       "description": "list and connect to SSH hosts",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-systemd",
       "title": "Systemd",
       "subtitle": "Pal",
       "description": "list and manage systemd services",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-tabs",
@@ -286,8 +258,7 @@
       "title": "Teams Chats",
       "subtitle": "Pal",
       "description": "Microsoft Teams recent chats",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-today",
@@ -301,16 +272,14 @@
       "title": "Wifi",
       "subtitle": "Pal",
       "description": "list and connect to wifi networks",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     },
     {
       "name": "palette-windows",
       "title": "Windows",
       "subtitle": "Pal",
       "description": "list and focus windows",
-      "mode": "view",
-      "disabledByDefault": true
+      "mode": "view"
     }
   ],
   "preferences": [
