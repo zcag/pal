@@ -29,11 +29,14 @@ export default async function Command() {
       .map((name) => name.trim())
       .filter(Boolean);
 
-    // With nothing configured, bake everything whose items are stable enough
-    // to be worth a root search entry.
+    // With nothing configured, bake the palette bare `pal` opens, so root
+    // search carries the same items the terminal picker does.
+    const meta = parseMeta(await runPal(metaArgs()));
     const palettes = configured.length
       ? configured
-      : parseMeta(await runPal(metaArgs())).palettes.filter(bakeable).map((p) => p.name);
+      : [meta.default_palette].filter((name) =>
+          meta.palettes.some((p) => p.name === name && bakeable(p)),
+        );
 
     const results = await generateScripts(palettes);
     const total = results.reduce((sum, r) => sum + r.count, 0);

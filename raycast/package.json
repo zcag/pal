@@ -343,10 +343,10 @@
     {
       "name": "bakedPalettes",
       "title": "Palettes to Bake into Root Search",
-      "description": "Comma-separated palettes whose items become script commands. Leave empty to bake every palette with a stable item list.",
+      "description": "Comma-separated palettes whose items become script commands. Leave empty to bake your default_palette - the same items bare 'pal' shows.",
       "type": "textfield",
       "required": false,
-      "default": "bookmarks,cmds,power,ssh"
+      "default": ""
     }
   ],
   "dependencies": {
