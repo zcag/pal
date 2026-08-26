@@ -13,19 +13,17 @@ install:
 watch:
 	cargo watch -x 'run -- --config pal.default.toml'
 
-# Bump patch version, commit, tag, push, and publish
+# Release: `make release` bumps the patch version; `make release V=0.3.0` releases
+# that exact version (and releases the current one as-is if it's already set).
 release:
-	@VERSION=$$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/'); \
-	MAJOR=$$(echo $$VERSION | cut -d. -f1); \
-	MINOR=$$(echo $$VERSION | cut -d. -f2); \
-	PATCH=$$(echo $$VERSION | cut -d. -f3); \
-	NEW_PATCH=$$((PATCH + 1)); \
-	NEW_VERSION="$$MAJOR.$$MINOR.$$NEW_PATCH"; \
-	sed -i "s/^version = \"$$VERSION\"/version = \"$$NEW_VERSION\"/" Cargo.toml; \
+	@CUR=$$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/'); \
+	NEW=$${V:-$$(echo $$CUR | awk -F. '{printf "%d.%d.%d", $$1, $$2, $$3 + 1}')}; \
+	if [ "$$NEW" != "$$CUR" ]; then \
+		perl -i -pe 's/^version = "'$$CUR'"/version = "'$$NEW'"/' Cargo.toml; \
+	fi; \
 	cargo check --quiet; \
-	git add Cargo.toml Cargo.lock; \
-	git commit -m "v$$NEW_VERSION"; \
-	git tag "v$$NEW_VERSION"; \
+	git diff --quiet Cargo.toml Cargo.lock || { git add Cargo.toml Cargo.lock; git commit -m "v$$NEW"; }; \
+	git tag "v$$NEW"; \
 	git push && git push --tags; \
 	cargo publish; \
-	echo "Released v$$NEW_VERSION"
+	echo "Released v$$NEW"
