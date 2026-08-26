@@ -4,7 +4,7 @@
   "title": "Pal",
   "description": "Run pal palettes from Raycast - apps, hosts, services, clipboard, and any palette you have configured.",
   "icon": "pal.png",
-  "author": "zcag",
+  "author": "cagdassalur",
   "platforms": [
     "macOS"
   ],

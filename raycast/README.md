@@ -1,6 +1,6 @@
 # pal for Raycast
 
-Runs [pal](../) palettes as native Raycast views. Every palette you have in
+Runs [pal](https://github.com/zcag/pal) palettes as native Raycast views. Every palette you have in
 `~/.config/pal/config.toml` shows up here - the same bash plugins and data
 files that back fzf and rofi, rendered with icons, accessories, detail panes
 and action panels.
