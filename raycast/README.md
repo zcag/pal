@@ -32,7 +32,7 @@ Needs **0.2.0 or newer** - this extension drives `pal meta`, `pal list --query`
 and `pal pick --id`, which earlier versions don't have.
 
 ```bash
-cargo install --path .        # from the repo root, or `cargo install rpal`
+cargo install --path .        # from the repo root, or `cargo install pal`
 pal meta >/dev/null && echo ok
 ```
 

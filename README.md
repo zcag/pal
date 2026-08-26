@@ -1,6 +1,6 @@
 # Pal
 
-A fast, extensible command palette for Linux. Launch apps, switch windows, control audio, manage clipboard, and more - all from a unified interface.
+A fast, extensible command palette for Linux and macOS. Launch apps, switch windows, control audio, manage clipboard, and more - all from a unified interface.
 
 ```
 pal run fzf apps      # launch applications
@@ -23,7 +23,7 @@ pal run fzf combine   # combined view of multiple palettes
 ## Installation
 
 ```bash
-cargo install rpal
+cargo install pal
 ```
 
 Requires Rust 1.70+ ([rustup](https://rustup.rs/))

@@ -2,7 +2,7 @@
 name = "pal"
 version = "0.2.0"
 edition = "2021"
-description = "A fast, extensible command palette for Linux"
+description = "A fast, extensible command palette for Linux and macOS"
 license = "MIT"
 repository = "https://github.com/zcag/pal"
 keywords = ["cli", "launcher", "palette", "rofi", "fzf"]
