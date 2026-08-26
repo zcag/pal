@@ -1,5 +1,8 @@
+#[cfg(not(target_os = "macos"))]
 use std::collections::HashMap;
+#[cfg(not(target_os = "macos"))]
 use std::fs;
+#[cfg(not(target_os = "macos"))]
 use std::path::Path;
 use std::process::Command;
 
@@ -18,6 +21,57 @@ pub fn run(cmd: &str, input: Option<&str>) -> String {
     }
 }
 
+/// macOS keeps applications as `.app` bundles rather than desktop entries, so
+/// the listing is a bundle scan and `exec` is an `open -a` line - which keeps
+/// `pick` identical on both platforms. Handing the bundle path back as the
+/// icon is what lets a frontend render the app's real icon.
+#[cfg(target_os = "macos")]
+fn list() -> String {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let user_apps = format!("{home}/Applications");
+    let dirs = ["/Applications", "/System/Applications", user_apps.as_str()];
+
+    let opts = ScanOptions {
+        extension: Some("app"),
+        dirs_only: true,
+        // Depth 1 also catches the Utilities folders.
+        max_depth: 1,
+        ..Default::default()
+    };
+
+    let mut seen = std::collections::HashSet::new();
+    let mut apps = Vec::new();
+
+    for path in scan_dirs(&dirs, &opts) {
+        let display = path.to_string_lossy().to_string();
+        let Some(name) = path.file_stem().and_then(|s| s.to_str()) else { continue };
+        if !seen.insert(name.to_lowercase()) {
+            continue;
+        }
+        apps.push(json!({
+            "id": display,
+            "name": name,
+            "exec": format!("open -a {}", sh_quote(&display)),
+            "icon": display,
+        }));
+    }
+
+    apps.sort_by_key(|a| {
+        a.get("name").and_then(|v| v.as_str()).unwrap_or("").to_lowercase()
+    });
+
+    apps.iter()
+        .map(|a| a.to_string())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[cfg(target_os = "macos")]
+fn sh_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', r"'\''"))
+}
+
+#[cfg(not(target_os = "macos"))]
 fn list() -> String {
     let home = std::env::var("HOME").unwrap_or_default();
     let dirs = [
@@ -59,6 +113,7 @@ fn list() -> String {
         .join("\n")
 }
 
+#[cfg(not(target_os = "macos"))]
 fn parse_desktop_file(path: &Path) -> Option<serde_json::Value> {
     let content = fs::read_to_string(path).ok()?;
     let mut in_desktop_entry = false;
