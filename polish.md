@@ -60,29 +60,35 @@ Every palette below is judged against these; `otp` is the worked example.
 
 | | Palette | State on hornet |
 |---|---|---|
-| ✅ | apps, bookmarks, calc, chars, cmds, colors, combine, emoji, ha-services, ha-states, iconkde, iconnerd, ip, mk, otp, pals, psg, ssh, tabs, today | works, polish below |
-| 💀 | audio, ble, clipboard, ffbookmarks, kittysessions, media, power, pwatch, systemd, wifi, windows | **returns an error row** — Linux-only tooling |
-| 🔑 | docker, gh-reviews, gl-reviews, op, repos | needs auth or a binary that isn't installed |
+| ✅ | apps, bookmarks, calc, chars, cmds, colors, combine, emoji, ffbookmarks, ha-services, ha-states, iconkde, iconnerd, ip, mk, otp, pals, psg, ssh, tabs, today | works, polish below |
+| 🙈 | audio, ble, clipboard, docker, gl-reviews, kittysessions, media, power, pwatch, systemd, wifi, windows | **hidden** since 2026-08-30 — backend not on this machine |
+| 🔑 | gh-reviews, op, repos | the binary is here, the account isn't |
 | ⚰️ | teams-chats | dead infra — NGSS offboarding, 2026-08-12 |
 
-That's 11 of 37 that cannot work on this machine and 6 more that don't
-currently answer. **Fewer than half the palettes do anything on the laptop they
-are used from.** Everything below is downstream of that.
+That was 11 of 37 unable to work here and 6 more that didn't answer — **fewer
+than half the palettes doing anything on the laptop they are used from**.
+✅ Resolved 2026-08-30: each palette now declares `requires` (binaries, `|`
+between alternatives) or `os` in its own `plugin.toml`, and drops out of `meta`,
+`pals`, `combine` and the Raycast command list where that isn't met. 25 visible,
+12 hidden. They stay addressable by name, so `pal list wifi` on a mac still
+explains itself; `pal meta --all` lists everything with its reason.
 
 ---
 
 ## Dead on macOS
 
-These were written on Arch and never ported. Each returns a single error row.
-The choice per palette is *port*, *replace*, or *cut* — none of them is
-"leave it listed and broken".
+These were written on Arch and never ported. They are hidden here now rather
+than answering with an error row, and they still work untouched on marko and
+archer off the same config. Hiding is not the end state though: the choice per
+palette is still *port*, *replace* or *cut*. **A port needs no gate change** —
+add the macOS binary to the same `requires` list and the palette comes back on
+its own.
 
 | Palette | Breaks on | macOS answer |
 |---|---|---|
 | `audio` | no pactl/wpctl | `SwitchAudioSource` (brew) — same list/switch shape |
 | `ble` | `bluetoothctl` | `blueutil` — `blueutil --paired`, `--connect` |
 | `clipboard` | cliphist/clipman | **Raycast owns the clipboard history on this box.** Cut it here rather than build a second one |
-| `ffbookmarks` | no Firefox profile | he uses Chrome — either point the builtin at Chrome's `Bookmarks` JSON or cut |
 | `kittysessions` | `hyprctl`, `grep -P` | kitty's own `@ ls` over its socket; the WM half is yabai (`yabai -m query --windows`) |
 | `media` | `playerctl` | `nowplaying-cli`, or MediaRemote via `osascript` |
 | `power` | `loginctl`/`systemctl` | `pmset sleepnow`, `osascript` lock, `shutdown` — a data-file swap, no code |
@@ -213,6 +219,18 @@ the schema says `subtitle`, so nothing renders it.
 - Rename to `subtitle`; keep `description` working if other palettes use it.
 - `section` by kind (infra / personal / work).
 - `actions[]`: open, copy url, open in a specific browser profile.
+
+### ffbookmarks ✅ works now, but does it earn its slot?
+The builtin always had a Chrome branch; it only knew the two *Linux* profile
+paths, so it claimed "firefox profile not found" on a mac holding 312 Chrome
+bookmarks. Fixed: macOS locations added, the browser auto-detected when
+unconfigured, and the 19 icon-only bookmarks-bar entries that carry no name now
+fall back to their host instead of rendering as blank rows.
+- It is now a flat list of all 312, which is a lot of noise next to the curated
+  `bookmarks` palette (its 20-odd hand-picked entries with real names).
+- If it stays: `subtitle`/`section` = the containing folder, which the extractor
+  currently discards, and **rename it** — nothing about it is Firefox any more.
+- If it goes: `bookmarks` already covers the ones he actually reaches for.
 
 ### apps
 Already right — `fileIcon` from the .app path is the correct icon and it works.
