@@ -156,7 +156,49 @@ Everything below is optional; palettes that don't set them still work.
 | `preview` | Shell command run for the selected item, output shown in the detail pane with the item's `PAL_*` variables set |
 | `actions[]` | Action panel entries, with `shortcut`, `style: destructive` and `confirm` |
 | `quicklook` | Quick Look preview |
+| `tooltip` | Hover text on the item's icon |
+| `mask` | `circle` or `rounded` - rounds the item's image, for avatars and artwork |
 | `url` | Favicon fallback when there's no icon |
 
-Palette-level `view = "grid"` renders tiles instead of a list, and items
-carrying a hex colour become swatches.
+## Palette fields it renders
+
+A palette says how it wants to be shown in its own `plugin.toml` (or its
+`[palette.<name>]` block in `config.toml`). These are hints: the terminal
+frontends have no equivalent and ignore them, so a palette can ask for the
+Raycast treatment without becoming Raycast-only.
+
+```toml
+view = "grid"        # tiles instead of a list; hex-coloured items become swatches
+live = true          # items are in the plugin's order, not frecency-ranked
+
+[display]
+detail = true        # open with the detail pane, for palettes you read rather than scan
+columns = 5          # grid tiles per row (default 8)
+aspect = "3/2"       # tile shape: 1, 3/2, 2/3, 4/3, 3/4, 16/9, 9/16
+fit = "contain"      # or "fill"
+inset = "small"      # none | small | medium | large
+```
+
+### Scopes
+
+`[[filter]]` entries put a dropdown in the search bar. The first is the
+default, and the chosen `id` reaches the plugin as **`PAL_FILTER`** - pal only
+carries the id, the plugin decides what it means:
+
+```toml
+[[filter]]
+id = "all"
+name = "All senders"
+icon_xdg = "mail-unread"
+
+[[filter]]
+id = "money"
+name = "Banking"
+```
+
+```bash
+pal list otp --filter money      # the same thing from the CLI
+```
+
+Nothing else changes: a frontend with no dropdown never sets `PAL_FILTER`, and
+the plugin sees the unscoped list. The `otp` palette is the worked example.

@@ -193,6 +193,25 @@ export function resolveIcon(source: IconSource): Image.ImageLike | undefined {
   return undefined;
 }
 
+const MASKS: Record<string, Image.Mask> = {
+  circle: Image.Mask.Circle,
+  round: Image.Mask.Circle,
+  rounded: Image.Mask.RoundedRectangle,
+  roundedrectangle: Image.Mask.RoundedRectangle,
+};
+
+/**
+ * Round an image. Raycast masks avatars and artwork; freedesktop has no such
+ * notion, so this is a Raycast-only reading of the item's `mask` field.
+ */
+export function withMask(image: Image.ImageLike, mask?: string | null): Image.ImageLike {
+  const resolved = mask ? MASKS[mask.toLowerCase()] : undefined;
+  if (!resolved) return image;
+  return typeof image === "string" || typeof image === "number"
+    ? { source: image as Image.Source, mask: resolved }
+    : { ...(image as Image), mask: resolved };
+}
+
 export function iconFor(
   source: IconSource,
   fallback: Image.ImageLike = Icon.Dot,

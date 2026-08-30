@@ -24,6 +24,34 @@ pub struct General {
     pub env_file: Option<String>,
 }
 
+/// How a rich frontend should present a palette. Every field is a hint: the
+/// terminal frontends have no equivalent and ignore the block wholesale.
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct Display {
+    /// Open with the detail pane showing, for palettes you read rather than scan.
+    #[serde(default)]
+    pub detail: bool,
+    /// Grid tiles per row.
+    pub columns: Option<u32>,
+    /// Grid tile shape: "1", "3/2", "2/3", "4/3", "3/4", "16/9", "9/16".
+    pub aspect: Option<String>,
+    /// "contain" (default) or "fill".
+    pub fit: Option<String>,
+    /// Padding inside a grid tile: "none", "small", "medium", "large".
+    pub inset: Option<String>,
+}
+
+/// One entry in a palette's scope dropdown. The chosen id reaches the plugin
+/// as `PAL_FILTER`; the first entry is the default, so it should be the
+/// unfiltered one.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Filter {
+    pub id: String,
+    pub name: Option<String>,
+    pub icon: Option<String>,
+    pub icon_xdg: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Palette {
     pub base: Option<String>,
@@ -51,6 +79,12 @@ pub struct Palette {
     pub actions: Vec<serde_json::Value>,
     /// Rendering hint for rich frontends: "list" (default) or "grid".
     pub view: Option<String>,
+    /// Presentation hints for rich frontends.
+    #[serde(default)]
+    pub display: Display,
+    /// Scope dropdown entries, empty for palettes that don't want one.
+    #[serde(default)]
+    pub filter: Vec<Filter>,
     /// How long a driver may reuse cached items, in seconds.
     pub ttl: Option<u64>,
     /// Human description, surfaced by `pal meta`.
@@ -165,6 +199,16 @@ impl Config {
                     }
                     if palette.view.is_none() {
                         palette.view = plugin.get("view").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    // Whole blocks rather than field-by-field: a palette that
+                    // overrides presentation at all means to own it.
+                    if let Some(display) = plugin.get("display").cloned().and_then(|v| v.try_into().ok()) {
+                        palette.display = display;
+                    }
+                    if palette.filter.is_empty() {
+                        palette.filter = plugin.get("filter").cloned()
+                            .and_then(|v| v.try_into().ok())
+                            .unwrap_or_default();
                     }
                     if palette.ttl.is_none() {
                         palette.ttl = plugin.get("ttl").and_then(|v| v.as_integer()).map(|v| v as u64);

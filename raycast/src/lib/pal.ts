@@ -59,9 +59,30 @@ export type PalItem = {
   preview?: string;
   actions?: PalAction[];
   quicklook?: { name?: string; path: string };
+  /** Hover text for the item's icon in a rich frontend. */
+  tooltip?: string;
+  /** Round the item's image: "circle" (avatars) or "rounded". */
+  mask?: string;
   url?: string;
   // Palettes are free-form; everything else rides along and shows up as PAL_*.
   [key: string]: unknown;
+};
+
+/** Presentation hints from a palette's `[display]` block. */
+export type PaletteDisplay = {
+  detail?: boolean;
+  columns?: number | null;
+  aspect?: string | null;
+  fit?: string | null;
+  inset?: string | null;
+};
+
+/** One entry of a palette's scope dropdown, from its `[[filter]]` entries. */
+export type PaletteFilter = {
+  id: string;
+  name?: string | null;
+  icon?: string | null;
+  icon_xdg?: string | null;
 };
 
 export type PaletteMeta = {
@@ -72,6 +93,8 @@ export type PaletteMeta = {
   icon_xdg?: string | null;
   icon_utf?: string | null;
   view: "list" | "grid";
+  display?: PaletteDisplay | null;
+  filters?: PaletteFilter[] | null;
   input: boolean;
   input_prompt?: string | null;
   live: boolean;
@@ -188,9 +211,10 @@ export async function runPal(
   }
 }
 
-export function listArgs(palette: string, query?: string): string[] {
+export function listArgs(palette: string, query?: string, filter?: string): string[] {
   const args = [...baseArgs(), "list", palette];
   if (query) args.push("--query", query);
+  if (filter) args.push("--filter", filter);
   return args;
 }
 

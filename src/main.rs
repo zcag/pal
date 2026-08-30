@@ -68,6 +68,9 @@ pub enum Command {
         /// Query for input palettes
         #[arg(short, long, allow_hyphen_values = true)]
         query: Option<String>,
+        /// Scope the list to one of the palette's `filter` entries
+        #[arg(short, long)]
+        filter: Option<String>,
         /// Emit items as they are produced instead of all at once
         #[arg(long)]
         stream: bool,
@@ -238,10 +241,14 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
             }
         }
         Some(Command::Run { frontend, palette }) => run(&cfg, frontend.as_deref(), palette.as_deref()),
-        Some(Command::List { palette, query, stream }) => {
+        Some(Command::List { palette, query, filter, stream }) => {
             let palette_name = palette.as_deref().unwrap_or(&cfg.general.default_palette);
             let palette_cfg = cfg.palette.get(palette_name).expect_exit(&format!("palette not found: {palette_name}"));
             std::env::set_var("_PAL_PALETTE", palette_name);
+            // The plugin decides what a scope means; pal only carries the id.
+            if let Some(filter) = filter.as_deref() {
+                std::env::set_var("PAL_FILTER", filter);
+            }
             if stream {
                 use std::io::Write;
                 let stdout = std::io::stdout();
@@ -565,6 +572,8 @@ fn meta(cfg: &Config, palette: Option<&str>) -> String {
             "icon_xdg": p.icon_xdg,
             "icon_utf": p.icon_utf,
             "view": p.view.as_deref().unwrap_or("list"),
+            "display": p.display,
+            "filters": p.filter,
             "input": p.input,
             "input_prompt": p.input_prompt,
             "live": p.live,

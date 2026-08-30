@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import {
   PalAction,
   PalItem,
+  PaletteFilter,
   PaletteMeta,
   actionsFor,
   clearShellPath,
@@ -31,7 +32,7 @@ import {
   pick,
 } from "../lib/pal";
 import { usePalEnv } from "../lib/useEnv";
-import { iconFor, itemIcon, toColor } from "../lib/icon";
+import { iconFor, itemIcon, resolveIcon, toColor, withMask } from "../lib/icon";
 import { accessoriesFor, palEnvFor } from "../lib/accessories";
 import { handleOutput, parseShortcut } from "../lib/envelope";
 import { listMetadata } from "./Metadata";
@@ -49,8 +50,12 @@ export function PaletteView({
   const { push } = useNavigation();
   const { env, ready } = usePalEnv();
   const [searchText, setSearchText] = useState(initialSearch ?? "");
-  const [showDetail, setShowDetail] = useState(false);
+  // null = follow the palette's `[display] detail`; a bool = the user toggled.
+  const [detailOverride, setDetailOverride] = useState<boolean | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Raycast's dropdown fires onChange on mount, so this fills in before the
+  // first list runs; palettes without filters never gate on it.
+  const [filter, setFilter] = useState<string | undefined>(undefined);
 
   const { data: meta } = useExec(palBinary(), metaArgs(palette), {
     parseOutput: ({ stdout }) => parsePaletteMeta(stdout),
@@ -62,6 +67,9 @@ export function PaletteView({
   });
 
   const isInput = meta?.input ?? false;
+  const filters: PaletteFilter[] = meta?.filters ?? [];
+  const scopeId = filter ?? filters[0]?.id;
+  const showDetail = detailOverride ?? (meta?.display?.detail ?? false);
 
   // A combine palette carries items from several palettes, and an item that
   // brings no usable icon should inherit its *source* palette's, not the
@@ -87,10 +95,14 @@ export function PaletteView({
     isLoading,
     revalidate,
     error,
-  } = useExec(palBinary(), listArgs(palette, isInput ? searchText : undefined), {
+  } = useExec(palBinary(), listArgs(palette, isInput ? searchText : undefined, scopeId), {
     parseOutput: ({ stdout }) => parseItems(stdout),
     env,
-    execute: ready && !!meta && (!isInput || searchText.length > 0),
+    execute:
+      ready &&
+      !!meta &&
+      (!isInput || searchText.length > 0) &&
+      (filters.length === 0 || scopeId !== undefined),
     keepPreviousData: true,
     initialData: [] as PalItem[],
   });
@@ -208,7 +220,7 @@ export function PaletteView({
               title={showDetail ? "Hide Details" : "Show Details"}
               icon={Icon.Sidebar}
               shortcut={{ modifiers: ["cmd"], key: "d" }}
-              onAction={() => setShowDetail((v) => !v)}
+              onAction={() => setDetailOverride(!showDetail)}
             />
           )}
           {item.quicklook && (
@@ -224,6 +236,13 @@ export function PaletteView({
               title="Copy Value"
               content={value}
               shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+            />
+          )}
+          {value && (
+            <Action.Paste
+              title="Paste Value"
+              content={value}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
             />
           )}
           <Action.CopyToClipboard
@@ -261,6 +280,19 @@ export function PaletteView({
       </ActionPanel>
     );
   }
+
+  const scope = filters.length ? (
+    <List.Dropdown tooltip="Scope" value={scopeId} onChange={setFilter}>
+      {filters.map((f) => (
+        <List.Dropdown.Item
+          key={f.id}
+          value={f.id}
+          title={f.name ?? f.id}
+          icon={resolveIcon(f) ?? undefined}
+        />
+      ))}
+    </List.Dropdown>
+  ) : undefined;
 
   const navigationTitle = meta?.desc ? `${palette} - ${meta.desc}` : palette;
   const placeholder = isInput
@@ -303,15 +335,22 @@ export function PaletteView({
         navigationTitle={navigationTitle}
         isLoading={isLoading || !ready}
         searchBarPlaceholder={placeholder}
-        columns={8}
-        inset={Grid.Inset.Small}
+        columns={meta.display?.columns ?? 8}
+        aspectRatio={gridAspect(meta.display?.aspect)}
+        fit={GRID_FIT[meta.display?.fit ?? ""] ?? Grid.Fit.Contain}
+        inset={GRID_INSET[meta.display?.inset ?? ""] ?? Grid.Inset.Small}
+        searchBarAccessory={scope}
         filtering={!isInput}
         throttle={isInput}
         searchText={searchText}
         onSearchTextChange={setSearchText}
       >
         {groups.map(([section, sectionItems]) => (
-          <Grid.Section key={section ?? "_"} title={section ?? undefined}>
+          <Grid.Section
+            key={section ?? "_"}
+            title={section ?? undefined}
+            subtitle={sectionCount(section, sectionItems.length)}
+          >
             {sectionItems.map((item) => (
               <Grid.Item
                 key={item.id}
@@ -344,10 +383,15 @@ export function PaletteView({
       searchText={searchText}
       onSearchTextChange={setSearchText}
       onSelectionChange={setSelectedId}
+      searchBarAccessory={scope}
       isShowingDetail={showDetail && hasDetail}
     >
       {groups.map(([section, sectionItems]) => (
-        <List.Section key={section ?? "_"} title={section ?? undefined}>
+        <List.Section
+          key={section ?? "_"}
+          title={section ?? undefined}
+          subtitle={sectionCount(section, sectionItems.length)}
+        >
           {sectionItems.map((item) => (
             <List.Item
               key={item.id}
@@ -355,7 +399,7 @@ export function PaletteView({
               title={item.name}
               subtitle={showDetail ? undefined : (item.subtitle ?? item.desc)}
               keywords={item.keywords}
-              icon={itemIcon(item, iconSourceFor(item))}
+              icon={listIcon(item, iconSourceFor(item))}
               accessories={showDetail ? undefined : accessoriesFor(item)}
               quickLook={item.quicklook}
               detail={
@@ -378,6 +422,34 @@ export function PaletteView({
       />
     </List>
   );
+}
+
+const GRID_FIT: Record<string, Grid.Fit> = { contain: Grid.Fit.Contain, fill: Grid.Fit.Fill };
+const GRID_INSET: Record<string, Grid.Inset> = {
+  none: Grid.Inset.Zero,
+  zero: Grid.Inset.Zero,
+  small: Grid.Inset.Small,
+  medium: Grid.Inset.Medium,
+  large: Grid.Inset.Large,
+};
+const GRID_ASPECTS = ["1", "3/2", "2/3", "4/3", "3/4", "16/9", "9/16"] as const;
+
+function gridAspect(value?: string | null): Grid.AspectRatio | undefined {
+  return GRID_ASPECTS.find((a) => a === value);
+}
+
+/**
+ * An item's icon, plus the two things only a rich frontend can do with it -
+ * round it, and explain it on hover.
+ */
+function listIcon(item: PalItem, source?: PaletteMeta | null) {
+  const icon = withMask(itemIcon(item, source), item.mask);
+  return item.tooltip ? { value: icon, tooltip: item.tooltip } : icon;
+}
+
+/** Named sections carry their size; an unnamed catch-all has nothing to say. */
+function sectionCount(section: string | null, count: number): string | undefined {
+  return section ? String(count) : undefined;
 }
 
 function emptyTitle(isInput: boolean, searchText: string) {
