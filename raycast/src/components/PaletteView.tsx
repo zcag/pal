@@ -97,13 +97,15 @@ export function PaletteView({
 
   const items = useMemo(() => rawItems ?? [], [rawItems]);
 
-  // Input palettes are ordered by the plugin (a calculator result isn't a
-  // ranking), so frecency only applies to static lists.
+  // Input and live palettes are ordered by the plugin - a calculator result
+  // isn't a ranking, and an OTP list is in the order the codes arrived - so
+  // frecency only applies to static lists.
   const { data: sorted, visitItem, resetRanking } = useFrecencySorting(items, {
     namespace: `pal-${palette}`,
     key: (item) => item.id,
   });
-  const ordered = isInput ? items : sorted;
+  const pluginOrdered = isInput || (meta?.live ?? false);
+  const ordered = pluginOrdered ? items : sorted;
 
   // Frecency ranks items, but it must not reorder the sections themselves -
   // a palette declares its own order (combine follows `include`), and groups
@@ -238,7 +240,7 @@ export function PaletteView({
             shortcut={Keyboard.Shortcut.Common.Refresh}
             onAction={revalidate}
           />
-          {!isInput && (
+          {!pluginOrdered && (
             <Action
               title="Reset Ranking"
               icon={Icon.ArrowCounterClockwise}
