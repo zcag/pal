@@ -15,3 +15,26 @@ view = "grid"
 columns = 6
 aspect = "3/2"
 inset = "small"
+
+# One colour, three notations - which one you want depends on where you're
+# pasting it, and that isn't a config setting, it's a keystroke.
+[[actions]]
+id = "hex"
+title = "Copy Hex"
+action = "copy"
+key = "hex"
+primary = true
+
+[[actions]]
+id = "rgb"
+title = "Copy RGB"
+action = "copy"
+key = "rgb"
+shortcut = "cmd+shift+r"
+
+[[actions]]
+id = "hsl"
+title = "Copy HSL"
+action = "copy"
+key = "hsl"
+shortcut = "cmd+shift+h"

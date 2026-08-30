@@ -49,7 +49,7 @@
       "name": "palette-bookmarks",
       "title": "Bookmarks",
       "subtitle": "Pal",
-      "description": "Run the bookmarks palette",
+      "description": "hand-picked links",
       "mode": "view",
       "disabledByDefault": true
     },
@@ -182,10 +182,26 @@
       "disabledByDefault": true
     },
     {
+      "name": "palette-power",
+      "title": "Power",
+      "subtitle": "Pal",
+      "description": "power options",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
       "name": "palette-psg",
       "title": "Psg",
       "subtitle": "Pal",
       "description": "list and kill processes",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-pwatch",
+      "title": "Pwatch",
+      "subtitle": "Pal",
+      "description": "Select a process to watch",
       "mode": "view",
       "disabledByDefault": true
     },
@@ -218,6 +234,14 @@
       "title": "Today",
       "subtitle": "Pal",
       "description": "Show today's calendar events",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-windows",
+      "title": "Windows",
+      "subtitle": "Pal",
+      "description": "list and focus windows",
       "mode": "view",
       "disabledByDefault": true
     }
