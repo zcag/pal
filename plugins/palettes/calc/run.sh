@@ -42,17 +42,9 @@ pick() {
   
   [[ -z "$result" || "$result" == "help" || "$result" == "example1" ]] && return
   
-  # Copy result to clipboard
-  if command -v wl-copy &>/dev/null; then
-    printf '%s' "$result" | wl-copy
-  elif command -v xclip &>/dev/null; then
-    printf '%s' "$result" | xclip -selection clipboard
-  fi
-  
-  # Notify
-  if command -v notify-send &>/dev/null; then
-    notify-send -t 2000 "Copied" "$result"
-  fi
+  # `pal action copy` already walks wl-copy/pbcopy/xclip and answers with a
+  # {"hud": ...} envelope, which a rich frontend renders and notify-send can't.
+  printf '%s' "$result" | pal action copy
 }
 
 CMD=$1; shift

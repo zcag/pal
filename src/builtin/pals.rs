@@ -26,8 +26,39 @@ fn list() -> String {
     palettes.sort_by_key(|(name, _)| (*name).clone());
     palettes.iter()
         .map(|(name, p)| {
-            let icon = p.icon.as_deref().unwrap_or("view-list");
-            json!({"id": name, "name": name, "icon": icon}).to_string()
+            // What a palette *is* lives in its desc; showing only the name
+            // makes the one palette whose job is choosing a palette the least
+            // informative list in the set.
+            let mut accessories = Vec::new();
+            for (flag, tag) in [
+                (p.input, "input"),
+                (p.live, "live"),
+                (p.view.as_deref() == Some("grid"), "grid"),
+            ] {
+                if flag {
+                    accessories.push(json!({ "tag": tag, "color": "secondary" }));
+                }
+            }
+            // Raycast searches the title and keywords, never the subtitle.
+            let keywords: Vec<&str> = p
+                .desc
+                .as_deref()
+                .unwrap_or("")
+                .split_whitespace()
+                .filter(|w| w.len() > 2)
+                .collect();
+
+            json!({
+                "id": name,
+                "name": name,
+                "subtitle": p.desc,
+                "keywords": keywords,
+                "icon": p.icon.as_deref().unwrap_or("view-list"),
+                "icon_xdg": p.icon_xdg,
+                "icon_utf": p.icon_utf,
+                "accessories": accessories,
+            })
+            .to_string()
         })
         .collect::<Vec<_>>()
         .join("\n")

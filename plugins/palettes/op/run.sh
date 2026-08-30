@@ -58,18 +58,10 @@ pick() {
   fi
 
   if [[ -n "$value" ]]; then
-    # Copy to clipboard
-    if command -v wl-copy &>/dev/null; then
-      echo -n "$value" | wl-copy
-      notify-send -t 2000 "1Password" "Copied to clipboard"
-    elif command -v xclip &>/dev/null; then
-      echo -n "$value" | xclip -selection clipboard
-      notify-send -t 2000 "1Password" "Copied to clipboard"
-    elif command -v pbcopy &>/dev/null; then
-      echo -n "$value" | pbcopy
-    else
-      echo "$value"
-    fi
+    # Never echo the secret as output - `copy` puts it on the clipboard and
+    # answers with a hud that names the field, not the value.
+    printf '%s' "$value" | pal action copy >/dev/null
+    jq -cn --arg f "$field" '{hud: ("Copied " + $f), close: true}'
   else
     echo "Could not get field: $field" >&2
   fi

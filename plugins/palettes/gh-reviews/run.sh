@@ -13,7 +13,8 @@ list() {
     }'
 }
 
-pick() { xdg-open "$PAL_ID"; }
+# `open` handles xdg-open and macOS `open`, and returns the envelope.
+pick() { printf '%s' "$PAL_ID" | pal action open; }
 
 CMD=$1; shift
 case "$CMD" in

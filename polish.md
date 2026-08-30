@@ -81,20 +81,22 @@ everything with its reason.
 
 ---
 
-## Palettes that silently do nothing when you pick them
+## Palettes that silently do nothing when you pick them ✅ fixed 2026-08-30
 
-⛔ Found 2026-08-30, and it outranks every styling note below: **four of the
-visible palettes accept a pick and then do nothing at all on this machine.**
-They list fine, so nothing looks wrong.
+⛔ Found 2026-08-30, and it outranked every styling note below: **three visible
+palettes accepted a pick and then did nothing at all on this machine.** They
+listed fine, so nothing looked wrong.
 
-| Palette | Pick does | Why it fails here |
+| Palette | Pick does | Why it failed here |
 |---|---|---|
 | `calc` | copies the result | `wl-copy` → `xclip`, no `pbcopy` branch |
 | `ip` | copies the address | same |
-| `op` | copies the password | same |
 | `gh-reviews` | opens the PR | bare `xdg-open` |
+| `op` | copies the password | *did* copy — but silently, and its fallback
+`echo "$value"` printed the secret as the pick's output, which a rich frontend
+renders as a HUD |
 
-Verified: `pal pick calc` with `2+2*8` leaves the clipboard untouched.
+Verified before the fix: `pal pick calc` on `2+2*8` left the clipboard untouched.
 
 📌 The cause is the same in all four: **they hand-roll what pal's own action
 plugins already do.** `plugins/actions/copy` walks wl-copy → pbcopy → xclip and
@@ -108,8 +110,9 @@ envelope gets a HUD, a toast, a closed window, a pushed detail view, for free.
 So the rule is: **a pick returns an envelope; it does not perform desktop side
 effects itself.**
 
-Fix is one line each: `printf '%s' "$value" | pal action copy`, and let the
-envelope through.
+✅ All four now do `printf '%s' "$value" | pal action copy` (or `… | pal action
+open`) and let the envelope through. `op` additionally answers with a hud that
+names the *field* rather than ever emitting the secret.
 
 ---
 
@@ -173,7 +176,16 @@ Sender table → name/kind/icon/colour/emoji, code as a green tag, compact time,
 Today/Yesterday/Earlier sections, scope dropdown (All/Banking/Shopping/Official),
 `live`. Reference implementation for everything below.
 
-### today ⭐ worst offender, best payoff
+### today ✅ done 2026-08-30
+`name` = the title alone, `subtitle` = `08:00 – 09:00`, sections Today /
+Tomorrow / weekday, and a tag that says `now` in red while an event is running,
+`ended` in grey once it's over, `in 3h` before it starts — all from string
+compares against `date +%F` / `+%H:%M`, so no strptime portability trap. The
+dead `url` now falls back to the Google Calendar day, so picking one lands
+somewhere. `id` is `start + title`, stable across the day.
+Still open: `detail` with description/location/attendees, `[display] detail`.
+
+<details><summary>original notes</summary>
 `{"id":"Mon 08:00 - 09:00: Onboarding Cagdas","name":<same>,"url":""}`.
 Everything is packed into one string, and the empty `url` means the palette's
 `default_action = "open"` **does nothing on pick**.
@@ -187,7 +199,16 @@ Everything is packed into one string, and the empty `url` means the palette's
   since this is a palette you read.
 - `live = true` — it's ordered by time.
 
-### tabs ⭐ one line, huge
+</details>
+
+### tabs ✅ done 2026-08-30
+The title is back: `name` = page title (falling back to the host for the
+untitled), `subtitle` = the url shortened by `abre`, favicon from `url`,
+`keywords` = the url so host search still works, and a green `playing` tag on
+whatever `bt query +audible` reports.
+Still open: `actions[]` (close, copy url, mute) and sections by window.
+
+<details><summary>original notes</summary>
 `run.sh` builds `{id, title, url}` and then **throws the title away**:
 `jq -cn '{id: $ENV.id, name: $ENV.url}'` — with the good version sitting right
 above it, commented out.
@@ -197,6 +218,8 @@ above it, commented out.
 - `section` by window, once `bt` reports it.
 - `actions[]`: focus (default), close (`bt close`), copy url, mute.
 - `live = true` — tab order is arrival order.
+
+</details>
 
 ### ha-states / ha-services ⛔ drill-down is broken outside a terminal
 Both stage two by re-invoking `pal run` (`pick_entity() { _HA_ENTITY=$PAL_ID pal run; }`),
@@ -222,13 +245,17 @@ no output.
 - `actions[]`: kill (⌘⌫, `confirm`, destructive), SIGKILL, copy pid, reveal binary.
 - Builtin — `src/builtin/psg.rs`.
 
-### pals
-Rows are `{icon, name}` and nothing else, in a palette whose entire job is
-*choosing* a palette.
-- `subtitle` = the palette's `desc` (it's in meta already).
-- `accessories` = item count, and a tag for `input` / `live` / `grid`.
-- `section` = a `group` field on the palette, so 37 entries stop being one wall.
-- Same for `combine`, which inherits these rows.
+### pals ✅ done 2026-08-30
+Rows were `{icon, name}` and nothing else, in the palette whose entire job is
+*choosing* a palette. Now `subtitle` = the palette's `desc`, `keywords` = the
+words in it (Raycast searches the title and keywords, never the subtitle, so
+"sms" finds `otp`), tags for `input`/`live`/`grid`, and the palette's own
+`icon_xdg`/`icon_utf` are passed through instead of only `icon`.
+`bookmarks` was the one palette with no `desc` at all; it has one now.
+⛔ **Not** the item count that was planned here — counting means listing every
+palette, which would fire curl, gh and ssh on every open.
+Still open: a `group` field for sections, so 23 entries stop being one wall.
+`combine` inherits all of this for free.
 
 ### emoji · chars · iconnerd · iconkde · colors ⭐ these want to be grids
 `view = "grid"` exists and **no palette sets it**. These five are exactly what

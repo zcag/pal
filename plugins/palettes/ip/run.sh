@@ -41,17 +41,7 @@ pick() {
   item=$(cat)
   id=$(echo "$item" | jq -r '.id')
 
-  # Copy to clipboard
-  if command -v wl-copy &>/dev/null; then
-    printf '%s' "$id" | wl-copy
-  elif command -v xclip &>/dev/null; then
-    printf '%s' "$id" | xclip -selection clipboard
-  fi
-
-  # Notify
-  if command -v notify-send &>/dev/null; then
-    notify-send -t 2000 "Copied" "$id"
-  fi
+  printf '%s' "$id" | pal action copy
 }
 
 CMD=$1; shift
