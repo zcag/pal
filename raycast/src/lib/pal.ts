@@ -126,6 +126,8 @@ export type Envelope = {
   close?: boolean;
   /** The pick resolved to another palette (the `pals` palette does this). */
   palette?: string;
+  /** Environment that palette should be listed with - a scoped drill-down. */
+  env?: Record<string, string>;
 };
 
 const prefs = () =>

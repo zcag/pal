@@ -14,27 +14,34 @@ list() {
     exit 1
   fi
 
-  # Get vault filter from config (optional)
+  # A vault named in config is a default, not a cage - the scope dropdown
+  # overrides it, and "all" means all.
   vault=$(cfg '.vault // empty')
+  [[ -n "$PAL_FILTER" ]] && vault="$PAL_FILTER"
   vault_arg=""
-  [[ -n "$vault" ]] && vault_arg="--vault=$vault"
+  [[ -n "$vault" && "$vault" != "all" ]] && vault_arg="--vault=$vault"
 
-  # List items
-  op item list --format=json $vault_arg | jq -c '.[] | {
-    id: .id,
-    name: .title,
-    desc: (.additional_information // .category),
-    icon: (
-      if .category == "LOGIN" then "dialog-password"
-      elif .category == "CREDIT_CARD" then "payment-card"
-      elif .category == "IDENTITY" then "contact-new"
-      elif .category == "SECURE_NOTE" then "text-x-generic"
-      elif .category == "SSH_KEY" then "dialog-password"
-      elif .category == "API_CREDENTIAL" then "dialog-password"
-      else "dialog-password"
-      end
-    )
-  }'
+  op item list --format=json $vault_arg | jq -c '
+    def glyph: {
+      LOGIN: "Key", PASSWORD: "Key", CREDIT_CARD: "CreditCard",
+      IDENTITY: "Person", SECURE_NOTE: "Document", SSH_KEY: "Terminal",
+      API_CREDENTIAL: "Code", DATABASE: "HardDrive", SERVER: "HardDrive",
+      WIRELESS_ROUTER: "Wifi", MEMBERSHIP: "Star", BANK_ACCOUNT: "BankNote"
+    }[.category] // "Lock";
+    def label: (.category | ascii_downcase | gsub("_"; " "));
+    .[] | {
+      id: .id,
+      name: .title,
+      # The account the entry is for - the one thing that tells two GitHub
+      # logins apart.
+      subtitle: (.additional_information // ""),
+      keywords: [(.urls // [] | map(.href | sub("^https?://"; "") | split("/")[0]))[]?, label],
+      section: label,
+      icon_rc: glyph,
+      icon_xdg: "dialog-password",
+      vault: .vault.name,
+      accessories: [{ text: { value: .vault.name, color: "secondary" } }]
+    }'
 }
 
 pick() {
@@ -46,8 +53,9 @@ pick() {
     exit 0
   fi
 
-  # Get the field to copy (default: password)
-  field=$(cfg '.field // "password"')
+  # Get the field to copy (default: password); PAL_ACTION names it when the
+  # action panel asked for something else.
+  field="${PAL_ACTION_FIELD:-$(cfg '.field // "password"')}"
 
   # Get the field value
   value=$(op item get "$id" --fields "$field" 2>/dev/null)

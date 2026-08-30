@@ -134,7 +134,11 @@ function escapeXml(s: string) {
 function isEmoji(value: string): boolean {
   if (value.length > 8) return false;
   if (/[\u{E000}-\u{F8FF}\u{F0000}-\u{10FFFD}]/u.test(value)) return false;
-  return /[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}]/u.test(value);
+  if (/[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}]/u.test(value)) return true;
+  // Typographic symbols - ° ± × § ¶ - aren't pictographic and would otherwise
+  // fall through to the icon-name lookup and render as nothing. A short string
+  // with no ASCII identifier characters isn't a name, so draw it.
+  return value.length <= 4 && !/[\w\s.-]/.test(value);
 }
 
 /**

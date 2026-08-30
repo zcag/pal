@@ -7,3 +7,10 @@ auto_list = true
 auto_pick = true
 default_action = "copy"
 action_key = "icon"
+
+# The glyph is the whole point; a list wastes a row on each one.
+view = "grid"
+
+[display]
+columns = 10
+inset = "small"

@@ -103,10 +103,78 @@ fn list() -> String {
     let mut hosts: Vec<_> = hosts.into_iter().collect();
     hosts.sort();
 
+    // Where a Host block says what it really connects to, show that: `mbp` on
+    // its own tells you nothing that its HostName doesn't.
+    let details = config_details();
+
     hosts.iter()
-        .map(|h| json!({"id": h, "name": h, "icon": "network-server"}).to_string())
+        .map(|h| {
+            let detail = details.get(h);
+            json!({
+                "id": h,
+                "name": h,
+                "ssh_cmd": format!("ssh {h}"),
+                "subtitle": detail.map(|d| d.as_str()),
+                "keywords": [h.as_str(), detail.map(|d| d.as_str()).unwrap_or("")],
+                "section": if detail.is_some() { "Configured" } else { "Known hosts" },
+                "icon_rc": "HardDrive",
+                "icon_xdg": "network-server",
+            })
+            .to_string()
+        })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// `host -> "user@hostname:port"` for every Host block that declares one.
+/// Only the config knows this; known_hosts entries are bare names.
+fn config_details() -> std::collections::HashMap<String, String> {
+    let mut details = std::collections::HashMap::new();
+    let Some(home) = dirs::home_dir() else { return details };
+    let Ok(content) = fs::read_to_string(home.join(".ssh/config")) else { return details };
+
+    let mut current: Vec<String> = Vec::new();
+    let (mut hostname, mut user, mut port) = (None, None, None);
+
+    let mut flush = |names: &[String], hostname: &Option<String>, user: &Option<String>, port: &Option<String>| {
+        let Some(hostname) = hostname else { return };
+        let mut label = match user {
+            Some(user) => format!("{user}@{hostname}"),
+            None => hostname.clone(),
+        };
+        if let Some(port) = port {
+            label.push_str(&format!(":{port}"));
+        }
+        for name in names {
+            details.insert(name.clone(), label.clone());
+        }
+    };
+
+    for line in content.lines() {
+        let line = line.trim();
+        let lower = line.to_lowercase();
+        if let Some(rest) = lower.strip_prefix("host ") {
+            flush(&current, &hostname, &user, &port);
+            (hostname, user, port) = (None, None, None);
+            current = line[5..]
+                .split_whitespace()
+                .filter(|h| !h.contains(['*', '?', '!']))
+                .map(String::from)
+                .collect();
+            let _ = rest;
+        } else if let Some(rest) = lower.strip_prefix("hostname ") {
+            hostname = Some(line[9..].trim().to_string());
+            let _ = rest;
+        } else if let Some(rest) = lower.strip_prefix("user ") {
+            user = Some(line[5..].trim().to_string());
+            let _ = rest;
+        } else if let Some(rest) = lower.strip_prefix("port ") {
+            port = Some(line[5..].trim().to_string());
+            let _ = rest;
+        }
+    }
+    flush(&current, &hostname, &user, &port);
+    details
 }
 
 fn parse_config_hosts(content: &str, hosts: &mut HashSet<String>) {

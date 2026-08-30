@@ -41,14 +41,25 @@ export function PaletteView({
   palette,
   meta: seed,
   initialSearch,
+  scopeEnv,
 }: {
   palette: string;
   meta?: PaletteMeta;
   /** Seed the search bar - used when Pal runs as a fallback command. */
   initialSearch?: string;
+  /**
+   * Extra environment for every pal call in this view. A pick that resolves to
+   * a palette can carry one, which is how a drill-down says *which* thing it
+   * drilled into.
+   */
+  scopeEnv?: Record<string, string>;
 }) {
   const { push } = useNavigation();
-  const { env, ready } = usePalEnv();
+  const { env: baseEnv, ready } = usePalEnv();
+  const env = useMemo(
+    () => (baseEnv && scopeEnv ? { ...baseEnv, ...scopeEnv } : baseEnv),
+    [baseEnv, scopeEnv],
+  );
   const [searchText, setSearchText] = useState(initialSearch ?? "");
   // null = follow the palette's `[display] detail`; a bool = the user toggled.
   const [detailOverride, setDetailOverride] = useState<boolean | null>(null);
@@ -179,7 +190,7 @@ export function PaletteView({
         push,
         revalidate,
         // A `pals` item resolves to another palette rather than doing anything.
-        openPalette: (name) => push(<PaletteView palette={name} />),
+        openPalette: (name, scope) => push(<PaletteView palette={name} scopeEnv={scope} />),
       });
     } catch (e) {
       await toast.hide();

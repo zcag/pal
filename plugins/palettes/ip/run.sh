@@ -1,47 +1,53 @@
 #!/usr/bin/env bash
 
+# Every row is one address you might want to paste somewhere: the label is the
+# title, the address itself is the tag you copy.
+
+emit() { # label, value, section, icon
+  [[ -z "$2" ]] && return
+  jq -cn --arg n "$1" --arg v "$2" --arg s "$3" --arg i "$4" '{
+    id: $v, name: $n, value: $v, section: $s,
+    icon_rc: $i, icon_xdg: "network-wired", keywords: [$v],
+    accessories: [{ tag: { value: $v, color: "blue" } }]
+  }'
+}
+
 list() {
-  # Public IP
-  public_ip=$(curl -s --max-time 3 ifconfig.me 2>/dev/null || curl -s --max-time 3 icanhazip.com 2>/dev/null || echo "unavailable")
-  echo "{\"id\":\"$public_ip\",\"name\":\"Public IP: $public_ip\",\"icon\":\"network-wired\",\"desc\":\"external address\"}"
+  emit "Public IP" \
+    "$(curl -s --max-time 3 ifconfig.me 2>/dev/null || curl -s --max-time 3 icanhazip.com 2>/dev/null)" \
+    "Internet" "Globe"
 
-  # Local IPs from all interfaces
+  # `ip` on Linux, `ifconfig` everywhere else - both give interface + address.
   if command -v ip &>/dev/null; then
-    ip -4 addr show 2>/dev/null | awk '/inet / && !/127.0.0.1/ {
-      gsub(/\/.*/, "", $2)
-      iface = $NF
-      print "{\"id\":\"" $2 "\",\"name\":\"" iface ": " $2 "\",\"icon\":\"network-wired\",\"desc\":\"local address\"}"
-    }'
-  elif command -v ifconfig &>/dev/null; then
-    ifconfig 2>/dev/null | awk '/inet / && !/127.0.0.1/ {
-      gsub(/addr:/, "", $2)
-      print "{\"id\":\"" $2 "\",\"name\":\"Local: " $2 "\",\"icon\":\"network-wired\",\"desc\":\"local address\"}"
-    }'
-  fi
+    ip -4 -o addr show 2>/dev/null | awk '$4 !~ /^127\./ {gsub(/\/.*/, "", $4); print $2, $4}'
+  else
+    ifconfig 2>/dev/null | awk '
+      /^[a-z]/ { iface = substr($1, 1, length($1) - 1) }
+      /inet / && $2 !~ /^127\./ { print iface, $2 }'
+  fi | while read -r iface addr; do
+    emit "$iface" "$addr" "This machine" "Network"
+  done
 
-  # Default gateway
   if command -v ip &>/dev/null; then
-    gateway=$(ip route | awk '/default/ {print $3; exit}')
-    [[ -n "$gateway" ]] && echo "{\"id\":\"$gateway\",\"name\":\"Gateway: $gateway\",\"icon\":\"network-server\",\"desc\":\"default route\"}"
+    emit "Gateway" "$(ip route 2>/dev/null | awk '/default/ {print $3; exit}')" "Network" "HardDrive"
+  else
+    emit "Gateway" "$(route -n get default 2>/dev/null | awk '/gateway:/ {print $2; exit}')" "Network" "HardDrive"
   fi
 
-  # DNS servers
-  if [[ -f /etc/resolv.conf ]]; then
-    grep -E '^nameserver' /etc/resolv.conf | head -3 | while read -r _ dns; do
-      echo "{\"id\":\"$dns\",\"name\":\"DNS: $dns\",\"icon\":\"network-server\",\"desc\":\"nameserver\"}"
-    done
-  fi
+  # resolv.conf is a stub on macOS; scutil is the one that knows.
+  if command -v scutil &>/dev/null; then
+    scutil --dns 2>/dev/null | awk '/nameserver\[[0-9]+\]/ {print $3}' | sort -u | head -3
+  else
+    awk '/^nameserver/ {print $2}' /etc/resolv.conf 2>/dev/null | head -3
+  fi | while read -r dns; do
+    emit "DNS" "$dns" "Network" "HardDrive"
+  done
 
-  # Hostname
-  hostname=$(hostname 2>/dev/null)
-  [[ -n "$hostname" ]] && echo "{\"id\":\"$hostname\",\"name\":\"Hostname: $hostname\",\"icon\":\"computer\",\"desc\":\"this machine\"}"
+  emit "Hostname" "$(hostname 2>/dev/null)" "This machine" "Desktop"
 }
 
 pick() {
-  item=$(cat)
-  id=$(echo "$item" | jq -r '.id')
-
-  printf '%s' "$id" | pal action copy
+  jq -r '.value // .id' | pal action copy
 }
 
 CMD=$1; shift

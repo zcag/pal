@@ -7,3 +7,11 @@ auto_list = true
 auto_pick = true
 default_action = "copy"
 action_key = "hex"
+
+# Swatches read better wide, and there are only twenty of them.
+view = "grid"
+
+[display]
+columns = 6
+aspect = "3/2"
+inset = "small"

@@ -30,8 +30,8 @@ export type EnvelopeHandlers = {
   push: Push;
   /** Refresh the list (used by `reload`). */
   revalidate: () => void;
-  /** Navigate to another palette (used by `palette`). */
-  openPalette: (name: string) => void;
+  /** Navigate to another palette (used by `palette`), optionally scoped. */
+  openPalette: (name: string, env?: Record<string, string>) => void;
 };
 
 /**
@@ -68,7 +68,7 @@ export async function handleOutput(
 
 async function handleEnvelope(env: Envelope, handlers: EnvelopeHandlers): Promise<void> {
   if (env.palette) {
-    handlers.openPalette(env.palette);
+    handlers.openPalette(env.palette, env.env);
     return;
   }
   if (env.clipboard !== undefined) {

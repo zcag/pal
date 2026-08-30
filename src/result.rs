@@ -14,6 +14,7 @@
 //! {"reload": true}
 //! {"close": true}
 //! {"palette": "audio"}   // resolved to another palette; show it
+//! {"palette": "ha-states", "env": {"_HA_ENTITY": "light.desk"}}  // ...scoped
 //! ```
 //!
 //! Anything that isn't a JSON object with at least one known key is passed
@@ -57,6 +58,21 @@ pub fn render(out: &str) -> bool {
         let title = toast.get("title").and_then(|v| v.as_str()).unwrap_or("");
         let message = toast.get("message").and_then(|v| v.as_str()).unwrap_or("");
         notify(title, message);
+    }
+    // A pick that resolves to another palette is a drill-down. A rich frontend
+    // pushes a view; a terminal has to re-enter, which is what the nested
+    // `pal run` used to do by hand inside the plugin - except that only ever
+    // worked in a terminal.
+    if let Some(palette) = value.get("palette").and_then(|v| v.as_str()) {
+        let exe = std::env::current_exe().unwrap_or_else(|_| "pal".into());
+        let mut command = std::process::Command::new(exe);
+        command.arg("run").env("_PAL_PALETTE", palette);
+        for (key, entry) in value.get("env").and_then(|v| v.as_object()).into_iter().flatten() {
+            if let Some(entry) = entry.as_str() {
+                command.env(key, entry);
+            }
+        }
+        let _ = command.status();
     }
     if let Some(show) = value.get("show") {
         if let Some(md) = show.get("markdown").and_then(|v| v.as_str()) {

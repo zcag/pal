@@ -1,49 +1,51 @@
 #!/usr/bin/env bash
 
-# Calculator palette with qalc
-# Supports live preview via frontend query
+# Calculator palette. The result is the row's title - it's the thing you read
+# and the thing that gets copied; the expression you typed is the subtitle.
+
+row() { # result, expression
+  jq -cn --arg r "$1" --arg q "$2" '{
+    id: $r, name: $r, subtitle: $q, result: $r,
+    icon_rc: "Calculator", icon_xdg: "accessories-calculator",
+    accessories: [{ text: { value: "= copy", color: "secondary" } }]
+  }'
+}
+
+hint() {
+  jq -cn --arg n "$1" --arg s "$2" '{
+    id: ("hint:" + $n), name: $n, subtitle: $s,
+    icon_rc: "Calculator", icon_xdg: "accessories-calculator"
+  }'
+}
 
 list() {
-  # Get query from stdin if provided (for live preview)
-  query=""
-  if [[ ! -t 0 ]]; then
-    query=$(cat)
-  fi
-  
+  local query=""
+  [[ ! -t 0 ]] && query=$(cat)
+
   if [[ -z "$query" ]]; then
-    # Show recent calculations or instructions
-    echo '{"id":"help","name":"Type an expression to calculate...","icon":"accessories-calculator"}'
-    echo '{"id":"example1","name":"Example: 2+2, sqrt(16), 100 USD to EUR","icon":"accessories-calculator"}'
+    hint "Type an expression" "2+2 · sqrt(16) · 15% of 240"
+    hint "Units and currency too" "100 USD to EUR · 12 GB to MB · 3 weeks to days"
     return
   fi
-  
+
+  local result
   if command -v qalc &>/dev/null; then
     result=$(qalc -t "$query" 2>/dev/null)
-    if [[ -n "$result" ]]; then
-      result_escaped=$(printf '%s' "$result" | jq -Rs '.' | sed 's/^"//;s/"$//')
-      query_escaped=$(printf '%s' "$query" | jq -Rs '.' | sed 's/^"//;s/"$//')
-      echo "{\"id\":\"$result_escaped\",\"name\":\"$query_escaped = $result_escaped\",\"icon\":\"accessories-calculator\",\"result\":\"$result_escaped\"}"
-    fi
   elif command -v bc &>/dev/null; then
     result=$(echo "$query" | bc -l 2>/dev/null)
-    if [[ -n "$result" ]]; then
-      result_escaped=$(printf '%s' "$result" | jq -Rs '.' | sed 's/^"//;s/"$//')
-      query_escaped=$(printf '%s' "$query" | jq -Rs '.' | sed 's/^"//;s/"$//')
-      echo "{\"id\":\"$result_escaped\",\"name\":\"$query_escaped = $result_escaped\",\"icon\":\"accessories-calculator\",\"result\":\"$result_escaped\"}"
-    fi
   else
-    echo '{"id":"error","name":"No calculator found (qalc/bc)","icon":"dialog-error"}'
+    jq -cn '{id: "error", name: "No calculator found", subtitle: "install qalc or bc", icon_xdg: "dialog-error"}'
+    return
   fi
+
+  [[ -n "$result" ]] && row "$result" "$query"
 }
 
 pick() {
-  item=$(cat)
-  result=$(echo "$item" | jq -r '.result // .id')
-  
-  [[ -z "$result" || "$result" == "help" || "$result" == "example1" ]] && return
-  
-  # `pal action copy` already walks wl-copy/pbcopy/xclip and answers with a
-  # {"hud": ...} envelope, which a rich frontend renders and notify-send can't.
+  local result
+  result=$(jq -r '.result // .id')
+  # The hint rows aren't answers; picking one shouldn't put text on the clipboard.
+  [[ -z "$result" || "$result" == hint:* || "$result" == "error" ]] && return
   printf '%s' "$result" | pal action copy
 }
 

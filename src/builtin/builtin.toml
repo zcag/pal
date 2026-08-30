@@ -5,12 +5,47 @@ icon = "application-x-executable"
 version = "0.1"
 contract_version = "0.0.1"
 
+# A launcher should also be able to point at the thing it launches.
+[[palettes.apps.actions]]
+id = "launch"
+title = "Open"
+action = "cmd"
+key = "exec"
+primary = true
+[[palettes.apps.actions]]
+id = "reveal"
+title = "Reveal in Finder"
+action = "cmd"
+value = "open -R \"$PAL_ID\""
+shortcut = "cmd+shift+r"
+[[palettes.apps.actions]]
+id = "path"
+title = "Copy Path"
+action = "copy"
+key = "id"
+shortcut = "cmd+shift+c"
+
+
 [palettes.bookmarks]
 name = "bookmarks"
 desc = "list and open browser bookmarks"
 icon = "bookmark"
 version = "0.1"
 contract_version = "0.0.1"
+
+[[palettes.bookmarks.actions]]
+id = "open"
+title = "Open"
+action = "open"
+key = "url"
+primary = true
+[[palettes.bookmarks.actions]]
+id = "copy"
+title = "Copy URL"
+action = "copy"
+key = "url"
+shortcut = "cmd+shift+c"
+
 
 [palettes.pals]
 name = "pals"
@@ -26,12 +61,58 @@ icon = "utilities-system-monitor"
 version = "0.1"
 contract_version = "0.0.1"
 
+[[palettes.psg.actions]]
+id = "kill"
+title = "Kill"
+action = "pick"
+style = "destructive"
+confirm = "Kill this process?"
+primary = true
+[[palettes.psg.actions]]
+id = "kill9"
+title = "Force Kill"
+action = "cmd"
+value = "kill -9 $PAL_PID"
+style = "destructive"
+confirm = "Send SIGKILL?"
+reload = true
+[[palettes.psg.actions]]
+id = "pid"
+title = "Copy PID"
+action = "copy"
+key = "id"
+shortcut = "cmd+shift+c"
+[[palettes.psg.actions]]
+id = "cmdline"
+title = "Copy Command"
+action = "copy"
+key = "cmdline"
+
+
 [palettes.ssh]
 name = "ssh"
 desc = "list and connect to SSH hosts"
 icon = "network-server"
 version = "0.1"
 contract_version = "0.0.1"
+
+[[palettes.ssh.actions]]
+id = "connect"
+title = "Connect"
+action = "pick"
+primary = true
+[[palettes.ssh.actions]]
+id = "copy"
+title = "Copy ssh Command"
+action = "copy"
+key = "ssh_cmd"
+shortcut = "cmd+shift+c"
+[[palettes.ssh.actions]]
+id = "host"
+title = "Copy Host"
+action = "copy"
+key = "id"
+
 
 [palettes.combine]
 name = "combine"

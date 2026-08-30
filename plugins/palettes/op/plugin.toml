@@ -6,3 +6,43 @@ version = "0.1"
 command = ["run.sh"]
 # Hidden from listings where the backend isn't installed.
 requires = ["op"]
+
+# A vault entry has more than one thing you might want out of it, and the
+# one-time code is the reason to reach for this at all.
+[[actions]]
+id = "password"
+title = "Copy Password"
+action = "pick"
+primary = true
+
+[[actions]]
+id = "username"
+title = "Copy Username"
+action = "cmd"
+value = "op item get \"$PAL_ID\" --fields username --reveal | tr -d '\\n' | pal action copy"
+shortcut = "cmd+shift+u"
+
+[[actions]]
+id = "totp"
+title = "Copy One-Time Code"
+action = "cmd"
+value = "op item get \"$PAL_ID\" --otp | tr -d '\\n' | pal action copy"
+shortcut = "cmd+t"
+
+[[actions]]
+id = "reveal"
+title = "Open in 1Password"
+action = "open"
+value = "onepassword://view-item"
+
+# Scope dropdown; ids are vault names, so adjust to whatever `op vault list`
+# reports on this account.
+[[filter]]
+id = "all"
+name = "All vaults"
+[[filter]]
+id = "Personal"
+name = "Personal"
+[[filter]]
+id = "Private"
+name = "Private"

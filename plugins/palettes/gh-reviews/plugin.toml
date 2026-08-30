@@ -3,3 +3,17 @@ desc = "GitHub PRs needing your review"
 icon_utf = ""
 version = "0.1"
 command = ["run.sh"]
+
+[[actions]]
+id = "open"
+title = "Open PR"
+action = "open"
+key = "url"
+primary = true
+
+[[actions]]
+id = "copy"
+title = "Copy URL"
+action = "copy"
+key = "url"
+shortcut = "cmd+shift+c"

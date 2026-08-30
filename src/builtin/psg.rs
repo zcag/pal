@@ -13,159 +13,113 @@ pub fn run(cmd: &str, input: Option<&str>) -> String {
     }
 }
 
-/// macOS has no `/proc`, so the listing comes from `ps`. Two calls rather than
-/// one: `comm` and `args` can both contain spaces, so each is asked for last
-/// on its own line and the two are joined on pid.
+/// `ps` answers this on every unix, so there is one parser rather than a
+/// `/proc` walk beside a macOS `ps` branch. Only the selector flag differs, and
+/// `args` comes last because it is the one field that contains spaces.
 #[cfg(target_os = "macos")]
-fn list() -> String {
-    use std::collections::HashMap;
-
-    let my_pid = std::process::id();
-
-    let out = |args: &[&str]| -> String {
-        Command::new("ps")
-            .args(args)
-            .output()
-            .ok()
-            .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
-            .unwrap_or_default()
-    };
-
-    let mut cmdlines: HashMap<u32, String> = HashMap::new();
-    for line in out(&["-axo", "pid=,args="]).lines() {
-        let line = line.trim_start();
-        let Some((pid, args)) = line.split_once(char::is_whitespace) else { continue };
-        let Ok(pid) = pid.parse::<u32>() else { continue };
-        cmdlines.insert(pid, args.trim().to_string());
-    }
-
-    let mut procs = Vec::new();
-    for line in out(&["-axo", "pid=,uid=,comm="]).lines() {
-        // ps pads its columns, so split a field at a time and re-trim between.
-        let Some((pid, rest)) = line.trim_start().split_once(char::is_whitespace) else { continue };
-        let Ok(pid) = pid.parse::<u32>() else { continue };
-        if pid == my_pid {
-            continue;
-        }
-        let Some((uid, comm)) = rest.trim_start().split_once(char::is_whitespace) else { continue };
-        let uid = uid.parse::<u32>().unwrap_or(0);
-        // `comm` is a full executable path here; the last component is the name.
-        let comm = comm.trim().rsplit('/').next().unwrap_or("").to_string();
-
-        let cmdline = cmdlines.remove(&pid).unwrap_or_else(|| comm.clone());
-        if cmdline.is_empty() {
-            continue;
-        }
-
-        procs.push(json!({
-            "id": pid.to_string(),
-            "pid": pid,
-            "name": display_name(&cmdline),
-            "comm": comm,
-            "cmdline": cmdline,
-            "uid": uid,
-            "icon": "utilities-system-monitor",
-        }));
-    }
-
-    sort_by_pid_desc(&mut procs);
-
-    procs.iter()
-        .map(|p| p.to_string())
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-/// Keep the full command line in `cmdline`; the display copy is truncated.
-fn display_name(cmdline: &str) -> String {
-    if cmdline.chars().count() > 80 {
-        let head: String = cmdline.chars().take(77).collect();
-        format!("{head}...")
-    } else {
-        cmdline.to_string()
-    }
-}
-
-fn sort_by_pid_desc(procs: &mut [serde_json::Value]) {
-    // Newest first.
-    procs.sort_by(|a, b| {
-        let pid_a = a.get("pid").and_then(|v| v.as_u64()).unwrap_or(0);
-        let pid_b = b.get("pid").and_then(|v| v.as_u64()).unwrap_or(0);
-        pid_b.cmp(&pid_a)
-    });
-}
-
+const PS_ARGS: [&str; 2] = ["-axo", "pid=,uid=,pcpu=,rss=,args="];
 #[cfg(not(target_os = "macos"))]
-fn list() -> String {
-    use std::fs;
-    let mut procs = Vec::new();
-    let my_pid = std::process::id();
+const PS_ARGS: [&str; 2] = ["-eo", "pid=,uid=,pcpu=,rss=,args="];
 
-    let Ok(entries) = fs::read_dir("/proc") else {
-        return String::new();
+fn list() -> String {
+    let my_pid = std::process::id();
+    let my_uid = current_uid();
+
+    let output = Command::new("ps")
+        .args(PS_ARGS)
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+        .unwrap_or_default();
+
+    let mut procs: Vec<serde_json::Value> = output
+        .lines()
+        .filter_map(|line| parse(line, my_pid, my_uid))
+        .collect();
+
+    // Newest first.
+    procs.sort_by_key(|p| std::cmp::Reverse(p.get("pid").and_then(|v| v.as_u64()).unwrap_or(0)));
+
+    procs.iter().map(|p| p.to_string()).collect::<Vec<_>>().join("\n")
+}
+
+fn parse(line: &str, my_pid: u32, my_uid: u32) -> Option<serde_json::Value> {
+    // ps pads its columns, so take one field at a time and re-trim between.
+    let mut rest = line.trim_start();
+    let mut field = || -> Option<&str> {
+        let (value, tail) = rest.trim_start().split_once(char::is_whitespace)?;
+        rest = tail;
+        Some(value)
     };
 
-    for entry in entries.flatten() {
-        let name = entry.file_name();
-        let name_str = name.to_string_lossy();
+    let pid: u32 = field()?.parse().ok()?;
+    let uid: u32 = field()?.parse().unwrap_or(0);
+    let cpu: f64 = field()?.parse().unwrap_or(0.0);
+    let rss: u64 = field()?.parse().unwrap_or(0);
+    let cmdline = rest.trim();
 
-        // Only process numeric directories (PIDs)
-        let Ok(pid) = name_str.parse::<u32>() else {
-            continue;
-        };
-
-        // Skip our own process
-        if pid == my_pid {
-            continue;
-        }
-
-        let proc_path = entry.path();
-
-        // Read cmdline
-        let cmdline = fs::read_to_string(proc_path.join("cmdline"))
-            .unwrap_or_default()
-            .replace('\0', " ")
-            .trim()
-            .to_string();
-
-        if cmdline.is_empty() {
-            continue;
-        }
-
-        // Read comm (process name)
-        let comm = fs::read_to_string(proc_path.join("comm"))
-            .unwrap_or_default()
-            .trim()
-            .to_string();
-
-        // Read status for user info
-        let uid = fs::read_to_string(proc_path.join("status"))
-            .ok()
-            .and_then(|s| {
-                s.lines()
-                    .find(|l| l.starts_with("Uid:"))
-                    .and_then(|l| l.split_whitespace().nth(1))
-                    .and_then(|u| u.parse::<u32>().ok())
-            })
-            .unwrap_or(0);
-
-        procs.push(json!({
-            "id": pid.to_string(),
-            "pid": pid,
-            "name": display_name(&cmdline),
-            "comm": comm,
-            "cmdline": cmdline,
-            "uid": uid,
-            "icon": "utilities-system-monitor",
-        }));
+    if pid == my_pid || cmdline.is_empty() {
+        return None;
     }
 
-    sort_by_pid_desc(&mut procs);
+    // The executable's own name, which is what you scan for; the whole command
+    // line is the subtitle, so nothing is lost by not putting it in the title.
+    let name = cmdline
+        .split_whitespace()
+        .next()
+        .unwrap_or(cmdline)
+        .rsplit('/')
+        .next()
+        .unwrap_or(cmdline);
 
-    procs.iter()
-        .map(|p| p.to_string())
-        .collect::<Vec<_>>()
-        .join("\n")
+    let mut accessories = Vec::new();
+    // A process using nothing has nothing to say; only the busy ones earn a tag.
+    if cpu >= 1.0 {
+        let color = if cpu >= 50.0 {
+            "red"
+        } else if cpu >= 10.0 {
+            "orange"
+        } else {
+            "secondary"
+        };
+        accessories.push(json!({ "tag": { "value": format!("{cpu:.0}% cpu"), "color": color } }));
+    }
+    if rss > 0 {
+        accessories.push(json!({ "text": { "value": human_mb(rss), "color": "secondary" } }));
+    }
+
+    Some(json!({
+        "id": pid.to_string(),
+        "pid": pid,
+        "name": name,
+        "subtitle": cmdline,
+        "keywords": [pid.to_string(), name.to_string()],
+        "cmdline": cmdline,
+        "uid": uid,
+        "cpu": cpu,
+        "section": if uid == my_uid { "Mine" } else if uid == 0 { "System" } else { "Other" },
+        "icon_rc": "MemoryChip",
+        "icon_xdg": "utilities-system-monitor",
+        "accessories": accessories,
+    }))
+}
+
+/// ps reports rss in kilobytes.
+fn human_mb(rss_kb: u64) -> String {
+    if rss_kb >= 1024 * 1024 {
+        format!("{:.1} GB", rss_kb as f64 / (1024.0 * 1024.0))
+    } else {
+        format!("{} MB", rss_kb / 1024)
+    }
+}
+
+fn current_uid() -> u32 {
+    Command::new("id")
+        .arg("-u")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8_lossy(&o.stdout).trim().parse().ok())
+        .unwrap_or(0)
 }
 
 fn pick(input: &str) -> String {
@@ -176,9 +130,16 @@ fn pick(input: &str) -> String {
         return String::new();
     }
 
-    let _ = Command::new("kill")
+    let killed = Command::new("kill")
         .arg(pid.to_string())
-        .status();
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
 
-    String::new()
+    let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("process");
+    if killed {
+        json!({ "hud": format!("Killed {name} ({pid})"), "reload": true }).to_string()
+    } else {
+        json!({ "toast": { "style": "failure", "title": format!("Could not kill {name}") } }).to_string()
+    }
 }

@@ -4,3 +4,24 @@ icon = "folder-remote"
 icon_utf = "󰡰"
 version = "0.1"
 command = ["run.sh"]
+
+# The local clone first, because that's usually the errand.
+[[actions]]
+id = "open"
+title = "Open"
+action = "pick"
+primary = true
+
+[[actions]]
+id = "web"
+title = "Open on GitHub"
+action = "open"
+key = "url"
+shortcut = "cmd+shift+o"
+
+[[actions]]
+id = "copy"
+title = "Copy URL"
+action = "copy"
+key = "url"
+shortcut = "cmd+shift+c"

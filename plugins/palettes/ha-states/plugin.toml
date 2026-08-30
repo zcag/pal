@@ -6,3 +6,36 @@ version = "0.1"
 command = ["run.sh"]
 default_action = "copy"
 action_key = "value"
+
+# Eight hundred entities is too many to scroll; these are the domains worth
+# scoping to by hand, and search covers the rest.
+[[filter]]
+id = "all"
+name = "All entities"
+[[filter]]
+id = "light"
+name = "Lights"
+[[filter]]
+id = "switch"
+name = "Switches"
+[[filter]]
+id = "sensor"
+name = "Sensors"
+[[filter]]
+id = "binary_sensor"
+name = "Binary sensors"
+[[filter]]
+id = "climate"
+name = "Climate"
+[[filter]]
+id = "media_player"
+name = "Media players"
+[[filter]]
+id = "person"
+name = "People"
+[[filter]]
+id = "script"
+name = "Scripts"
+[[filter]]
+id = "automation"
+name = "Automations"

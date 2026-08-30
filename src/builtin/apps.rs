@@ -26,6 +26,16 @@ pub fn run(cmd: &str, input: Option<&str>) -> String {
 /// `pick` identical on both platforms. Handing the bundle path back as the
 /// icon is what lets a frontend render the app's real icon.
 #[cfg(target_os = "macos")]
+/// The bundle identifier, so "com.apple." or "anthropic" finds an app whose
+/// display name says neither.
+fn bundle_id(path: &std::path::Path) -> Option<String> {
+    let plist = std::fs::read_to_string(path.join("Contents/Info.plist")).ok()?;
+    let key = plist.find("<key>CFBundleIdentifier</key>")?;
+    let start = plist[key..].find("<string>")? + key + "<string>".len();
+    let end = plist[start..].find("</string>")? + start;
+    Some(plist[start..end].trim().to_string())
+}
+
 fn list() -> String {
     let home = std::env::var("HOME").unwrap_or_default();
     let user_apps = format!("{home}/Applications");
@@ -48,9 +58,20 @@ fn list() -> String {
         if !seen.insert(name.to_lowercase()) {
             continue;
         }
+        // Where it came from is the one thing that separates Apple's built-ins
+        // from what you installed, and they look identical otherwise.
+        let source = if display.starts_with("/System/") {
+            "macOS"
+        } else if display.starts_with(&user_apps) {
+            "User"
+        } else {
+            "Applications"
+        };
         apps.push(json!({
             "id": display,
             "name": name,
+            "subtitle": source,
+            "keywords": [bundle_id(&path).unwrap_or_default()],
             "exec": format!("open -a {}", sh_quote(&display)),
             "icon": display,
         }));
