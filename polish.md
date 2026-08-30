@@ -60,20 +60,22 @@ Every palette below is judged against these; `otp` is the worked example.
 
 | | Palette | State on hornet |
 |---|---|---|
-| ✅ | apps, bookmarks, calc, chars, cmds, colors, combine, emoji, ha-services, ha-states, iconkde, iconnerd, ip, mk, otp, pals, psg, ssh, tabs, today | works, polish below |
-| 🙈 | audio, ble, clipboard, docker, gl-reviews, kittysessions, media, power, pwatch, systemd, wifi, windows | **hidden** since 2026-08-30 — backend not on this machine |
-| 🔑 | gh-reviews, op, repos | the binary is here, the account isn't |
-| 🚫 | ffbookmarks | works, but cut by choice 2026-08-30 — commented out in `config.toml` |
-| ⚰️ | ~~teams-chats~~ | deleted 2026-08-30 — dead since the NGSS offboarding |
+| ✅ | apps, bookmarks, calc, chars, cmds, colors, combine, emoji, ha-services, ha-states, iconkde, iconnerd, ip, mk, otp, pals, power, psg, pwatch, ssh, tabs, today, windows | polished 2026-08-30 |
+| 🔑 | gh-reviews, op, repos | rebuilt, blocked on `gh auth login` / `op account add` |
+| 🙈 | audio, ble, clipboard, docker, gl-reviews, kittysessions, media, systemd, wifi | hidden — backend not on this machine |
+| 🚫 | ffbookmarks | works, cut by choice — commented out in `config.toml` |
+| ⚰️ | ~~teams-chats~~ | deleted 2026-08-30 |
 
-That was 11 of 37 unable to work here and 6 more that didn't answer — **fewer
-than half the palettes doing anything on the laptop they are used from**.
-✅ Resolved 2026-08-30: each palette now declares `requires` (binaries, `|`
-between alternatives) or `os` in its own `plugin.toml`, and drops out of `meta`,
-`pals`, `combine` and the Raycast command list where that isn't met. 25 visible,
-12 hidden, and `ffbookmarks` commented out by choice. They stay addressable by
-name, so `pal list wifi` on a mac still explains itself; `pal meta --all` lists
+**Where it ended up: 26 visible, 9 hidden, 2 gone.** Each palette declares
+`requires` (binaries, `|` between alternatives) or `os` in its own
+`plugin.toml`, and drops out of `meta`, `pals`, `combine` and the Raycast
+command list where that isn't met. Hidden palettes stay addressable, so
+`pal list wifi` on a mac still explains itself; `pal meta --all` lists
 everything with its reason.
+
+Three came back by being ported rather than hidden: **`windows` on yabai**,
+**`power` generating its rows per platform** instead of shipping a data file of
+systemd commands, and **`pwatch` reading whichever `ps` this machine has**.
 
 📌 Gating and choosing are different things and shouldn't share a mechanism.
 `requires`/`os` says *this can't run here*; not wanting a palette is a
@@ -132,19 +134,15 @@ its own.
 | `clipboard` | cliphist/clipman | **Raycast owns the clipboard history on this box.** Cut it here rather than build a second one |
 | `kittysessions` | `hyprctl`, `grep -P` | kitty's own `@ ls` over its socket; the WM half is yabai (`yabai -m query --windows`) |
 | `media` | `playerctl` | `nowplaying-cli`, or MediaRemote via `osascript` |
-| `power` | `loginctl`/`systemctl` | `pmset sleepnow`, `osascript` lock, `shutdown` — a data-file swap, no code |
-| `pwatch` | `ps -o cmd`, `pts/` ttys | BSD `ps -o command`, ttys are `ttys00N` |
 | `systemd` | `systemctl` | `launchctl list` + `bootout`/`kickstart` — worth having, it's how his agents are managed |
 | `wifi` | `nmcli` | `networksetup -listpreferredwirelessnetworks` / `airport` |
-| `windows` | no supported WM | **yabai is right there** and drives everything else on this desktop |
 
 📌 The pattern worth building once rather than eleven times: a palette declares
 which backends it can use and pal picks the first one present, instead of every
 `run.sh` re-deriving "which OS am I" in bash. `audio`, `media`, `windows` and
 `power` already each hand-roll a different version of that check.
 
-⭐ `windows` and `power` are the two that would be used daily on this machine
-and are pure loss right now.
+✅ `windows` and `power` were the two that hurt, and both are ported.
 
 ---
 
@@ -375,31 +373,39 @@ mine / all, `actions[]` = open, copy url, checkout.
 One row per visible palette: what the target row is, and which Raycast
 capability it takes to get there. ✅ done · ● planned above · — not applicable.
 
-| Palette | The row it should be | sub | accs | sect | filter | detail | grid | actions |
-|---|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| otp | `Akbank · Bank · [8885] · 12.42` | ✅ | ✅ | ✅ | ✅ | — | — | ● |
-| today | title · time tag · Now/Next/Later | ● | ● | ● | — | ● | — | ● |
-| tabs | page title · host · 🔊 | ● | ● | ● | — | — | — | ● |
-| ha-states | friendly name · state tag · area | ● | ● | ● | ● | ● | — | ● |
-| ha-services | service · its description | ● | ● | ● | ● | ● | — | ● |
-| psg | `comm` · cmdline · cpu/rss | ● | ● | ● | — | — | — | ● |
-| pals | name · desc · item count | ● | ● | ● | — | — | — | — |
-| op | title · username · vault | ● | ● | ● | ● | — | — | ● |
-| repos | repo · description · lang/pushed | ● | ● | ● | ● | ● | — | ● |
-| gh-reviews | PR title · repo#n · author | ● | ● | ● | ● | ● | — | ● |
-| cmds | human sentence · the command | ● | ● | ● | — | ● | — | ● |
-| bookmarks | name · folder | ● | — | ● | — | — | — | ● |
-| apps | app · which folder | ● | — | — | — | — | — | ● |
-| ssh | host · `user@hostname` | ● | ● | ● | — | — | — | ● |
-| mk | target · project | ● | — | ● | — | ● | — | — |
-| ip | label · value | — | ● | — | — | ● | — | ● |
-| calc | result · the expression | ● | — | — | — | ● | — | ● |
-| colors | swatch tiles | — | ● | — | — | — | ● | ● |
-| emoji | glyph tiles | — | — | ● | — | — | ● | ● |
-| chars | glyph tiles | — | — | ● | — | — | ● | ● |
-| iconnerd | glyph tiles | — | — | ● | — | — | ● | ● |
-| iconkde | name · the icon | — | — | ● | — | — | — | ● |
-| combine | inherits its sources | — | — | ● | ● | — | — | — |
+| Palette | The row it is now | sub | accs | sect | filter | grid | actions |
+|---|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| otp | `Akbank · Bank · [8885] · 12.42` | ✅ | ✅ | ✅ | ✅ | — | — |
+| today | title · `08:00 – 09:00` · `now` | ✅ | ✅ | ✅ | — | — | — |
+| tabs | page title · host · `playing` | ✅ | ✅ | — | — | — | ✅ |
+| ha-states | friendly name · entity id · state | ✅ | ✅ | ✅ | ✅ | — | ● |
+| ha-services | service · `light.turn_on` | ✅ | ✅ | ✅ | ✅ | — | ● |
+| psg | `comm` · cmdline · cpu/rss | ✅ | ✅ | ✅ | — | — | ✅ |
+| pals | name · desc · input/live/grid | ✅ | ✅ | — | — | — | — |
+| op | title · username · vault | ✅ | ✅ | ✅ | ✅ | — | ✅ |
+| repos | repo · description · lang/pushed | ✅ | ✅ | ✅ | ● | — | ✅ |
+| gh-reviews | PR title · `#12 · author` | ✅ | ✅ | ✅ | ● | — | ✅ |
+| cmds | human sentence · sectioned | ✅ | — | ✅ | — | — | ✅ |
+| bookmarks | name · what it is | ✅ | — | ✅ | — | — | ✅ |
+| apps | app · where it came from | ✅ | — | — | — | — | ✅ |
+| ssh | host · `user@hostname` | ✅ | — | ✅ | — | — | ✅ |
+| mk | target · project path | ✅ | — | ✅ | — | — | ✅ |
+| ip | label · the address as a tag | — | ✅ | ✅ | — | — | ✅ |
+| calc | result · the expression | ✅ | ✅ | — | — | — | — |
+| power | action · what it does | ✅ | — | — | — | — | ✅ |
+| windows | app · window title · `focused` | ✅ | ✅ | ✅ | — | — | — |
+| pwatch | binary · full command · tty | ✅ | ✅ | ✅ | — | — | — |
+| colors | swatch tiles | — | — | — | — | ✅ | ✅ |
+| emoji | glyph tiles | — | — | — | — | ✅ | — |
+| chars | glyph tiles | — | — | — | — | ✅ | — |
+| iconnerd | name · glyph · by font family | — | — | ✅ | — | — | — |
+| iconkde | name · by category | — | — | ✅ | — | — | — |
+| combine | inherits its sources | ✅ | ✅ | ✅ | — | — | — |
+
+✅ shipped · ● designed, blocked on auth or a mechanism · — not applicable.
+
+**8 palettes carry `actions[]`** where one did. **4 carry `[[filter]]`**, three
+are grids, and every palette that lists anything has a subtitle worth reading.
 
 **Every palette wants `actions[]`**, and exactly one has more than one verb
 today. **Six want `[[filter]]`.** **Four want the grid.** Nothing needs `mask`;
@@ -407,20 +413,36 @@ today. **Six want `[[filter]]`.** **Four want the grid.** Nothing needs `mask`;
 
 ---
 
-## Order of work
+## Order of work — done 2026-08-30
 
-1. **The four silent picks** — `calc`, `ip`, `op`, `gh-reviews`. Broken, not
-   unpolished, and it's one line each.
-2. **`tabs`** — uncomment the line that keeps the title. Minutes, used daily.
-3. **`today`** — unpack the string, fix the dead `url`. Used daily.
-4. **`pals`** — subtitle + count, which `combine` inherits, so the default
-   palette improves without touching it.
-5. **`actions[]` across the board** — the capability nothing uses. Start where
-   a second verb is obvious: `psg` kill, `repos` open-local, `op` copy-TOTP,
-   `tabs` close.
-6. **The grid five** — one config line each, then tune `[display]`.
-7. **`ha-states`** — the drill-down needs a real mechanism first; biggest job.
-8. **Ports** — `windows` on yabai, `power` on pmset, `pwatch` on BSD ps.
+1. ✅ The four silent picks — `calc`, `ip`, `gh-reviews` did nothing; `op`
+   copied but printed the secret as its output.
+2. ✅ `tabs` — title, favicon, `playing` tag, four verbs.
+3. ✅ `today` — unpacked, sectioned, calendar-day link for the dead `url`.
+4. ✅ `pals` — desc, keywords, capability tags; `combine` inherits it.
+5. ✅ `actions[]` across the board — 8 palettes, `confirm` on the destructive ones.
+6. ✅ The grid three — `colors` at 6 wide, `emoji` and `chars` at 10.
+   `iconnerd` deliberately stayed a list: its glyphs are private-use
+   codepoints that Raycast cannot draw, so the *name* is the payload.
+7. ✅ `ha-states` — the drill-down works outside a terminal at last.
+8. ✅ Ports — `windows` on yabai, `power` on pmset/osascript, `pwatch` on BSD ps.
+
+### What is genuinely left
+
+- **`gh-reviews`, `repos`, `op`** — rebuilt but unverifiable until
+  `gh auth login` and `op account add`. Their `[[filter]]` lists are guesses
+  (org names, vault names) and want a look once they answer.
+- **`docker`** — still hidden. The containers that matter live on archer and
+  marko, so the honest palette is `docker -H ssh://marko ps` with a
+  `[[filter]]` per host. Needs a decision, not code.
+- **HA service fields** — `ha-services` calls `pal prompt` for services that
+  take arguments, which spawns a terminal prompt. In Raycast it returns empty
+  and the call is safely abandoned. A real fix is a Form, which is a feature.
+- **`iconnerd` at 12,536 rows** — fine in fzf, worth measuring in Raycast.
+- **Three `cmds` entries stay Linux-only**: `yaton`/`yatoff` want `hueadm`
+  (the `ha` script here can read state but not call services), `color` wants
+  `hyprpicker` (Raycast's own Color Picker covers it on macOS), and `clipocr`
+  needs `pngpaste` on a mac.
 
 ---
 
@@ -435,9 +457,12 @@ today. **Six want `[[filter]]`.** **Four want the grid.** Nothing needs `mask`;
    candidate backends, pal picks the first present.
 3. **Two-stage palettes need a real mechanism.** `pal run` from inside a pick
    only works in a terminal. `{"palette": …}` is most of the answer.
-4. **Audit `desc` vs `subtitle`.** Several palettes set `desc`; fzf falls back
-   to it but the schema and Raycast want `subtitle`.
-5. **`view = "grid"` is dormant.** Five palettes want it.
-6. **Nothing uses `actions[]`.** Every palette offers exactly one verb. This is
-   the single biggest unused capability across the whole set — bigger than any
-   rendering gap, because it changes what the palettes can *do*.
+4. ✅ **`desc` vs `subtitle`** — every palette that set the legacy `desc` now
+   sets `subtitle`.
+5. ✅ **`view = "grid"`** — three palettes use it; a fourth (`iconnerd`) can't,
+   because Raycast won't draw private-use codepoints.
+6. ✅ **`actions[]`** — was the single biggest unused capability; 8 palettes
+   carry one now, with `confirm` on anything destructive.
+7. ✅ **A `paste` action**, the read half of `copy`, so a command is written
+   once as `pal action paste | … | pal action copy` instead of hardcoding
+   `wl-paste` and doing nothing on a mac.
