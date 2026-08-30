@@ -1,0 +1,4 @@
+name = "paste"
+desc = "print the clipboard"
+version = "0.1"
+command = ["run.sh"]
