@@ -21,6 +21,7 @@ import {
 } from "../lib/pal";
 import { usePalEnv } from "../lib/useEnv";
 import { palettesMissingCommands, syncCommands } from "../lib/sync";
+import { paletteDeeplink } from "../lib/extension";
 import { iconFor } from "../lib/icon";
 import { PaletteView } from "./PaletteView";
 
@@ -133,7 +134,7 @@ export function PaletteBrowser() {
                 title="Create Quicklink to Palette"
                 quicklink={{
                   name: `pal ${palette.name}`,
-                  link: `raycast://extensions/zcag/pal/pal?fallbackText=${encodeURIComponent(palette.name)}`,
+                  link: paletteDeeplink(palette.name),
                 }}
               />
               <Action

@@ -1,9 +1,9 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { environment } from "@raycast/api";
 import { PalItem, PaletteMeta, parseItems, parsePaletteMeta, runPal } from "./pal";
 import { asEmoji } from "./icon";
+import { paletteDeeplink } from "./extension";
 
 /** Where the generated script commands live. Register this once in Raycast. */
 export const SCRIPTS_DIR = join(homedir(), ".config", "raycast", "generated", "pal");
@@ -104,23 +104,6 @@ async function cacheFavicon(url: string, name: string): Promise<string | undefin
   }
 }
 
-/** `raycast://extensions/<author>/<extension>/<command>` for this extension. */
-function deeplink(command: string): string {
-  const { author, name } = extensionIdentity();
-  return `raycast://extensions/${author}/${name}/${command}`;
-}
-
-function extensionIdentity(): { author: string; name: string } {
-  try {
-    const manifest = JSON.parse(
-      require("node:fs").readFileSync(join(environment.assetsPath, "..", "package.json"), "utf8"),
-    );
-    return { author: manifest.author ?? "zcag", name: manifest.name ?? "pal" };
-  } catch {
-    return { author: "zcag", name: "pal" };
-  }
-}
-
 /**
  * Write one Raycast script command per item, so palette items are reachable
  * from root search (which only indexes commands, never the contents of a view).
@@ -179,7 +162,7 @@ async function scriptFor(
 
   // An item from the `pals` palette *is* another palette. Running its pick
   // headlessly just answers "show this palette", which a shell script can't
-  // act on - so open that palette's Raycast command directly instead.
+  // act on - so open the palette in Raycast instead.
   const isPalette = source === "pals";
   const target = isPalette ? allMeta.get(item.id) : undefined;
 
@@ -198,7 +181,7 @@ async function scriptFor(
   const id = (item.id ?? item.name).replace(/'/g, "'\\''");
 
   const action = isPalette
-    ? `open "${deeplink(`palette-${slug(item.id)}`)}"`
+    ? `open "${paletteDeeplink(item.id)}"`
     : `exec pal pick ${palette} --id '${id}'`;
 
   return [
@@ -213,7 +196,7 @@ async function scriptFor(
     "",
     `# generated from the "${palette}" pal palette - do not edit`,
     isPalette
-      ? "# a palette entry, so this opens its Raycast command"
+      ? "# a palette entry, so this opens the palette in Raycast"
       : "# resolves the item fresh on each run, so only the title above can go stale",
     action,
     "",

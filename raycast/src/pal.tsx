@@ -9,8 +9,12 @@ import { PaletteView } from "./components/PaletteView";
  * The root command. `pal` with no arguments runs the configured
  * `default_palette`, so that's what this does by default too - the palette
  * browser is a preference away, and every palette is also its own command.
+ *
+ * A deeplink can name a palette in the launch context; that's how generated
+ * script commands and quicklinks open one, since the per-palette commands
+ * only exist in a locally synced build.
  */
-export default function Command(props: LaunchProps) {
+export default function Command(props: LaunchProps<{ launchContext?: { palette?: string } }>) {
   const { rootView } = getPreferenceValues<{ rootView?: string }>();
   const { env, ready } = usePalEnv();
 
@@ -24,6 +28,9 @@ export default function Command(props: LaunchProps) {
   // Set as a Raycast fallback command, the root search text arrives here -
   // so anything you typed carries straight into the palette.
   const fallback = props.fallbackText;
+
+  const requested = props.launchContext?.palette;
+  if (requested) return <PaletteView palette={requested} initialSearch={fallback} />;
 
   if (rootView === "browser") return <PaletteBrowser />;
 
