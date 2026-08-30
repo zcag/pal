@@ -10,6 +10,11 @@
  * ~/.config/raycast/generated/pal rather than into the bundle.
  *
  *   node scripts/store-build.mjs        # then: cd ../dist-store && npx ray lint
+ *
+ * Both copies are named "pal", so `ray build`/`ray develop` in dist-store
+ * installs over the local extension and takes its palette commands with it -
+ * Raycast then errors "Missing executable" on any of them that root search
+ * still remembers. Rebuild raycast/ afterwards to put them back.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -56,4 +61,8 @@ if (!existsSync(join(out, "node_modules"))) {
 console.log(
   `dist-store: ${pkg.commands.length} commands (${dropped.length} local-only dropped: ` +
     `${dropped.map((c) => c.name).join(", ")})`,
+);
+console.log(
+  "note: building dist-store into Raycast replaces the local install - " +
+    "run `npx ray build` here again to get the palette commands back.",
 );
