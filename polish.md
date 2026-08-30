@@ -64,7 +64,7 @@ Every palette below is judged against these; `otp` is the worked example.
 | 🙈 | audio, ble, clipboard, docker, gl-reviews, kittysessions, media, power, pwatch, systemd, wifi, windows | **hidden** since 2026-08-30 — backend not on this machine |
 | 🔑 | gh-reviews, op, repos | the binary is here, the account isn't |
 | 🚫 | ffbookmarks | works, but cut by choice 2026-08-30 — commented out in `config.toml` |
-| ⚰️ | teams-chats | dead infra — NGSS offboarding, 2026-08-12 |
+| ⚰️ | ~~teams-chats~~ | deleted 2026-08-30 — dead since the NGSS offboarding |
 
 That was 11 of 37 unable to work here and 6 more that didn't answer — **fewer
 than half the palettes doing anything on the laptop they are used from**.
@@ -78,6 +78,38 @@ everything with its reason.
 📌 Gating and choosing are different things and shouldn't share a mechanism.
 `requires`/`os` says *this can't run here*; not wanting a palette is a
 `config.toml` edit. `ffbookmarks` is the second kind — it works fine now.
+
+---
+
+## Palettes that silently do nothing when you pick them
+
+⛔ Found 2026-08-30, and it outranks every styling note below: **four of the
+visible palettes accept a pick and then do nothing at all on this machine.**
+They list fine, so nothing looks wrong.
+
+| Palette | Pick does | Why it fails here |
+|---|---|---|
+| `calc` | copies the result | `wl-copy` → `xclip`, no `pbcopy` branch |
+| `ip` | copies the address | same |
+| `op` | copies the password | same |
+| `gh-reviews` | opens the PR | bare `xdg-open` |
+
+Verified: `pal pick calc` with `2+2*8` leaves the clipboard untouched.
+
+📌 The cause is the same in all four: **they hand-roll what pal's own action
+plugins already do.** `plugins/actions/copy` walks wl-copy → pbcopy → xclip and
+returns `{"hud": "Copied …"}`; `plugins/actions/open` walks xdg-open → open and
+returns `{"hud": …, "close": true}`. The palettes reimplement half of that and
+get the Linux half.
+
+⭐ It matters twice over in Raycast. A palette that shells out to `notify-send`
+produces **nothing** in a Raycast window — six do. A palette that returns an
+envelope gets a HUD, a toast, a closed window, a pushed detail view, for free.
+So the rule is: **a pick returns an envelope; it does not perform desktop side
+effects itself.**
+
+Fix is one line each: `printf '%s' "$value" | pal action copy`, and let the
+envelope through.
 
 ---
 
@@ -240,6 +272,40 @@ fix stands for whoever uncomments it.
 If it ever comes back: `subtitle`/`section` = the containing folder, which the
 extractor discards, and **rename it** — nothing about it is Firefox any more.
 
+### op ⭐ the one with the most upside
+Blocked on `op account add`, but the design is clear from `run.sh`: rows are
+`name` = title, `desc` = the username, an icon per category.
+- `subtitle` = username; `accessories` = `[{tag: category}, {text: vault}]`.
+- **`[[filter]]` per vault** — the obvious axis, and it's already a config option
+  (`vault = …`) that currently hard-limits the palette instead of scoping it.
+- `section` by category (Logins / Cards / Notes / SSH keys).
+- `keywords` = the item's website hosts, so "github" finds the GitHub login.
+- **`actions[]` is where this palette lives**: copy password (default), copy
+  username, **copy TOTP** (⌘T — the reason to have this at all), open in the
+  1Password app, reveal in browser. Right now it offers one verb.
+- ⛔ Its pick is one of the four no-ops above.
+
+### repos
+`name` = `owner/repo`, `desc` = description, folder icon by visibility.
+- `name` = the repo name alone, `subtitle` = description, `section` = owner
+  (the `orgs` config already knows them), so `zcag/` stops being a prefix
+  repeated 100 times.
+- `accessories` = `[{tag: "private", color: orange}, {text: language}, {text: pushed}]`
+  — `gh repo list` returns all three, the plugin asks for none of them.
+- `[[filter]]` per org, once there's more than one.
+- `actions[]`: open on GitHub, **open the local clone if `~/proj/<name>` exists**,
+  clone it if it doesn't, copy the URL, open in the editor.
+- `keywords` = `owner/repo`, so the old search still works.
+
+### combine
+The default palette, so it's the first thing seen — and it's `pals` + `bookmarks`
++ `cmds` glued together with a section per source.
+- Section order follows `include`; put the palettes he opens most first rather
+  than alphabetically.
+- `[[filter]]` by source once it includes more than three.
+- Everything it shows is inherited, so it improves for free as the sources do —
+  which is the argument for fixing `pals` early.
+
 ### apps
 Already right — `fileIcon` from the .app path is the correct icon and it works.
 - Add `subtitle` = the folder (`/Applications` vs `/System/Applications`), so
@@ -274,6 +340,60 @@ Worth designing properly rather than fixing minimally: `name` = PR title,
 `subtitle` = `repo#123 · author`, `accessories` = review state tag + age,
 `section` by repo, `detail` = the PR body, `[[filter]]` = needs-review /
 mine / all, `actions[]` = open, copy url, checkout.
+
+---
+
+## What each palette needs
+
+One row per visible palette: what the target row is, and which Raycast
+capability it takes to get there. ✅ done · ● planned above · — not applicable.
+
+| Palette | The row it should be | sub | accs | sect | filter | detail | grid | actions |
+|---|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| otp | `Akbank · Bank · [8885] · 12.42` | ✅ | ✅ | ✅ | ✅ | — | — | ● |
+| today | title · time tag · Now/Next/Later | ● | ● | ● | — | ● | — | ● |
+| tabs | page title · host · 🔊 | ● | ● | ● | — | — | — | ● |
+| ha-states | friendly name · state tag · area | ● | ● | ● | ● | ● | — | ● |
+| ha-services | service · its description | ● | ● | ● | ● | ● | — | ● |
+| psg | `comm` · cmdline · cpu/rss | ● | ● | ● | — | — | — | ● |
+| pals | name · desc · item count | ● | ● | ● | — | — | — | — |
+| op | title · username · vault | ● | ● | ● | ● | — | — | ● |
+| repos | repo · description · lang/pushed | ● | ● | ● | ● | ● | — | ● |
+| gh-reviews | PR title · repo#n · author | ● | ● | ● | ● | ● | — | ● |
+| cmds | human sentence · the command | ● | ● | ● | — | ● | — | ● |
+| bookmarks | name · folder | ● | — | ● | — | — | — | ● |
+| apps | app · which folder | ● | — | — | — | — | — | ● |
+| ssh | host · `user@hostname` | ● | ● | ● | — | — | — | ● |
+| mk | target · project | ● | — | ● | — | ● | — | — |
+| ip | label · value | — | ● | — | — | ● | — | ● |
+| calc | result · the expression | ● | — | — | — | ● | — | ● |
+| colors | swatch tiles | — | ● | — | — | — | ● | ● |
+| emoji | glyph tiles | — | — | ● | — | — | ● | ● |
+| chars | glyph tiles | — | — | ● | — | — | ● | ● |
+| iconnerd | glyph tiles | — | — | ● | — | — | ● | ● |
+| iconkde | name · the icon | — | — | ● | — | — | — | ● |
+| combine | inherits its sources | — | — | ● | ● | — | — | — |
+
+**Every palette wants `actions[]`**, and exactly one has more than one verb
+today. **Six want `[[filter]]`.** **Four want the grid.** Nothing needs `mask`;
+`tooltip` is a per-item detail, not a palette decision.
+
+---
+
+## Order of work
+
+1. **The four silent picks** — `calc`, `ip`, `op`, `gh-reviews`. Broken, not
+   unpolished, and it's one line each.
+2. **`tabs`** — uncomment the line that keeps the title. Minutes, used daily.
+3. **`today`** — unpack the string, fix the dead `url`. Used daily.
+4. **`pals`** — subtitle + count, which `combine` inherits, so the default
+   palette improves without touching it.
+5. **`actions[]` across the board** — the capability nothing uses. Start where
+   a second verb is obvious: `psg` kill, `repos` open-local, `op` copy-TOTP,
+   `tabs` close.
+6. **The grid five** — one config line each, then tune `[display]`.
+7. **`ha-states`** — the drill-down needs a real mechanism first; biggest job.
+8. **Ports** — `windows` on yabai, `power` on pmset, `pwatch` on BSD ps.
 
 ---
 

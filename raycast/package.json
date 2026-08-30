@@ -102,14 +102,6 @@
       "disabledByDefault": true
     },
     {
-      "name": "palette-ffbookmarks",
-      "title": "Ffbookmarks",
-      "subtitle": "Pal",
-      "description": "list and open browser bookmarks",
-      "mode": "view",
-      "disabledByDefault": true
-    },
-    {
       "name": "palette-gh-reviews",
       "title": "Gh Reviews",
       "subtitle": "Pal",
@@ -218,14 +210,6 @@
       "title": "Tabs",
       "subtitle": "Pal",
       "description": "List and select browser tabs to focus on",
-      "mode": "view",
-      "disabledByDefault": true
-    },
-    {
-      "name": "palette-teams-chats",
-      "title": "Teams Chats",
-      "subtitle": "Pal",
-      "description": "Microsoft Teams recent chats",
       "mode": "view",
       "disabledByDefault": true
     },
