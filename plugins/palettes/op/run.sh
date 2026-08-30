@@ -28,15 +28,15 @@ list() {
       API_CREDENTIAL: "Code", DATABASE: "HardDrive", SERVER: "HardDrive",
       WIRELESS_ROUTER: "Wifi", MEMBERSHIP: "Star", BANK_ACCOUNT: "BankNote"
     }[.category] // "Lock";
-    def label: (.category | ascii_downcase | gsub("_"; " "));
+    def kind: (.category | ascii_downcase | gsub("_"; " "));
     .[] | {
       id: .id,
       name: .title,
       # The account the entry is for - the one thing that tells two GitHub
       # logins apart.
       subtitle: (.additional_information // ""),
-      keywords: [(.urls // [] | map(.href | sub("^https?://"; "") | split("/")[0]))[]?, label],
-      section: label,
+      keywords: [(.urls // [] | map(.href | sub("^https?://"; "") | split("/")[0]))[]?, kind],
+      section: kind,
       icon_rc: glyph,
       icon_xdg: "dialog-password",
       vault: .vault.name,
