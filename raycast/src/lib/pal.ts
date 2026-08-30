@@ -166,12 +166,16 @@ export async function runPal(
   options: { input?: string; timeout?: number } = {},
 ): Promise<string> {
   try {
-    const { stdout } = await exec(palBinary(), [...baseArgs(), ...args], {
+    const running = exec(palBinary(), [...baseArgs(), ...args], {
       env: await env(),
       timeout: options.timeout ?? 30_000,
       maxBuffer: 32 * 1024 * 1024,
-      ...(options.input !== undefined ? { input: options.input } : {}),
-    } as Parameters<typeof exec>[2]);
+    });
+    // execFile has no `input` option - the child's stdin is a pipe nothing
+    // ever writes to or closes, so a pal subcommand that reads an item from
+    // stdin blocks until the timeout kills it. Feed and close it by hand.
+    if (options.input !== undefined) running.child.stdin?.end(options.input);
+    const { stdout } = await running;
     return String(stdout);
   } catch (error) {
     const err = error as { stderr?: string; message?: string; code?: string };

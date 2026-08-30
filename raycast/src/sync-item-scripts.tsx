@@ -7,7 +7,7 @@ import {
   showToast,
   updateCommandMetadata,
 } from "@raycast/api";
-import { metaArgs, parseMeta, runPal } from "./lib/pal";
+import { parseMeta, runPal } from "./lib/pal";
 import { bakeable, generateScripts } from "./lib/scripts";
 
 /**
@@ -31,7 +31,7 @@ export default async function Command() {
 
     // With nothing configured, bake the palette bare `pal` opens, so root
     // search carries the same items the terminal picker does.
-    const meta = parseMeta(await runPal(metaArgs()));
+    const meta = parseMeta(await runPal(["meta"]));
     const palettes = configured.length
       ? configured
       : [meta.default_palette].filter((name) =>
