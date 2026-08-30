@@ -33,7 +33,7 @@ fn list() -> String {
 
     include.iter()
         .flat_map(|palette_name| {
-            let Some(palette_cfg) = pal_cfg.palette.get(palette_name) else {
+            let Some(palette_cfg) = pal_cfg.palette.get(palette_name).filter(|p| p.available()) else {
                 return vec![];
             };
 

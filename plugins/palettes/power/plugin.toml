@@ -7,3 +7,5 @@ auto_list = true
 auto_pick = true
 default_action = "cmd"
 action_key = "cmd"
+# Hidden from listings where the backend isn't installed - the data file shells out to loginctl/systemctl.
+requires = ["systemctl"]

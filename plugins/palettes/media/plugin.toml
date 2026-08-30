@@ -4,3 +4,5 @@ icon = "multimedia-player"
 icon_utf = "󰋋"
 version = "0.1"
 command = ["run.sh"]
+# Hidden from listings where the backend isn't installed - MPRIS; nowplaying-cli is the macOS equivalent.
+requires = ["playerctl"]

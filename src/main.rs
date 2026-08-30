@@ -91,6 +91,9 @@ pub enum Command {
     Meta {
         /// Palette to describe (all palettes if omitted)
         palette: Option<String>,
+        /// Include palettes whose backend is missing on this machine
+        #[arg(long)]
+        all: bool,
     },
     /// Run an action (reads value from stdin)
     Action {
@@ -296,7 +299,7 @@ fn dispatch(config_path: &str, command: Option<Command>, cfg: Config) {
             };
             util::out(&Palette::new(palette_cfg).pick(&resolved, action.as_deref()));
         }
-        Some(Command::Meta { palette }) => util::out(&meta(&cfg, palette.as_deref())),
+        Some(Command::Meta { palette, all }) => util::out(&meta(&cfg, palette.as_deref(), all)),
         Some(Command::Action { name }) => {
             use std::io::Read;
             let mut value = String::new();
@@ -562,7 +565,7 @@ fn find_item(cfg: &config::Palette, id: &str) -> Option<String> {
 /// Describe palettes for an external driver: what they are, how they behave,
 /// and what a pick can do. This is what lets a rich frontend configure itself
 /// before it lists anything.
-fn meta(cfg: &Config, palette: Option<&str>) -> String {
+fn meta(cfg: &Config, palette: Option<&str>, all: bool) -> String {
     let describe = |name: &str, p: &config::Palette| {
         serde_json::json!({
             "name": name,
@@ -585,6 +588,9 @@ fn meta(cfg: &Config, palette: Option<&str>) -> String {
             "action_key": p.action_key,
             "actions": p.actions,
             "include": p.include,
+            "requires": p.requires,
+            "os": p.os,
+            "available": p.available(),
         })
     };
 
@@ -593,7 +599,12 @@ fn meta(cfg: &Config, palette: Option<&str>) -> String {
         return format!("{}\n", serde_json::to_string_pretty(&describe(name, p)).unwrap_or_default());
     }
 
-    let mut names: Vec<_> = cfg.palette.keys().collect();
+    let mut names: Vec<_> = cfg
+        .palette
+        .iter()
+        .filter(|(_, p)| all || p.available())
+        .map(|(name, _)| name)
+        .collect();
     names.sort();
     let palettes: Vec<_> = names.iter().map(|n| describe(n, &cfg.palette[*n])).collect();
 

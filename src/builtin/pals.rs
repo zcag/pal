@@ -22,7 +22,7 @@ fn list() -> String {
         return Config { general: Default::default(), palette: Default::default(), frontend: Default::default() };
     });
 
-    let mut palettes: Vec<_> = cfg.palette.iter().collect();
+    let mut palettes: Vec<_> = cfg.palette.iter().filter(|(_, p)| p.available()).collect();
     palettes.sort_by_key(|(name, _)| (*name).clone());
     palettes.iter()
         .map(|(name, p)| {

@@ -4,3 +4,5 @@ icon = "preferences-system-windows"
 icon_utf = "󰖲"
 version = "0.1"
 command = ["run.sh"]
+# Hidden from listings where the backend isn't installed - a Linux WM; yabai would be the macOS entry.
+requires = ["hyprctl|swaymsg|wmctrl"]

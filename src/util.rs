@@ -151,3 +151,27 @@ pub fn data_dir() -> PathBuf {
 pub fn cache_dir() -> PathBuf {
     xdg_dir("XDG_CACHE_HOME", ".cache").join("pal")
 }
+
+/// Is `name` an executable on PATH? The cheap half of `command -v`, used to
+/// decide whether a palette's backend exists on this machine.
+pub fn has_binary(name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    std::env::var_os("PATH").is_some_and(|paths| {
+        std::env::split_paths(&paths).any(|dir| {
+            let path = dir.join(name);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::metadata(&path)
+                    .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+                    .unwrap_or(false)
+            }
+            #[cfg(not(unix))]
+            {
+                path.is_file()
+            }
+        })
+    })
+}

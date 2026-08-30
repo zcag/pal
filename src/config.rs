@@ -79,6 +79,13 @@ pub struct Palette {
     pub actions: Vec<serde_json::Value>,
     /// Rendering hint for rich frontends: "list" (default) or "grid".
     pub view: Option<String>,
+    /// Binaries this palette's backend needs, `|` between alternatives
+    /// ("pactl|wpctl"). Unmet requirements hide the palette from listings.
+    #[serde(default)]
+    pub requires: Vec<String>,
+    /// Restrict to one platform, when no binary describes the difference:
+    /// "linux" or "macos".
+    pub os: Option<String>,
     /// Presentation hints for rich frontends.
     #[serde(default)]
     pub display: Display,
@@ -91,6 +98,20 @@ pub struct Palette {
     pub desc: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
+}
+
+impl Palette {
+    /// Can this palette do anything on this machine? An unavailable palette is
+    /// hidden from listings but still addressable by name, so `pal list wifi`
+    /// on a mac still tells you why rather than "palette not found".
+    pub fn available(&self) -> bool {
+        if self.os.as_deref().is_some_and(|os| !os.eq_ignore_ascii_case(std::env::consts::OS)) {
+            return false;
+        }
+        self.requires
+            .iter()
+            .all(|req| req.split('|').any(|bin| crate::util::has_binary(bin.trim())))
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -199,6 +220,16 @@ impl Config {
                     }
                     if palette.view.is_none() {
                         palette.view = plugin.get("view").and_then(|v| v.as_str()).map(String::from);
+                    }
+                    // A plugin knows its own dependencies; config.toml may still
+                    // override, which is how you force a palette back on.
+                    if palette.requires.is_empty() {
+                        palette.requires = plugin.get("requires").cloned()
+                            .and_then(|v| v.try_into().ok())
+                            .unwrap_or_default();
+                    }
+                    if palette.os.is_none() {
+                        palette.os = plugin.get("os").and_then(|v| v.as_str()).map(String::from);
                     }
                     // Whole blocks rather than field-by-field: a palette that
                     // overrides presentation at all means to own it.

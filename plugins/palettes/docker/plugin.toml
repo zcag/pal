@@ -4,3 +4,5 @@ icon = "docker"
 icon_utf = "󰡨"
 version = "0.1"
 command = ["run.sh"]
+# Hidden from listings where the backend isn't installed.
+requires = ["docker"]

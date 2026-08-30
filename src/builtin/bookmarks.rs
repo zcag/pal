@@ -21,27 +21,28 @@ fn config() -> serde_json::Value {
 
 fn list() -> String {
     let cfg = config();
-    let browser = cfg.get("browser")
-        .and_then(|v| v.as_str())
-        .unwrap_or("firefox");
-
-    match browser {
-        "firefox" => list_firefox(),
-        "chrome" | "chromium" => list_chrome(),
-        _ => {
-            eprintln!("bookmarks: unsupported browser: {browser}");
+    match cfg.get("browser").and_then(|v| v.as_str()) {
+        Some("firefox") => list_firefox(),
+        Some("chrome") | Some("chromium") => list_chrome(),
+        Some(other) => {
+            eprintln!("bookmarks: unsupported browser: {other}");
             String::new()
         }
+        // Unconfigured: take whichever browser is actually installed here, so
+        // the palette works on a machine without Firefox and says nothing
+        // about the one that isn't there.
+        None if firefox_profile().is_some() => list_firefox(),
+        None => list_chrome(),
     }
 }
 
-fn list_firefox() -> String {
+fn firefox_profile() -> Option<PathBuf> {
     let home = dirs::home_dir().unwrap_or_default();
-    let profiles_dir = home.join(".mozilla/firefox");
+    find_firefox_profile(&home.join(".mozilla/firefox"))
+}
 
-    // Find default profile
-    let profile_dir = find_firefox_profile(&profiles_dir);
-    let Some(profile_dir) = profile_dir else {
+fn list_firefox() -> String {
+    let Some(profile_dir) = firefox_profile() else {
         eprintln!("bookmarks: firefox profile not found");
         return String::new();
     };
@@ -112,10 +113,12 @@ fn find_firefox_profile(profiles_dir: &PathBuf) -> Option<PathBuf> {
 fn list_chrome() -> String {
     let home = dirs::home_dir().unwrap_or_default();
 
-    // Try Chrome, then Chromium
+    // Try Chrome, then Chromium, on either platform's profile location.
     let bookmarks_file = [
         home.join(".config/google-chrome/Default/Bookmarks"),
         home.join(".config/chromium/Default/Bookmarks"),
+        home.join("Library/Application Support/Google/Chrome/Default/Bookmarks"),
+        home.join("Library/Application Support/Chromium/Default/Bookmarks"),
     ]
     .into_iter()
     .find(|p| p.exists());
@@ -141,10 +144,15 @@ fn extract_chrome_bookmarks(node: &serde_json::Value, results: &mut Vec<serde_js
     if let Some(obj) = node.as_object() {
         // Check if this is a bookmark
         if obj.get("type").and_then(|v| v.as_str()) == Some("url") {
+            let url = obj.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            let name = obj.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            // Icon-only bookmarks-bar entries carry no name; a bare host beats
+            // a blank row.
+            let name = if name.is_empty() { host_of(url) } else { name.to_string() };
             results.push(json!({
                 "id": obj.get("id").and_then(|v| v.as_str()).unwrap_or(""),
-                "name": obj.get("name").and_then(|v| v.as_str()).unwrap_or(""),
-                "url": obj.get("url").and_then(|v| v.as_str()).unwrap_or(""),
+                "name": name,
+                "url": url,
                 "icon": "bookmark",
             }));
         }
@@ -176,4 +184,15 @@ fn pick(input: &str) -> String {
     let _ = Command::new("xdg-open").arg(url).spawn();
 
     String::new()
+}
+
+/// "https://mail.google.com/mail/u/0/#inbox" -> "mail.google.com"
+fn host_of(url: &str) -> String {
+    url.split_once("://")
+        .map(|(_, rest)| rest)
+        .unwrap_or(url)
+        .split('/')
+        .next()
+        .unwrap_or(url)
+        .to_string()
 }
