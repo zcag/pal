@@ -60,9 +60,10 @@ Every palette below is judged against these; `otp` is the worked example.
 
 | | Palette | State on hornet |
 |---|---|---|
-| ✅ | apps, bookmarks, calc, chars, cmds, colors, combine, emoji, ffbookmarks, ha-services, ha-states, iconkde, iconnerd, ip, mk, otp, pals, psg, ssh, tabs, today | works, polish below |
+| ✅ | apps, bookmarks, calc, chars, cmds, colors, combine, emoji, ha-services, ha-states, iconkde, iconnerd, ip, mk, otp, pals, psg, ssh, tabs, today | works, polish below |
 | 🙈 | audio, ble, clipboard, docker, gl-reviews, kittysessions, media, power, pwatch, systemd, wifi, windows | **hidden** since 2026-08-30 — backend not on this machine |
 | 🔑 | gh-reviews, op, repos | the binary is here, the account isn't |
+| 🚫 | ffbookmarks | works, but cut by choice 2026-08-30 — commented out in `config.toml` |
 | ⚰️ | teams-chats | dead infra — NGSS offboarding, 2026-08-12 |
 
 That was 11 of 37 unable to work here and 6 more that didn't answer — **fewer
@@ -70,8 +71,13 @@ than half the palettes doing anything on the laptop they are used from**.
 ✅ Resolved 2026-08-30: each palette now declares `requires` (binaries, `|`
 between alternatives) or `os` in its own `plugin.toml`, and drops out of `meta`,
 `pals`, `combine` and the Raycast command list where that isn't met. 25 visible,
-12 hidden. They stay addressable by name, so `pal list wifi` on a mac still
-explains itself; `pal meta --all` lists everything with its reason.
+12 hidden, and `ffbookmarks` commented out by choice. They stay addressable by
+name, so `pal list wifi` on a mac still explains itself; `pal meta --all` lists
+everything with its reason.
+
+📌 Gating and choosing are different things and shouldn't share a mechanism.
+`requires`/`os` says *this can't run here*; not wanting a palette is a
+`config.toml` edit. `ffbookmarks` is the second kind — it works fine now.
 
 ---
 
@@ -220,17 +226,19 @@ the schema says `subtitle`, so nothing renders it.
 - `section` by kind (infra / personal / work).
 - `actions[]`: open, copy url, open in a specific browser profile.
 
-### ffbookmarks ✅ works now, but does it earn its slot?
+### ffbookmarks 🚫 fixed, then cut
 The builtin always had a Chrome branch; it only knew the two *Linux* profile
 paths, so it claimed "firefox profile not found" on a mac holding 312 Chrome
 bookmarks. Fixed: macOS locations added, the browser auto-detected when
 unconfigured, and the 19 icon-only bookmarks-bar entries that carry no name now
 fall back to their host instead of rendering as blank rows.
-- It is now a flat list of all 312, which is a lot of noise next to the curated
-  `bookmarks` palette (its 20-odd hand-picked entries with real names).
-- If it stays: `subtitle`/`section` = the containing folder, which the extractor
-  currently discards, and **rename it** — nothing about it is Firefox any more.
-- If it goes: `bookmarks` already covers the ones he actually reaches for.
+**Cut 2026-08-30**: 312 flat rows next to the twenty curated `bookmarks` entries
+was noise, and those twenty are the ones actually reached for. Commented out in
+`config.toml` rather than gated — it works, it just isn't wanted. The builtin
+fix stands for whoever uncomments it.
+
+If it ever comes back: `subtitle`/`section` = the containing folder, which the
+extractor discards, and **rename it** — nothing about it is Firefox any more.
 
 ### apps
 Already right — `fileIcon` from the .app path is the correct icon and it works.
