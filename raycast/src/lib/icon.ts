@@ -55,6 +55,7 @@ const XDG_TO_RAYCAST: Record<string, Icon> = {
   "audio-volume-muted": Icon.SpeakerOff,
   "battery": Icon.Battery,
   "computer": Icon.Desktop,
+  "dialog-error": Icon.XMarkCircle,
   "dialog-information": Icon.Info,
   "dialog-warning": Icon.Warning,
   "document-open": Icon.Document,
