@@ -68,7 +68,7 @@ export function PaletteView({
   // first list runs; palettes without filters never gate on it.
   const [filter, setFilter] = useState<string | undefined>(undefined);
 
-  const { data: meta } = useExec(palBinary(), metaArgs(palette), {
+  const { data: meta, error: metaError } = useExec(palBinary(), metaArgs(palette), {
     parseOutput: (out) => parsePaletteMeta(out),
     env,
     execute: ready && !seed,
@@ -310,13 +310,17 @@ export function PaletteView({
     ? (meta?.input_prompt ?? `Type to query ${palette}`)
     : `Search ${palette}`;
 
-  if (error) {
+  // Items are gated on `!!meta`, so a meta failure would otherwise leave this
+  // branch unreached and the only report a toast - which is lost outright if
+  // Raycast has already torn the channel down. Show whichever failed.
+  const failure = error ?? metaError;
+  if (failure) {
     return (
       <List navigationTitle={navigationTitle}>
         <List.EmptyView
           icon={{ source: Icon.Warning, tintColor: Color.Red }}
-          title={`Could not list "${palette}"`}
-          description={String(error.message ?? error).slice(0, 500)}
+          title={error ? `Could not list "${palette}"` : `Could not load "${palette}"`}
+          description={String(failure.message ?? failure).slice(0, 500)}
           actions={
             <ActionPanel>
               <Action title="Retry" icon={Icon.ArrowClockwise} onAction={revalidate} />
