@@ -248,8 +248,10 @@ export function parseItems(stdout: string): PalItem[] {
  * into "Unexpected end of JSON input", which says nothing about the cause.
  */
 function parseJSON<T>(what: string, out: string | { stdout: string; stderr?: string }): T {
-  const stdout = typeof out === "string" ? out : out.stdout;
-  const stderr = typeof out === "string" ? "" : (out.stderr ?? "");
+  // useExec still calls parseOutput when the spawn itself failed, and stdout is
+  // undefined there rather than empty - so this cannot assume a string.
+  const stdout = (typeof out === "string" ? out : out.stdout) ?? "";
+  const stderr = (typeof out === "string" ? "" : out.stderr) ?? "";
   if (!stdout.trim()) {
     const why = stderr.trim() || "no output and no error - is `pal` on PATH?";
     throw new Error(`Could not read ${what}: ${why}`);
