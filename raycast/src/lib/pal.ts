@@ -1,5 +1,7 @@
 import { Cache, getPreferenceValues } from "@raycast/api";
 import { execFile } from "node:child_process";
+import { accessSync, constants } from "node:fs";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const exec = promisify(execFile);
@@ -180,9 +182,53 @@ function baseArgs(): string[] {
   return configPath?.trim() ? ["--config", configPath.trim()] : [];
 }
 
+/**
+ * Where pal is, as an absolute path.
+ *
+ * A bare "pal" leaves resolution to the spawn, and Raycast's runtime does not
+ * survive that when the binary is not on the PATH it searches - the whole app
+ * goes down, with an empty stdout as the only clue. So resolve it here, from
+ * the login PATH when we have it and from the usual places when we do not.
+ */
+let resolvedBinary: string | undefined;
+
+function findPal(name: string): string | undefined {
+  const fromPath = (cachedShellPath() ?? process.env.PATH ?? "").split(":");
+  const home = process.env.HOME ?? "";
+  const candidates = [
+    ...fromPath,
+    `${home}/.cargo/bin`,
+    `${home}/.local/bin`,
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+  ];
+
+  for (const dir of candidates) {
+    if (!dir) continue;
+    const candidate = join(dir, name);
+    try {
+      accessSync(candidate, constants.X_OK);
+      return candidate;
+    } catch {
+      // not here; keep looking
+    }
+  }
+  return undefined;
+}
+
 export function palBinary(): string {
-  const { palPath } = prefs();
-  return palPath?.trim() || "pal";
+  const configured = prefs().palPath?.trim();
+
+  // The preference *defaults* to the bare name "pal", which means "find it",
+  // not "spawn this literally" - and spawning a bare name Raycast's PATH cannot
+  // resolve takes the whole app down rather than raising ENOENT. Only a real
+  // path overrides resolution.
+  if (configured?.includes("/")) return configured;
+
+  const name = configured || "pal";
+  if (!resolvedBinary) resolvedBinary = findPal(name);
+  // Nothing found: fall back to the name so the failure reads as pal's absence.
+  return resolvedBinary ?? name;
 }
 
 /** Run pal and return stdout. Throws with stderr attached on failure. */
