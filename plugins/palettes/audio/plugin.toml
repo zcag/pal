@@ -4,5 +4,5 @@ icon = "audio-card"
 icon_utf = "󰓃"
 version = "0.1"
 command = ["run.sh"]
-# Hidden from listings where the backend isn't installed - PipeWire/PulseAudio; a macOS port would add SwitchAudioSource here.
-requires = ["pactl|wpctl"]
+# Hidden from listings where no backend is installed - PipeWire/PulseAudio, or SwitchAudioSource on macOS.
+requires = ["pactl|wpctl|SwitchAudioSource"]

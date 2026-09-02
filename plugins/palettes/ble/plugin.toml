@@ -4,5 +4,5 @@ icon = "bluetooth"
 icon_utf = "󰂯"
 version = "0.1"
 command = ["run.sh"]
-# Hidden from listings where the backend isn't installed - BlueZ; blueutil is the macOS equivalent.
-requires = ["bluetoothctl"]
+# Hidden from listings where no backend is installed - BlueZ, or blueutil on macOS.
+requires = ["bluetoothctl|blueutil"]
