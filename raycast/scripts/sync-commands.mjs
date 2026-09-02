@@ -50,6 +50,16 @@ for (const file of readdirSync(srcDir)) {
   if (file.startsWith(PREFIX) && file.endsWith(".tsx")) unlinkSync(join(srcDir, file));
 }
 
+const pkgPath = join(root, "package.json");
+const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+
+// What each generated command's enabled state is today. The in-extension sync
+// shells this script with no --enable, so without carrying this forward every
+// sync would silently switch off everything you had turned on.
+const previous = new Map(
+  pkg.commands.filter((c) => c.name.startsWith(PREFIX)).map((c) => [c.name, c]),
+);
+
 const commands = [];
 for (const palette of palettes) {
   const name = `${PREFIX}${slug(palette.name)}`;
@@ -69,18 +79,22 @@ for (const palette of palettes) {
     description: palette.desc || `Run the ${palette.name} palette`,
     mode: "view",
   };
-  if (!enabled.has(palette.name)) command.disabledByDefault = true;
+  // --enable turns one on; anything else keeps the state it already had, and a
+  // command generated for the first time starts off.
+  // An enabled command carries no `disabledByDefault` key at all, so absence
+  // means on, not unknown - only a command we have never generated is new.
+  const prev = previous.get(name);
+  const off = enabled.has(palette.name) ? false : prev ? prev.disabledByDefault === true : true;
+  if (off) command.disabledByDefault = true;
   if (palette.name !== slug(palette.name)) command.keywords = [palette.name];
   commands.push(command);
 }
 
-const pkgPath = join(root, "package.json");
-const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
 // Keep every hand-written command; only the generated palette-* set is ours.
 const kept = pkg.commands.filter((c) => !c.name.startsWith(PREFIX));
 pkg.commands = [...kept, ...commands.sort((a, b) => a.name.localeCompare(b.name))];
 writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
 
 console.log(
-  `wrote ${commands.length} palette commands (${enabled.size} enabled by default)`,
+  `wrote ${commands.length} palette commands (${commands.filter((c) => !c.disabledByDefault).length} enabled)`,
 );
