@@ -1,7 +1,7 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { PalItem, PaletteMeta, parseItems, parsePaletteMeta, runPal } from "./pal";
+import { PalItem, PaletteMeta, parseItems, parsePaletteMeta, runPal, shellPath } from "./pal";
 import { asEmoji } from "./icon";
 import { installedManifest, paletteDeeplink } from "./extension";
 
@@ -135,6 +135,16 @@ export async function generateScripts(
 
   const localBuild = (installedManifest()?.commands ?? []).some((c) => c.name.startsWith("palette-"));
 
+  // Raycast runs a script command with the GUI PATH, which on a stock macOS is
+  // empty -- so `pal` (~/.cargo/bin) is not found and the script dies on its
+  // exec line, and even once it is, the item's own command (~/.local/bin) is
+  // not found either. Bake in the login shell's PATH, the same one the
+  // extension already resolves for its own child processes, rather than
+  // teaching the scripts a second, divergent story about where binaries live.
+  // Resolved once per sync and embedded, not resolved per run: a login shell
+  // costs a few hundred ms and this sits in front of every item.
+  const path = await shellPath();
+
   const results: Array<{ palette: string; count: number; error?: string }> = [];
 
   for (const palette of palettes) {
@@ -152,7 +162,7 @@ export async function generateScripts(
         if (sourceOf(item, palette) === "pals" && localBuild) continue;
 
         const name = `${slug(palette)}-${slug(item.id ?? item.name)}`;
-        const body = await scriptFor(palette, item, meta, allMeta, name);
+        const body = await scriptFor(palette, item, meta, allMeta, name, path);
         writeFileSync(join(SCRIPTS_DIR, `${name}.sh`), body, { mode: 0o755 });
         written++;
       }
@@ -171,6 +181,7 @@ async function scriptFor(
   meta: PaletteMeta,
   allMeta: Map<string, PaletteMeta>,
   name: string,
+  path: string,
 ): Promise<string> {
   const source = sourceOf(item, palette);
   const sourceMeta = allMeta.get(source) ?? meta;
@@ -199,6 +210,10 @@ async function scriptFor(
     ? `open "${paletteDeeplink(item.id)}"`
     : `exec pal pick ${palette} --id '${id}'`;
 
+  // Double quotes, so a directory with a space survives; escape what the shell
+  // would still read inside them.
+  const exportPath = path ? `export PATH="${path.replace(/(["\\$`])/g, "\\$1")}"` : undefined;
+
   return [
     "#!/bin/bash",
     "",
@@ -213,6 +228,7 @@ async function scriptFor(
     isPalette
       ? "# a palette entry, so this opens the palette in Raycast"
       : "# resolves the item fresh on each run, so only the title above can go stale",
+    ...(exportPath ? [exportPath] : []),
     action,
     "",
   ].join("\n");
