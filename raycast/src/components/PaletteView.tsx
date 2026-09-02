@@ -69,7 +69,7 @@ export function PaletteView({
   const [filter, setFilter] = useState<string | undefined>(undefined);
 
   const { data: meta } = useExec(palBinary(), metaArgs(palette), {
-    parseOutput: ({ stdout }) => parsePaletteMeta(stdout),
+    parseOutput: (out) => parsePaletteMeta(out),
     env,
     execute: ready && !seed,
     initialData: seed,
@@ -86,7 +86,7 @@ export function PaletteView({
   // brings no usable icon should inherit its *source* palette's, not the
   // containing one's. Only combines need the extra lookup.
   const { data: allMeta } = useExec(palBinary(), metaArgs(), {
-    parseOutput: ({ stdout }) => parseMeta(stdout),
+    parseOutput: (out) => parseMeta(out),
     env,
     execute: ready && Boolean(meta?.include?.length),
     keepPreviousData: true,

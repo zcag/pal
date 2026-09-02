@@ -29,7 +29,7 @@ export function PaletteBrowser() {
   const { env, ready } = usePalEnv();
 
   const { data, isLoading, revalidate, error } = useExec(palBinary(), metaArgs(), {
-    parseOutput: ({ stdout }) => parseMeta(stdout),
+    parseOutput: (out) => parseMeta(out),
     env,
     execute: ready,
     keepPreviousData: true,

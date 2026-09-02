@@ -242,12 +242,31 @@ export function parseItems(stdout: string): PalItem[] {
   return items;
 }
 
-export function parseMeta(stdout: string): PalMeta {
-  return JSON.parse(stdout) as PalMeta;
+/**
+ * `pal meta` output, or a readable error. A bare JSON.parse turns every way of
+ * failing to run pal - not on PATH, non-zero exit, a plugin writing to stdout -
+ * into "Unexpected end of JSON input", which says nothing about the cause.
+ */
+function parseJSON<T>(what: string, out: string | { stdout: string; stderr?: string }): T {
+  const stdout = typeof out === "string" ? out : out.stdout;
+  const stderr = typeof out === "string" ? "" : (out.stderr ?? "");
+  if (!stdout.trim()) {
+    const why = stderr.trim() || "no output and no error - is `pal` on PATH?";
+    throw new Error(`Could not read ${what}: ${why}`);
+  }
+  try {
+    return JSON.parse(stdout) as T;
+  } catch {
+    throw new Error(`${what} was not valid JSON: ${stdout.trim().slice(0, 200)}`);
+  }
 }
 
-export function parsePaletteMeta(stdout: string): PaletteMeta {
-  return JSON.parse(stdout) as PaletteMeta;
+export function parseMeta(out: string | { stdout: string; stderr?: string }): PalMeta {
+  return parseJSON<PalMeta>("pal meta", out);
+}
+
+export function parsePaletteMeta(out: string | { stdout: string; stderr?: string }): PaletteMeta {
+  return parseJSON<PaletteMeta>("the palette's meta", out);
 }
 
 /** Run a pick and return whatever it produced. */

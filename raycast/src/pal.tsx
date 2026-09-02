@@ -19,7 +19,7 @@ export default function Command(props: LaunchProps<{ launchContext?: { palette?:
   const { env, ready } = usePalEnv();
 
   const { data, isLoading } = useExec(palBinary(), metaArgs(), {
-    parseOutput: ({ stdout }) => parseMeta(stdout),
+    parseOutput: (out) => parseMeta(out),
     env,
     execute: ready && rootView !== "browser",
     keepPreviousData: true,
