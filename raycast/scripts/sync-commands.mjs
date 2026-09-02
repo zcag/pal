@@ -38,7 +38,19 @@ const meta = JSON.parse(
   execFileSync("pal", ["meta"], { encoding: "utf8", env: { ...process.env, PATH: shellPath } }),
 );
 
-const palettes = meta.palettes.filter((p) => (only.length ? only.includes(p.name) : true));
+// A palette already reachable from root another way does not need a command of
+// its own: the default palette *is* the `pal` command, and the palettes it
+// combines have their items baked individually as script commands. Generating
+// these produced five entries whose only honest advice was "don't enable this".
+const rootPalette = meta.default_palette;
+const atRoot = new Set([
+  rootPalette,
+  ...(meta.palettes.find((p) => p.name === rootPalette)?.include ?? []),
+]);
+
+const palettes = meta.palettes.filter(
+  (p) => !atRoot.has(p.name) && (only.length ? only.includes(p.name) : true),
+);
 
 // A palette name has to survive becoming a filename and a command name.
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");

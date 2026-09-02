@@ -59,13 +59,6 @@
       "mode": "view"
     },
     {
-      "name": "palette-bookmarks",
-      "title": "Bookmarks",
-      "subtitle": "Pal",
-      "description": "hand-picked links",
-      "mode": "view"
-    },
-    {
       "name": "palette-calc",
       "title": "Calc",
       "subtitle": "Pal",
@@ -80,24 +73,10 @@
       "mode": "view"
     },
     {
-      "name": "palette-cmds",
-      "title": "Cmds",
-      "subtitle": "Pal",
-      "description": "run preset commands",
-      "mode": "view"
-    },
-    {
       "name": "palette-colors",
       "title": "Colors",
       "subtitle": "Pal",
       "description": "color picker",
-      "mode": "view"
-    },
-    {
-      "name": "palette-combine",
-      "title": "Combine",
-      "subtitle": "Pal",
-      "description": "combine multiple palettes",
       "mode": "view"
     },
     {
@@ -168,20 +147,6 @@
       "title": "Otp",
       "subtitle": "Pal",
       "description": "OTP sms codes to clipboard",
-      "mode": "view"
-    },
-    {
-      "name": "palette-pals",
-      "title": "Pals",
-      "subtitle": "Pal",
-      "description": "list and run palettes",
-      "mode": "view"
-    },
-    {
-      "name": "palette-power",
-      "title": "Power",
-      "subtitle": "Pal",
-      "description": "power options",
       "mode": "view"
     },
     {

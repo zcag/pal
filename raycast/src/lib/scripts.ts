@@ -133,7 +133,7 @@ export async function generateScripts(
     // Falls back to per-palette lookups below.
   }
 
-  const commands = new Set(installedManifest()?.commands?.map((c) => c.name) ?? []);
+  const localBuild = (installedManifest()?.commands ?? []).some((c) => c.name.startsWith("palette-"));
 
   const results: Array<{ palette: string; count: number; error?: string }> = [];
 
@@ -144,12 +144,12 @@ export async function generateScripts(
 
       let written = 0;
       for (const item of items) {
-        // A `pals` row *is* a palette, and a locally synced build already has a
-        // real command for it - baking one too puts the same palette in root
-        // search twice, and the script is the worse half (it can only bounce
-        // through a deeplink). The store build has no such command, so there
-        // the script is still the only way in.
-        if (sourceOf(item, palette) === "pals" && commands.has(`palette-${slug(item.id)}`)) continue;
+        // A `pals` row *is* a palette, and a script can only reach one by
+        // deeplink - which does not resolve for a locally imported extension.
+        // A local build is exactly the one carrying `palette-*` commands, so
+        // that is the test: there, the commands are the way in and a script
+        // would be a dead duplicate. A store build has none and still gets it.
+        if (sourceOf(item, palette) === "pals" && localBuild) continue;
 
         const name = `${slug(palette)}-${slug(item.id ?? item.name)}`;
         const body = await scriptFor(palette, item, meta, allMeta, name);
