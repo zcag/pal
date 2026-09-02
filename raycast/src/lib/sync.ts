@@ -1,7 +1,7 @@
 import { getPreferenceValues } from "@raycast/api";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { shellPath } from "./pal";
+import { resolveBinary, shellPath } from "./pal";
 import { installedManifest } from "./extension";
 
 const exec = promisify(execFile);
@@ -18,9 +18,22 @@ const slug = (name: string) =>
  * always live - only this keyword layer is stale. The next best thing is to
  * notice and say so.
  */
-export function palettesMissingCommands(palettes: Array<{ name: string }>): string[] {
+export function palettesMissingCommands(meta: {
+  default_palette?: string;
+  palettes?: Array<{ name: string; include?: string[] }>;
+}): string[] {
+  const palettes = meta.palettes ?? [];
   const manifest = installedManifest();
   if (!manifest?.commands) return [];
+
+  // The generator deliberately skips palettes already reachable from root -
+  // the default palette *is* the `pal` command, and the ones it combines have
+  // their items baked as script commands. Same rule here, or they read as
+  // permanently out of sync.
+  const root = meta.default_palette;
+  const atRoot = new Set(
+    root ? [root, ...(palettes.find((p) => p.name === root)?.include ?? [])] : [],
+  );
 
   const have = new Set(
     manifest.commands
@@ -32,7 +45,9 @@ export function palettesMissingCommands(palettes: Array<{ name: string }>): stri
   // don't nag about every palette in that case.
   if (have.size === 0) return [];
 
-  return palettes.map((p) => p.name).filter((name) => !have.has(slug(name)));
+  return palettes
+    .map((p) => p.name)
+    .filter((name) => !atRoot.has(name) && !have.has(slug(name)));
 }
 
 export function sourcePath(): string {
@@ -53,7 +68,8 @@ export async function syncCommands(): Promise<string> {
       "Set “Extension Source Folder” in preferences to the pal repo's raycast/ directory first.",
     );
   }
-  const { stdout } = await exec("npm", ["run", "sync"], {
+  // resolveBinary, not "npm": a bare name Raycast cannot resolve kills the app.
+  const { stdout } = await exec(resolveBinary("npm"), ["run", "sync"], {
     cwd,
     env: { ...process.env, PATH: await shellPath() },
     timeout: 120_000,

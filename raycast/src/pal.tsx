@@ -4,6 +4,7 @@ import { metaArgs, palBinary, parseMeta } from "./lib/pal";
 import { usePalEnv } from "./lib/useEnv";
 import { PaletteBrowser } from "./components/PaletteBrowser";
 import { PaletteView } from "./components/PaletteView";
+import { palettesMissingCommands } from "./lib/sync";
 
 /**
  * The root command. `pal` with no arguments runs the configured
@@ -36,5 +37,11 @@ export default function Command(props: LaunchProps<{ launchContext?: { palette?:
 
   if (!data) return <List isLoading={isLoading || !ready} searchBarPlaceholder="Loading palettes…" />;
 
-  return <PaletteView palette={data.default_palette} initialSearch={fallback} />;
+  // Surfaced here as well as in the browser: the browser is behind a
+  // preference, so the default view is where a missing command is noticed.
+  const unsynced = palettesMissingCommands(data);
+
+  return (
+    <PaletteView palette={data.default_palette} initialSearch={fallback} unsynced={unsynced} />
+  );
 }

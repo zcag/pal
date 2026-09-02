@@ -1,3 +1,5 @@
+.PHONY: run test build install watch raycast release
+
 run:
 	cargo run -- --config pal.default.toml
 
@@ -12,6 +14,13 @@ install:
 
 watch:
 	cargo watch -x 'run -- --config pal.default.toml'
+
+# The Raycast extension's command list is baked into its manifest at install
+# time, so a palette added to config.toml has no command until this runs.
+# Palette *contents* are read live and need nothing; item scripts re-sync
+# hourly on their own. This is the only sync anything ever needs.
+raycast:
+	cd raycast && npm run sync && npm run build
 
 # Release: `make release` bumps the patch version; `make release V=0.3.0` releases
 # that exact version (and releases the current one as-is if it's already set).

@@ -36,13 +36,17 @@ import { iconFor, itemIcon, resolveIcon, toColor, withMask } from "../lib/icon";
 import { accessoriesFor, palEnvFor } from "../lib/accessories";
 import { handleOutput, parseShortcut } from "../lib/envelope";
 import { listMetadata } from "./Metadata";
+import { OutOfSync } from "./OutOfSync";
 
 export function PaletteView({
   palette,
   meta: seed,
   initialSearch,
   scopeEnv,
+  unsynced = [],
 }: {
+  /** Palettes with no Raycast command yet; shown as a section when non-empty. */
+  unsynced?: string[];
   palette: string;
   meta?: PaletteMeta;
   /** Seed the search bar - used when Pal runs as a fallback command. */
@@ -401,6 +405,7 @@ export function PaletteView({
       searchBarAccessory={scope}
       isShowingDetail={showDetail && hasDetail}
     >
+      <OutOfSync palettes={unsynced} onSynced={revalidate} />
       {groups.map(([section, sectionItems]) => (
         <List.Section
           key={section ?? "_"}

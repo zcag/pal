@@ -93,16 +93,27 @@ root search.
 
 ## Keeping it in sync
 
+**One command covers everything: `make raycast`** (from the repo root - it is
+`npm run sync && npm run build` here). Safe to run any time.
+
 | You changed | Run | Notes |
 |---|---|---|
 | A palette's items, data file, or plugin | nothing | Read live on every open |
-| Items of a *baked* palette | **Sync Pal Item Scripts** | Also runs hourly on its own |
-| Added or removed a palette in `config.toml` | **Sync Pal Palette Commands** | Rewrites the manifest, so it needs a rebuild before the command appears |
-| The extension's own code | `npm run dev` | Rebuilds and reinstalls |
+| Items of a *baked* palette | nothing | *Sync Pal Item Scripts* re-runs hourly on its own |
+| Added, removed or renamed a palette in `config.toml` | **`make raycast`** | Regenerates the manifest and rebuilds, so the command appears |
+| A palette's `requires`, so it became (un)available | **`make raycast`** | Commands come from `pal meta`, which lists only available palettes |
+| The extension's own code | **`make raycast`** | Or `npm run dev` while iterating |
 
 Palette *contents* are never baked - the extension shells out on every open, so
-config edits show up immediately. Only the two command layers need a sync,
-because Raycast reads both from static manifests at install time.
+config edits show up immediately. Only Raycast's **command list** is static,
+because Raycast reads it from a manifest at install time. The two `Sync Pal …`
+commands inside Raycast do the same two halves by hand; you need neither if you
+run `make raycast`.
+
+A caveat `make raycast` cannot fix: Raycast keeps per-command enabled state in
+its own store and only honours `disabledByDefault` for a command name it has
+never seen. A newly added palette arrives enabled; changing an existing one's
+default needs a remove-and-reimport.
 
 ## Why root search needs the extra step
 

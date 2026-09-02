@@ -190,9 +190,9 @@ function baseArgs(): string[] {
  * goes down, with an empty stdout as the only clue. So resolve it here, from
  * the login PATH when we have it and from the usual places when we do not.
  */
-let resolvedBinary: string | undefined;
+const resolved = new Map<string, string>();
 
-function findPal(name: string): string | undefined {
+function search(name: string): string | undefined {
   const fromPath = (cachedShellPath() ?? process.env.PATH ?? "").split(":");
   const home = process.env.HOME ?? "";
   const candidates = [
@@ -216,19 +216,24 @@ function findPal(name: string): string | undefined {
   return undefined;
 }
 
+/**
+ * An absolute path for a binary we are about to spawn. Never hand a bare name
+ * to a spawn from here: Raycast's PATH is not a login PATH, and a name it
+ * cannot resolve takes the whole app down instead of raising ENOENT.
+ */
+export function resolveBinary(name: string): string {
+  const hit = resolved.get(name) ?? search(name);
+  // Nothing found: fall back to the name so the failure reads as its absence.
+  if (hit) resolved.set(name, hit);
+  return hit ?? name;
+}
+
 export function palBinary(): string {
   const configured = prefs().palPath?.trim();
-
   // The preference *defaults* to the bare name "pal", which means "find it",
-  // not "spawn this literally" - and spawning a bare name Raycast's PATH cannot
-  // resolve takes the whole app down rather than raising ENOENT. Only a real
-  // path overrides resolution.
+  // not "spawn this literally". Only a real path overrides resolution.
   if (configured?.includes("/")) return configured;
-
-  const name = configured || "pal";
-  if (!resolvedBinary) resolvedBinary = findPal(name);
-  // Nothing found: fall back to the name so the failure reads as pal's absence.
-  return resolvedBinary ?? name;
+  return resolveBinary(configured || "pal");
 }
 
 /** Run pal and return stdout. Throws with stderr attached on failure. */
