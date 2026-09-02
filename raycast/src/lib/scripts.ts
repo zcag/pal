@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { PalItem, PaletteMeta, parseItems, parsePaletteMeta, runPal } from "./pal";
 import { asEmoji } from "./icon";
-import { installedManifest, paletteDeeplink } from "./extension";
+import { paletteDeeplink } from "./extension";
 
 /** Where the generated script commands live. Register this once in Raycast. */
 export const SCRIPTS_DIR = join(homedir(), ".config", "raycast", "generated", "pal");
@@ -72,10 +72,6 @@ function paletteEmoji(meta: PaletteMeta): string | undefined {
 const slug = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
 
-/** Which palette an item really came from - a combine carries its rows' origin. */
-const sourceOf = (item: PalItem, palette: string) =>
-  typeof item._source === "string" ? item._source : palette;
-
 /**
  * Cache a site icon next to the scripts and return its path.
  *
@@ -133,8 +129,6 @@ export async function generateScripts(
     // Falls back to per-palette lookups below.
   }
 
-  const commands = new Set(installedManifest()?.commands?.map((c) => c.name) ?? []);
-
   const results: Array<{ palette: string; count: number; error?: string }> = [];
 
   for (const palette of palettes) {
@@ -142,21 +136,12 @@ export async function generateScripts(
       const meta = allMeta.get(palette) ?? parsePaletteMeta(await runPal(["meta", palette]));
       const items = parseItems(await runPal(["list", palette]));
 
-      let written = 0;
       for (const item of items) {
-        // A `pals` row *is* a palette, and a locally synced build already has a
-        // real command for it - baking one too puts the same palette in root
-        // search twice, and the script is the worse half (it can only bounce
-        // through a deeplink). The store build has no such command, so there
-        // the script is still the only way in.
-        if (sourceOf(item, palette) === "pals" && commands.has(`palette-${slug(item.id)}`)) continue;
-
         const name = `${slug(palette)}-${slug(item.id ?? item.name)}`;
         const body = await scriptFor(palette, item, meta, allMeta, name);
         writeFileSync(join(SCRIPTS_DIR, `${name}.sh`), body, { mode: 0o755 });
-        written++;
       }
-      results.push({ palette, count: written });
+      results.push({ palette, count: items.length });
     } catch (e) {
       results.push({ palette, count: 0, error: e instanceof Error ? e.message : String(e) });
     }
@@ -172,7 +157,7 @@ async function scriptFor(
   allMeta: Map<string, PaletteMeta>,
   name: string,
 ): Promise<string> {
-  const source = sourceOf(item, palette);
+  const source = typeof item._source === "string" ? item._source : palette;
   const sourceMeta = allMeta.get(source) ?? meta;
 
   // An item from the `pals` palette *is* another palette. Running its pick
