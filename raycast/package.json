@@ -46,6 +46,22 @@
       "disabledByDefault": true
     },
     {
+      "name": "palette-audio",
+      "title": "Audio",
+      "subtitle": "Pal",
+      "description": "list and switch audio output devices",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
+      "name": "palette-ble",
+      "title": "Ble",
+      "subtitle": "Pal",
+      "description": "list and connect bluetooth devices",
+      "mode": "view",
+      "disabledByDefault": true
+    },
+    {
       "name": "palette-bookmarks",
       "title": "Bookmarks",
       "subtitle": "Pal",

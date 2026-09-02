@@ -58,7 +58,9 @@ list() {
   elif command -v SwitchAudioSource &>/dev/null; then
     list_macos | emit
   else
-    echo '{"id":"error","name":"No audio backend found","icon_xdg":"dialog-error"}' >&2
+    # stdout, not stderr: a frontend reads items off stdout, so a row sent to
+    # stderr is an empty palette that never says why.
+    echo '{"id":"error","name":"No audio backend found","icon_xdg":"dialog-error"}'
   fi
 }
 

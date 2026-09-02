@@ -39,7 +39,8 @@ list() {
   case "$(backend)" in
     bluez)    list_bluez | emit ;;
     blueutil) list_blueutil | emit ;;
-    *) echo '{"id":"error","name":"No bluetooth adapter found","icon_xdg":"dialog-error"}' >&2 ;;
+    # stdout, not stderr - a row on stderr is an empty palette that never says why.
+    *) echo '{"id":"error","name":"No bluetooth adapter found","icon_xdg":"dialog-error"}' ;;
   esac
 }
 
