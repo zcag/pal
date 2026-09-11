@@ -1,7 +1,7 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { PalItem, PaletteMeta, parseItems, parsePaletteMeta, runPal, shellPath } from "./pal";
+import { PalItem, PaletteMeta, palBinary, parseItems, parsePaletteMeta, runPal, shellPath } from "./pal";
 import { asEmoji } from "./icon";
 import { installedManifest, paletteDeeplink } from "./extension";
 
@@ -206,9 +206,13 @@ async function scriptFor(
   const oneLine = (s: string) => s.replace(/[\r\n]+/g, " ").trim();
   const id = (item.id ?? item.name).replace(/'/g, "'\\''");
 
+  // Absolute, per the never-spawn-a-bare-name rule: the baked PATH is a
+  // login-shell PATH, and ~/.cargo/bin sat on the interactive one only, so
+  // `exec pal` died with "pal: not found" on every item while the palette
+  // commands (which resolve pal themselves) kept working.
   const action = isPalette
     ? `open "${paletteDeeplink(item.id)}"`
-    : `exec pal pick ${palette} --id '${id}'`;
+    : `exec "${palBinary()}" pick ${palette} --id '${id}'`;
 
   // Double quotes, so a directory with a space survives; escape what the shell
   // would still read inside them.

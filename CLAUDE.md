@@ -37,7 +37,9 @@ Raycast's PATH cannot resolve kills the whole Raycast app** — it does not rais
 ENOENT, it leaves an empty stdout and the window vanishes. Raycast's PATH is not
 a login PATH; it has no `~/.cargo/bin`, where `pal` lives.
 
-Every `useExec`/`execFile` in the extension must take an absolute path. Use
+Every `useExec`/`execFile` in the extension must take an absolute path — and so
+must the `exec` line of every generated script command (`lib/scripts.ts`), which
+runs under a baked login PATH that has proven to lack `~/.cargo/bin` too. Use
 `palBinary()` for pal and `resolveBinary(name)` for anything else. The `palPath`
 preference *defaults to the literal string* `"pal"`, so a bare default is normal
 and means "find it" — only a value containing `/` is ever spawned verbatim.
