@@ -129,6 +129,13 @@
       "mode": "view"
     },
     {
+      "name": "palette-issues",
+      "title": "Issues",
+      "subtitle": "Pal",
+      "description": "GitHub issues waiting on you: unread replies, mentions, assignments",
+      "mode": "view"
+    },
+    {
       "name": "palette-mk",
       "title": "Mk",
       "subtitle": "Pal",
@@ -150,6 +157,13 @@
       "mode": "view"
     },
     {
+      "name": "palette-prs",
+      "title": "Prs",
+      "subtitle": "Pal",
+      "description": "your open pull requests, by state",
+      "mode": "view"
+    },
+    {
       "name": "palette-psg",
       "title": "Psg",
       "subtitle": "Pal",
@@ -168,6 +182,13 @@
       "title": "Repos",
       "subtitle": "Pal",
       "description": "list and open github repositories",
+      "mode": "view"
+    },
+    {
+      "name": "palette-slack",
+      "title": "Slack",
+      "subtitle": "Pal",
+      "description": "what Slack is holding for you: DMs, mentions, thread replies",
       "mode": "view"
     },
     {
