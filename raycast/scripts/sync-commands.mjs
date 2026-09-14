@@ -92,11 +92,16 @@ for (const palette of palettes) {
     mode: "view",
   };
   // --enable turns one on; anything else keeps the state it already had, and a
-  // command generated for the first time starts off.
+  // command generated for the first time starts ON. It used to start off, and
+  // that is a trap: Raycast reads disabledByDefault exactly once, the first
+  // time it sees a command name, so a palette that arrived off could not be
+  // switched on by a later sync - only by hand in Raycast's settings. The
+  // palettes that made "off" the safe default were the root-reachable ones,
+  // and those no longer get a command at all (see atRoot above).
   // An enabled command carries no `disabledByDefault` key at all, so absence
   // means on, not unknown - only a command we have never generated is new.
   const prev = previous.get(name);
-  const off = enabled.has(palette.name) ? false : prev ? prev.disabledByDefault === true : true;
+  const off = enabled.has(palette.name) ? false : prev ? prev.disabledByDefault === true : false;
   if (off) command.disabledByDefault = true;
   if (palette.name !== slug(palette.name)) command.keywords = [palette.name];
   commands.push(command);
