@@ -1,0 +1,267 @@
+/*
+ * pal design tokens. The rendered brief is app/design/brief.html; it inlines
+ * this file, so change values here and rebuild the brief, never the reverse.
+ *
+ * Dark follows the OS unless <html data-theme="light|dark"> pins it.
+ * Every colour pair used for text meets WCAG AA (ratios listed in the brief).
+ */
+
+:root {
+  /* type */
+  --pal-font-ui: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --pal-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --pal-text-xs: 11px;     /* section headers, tags, kbd, footer */
+  --pal-text-sm: 12px;     /* subtitles, accessories, metadata, code */
+  --pal-text-md: 13px;     /* row titles, detail prose, form fields */
+  --pal-text-lg: 15px;     /* detail headings, form title, HUD, empty-state title */
+  --pal-text-xl: 18px;     /* the search input */
+  --pal-leading-ui: 1.25;
+  --pal-leading-prose: 1.55;
+  --pal-weight-regular: 400;
+  --pal-weight-medium: 500;
+  --pal-weight-semibold: 600;
+
+  /* spacing, 4px grid */
+  --pal-space-1: 4px;
+  --pal-space-2: 8px;
+  --pal-space-3: 12px;
+  --pal-space-4: 16px;
+  --pal-space-5: 20px;
+  --pal-space-6: 24px;
+
+  /* geometry */
+  --pal-panel-w: 720px;
+  --pal-panel-h: 440px;
+  --pal-search-h: 52px;
+  --pal-row-h: 40px;
+  --pal-section-h: 28px;
+  --pal-footer-h: 36px;
+  --pal-list-inset: 8px;   /* list padding; keeps the selection pill off the panel edge */
+  --pal-row-px: 8px;       /* row inner padding */
+  --pal-row-gap: 12px;     /* icon to text, text to accessory */
+  --pal-text-x: 52px;      /* left edge shared by query text and row titles */
+  --pal-icon-box: 24px;
+  --pal-icon-glyph: 16px;
+  --pal-icon-emoji: 17px;
+  --pal-icon-favicon: 16px;
+  --pal-list-w-split: 296px; /* list width when a detail pane is open */
+  --pal-grid-cell: 80px;
+  --pal-grid-tile: 56px;
+  --pal-grid-gap: 8px;
+  --pal-control-h: 32px;   /* form fields, action rows */
+  --pal-kbd-h: 18px;
+  --pal-tag-h: 18px;
+
+  /* radius */
+  --pal-radius-panel: 14px;
+  --pal-radius-popover: 12px;
+  --pal-radius-hud: 12px;
+  --pal-radius-tile: 10px;
+  --pal-radius-row: 8px;
+  --pal-radius-icon: 6px;
+  --pal-radius-control: 6px;
+  --pal-radius-tag: 4px;
+  --pal-radius-kbd: 4px;
+  --pal-radius-mark: 2px;
+
+  /* motion */
+  --pal-dur-instant: 0ms;
+  --pal-dur-fast: 80ms;
+  --pal-dur-base: 120ms;
+  --pal-dur-slow: 180ms;
+  --pal-dur-hud-hold: 900ms;
+  --pal-ease: cubic-bezier(0.2, 0, 0, 1);
+  --pal-ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* light-begin */
+  --pal-bg: #F4F4F6;
+  --pal-bg-glass: rgba(244, 244, 246, 0.84);
+  --pal-bg-elevated: #FFFFFF;
+  --pal-bg-sunken: #EAEAEE;
+  --pal-fg: #1A1A1F;
+  --pal-fg-muted: #5C5D66;
+  --pal-fg-faint: #6B6C76;
+  --pal-line: rgba(26, 26, 31, 0.08);
+  --pal-line-strong: rgba(26, 26, 31, 0.16);
+  --pal-selection: rgba(26, 26, 31, 0.07);
+  --pal-scrim: rgba(244, 244, 246, 0.55);
+  --pal-accent: #4F46D6;
+  --pal-accent-fg: #FFFFFF;
+  --pal-accent-soft: rgba(79, 70, 214, 0.12);
+  --pal-match: rgba(255, 176, 32, 0.38);
+  --pal-destructive: #C02B27;
+  --pal-destructive-soft: rgba(192, 43, 39, 0.08);
+  --pal-success: #1B7443;
+  --pal-success-soft: rgba(27, 116, 67, 0.10);
+  --pal-tag-grey: #55565F;
+  --pal-tag-grey-bg: #E1E1E4;
+  --pal-tag-blue: #2457B0;
+  --pal-tag-blue-bg: #DBE1EE;
+  --pal-tag-green: #1B6B40;
+  --pal-tag-green-bg: #DAE4E0;
+  --pal-tag-amber: #874C00;
+  --pal-tag-amber-bg: #E7E0D8;
+  --pal-tag-red: #B02925;
+  --pal-tag-red-bg: #ECDCDD;
+  --pal-tag-violet: #5B39C2;
+  --pal-tag-violet-bg: #E2DEF0;
+  --pal-tag-pink: #A0286A;
+  --pal-tag-pink-bg: #EADCE5;
+  --pal-tag-teal: #0B6664;
+  --pal-tag-teal-bg: #D8E3E4;
+  --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
+  --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  --pal-shadow-panel: 0 0 0 1px rgba(26, 26, 31, 0.10), 0 2px 6px rgba(26, 26, 31, 0.06), 0 28px 64px -16px rgba(26, 26, 31, 0.30);
+  --pal-shadow-popover: 0 0 0 1px rgba(26, 26, 31, 0.08), 0 8px 24px -8px rgba(26, 26, 31, 0.22);
+  --pal-shadow-hud: 0 0 0 1px rgba(26, 26, 31, 0.08), 0 6px 20px -6px rgba(26, 26, 31, 0.24);
+  --pal-backdrop: blur(40px) saturate(160%);
+  --pal-scheme: light;
+  /* light-end */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* dark-begin */
+    --pal-bg: #1C1C21;
+    --pal-bg-glass: rgba(28, 28, 33, 0.80);
+    --pal-bg-elevated: #26262D;
+    --pal-bg-sunken: #141417;
+    --pal-fg: #ECECF0;
+    --pal-fg-muted: #A3A4AE;
+    --pal-fg-faint: #868794;
+    --pal-line: rgba(255, 255, 255, 0.08);
+    --pal-line-strong: rgba(255, 255, 255, 0.16);
+    --pal-selection: rgba(255, 255, 255, 0.09);
+    --pal-scrim: rgba(28, 28, 33, 0.55);
+    --pal-accent: #9F97FF;
+    --pal-accent-fg: #14141A;
+    --pal-accent-soft: rgba(159, 151, 255, 0.16);
+    --pal-match: rgba(255, 176, 32, 0.30);
+    --pal-destructive: #FF6E66;
+    --pal-destructive-soft: rgba(255, 110, 102, 0.12);
+    --pal-success: #4FC98A;
+    --pal-success-soft: rgba(79, 201, 138, 0.12);
+    --pal-tag-grey: #A3A4AE;
+    --pal-tag-grey-bg: #323238;
+    --pal-tag-blue: #7FB0FF;
+    --pal-tag-blue-bg: #2C3445;
+    --pal-tag-green: #5CCB8E;
+    --pal-tag-green-bg: #263832;
+    --pal-tag-amber: #F0B25A;
+    --pal-tag-amber-bg: #3E342A;
+    --pal-tag-red: #FF8A82;
+    --pal-tag-red-bg: #402E31;
+    --pal-tag-violet: #B39DFF;
+    --pal-tag-violet-bg: #343145;
+    --pal-tag-pink: #F08CC0;
+    --pal-tag-pink-bg: #3E2E3A;
+    --pal-tag-teal: #5FCFCB;
+    --pal-tag-teal-bg: #27393C;
+    --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
+    --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    --pal-shadow-panel: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.30), 0 28px 64px -16px rgba(0, 0, 0, 0.65);
+    --pal-shadow-popover: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+    --pal-shadow-hud: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 6px 20px -6px rgba(0, 0, 0, 0.6);
+    --pal-backdrop: blur(40px) saturate(140%);
+    --pal-scheme: dark;
+    /* dark-end */
+  }
+}
+
+:root[data-theme="dark"] {
+  --pal-bg: #1C1C21;
+  --pal-bg-glass: rgba(28, 28, 33, 0.80);
+  --pal-bg-elevated: #26262D;
+  --pal-bg-sunken: #141417;
+  --pal-fg: #ECECF0;
+  --pal-fg-muted: #A3A4AE;
+  --pal-fg-faint: #868794;
+  --pal-line: rgba(255, 255, 255, 0.08);
+  --pal-line-strong: rgba(255, 255, 255, 0.16);
+  --pal-selection: rgba(255, 255, 255, 0.09);
+  --pal-scrim: rgba(28, 28, 33, 0.55);
+  --pal-accent: #9F97FF;
+  --pal-accent-fg: #14141A;
+  --pal-accent-soft: rgba(159, 151, 255, 0.16);
+  --pal-match: rgba(255, 176, 32, 0.30);
+  --pal-destructive: #FF6E66;
+  --pal-destructive-soft: rgba(255, 110, 102, 0.12);
+  --pal-success: #4FC98A;
+  --pal-success-soft: rgba(79, 201, 138, 0.12);
+  --pal-tag-grey: #A3A4AE;
+  --pal-tag-grey-bg: #323238;
+  --pal-tag-blue: #7FB0FF;
+  --pal-tag-blue-bg: #2C3445;
+  --pal-tag-green: #5CCB8E;
+  --pal-tag-green-bg: #263832;
+  --pal-tag-amber: #F0B25A;
+  --pal-tag-amber-bg: #3E342A;
+  --pal-tag-red: #FF8A82;
+  --pal-tag-red-bg: #402E31;
+  --pal-tag-violet: #B39DFF;
+  --pal-tag-violet-bg: #343145;
+  --pal-tag-pink: #F08CC0;
+  --pal-tag-pink-bg: #3E2E3A;
+  --pal-tag-teal: #5FCFCB;
+  --pal-tag-teal-bg: #27393C;
+  --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
+  --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --pal-shadow-panel: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.30), 0 28px 64px -16px rgba(0, 0, 0, 0.65);
+  --pal-shadow-popover: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --pal-shadow-hud: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 6px 20px -6px rgba(0, 0, 0, 0.6);
+  --pal-backdrop: blur(40px) saturate(140%);
+  --pal-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --pal-bg: #F4F4F6;
+  --pal-bg-glass: rgba(244, 244, 246, 0.84);
+  --pal-bg-elevated: #FFFFFF;
+  --pal-bg-sunken: #EAEAEE;
+  --pal-fg: #1A1A1F;
+  --pal-fg-muted: #5C5D66;
+  --pal-fg-faint: #6B6C76;
+  --pal-line: rgba(26, 26, 31, 0.08);
+  --pal-line-strong: rgba(26, 26, 31, 0.16);
+  --pal-selection: rgba(26, 26, 31, 0.07);
+  --pal-scrim: rgba(244, 244, 246, 0.55);
+  --pal-accent: #4F46D6;
+  --pal-accent-fg: #FFFFFF;
+  --pal-accent-soft: rgba(79, 70, 214, 0.12);
+  --pal-match: rgba(255, 176, 32, 0.38);
+  --pal-destructive: #C02B27;
+  --pal-destructive-soft: rgba(192, 43, 39, 0.08);
+  --pal-success: #1B7443;
+  --pal-success-soft: rgba(27, 116, 67, 0.10);
+  --pal-tag-grey: #55565F;
+  --pal-tag-grey-bg: #E1E1E4;
+  --pal-tag-blue: #2457B0;
+  --pal-tag-blue-bg: #DBE1EE;
+  --pal-tag-green: #1B6B40;
+  --pal-tag-green-bg: #DAE4E0;
+  --pal-tag-amber: #874C00;
+  --pal-tag-amber-bg: #E7E0D8;
+  --pal-tag-red: #B02925;
+  --pal-tag-red-bg: #ECDCDD;
+  --pal-tag-violet: #5B39C2;
+  --pal-tag-violet-bg: #E2DEF0;
+  --pal-tag-pink: #A0286A;
+  --pal-tag-pink-bg: #EADCE5;
+  --pal-tag-teal: #0B6664;
+  --pal-tag-teal-bg: #D8E3E4;
+  --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
+  --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  --pal-shadow-panel: 0 0 0 1px rgba(26, 26, 31, 0.10), 0 2px 6px rgba(26, 26, 31, 0.06), 0 28px 64px -16px rgba(26, 26, 31, 0.30);
+  --pal-shadow-popover: 0 0 0 1px rgba(26, 26, 31, 0.08), 0 8px 24px -8px rgba(26, 26, 31, 0.22);
+  --pal-shadow-hud: 0 0 0 1px rgba(26, 26, 31, 0.08), 0 6px 20px -6px rgba(26, 26, 31, 0.24);
+  --pal-backdrop: blur(40px) saturate(160%);
+  --pal-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --pal-dur-fast: 0ms;
+    --pal-dur-base: 0ms;
+    --pal-dur-slow: 0ms;
+  }
+}
