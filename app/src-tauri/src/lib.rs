@@ -3,6 +3,7 @@
 //! index behind it, the `icon://` scheme, and timing marks.
 
 mod cli;
+mod effects;
 mod host;
 mod hotkey;
 mod icon;

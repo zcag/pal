@@ -68,7 +68,9 @@ function watchExtensions() {
 }
 
 const metas = (ext: Extension): PaletteMeta[] =>
-  Object.entries(ext.palettes).map(([name, p]) => ({ name, title: p.title ?? name, live: !!p.live }));
+  Object.entries(ext.palettes).map(([name, p]) => ({
+    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder,
+  }));
 
 function palette(p: any) {
   const ext = exts.get(p?.extension);
@@ -87,7 +89,7 @@ const methods: Record<string, (params: any) => unknown> = {
     errors: Object.fromEntries(errors),
   }),
   list: async (p) => ({ items: await palette(p).list(p.query) }),
-  pick: async (p) => ({ ok: true, result: await palette(p).pick(p.id, p.action) }),
+  pick: async (p) => (await palette(p).pick(p.id, p.action)) ?? {},
 };
 
 async function handle(line: string) {

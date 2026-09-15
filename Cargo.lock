@@ -2964,6 +2964,7 @@ dependencies = [
 name = "pal-app"
 version = "0.1.0"
 dependencies = [
+ "arboard",
  "clap",
  "pal-core",
  "serde",

@@ -1,0 +1,8 @@
+{
+  "name": "pal-ext-calc",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "mathjs": "^15.2.0"
+  }
+}

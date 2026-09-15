@@ -2,7 +2,7 @@
  * Adapts what the core sends per hit (a host item, fields pass through) to
  * the UI item model. Provisional, like the wire shape it reads.
  */
-import type { Detail, Icon, Item } from "./ui/types";
+import type { Action, Detail, Icon, Item } from "./ui/types";
 
 /** `pal_core::index::Source`. */
 export type Source = { extension: string; palette: string };
@@ -16,20 +16,37 @@ export type WireItem = {
   icon?: unknown;
   section?: string;
   url?: string;
+  /** `Action` in host/protocol.ts: id, title, shortcut?, style?. */
+  actions?: Action[];
   [extra: string]: unknown;
 };
 
 /** One row of the `query` command's reply (`HitView` in src-tauri/src/index.rs). */
 export type WireHit = { source: Source; id: string; score: number; name_positions: number[]; item: WireItem };
 
-/** One row of the `sources` command's reply. */
-export type SourceInfo = Source & { title: string; live: boolean; count: number };
+/** One row of the `sources` command's reply (`SourceView`): `PaletteMeta` plus the count. */
+export type SourceInfo = Source & {
+  title: string;
+  live: boolean;
+  input: boolean;
+  icon?: string;
+  view?: "list" | "grid";
+  columns?: number;
+  placeholder?: string;
+  count: number;
+};
+
+/** What a pick returns (`Effect` in host/protocol.ts); `copy` and `open` already ran in the core. */
+export type Effect = { copy?: string; open?: string; hide?: true; toast?: { title: string; style?: "success" | "failure" }; keep?: true };
+
+/** A toast needs the window; `keep` asks for it. Everything else hides. */
+export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r);
 
 /** `Item.palette` for a source. Fixture rows (the gallery) have no extension and keep their bare palette name. */
 export const sourceKey = (s: Source) => (s.extension ? `${s.extension}/${s.palette}` : s.palette);
 
-/** Palettes whose items are glyphs, best browsed as tiles. By palette name until palettes declare a view. */
-export const gridPalettes = new Set(["emoji", "iconnerd", "chars", "colors"]);
+/** The synthetic source whose rows are the palettes (`palettes_source` in index.rs); a row's id is the palette's `sourceKey`. */
+export const PALETTES = "pal/palettes";
 
 const pictographic = /\p{Extended_Pictographic}/u;
 
@@ -70,16 +87,22 @@ const safeHost = (url: string) => { try { return new URL(url).host; } catch { re
 
 export function toItem(hit: WireHit, paletteTitle: string): Item {
   const w = hit.item;
+  const palette = sourceKey(hit.source);
   return {
     id: w.id,
     name: w.name,
     subtitle: w.subtitle,
     icon: iconOf(w.icon, w.name, w.url),
     keywords: w.keywords,
-    palette: sourceKey(hit.source),
+    palette,
     source: hit.source,
     section: w.section,
-    accessories: typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined,
+    accessories: palette === PALETTES ? [{ text: "Palette" }] : typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined,
     detail: detailOf(w, paletteTitle),
+    actions: w.actions,
   };
 }
+
+/** A host `list` reply as hits: unranked rows, in the order given, no match positions. */
+export const toLiveHits = (source: Source, items: WireItem[], paletteTitle: string) =>
+  items.map((item) => ({ item: toItem({ source, id: item.id, score: 0, name_positions: [], item }, paletteTitle) }));

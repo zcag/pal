@@ -1,5 +1,5 @@
-// Hand-picked links from a JSON file of {name, url, keywords?, ...}; pick
-// opens the url. Same data file as v1's bookmarks palette.
+// Hand-picked links from a JSON file of {name, url, keywords?, ...}: open
+// the url, or copy it. Same data file as v1's bookmarks palette.
 import type { Extension, Item } from "../../host/src/protocol.ts";
 
 const FILE = `${process.env.HOME}/.config/pal/data/bookmarks.json`;
@@ -22,11 +22,9 @@ export default {
           icon: r.icon?.trim() || undefined,
           keywords: r.keywords,
           url: r.url,
+          actions: [{ id: "open", title: "Open in browser" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
         })),
-      pick: (id) => {
-        Bun.spawn(["open", id]);
-        return { opened: id };
-      },
+      pick: (id, action) => (action === "copy" ? { copy: id } : { open: id }),
     },
   },
 } satisfies Extension;

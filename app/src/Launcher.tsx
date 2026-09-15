@@ -11,12 +11,17 @@ import {
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Item, Match } from "./ui/types";
-import { gridPalettes, sourceKey, type SourceInfo } from "./items";
+import { PALETTES, iconOf, sourceKey, type Effect, type SourceInfo } from "./items";
 import { paletteTitle } from "./fixtures";
 
 export const LIMIT = 200;
 const GRID_COLUMNS = 8;
 const LIST_ID = "results";
+/** Fixture palettes (the gallery) best browsed as tiles; a real palette declares `view` itself. */
+const gridFixtures = new Set(["emoji", "iconnerd", "chars", "colors"]);
+/** The shell's own actions, kept apart from an item's by the prefix. */
+const BROWSE = "pal:browse", DETAIL = "pal:detail";
+const OPEN: Action = { id: "open", title: "Open" };
 
 /** A palette view is keyed by `sourceKey`. */
 type View = { kind: "root" } | { kind: "palette"; palette: string };
@@ -32,7 +37,8 @@ export type LauncherProps = {
   version?: number;
   /** Gallery only: search these in the webview instead of `sources`/`search`. */
   items?: Item[];
-  onPick: (item: Item, query: string) => void | Promise<unknown>;
+  /** `action` is the item's own action id; absent for the default action of an item that declares none. */
+  onPick: (item: Item, query: string, action?: string) => void | Promise<unknown>;
   onHide: () => void;
   mark?: (name: string, t: number) => void;
 };
@@ -55,7 +61,7 @@ function useLocalSearch(items: Item[] = []) {
   const sources = useMemo<SourceInfo[]>(() => {
     const counts = new Map<string, number>();
     for (const i of items) counts.set(i.palette!, (counts.get(i.palette!) ?? 0) + 1);
-    return [...counts].map(([palette, count]) => ({ extension: "", palette, title: paletteTitle(palette), live: false, count }));
+    return [...counts].map(([palette, count]) => ({ extension: "", palette, title: paletteTitle(palette), live: false, input: false, view: gridFixtures.has(palette) ? "grid" as const : undefined, count }));
   }, [items]);
   const fzf = useMemo(() => new Fzf(items, { selector: haystack, limit: LIMIT }), [items]);
   const search = useCallback(async (q: string, scope?: SourceInfo): Promise<Hit[]> => {
@@ -88,7 +94,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const scopeKey = view.kind === "palette" ? view.palette : filter === "all" ? null : filter;
   const scope = scopeKey ? byKey.get(scopeKey) : undefined;
   const loading = sources.length === 0;
-  const total = scope ? scope.count : sources.reduce((n, s) => n + s.count, 0);
+  // The palette rows are not items to count, and an input palette has none to filter by.
+  const filterable = sources.filter((s) => sourceKey(s) !== PALETTES && !s.input);
+  const total = scope ? scope.count : filterable.reduce((n, s) => n + s.count, 0);
 
   // Replies can land out of order (a slow one behind a fast one): only the
   // latest request's answer is shown.
@@ -102,7 +110,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   const cur = useCursor(hits.length);
   const current: Item | undefined = hits[cur.cursor]?.item;
-  const isGrid = view.kind === "palette" && !!scope && gridPalettes.has(scope.palette);
+  const isGrid = view.kind === "palette" && scope?.view === "grid";
+  const columns = scope?.columns ?? GRID_COLUMNS;
 
   // Fires on the paint after a reply: keystroke to painted list, invoke included.
   useLayoutEffect(() => {
@@ -126,45 +135,46 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const reset = useCallback(() => { nav.reset(); cur.reset(); setActionsOpen(false); setToast(null); input.current?.focus(); }, [nav.reset, cur.reset]);
   useImperativeHandle(ref, () => ({ reset }), [reset]);
 
+  // The item's own actions first (the default "Open" when it declares none), then the shell's.
   const actions = useMemo<Action[]>(() => {
     if (!current) return [];
-    const a: Action[] = [
-      { id: "open", title: "Open", icon: { kind: "glyph", value: "↗" } },
-      { id: "copy", title: "Copy name", icon: { kind: "glyph", value: "⎘" }, shortcut: "cmd+c" },
-    ];
-    if (view.kind === "root") a.push({ id: "browse", title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
-    a.push({ id: "detail", title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
+    const isPalette = current.palette === PALETTES;
+    const a: Action[] = current.actions ? [...current.actions] : [isPalette ? { ...OPEN, title: `Open ${current.name}` } : OPEN];
+    if (view.kind === "root" && !isPalette) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
+    a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
     return a;
   }, [current, view.kind, showDetail, byKey]);
 
-  const pickItem = (item: Item) => Promise.resolve(onPick(item, query)).catch((e) => setToast({ style: "failure", title: "Failed", message: String(e) }));
+  // The envelope's copy/open/hide are the caller's; the toast shows here.
+  const pickItem = (item: Item, action?: string) =>
+    Promise.resolve(onPick(item, query, action)).then(
+      (r) => { const t = (r as Effect | undefined)?.toast; if (t) setToast({ style: t.style ?? "success", title: t.title }); },
+      (e) => setToast({ style: "failure", title: "Failed", message: String(e) }),
+    );
 
   const run = (a: Action) => {
     if (!current) return;
     setActionsOpen(false);
     focus();
     switch (a.id) {
-      case "open": pickItem(current); break;
-      case "copy":
-        Promise.resolve().then(() => navigator.clipboard.writeText(current.name)).then(
-          () => setToast({ style: "success", title: "Copied", message: current.name }),
-          () => setToast({ style: "failure", title: "Copy failed" }),
-        );
-        break;
-      case "browse": push({ kind: "palette", palette: current.palette! }); break;
-      case "detail": setShowDetail((s) => !s); break;
+      case BROWSE: push({ kind: "palette", palette: current.palette! }); break;
+      case DETAIL: setShowDetail((s) => !s); break;
+      default:
+        // A palette row drills in; the pick only records the choice.
+        if (current.palette === PALETTES) push({ kind: "palette", palette: current.id });
+        pickItem(current, current.actions ? a.id : undefined);
     }
   };
 
   const filterSpec = view.kind === "root"
-    ? { options: [{ id: "all", title: "All" }, ...sources.map((s) => ({ id: sourceKey(s), title: s.title }))], value: filter, onChange: (id: string) => { setFilter(id); cur.reset(); } }
+    ? { options: [{ id: "all", title: "All" }, ...filterable.map((s) => ({ id: sourceKey(s), title: s.title }))], value: filter, onChange: (id: string) => { setFilter(id); cur.reset(); } }
     : undefined;
 
   useKeys(
     {
       move: ({ dir }) => {
         if (dir === "left" || dir === "right") { if (!isGrid) return false; cur.move(dir === "right" ? 1 : -1); return; }
-        cur.move((dir === "down" ? 1 : -1) * (isGrid ? GRID_COLUMNS : 1));
+        cur.move((dir === "down" ? 1 : -1) * (isGrid ? columns : 1));
       },
       jump: ({ to }) => {
         if (to === "home") cur.set(0);
@@ -187,16 +197,18 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     { input },
   );
 
-  const back = view.kind === "palette" ? { title: titleOf(view.palette), onBack: pop } : undefined;
+  const back = view.kind === "palette" ? { title: titleOf(view.palette), icon: scope?.icon ? iconOf(scope.icon, scope.title) : undefined, onBack: pop } : undefined;
+  const placeholder = view.kind === "root" ? "Search…" : scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
+  const onPickAt = (i: number) => { cur.set(i); const a = actions[0]; if (a) run(a); };
   const body = !hits.length
-    ? <Empty icon={{ kind: "glyph", value: "⌕" }} title={query ? "No results" : loading ? "Loading…" : "Nothing here"} hint={query ? "Try a different search" : undefined} />
+    ? <Empty icon={{ kind: "glyph", value: "⌕" }} title={query ? "No results" : loading ? "Loading…" : "Nothing here"} hint={query && !scope?.input ? "Try a different search" : undefined} />
     : isGrid
-      ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={(i) => pickItem(hits[i].item)} columns={GRID_COLUMNS} />
-      : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={(i) => pickItem(hits[i].item)} />;
+      ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} columns={columns} />
+      : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} />;
 
   return (
     <Panel
-      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} loading={loading} placeholder={view.kind === "root" ? "Search…" : `Search ${titleOf(view.palette)}…`} />}
+      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} loading={loading} placeholder={placeholder} />}
       aside={showDetail && (current?.detail ? <Detail detail={current.detail} /> : <Empty title="No details" />)}
       footer={
         <Footer

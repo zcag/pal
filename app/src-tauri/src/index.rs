@@ -1,7 +1,10 @@
 //! The host's items in the Rust index: every palette is listed into
-//! `pal_core::index::Index` as the host reports it loaded, keystrokes are
-//! answered from there with frecency applied, and a pick goes to the host
-//! then into the frecency store.
+//! `pal_core::index::Index` as the host reports it loaded (an input palette
+//! is not: its rows come from the host per keystroke), keystrokes are
+//! answered from there with frecency applied, and a pick goes to the host,
+//! its effects run, then into the frecency store. The palettes themselves
+//! are rows of one synthetic source, `pal/palettes`, so the root search
+//! finds them.
 
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime};
@@ -12,20 +15,32 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::effects;
 use crate::host::Host;
 
 const DEFAULT_LIMIT: usize = 200;
 
 /// A palette as the host describes it (`PaletteMeta` in host/protocol.ts).
-#[derive(Debug, Clone, Deserialize)]
+/// The optional fields ride to the UI untouched through `SourceView`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PaletteMeta {
     pub name: String,
     pub title: String,
     #[serde(default)]
     pub live: bool,
+    #[serde(default)]
+    pub input: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub columns: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placeholder: Option<String>,
 }
 
-/// Titles by source, in load order. The index holds the items and the
+/// Metas by source, in load order. The index holds the items and the
 /// `live` flag; this is the rest of what the host said about a palette.
 #[derive(Default)]
 pub struct Palettes(Mutex<Vec<Registered>>);
@@ -33,7 +48,29 @@ pub struct Palettes(Mutex<Vec<Registered>>);
 #[derive(Clone)]
 struct Registered {
     source: Source,
-    title: String,
+    meta: PaletteMeta,
+}
+
+/// The source whose items are the palettes; its ids are `extension/palette`.
+pub fn palettes_source() -> Source {
+    Source::new("pal", "palettes")
+}
+
+fn palette_row(r: &Registered) -> Item {
+    let m = &r.meta;
+    let mut keywords = vec![m.name.clone()];
+    if r.source.extension != m.name {
+        keywords.push(r.source.extension.clone());
+    }
+    Item {
+        id: format!("{}/{}", r.source.extension, r.source.palette),
+        name: m.title.clone(),
+        subtitle: None,
+        keywords,
+        icon: m.icon.clone().map(Value::String),
+        section: None,
+        extra: Default::default(),
+    }
 }
 
 pub fn install(app: &AppHandle) {
@@ -93,23 +130,36 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
     }
 }
 
+/// Re-lists `pal/palettes` from the registry.
+fn sync_palette_rows(app: &AppHandle) {
+    let rows: Vec<Item> = Palettes::with(app, |reg| reg.iter().map(palette_row).collect());
+    with_index(app, |ix| ix.replace(palettes_source(), rows));
+}
+
 async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, metas: Vec<PaletteMeta>) {
     Palettes::with(&app, |reg| {
         reg.retain(|r| r.source.extension != ext);
-        reg.extend(metas.iter().map(|m| Registered { source: Source::new(&ext, &m.name), title: m.title.clone() }));
+        reg.extend(metas.iter().map(|m| Registered { source: Source::new(&ext, &m.name), meta: m.clone() }));
     });
+    sync_palette_rows(&app);
     for m in metas {
         let source = Source::new(&ext, &m.name);
         let t0 = Instant::now();
         let params = json!({ "extension": ext, "palette": m.name });
-        let items = match host.request("list", params).await {
-            Ok(v) => serde_json::from_value::<Vec<Item>>(v["items"].clone()).unwrap_or_else(|e| {
-                eprintln!("index\t{ext}/{}\tbad items\t{e}", m.name);
-                Vec::new()
-            }),
-            Err(e) => {
-                eprintln!("index\t{ext}/{}\tlist failed\t{e}", m.name);
-                continue;
+        // An input palette is in the index as an empty source: `sources`
+        // lists it, a root query never finds its rows.
+        let items = if m.input {
+            Vec::new()
+        } else {
+            match host.request("list", params).await {
+                Ok(v) => serde_json::from_value::<Vec<Item>>(v["items"].clone()).unwrap_or_else(|e| {
+                    eprintln!("index\t{ext}/{}\tbad items\t{e}", m.name);
+                    Vec::new()
+                }),
+                Err(e) => {
+                    eprintln!("index\t{ext}/{}\tlist failed\t{e}", m.name);
+                    continue;
+                }
             }
         };
         let n = items.len();
@@ -132,6 +182,7 @@ fn remove_extension(app: &AppHandle, ext: &str) {
         return;
     }
     with_index(app, |ix| gone.iter().for_each(|s| ix.remove(s)));
+    sync_palette_rows(app);
     let _ = app.emit("pal://index", ());
 }
 
@@ -146,12 +197,13 @@ pub struct HitView {
     item: Item,
 }
 
+/// One source for the UI: the meta as the host gave it, plus the count.
 #[derive(Serialize)]
 pub struct SourceView {
     extension: String,
     palette: String,
-    title: String,
-    live: bool,
+    #[serde(flatten)]
+    meta: PaletteMeta,
     count: usize,
 }
 
@@ -178,23 +230,24 @@ pub fn query(
 #[tauri::command(async)]
 pub fn sources(index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) -> Vec<SourceView> {
     let reg = palettes.0.lock().unwrap();
+    let palettes_meta = PaletteMeta { name: "palettes".into(), title: "Palettes".into(), live: false, input: false, icon: None, view: None, columns: None, placeholder: None };
     index
         .lock()
         .unwrap()
         .sources()
         .into_iter()
         .map(|s| SourceView {
-            title: reg.iter().find(|r| r.source == s.source).map_or_else(|| s.source.palette.clone(), |r| r.title.clone()),
+            meta: reg.iter().find(|r| r.source == s.source).map_or_else(|| palettes_meta.clone(), |r| r.meta.clone()),
             extension: s.source.extension,
             palette: s.source.palette,
-            live: s.live,
             count: s.len,
         })
         .collect()
 }
 
-/// Runs the item through the host, then remembers the pick and the query
-/// that led to it. Returns the host's envelope as is.
+/// Runs the item through the host and its effects here (`copy`, `open`),
+/// then remembers the pick and the query that led to it. Returns the host's
+/// envelope as is. A palette row is the UI's to push: only remembered.
 #[tauri::command]
 pub async fn pick(
     source: Source,
@@ -204,10 +257,16 @@ pub async fn pick(
     host: State<'_, Arc<Host>>,
     frecency: State<'_, Mutex<Frecency>>,
 ) -> Result<Value, String> {
-    let params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action });
-    let t0 = Instant::now();
-    let r = host.request("pick", params).await?;
-    eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, t0.elapsed().as_secs_f64() * 1000.0);
+    let r = if source == palettes_source() {
+        json!({ "keep": true })
+    } else {
+        let params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action });
+        let t0 = Instant::now();
+        let r = host.request("pick", params).await?;
+        eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, t0.elapsed().as_secs_f64() * 1000.0);
+        effects::apply(&r)?;
+        r
+    };
     let key = Key::from_source(&source, id);
     let mut fre = frecency.lock().unwrap();
     fre.record(&key, SystemTime::now());
