@@ -54,6 +54,14 @@ struct Registered {
     meta: PaletteMeta,
 }
 
+impl Palettes {
+    /// Whether picks from this source are not worth remembering.
+    fn is_transient(&self, source: &Source) -> bool {
+        let regs = self.0.lock().unwrap();
+        regs.iter().any(|r| &r.source == source && (r.meta.live || r.meta.input))
+    }
+}
+
 /// The source whose items are the palettes; its ids are `extension/palette`.
 pub fn palettes_source() -> Source {
     Source::new("pal", "palettes")
@@ -271,9 +279,13 @@ pub async fn pick(
         eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, t0.elapsed().as_secs_f64() * 1000.0);
         effects::apply(&app, r).await?
     };
-    let key = Key::from_source(&source, id);
-    let mut fre = frecency.lock().unwrap();
-    fre.record(&key, SystemTime::now());
-    fre.record_query(&key, &query);
+    // Live and input palettes carry transient ids (a clipboard entry, a calc
+    // result); remembering those would only fill the store with junk.
+    if !app.state::<Palettes>().is_transient(&source) {
+        let key = Key::from_source(&source, id);
+        let mut fre = frecency.lock().unwrap();
+        fre.record(&key, SystemTime::now());
+        fre.record_query(&key, &query);
+    }
     Ok(r)
 }
