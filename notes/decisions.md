@@ -50,3 +50,17 @@ down as it stabilises.
   pass on how Raycast does things. Its `in` lane is "relevant", not "we will
   build this": a card there is input to a decision here, never a commitment.
   Decisions still get made in this file, one at a time.
+
+## Open for Cagdas
+
+Things an agent could not decide alone; each waits for a call.
+
+- **HUD after copy.** The panel is the only window and goes to alpha 0 on
+  hide, so a Raycast-style "Copied" HUD needs a second small NSPanel. Worth
+  one, or is the hide itself enough feedback?
+- **Exact-name priority vs frecency.** A frecency-boosted item (a picked
+  emoji) can outrank a bookmark named exactly what was typed (`ha`). Raycast
+  gives exact alias/name matches priority over history. Same here?
+- **Font, match highlight, selection shape** from the brief (bundled Plex vs
+  system stack; amber highlighter vs coloured glyphs; inset pill vs full-bleed
+  row). Unchanged until you have used the panel.
