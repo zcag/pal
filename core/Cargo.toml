@@ -2,7 +2,7 @@
 name = "pal-core"
 version = "0.1.0"
 edition = "2021"
-description = "pal core: configuration"
+description = "pal core: configuration, icons"
 
 [lib]
 name = "pal_core"
@@ -14,8 +14,26 @@ toml = "1"
 toml_edit = "0.25"
 schemars = "1"
 notify = "8"
+nucleo-matcher = "0.3"
 thiserror = "2"
 dirs = "6"
+# icons
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif"] }
+ico = "0.5"
+resvg = { version = "0.48", default-features = false }
+ureq = { version = "3", default-features = false, features = ["rustls", "gzip"] }
+url = "2"
+sha2 = "0.10"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+plist = "1"
+icns = { version = "0.5", default-features = false, features = ["pngio"] }
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSData", "NSDictionary", "NSGeometry"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSWorkspace", "NSImage", "NSImageRep", "NSBitmapImageRep", "NSGraphicsContext", "objc2-core-graphics"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+freedesktop-icons = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
