@@ -151,3 +151,112 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 ![tile](${svgIcon("#8b7cf6", "P")})
 `,
 };
+
+/* Settings: four extensions as installed, their palettes as configured in config.toml. */
+import type { Diagnostic, GeneralConfig, SettingSpec, SettingsExtension } from "../ui/SettingsTypes";
+
+export const settingsGeneral: GeneralConfig = { hotkey: "ctrl+space", theme: "system", launchAtLogin: true, position: "top" };
+
+export const settingsFile = { path: "~/.config/pal/config.toml", changed: now - 2 * 60e3 };
+
+export const settingsExtensions: SettingsExtension[] = [
+  {
+    name: "apps",
+    title: "Applications",
+    description: "Installed apps and system settings panes, with their real icons.",
+    icon: { kind: "image", src: svgIcon("#2457b0", "A"), mask: "rounded" },
+    version: "0.1.0",
+    repo: "bundled",
+    installed: now - 30 * d,
+    settings: [
+      { kind: "list", id: "folders", label: "Extra folders", description: "Scanned in addition to /Applications and ~/Applications.", placeholder: "/path/to/apps", default: [] },
+      { kind: "boolean", id: "prefpanes", label: "System settings", text: "List System Settings panes as apps", default: true },
+    ],
+    values: { folders: ["~/Applications/JetBrains Toolbox"], prefpanes: true },
+    palettes: [
+      { id: "apps", title: "Applications", description: "Everything that launches.", settings: [], config: { enabled: true, alias: undefined, hotkey: undefined, settings: {} } },
+    ],
+  },
+  {
+    name: "bookmarks",
+    title: "Browser",
+    description: "Bookmarks and open tabs from the browser you use.",
+    icon: { kind: "image", src: svgIcon("#0b6664", "B"), mask: "rounded" },
+    version: "2.1.0",
+    repo: "github.com/zcag/pal-browser",
+    installed: now - 12 * d,
+    settings: [
+      { kind: "select", id: "browser", label: "Browser", options: [{ id: "chrome", title: "Google Chrome" }, { id: "firefox", title: "Firefox" }, { id: "safari", title: "Safari" }], default: "chrome" },
+      { kind: "path", id: "bookmarks_file", label: "Bookmarks file", pick: "file", description: "Read directly; the browser does not need to be running.", default: "~/Library/Application Support/Google/Chrome/Default/Bookmarks" },
+    ],
+    values: { browser: "chrome" },
+    palettes: [
+      { id: "bookmarks", title: "Bookmarks", settings: [
+        { kind: "select", id: "folder", label: "Folder", options: [{ id: "all", title: "All folders" }, { id: "bar", title: "Bookmarks bar only" }], default: "all" },
+      ], config: { enabled: true, alias: "bm", hotkey: "cmd+shift+b", settings: {} } },
+      { id: "tabs", title: "Open tabs", settings: [], config: { enabled: false, alias: undefined, hotkey: undefined, settings: {} } },
+    ],
+  },
+  {
+    name: "github",
+    title: "GitHub",
+    description: "Pull requests, issues and repositories you can see with the token you give it.",
+    icon: { kind: "image", src: svgIcon("#3a3a44", "G"), mask: "rounded" },
+    version: "1.4.2",
+    latest: "1.5.0",
+    repo: "github.com/zcag/pal-github",
+    installed: now - 5 * d,
+    settings: [
+      { kind: "secret", id: "token", label: "Token", description: "A fine-grained personal access token with read access to the repositories you want listed.", placeholder: "github_pat_…" },
+      { kind: "select", id: "org", label: "Organisation", description: "Repositories outside it are not listed.", options: [{ id: "zcag", title: "zcag" }, { id: "serpapi", title: "serpapi" }, { id: "all", title: "Everything the token can see" }], default: "all" },
+      { kind: "boolean", id: "drafts", label: "Drafts", text: "Include draft pull requests", default: false },
+    ],
+    values: { token: "keychain:pal/github-token", org: "serpapi", drafts: true },
+    palettes: [
+      { id: "github-prs", title: "Pull requests", description: "Open pull requests across the organisation, newest first.", settings: [
+        { kind: "select", id: "state", label: "State", options: [{ id: "open", title: "Open" }, { id: "all", title: "Open and closed" }], default: "open" },
+        { kind: "boolean", id: "mine", label: "Mine only", text: "Only pull requests I opened or review", default: false },
+      ], config: { enabled: true, alias: "pr", hotkey: "ctrl+alt+p", settings: { mine: true } } },
+      { id: "github-issues", title: "Issues", settings: [], config: { enabled: true, alias: undefined, hotkey: undefined, settings: {} } },
+      { id: "github-repos", title: "Repositories", settings: [], config: { enabled: true, alias: "gh", hotkey: undefined, icon: "📦", settings: {} } },
+    ],
+  },
+  {
+    name: "clipboard",
+    title: "Clipboard",
+    description: "What you copied, searchable, with images.",
+    icon: { kind: "image", src: svgIcon("#874c00", "C"), mask: "rounded" },
+    version: "0.9.4",
+    repo: "github.com/zcag/pal-clipboard",
+    installed: now - 20 * d,
+    settings: [
+      { kind: "number", id: "history", label: "History", description: "Older entries are dropped.", min: 10, max: 5000, step: 10, unit: "entries", default: 200 },
+      { kind: "list", id: "exclude", label: "Exclude apps", description: "Nothing copied in these is recorded.", placeholder: "App name", default: ["1Password"] },
+      { kind: "boolean", id: "images", label: "Images", text: "Keep copied images", default: true },
+    ],
+    values: { history: 500, exclude: ["1Password", "Keychain Access"], images: true },
+    palettes: [
+      { id: "clipboard", title: "Clipboard history", settings: [], config: { enabled: true, alias: "cb", hotkey: "cmd+shift+v", icon: "📋", settings: {} } },
+    ],
+  },
+];
+
+export const settingsDiagnostics: Diagnostic[] = [
+  { level: "warning", path: "palettes.clipboard.enabld", line: 14, message: "unknown key" },
+  { level: "error", path: "", line: 21, message: "invalid string: expected `\"` or `'`" },
+];
+
+/** Every field kind, each with a value that differs from its default except the first two. */
+export const settingsFieldSpecs: { spec: SettingSpec; value: string | number | boolean | string[] | undefined }[] = [
+  { spec: { kind: "text", id: "t", label: "Text", description: "A plain string.", placeholder: "Anything", default: "" }, value: "" },
+  { spec: { kind: "text", id: "t2", label: "Text, changed", placeholder: "Anything", default: "main" }, value: "release" },
+  { spec: { kind: "secret", id: "s", label: "Secret", description: "Stored in the OS keychain; the file keeps only the reference." }, value: "keychain:pal/github-token" },
+  { spec: { kind: "secret", id: "s2", label: "Secret, unset", placeholder: "Paste a token" }, value: undefined },
+  { spec: { kind: "number", id: "n", label: "Number", min: 10, max: 5000, step: 10, unit: "entries", default: 200 }, value: 500 },
+  { spec: { kind: "boolean", id: "b", label: "Boolean", text: "Include draft pull requests", default: false }, value: true },
+  { spec: { kind: "select", id: "sel", label: "Select", options: [{ id: "open", title: "Open" }, { id: "all", title: "Open and closed" }], default: "open" }, value: "all" },
+  { spec: { kind: "hotkey", id: "h", label: "Hotkey", description: "Press the new combination while recording." }, value: "cmd+shift+v" },
+  { spec: { kind: "hotkey", id: "h2", label: "Hotkey, unset" }, value: undefined },
+  { spec: { kind: "path", id: "p", label: "Path", pick: "file", default: "~/Library/Application Support/Google/Chrome/Default/Bookmarks" }, value: "~/Library/Application Support/Google/Chrome/Profile 2/Bookmarks" },
+  { spec: { kind: "list", id: "l", label: "List", description: "Enter or a comma adds one.", placeholder: "App name", default: ["1Password"] }, value: ["1Password", "Keychain Access"] },
+];

@@ -11,6 +11,11 @@ import type { FormValues, Item } from "../ui/types";
 import { Launcher } from "../Launcher";
 import { toItem, type Raw } from "../fixtures";
 import { actions, deploy, formFields, handWritten, markdownOnly, person, raycastDocs, sample } from "./data";
+import {
+  SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
+  extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
+} from "../ui";
+import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral } from "./data";
 import "./gallery.css";
 
 const themes = ["light", "dark"] as const;
@@ -283,6 +288,31 @@ export default function Gallery() {
         <State label="Text"><Pair><Hud text="Copied to clipboard" /></Pair></State>
         <State label="With icon"><Pair><Hud icon={{ kind: "emoji", value: "✅" }} text="Deployed v1.4.2" /></Pair></State>
       </Section>
+
+      <Section id="settings" title="Settings">
+        <p className="g-note">A separate window, 960 by 600: sidebar 200 (labels on the panel's 52px text edge), content 760 (the panel's 720 plus its 20px gutters). Live: arrows move the sidebar, the table and the extension list; Space toggles a palette; the hotkey recorder records.</p>
+        <State label="General, at rest">
+          <WidePair>{(t) => <SettingsDemo key={t} page="general" />}</WidePair>
+        </State>
+        <State label="Palettes, a row selected: pal's per-palette defaults and the extension's declared settings in the pane">
+          <WidePair>{(t) => <SettingsDemo key={t} page="palettes" />}</WidePair>
+        </State>
+        <State label="Extensions, GitHub selected: update available, the declared settings form under the separator">
+          <WidePair>{(t) => <SettingsDemo key={t} page="extensions" />}</WidePair>
+        </State>
+        <State label="Config file problems: one warning, one error, under the page">
+          <WidePair>{(t) => <SettingsDemo key={t} page="general" diagnostics />}</WidePair>
+        </State>
+        <State label="Field renderer, every kind (row layout; the pane uses the stacked one)">
+          <Pair surface><SettingsFieldsDemo /></Pair>
+        </State>
+        <State label="Field renderer, stacked (as in the palette pane)">
+          <Pair surface><SettingsFieldsDemo layout="stack" /></Pair>
+        </State>
+        <State label="Diagnostics strip alone">
+          <Pair surface><SettingsDiagnostics diagnostics={settingsDiagnostics} file="config.toml" /></Pair>
+        </State>
+      </Section>
     </main>
   );
 }
@@ -291,4 +321,52 @@ const nav = [
   { id: "playground", title: "Playground" }, { id: "grammar", title: "Grammar" }, { id: "panel", title: "Panel" }, { id: "search", title: "Search" },
   { id: "row", title: "Row" }, { id: "list", title: "List" }, { id: "grid", title: "Grid" }, { id: "detail", title: "Detail" }, { id: "actions", title: "ActionPanel" },
   { id: "footer", title: "Footer" }, { id: "form", title: "Form" }, { id: "empty", title: "Empty" }, { id: "toast", title: "Toast" }, { id: "hud", title: "HUD" },
+  { id: "settings", title: "Settings" },
 ];
+
+/* Settings section. The window is wider than a pair column, so each theme takes its own row. */
+function WidePair({ children }: { children: (theme: (typeof themes)[number]) => ReactNode }) {
+  return (
+    <div className="g-pair g-pair--wide">
+      {themes.map((t) => (
+        <div key={t} className="g-theme" data-theme={t}>
+          <div className="g-frame g-frame--settings">{children(t)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** One settings window with its own state, opened on `page`. */
+function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diagnostics?: boolean }) {
+  const [page, setPage] = useState<SettingsPage>(initial);
+  const [general, setGeneral] = useState(settingsGeneral);
+  const [exts, setExts] = useState<SettingsExtension[]>(settingsExtensions);
+  const [palette, setPalette] = useState<string | undefined>("github-prs");
+  const [ext, setExt] = useState<string | undefined>("github");
+  const patchPalette = (id: string, config: PaletteConfig) =>
+    setExts((es) => es.map((e) => ({ ...e, palettes: e.palettes.map((p) => (p.id === id ? { ...p, config } : p)) })));
+  const patchExt = (name: string, values: SettingValues) => setExts((es) => es.map((e) => (e.name === name ? { ...e, values } : e)));
+  const index = [...generalIndex, ...palettesIndex(exts), ...extensionsIndex(exts)];
+  const count = exts.reduce((n, e) => n + e.palettes.length, 0);
+  const aside = page === "palettes" ? `${count} palettes from ${exts.length} extensions` : page === "extensions" ? `${exts.length} installed` : undefined;
+  return (
+    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" version="0.1.0">
+      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} />}
+      {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
+      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} onChange={patchExt} />}
+    </SettingsWindow>
+  );
+}
+
+/** Every field kind, live, with its own values. */
+function SettingsFieldsDemo({ layout = "row" }: { layout?: "row" | "stack" }) {
+  const [values, setValues] = useState<Record<string, SettingValue>>(() => Object.fromEntries(settingsFieldSpecs.map((f) => [f.spec.id, f.value])));
+  return (
+    <div className="g-settings-fields">
+      {settingsFieldSpecs.map(({ spec }) => (
+        <SettingsField key={spec.id} spec={spec} value={values[spec.id]} onChange={(v) => setValues((s) => ({ ...s, [spec.id]: v }))} layout={layout} />
+      ))}
+    </div>
+  );
+}

@@ -28,3 +28,8 @@
 .g-grammar td { padding: 4px 16px 4px 0; vertical-align: top; }
 .g-grammar td:first-child { display: flex; gap: 6px; flex-wrap: wrap; }
 .g-grammar .pal-kbd kbd { background: rgba(255, 255, 255, 0.85); color: #222; }
+
+/* Settings section: the window is wider than a pair column, so each theme takes a row. */
+.g-pair--wide .g-theme { flex-basis: 100%; max-width: none; }
+.g-frame--settings { width: var(--pal-settings-w, 960px); height: var(--pal-settings-h, 600px); }
+.g-settings-fields { padding: 8px 12px; }

@@ -22,3 +22,15 @@ export { useCursor, type Cursor } from "./cursor";
 export { useKeys, useCmdHeld, grammar, type Command, type Handlers } from "./keys";
 export { groupBySection, domId } from "./virtual";
 export { relativeDate, shortcutKeys } from "./format";
+import "./settings.css";
+export { SettingsWindow, settingsPages } from "./SettingsWindow";
+export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
+export { SettingsPalettes, palettesIndex, paletteIcon } from "./SettingsPalettes";
+export { SettingsExtensions, extensionsIndex } from "./SettingsExtensions";
+export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
+export { SettingsDiagnostics } from "./SettingsDiagnostics";
+export { describeDefault, isModified } from "./SettingsTypes";
+export type {
+  SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, SettingsPalette, SettingsExtension,
+  GeneralConfig, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
+} from "./SettingsTypes";

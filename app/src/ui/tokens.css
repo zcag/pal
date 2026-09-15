@@ -268,3 +268,14 @@
     --pal-dur-slow: 0ms;
   }
 }
+
+/* Settings window: its own window, larger than the panel. 240 by 150 grid
+   units; fits a 1280 by 800 display with 160/100 to spare. The sidebar puts
+   its labels on the panel's 52px text edge (16 + 24 icon + 12 gap); the
+   content column is the panel's 720 plus the 20px gutters the detail pane
+   uses, so a form here has the same measure as a form in the panel. */
+:root {
+  --pal-settings-w: 960px;
+  --pal-settings-h: 600px;
+  --pal-settings-nav-w: 200px;
+}
