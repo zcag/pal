@@ -13,6 +13,7 @@
     "@tanstack/react-virtual": "^3.14.13",
     "@tauri-apps/api": "^2",
     "fzf": "^0.5.2",
+    "marked": "^18.0.13",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

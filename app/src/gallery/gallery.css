@@ -1,0 +1,30 @@
+/* Gallery chrome only; the components inside style themselves through the tokens. */
+.g-page { max-width: 1720px; margin: 0 auto; padding: 24px; background: #7a7a80; color: #fff; font: 14px/1.4 -apple-system, system-ui, sans-serif; min-height: 100%; }
+.g-header h1 { margin: 0 0 8px; font-size: 22px; }
+.g-nav { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 8px; }
+.g-nav a { color: #fff; }
+.g-note { color: #e6e6ea; font-size: 12px; }
+.g-note code { font-family: ui-monospace, monospace; }
+.g-section { margin-top: 40px; }
+.g-title { margin: 0 0 12px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.4); font-size: 18px; }
+.g-state { margin: 16px 0; }
+.g-label { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #f2f2f5; }
+.g-pair { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.g-theme { flex: 1 1 760px; max-width: 800px; padding: 12px; border-radius: 16px; background: var(--pal-bg-page, rgba(0, 0, 0, 0.15)); }
+.g-theme::before { content: attr(data-theme); display: block; margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #e6e6ea; }
+.g-frame { position: relative; width: 760px; height: 480px; max-width: 100%; }
+.g-frame--live { width: 760px; height: 480px; }
+.g-surface { height: auto; padding: 8px; }
+.g-loose { display: flex; justify-content: center; padding: 8px; }
+.g-anchor { position: relative; height: 84px; }
+.g-anchor .pal-toast { bottom: 8px; }
+.g-playground { padding: 12px; border-radius: 16px; background: rgba(0, 0, 0, 0.15); }
+.g-toolbar { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+.g-toolbar button { font: inherit; padding: 2px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.4); background: transparent; color: #fff; }
+.g-toolbar button[aria-pressed="true"] { background: #fff; color: #222; }
+.g-hud-anchor { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.g-log { margin: 8px 0 0; min-height: 1.4em; font: 12px/1.4 ui-monospace, monospace; color: #e6e6ea; white-space: pre-wrap; }
+.g-grammar { border-collapse: collapse; }
+.g-grammar td { padding: 4px 16px 4px 0; vertical-align: top; }
+.g-grammar td:first-child { display: flex; gap: 6px; flex-wrap: wrap; }
+.g-grammar .pal-kbd kbd { background: rgba(255, 255, 255, 0.85); color: #222; }

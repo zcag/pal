@@ -2,7 +2,8 @@
  * pal design tokens. The rendered brief is app/design/brief.html; it inlines
  * this file, so change values here and rebuild the brief, never the reverse.
  *
- * Dark follows the OS unless <html data-theme="light|dark"> pins it.
+ * Dark follows the OS unless data-theme="light|dark" pins it, on <html> or
+ * on any subtree (the gallery shows both side by side).
  * Every colour pair used for text meets WCAG AA (ratios listed in the brief).
  */
 
@@ -168,7 +169,8 @@
   }
 }
 
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+[data-theme="dark"] {
   --pal-bg: #1C1C21;
   --pal-bg-glass: rgba(28, 28, 33, 0.80);
   --pal-bg-elevated: #26262D;
@@ -213,7 +215,8 @@
   --pal-scheme: dark;
 }
 
-:root[data-theme="light"] {
+:root[data-theme="light"],
+[data-theme="light"] {
   --pal-bg: #F4F4F6;
   --pal-bg-glass: rgba(244, 244, 246, 0.84);
   --pal-bg-elevated: #FFFFFF;

@@ -16,7 +16,9 @@ export default defineConfig(() => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || false,
+    // Reachable as http://hornet:1420 from the LAN so the gallery can be reviewed off-box.
+    host: host || true,
+    allowedHosts: ["hornet", "hornet.lan"],
     hmr: host
       ? {
           protocol: "ws",

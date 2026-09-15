@@ -1,0 +1,76 @@
+/**
+ * Working item model for the UI. Close to what v1 palettes emit (see
+ * fixtures/all.jsonl) plus what the components need. Not the final contract.
+ */
+
+export type IconMask = "circle" | "rounded";
+
+export type Icon =
+  | { kind: "emoji"; value: string }
+  | { kind: "glyph"; value: string; color?: string }
+  | { kind: "image"; src: string; mask?: IconMask };
+
+export type Accessory =
+  | { text: string }
+  | { tag: string; color?: string }
+  | { date: string | number | Date };
+
+/** "cmd+shift+c", "ctrl+n", "enter", "cmd+enter". Lower-case, "+" joined. */
+export type Shortcut = string;
+
+export type Action = {
+  id: string;
+  title: string;
+  icon?: Icon;
+  shortcut?: Shortcut;
+  /** Actions are primary/secondary by position (first two); this only marks danger. */
+  style?: "destructive";
+  section?: string;
+};
+
+export type Metadata = {
+  label: string;
+  value?: string;
+  tags?: { text: string; color?: string }[];
+  link?: { text: string; href: string };
+};
+
+export type Detail = {
+  markdown?: string;
+  metadata?: Metadata[];
+};
+
+export type Item = {
+  id: string;
+  name: string;
+  subtitle?: string;
+  icon?: Icon;
+  keywords?: string[];
+  palette?: string;
+  section?: string;
+  accessories?: Accessory[];
+  detail?: Detail;
+  actions?: Action[];
+};
+
+/** Match positions per field, as fzf reports them (character indexes). */
+export type Match = {
+  name?: Set<number>;
+  subtitle?: Set<number>;
+};
+
+export type FilterOption = { id: string; title: string };
+
+export type Filter = {
+  options: FilterOption[];
+  value: string;
+  onChange: (id: string) => void;
+};
+
+export type FormField =
+  | { kind: "text"; id: string; label: string; placeholder?: string; value?: string }
+  | { kind: "textarea"; id: string; label: string; placeholder?: string; value?: string }
+  | { kind: "select"; id: string; label: string; options: FilterOption[]; value?: string }
+  | { kind: "checkbox"; id: string; label: string; text?: string; value?: boolean };
+
+export type FormValues = Record<string, string | boolean>;
