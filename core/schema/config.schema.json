@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "General": {
+      "additionalProperties": false,
+      "properties": {
+        "hotkey": {
+          "default": "ctrl+space",
+          "description": "Global hotkey that shows pal, e.g. `ctrl+space`.",
+          "type": "string"
+        },
+        "theme": {
+          "$ref": "#/$defs/Theme",
+          "default": "system"
+        }
+      },
+      "type": "object"
+    },
+    "Palette": {
+      "additionalProperties": false,
+      "description": "Per-palette settings pal provides to every palette extension without it\ndeclaring them. A palette absent from the file gets the defaults.",
+      "properties": {
+        "alias": {
+          "description": "Short name that jumps straight into this palette from root search.",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        },
+        "hotkey": {
+          "description": "Hotkey that opens pal directly in this palette.",
+          "type": "string"
+        },
+        "icon": {
+          "description": "Icon override; the extension's own icon when unset.",
+          "type": "string"
+        },
+        "settings": {
+          "additionalProperties": true,
+          "default": {},
+          "description": "Settings the extension declared for this palette.",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "Theme": {
+      "description": "Follow the OS, or force one.",
+      "enum": [
+        "system",
+        "light",
+        "dark"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "pal's settings: everything the settings view can set, in the file it\nwrites. (The set of keys is small and provisional; the mechanics around\nthem are what is settled.)",
+  "properties": {
+    "extensions": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "default": {},
+      "description": "Extension settings, keyed by extension name. Shape is whatever the\nextension declared.",
+      "type": "object"
+    },
+    "general": {
+      "$ref": "#/$defs/General",
+      "default": {
+        "hotkey": "ctrl+space",
+        "theme": "system"
+      }
+    },
+    "palettes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Palette"
+      },
+      "default": {},
+      "description": "Per-palette settings, keyed by palette id.",
+      "type": "object"
+    }
+  },
+  "title": "pal config",
+  "type": "object",
+  "x-taplo-info": {
+    "authors": [
+      "pal"
+    ],
+    "patterns": [
+      "**/pal/config.toml"
+    ]
+  }
+}
