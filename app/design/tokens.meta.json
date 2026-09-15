@@ -88,5 +88,8 @@
  ["--pal-shadow-popover", "Action panel and prompt."],
  ["--pal-shadow-hud", "The HUD."],
  ["--pal-backdrop", "backdrop-filter for the glass panel."],
- ["--pal-scheme", "The active scheme name, for JS or debugging."]
+ ["--pal-scheme", "The active scheme name, for JS or debugging."],
+ ["--pal-settings-w", "Settings window width: 240 grid units, fits 1280 with 160 to spare."],
+ ["--pal-settings-h", "Settings window height: 150 grid units."],
+ ["--pal-settings-nav-w", "Settings sidebar: 16 pad + 24 icon + 12 gap lands labels on the 52px text edge."]
 ]
