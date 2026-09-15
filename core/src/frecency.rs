@@ -45,13 +45,14 @@
 //!
 //! # File
 //!
-//! One JSON file, `$XDG_DATA_HOME/pal/frecency.json` (`dirs::data_dir()`
-//! otherwise, so `~/Library/Application Support/pal/` on macOS). Loaded
-//! once; a file that does not parse is moved to `frecency.json.bak` and the
-//! store starts empty. Writes are debounced by [`SAVE_DEBOUNCE`] on a
-//! background thread and land via temp file + rename. Call
+//! One JSON file, `frecency.json` under [`fs::data_dir`]
+//! (`~/Library/Application Support/pal/` on macOS, `~/.local/share/pal/` on
+//! Linux, `$XDG_DATA_HOME` first on both). Loaded once; a file that does not
+//! parse is moved to `frecency.json.bak` and the store starts empty, with
+//! [`Frecency::notice`] saying so. Writes are debounced by [`SAVE_DEBOUNCE`]
+//! on a background thread and land via temp file + rename. Call
 //! [`Frecency::flush`] before exit so the last pick is not lost to the
-//! debounce.
+//! debounce; it also reports a write that failed since the last one.
 
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -62,15 +63,16 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::fs;
 use crate::index::Source;
 
 /// Age buckets and their weights, youngest first. A visit older than the
 /// last bucket weighs [`OLDER_WEIGHT`].
 pub const BUCKETS: [(Duration, f32); 4] = [
-    (Duration::from_secs(4 * 3600), 100.0),
-    (Duration::from_secs(24 * 3600), 70.0),
-    (Duration::from_secs(3 * 24 * 3600), 50.0),
-    (Duration::from_secs(7 * 24 * 3600), 30.0),
+    (Duration::from_hours(4), 100.0),
+    (Duration::from_hours(24), 70.0),
+    (Duration::from_hours(3 * 24), 50.0),
+    (Duration::from_hours(7 * 24), 30.0),
 ];
 pub const OLDER_WEIGHT: f32 = 10.0;
 /// Visits remembered per item; recency is averaged over these.
@@ -102,6 +104,7 @@ pub struct Key {
 }
 
 impl Key {
+    /// `(extension, palette, id)`, see [`Source`].
     pub fn new(extension: impl Into<String>, palette: impl Into<String>, id: impl Into<String>) -> Self {
         Self { extension: extension.into(), palette: palette.into(), id: id.into() }
     }
@@ -136,13 +139,13 @@ impl KeyLike for (&str, &str, &str) {
 
 impl Hash for Key {
     fn hash<H: Hasher>(&self, h: &mut H) {
-        self.parts().hash(h)
+        self.parts().hash(h);
     }
 }
 
 impl Hash for dyn KeyLike + '_ {
     fn hash<H: Hasher>(&self, h: &mut H) {
-        self.parts().hash(h)
+        self.parts().hash(h);
     }
 }
 
@@ -171,8 +174,10 @@ struct Entry {
 }
 
 impl Entry {
+    /// The newest visit, whichever order they arrived in (a clock that went
+    /// back can append an older stamp).
     fn last_visit(&self) -> u64 {
-        self.visits.last().copied().unwrap_or(0)
+        self.visits.iter().copied().max().unwrap_or(0)
     }
 
     fn frecency(&self, now: u64) -> f32 {
@@ -232,7 +237,7 @@ struct File {
 
 enum Save {
     Snapshot(String),
-    Flush(mpsc::Sender<()>),
+    Flush(mpsc::Sender<std::io::Result<()>>),
 }
 
 /// The store. Cheap to query, owns its file.
@@ -240,12 +245,13 @@ pub struct Frecency {
     entries: HashMap<Key, Entry>,
     path: Option<PathBuf>,
     saver: Option<mpsc::Sender<Save>>,
+    notice: Option<String>,
 }
 
 impl Frecency {
     /// No file: nothing is loaded or saved.
     pub fn in_memory() -> Self {
-        Self { entries: HashMap::new(), path: None, saver: None }
+        Self { entries: HashMap::new(), path: None, saver: None, notice: None }
     }
 
     /// The default location, see the module docs.
@@ -253,36 +259,58 @@ impl Frecency {
         Self::load(Self::default_path())
     }
 
+    /// `frecency.json` under [`fs::data_dir`].
     pub fn default_path() -> PathBuf {
-        let base = std::env::var_os("XDG_DATA_HOME")
-            .filter(|p| !p.is_empty())
-            .map(PathBuf::from)
-            .or_else(dirs::data_dir)
-            .unwrap_or_else(|| PathBuf::from("."));
-        base.join("pal").join("frecency.json")
+        fs::data_dir().join("frecency.json")
     }
 
     /// Load `path`, or start empty when it is missing. A file that does not
-    /// parse is renamed to `<path>.bak` first so nothing is silently lost.
+    /// parse (or was written by another file version) is renamed to
+    /// `<path>.bak` first so nothing is silently lost; a file that cannot be
+    /// read at all is left alone and the store runs in memory for this
+    /// session, so a later save cannot replace history nobody has seen.
+    /// Either way [`notice`](Self::notice) says what happened.
     pub fn load(path: impl Into<PathBuf>) -> Self {
         let path = path.into();
-        let entries = match std::fs::read(&path) {
-            Ok(bytes) => match serde_json::from_slice::<File>(&bytes) {
-                Ok(file) => file.items.into_iter().map(|e| (e.key, e.entry)).collect(),
-                Err(_) => {
-                    let _ = std::fs::rename(&path, bak_path(&path));
-                    HashMap::new()
-                }
-            },
-            Err(_) => HashMap::new(),
+        let mut store = Self { entries: HashMap::new(), path: Some(path.clone()), saver: None, notice: None };
+        let bytes = match std::fs::read(&path) {
+            Ok(b) => b,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return store,
+            Err(e) => {
+                store.path = None;
+                store.notice = Some(format!("{}: {e}; history is off for this session", path.display()));
+                return store;
+            }
         };
-        Self { entries, path: Some(path), saver: None }
+        let why = match serde_json::from_slice::<File>(&bytes) {
+            Ok(file) if file.version == FILE_VERSION => {
+                store.entries = file.items.into_iter().map(|e| (e.key, e.entry)).collect();
+                return store;
+            }
+            Ok(file) => format!("file version {} (this pal writes {FILE_VERSION})", file.version),
+            Err(e) => e.to_string(),
+        };
+        let bak = bak_path(&path);
+        store.notice = Some(match std::fs::rename(&path, &bak) {
+            Ok(()) => format!("{}: {why}; moved to {} and starting empty", path.display(), bak.display()),
+            Err(e) => format!("{}: {why}; could not move it aside ({e}), starting empty", path.display()),
+        });
+        store
     }
 
+    /// Where saves go; `None` for [`in_memory`](Self::in_memory) or after a
+    /// file that could not be read.
     pub fn path(&self) -> Option<&Path> {
         self.path.as_deref()
     }
 
+    /// Why the store started empty when it should not have, for the app to
+    /// log. `None` on a clean start.
+    pub fn notice(&self) -> Option<&str> {
+        self.notice.as_deref()
+    }
+
+    /// Items with history.
     pub fn len(&self) -> usize {
         self.entries.len()
     }
@@ -306,22 +334,26 @@ impl Frecency {
         self.changed();
     }
 
-    /// What the user typed before picking `key`. Empty queries are ignored.
+    /// What the user typed before picking `key`. Empty queries are ignored,
+    /// and so is a key without a recorded pick: a query only means something
+    /// as the way to one.
     pub fn record_query(&mut self, key: &Key, query: &str) {
         let Some(q) = normalise_query(query) else { return };
-        let e = self.entries.entry(key.clone()).or_default();
+        let Some(e) = self.entries.get_mut(key) else { return };
         e.queries.retain(|old| *old != q);
         e.queries.insert(0, q);
         e.queries.truncate(MAX_QUERIES);
         self.changed();
     }
 
+    /// Drop one item's history (a "remove from recents" action).
     pub fn forget(&mut self, key: &Key) {
         if self.entries.remove(key).is_some() {
             self.changed();
         }
     }
 
+    /// Drop all history.
     pub fn clear(&mut self) {
         if !self.entries.is_empty() {
             self.entries.clear();
@@ -368,31 +400,49 @@ impl Frecency {
         ranked.into_iter().take(limit).map(|(k, ..)| k.clone()).collect()
     }
 
-    /// Write now if there is a file, waiting for any pending debounced save
-    /// first so the newest state wins.
+    /// Write now if there is a file, through the saver so a pending
+    /// debounced save cannot land after it. Returns that write's result, or
+    /// the last debounced write's failure when nothing was pending, so a
+    /// directory that stopped taking writes is reported here rather than
+    /// never.
     pub fn flush(&mut self) -> std::io::Result<()> {
         let Some(path) = &self.path else { return Ok(()) };
         if let Some(tx) = &self.saver {
             let (ack, done) = mpsc::channel();
             if tx.send(Save::Flush(ack)).is_ok() {
-                let _ = done.recv();
-                return Ok(());
+                if let Ok(result) = done.recv() {
+                    return result;
+                }
             }
+            // The saver is gone (it panicked); `changed` starts a new one.
         }
-        write_atomic(path, &self.snapshot())
+        fs::write_atomic(path, self.snapshot())
     }
 
     fn changed(&mut self) {
-        if self.path.is_none() {
-            return;
+        let Some(path) = &self.path else { return };
+        let mut snapshot = Save::Snapshot(self.snapshot());
+        if let Some(tx) = &self.saver {
+            match tx.send(snapshot) {
+                Ok(()) => return,
+                Err(mpsc::SendError(back)) => snapshot = back,
+            }
         }
-        let snapshot = self.snapshot();
-        if self.saver.as_ref().is_none_or(|tx| tx.send(Save::Snapshot(snapshot.clone())).is_err()) {
-            let (tx, rx) = mpsc::channel();
-            let path = self.path.clone().expect("checked above");
-            std::thread::spawn(move || saver(&path, &rx));
-            let _ = tx.send(Save::Snapshot(snapshot));
-            self.saver = Some(tx);
+        let (tx, rx) = mpsc::channel();
+        let target = path.clone();
+        let spawned = std::thread::Builder::new().name("pal-frecency-save".into()).spawn(move || saver(&target, &rx));
+        match spawned {
+            Ok(_) => {
+                let _ = tx.send(snapshot);
+                self.saver = Some(tx);
+            }
+            // No thread to be had: write here; if the disk is the problem
+            // too, the next `flush` fails on its own write and says so.
+            Err(_) => {
+                if let Save::Snapshot(s) = snapshot {
+                    let _ = fs::write_atomic(path, s);
+                }
+            }
         }
     }
 
@@ -428,9 +478,11 @@ impl Drop for Frecency {
 
 /// Debounce loop: after a snapshot arrives, keep swallowing newer ones
 /// until [`SAVE_DEBOUNCE`] passes with none, then write the last. A flush
-/// writes immediately and acks. Disconnect writes and exits.
+/// writes immediately and acks with the result. Disconnect writes and exits.
 fn saver(path: &Path, rx: &mpsc::Receiver<Save>) {
     let mut pending: Option<String> = None;
+    // A debounced write that failed, kept for the next flush to report.
+    let mut failed: Option<std::io::Error> = None;
     loop {
         let msg = match pending {
             None => rx.recv().map_err(|_| mpsc::RecvTimeoutError::Disconnected),
@@ -439,19 +491,23 @@ fn saver(path: &Path, rx: &mpsc::Receiver<Save>) {
         match msg {
             Ok(Save::Snapshot(s)) => pending = Some(s),
             Ok(Save::Flush(ack)) => {
-                if let Some(s) = pending.take() {
-                    let _ = write_atomic(path, &s);
-                }
-                let _ = ack.send(());
+                let result = match pending.take() {
+                    Some(s) => {
+                        failed = None;
+                        fs::write_atomic(path, s)
+                    }
+                    None => failed.take().map_or(Ok(()), Err),
+                };
+                let _ = ack.send(result);
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 if let Some(s) = pending.take() {
-                    let _ = write_atomic(path, &s);
+                    failed = fs::write_atomic(path, s).err();
                 }
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 if let Some(s) = pending.take() {
-                    let _ = write_atomic(path, &s);
+                    let _ = fs::write_atomic(path, s);
                 }
                 return;
             }
@@ -463,19 +519,6 @@ fn bak_path(path: &Path) -> PathBuf {
     let mut p = path.as_os_str().to_owned();
     p.push(".bak");
     PathBuf::from(p)
-}
-
-/// Temp file next to the target, then rename, so a reader never sees a
-/// half-written file. Same shape as the config writer.
-fn write_atomic(target: &Path, text: &str) -> std::io::Result<()> {
-    if let Some(dir) = target.parent() {
-        std::fs::create_dir_all(dir)?;
-    }
-    let tmp = target.with_extension(format!("json.tmp{}", std::process::id()));
-    std::fs::write(&tmp, text)?;
-    std::fs::rename(&tmp, target).inspect_err(|_| {
-        let _ = std::fs::remove_file(&tmp);
-    })
 }
 
 #[cfg(test)]
@@ -558,12 +601,27 @@ mod tests {
     #[test]
     fn queries_keep_last_n_most_recent_first() {
         let mut f = Frecency::in_memory();
+        f.record_query(&key("x"), "a");
+        assert!(f.is_empty(), "a query without a pick is nothing to remember");
+        f.record(&key("x"), t(D));
         for q in ["a", "b", "c", "d", "b"] {
             f.record_query(&key("x"), q);
         }
         assert_eq!(f.entries[&key("x")].queries, ["b", "d", "c"]);
         f.record_query(&key("x"), "   ");
         assert_eq!(f.entries[&key("x")].queries, ["b", "d", "c"]);
+    }
+
+    #[test]
+    fn last_visit_survives_a_clock_going_back() {
+        let mut f = Frecency::in_memory();
+        let now = 100 * D;
+        f.record(&key("a"), t(now - 10));
+        f.record(&key("a"), t(now - 3 * D));
+        f.record(&key("b"), t(now - 60));
+        assert_eq!(f.entries[&key("a")].last_visit(), now - 10);
+        let top: Vec<_> = f.top(2, t(now)).into_iter().map(|k| k.id).collect();
+        assert_eq!(top[0], "a", "two visits beat one; the older stamp does not make it look stale");
     }
 
     #[test]
@@ -686,11 +744,51 @@ mod tests {
         std::fs::write(&path, b"{ this is not json").unwrap();
         let mut f = Frecency::load(&path);
         assert!(f.is_empty());
+        assert!(f.notice().is_some_and(|n| n.contains("frecency.json.bak")), "{:?}", f.notice());
         assert_eq!(std::fs::read(bak_path(&path)).unwrap(), b"{ this is not json");
         assert!(!path.exists());
         f.record(&key("a"), t(D));
         f.flush().unwrap();
-        assert_eq!(Frecency::load(&path).len(), 1);
+        let g = Frecency::load(&path);
+        assert_eq!((g.len(), g.notice()), (1, None));
+    }
+
+    #[test]
+    fn other_file_version_is_set_aside() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("frecency.json");
+        std::fs::write(&path, r#"{"version":2,"items":[]}"#).unwrap();
+        let f = Frecency::load(&path);
+        assert!(f.notice().is_some_and(|n| n.contains("version 2")), "{:?}", f.notice());
+        assert!(bak_path(&path).exists());
+    }
+
+    #[test]
+    fn unreadable_file_runs_in_memory() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut f = Frecency::load(dir.path());
+        assert!(f.path().is_none());
+        assert!(f.notice().is_some_and(|n| n.contains("history is off")), "{:?}", f.notice());
+        f.record(&key("a"), t(D));
+        f.flush().unwrap();
+        assert!(dir.path().is_dir(), "nothing was written over it");
+    }
+
+    #[test]
+    fn flush_reports_a_failed_debounced_write() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("frecency.json");
+        let mut f = Frecency::load(&path);
+        f.record(&key("a"), t(D));
+        f.flush().unwrap();
+        // Make the directory a file: the next rename has nowhere to go.
+        std::fs::remove_dir_all(dir.path()).unwrap();
+        std::fs::write(dir.path(), "").unwrap();
+        f.record(&key("b"), t(D));
+        std::thread::sleep(SAVE_DEBOUNCE * 3);
+        assert!(f.flush().is_err(), "the debounced write failed and flush says so");
+        assert!(f.flush().is_ok(), "reported once");
+        std::fs::remove_file(dir.path()).unwrap();
     }
 
     #[test]

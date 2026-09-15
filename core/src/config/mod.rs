@@ -19,6 +19,7 @@ mod edit;
 pub mod schema;
 pub mod secrets;
 mod watch;
+use crate::fs;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -56,7 +57,8 @@ pub struct Config {
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
 pub struct General {
-    /// Global hotkey that shows pal, e.g. `ctrl+space`.
+    /// Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,
+    /// for a compositor keybind that runs `pal-app toggle` instead.
     pub hotkey: String,
     pub theme: Theme,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
@@ -128,6 +130,9 @@ impl Config {
     }
 }
 
+/// How much a [`Diagnostic`] matters: a warning leaves the config usable
+/// as loaded, an error means the file did not load and the config shown is
+/// the defaults or the last good one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Level {
@@ -152,8 +157,15 @@ impl Diagnostic {
     }
 
     fn parse(text: &str, e: toml::de::Error) -> Self {
-        let line = e.span().map(|s| text[..s.start.min(text.len())].lines().count().max(1));
+        // Newlines before the span, not `lines().count()`: that drops the
+        // empty last piece, so an error at the start of a line came out one
+        // line early.
+        let line = e.span().map(|s| text.as_bytes()[..s.start.min(text.len())].iter().filter(|&&b| b == b'\n').count() + 1);
         Self { level: Level::Error, path: String::new(), line, message: e.message().to_string() }
+    }
+
+    fn io(e: &std::io::Error) -> Self {
+        Self { level: Level::Error, path: String::new(), line: None, message: e.to_string() }
     }
 }
 
@@ -167,19 +179,28 @@ pub struct Loaded {
 }
 
 impl Loaded {
+    /// True when the file did not load and `config` is a stand-in.
     pub fn has_errors(&self) -> bool {
         self.diagnostics.iter().any(|d| d.level == Level::Error)
     }
 }
 
+/// What an edit or a watch can fail with. Loading never fails: see [`Loaded`].
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{path}: {source}")]
     Io { path: PathBuf, source: std::io::Error },
-    #[error("{path}: {0}", path = .1.display())]
-    Parse(toml_edit::TomlError, PathBuf),
+    /// The file is not TOML, so there is no text to edit in place.
+    #[error("{path}: {source}")]
+    Parse { path: PathBuf, source: toml_edit::TomlError },
+    /// A dotted key that does not parse (`a..b`, an unclosed quote).
+    #[error("bad key {0:?}")]
+    Key(String),
     #[error("{0}: not a table, cannot set a key under it")]
     NotATable(String),
+    /// Setting a plain value over a `[table]` would drop everything in it.
+    #[error("{0}: is a table, unset it first")]
+    IsATable(String),
     #[error("{0} changed on disk while editing")]
     Contended(PathBuf),
     #[error("watch: {0}")]
@@ -205,24 +226,21 @@ pub struct ConfigFile {
 }
 
 impl ConfigFile {
+    /// A config file at `path`; it need not exist yet.
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self { path: path.into() }
     }
 
     /// `$PAL_CONFIG`, else `$XDG_CONFIG_HOME/pal/config.toml`, else
-    /// `~/.config/pal/config.toml`.
+    /// `~/.config/pal/config.toml` (on macOS too, see [`fs::config_dir`]).
     pub fn locate() -> Self {
-        if let Some(p) = std::env::var_os("PAL_CONFIG").filter(|p| !p.is_empty()) {
-            return Self::new(p);
+        match std::env::var_os("PAL_CONFIG").filter(|p| !p.is_empty()) {
+            Some(p) => Self::new(p),
+            None => Self::new(fs::config_dir().join("config.toml")),
         }
-        let base = std::env::var_os("XDG_CONFIG_HOME")
-            .filter(|p| !p.is_empty())
-            .map(PathBuf::from)
-            .or_else(dirs::config_dir)
-            .unwrap_or_else(|| PathBuf::from("."));
-        Self::new(base.join("pal").join("config.toml"))
     }
 
+    /// The path as given (a symlink stays a symlink here).
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -238,16 +256,19 @@ impl ConfigFile {
     /// that does not parse is the defaults plus an error diagnostic (the
     /// watcher is what remembers the last good config across that).
     pub fn load(&self) -> Loaded {
+        self.loaded(std::fs::read_to_string(self.target()).as_deref())
+    }
+
+    /// [`load`](Self::load) over a read already done, so the watcher parses
+    /// the same bytes it compared.
+    pub(crate) fn loaded(&self, read: Result<&str, &std::io::Error>) -> Loaded {
         let path = self.path.clone();
-        let text = match std::fs::read_to_string(self.target()) {
+        let text = match read {
             Ok(t) => t,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
-            Err(e) => {
-                let d = Diagnostic { level: Level::Error, path: String::new(), line: None, message: e.to_string() };
-                return Loaded { path, config: Config::default(), diagnostics: vec![d] };
-            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => "",
+            Err(e) => return Loaded { path, config: Config::default(), diagnostics: vec![Diagnostic::io(e)] },
         };
-        match parse(&text) {
+        match parse(text) {
             Ok((config, diagnostics)) => Loaded { path, config, diagnostics },
             Err(d) => Loaded { path, config: Config::default(), diagnostics: vec![d] },
         }
@@ -335,6 +356,21 @@ enabld = false
     }
 
     #[test]
+    fn error_at_line_start_gets_its_own_line() {
+        assert_eq!(parse("x = 1\n]\n").unwrap_err().line, Some(2));
+        assert_eq!(parse("x = 1\n\n\n= 2\n").unwrap_err().line, Some(4));
+        assert_eq!(parse("= 2").unwrap_err().line, Some(1));
+    }
+
+    #[test]
+    fn unreadable_file_is_an_error_diagnostic() {
+        let dir = tempfile::tempdir().unwrap();
+        let l = ConfigFile::new(dir.path()).load();
+        assert!(l.has_errors(), "a directory does not read as a file");
+        assert_eq!(l.config, Config::default());
+    }
+
+    #[test]
     fn load_missing_is_defaults() {
         let dir = tempfile::tempdir().unwrap();
         let l = ConfigFile::new(dir.path().join("config.toml")).load();
@@ -351,5 +387,6 @@ enabld = false
         std::env::set_var("XDG_CONFIG_HOME", "/xdg");
         assert_eq!(ConfigFile::locate().path(), Path::new("/xdg/pal/config.toml"));
         std::env::remove_var("XDG_CONFIG_HOME");
+        assert!(ConfigFile::locate().path().ends_with(".config/pal/config.toml"), "dotfile location on every platform");
     }
 }

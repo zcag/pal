@@ -54,10 +54,13 @@ pub fn install(window: &WebviewWindow) {
     // counts as visible; a covering window, a locked screen or a sleeping
     // display would not, so occlusion detection goes off too, via the
     // private WKWebView setter Raycast flips for the same reason.
-    let _ = window.with_webview(|wv| unsafe {
+    let occlusion = window.with_webview(|wv| unsafe {
         let wk = &*(wv.inner() as *const AnyObject);
         let _: () = msg_send![wk, _setWindowOcclusionDetectionEnabled: false];
     });
+    if let Err(e) = occlusion {
+        eprintln!("panel\twith_webview failed\t{e}; the page may pause when covered");
+    }
     // Order in now, invisible: the first show then finds the page painted.
     panel.set_ignores_mouse_events(true);
     panel.set_alpha_value(0.0);
@@ -65,7 +68,7 @@ pub fn install(window: &WebviewWindow) {
 }
 
 pub fn is_visible(app: &AppHandle) -> bool {
-    app.get_webview_panel(WINDOW).map(|p| p.as_panel().alphaValue() > 0.0).unwrap_or(false)
+    app.get_webview_panel(WINDOW).is_ok_and(|p| p.as_panel().alphaValue() > 0.0)
 }
 
 pub fn show(app: &AppHandle) {
@@ -84,7 +87,9 @@ pub fn show(app: &AppHandle) {
 pub fn hide(app: &AppHandle) {
     let Ok(p) = app.get_webview_panel(WINDOW) else { return };
     if !is_visible(app) {
-        return; // also cuts the resign-key -> hide re-entry from orderOut below
+        // Also cuts the re-entry: orderOut below fires window_did_resign_key,
+        // whose handler is this function, and alpha is already 0 by then.
+        return;
     }
     p.set_ignores_mouse_events(true);
     p.set_alpha_value(0.0);

@@ -15,7 +15,7 @@ pub struct Cli {
     pub cmd: Option<Cmd>,
 }
 
-#[derive(Subcommand, Clone, Copy)]
+#[derive(Subcommand, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cmd {
     /// Show the panel if hidden, hide it if shown.
     Toggle,
@@ -39,13 +39,14 @@ impl Cmd {
     }
 
     /// Runs on the main thread: callers arrive from the plugin's socket
-    /// task or the page-load hook.
+    /// task or the page-load hook. Fails only once the event loop is gone,
+    /// when there is nothing left to show.
     pub fn run(self, app: &AppHandle) {
-        let app = app.clone();
-        let _ = app.clone().run_on_main_thread(move || match self {
-            Cmd::Toggle => crate::toggle(&app),
-            Cmd::Show => crate::show(&app),
-            Cmd::Hide => crate::panel::hide(&app),
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || match self {
+            Cmd::Toggle => crate::toggle(&handle),
+            Cmd::Show => crate::show(&handle),
+            Cmd::Hide => crate::panel::hide(&handle),
         });
     }
 }
@@ -55,7 +56,9 @@ impl Cmd {
 /// plugin would do the same from its setup, but only after GTK and the
 /// display are up, 150 ms on marko against 40 for the bare binary. Same
 /// wire format as tauri-plugin-single-instance 2.4 (its client side is
-/// private). False when no instance answered; the plugin then settles it.
+/// private; `platform_impl/{macos,linux}.rs` there is the reference, and
+/// its `semver` feature, which suffixes the name, must stay off). False
+/// when no instance answered; the plugin then settles it.
 pub fn handover(identifier: &str) -> bool {
     let args: Vec<String> = std::env::args().collect();
     let cwd = std::env::current_dir().unwrap_or_default().to_string_lossy().into_owned();

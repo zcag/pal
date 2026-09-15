@@ -7,7 +7,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
+use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32String};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -45,25 +45,32 @@ impl Source {
     }
 }
 
-/// One ranked result. `(source, id)` is the handle the UI acts on;
-/// `name_positions` are char indexes into the name for highlighting.
+/// One ranked result. `(source, id)` is the handle the UI acts on.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Hit {
     pub source: Source,
     pub id: String,
+    /// Match score plus boost; only comparable within one query.
     pub score: f32,
+    /// Matched positions in the name, ascending, one per grapheme cluster
+    /// (nucleo's unit: a flag or a family emoji is one position, not two or
+    /// seven code points). Split the name with `Intl.Segmenter` to apply
+    /// them; `[...name]` drifts after such a cluster.
     pub name_positions: Vec<u32>,
 }
 
+/// Per-candidate score adjustment, see [`QueryOpts::boost`].
+pub type Boost<'a> = &'a dyn Fn(&Source, &str) -> f32;
+
 pub struct QueryOpts<'a> {
+    /// At most this many hits; the best ones when there are more.
     pub limit: usize,
     /// Only these sources; `None` is all of them.
     pub sources: Option<&'a [Source]>,
     /// Added to every candidate's match score (0 for the empty query) before
     /// the top-N select, so a weak match with a large boost still climbs.
     /// Frecency plugs in here.
-    #[allow(clippy::type_complexity)]
-    pub boost: Option<&'a dyn Fn(&Source, &str) -> f32>,
+    pub boost: Option<Boost<'a>>,
 }
 
 impl Default for QueryOpts<'_> {
@@ -115,10 +122,10 @@ impl Bucket {
 }
 
 /// Items grouped by source, in the order sources first appeared. `query`
-/// takes `&mut self`: the matcher and the parsed pattern are scratch that
-/// every query reuses, and the index will sit behind a `Mutex` in the app
-/// anyway (Tauri state must be `Sync`), so interior mutability here would
-/// only add a second lock and hide that a query writes.
+/// takes `&mut self`: the matcher is scratch that every query reuses, and
+/// the index will sit behind a `Mutex` in the app anyway (Tauri state must
+/// be `Sync`), so interior mutability here would only add a second lock and
+/// hide that a query writes.
 pub struct Index {
     buckets: Vec<Bucket>,
     matcher: Matcher,
@@ -142,28 +149,36 @@ impl Index {
         let bucket = self.bucket(source);
         bucket.entries.clear();
         bucket.ids.clear();
-        items.into_iter().for_each(|i| bucket.push(i));
+        for item in items {
+            bucket.push(item);
+        }
     }
 
     /// Append `items` to a source (a palette still streaming its list).
     pub fn extend(&mut self, source: Source, items: Vec<Item>) {
         let bucket = self.bucket(source);
-        items.into_iter().for_each(|i| bucket.push(i));
+        for item in items {
+            bucket.push(item);
+        }
     }
 
+    /// Drop a source and its items; it goes last if it comes back.
     pub fn remove(&mut self, source: &Source) {
         self.buckets.retain(|b| &b.source != source);
     }
 
-    /// Mark a source live (see `Bucket::live`); creates it empty if new.
+    /// Mark a source live: its order is arrival order, so `QueryOpts::boost`
+    /// does not apply to it. Creates the source empty if new.
     pub fn set_live(&mut self, source: Source, live: bool) {
         self.bucket(source).live = live;
     }
 
+    /// Every source in order, with its item count.
     pub fn sources(&self) -> Vec<SourceInfo> {
         self.buckets.iter().map(|b| SourceInfo { source: b.source.clone(), live: b.live, len: b.entries.len() }).collect()
     }
 
+    /// Items across all sources.
     pub fn len(&self) -> usize {
         self.buckets.iter().map(|b| b.entries.len()).sum()
     }
@@ -172,6 +187,7 @@ impl Index {
         self.len() == 0
     }
 
+    /// The item a [`Hit`] names; the first one when a source repeated an id.
     pub fn get(&self, source: &Source, id: &str) -> Option<&Item> {
         let b = self.buckets.iter().find(|b| &b.source == source)?;
         b.ids.get(id).map(|&i| &b.entries[i].item)
@@ -189,9 +205,12 @@ impl Index {
     }
 
     /// Rank `q` over the index: best `opts.limit` hits, best first. The empty
-    /// query lists everything in insertion order (plus boost).
+    /// query lists everything in insertion order (plus boost). Words match
+    /// fuzzily and independently; `!`, `^`, `'` and `$` are ordinary text,
+    /// not fzf operators (Spotlight and Raycast have none, and a bookmark
+    /// called `!important` must be findable).
     pub fn query(&mut self, q: &str, opts: QueryOpts) -> Vec<Hit> {
-        self.pat.reparse(q, CaseMatching::Smart, Normalization::Smart);
+        self.pat = Pattern::new(q, CaseMatching::Smart, Normalization::Smart, AtomKind::Fuzzy);
         let matching = !self.pat.atoms.is_empty();
         let mut cands = Vec::new();
         'scan: for (b, bucket) in self.buckets.iter().enumerate() {
@@ -389,6 +408,28 @@ mod tests {
     }
 
     #[test]
+    fn fzf_operators_are_plain_text() {
+        let mut ix = index();
+        ix.extend(src("bookmarks"), vec![item("imp", "!important", None, &[]), item("dollar", "$HOME", None, &[])]);
+        assert_eq!(ids(&ix.query("!imp", QueryOpts::default())), ["imp"], "not a negation");
+        assert_eq!(ids(&ix.query("$ho", QueryOpts::default())), ["dollar"]);
+        assert_eq!(ids(&ix.query("chrome$", QueryOpts::default())), Vec::<&str>::new(), "not a suffix anchor");
+        assert!(ix.query("^chrome", QueryOpts::default()).is_empty(), "not a prefix anchor");
+        assert!(ix.query("'chrome", QueryOpts::default()).is_empty(), "not a substring mode");
+        assert!(ix.query("   ", QueryOpts::default()).len() == ix.len(), "whitespace is the empty query");
+    }
+
+    #[test]
+    fn limit_cuts_after_ranking() {
+        let mut ix = index();
+        assert!(ix.query("", QueryOpts { limit: 0, ..Default::default() }).is_empty());
+        assert!(ix.query("chrome", QueryOpts { limit: 0, ..Default::default() }).is_empty());
+        let all = ix.query("nf", QueryOpts::default());
+        let one = ix.query("nf", QueryOpts { limit: 1, ..Default::default() });
+        assert_eq!(ids(&one), ids(&all)[..1], "the head of the full ranking, not the first scanned");
+    }
+
+    #[test]
     fn empty_query_is_insertion_order() {
         let mut ix = index();
         let all = ix.query("", QueryOpts::default());
@@ -476,6 +517,18 @@ mod tests {
         // Cross-field: the word in the name is highlighted, the keyword one is not.
         let hits = ix.query("cast tv", QueryOpts::default());
         assert_eq!(hits[0].name_positions, [0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn positions_count_grapheme_clusters() {
+        let mut ix = Index::new();
+        ix.replace(src("x"), vec![item("tr", "\u{1F1F9}\u{1F1F7} Türkiye", None, &[]), item("e", "Émile", None, &[])]);
+        let hits = ix.query("tür", QueryOpts::default());
+        assert_eq!(hits[pos(&hits, "tr")].name_positions, [2, 3, 4], "the flag is one cluster, two code points");
+        // Normalisation: an unaccented query still matches, and positions
+        // point at the accented letters.
+        let hits = ix.query("emi", QueryOpts::default());
+        assert_eq!(hits[pos(&hits, "e")].name_positions, [0, 1, 2]);
     }
 
     #[test]

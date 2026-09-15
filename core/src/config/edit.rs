@@ -7,11 +7,14 @@ use std::path::Path;
 use toml_edit::{DocumentMut, InlineTable, Item, Key, Table, TableLike, Value};
 
 use super::{ConfigFile, Error, TEMPLATE};
+use crate::fs;
 
 impl ConfigFile {
     /// Set `key` (dotted, quotes allowed: `palettes."my.id".enabled`) to
     /// `value`. Missing tables on the way are created as `[headers]`; an
-    /// existing key keeps its spacing and trailing comment.
+    /// existing key keeps its spacing and trailing comment. A `[table]` at
+    /// `key` is only replaced by an inline table (same data, other spelling),
+    /// anything else is [`Error::IsATable`].
     pub fn set(&self, key: &str, value: impl Into<Value>) -> Result<(), Error> {
         let value = value.into();
         self.edit(|doc| set(doc, key, value))
@@ -23,17 +26,16 @@ impl ConfigFile {
         self.edit(|doc| set(doc, key, value))
     }
 
-    /// Remove `key` and its own comments; the tables above it stay, even
-    /// when that leaves an empty `[header]`.
+    /// Remove `key` (a whole table when it names one) and its own comments;
+    /// the tables above it stay, even when that leaves an empty `[header]`.
+    /// A key that is not there is not an error.
     pub fn unset(&self, key: &str) -> Result<(), Error> {
-        self.edit(|doc| {
-            unset(doc, key);
-            Ok(())
-        })
+        self.edit(|doc| unset(doc, key))
     }
 
     /// Read, change, write back atomically. One call, one write, so several
-    /// keys can change under one file event.
+    /// keys can change under one file event. Nothing is written when `f`
+    /// fails or leaves the text as it was.
     pub fn edit(&self, f: impl FnOnce(&mut DocumentMut) -> Result<(), Error>) -> Result<(), Error> {
         let target = self.target();
         let io = |source| Error::Io { path: target.clone(), source };
@@ -44,44 +46,36 @@ impl ConfigFile {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => (String::new(), true),
             Err(e) => return Err(io(e)),
         };
-        let mut doc: DocumentMut = text.parse().map_err(|e| Error::Parse(e, target.clone()))?;
+        let mut doc: DocumentMut = text.parse().map_err(|source| Error::Parse { path: target.clone(), source })?;
         f(&mut doc)?;
         let out = if fresh { format!("{TEMPLATE}\n{doc}") } else { doc.to_string() };
         if out == text {
             return Ok(());
         }
         // A hand edit that landed while we held the text would be lost by
-        // our write; refuse rather than clobber. The caller can retry.
+        // our write; refuse rather than clobber. The caller can retry. (The
+        // stamp has the filesystem's mtime resolution, and a write between
+        // this check and the rename still slips through.)
         if stamp(&target) != before {
             return Err(Error::Contended(target));
         }
-        write_atomic(&target, &out).map_err(io)
+        fs::write_atomic(&target, &out).map_err(io)
     }
 }
 
-/// Temp file next to the target, then rename: readers (and our watcher)
-/// never see a half-written file.
-fn write_atomic(target: &Path, text: &str) -> std::io::Result<()> {
-    if let Some(dir) = target.parent() {
-        std::fs::create_dir_all(dir)?;
-    }
-    let tmp = target.with_extension(format!("toml.tmp{}", std::process::id()));
-    std::fs::write(&tmp, text)?;
-    std::fs::rename(&tmp, target).inspect_err(|_| {
-        let _ = std::fs::remove_file(&tmp);
-    })
-}
-
-fn keys(path: &str) -> Vec<Key> {
-    Key::parse(path).unwrap_or_else(|_| vec![Key::new(path)])
+/// The dotted key's parts; `Error::Key` rather than a literal key for text
+/// that does not parse, so a typo like `a..b` cannot land in the file.
+fn keys(path: &str) -> Result<(Key, Vec<Key>), Error> {
+    let mut keys = Key::parse(path).map_err(|_| Error::Key(path.into()))?;
+    let last = keys.pop().ok_or_else(|| Error::Key(path.into()))?;
+    Ok((last, keys))
 }
 
 fn set(doc: &mut DocumentMut, path: &str, mut value: Value) -> Result<(), Error> {
-    let keys = keys(path);
-    let (last, parents) = keys.split_last().expect("Key::parse never yields nothing");
+    let (last, parents) = keys(path)?;
     let mut table: &mut dyn TableLike = doc.as_table_mut();
     let (mut walked, mut inline) = (String::new(), false);
-    for k in parents {
+    for k in &parents {
         walked.push_str(k.get());
         // An intermediate that does not exist yet takes its parent's shape:
         // a header table under headers, an inline table inside an inline one.
@@ -98,18 +92,24 @@ fn set(doc: &mut DocumentMut, path: &str, mut value: Value) -> Result<(), Error>
         table = item.as_table_like_mut().ok_or_else(|| Error::NotATable(walked.clone()))?;
         walked.push('.');
     }
-    match table.get_mut(last.get()).and_then(Item::as_value_mut) {
-        Some(old) => {
+    match table.get_mut(last.get()) {
+        Some(Item::Value(old)) => {
             *value.decor_mut() = old.decor().clone();
             *old = value;
         }
-        None => {
+        // The same data spelled the other way: swap the spelling.
+        Some(item @ Item::Table(_)) if value.is_inline_table() => *item = Item::Value(value),
+        Some(item @ Item::ArrayOfTables(_)) if value.is_array() => *item = Item::Value(value),
+        Some(Item::None) | None => {
             table.insert(last.get(), Item::Value(value));
         }
+        Some(_) => return Err(Error::IsATable(path.into())),
     }
     // A table that now holds a value of its own must print its header.
-    if let Some(parent) = parents.last().and_then(|_| nested_table(doc, parents)) {
-        parent.set_implicit(false);
+    if !parents.is_empty() {
+        if let Some(parent) = nested_table(doc, &parents) {
+            parent.set_implicit(false);
+        }
     }
     Ok(())
 }
@@ -122,17 +122,17 @@ fn nested_table<'a>(doc: &'a mut DocumentMut, path: &[Key]) -> Option<&'a mut Ta
     Some(t)
 }
 
-fn unset(doc: &mut DocumentMut, path: &str) {
-    let keys = keys(path);
-    let (last, parents) = keys.split_last().expect("Key::parse never yields nothing");
+fn unset(doc: &mut DocumentMut, path: &str) -> Result<(), Error> {
+    let (last, parents) = keys(path)?;
     let mut table: &mut dyn TableLike = doc.as_table_mut();
-    for k in parents {
+    for k in &parents {
         match table.get_mut(k.get()).and_then(Item::as_table_like_mut) {
             Some(t) => table = t,
-            None => return,
+            None => return Ok(()),
         }
     }
     table.remove(last.get());
+    Ok(())
 }
 
 /// JSON to a TOML value. `null` has no TOML form and becomes an empty string;
@@ -273,14 +273,59 @@ token = "keychain:pal/github-token"
     }
 
     #[test]
+    fn set_over_a_table_is_an_error_unless_inline() {
+        let (_d, f) = file(ODD);
+        let e = f.set("general", 1).unwrap_err();
+        assert!(matches!(e, Error::IsATable(ref p) if p == "general"), "{e}");
+        let e = f.set("palettes.clipboard", "x").unwrap_err();
+        assert!(matches!(e, Error::IsATable(_)), "{e}");
+        assert_eq!(read(&f), ODD);
+        f.set_json("palettes.ffbookmarks", serde_json::json!({"enabled": true, "alias": "fb"})).unwrap();
+        let cfg = super::super::parse(&read(&f)).unwrap().0;
+        assert!(cfg.palettes["ffbookmarks"].enabled);
+        assert_eq!(cfg.palettes["ffbookmarks"].alias.as_deref(), Some("fb"));
+        assert_eq!(cfg.palettes["clipboard"].alias.as_deref(), Some("cb"), "siblings untouched");
+    }
+
+    #[test]
+    fn bad_key_is_an_error() {
+        let (_d, f) = file(ODD);
+        for k in ["", "a..b", "a.\"b", ".a"] {
+            assert!(matches!(f.set(k, 1).unwrap_err(), Error::Key(ref p) if p == k), "set {k:?}");
+            assert!(matches!(f.unset(k).unwrap_err(), Error::Key(_)), "unset {k:?}");
+        }
+        assert_eq!(read(&f), ODD);
+    }
+
+    #[test]
     fn unset_removes_only_that_line() {
         let (_d, f) = file(ODD);
         f.unset("general.theme").unwrap();
         let mut expected: Vec<_> = ODD.lines().collect();
         expected.remove(5);
         assert_eq!(read(&f).lines().collect::<Vec<_>>(), expected);
+        let before = read(&f);
         f.unset("nope.nothing").unwrap();
         f.unset("general.gone").unwrap();
+        f.unset("general.hotkey.x").unwrap();
+        assert_eq!(read(&f), before, "missing keys are a no-op");
+    }
+
+    #[test]
+    fn unset_table_drops_its_block() {
+        let (_d, f) = file(ODD);
+        f.unset("palettes.clipboard").unwrap();
+        let cfg = super::super::parse(&read(&f)).unwrap().0;
+        assert!(!cfg.palettes.contains_key("clipboard"));
+        assert!(cfg.palettes.contains_key("ffbookmarks"));
+    }
+
+    #[test]
+    fn unparseable_file_is_a_parse_error() {
+        let (_d, f) = file("[general\n");
+        let e = f.set("general.theme", "dark").unwrap_err();
+        assert!(matches!(e, Error::Parse { .. }), "{e}");
+        assert_eq!(read(&f), "[general\n");
     }
 
     #[test]

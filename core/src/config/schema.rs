@@ -10,7 +10,9 @@
 use std::path::{Path, PathBuf};
 
 use super::Config;
+use crate::fs;
 
+/// What [`install`] writes next to the config, and what [`TEMPLATE`](super::TEMPLATE) points at.
 pub const FILE_NAME: &str = "config.schema.json";
 
 /// The schema as pretty JSON. Committed copy: `core/schema/config.schema.json`.
@@ -49,8 +51,7 @@ pub fn install(config_path: &Path) -> std::io::Result<PathBuf> {
     let path = config_path.parent().unwrap_or(Path::new(".")).join(FILE_NAME);
     let text = json();
     if std::fs::read_to_string(&path).ok().as_deref() != Some(&text) {
-        std::fs::create_dir_all(path.parent().unwrap())?;
-        std::fs::write(&path, text)?;
+        fs::write_atomic(&path, text)?;
     }
     Ok(path)
 }

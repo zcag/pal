@@ -14,24 +14,32 @@ use super::{Config, ConfigFile, Error, Loaded};
 const DEBOUNCE: Duration = Duration::from_millis(150);
 
 /// Keeps the watch alive; drop it to stop.
+#[must_use = "dropping the watcher stops the watch"]
 pub struct Watcher {
     _inner: notify::RecommendedWatcher,
 }
 
 impl ConfigFile {
     /// Call `on_change` with a fresh [`Loaded`] whenever the file's content
-    /// changes on disk. Reloads are content-keyed: an event that leaves the
-    /// bytes as they were (our own write echoing back a state already
-    /// loaded, a touch, a no-op save) does not fire. A save that fails to
-    /// parse fires with the last good `config` and an error diagnostic, so
+    /// changes on disk (a deleted file is a change to the defaults). Reloads
+    /// are content-keyed: an event that leaves the bytes as they were (our
+    /// own write echoing back a state already loaded, a touch, a no-op save)
+    /// does not fire. A save that fails to parse, or a file that cannot be
+    /// read, fires with the last good `config` and an error diagnostic, so
     /// settings never blank while the user is mid-edit.
+    ///
+    /// The watch follows a symlink to its target's directory once, at this
+    /// call; re-pointing the link later is not seen.
     pub fn watch(&self, mut on_change: impl FnMut(Loaded) + Send + 'static) -> Result<Watcher, Error> {
         let target = self.target();
-        let dir = target.parent().map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
+        let dir = target.parent().map_or_else(|| PathBuf::from("."), PathBuf::from);
         std::fs::create_dir_all(&dir).map_err(|source| Error::Io { path: dir.clone(), source })?;
         let name = target.file_name().map(std::ffi::OsStr::to_owned);
         let (tx, rx) = mpsc::channel();
         let mut inner = notify::recommended_watcher(move |ev: notify::Result<notify::Event>| {
+            // An error here (the OS dropped the watch, an overflow) leaves
+            // the file unwatched until the next start; there is no channel
+            // to report it on.
             if let Ok(ev) = ev {
                 if ev.paths.iter().any(|p| p.file_name() == name.as_deref()) {
                     let _ = tx.send(());
@@ -41,20 +49,22 @@ impl ConfigFile {
         inner.watch(&dir, RecursiveMode::NonRecursive)?;
 
         let file = self.clone();
-        let mut last_text = std::fs::read_to_string(&target).ok();
-        let mut good: Config = file.load().config;
-        let io = |source| Error::Io { path: dir.clone(), source };
+        // One read serves both the content key and the parse, so the two
+        // cannot disagree when a second save lands between them.
+        let read = std::fs::read_to_string(&target);
+        let mut good: Config = file.loaded(read.as_deref()).config;
+        let mut last_text = read.ok();
         std::thread::Builder::new()
             .name("pal-config-watch".into())
             .spawn(move || {
                 while rx.recv().is_ok() {
                     while rx.recv_timeout(DEBOUNCE).is_ok() {}
-                    let text = std::fs::read_to_string(&target).ok();
-                    if text == last_text {
+                    let read = std::fs::read_to_string(&target);
+                    if read.as_ref().ok() == last_text.as_ref() {
                         continue;
                     }
-                    last_text = text;
-                    let mut loaded = file.load();
+                    let mut loaded = file.loaded(read.as_deref());
+                    last_text = read.ok();
                     if loaded.has_errors() {
                         loaded.config = good.clone();
                     } else {
@@ -63,7 +73,7 @@ impl ConfigFile {
                     on_change(loaded);
                 }
             })
-            .map_err(io)?;
+            .map_err(|e| Error::Watch(notify::Error::io(e)))?;
         Ok(Watcher { _inner: inner })
     }
 }
@@ -122,6 +132,37 @@ mod tests {
         let (_d, f, _w, rx) = setup();
         std::fs::write(f.path(), "[general]\ntheme = \"dark\"\n").unwrap();
         assert_eq!(rx.recv_timeout(Duration::from_millis(800)), Err(RecvTimeoutError::Timeout));
+    }
+
+    #[test]
+    fn deleted_file_is_the_defaults_and_comes_back() {
+        let (_d, f, _w, rx) = setup();
+        std::fs::remove_file(f.path()).unwrap();
+        let l = rx.recv_timeout(WAIT).unwrap();
+        assert_eq!(l.config, Config::default());
+        assert!(l.diagnostics.is_empty(), "missing is not an error: {:?}", l.diagnostics);
+        std::fs::write(f.path(), "[general]\ntheme = \"light\"\n").unwrap();
+        assert_eq!(rx.recv_timeout(WAIT).unwrap().config.general.theme, Theme::Light);
+    }
+
+    #[test]
+    fn a_missing_file_can_be_watched_into_existence() {
+        let dir = tempfile::tempdir().unwrap();
+        let f = ConfigFile::new(dir.path().join("sub").join("config.toml"));
+        let (tx, rx) = mpsc::channel();
+        let _w = f.watch(move |l| tx.send(l).unwrap()).unwrap();
+        f.set("general.theme", "light").unwrap();
+        assert_eq!(rx.recv_timeout(WAIT).unwrap().config.general.theme, Theme::Light);
+    }
+
+    #[test]
+    fn dropping_the_watcher_stops_it() {
+        let (_d, f, w, rx) = setup();
+        drop(w);
+        std::fs::write(f.path(), "[general]\ntheme = \"light\"\n").unwrap();
+        // The thread ends with the watch, taking the callback (and its
+        // sender) with it.
+        assert_eq!(rx.recv_timeout(WAIT), Err(RecvTimeoutError::Disconnected));
     }
 
     #[test]

@@ -2,7 +2,7 @@
 name = "pal-core"
 version = "0.1.0"
 edition = "2021"
-description = "pal core: configuration, icons"
+description = "pal core: config, index, frecency, icons, clipboard"
 
 [lib]
 name = "pal_core"

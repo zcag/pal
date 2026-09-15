@@ -8,17 +8,21 @@
 
 use image::{imageops::FilterType, RgbaImage};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant, SystemTime};
+use std::sync::{Arc, LazyLock, Mutex, PoisonError, Weak};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use url::Url;
+
+use crate::fs::write_atomic;
 
 /// Upper bound on the wall time one `favicon` call may spend on the network.
 pub const TIMEOUT: Duration = Duration::from_secs(3);
 /// A failed favicon fetch is remembered this long so a list does not re-hit
 /// the network on every render while offline.
-pub const MISS_TTL: Duration = Duration::from_secs(15 * 60);
+pub const MISS_TTL: Duration = Duration::from_mins(15);
 const MAX_HTML: u64 = 256 * 1024;
 const MAX_IMAGE: u64 = 2 * 1024 * 1024;
 
@@ -30,15 +34,17 @@ pub enum Error {
     /// Offline, refused, or not an image; the UI shows the globe glyph.
     #[error("favicon unavailable: {0}")]
     Unavailable(String),
+    /// The cache directory or the source file could not be read or written.
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// `~/Library/Caches/pal/icons` on macOS, `$XDG_CACHE_HOME/pal/icons` on Linux.
+/// `icons` under [`fs::cache_dir`](crate::fs::cache_dir):
+/// `~/Library/Caches/pal/icons` on macOS, `~/.cache/pal/icons` on Linux.
 pub fn cache_dir() -> PathBuf {
-    dirs::cache_dir().unwrap_or_else(std::env::temp_dir).join("pal/icons")
+    crate::fs::cache_dir().join("icons")
 }
 
 /// PNG of the application's icon at `size` px. `path` is a `.app` bundle on
@@ -55,13 +61,38 @@ pub fn favicon(url: &str, size: u32) -> Result<PathBuf> {
     favicon_in(&cache_dir(), url, size)
 }
 
-/// Delete cached files older than `max_age`; returns how many went.
+/// PNG of the image file at `src`, fitted into a `size` square, from the
+/// same cache as the icons: a thumbnail is an icon of a file (the clipboard
+/// palette's image rows), and this cache already has the fit, the atomic
+/// store and a prune. Keyed on the path's mtime, like an app icon.
+pub fn thumbnail(src: &Path, size: u32) -> Result<PathBuf> {
+    let dir = cache_dir();
+    let mtime = fs::metadata(src)?.modified().ok().and_then(unix_secs);
+    let key = cache_key("thumb", &src.to_string_lossy(), size, mtime);
+    if let Some(hit) = cached(&dir, &key) {
+        return Ok(hit);
+    }
+    let img = image::open(src).map_err(|e| Error::Unavailable(e.to_string()))?.into_rgba8();
+    store(&dir, &key, &fit(img, size))
+}
+
+/// Delete cached files older than `max_age` (miss markers and fetched
+/// sources included); returns how many went. No cache yet is zero.
 pub fn prune(max_age: Duration) -> std::io::Result<usize> {
-    let cutoff = SystemTime::now() - max_age;
+    prune_in(&cache_dir(), max_age)
+}
+
+fn prune_in(dir: &Path, max_age: Duration) -> std::io::Result<usize> {
+    let cutoff = SystemTime::now().checked_sub(max_age).unwrap_or(UNIX_EPOCH);
+    let entries = match fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(0),
+        Err(e) => return Err(e),
+    };
     let mut n = 0;
-    for entry in fs::read_dir(cache_dir())?.flatten() {
-        let old = entry.metadata().and_then(|m| m.modified()).map(|t| t < cutoff);
-        if old.unwrap_or(false) && fs::remove_file(entry.path()).is_ok() {
+    for entry in entries.flatten() {
+        let old = entry.metadata().and_then(|m| m.modified()).is_ok_and(|t| t < cutoff);
+        if old && fs::remove_file(entry.path()).is_ok() {
             n += 1;
         }
     }
@@ -75,13 +106,20 @@ fn app_icon_in(dir: &Path, path: &Path, size: u32) -> Result<PathBuf> {
         return Ok(hit);
     }
     let img = platform::load(path, size).ok_or_else(|| Error::NoIcon(path.display().to_string()))?;
-    store(dir, &key, fit(img, size))
+    store(dir, &key, &fit(img, size))
 }
 
 fn favicon_in(dir: &Path, url: &str, size: u32) -> Result<PathBuf> {
     let origin = Url::parse(url).ok().filter(|u| u.has_host()).ok_or_else(|| Error::Unavailable(format!("bad url {url}")))?;
-    let origin = origin.join("/").unwrap();
+    let origin = origin.join("/").expect("a URL with a host joins /");
     let key = cache_key("fav", origin.as_str(), size, None);
+    if let Some(hit) = cached(dir, &key) {
+        return Ok(hit);
+    }
+    // One fetch per origin at a time: twenty links into one site cost one
+    // round trip, the other nineteen wait here and find the source cached.
+    let lock = origin_lock(origin.as_str());
+    let _held = lock.lock().unwrap_or_else(PoisonError::into_inner);
     if let Some(hit) = cached(dir, &key) {
         return Ok(hit);
     }
@@ -91,28 +129,42 @@ fn favicon_in(dir: &Path, url: &str, size: u32) -> Result<PathBuf> {
     let bytes = match fs::read(&src) {
         Ok(b) => b,
         Err(_) => {
-            if fs::metadata(&miss).and_then(|m| m.modified()).map(|t| t.elapsed().unwrap_or_default() < MISS_TTL).unwrap_or(false) {
+            // A marker stamped in the future (clock went back) is not recent.
+            if fs::metadata(&miss).and_then(|m| m.modified()).is_ok_and(|t| t.elapsed().is_ok_and(|age| age < MISS_TTL)) {
                 return Err(Error::Unavailable("recent miss".into()));
             }
-            fs::create_dir_all(dir)?;
-            let b = web::fetch(&origin, size).inspect_err(|_| { let _ = fs::write(&miss, b""); })?;
-            fs::write(&src, &b)?;
+            let b = web::fetch(&origin, size).inspect_err(|_| {
+                let _ = write_atomic(&miss, b"");
+            })?;
+            write_atomic(&src, &b)?;
             b
         }
     };
     let img = decode(&bytes, size).ok_or_else(|| Error::Unavailable("cached source undecodable".into()))?;
-    store(dir, &key, fit(img, size))
+    store(dir, &key, &fit(img, size))
+}
+
+fn origin_lock(origin: &str) -> Arc<Mutex<()>> {
+    static LOCKS: LazyLock<Mutex<HashMap<String, Weak<Mutex<()>>>>> = LazyLock::new(Mutex::default);
+    let mut locks = LOCKS.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(lock) = locks.get(origin).and_then(Weak::upgrade) {
+        return lock;
+    }
+    locks.retain(|_, w| w.strong_count() > 0);
+    let lock = Arc::new(Mutex::new(()));
+    locks.insert(origin.to_string(), Arc::downgrade(&lock));
+    lock
 }
 
 fn unix_secs(t: SystemTime) -> Option<u64> {
-    t.duration_since(SystemTime::UNIX_EPOCH).ok().map(|d| d.as_secs())
+    t.duration_since(UNIX_EPOCH).ok().map(|d| d.as_secs())
 }
 
 /// Stable across runs and versions: the cache survives upgrades.
 fn cache_key(kind: &str, source: &str, size: u32, mtime: Option<u64>) -> String {
     let mut h = Sha256::new();
     h.update(format!("{kind}\0{source}\0{size}\0{}", mtime.unwrap_or(0)));
-    h.finalize().iter().take(16).map(|b| format!("{b:02x}")).collect()
+    format!("{:x}", h.finalize())[..32].to_string()
 }
 
 fn cached(dir: &Path, key: &str) -> Option<PathBuf> {
@@ -120,15 +172,12 @@ fn cached(dir: &Path, key: &str) -> Option<PathBuf> {
     p.is_file().then_some(p)
 }
 
-/// Write via a temp file and rename so a concurrent reader never sees a partial PNG.
-fn store(dir: &Path, key: &str, img: RgbaImage) -> Result<PathBuf> {
-    fs::create_dir_all(dir)?;
+/// Encode and write atomically, so a concurrent reader never sees a partial PNG.
+fn store(dir: &Path, key: &str, img: &RgbaImage) -> Result<PathBuf> {
     let path = dir.join(format!("{key}.png"));
-    let tmp = dir.join(format!("{key}.{}.tmp", std::process::id()));
     let mut buf = Cursor::new(Vec::new());
-    img.write_to(&mut buf, image::ImageFormat::Png).map_err(|e| Error::Unavailable(e.to_string()))?;
-    fs::write(&tmp, buf.into_inner())?;
-    fs::rename(&tmp, &path)?;
+    img.write_to(&mut buf, image::ImageFormat::Png).map_err(std::io::Error::other)?;
+    write_atomic(&path, buf.into_inner())?;
     Ok(path)
 }
 
@@ -139,8 +188,8 @@ fn fit(img: RgbaImage, size: u32) -> RgbaImage {
     if w == size && h == size {
         return img;
     }
-    let s = size as f64 / w.max(h).max(1) as f64;
-    let (nw, nh) = (((w as f64 * s).round() as u32).max(1), ((h as f64 * s).round() as u32).max(1));
+    let s = f64::from(size) / f64::from(w.max(h).max(1));
+    let (nw, nh) = (((f64::from(w) * s).round() as u32).max(1), ((f64::from(h) * s).round() as u32).max(1));
     let scaled = image::imageops::resize(&img, nw, nh, FilterType::Lanczos3);
     let mut out = RgbaImage::new(size, size);
     image::imageops::overlay(&mut out, &scaled, ((size - nw) / 2).into(), ((size - nh) / 2).into());
@@ -153,9 +202,13 @@ fn decode(bytes: &[u8], size: u32) -> Option<RgbaImage> {
     if bytes.starts_with(&[0, 0, 1, 0]) {
         return decode_ico(bytes, size);
     }
-    let head = &bytes[..bytes.len().min(1024)];
+    // A BOM or leading whitespace is common in hand-written SVGs and trips
+    // both the sniff and the parser.
+    let body = bytes.trim_ascii_start();
+    let body = body.strip_prefix("\u{feff}".as_bytes()).unwrap_or(body).trim_ascii_start();
+    let head = &body[..body.len().min(1024)];
     if head.starts_with(b"<") && head.windows(4).any(|w| w == b"<svg") {
-        return decode_svg(bytes, size);
+        return decode_svg(body, size);
     }
     Some(image::load_from_memory(bytes).ok()?.into_rgba8())
 }
@@ -259,7 +312,7 @@ mod web {
     /// above `size`, then undeclared sizes in page order, then the largest
     /// below. SVG counts as an exact fit.
     pub fn pick_icon(html: &str, base: &Url, size: u32) -> Vec<Url> {
-        let head = html.find("</head").map(|i| &html[..i]).unwrap_or(html);
+        let head = html.to_ascii_lowercase().find("</head").map_or(html, |i| &html[..i]);
         let mut links: Vec<(u32, usize, Url)> = Vec::new();
         for (i, attrs) in link_tags(head).enumerate() {
             let rel = attr(&attrs, "rel").unwrap_or_default().to_ascii_lowercase();
@@ -268,7 +321,7 @@ mod web {
             }
             let Some(href) = attr(&attrs, "href") else { continue };
             let Ok(url) = base.join(href.trim()) else { continue };
-            let svg = attr(&attrs, "type").is_some_and(|t| t.contains("svg")) || url.path().ends_with(".svg");
+            let svg = attr(&attrs, "type").is_some_and(|t| t.contains("svg")) || url.path().to_ascii_lowercase().ends_with(".svg");
             let sizes = attr(&attrs, "sizes").unwrap_or_default().to_ascii_lowercase();
             let declared = sizes.split_whitespace().filter_map(|s| s.split('x').next()?.parse::<u32>().ok()).max();
             let eff = match (svg || sizes == "any", declared) {
@@ -378,7 +431,8 @@ mod platform {
         } else {
             let theme = freedesktop_icons::default_theme_gtk().unwrap_or_else(|| "hicolor".into());
             let name = name.strip_suffix(".png").or_else(|| name.strip_suffix(".svg")).unwrap_or(name);
-            freedesktop_icons::lookup(name).with_size(size as u16).with_theme(&theme).with_cache().find()?
+            let size = u16::try_from(size).unwrap_or(u16::MAX);
+            freedesktop_icons::lookup(name).with_size(size).with_theme(&theme).with_cache().find()?
         };
         decode(&fs::read(file).ok()?, size)
     }
@@ -435,6 +489,8 @@ mod tests {
         assert_eq!(out.get_pixel(0, 0).0[3], 0, "letterboxed rows are transparent");
         assert_eq!(out.get_pixel(8, 8).0, [1, 2, 3, 255]);
         assert!(decode(b"<html>not an icon</html>", 16).is_none());
+        let bom_svg = [b"\xef\xbb\xbf\n  ".as_slice(), &svg[21..]].concat();
+        assert!(decode(&bom_svg, 16).is_some(), "BOM and leading whitespace before <svg");
     }
 
     #[test]
@@ -448,7 +504,7 @@ mod tests {
             <link rel="icon" sizes="32x32" href='https://x.example/s32.png'>
             <link rel="stylesheet" href="/style.css">
             <link rel="apple-touch-icon" sizes="180x180" href="/apple.png">
-            </head><body><link rel="icon" href="/late.png"></body></html>"#;
+            </HEAD><body><link rel="icon" href="/late.png"></body></html>"#;
         assert_eq!(
             pick(html, 24),
             ["https://x.example/s32.png", "https://cdn.example.org/s64.png", "https://example.com/apple.png", "https://example.com/fav.ico", "https://example.com/a/s16.png"]
@@ -477,6 +533,29 @@ mod tests {
         assert!(matches!(e, Error::Unavailable(_)), "{e}");
         assert_eq!(favicon_in(dir.path(), "http://127.0.0.1:1/y", 16).unwrap_err().to_string(), "favicon unavailable: recent miss");
         assert_eq!(favicon_in(dir.path(), "http://127.0.0.1:1/y", 32).unwrap_err().to_string(), "favicon unavailable: recent miss", "miss is per origin, not per size");
+    }
+
+    #[test]
+    fn prune_removes_old_files_only_and_tolerates_no_cache() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(prune_in(&dir.path().join("none"), Duration::from_secs(1)).unwrap(), 0);
+        let (old, new) = (dir.path().join("old.png"), dir.path().join("new.png"));
+        fs::write(&old, "").unwrap();
+        fs::write(&new, "").unwrap();
+        fs::File::open(&old).unwrap().set_modified(SystemTime::now() - Duration::from_hours(1)).unwrap();
+        assert_eq!(prune_in(dir.path(), Duration::from_secs(60)).unwrap(), 1);
+        assert!(!old.exists() && new.exists());
+        assert_eq!(prune_in(dir.path(), Duration::MAX).unwrap(), 0, "a huge age does not overflow");
+    }
+
+    #[test]
+    fn origin_lock_is_shared_while_held_then_dropped() {
+        let a = origin_lock("https://a.example/");
+        assert!(Arc::ptr_eq(&a, &origin_lock("https://a.example/")));
+        assert!(!Arc::ptr_eq(&a, &origin_lock("https://b.example/")));
+        let weak = Arc::downgrade(&a);
+        drop(a);
+        assert!(weak.upgrade().is_none(), "no holder, no lock kept");
     }
 
     #[cfg(target_os = "macos")]

@@ -7,7 +7,8 @@ use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let (Some(src), size) = (args.first(), args.get(1).and_then(|s| s.parse().ok()).unwrap_or(24)) else {
+    let size = args.get(1).map_or(Ok(24), |s| s.parse::<u32>());
+    let (Some(src), Ok(size)) = (args.first(), size) else {
         eprintln!("usage: icons <path-or-url> [size]");
         std::process::exit(2);
     };
@@ -17,7 +18,7 @@ fn main() {
     match out {
         Ok(p) => println!("{} ({ms:.1} ms)", p.display()),
         Err(e) => {
-            println!("error: {e} ({ms:.1} ms)");
+            eprintln!("error: {e} ({ms:.1} ms)");
             std::process::exit(1);
         }
     }

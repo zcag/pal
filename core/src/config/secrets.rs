@@ -23,12 +23,16 @@ impl<'a> SecretRef<'a> {
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum SecretError {
+    /// The reference points at nothing: the user has to add the secret.
     #[error("no secret at {0}")]
     NotFound(String),
+    /// The store itself failed (locked, missing, no backend on this
+    /// platform); the secret may well exist.
     #[error("{0}")]
     Store(String),
 }
 
+/// Where `keychain:` references are looked up.
 pub trait SecretStore: Send + Sync {
     /// The secret behind `key` (the part after `keychain:`), or `NotFound`.
     fn get(&self, key: &str) -> Result<String, SecretError>;
@@ -70,16 +74,19 @@ impl SecretStore for Keychain {
             .args(["find-generic-password", "-s", service, "-a", account, "-w"])
             .output()
             .map_err(|e| SecretError::Store(e.to_string()))?;
-        if !out.status.success() {
-            return Err(SecretError::NotFound(format!("keychain:{key}")));
+        // 44 is errSecItemNotFound; anything else (a locked keychain, a
+        // denied prompt) is the store's problem, not a missing item.
+        match out.status.code() {
+            Some(0) => Ok(String::from_utf8_lossy(&out.stdout).trim_end_matches('\n').to_string()),
+            Some(44) => Err(SecretError::NotFound(format!("keychain:{key}"))),
+            _ => Err(SecretError::Store(format!("keychain:{key}: {}", String::from_utf8_lossy(&out.stderr).trim()))),
         }
-        Ok(String::from_utf8_lossy(&out.stdout).trim_end_matches('\n').to_string())
     }
 }
 
 /// TODO: Secret Service (libsecret) lookup, `secret-tool lookup service
 /// <service> account <account>` or the `secret-service` crate. Every lookup
-/// fails as not found until then; `env:` references work everywhere.
+/// fails with a `Store` error until then; `env:` references work everywhere.
 #[cfg(not(target_os = "macos"))]
 pub struct SecretService;
 

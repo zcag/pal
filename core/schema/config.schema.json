@@ -5,7 +5,7 @@
       "properties": {
         "hotkey": {
           "default": "ctrl+space",
-          "description": "Global hotkey that shows pal, e.g. `ctrl+space`.",
+          "description": "Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,\nfor a compositor keybind that runs `pal-app toggle` instead.",
           "type": "string"
         },
         "theme": {
