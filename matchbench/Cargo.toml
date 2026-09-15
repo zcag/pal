@@ -1,0 +1,12 @@
+[package]
+name = "matchbench"
+version = "0.1.0"
+edition = "2021"
+description = "pal experiment: corpus matching and ranking in Rust (nucleo) vs fzf-for-js"
+publish = false
+
+[dependencies]
+nucleo = "0.5"
+nucleo-matcher = "0.3"
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core", "app/src-tauri"]
+members = ["core", "app/src-tauri", "matchbench"]
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
