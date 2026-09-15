@@ -152,3 +152,21 @@ Nothing. Tauri v2 Linux prerequisites were all present on marko
 `wget` and `libxdo` are absent and not needed for the build. `ydotool` (with
 `ydotoold`), `grim`, `xmessage` were used for driving and screenshots;
 `wtype` is not installed.
+
+## Integrated app on marko (2026-09-16, dev build, commit 92dc234 + Linux apps)
+
+- `apps` scans `.desktop` files (112 entries on marko, 43 ms), launches via
+  `gio launch` / `gtk-launch` / parsed Exec; `Terminal=true` entries run in
+  `$TERMINAL` or kitty/foot/xterm. Real icons through `icon://` on WebKitGTK
+  with no changes; theme misses fall back to the letter.
+- hotkey to paint 11-53 ms on a fresh start, 1.4 ms after; key to paint
+  10-40 ms per letter. Frecency file lands under `~/.local/share/pal/`.
+- bun is on PATH inside the Hyprland session (`~/.bun/bin` first).
+  `WAYLAND_DISPLAY`/`DISPLAY` are not in Hyprland's own environ; take them
+  from `systemctl --user show-environment` when launching by hand.
+- Nerd Font glyph icons render as tofu: `.pal-icon[data-kind="glyph"]` uses
+  `--pal-font-mono`, which resolves to Noto Sans Mono there and WebKitGTK does
+  no PUA fallback. Needs a Nerd Font in the stack on Linux, or glyphs mapped
+  to something the webview can draw.
+- Seen once after a `tauri dev` restart: two rows showed the letter fallback
+  although Rust answered 200 with the PNG. Not reproduced in 6 fresh starts.
