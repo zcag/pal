@@ -40,10 +40,29 @@ Needed: a Wayland path of our own. Cheapest: `tauri-plugin-single-instance`
 exec, pal toggle` in hyprland.conf toggles it. A signal (SIGUSR1) works too but
 does not compose with a CLI. The plugin can stay for X11 sessions.
 
+**Done (2026-09-16):** `pal-app toggle|show|hide` (`app/src-tauri/src/cli.rs`).
+The plugin listens; the second process does not wait for the plugin to
+answer from inside a built tauri app (GTK up, display connected: ~95 ms on
+marko) but hands its argv over itself before building anything, on the
+plugin's own channel (D-Bus `io.cagdas.pal.SingleInstance` here, the
+`/tmp/io_cagdas_pal_si.sock` socket on macOS). Measured from a shell on
+marko, release: `pal-app toggle` 52 to 54 ms end to end, of which 45 ms is
+the binary loading its 144 shared libraries (`pal-app --version` costs the
+same) and about 2 ms is clap, `generate_context!` and the D-Bus call. The
+rest of that floor only goes away with a CLI binary that does not link
+webkit; not done. Hyprland bind verified with ydotool from a Chromium
+(Wayland) focus, 7 of 7 presses, where the X11 grab fired 0 of 7.
+
+The X11 grab stays registered on Wayland sessions with Xwayland: a bind that
+matches consumes the key, so the two never double-fire. Without any X display
+(`DISPLAY` unset, tested) startup still completes and `toggle` works.
+
 ## Window on Hyprland
 
 `hyprctl clients`: class and initialClass `pal-app` (from the binary name, so
 it will be `pal` once the crate is renamed), title `pal`, `xwayland: false`.
+Re-checked 2026-09-16 with the Launcher UI: same, and `floating: true`,
+`pinned: false`, mapped at (580,300) without any rule.
 
 - Floating: yes without any rule. `resizable: false` makes min size == max
   size and Hyprland floats fixed-size toplevels. Placed at Hyprland's own
@@ -71,8 +90,12 @@ Rule set that gave pinned, no border, no shadow, centred at 20% down, verified
 live with `hyprctl keyword` (Hyprland 0.56 syntax):
 
 ```
-windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal)$
+windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal-app)$
+bind = CTRL, space, exec, pal-app toggle
 ```
+
+(`^(pal)$` once the binary is renamed.) The same set is quoted in
+`app/src-tauri/src/panel/linux.rs` as what the app cannot do itself.
 
 `center on` also works but centres vertically. `move` with `monitor_w`/`window_w`
 expressions is what puts it where `place()` wants it, since the app cannot.
@@ -95,17 +118,32 @@ forwarded past the page. Fix: `preventDefault()` on the keydown that hides
 (`ui/keys.ts:110`) already does this for any handled key; the probe `App.tsx`
 did not. Rule to keep: never hide from inside an unhandled key event.
 
-## Missing in the Linux panel module
+## Linux panel module (done 2026-09-16)
 
-- `install`: `Focused(false)` -> `hide`. Pre-map once at startup (show then
-  hide, or map with opacity 0) to move first show from 83 ms toward the
-  1 to 4 ms of later shows. GTK 3 toplevel opacity on Wayland is untested.
-- `show`: also `webview.set_focus()` as on macOS (harmless, did not affect the
-  key loss).
-- Hotkey: Wayland toggle path (above). Report hotkey registration failure
-  instead of unwrapping it: on a Wayland box without Xwayland `register`
-  errors and setup aborts.
-- Placement: nothing to do in-app on Wayland; ship the windowrule.
+`app/src-tauri/src/panel/linux.rs`:
+
+- `Focused(false)` -> `hide`. Verified: pal shown, `hyprctl dispatch
+  focuswindow class:chromium`, pal unmapped, 3 of 3.
+- Pre-map at startup: `show()` then `hide()` back to back in `install`. The
+  window never reaches the screen (no client listed, no focus change) but
+  GTK realizes it and WebKit sets up its surface. First show, release, same
+  build, three runs each: without 111 to 124 ms (the 83 ms above was the
+  probe UI), with 12 to 20 ms; later shows 0.1 to 1 ms either way. The
+  remaining 12 to 20 ms is the first real frame after a map; a pre-map that
+  stays mapped long enough to render (hide after a delay) would bring it
+  under 2 ms, measured as the first CLI toggle after a `pal-app toggle`
+  start, but flashes a focused window at startup. Under one frame at 60 Hz
+  was judged the better deal. GTK toplevel opacity on Wayland still
+  untested.
+- `show`: `set_focus` on the window and on the webview, as on macOS.
+- Hotkey registration failure is reported (`hotkey\t...` on stderr), not
+  unwrapped; the hotkey itself now comes from `general.hotkey` in the config
+  file and is re-registered when the file changes (`hotkey.rs`).
+- Placement: `place()` runs and does nothing here; the windowrule above
+  places.
+
+Typing after re-shows is intact with the Launcher UI (`chrome` arrived in
+full, three Escape-driven hides, three focus-loss hides).
 
 ## Installed
 
