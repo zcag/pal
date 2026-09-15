@@ -6,7 +6,7 @@
 //! `cargo run -p pal-core --example clipboard -- paste <id>`     copy and Cmd+V into the frontmost app
 use pal_core::clipboard::{Clipboard, Entry, Kind, Retention};
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 fn show(e: &Entry) {
     let what = match e.kind {
@@ -35,18 +35,9 @@ fn main() {
     match args.first().map(String::as_str) {
         Some("watch") => {
             let secs = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(10);
-            let handle = cb.start_watching(vec![]);
+            let handle = cb.start_watching(vec![], show);
             println!("watching {} for {secs}s (accessibility: {})", dir.display(), pal_core::clipboard::accessibility_trusted());
-            let (deadline, mut seen) = (Instant::now() + Duration::from_secs(secs), Vec::new());
-            while Instant::now() < deadline {
-                std::thread::sleep(Duration::from_millis(100));
-                for e in cb.list("", None, 20, 0).unwrap() {
-                    if !seen.contains(&(e.id, e.at)) {
-                        seen.push((e.id, e.at));
-                        show(&e);
-                    }
-                }
-            }
+            std::thread::sleep(Duration::from_secs(secs));
             drop(handle);
         }
         Some("list") => {

@@ -2,7 +2,7 @@
  * Adapts what the core sends per hit (a host item, fields pass through) to
  * the UI item model. Provisional, like the wire shape it reads.
  */
-import type { Action, Detail, Icon, Item } from "./ui/types";
+import type { Accessory, Action, Detail, Icon, Item } from "./ui/types";
 
 /** `pal_core::index::Source`. */
 export type Source = { extension: string; palette: string };
@@ -16,8 +16,11 @@ export type WireItem = {
   icon?: unknown;
   section?: string;
   url?: string;
-  /** `Action` in host/protocol.ts: id, title, shortcut?, style?. */
+  /** `Action` in host/protocol.ts: id, title, shortcut?, style?, confirm?. */
   actions?: Action[];
+  /** As in host/protocol.ts; both replace what would be derived here. */
+  accessories?: Accessory[];
+  detail?: Detail;
   [extra: string]: unknown;
 };
 
@@ -33,11 +36,12 @@ export type SourceInfo = Source & {
   view?: "list" | "grid";
   columns?: number;
   placeholder?: string;
+  detail?: boolean;
   count: number;
 };
 
 /** What a pick returns (`Effect` in host/protocol.ts); `copy` and `open` already ran in the core. */
-export type Effect = { copy?: string; open?: string; hide?: true; toast?: { title: string; style?: "success" | "failure" }; keep?: true };
+export type Effect = { copy?: string; open?: string; paste?: unknown; hide?: true; toast?: { title: string; message?: string; style?: "success" | "failure" }; keep?: true };
 
 /** A toast needs the window; `keep` asks for it. Everything else hides. */
 export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r);
@@ -51,13 +55,16 @@ export const PALETTES = "pal/palettes";
 const pictographic = /\p{Extended_Pictographic}/u;
 
 /**
- * `{ app: path }` (or a bare path, as v1 rows carry) is the app's artwork; a
- * hex colour is a tinted dot; a pictograph is an emoji; any other string is
- * a glyph. No icon: the favicon when there is a url, else the name's initial.
+ * `{ app: path }` (or a bare path, as v1 rows carry) is the app's artwork;
+ * `{ image: url }` a picture to load as is; a hex colour is a tinted dot; a
+ * pictograph is an emoji; any other string is a glyph. No icon: the favicon
+ * when there is a url, else the name's initial.
  */
 export function iconOf(icon: unknown, name: string, url?: string): Icon | undefined {
   const letter = name ? name[0].toUpperCase() : "";
-  if (icon && typeof icon === "object" && typeof (icon as { app?: unknown }).app === "string") return { kind: "app", path: (icon as { app: string }).app, letter };
+  const obj = icon && typeof icon === "object" ? (icon as { app?: unknown; image?: unknown }) : undefined;
+  if (typeof obj?.app === "string") return { kind: "app", path: obj.app, letter };
+  if (typeof obj?.image === "string") return { kind: "image", src: obj.image, mask: "rounded" };
   const s = typeof icon === "string" ? icon.trim() : "";
   if (s.startsWith("/")) return { kind: "app", path: s, letter };
   if (s) {
@@ -97,8 +104,8 @@ export function toItem(hit: WireHit, paletteTitle: string): Item {
     palette,
     source: hit.source,
     section: w.section,
-    accessories: palette === PALETTES ? [{ text: "Palette" }] : typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined,
-    detail: detailOf(w, paletteTitle),
+    accessories: w.accessories ?? (palette === PALETTES ? [{ text: "Palette" }] : typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined),
+    detail: w.detail ?? detailOf(w, paletteTitle),
     actions: w.actions,
   };
 }

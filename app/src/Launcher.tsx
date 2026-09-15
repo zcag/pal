@@ -6,7 +6,7 @@
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionPanel, Detail, Empty, Footer, Grid, List, Panel, Search, Toast,
+  ActionPanel, Confirm, Detail, Empty, Footer, Grid, List, Panel, Search, Toast,
   groupBySection, domId, useCursor, useKeys, useNavStack, type Hit, type ListHandle, type ToastSpec,
 } from "./ui";
 import { Fzf } from "fzf";
@@ -82,6 +82,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const [filter, setFilter] = useState("all");
   const [showDetail, setShowDetail] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [confirming, setConfirming] = useState<Action | null>(null);
   const [toast, setToast] = useState<ToastSpec | null>(null);
   const [found, setFound] = useState<Hit[]>([]);
   const input = useRef<HTMLInputElement>(null);
@@ -110,6 +111,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   const cur = useCursor(hits.length);
   const current: Item | undefined = hits[cur.cursor]?.item;
+  // A palette that asks for it opens with the pane; leaving resets. cmd+i still toggles.
+  useEffect(() => setShowDetail(view.kind === "palette" && !!byKey.get(view.palette)?.detail), [view]);
   const isGrid = view.kind === "palette" && scope?.view === "grid";
   const columns = scope?.columns ?? GRID_COLUMNS;
 
@@ -132,7 +135,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const push = (v: View) => { nav.push(v); cur.reset(); };
   const pop = () => { nav.pop(); cur.reset(); };
   const closeActions = () => { setActionsOpen(false); focus(); };
-  const reset = useCallback(() => { nav.reset(); cur.reset(); setActionsOpen(false); setToast(null); input.current?.focus(); }, [nav.reset, cur.reset]);
+  const closeConfirm = () => { setConfirming(null); focus(); };
+  const reset = useCallback(() => { nav.reset(); cur.reset(); setActionsOpen(false); setConfirming(null); setToast(null); input.current?.focus(); }, [nav.reset, cur.reset]);
   useImperativeHandle(ref, () => ({ reset }), [reset]);
 
   // The item's own actions first (the default "Open" when it declares none), then the shell's.
@@ -148,13 +152,16 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   // The envelope's copy/open/hide are the caller's; the toast shows here.
   const pickItem = (item: Item, action?: string) =>
     Promise.resolve(onPick(item, query, action)).then(
-      (r) => { const t = (r as Effect | undefined)?.toast; if (t) setToast({ style: t.style ?? "success", title: t.title }); },
+      (r) => { const t = (r as Effect | undefined)?.toast; if (t) setToast({ style: t.style ?? "success", title: t.title, message: t.message }); },
       (e) => setToast({ style: "failure", title: "Failed", message: String(e) }),
     );
 
-  const run = (a: Action) => {
+  /** `confirmed`: the user already said yes to `a.confirm`. */
+  const run = (a: Action, confirmed = false) => {
     if (!current) return;
     setActionsOpen(false);
+    if (a.confirm && !confirmed) return setConfirming(a);
+    setConfirming(null);
     focus();
     switch (a.id) {
       case BROWSE: push({ kind: "palette", palette: current.palette! }); break;
@@ -224,6 +231,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         <>
           {toast && <Toast toast={toast} />}
           {actionsOpen && <ActionPanel actions={actions} onRun={run} onClose={closeActions} title={current?.name} />}
+          {confirming && <Confirm title={confirming.confirm!} action={confirming.title} destructive={confirming.style === "destructive"} onConfirm={() => run(confirming, true)} onCancel={closeConfirm} />}
         </>
       }
     >

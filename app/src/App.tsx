@@ -29,9 +29,12 @@ export default function App() {
   const launcher = useRef<LauncherHandle>(null);
   const titles = useRef(new Map<string, string>());
   titles.current = new Map(sources.map((s) => [sourceKey(s), s.title]));
+  // What the last search was scoped to: which palette is showing.
+  const showing = useRef<SourceInfo | undefined>(undefined);
 
   // An input palette answers from the host, everything else from the index.
   const search = useCallback(async (q: string, scope?: SourceInfo): Promise<Hit[]> => {
+    showing.current = scope;
     if (scope?.input) {
       const source = { extension: scope.extension, palette: scope.palette };
       const r = await invoke<{ items: WireItem[] }>("host_request", { method: "list", params: { ...source, query: q } });
@@ -40,6 +43,14 @@ export default function App() {
     const wire = await invoke<WireHit[]>("query", { q, limit: LIMIT, sources: scope && [{ extension: scope.extension, palette: scope.palette }] });
     return wire.map((h) => ({ item: toItem(h, titles.current.get(sourceKey(h.source)) ?? h.source.palette), match: { name: new Set(h.name_positions) } }));
   }, []);
+
+  // A copy landed in history: re-list, but only when the clipboard palette is what is showing.
+  useEffect(() => {
+    const un = listen("pal://clipboard", () => { if (showing.current?.extension === "clipboard") bump(); });
+    return () => {
+      un.then((f) => f());
+    };
+  }, [bump]);
 
   // hotkey -> painted panel
   useEffect(() => {

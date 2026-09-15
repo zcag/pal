@@ -1,9 +1,11 @@
 // The extension host: loads every extension under ../extensions into this one
 // process, serves list/pick over stdio, re-imports an extension when its files
-// change. Logs go to stderr; stdout is the protocol.
+// change, and relays extensions' capability calls to the core (bridge.ts).
+// Logs go to stderr; stdout is the protocol.
 import { watch } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import { resolve as resolveCore } from "./bridge.ts";
 import type { Extension, Notification, PaletteMeta, Request, Response } from "./protocol.ts";
 
 const VERSION = "0.0.1";
@@ -69,7 +71,7 @@ function watchExtensions() {
 
 const metas = (ext: Extension): PaletteMeta[] =>
   Object.entries(ext.palettes).map(([name, p]) => ({
-    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder,
+    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder, detail: p.detail,
   }));
 
 function palette(p: any) {
@@ -98,6 +100,11 @@ async function handle(line: string) {
     req = JSON.parse(line);
   } catch {
     return log("bad json:", line.slice(0, 80));
+  }
+  // No method: the core answering one of ours (see protocol.ts).
+  if (req.method === undefined) {
+    if (!resolveCore(req as unknown as Response)) log("stray reply", req.id);
+    return;
   }
   try {
     const fn = methods[req.method];

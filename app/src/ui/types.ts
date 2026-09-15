@@ -29,6 +29,8 @@ export type Action = {
   shortcut?: Shortcut;
   /** Actions are primary/secondary by position (first two); this only marks danger. */
   style?: "destructive";
+  /** Ask first: the question, with the action's title as the go-ahead. */
+  confirm?: string;
   section?: string;
 };
 

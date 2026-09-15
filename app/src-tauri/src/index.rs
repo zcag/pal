@@ -38,6 +38,9 @@ pub struct PaletteMeta {
     pub columns: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub placeholder: Option<String>,
+    /// Open with the detail pane showing.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub detail: bool,
 }
 
 /// Metas by source, in load order. The index holds the items and the
@@ -230,7 +233,7 @@ pub fn query(
 #[tauri::command(async)]
 pub fn sources(index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) -> Vec<SourceView> {
     let reg = palettes.0.lock().unwrap();
-    let palettes_meta = PaletteMeta { name: "palettes".into(), title: "Palettes".into(), live: false, input: false, icon: None, view: None, columns: None, placeholder: None };
+    let palettes_meta = PaletteMeta { name: "palettes".into(), title: "Palettes".into(), live: false, input: false, icon: None, view: None, columns: None, placeholder: None, detail: false };
     index
         .lock()
         .unwrap()
@@ -245,11 +248,13 @@ pub fn sources(index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) ->
         .collect()
 }
 
-/// Runs the item through the host and its effects here (`copy`, `open`),
-/// then remembers the pick and the query that led to it. Returns the host's
-/// envelope as is. A palette row is the UI's to push: only remembered.
+/// Runs the item through the host and its effects here (`copy`, `open`,
+/// `paste`), then remembers the pick and the query that led to it. Returns
+/// the host's envelope, as `effects::apply` left it. A palette row is the
+/// UI's to push: only remembered.
 #[tauri::command]
 pub async fn pick(
+    app: AppHandle,
     source: Source,
     id: String,
     action: Option<String>,
@@ -264,8 +269,7 @@ pub async fn pick(
         let t0 = Instant::now();
         let r = host.request("pick", params).await?;
         eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, t0.elapsed().as_secs_f64() * 1000.0);
-        effects::apply(&r)?;
-        r
+        effects::apply(&app, r).await?
     };
     let key = Key::from_source(&source, id);
     let mut fre = frecency.lock().unwrap();

@@ -5,7 +5,7 @@
 //! otherwise, so `~/Library/Application Support/pal/` on macOS); images live
 //! as PNG files in `clipboard/` beside it, the database keeps their name.
 //! [`Clipboard::start_watching`] runs a background thread until the returned
-//! [`WatchHandle`] is dropped.
+//! [`WatchHandle`] is dropped, calling back with every entry it records.
 //!
 //! # Rules
 //!
@@ -223,7 +223,9 @@ impl Clipboard {
 
     /// Record what the user copies until the handle is dropped. Copies made
     /// while an app in `exclude_apps` (bundle ids) is frontmost are ignored.
-    pub fn start_watching(&self, exclude_apps: Vec<String>) -> WatchHandle {
+    /// `on_record` runs on the watcher thread for every entry stored or
+    /// bumped, so a UI can re-list.
+    pub fn start_watching(&self, exclude_apps: Vec<String>, on_record: impl Fn(&Entry) + Send + 'static) -> WatchHandle {
         let stop = Arc::new(AtomicBool::new(false));
         let (store, flag) = (self.clone(), stop.clone());
         // Baseline before the thread exists, so a copy made right after this
@@ -241,7 +243,9 @@ impl Clipboard {
                         continue;
                     }
                     if let Some(content) = platform::read() {
-                        let _ = store.record(content, app);
+                        if let Ok(Some(entry)) = store.record(content, app) {
+                            on_record(&entry);
+                        }
                     }
                 }
             })
@@ -398,9 +402,7 @@ impl Clipboard {
             return Err(Error::NeedsAccessibility);
         }
         self.copy(id)?;
-        // Let the new pasteboard contents settle before the app reads them.
-        std::thread::sleep(Duration::from_millis(50));
-        platform::paste_key()
+        send_paste()
     }
 
     pub fn content(&self, id: i64) -> Result<Content> {
@@ -492,7 +494,8 @@ mod millis {
     }
 }
 
-fn default_dir() -> PathBuf {
+/// Where [`Clipboard::open`] keeps the store, for an `open_at` with other retention.
+pub fn default_dir() -> PathBuf {
     std::env::var_os("XDG_DATA_HOME")
         .filter(|p| !p.is_empty())
         .map(PathBuf::from)
@@ -511,6 +514,23 @@ fn write_atomic(target: &Path, bytes: &[u8]) -> std::io::Result<()> {
     fs::rename(&tmp, target).inspect_err(|_| {
         let _ = fs::remove_file(&tmp);
     })
+}
+
+/// Text that is not in history yet: to the clipboard, then the paste
+/// shortcut, as [`Clipboard::paste`]. A running watcher records it like any
+/// copy.
+pub fn paste_text(text: &str) -> Result<()> {
+    if !accessibility_trusted() {
+        return Err(Error::NeedsAccessibility);
+    }
+    platform::write(&Content::Text(text.into()))?;
+    send_paste()
+}
+
+/// Let the new pasteboard contents settle before the app reads them.
+fn send_paste() -> Result<()> {
+    std::thread::sleep(Duration::from_millis(50));
+    platform::paste_key()
 }
 
 /// Whether synthesised keystrokes will be delivered. Always true off macOS.
@@ -1027,7 +1047,8 @@ mod tests {
         use std::io::Write;
         let dir = tempfile::tempdir().unwrap();
         let cb = open(dir.path(), Retention::default());
-        let handle = cb.start_watching(vec![]);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let handle = cb.start_watching(vec![], move |e| { let _ = tx.send(e.id); });
         let marker = format!("pal-clipboard-test-{}", std::process::id());
         let mut child = std::process::Command::new("pbcopy").stdin(std::process::Stdio::piped()).spawn().unwrap();
         child.stdin.take().unwrap().write_all(marker.as_bytes()).unwrap();
@@ -1040,5 +1061,6 @@ mod tests {
         let got = cb.list("", Some(Kind::Text), 1, 0).unwrap();
         assert_eq!(got[0].text.as_deref(), Some(marker.as_str()));
         assert!(got[0].source_app.is_some());
+        assert_eq!(rx.try_recv(), Ok(got[0].id), "the callback saw the entry");
     }
 }

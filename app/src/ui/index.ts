@@ -14,6 +14,7 @@ export { Detail } from "./Detail";
 export { ActionPanel, actionShortcut } from "./ActionPanel";
 export { Footer } from "./Footer";
 export { Form } from "./Form";
+export { Confirm } from "./Confirm";
 export { Empty } from "./Empty";
 export { Toast, type ToastSpec } from "./Toast";
 export { Hud } from "./Hud";

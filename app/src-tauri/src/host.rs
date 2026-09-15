@@ -1,7 +1,9 @@
 //! The extension host: one long-lived Bun process speaking newline-delimited
 //! JSON over stdio. Requests carry an id and get a oneshot; notifications
 //! (no id) feed the index (`crate::index::on_notification`) and go to the
-//! webview as `pal://host` events; an exit restarts it.
+//! webview as `pal://host` events; an exit restarts it. The host asks back
+//! the same way: a line with an id and a `core/...` method is a request for
+//! a core capability (`crate::bridge`), answered on its stdin.
 
 use std::collections::HashMap;
 use std::process::Stdio;
@@ -17,6 +19,8 @@ use tokio::sync::{oneshot, Mutex as AsyncMutex};
 
 const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 const RESTART_DELAY: Duration = Duration::from_millis(500);
+/// A hung extension must not hang a keystroke or a pick for good.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 type Reply = oneshot::Sender<Result<Value, String>>;
 
@@ -72,8 +76,11 @@ impl Host {
         let mut hello_timed = false;
         while let Ok(Some(line)) = lines.next_line().await {
             let Ok(msg) = serde_json::from_str::<Value>(&line) else { continue };
-            match msg.get("id").and_then(Value::as_u64) {
-                Some(id) => {
+            // With a method it is the host speaking (a request when it has an
+            // id, a notification otherwise); without one, a reply to ours.
+            match (msg.get("id").and_then(Value::as_u64), msg.get("method").and_then(Value::as_str)) {
+                (Some(id), Some(method)) => self.serve(id, method.to_string(), msg["params"].clone()),
+                (Some(id), None) => {
                     let reply = self.pending.lock().unwrap().remove(&id);
                     if let Some(tx) = reply {
                         let _ = tx.send(match msg.get("error") {
@@ -82,8 +89,7 @@ impl Host {
                         });
                     }
                 }
-                None => {
-                    let method = msg["method"].as_str().unwrap_or_default();
+                (None, Some(method)) => {
                     if !hello_timed && method == "host/ready" {
                         hello_timed = true;
                         eprintln!("host\tready\t{:.1}ms", t0.elapsed().as_secs_f64() * 1000.0);
@@ -91,10 +97,38 @@ impl Host {
                     crate::index::on_notification(&self.app, self, method, &msg["params"]);
                     let _ = self.app.emit("pal://host", msg);
                 }
+                (None, None) => {}
             }
         }
         *self.stdin.lock().await = None;
         child.wait().await
+    }
+
+    /// A host request for a core capability: runs off this task (the reader
+    /// must keep draining stdout) and writes the reply back.
+    fn serve(self: &Arc<Self>, id: u64, method: String, params: Value) {
+        let host = self.clone();
+        tauri::async_runtime::spawn(async move {
+            let t0 = Instant::now();
+            let app = host.app.clone();
+            let m = method.clone();
+            let r = tauri::async_runtime::spawn_blocking(move || crate::bridge::call(&app, &m, params))
+                .await
+                .unwrap_or_else(|e| Err(format!("core handler panicked: {e}")));
+            eprintln!("core\t{method}\t{:.2}ms{}", t0.elapsed().as_secs_f64() * 1000.0, r.as_ref().err().map(|e| format!("\t{e}")).unwrap_or_default());
+            let reply = match r {
+                Ok(result) => json!({ "id": id, "result": result }),
+                Err(error) => json!({ "id": id, "error": error }),
+            };
+            let _ = host.write_line(&reply).await;
+        });
+    }
+
+    async fn write_line(&self, msg: &Value) -> Result<(), String> {
+        let line = format!("{msg}\n");
+        let mut stdin = self.stdin.lock().await;
+        let stdin = stdin.as_mut().ok_or("host not running")?;
+        stdin.write_all(line.as_bytes()).await.map_err(|e| e.to_string())
     }
 
     fn fail_pending(&self, why: &str) {
@@ -107,19 +141,17 @@ impl Host {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
         self.pending.lock().unwrap().insert(id, tx);
-        let line = format!("{}\n", json!({ "id": id, "method": method, "params": params }));
-        {
-            let mut stdin = self.stdin.lock().await;
-            let Some(stdin) = stdin.as_mut() else {
+        if let Err(e) = self.write_line(&json!({ "id": id, "method": method, "params": params })).await {
+            self.pending.lock().unwrap().remove(&id);
+            return Err(e);
+        }
+        match tokio::time::timeout(REQUEST_TIMEOUT, rx).await {
+            Ok(r) => r.unwrap_or_else(|_| Err("host dropped request".into())),
+            Err(_) => {
                 self.pending.lock().unwrap().remove(&id);
-                return Err("host not running".into());
-            };
-            if let Err(e) = stdin.write_all(line.as_bytes()).await {
-                self.pending.lock().unwrap().remove(&id);
-                return Err(e.to_string());
+                Err(format!("host timed out on {method}"))
             }
         }
-        rx.await.unwrap_or_else(|_| Err("host dropped request".into()))
     }
 }
 

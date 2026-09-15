@@ -1,8 +1,11 @@
 //! The shell: a hidden, pre-warmed panel toggled by the global hotkey or by
 //! `pal-app toggle` from a second process, the extension host and the item
-//! index behind it, the `icon://` scheme, and timing marks.
+//! index behind it, the core capabilities the host calls back for
+//! (`bridge`), the `icon://` scheme, and timing marks.
 
+mod bridge;
 mod cli;
+mod clipboard;
 mod effects;
 mod host;
 mod hotkey;
@@ -126,6 +129,7 @@ pub fn run() {
             let window = app.get_webview_window(WINDOW).expect("main window");
             panel::install(&window);
             index::install(app.handle());
+            clipboard::install(app.handle());
             host::Host::start(app.handle());
             hotkey::install(app.handle());
             Ok(())

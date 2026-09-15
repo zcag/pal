@@ -361,6 +361,26 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-empty__title { font-size: var(--pal-text-lg, 15px); color: var(--pal-fg-muted, #a3a4ae); }
 .pal-empty__hint { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-sm, 12px); }
 
+/* Confirm */
+.pal-confirm {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, calc(100% - var(--pal-space-6, 24px) * 2));
+  display: flex;
+  flex-direction: column;
+  gap: var(--pal-space-4, 16px);
+  padding: var(--pal-space-4, 16px) var(--pal-space-5, 20px);
+  background: var(--pal-bg-elevated, #26262d);
+  border-radius: var(--pal-radius-popover, 12px);
+  box-shadow: var(--pal-shadow-popover, 0 0 0 1px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.6));
+  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease-out);
+}
+.pal-confirm__title { font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-medium, 500); }
+/* Scoped: settings.css has a text-coloured destructive button. */
+.pal-confirm .pal-button[data-destructive] { background: var(--pal-destructive, #ff6e66); color: var(--pal-accent-fg, #14141a); }
+
 /* Toast */
 .pal-toast {
   position: absolute;

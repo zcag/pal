@@ -5,20 +5,47 @@
 // functions so it stays trivial to replace once the render tree is designed.
 // One JSON object per line, both directions. Requests carry an id, responses
 // echo it, notifications have none. Change freely.
+//
+// Both sides send requests: the core asks the host to `list`/`pick`, the host
+// asks the core for a capability with a `core/<capability>.<fn>` method
+// (`core/clipboard.list`), and each answers on its own output. A line is
+// classified by shape alone: a `method` makes it a request (with an id) or
+// a notification (without); no `method` makes it a response. Each side
+// numbers its own requests, so ids only have to be unique per direction.
 
 export type Request = { id: number; method: string; params?: unknown };
 export type Response = { id: number; result?: unknown; error?: string };
 export type Notification = { method: string; params?: unknown };
 
+export type Accessory = { text: string } | { tag: string; color?: string } | { date: string | number };
+
+export type Metadata = {
+  label: string;
+  value?: string;
+  tags?: { text: string; color?: string }[];
+  link?: { text: string; href: string };
+};
+
+/** Side pane: markdown (no raw HTML; `icon://` images work) over a metadata list. */
+export type Detail = { markdown?: string; metadata?: Metadata[] };
+
 export type Item = {
   id: string;
   name: string;
   subtitle?: string;
-  /** A glyph/emoji/hex string, or `{ app }` for an application's own artwork. */
-  icon?: string | { app: string };
+  /**
+   * A glyph/emoji/hex string, `{ app }` for an application's own artwork,
+   * or `{ image }` for a url the webview can load (an `icon://` one from
+   * `api.ts`, or any http(s) url).
+   */
+  icon?: string | { app: string } | { image: string };
   keywords?: string[];
   /** An item with a url and no icon gets the site's favicon. */
   url?: string;
+  /** Right-aligned on the row; the UI derives none when absent. */
+  accessories?: Accessory[];
+  /** The detail pane's content; the UI derives a generic one when absent. */
+  detail?: Detail;
   /**
    * First is primary (Enter), second secondary (Cmd+Enter), all in the
    * action panel. Omitted: one default "Open" action, `pick(id)` with no
@@ -35,6 +62,8 @@ export type Action = {
   /** "cmd+shift+c": lower-case, "+" joined; cmd is the platform's primary modifier. */
   shortcut?: string;
   style?: "destructive";
+  /** Ask first; the question shown, with the action's title as the go-ahead. */
+  confirm?: string;
 };
 
 /**
@@ -46,8 +75,14 @@ export type Effect = {
   copy?: string;
   /** A url or a path, given to the OS opener. */
   open?: string;
+  /**
+   * Hide, then paste into the app that was in front: a history entry by id,
+   * or text (which the watcher then records). Without Accessibility on
+   * macOS the core shows a toast instead and asks for the permission once.
+   */
+  paste?: { entry: number } | { text: string };
   hide?: true;
-  toast?: { title: string; style?: "success" | "failure" };
+  toast?: { title: string; message?: string; style?: "success" | "failure" };
   /** Stay open and list again. */
   keep?: true;
 };
@@ -69,6 +104,8 @@ export type Palette = {
    */
   input?: boolean;
   placeholder?: string;
+  /** Open with the detail pane showing. */
+  detail?: boolean;
   list(query?: string): Item[] | Promise<Item[]>;
   pick(id: string, action?: string): Effect | void | Promise<Effect | void>;
 };
@@ -76,4 +113,4 @@ export type Palette = {
 export type Extension = { palettes: Record<string, Palette> };
 
 /** What `hello` and `extension/loaded` say about a palette. */
-export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder"> & { name: string; title: string; live: boolean; input: boolean };
+export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "detail"> & { name: string; title: string; live: boolean; input: boolean };
