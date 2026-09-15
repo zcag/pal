@@ -1,0 +1,11 @@
+{
+  "name": "pal-host",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/host.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0"
+  }
+}
