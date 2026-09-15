@@ -1,27 +1,26 @@
 //! The shell: a hidden, pre-warmed panel toggled by the global hotkey or by
-//! `pal-app toggle` from a second process, a streaming feed from a child
-//! process, and timing marks for the go/no-go.
+//! `pal-app toggle` from a second process, the extension host and the item
+//! index behind it, the `icon://` scheme, and timing marks.
 
 mod cli;
 mod host;
 mod hotkey;
+mod icon;
+mod index;
 #[cfg_attr(target_os = "macos", path = "panel/macos.rs")]
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
 mod panel;
 
-use std::io::{BufRead, BufReader};
-use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, RunEvent, WebviewWindow};
 use tauri::webview::PageLoadEvent;
 use tauri_plugin_global_shortcut::ShortcutState;
 
 const WINDOW: &str = "main";
-const FEED_CHUNK: usize = 256;
 
 fn now_ms() -> f64 {
     let d = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -81,35 +80,6 @@ fn hide(app: AppHandle) {
     panel::hide(&app);
 }
 
-// ---- feed ----------------------------------------------------------------
-
-/// Runs `cmd` in a shell and streams its stdout lines to the webview in
-/// chunks, as `pal://feed` events, then `pal://feed-done`.
-#[tauri::command]
-fn feed(app: AppHandle, cmd: String) {
-    std::thread::spawn(move || {
-        let child = Command::new("sh")
-            .arg("-c")
-            .arg(&cmd)
-            .current_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/.."))
-            .stdout(Stdio::piped())
-            .spawn();
-        let Ok(mut child) = child else { return };
-        let reader = BufReader::new(child.stdout.take().unwrap());
-        let mut chunk = Vec::with_capacity(FEED_CHUNK);
-        for line in reader.lines().map_while(Result::ok) {
-            chunk.push(line);
-            if chunk.len() == FEED_CHUNK {
-                let _ = app.emit("pal://feed", std::mem::take(&mut chunk));
-            }
-        }
-        if !chunk.is_empty() {
-            let _ = app.emit("pal://feed", chunk);
-        }
-        let _ = app.emit("pal://feed-done", ());
-    });
-}
-
 // ---- app -----------------------------------------------------------------
 
 pub fn run() {
@@ -130,6 +100,7 @@ pub fn run() {
         }));
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
+    let builder = icon::register(builder);
     builder
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -140,7 +111,7 @@ pub fn run() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![mark, hide, feed, host::host_request])
+        .invoke_handler(tauri::generate_handler![mark, hide, host::host_request, index::query, index::sources, index::pick])
         .on_page_load(move |webview, payload| {
             if payload.event() == PageLoadEvent::Finished {
                 if let Some(cmd) = startup.lock().unwrap().take() {
@@ -153,10 +124,16 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let window = app.get_webview_window(WINDOW).expect("main window");
             panel::install(&window);
+            index::install(app.handle());
             host::Host::start(app.handle());
             hotkey::install(app.handle());
             Ok(())
         })
-        .run(context)
-        .expect("error while running tauri application");
+        .build(context)
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let RunEvent::Exit = event {
+                index::flush(app);
+            }
+        });
 }

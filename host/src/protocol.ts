@@ -14,13 +14,25 @@ export type Item = {
   id: string;
   name: string;
   subtitle?: string;
-  icon?: string;
+  /** A glyph/emoji/hex string, or `{ app }` for an application's own artwork. */
+  icon?: string | { app: string };
   keywords?: string[];
+  /** An item with a url and no icon gets the site's favicon. */
+  url?: string;
+  /** Anything else rides along untouched to the UI and back to `pick`. */
+  [extra: string]: unknown;
 };
 
 export type Palette = {
+  /** Section label at the root; the palette key otherwise. */
+  title?: string;
+  /** Arrival order is the order (OTP codes, tabs): never ranked by use. */
+  live?: boolean;
   list(query?: string): Item[] | Promise<Item[]>;
   pick(id: string, action?: string): unknown | Promise<unknown>;
 };
 
 export type Extension = { palettes: Record<string, Palette> };
+
+/** What `hello` and `extension/loaded` say about a palette. */
+export type PaletteMeta = { name: string; title: string; live: boolean };

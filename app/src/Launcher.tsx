@@ -1,29 +1,38 @@
 /**
  * The shell composed from the UI kit: root search over every item, palette
  * drill-downs, detail pane, action panel, toasts. Nothing in here touches
- * Tauri; App wires the feed, the hide command and the timing marks.
+ * Tauri; App wires the index queries, the pick and hide commands and the
+ * timing marks.
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Fzf } from "fzf";
 import {
   ActionPanel, Detail, Empty, Footer, Grid, List, Panel, Search, Toast,
   groupBySection, domId, useCursor, useKeys, useNavStack, type Hit, type ListHandle, type ToastSpec,
 } from "./ui";
+import { Fzf } from "fzf";
 import type { Action, Item, Match } from "./ui/types";
-import { gridPalettes, paletteTitle } from "./fixtures";
+import { gridPalettes, sourceKey, type SourceInfo } from "./items";
+import { paletteTitle } from "./fixtures";
 
-const LIMIT = 200;
+export const LIMIT = 200;
 const GRID_COLUMNS = 8;
 const LIST_ID = "results";
 
+/** A palette view is keyed by `sourceKey`. */
 type View = { kind: "root" } | { kind: "palette"; palette: string };
 
 export type LauncherHandle = { reset(): void };
 
 export type LauncherProps = {
-  items: Item[];
-  loading?: boolean;
-  onPick: (item: Item) => void;
+  /** Palettes in the index, load order; empty until the host has listed one. */
+  sources?: SourceInfo[];
+  /** Top hits for `q`, over one palette or all of them. */
+  search?: (q: string, scope?: SourceInfo) => Promise<Hit[]>;
+  /** Bumped when the index or the ranking changed underneath; re-runs the search. */
+  version?: number;
+  /** Gallery only: search these in the webview instead of `sources`/`search`. */
+  items?: Item[];
+  onPick: (item: Item, query: string) => void | Promise<unknown>;
   onHide: () => void;
   mark?: (name: string, t: number) => void;
 };
@@ -41,37 +50,67 @@ function splitMatch(item: Item, positions: Set<number>): Match {
   return { name, subtitle };
 }
 
-export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher({ items, loading, onPick, onHide, mark }, ref) {
+/** In-webview fzf over `items`, shaped like the core's `sources`/`search` pair. Fixture rows carry a bare palette name, so that is the key. */
+function useLocalSearch(items: Item[] = []) {
+  const sources = useMemo<SourceInfo[]>(() => {
+    const counts = new Map<string, number>();
+    for (const i of items) counts.set(i.palette!, (counts.get(i.palette!) ?? 0) + 1);
+    return [...counts].map(([palette, count]) => ({ extension: "", palette, title: paletteTitle(palette), live: false, count }));
+  }, [items]);
+  const fzf = useMemo(() => new Fzf(items, { selector: haystack, limit: LIMIT }), [items]);
+  const search = useCallback(async (q: string, scope?: SourceInfo): Promise<Hit[]> => {
+    const inScope = (i: Item) => !scope || i.palette === scope.palette;
+    if (!q) return items.filter(inScope).slice(0, LIMIT).map((item) => ({ item }));
+    return fzf.find(q).filter((r) => inScope(r.item)).map((r) => ({ item: r.item, match: splitMatch(r.item, r.positions) }));
+  }, [items, fzf]);
+  return { sources, search };
+}
+
+export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
+  const { version = 0, onPick, onHide, mark } = props;
+  const local = useLocalSearch(props.items);
+  const sources = props.sources ?? local.sources;
+  const search = props.search ?? local.search;
   const nav = useNavStack<View>({ kind: "root" });
   const { view, query } = nav;
   const [filter, setFilter] = useState("all");
   const [showDetail, setShowDetail] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toast, setToast] = useState<ToastSpec | null>(null);
+  const [found, setFound] = useState<Hit[]>([]);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<ListHandle>(null);
   const keyAt = useRef(0);
+  const seq = useRef(0);
 
-  const palettes = useMemo(() => [...new Set(items.map((i) => i.palette!))], [items]);
-  const scope = view.kind === "palette" ? view.palette : filter === "all" ? null : filter;
-  const scoped = useMemo(() => (scope ? items.filter((i) => i.palette === scope) : items), [items, scope]);
-  const fzf = useMemo(() => new Fzf(scoped, { selector: haystack, limit: LIMIT }), [scoped]);
-  const hits = useMemo<Hit[]>(() => {
-    const found = query ? fzf.find(query).map((r) => ({ item: r.item, match: splitMatch(r.item, r.positions) })) : scoped.slice(0, LIMIT).map((item) => ({ item }));
-    // At the root, palettes are the sections; inside one, the palette's own sections are.
-    return view.kind === "root" ? groupBySection(found.map((h) => ({ ...h, item: { ...h.item, section: paletteTitle(h.item.palette!) } }))) : groupBySection(found);
-  }, [fzf, scoped, query, view]);
+  const byKey = useMemo(() => new Map(sources.map((s) => [sourceKey(s), s])), [sources]);
+  const titleOf = (key: string) => byKey.get(key)?.title ?? key;
+  const scopeKey = view.kind === "palette" ? view.palette : filter === "all" ? null : filter;
+  const scope = scopeKey ? byKey.get(scopeKey) : undefined;
+  const loading = sources.length === 0;
+  const total = scope ? scope.count : sources.reduce((n, s) => n + s.count, 0);
+
+  // Replies can land out of order (a slow one behind a fast one): only the
+  // latest request's answer is shown.
+  useEffect(() => {
+    const n = ++seq.current;
+    search(query, scope).then((h) => { if (n === seq.current) setFound(h); });
+  }, [search, query, scopeKey, view.kind, version]);
+
+  // At the root, palettes are the sections; inside one, the palette's own sections are.
+  const hits = useMemo(() => (view.kind === "root" ? groupBySection(found.map((h) => ({ ...h, item: { ...h.item, section: titleOf(h.item.palette!) } }))) : groupBySection(found)), [found, view.kind, byKey]);
 
   const cur = useCursor(hits.length);
   const current: Item | undefined = hits[cur.cursor]?.item;
-  const isGrid = view.kind === "palette" && gridPalettes.has(view.palette);
+  const isGrid = view.kind === "palette" && !!scope && gridPalettes.has(scope.palette);
 
+  // Fires on the paint after a reply: keystroke to painted list, invoke included.
   useLayoutEffect(() => {
     if (!keyAt.current) return;
     const t = keyAt.current;
     keyAt.current = 0;
     requestAnimationFrame(() => mark?.(`key->paint "${query}" (${hits.length}) ms`, performance.now() - t));
-  }, [query, hits.length, mark]);
+  }, [hits, mark]);
 
   useEffect(() => {
     if (!toast || toast.style === "animated") return;
@@ -93,18 +132,19 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       { id: "open", title: "Open", icon: { kind: "glyph", value: "↗" } },
       { id: "copy", title: "Copy name", icon: { kind: "glyph", value: "⎘" }, shortcut: "cmd+c" },
     ];
-    if (view.kind === "root") a.push({ id: "browse", title: `Browse ${paletteTitle(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
+    if (view.kind === "root") a.push({ id: "browse", title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
     a.push({ id: "detail", title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
-    if (current.palette === "tabs") a.push({ id: "close", title: "Close tab", shortcut: "cmd+shift+w", style: "destructive", section: "Tab" });
     return a;
-  }, [current, view.kind, showDetail]);
+  }, [current, view.kind, showDetail, byKey]);
+
+  const pickItem = (item: Item) => Promise.resolve(onPick(item, query)).catch((e) => setToast({ style: "failure", title: "Failed", message: String(e) }));
 
   const run = (a: Action) => {
     if (!current) return;
     setActionsOpen(false);
     focus();
     switch (a.id) {
-      case "open": onPick(current); break;
+      case "open": pickItem(current); break;
       case "copy":
         Promise.resolve().then(() => navigator.clipboard.writeText(current.name)).then(
           () => setToast({ style: "success", title: "Copied", message: current.name }),
@@ -113,12 +153,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         break;
       case "browse": push({ kind: "palette", palette: current.palette! }); break;
       case "detail": setShowDetail((s) => !s); break;
-      case "close": setToast({ style: "animated", title: "Closing tab…" }); break;
     }
   };
 
   const filterSpec = view.kind === "root"
-    ? { options: [{ id: "all", title: "All" }, ...palettes.map((p) => ({ id: p, title: paletteTitle(p) }))], value: filter, onChange: (id: string) => { setFilter(id); cur.reset(); } }
+    ? { options: [{ id: "all", title: "All" }, ...sources.map((s) => ({ id: sourceKey(s), title: s.title }))], value: filter, onChange: (id: string) => { setFilter(id); cur.reset(); } }
     : undefined;
 
   useKeys(
@@ -148,21 +187,21 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     { input },
   );
 
-  const back = view.kind === "palette" ? { title: paletteTitle(view.palette), onBack: pop } : undefined;
+  const back = view.kind === "palette" ? { title: titleOf(view.palette), onBack: pop } : undefined;
   const body = !hits.length
     ? <Empty icon={{ kind: "glyph", value: "⌕" }} title={query ? "No results" : loading ? "Loading…" : "Nothing here"} hint={query ? "Try a different search" : undefined} />
     : isGrid
-      ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={(i) => onPick(hits[i].item)} columns={GRID_COLUMNS} />
-      : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={(i) => onPick(hits[i].item)} />;
+      ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={(i) => pickItem(hits[i].item)} columns={GRID_COLUMNS} />
+      : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={(i) => pickItem(hits[i].item)} />;
 
   return (
     <Panel
-      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} loading={loading} placeholder={view.kind === "root" ? "Search…" : `Search ${paletteTitle(view.palette)}…`} />}
+      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} loading={loading} placeholder={view.kind === "root" ? "Search…" : `Search ${titleOf(view.palette)}…`} />}
       aside={showDetail && (current?.detail ? <Detail detail={current.detail} /> : <Empty title="No details" />)}
       footer={
         <Footer
           icon={current?.icon}
-          title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${scoped.length}` : current?.name}
+          title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : current?.name}
           primary={actions[0] && { title: actions[0].title }}
           actions={actions.length > 0}
           onPrimary={() => actions[0] && run(actions[0])}

@@ -1,39 +1,39 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Launcher, type LauncherHandle } from "./Launcher";
-import { toItem, type Raw } from "./fixtures";
+import { Launcher, LIMIT, type LauncherHandle } from "./Launcher";
+import { sourceKey, toItem, type SourceInfo, type WireHit } from "./items";
+import type { Hit } from "./ui";
 import type { Item } from "./ui/types";
 
 const mark = (name: string, t: number) => invoke("mark", { name, t });
 
-/** Streams `cmd`'s stdout lines in as items. */
-function useFeed(cmd: string) {
-  const [items, setItems] = useState<Item[]>([]);
-  const [done, setDone] = useState(false);
+/** `sources()` from the core, refreshed on every `pal://index`. */
+function useSources() {
+  const [sources, setSources] = useState<SourceInfo[]>([]);
+  const [version, setVersion] = useState(0);
+  const bump = useCallback(() => setVersion((v) => v + 1), []);
   useEffect(() => {
-    const t0 = performance.now();
-    const acc: Item[] = [];
-    const un = listen<string[]>("pal://feed", (e) => {
-      for (const l of e.payload) acc.push(toItem(JSON.parse(l) as Raw));
-      setItems([...acc]);
-    });
-    const fin = listen("pal://feed-done", () => {
-      setDone(true);
-      mark(`feed ${acc.length} rows, ms`, performance.now() - t0);
-    });
-    invoke("feed", { cmd });
+    const refresh = () => invoke<SourceInfo[]>("sources").then(setSources);
+    refresh();
+    const un = listen("pal://index", () => refresh().then(bump));
     return () => {
       un.then((f) => f());
-      fin.then((f) => f());
     };
-  }, [cmd]);
-  return { items, loading: !done };
+  }, [bump]);
+  return { sources, version, bump };
 }
 
 export default function App() {
-  const { items, loading } = useFeed("cat fixtures/all.jsonl");
+  const { sources, version, bump } = useSources();
   const launcher = useRef<LauncherHandle>(null);
+  const titles = useRef(new Map<string, string>());
+  titles.current = new Map(sources.map((s) => [sourceKey(s), s.title]));
+
+  const search = useCallback(async (q: string, scope?: SourceInfo): Promise<Hit[]> => {
+    const wire = await invoke<WireHit[]>("query", { q, limit: LIMIT, sources: scope && [{ extension: scope.extension, palette: scope.palette }] });
+    return wire.map((h) => ({ item: toItem(h, titles.current.get(sourceKey(h.source)) ?? h.source.palette), match: { name: new Set(h.name_positions) } }));
+  }, []);
 
   // hotkey -> painted panel
   useEffect(() => {
@@ -46,17 +46,14 @@ export default function App() {
     };
   }, []);
 
-  return (
-    <Launcher
-      ref={launcher}
-      items={items}
-      loading={loading}
-      mark={mark}
-      onHide={() => invoke("hide")}
-      onPick={(item) => {
-        mark(`pick ${item.id}`, Date.now());
-        invoke("hide");
-      }}
-    />
-  );
+  const pick = async (item: Item, query: string) => {
+    const t0 = performance.now();
+    const r = await invoke("pick", { source: item.source, id: item.id, query });
+    mark(`pick ${item.id} ms`, performance.now() - t0);
+    invoke("hide");
+    bump(); // the pick changed frecency; the next show lists with it
+    return r;
+  };
+
+  return <Launcher ref={launcher} sources={sources} search={search} version={version} mark={mark} onHide={() => invoke("hide")} onPick={pick} />;
 }

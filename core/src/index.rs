@@ -95,6 +95,16 @@ struct Bucket {
     entries: Vec<Entry>,
     /// id to position; the first item wins when an extension repeats an id.
     ids: HashMap<String, usize>,
+    /// Ordered by arrival, not by use: `QueryOpts::boost` skips it.
+    live: bool,
+}
+
+/// What the index knows about one source, for the UI's section labels.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SourceInfo {
+    pub source: Source,
+    pub live: bool,
+    pub len: usize,
 }
 
 impl Bucket {
@@ -145,6 +155,15 @@ impl Index {
         self.buckets.retain(|b| &b.source != source);
     }
 
+    /// Mark a source live (see `Bucket::live`); creates it empty if new.
+    pub fn set_live(&mut self, source: Source, live: bool) {
+        self.bucket(source).live = live;
+    }
+
+    pub fn sources(&self) -> Vec<SourceInfo> {
+        self.buckets.iter().map(|b| SourceInfo { source: b.source.clone(), live: b.live, len: b.entries.len() }).collect()
+    }
+
     pub fn len(&self) -> usize {
         self.buckets.iter().map(|b| b.entries.len()).sum()
     }
@@ -162,7 +181,7 @@ impl Index {
         let i = match self.buckets.iter().position(|b| b.source == source) {
             Some(i) => i,
             None => {
-                self.buckets.push(Bucket { source, entries: Vec::new(), ids: HashMap::new() });
+                self.buckets.push(Bucket { source, entries: Vec::new(), ids: HashMap::new(), live: false });
                 self.buckets.len() - 1
             }
         };
@@ -192,7 +211,8 @@ impl Index {
                 } else {
                     0.0
                 };
-                let score = score + opts.boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id));
+                let boost = if bucket.live { None } else { opts.boost };
+                let score = score + boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id));
                 // Name length only breaks ties between matches; the empty
                 // query keeps insertion order.
                 let len = if matching { entry.name.len() as u32 } else { 0 };
@@ -390,6 +410,24 @@ mod tests {
         let bookmark = favour("ha");
         let hits = ix.query("", QueryOpts { boost: Some(&bookmark), limit: 2, ..Default::default() });
         assert_eq!(ids(&hits), ["ha", "chrome.app"]);
+    }
+
+    #[test]
+    fn live_source_ignores_boost() {
+        let mut ix = index();
+        let favour = |_: &Source, id: &str| if id == "i5" || id == "ha" { 1000.0 } else { 0.0 };
+        ix.set_live(src("icons"), true);
+        let hits = ix.query("ha", QueryOpts { boost: Some(&favour), ..Default::default() });
+        // The bookmark still climbs; the live icon keeps its matched rank.
+        assert_eq!(hits[0].id, "ha");
+        assert_eq!(hits[pos(&hits, "i5")].score, hits[pos(&hits, "i6")].score);
+        let hits = ix.query("", QueryOpts { boost: Some(&favour), limit: 3, ..Default::default() });
+        assert_eq!(ids(&hits), ["ha", "chrome.app", "terminal.app"]);
+        assert_eq!(ix.sources().iter().map(|s| (s.source.palette.as_str(), s.live, s.len)).collect::<Vec<_>>(), [("apps", false, 4), ("icons", true, 7), ("bookmarks", false, 1)]);
+        // Flagging before any items arrive creates the source in place.
+        ix.set_live(src("otp"), true);
+        ix.replace(src("otp"), vec![item("o1", "code", None, &[])]);
+        assert_eq!(ix.sources().last().map(|s| (s.live, s.len)), Some((true, 1)));
     }
 
     #[test]

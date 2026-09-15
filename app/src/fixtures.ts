@@ -1,4 +1,5 @@
-/** Adapts v1 palette rows (fixtures/all.jsonl) to the UI item model. */
+/** Adapts v1 palette rows (fixtures/all.jsonl) to the UI item model, for the gallery. */
+import { iconOf as iconFromWire } from "./items";
 import type { Detail, Icon, Item } from "./ui/types";
 
 export type Raw = {
@@ -17,17 +18,8 @@ export type Raw = {
 
 export const paletteTitle = (p: string) => ({ apps: "Applications", cmds: "Commands", ssh: "SSH", iconnerd: "Nerd Font" })[p] ?? p[0].toUpperCase() + p.slice(1);
 
-/** Palettes whose items are glyphs, best browsed as tiles. */
-export const gridPalettes = new Set(["emoji", "iconnerd", "chars", "colors"]);
-
-const pictographic = /\p{Extended_Pictographic}/u;
-
-export function iconOf(raw: Raw): Icon | undefined {
-  const s = raw.icon?.trim();
-  if (!s || s.startsWith("/")) return raw.name ? { kind: "glyph", value: raw.name[0].toUpperCase() } : undefined;
-  if (/^#[0-9a-f]{3,8}$/i.test(s)) return { kind: "glyph", value: "●", color: s };
-  return pictographic.test(s) ? { kind: "emoji", value: s } : { kind: "glyph", value: s };
-}
+/** No `icon://` in a plain browser: app paths and urls take their placeholder outright. */
+export const iconOf = (raw: Raw): Icon | undefined => iconFromWire(raw.icon?.startsWith("/") ? undefined : raw.icon, raw.name);
 
 function detailOf(raw: Raw): Detail {
   const glyph = raw.icon && !raw.icon.startsWith("/") && !raw.hex ? raw.icon.trim() : "";

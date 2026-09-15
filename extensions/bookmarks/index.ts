@@ -13,6 +13,7 @@ async function rows(): Promise<Row[]> {
 export default {
   palettes: {
     bookmarks: {
+      title: "Bookmarks",
       list: async (): Promise<Item[]> =>
         (await rows()).map((r) => ({
           id: r.url,
@@ -20,6 +21,7 @@ export default {
           subtitle: r.subtitle ?? r.url,
           icon: r.icon?.trim() || undefined,
           keywords: r.keywords,
+          url: r.url,
         })),
       pick: (id) => {
         Bun.spawn(["open", id]);

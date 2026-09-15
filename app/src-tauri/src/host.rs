@@ -1,6 +1,7 @@
 //! The extension host: one long-lived Bun process speaking newline-delimited
 //! JSON over stdio. Requests carry an id and get a oneshot; notifications
-//! (no id) go to the webview as `pal://host` events; an exit restarts it.
+//! (no id) feed the index (`crate::index::on_notification`) and go to the
+//! webview as `pal://host` events; an exit restarts it.
 
 use std::collections::HashMap;
 use std::process::Stdio;
@@ -24,6 +25,8 @@ pub struct Host {
     next_id: AtomicU64,
     stdin: AsyncMutex<Option<ChildStdin>>,
     pending: Mutex<HashMap<u64, Reply>>,
+    /// Last spawn, the origin of the timing lines.
+    started: Mutex<Instant>,
 }
 
 impl Host {
@@ -33,6 +36,7 @@ impl Host {
             next_id: AtomicU64::new(1),
             stdin: AsyncMutex::new(None),
             pending: Mutex::new(HashMap::new()),
+            started: Mutex::new(Instant::now()),
         });
         app.manage(host.clone());
         tauri::async_runtime::spawn(async move {
@@ -48,9 +52,14 @@ impl Host {
         });
     }
 
+    pub fn uptime_ms(&self) -> f64 {
+        self.started.lock().unwrap().elapsed().as_secs_f64() * 1000.0
+    }
+
     /// Spawns the host and pumps its stdout until it exits.
-    async fn run_once(&self) -> std::io::Result<std::process::ExitStatus> {
+    async fn run_once(self: &Arc<Self>) -> std::io::Result<std::process::ExitStatus> {
         let t0 = Instant::now();
+        *self.started.lock().unwrap() = t0;
         let mut child = Command::new("bun")
             .args(["run", "host/src/host.ts"])
             .current_dir(REPO)
@@ -74,10 +83,12 @@ impl Host {
                     }
                 }
                 None => {
-                    if !hello_timed && msg["method"] == "host/ready" {
+                    let method = msg["method"].as_str().unwrap_or_default();
+                    if !hello_timed && method == "host/ready" {
                         hello_timed = true;
                         eprintln!("host\tready\t{:.1}ms", t0.elapsed().as_secs_f64() * 1000.0);
                     }
+                    crate::index::on_notification(&self.app, self, method, &msg["params"]);
                     let _ = self.app.emit("pal://host", msg);
                 }
             }

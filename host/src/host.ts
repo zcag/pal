@@ -4,7 +4,7 @@
 import { watch } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { Extension, Notification, Request, Response } from "./protocol.ts";
+import type { Extension, Notification, PaletteMeta, Request, Response } from "./protocol.ts";
 
 const VERSION = "0.0.1";
 const EXT_DIR = resolve(import.meta.dir, "../../extensions");
@@ -33,7 +33,7 @@ async function load(name: string) {
     exts.set(name, ext);
     errors.delete(name);
     log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}) in ${(performance.now() - t0).toFixed(1)}ms`);
-    notify("extension/loaded", { extension: name, palettes: Object.keys(ext.palettes) });
+    notify("extension/loaded", { extension: name, palettes: metas(ext) });
   } catch (e) {
     const message = describe(e);
     exts.delete(name);
@@ -67,6 +67,9 @@ function watchExtensions() {
   });
 }
 
+const metas = (ext: Extension): PaletteMeta[] =>
+  Object.entries(ext.palettes).map(([name, p]) => ({ name, title: p.title ?? name, live: !!p.live }));
+
 function palette(p: any) {
   const ext = exts.get(p?.extension);
   if (!ext) throw new Error(errors.get(p?.extension) ?? `no extension ${p?.extension}`);
@@ -80,7 +83,7 @@ const methods: Record<string, (params: any) => unknown> = {
     version: VERSION,
     bun: Bun.version,
     pid: process.pid,
-    extensions: [...exts].map(([name, e]) => ({ name, palettes: Object.keys(e.palettes) })),
+    extensions: [...exts].map(([name, e]) => ({ name, palettes: metas(e) })),
     errors: Object.fromEntries(errors),
   }),
   list: async (p) => ({ items: await palette(p).list(p.query) }),

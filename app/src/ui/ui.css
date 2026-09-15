@@ -181,7 +181,10 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-icon[data-size="sm"] { width: var(--pal-icon-glyph, 16px); height: var(--pal-icon-glyph, 16px); font-size: var(--pal-text-sm, 12px); }
 .pal-icon[data-size="lg"] { width: var(--pal-grid-tile, 56px); height: var(--pal-grid-tile, 56px); font-size: calc(var(--pal-grid-tile, 56px) * 0.55); }
 .pal-icon__img { width: var(--pal-icon-favicon, 16px); height: var(--pal-icon-favicon, 16px); object-fit: cover; }
-.pal-icon__img[data-mask] { width: 100%; height: 100%; }
+/* Brief: favicons are 16px with a 3px corner mask; app icons fill the box unmasked. */
+.pal-icon__img[data-kind="favicon"] { border-radius: 3px; }
+.pal-icon__img[data-kind="app"], .pal-icon__img[data-mask] { width: 100%; height: 100%; }
+.pal-icon__globe { width: var(--pal-icon-favicon, 16px); height: var(--pal-icon-favicon, 16px); fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
 .pal-icon__img[data-mask="circle"] { border-radius: 50%; }
 .pal-icon__img[data-mask="rounded"] { border-radius: var(--pal-radius-icon, 6px); }
 

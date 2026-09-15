@@ -38,7 +38,7 @@ async function scan(): Promise<Item[]> {
       const name = path.slice(path.lastIndexOf("/") + 1, -4);
       if (!seen.add(name.toLowerCase())) continue;
       const id = await bundleId(path);
-      items.push({ id: path, name, subtitle: source, icon: path, keywords: id ? [id] : [] });
+      items.push({ id: path, name, subtitle: source, icon: { app: path }, keywords: id ? [id] : [] });
     }
   }
   return items.sort((a, b) => a.name.localeCompare(b.name));
@@ -47,6 +47,7 @@ async function scan(): Promise<Item[]> {
 export default {
   palettes: {
     apps: {
+      title: "Applications",
       list: async () => (cache ??= await scan()),
       pick: (id) => {
         Bun.spawn(["open", "-a", id]);

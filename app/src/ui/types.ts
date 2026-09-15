@@ -8,7 +8,11 @@ export type IconMask = "circle" | "rounded";
 export type Icon =
   | { kind: "emoji"; value: string }
   | { kind: "glyph"; value: string; color?: string }
-  | { kind: "image"; src: string; mask?: IconMask };
+  | { kind: "image"; src: string; mask?: IconMask }
+  /** An application's own artwork via the `icon://` scheme; `letter` when it has none. */
+  | { kind: "app"; path: string; letter: string }
+  /** The site's favicon via the `icon://` scheme; the globe glyph when it has none. */
+  | { kind: "favicon"; url: string };
 
 export type Accessory =
   | { text: string }
@@ -47,6 +51,8 @@ export type Item = {
   icon?: Icon;
   keywords?: string[];
   palette?: string;
+  /** Which extension palette listed it; what a pick is addressed to. */
+  source?: { extension: string; palette: string };
   section?: string;
   accessories?: Accessory[];
   detail?: Detail;
