@@ -46,3 +46,7 @@ down as it stabilises.
   and the file keeps the user's formatting and comments where the format
   allows. Whichever format we pick, pal ships a schema so an editor can
   validate and complete it.
+- **The pit board for pal** (pit.cagdas.io) collects findings from a research
+  pass on how Raycast does things. Its `in` lane is "relevant", not "we will
+  build this": a card there is input to a decision here, never a commitment.
+  Decisions still get made in this file, one at a time.
