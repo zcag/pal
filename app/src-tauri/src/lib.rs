@@ -1,6 +1,8 @@
 //! The shell: a hidden, pre-warmed panel toggled by a global hotkey, a
 //! streaming feed from a child process, and timing marks for the go/no-go.
 
+mod host;
+
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -34,10 +36,10 @@ struct Shown {
 mod panel {
     use super::*;
     use tauri_nspanel::{
-        tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask,
-        WebviewWindowExt,
+        tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, WebviewWindowExt,
     };
 
+    // Also brings msg_send and AnyObject into scope.
     tauri_panel! {
         // Key (takes keyboard) but non-activating: the app behind keeps
         // being the active app, so a pick can paste into it after we hide.
@@ -72,22 +74,52 @@ mod panel {
         let events = PalPanelEvents::new();
         events.window_did_resign_key(move |_| hide(&app));
         panel.set_event_handler(Some(events.as_ref()));
+
+        // WebKit suspends rendering updates (rAF, timers) for a page whose
+        // window is ordered out or occluded (WebKit PageClientImplMac.mm,
+        // isViewVisible). So the panel is never ordered out: hidden means
+        // alpha 0 and ignoring the mouse. On top at floating level that still
+        // counts as visible; a covering window, a locked screen or a sleeping
+        // display would not, so occlusion detection goes off too, via the
+        // private WKWebView setter Raycast flips for the same reason.
+        let _ = window.with_webview(|wv| unsafe {
+            let wk = &*(wv.inner() as *const AnyObject);
+            let _: () = msg_send![wk, _setWindowOcclusionDetectionEnabled: false];
+        });
+        // Order in now, invisible: the first show then finds the page painted.
+        panel.set_ignores_mouse_events(true);
+        panel.set_alpha_value(0.0);
+        panel.show();
     }
 
     pub fn is_visible(app: &AppHandle) -> bool {
-        app.get_webview_panel(WINDOW).map(|p| p.is_visible()).unwrap_or(false)
+        app.get_webview_panel(WINDOW).map(|p| p.as_panel().alphaValue() > 0.0).unwrap_or(false)
     }
 
     pub fn show(app: &AppHandle) {
-        if let Ok(p) = app.get_webview_panel(WINDOW) {
-            p.show_and_make_key();
+        let Ok(p) = app.get_webview_panel(WINDOW) else { return };
+        p.set_ignores_mouse_events(false);
+        p.set_alpha_value(1.0);
+        p.show_and_make_key();
+        // The page never goes hidden, so its input keeps DOM focus and WebKit
+        // does not claim first responder by itself: hand it the keyboard.
+        if let Some(w) = app.get_webview_window(WINDOW) {
+            let webview: &tauri::Webview = w.as_ref();
+            let _ = webview.set_focus();
         }
     }
 
     pub fn hide(app: &AppHandle) {
-        if let Ok(p) = app.get_webview_panel(WINDOW) {
-            p.hide();
+        let Ok(p) = app.get_webview_panel(WINDOW) else { return };
+        if !is_visible(app) {
+            return; // also cuts the resign-key -> hide re-entry from orderOut below
         }
+        p.set_ignores_mouse_events(true);
+        p.set_alpha_value(0.0);
+        // orderOut is what gives key focus back to the app in front; order
+        // straight back in so WebKit keeps the page alive.
+        p.hide(); // orderOut:
+        p.show(); // orderFrontRegardless
     }
 }
 
@@ -190,12 +222,13 @@ pub fn run() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![mark, hide, feed])
+        .invoke_handler(tauri::generate_handler![mark, hide, feed, host::host_request])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             let window = app.get_webview_window(WINDOW).expect("main window");
             panel::install(&window);
+            host::Host::start(app.handle());
             app.global_shortcut()
                 .register(Shortcut::new(Some(Modifiers::CONTROL), Code::Space))?;
             Ok(())
