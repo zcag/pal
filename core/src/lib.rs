@@ -1,5 +1,6 @@
 //! pal core: the parts of pal that are neither UI nor OS glue.
 
+pub mod apps;
 pub mod ax;
 pub mod clipboard;
 pub mod config;

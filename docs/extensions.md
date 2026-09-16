@@ -98,7 +98,8 @@ extensions use `satisfies` directly.
   settings change, on `cmd+r`, or after `ttl` seconds at the next start.
   With `input: true` it runs on every keystroke inside the palette and the
   root has only the palette's own row (a calculator).
-- `pick(id, action?, ctx?)` returns an `Effect`: `copy`, `open` (url or
+- `pick(id, action?, ctx?)` returns an `Effect`: `copy`, `copy_files` (a
+  list of paths: the files themselves, see the note below), `open` (url or
   path), `paste`, `focus` (a window id), `hide`, `toast`, `hud` (a line in
   the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
   `keep` (stay open and list again), `push` (drill into a palette with
@@ -283,6 +284,11 @@ to the core.
   `{ focus: id }` effect from `pick`, so the panel hides first.
 - `system.commands()` (sleep, lock, dark mode, volume, and so on, with
   `available` per machine), `system.run(id)` (hides the panel, then runs).
+- `apps.forFile(path)`: the applications the OS registers for a file
+  (`App[]`: `name`, `path` (the `.app` or `.desktop`, usable as
+  `icon: { app: path }`), `bundle_id?`, `default`), the default first; Launch
+  Services on macOS, `xdg-mime` + `mimeapps.list` + `mimeinfo.cache` on
+  Linux. `apps.openWith(path, app)` opens the file with one of them.
 - `storage.get(key)`, `set(key, value)`, `remove(key)`, `keys()`: the
   extension's own key-value file (above).
 - `home(path)`: a leading `~` expanded. `core.call(method, params)`: the
@@ -296,7 +302,7 @@ to the core.
 The protocol's types ride along: `Extension`, `Palette`, `Item`, `Action`,
 `Icon`, `Effect`, `Ctx`, `Detail`, `View`, `ViewNode`, `Form`,
 `FormField`, `FormValues`, `Manifest`, `SettingSpec`, and the API's own
-(`ClipboardEntry`, `Window`, `WindowLayout`, `SystemCommand`).
+(`ClipboardEntry`, `Window`, `WindowLayout`, `SystemCommand`, `App`).
 
 Dependencies: a `package.json` next to `index.ts` is honoured; `pal
 install` runs `bun install --production` in the copy it makes. List

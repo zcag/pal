@@ -1,15 +1,17 @@
 //! The effects a pick envelope asks the shell for (`Effect` in
-//! host/protocol.ts): what needs the OS runs here, the rest (hide, toast,
+//! sdk/src/protocol.ts): what needs the OS runs here, the rest (hide, toast,
 //! keep) is the webview's. Returns the envelope the webview should see:
 //! usually the one given, a toast instead when a paste needs the
 //! Accessibility permission pal does not have (the first refusal per run
 //! also asks: the system prompt and the System Settings pane,
-//! `permissions::request_once`). Feedback after the panel
-//! hides is the HUD's (hud.rs): "Copied" after a `copy` that hides, an
+//! `permissions::request_once`), or when a `copy_files` has no clipboard
+//! to write to (Linux without X11 or wlr data-control). Feedback after the panel
+//! hides is the HUD's (hud.rs): "Copied" after a `copy` or `copy_files` that hides, an
 //! extension's own `hud` text, the once-per-run note when a `focus`
 //! could only bring the app forward, and the layout's name (or why it
 //! failed) after a `layout`.
 
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
@@ -53,6 +55,20 @@ pub fn accessibility_toast(what: &str) -> Value {
     json!({ "toast": { "title": format!("{what} needs Accessibility"), "message": "Grant pal in System Settings > Privacy & Security > Accessibility", "style": "failure" } })
 }
 
+/// The toast when the files could not go on the clipboard (no backend on
+/// Linux, a refused pasteboard write): the panel is still up, so it can
+/// carry the reason.
+fn copy_files_toast(err: &str) -> Value {
+    json!({ "toast": { "title": "Could not copy the files", "message": err, "style": "failure" } })
+}
+
+/// "Copied" in the HUD after a `copy`/`copy_files` that hides the panel: a
+/// paste is the target app's feedback, a toast or a kept panel its own,
+/// and an extension's `hud` text replaces it.
+fn copied_hud(envelope: &Value) -> bool {
+    envelope.get("paste").is_none() && envelope.get("hud").is_none() && !stays_open(envelope)
+}
+
 /// Hide the panel and wait for its orderOut to hand key focus back to the
 /// app in front, so what follows (a keystroke, an activate) lands there.
 /// Harmless on a panel that was not up (an item hotkey fired).
@@ -82,8 +98,16 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
     if let Some(text) = envelope.get("copy").and_then(Value::as_str) {
         let text = text.to_string();
         blocking(move || clipboard::copy_text(&text).map_err(|e| format!("copy failed: {e}"))).await?;
-        // A paste is the target app's feedback; a toast or a kept panel is its own.
-        if envelope.get("paste").is_none() && envelope.get("hud").is_none() && !stays_open(&envelope) {
+        if copied_hud(&envelope) {
+            hud::show(app, "Copied");
+        }
+    }
+    if let Some(paths) = envelope.get("copy_files") {
+        let paths: Vec<PathBuf> = serde_json::from_value(paths.clone()).map_err(|e| format!("bad copy_files effect: {e}"))?;
+        if let Err(e) = blocking(move || clipboard::copy_files(paths)).await {
+            return Ok(copy_files_toast(&e));
+        }
+        if copied_hud(&envelope) {
             hud::show(app, "Copied");
         }
     }
@@ -172,8 +196,24 @@ mod tests {
     fn hud_after_copy_only_when_the_panel_hides() {
         for open in [json!({ "copy": "x", "keep": true }), json!({ "copy": "x", "toast": { "title": "t" } }), json!({ "copy": "x", "push": {} }), json!({ "copy": "x", "show": {} }), json!({ "view": { "tree": {} } })] {
             assert!(stays_open(&open), "{open}");
+            assert!(!copied_hud(&open), "{open}");
         }
         assert!(!stays_open(&json!({ "copy": "x" })));
+        assert!(copied_hud(&json!({ "copy": "x" })));
+        assert!(copied_hud(&json!({ "copy_files": ["/tmp/a"] })));
         assert!(!stays_open(&json!({ "copy": "x", "hud": "Saved" })), "an extension's own text replaces Copied, the panel still hides");
+        assert!(!copied_hud(&json!({ "copy": "x", "hud": "Saved" })));
+        assert!(!copied_hud(&json!({ "copy": "x", "paste": { "text": "x" } })), "the paste is the feedback");
+    }
+
+    #[test]
+    fn copy_files_failure_is_a_toast_with_the_reason() {
+        let t = copy_files_toast("clipboard unavailable: no wayland data-control");
+        assert_eq!(t["toast"]["title"], "Could not copy the files");
+        assert_eq!(t["toast"]["style"], "failure");
+        assert_eq!(t["toast"]["message"], "clipboard unavailable: no wayland data-control");
+        assert_eq!(t.as_object().unwrap().len(), 1);
+        assert!(serde_json::from_value::<Vec<PathBuf>>(json!(["/tmp/a", "/tmp/b"])).is_ok());
+        assert!(serde_json::from_value::<Vec<PathBuf>>(json!("/tmp/a")).is_err(), "copy_files is a list, not one path");
     }
 }

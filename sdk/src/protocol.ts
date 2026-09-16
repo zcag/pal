@@ -227,6 +227,8 @@ export type WindowLayoutRequest = WindowLayoutOptions & { name: WindowLayout; id
  */
 export type Effect = {
   copy?: string;
+  /** The files themselves onto the clipboard (file URLs on macOS, `text/uri-list` on Linux); "Copied" in the HUD like `copy`. A backend that cannot take a file list makes the pick a failure toast. */
+  copy_files?: string[];
   /** A url or a path, given to the OS opener. */
   open?: string;
   /**

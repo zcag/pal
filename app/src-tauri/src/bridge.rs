@@ -3,6 +3,7 @@
 //! `call`. Runs on a blocking thread (`host::serve`), never on the host's
 //! reader. The methods, with `api.ts` as the caller:
 //!
+//! - `core/apps.{for_file, open_with}` (apps.rs)
 //! - `core/clipboard.{list, get, pin, delete, clear, copy}` (clipboard.rs)
 //! - `core/settings.get {extension, manifest}` (settings.rs)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
@@ -22,6 +23,7 @@ fn route(method: &str) -> Result<(&str, &str), String> {
 pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, String> {
     let (capability, func) = route(method)?;
     match capability {
+        "apps" => crate::apps::call(app, func, params),
         "clipboard" => crate::clipboard::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
         "storage" => crate::storage::call(app, func, params),
@@ -38,6 +40,7 @@ mod tests {
     #[test]
     fn routes_core_methods_only() {
         assert_eq!(route("core/clipboard.list"), Ok(("clipboard", "list")));
+        assert_eq!(route("core/apps.for_file"), Ok(("apps", "for_file")));
         assert_eq!(route("core/settings.get"), Ok(("settings", "get")));
         assert!(route("list").is_err());
         assert!(route("core/list").is_err(), "no capability");

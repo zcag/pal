@@ -57,6 +57,41 @@ pub(crate) fn on_path(bin: &str) -> bool {
     std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(bin).is_file()))
 }
 
+/// `applications/` under every XDG data dir, in precedence order (the
+/// spec: the first dir that has a desktop id wins), then the flatpak
+/// exports. Where a `.desktop` file, a `mimeinfo.cache` or a
+/// `mimeapps.list` is looked for on Linux.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub(crate) fn desktop_dirs() -> Vec<PathBuf> {
+    let home = dirs::home_dir().unwrap_or_default();
+    let data_home = std::env::var_os("XDG_DATA_HOME").filter(|s| !s.is_empty()).map(PathBuf::from).unwrap_or_else(|| home.join(".local/share"));
+    let sys = std::env::var_os("XDG_DATA_DIRS").filter(|s| !s.is_empty()).unwrap_or_else(|| "/usr/local/share:/usr/share".into());
+    let mut dirs = vec![data_home];
+    dirs.extend(std::env::split_paths(&sys));
+    dirs.push("/var/lib/flatpak/exports/share".into());
+    dirs.push(home.join(".local/share/flatpak/exports/share"));
+    dirs.into_iter().map(|d| d.join("applications")).collect()
+}
+
+/// The `[Desktop Entry]` group of a `.desktop` file as key/value pairs,
+/// values trimmed. Other groups (`[Desktop Action new]`) are skipped;
+/// localised keys (`Name[tr]`) come through under their full key.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub(crate) fn desktop_entry(text: &str) -> std::collections::HashMap<&str, &str> {
+    let mut out = std::collections::HashMap::new();
+    let mut in_entry = false;
+    for line in text.lines().map(str::trim) {
+        if line.starts_with('[') {
+            in_entry = line == "[Desktop Entry]";
+        } else if in_entry && !line.starts_with('#') {
+            if let Some((k, v)) = line.split_once('=') {
+                out.entry(k.trim()).or_insert(v.trim());
+            }
+        }
+    }
+    out
+}
+
 /// Write `bytes` to `target` via a temp file in the same directory and a
 /// rename, creating the directory. A reader sees the old file or the new one,
 /// never a partial. The temp name carries the pid and a counter, so two
@@ -87,6 +122,17 @@ mod tests {
         assert_eq!(expand_home("~x/y"), PathBuf::from("~x/y"), "another user's home is not ours to expand");
         assert_eq!(expand_home("/a/~/b"), PathBuf::from("/a/~/b"));
         assert_eq!(expand_home(""), PathBuf::from(""));
+    }
+
+    #[test]
+    fn desktop_entry_reads_the_entry_group_only() {
+        let text = "[Desktop Action new]\nIcon=wrong\n[Desktop Entry]\n# comment\nName=Kitty\nName[tr]=Kedi\nIcon=kitty \nExec=kitty %U\nIcon=second\n";
+        let e = desktop_entry(text);
+        assert_eq!(e.get("Icon"), Some(&"kitty"), "the first value of a repeated key, trimmed");
+        assert_eq!(e.get("Name"), Some(&"Kitty"));
+        assert_eq!(e.get("Name[tr]"), Some(&"Kedi"));
+        assert_eq!(e.get("Exec"), Some(&"kitty %U"));
+        assert!(!desktop_entry("[Desktop Entry]\nName=x\n").contains_key("Icon"));
     }
 
     #[test]

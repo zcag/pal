@@ -128,6 +128,13 @@ pub fn copy_text(text: &str) -> Result<(), String> {
     cb::write_text(text).map_err(err)
 }
 
+/// The `copy_files` effect: the files themselves (file URLs on macOS,
+/// `text/uri-list` on Linux), so a paste in Finder or a file manager
+/// copies them and a paste in a text field gets their paths.
+pub fn copy_files(paths: Vec<PathBuf>) -> Result<(), String> {
+    cb::write_files(paths).map_err(err)
+}
+
 /// `{ entry: id }` from history, or `{ text }` straight from the extension.
 #[derive(Deserialize)]
 #[serde(untagged)]

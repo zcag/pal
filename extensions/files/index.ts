@@ -7,10 +7,13 @@
 // of them: the tests run `find` on a temp folder no index knows about.
 import { readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
-import { home, settings, type Action, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, home, settings, type Action, type App, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.files]`, defaults in pal.json. */
 type Settings = { folders: string[]; limit: number; show_hidden: boolean };
+/** The args of the level "Open with…" pushes: which file the rows open. */
+type OpenWith = { open_with: string };
+const openWithOf = (ctx?: Ctx): string | undefined => (ctx?.args as OpenWith | undefined)?.open_with;
 
 const HOME = home("~");
 const MAC = process.platform === "darwin";
@@ -102,7 +105,9 @@ const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024)
 const ACTIONS: Action[] = [
   { id: "open", title: "Open" },
   { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager" },
+  { id: "open-with", title: "Open with…", shortcut: "cmd+o" },
   { id: "copy", title: "Copy path", shortcut: "cmd+c" },
+  { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c" },
   { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?" },
 ];
 
@@ -127,6 +132,26 @@ function rank(items: Item[], q: string): Item[] {
   const tier = (i: Item) => { const n = i.name.toLowerCase(); return n === lq ? 0 : n.startsWith(lq) ? 1 : 2; };
   return items.map((i, n) => ({ i, n, t: tier(i) })).sort((a, b) => a.t - b.t || a.n - b.n).map(({ i }) => i);
 }
+
+// ---- open with -----------------------------------------------------------
+
+/** The apps the OS registers for the file, the default first (the core's order), narrowed by the query. */
+async function appRows(file: string, query: string): Promise<Item[]> {
+  const apps = await appsApi.forFile(file);
+  const q = query.trim().toLowerCase();
+  const rows = apps.filter((a) => !q || a.name.toLowerCase().includes(q) || a.bundle_id?.toLowerCase().includes(q)).map(appRow);
+  return rows.length || q ? rows : [hint("No app opens this file", `Nothing is registered for ${basename(file)}`)];
+}
+
+const appRow = (a: App): Item => ({
+  id: a.path,
+  name: a.name,
+  subtitle: short(dirname(a.path)),
+  icon: { app: a.path },
+  keywords: a.bundle_id ? [a.bundle_id] : [],
+  accessories: a.default ? [{ tag: "Default" }] : [],
+  actions: [{ id: "open-with", title: "Open" }],
+});
 
 /** Four backticks fence the text so a ``` inside cannot end it early. */
 const fence = (s: string, lang: string) => "````" + lang + "\n" + s.replace(/````/g, "```​`") + "\n````";
@@ -190,7 +215,10 @@ export default {
       icon: ICON,
       input: true,
       placeholder: "Search files by name",
-      list: async (query = "") => {
+      // A level pushed by "Open with…" (`args.open_with` is the file) lists the apps for it instead; its rows' ids are app paths.
+      list: async (query = "", ctx) => {
+        const file = openWithOf(ctx);
+        if (file) return appRows(file, query);
         const s = settings.get<Settings>();
         const folders = s.folders.map(home);
         const q = query.trim();
@@ -199,17 +227,27 @@ export default {
         const rows = (await Promise.all(paths.map(item))).filter((i): i is Item => i !== undefined);
         return rank(rows, q);
       },
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
+        const file = openWithOf(ctx);
+        if (file) {
+          try { await appsApi.openWith(file, id); } catch (e) { return { keep: true, toast: { title: "Could not open", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+          return { hide: true };
+        }
         switch (action) {
           case "reveal": spawnDetached(MAC ? ["open", "-R", id] : ["xdg-open", dirname(id)]); return { hide: true };
+          case "open-with": return { push: { extension: "files", palette: "files", args: { open_with: id } satisfies OpenWith } };
           case "copy": return { copy: id };
+          case "copy-file": return { copy_files: [id] };
           case "trash":
             try { await trash(id); } catch (e) { return { keep: true, toast: { title: "Could not move to Trash", message: String((e as Error)?.message ?? e), style: "failure" } }; }
             return { keep: true, toast: { title: "Moved to Trash", message: basename(id) } };
           default: return { open: id };
         }
       },
-      detail: (id) => detail(id),
+      detail: (id, ctx) => {
+        const file = openWithOf(ctx);
+        return file ? { metadata: [{ label: "Application", value: short(id) }, { label: "Opens", value: short(file) }] } : detail(id);
+      },
     },
   },
 } satisfies Extension;

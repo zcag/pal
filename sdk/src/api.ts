@@ -171,6 +171,17 @@ export type SystemCommand = {
   available: boolean;
 };
 
+/** `pal_core::apps::App`: an application registered for a file; `path` is the `.app` / `.desktop`, usable as `icon: { app: path }`. */
+export type App = { name: string; path: string; bundle_id?: string; default: boolean };
+
+/** Which applications open a file (`pal_core::apps`): Launch Services on macOS, xdg-mime + mimeapps.list + mimeinfo.cache on Linux. */
+export const apps = {
+  /** The default first, then by name. */
+  forFile: (path: string) => call<App[]>("apps.for_file", { path }),
+  /** `open -a` / `gio launch` with an app from `forFile`. */
+  openWith: (path: string, app: string) => call<null>("apps.open_with", { path, app }),
+};
+
 /** The system commands the core knows how to run (`pal_core::system`). */
 export const system = {
   /** The whole catalogue; filter on `available`. */

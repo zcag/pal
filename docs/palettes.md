@@ -426,11 +426,27 @@ Actions:
 | --- | --- | --- |
 | Open | `Enter` | the system opener |
 | Reveal in Finder / Show in file manager | `⌘Enter` | `open -R` on macOS, `xdg-open` on the parent folder on Linux |
+| Open with… | `⌘O` | a level listing the apps registered for the file (below) |
 | Copy path | `⌘C` | copies the absolute path |
+| Copy file | `⌘⇧C` | the file itself onto the clipboard: a paste in Finder or a file manager copies it, a paste in a text field gets its path |
 | Move to Trash | `⌘D` | asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
 
-Not there yet: copying the file itself (the clipboard effect carries text
-only) and "Open with…" (needs an application picker from the core).
+**Open with…** drills into a level of the applications the OS registers
+for the file, each with its own icon: the default (what `Enter` would use)
+first with a `Default` tag, the rest by name; typing narrows them by name
+or bundle id, and `Enter` opens the file with that app (`open -a` on
+macOS, `gio launch` on Linux) and hides the panel. On macOS the list is
+Launch Services' (`NSWorkspace`, every role); on Linux the file's MIME
+type (`xdg-mime query filetype`, else `file`) is looked up in the
+`mimeapps.list` files and every data dir's `mimeinfo.cache`, the default
+from `xdg-mime query default`, and a `text/*` file also gets the
+`text/plain` editors. A file nothing is registered for shows one hint
+row.
+
+**Copy file** writes file URLs on macOS and `text/uri-list` on Linux
+(X11, or Wayland with the wlr data-control protocol; a compositor without
+it gets a toast saying so). The clipboard history records it as a files
+entry like any copy.
 
 Settings, `[extensions.files]`:
 

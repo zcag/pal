@@ -247,22 +247,6 @@ fn closest<T>(items: impl Iterator<Item = T>, dim: impl Fn(&T) -> u32, size: u32
     best.map(|(_, t)| t)
 }
 
-/// `Icon=` from a `.desktop` file's `[Desktop Entry]` group.
-#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
-fn desktop_icon_key(text: &str) -> Option<&str> {
-    let mut in_entry = false;
-    for line in text.lines().map(str::trim) {
-        if line.starts_with('[') {
-            in_entry = line == "[Desktop Entry]";
-        } else if in_entry {
-            if let Some(v) = line.strip_prefix("Icon=") {
-                return Some(v.trim()).filter(|v| !v.is_empty());
-            }
-        }
-    }
-    None
-}
-
 mod web {
     use super::*;
     use std::io::Read;
@@ -425,7 +409,7 @@ mod platform {
 
     pub fn load(path: &Path, size: u32) -> Option<RgbaImage> {
         let text = fs::read_to_string(path).ok()?;
-        let name = desktop_icon_key(&text)?;
+        let name = crate::fs::desktop_entry(&text).get("Icon").copied().filter(|v| !v.is_empty())?;
         let file = if name.starts_with('/') {
             PathBuf::from(name)
         } else {
@@ -515,13 +499,6 @@ mod tests {
         let svg = r#"<link rel="icon" type="image/svg+xml" href="/i.svg"><link rel="icon" sizes="32x32" href="/i32.png">"#;
         assert_eq!(pick(svg, 24)[0], "https://example.com/i.svg", "svg is an exact fit");
         assert!(pick("<head><link rel=stylesheet href=a.css></head>", 16).is_empty());
-    }
-
-    #[test]
-    fn desktop_icon_key_reads_entry_group() {
-        let text = "[Desktop Action new]\nIcon=wrong\n[Desktop Entry]\nName=Kitty\nIcon=kitty \nExec=kitty\n";
-        assert_eq!(desktop_icon_key(text), Some("kitty"));
-        assert_eq!(desktop_icon_key("[Desktop Entry]\nName=x\n"), None);
     }
 
     #[test]

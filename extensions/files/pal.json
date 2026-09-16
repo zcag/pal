@@ -1,7 +1,7 @@
 {
   "name": "files",
   "title": "Files",
-  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux. Open, reveal, copy the path, trash.",
+  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux. Open, open with another app, reveal, copy the path or the file, trash.",
   "version": "0.1.0",
   "icon": "▤",
   "author": "pal",

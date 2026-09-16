@@ -1066,24 +1066,13 @@ mod platform {
 
     // ---- icons -------------------------------------------------------------
 
-    fn desktop_dirs() -> Vec<PathBuf> {
-        let home = dirs::home_dir().unwrap_or_default();
-        let data_home = std::env::var_os("XDG_DATA_HOME").map(PathBuf::from).unwrap_or_else(|| home.join(".local/share"));
-        let sys = std::env::var_os("XDG_DATA_DIRS").filter(|s| !s.is_empty()).unwrap_or_else(|| "/usr/local/share:/usr/share".into());
-        let mut dirs = vec![data_home];
-        dirs.extend(std::env::split_paths(&sys));
-        dirs.push("/var/lib/flatpak/exports/share".into());
-        dirs.push(home.join(".local/share/flatpak/exports/share"));
-        dirs.into_iter().map(|d| d.join("applications")).collect()
-    }
-
     /// The `.desktop` file for a window class: `<class>.desktop` by name
     /// (case-insensitive, the common case for `app_id`s like `org.gnome.Nautilus`
     /// or `kitty`), else the entry whose `StartupWMClass` is the class.
     fn desktop_for_class(class: &str) -> Option<PathBuf> {
         let want = format!("{}.desktop", class.to_lowercase());
         let mut by_wmclass = None;
-        for dir in desktop_dirs() {
+        for dir in crate::fs::desktop_dirs() {
             for e in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
                 let name = e.file_name().to_string_lossy().to_lowercase();
                 if !name.ends_with(".desktop") {

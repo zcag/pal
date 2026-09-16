@@ -537,6 +537,17 @@ pub fn write_text(text: &str) -> Result<()> {
     platform::write(&Content::Text(text.into()))
 }
 
+/// Files onto the clipboard (file URLs on macOS, `text/uri-list` on Linux
+/// through arboard, which needs X11 or the wlr data-control protocol:
+/// [`Error::Unavailable`] otherwise), as [`write_text`] for text: the
+/// `copy_files` effect, recorded by a running watcher like any copy.
+pub fn write_files(paths: Vec<PathBuf>) -> Result<()> {
+    if paths.is_empty() {
+        return Err(Error::Unavailable("no files to copy".into()));
+    }
+    platform::write(&Content::Files(paths))
+}
+
 /// The text on the clipboard now, if that is what is there (a file list or
 /// an image is `None`): the other half of [`write_text`], for
 /// `pal action paste`.
