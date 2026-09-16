@@ -75,7 +75,7 @@ describe("colour maths", () => {
     const out = Bun.spawnSync(["openssl", "x509", "-noout", "-subject", "-fingerprint", "-sha256"], { stdin: Buffer.from(ROOT_BRIDGE_PEM) });
     if (out.exitCode !== 0) return;
     const text = out.stdout.toString();
-    expect(text).toContain("CN=root-bridge");
+    expect(text).toMatch(/CN ?= ?root-bridge/);
     expect(text).toContain(ROOT_BRIDGE_SHA256);
   });
 });

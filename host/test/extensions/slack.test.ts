@@ -140,6 +140,8 @@ const securityLog = join(dir, "security.log");
 writeFileSync(join(bin, "security"), `#!/bin/sh\necho "$*" >> ${JSON.stringify(securityLog)}\ncase "$*" in *"Slack Safe Storage"*) echo ${PASSWORD};; *) exit 1;; esac\n`);
 chmodSync(join(bin, "security"), 0o755);
 const asks = () => { try { return readFileSync(securityLog, "utf8").trim().split("\n").filter(Boolean).length; } catch { return 0; } };
+// On Linux the key is the fixed "peanuts" one: no keychain is asked, so the ask counts hold on macOS only.
+const KEYCHAIN = process.platform === "darwin";
 const PATH0 = process.env.PATH;
 /** The overlay every test starts from; a test that changes settings puts it back. */
 const BASE = { statuses: [":coffee: Coffee (15m)", "Heads down (today)", ":palm_tree: Away", ":acme_logo: Custom"] };
@@ -182,7 +184,7 @@ describe("slack", () => {
   describe("unreads", () => {
     test("the app session is extracted (one keychain ask), one client.counts, the rows sectioned DMs, mentions, threads, channels", async () => {
       const items = await list("unreads");
-      expect(asks()).toBe(1);
+      if (KEYCHAIN) expect(asks()).toBe(1);
       expect(calls("client.counts")).toHaveLength(1);
       expect(calls("client.counts")[0]).toMatchObject({ auth: "app", body: { thread_counts_by_channel: "true" } });
       expect(ids(items)).toEqual(["dm:T1/D_MARA", "mention:T1/C_ENG", "thread:T1/C_ENG", "channel:T1/C_OPS", "channel:T1/C_GEN"]);
@@ -422,7 +424,7 @@ describe("slack", () => {
       rejectOnce = true;
       const items = await list("unreads", undefined, { refresh: true });
       expect(items[0].id).toBe("hint:none");
-      expect(asks()).toBe(before + 1);
+      if (KEYCHAIN) expect(asks()).toBe(before + 1);
       expect(calls("client.counts").slice(-2).map((c) => c.auth)).toEqual(["app", "app"]);
     });
 

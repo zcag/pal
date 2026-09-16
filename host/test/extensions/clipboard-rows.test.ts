@@ -140,7 +140,7 @@ describe("the rows", () => {
   test("a private window goes to the first installed browser, or the preferred one", () => {
     const installed = (app: string) => ["Google Chrome", "Firefox"].includes(app);
     expect(privateArgv(installed, "https://x")).toEqual(process.platform === "darwin" ? ["open", "-na", "Google Chrome", "--args", "--incognito", "https://x"] : ["google-chrome", "--incognito", "https://x"]);
-    expect(privateArgv(installed, "https://x", "firefox")![2 + (process.platform === "darwin" ? 0 : -2)]).toBe(process.platform === "darwin" ? "Firefox" : "https://x");
+    expect(privateArgv(installed, "https://x", "firefox")).toEqual(process.platform === "darwin" ? ["open", "-na", "Firefox", "--args", "--private-window", "https://x"] : ["firefox", "--private-window", "https://x"]);
     expect(privateArgv(() => false, "https://x")).toBeUndefined();
   });
 });
