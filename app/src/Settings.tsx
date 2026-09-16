@@ -32,9 +32,9 @@ type RawConfig = {
 };
 type ManifestPalette = { title?: string; description?: string; kind?: string; keys?: PaletteKey[]; tier?: PaletteTier; settings?: SettingSpec[] };
 type ManifestStore = { tagline?: string; screenshots?: { file: string; caption?: string; kind?: string }[] };
-type Manifest = { name: string; title?: string; description?: string; version?: string; icon?: string; author?: string; repo?: string; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
+type Manifest = { name: string; title?: string; description?: string; version?: string; icon?: unknown; author?: string; repo?: string; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
 /** `PaletteMeta` (registry.rs): what the code said about a palette, `tier` already the manifest's over the code's (host.ts). */
-type Meta = { name: string; title: string; icon?: string; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier };
+type Meta = { name: string; title: string; icon?: unknown; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier };
 type Record_ = { source: string; ref?: string; installed_at: number; commit_or_etag?: string };
 type Ext = { name: string; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; warnings?: string[]; installed?: number; record?: Record_ };
 /** `pal_core::extensions::Update`. */
@@ -174,6 +174,7 @@ function diagnosticsText(view: View, extensions: SettingsExtension[], bar: BarIt
     `calendar: ${p.calendar ?? "n/a"}`,
     `full disk access: ${perm(p.full_disk_access)}`,
     `input monitoring: ${perm(p.input_monitoring)}`,
+    `location: ${p.location ?? "n/a"}`,
     `theme: ${view.config.general.theme}`,
     view.bar?.supported === false ? "bar: not on this platform" : `bar: ${view.config.bar?.target ?? "auto"}, sketchybar ${view.bar?.sketchybar ? "running" : "not running"}, ${bar.length} items${bar.length ? `: ${bar.map((b) => `${b.key}${b.stale ? " (stale)" : ""}${b.config.enabled ? "" : " (off)"}`).join(", ")}` : ""}`,
     ...(view.diagnostics.length ? [`config problems: ${view.diagnostics.map((d) => `${d.level} ${d.path}${d.line ? `:${d.line}` : ""} ${d.message}`).join("; ")}`] : []),

@@ -4,6 +4,7 @@
 // carrying its warnings on the wire, and the bundled extensions all clean.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
+import { checkIcon, tile, tinted } from "../../sdk/src/icon.ts";
 import { checkPalettes, kindOf, paletteMeta } from "../../sdk/src/manifest.ts";
 import type { Extension, Manifest, ManifestPalette, Palette } from "../../sdk/src/protocol.ts";
 import { BUNDLED, Host, Root, manifest, simpleExt } from "./harness.ts";
@@ -128,6 +129,47 @@ describe("checkPalettes", () => {
   test("several disagreements on one palette are several warnings", () => {
     const r = checkPalettes(man({ p: { kind: "list", title: "T", ttl: 1 } }), ext({ p: { ...live, ttl: 2 } }));
     expect(r.warnings.map((w) => w.split(":")[1].trim().split(" ")[0])).toEqual(["kind", "title", "ttl"]);
+  });
+
+  test("icons: the manifest's and each palette's are checked; a bad palette icon is dropped, a palette without one takes the manifest's", () => {
+    const gh = tile("ink", "\uf408");
+    // A tile on both sides, agreeing or not: no warning, the code's own wins.
+    const own = checkPalettes({ ...man({ p: {} }), icon: gh }, ext({ p: { ...list, icon: tile("green", "\uf407") } }));
+    expect(own.warnings).toEqual([]);
+    expect(own.metas[0].icon).toEqual(tile("green", "\uf407"));
+    // No icon in the code: the manifest's tile serves.
+    const inherited = checkPalettes({ ...man({ p: {} }), icon: gh }, ext({ p: list }));
+    expect(inherited.warnings).toEqual([]);
+    expect(inherited.metas[0].icon).toEqual(gh);
+    // A string icon in the manifest still serves as the fallback; none at all leaves the meta without one.
+    expect(checkPalettes({ ...man({ p: {} }), icon: "★" }, ext({ p: list })).metas[0].icon).toBe("★");
+    expect(checkPalettes(man({ p: {} }), ext({ p: list })).metas[0].icon).toBeUndefined();
+    // A bad manifest icon is a warning and is not inherited; a bad palette icon is a warning and is dropped.
+    const bad = checkPalettes({ ...man({ p: {} }), icon: { tile: { glyph: "\uf408", bg: "mauve" } } as unknown as string }, ext({ p: { ...list, icon: { tile: { svg: "<svg/>", bg: "red" } } as unknown as string } }));
+    expect(bad.warnings).toEqual([
+      "icon: tile bg \"mauve\" is not one of red, orange, amber, green, teal, cyan, blue, indigo, violet, pink, slate, ink",
+      "palettes.p: tile svg must be path data (the d attribute), not markup",
+    ]);
+    expect(bad.metas[0].icon).toBeUndefined();
+  });
+
+  test("checkIcon: every form, and what is wrong with a malformed one", () => {
+    expect(checkIcon(undefined, "icon")).toBeUndefined();
+    expect(checkIcon("\uf408", "icon")).toBeUndefined();
+    expect(checkIcon("🍑", "icon")).toBeUndefined();
+    expect(checkIcon({ app: "/Applications/Safari.app" }, "icon")).toBeUndefined();
+    expect(checkIcon({ image: "icon://localhost/x" }, "icon")).toBeUndefined();
+    expect(checkIcon(tile("amber", { svg: "M2 2h5.5v5.5H2z" }), "icon")).toBeUndefined();
+    expect(checkIcon(tinted("\uf407", "green"), "icon")).toBeUndefined();
+    expect(checkIcon(tinted("\uf407", "#8250df"), "icon")).toBeUndefined();
+    expect(checkIcon("", "icon")).toBe("icon: icon is empty");
+    expect(checkIcon(7, "icon")).toBe("icon: icon must be a string, { app }, { image }, { tile } or { glyph, color }");
+    expect(checkIcon({}, "icon")).toBe("icon: icon must be a string, { app }, { image }, { tile } or { glyph, color }");
+    expect(checkIcon({ tile: { bg: "red" } }, "icon")).toBe("icon: a tile has a glyph or an svg, not neither");
+    expect(checkIcon({ tile: { bg: "red", glyph: "\uf408", svg: "M0 0" } }, "icon")).toBe("icon: a tile has a glyph or an svg, not both");
+    expect(checkIcon({ tile: { bg: "red", glyph: "ab" } }, "icon")).toBe("icon: tile glyph must be one Nerd Font codepoint");
+    expect(checkIcon({ tile: { bg: "red", svg: "M".repeat(401) } }, "icon")).toBe("icon: tile svg is 401 bytes, at most 400");
+    expect(checkIcon({ glyph: "\uf407", color: "lime" }, "palettes.p")).toBe("palettes.p: color \"lime\" is not a brand name (red, orange, amber, green, teal, cyan, blue, indigo, violet, pink, slate, ink) or a hex colour");
   });
 
   test("paletteMeta: the code's flags, the manifest's title and ttl over the code's, the shared actions once", () => {

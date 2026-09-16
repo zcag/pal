@@ -6,12 +6,31 @@
 // (the macOS keychain prompts, which is the user's own action). On macOS a
 // scan takes seconds, so Available shows the last scan and a "Scan"
 // row runs a fresh one; on Linux `nmcli` answers from its own cache.
-// Live: listed again on every show.
-import { wifi, xdg, type Accessory, type Action, type Ctx, type Effect, type Extension, type Form, type Item, type WifiNetwork } from "@zcag/pal";
+// macOS 15+ shows network names only to an app with Location Services:
+// the first listing the user looks at with the names withheld asks for it
+// (the system prompt, once per install; the app skips the ask for the
+// startup load), and a refusal is a hint row that opens the pane. Live:
+// listed again on every show.
+import { permissions, wifi, xdg, type Accessory, type Action, type Ctx, type Effect, type Extension, type Form, type Item, type PermissionStatus, type WifiNetwork } from "@zcag/pal";
 
 const MAC = process.platform === "darwin";
 const WIFI = xdg("network-wireless")!;
 const LOCK = "\u{f033e}"; // md-lock
+
+/**
+ * Where Location stands, asking while the OS still has a prompt to show
+ * (`not_determined`): the app shows it only for a listing the user is
+ * looking at (a listing also runs at startup, for the cache) and a second
+ * ask while the prompt is up is a no-op, so every listing may ask; the
+ * answer lands later and the next listing has the names. Off macOS, or
+ * when the call fails, names are not gated.
+ */
+export async function locationGate(status: () => Promise<PermissionStatus>, request: () => Promise<unknown>, mac = MAC): Promise<PermissionStatus> {
+  if (!mac) return "granted";
+  const s = await status().catch(() => "unavailable" as const);
+  if (s === "not_determined") request().catch(() => {});
+  return s === "unavailable" ? "granted" : s;
+}
 
 /** Signal as four bars: `▂▄▆█` filled to the strength. */
 export const bars = (signal: number): string => "▂▄▆█".slice(0, Math.max(1, Math.ceil(signal / 25)));
@@ -53,7 +72,6 @@ export default {
   palettes: {
     wifi: {
       title: "Wi-Fi",
-      icon: WIFI,
       live: true,
       placeholder: "Join a network",
       list: async () => {
@@ -65,6 +83,8 @@ export default {
         }
         if (!status.interface) return [{ id: "error", name: "No Wi-Fi interface", icon: xdg("dialog-error")!, actions: [] }];
         const items: Item[] = [];
+        const location = status.powered ? await locationGate(() => permissions.status().then((p) => p.location), () => permissions.request("location")) : "granted";
+        const withheld = location !== "granted";
         const cur = status.current;
         if (cur) {
           const details = [cur.ip, cur.channel && `channel ${cur.channel}`, cur.security].filter(Boolean).join(" · ");
@@ -74,7 +94,7 @@ export default {
           items.push({
             id: `current:${cur.ssid ?? ""}`,
             name: cur.ssid ?? "Connected network",
-            subtitle: cur.ssid ? details : `${details} · name hidden by macOS without Location Services`,
+            subtitle: cur.ssid ? details : `${details} · ${withheld ? "name hidden by macOS without Location access" : "name withheld"}`,
             icon: WIFI,
             keywords: ["wifi", "network", "current"],
             accessories: [...signalAccessory(cur.signal), { tag: "connected", color: "green" }],
@@ -103,7 +123,7 @@ export default {
         for (const n of scan.networks) if (!n.current && !knownNames.has(n.ssid) && n.ssid !== cur?.ssid) items.push(available(n));
         if (status.powered && (MAC || scan.hidden > 0)) {
           const age = scan.age_secs === null ? (scan.networks.length || scan.hidden ? "just scanned" : "no scan yet") : `scanned ${scan.age_secs} s ago`;
-          const hidden = scan.hidden > 0 ? `${scan.hidden} nearby with names hidden by macOS` : "";
+          const hidden = scan.hidden > 0 ? `${scan.hidden} nearby ${withheld ? "with names hidden by macOS" : "without a name"}` : "";
           items.push({
             id: "scan",
             name: "Scan for Networks",
@@ -112,6 +132,17 @@ export default {
             keywords: ["rescan", "refresh"],
             actions: [{ id: "scan", title: "Scan" }],
             section: "Available",
+          });
+        }
+        if (withheld && location !== "not_determined") {
+          items.push({
+            id: "location",
+            name: "Wi-Fi names need Location access",
+            subtitle: location === "restricted" ? "A profile on this Mac forbids it" : "Switch pal on under Privacy & Security > Location Services",
+            icon: xdg("dialog-warning")!,
+            keywords: ["location", "permission", "names"],
+            actions: location === "restricted" ? [] : [{ id: "location", title: "Open System Settings" }],
+            section: "Wi-Fi",
           });
         }
         items.push({
@@ -127,6 +158,10 @@ export default {
       },
       pick: async (id, action, ctx?: Ctx) => {
         if (id === "error") return { keep: true };
+        if (id === "location") {
+          try { await permissions.request("location"); } catch (e) { return failed("open System Settings", e); }
+          return { keep: true };
+        }
         if (id === "power") {
           const { powered } = await wifi.status();
           try { await wifi.setPower(!powered); } catch (e) { return failed(`turn Wi-Fi ${powered ? "off" : "on"}`, e); }

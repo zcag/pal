@@ -3,10 +3,11 @@
 // for the public IP endpoint. `PAL_NETWORK_OS` picks the path, so the Linux
 // one runs on a Mac too.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { Host } from "../harness.ts";
+import { Host, type CoreTable } from "../harness.ts";
 
 const IFCONFIG = `lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
 \tinet 127.0.0.1 netmask 0xff000000
@@ -108,13 +109,13 @@ const url = (path: string) => `http://127.0.0.1:${server.port}${path}`;
 const dirs: string[] = [];
 afterAll(() => { server.stop(true); for (const d of dirs) rmSync(d, { recursive: true, force: true }); });
 
-const withPath = async (bin: string, os: string, extraEnv: Record<string, string>, settings: Record<string, unknown>): Promise<Host> => {
+const withPath = async (bin: string, os: string, extraEnv: Record<string, string>, settings: Record<string, unknown>, core?: CoreTable): Promise<Host> => {
   const saved = { ...process.env };
   // Only the fakes and bun itself: a real `tailscale` or `systemsettings` on the box would be found otherwise (marko has both).
   process.env.PATH = `${bin}:${dirname(process.execPath)}`;
   process.env.PAL_NETWORK_OS = os;
   Object.assign(process.env, extraEnv);
-  try { return await Host.bundled({ settings: { network: { settings } } }); }
+  try { return await Host.bundled({ settings: { network: { settings } }, core }); }
   finally { for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]; Object.assign(process.env, saved); }
 };
 
@@ -136,7 +137,7 @@ describe("network on macOS tools", () => {
   const list = (ctx?: { refresh?: boolean }) => host.list("network", "network", undefined, ctx);
 
   test("meta: live with a minute's ttl, opens with the detail pane, lazy detail", () => {
-    expect(host.loaded().find((l) => l.extension === "network")!.palettes).toEqual([{ name: "network", title: "Network", live: true, input: false, icon: "\u{f0317}", showDetail: true, placeholder: "Address, interface, DNS", detail: "lazy", ttl: 60 }]);
+    expect(host.loaded().find((l) => l.extension === "network")!.palettes).toEqual([{ name: "network", title: "Network", live: true, input: false, icon: tile("cyan", "\u{f0317}"), showDetail: true, placeholder: "Address, interface, DNS", detail: "lazy", ttl: 60 }]);
   });
 
   test("rows: the value is the name, the label the subtitle, three sections; the tunnel carrying the Tailscale addresses is folded into the Tailscale rows", async () => {
@@ -205,6 +206,35 @@ describe("network on macOS tools", () => {
     const n = hits;
     expect((await list()).find((i) => i.id === "public")).toBeDefined();
     expect(hits).toBe(n + 1);
+  });
+});
+
+describe("network on macOS with the SSID redacted", () => {
+  const fakes = (core?: CoreTable) => {
+    const bin = fakeBin({
+      ifconfig: heredoc(IFCONFIG),
+      networksetup: heredoc(PORTS),
+      ipconfig: heredoc(SUMMARY.replace("SSID : Cafe Wifi", "SSID : <redacted>")),
+      route: heredoc(ROUTE),
+      scutil: `case "$1" in --dns) ${heredoc(SCUTIL_DNS)}\n;; --get) echo fakehost;; esac`,
+    });
+    dirs.push(bin);
+    return withPath(bin, "darwin", {}, { public_ip_url: "" }, core);
+  };
+  test("the core's in-process name stands in (pal's Location grant does not reach ipconfig); without one the row says what is missing", async () => {
+    const granted = await fakes({ "wifi.status": () => ({ interface: "en0", powered: true, current: { ssid: "Cafe Wifi", signal: 90, channel: "44", security: "WPA2 Personal", ip: "192.168.1.131" } }) });
+    try {
+      const wifi = (await granted.list("network", "network"))[0];
+      expect(wifi).toMatchObject({ id: "if:en0:192.168.1.131", subtitle: "en0 · Wi-Fi · Cafe Wifi" });
+      expect(granted.coreCalls.some((c) => c.method === "wifi.status")).toBe(true);
+    } finally { granted.kill(); }
+    const none = await fakes({ "wifi.status": () => ({ interface: "en0", powered: true, current: { ssid: null, signal: null, channel: "44", security: "WPA2_PSK", ip: "192.168.1.131" } }) });
+    try {
+      const wifi = (await none.list("network", "network"))[0];
+      expect(wifi.subtitle).toBe("en0 · Wi-Fi");
+      const d = await none.detail("network", "network", wifi.id);
+      expect(d.metadata).toContainEqual({ label: "SSID", value: "hidden by macOS until pal has Location access (the Wi-Fi palette asks)" });
+    } finally { none.kill(); }
   });
 });
 

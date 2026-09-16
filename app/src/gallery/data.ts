@@ -1,5 +1,6 @@
 /** Hand-written items exercising every field, plus a fixture sample. */
 import { toItem, type Raw } from "../fixtures";
+import { iconOf as iconFromWire } from "../items";
 import type { Action, FormField, Item } from "../ui/types";
 
 const h = 3600e3, d = 24 * h;
@@ -172,7 +173,7 @@ export const settingsExtensions: SettingsExtension[] = [
     name: "apps",
     title: "Applications",
     description: "Installed apps and system settings panes, with their real icons.",
-    icon: { kind: "image", src: svgIcon("#2457b0", "A"), mask: "rounded" },
+    icon: { kind: "tile", bg: "slate", glyph: "\u{f003b}" },
     version: "0.1.0",
     repo: "bundled",
     installed: now - 30 * d,
@@ -189,7 +190,7 @@ export const settingsExtensions: SettingsExtension[] = [
     name: "bookmarks",
     title: "Browser",
     description: "Bookmarks and open tabs from the browser you use.",
-    icon: { kind: "image", src: svgIcon("#0b6664", "B"), mask: "rounded" },
+    icon: { kind: "tile", bg: "orange", glyph: "\u{f00c0}" },
     version: "2.1.0",
     repo: "github.com/zcag/pal-browser",
     installed: now - 12 * d,
@@ -209,7 +210,7 @@ export const settingsExtensions: SettingsExtension[] = [
     name: "github",
     title: "GitHub",
     description: "Pull requests, issues and repositories you can see with the token you give it.",
-    icon: { kind: "image", src: svgIcon("#3a3a44", "G"), mask: "rounded" },
+    icon: { kind: "tile", bg: "ink", glyph: "\uf408" },
     version: "1.4.2",
     latest: "1.5.0",
     repo: "github.com/zcag/pal-github",
@@ -233,7 +234,7 @@ export const settingsExtensions: SettingsExtension[] = [
     name: "clipboard",
     title: "Clipboard",
     description: "What you copied, searchable, with images.",
-    icon: { kind: "image", src: svgIcon("#874c00", "C"), mask: "rounded" },
+    icon: { kind: "tile", bg: "violet", glyph: "\u{f014d}" },
     version: "0.9.4",
     repo: "github.com/zcag/pal-clipboard",
     installed: now - 20 * d,
@@ -306,3 +307,15 @@ export const nerdGlyphs: Item[] = [
   { id: "nf-text", name: "Search", subtitle: "Text glyph, stays in the mono font", icon: { kind: "glyph", value: "⌕" }, palette: "glyphs", section: "Nerd Font glyphs" },
   { id: "nf-emoji", name: "Sparkles", subtitle: "Emoji, the platform colour font", icon: { kind: "emoji", value: "✨" }, palette: "glyphs", section: "Nerd Font glyphs" },
 ];
+
+/**
+ * The bundled extensions' icon tiles, read from their manifests (the
+ * gallery's tile board is the manifests, not a copy): one palette row per
+ * extension in load order, plus a row of the extension's own colour
+ * (`tint`) as its rows carry it.
+ */
+const manifests = import.meta.glob<{ default: { name: string; title: string; icon?: unknown } }>("../../../extensions/*/pal.json", { eager: true });
+export const tileRows: Item[] = Object.values(manifests)
+  .map((m) => m.default)
+  .sort((a, b) => a.name.localeCompare(b.name))
+  .map((m) => ({ id: m.name, name: m.title, subtitle: m.name, icon: iconFromWire(m.icon, m.title), palette: "palettes", accessories: [{ text: "Palette" }] }));

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
-import { View } from "../View";
+import { View, gradientCss, inkOn, parseHex } from "../View";
 import type { ViewNode } from "../types";
 
 const render = (tree: ViewNode) => renderToStaticMarkup(<View tree={tree} label="Table" />);
@@ -119,6 +119,50 @@ describe("View", () => {
     expect(html).toContain('data-enter="pop"');
     expect(html).toContain('data-enter="slide-down"');
     expect(html).not.toContain("move");
+  });
+
+  it("paints a tile in a hex colour of the extension's own with black or white ink by contrast, a checker under a translucent one, a hairline for outline", () => {
+    const html = render({
+      type: "stack",
+      children: [
+        { type: "tile", width: 96, height: 96, color: "#ff8800", text: "#ff8800" },
+        { type: "tile", width: 40, height: 40, color: "#1a1a1f", fill: "solid" },
+        { type: "tile", width: 40, height: 40, color: "#ff880080" },
+        { type: "tile", width: 40, height: 40, color: "#F80", fill: "outline" },
+        { type: "tile", width: 40, height: 40, color: "hotpink" as never },
+      ],
+    });
+    expect(html).toContain('data-color="custom" data-fill="soft" style="--tile:#ff8800;--tile-ink:#000;width:96px;height:96px"');
+    expect(html).toContain('data-color="custom" data-fill="solid" data-small="true" style="--tile:#1a1a1f;--tile-ink:#fff;width:40px;height:40px"');
+    expect(html).toContain('data-color="custom" data-fill="soft" data-alpha="" data-small="true" style="--tile:#ff880080;--tile-ink:#000;');
+    expect(html).toContain('data-color="custom" data-fill="outline" data-small="true" style="--tile:#F80;--tile-ink:#000;');
+    // A colour name the tokens do not know is neutral, not a crash.
+    expect(html).toContain('data-color="neutral" data-fill="soft" data-small="true" style="width:40px;height:40px"');
+    expect(inkOn("#ffffff")).toBe("#000");
+    expect(inkOn("#000000")).toBe("#fff");
+    expect(inkOn("#4f46d6")).toBe("#fff");
+    expect(inkOn("#ffd60a")).toBe("#000");
+    expect(parseHex("#abc")).toEqual({ r: 170, g: 187, b: 204, a: 1 });
+    expect(parseHex("#00000080")!.a).toBeCloseTo(0.502, 2);
+    expect(parseHex("red")).toBeUndefined();
+  });
+
+  it("draws a gradient node from its layers, the last on top, with the marker ring at its fractions", () => {
+    const html = render({
+      type: "stack",
+      children: [
+        { type: "gradient", width: 240, height: 12, layers: [{ stops: ["#f00", "#ff0", "#0f0", "#0ff", "#00f", "#f0f", "#f00"] }], marker: { x: 0.25, y: 0.5 } },
+        { type: "gradient", width: 120, height: 80, fill: "#ff8800", layers: [{ stops: ["#ffffff", "#ffffff00"] }, { stops: ["#000000", "#00000000"], direction: "up" }] },
+        { type: "gradient", width: 40, height: 40, layers: [{ stops: ["#fff"] }], marker: { x: 2, y: -1 } },
+      ],
+    });
+    expect(html).toContain('class="pal-view__node pal-view__gradient" role="img" style="width:240px;height:12px;background:linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)"><span class="pal-view__marker" aria-hidden="true" style="left:25%;top:50%"></span>');
+    // Paint order: the last layer on top, the fill under everything (CSS lists the topmost first).
+    expect(html).toContain("background:linear-gradient(to top, #000000, #00000000), linear-gradient(to right, #ffffff, #ffffff00), #ff8800");
+    // One stop is no gradient; a marker off the box is clamped to its edge.
+    expect(html).toContain('style="width:40px;height:40px"><span class="pal-view__marker" aria-hidden="true" style="left:100%;top:0%"></span>');
+    expect(gradientCss([{ stops: ["#fff", "nope", "#000"], direction: "up" }])).toBe("linear-gradient(to top, #fff, #000)");
+    expect(gradientCss([{ stops: ["#fff", "#000"] }], "red")).toBe("linear-gradient(to right, #fff, #000)");
   });
 
   it("stringifies loosely typed values instead of throwing", () => {

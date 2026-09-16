@@ -3,7 +3,7 @@
   "title": "Docker",
   "description": "Containers, images and Compose projects over the docker CLI. Enter starts or stops a container; logs open in the panel, a shell in a terminal.",
   "version": "0.1.0",
-  "icon": "󰡨",
+  "icon": { "tile": { "glyph": "󰡨", "bg": "cyan" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

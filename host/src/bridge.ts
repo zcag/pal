@@ -4,21 +4,21 @@
 // and `host.ts` share one pending table without importing each other.
 import type { Request, Response } from "../../sdk/src/protocol.ts";
 
-/** A hung core handler must not hang the extension that asked. */
+/** A hung core handler must not hang the extension that asked; a call that waits on the user (`color.sample`) names its own. */
 const TIMEOUT_MS = 5000;
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> };
 const pending = new Map<number, Pending>();
 let seq = 1;
 
-export function call<T = unknown>(method: string, params?: unknown): Promise<T> {
+export function call<T = unknown>(method: string, params?: unknown, opts: { timeout?: number } = {}): Promise<T> {
   const id = seq++;
   const req: Request = { id, method: `core/${method}`, params };
   return new Promise<T>((res, rej) => {
     const timer = setTimeout(() => {
       pending.delete(id);
       rej(new Error(`core timed out on ${method}`));
-    }, TIMEOUT_MS);
+    }, opts.timeout ?? TIMEOUT_MS);
     pending.set(id, { resolve: res as (v: unknown) => void, reject: rej, timer });
     try {
       process.stdout.write(JSON.stringify(req) + "\n");

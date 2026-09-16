@@ -3,7 +3,7 @@
   "title": "Wordle",
   "description": "The five-letter word game in the panel, keyboard only: type a word, Enter submits, the tiles flip. A daily puzzle from the date, practice games on N, the streak and the stats persist.",
   "version": "0.1.0",
-  "icon": "🟩",
+  "icon": { "tile": { "svg": "M1.5 1.5h3.5v3.5H1.5zM6.25 1.5h3.5v3.5h-3.5zM11 1.5h3.5v3.5H11zM1.5 6.25h3.5v3.5H1.5zM6.25 6.25h3.5v3.5h-3.5zM11 6.25h3.5v3.5H11zM1.5 11h3.5v3.5H1.5zM6.25 11h3.5v3.5h-3.5zM11 11h3.5v3.5H11z", "bg": "green" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

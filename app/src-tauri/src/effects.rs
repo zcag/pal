@@ -6,7 +6,8 @@
 //! also asks: the system prompt and the System Settings pane,
 //! `permissions::request_once`), or when a `copy_files` has no clipboard
 //! to write to (Linux without X11 or wlr data-control). Feedback after the panel
-//! hides is the HUD's (hud.rs): "Copied" after a `copy` or `copy_files` that hides, an
+//! hides is the HUD's (hud.rs): "Copied" after a `copy` or `copy_files` that hides
+//! ("Copied, clears in N s" for a concealed copy with `clear_after`), an
 //! extension's own `hud` text, the once-per-run note when a `focus`
 //! could only bring the app forward, and the layout's name (or why it
 //! failed) after a `layout`.
@@ -18,7 +19,7 @@ use std::time::Duration;
 use serde_json::{json, Value};
 use tauri::AppHandle;
 
-use crate::{clipboard, hud, panel, permissions, windows};
+use crate::{clipboard, hud, large, panel, permissions, windows};
 
 /// After `panel::hide`, before a keystroke or an activate: the orderOut
 /// has to reach the window server and the app in front has to become key
@@ -69,6 +70,15 @@ fn copied_hud(envelope: &Value) -> bool {
     envelope.get("paste").is_none() && envelope.get("hud").is_none() && !stays_open(envelope)
 }
 
+/// The default HUD line for a `copy`: "Copied", and for a concealed copy
+/// that clears itself, when.
+fn copied_text(copy: &clipboard::Copy) -> String {
+    match copy.clear_after() {
+        Some(d) => format!("Copied, clears in {} s", d.as_secs()),
+        None => "Copied".to_string(),
+    }
+}
+
 /// Hide the window the pick came from (`window`: the panel, or the bar
 /// popover) and wait for its orderOut to hand key focus back to the app
 /// in front, so what follows (a keystroke, an activate) lands there.
@@ -104,11 +114,12 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
 /// The effects for a pick from `window` (the panel, or the bar popover):
 /// whatever hides, hides that one.
 pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Result<Value, String> {
-    if let Some(text) = envelope.get("copy").and_then(Value::as_str) {
-        let text = text.to_string();
-        blocking(move || clipboard::copy_text(&text).map_err(|e| format!("copy failed: {e}"))).await?;
+    if let Some(what) = envelope.get("copy") {
+        let copy: clipboard::Copy = serde_json::from_value(what.clone()).map_err(|e| format!("bad copy effect: {e}"))?;
+        let feedback = copied_text(&copy);
+        blocking(move || clipboard::copy(copy).map_err(|e| format!("copy failed: {e}"))).await?;
         if copied_hud(&envelope) {
-            hud::show(app, "Copied");
+            hud::show(app, &feedback);
         }
     }
     if let Some(paths) = envelope.get("copy_files") {
@@ -165,10 +176,50 @@ pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Resul
         let r = blocking(move || windows::apply_layout(&p)).await;
         hud::show(app, &layout_feedback(&name, &r));
     }
+    if let Some(text) = envelope.get("large_type").and_then(Value::as_str) {
+        // The panel goes first: the overlay takes the keyboard for its dismissal.
+        hide_first(app, window).await?;
+        large::show(app, text);
+    }
     if let Some(text) = envelope.get("hud").and_then(Value::as_str) {
         hud::show(app, text);
     }
     Ok(envelope)
+}
+
+/// Effects a pick would answer with, but from outside one: `core/effects.run
+/// { effect }` (api.ts `effects.run`), for work that finished after the pick
+/// returned (a screen pick, a timer). The OS effects run as from the main
+/// panel (`apply`); `push` then shows the panel inside that palette
+/// (`show_in`, so the page opens it afresh); the webview's own effects
+/// (`toast`, `keep`, `view`, `form`, `show`) need the level a pick came
+/// from and are refused. A refusal `apply` turns into a toast (a paste
+/// without Accessibility) is an error here, since there is no panel to
+/// show it on.
+pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
+    match func {
+        "run" => {
+            let envelope = params.get("effect").cloned().filter(Value::is_object).ok_or("bad params: `effect` must be an object")?;
+            if let Some(k) = ["toast", "keep", "view", "form", "show"].iter().find(|k| envelope.get(**k).is_some()) {
+                return Err(format!("effects.run: `{k}` needs the level a pick came from; answer it from pick"));
+            }
+            let push = envelope.get("push").map(|p| Ok::<_, String>(format!("{}/{}", p.get("extension").and_then(Value::as_str).ok_or("bad params: push.extension")?, p.get("palette").and_then(Value::as_str).ok_or("bad params: push.palette")?))).transpose()?;
+            // The effects are async (the pasteboard writes go to blocking threads); this runs on the bridge's blocking thread, so wait for them over a channel.
+            let (tx, rx) = std::sync::mpsc::channel();
+            let handle = app.clone();
+            tauri::async_runtime::spawn(async move { let _ = tx.send(apply(&handle, envelope).await); });
+            let r = rx.recv().map_err(|_| "the effect was dropped".to_string())??;
+            if let Some(t) = r.get("toast").and_then(|t| t.get("title")).and_then(Value::as_str) {
+                return Err(t.to_string());
+            }
+            if let Some(key) = push {
+                let handle = app.clone();
+                app.run_on_main_thread(move || crate::show_in(&handle, Some(key))).map_err(|e| e.to_string())?;
+            }
+            Ok(Value::Null)
+        }
+        _ => Err(format!("unknown effects.{func}")),
+    }
 }
 
 #[cfg(test)]
@@ -213,6 +264,18 @@ mod tests {
         assert!(!stays_open(&json!({ "copy": "x", "hud": "Saved" })), "an extension's own text replaces Copied, the panel still hides");
         assert!(!copied_hud(&json!({ "copy": "x", "hud": "Saved" })));
         assert!(!copied_hud(&json!({ "copy": "x", "paste": { "text": "x" } })), "the paste is the feedback");
+    }
+
+    #[test]
+    fn copied_text_says_when_a_concealed_copy_clears() {
+        let plain: clipboard::Copy = serde_json::from_value(json!("x")).unwrap();
+        assert_eq!(copied_text(&plain), "Copied");
+        let concealed: clipboard::Copy = serde_json::from_value(json!({ "text": "s3cret", "concealed": true })).unwrap();
+        assert_eq!(copied_text(&concealed), "Copied", "concealed without a clear is a plain Copied");
+        let timed: clipboard::Copy = serde_json::from_value(json!({ "text": "s3cret", "concealed": true, "clear_after": 30 })).unwrap();
+        assert_eq!(copied_text(&timed), "Copied, clears in 30 s");
+        let unconcealed: clipboard::Copy = serde_json::from_value(json!({ "text": "x", "clear_after": 30 })).unwrap();
+        assert_eq!(copied_text(&unconcealed), "Copied", "clear_after only means something on a concealed copy");
     }
 
     #[test]

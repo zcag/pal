@@ -3,11 +3,45 @@
   "title": "Calendar",
   "description": "Your next days of events with the current one tagged: join the call, open it in Calendar, copy its details, delete it; a form adds one. EventKit on macOS, khal on Linux.",
   "version": "0.1.0",
-  "icon": "󰃭",
+  "icon": {
+    "tile": {
+      "glyph": "󰃭",
+      "bg": "red"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
+    {
+      "kind": "select",
+      "id": "source",
+      "label": "Source",
+      "description": "Where the events come from. Auto is Google once an account is listed below, else the system calendar (EventKit on macOS, khal on Linux).",
+      "options": [
+        {
+          "id": "auto",
+          "title": "Auto"
+        },
+        {
+          "id": "system",
+          "title": "System calendar"
+        },
+        {
+          "id": "google",
+          "title": "Google Calendar"
+        }
+      ],
+      "default": "auto"
+    },
+    {
+      "kind": "list",
+      "id": "accounts",
+      "label": "Google accounts",
+      "placeholder": "work = gcloud auth application-default print-access-token",
+      "description": "One per line as `name = command`: the command prints an access token for the Calendar API (a bare token, or the JSON of an OAuth endpoint with access_token and expires_in). The command owns the secret; pal keeps the token in memory until it expires. In the config file an entry may be a table { name, token_command, calendars } to read calendars other than the primary.",
+      "default": []
+    },
     {
       "kind": "list",
       "id": "calendars",
@@ -20,7 +54,7 @@
       "kind": "number",
       "id": "days",
       "label": "Days ahead",
-      "description": "How many days from today to list.",
+      "description": "How many days from today My Schedule lists.",
       "min": 1,
       "max": 90,
       "step": 1,
@@ -33,20 +67,62 @@
       "label": "Hide declined",
       "text": "Leave out invitations you declined",
       "default": true
+    },
+    {
+      "kind": "number",
+      "id": "horizon_hours",
+      "label": "Bar horizon",
+      "description": "The bar item shows the next event only when it starts within this many hours; nothing sooner, no item.",
+      "min": 1,
+      "max": 48,
+      "step": 1,
+      "unit": "hours",
+      "default": 10
+    },
+    {
+      "kind": "number",
+      "id": "warn_minutes",
+      "label": "Amber from",
+      "description": "The bar item turns amber this many minutes before the event.",
+      "min": 1,
+      "max": 120,
+      "step": 1,
+      "unit": "min",
+      "default": 15
+    },
+    {
+      "kind": "number",
+      "id": "urgent_minutes",
+      "label": "Red from",
+      "description": "The bar item turns red this many minutes before the event.",
+      "min": 0,
+      "max": 60,
+      "step": 1,
+      "unit": "min",
+      "default": 5
+    },
+    {
+      "kind": "boolean",
+      "id": "hide_all_day",
+      "label": "Skip all-day events on the bar",
+      "text": "The bar item speaks for timed events only",
+      "default": true
     }
   ],
   "store": {
-    "tagline": "Your next days of events, one key to join the call",
+    "tagline": "Today at a glance, one key to join the call",
     "category": "productivity",
     "features": [
-      "Today, Tomorrow, This week and Later as sections; the current event tagged `now`, the next one `in 12 min`",
-      "Every account Calendar.app has (iCloud, Google, Exchange) through EventKit on macOS; `khal` on Linux",
-      "`enter` joins the call when the event has a Zoom, Meet, Teams or Webex link (found in the url, the location or the notes, Outlook safelinks unwrapped), else opens it in Calendar",
-      "The calendar's colour as the row's dot, the head count and a `Join` tag on the right; a filter per calendar",
-      "The detail pane: the notes as markdown, when, where, the organizer, every attendee with their reply, whether it repeats",
-      "New event as a form: title, a day in words (`fri`, `next mon`, `20 sep`), start and end, all-day, the calendar, a location, notes",
-      "Delete an event, or one occurrence of a repeating one, after a confirmation",
-      "Live with a 60 s ttl: the list is fresh on every show without re-reading the store more than once a minute"
+      "Today: the day's events in order with the time and how long, each tagged `in 12 min`, `now, 25 min left` or `over`; tomorrow's once today is done; the next event's day when the day is clear",
+      "My Schedule: Today, Tomorrow, This week and Later as sections; the current event tagged `now`, the next one `in 12 min`",
+      "The bar item: the next event as `Standup in 12m` on the menu bar or sketchybar, `now` while it runs, hidden when nothing starts within 10 hours; muted far off, amber inside 15 minutes, red inside 5; a dot when there is a call. A click opens Today; Enter joins",
+      "Three sources: every account Calendar.app has (iCloud, Google, Exchange) through EventKit on macOS; `khal` on Linux; Google Calendar directly, per account, through a command that prints an access token (`gcloud auth application-default print-access-token`, a broker, a keychain lookup), so no secret ever sits in the config",
+      "`enter` joins the call when the event has a Zoom, Meet, Teams or Webex link (Google's conferenceData first, then the location and the description), else opens it in Calendar or Google Calendar",
+      "The calendar's colour on the row, the head count and a `Join` tag on the right; a filter per calendar",
+      "The detail pane: the description as text, when, where, the organizer, every attendee with their reply, whether it repeats",
+      "New event as a form (system calendar): title, a day in words (`fri`, `next mon`, `20 sep`), start and end, all-day, the calendar, a location, notes",
+      "Delete an event, or one occurrence of a repeating one, after a confirmation (system calendar)",
+      "Live with a 60 s ttl; the bar fetches every five minutes and on wake, renders from its cache on the minute"
     ],
     "permissions": [
       "calendars"
@@ -67,6 +143,30 @@
       {
         "file": "3-new.png",
         "caption": "New event: a title, a day in words, the times, the calendar"
+      },
+      {
+        "file": "4-today.png",
+        "caption": "Today: the day in order, the running event with what is left of it, the rest with how long until they start"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the next event and how long until it, amber inside fifteen minutes, a dot for a call to join",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "Inside five minutes the item turns red",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens Today: what is left of the day and tomorrow, Enter joins the call",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar, hours out: muted, the strip's own text; hidden when nothing starts within ten hours",
+        "kind": "bar"
       }
     ],
     "actions": [
@@ -77,7 +177,7 @@
       },
       {
         "title": "Open in Calendar",
-        "description": "Shows the event in Calendar.app (macOS).",
+        "description": "Shows the event in Calendar.app (macOS), or opens it in Google Calendar for a Google account.",
         "keys": "enter"
       },
       {
@@ -111,7 +211,7 @@
       "title": "My Schedule",
       "kind": "live",
       "ttl": 60,
-      "description": "The next days' events in time order, sectioned by day, the current or next one tagged; a New event row at the end.",
+      "description": "The next days' events in time order, sectioned by day, the current or next one tagged; a New event row at the end (system calendar).",
       "keys": [
         {
           "keys": "enter",
@@ -130,6 +230,44 @@
           "title": "Delete the event"
         }
       ]
+    },
+    "today": {
+      "title": "Today",
+      "kind": "live",
+      "ttl": 60,
+      "description": "The day's events in order with the time, how long, and where each stands (`in 12 min`, `now, 25 min left`, `over`); tomorrow's once today is done; what the bar item opens.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Join the call, else open in Calendar"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the conference link"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the event details"
+        },
+        {
+          "keys": "cmd+i",
+          "title": "Details: the description, the attendees with their replies, the link"
+        }
+      ]
+    }
+  },
+  "bar": {
+    "upcoming": {
+      "title": "Upcoming",
+      "description": "The next event as `Standup in 12m`, `now` while it runs; hidden when nothing starts within the horizon; amber then red as it nears, a dot when there is a call to join. A click opens Today.",
+      "refresh": {
+        "every": 300,
+        "on": [
+          "minute",
+          "wake",
+          "network"
+        ]
+      }
     }
   }
 }

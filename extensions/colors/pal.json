@@ -1,23 +1,80 @@
 {
   "name": "colors",
   "title": "Colors",
-  "description": "Named colours as swatches (CSS names, pal's tokens, Tailwind, Material) with hex, rgb and hsl to copy, and a converter: type any colour and get every notation, the nearest CSS name and its contrast.",
-  "version": "0.1.0",
+  "description": "A colour picker for the keyboard: pick a pixel off the screen with the system's loupe, type any notation, or walk hue, saturation and lightness with the arrows (HSL or OKLCH), and read the colour in every notation with its tints, shades, harmonies, contrast and nearest tokens. Named sets as swatch grids (CSS, Tailwind, Material 3, Material, Apple, Catppuccin, Rosé Pine, Nord, Solarized), a history of what was picked and copied, and a converter.",
+  "version": "0.2.0",
   "icon": "#4F46D6",
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "settings": [],
+  "settings": [
+    {
+      "kind": "select",
+      "id": "format",
+      "label": "Copy as",
+      "description": "The notation `c` and Copy write; every other notation stays a keystroke away in the picker and the action panel.",
+      "options": [
+        { "id": "hex", "title": "Hex (#ff8800)" },
+        { "id": "rgb", "title": "rgb(255, 136, 0)" },
+        { "id": "hsl", "title": "hsl(32, 100%, 50%)" },
+        { "id": "hwb", "title": "hwb(32 0% 0%)" },
+        { "id": "oklch", "title": "oklch(0.744 0.181 56.5)" },
+        { "id": "oklab", "title": "oklab(0.744 0.078 0.163)" },
+        { "id": "lab", "title": "lab(67.75 42.16 74.06)" },
+        { "id": "p3", "title": "color(display-p3 0.939 0.558 0.222)" },
+        { "id": "name", "title": "The CSS name (nearest when inexact)" }
+      ],
+      "default": "hex"
+    },
+    {
+      "kind": "boolean",
+      "id": "uppercase",
+      "label": "Uppercase hex",
+      "text": "#FF8800 rather than #ff8800",
+      "default": false
+    },
+    {
+      "kind": "select",
+      "id": "alpha",
+      "label": "Alpha",
+      "description": "What a translucent colour writes: the alpha kept (`#ff880080`, `rgba(…)`, `/ 0.5`) or dropped, so every copy is opaque.",
+      "options": [
+        { "id": "keep", "title": "Keep the alpha" },
+        { "id": "drop", "title": "Drop it, copy the opaque colour" }
+      ],
+      "default": "keep"
+    },
+    {
+      "kind": "list",
+      "id": "sets",
+      "label": "Sets shown",
+      "description": "Which named sets the grid lists under All: css, tailwind, material3, material, apple, catppuccin, rosepine, nord, solarized, pal. The filter dropdown still reaches every set.",
+      "placeholder": "tailwind",
+      "default": ["css", "tailwind", "material3", "material", "apple", "catppuccin", "rosepine", "nord", "solarized", "pal"]
+    },
+    {
+      "kind": "number",
+      "id": "history_size",
+      "label": "History size",
+      "description": "How many picked and copied colours the history keeps, newest first, one entry per colour.",
+      "min": 5,
+      "max": 500,
+      "default": 50
+    }
+  ],
   "store": {
-    "tagline": "Named swatches to copy, and any colour in every notation",
+    "tagline": "A colour picker for the keyboard: pick, type, walk the hue, copy in any notation",
     "category": "developer",
     "features": [
-      "700 named colours as swatch tiles: the 148 CSS names, pal's own tokens, Tailwind 3.4 (`slate 500`) and Material 2014 (`red a200`), one section per set",
-      "Search by name, hex (`#64748b`), token spelling (`slate-500`) or set (`tailwind`); the last twelve picked lead in a Recent section",
-      "`Enter` copies the hex, `cmd+enter` the `rgb()`, with `hsl()` and the token name behind shortcuts",
-      "Convert colour: type `#f80`, `rgb(255 136 0 / 50%)`, `hsl(30 100% 50%)`, `hwb()`, `oklch()` or a CSS name and every notation is a row",
-      "The nearest CSS name (tagged close, near or far) and the WCAG contrast ratio on white and on black with its level",
-      "A detail pane with a wide swatch, the complementary colour and three lighter and darker steps as coloured tags"
+      "Pick a pixel off the screen with the system's own loupe (`NSColorSampler` on macOS, the screenshot portal on Linux): `p` in the picker, or the Pick Colour from Screen row at the root, which copies it and says so in the HUD",
+      "The picker: a large swatch over a hue strip and a saturation/value plane, the colour in hex, rgb, hsl, hwb, oklch, oklab, lab, display-p3 and its CSS name, the nearest Tailwind and Material tokens, and the contrast on white, on black and against the previous colour with AA/AAA badges",
+      "Arrows walk the colour: hue left and right, lightness up and down, saturation or chroma on - and +, shift for big steps, `m` switches between HSL and OKLCH (chroma stays inside the gamut)",
+      "Type any notation: a digit or # opens the field in the search row, Enter applies; `c` copies in your notation, `cmd+c` the hex, and every other notation is a shortcut or an action",
+      "Nine tints, nine shades, and the complementary, analogous, triadic, split and tetradic harmonies as tiles; Tab focuses a row, the arrows walk it, Enter takes the tile",
+      "995 named colours as swatch grids: CSS, Tailwind 3.4, Material 3's tonal palettes, Material 2014, Apple's system colours light and dark, Catppuccin's four flavours, Rosé Pine's three, Nord, Solarized and pal's tokens; a filter per set, and each tile's detail says where the token is used",
+      "A history of every picked and copied colour, newest first, with when and where it came from; open any of them in the picker again",
+      "Convert Colour: type a colour in any notation and every notation is a row; Enter opens the picker on it, cmd+enter copies the row",
+      "Settings: the notation to copy, uppercase hex, keep or drop the alpha, which sets to show, the history size"
     ],
     "permissions": [],
     "platforms": [
@@ -26,67 +83,97 @@
     ],
     "screenshots": [
       {
-        "file": "1-grid.png",
-        "caption": "The swatch grid: recently picked first, then one section per set"
+        "file": "1-picker.png",
+        "caption": "The picker: the swatch over the hue strip and the plane, every notation, the nearest tokens, contrast, tints, shades and harmonies"
       },
       {
-        "file": "2-convert.png",
-        "caption": "Convert colour: rgb(255 136 0) as hex, hsl, hwb, oklch, the nearest CSS name and the contrast ratios"
+        "file": "2-shades.png",
+        "caption": "Tab onto the shades: the arrows walk the row, the label names the tile, Enter takes it"
       },
       {
-        "file": "3-detail.png",
-        "caption": "The detail pane on a conversion: a wide swatch, every notation, the nearest name, contrast on white and black"
+        "file": "3-typing.png",
+        "caption": "Typing a notation: a digit or # opens the field in the search row, Enter applies it"
       },
       {
-        "file": "4-actions.png",
-        "caption": "What a swatch can do: copy the hex, the rgb, the hsl or the token name"
+        "file": "4-sets.png",
+        "caption": "The named sets as swatch grids, one section per set, a filter per set"
+      },
+      {
+        "file": "5-history.png",
+        "caption": "The history: every picked and copied colour with when and where from, and the screen pick at the top"
+      },
+      {
+        "file": "6-convert.png",
+        "caption": "Convert Colour: hsl(30 100% 50%) as every notation, the nearest CSS name and the contrast ratios"
       }
     ],
     "actions": [
       {
-        "title": "Copy hex",
-        "description": "`#64748b`; on a conversion row, Copy copies that row.",
+        "title": "Copy",
+        "description": "The colour in the notation the `format` setting names; `cmd+c` always copies the hex.",
+        "keys": "c, cmd+c"
+      },
+      {
+        "title": "Pick Colour from Screen",
+        "description": "Hides the panel and shows the system's loupe; the picked colour comes back into the picker (or, from the root row, onto the clipboard).",
+        "keys": "p"
+      },
+      {
+        "title": "Walk the colour",
+        "description": "Hue on left/right, lightness on up/down, saturation or chroma on - and +; shift makes the step three to five times bigger.",
+        "keys": "left, right, up, down, -, +"
+      },
+      {
+        "title": "Type a notation",
+        "description": "A digit or # opens the text field with that character; Enter applies, Escape closes it.",
+        "keys": "0-9, #"
+      },
+      {
+        "title": "Focus a row of tiles",
+        "description": "Tab moves the focus from the swatch to the tints, the shades and each harmony; the arrows walk the row and Enter uses the tile.",
+        "keys": "tab, shift+tab"
+      },
+      {
+        "title": "Open in Picker",
+        "description": "From a set tile, a history entry or a converter row: the picker on that colour.",
         "keys": "enter"
-      },
-      {
-        "title": "Copy rgb",
-        "description": "`rgb(100, 116, 139)`",
-        "keys": "cmd+enter"
-      },
-      {
-        "title": "Copy hsl",
-        "description": "`hsl(215, 16%, 47%)`",
-        "keys": "cmd+shift+h"
-      },
-      {
-        "title": "Copy name",
-        "description": "The token: `slate-500`, `aliceblue`, `tag-blue`.",
-        "keys": "cmd+shift+n"
       }
     ]
   },
   "palettes": {
+    "picker": {
+      "kind": "view",
+      "rank": 0,
+      "description": "The colour under the keys: every notation, tints, shades, harmonies, contrast and the nearest tokens; `p` picks from the screen, a digit types a notation.",
+      "keys": [
+        { "keys": "c", "title": "Copy in the chosen notation" },
+        { "keys": "cmd+c", "title": "Copy hex" },
+        { "keys": "cmd+shift+r", "title": "Copy rgb (h hsl, o oklch, l lab, p display-p3, n the CSS name)" },
+        { "keys": "p", "title": "Pick Colour from Screen" },
+        { "keys": "left, right", "title": "Hue -5° / +5° (shift: 15°)" },
+        { "keys": "up, down", "title": "Lighter / darker by 2 points (shift: 10)" },
+        { "keys": "-, +", "title": "Less / more saturation (chroma in OKLCH)" },
+        { "keys": "m", "title": "Edit in HSL or in OKLCH" },
+        { "keys": "0-9, #", "title": "Type a notation into the search row; Enter applies, Escape closes" },
+        { "keys": "tab, shift+tab", "title": "Focus the next / previous row of tiles; arrows walk it, Enter uses the tile" },
+        { "keys": "h", "title": "History" },
+        { "keys": "n", "title": "Named Colours" },
+        { "keys": "u", "title": "Back to the previous colour" },
+        { "keys": "r", "title": "A random colour" }
+      ]
+    },
     "colors": {
       "tier": "catalog",
       "kind": "grid",
-      "description": "The bundled palettes as swatch tiles; recently copied colours first.",
+      "rank": 1,
+      "description": "The named sets as swatch tiles, one section per set, a filter per set; recently opened tiles first.",
       "keys": [
-        {
-          "keys": "enter",
-          "title": "Copy hex"
-        },
-        {
-          "keys": "cmd+enter",
-          "title": "Copy rgb"
-        },
-        {
-          "keys": "cmd+shift+h",
-          "title": "Copy hsl"
-        },
-        {
-          "keys": "cmd+shift+n",
-          "title": "Copy name"
-        }
+        { "keys": "enter", "title": "Open in Picker" },
+        { "keys": "cmd+enter", "title": "Copy in the chosen notation" },
+        { "keys": "cmd+shift+c", "title": "Copy hex" },
+        { "keys": "cmd+shift+n", "title": "Copy the token name (`slate-500`, `systemBlue`)" },
+        { "keys": "cmd+i", "title": "The detail pane: notations, contrast, where the token is used" },
+        { "keys": "tab", "title": "Next set" }
       ],
       "settings": [
         {
@@ -100,14 +187,27 @@
         }
       ]
     },
+    "history": {
+      "kind": "live",
+      "rank": 2,
+      "description": "Every picked and copied colour, newest first, with when and where from; Pick Colour from Screen at the top.",
+      "keys": [
+        { "keys": "enter", "title": "Open in Picker (on the top row: pick from the screen)" },
+        { "keys": "cmd+enter", "title": "Copy in the chosen notation" },
+        { "keys": "cmd+shift+c", "title": "Copy hex" },
+        { "keys": "cmd+d", "title": "Remove from History" },
+        { "keys": "cmd+shift+d", "title": "Clear History" }
+      ]
+    },
     "convert": {
       "kind": "input",
-      "description": "Type a colour in any notation; the rows are its conversions.",
+      "rank": 3,
+      "inline": true,
+      "match": "^\\s*(#[0-9a-f]{3,8}|(rgba?|hsla?|hwb|oklch|oklab|lab|color)\\(.*\\)|[a-z]{3,20})\\s*$",
+      "description": "Type a colour in any notation; the rows are its conversions. Enter opens the picker on it. At the root a hex, a function notation or a CSS name answers inline under a Convert Colour section.",
       "keys": [
-        {
-          "keys": "enter",
-          "title": "Copy the row"
-        }
+        { "keys": "enter", "title": "Open in Picker" },
+        { "keys": "cmd+enter", "title": "Copy the row" }
       ]
     }
   }

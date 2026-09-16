@@ -83,16 +83,17 @@ describe("SettingsGeneral permissions", () => {
   });
   it("lists every permission with its dot, a Grant button on the missing ones, and the first-launch switch", () => {
     const html = page({ permissions: nothingGranted, onRequestPermission: noop, onOpenOverview: noop });
-    for (const t of ["Accessibility", "Calendars", "Full Disk Access", "Input Monitoring"]) expect(html).toContain(`<span class="pal-permission__title">${t}</span>`);
-    expect(html).toContain("Accessibility, Calendars, Full Disk Access, Input Monitoring are not granted");
-    expect(html.match(/>Grant…<\/button>/g)?.length).toBe(3);
+    for (const t of ["Accessibility", "Calendars", "Full Disk Access", "Input Monitoring", "Location"]) expect(html).toContain(`<span class="pal-permission__title">${t}</span>`);
+    expect(html).toContain('<span class="pal-permission__title">Location</span><span class="pal-permission__note">Wi-Fi network names</span>');
+    expect(html).toContain("Accessibility, Calendars, Full Disk Access, Input Monitoring, Location are not granted");
+    expect(html.match(/>Grant…<\/button>/g)?.length).toBe(4);
     expect(html).toContain(">Open…</button>");
     expect(html).toContain("Overview</button>");
     expect(html).toContain("Ask on first launch");
   });
   it("has no buttons once everything is granted", () => {
     const html = page({ permissions: allGranted, onRequestPermission: noop, onOpenOverview: noop });
-    expect(html.match(/data-granted="true"/g)?.length).toBe(4);
+    expect(html.match(/data-granted="true"/g)?.length).toBe(5);
     expect(html).toContain("Every permission pal can use is granted.");
     expect(html).not.toContain("Grant…");
     expect(html).not.toContain("Overview</button>");

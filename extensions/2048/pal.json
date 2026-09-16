@@ -3,7 +3,7 @@
   "title": "2048",
   "description": "The sliding-tile game in the panel, keyboard only: arrows or hjkl move, N starts over, U takes a move back. The board and the best score persist.",
   "version": "0.1.0",
-  "icon": "🔢",
+  "icon": { "tile": { "svg": "M2 2h5.5v5.5H2zM8.5 2H14v5.5H8.5zM2 8.5h5.5V14H2zM8.5 8.5H14V14H8.5z", "bg": "amber" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

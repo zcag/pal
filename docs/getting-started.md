@@ -56,7 +56,18 @@ config turns that off), from the first row of the Welcome section, from
 Settings > General > Permissions (a granted / not granted dot and a Grant
 button), and the first time a paste, a window switch or a layout is refused (a
 toast says so). Flip the switch next to pal in that pane; pal sees it within a
-couple of seconds, no restart. Nothing else asks for a permission.
+couple of seconds, no restart.
+
+Four more are asked for only by what needs them, never at first run: the
+Calendar extension asks for Calendars from its own row; the Wi-Fi palette
+asks for Location Services the first time it lists, because macOS 15 and
+later show Wi-Fi network names only to an app with it (the prompt says so;
+say no and the palette still works, with the names hidden and a row that
+opens the pane); the OTP palette needs Full Disk Access, which has no prompt
+(its row opens the pane, where pal is added by hand); a bar peek's
+close-on-keypress needs Input Monitoring. Settings > General > Permissions
+lists all five with what each is for, and the Overview shows the missing
+ones that something installed needs, each with its Grant button.
 
 The grant is tied to the app's code signature, and pal's releases are
 ad-hoc signed, so every build carries a new one. After installing a rebuilt
@@ -156,6 +167,57 @@ within a couple of seconds of that, nothing to restart.
 On Linux, `⌘` in the above is `Ctrl`. The whole grammar is in
 [Keyboard](keyboard.md).
 
+## The root: inline answers, fallbacks, and the empty list
+
+The root list is more than the index's hits.
+
+- **Inline answers.** A query that reads as something a palette can
+  answer on the spot is answered at the root, under that palette's name,
+  above the hits: `2+2`, `15% of 80`, `12 usd to try`, `5 km to miles`,
+  `3 days from now` (Calculator: Enter copies the result), `#ff6b35`,
+  `rgb(255 136 0)`, `rebeccapurple` (Convert Colour: the first notations,
+  Enter opens the picker on it), `docs.rs/serde` or any address
+  (Quicklinks: Open), `~/Down` or `/usr/local` (Files: the file, or the
+  entries that complete it; Enter opens, ⌘Enter reveals). The local hits
+  paint first; the inline rows arrive a beat later and are dropped the
+  moment the query moves on. A palette opts in with `match` and `inline`
+  ([Extensions](extensions.md#the-code-indexts)).
+- **Fallbacks.** When nothing matches, the rows under "Use “…” with" say
+  what the query can still do: Search the web (the engine in
+  `general.search_engine`), Open as URL when it reads as one, every
+  quicklink with a `{query}` filled in, Ask Calculator, Search Files, and
+  "Ask <palette>" for any palette that opted in. Enter on an Ask row
+  opens the palette with the query already typed. `general.fallbacks`
+  orders them; `general.fallbacks_always` shows them under the hits too
+  ([Config](config.md#general)).
+- **Alias and space.** A palette's alias (`[palettes.<id>] alias`), its
+  name, or its one-word title followed by a space jumps into it with the
+  rest typed there: `em cat`, `calc 2+2`, `files report`. The crumb shows
+  where you are; Escape twice is back at the root. `general.alias_space =
+  false` turns it off.
+- **The empty list.** Before you type: the Welcome tips on a fresh
+  install, then **Now** (the current or next calendar event with Join on
+  Enter, the running timer, what is playing), then **Clipboard** (what is
+  on the clipboard, read as the things it could be: an address to open or
+  show as a QR code, a colour for the picker, a path to reveal, an email,
+  a phone number, JSON to pretty-print, an expression with its answer, a
+  timestamp in local time, a hex or base64 string decoded, a tracking
+  number, a GitHub ref, an image to save or read; "Hide" in ⌘K keeps the
+  section away until the next copy), then **Frequent** (the five rows you
+  pick most), then **Recent Files**, then your palettes and the rest by
+  use. `general.now` orders the Now palettes.
+- **Search history.** Up at the top of the empty list brings back the
+  last query that led to a pick, Up again the one before, Down forward,
+  Escape clears. "Clear Search History" is in pal's own commands;
+  `general.search_history = false` turns it off.
+- **Reset ranking.** ⌘K on any row has "Reset ranking for this item":
+  its history of picks and the queries that found it are forgotten, so it
+  ranks as never used. Settings > General > Maintenance resets all of it.
+- **Where a re-show lands.** Hide pal and press the hotkey again within
+  90 s and you are where you left, level and query kept; later than that,
+  at the root. `general.pop_to_root` is `"always"`, `"never"` or `"after
+  <seconds>s"`.
+
 ## pal's own commands
 
 pal's own housekeeping is in the root search too, as rows of a `pal`
@@ -167,7 +229,8 @@ Check for Updates, Open Config File and Reveal Config File, Show Tips Again,
 Documentation, Report a Bug (a GitHub issue with your version and OS filled
 in), Copy Diagnostics (version, OS, config path, extensions, hotkey and
 permission status, onto the clipboard), Toggle Theme (light, dark, system),
-Quit pal (asks first), Restart pal, and pal Version (Enter copies it). Every
+Clear Search History (what Up recalls at an empty root), Quit pal (asks
+first), Restart pal, and pal Version (Enter copies it). Every
 row answers to `pal`, so `pal set` finds Settings and `pal quit` Quit. They
 are searched and ranked like any other row; `⌘,`, `⌘R` and the action
 panel's "Open Settings", "Refresh everything" and "Show tips again" run the

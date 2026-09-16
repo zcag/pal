@@ -16,7 +16,8 @@ import type { Row } from "./row.ts";
 /** `[extensions.calc]`, defaults in pal.json; `home_currency` empty means the time zone's. */
 type Settings = { precision: number; locale: string; home_currency: string };
 
-const ICON = "=";
+/** md-equal, the result mark on every row; the extension tile tints it. */
+const ICON = "\u{f01fc}";
 const ACTIONS: Action[] = [
   { id: "copy", title: "Copy result" },
   { id: "paste", title: "Paste result" },
@@ -32,6 +33,22 @@ const HINTS = [
 
 /** The rows of the last listing by id: what `pick` copies (an Item comes back as its id only). */
 const last = new Map<string, { name: string; raw: string; expr: string }>();
+
+/**
+ * Whether a root query is worth evaluating inline (`match`): a digit next
+ * to an operator, a unit or a word (`2+2`, `15% of 80`, `12 usd to try`,
+ * `5 km to miles`, `3 days from now`), or a date word on its own (`today
+ * + 3 days`, `now in tokyo`). A bare number is not (typing `1` should not
+ * answer `1`), nor is a word with no digit in it, so app names and
+ * bookmarks never wake the parser. What matches but does not parse lists
+ * nothing, so a false positive costs a parse and shows no row.
+ */
+const DATE_WORD = /\b(now|today|tomorrow|yesterday|noon|midnight|next|last)\b/i;
+export const matches = (q: string): boolean => {
+  const t = q.trim();
+  if (!t || /^[-+]?[\d.,]+$/.test(t)) return false;
+  return (/\d/.test(t) && /[-+*/^%=()]|[a-z]/i.test(t)) || DATE_WORD.test(t);
+};
 
 const squeeze = (q: string) => q.replace(/\s+/g, " ");
 
@@ -107,12 +124,15 @@ export default {
   palettes: {
     calc: {
       title: "Calculator",
-      icon: ICON,
       input: true,
+      // At the root: the answer under a "Calculator" section for anything that reads as sums, a conversion or a date; a fallback row otherwise.
+      match: matches,
+      inline: true,
+      fallback: true,
       placeholder: "An expression, a conversion, a date or a time",
-      list: async (query = "") => {
+      list: async (query = "", ctx) => {
         const q = query.trim().replace(/\s*=$/, "");
-        if (!q) return HINTS;
+        if (!q) return ctx?.inline ? [] : HINTS;
         const s = settings.get<Settings>();
         const locale = s.locale || "en";
         const qn = normalizeNumbers(q, locale);

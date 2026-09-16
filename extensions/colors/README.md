@@ -1,81 +1,106 @@
 # Colors
 
-Two palettes. **Colors** is a grid of 700 named colours as swatch tiles:
-the 148 CSS names, pal's own tokens from `app/src/ui/tokens.css` (the
-light and the dark value of each, `accent (light)`, `tag blue (dark)`),
-Tailwind 3.4's palette (`slate 500`) and Material's 2014 palette (`red
-a200`), one section per set. The tile is an SVG of the colour, so it fills
-the box; the hex is the subtitle. The search matches the name, the hex
-(`#64748b`), the token spelling (`slate-500`) and the set (`tailwind`).
-The last twelve picked lead in a **Recent** section, kept in the
-extension's storage and rebuilt when the palette lists again.
+A colour picker for the keyboard, the named sets, a history and a
+converter. Four palettes over one colour maths (`color.ts`).
+
+**Colour Picker** is a view level: a large swatch on a sunken well over a
+hue strip and a saturation/value plane (the ring marks where the
+colour sits), the colour in hex, rgb, hsl, hwb, oklch, oklab, lab and
+display-p3 with its CSS name (or the nearest, in OKLab), the nearest
+Tailwind and Material tokens, the contrast on white, on black and against
+the previous colour with the WCAG level as a badge, and nine tints, nine
+shades and the complementary, analogous, triadic, split and tetradic
+harmonies as tiles. The arrows edit the colour in place, in HSL or in
+OKLCH (`m`), where a chroma step stops at the sRGB gamut edge instead of
+clipping. A digit or `#` opens a text field in the search row: type any
+notation, `Enter` applies it. `p` picks a pixel off the screen with the
+system's loupe; the panel hides for it and comes back in the picker on
+the colour. The colour, the model and the history live in the
+extension's storage, so Escape and a restart lose nothing.
+
+**Named Colours** is a grid of 995 swatch tiles, one section per set and
+a filter per set: the CSS names, Tailwind 3.4, the Material 3 baseline
+tonal palettes, the 2014 Material palette, Apple's system colours (light
+and dark), Catppuccin (four flavours), Rosé Pine (three variants), Nord,
+Solarized and pal's own tokens. The search matches the name, the hex, the
+token (`slate-500`, `systemBlue`, `mocha/mauve`) and the set; the detail
+pane says where the token is used. `Enter` opens a tile in the picker.
+
+**Colour History** (live, so its rows at the root follow every pick and
+copy) lists every picked and copied colour, newest first, with where it
+came from and when, and **Pick Colour from Screen** as its
+first row, which is also at the root: the loupe, then the colour copied
+in the chosen notation with the HUD naming it.
 
 **Convert Colour** is an input palette: type a colour in any notation and
-the rows are its conversions, each with a swatch, `Enter` copying the row.
-It reads hex in every length with or without the hash (`#f80`,
-`ff880080`), `rgb()` and `rgba()` in the comma and the space syntax with
-percentages and alpha (`rgb(255 136 0 / 50%)`), a bare triple (`255 136
-0`), `hsl()` and `hsla()` with hue units (`deg`, `turn`, `grad`, `rad`),
-`hwb()`, `oklch()` and the CSS names. The rows: hex, rgb, hsl, hwb, oklch,
-the CSS name (or the nearest one, tagged `close`, `near` or `far` by its
-OKLab distance), and the contrast ratio on white and on black, each tagged
-with what it passes for normal text (`AAA` at 7, `AA` at 4.5, `AA large`
-at 3, else `fail`, WCAG 2). Something that is not a colour gives one inert
-row saying so; with nothing typed, two hint rows.
-
-The detail pane (`cmd+i`), for a grid tile or a conversion row, shows a
-wide swatch, every notation, the exact or nearest CSS name, both contrast
-ratios with their levels, and the complementary colour with three lighter
-and three darker steps as coloured tags. The maths is
-`extensions/colors/color.ts` (sRGB, HSL, HWB, OKLab/OKLCH by Ottosson's
-matrices, WCAG luminance), unit-tested on its own.
+every notation is a row; `Enter` opens the picker on it, `⌘Enter` copies
+the row.
 
 ## Keyboard
 
-In the grid, arrows move across and down the tiles; `Enter` runs the
-first action of the tile under the cursor.
+The picker:
 
 | keys | action |
 | --- | --- |
-| `enter` | Copy hex: `#64748b` (on a conversion row: copy that row) |
-| `cmd+enter` | Copy rgb: `rgb(100, 116, 139)` |
-| `cmd+shift+h` | Copy hsl: `hsl(215, 16%, 47%)` |
-| `cmd+shift+n` | Copy name: the token, `slate-500`, `aliceblue`, `tag-blue` |
-| `cmd+i` | The detail pane: notations, nearest name, contrast, relatives |
-| `cmd+k` | Every action of the tile |
+| `c`, `enter` | Copy in the notation the `format` setting names (`Enter` uses a focused tile instead) |
+| `cmd+c` | Copy hex; `cmd+shift+r` rgb, `cmd+shift+h` hsl, `cmd+shift+o` oklch, `cmd+shift+l` lab, `cmd+shift+p` display-p3, `cmd+shift+n` the CSS name |
+| `left`, `right` | Hue -5° / +5° (`shift`: 15°) |
+| `up`, `down` | Lighter / darker by 2 points (`shift`: 10) |
+| `-`, `+` | Less / more saturation (chroma in OKLCH) |
+| `m` | Edit in HSL or in OKLCH |
+| `0`-`9`, `#` | Type a notation: the field opens with the character, `enter` applies, `escape` closes |
+| `tab`, `shift+tab` | Focus the next / previous row of tiles; `left`/`right` walk it, `up`/`down` step rows, `enter` uses the tile |
+| `p` | Pick Colour from Screen |
+| `h` | History |
+| `n` | Named Colours |
+| `u` | Back to the previous colour |
+| `r` | A random colour |
+| `escape` | Leave (or close the text field) |
 
-A pick from the grid moves the colour into the Recent section; the
-core's frecency already moves a picked tile up between listings.
+The grid: `enter` opens the tile in the picker, `cmd+enter` copies it in
+the chosen notation, `cmd+shift+c` the hex, `cmd+shift+n` the token,
+`cmd+i` the detail pane, `tab` the next set. The history: `enter` opens,
+`cmd+enter` copies, `cmd+d` removes, `cmd+shift+d` clears. The converter:
+`enter` opens the picker, `cmd+enter` copies the row.
 
 ## Setup
 
-Nothing to install and no permission: the table is `data.json` next to
-the code, generated by `bun run extensions/colors/build.ts` (the CSS
+Nothing to install. Picking from the screen needs no permission on macOS
+(`NSColorSampler`, 10.15 and later); on Linux the desktop's screenshot
+portal draws the picker and may ask once. The sets are `data.json` next
+to the code, generated by `bun run extensions/colors/build.ts` (the CSS
 table from `color.ts`, the tokens read from `tokens.css`, Tailwind and
-Material fetched from unpkg) and committed, so nothing is fetched at run
-time.
+Material fetched from unpkg, Material 3 computed from the baseline seed
+with `@material/material-color-utilities` from esm.sh, Catppuccin from its
+GitHub palette; Apple, Rosé Pine, Nord and Solarized are hand-kept in
+`sets.ts`) and committed, so nothing is fetched at run time.
 
-No extension settings. Per palette, `[palettes.colors.settings]`:
+Settings, `[extensions.colors]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `columns` | number, 4 to 16 | `8` | Tiles per row in the grid. Read once when the extension loads: after a change, Settings > Restart extension host. |
+| `format` | `hex`, `rgb`, `hsl`, `hwb`, `oklch`, `oklab`, `lab`, `p3`, `name` | `hex` | What `c`, Copy and the grid's `cmd+enter` write. |
+| `uppercase` | boolean | `false` | `#FF8800` rather than `#ff8800`. |
+| `alpha` | `keep`, `drop` | `keep` | A translucent colour copies with its alpha, or as the opaque colour. |
+| `sets` | list of set ids | every set | Which sets the grid lists under All: `css`, `tailwind`, `material3`, `material`, `apple`, `catppuccin`, `rosepine`, `nord`, `solarized`, `pal`. The dropdown reaches every set. |
+| `history_size` | number, 5 to 500 | `50` | How many colours the history keeps. |
 
-Type `convert` at the root (or give the palette an alias) to reach the
-converter: an input palette is never in the index, so its rows only exist
-inside it.
+Per palette, `[palettes.colors.settings]`: `columns` (4 to 16, default
+8), tiles per row in the grid, read once when the extension loads.
 
 ## What it does not do
 
-- Pick a colour from the screen: the core has no screen-sampling
-  capability and an extension cannot read pixels, so the action is not
-  offered.
-- List every colour you type: the grid is a fixed table; a colour outside
-  it is converted, not stored.
-- Named colours beyond the four sets (no Pantone, no RAL); add a set to
-  `build.ts` to widen the table.
-- Paste: both palettes copy. Paste the value yourself.
+- A pointer: the plane and the strip are drawn, not clicked; the arrows
+  and the typed notation move the colour.
+- Colours outside sRGB: a `color(display-p3 …)` beyond it is clipped per
+  channel on the way in, and a chroma step in OKLCH stops at the edge.
+- Named colours beyond the ten sets (no Pantone, no RAL); add a set to
+  `build.ts` or `sets.ts` to widen the table.
+- Paste: the palettes copy. Paste the value yourself.
 
 ## Platforms
 
-macOS and Linux, the same on both: everything is in-process.
+macOS and Linux. The screen pick is `NSColorSampler` on macOS and the
+`org.freedesktop.portal.Screenshot.PickColor` portal on Linux (xdg-desktop-
+portal with a backend that implements it: GNOME, KDE, wlroots via
+`xdg-desktop-portal-wlr` do); everything else is in-process.

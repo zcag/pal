@@ -2,7 +2,12 @@
   "palettes": {
     "processes": {
       "title": "Processes",
-      "icon": "󰍛",
+      "icon": {
+        "tile": {
+          "glyph": "󰍛",
+          "bg": "slate"
+        }
+      },
       "live": true,
       "input": true,
       "placeholder": "Name, pid, or :port",

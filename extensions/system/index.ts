@@ -8,7 +8,7 @@
 // ask first unless the setting turns that off. The core hides the panel
 // before running, so the command lands on the desktop, not on pal.
 import { readdir } from "node:fs/promises";
-import { home, settings, system, type Accessory, type Extension, type Item, type SystemCommand } from "@zcag/pal";
+import { home, settings, system, type Accessory, type Effect, type Extension, type Item, type LinkParams, type SystemCommand } from "@zcag/pal";
 
 /** `[extensions.system]`, defaults in pal.json. */
 type Settings = { confirm_destructive: boolean };
@@ -37,7 +37,6 @@ const GLYPHS: Record<string, string> = {
   "show-desktop": "\u{f0a1d}", // md-view_dashboard_outline
   "keep-awake": "\u{f06ca}", // md-coffee_outline
 };
-const ICON = GLYPHS.shutdown;
 
 async function output(argv: string[]): Promise<string | undefined> {
   const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
@@ -72,10 +71,16 @@ function item(c: SystemCommand, confirm: boolean, p: Probes): Item {
 }
 
 export default {
+  // `pal://system/run?id=lock`: the command by id, as Enter on its row; the manifest's `confirm: true` keeps the card on it.
+  link: async (route: string, params: LinkParams): Promise<Effect | void> => {
+    if (route !== "run") return;
+    const id = String(params.id);
+    if (!(await system.commands()).some((c) => c.id === id && c.available)) throw new Error(`no system command "${id}" on this machine`);
+    await system.run(id);
+  },
   palettes: {
     system: {
       title: "System",
-      icon: ICON,
       // The keep-awake row flips between Keep Awake and Allow Sleep: relisted on every show.
       live: true,
       placeholder: "Sleep, lock, volume, dark mode...",

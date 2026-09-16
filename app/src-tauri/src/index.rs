@@ -28,9 +28,18 @@
 //! until the palette lists again. An item's lazy detail (`detail`) is one
 //! host round trip, cached there.
 //!
-//! Two synthetic sources besides `pal/palettes`: `pal/welcome`
+//! Synthetic sources besides `pal/palettes`: `pal/welcome`
 //! (`crate::welcome`) leads the empty query on a fresh profile and is left
 //! out of every other one; its picks are the shell's and never remembered.
+//! `pal/commands` (`crate::commands`) is pal's own rows; `pal/fallback`
+//! (`crate::fallback`) is never in the index: its rows are built per query
+//! for the root's fallback section and picked here by id.
+//!
+//! The empty unscoped query leads with a "Frequent" section (`frequent`):
+//! the frecency store's best rows, at most `FREQUENT_MAX`, grouped under
+//! `HitView::group` and dropped from their own sections. A pick at the root
+//! also goes into the search history (`Frecency::record_history`) when
+//! `general.search_history` is on, whatever the source.
 //!
 //! Every default listing also goes to disk (`crate::cache`), and at startup,
 //! before the host is spawned, `restore_cache` puts every cached palette
@@ -64,7 +73,7 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::host::Host;
 use crate::registry::{palette_rows, palettes_source, synthetic_meta, Palettes, Registered};
-use crate::{cache, commands, effects, events, hotkey, lock, registry, settings, welcome};
+use crate::{cache, commands, effects, events, fallback, hotkey, lock, registry, settings, welcome};
 
 pub use crate::registry::{palette_id, PaletteMeta};
 
@@ -492,12 +501,63 @@ fn remove_extension(app: &AppHandle, ext: &str) {
 // ---- commands ------------------------------------------------------------
 
 /// One row for the UI: the hit plus the item it names, so a keystroke's
-/// reply is self-contained.
+/// reply is self-contained. `group` names the root section the row goes
+/// under when it is not its palette's ("Frequent"); the UI groups by it.
 #[derive(Serialize)]
 pub struct HitView {
     #[serde(flatten)]
     hit: Hit,
     item: Item,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    group: Option<String>,
+}
+
+impl HitView {
+    pub fn new(hit: Hit, item: Item) -> Self {
+        Self { hit, item, group: None }
+    }
+
+    /// The root section the row goes under instead of its palette's.
+    pub fn set_group(&mut self, group: &str) {
+        self.group = Some(group.to_string());
+    }
+
+    #[cfg(test)]
+    pub fn item_id(&self) -> &str {
+        &self.item.id
+    }
+}
+
+/// The empty root's "Frequent" section: the best-scoring items of the
+/// frecency store, at most this many.
+pub const FREQUENT_MAX: usize = 5;
+/// The section's title, what the UI shows over the rows.
+pub const FREQUENT: &str = "Frequent";
+
+/// The "Frequent" rows of the empty root: the store's top keys, in its
+/// order, that name an indexed row of a non-synthetic source (a palette
+/// row is already in the Palettes section, pal's commands too, a welcome
+/// row is not history), at most [`FREQUENT_MAX`]. The hits carry no match
+/// positions; the UI groups them under [`FREQUENT`] and drops them from
+/// their own sections (`dedupe`). Asked for more keys than rows so a store
+/// full of gone items still fills the section.
+fn frequent(ix: &Index, fre: &Frecency, now: SystemTime) -> Vec<HitView> {
+    let skip = [palettes_source(), commands::source(), welcome::source()];
+    fre.top(FREQUENT_MAX * 8, now)
+        .into_iter()
+        .filter(|k| !skip.iter().any(|s| s.extension == k.extension && s.palette == k.palette))
+        .filter_map(|k| {
+            let source = k.source();
+            let item = ix.get(&source, &k.id).cloned()?;
+            Some(HitView { hit: Hit { source, id: k.id, score: 0.0, name_positions: Vec::new() }, item, group: Some(FREQUENT.into()) })
+        })
+        .take(FREQUENT_MAX)
+        .collect()
+}
+
+/// The rest of the empty root without the rows the Frequent section already shows.
+fn dedupe(hits: Vec<HitView>, frequent: &[HitView]) -> Vec<HitView> {
+    hits.into_iter().filter(|h| !frequent.iter().any(|f| f.hit.source == h.hit.source && f.hit.id == h.hit.id)).collect()
 }
 
 /// One source for the UI: the meta as the host gave it, plus the count and
@@ -513,6 +573,9 @@ pub struct SourceView {
     /// Unix seconds of the listing the rows came from.
     #[serde(skip_serializing_if = "Option::is_none")]
     listed_at: Option<u64>,
+    /// `[palettes.<id>] alias`, trimmed, for the UI's alias-and-space jump.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alias: Option<String>,
 }
 
 /// Added to a palette row's score on a typed query, over the primary tier
@@ -569,7 +632,7 @@ fn root_tier(tiers: &[(Source, Tier)]) -> impl Fn(&Source) -> Tier + '_ {
 fn more_row(source: &Source, title: &str, count: usize) -> HitView {
     let name = format!("{count} more in {title}");
     let item = Item { id: MORE_ID.into(), name, subtitle: None, keywords: Vec::new(), icon: Some(json!("\u{203a}")), section: None, extra: [("more".to_string(), json!(true))].into_iter().collect() };
-    HitView { hit: Hit { source: source.clone(), id: MORE_ID.into(), score: 0.0, name_positions: Vec::new() }, item }
+    HitView::new(Hit { source: source.clone(), id: MORE_ID.into(), score: 0.0, name_positions: Vec::new() }, item)
 }
 
 /// Off the main thread: the scan is well under a millisecond, but a
@@ -611,9 +674,16 @@ pub fn query(
         None if !q.is_empty() => Some(ix.sources().into_iter().map(|s| s.source).filter(|s| *s != welcome).collect()),
         s => s,
     };
+    // The empty unscoped root leads with the Frequent section (after the welcome rows, which outscore everything).
+    let frequent = if sources.is_none() && q.trim().is_empty() { frequent(&ix, &fre, SystemTime::now()) } else { Vec::new() };
     let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps };
     let ranked = ix.query(&q, opts);
-    let hits = views(&ix, ranked, &titles);
+    let mut hits = views(&ix, ranked, &titles);
+    if !frequent.is_empty() {
+        hits = dedupe(hits, &frequent);
+        let at = hits.iter().position(|h| h.hit.source != welcome).unwrap_or(hits.len());
+        hits.splice(at..at, frequent);
+    }
     FIRST.call_once(|| eprintln!("query\tfirst answer\t{q:?} {} hits of {} items\t{:.1}ms since start", hits.len(), ix.len(), crate::since_start_ms()));
     hits
 }
@@ -623,7 +693,7 @@ pub fn query(
 /// A hit always names an indexed item; `filter_map` rather than a panic
 /// on the invariant, since a panic here is the whole keystroke lost.
 fn views(ix: &Index, ranked: Ranked, titles: &[(Source, String)]) -> Vec<HitView> {
-    let mut hits: Vec<HitView> = ranked.hits.into_iter().filter_map(|hit| Some(HitView { item: ix.get(&hit.source, &hit.id).cloned()?, hit })).collect();
+    let mut hits: Vec<HitView> = ranked.hits.into_iter().filter_map(|hit| Some(HitView::new(hit.clone(), ix.get(&hit.source, &hit.id).cloned()?))).collect();
     for m in ranked.more.iter().rev() {
         let Some(end) = hits.iter().rposition(|h| h.hit.source == m.source) else { continue };
         let title = titles.iter().find(|(s, _)| *s == m.source).map_or(m.source.palette.as_str(), |(_, t)| t.as_str());
@@ -633,13 +703,15 @@ fn views(ix: &Index, ranked: Ranked, titles: &[(Source, String)]) -> Vec<HitView
 }
 
 #[tauri::command(async)]
-pub fn sources(index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) -> Vec<SourceView> {
+pub fn sources(app: AppHandle, index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) -> Vec<SourceView> {
+    let config = settings::config(&app);
     let reg = palettes.lock();
     lock(&index)
         .sources()
         .into_iter()
         .map(|s| SourceView {
             meta: reg.iter().find(|r| r.source == s.source).map(|r| r.meta.clone()).or_else(|| synthetic_meta(&s.source)).unwrap_or_default(),
+            alias: config.palette(&palette_id(&s.source)).alias.as_deref().map(str::trim).filter(|a| !a.is_empty()).map(str::to_string),
             extension: s.source.extension,
             palette: s.source.palette,
             count: s.len,
@@ -647,6 +719,33 @@ pub fn sources(index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) ->
             listed_at: s.listed_at,
         })
         .collect()
+}
+
+/// "Reset ranking for this item": the row's frecency (visits and the
+/// queries that led to it) is forgotten, so it ranks as never picked. The
+/// page re-queries on the index event. Answers whether there was history.
+#[tauri::command]
+pub fn frecency_forget(app: AppHandle, source: Source, id: String, frecency: State<'_, Mutex<Frecency>>) -> bool {
+    let had = lock(&frecency).forget(&Key::from_source(&source, id.clone()));
+    eprintln!("frecency\tforget\t{}/{}\t{id}\t{}", source.extension, source.palette, if had { "dropped" } else { "nothing" });
+    events::emit(&app, events::INDEX, ());
+    had
+}
+
+/// The search history, newest first (empty with `general.search_history = false`).
+#[tauri::command]
+pub fn search_history(app: AppHandle, frecency: State<'_, Mutex<Frecency>>) -> Vec<String> {
+    if !settings::config(&app).general.search_history {
+        return Vec::new();
+    }
+    lock(&frecency).history().to_vec()
+}
+
+/// "Clear Search History": the queries go, the items' own history stays.
+#[tauri::command]
+pub fn search_history_clear(frecency: State<'_, Mutex<Frecency>>) {
+    lock(&frecency).clear_history();
+    eprintln!("frecency\thistory cleared");
 }
 
 /// List `source` again now, or every enabled indexed palette when `None`
@@ -716,18 +815,26 @@ pub async fn pick(app: AppHandle, window: tauri::Window, req: PickRequest, host:
         json!({ "keep": true })
     } else if source == commands::source() {
         commands::pick(&app, &id, action.as_deref(), values.as_ref()).await?
+    } else if source == fallback::source() {
+        fallback::pick(&app, &id, &query).await?
     } else {
         run_pick_from(&app, &host, &source, &id, action.as_deref(), args.as_ref(), values.as_ref(), window.label()).await?
     };
+    let history_on = settings::config(&app).general.search_history;
+    let frecency = app.state::<Mutex<Frecency>>();
+    let mut fre = lock(&frecency);
     // Live and input palettes carry transient ids (a clipboard entry, a calc
     // result); remembering those would only fill the store with junk. A
     // drill-in level's ids are its parent's business.
-    if args.is_none() && !app.state::<Palettes>().is_transient(&source) && !commands::inert(&source, &id) {
+    if args.is_none() && !app.state::<Palettes>().is_transient(&source) && !commands::inert(&source, &id) && !fallback::inert(&source, &id) {
         let key = Key::from_source(&source, id);
-        let frecency = app.state::<Mutex<Frecency>>();
-        let mut fre = lock(&frecency);
         fre.record(&key, SystemTime::now());
         fre.record_query(&key, &query);
+    }
+    // The search history is what was typed at the root before any pick, a
+    // calc result or a fallback row included: the query is what is recalled.
+    if args.is_none() && history_on {
+        fre.record_history(&query);
     }
     Ok(r)
 }
@@ -810,7 +917,7 @@ mod tests {
     #[test]
     fn source_view_flattens_the_meta_and_skips_empty_optionals() {
         let meta = PaletteMeta { name: "history".into(), title: "Clipboard".into(), live: true, ttl: Some(30.0), ..Default::default() };
-        let v = serde_json::to_value(SourceView { extension: "clipboard".into(), palette: "history".into(), meta, count: 3, stale: true, listed_at: None }).unwrap();
+        let v = serde_json::to_value(SourceView { extension: "clipboard".into(), palette: "history".into(), meta, count: 3, stale: true, listed_at: None, alias: None }).unwrap();
         assert_eq!(v, json!({ "extension": "clipboard", "palette": "history", "name": "history", "title": "Clipboard", "live": true, "input": false, "ttl": 30.0, "count": 3, "stale": true }));
     }
 
@@ -910,10 +1017,44 @@ mod tests {
     }
 
     #[test]
+    fn frequent_rows_lead_the_empty_root_and_leave_their_sections() {
+        let mut ix = Index::new();
+        ix.replace(palettes_source(), vec![row("apps/apps", "Applications", &[])]);
+        ix.replace(commands::source(), vec![row("settings", "Settings", &[])]);
+        ix.replace(Source::new("apps", "apps"), vec![row("a", "A", &[]), row("b", "B", &[]), row("c", "C", &[])]);
+        ix.replace(Source::new("emoji", "emoji"), vec![row("smile", "smile", &[])]);
+        let mut fre = Frecency::in_memory();
+        let now = SystemTime::now();
+        // Palette rows and pal's commands are picked too, but never Frequent rows; a gone item (no row) is skipped.
+        for (key, n) in [(Key::new("apps", "apps", "b"), 5), (Key::new("pal", "palettes", "apps/apps"), 9), (Key::new("pal", "commands", "settings"), 9), (Key::new("emoji", "emoji", "smile"), 2), (Key::new("apps", "apps", "gone"), 7)] {
+            for _ in 0..n {
+                fre.record(&key, now);
+            }
+        }
+        let f = frequent(&ix, &fre, now);
+        assert_eq!(f.iter().map(|h| h.hit.id.as_str()).collect::<Vec<_>>(), ["b", "smile"], "by frecency, indexed rows of real palettes only");
+        assert!(f.iter().all(|h| h.group.as_deref() == Some(FREQUENT) && h.hit.name_positions.is_empty()));
+        let v = serde_json::to_value(&f[0]).unwrap();
+        assert_eq!(v["group"], FREQUENT);
+        assert_eq!(v["item"]["name"], "B");
+        // The rest of the empty root without them.
+        let all: Vec<HitView> = ix.query("", QueryOpts::default()).hits.into_iter().map(|h| HitView::new(h.clone(), ix.get(&h.source, &h.id).cloned().unwrap())).collect();
+        let rest = dedupe(all, &f);
+        assert_eq!(rest.iter().map(|h| h.hit.id.as_str()).collect::<Vec<_>>(), ["apps/apps", "settings", "a", "c"]);
+        // A capped store: at most FREQUENT_MAX rows.
+        for i in 0..20 {
+            ix.extend(Source::new("apps", "apps"), vec![row(&format!("x{i}"), "X", &[])]);
+            fre.record(&Key::new("apps", "apps", format!("x{i}")), now);
+        }
+        assert_eq!(frequent(&ix, &fre, now).len(), FREQUENT_MAX);
+        assert!(serde_json::to_value(HitView::new(Hit { source: Source::new("e", "p"), id: "a".into(), score: 0.0, name_positions: vec![] }, row("a", "A", &[]))).unwrap().get("group").is_none(), "no group unless set");
+    }
+
+    #[test]
     fn hit_view_is_the_hit_beside_its_item() {
         let item: Item = serde_json::from_value(json!({ "id": "a", "name": "A", "exec": "x" })).unwrap();
         let hit = Hit { source: Source::new("e", "p"), id: "a".into(), score: 1.5, name_positions: vec![0] };
-        let v = serde_json::to_value(HitView { hit, item }).unwrap();
+        let v = serde_json::to_value(HitView::new(hit, item)).unwrap();
         assert_eq!(v["source"], json!({ "extension": "e", "palette": "p" }));
         assert_eq!(v["id"], "a");
         assert_eq!(v["name_positions"], json!([0]));

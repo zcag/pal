@@ -313,7 +313,6 @@ export default {
   palettes: {
     docker: {
       title: "Docker Containers",
-      icon: ICON,
       live: true,
       ttl: TTL,
       placeholder: "Search containers",
@@ -322,7 +321,6 @@ export default {
     },
     images: {
       title: "Docker Images",
-      icon: ICON,
       live: true,
       ttl: TTL,
       placeholder: "Search images",
@@ -331,7 +329,6 @@ export default {
     },
     compose: {
       title: "Compose Projects",
-      icon: ICON,
       live: true,
       ttl: TTL,
       placeholder: "Search Compose projects",

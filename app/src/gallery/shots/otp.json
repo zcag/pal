@@ -2,7 +2,12 @@
   "palettes": {
     "otp": {
       "title": "Verification Codes",
-      "icon": "󰍩",
+      "icon": {
+        "tile": {
+          "glyph": "󰍩",
+          "bg": "green"
+        }
+      },
       "live": true,
       "placeholder": "Search codes and senders",
       "items": [

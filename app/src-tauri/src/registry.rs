@@ -26,8 +26,10 @@ pub struct PaletteMeta {
     pub live: bool,
     #[serde(default)]
     pub input: bool,
+    /// A glyph, emoji or hex as a string, or `{ tile }` / `{ glyph, color }`
+    /// (sdk/src/icon.ts); opaque here, the UI's `iconOf` reads it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub icon: Option<String>,
+    pub icon: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub view: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -56,6 +58,23 @@ pub struct PaletteMeta {
     /// `[palettes.<id>] tier` overrides it (`Registered::tier`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tier: Option<Tier>,
+    /// Lists inline at the root for queries its `match` accepts; the host
+    /// does the matching (`inline` request), this only says who takes part.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub inline: bool,
+    /// The regex source behind `inline`, for the store; absent for a predicate.
+    #[serde(default, rename = "match", skip_serializing_if = "Option::is_none")]
+    pub match_: Option<String>,
+    /// `ask`: the root offers an "Ask <title>" row when nothing matched
+    /// (`crate::fallback`); `rows`: the palette answers `fallback(query)`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback: Option<String>,
+    /// The ask row's title with `{query}` in it, when the palette names one.
+    #[serde(default, rename = "fallbackTitle", skip_serializing_if = "Option::is_none")]
+    pub fallback_title: Option<String>,
+    /// Answers `suggest()` for the empty root's "Now" section (the UI asks the host).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub suggest: bool,
 }
 
 impl PaletteMeta {
@@ -162,6 +181,7 @@ pub fn synthetic_meta(source: &Source) -> Option<PaletteMeta> {
         s if *s == palettes_source() => "Palettes",
         s if *s == welcome::source() => "Welcome",
         s if *s == commands::source() => "pal",
+        s if *s == crate::fallback::source() => "Fallback",
         _ => return None,
     };
     Some(PaletteMeta { name: source.palette.clone(), title: title.into(), ..Default::default() })
@@ -186,7 +206,7 @@ pub fn palette_row(r: &Registered, config: &Config) -> Item {
         name: m.title.clone(),
         subtitle: Some(r.ext_title.clone()).filter(|t| t != &m.title),
         keywords,
-        icon: p.icon.clone().or_else(|| m.icon.clone()).map(Value::String),
+        icon: p.icon.clone().map(Value::String).or_else(|| m.icon.clone()),
         section: None,
         extra: serde_json::Map::default(),
     }
@@ -288,7 +308,7 @@ mod tests {
     fn palette_row_from_meta_and_config() {
         let c = config(&[("clipboard-history", palette(true, Some("  cb "), Some("\u{f0a0}")))]);
         let mut m = meta("history", "Clipboard History");
-        m.icon = Some("x".into());
+        m.icon = Some(json!({ "tile": { "glyph": "x", "bg": "violet" } }));
         let r = Registered::new(Source::new("clipboard", "history"), m, "Clipboard".into(), &c);
         let row = palette_row(&r, &c);
         assert_eq!(row.id, "clipboard/history");
@@ -296,6 +316,8 @@ mod tests {
         assert_eq!(row.subtitle.as_deref(), Some("Clipboard"));
         assert_eq!(row.keywords, ["history", "clipboard", "cb"], "name, extension, trimmed alias");
         assert_eq!(row.icon, Some(json!("\u{f0a0}")), "the config's icon wins");
+        let r = Registered::new(Source::new("clipboard", "history"), r.meta.clone(), "Clipboard".into(), &Config::default());
+        assert_eq!(palette_row(&r, &Config::default()).icon, Some(json!({ "tile": { "glyph": "x", "bg": "violet" } })), "the meta's tile rides through whole");
 
         let c = Config::default();
         let r = Registered::new(Source::new("windows", "windows"), meta("windows", "Windows"), "Windows".into(), &c);

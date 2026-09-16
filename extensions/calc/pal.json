@@ -3,7 +3,7 @@
   "title": "Calculator",
   "description": "Evaluates what you type: arithmetic, units, currencies, percentages, dates and time zones.",
   "version": "0.2.0",
-  "icon": "=",
+  "icon": { "tile": { "glyph": "󰃬", "bg": "indigo" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -95,7 +95,10 @@
   "palettes": {
     "calc": {
       "kind": "input",
-      "description": "Type an expression; the result is the row.",
+      "inline": true,
+      "match": "\\d[-+*/^%=()a-z\\s]|[-+*/^%=()a-z]\\s*\\d|\\b(now|today|tomorrow|yesterday|next|last)\\b",
+      "fallback": true,
+      "description": "Type an expression; the result is the row. At the root, sums, conversions and dates answer inline under a Calculator section; a query that is none of those gets an Ask Calculator fallback row.",
       "keys": [
         {
           "keys": "enter",

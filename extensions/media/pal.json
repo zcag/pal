@@ -3,9 +3,19 @@
   "title": "Now Playing",
   "description": "What is playing in Spotify, Music, a browser or any MPRIS player: play, pause, skip.",
   "version": "0.1.0",
-  "icon": "󰝚",
+  "icon": { "tile": { "glyph": "󰝚", "bg": "green" } },
   "author": "pal",
   "repo": "bundled",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "bar_artwork",
+      "label": "Cover on the bar",
+      "text": "Show the cover instead of the note on the menu bar strip",
+      "description": "Only a square cover; a 24 pt picture of anything else is a smudge. The popover shows the cover either way.",
+      "default": false
+    }
+  ],
   "palettes": {
     "media": {
       "description": "One row per player with the track and its artwork.",
@@ -37,12 +47,13 @@
   "bar": {
     "now-playing": {
       "title": "Now Playing",
-      "description": "The playing track on the strip, hidden while nothing plays; pause and skip from the popover.",
+      "description": "The playing track on the strip, hidden while nothing plays; the cover, pause and skip in the popover. Re-rendered the moment the track changes (macOS).",
       "refresh": {
         "every": 30,
         "on": [
           "show",
-          "wake"
+          "wake",
+          "media"
         ]
       }
     }
@@ -52,12 +63,12 @@
     "tagline": "Play, pause and skip Spotify, Music, a browser or any MPRIS player",
     "category": "media",
     "features": [
-      "One row per running player: the track, artist and album, the artwork, a `playing` / `paused` / `stopped` tag",
-      "macOS: every player the system's Now Playing sees (a browser, VLC), through the bundled MediaRemote adapter, on macOS 15.4 and later too",
+      "One row per running player: the track, artist and album, the cover, `12:34 / 1:06:03`, a `playing` / `paused` / `stopped` tag",
+      "macOS: every player the system's Now Playing sees (a browser, VLC), through the bundled MediaRemote adapter, on macOS 15.4 and later too; a track change reaches the bar the moment it happens",
       "`enter` plays or pauses and the tag follows; `cmd+right` and `cmd+left` skip",
       "`cmd+c` copies `artist - title`; `cmd+o` opens the track (Spotify's `spotify:track:` link) or the app",
       "Live: the current track is a root result, so its title or artist finds it without opening the palette",
-      "A bar item with the playing track and the transport in its popover, refreshed within seconds of a skip"
+      "A bar item with the playing track, the cover and the transport in its popover, refreshed the moment a track changes (macOS) or within seconds (Linux)"
     ],
     "permissions": [
       "automation"

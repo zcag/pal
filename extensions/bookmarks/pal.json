@@ -3,7 +3,7 @@
   "title": "Bookmarks",
   "description": "Your browsers' bookmarks (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Safari, Firefox) and hand-picked links from a JSON file: open one, copy its address, or open it in the browser it came from.",
   "version": "0.2.0",
-  "icon": "🔖",
+  "icon": { "tile": { "glyph": "󰃀", "bg": "orange" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

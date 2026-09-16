@@ -3,7 +3,7 @@
   "title": "Timer",
   "description": "Named countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette.",
   "version": "0.1.0",
-  "icon": "󰔛",
+  "icon": { "tile": { "glyph": "󰔛", "bg": "amber" } },
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -24,6 +24,24 @@
       "default": "~/.local/share/timer"
     }
   ],
+  "links": {
+    "start": {
+      "description": "Start a timer",
+      "params": {
+        "duration": {
+          "description": "25m, 90s, 1h30m, 2:30, or minutes as a bare number",
+          "required": true
+        },
+        "name": {
+          "description": "Optional; the duration otherwise. A name already taken restarts that timer"
+        },
+        "ring": {
+          "description": "Ring the phone out loud when it lands",
+          "type": "boolean"
+        }
+      }
+    }
+  },
   "palettes": {
     "timers": {
       "title": "Timers",

@@ -27,10 +27,28 @@ pal remove NAME     remove an installed extension
 pal list            the installed extensions: name, version, source
 pal action NAME     act on the value on stdin (see Actions for scripts)
 pal bar ...         bar items (see below)
-open pal://...      deep links: the same, from a URL (see below)
+pal link URL        run a pal:// link as written; --list prints every route
+pal open EXT/PAL    the panel inside a palette (-q QUERY, --filter ID); --url URL opens a url instead
+pal run EXT/PAL/ID  run one row, the panel down (-a ACTION, --args JSON)
+pal form EXT/PAL/ID [FIELD=VALUE ...]   the form a row opens, prefilled (-a ACTION)
+pal copy [TEXT]     text (or stdin) onto the clipboard
+pal paste [TEXT]    text (or stdin) pasted into the app in front
+pal hud TEXT        one line in the HUD
+pal toast TITLE [MESSAGE]   a toast in the panel, else the HUD
+pal confetti [TEXT] a celebration in the HUD
+pal command ID      one of pal's own rows (refresh, updates, theme, ...)
+pal call EXT/ROUTE [KEY=VALUE ...]   a route an extension declares
+open pal://...      deep links: the same, from a URL (see Links)
 pal --version
 pal --help
 ```
+
+The block from `link` down are the `pal://` links as commands, one per
+route: [Links](links.md) has every one with an example and what each does.
+A command never shows the confirm card a link from a web page would
+(typing it is the consent); a link the grammar refuses is printed with
+the reason and exit 2 before anything is sent, and what happens after is
+the HUD's.
 
 `pal toggle` is what a compositor keybind runs on Wayland, where there is
 no global hotkey API (see [Getting started](getting-started.md)).
@@ -105,48 +123,28 @@ sketchybar's `$SENDER` as it is, so an item's `script` is one line.
 a browser (the store's "Open in pal" button), a bookmark, a Shortcuts
 action, skhd (`open pal://toggle`), or a script. A link reaches the
 running instance; with none running it starts pal and applies once the
-panel has loaded.
+panel has loaded. Every route, its `pal` twin, the extension routes, what
+asks first and how the scheme is registered: [Links](links.md).
 
 ```text
 pal://                                          show the panel
 pal://show   pal://hide   pal://toggle          as the subcommands
-pal://settings[/overview|general|palettes|extensions|bar|about]   the settings window, on that page
-pal://extensions                                Settings > Extensions
-pal://open/<extension>/<palette>[?q=<query>]    the panel inside that palette, with the query typed
-pal://run/<extension>/<palette>/<id>[?action=<id>]   run one item, as a pick, with the panel down
-pal://install/<spec>                            install an extension (a `pal install` spec)
-pal://bar/<extension>/<id>                      open a bar item's popover
+pal://settings[/<page>]   pal://reload   pal://quit
+pal://commands/<id>                             one of pal's own rows
+pal://open/<extension>/<palette>[?q=&filter=]   the panel inside that palette
+pal://run/<extension>/<palette>/<id>[?action=&args=]   run one row, the panel down
+pal://form/<extension>/<palette>/<id>?<field>=  the form a row opens, prefilled
+pal://copy?text=  pal://paste?text=  pal://open?url=  pal://hud?text=  pal://toast?title=  pal://confetti
+pal://install/<spec>   pal://update[/<name>]   pal://remove/<name>
+pal://bar/<extension>/<id>[?action=]           a bar item's popover, or one of its actions
+pal://<extension>/<route>?<params>             a route the extension declares
 ```
 
-Parts are percent-decoded (`%20`, `+` in the query, is a space); the
-extension and palette are the two names a `pal://open` link takes, as
-[Extensions](extensions.md) explains, not the one-word palette id. A link
-over 2048 bytes, or any other route, is refused with "pal: unknown link"
-in the HUD.
-
-**A web page can emit any of these**, so the two that act show a card in
-the panel first: `run` asks "Run X from a link?" naming the extension,
-palette, item and action (Enter runs it, Escape does not);
-`install` asks "Install X from a link?" with the spec, then installs,
-says "Installed X 1.0" in the HUD and shows the panel with the extension's
-name typed so its new palette rows are in view. A script that drives pal
-by link can turn the `run` card off with `deeplink_confirm = false` under
-`[general]` ([Configuration](config.md)); `install` always asks, since it
-fetches and runs code from the network. `open` types the query into the
-search box and nothing else; a query is never run.
-
-Registration is the bundle's: macOS reads the scheme from the app's
-`Info.plist` when the `.app` is first seen in `/Applications` (or
-`lsregister -f /path/to/pal.app`); the deb and AppImage carry
-`MimeType=x-scheme-handler/pal` in their desktop entry. On macOS the link
-is an Apple Event to the app; on Linux it is `pal pal://...`, which the
-binary forwards to the running instance like a subcommand. A bare release
-binary on Linux (no desktop entry) needs one to be a handler: a
-`~/.local/share/applications/pal.desktop` with `Exec=/path/to/pal %u` and
-`MimeType=x-scheme-handler/pal;`, then `xdg-mime default pal.desktop
-x-scheme-handler/pal`. A debug build on Linux writes that entry itself at
-startup; a `tauri dev` binary on macOS is not a bundle and cannot be a
-handler.
+**A web page can emit any of these**, so what acts shows a card in the
+panel first ("Run “Safari” from a link?"); `deeplink_confirm` under
+`[general]` ([Configuration](config.md)) turns the cards off or trusts a
+list of extensions; `install`, `update` and `remove` always ask. "Copy
+deep link" (⌘⇧C) on any row, palette, view or form copies its link.
 
 ## Actions for scripts
 
@@ -161,5 +159,6 @@ action script: `plugins/actions/NAME/plugin.toml` next to the config file,
 else under the `scripts` extension's plugin repo, run as `<command> run`
 from its directory with the value on stdin.
 
-pal v1's own subcommands (`pick`, `run`, `meta`, `prompt`, ...) do not
-exist here; v1 is retired, not forwarded to.
+pal v1's own subcommands (`pick`, `meta`, `prompt`, ...) do not exist
+here; v1 is retired, not forwarded to. `pal run` is the link twin above,
+not v1's.

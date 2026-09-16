@@ -3,9 +3,9 @@
 // (macOS lists Available from the cache with a Scan row; Linux scans
 // through nmcli's own cache), and assert per platform where they differ.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { WifiKnown, WifiScan, WifiStatus } from "../../../sdk/src/index.ts";
+import type { PermissionStatus, WifiKnown, WifiScan, WifiStatus } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
-import { bars } from "../../../extensions/wifi/index.ts";
+import { bars, locationGate } from "../../../extensions/wifi/index.ts";
 
 const MAC = process.platform === "darwin";
 let status: WifiStatus = { interface: "en0", powered: true, current: { ssid: "eldiven", signal: 92, channel: "44", security: "WPA2", ip: "192.168.1.131" } };
@@ -21,10 +21,13 @@ let scan: WifiScan = {
   age_secs: 12,
 };
 const calls: { method: string; params: any }[] = [];
+let location: PermissionStatus = "granted";
 let host: Host;
 beforeAll(async () => {
   host = await Host.bundled({
     core: {
+      "permissions.status": () => ({ accessibility: true, calendar: "granted", input_monitoring: true, location }),
+      "permissions.request": (p) => { calls.push({ method: "permission", params: p }); return { accessibility: true, calendar: "granted", input_monitoring: true, location }; },
       "wifi.status": () => status,
       "wifi.known": () => known,
       "wifi.scan": (p) => { calls.push({ method: "scan", params: p }); return scan; },
@@ -64,19 +67,58 @@ describe("wifi", () => {
     expect(items.find((i) => i.id === "known:Cafe Wifi")).toMatchObject({ subtitle: "Saved", accessories: [] });
     expect(bySection("Available")).toEqual(["net:Open Cafe", "net:Neighbour", "scan"]);
     expect(items.find((i) => i.id === "net:Open Cafe")).toMatchObject({ subtitle: "Open · channel 1", accessories: [{ text: "▂▄▆ 55%" }] });
-    expect(items.find((i) => i.id === "scan")!.subtitle).toBe(MAC ? "scanned 12 s ago · 2 nearby with names hidden by macOS · takes a few seconds" : "scanned 12 s ago · 2 nearby with names hidden by macOS");
+    expect(items.find((i) => i.id === "scan")!.subtitle).toBe(MAC ? "scanned 12 s ago · 2 nearby without a name · takes a few seconds" : "scanned 12 s ago · 2 nearby without a name");
     expect(items.at(-1)).toMatchObject({ id: "power", name: "Turn Wi-Fi Off", section: "Wi-Fi" });
+    expect(calls.some((c) => c.method === "permission")).toBe(false);
   });
 
-  test("a hidden current name (macOS without Location Services) still lists with its details", async () => {
+  test("location gate: asks while not determined (the app decides whether to show it), never off macOS, a failed probe does not gate", async () => {
+    const asks: string[] = [];
+    const gate = (s: PermissionStatus, mac = true) => locationGate(() => Promise.resolve(s), () => { asks.push(s); return Promise.resolve(); }, mac);
+    expect(await gate("granted", false)).toBe("granted");
+    expect(await gate("not_determined")).toBe("not_determined");
+    expect(await gate("not_determined")).toBe("not_determined");
+    expect(asks).toEqual(["not_determined", "not_determined"]);
+    expect(await gate("denied")).toBe("denied");
+    expect(await locationGate(() => Promise.reject(new Error("no bridge")), () => Promise.resolve(), true)).toBe("granted");
+    expect(asks).toEqual(["not_determined", "not_determined"]);
+  });
+
+  test("names withheld: the hidden count says why on macOS, a refusal is a hint row that opens the pane", async () => {
+    if (!MAC) return;
+    location = "denied";
+    try {
+      const items = await list();
+      expect(items.find((i) => i.id === "scan")!.subtitle).toContain("2 nearby with names hidden by macOS");
+      const hint = items.find((i) => i.id === "location")!;
+      expect(hint).toMatchObject({ name: "Wi-Fi names need Location access", subtitle: "Switch pal on under Privacy & Security > Location Services", section: "Wi-Fi", actions: [{ id: "location", title: "Open System Settings" }] });
+      expect(items.indexOf(hint)).toBe(items.length - 2);
+      expect(await pick("location")).toEqual({ keep: true });
+      expect(calls.at(-1)).toEqual({ method: "permission", params: { which: "location" } });
+      location = "restricted";
+      expect((await list()).find((i) => i.id === "location")).toMatchObject({ subtitle: "A profile on this Mac forbids it", actions: [] });
+    } finally {
+      location = "granted";
+    }
+  });
+
+  test("a hidden current name (macOS without Location Services) still lists with its details, and such a listing asks", async () => {
     const saved = status;
     status = { ...status, current: { ssid: null, signal: null, channel: "44", security: "WPA2_PSK", ip: "10.0.0.5" } };
+    location = "not_determined";
     try {
+      const before = calls.filter((c) => c.method === "permission").length;
       const cur = (await list())[0];
-      expect(cur).toMatchObject({ id: "current:", name: "Connected network", subtitle: "10.0.0.5 · channel 44 · WPA2_PSK · name hidden by macOS without Location Services", accessories: [{ tag: "connected", color: "green" }] });
+      expect(cur).toMatchObject({ id: "current:", name: "Connected network", subtitle: `10.0.0.5 · channel 44 · WPA2_PSK · ${MAC ? "name hidden by macOS without Location access" : "name withheld"}`, accessories: [{ tag: "connected", color: "green" }] });
       expect(cur.actions!.map((a) => a.id)).toEqual(["copy_ip"]);
+      await list();
+      expect(calls.filter((c) => c.method === "permission").length - before).toBe(MAC ? 2 : 0);
+      if (MAC) expect(calls.find((c) => c.method === "permission")).toEqual({ method: "permission", params: { which: "location" } });
+      // Not yet answered: no hint row, the prompt is up (or the app held it back for a listing the user looks at).
+      expect((await list()).find((i) => i.id === "location")).toBeUndefined();
     } finally {
       status = saved;
+      location = "granted";
     }
   });
 

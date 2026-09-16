@@ -43,7 +43,6 @@ export default {
   palettes: {
     bluetooth: {
       title: "Bluetooth",
-      icon: xdg("bluetooth")!,
       live: true,
       placeholder: "Connect or disconnect a device",
       list: async () => {

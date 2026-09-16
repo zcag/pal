@@ -13,8 +13,7 @@ import { settings, windows, xdg, type Accessory, type Action, type Extension, ty
 type Settings = { include_minimized: boolean };
 
 const MAC = process.platform === "darwin";
-/** The palette's glyph (md-dock_window) and the row's when the app has no artwork (md-window_maximize). */
-const WINDOWS_GLYPH = "\u{f10ac}";
+/** The row's glyph when the app has no artwork (md-window_maximize). */
 const WINDOW_GLYPH = xdg("window-new")!;
 
 const FOCUS: Action = { id: "focus", title: "Focus" };
@@ -59,7 +58,6 @@ export default {
   palettes: {
     windows: {
       title: "Windows",
-      icon: WINDOWS_GLYPH,
       live: true,
       placeholder: "Switch to a window",
       list: async () => {

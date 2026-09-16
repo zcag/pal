@@ -98,15 +98,56 @@ pub struct General {
     /// switching need it; `false` leaves the ask to the Welcome row and to
     /// Settings > General > Permissions.
     pub ask_permissions_on_start: bool,
-    /// A `pal://run/...` link (a web page can emit one) shows a confirm
-    /// card naming the item before it runs; `false` runs it straight away,
-    /// for scripts that drive pal by link. `pal://install/...` always asks.
-    pub deeplink_confirm: bool,
+    /// When an app does not expose its selected text to the accessibility
+    /// API (`selection.text()`, `{selection}` in a snippet), fall back to
+    /// sending the copy shortcut and reading the clipboard, which is put
+    /// back as it was. `false` keeps pal off the clipboard: the selection
+    /// is then only what the API reports. macOS needs Accessibility for
+    /// either.
+    pub selection_snapshot: bool,
+    /// A `pal://` link that acts (`run`, `form`, `paste`, `open?url=`, an
+    /// extension's route; a web page can emit one) shows a confirm card
+    /// first. `true` asks; `false` runs it straight away, for scripts that
+    /// drive pal by link; a list of extension names asks for everything
+    /// except links into those extensions. `install`, `update` and
+    /// `remove` always ask; the CLI never does (docs/design/links.md).
+    pub deeplink_confirm: Confirm,
     /// How many rows one palette may show at the root for a typed query,
     /// by its tier: `{ primary = 8, normal = 6, catalog = 3 }`. The rest
     /// is a "N more in ..." row that opens the palette. The empty query
     /// and a palette's own level are never capped.
     pub root_caps: Caps,
+    /// The rows offered when a typed query matches nothing, in this order:
+    /// `web` (Search the web, `search_engine`), `url` (Open as URL, when the
+    /// query looks like one), then palette ids that opted in (`quicklinks`
+    /// fills its `{query}` links, `calc` and `files` open with the query
+    /// typed, any other input palette as "Ask <name>"). A fallback palette
+    /// not named here comes after these, in load order; one named here that
+    /// does not exist is skipped.
+    pub fallbacks: Vec<String>,
+    /// Show the fallback rows under the hits as well, not only when nothing
+    /// matched.
+    pub fallbacks_always: bool,
+    /// The "Search the web" fallback's URL, `{query}` percent-encoded into it.
+    pub search_engine: String,
+    /// Typing a palette's alias (or its name, or its one-word title) and a
+    /// space at the root jumps into that palette with the rest typed:
+    /// `calc 2+2`, `emoji cat`. `false` leaves the space as a character.
+    pub alias_space: bool,
+    /// Remember the last 20 root queries that led to a pick (never synced:
+    /// `frecency.json` in the profile). Up at the top of an empty root
+    /// list walks them; "Clear Search History" in pal's commands empties
+    /// them. `false` neither records nor recalls.
+    pub search_history: bool,
+    /// What a re-show lands on: `"always"` back at the root (as before),
+    /// `"never"` where you left (the level and the query kept), or `"after
+    /// 90s"`: kept while the panel was hidden for less than that many
+    /// seconds, the root after. A palette hotkey always opens its palette.
+    #[schemars(with = "String")]
+    pub pop_to_root: PopToRoot,
+    /// The palettes whose `suggest()` rows lead the empty root ("Now"), in
+    /// this order; suggesting palettes not named here follow in load order.
+    pub now: Vec<String>,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -114,7 +155,133 @@ pub struct General {
 
 impl Default for General {
     fn default() -> Self {
-        Self { hotkey: Hotkeys::default(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), ask_permissions_on_start: true, deeplink_confirm: true, root_caps: Caps::default(), extra: BTreeMap::new() }
+        Self {
+            hotkey: Hotkeys::default(),
+            theme: Theme::System,
+            launch_at_login: false,
+            menu_bar_icon: true,
+            position: Position::Top,
+            check_updates: true,
+            extension_dirs: Vec::new(),
+            ask_permissions_on_start: true,
+            selection_snapshot: true,
+            deeplink_confirm: Confirm::default(),
+            root_caps: Caps::default(),
+            fallbacks: DEFAULT_FALLBACKS.iter().map(|s| s.to_string()).collect(),
+            fallbacks_always: false,
+            search_engine: DEFAULT_SEARCH_ENGINE.into(),
+            alias_space: true,
+            search_history: true,
+            pop_to_root: PopToRoot::default(),
+            now: DEFAULT_NOW.iter().map(|s| s.to_string()).collect(),
+            extra: BTreeMap::new(),
+        }
+    }
+}
+
+/// `general.fallbacks` when unset: the shell's two rows, then the bundled palettes that opt in.
+pub const DEFAULT_FALLBACKS: [&str; 5] = ["web", "url", "quicklinks", "calc", "files"];
+/// `general.search_engine` when unset.
+pub const DEFAULT_SEARCH_ENGINE: &str = "https://www.google.com/search?q={query}";
+/// `general.now` when unset: the next event, the running timer, what plays, what is on the clipboard.
+pub const DEFAULT_NOW: [&str; 4] = ["calendar-today", "timer-timers", "media", "clipboard-rows"];
+
+/// `general.pop_to_root`: `"always"`, `"never"`, or `"after 90s"` (any
+/// whole number of seconds; `"after 2m"` and `"after 1h"` are read too).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PopToRoot {
+    Always,
+    Never,
+    /// Keep the level while the panel was hidden for under this many seconds.
+    After(u64),
+}
+
+impl Default for PopToRoot {
+    fn default() -> Self {
+        Self::After(90)
+    }
+}
+
+impl PopToRoot {
+    /// `"always"`, `"never"`, `"after 90s"` (spaces and case do not matter; a bare number is seconds).
+    pub fn parse(s: &str) -> Option<Self> {
+        let s = s.trim().to_lowercase();
+        match s.as_str() {
+            "always" | "immediately" => return Some(Self::Always),
+            "never" => return Some(Self::Never),
+            _ => {}
+        }
+        let rest = s.strip_prefix("after").unwrap_or(&s).trim();
+        let (digits, unit) = rest.split_at(rest.find(|c: char| !c.is_ascii_digit()).unwrap_or(rest.len()));
+        let n: u64 = digits.parse().ok()?;
+        let secs = match unit.trim() {
+            "" | "s" | "sec" | "secs" | "second" | "seconds" => n,
+            "m" | "min" | "mins" | "minute" | "minutes" => n.checked_mul(60)?,
+            "h" | "hour" | "hours" => n.checked_mul(3600)?,
+            _ => return None,
+        };
+        Some(if secs == 0 { Self::Always } else { Self::After(secs) })
+    }
+
+    /// Whether a show `hidden_for` seconds after the hide keeps the level.
+    pub fn keeps(self, hidden_for: f64) -> bool {
+        match self {
+            Self::Always => false,
+            Self::Never => true,
+            Self::After(secs) => hidden_for < secs as f64,
+        }
+    }
+}
+
+impl std::fmt::Display for PopToRoot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Always => f.write_str("always"),
+            Self::Never => f.write_str("never"),
+            Self::After(s) => write!(f, "after {s}s"),
+        }
+    }
+}
+
+impl Serialize for PopToRoot {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(self)
+    }
+}
+
+impl<'de> Deserialize<'de> for PopToRoot {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(d)?;
+        Self::parse(&s).ok_or_else(|| serde::de::Error::custom(format!("pop_to_root: {s:?} is not \"always\", \"never\" or \"after <seconds>s\"")))
+    }
+}
+
+/// `general.deeplink_confirm`: whether a link that acts shows the confirm
+/// card. `true`/`false` for all, or the extensions whose links are trusted
+/// (the card is skipped for `run`, `form` and routes into them).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum Confirm {
+    /// `deeplink_confirm = true` (ask) or `false` (never).
+    All(bool),
+    /// `deeplink_confirm = ["timer", "quicklinks"]`: ask, except for these.
+    Except(Vec<String>),
+}
+
+impl Confirm {
+    /// Whether a link into `extension` (none for an app-level route like
+    /// `paste`) shows the card.
+    pub fn asks(&self, extension: Option<&str>) -> bool {
+        match self {
+            Self::All(b) => *b,
+            Self::Except(list) => !extension.is_some_and(|e| list.iter().any(|x| x.trim() == e)),
+        }
+    }
+}
+
+impl Default for Confirm {
+    fn default() -> Self {
+        Self::All(true)
     }
 }
 

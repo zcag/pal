@@ -3,7 +3,7 @@
   "title": "Quicklinks",
   "description": "Your own links, with a {query} placeholder for search URLs: open one, fill it in, or copy it. Created and edited in the panel; imported and exported as JSON.",
   "version": "0.1.0",
-  "icon": "🔗",
+  "icon": { "tile": { "glyph": "󰌹", "bg": "orange" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -89,11 +89,28 @@
       }
     ]
   },
+  "links": {
+    "open": {
+      "description": "Open a quicklink by name",
+      "params": {
+        "name": {
+          "description": "The quicklink's name (or a keyword), case-insensitive",
+          "required": true
+        },
+        "query": {
+          "description": "Fills the {query} of a search link; without it the panel opens to ask"
+        }
+      }
+    }
+  },
   "palettes": {
     "quicklinks": {
       "tier": "primary",
       "kind": "list",
-      "description": "Every quicklink by name and keyword, plus Create Quicklink.",
+      "inline": true,
+      "match": "^\\s*([a-z][a-z0-9+.-]*://\\S+|(localhost|[a-z0-9-]+(\\.[a-z0-9-]+)*\\.[a-z]{2,})(:\\d+)?([/?#]\\S*)?)\\s*$",
+      "fallback": true,
+      "description": "Every quicklink by name and keyword, plus Create Quicklink. At the root a typed web address gets an inline Open row; when nothing matches, every {query} link appears filled with what was typed.",
       "keys": [
         {
           "keys": "enter",

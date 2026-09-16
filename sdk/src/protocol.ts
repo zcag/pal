@@ -48,7 +48,14 @@ export type Detail = { markdown?: string; metadata?: Metadata[] };
  * load (an `icon://` one from `api.ts`, or any http(s) url). `template` is
  * for a bar item on the macOS menu bar: the image is a mask the system tints.
  */
-export type Icon = string | { app: string } | { image: string; template?: boolean };
+/** A brand tile (`tile()` in icon.ts): a rounded square in one of the twelve brand colours with a white mark. */
+export type TileIcon = { tile: ({ glyph: string; svg?: undefined } | { svg: string; glyph?: undefined }) & { bg: TileColorName } };
+/** A glyph in a colour: a brand name, or a hex colour of the extension's own. */
+export type TintedIcon = { glyph: string; color: TileColorName | `#${string}` };
+export type TileColorName = "red" | "orange" | "amber" | "green" | "teal" | "cyan" | "blue" | "indigo" | "violet" | "pink" | "slate" | "ink";
+export type Icon = string | { app: string } | { image: string; template?: boolean } | TileIcon | TintedIcon;
+/** What a palette's or an extension's own icon may be: the string forms, or a tile. */
+export type OwnIcon = string | TileIcon;
 
 /**
  * One row, what `list` answers. Only `id` and `name` are required. The
@@ -95,7 +102,10 @@ export type Action = {
   /**
    * "cmd+shift+c": lower-case, "+" joined; cmd is the platform's primary
    * modifier. Bare keys in a view with `keys: "actions"`: a letter, a digit,
-   * `space`, `backspace`, `delete`, `up`/`down`/`left`/`right`, `+`, `-`.
+   * a symbol as typed (`#`, `+`, `-`, `=`), `space`, `backspace`, `delete`,
+   * `tab`, `up`/`down`/`left`/`right`; `shift+up` and the other shifted
+   * arrows and `shift+tab` reach a view as combos (a shifted arrow with no
+   * action of its own runs the plain arrow's).
    * An array lists alternatives (`["up", "k"]`): any of them runs the
    * action, the panel draws the first and the rest faintly.
    */
@@ -120,6 +130,18 @@ export type Action = {
 
 /** The tag palette (`--pal-tag-*` in the app's tokens): what a badge, a tag accessory, a text node, a tile or a progress bar may be coloured. */
 export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";
+
+/**
+ * A colour of the extension's own, as `#rgb`, `#rgba`, `#rrggbb` or
+ * `#rrggbbaa` (`HEX_COLOR` in view.ts): a `tile` painted with it takes
+ * black or white ink by contrast, and a translucent one shows a checker
+ * through. Only hex: what a tile or a gradient stop is filled with never
+ * needs another notation, and the app has no colour parser.
+ */
+export type HexColor = `#${string}`;
+
+/** One linear gradient of a `gradient` node: `stops` (hex colours, evenly spread) along `direction`. */
+export type GradientLayer = { stops: HexColor[]; direction?: "right" | "down" | "up" | "left" };
 
 /**
  * How a keyed node comes, goes and moves. `enter` runs when the node first
@@ -190,12 +212,28 @@ export type ViewNode =
    * `sub` small under the text, drawn with the tokens so it follows the
    * theme: a game tile, a keycap of an on-screen keyboard, a stat. `color`
    * is the tag palette plus `neutral` (the panel's own greys, the default)
-   * and `accent`; `fill` is `solid` (the colour, ink on it), `soft` (the
-   * colour's tint, the colour as ink; the default) or `outline` (a
-   * hairline, no fill). The text is tabular and gets heavier as the box
-   * grows, and shrinks to fit its length.
+   * and `accent`, or a hex colour of the extension's own (`HexColor`:
+   * the box is that colour whatever the `fill`, the ink black or white
+   * by contrast, a translucent one over a checker); `fill` is `solid`
+   * (the colour, ink on it), `soft` (the colour's tint, the colour as
+   * ink; the default) or `outline` (a hairline, no fill). The text is
+   * tabular and gets heavier as the box grows, and shrinks to fit its
+   * length.
    */
-  | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent"; fill?: "solid" | "soft" | "outline" })
+  | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent" | HexColor; fill?: "solid" | "soft" | "outline" })
+  /**
+   * A box of `width` by `height` px painted with CSS linear gradients,
+   * for a colour picker's hue strip or its saturation/value plane: `fill`
+   * is a hex colour under everything, each layer's `stops` are hex
+   * colours (alpha allowed, `#ffffff00`) spread evenly along `direction`
+   * (`right`, the default, `down`, `up`, `left`), in paint order, so a
+   * later layer composites over an earlier one. The classic plane is
+   * exactly `fill` the pure hue, then `#ffffff` to `#ffffff00` rightwards,
+   * then `#000000` to `#00000000` upwards. `marker` is a ring at that point
+   * (fractions 0..1 of the box, `x` along, `y` down), drawn to read on any
+   * colour. The corners take the tile radius.
+   */
+  | (NodeBase & { type: "gradient"; width: number; height: number; layers: GradientLayer[]; fill?: HexColor; marker?: { x: number; y: number } })
   /** A tag, as on a row. */
   | (NodeBase & { type: "badge"; text: string; color?: TagColor })
   /** A hairline across the stack (vertical in a row). */
@@ -219,9 +257,25 @@ export type ViewNode =
  * Keys pressed while a pick is on its way queue (four at most) and run
  * against the tree the reply brings, so fast typing loses nothing; the
  * queue is dropped when the level changes. An action id may not start
- * with `pal:` (the shell's own).
+ * with `pal:` (the shell's own). `input` turns the search row into a text
+ * field the view reads on Enter (`ViewInput`).
  */
-export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions" };
+export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions"; input?: ViewInput };
+
+/**
+ * A line of text the view asks for (`View.input`): while it is set the
+ * search row is a text field holding `value` (the caret at its end,
+ * focused) in place of the title, typing goes there and bare keys are
+ * typing, not actions (a modifier combo still runs its action). Enter
+ * picks the `submit` action with the text as `ctx.values.input`, Escape
+ * picks `cancel` (or leaves the level when there is none); answer either
+ * with a tree without `input` to close the field, or with one to keep it
+ * (its `value` replaces the text only when it differs from the previous
+ * tree's). Both ids must be actions of the view. A picker opens the field
+ * from a hidden action on the first digit typed and answers with the
+ * digit as `value`, so typing a notation starts without a mode key.
+ */
+export type ViewInput = { value?: string; placeholder?: string; submit: string; cancel?: string };
 
 // ---- form: a prompt with fields --------------------------------------------
 // An effect that asks: the UI pushes a form level drawn from these fields,
@@ -276,8 +330,20 @@ export type WindowLayoutRequest = WindowLayoutOptions & { name: WindowLayout; id
  * core; the window hides afterwards unless `keep` or `toast` is set (a
  * toast needs the window). Any other object hides too.
  */
+/**
+ * `Effect.copy` with options. `concealed`: the text is marked for
+ * clipboard managers to skip (`org.nspasteboard.ConcealedType` on macOS,
+ * the KDE password-manager hint on Linux) and never enters pal's own
+ * history: for a password, a one-time code, a token. `clear_after`: seconds
+ * after which the previous clipboard is put back (or the clipboard emptied)
+ * if the secret is still on it; the HUD then says "Copied, clears in N s".
+ * Only meaningful with `concealed`.
+ */
+export type CopyText = { text: string; concealed?: boolean; clear_after?: number };
+
 export type Effect = {
-  copy?: string;
+  /** Text onto the clipboard ("Copied" in the HUD once the panel hides), or a `CopyText` for a secret. */
+  copy?: string | CopyText;
   /** The files themselves onto the clipboard (file URLs on macOS, `text/uri-list` on Linux); "Copied" in the HUD like `copy`. A backend that cannot take a file list makes the pick a failure toast. */
   copy_files?: string[];
   /** A url or a path, given to the OS opener. */
@@ -310,6 +376,14 @@ export type Effect = {
    * shows "Copied" there by itself, this replaces that text.
    */
   hud?: string;
+  /**
+   * Large Type: the panel hides and the text is shown across the screen
+   * in a type size fitted to the width (a code's digits grouped, a
+   * code-like text in monospace), until any key, a click, or 8 s. For an
+   * OTP, an IP, a licence key read from across the room. Cut at 400
+   * characters; blank text shows nothing.
+   */
+  large_type?: string;
   /** Stay open and list again. */
   keep?: true;
   /**
@@ -318,7 +392,7 @@ export type Effect = {
    * list the children of the picked item; a level with args is always listed
    * from the extension, never from the index.
    */
-  push?: { extension: string; palette: string; args?: unknown };
+  push?: { extension: string; palette: string; args?: unknown; /** Typed into the level's search box on arrival (a fallback row carrying the root query in). */ query?: string };
   /** Show output: the UI pushes a detail-only level (the Detail, full width; `title` is the level's crumb). */
   show?: Detail & { title?: string };
   /** A render tree (`View`): from a list, pushes a view level; from a view, replaces its tree. */
@@ -335,7 +409,7 @@ export type Effect = {
  * Refresh action), so a cache the palette keeps should step aside.
  * `values` on a `pick`: the submitted fields of an `Effect.form`.
  */
-export type Ctx = { filter?: string; args?: unknown; refresh?: boolean; values?: FormValues };
+export type Ctx = { filter?: string; args?: unknown; refresh?: boolean; values?: FormValues; /** On a `list`: the root's inline section asks (`Palette.inline`), so a palette that lists hints for an empty query can answer only what matched. */ inline?: true };
 
 /**
  * What a palette's rows are at the root next to everyone else's. `primary`:
@@ -351,8 +425,8 @@ export type Tier = "primary" | "normal" | "catalog";
 type PaletteBase = {
   /** Section label at the root; the manifest's `title` wins over it, the palette key stands in when neither has one. */
   title?: string;
-  /** The palette's own row at the root: a glyph, emoji or hex colour (the string forms of `Icon`). */
-  icon?: string;
+  /** The palette's own row at the root: a glyph, emoji or hex colour, or a brand tile (`tile()`). */
+  icon?: OwnIcon;
   /**
    * Arrival order is the order (OTP codes, tabs, windows): never ranked by
    * use, and listed again every time the panel is shown so the rows are
@@ -395,6 +469,34 @@ type PaletteBase = {
    * row's own `actions` replace them whole; `[]` on a row still means inert.
    */
   actions?: Action[];
+  /**
+   * Inline results at the root: with `inline: true`, a root query that
+   * `match` accepts (a regex, a regex source, or a predicate; the manifest
+   * may declare the string form for the store) runs `list(query, { inline:
+   * true })` and its first rows show at the root under the palette's title,
+   * above the index's hits, with their own actions. Debounced like the
+   * palette's own keystrokes and dropped when the query moves on; a list
+   * that takes over `INLINE_TIMEOUT_MS` (host) is left out.
+   */
+  match?: RegExp | string | ((query: string) => boolean);
+  inline?: boolean;
+  /**
+   * Fallback rows when the root query matched nothing (or under the hits
+   * with `general.fallbacks_always`): `true` adds an "Ask <title>" row that
+   * opens the palette with the query typed; a string is that row's title
+   * with `{query}` filled in ("Search Files for “{query}”"); a function
+   * answers the rows itself (quicklinks: every `{query}` link filled in),
+   * picked through `pick` as any row. `general.fallbacks` orders them.
+   */
+  fallback?: true | string | ((query: string) => Item[] | Promise<Item[]>);
+  /**
+   * What is worth showing before anything is typed: a few rows for the
+   * root's "Now" section (the next event, the running timer, what is
+   * playing, what is on the clipboard). Asked on every show of the empty
+   * root, so keep it fast and cached; `general.now` orders the palettes.
+   * A row's `section` names its own section ("Clipboard"), else "Now".
+   */
+  suggest?: () => Item[] | Promise<Item[]>;
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
   /**
    * The detail pane's content for one item, asked when the pane is open and
@@ -523,7 +625,32 @@ export type BarMeta = ManifestBar & { id: string; source: boolean };
  * old module instance stays resident and what it left running would keep
  * pushing.
  */
-export type Extension = { palettes: Record<string, Palette>; bar?: Record<string, BarSource>; dispose?(): void | Promise<void> };
+export type Extension = { palettes: Record<string, Palette>; bar?: Record<string, BarSource>; link?: LinkHandler; dispose?(): void | Promise<void> };
+
+// ---- links (pal://<extension>/<route>) -------------------------------------
+// An extension's own deep links (docs/design/links.md): `pal.json` declares
+// them under `links` so the store and the settings window can list them
+// without the code, `Extension.link(route, params)` answers them. The host
+// checks the route is declared, the required params are there and coerces
+// the rest by `type` (`checkLinkParams`, manifest.ts) before calling.
+
+/** What one parameter of a route is: its type (`string` unless said), whether it must be given, a line for the store. */
+export type ManifestLinkParam = { description?: string; required?: boolean; type?: "string" | "number" | "boolean" | "json" | "string[]" };
+
+/** `pal.json`: `links.<route>`. `confirm: true` makes the link ask before running whatever `general.deeplink_confirm` allows. */
+export type ManifestLink = { description?: string; confirm?: boolean; params?: Record<string, ManifestLinkParam> };
+
+/** The params as `link` receives them: coerced by the manifest's `type`, a missing optional one absent. */
+export type LinkParams = Record<string, string | number | boolean | string[] | unknown>;
+
+/**
+ * Answers `pal://<extension>/<route>?params`: an `Effect` like a pick's
+ * (`copy`, `paste`, `open`, `focus`, `layout`, `hud`, `toast`, `push`,
+ * `hide`), or nothing. `keep`, `show`, `view` and `form` need the level a
+ * pick came from and are refused by the host, as `effects.run` refuses
+ * them.
+ */
+export type LinkHandler = (route: string, params: LinkParams) => Effect | void | Promise<Effect | void>;
 
 // ---- manifest (pal.json) -------------------------------------------------
 // Read by the host without running the extension's code, so the settings
@@ -581,6 +708,12 @@ export type ManifestPalette = {
   ttl?: number;
   /** See `Palette.tier`; this value wins over the code's. */
   tier?: Tier;
+  /** See `Palette.match`: the regex source, for the store; the code's wins when both are set. */
+  match?: string;
+  /** See `Palette.inline`. */
+  inline?: boolean;
+  /** See `Palette.fallback`: `true` for an "Ask" row, a string for its title. */
+  fallback?: boolean | string;
 };
 
 /**
@@ -594,8 +727,8 @@ export type Manifest = {
   title: string;
   description?: string;
   version?: string;
-  /** A glyph, emoji or hex colour; the settings window's row for the extension. */
-  icon?: string;
+  /** A glyph, emoji or hex colour, or a brand tile; the settings window's row for the extension. */
+  icon?: OwnIcon;
   author?: string;
   /** `bundled` for the ones that ship with pal, else a repo like `github.com/zcag/pal-github`. */
   repo?: string;
@@ -605,6 +738,8 @@ export type Manifest = {
   palettes?: Record<string, ManifestPalette>;
   /** The bar items, keyed by their id in `Extension.bar`: title and refresh schedule, readable without the code. */
   bar?: Record<string, ManifestBar>;
+  /** The routes `Extension.link` answers (`pal://<name>/<route>`), with their params, readable without the code. */
+  links?: Record<string, ManifestLink>;
 };
 
 /** Resolved values one extension sees: manifest defaults with the file's keys on top. */
@@ -630,4 +765,12 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   view?: "list" | "grid" | "view";
   /** The palette answers `detail(id)`. */
   detail?: "lazy";
+  /** The palette lists inline at the root for queries its `match` accepts (the host matches; a string `match` rides along for the store). */
+  inline?: true;
+  match?: string;
+  /** `ask`: an "Ask <title>" row (`fallbackTitle` when given); `rows`: the palette answers `fallback(query)` itself. */
+  fallback?: "ask" | "rows";
+  fallbackTitle?: string;
+  /** The palette answers `suggest()` for the root's "Now" section. */
+  suggest?: true;
 };

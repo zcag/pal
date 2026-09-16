@@ -1,0 +1,150 @@
+{
+  "calendarList": {
+    "personal": {
+      "kind": "calendar#calendarList",
+      "items": [
+        { "kind": "calendar#calendarListEntry", "id": "someone@gmail.com", "summary": "someone@gmail.com", "summaryOverride": "Personal", "backgroundColor": "#9FE1E7", "accessRole": "owner", "primary": true, "selected": true },
+        { "kind": "calendar#calendarListEntry", "id": "en.turkish#holiday@group.v.calendar.google.com", "summary": "Holidays in Turkey", "backgroundColor": "#16A765", "accessRole": "reader", "selected": true }
+      ]
+    },
+    "work": {
+      "kind": "calendar#calendarList",
+      "items": [
+        { "kind": "calendar#calendarListEntry", "id": "someone@example.com", "summary": "someone@example.com", "backgroundColor": "#4986E7", "accessRole": "owner", "primary": true, "selected": true }
+      ]
+    }
+  },
+  "events": {
+    "personal": {
+      "kind": "calendar#events",
+      "summary": "someone@gmail.com",
+      "timeZone": "UTC",
+      "items": [
+        {
+          "kind": "calendar#event",
+          "id": "standup_20260916T093000Z",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=c3RhbmR1cA",
+          "summary": "Daily standup",
+          "start": { "dateTime": "2026-09-16T09:30:00+00:00" },
+          "end": { "dateTime": "2026-09-16T09:45:00+00:00" },
+          "recurringEventId": "standup",
+          "organizer": { "email": "mara@example.com", "displayName": "Mara Lind" },
+          "attendees": [
+            { "email": "mara@example.com", "displayName": "Mara Lind", "responseStatus": "accepted" },
+            { "email": "someone@gmail.com", "self": true, "responseStatus": "accepted" },
+            { "email": "room-4@resource.calendar.google.com", "displayName": "Room 4", "resource": true, "responseStatus": "accepted" }
+          ],
+          "conferenceData": {
+            "conferenceSolution": { "name": "Zoom Meeting" },
+            "entryPoints": [
+              { "entryPointType": "video", "uri": "https://us02web.zoom.us/j/85712227948?pwd=abc", "label": "us02web.zoom.us/j/85712227948" },
+              { "entryPointType": "phone", "uri": "tel:+1-555-0100,,85712227948#" }
+            ]
+          }
+        },
+        {
+          "kind": "calendar#event",
+          "id": "design",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=ZGVzaWdu",
+          "summary": "Design review: settings window",
+          "description": "<p>Walk through the six pages.</p><ul><li>Overview first</li><li>One grouped table</li></ul><p>Notes: <a href=\"https://docs.example.com/settings\">doc</a> &amp; agenda</p>",
+          "location": "Room 4",
+          "hangoutLink": "https://meet.google.com/abc-defg-hij",
+          "start": { "dateTime": "2026-09-16T11:00:00+00:00" },
+          "end": { "dateTime": "2026-09-16T12:00:00+00:00" },
+          "attendees": [
+            { "email": "mara@example.com", "displayName": "Mara Lind", "responseStatus": "accepted" },
+            { "email": "someone@gmail.com", "self": true, "responseStatus": "tentative" },
+            { "email": "tomas@example.com", "displayName": "Tomas Ruiz", "responseStatus": "needsAction" },
+            { "email": "ada@example.com", "displayName": "Ada Chen", "responseStatus": "declined" }
+          ]
+        },
+        {
+          "kind": "calendar#event",
+          "id": "dentist",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=ZGVudGlzdA",
+          "summary": "Dentist",
+          "location": "Kadıköy",
+          "start": { "dateTime": "2026-09-16T15:30:00+00:00" },
+          "end": { "dateTime": "2026-09-16T16:15:00+00:00" }
+        },
+        {
+          "kind": "calendar#event",
+          "id": "cancelled",
+          "status": "cancelled",
+          "summary": "Cancelled sync",
+          "start": { "dateTime": "2026-09-16T13:00:00+00:00" },
+          "end": { "dateTime": "2026-09-16T13:30:00+00:00" }
+        },
+        {
+          "kind": "calendar#event",
+          "id": "declined",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=ZGVjbGluZWQ",
+          "summary": "Sales sync",
+          "start": { "dateTime": "2026-09-16T14:00:00+00:00" },
+          "end": { "dateTime": "2026-09-16T14:30:00+00:00" },
+          "attendees": [
+            { "email": "bob@example.com", "displayName": "Bob", "responseStatus": "accepted" },
+            { "email": "someone@gmail.com", "self": true, "responseStatus": "declined" }
+          ],
+          "hangoutLink": "https://meet.google.com/xyz-sale-syn"
+        },
+        {
+          "kind": "calendar#event",
+          "id": "oneonone",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=b25lb25vbmU",
+          "summary": "1:1 with Mara",
+          "description": "Join here: https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc%40thread.v2/0?context=%7b%22Tid%22%3a%22x%22%7d. Agenda in https://docs.example.com/1on1",
+          "start": { "dateTime": "2026-09-17T10:00:00+00:00" },
+          "end": { "dateTime": "2026-09-17T10:30:00+00:00" },
+          "attendees": [
+            { "email": "mara@example.com", "displayName": "Mara Lind", "responseStatus": "accepted" },
+            { "email": "someone@gmail.com", "self": true, "responseStatus": "needsAction" }
+          ]
+        },
+        {
+          "kind": "calendar#event",
+          "id": "offsite",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=b2Zmc2l0ZQ",
+          "summary": "Team offsite",
+          "start": { "date": "2026-09-18" },
+          "end": { "date": "2026-09-20" }
+        }
+      ]
+    },
+    "work": {
+      "kind": "calendar#events",
+      "summary": "someone@example.com",
+      "timeZone": "UTC",
+      "items": [
+        {
+          "kind": "calendar#event",
+          "id": "sync",
+          "status": "confirmed",
+          "htmlLink": "https://www.google.com/calendar/event?eid=c3luYw",
+          "summary": "Weekly sync",
+          "start": { "dateTime": "2026-09-16T10:12:00+00:00" },
+          "end": { "dateTime": "2026-09-16T10:42:00+00:00" },
+          "organizer": { "email": "terry@example.com" },
+          "attendees": [
+            { "email": "terry@example.com", "displayName": "Terry", "responseStatus": "accepted" },
+            { "email": "someone@example.com", "self": true, "responseStatus": "accepted" }
+          ],
+          "conferenceData": {
+            "conferenceSolution": { "name": "Zoom Meeting" },
+            "entryPoints": [
+              { "entryPointType": "more", "uri": "https://applications.zoom.us/addon/invitation/detail?meetingUuid=abc" },
+              { "entryPointType": "video", "uri": "https://example.zoom.us/j/99911122233?pwd=xyz" }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

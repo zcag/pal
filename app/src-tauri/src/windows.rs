@@ -1,7 +1,8 @@
 //! The windows capability: `pal_core::windows` over the bridge
-//! (`windows.list` / `close` / `minimize` / `frame` / `set_frame` /
-//! `displays` / `focused` / `layout`) and as the `focus` and `layout`
-//! effects (effects.rs), which hide the panel before touching the window.
+//! (`windows.list` / `close` / `minimize` / `unminimize` / `fullscreen` /
+//! `frame` / `set_frame` / `displays` / `focused` / `layout`) and as the
+//! `focus` and `layout` effects (effects.rs), which hide the panel before
+//! touching the window.
 //! Each listed row carries `icon`, the `.app` / `.desktop` path the webview
 //! renders through `icon://app`.
 
@@ -22,7 +23,7 @@ struct FrameParams {
     rect: Rect,
 }
 
-/// `{ name, id?, gap?, almost_maximize_percent?, reasonable_size_percent? }`:
+/// `{ name, id?, gap?, almost_maximize_percent?, reasonable_size_percent?, step? }`:
 /// the layout effect's payload and `windows.layout`'s params, one shape.
 #[derive(Deserialize)]
 pub struct LayoutParams {
@@ -57,9 +58,14 @@ pub fn apply_layout(p: &LayoutParams) -> Result<windows::Applied, String> {
 pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     match func {
         "list" => Ok(Value::Array(windows::list().map_err(err)?.iter().map(row).collect())),
-        "close" | "minimize" => {
+        "close" | "minimize" | "unminimize" | "fullscreen" => {
             let p: IdParams = parse(params)?;
-            let r = if func == "close" { windows::close(&p.id) } else { windows::minimize(&p.id) };
+            let r = match func {
+                "close" => windows::close(&p.id),
+                "minimize" => windows::minimize(&p.id),
+                "unminimize" => windows::unminimize(&p.id),
+                _ => windows::fullscreen(&p.id),
+            };
             r.map_err(err).map(|_| Value::Null)
         }
         "frame" => {

@@ -1,6 +1,7 @@
 // icons: the generated Nerd Font glyph table as a grid by set, and the
 // freedesktop names the SDK maps, as a second grid.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { XDG_ICONS } from "../../../sdk/src/icons.ts";
 import { Host } from "../harness.ts";
 
@@ -17,8 +18,8 @@ describe("icons", () => {
   test("meta: two grids of 10 columns; the Nerd Font one with a lazy detail; the copy actions once, on the palette", () => {
     const l = host.loaded().find((l) => l.extension === "icons")!;
     expect(l.palettes).toEqual([
-      { name: "icons", title: "Nerd Font icons", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, detail: "lazy", tier: "catalog", actions: NF_ACTIONS },
-      { name: "freedesktop", title: "Freedesktop icon names", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, tier: "catalog", actions: XDG_ACTIONS },
+      { name: "icons", title: "Nerd Font icons", live: false, input: false, icon: tile("pink", "\u{f0831}"), view: "grid", columns: 10, detail: "lazy", tier: "catalog", actions: NF_ACTIONS },
+      { name: "freedesktop", title: "Freedesktop icon names", live: false, input: false, icon: tile("pink", "\u{f0831}"), view: "grid", columns: 10, tier: "catalog", actions: XDG_ACTIONS },
     ]);
   });
 

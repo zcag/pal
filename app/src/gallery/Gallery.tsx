@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  ActionPanel, Detail, Empty, Footer, Form, Grid, Hud, Kbd, List, Panel, Row, Search, Toast, View,
+  ActionPanel, Detail, Empty, Footer, Form, Grid, Hud, Icon, Kbd, List, Panel, Row, Search, Toast, View,
   grammar, groupBySection, useCursor, type Hit, type ToastSpec,
 } from "../ui";
 import type { FormValues, Item, ViewNode } from "../ui/types";
@@ -19,7 +19,7 @@ import {
   SettingsAbout, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
   aboutIndex, extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
-import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions } from "./data";
+import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
 import Shots from "./shots";
 import BarShot from "./bar-shot";
 import "./gallery.css";
@@ -307,9 +307,9 @@ export default function Gallery() {
   const params = new URLSearchParams(location.search);
   const solo = params.get("gallery");
   if (solo?.startsWith("settings")) return <Solo what={solo} />;
-  // `?gallery&shot=<extension>&palette=<key>`: one launcher on the wallpaper, for the store screenshots (shots.tsx).
+  // `?gallery&shot=<extension>&palette=<key>[&theme=dark]`: one launcher on the wallpaper, for the store screenshots (shots.tsx).
   const shot = params.get("shot");
-  if (shot) return <Shots extension={shot} palette={params.get("palette") ?? undefined} />;
+  if (shot) return <Shots extension={shot} palette={params.get("palette") ?? undefined} theme={params.get("theme") === "dark" ? "dark" : "light"} />;
   // `?gallery&bar=<ext>/<id>&target=menubar|sketchybar&theme=dark|light[&state=<id>][&popover=1]`: a bar item on its strip (bar-shot.tsx).
   const bar = params.get("bar");
   if (bar) return <BarShot bar={bar} target={params.get("target") === "sketchybar" ? "sketchybar" : "menubar"} theme={params.get("theme") === "dark" ? "dark" : "light"} state={params.get("state") ?? undefined} popover={params.has("popover")} />;
@@ -436,6 +436,38 @@ function GalleryPage() {
           <Pair surface>
             {nerdGlyphs.map((item, i) => <Row key={item.id} item={item} active={i === 1} />)}
             <Footer icon={nerdGlyphs[1].icon} title="Pull requests" primary={{ title: "Open" }} actions />
+          </Pair>
+        </State>
+      </Section>
+
+      <Section id="tiles" title="Icon tiles">
+        <p className="g-note">Every bundled extension's icon as its manifest writes it (<code>extensions/*/pal.json</code>, read live): a rounded square in one of the twelve <code>--pal-brand-*</code> colours with a white mark. The same tile at 24 in a row, 20 in the crumb and the footer, 32 in a grid cell, 56 on a settings page. A row's plain glyph takes its palette's colour (<code>tint</code>); a state keeps its own.</p>
+        <State label="Palette rows, the second selected">
+          <Pair surface>
+            {tileRows.map((item, i) => <Row key={item.id} item={item} active={i === 1} />)}
+          </Pair>
+        </State>
+        <State label="Crumb and footer at 20">
+          <Pair surface>
+            <Search value="" onChange={noop} back={{ title: "Pull Requests", icon: tileRows.find((r) => r.id === "github")?.icon, onBack: noop }} placeholder="Search Pull Requests…" />
+            <Footer icon={tileRows.find((r) => r.id === "timer")?.icon} title="3 of 3" primary={{ title: "Stop" }} actions />
+          </Pair>
+        </State>
+        <State label="Rows tinted in the extension's colour, and state glyphs in their own">
+          <Pair surface>
+            <Row item={{ id: "t1", name: "Batch the index writes on startup", subtitle: "acme/widgets #142", icon: { kind: "glyph", value: "\uf407", tint: "green" }, accessories: [{ tag: "approved", color: "green" }] }} />
+            <Row item={{ id: "t2", name: "Drop the legacy importer", subtitle: "acme/widgets #131", icon: { kind: "glyph", value: "\uf419", tint: "violet" }, accessories: [{ tag: "merged", color: "violet" }] }} active />
+            <Row item={{ id: "t3", name: "pal-web", subtitle: "running · 2h", icon: { kind: "glyph", value: "\u{f0868}", tint: "cyan" }, accessories: [{ tag: "up", color: "green" }] }} />
+            <Row item={{ id: "t4", name: "Tea", subtitle: "12:30 left", icon: { kind: "glyph", value: "\u{f051b}", tint: "amber" }, accessories: [{ text: "25m" }] }} />
+            <Row item={{ id: "t5", name: "No calculator found", subtitle: "A hint row keeps the palette's colour", icon: { kind: "glyph", value: "\u{f0029}", tint: "indigo" }, accessories: [] }} />
+          </Pair>
+        </State>
+        <State label="Grid cell at 32 and a settings hero at 56">
+          <Pair panel><Panel search={<Search value="" onChange={noop} />}><DemoList grid columns={8} items={tileRows.slice(0, 16).map((i) => ({ ...i, section: undefined }))} start={2} /></Panel></Pair>
+          <Pair surface>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", padding: 8 }}>
+              {["github", "onepassword", "home-assistant", "media", "timer", "clipboard", "apps", "2048"].map((n) => <Icon key={n} icon={tileRows.find((r) => r.id === n)?.icon} size="lg" />)}
+            </div>
           </Pair>
         </State>
       </Section>
@@ -579,7 +611,7 @@ function GalleryPage() {
 
 const nav = [
   { id: "playground", title: "Playground" }, { id: "grammar", title: "Grammar" }, { id: "panel", title: "Panel" }, { id: "search", title: "Search" },
-  { id: "row", title: "Row" }, { id: "list", title: "List" }, { id: "grid", title: "Grid" }, { id: "view", title: "View" }, { id: "detail", title: "Detail" }, { id: "actions", title: "ActionPanel" },
+  { id: "row", title: "Row" }, { id: "tiles", title: "Tiles" }, { id: "list", title: "List" }, { id: "grid", title: "Grid" }, { id: "view", title: "View" }, { id: "detail", title: "Detail" }, { id: "actions", title: "ActionPanel" },
   { id: "footer", title: "Footer" }, { id: "form", title: "Form" }, { id: "empty", title: "Empty" }, { id: "toast", title: "Toast" }, { id: "hud", title: "HUD" },
   { id: "settings", title: "Settings" },
 ];

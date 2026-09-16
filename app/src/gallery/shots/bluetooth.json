@@ -3,7 +3,12 @@
     "bluetooth": {
       "title": "Bluetooth",
       "live": true,
-      "icon": "󰂯",
+      "icon": {
+        "tile": {
+          "glyph": "󰂯",
+          "bg": "blue"
+        }
+      },
       "placeholder": "Connect or disconnect a device",
       "items": [
         {

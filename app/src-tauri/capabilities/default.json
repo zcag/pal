@@ -6,7 +6,8 @@
     "main",
     "hud",
     "settings",
-    "bar"
+    "bar",
+    "large"
   ],
   "permissions": [
     "core:default",

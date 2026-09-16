@@ -2,20 +2,24 @@
 //! networks, a scan of what is in the air; join, forget, the saved
 //! password, the radio on or off.
 //!
-//! macOS: `networksetup` (`-listallhardwareports` for the interface,
-//! `-getairportpower`, `-listpreferredwirelessnetworks`,
-//! `-setairportnetwork`, `-removepreferredwirelessnetwork`,
-//! `-setairportpower`), `scutil` and `ipconfig getsummary` for the current
-//! network, `security find-generic-password -wa <ssid>` for a password (the
-//! keychain prompts, which is the user's call), and `system_profiler
-//! SPAirPortDataType -json` for a scan. That scan takes ~9 s on hornet, so
-//! [`scan`] keeps the last result for [`SCAN_TTL`] and [`ScanMode::Cached`]
-//! never runs it; a palette shows Available from the cache and offers a
-//! Scan action. macOS 15+ hands `<redacted>` for every network name to a
-//! process without Location Services (`ipconfig`, `scutil`'s `SSID_STR`
-//! and `system_profiler` alike on hornet), so the current name may be
-//! `None` and a scan's hidden names are counted in [`Scan::hidden`] rather
-//! than listed. `wdutil info` would give the name but needs sudo.
+//! macOS: CoreWLAN in-process (`CWWiFiClient`'s interface: its name, the
+//! radio, the link's SSID, RSSI, channel and security; `scanForNetworks`
+//! for a scan, which blocks ~9 s on hornet, the same as `system_profiler`
+//! did: the radio walks the channels either way), `ipconfig getsummary`
+//! for the IP (and the name too, for a process whose grant reaches its
+//! children, e.g. a terminal: pal's own does not, checked on hornet),
+//! `networksetup` for the preferred list, join, forget and the radio
+//! (`-listpreferredwirelessnetworks`, `-setairportnetwork`,
+//! `-removepreferredwirelessnetwork`, `-setairportpower`), `security
+//! find-generic-password -wa <ssid>` for a password (the keychain prompts,
+//! which is the user's call). A scan blocks for its duration, so [`scan`]
+//! keeps the last result for [`SCAN_TTL`] and [`ScanMode::Cached`] never
+//! runs one; a palette shows Available from the cache and offers a Scan
+//! action. macOS 15+ hands network names only to a process with Location
+//! Services (CoreWLAN answers `nil`, the CLIs `<redacted>`), so the
+//! current name may be `None` and a scan's nameless networks are counted
+//! in [`Scan::hidden`] rather than listed; the app asks for the permission
+//! (`permissions.rs`), the core only reads what it is given.
 //!
 //! Linux: NetworkManager over `nmcli -t` (`device`, `radio wifi`, `device
 //! wifi list [--rescan yes]`, `connection show`, `device wifi connect`,
@@ -149,7 +153,7 @@ pub fn set_power(on: bool) -> Result<()> {
 // ---- shared, pure ---------------------------------------------------------
 
 /// dBm to percent the way NetworkManager does: -100 is 0, -50 is 100.
-#[allow(dead_code)]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn signal_from_dbm(dbm: i32) -> u8 {
     ((dbm + 100) * 2).clamp(0, 100) as u8
 }
@@ -238,75 +242,69 @@ fn parse_nmcli_devices(text: &str) -> Option<(String, bool)> {
     text.lines().map(nmcli_fields).find(|f| f.len() >= 3 && f[1] == "wifi").map(|f| (f[0].clone(), f[2].starts_with("connected")))
 }
 
-// ---- macOS parsers ----------------------------------------------------------
+// ---- macOS: the pure parts of the CoreWLAN reading, and `ipconfig` ------
 
-/// `spairport_security_mode_wpa2_personal_mixed` to `WPA2 Personal`; `none` to None.
+/// A `CWSecurity` raw value as the palette spells it; `None` for an open
+/// network, `Unknown` (NSIntegerMax) and anything else unnamed.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-fn airport_security(mode: &str) -> Option<String> {
-    let m = mode.strip_prefix("spairport_security_mode_").unwrap_or(mode).trim_end_matches("_mixed");
-    if m.is_empty() || m == "none" {
-        return None;
-    }
-    Some(
-        m.split('_')
-            .map(|w| if w.starts_with("wpa") || w.starts_with("wep") { w.to_uppercase() } else { w[..1].to_uppercase() + &w[1..] })
-            .collect::<Vec<_>>()
-            .join(" "),
-    )
+fn cw_security(code: isize) -> Option<&'static str> {
+    Some(match code {
+        1 => "WEP",
+        2 => "WPA Personal",
+        3 => "WPA/WPA2 Personal",
+        4 => "WPA2 Personal",
+        5 => "WPA/WPA2 Personal",
+        6 => "Dynamic WEP",
+        7 => "WPA Enterprise",
+        8 => "WPA/WPA2 Enterprise",
+        9 => "WPA2 Enterprise",
+        10 => "WPA2 Enterprise",
+        11 => "WPA3 Personal",
+        12 => "WPA3 Enterprise",
+        13 => "WPA2/WPA3 Personal",
+        14 | 15 => "OWE",
+        _ => return None,
+    })
 }
 
-/// `-54 dBm / -96 dBm` to percent.
+/// `CWSecurity` values strongest first: a scanned network says which it
+/// supports, and the strongest is the label.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-fn airport_signal(s: &str) -> Option<u8> {
-    s.split_whitespace().next().and_then(|d| d.parse::<i32>().ok()).map(signal_from_dbm)
-}
+const CW_SECURITY_ORDER: [isize; 16] = [12, 11, 13, 9, 10, 4, 5, 8, 7, 3, 2, 14, 15, 6, 1, 0];
 
-/// `system_profiler SPAirPortDataType -json`: the other networks the
-/// interface sees plus the current one; `<redacted>` names are counted.
+/// A `CWChannel` as `system_profiler` spelled it: `44 (5GHz, 80MHz)`; the
+/// band and width raw values, 0 for unknown.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-fn parse_airport(json: &str) -> (Vec<Network>, usize) {
-    let Ok(v) = serde_json::from_str::<serde_json::Value>(json) else { return (vec![], 0) };
-    let mut out = vec![];
-    let mut hidden = 0;
-    let mut push = |n: &serde_json::Value, current: bool| {
-        let Some(name) = n["_name"].as_str() else { return };
-        if name == "<redacted>" || name.is_empty() {
-            hidden += 1;
-            return;
-        }
-        out.push(Network {
-            ssid: name.to_string(),
-            signal: n["spairport_signal_noise"].as_str().and_then(airport_signal).unwrap_or(0),
-            channel: n["spairport_network_channel"].as_str().map(str::to_string),
-            security: n["spairport_security_mode"].as_str().and_then(airport_security),
-            known: false,
-            current,
-        });
+fn cw_channel(number: isize, band: isize, width: isize) -> String {
+    let band = match band {
+        1 => "2GHz",
+        2 => "5GHz",
+        3 => "6GHz",
+        _ => "",
     };
-    for iface in v["SPAirPortDataType"].as_array().into_iter().flatten().flat_map(|d| d["spairport_airport_interfaces"].as_array().into_iter().flatten()) {
-        if iface["spairport_current_network_information"].is_object() {
-            push(&iface["spairport_current_network_information"], true);
-        }
-        for n in iface["spairport_airport_other_local_wireless_networks"].as_array().into_iter().flatten() {
-            push(n, false);
-        }
+    let width = match width {
+        1 => "20MHz",
+        2 => "40MHz",
+        3 => "80MHz",
+        4 => "160MHz",
+        _ => "",
+    };
+    match (band, width) {
+        ("", "") => number.to_string(),
+        (b, "") => format!("{number} ({b})"),
+        ("", w) => format!("{number} ({w})"),
+        (b, w) => format!("{number} ({b}, {w})"),
     }
-    (dedupe(out), hidden)
 }
 
-/// `ipconfig getsummary en0`: the `SSID`, `Security` and the first IPv4 address.
+/// `ipconfig getsummary en0`: the `SSID`, `Security` and the first IPv4
+/// address; the name is `<redacted>` for a process without Location
+/// Services, which reads as none.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn parse_ipconfig_summary(text: &str) -> (Option<String>, Option<String>, Option<String>) {
     let field = |key: &str| text.lines().find_map(|l| l.trim().strip_prefix(key)).map(|v| v.trim_start_matches(':').trim().to_string()).filter(|v| !v.is_empty() && v != "<redacted>");
     let ip = text.lines().skip_while(|l| !l.trim().starts_with("Addresses")).nth(1).map(|l| l.trim().trim_start_matches("0 :").trim().to_string()).filter(|s| s.chars().all(|c| c.is_ascii_digit() || c == '.'));
     (field("SSID "), field("Security "), ip)
-}
-
-/// `scutil show State:/Network/Interface/en0/AirPort`: `SSID_STR` and `CHANNEL`.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-fn parse_scutil_airport(text: &str) -> (Option<String>, Option<String>) {
-    let field = |key: &str| text.lines().find_map(|l| l.trim().strip_prefix(key)).map(|v| v.trim_start_matches(':').trim().to_string()).filter(|v| !v.is_empty());
-    (field("SSID_STR "), field("CHANNEL ").filter(|c| c != "0"))
 }
 
 /// `networksetup -listpreferredwirelessnetworks en0`: the indented names after the header.
@@ -318,41 +316,57 @@ fn parse_preferred(text: &str) -> Vec<Known> {
 #[cfg(target_os = "macos")]
 mod platform {
     use super::*;
-    use crate::tool::{run, run_in};
+    use crate::tool::run;
+    use objc2::rc::Retained;
+    use objc2_core_wlan::{CWInterface, CWNetwork, CWSecurity, CWWiFiClient};
     use std::sync::OnceLock;
 
-    /// The Wi-Fi device from the hardware ports: `Hardware Port: Wi-Fi` then `Device: en0`.
+    /// The Wi-Fi interface CoreWLAN knows (`en0`); None on a machine without one.
+    fn cw_interface() -> Option<Retained<CWInterface>> {
+        // SAFETY: the shared client is a plain singleton; CoreWLAN reads are thread-safe (called from the bridge's blocking threads).
+        unsafe { CWWiFiClient::sharedWiFiClient().interface() }
+    }
+
+    /// The interface's BSD name, read once (it does not change while pal runs).
     fn interface() -> Option<&'static str> {
         static IF: OnceLock<Option<String>> = OnceLock::new();
-        IF.get_or_init(|| {
-            let ports = run("networksetup", &["-listallhardwareports"]).ok()?;
-            let mut lines = ports.lines();
-            while let Some(l) = lines.next() {
-                if matches!(l.trim(), "Hardware Port: Wi-Fi" | "Hardware Port: AirPort") {
-                    return lines.next()?.trim().strip_prefix("Device: ").map(str::to_string);
-                }
-            }
-            None
-        })
-        .as_deref()
+        // SAFETY: a property read on a retained object.
+        IF.get_or_init(|| cw_interface().and_then(|i| unsafe { i.interfaceName() }).map(|s| s.to_string())).as_deref()
     }
 
     fn need_interface() -> Result<&'static str> {
         interface().ok_or_else(|| Error::Unavailable("no Wi-Fi interface".into()))
     }
 
+    /// A `CWChannel` spelled out ([`cw_channel`]).
+    fn channel_of(c: Option<Retained<objc2_core_wlan::CWChannel>>) -> Option<String> {
+        // SAFETY: property reads on a retained object.
+        c.map(|c| unsafe { cw_channel(c.channelNumber(), c.channelBand().0, c.channelWidth().0) })
+    }
+
+    /// The strongest security a scanned network supports, as a label.
+    fn security_of(n: &CWNetwork) -> Option<String> {
+        // SAFETY: a query on a retained object with a plain enum argument.
+        let code = CW_SECURITY_ORDER.into_iter().find(|&c| unsafe { n.supportsSecurity(CWSecurity(c)) })?;
+        cw_security(code).map(str::to_string)
+    }
+
+    /// RSSI in dBm to percent; 0 is CoreWLAN's "not associated".
+    fn signal_of(rssi: isize) -> Option<u8> {
+        (rssi < 0).then(|| signal_from_dbm(rssi as i32))
+    }
+
     pub fn status() -> Result<Status> {
+        let Some(iface) = cw_interface() else { return Ok(Status::default()) };
         let Some(dev) = interface() else { return Ok(Status::default()) };
-        let powered = run("networksetup", &["-getairportpower", dev]).map(|s| s.contains(": On")).unwrap_or(false);
+        // SAFETY: property reads on a retained object; `ssid` is nil without Location Services, `rssiValue` 0 while not associated.
+        let (powered, ssid, rssi, channel, security) = unsafe { (iface.powerOn(), iface.ssid().map(|s| s.to_string()), iface.rssiValue(), channel_of(iface.wlanChannel()), cw_security(iface.security().0)) };
+        // The IP; the name too when the process's Location grant reaches its children (a terminal's does, pal's own does not).
         let summary = run("ipconfig", &["getsummary", dev]).unwrap_or_default();
-        let (ssid, security, ip) = parse_ipconfig_summary(&summary);
-        let (scutil_ssid, channel) = parse_scutil_airport(&run_in("scutil", &[], Some(&format!("show State:/Network/Interface/{dev}/AirPort\n"))).unwrap_or_default());
-        // Associated: the summary names a network (even redacted) or the link has a channel.
-        let connected = summary.lines().any(|l| l.trim().starts_with("SSID :")) || channel.is_some();
-        let ssid = ssid.or(scutil_ssid).or_else(|| {
-            run("networksetup", &["-getairportnetwork", dev]).ok().and_then(|s| s.trim().strip_prefix("Current Wi-Fi Network: ").map(str::to_string))
-        });
-        let current = (powered && connected).then_some(Current { ssid, signal: None, channel, security, ip });
+        let (cli_ssid, cli_security, ip) = parse_ipconfig_summary(&summary);
+        // Associated: the link has an RSSI, or the summary names a network (even redacted).
+        let connected = rssi < 0 || summary.lines().any(|l| l.trim().starts_with("SSID :"));
+        let current = (powered && connected).then(|| Current { ssid: ssid.or(cli_ssid), signal: signal_of(rssi), channel, security: security.map(str::to_string).or(cli_security), ip });
         Ok(Status { interface: Some(dev.to_string()), powered, current })
     }
 
@@ -360,9 +374,26 @@ mod platform {
         Ok(parse_preferred(&run("networksetup", &["-listpreferredwirelessnetworks", need_interface()?])?))
     }
 
+    /// A CoreWLAN scan: blocks for its duration (~9 s on hornet). A network
+    /// without a name (Location Services withheld it, or a hidden network)
+    /// is counted.
     pub fn scan() -> Result<(Vec<Network>, usize)> {
-        need_interface()?;
-        Ok(parse_airport(&run("system_profiler", &["SPAirPortDataType", "-json"])?))
+        let iface = cw_interface().ok_or_else(|| Error::Unavailable("no Wi-Fi interface".into()))?;
+        // SAFETY: a blocking call on a retained object; the set and its networks are read on this thread and dropped with it.
+        let found = unsafe { iface.scanForNetworksWithSSID_error(None) }.map_err(|e| Error::Failed(e.localizedDescription().to_string()))?;
+        let current = unsafe { iface.ssid() }.map(|s| s.to_string());
+        let mut hidden = 0;
+        let mut out = vec![];
+        for n in found.iter() {
+            // SAFETY: property reads on a retained object.
+            let Some(ssid) = (unsafe { n.ssid() }).map(|s| s.to_string()).filter(|s| !s.is_empty()) else {
+                hidden += 1;
+                continue;
+            };
+            let (rssi, channel) = unsafe { (n.rssiValue(), channel_of(n.wlanChannel())) };
+            out.push(Network { current: current.as_deref() == Some(&ssid), security: security_of(&n), signal: signal_of(rssi).unwrap_or(0), ssid, channel, known: false });
+        }
+        Ok((dedupe(out), hidden))
     }
 
     /// `networksetup` reports a refusal on stdout with exit 0.
@@ -532,35 +563,32 @@ mod tests {
         assert_eq!(parse_nmcli_devices("enp34s0:ethernet:connected\n"), None);
     }
 
-    const AIRPORT: &str = r#"{"SPAirPortDataType":[{"spairport_airport_interfaces":[{"_name":"en0",
-      "spairport_current_network_information":{"_name":"eldiven","spairport_network_channel":"44 (5GHz, 80MHz)","spairport_security_mode":"spairport_security_mode_wpa2_personal_mixed","spairport_signal_noise":"-54 dBm / -96 dBm"},
-      "spairport_airport_other_local_wireless_networks":[
-        {"_name":"<redacted>","spairport_network_channel":"6 (2GHz, 20MHz)","spairport_security_mode":"spairport_security_mode_wpa2_personal"},
-        {"_name":"Cafe","spairport_network_channel":"1 (2GHz, 20MHz)","spairport_security_mode":"spairport_security_mode_none","spairport_signal_noise":"-80 dBm / -96 dBm"},
-        {"_name":"eldiven","spairport_network_channel":"6 (2GHz, 20MHz)","spairport_security_mode":"spairport_security_mode_wpa3_personal","spairport_signal_noise":"-70 dBm / -96 dBm"}
-      ],
-      "spairport_status_information":"spairport_status_connected"}]}]}"#;
-
     #[test]
-    fn airport_scan_with_the_current_network_signal_and_redacted_count() {
-        let (n, hidden) = parse_airport(AIRPORT);
-        assert_eq!(hidden, 1);
-        assert_eq!(n.len(), 2);
-        assert_eq!(n[0], Network { ssid: "eldiven".into(), signal: 92, channel: Some("44 (5GHz, 80MHz)".into()), security: Some("WPA2 Personal".into()), known: false, current: true });
-        assert_eq!(n[1], Network { ssid: "Cafe".into(), signal: 40, channel: Some("1 (2GHz, 20MHz)".into()), security: None, known: false, current: false });
-        assert_eq!(airport_security("spairport_security_mode_wpa3_personal").as_deref(), Some("WPA3 Personal"));
+    fn corewlan_labels() {
+        // Channel as system_profiler spelled it, so the two sources read alike.
+        assert_eq!(cw_channel(44, 2, 3), "44 (5GHz, 80MHz)");
+        assert_eq!(cw_channel(6, 1, 1), "6 (2GHz, 20MHz)");
+        assert_eq!(cw_channel(37, 3, 0), "37 (6GHz)");
+        assert_eq!(cw_channel(1, 0, 0), "1");
+        // The security codes CoreWLAN hands out (CWSecurity).
+        assert_eq!(cw_security(0), None);
+        assert_eq!(cw_security(4), Some("WPA2 Personal"));
+        assert_eq!(cw_security(13), Some("WPA2/WPA3 Personal"));
+        assert_eq!(cw_security(isize::MAX), None);
+        // The strongest supported wins: a WPA2/WPA3 transition network supports 4 and 13, and 13 comes first.
+        let supports = |c: isize| c == 4 || c == 13;
+        assert_eq!(CW_SECURITY_ORDER.into_iter().find(|&c| supports(c)), Some(13));
         assert_eq!(signal_from_dbm(-100), 0);
         assert_eq!(signal_from_dbm(-30), 100);
+        assert_eq!(signal_from_dbm(-54), 92);
     }
 
     #[test]
-    fn ipconfig_summary_scutil_and_preferred_list() {
+    fn ipconfig_summary_and_preferred_list() {
         let summary = "<dictionary> {\n  BSSID : <redacted>\n  IPv4 : <array> {\n    0 : <dictionary> {\n      Addresses : <array> {\n        0 : 192.168.1.131\n      }\n      Router : 192.168.1.1\n    }\n  }\n  SSID : <redacted>\n  Security : WPA2_PSK\n}\n";
         assert_eq!(parse_ipconfig_summary(summary), (None, Some("WPA2_PSK".into()), Some("192.168.1.131".into())));
         let named = summary.replace("SSID : <redacted>", "SSID : eldiven");
         assert_eq!(parse_ipconfig_summary(&named).0.as_deref(), Some("eldiven"));
-        assert_eq!(parse_scutil_airport("<dictionary> {\n  CHANNEL : 44\n  Power Status : TRUE\n  SSID_STR : \n}\n"), (None, Some("44".into())));
-        assert_eq!(parse_scutil_airport("  CHANNEL : 6\n  SSID_STR : Cafe Wifi\n"), (Some("Cafe Wifi".into()), Some("6".into())));
         let k = parse_preferred("Preferred networks on en0:\n\teldiven\n\tmarvin\n\tCafe Wifi\n");
         assert_eq!(k.iter().map(|k| k.ssid.as_str()).collect::<Vec<_>>(), ["eldiven", "marvin", "Cafe Wifi"]);
     }

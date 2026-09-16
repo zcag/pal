@@ -3,7 +3,12 @@
     "entities": {
       "title": "Home Assistant",
       "live": true,
-      "icon": "󰟐",
+      "icon": {
+        "tile": {
+          "glyph": "󰟐",
+          "bg": "teal"
+        }
+      },
       "placeholder": "Search entities",
       "filters": [
         {
@@ -3422,7 +3427,12 @@
     },
     "services": {
       "title": "Home Assistant Services",
-      "icon": "󰉁",
+      "icon": {
+        "tile": {
+          "glyph": "󰟐",
+          "bg": "teal"
+        }
+      },
       "placeholder": "Search services",
       "items": [
         {
@@ -3726,7 +3736,12 @@
     },
     "areas": {
       "title": "Home Assistant Areas",
-      "icon": "󰋜",
+      "icon": {
+        "tile": {
+          "glyph": "󰟐",
+          "bg": "teal"
+        }
+      },
       "placeholder": "Search areas",
       "items": [
         {

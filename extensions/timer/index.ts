@@ -18,7 +18,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { bar, home, settings, type Action, type BarItem, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { bar, home, settings, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 
 type Settings = { command: string; dir: string };
 type State = "running" | "paused" | "done";
@@ -205,13 +205,21 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
 }
 
 export default {
+  // `pal://timer/start?duration=25m&name=tea&ring=1`: the New timer form's submit, from a link; the CLI's line is the HUD's.
+  link: async (route: string, params: LinkParams): Promise<Effect | void> => {
+    if (route !== "start") return;
+    const name = typeof params.name === "string" ? params.name.trim() : "";
+    const out = await timer(String(params.duration).trim(), ...(name ? [name] : []), ...(params.ring === true ? ["--ring"] : []));
+    return { hud: `Timer started: ${out || name || String(params.duration)}` };
+  },
   palettes: {
     [PALETTE]: {
       title: "Timers",
-      icon: GLYPH,
       live: true,
       placeholder: "Find a timer by name",
       list,
+      // The empty root's Now section: the most urgent timer while one runs, is paused or just landed.
+      suggest: async () => readTimers(dirOf()).then((ts) => ts.slice(0, 1).map(row)),
       pick,
     },
   },

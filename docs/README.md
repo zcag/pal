@@ -9,5 +9,7 @@
   a data file or a shell script.
 - [Keyboard](keyboard.md): the keyboard grammar.
 - [CLI](cli.md): `pal` and its subcommands.
+- [Links](links.md): `pal://` deep links and their `pal` twins, every route
+  with an example, what asks first.
 - [Extensions](extensions.md): writing a palette in TypeScript.
 - [Releasing](releasing.md): how a release is cut and how the updater works.

@@ -3,6 +3,7 @@
 // `rates` entry pre-seeded in the harness's storage; two more hosts at the
 // end exercise the fetch against a local server.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { Host, stored } from "../harness.ts";
 
 const RATES = { EUR: 1, USD: 1.1539, TRY: 56.126, GBP: 0.85578, JPY: 178.85, CHF: 0.9441, INR: 110.73 };
@@ -32,11 +33,24 @@ const plusDays = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); 
 
 describe("calc", () => {
   test("meta: input palette with a placeholder", () => {
-    expect(host.loaded().find((l) => l.extension === "calc")!.palettes[0]).toEqual({ name: "calc", title: "Calculator", live: false, input: true, icon: "=", placeholder: "An expression, a conversion, a date or a time" });
+    const meta = host.loaded().find((l) => l.extension === "calc")!.palettes[0];
+    expect(meta).toEqual({ name: "calc", title: "Calculator", live: false, input: true, icon: tile("indigo", "\u{f00ec}"), placeholder: "An expression, a conversion, a date or a time", inline: true, match: expect.any(String), fallback: "ask" });
+  });
+
+  test("at the root (inline): `match` takes sums, conversions and dates, never a bare number or a word; the inline list has no hints", async () => {
+    const { matches } = await import("../../../extensions/calc/index.ts");
+    for (const yes of ["2+2", "15% of 80", "12 usd to try", "5 km to miles", "3 days from now", "today + 3 days", "now in tokyo", "sqrt 2", "0xff"]) expect(matches(yes)).toBe(true);
+    for (const no of ["", "42", "1,000", "chrome", "slack"]) expect(matches(no)).toBe(false);
+    expect(matches("1password")).toBe(true); // a digit next to letters reads as a unit; the parse then finds nothing and the root shows no row
+    expect(await host.list("calc", "calc", "", { inline: true })).toEqual([]);
+    expect((await host.list("calc", "calc", "2+2", { inline: true }))[0]).toMatchObject({ id: "result", name: "4" });
+    const sections = await host.request<{ extension: string; palette: string; items: { name: string }[] }[]>("inline", { query: "15% of 80" });
+    expect(sections.find((s) => s.extension === "calc")!.items[0].name).toBe("12");
+    expect((await host.request<unknown[]>("inline", { query: "1password" })).find((s: any) => s.extension === "calc")).toBeUndefined();
   });
 
   test("2+2: the result as the title, the expression as subtitle, four actions", async () => {
-    expect(await calc("2+2")).toEqual([{ id: "result", name: "4", subtitle: "2+2", icon: "=", actions: ACTIONS }]);
+    expect(await calc("2+2")).toEqual([{ id: "result", name: "4", subtitle: "2+2", icon: "\u{f01fc}", actions: ACTIONS }]);
   });
 
   test("an empty query lists three inert hints; whitespace counts as empty", async () => {
@@ -83,8 +97,8 @@ describe("numbers", () => {
 
   test("bases: literals in, `to hex` out, a second row with the other bases", async () => {
     expect(await calc("0xff")).toEqual([
-      { id: "result", name: "255", subtitle: "0xff", icon: "=", actions: ACTIONS },
-      { id: "base", name: "0b11111111", subtitle: "binary", icon: "=", accessories: [{ text: "0o377" }], actions: ACTIONS },
+      { id: "result", name: "255", subtitle: "0xff", icon: "\u{f01fc}", actions: ACTIONS },
+      { id: "base", name: "0b11111111", subtitle: "binary", icon: "\u{f01fc}", accessories: [{ text: "0o377" }], actions: ACTIONS },
     ]);
     expect(await first("0b1010")).toBe("10");
     const hex = (await calc("255 to hex"))[0];
@@ -125,7 +139,7 @@ describe("numbers", () => {
 
 describe("units", () => {
   test("the common phrasings, rounded to 6 significant digits, the unit as accessory", async () => {
-    expect(await calc("5 km to miles")).toEqual([{ id: "result", name: "3.10686 miles", subtitle: "5 km to miles", icon: "=", accessories: [{ text: "miles" }], actions: ACTIONS }]);
+    expect(await calc("5 km to miles")).toEqual([{ id: "result", name: "3.10686 miles", subtitle: "5 km to miles", icon: "\u{f01fc}", accessories: [{ text: "miles" }], actions: ACTIONS }]);
     expect(await first("72 f to c")).toBe("22.2222 °C");
     expect(await first("72f to c")).toBe("22.2222 °C");
     expect(await first("212 °F to °C")).toBe("100 °C");
@@ -225,7 +239,7 @@ describe("dates and time", () => {
     const days = Math.round((Date.UTC(2026, 11, 25) - Date.UTC(plusDays(0).getFullYear(), plusDays(0).getMonth(), plusDays(0).getDate())) / 86400e3);
     expect(until.name).toBe(`${days} days`);
     expect(until.subtitle).toBe("days until Friday, December 25, 2026");
-    expect(await calc("2026-01-01 - 2025-06-15")).toEqual([{ id: "result", name: "200 days", subtitle: "Sunday, June 15, 2025 → Thursday, January 1, 2026", icon: "=", accessories: [{ text: "28 weeks 4 days" }, { text: "6 months 17 days" }], actions: ACTIONS }]);
+    expect(await calc("2026-01-01 - 2025-06-15")).toEqual([{ id: "result", name: "200 days", subtitle: "Sunday, June 15, 2025 → Thursday, January 1, 2026", icon: "\u{f01fc}", accessories: [{ text: "28 weeks 4 days" }, { text: "6 months 17 days" }], actions: ACTIONS }]);
     expect(await first("2025-06-15 to 2026-01-01")).toBe("200 days");
     expect(await first("weeks between 2025-06-15 and 2026-01-01")).toBe("28.6 weeks");
     expect(await first("months since 2025-06-15 ")).toMatch(/^\d+ months$/);
@@ -289,7 +303,7 @@ describe("rates fetch", () => {
     const h = await Host.bundled({ settings: { calc: { settings: { home_currency: "TRY" } } } });
     try {
       const rows = await h.list("calc", "calc", "12 usd to try");
-      expect(rows).toEqual([{ id: "rates", name: "Fetching exchange rates…", subtitle: "12 USD to TRY", icon: "=", actions: [] }]);
+      expect(rows).toEqual([{ id: "rates", name: "Fetching exchange rates…", subtitle: "12 USD to TRY", icon: "\u{f01fc}", actions: [] }]);
       await h.until(() => stored.has("calc\0rates"), 3000, "rates stored");
       expect(stored.get("calc\0rates")).toMatchObject({ base: "EUR", date: "2026-09-16", rates: { USD: 1.2, TRY: 60, EUR: 1 } });
       const done = await h.list("calc", "calc", "12 usd to try");

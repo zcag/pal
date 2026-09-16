@@ -3,7 +3,7 @@
   "title": "Applications",
   "description": "Installed applications with their own icons: .app bundles on macOS (running ones tagged, with Quit and Hide; the System Settings panes as rows), .desktop entries on Linux (their own actions as secondary actions).",
   "version": "0.1.0",
-  "icon": "▢",
+  "icon": { "tile": { "glyph": "󰀻", "bg": "slate" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

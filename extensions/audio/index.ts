@@ -63,7 +63,6 @@ export default {
   palettes: {
     audio: {
       title: "Audio",
-      icon: "♫",
       live: true,
       placeholder: "Switch output or input, set the volume",
       list: async (_query, ctx?: Ctx) => {

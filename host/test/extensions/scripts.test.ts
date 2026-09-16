@@ -1,10 +1,15 @@
 // scripts: a scratch v1 config with a data palette and script palettes,
-// pointed at through the `config` setting.
+// pointed at through the `config` setting; then the single-file script
+// commands (commands.ts) from a scratch folder through the `commands`
+// setting: the header parser, the rows, every mode, the form, the watcher.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parse, scan, seconds, tags } from "../../../extensions/scripts/commands.ts";
+import { tile } from "../../../sdk/src/icon.ts";
 import { xdg } from "../../../sdk/src/icons.ts";
+import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-v1-"));
@@ -117,23 +122,26 @@ exit 0
 `, true);
 
 let host: Host;
-beforeAll(async () => { host = await Host.bundled({ settings: { scripts: { settings: { config: join(dir, "config.toml"), skip: ["calc"] } } } }); });
+const cmdDir = join(dir, "commands");
+mkdirSync(cmdDir, { recursive: true });
+beforeAll(async () => { host = await Host.bundled({ settings: { scripts: { settings: { config: join(dir, "config.toml"), skip: ["calc"], commands: cmdDir } } } }); });
 afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
 
 const names = () => host.loaded().find((l) => l.extension === "scripts")!.palettes.map((p) => p.name).sort();
 
 describe("discovery", () => {
   test("every usable [palette.*] is a palette; requires/os gate, skip drops, a builtin base and an empty one are inert", () => {
-    expect(names()).toEqual(["alt", "badtier", "big", "bigprimary", "counter", "empty", "fresh", "grid", "inp", "links", "oldbuiltin"]);
+    expect(names()).toEqual(["alt", "badtier", "big", "bigprimary", "commands", "counter", "empty", "fresh", "grid", "inp", "links", "oldbuiltin"]);
     expect(host.stderr).toContain("gated: gated (needs definitely-not-a-binary-on-this-box)");
     expect(host.stderr).toContain("calc: skipped (native)");
     expect(host.stderr).toMatch(/otheros: gated \((linux|macos) only\)/);
   });
 
-  test("meta from the v1 fields: input, prompt, live, grid, columns, detail pane, filters, lazy detail only for scripts; ttl from the table, else the setting's default for a non-live one", () => {
+  test("meta from the v1 fields: input, prompt, live, grid, columns, detail pane, filters, lazy detail only for scripts; ttl from the table, else the setting's default for a non-live one; a table without an icon wears the extension's tile", () => {
     const by = Object.fromEntries(host.loaded().find((l) => l.extension === "scripts")!.palettes.map((p) => [p.name, p]));
-    expect(by.inp).toEqual({ name: "inp", title: "inp", live: true, input: true, placeholder: "Type here", detail: "lazy", icon: xdg("utilities-terminal") });
-    expect(by.grid).toEqual({ name: "grid", title: "grid", live: false, input: false, view: "grid", columns: 5, showDetail: true, filters: [{ id: "all", title: "All" }, { id: "few", title: "few" }], ttl: 3600, icon: xdg("text-x-generic") });
+    const TILE = tile("slate", xdg("utilities-terminal")!);
+    expect(by.inp).toEqual({ name: "inp", title: "inp", live: true, input: true, placeholder: "Type here", detail: "lazy", icon: TILE });
+    expect(by.grid).toEqual({ name: "grid", title: "grid", live: false, input: false, view: "grid", columns: 5, showDetail: true, filters: [{ id: "all", title: "All" }, { id: "few", title: "few" }], ttl: 3600, icon: TILE });
     expect(by.counter.ttl).toBe(60);
     expect(by.fresh).not.toHaveProperty("ttl");
     expect(by.links).toEqual({ name: "links", title: "links", live: false, input: false, icon: "★", ttl: 3600 });
@@ -236,5 +244,158 @@ describe("script palette", () => {
 
   test("a script's rows carry the plugin's actions; requires with an alternative that exists loads", async () => {
     expect(await host.list("scripts", "alt", "")).toHaveLength(2);
+  });
+});
+
+// ---- script commands ---------------------------------------------------------------------
+
+const cmd = (name: string, header: string, body: string, exec = true) => w(`commands/${name}`, `#!/bin/bash\n${header}\n${body}\n`, exec);
+cmd("deploy.sh", `# @pal.title Deploy site\n# @pal.icon 🚀\n# @pal.mode hud\n# @pal.confirm true\n# @pal.keyword deploy ship\n# @pal.description Push the site to production\n# @pal.args target Environment (staging or prod)\n# @pal.args note Release note (optional)`, `if [ -n "$2" ]; then echo "Deployed to $1 ($2)"; else echo "Deployed to $1"; fi; echo "second line"`);
+cmd("ports.sh", `# @pal.title Listening ports\n# @pal.mode list\n# @pal.icon amber`, `if [ -n "$PAL_PICK" ]; then echo "picked $PAL_PICK"; exit 0; fi\necho '{"id":"5173","name":":5173","subtitle":"node","copy":"5173"}'\necho '{"name":"docs","url":"https://example.com"}'`);
+cmd("lines.sh", `# @pal.title Plain lines\n# @pal.mode list`, `if [ -n "$PAL_PICK" ]; then echo "picked $PAL_PICK"; exit 0; fi\necho "plain line"; echo "another"`);
+cmd("uptime.sh", `# @pal.title Uptime\n# @pal.mode inline\n# @pal.refresh 1h`, `echo "up $RANDOM"; echo "ignored"`);
+cmd("ray.sh", `# @raycast.schemaVersion 1\n# @raycast.title Say hi\n# @raycast.mode compact\n# @raycast.packageName Raycast\n# @raycast.icon 👋\n# @raycast.argument1 { "type": "text", "placeholder": "Name" }\n# @raycast.needsConfirmation false\n# @raycast.currentDirectoryPath /`, `echo "hi $1 from $(pwd)"`);
+cmd("quiet.sh", `# @pal.title Quiet one\n# @pal.mode silent\n# @pal.confirm yes`, `exit 0`);
+cmd("broken.sh", `# @pal.title Broken\n# @pal.mode hud`, `echo "boom" >&2; exit 3`);
+cmd("show.sh", `# @raycast.title Whole output\n# @raycast.mode fullOutput`, `printf 'line 1\\nline 2\\n'`);
+cmd("notexec.sh", `# @pal.title Not executable`, `echo no`, false);
+cmd("notitle.sh", `# @pal.mode hud`, `echo no`);
+cmd("x.template.sh", `# @pal.title Template`, `echo no`);
+
+const cmds = () => host.list("scripts", "commands");
+const cpick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("scripts", "commands", id, action, ctx);
+const nextEffect = async () => {
+  const from = host.coreCalls.filter((c) => c.method === "effects.run").length;
+  await host.until(() => host.coreCalls.filter((c) => c.method === "effects.run").length > from, 3000, "effects.run");
+  return (host.coreCalls.filter((c) => c.method === "effects.run").pop()!.params as { effect: Record<string, unknown> }).effect;
+};
+
+describe("script commands: the header", () => {
+  test("tags: # // -- ; and * comments, pal and raycast prefixes, repeated tags as a list, only the first lines read", () => {
+    expect(tags("#!/bin/sh\n# @pal.title A\n// @raycast.mode silent\n-- @pal.keyword x\n; @pal.keyword y\n * @pal.icon 🍀\n#@pal.title B\n")).toEqual({ title: ["A", "B"], mode: ["silent"], keyword: ["x", "y"], icon: ["🍀"] });
+    expect(tags(`${"\n".repeat(70)}# @pal.title late`)).toEqual({});
+    expect(seconds("10s")).toBe(10);
+    expect(seconds("2m")).toBe(120);
+    expect(seconds("1h")).toBe(3600);
+    expect(seconds("30")).toBe(30);
+    expect(seconds("soon")).toBeUndefined();
+  });
+
+  test("parse: every field from the tags, raycast aliases mapped (compact is hud, fullOutput is show, argument1 JSON, packageName, currentDirectoryPath), defaults for the rest", () => {
+    const d = parse(join(cmdDir, "deploy.sh"))!;
+    expect(d).toMatchObject({ id: "deploy.sh", title: "Deploy site", icon: "🚀", mode: "hud", confirm: true, keywords: ["deploy", "ship"], subtitle: "Push the site to production", cwd: cmdDir, refresh: 60 });
+    expect(d.args).toEqual([{ name: "target", label: "Target", placeholder: "Environment (staging or prod)", optional: false }, { name: "note", label: "Note", placeholder: "Release note (optional)", optional: true }]);
+    const r = parse(join(cmdDir, "ray.sh"))!;
+    expect(r).toMatchObject({ title: "Say hi", mode: "hud", section: "Raycast", icon: "👋", confirm: false, cwd: "/", args: [{ name: "argument1", label: "Name", placeholder: "Name", optional: false }] });
+    expect(parse(join(cmdDir, "ports.sh"))!.icon).toEqual({ tile: { glyph: "\u{f0bc3}", bg: "amber" } });
+    expect(parse(join(cmdDir, "uptime.sh"))).toMatchObject({ mode: "inline", refresh: 3600 });
+    expect(parse(join(cmdDir, "show.sh"))!.mode).toBe("show");
+    expect(parse(join(cmdDir, "notitle.sh"))).toBeUndefined();
+    expect(parse(join(dir, "nope.sh"))).toBeUndefined();
+  });
+
+  test("scan: executables with a title, sorted by file name; a file without the bit, without a title, a template or a dotfile is not one; a missing folder is empty", () => {
+    expect(scan(cmdDir).map((c) => c.id)).toEqual(["broken.sh", "deploy.sh", "lines.sh", "ports.sh", "quiet.sh", "ray.sh", "show.sh", "uptime.sh"]);
+    expect(scan(join(dir, "missing"))).toEqual([]);
+  });
+});
+
+describe("script commands: the palette", () => {
+  test("meta: a live palette wearing the extension's tile; rows with the title, the mode on the right unless hud, the section, the keywords, the file in the detail; an inline command's first line as its subtitle", async () => {
+    const meta = host.loaded().find((l) => l.extension === "scripts")!.palettes.find((p) => p.name === "commands")!;
+    expect(meta).toMatchObject({ title: "Script Commands", live: true, input: false, icon: tile("slate", xdg("utilities-terminal")!) });
+    const items = await cmds();
+    expect(items.map((i) => i.id)).toEqual(["broken.sh", "deploy.sh", "lines.sh", "ports.sh", "quiet.sh", "ray.sh", "show.sh", "uptime.sh"]);
+    const by = Object.fromEntries(items.map((i) => [i.id, i]));
+    expect(by["deploy.sh"]).toMatchObject({ name: "Deploy site", subtitle: "Push the site to production", icon: "🚀", keywords: ["deploy", "ship"] });
+    expect(by["deploy.sh"].accessories).toBeUndefined();
+    expect(by["deploy.sh"].actions).toEqual([{ id: "run", title: "Run…" }, { id: "open", title: "Open script", shortcut: "cmd+o" }, { id: "copy_output", title: "Copy output", shortcut: "cmd+c" }, { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c" }]);
+    expect(by["deploy.sh"].detail!.metadata).toEqual([{ label: "File", value: join(cmdDir, "deploy.sh") }, { label: "Mode", value: "hud" }, { label: "Arguments", value: "target, note" }, { label: "Confirm", value: "yes" }, { label: "Runs in", value: cmdDir }]);
+    expect(by["ports.sh"]).toMatchObject({ name: "Listening ports", accessories: [{ text: "list" }], actions: [{ id: "run", title: "Open" }, expect.anything(), expect.anything(), expect.anything()] });
+    expect(by["ports.sh"].icon).toEqual({ tile: { glyph: "\u{f0bc3}", bg: "amber" } });
+    expect(by["ray.sh"]).toMatchObject({ name: "Say hi", section: "Raycast", icon: "👋" });
+    expect(by["quiet.sh"]).toMatchObject({ icon: "\u{f0bc3}", accessories: [{ text: "silent" }], actions: [{ id: "run", title: "Run", confirm: "Quiet one?" }, expect.anything(), expect.anything(), expect.anything()] });
+    expect(by["uptime.sh"].subtitle).toMatch(/^up \d+$/);
+    // The inline line is kept for the header's refresh (an hour): the second listing shows the same one.
+    expect((await cmds()).find((i) => i.id === "uptime.sh")!.subtitle).toBe(by["uptime.sh"].subtitle);
+    expect(items.every((i) => i.icon)).toBe(true);
+  });
+
+  test("hud: Enter hides and the HUD then carries the first output line; a failure carries stderr's first line; silent says nothing unless it failed", async () => {
+    await cmds();
+    expect(await cpick("ray.sh", "run_args", { values: { argument1: "Ada" } })).toEqual({ hide: true });
+    expect(await nextEffect()).toEqual({ hud: "Say hi: hi Ada from /" });
+    expect(await cpick("broken.sh")).toEqual({ hide: true });
+    expect(await nextEffect()).toEqual({ hud: "Broken: boom" });
+    const before = host.coreCalls.filter((c) => c.method === "effects.run").length;
+    expect(await cpick("quiet.sh")).toEqual({ hide: true });
+    await Bun.sleep(300);
+    expect(host.coreCalls.filter((c) => c.method === "effects.run")).toHaveLength(before);
+  });
+
+  test("arguments: Enter is a form with a field per @pal.args, required unless optional; the submit runs with them in order; a missing required one is refused", async () => {
+    await cmds();
+    const f = (await cpick("deploy.sh")).form as Form;
+    expect(f).toMatchObject({ id: "deploy.sh", title: "Deploy site", submit: { id: "run_args", title: "Run" } });
+    expect(f.fields.map((x) => [x.id, x.label, x.kind, x.placeholder, !!x.required])).toEqual([["target", "Target", "text", "Environment (staging or prod)", true], ["note", "Note", "text", "Release note (optional)", false]]);
+    expect(((await cpick("deploy.sh", "run_args", { values: { target: " ", note: "x" } })).form as Form).errors).toEqual({ target: "Required" });
+    expect(await cpick("deploy.sh", "run_args", { values: { target: "prod", note: "v2" } })).toEqual({ hide: true });
+    expect(await nextEffect()).toEqual({ hud: "Deploy site: Deployed to prod (v2)" });
+    expect(await cpick("deploy.sh", "run_args", { values: { target: "staging" } })).toEqual({ hide: true });
+    expect(await nextEffect()).toEqual({ hud: "Deploy site: Deployed to staging" });
+  });
+
+  test("list: Enter pushes a level whose rows are what the script printed (JSON lines, a url row, a plain line); a row copies, opens, or runs the script again with PAL_PICK", async () => {
+    await cmds();
+    expect(await cpick("ports.sh")).toEqual({ push: { extension: "scripts", palette: "commands", args: { list: "ports.sh", values: undefined } } });
+    const rows = await host.list("scripts", "commands", "", { args: { list: "ports.sh" } });
+    expect(rows.map((r) => [r.id, r.name, r.actions![0].title])).toEqual([["5173", ":5173", "Copy"], ["docs", "docs", "Open"]]);
+    expect((await host.list("scripts", "commands", "", { args: { list: "lines.sh" } })).map((r) => [r.id, r.name, r.actions![0].title])).toEqual([["plain line", "plain line", "Pick"], ["another", "another", "Pick"]]);
+    expect(rows[0]).toMatchObject({ subtitle: "node", icon: { tile: { glyph: "\u{f0bc3}", bg: "amber" } } });
+    expect(await cpick("5173", "pick", { args: { list: "ports.sh" } })).toEqual({ copy: "5173" });
+    expect(await cpick("docs", undefined, { args: { list: "ports.sh" } })).toEqual({ open: "https://example.com" });
+    expect(await cpick("another", undefined, { args: { list: "lines.sh" } })).toEqual({ hud: "Plain lines: picked another" });
+    expect(await cpick("zzz", undefined, { args: { list: "ports.sh" } })).toMatchObject({ keep: true, toast: { title: "Row not found" } });
+  });
+
+  test("show: the whole output comes back as a level with the text in the detail pane and a copy action", async () => {
+    await cmds();
+    expect(await cpick("show.sh")).toEqual({ hide: true });
+    const e = await nextEffect();
+    expect(e).toEqual({ push: { extension: "scripts", palette: "commands", args: { show: "show.sh", out: "line 1\nline 2\n" } } });
+    const [row] = await host.list("scripts", "commands", "", { args: (e.push as { args: unknown }).args });
+    expect(row).toMatchObject({ id: "out", name: "Whole output", detail: { markdown: "```\nline 1\nline 2\n\n```" } });
+    expect(await cpick("out", "copy_shown", { args: (e.push as { args: unknown }).args })).toEqual({ copy: "line 1\nline 2\n" });
+  });
+
+  test("Open script opens the file, Copy path copies it, Copy output runs it and copies what it printed (a form first when it takes arguments)", async () => {
+    await cmds();
+    expect(await cpick("quiet.sh", "open")).toEqual({ open: join(cmdDir, "quiet.sh") });
+    expect(await cpick("quiet.sh", "copy_path")).toEqual({ copy: join(cmdDir, "quiet.sh") });
+    expect(await cpick("show.sh", "copy_output")).toEqual({ copy: "line 1\nline 2" });
+    expect(await cpick("broken.sh", "copy_output")).toMatchObject({ keep: true, toast: { title: "Broken: boom", style: "failure" } });
+    expect((await cpick("ray.sh", "copy_output")).form).toMatchObject({ submit: { id: "copy_args", title: "Copy output" } });
+    expect(await cpick("ray.sh", "copy_args", { values: { argument1: "Bob" } })).toEqual({ copy: "hi Bob from /" });
+  });
+
+  test("the folder is watched: a file added after the first listing is a row on the next; one removed is gone, and picking it is a toast", async () => {
+    await cmds();
+    cmd("added.sh", `# @pal.title Added later`, `echo hi`);
+    await host.until(() => false, 300, "").catch(() => {});
+    expect((await cmds()).map((i) => i.id)).toContain("added.sh");
+    rmSync(join(cmdDir, "added.sh"));
+    await host.until(() => false, 300, "").catch(() => {});
+    expect((await cmds()).map((i) => i.id)).not.toContain("added.sh");
+    expect(await cpick("added.sh")).toMatchObject({ keep: true, toast: { title: "Command not found" } });
+  });
+
+  test("an empty or missing folder is one hint row naming it; the setting moves the folder live", async () => {
+    host.changeSettings("scripts", { settings: { config: join(dir, "config.toml"), skip: ["calc"], commands: join(dir, "nowhere") } });
+    const items = await cmds();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ id: "hint:none", name: `No script commands in ${join(dir, "nowhere")}`, actions: [] });
+    expect(await cpick("hint:none")).toEqual({});
+    host.changeSettings("scripts", { settings: { config: join(dir, "config.toml"), skip: ["calc"], commands: cmdDir } });
+    expect((await cmds()).length).toBeGreaterThan(1);
   });
 });

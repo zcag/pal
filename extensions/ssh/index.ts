@@ -196,7 +196,6 @@ export default {
   palettes: {
     ssh: {
       title: "SSH Hosts",
-      icon: ICON,
       placeholder: "Connect to a host",
       list,
       pick: async (id, action) => {

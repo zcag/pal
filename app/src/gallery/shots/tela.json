@@ -1,0 +1,3676 @@
+{
+  "palettes": {
+    "search": {
+      "title": "Search tela",
+      "icon": {
+        "tile": {
+          "glyph": "󰗚",
+          "bg": "indigo"
+        }
+      },
+      "input": true,
+      "placeholder": "Words, “a phrase”, -excluded",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Search tela",
+            "subtitle": "Words, a phrase in quotes, -excluded; ranked over titles and bodies",
+            "icon": "󰋽",
+            "actions": []
+          }
+        ],
+        "index": [
+          {
+            "id": "page:10",
+            "name": "Indexing",
+            "subtitle": "Indexing Every listing is persisted to the data",
+            "icon": "󰧮",
+            "keywords": [
+              "Engineering"
+            ],
+            "section": "Engineering",
+            "accessories": [],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in tela"
+              },
+              {
+                "id": "read",
+                "title": "Read in pal",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "outline",
+                "title": "Outline",
+                "shortcut": "cmd+shift+o"
+              },
+              {
+                "id": "backlinks",
+                "title": "Backlinks",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "append",
+                "title": "Append to page",
+                "shortcut": "cmd+shift+a"
+              },
+              {
+                "id": "comment",
+                "title": "Comment on page",
+                "shortcut": "cmd+shift+m"
+              }
+            ],
+            "detail": {
+              "markdown": "…**Index**ing Every listing is persisted to the data…"
+            }
+          },
+          {
+            "id": "page:11",
+            "name": "Startup",
+            "subtitle": "Indexing · Startup The host spawns after Indexing restores the cache.",
+            "icon": "󰧮",
+            "keywords": [
+              "Engineering",
+              "Indexing"
+            ],
+            "section": "Engineering",
+            "accessories": [],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in tela"
+              },
+              {
+                "id": "read",
+                "title": "Read in pal",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "outline",
+                "title": "Outline",
+                "shortcut": "cmd+shift+o"
+              },
+              {
+                "id": "backlinks",
+                "title": "Backlinks",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "append",
+                "title": "Append to page",
+                "shortcut": "cmd+shift+a"
+              },
+              {
+                "id": "comment",
+                "title": "Comment on page",
+                "shortcut": "cmd+shift+m"
+              }
+            ],
+            "detail": {
+              "markdown": "…Startup The host spawns after **Index**ing restores the cache.…"
+            }
+          },
+          {
+            "id": "page:14",
+            "name": "On-call runbook",
+            "subtitle": "On-call Page the owner before restarting the indexer. 1. Check the queue 2. Drain 3. Restart",
+            "icon": "󰧮",
+            "keywords": [
+              "Engineering"
+            ],
+            "section": "Engineering",
+            "accessories": [],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in tela"
+              },
+              {
+                "id": "read",
+                "title": "Read in pal",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "outline",
+                "title": "Outline",
+                "shortcut": "cmd+shift+o"
+              },
+              {
+                "id": "backlinks",
+                "title": "Backlinks",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "append",
+                "title": "Append to page",
+                "shortcut": "cmd+shift+a"
+              },
+              {
+                "id": "comment",
+                "title": "Comment on page",
+                "shortcut": "cmd+shift+m"
+              }
+            ],
+            "detail": {
+              "markdown": "…On-call Page the owner before restarting the **index**er. 1. Check the queue 2. Drain 3. Restart…"
+            }
+          },
+          {
+            "id": "page:31",
+            "name": "Why one index",
+            "subtitle": "Why one index One box across everything.",
+            "icon": "󰧮",
+            "keywords": [
+              "Blog"
+            ],
+            "section": "Blog",
+            "accessories": [
+              {
+                "tag": "public",
+                "color": "grey"
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in tela"
+              },
+              {
+                "id": "read",
+                "title": "Read in pal",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "outline",
+                "title": "Outline",
+                "shortcut": "cmd+shift+o"
+              },
+              {
+                "id": "backlinks",
+                "title": "Backlinks",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "append",
+                "title": "Append to page",
+                "shortcut": "cmd+shift+a"
+              },
+              {
+                "id": "comment",
+                "title": "Comment on page",
+                "shortcut": "cmd+shift+m"
+              }
+            ],
+            "detail": {
+              "markdown": "…Why one **index** One box across everything.…"
+            }
+          }
+        ]
+      },
+      "details": {
+        "page:21": {
+          "markdown": "# Reading\n\n- Data & Databases\n",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Notes",
+                "href": "http://127.0.0.1:55548/spaces/1"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "5 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "6"
+            }
+          ]
+        },
+        "page:10": {
+          "markdown": "# Indexing\n\nEvery listing is **persisted** to the data dir and restored at the next start, see [[Startup]] and the [design note](https://example.com/design).\n\n> **Note: Why persist**\n> The first query answers at 400 ms cold instead of 10 s.\n\n## Steps\n\n1. Restore the cache\n2. Spawn the host\n3. Relist what expired\n\n- `ttl` is palette meta\n- `live` relists on show\n  - not twice within 2 s\n- [x] done: the budget\n- [ ] open: the Linux bar\n\n| palette | ttl | kind |\n|---|---:|---|\n| prs | 300 | list |\n| notifications | 60 | live |\n\n```ts\nconst gap = 2000;\n```\n\n\nPaint first, fetch later.\n\n<details><summary>Numbers</summary>\n\nHotkey to paint 1.7 ms.\n\n</details>\n\n---\n![the pipeline](https://example.com/pipeline.png)\n",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "11 h ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "137"
+            },
+            {
+              "label": "Summary",
+              "value": "The indexing pipeline end to end."
+            }
+          ]
+        },
+        "page:14": {
+          "markdown": "# On-call\n\n> **Important: > Page the owner before restarting the indexer.**\n\n1. Check the queue\n2. Drain\n3. Restart",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "12 h ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/5/2026"
+            },
+            {
+              "label": "Words",
+              "value": "20"
+            }
+          ]
+        },
+        "page:20": {
+          "markdown": "- call the bank\n",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Notes",
+                "href": "http://127.0.0.1:55548/spaces/1"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "13 h ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "4"
+            }
+          ]
+        },
+        "page:15": {
+          "markdown": "# Frecency\n\nWhat the user picks climbs by up to a tier and a half.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "1 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/6/2026"
+            },
+            {
+              "label": "Words",
+              "value": "15"
+            }
+          ]
+        },
+        "page:11": {
+          "markdown": "# Startup\n\nThe host spawns after [[Indexing]] restores the cache.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Under",
+              "value": "Indexing"
+            },
+            {
+              "label": "Updated",
+              "value": "1 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/2/2026"
+            },
+            {
+              "label": "Words",
+              "value": "10"
+            }
+          ]
+        },
+        "page:30": {
+          "markdown": "# How we ship\n\nWeekly.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Blog",
+                "href": "http://127.0.0.1:55548/spaces/3"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "7 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "8/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "5"
+            }
+          ]
+        },
+        "page:22": {
+          "markdown": "- ferry times\n- the cove past the harbour",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Notes",
+                "href": "http://127.0.0.1:55548/spaces/1"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "2 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/8/2026"
+            },
+            {
+              "label": "Words",
+              "value": "9"
+            }
+          ]
+        },
+        "page:40": {
+          "markdown": "# Brief\n\nHigh polish everywhere.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Design",
+                "href": "http://127.0.0.1:55548/spaces/4"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "4 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "5"
+            }
+          ]
+        },
+        "page:31": {
+          "markdown": "# Why one index\n\nOne box across everything.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Blog",
+                "href": "http://127.0.0.1:55548/spaces/3"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "5 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "8/20/2026"
+            },
+            {
+              "label": "Words",
+              "value": "8"
+            }
+          ]
+        }
+      }
+    },
+    "research": {
+      "title": "Ask tela",
+      "icon": {
+        "tile": {
+          "glyph": "󰗚",
+          "bg": "indigo"
+        }
+      },
+      "input": true,
+      "placeholder": "A question for the wiki",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:ask",
+            "name": "Ask the wiki a question",
+            "subtitle": "Type a question; Enter assembles the answer from the pages that matter, with sources",
+            "icon": "󰛩",
+            "actions": []
+          }
+        ],
+        "how does indexing work": [
+          {
+            "id": "ask:how does indexing work",
+            "name": "Ask: how does indexing work",
+            "subtitle": "Semantic and answer-oriented: the pages that matter, assembled with their sources",
+            "icon": "󰛩",
+            "actions": [
+              {
+                "id": "ask",
+                "title": "Ask"
+              },
+              {
+                "id": "browser",
+                "title": "Ask in the browser",
+                "shortcut": "cmd+enter"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "pages": {
+      "title": "Pages",
+      "icon": {
+        "tile": {
+          "glyph": "󰗚",
+          "bg": "indigo"
+        }
+      },
+      "placeholder": "A page by title or space",
+      "items": [
+        {
+          "id": "cmd:new",
+          "name": "New tela page",
+          "subtitle": "A page in a space, the body from your selection or the clipboard",
+          "icon": "󱪞",
+          "keywords": [
+            "create",
+            "write",
+            "wiki"
+          ],
+          "actions": [
+            {
+              "id": "new",
+              "title": "New page"
+            }
+          ]
+        },
+        {
+          "id": "cmd:search",
+          "name": "Search tela",
+          "subtitle": "Full-text over every page you can see",
+          "icon": "󰍉",
+          "keywords": [
+            "find",
+            "wiki"
+          ],
+          "actions": [
+            {
+              "id": "search",
+              "title": "Search"
+            },
+            {
+              "id": "browser",
+              "title": "Search in the browser",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "cmd:ask",
+          "name": "Ask tela",
+          "subtitle": "A question answered from the pages that matter",
+          "icon": "󰛩",
+          "keywords": [
+            "research",
+            "question",
+            "wiki"
+          ],
+          "actions": [
+            {
+              "id": "ask",
+              "title": "Ask"
+            },
+            {
+              "id": "browser",
+              "title": "Ask in the browser",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "cmd:notes",
+          "name": "Quick Notes",
+          "subtitle": "Your scratchpad page on tela",
+          "icon": "󱇗",
+          "keywords": [
+            "scratch",
+            "journal",
+            "daily"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open Quick Notes"
+            },
+            {
+              "id": "append",
+              "title": "Append to Quick Notes",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "page:21",
+          "name": "Reading list",
+          "subtitle": "Notes",
+          "icon": "󰓎",
+          "keywords": [
+            "Notes"
+          ],
+          "section": "Favourites",
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:10",
+          "name": "Indexing",
+          "subtitle": "Engineering",
+          "icon": "󰓎",
+          "keywords": [
+            "Engineering"
+          ],
+          "section": "Favourites",
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:14",
+          "name": "On-call runbook",
+          "subtitle": "Engineering",
+          "icon": "󰓎",
+          "keywords": [
+            "Engineering"
+          ],
+          "section": "Favourites",
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:20",
+          "name": "Quick Notes",
+          "icon": "󰧮",
+          "keywords": [
+            "Notes"
+          ],
+          "section": "Notes",
+          "accessories": [
+            {
+              "text": "cagdas"
+            },
+            {
+              "date": "2026-09-16T07:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:15",
+          "name": "Frecency",
+          "icon": "󰧮",
+          "keywords": [
+            "Engineering"
+          ],
+          "section": "Engineering",
+          "accessories": [
+            {
+              "text": "mara"
+            },
+            {
+              "date": "2026-09-15T16:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:11",
+          "name": "Startup",
+          "icon": "󰧮",
+          "keywords": [
+            "Engineering"
+          ],
+          "section": "Engineering",
+          "accessories": [
+            {
+              "date": "2026-09-15T12:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:30",
+          "name": "How we ship",
+          "icon": "󰧮",
+          "keywords": [
+            "Blog"
+          ],
+          "section": "Blog",
+          "accessories": [
+            {
+              "text": "tomas"
+            },
+            {
+              "date": "2026-09-10T07:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:22",
+          "name": "Trip to Kaş",
+          "icon": "󰧮",
+          "keywords": [
+            "Notes"
+          ],
+          "section": "Notes",
+          "accessories": [
+            {
+              "text": "cagdas"
+            },
+            {
+              "date": "2026-09-14T18:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:40",
+          "name": "Brief",
+          "icon": "󰧮",
+          "keywords": [
+            "Design"
+          ],
+          "section": "Design",
+          "accessories": [
+            {
+              "text": "ola"
+            },
+            {
+              "date": "2026-09-12T09:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        },
+        {
+          "id": "page:31",
+          "name": "Why one index",
+          "icon": "󰧮",
+          "keywords": [
+            "Blog"
+          ],
+          "section": "Blog",
+          "accessories": [
+            {
+              "text": "tomas"
+            },
+            {
+              "date": "2026-09-11T09:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "page:21": {
+          "markdown": "# Reading\n\n- Data & Databases\n",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Notes",
+                "href": "http://127.0.0.1:55548/spaces/1"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "5 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "6"
+            }
+          ]
+        },
+        "page:10": {
+          "markdown": "# Indexing\n\nEvery listing is **persisted** to the data dir and restored at the next start, see [[Startup]] and the [design note](https://example.com/design).\n\n> **Note: Why persist**\n> The first query answers at 400 ms cold instead of 10 s.\n\n## Steps\n\n1. Restore the cache\n2. Spawn the host\n3. Relist what expired\n\n- `ttl` is palette meta\n- `live` relists on show\n  - not twice within 2 s\n- [x] done: the budget\n- [ ] open: the Linux bar\n\n| palette | ttl | kind |\n|---|---:|---|\n| prs | 300 | list |\n| notifications | 60 | live |\n\n```ts\nconst gap = 2000;\n```\n\n\nPaint first, fetch later.\n\n<details><summary>Numbers</summary>\n\nHotkey to paint 1.7 ms.\n\n</details>\n\n---\n![the pipeline](https://example.com/pipeline.png)\n",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "11 h ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "137"
+            },
+            {
+              "label": "Summary",
+              "value": "The indexing pipeline end to end."
+            }
+          ]
+        },
+        "page:14": {
+          "markdown": "# On-call\n\n> **Important: > Page the owner before restarting the indexer.**\n\n1. Check the queue\n2. Drain\n3. Restart",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "12 h ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/5/2026"
+            },
+            {
+              "label": "Words",
+              "value": "20"
+            }
+          ]
+        },
+        "page:20": {
+          "markdown": "- call the bank\n",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Notes",
+                "href": "http://127.0.0.1:55548/spaces/1"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "13 h ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "4"
+            }
+          ]
+        },
+        "page:15": {
+          "markdown": "# Frecency\n\nWhat the user picks climbs by up to a tier and a half.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "1 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/6/2026"
+            },
+            {
+              "label": "Words",
+              "value": "15"
+            }
+          ]
+        },
+        "page:11": {
+          "markdown": "# Startup\n\nThe host spawns after [[Indexing]] restores the cache.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Under",
+              "value": "Indexing"
+            },
+            {
+              "label": "Updated",
+              "value": "1 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/2/2026"
+            },
+            {
+              "label": "Words",
+              "value": "10"
+            }
+          ]
+        },
+        "page:30": {
+          "markdown": "# How we ship\n\nWeekly.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Blog",
+                "href": "http://127.0.0.1:55548/spaces/3"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "7 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "8/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "5"
+            }
+          ]
+        },
+        "page:22": {
+          "markdown": "- ferry times\n- the cove past the harbour",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Notes",
+                "href": "http://127.0.0.1:55548/spaces/1"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "2 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/8/2026"
+            },
+            {
+              "label": "Words",
+              "value": "9"
+            }
+          ]
+        },
+        "page:40": {
+          "markdown": "# Brief\n\nHigh polish everywhere.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Design",
+                "href": "http://127.0.0.1:55548/spaces/4"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "4 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/1/2026"
+            },
+            {
+              "label": "Words",
+              "value": "5"
+            }
+          ]
+        },
+        "page:31": {
+          "markdown": "# Why one index\n\nOne box across everything.",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Blog",
+                "href": "http://127.0.0.1:55548/spaces/3"
+              }
+            },
+            {
+              "label": "Updated",
+              "value": "5 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "8/20/2026"
+            },
+            {
+              "label": "Words",
+              "value": "8"
+            }
+          ]
+        }
+      }
+    },
+    "spaces": {
+      "title": "Spaces",
+      "icon": {
+        "tile": {
+          "glyph": "󰗚",
+          "bg": "indigo"
+        }
+      },
+      "placeholder": "A space by name",
+      "items": [
+        {
+          "id": "space:1",
+          "name": "Notes",
+          "subtitle": "Your personal space",
+          "icon": "󰍁",
+          "keywords": [
+            "notes",
+            "private",
+            "personal"
+          ],
+          "accessories": [
+            {
+              "tag": "personal",
+              "color": "grey"
+            },
+            {
+              "text": "3 pages"
+            },
+            {
+              "date": "2026-09-15T08:00:00Z"
+            }
+          ],
+          "detail": {
+            "markdown": "# Notes\n\n_No description._",
+            "metadata": [
+              {
+                "label": "Slug",
+                "value": "notes"
+              },
+              {
+                "label": "Visibility",
+                "value": "private"
+              },
+              {
+                "label": "Pages",
+                "value": "3"
+              },
+              {
+                "label": "Members",
+                "value": "1"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "pages",
+              "title": "Open pages"
+            },
+            {
+              "id": "open",
+              "title": "Open in tela",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "new",
+              "title": "New page here",
+              "shortcut": "cmd+n"
+            }
+          ]
+        },
+        {
+          "id": "space:2",
+          "name": "Engineering",
+          "subtitle": "How the systems are built and run",
+          "icon": "󰍁",
+          "keywords": [
+            "eng",
+            "private"
+          ],
+          "accessories": [
+            {
+              "tag": "default",
+              "color": "blue"
+            },
+            {
+              "text": "6 pages"
+            },
+            {
+              "text": "6 members"
+            },
+            {
+              "date": "2026-09-16T09:00:00Z"
+            }
+          ],
+          "detail": {
+            "markdown": "# Engineering\n\nHow the systems are built and run",
+            "metadata": [
+              {
+                "label": "Slug",
+                "value": "eng"
+              },
+              {
+                "label": "Visibility",
+                "value": "private"
+              },
+              {
+                "label": "Pages",
+                "value": "6"
+              },
+              {
+                "label": "Members",
+                "value": "6"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "pages",
+              "title": "Open pages"
+            },
+            {
+              "id": "open",
+              "title": "Open in tela",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "new",
+              "title": "New page here",
+              "shortcut": "cmd+n"
+            }
+          ]
+        },
+        {
+          "id": "space:3",
+          "name": "Blog",
+          "subtitle": "Published posts",
+          "icon": {
+            "glyph": "󰇧",
+            "color": "teal"
+          },
+          "keywords": [
+            "blog",
+            "public"
+          ],
+          "accessories": [
+            {
+              "tag": "public",
+              "color": "teal"
+            },
+            {
+              "text": "2 pages"
+            },
+            {
+              "text": "2 members"
+            },
+            {
+              "date": "2026-09-10T09:00:00Z"
+            }
+          ],
+          "detail": {
+            "markdown": "# Blog\n\nPublished posts",
+            "metadata": [
+              {
+                "label": "Slug",
+                "value": "blog"
+              },
+              {
+                "label": "Visibility",
+                "value": "public"
+              },
+              {
+                "label": "Pages",
+                "value": "2"
+              },
+              {
+                "label": "Members",
+                "value": "2"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "pages",
+              "title": "Open pages"
+            },
+            {
+              "id": "open",
+              "title": "Open in tela",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "new",
+              "title": "New page here",
+              "shortcut": "cmd+n"
+            }
+          ]
+        },
+        {
+          "id": "space:4",
+          "name": "Design",
+          "subtitle": "The brief, the tokens, the component set",
+          "icon": "󰍁",
+          "keywords": [
+            "design",
+            "private"
+          ],
+          "accessories": [
+            {
+              "text": "1 page"
+            },
+            {
+              "text": "3 members"
+            },
+            {
+              "date": "2026-09-12T09:00:00Z"
+            }
+          ],
+          "detail": {
+            "markdown": "# Design\n\nThe brief, the tokens, the component set",
+            "metadata": [
+              {
+                "label": "Slug",
+                "value": "design"
+              },
+              {
+                "label": "Visibility",
+                "value": "private"
+              },
+              {
+                "label": "Pages",
+                "value": "1"
+              },
+              {
+                "label": "Members",
+                "value": "3"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "pages",
+              "title": "Open pages"
+            },
+            {
+              "id": "open",
+              "title": "Open in tela",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "new",
+              "title": "New page here",
+              "shortcut": "cmd+n"
+            }
+          ]
+        }
+      ]
+    },
+    "decks": {
+      "title": "Decks",
+      "icon": {
+        "tile": {
+          "glyph": "󰗚",
+          "bg": "indigo"
+        }
+      },
+      "placeholder": "A deck by title or space",
+      "showDetail": true,
+      "items": [
+        {
+          "id": "page:12",
+          "name": "Release Talk",
+          "icon": "󰐨",
+          "keywords": [
+            "Engineering"
+          ],
+          "section": "Engineering",
+          "accessories": [
+            {
+              "date": "2026-09-14T12:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "outline",
+              "title": "Outline",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "append",
+              "title": "Append to page",
+              "shortcut": "cmd+shift+a"
+            },
+            {
+              "id": "comment",
+              "title": "Comment on page",
+              "shortcut": "cmd+shift+m"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "page:12": {
+          "markdown": "![first slide](http://127.0.0.1:55548/api/deck/d/abc/cover.png)\n\n\n# Release\n\n---\n\n## Numbers",
+          "metadata": [
+            {
+              "label": "Space",
+              "link": {
+                "text": "Engineering",
+                "href": "http://127.0.0.1:55548/spaces/2"
+              }
+            },
+            {
+              "label": "Kind",
+              "tags": [
+                {
+                  "text": "deck",
+                  "color": "violet"
+                }
+              ]
+            },
+            {
+              "label": "Updated",
+              "value": "2 d ago"
+            },
+            {
+              "label": "Created",
+              "value": "9/3/2026"
+            },
+            {
+              "label": "Words",
+              "value": "11"
+            }
+          ]
+        }
+      }
+    },
+    "comments": {
+      "title": "Comments",
+      "icon": {
+        "tile": {
+          "glyph": "󰗚",
+          "bg": "indigo"
+        }
+      },
+      "placeholder": "Who, or which page",
+      "live": true,
+      "items": [
+        {
+          "id": "notif:901",
+          "name": "mara mentioned you in “Indexing”",
+          "subtitle": "@cagdas is the 2 s budget still right?",
+          "icon": "󰁥",
+          "keywords": [
+            "mara",
+            "Indexing",
+            "mention"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "mention",
+              "color": "amber"
+            },
+            {
+              "date": "2026-09-16T09:30:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read-page",
+              "title": "Read page in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read-all",
+              "title": "Mark all as read",
+              "shortcut": "cmd+shift+a",
+              "style": "destructive",
+              "confirm": "Mark every notification as read?"
+            }
+          ]
+        },
+        {
+          "id": "notif:902",
+          "name": "tomas replied to your comment in “How we ship”",
+          "subtitle": "agreed, weekly it is",
+          "icon": "󰼠",
+          "keywords": [
+            "tomas",
+            "How we ship",
+            "comment reply"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "reply",
+              "color": "blue"
+            },
+            {
+              "date": "2026-09-16T08:30:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read-page",
+              "title": "Read page in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read-all",
+              "title": "Mark all as read",
+              "shortcut": "cmd+shift+a",
+              "style": "destructive",
+              "confirm": "Mark every notification as read?"
+            }
+          ]
+        },
+        {
+          "id": "notif:905",
+          "name": "lina mentioned you in “Startup”",
+          "subtitle": "@cagdas see the order",
+          "icon": "󰁥",
+          "keywords": [
+            "lina",
+            "Startup",
+            "mention"
+          ],
+          "section": "Earlier",
+          "accessories": [
+            {
+              "tag": "mention",
+              "color": "amber"
+            },
+            {
+              "date": "2026-09-14T08:00:00Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in tela"
+            },
+            {
+              "id": "read-page",
+              "title": "Read page in pal",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read-all",
+              "title": "Mark all as read",
+              "shortcut": "cmd+shift+a",
+              "style": "destructive",
+              "confirm": "Mark every notification as read?"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "research/ask:how does indexing work": {
+      "view": {
+        "id": "research",
+        "title": "how does indexing work",
+        "keys": "actions",
+        "tree": {
+          "type": "stack",
+          "children": [
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "badge",
+                  "text": "Low confidence",
+                  "color": "amber"
+                },
+                {
+                  "type": "text",
+                  "value": "Nothing strongly relevant was found; verify before relying on this",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ],
+              "direction": "row",
+              "gap": 2,
+              "surface": "elevated",
+              "radius": true,
+              "padding": 2
+            },
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "badge",
+                      "text": "Disagreements",
+                      "color": "red"
+                    },
+                    {
+                      "type": "text",
+                      "value": "The sources conflict",
+                      "weight": "semibold",
+                      "size": "sm"
+                    }
+                  ],
+                  "direction": "row",
+                  "gap": 2
+                },
+                {
+                  "type": "text",
+                  "value": "[1] says the budget is 2 s, [2] says 1 s.",
+                  "size": "sm"
+                }
+              ],
+              "surface": "elevated",
+              "radius": true,
+              "padding": 3,
+              "gap": 1
+            },
+            {
+              "type": "text",
+              "value": "3 sources of 9 considered; + asks for more",
+              "style": "muted",
+              "size": "xs"
+            },
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "width": 22,
+                      "height": 22,
+                      "text": "1",
+                      "color": "accent",
+                      "fill": "solid"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Indexing",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Engineering · Indexing › Steps · 11 h ago",
+                          "style": "muted",
+                          "size": "xs"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "stack",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Indexing",
+                                  "style": "body",
+                                  "size": "md",
+                                  "weight": "semibold"
+                                },
+                                {
+                                  "type": "stack",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "Every listing is persisted and restored, see Startup."
+                                    },
+                                    {
+                                      "type": "text",
+                                      "value": "↗ Startup",
+                                      "style": "muted",
+                                      "size": "xs"
+                                    }
+                                  ],
+                                  "gap": 1
+                                },
+                                {
+                                  "type": "stack",
+                                  "children": [
+                                    {
+                                      "type": "stack",
+                                      "children": [
+                                        {
+                                          "type": "badge",
+                                          "text": "Note",
+                                          "color": "blue"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "value": "Why persist",
+                                          "weight": "semibold"
+                                        }
+                                      ],
+                                      "direction": "row",
+                                      "gap": 2
+                                    },
+                                    {
+                                      "type": "text",
+                                      "value": "400 ms cold."
+                                    }
+                                  ],
+                                  "surface": "elevated",
+                                  "radius": true,
+                                  "padding": 3,
+                                  "gap": 2
+                                }
+                              ],
+                              "gap": 3,
+                              "padding": 0
+                            }
+                          ],
+                          "surface": "sunken",
+                          "radius": true,
+                          "padding": 3
+                        }
+                      ],
+                      "gap": 1,
+                      "grow": true
+                    }
+                  ],
+                  "key": "s1",
+                  "direction": "row",
+                  "gap": 2,
+                  "padding": 2,
+                  "align": "start",
+                  "radius": true,
+                  "surface": "elevated"
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "width": 22,
+                      "height": 22,
+                      "text": "2",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Startup",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Engineering · 1 d ago",
+                          "style": "muted",
+                          "size": "xs"
+                        },
+                        {
+                          "type": "text",
+                          "value": "The host spawns after the cache restores",
+                          "size": "sm"
+                        }
+                      ],
+                      "gap": 1,
+                      "grow": true
+                    }
+                  ],
+                  "key": "s2",
+                  "direction": "row",
+                  "gap": 2,
+                  "padding": 2,
+                  "align": "start",
+                  "radius": true
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "width": 22,
+                      "height": 22,
+                      "text": "3",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "How we ship",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Blog · How we ship · 7 d ago",
+                          "style": "muted",
+                          "size": "xs"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Weekly.",
+                          "size": "sm"
+                        }
+                      ],
+                      "gap": 1,
+                      "grow": true
+                    }
+                  ],
+                  "key": "s3",
+                  "direction": "row",
+                  "gap": 2,
+                  "padding": 2,
+                  "align": "start",
+                  "radius": true
+                }
+              ],
+              "gap": 1
+            }
+          ],
+          "gap": 3,
+          "padding": 4
+        },
+        "actions": [
+          {
+            "id": "open",
+            "title": "Open source in tela"
+          },
+          {
+            "id": "read",
+            "title": "Read source in pal",
+            "shortcut": "cmd+enter"
+          },
+          {
+            "id": "down",
+            "title": "Next source",
+            "shortcut": [
+              "down",
+              "j"
+            ]
+          },
+          {
+            "id": "up",
+            "title": "Previous source",
+            "shortcut": [
+              "up",
+              "k"
+            ]
+          },
+          {
+            "id": "copy",
+            "title": "Copy source link",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "context",
+            "title": "Copy the grounding",
+            "shortcut": "cmd+shift+c"
+          },
+          {
+            "id": "ask-tela",
+            "title": "Open in tela Ask",
+            "shortcut": "cmd+shift+o"
+          },
+          {
+            "id": "more",
+            "title": "More sources",
+            "shortcut": [
+              "+",
+              "="
+            ]
+          },
+          {
+            "id": "question",
+            "title": "New question",
+            "shortcut": "n"
+          },
+          {
+            "id": "go1",
+            "title": "Source 1",
+            "shortcut": "1",
+            "hidden": true
+          },
+          {
+            "id": "go2",
+            "title": "Source 2",
+            "shortcut": "2",
+            "hidden": true
+          },
+          {
+            "id": "go3",
+            "title": "Source 3",
+            "shortcut": "3",
+            "hidden": true
+          }
+        ]
+      }
+    },
+    "research/research:down": {
+      "view": {
+        "id": "research",
+        "title": "how does indexing work",
+        "keys": "actions",
+        "tree": {
+          "type": "stack",
+          "children": [
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "badge",
+                  "text": "Low confidence",
+                  "color": "amber"
+                },
+                {
+                  "type": "text",
+                  "value": "Nothing strongly relevant was found; verify before relying on this",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ],
+              "direction": "row",
+              "gap": 2,
+              "surface": "elevated",
+              "radius": true,
+              "padding": 2
+            },
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "badge",
+                      "text": "Disagreements",
+                      "color": "red"
+                    },
+                    {
+                      "type": "text",
+                      "value": "The sources conflict",
+                      "weight": "semibold",
+                      "size": "sm"
+                    }
+                  ],
+                  "direction": "row",
+                  "gap": 2
+                },
+                {
+                  "type": "text",
+                  "value": "[1] says the budget is 2 s, [2] says 1 s.",
+                  "size": "sm"
+                }
+              ],
+              "surface": "elevated",
+              "radius": true,
+              "padding": 3,
+              "gap": 1
+            },
+            {
+              "type": "text",
+              "value": "3 sources of 9 considered; + asks for more",
+              "style": "muted",
+              "size": "xs"
+            },
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "width": 22,
+                      "height": 22,
+                      "text": "1",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Indexing",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Engineering · Indexing › Steps · 11 h ago",
+                          "style": "muted",
+                          "size": "xs"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Every listing is persisted to the data dir",
+                          "size": "sm"
+                        }
+                      ],
+                      "gap": 1,
+                      "grow": true
+                    }
+                  ],
+                  "key": "s1",
+                  "direction": "row",
+                  "gap": 2,
+                  "padding": 2,
+                  "align": "start",
+                  "radius": true
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "width": 22,
+                      "height": 22,
+                      "text": "2",
+                      "color": "accent",
+                      "fill": "solid"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Startup",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Engineering · 1 d ago",
+                          "style": "muted",
+                          "size": "xs"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "stack",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "The host spawns after the cache restores."
+                                }
+                              ],
+                              "gap": 3,
+                              "padding": 0
+                            }
+                          ],
+                          "surface": "sunken",
+                          "radius": true,
+                          "padding": 3
+                        }
+                      ],
+                      "gap": 1,
+                      "grow": true
+                    }
+                  ],
+                  "key": "s2",
+                  "direction": "row",
+                  "gap": 2,
+                  "padding": 2,
+                  "align": "start",
+                  "radius": true,
+                  "surface": "elevated"
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "tile",
+                      "width": 22,
+                      "height": 22,
+                      "text": "3",
+                      "color": "neutral",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "How we ship",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Blog · How we ship · 7 d ago",
+                          "style": "muted",
+                          "size": "xs"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Weekly.",
+                          "size": "sm"
+                        }
+                      ],
+                      "gap": 1,
+                      "grow": true
+                    }
+                  ],
+                  "key": "s3",
+                  "direction": "row",
+                  "gap": 2,
+                  "padding": 2,
+                  "align": "start",
+                  "radius": true
+                }
+              ],
+              "gap": 1
+            }
+          ],
+          "gap": 3,
+          "padding": 4
+        },
+        "actions": [
+          {
+            "id": "open",
+            "title": "Open source in tela"
+          },
+          {
+            "id": "read",
+            "title": "Read source in pal",
+            "shortcut": "cmd+enter"
+          },
+          {
+            "id": "down",
+            "title": "Next source",
+            "shortcut": [
+              "down",
+              "j"
+            ]
+          },
+          {
+            "id": "up",
+            "title": "Previous source",
+            "shortcut": [
+              "up",
+              "k"
+            ]
+          },
+          {
+            "id": "copy",
+            "title": "Copy source link",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "context",
+            "title": "Copy the grounding",
+            "shortcut": "cmd+shift+c"
+          },
+          {
+            "id": "ask-tela",
+            "title": "Open in tela Ask",
+            "shortcut": "cmd+shift+o"
+          },
+          {
+            "id": "more",
+            "title": "More sources",
+            "shortcut": [
+              "+",
+              "="
+            ]
+          },
+          {
+            "id": "question",
+            "title": "New question",
+            "shortcut": "n"
+          },
+          {
+            "id": "go1",
+            "title": "Source 1",
+            "shortcut": "1",
+            "hidden": true
+          },
+          {
+            "id": "go2",
+            "title": "Source 2",
+            "shortcut": "2",
+            "hidden": true
+          },
+          {
+            "id": "go3",
+            "title": "Source 3",
+            "shortcut": "3",
+            "hidden": true
+          }
+        ]
+      }
+    },
+    "search/page:10:read": {
+      "view": {
+        "id": "page:10",
+        "title": "Indexing",
+        "tree": {
+          "type": "stack",
+          "children": [
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Indexing",
+                  "style": "title",
+                  "size": "xl"
+                },
+                {
+                  "type": "text",
+                  "value": "Engineering · updated 11 h ago · 137 words",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ],
+              "gap": 0
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Every listing is persisted to the data dir and restored at the next start, see Startup and the design note."
+                    },
+                    {
+                      "type": "text",
+                      "value": "↗ Startup   ↗ design note",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "badge",
+                          "text": "Note",
+                          "color": "blue"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Why persist",
+                          "weight": "semibold"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "text",
+                      "value": "The first query answers at 400 ms cold instead of 10 s."
+                    }
+                  ],
+                  "surface": "elevated",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 2
+                },
+                {
+                  "type": "text",
+                  "value": "Steps",
+                  "style": "title",
+                  "size": "lg",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "1.",
+                          "width": 22,
+                          "style": "muted",
+                          "align": "end"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Restore the cache"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "2.",
+                          "width": 22,
+                          "style": "muted",
+                          "align": "end"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Spawn the host"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "3.",
+                          "width": 22,
+                          "style": "muted",
+                          "align": "end"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Relist what expired"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "•",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "ttl is palette meta"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "•",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "live relists on show"
+                            },
+                            {
+                              "type": "stack",
+                              "children": [
+                                {
+                                  "type": "stack",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "•",
+                                      "width": 14,
+                                      "style": "muted",
+                                      "align": "center"
+                                    },
+                                    {
+                                      "type": "stack",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "value": "not twice within 2 s"
+                                        }
+                                      ],
+                                      "gap": 1,
+                                      "grow": true
+                                    }
+                                  ],
+                                  "direction": "row",
+                                  "gap": 2,
+                                  "align": "start"
+                                }
+                              ],
+                              "gap": 1
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "☑",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "done: the budget",
+                              "color": "muted"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "☐",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "open: the Linux bar"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "palette",
+                          "width": 103,
+                          "align": "start",
+                          "size": "sm",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "ttl",
+                          "width": 40,
+                          "align": "end",
+                          "size": "sm",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "kind",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm",
+                          "weight": "semibold"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "prs",
+                          "width": 103,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "300",
+                          "width": 40,
+                          "align": "end",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "list",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "notifications",
+                          "width": 103,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "60",
+                          "width": 40,
+                          "align": "end",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "live",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "const gap = 2000;",
+                      "style": "mono"
+                    }
+                  ],
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Paint first, fetch later."
+                    },
+                    {
+                      "type": "text",
+                      "value": "the brief",
+                      "style": "muted",
+                      "size": "sm",
+                      "align": "end"
+                    }
+                  ],
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 2
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "▸ Numbers",
+                      "weight": "semibold"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Hotkey to paint 1.7 ms."
+                    }
+                  ],
+                  "gap": 2
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "text",
+                  "value": "[image: the pipeline]",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ],
+              "gap": 3,
+              "padding": 0
+            }
+          ],
+          "gap": 3,
+          "padding": 4
+        },
+        "actions": [
+          {
+            "id": "open",
+            "title": "Open in tela"
+          },
+          {
+            "id": "copy",
+            "title": "Copy link",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "backlinks",
+            "title": "Backlinks",
+            "shortcut": "cmd+b"
+          },
+          {
+            "id": "outline",
+            "title": "Outline",
+            "shortcut": "cmd+shift+o"
+          },
+          {
+            "id": "append",
+            "title": "Append to page",
+            "shortcut": "cmd+shift+a"
+          },
+          {
+            "id": "comment",
+            "title": "Comment on page",
+            "shortcut": "cmd+shift+m"
+          },
+          {
+            "id": "markdown",
+            "title": "Copy markdown",
+            "shortcut": "cmd+shift+c"
+          }
+        ]
+      }
+    },
+    "pages/page:10:read": {
+      "view": {
+        "id": "page:10",
+        "title": "Indexing",
+        "tree": {
+          "type": "stack",
+          "children": [
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Indexing",
+                  "style": "title",
+                  "size": "xl"
+                },
+                {
+                  "type": "text",
+                  "value": "Engineering · updated 11 h ago · 137 words",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ],
+              "gap": 0
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Every listing is persisted to the data dir and restored at the next start, see Startup and the design note."
+                    },
+                    {
+                      "type": "text",
+                      "value": "↗ Startup   ↗ design note",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "badge",
+                          "text": "Note",
+                          "color": "blue"
+                        },
+                        {
+                          "type": "text",
+                          "value": "Why persist",
+                          "weight": "semibold"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "text",
+                      "value": "The first query answers at 400 ms cold instead of 10 s."
+                    }
+                  ],
+                  "surface": "elevated",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 2
+                },
+                {
+                  "type": "text",
+                  "value": "Steps",
+                  "style": "title",
+                  "size": "lg",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "1.",
+                          "width": 22,
+                          "style": "muted",
+                          "align": "end"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Restore the cache"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "2.",
+                          "width": 22,
+                          "style": "muted",
+                          "align": "end"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Spawn the host"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "3.",
+                          "width": 22,
+                          "style": "muted",
+                          "align": "end"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Relist what expired"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "•",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "ttl is palette meta"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "•",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "live relists on show"
+                            },
+                            {
+                              "type": "stack",
+                              "children": [
+                                {
+                                  "type": "stack",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "•",
+                                      "width": 14,
+                                      "style": "muted",
+                                      "align": "center"
+                                    },
+                                    {
+                                      "type": "stack",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "value": "not twice within 2 s"
+                                        }
+                                      ],
+                                      "gap": 1,
+                                      "grow": true
+                                    }
+                                  ],
+                                  "direction": "row",
+                                  "gap": 2,
+                                  "align": "start"
+                                }
+                              ],
+                              "gap": 1
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "☑",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "done: the budget",
+                              "color": "muted"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "☐",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "open: the Linux bar"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "palette",
+                          "width": 103,
+                          "align": "start",
+                          "size": "sm",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "ttl",
+                          "width": 40,
+                          "align": "end",
+                          "size": "sm",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "kind",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm",
+                          "weight": "semibold"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "prs",
+                          "width": 103,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "300",
+                          "width": 40,
+                          "align": "end",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "list",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "notifications",
+                          "width": 103,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "60",
+                          "width": 40,
+                          "align": "end",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "live",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "const gap = 2000;",
+                      "style": "mono"
+                    }
+                  ],
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Paint first, fetch later."
+                    },
+                    {
+                      "type": "text",
+                      "value": "the brief",
+                      "style": "muted",
+                      "size": "sm",
+                      "align": "end"
+                    }
+                  ],
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 2
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "▸ Numbers",
+                      "weight": "semibold"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Hotkey to paint 1.7 ms."
+                    }
+                  ],
+                  "gap": 2
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "text",
+                  "value": "[image: the pipeline]",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ],
+              "gap": 3,
+              "padding": 0
+            }
+          ],
+          "gap": 3,
+          "padding": 4
+        },
+        "actions": [
+          {
+            "id": "open",
+            "title": "Open in tela"
+          },
+          {
+            "id": "copy",
+            "title": "Copy link",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "backlinks",
+            "title": "Backlinks",
+            "shortcut": "cmd+b"
+          },
+          {
+            "id": "outline",
+            "title": "Outline",
+            "shortcut": "cmd+shift+o"
+          },
+          {
+            "id": "append",
+            "title": "Append to page",
+            "shortcut": "cmd+shift+a"
+          },
+          {
+            "id": "comment",
+            "title": "Comment on page",
+            "shortcut": "cmd+shift+m"
+          },
+          {
+            "id": "markdown",
+            "title": "Copy markdown",
+            "shortcut": "cmd+shift+c"
+          }
+        ]
+      }
+    },
+    "pages/cmd:new": {
+      "form": {
+        "id": "new",
+        "title": "New tela page",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "title",
+            "label": "Title",
+            "required": true,
+            "default": "",
+            "placeholder": "What the page is about"
+          },
+          {
+            "kind": "select",
+            "id": "space",
+            "label": "Space",
+            "options": [
+              {
+                "id": "1",
+                "title": "Notes"
+              },
+              {
+                "id": "2",
+                "title": "Engineering"
+              },
+              {
+                "id": "3",
+                "title": "Blog"
+              },
+              {
+                "id": "4",
+                "title": "Design"
+              }
+            ],
+            "default": "2",
+            "required": true
+          },
+          {
+            "kind": "textarea",
+            "id": "body",
+            "label": "Body",
+            "default": "What the user picks climbs by up to a tier and a half, so a much-used glyph passes the normal rows but never a primary one that has the word.\n\n- half-life 30 days\n- capped at 200",
+            "description": "Markdown; tela's blocks work (callouts, tabs, [[wikilinks]]). Prefilled from your selection or the clipboard."
+          }
+        ],
+        "submit": {
+          "id": "save",
+          "title": "Create page"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-search": {
+      "palette": "search",
+      "keys": [
+        "type:index",
+        "wait:700",
+        "down",
+        "wait:300"
+      ]
+    },
+    "2-research": {
+      "palette": "research",
+      "keys": [
+        "type:how does indexing work",
+        "wait:400",
+        "enter",
+        "wait:500"
+      ]
+    },
+    "3-page": {
+      "palette": "search",
+      "keys": [
+        "type:index",
+        "wait:700",
+        "cmd+enter",
+        "wait:500"
+      ]
+    },
+    "4-spaces": {
+      "palette": "spaces",
+      "keys": [
+        "down",
+        "wait:300"
+      ]
+    },
+    "5-new-page": {
+      "palette": "pages",
+      "keys": [
+        "enter",
+        "wait:400",
+        "type:Frecency, explained",
+        "wait:300"
+      ]
+    },
+    "6-pages": {
+      "palette": "pages",
+      "keys": [
+        "down*5",
+        "wait:300"
+      ]
+    }
+  }
+}

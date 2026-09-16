@@ -1,0 +1,582 @@
+{
+  "name": "tela",
+  "title": "tela",
+  "description": "Your tela wiki in the panel: full-text search, semantic research with sources, recent pages and favourites, spaces, decks, sheets, mentions and replies, backlinks; new pages and appends from what you selected.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰗚",
+      "bg": "indigo"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    {
+      "kind": "text",
+      "id": "base_url",
+      "label": "Address",
+      "description": "The tela instance: https://telawiki.com, or your own.",
+      "placeholder": "https://telawiki.com",
+      "default": ""
+    },
+    {
+      "kind": "secret",
+      "id": "token",
+      "label": "Token",
+      "description": "A personal access token from Settings, API Keys on tela (tela_pat_...). Read scope lists and searches; write scope creates pages, appends and comments.",
+      "placeholder": "tela_pat_...",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "default_space",
+      "label": "Default space",
+      "description": "The space New tela page offers first: its name, slug or id. Empty picks the first space.",
+      "placeholder": "Notes",
+      "default": ""
+    },
+    {
+      "kind": "boolean",
+      "id": "research",
+      "label": "Research",
+      "text": "Show Ask tela (semantic research)",
+      "description": "Needs an embedder configured on the instance; Search works without one.",
+      "default": true
+    }
+  ],
+  "palettes": {
+    "search": {
+      "title": "Search tela",
+      "description": "Full-text over every page you can see, ranked, with the matching passage; sections by space.",
+      "kind": "input",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the page in tela"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Read the page in pal"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "The page's outline"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "What links to the page"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Append to the page"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Comment on the page"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the markdown (from the page read in pal)"
+        }
+      ]
+    },
+    "research": {
+      "title": "Ask tela",
+      "description": "A question answered by meaning: the pages that matter assembled with their sources, disagreements flagged, low confidence said.",
+      "kind": "input",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Ask; on a source, open it in tela"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Ask in the browser; on a source, read it in pal"
+        },
+        {
+          "keys": "down / j, up / k, 1-9",
+          "title": "Move between sources"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the source's link"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the grounding"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open the question in tela Ask"
+        },
+        {
+          "keys": "+",
+          "title": "More sources"
+        },
+        {
+          "keys": "n",
+          "title": "New question"
+        },
+        {
+          "keys": "cmd+shift+d",
+          "title": "Forget a recent question"
+        }
+      ]
+    },
+    "pages": {
+      "title": "Pages",
+      "description": "Favourites, then what changed lately across spaces; New tela page, Search tela, Ask tela and Quick Notes at the top. From Spaces, one space's pages.",
+      "kind": "list",
+      "ttl": 300,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the page in tela"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Read the page in pal"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "The page's outline"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "What links to the page"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Append to the page"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Comment on the page"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the markdown (from the page read in pal)"
+        }
+      ]
+    },
+    "spaces": {
+      "title": "Spaces",
+      "description": "Every space the token sees, with its page count; Enter lists its pages.",
+      "kind": "list",
+      "ttl": 3600,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "The space's pages"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Open the space in tela"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+n",
+          "title": "New page in the space"
+        }
+      ]
+    },
+    "new-page": {
+      "title": "New Page",
+      "description": "A page in a space of your choice: title, space, body prefilled from your selection or the clipboard.",
+      "kind": "list",
+      "ttl": 3600,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "The form"
+        }
+      ]
+    },
+    "append": {
+      "title": "Append to Page",
+      "description": "Markdown added at the end of Quick Notes, the page you opened last, a favourite or a recent page.",
+      "kind": "list",
+      "ttl": 300,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "The form"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Open the page in tela"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        }
+      ]
+    },
+    "decks": {
+      "title": "Decks",
+      "description": "Slide decks across spaces, newest first; the pane shows the first slide.",
+      "kind": "list",
+      "ttl": 3600,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the deck in tela"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Read the deck's markdown in pal"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "The deck's outline"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "What links to the deck"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Append to the deck"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Comment on the deck"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the markdown (from the page read in pal)"
+        }
+      ]
+    },
+    "sheets": {
+      "title": "Sheets",
+      "description": "Spreadsheet pages across spaces, newest first.",
+      "kind": "list",
+      "ttl": 3600,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the sheet in tela"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Read the sheet's markdown in pal"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "The sheet's outline"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "What links to the sheet"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Append to the sheet"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Comment on the sheet"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the markdown (from the page read in pal)"
+        }
+      ]
+    },
+    "comments": {
+      "title": "Comments",
+      "description": "Mentions of you and replies to your comments, unread first; opening one marks it read.",
+      "kind": "live",
+      "ttl": 60,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Mark read and open the page"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Read the page in pal"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Mark as read"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Mark all as read"
+        }
+      ]
+    },
+    "backlinks": {
+      "title": "Backlinks",
+      "description": "What links to the page you opened last, or to the page a row's cmd+b came from.",
+      "kind": "list",
+      "ttl": 300,
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the linking page in tela"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Read it in pal"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Its outline"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "Its own backlinks"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Append to it"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Comment on it"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the markdown (from the page read in pal)"
+        }
+      ]
+    }
+  },
+  "bar": {
+    "inbox": {
+      "title": "Inbox",
+      "description": "Unread mentions and replies as a badge, hidden at zero; the newest five, Open in pal and Mark all read in the popover.",
+      "refresh": {
+        "every": 300,
+        "on": [
+          "show",
+          "wake",
+          "network"
+        ]
+      }
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "Your tela wiki: search, research, pages, spaces, inbox",
+    "category": "productivity",
+    "features": [
+      "Search tela as you type: ranked full-text hits with the matching passage, sectioned by space; cmd+Enter reads the page inside pal",
+      "Ask tela: a question answered by meaning, the sources as rows with the cited excerpt, disagreements and low confidence flagged",
+      "Pages: favourites first, then what changed across every space; a page read in pal keeps headings, lists, callouts, code and tables in the tokens",
+      "Spaces with page counts, Decks with the first slide in the pane, Sheets, Backlinks of the page you opened last",
+      "New tela page and Append as forms, the body from your selection or the clipboard; Comment on a page anchored on its text",
+      "Comments: mentions of you and replies to your comments; the bar item counts them and hides at zero"
+    ],
+    "permissions": [
+      "network",
+      "token"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-search.png",
+        "caption": "Search tela: ranked hits with the matching passage, sectioned by space"
+      },
+      {
+        "file": "2-research.png",
+        "caption": "Ask tela: the sources of an answer as rows, the cited excerpt under the selected one, the flags above"
+      },
+      {
+        "file": "3-page.png",
+        "caption": "A page read in pal: headings, callouts, lists, code and tables drawn with the tokens"
+      },
+      {
+        "file": "4-spaces.png",
+        "caption": "Spaces with page counts; Enter lists a space's pages"
+      },
+      {
+        "file": "5-new-page.png",
+        "caption": "New tela page: title, space, the body prefilled from the clipboard"
+      },
+      {
+        "file": "6-pages.png",
+        "caption": "Pages: favourites, then what changed lately, sectioned by space"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the tela glyph with the count of unread mentions and replies",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: the newest mentions and replies, Open in pal, Mark all read",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the glyph and the count",
+        "kind": "bar"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Open in tela",
+        "description": "The page, space or notification in the browser; a notification is marked read first.",
+        "keys": "enter"
+      },
+      {
+        "title": "Read in pal",
+        "description": "The page's markdown drawn in the panel.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Copy link",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Outline",
+        "description": "The page's headings.",
+        "keys": "cmd+shift+o"
+      },
+      {
+        "title": "Backlinks",
+        "description": "What links to the page.",
+        "keys": "cmd+b"
+      },
+      {
+        "title": "Append to page",
+        "description": "A form: markdown added at the end, prefilled from your selection or the clipboard.",
+        "keys": "cmd+shift+a"
+      },
+      {
+        "title": "Comment on page",
+        "description": "A form: the comment and the passage it anchors on.",
+        "keys": "cmd+shift+m"
+      },
+      {
+        "title": "Copy markdown",
+        "description": "From a page read in pal.",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Ask",
+        "description": "Research the question; on a source in the answer, open it.",
+        "keys": "enter"
+      },
+      {
+        "title": "Ask in the browser",
+        "description": "tela's Ask page with the question.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Read source in pal",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Next source / Previous source",
+        "keys": "down / up"
+      },
+      {
+        "title": "Copy source link",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy the grounding",
+        "description": "The numbered excerpts research assembled.",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Open in tela Ask",
+        "keys": "cmd+shift+o"
+      },
+      {
+        "title": "More sources",
+        "description": "When the answer was truncated.",
+        "keys": "+"
+      },
+      {
+        "title": "New question",
+        "keys": "n"
+      },
+      {
+        "title": "Forget question",
+        "keys": "cmd+shift+d"
+      },
+      {
+        "title": "Open pages",
+        "description": "A space's pages.",
+        "keys": "enter"
+      },
+      {
+        "title": "New page here",
+        "description": "The form with the space chosen.",
+        "keys": "cmd+n"
+      },
+      {
+        "title": "New page",
+        "description": "A form: title, space, body."
+      },
+      {
+        "title": "Search",
+        "description": "Search tela from the root row."
+      },
+      {
+        "title": "Open Quick Notes",
+        "description": "Your scratchpad page on tela."
+      },
+      {
+        "title": "Append to Quick Notes",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Mark as read",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Mark all as read",
+        "description": "Asks first.",
+        "keys": "cmd+shift+a"
+      },
+      {
+        "title": "Read page in pal",
+        "description": "From a mention or reply.",
+        "keys": "cmd+enter"
+      }
+    ]
+  }
+}

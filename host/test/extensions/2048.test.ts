@@ -2,6 +2,7 @@
 // and the extension over the wire: a view palette's meta, its opening
 // tree, picks that answer trees and persist the state, the undo setting.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { DEFAULTS, SIZE, actions, apply, canMove, isState, newGame, phase, slide, slideLine, spawn, type Board, type State } from "../../../extensions/2048/game.ts";
 import { TILE, lookOf, render } from "../../../extensions/2048/render.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
@@ -241,7 +242,7 @@ describe("over the wire", () => {
 
   test("a view palette is input on the wire with view: view", async () => {
     const l = host.loaded().find((l) => l.extension === "2048")!;
-    expect(l.palettes).toEqual([{ name: "2048", title: "2048", live: false, input: true, icon: "🔢", view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
+    expect(l.palettes).toEqual([{ name: "2048", title: "2048", live: false, input: true, icon: tile("amber", { svg: "M2 2h5.5v5.5H2zM8.5 2H14v5.5H8.5zM2 8.5h5.5V14H2zM8.5 8.5H14V14H8.5z" }), view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
   });
   test("view answers the opening tree and stores the fresh game", async () => {
     await expect(host.request("list", { extension: "2048", palette: "2048" })).rejects.toThrow("view palette has no list");

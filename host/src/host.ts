@@ -14,9 +14,9 @@
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
-import { checkPalettes, isViewPalette as isView } from "../../sdk/src/manifest.ts";
+import { checkLinkEffect, checkLinkParams, checkLinks, checkPalettes, inlineMatches, isViewPalette as isView } from "../../sdk/src/manifest.ts";
 import { checkEffect, checkView } from "../../sdk/src/view.ts";
-import type { Ctx, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "../../sdk/src/protocol.ts";
+import type { Ctx, Extension, Item, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { bindSdk, SDK } from "./sdk.ts";
@@ -28,6 +28,10 @@ if (ROOTS.length === 0) ROOTS.push(resolve(import.meta.dir, "../../extensions"))
 setRoots(ROOTS);
 /** An import that never settles (a top-level await on something that never comes) must not hold `host/ready` back. Env for the tests. */
 const LOAD_TIMEOUT_MS = Number(process.env.PAL_LOAD_TIMEOUT_MS) || 10_000;
+/** A root section's palette (inline, fallback, suggest) slower than this is left out of that answer: the root paints without it. Env for the tests. */
+const ROOT_TIMEOUT_MS = Number(process.env.PAL_ROOT_TIMEOUT_MS) || 1500;
+/** Rows one palette may put in the root's inline section; the palette's own level lists everything. */
+const INLINE_MAX = 5;
 
 type Found = { root: string; entry: string };
 const exts = new Map<string, Extension>();
@@ -136,6 +140,7 @@ async function reload(name: string) {
     // disagree the load still succeeds, and each disagreement is a line on
     // stderr and a `warnings` entry the settings window shows.
     const check = checkPalettes(manifest, ext);
+    check.warnings.push(...checkLinks(manifest, ext));
     checked.set(name, check);
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
@@ -310,8 +315,8 @@ const details = new Map<string, Map<string, Promise<unknown>>>();
 const paletteKey = (p: any) => `${p?.extension}/${p?.palette}`;
 // The core sends `args: null` and `values: null` for a level without them: absent, as far as the extension is told.
 const ctxOf = (p: any): Ctx | undefined =>
-  p?.filter !== undefined || p?.args != null || p?.refresh || p?.values != null
-    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }) }
+  p?.filter !== undefined || p?.args != null || p?.refresh || p?.values != null || p?.inline
+    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }), ...(p.inline && { inline: true }) }
     : undefined;
 
 /** The loaded extension, or the reason it is not: its load error, or that there is none. */
@@ -341,6 +346,36 @@ function redacted(name: string, s: ResolvedSettings) {
     settings: hide(m?.settings, s.settings),
     palettes: Object.fromEntries(Object.entries(s.palettes ?? {}).map(([k, v]) => [k, hide(m?.palettes?.[k]?.settings, v)])),
   };
+}
+
+/** One root section's answer from one palette: `{ extension, palette, items }`, or nothing when it had none, failed or was too slow (logged). */
+type Section = { extension: string; palette: string; items: Item[] };
+
+/**
+ * The root's sections that come from the extensions rather than the
+ * index: every loaded palette that `pick`s (inline for a matching query,
+ * fallback for a function fallback, suggest for the empty root) is asked
+ * at once, each within `ROOT_TIMEOUT_MS`; a palette that fails or is late
+ * is a log line and left out, so one slow extension never holds the root.
+ * Palettes come in load order; the core and the UI order the sections.
+ */
+async function sections(pick: (name: string, key: string, p: Palette) => (() => Item[] | Promise<Item[]>) | undefined, what: string, max = Infinity): Promise<Section[]> {
+  const asks: Promise<Section | undefined>[] = [];
+  for (const [name, ext] of exts) {
+    for (const [key, p] of Object.entries(ext.palettes ?? {})) {
+      const f = pick(name, key, p);
+      if (!f) continue;
+      const params = { extension: name, palette: key };
+      asks.push(
+        // A throw before the first await (a sync hook) is a rejection like any other, not the whole answer's.
+        timeout(Promise.resolve().then(() => inContext(params, f)), ROOT_TIMEOUT_MS, `${what} of ${name}/${key}`).then(
+          (items) => (Array.isArray(items) && items.length ? { extension: name, palette: key, items: items.slice(0, max) } : undefined),
+          (e) => { log(`${what} ${name}/${key} failed: ${describe(e)}`); return undefined; },
+        ),
+      );
+    }
+  }
+  return (await Promise.all(asks)).filter((s): s is Section => s !== undefined);
 }
 
 const methods: Record<string, (params: any) => unknown> = {
@@ -383,6 +418,29 @@ const methods: Record<string, (params: any) => unknown> = {
       r.catch(() => cache.delete(k));
     }
     return r;
+  },
+  // The root's inline section for `query`: every inline palette whose `match` accepts it lists it (`ctx.inline`), its first rows.
+  inline: async (p) => {
+    const q = String(p?.query ?? "");
+    return sections((name, _key, pal) => (!isView(pal) && inlineMatches(pal, manifests.get(name)?.palettes?.[_key], q) ? () => pal.list(q, { inline: true }) : undefined), "inline", INLINE_MAX);
+  },
+  // The root's fallback rows from the palettes that answer them in code (`fallback(query)`); the "Ask" rows are the core's.
+  fallback: async (p) => {
+    const q = String(p?.query ?? "");
+    return sections((_name, _key, pal) => (typeof pal.fallback === "function" ? () => (pal.fallback as (q: string) => Item[] | Promise<Item[]>)(q) : undefined), "fallback");
+  },
+  // The empty root's "Now" section: every palette's `suggest()`.
+  suggest: async () => sections((_name, _key, pal) => (typeof pal.suggest === "function" ? () => pal.suggest!() : undefined), "suggest"),
+  // `pal://<extension>/<route>?params` (deeplink.rs): the manifest's `links.<route>` gates it and types its params, the code's `link` answers; an effect is checked like a pick's, minus what needs a level.
+  link: async (p) => {
+    const name = String(p?.extension), route = String(p?.route);
+    const ext = extension(name);
+    const spec = manifests.get(name)?.links?.[route];
+    if (!spec || typeof spec !== "object") throw new Error(`no route ${name}/${route}`);
+    if (typeof ext.link !== "function") throw new Error(`${name}: no link handler for ${route}`);
+    const params = checkLinkParams(spec, p?.params && typeof p.params === "object" ? p.params : {}, `${name}/${route}`);
+    const r = await context.run({ extension: name }, () => ext.link!(route, params));
+    return checkEffect(checkLinkEffect(r ?? {}, `${name}/${route}`), `${name}/${route}: link`);
   },
   ...barMethods(extension),
   // Notification from the core: the resolved values of the named extensions.

@@ -29,3 +29,7 @@ export const screenshotUrl = (ext: string, file: string) => `${base}shot?ext=${e
  * variation selector, is text or emoji.
  */
 export const isSymbol = (s: string) => /^[\p{Co}]$/u.test(s);
+
+/** The brand palette an icon tile or a tinted glyph names: `--pal-brand-<name>` in tokens.css, the same list as `TILE_COLORS` in sdk/src/icon.ts. */
+export const BRAND = ["red", "orange", "amber", "green", "teal", "cyan", "blue", "indigo", "violet", "pink", "slate", "ink"] as const;
+export const isBrand = (s: unknown): s is (typeof BRAND)[number] => typeof s === "string" && (BRAND as readonly string[]).includes(s);

@@ -3,6 +3,7 @@
 // `item list`, `item get` and `account list` in the CLI's shapes and logging
 // every call, so the cache and the arguments can be checked.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -59,7 +60,7 @@ const pick = (id: string, action?: string) => host.pick("onepassword", "items", 
 describe("onepassword", () => {
   test("meta: indexed with the ttl and one filter per configured vault", () => {
     expect(host.loaded().find((l) => l.extension === "onepassword")!.palettes[0]).toMatchObject({
-      name: "items", title: "1Password", live: false, input: false, icon: "\u{f0bc4}", ttl: 300,
+      name: "items", title: "1Password", live: false, input: false, icon: tile("blue", "\u{f0bc4}"), ttl: 300,
       filters: [{ id: "all", title: "All vaults" }, { id: "Personal", title: "Personal" }, { id: "Work", title: "Work" }],
     });
   });
@@ -103,10 +104,11 @@ describe("onepassword", () => {
   });
 
   test("copy password on Enter, username and one-time code from the panel, each straight from op item get", async () => {
-    expect(await pick("gh")).toEqual({ copy: "s3cret-gh", hud: "Copied password" });
-    expect(await pick("gh", "password")).toEqual({ copy: "s3cret-gh", hud: "Copied password" });
+    // The password and the code are concealed copies that clear after 30 s; the username is a plain one.
+    expect(await pick("gh")).toEqual({ copy: { text: "s3cret-gh", concealed: true, clear_after: 30 }, hud: "Copied password, clears in 30 s" });
+    expect(await pick("gh", "password")).toEqual({ copy: { text: "s3cret-gh", concealed: true, clear_after: 30 }, hud: "Copied password, clears in 30 s" });
     expect(await pick("gh", "username")).toEqual({ copy: "user-gh", hud: "Copied username" });
-    expect(await pick("bank", "otp")).toEqual({ copy: "123456", hud: "Copied one-time code" });
+    expect(await pick("bank", "otp")).toEqual({ copy: { text: "123456", concealed: true, clear_after: 30 }, hud: "Copied one-time code, clears in 30 s" });
     expect(calls().slice(-4)).toEqual([
       "item get gh --fields label=password --reveal", "item get gh --fields label=password --reveal", "item get gh --fields label=username --reveal", "item get bank --otp",
     ]);

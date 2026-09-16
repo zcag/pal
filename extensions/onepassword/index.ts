@@ -6,8 +6,11 @@
 // the index. Signed out (or no account set up) is one hint row telling how
 // to sign in; a missing CLI is one pointing at the install page. The
 // unlock prompt, when the desktop app integration is on, is the CLI's own.
+// A password or a one-time code is a concealed copy (`conceal`): marked
+// for clipboard managers to skip, out of pal's own history, and replaced
+// by the previous clipboard after 30 s; the username is a plain copy.
 import { existsSync } from "node:fs";
-import { settings, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
+import { CONCEAL_SECONDS, conceal, settings, type Accessory, type Action, type Effect, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.onepassword]`, defaults in pal.json. */
 type Settings = { account: string; vaults: string[]; ttl: number };
@@ -142,12 +145,13 @@ async function list(filter = "all", refresh = false): Promise<Item[]> {
 }
 
 const failed = (what: string, e: unknown) => ({ keep: true as const, toast: { title: `Could not ${what}`, message: String((e as Error)?.message ?? e), style: "failure" as const } });
+/** A secret onto the clipboard, concealed and cleared after `CONCEAL_SECONDS`; the HUD says so. */
+const secret = (what: string, value: string): Effect => ({ copy: conceal(value), hud: `Copied ${what}, clears in ${CONCEAL_SECONDS} s` });
 
 export default {
   palettes: {
     items: {
       title: "1Password",
-      icon: ICON,
       ttl: s0.ttl,
       placeholder: "Search items and websites",
       ...(FILTERS ? { filters: FILTERS } : {}),
@@ -163,7 +167,7 @@ export default {
             try { return { copy: (await op(["item", "get", id, "--fields", "label=username", "--reveal"])).trim(), hud: "Copied username" }; } catch (e) { return failed("copy the username", e); }
           }
           case "otp": {
-            try { return { copy: (await op(["item", "get", id, "--otp"])).trim(), hud: "Copied one-time code" }; } catch (e) { return failed("copy the one-time code", e); }
+            try { return secret("one-time code", (await op(["item", "get", id, "--otp"])).trim()); } catch (e) { return failed("copy the one-time code", e); }
           }
           case "open": {
             const i = byId.get(id);
@@ -171,7 +175,7 @@ export default {
             return { open: `onepassword://view-item?i=${encodeURIComponent(id)}${i ? `&v=${encodeURIComponent(i.vault.id)}` : ""}${a ? `&a=${encodeURIComponent(a)}` : ""}` };
           }
           default: {
-            try { return { copy: (await op(["item", "get", id, "--fields", "label=password", "--reveal"])).trim(), hud: "Copied password" }; } catch (e) { return failed("copy the password", e); }
+            try { return secret("password", (await op(["item", "get", id, "--fields", "label=password", "--reveal"])).trim()); } catch (e) { return failed("copy the password", e); }
           }
         }
       },

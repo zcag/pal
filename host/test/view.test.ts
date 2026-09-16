@@ -78,6 +78,32 @@ describe("checkView", () => {
     expect(() => checkView(one({ type: "stack", surface: "glass", children: [] }))).toThrow('unknown surface "glass"');
     expect(() => checkView(one({ type: "stack", radius: 10, children: [] }))).toThrow("radius must be a boolean");
   });
+  test("a tile takes a hex colour of the extension's own in every length, nothing else beyond the tokens", () => {
+    for (const c of ["#f80", "#f80a", "#ff8800", "#FF880080"]) expect(checkView({ ...ok, tree: { type: "tile", width: 40, height: 40, color: c } })).toBeTruthy();
+    for (const c of ["#ff888", "#ff88000", "ff8800", "rgb(1 2 3)", "hotpink"]) expect(() => checkView({ ...ok, tree: { type: "tile", width: 40, height: 40, color: c } })).toThrow("unknown color");
+  });
+  test("a gradient needs a size, layers of two or more hex stops (alpha allowed) in a known direction, a hex fill, and a marker inside the box", () => {
+    const g = (extra: Record<string, unknown>) => ({ ...ok, tree: { type: "gradient", width: 200, height: 12, layers: [{ stops: ["#f00", "#00f"] }], ...extra } as ViewNode });
+    expect(checkView(g({}))).toBeTruthy();
+    expect(checkView(g({ fill: "#ff8800", layers: [{ stops: ["#ffffff", "#ffffff00"] }, { stops: ["#000000", "#00000000"], direction: "up" }], marker: { x: 0.5, y: 1 } }))).toBeTruthy();
+    expect(() => checkView(g({ fill: "red" }))).toThrow("fill must be a #hex");
+    expect(() => checkView(g({ width: -1 }))).toThrow("width and height");
+    expect(() => checkView(g({ layers: [] }))).toThrow("needs layers");
+    expect(() => checkView(g({ layers: [{ stops: ["#f00"] }] }))).toThrow("at least two stops");
+    expect(() => checkView(g({ layers: [{ stops: ["#f00", "red"] }] }))).toThrow("not a #hex colour");
+    expect(() => checkView(g({ layers: [{ stops: ["#f00", "#00f"], direction: "sideways" }] }))).toThrow("unknown direction");
+    expect(() => checkView(g({ marker: { x: 1.5, y: 0 } }))).toThrow("marker");
+    expect(() => checkView(g({ marker: { x: 0 } }))).toThrow("marker");
+  });
+  test("a view's input names a submit (and a cancel) among its actions, with string value and placeholder", () => {
+    const acts = [{ id: "apply", title: "Apply" }, { id: "close", title: "Close" }];
+    expect(checkView({ ...ok, actions: acts, input: { submit: "apply" } })).toBeTruthy();
+    expect(checkView({ ...ok, actions: acts, input: { submit: "apply", cancel: "close", value: "#", placeholder: "Any notation" } })).toBeTruthy();
+    expect(() => checkView({ ...ok, actions: acts, input: { submit: "go" } })).toThrow("input.submit");
+    expect(() => checkView({ ...ok, actions: acts, input: { submit: "apply", cancel: "pal:x" } })).toThrow("input.cancel");
+    expect(() => checkView({ ...ok, actions: acts, input: { submit: "apply", value: 3 } })).toThrow("input.value");
+    expect(() => checkView({ ...ok, actions: acts, input: "yes" })).toThrow("input must be an object");
+  });
   test("too many nodes, or too deep, is an error naming the limit", () => {
     const wide: ViewNode = { type: "stack", children: Array.from({ length: MAX_NODES }, () => ({ type: "divider" }) as ViewNode) };
     expect(() => checkView({ ...ok, tree: wide })).toThrow(`${MAX_NODES}`);

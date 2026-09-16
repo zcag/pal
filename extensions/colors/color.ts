@@ -1,8 +1,11 @@
 // Colour maths with no dependency on the host: parsing what one types
-// (hex, rgb(), hsl(), hwb(), oklch(), a CSS name), the conversions the
-// palette lists, WCAG contrast, the nearest CSS name (in OKLab, so the
-// answer is what the eye would pick), and the SVG swatch the tiles show.
-// Unit-tested directly (host/test/extensions/colors.test.ts).
+// (hex, rgb(), hsl(), hwb(), oklch(), oklab(), lab(), color(display-p3),
+// a CSS name), the conversions the picker lists (CIE Lab against D50 and
+// Display P3 through XYZ with the CSS Color 4 matrices), the steps the
+// picker's keys take in HSL or OKLCH (chroma kept inside the gamut), the
+// tints, shades and harmonies, WCAG contrast, the nearest CSS name (in
+// OKLab, so the answer is what the eye would pick), and the SVG swatch the
+// grid tiles show. Unit-tested directly (host/test/extensions/colors.test.ts).
 
 /** sRGB, 0..255 per channel, alpha 0..1 (1 when the input had none). */
 export type RGB = { r: number; g: number; b: number; a: number };
@@ -70,7 +73,7 @@ export function parse(input: string): RGB | undefined {
   if (!s) return;
   if (CSS_NAMES[s]) return fromHex(CSS_NAMES[s]);
   if (s === "transparent") return { r: 0, g: 0, b: 0, a: 0 };
-  const fn = /^(rgba?|hsla?|hwb|oklch)\(\s*(.*?)\s*\)$/.exec(s);
+  const fn = /^(rgba?|hsla?|hwb|oklch|oklab|lab|color)\(\s*(.*?)\s*\)$/.exec(s);
   if (!fn) {
     if (/^#?[0-9a-f]{3,8}$/.test(s)) return fromHex(s);
     const bare = args(s);
@@ -94,6 +97,27 @@ export function parse(input: string): RGB | undefined {
       const [l, c, h] = [channel(a[0], 1), channel(a[1], 0.4), hue(a[2])];
       if (l === undefined || c === undefined || h === undefined || Number.isNaN(l) || Number.isNaN(c)) return;
       return { ...fromOklch(clamp(l), Math.max(0, c), h), a: alpha(a[3]) };
+    }
+    case "oklab": {
+      const [l, A, B] = [channel(a[0], 1), channel(a[1], 0.4), channel(a[2], 0.4)];
+      if ([l, A, B].some((v) => v === undefined || Number.isNaN(v))) return;
+      return { ...fromOklab(clamp(l!), A!, B!), a: alpha(a[3]) };
+    }
+    case "lab": {
+      const [l, A, B] = [channel(a[0], 100), channel(a[1], 125), channel(a[2], 125)];
+      if ([l, A, B].some((v) => v === undefined || Number.isNaN(v))) return;
+      return { ...fromLab(clamp(l!, 0, 100), A!, B!), a: alpha(a[3]) };
+    }
+    case "color": {
+      // `color(display-p3 r g b / a)`, `color(srgb r g b)`: the space is the first word.
+      const parts = fn[2].split(/\s+/);
+      const space = parts.shift();
+      const rest = args(parts.join(" "));
+      if (!rest || (space !== "display-p3" && space !== "srgb")) return;
+      const [r, g, b] = [channel(rest[0], 1), channel(rest[1], 1), channel(rest[2], 1)];
+      if ([r, g, b].some((v) => v === undefined || Number.isNaN(v))) return;
+      const c = space === "srgb" ? { r: Math.round(clamp(r!) * 255), g: Math.round(clamp(g!) * 255), b: Math.round(clamp(b!) * 255), a: 1 } : fromP3(clamp(r!), clamp(g!), clamp(b!));
+      return { ...c, a: alpha(rest[3]) };
     }
   }
 }
@@ -169,6 +193,142 @@ export const toOklch = (c: RGB) => {
   return `oklch(${round(L, 3)} ${round(C, 3)} ${round(H, 1)}${a(c, " / ")})`;
 };
 
+/** `oklab(0.628 0.225 0.126)`: L 0..1, a and b around 0. */
+export const toOklabString = (c: RGB) => { const [L, A, B] = toOklab(c); return `oklab(${round(L, 3)} ${round(A, 3)} ${round(B, 3)}${a(c, " / ")})`; };
+export function fromOklab(L: number, A: number, B: number): RGB {
+  const C = Math.hypot(A, B), H = C < 1e-9 ? 0 : mod((Math.atan2(B, A) * 180) / Math.PI, 360);
+  return fromOklch(L, C, H);
+}
+
+/** OKLCH as numbers: `L` 0..1, `C` (0..~0.37 inside sRGB), `H` degrees; a grey has hue 0. */
+export type OKLCH = { L: number; C: number; H: number };
+export function toOklchValues(c: RGB): OKLCH {
+  const [L, A, B] = toOklab(c);
+  const C = Math.hypot(A, B);
+  return { L, C, H: C < 0.0005 ? 0 : mod((Math.atan2(B, A) * 180) / Math.PI, 360) };
+}
+/** The linear sRGB of an OKLCH point, unclamped, so a value outside 0..1 tells the point is outside the gamut. */
+function oklchToLinear(L: number, C: number, H: number): [number, number, number] {
+  const A = C * Math.cos((H * Math.PI) / 180), B = C * Math.sin((H * Math.PI) / 180);
+  const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
+  const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
+  const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+}
+/** Whether the OKLCH point lies inside sRGB (a hair of slack for the rounding). */
+export const inGamut = (L: number, C: number, H: number) => oklchToLinear(L, C, H).every((v) => v >= -0.0005 && v <= 1.0005);
+/** The largest chroma at this lightness and hue that stays inside sRGB (a binary search; what the picker's OKLCH plane and steps clip to). */
+export function maxChroma(L: number, H: number): number {
+  if (L <= 0 || L >= 1) return 0;
+  let lo = 0, hi = 0.4;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (inGamut(L, mid, H)) lo = mid; else hi = mid; }
+  return lo;
+}
+/** An OKLCH point as sRGB, chroma reduced into the gamut rather than the channels clipped (CSS Color 4's gamut mapping, without the deltaE stop). */
+export const fromOklchMapped = ({ L, C, H }: OKLCH): RGB => fromOklch(clamp(L), Math.min(C, maxChroma(clamp(L), H)), H);
+
+// CIE Lab as CSS `lab()` means it: sRGB to XYZ (D65), Bradford-adapted to D50 (the CSS Color 4 matrices), then Lab against the D50 white.
+const M_XYZ = [[0.41239079926595934, 0.357584339383878, 0.1804807884018343], [0.21263900587151027, 0.715168678767756, 0.07219231536073371], [0.01933081871559182, 0.11919477979462598, 0.9505321522496607]];
+const M_XYZ_INV = [[3.2409699419045226, -1.537383177570094, -0.4986107602930034], [-0.9692436362808796, 1.8759675015077202, 0.04155505740717559], [0.05563007969699366, -0.20397695888897652, 1.0569715142428786]];
+const D65_TO_D50 = [[1.0479298208405488, 0.022946793341019088, -0.05019222954313557], [0.029627815688159344, 0.990434484573249, -0.01707382502938514], [-0.009243058152591178, 0.015055144896577895, 0.7518742899580008]];
+const D50_TO_D65 = [[0.9554734527042182, -0.023098536874261423, 0.0632593086610217], [-0.028369706963208136, 1.0099954580058226, 0.021041398966943008], [0.012314001688319899, -0.020507696433477912, 1.3303659366080753]];
+const D50 = [0.3457 / 0.3585, 1, (1 - 0.3457 - 0.3585) / 0.3585];
+const mul = (m: number[][], v: number[]) => m.map((row) => row.reduce((acc, x, i) => acc + x * v[i], 0));
+const EPS = 216 / 24389, KAPPA = 24389 / 27;
+/** CIE Lab (D50), as `lab()` reads it: L 0..100. */
+export function toLabValues(c: RGB): [number, number, number] {
+  const xyz = mul(D65_TO_D50, mul(M_XYZ, [lin(c.r), lin(c.g), lin(c.b)]));
+  const f = xyz.map((v, i) => { const t = v / D50[i]; return t > EPS ? Math.cbrt(t) : (KAPPA * t + 16) / 116; });
+  return [116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])];
+}
+export function fromLab(L: number, A: number, B: number): RGB {
+  const fy = (L + 16) / 116, fx = A / 500 + fy, fz = fy - B / 200;
+  const inv = (t: number) => (t ** 3 > EPS ? t ** 3 : (116 * t - 16) / KAPPA);
+  const xyz = [inv(fx) * D50[0], L > KAPPA * EPS ? ((L + 16) / 116) ** 3 : L / KAPPA, inv(fz) * D50[2]];
+  const [r, g, b] = mul(M_XYZ_INV, mul(D50_TO_D65, xyz));
+  return { r: gam(r), g: gam(g), b: gam(b), a: 1 };
+}
+/** `lab(54.29 80.8 69.89)`. */
+export const toLab = (c: RGB) => { const [L, A, B] = toLabValues(c); return `lab(${round(L, 2)} ${round(A, 2)} ${round(B, 2)}${a(c, " / ")})`; };
+
+// Display P3: the same transfer curve as sRGB over a wider set of primaries; through XYZ (D65) both ways.
+const P3_TO_XYZ = [[0.4865709486482162, 0.26566769316909306, 0.1982172852343625], [0.2289745640697488, 0.6917385218365064, 0.079286914093745], [0.0, 0.04511338185890264, 1.043944368900976]];
+const XYZ_TO_P3 = [[2.493496911941425, -0.9313836179191239, -0.40271078445071684], [-0.8294889695615747, 1.7626640603183463, 0.023624685841943577], [0.03584583024378447, -0.07617238926804182, 0.9568845240076872]];
+const gamUnit = (v: number) => clamp(v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055);
+/** Display P3 components 0..1 of an sRGB colour (always inside P3, since P3 contains sRGB). */
+export function toP3Values(c: RGB): [number, number, number] {
+  const [r, g, b] = mul(XYZ_TO_P3, mul(M_XYZ, [lin(c.r), lin(c.g), lin(c.b)]));
+  return [gamUnit(r), gamUnit(g), gamUnit(b)];
+}
+/** sRGB of a P3 colour; one outside sRGB is clipped per channel. */
+export function fromP3(r: number, g: number, b: number): RGB {
+  const linP3 = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const [R, G, B] = mul(M_XYZ_INV, mul(P3_TO_XYZ, [linP3(r), linP3(g), linP3(b)]));
+  return { r: gam(R), g: gam(G), b: gam(B), a: 1 };
+}
+/** `color(display-p3 0.918 0.2 0.139)`. */
+export const toP3 = (c: RGB) => { const [r, g, b] = toP3Values(c); return `color(display-p3 ${round(r, 3)} ${round(g, 3)} ${round(b, 3)}${a(c, " / ")})`; };
+
+// ---- editing: steps, scales, harmonies -------------------------------------
+
+/** The two models the picker edits in: HSL (hue, saturation, lightness) or OKLCH (lightness, chroma, hue). */
+export type Model = "hsl" | "oklch";
+/** The three axes: `h` hue, `s` saturation or chroma, `l` lightness. */
+export type Axis = "h" | "s" | "l";
+/** One step per axis and model: hue 5 degrees, saturation 5 points, lightness 2 points; OKLCH chroma 0.01, lightness 0.02. */
+export const STEP: Record<Model, Record<Axis, number>> = { hsl: { h: 5, s: 0.05, l: 0.02 }, oklch: { h: 5, s: 0.01, l: 0.02 } };
+
+/**
+ * The colour moved `steps` along one axis of the model (negative goes
+ * back), the alpha kept. HSL wraps the hue and clamps the rest; OKLCH
+ * clamps chroma into the gamut (the box the picker draws) so a step never
+ * leaves sRGB by clipping channels.
+ */
+export function adjust(c: RGB, model: Model, axis: Axis, steps: number): RGB {
+  const d = STEP[model][axis] * steps;
+  if (model === "hsl") {
+    const h = toHsl(c);
+    const next = axis === "h" ? { ...h, h: mod(h.h + d, 360) } : axis === "s" ? { ...h, s: clamp(h.s + d) } : { ...h, l: clamp(h.l + d) };
+    return { ...fromHsl(next), a: c.a };
+  }
+  const o = toOklchValues(c);
+  const next: OKLCH = axis === "h" ? { ...o, H: mod(o.H + d, 360) } : axis === "s" ? { ...o, C: Math.max(0, o.C + d) } : { ...o, L: clamp(o.L + d) };
+  return { ...fromOklchMapped(next), a: c.a };
+}
+
+/** Nine tints: the colour mixed towards white in HSL lightness, a tenth of the way left each step, lightest last. */
+export const tints = (c: RGB, n = 9): RGB[] => { const h = toHsl(c); return Array.from({ length: n }, (_, i) => fromHsl({ ...h, l: h.l + (1 - h.l) * ((i + 1) / (n + 1)) })); };
+/** Nine shades: towards black the same way, darkest last. */
+export const shades = (c: RGB, n = 9): RGB[] => { const h = toHsl(c); return Array.from({ length: n }, (_, i) => fromHsl({ ...h, l: h.l * (1 - (i + 1) / (n + 1)) })); };
+
+export type Harmony = "complementary" | "analogous" | "triadic" | "split" | "tetradic";
+export const HARMONIES: Harmony[] = ["complementary", "analogous", "triadic", "split", "tetradic"];
+const ROTATIONS: Record<Harmony, number[]> = { complementary: [180], analogous: [-30, 30], triadic: [120, 240], split: [150, 210], tetradic: [90, 180, 270] };
+/** The colours a harmony adds to this one: the hue turned in HSL, saturation and lightness kept, so every one stays in the gamut. */
+export const harmony = (c: RGB, kind: Harmony): RGB[] => { const h = toHsl(c); return ROTATIONS[kind].map((d) => fromHsl({ ...h, h: mod(h.h + d, 360) })); };
+
+// ---- formats -----------------------------------------------------------------
+
+/** The notations the picker lists and the setting chooses between. */
+export type Format = "hex" | "rgb" | "hsl" | "hwb" | "oklch" | "oklab" | "lab" | "p3" | "name";
+export const FORMATS: Format[] = ["hex", "rgb", "hsl", "hwb", "oklch", "oklab", "lab", "p3", "name"];
+/** How `format` writes: `upper` capitalises hex, `alpha: "drop"` writes the opaque colour whatever the alpha. */
+export type FormatOptions = { upper?: boolean; alpha?: "keep" | "drop" };
+export function format(c: RGB, f: Format, o: FormatOptions = {}): string {
+  const x = o.alpha === "drop" ? { ...c, a: 1 } : c;
+  switch (f) {
+    case "hex": { const h = toHex(x); return o.upper ? h.toUpperCase() : h; }
+    case "rgb": return toRgb(x);
+    case "hsl": return toHslString(x);
+    case "hwb": return toHwb(x);
+    case "oklch": return toOklch(x);
+    case "oklab": return toOklabString(x);
+    case "lab": return toLab(x);
+    case "p3": return toP3(x);
+    case "name": return nameOf(x) ?? nearestName(x).name;
+  }
+}
+
 // ---- names, contrast, relatives --------------------------------------------
 
 /** The CSS name for exactly this colour (the first spelling in the table: `gray` over `grey`), or undefined. */
@@ -181,6 +341,20 @@ export function nearestName(c: RGB): { name: string; distance: number } {
     const [l, a, b] = toOklab(fromHex(hex)!);
     const d = Math.hypot(l - lab[0], a - lab[1], b - lab[2]);
     if (d < best.distance) best = { name, distance: d };
+  }
+  return best;
+}
+
+/** The row of `table` closest in OKLab, and how far. */
+export function nearestIn<T extends { h: string }>(c: RGB, table: T[]): { row: T; distance: number } | undefined {
+  const lab = toOklab(c);
+  let best: { row: T; distance: number } | undefined;
+  for (const row of table) {
+    const p = fromHex(row.h);
+    if (!p) continue;
+    const [l, a, b] = toOklab(p);
+    const d = Math.hypot(l - lab[0], a - lab[1], b - lab[2]);
+    if (!best || d < best.distance) best = { row, distance: d };
   }
   return best;
 }

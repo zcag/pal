@@ -5,10 +5,15 @@
 //! The grid: a display's visible frame (screen minus menu bar, Dock, bars)
 //! inset by `gap` on every side is the area; halves, thirds and quarters
 //! cut it into equal cells with `gap` between them. `maximize` is the whole
-//! area, `almost_maximize` and `reasonable_size` a centred percentage of
-//! it, `center` keeps the window's size. `next_display` / `previous_display`
-//! keep the window's place relative to the visible frame on the other
-//! display. `restore` needs the remembered frame and is the caller's.
+//! area, `maximize_height` / `maximize_width` one side of it with the other
+//! kept, `almost_maximize` and `reasonable_size` a centred percentage of
+//! it, `center` keeps the window's size. `larger` / `smaller` scale the
+//! window by [`RESIZE_PERCENT`] about its centre, `move_*` nudge it by
+//! `step`, both kept inside the area when it fits. `next_display` /
+//! `previous_display` keep the window's place relative to the visible frame
+//! on the other display. `restore` needs the remembered frame, and
+//! `fullscreen`, `minimize`, `unminimize` are window state rather than a
+//! frame: those are the caller's ([`Layout::is_frame`]).
 
 use serde::{Deserialize, Serialize};
 
@@ -33,14 +38,25 @@ pub enum Layout {
     BottomRightQuarter,
     Maximize,
     AlmostMaximize,
+    MaximizeHeight,
+    MaximizeWidth,
     Center,
     ReasonableSize,
+    Larger,
+    Smaller,
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
     NextDisplay,
     PreviousDisplay,
+    Fullscreen,
+    Minimize,
+    Unminimize,
     Restore,
 }
 
-pub const ALL: [Layout; 20] = [
+pub const ALL: [Layout; 31] = [
     Layout::LeftHalf,
     Layout::RightHalf,
     Layout::TopHalf,
@@ -56,12 +72,26 @@ pub const ALL: [Layout; 20] = [
     Layout::BottomRightQuarter,
     Layout::Maximize,
     Layout::AlmostMaximize,
+    Layout::MaximizeHeight,
+    Layout::MaximizeWidth,
     Layout::Center,
     Layout::ReasonableSize,
+    Layout::Larger,
+    Layout::Smaller,
+    Layout::MoveLeft,
+    Layout::MoveRight,
+    Layout::MoveUp,
+    Layout::MoveDown,
     Layout::NextDisplay,
     Layout::PreviousDisplay,
+    Layout::Fullscreen,
+    Layout::Minimize,
+    Layout::Unminimize,
     Layout::Restore,
 ];
+
+/// How much `larger` / `smaller` scale each side, about the centre.
+pub const RESIZE_PERCENT: f64 = 10.0;
 
 impl Layout {
     /// The wire name, `snake_case` (`left_half`).
@@ -82,10 +112,21 @@ impl Layout {
             Layout::BottomRightQuarter => "bottom_right_quarter",
             Layout::Maximize => "maximize",
             Layout::AlmostMaximize => "almost_maximize",
+            Layout::MaximizeHeight => "maximize_height",
+            Layout::MaximizeWidth => "maximize_width",
             Layout::Center => "center",
             Layout::ReasonableSize => "reasonable_size",
+            Layout::Larger => "larger",
+            Layout::Smaller => "smaller",
+            Layout::MoveLeft => "move_left",
+            Layout::MoveRight => "move_right",
+            Layout::MoveUp => "move_up",
+            Layout::MoveDown => "move_down",
             Layout::NextDisplay => "next_display",
             Layout::PreviousDisplay => "previous_display",
+            Layout::Fullscreen => "fullscreen",
+            Layout::Minimize => "minimize",
+            Layout::Unminimize => "unminimize",
             Layout::Restore => "restore",
         }
     }
@@ -108,10 +149,21 @@ impl Layout {
             Layout::BottomRightQuarter => "Bottom Right Quarter",
             Layout::Maximize => "Maximize",
             Layout::AlmostMaximize => "Almost Maximize",
+            Layout::MaximizeHeight => "Maximize Height",
+            Layout::MaximizeWidth => "Maximize Width",
             Layout::Center => "Center",
             Layout::ReasonableSize => "Reasonable Size",
+            Layout::Larger => "Larger",
+            Layout::Smaller => "Smaller",
+            Layout::MoveLeft => "Move Left",
+            Layout::MoveRight => "Move Right",
+            Layout::MoveUp => "Move Up",
+            Layout::MoveDown => "Move Down",
             Layout::NextDisplay => "Next Display",
             Layout::PreviousDisplay => "Previous Display",
+            Layout::Fullscreen => "Toggle Fullscreen",
+            Layout::Minimize => "Minimize",
+            Layout::Unminimize => "Unminimize",
             Layout::Restore => "Restore",
         }
     }
@@ -123,6 +175,12 @@ impl Layout {
     /// Moves the window to another display rather than within its own.
     pub fn changes_display(self) -> bool {
         matches!(self, Layout::NextDisplay | Layout::PreviousDisplay)
+    }
+
+    /// Computed by [`target`] and written as a frame; the rest (`restore`,
+    /// `fullscreen`, `minimize`, `unminimize`) are the caller's.
+    pub fn is_frame(self) -> bool {
+        !matches!(self, Layout::Restore | Layout::Fullscreen | Layout::Minimize | Layout::Unminimize)
     }
 }
 
@@ -137,11 +195,13 @@ pub struct Options {
     pub almost_maximize_percent: f64,
     /// `reasonable_size` likewise.
     pub reasonable_size_percent: f64,
+    /// Pixels a `move_*` nudges the window by.
+    pub step: f64,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0 }
+        Self { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0, step: 32.0 }
     }
 }
 
@@ -157,8 +217,9 @@ pub fn display_of(displays: &[Display], window: &Rect) -> Option<usize> {
 }
 
 /// The frame `layout` puts `window` at, rounded to whole pixels. `None`
-/// for `restore` (the caller has the memory), with no displays, and for a
-/// display switch with one display.
+/// for a layout that is not a frame (`restore` has the caller's memory,
+/// `fullscreen` and the minimise pair are window state), with no displays,
+/// and for a display switch with one display.
 pub fn target(layout: Layout, window: &Rect, displays: &[Display], opts: &Options) -> Option<Rect> {
     let i = display_of(displays, window)?;
     let visible = displays[i].visible_frame;
@@ -200,8 +261,26 @@ pub fn target(layout: Layout, window: &Rect, displays: &[Display], opts: &Option
         Layout::BottomRightQuarter => boxed(cols(2.0, 1.0, 1.0), rows(2.0, 1.0, 1.0)),
         Layout::Maximize => area,
         Layout::AlmostMaximize => scaled(opts.almost_maximize_percent),
+        Layout::MaximizeHeight => Rect { x: window.x, y: area.y, w: window.w, h: area.h },
+        Layout::MaximizeWidth => Rect { x: area.x, y: window.y, w: area.w, h: window.h },
         Layout::ReasonableSize => scaled(opts.reasonable_size_percent),
         Layout::Center => centred(window.w, window.h),
+        Layout::Larger | Layout::Smaller => {
+            let f = 1.0 + RESIZE_PERCENT / 100.0 * if layout == Layout::Larger { 1.0 } else { -1.0 };
+            let (cx, cy) = window.center();
+            let (w, h) = ((window.w * f).min(area.w), (window.h * f).min(area.h));
+            inside(Rect { x: cx - w / 2.0, y: cy - h / 2.0, w, h }, &area)
+        }
+        Layout::MoveLeft | Layout::MoveRight | Layout::MoveUp | Layout::MoveDown => {
+            let s = opts.step.max(0.0);
+            let (dx, dy) = match layout {
+                Layout::MoveLeft => (-s, 0.0),
+                Layout::MoveRight => (s, 0.0),
+                Layout::MoveUp => (0.0, -s),
+                _ => (0.0, s),
+            };
+            inside(Rect { x: window.x + dx, y: window.y + dy, ..*window }, &area)
+        }
         Layout::NextDisplay | Layout::PreviousDisplay => {
             if displays.len() < 2 {
                 return None;
@@ -209,9 +288,17 @@ pub fn target(layout: Layout, window: &Rect, displays: &[Display], opts: &Option
             let j = if layout == Layout::NextDisplay { (i + 1) % displays.len() } else { (i + displays.len() - 1) % displays.len() };
             relocate(window, &visible, &displays[j].visible_frame)
         }
-        Layout::Restore => return None,
+        Layout::Restore | Layout::Fullscreen | Layout::Minimize | Layout::Unminimize => return None,
     };
     Some(r.rounded())
+}
+
+/// `r` pushed back inside `area` on each axis where it fits; a window
+/// wider or taller than the area is left where it is on that axis.
+fn inside(r: Rect, area: &Rect) -> Rect {
+    let x = if r.w <= area.w { r.x.clamp(area.x, area.x + area.w - r.w) } else { r.x };
+    let y = if r.h <= area.h { r.y.clamp(area.y, area.y + area.h - r.h) } else { r.y };
+    Rect { x, y, ..r }
 }
 
 /// `window` at the same fractions of `to` as it has of `from`, its size
@@ -244,7 +331,7 @@ mod tests {
     }
 
     const WIN: Rect = Rect { x: 100.0, y: 100.0, w: 800.0, h: 600.0 };
-    const DEFAULTS: Options = Options { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0 };
+    const DEFAULTS: Options = Options { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0, step: 32.0 };
 
     fn at(layout: Layout) -> Rect {
         target(layout, &WIN, &one(), &DEFAULTS).unwrap()
@@ -306,8 +393,47 @@ mod tests {
     }
 
     #[test]
-    fn restore_is_not_computed_here() {
-        assert_eq!(target(Layout::Restore, &WIN, &one(), &DEFAULTS), None);
+    fn maximize_one_side_keeps_the_other() {
+        assert_eq!(at(Layout::MaximizeHeight), rect(100.0, 25.0, 800.0, 900.0));
+        assert_eq!(at(Layout::MaximizeWidth), rect(0.0, 100.0, 1440.0, 600.0));
+        let opts = Options { gap: 10.0, ..DEFAULTS };
+        assert_eq!(target(Layout::MaximizeHeight, &WIN, &one(), &opts).unwrap(), rect(100.0, 35.0, 800.0, 880.0), "the gap insets the maximised side only");
+    }
+
+    #[test]
+    fn larger_and_smaller_scale_about_the_centre_inside_the_area() {
+        assert_eq!(at(Layout::Larger), rect(60.0, 70.0, 880.0, 660.0), "10% more each side, the centre (500, 400) kept");
+        assert_eq!(at(Layout::Smaller), rect(140.0, 130.0, 720.0, 540.0));
+        let corner = rect(0.0, 25.0, 800.0, 600.0);
+        assert_eq!(target(Layout::Larger, &corner, &one(), &DEFAULTS).unwrap(), rect(0.0, 25.0, 880.0, 660.0), "at the edge the growth goes inward");
+        let big = rect(0.0, 25.0, 1400.0, 880.0);
+        assert_eq!(target(Layout::Larger, &big, &one(), &DEFAULTS).unwrap(), rect(0.0, 25.0, 1440.0, 900.0), "never larger than the area");
+        let huge = rect(-100.0, -100.0, 2000.0, 2000.0);
+        assert_eq!(target(Layout::Smaller, &huge, &one(), &DEFAULTS).unwrap(), rect(0.0, 25.0, 1440.0, 900.0), "shrunk to the area, then kept where it fits");
+    }
+
+    #[test]
+    fn moves_nudge_by_the_step_and_stop_at_the_edge() {
+        assert_eq!(at(Layout::MoveLeft), rect(68.0, 100.0, 800.0, 600.0));
+        assert_eq!(at(Layout::MoveRight), rect(132.0, 100.0, 800.0, 600.0));
+        assert_eq!(at(Layout::MoveUp), rect(100.0, 68.0, 800.0, 600.0));
+        assert_eq!(at(Layout::MoveDown), rect(100.0, 132.0, 800.0, 600.0));
+        let opts = Options { step: 200.0, ..DEFAULTS };
+        assert_eq!(target(Layout::MoveLeft, &WIN, &one(), &opts).unwrap(), rect(0.0, 100.0, 800.0, 600.0), "clamped at the area's edge");
+        assert_eq!(target(Layout::MoveUp, &WIN, &one(), &opts).unwrap(), rect(100.0, 25.0, 800.0, 600.0), "the menu bar is off limits");
+        assert_eq!(target(Layout::MoveDown, &rect(100.0, 300.0, 800.0, 600.0), &one(), &opts).unwrap(), rect(100.0, 325.0, 800.0, 600.0));
+        let wide = rect(-100.0, 100.0, 2000.0, 600.0);
+        assert_eq!(target(Layout::MoveLeft, &wide, &one(), &DEFAULTS).unwrap(), rect(-132.0, 100.0, 2000.0, 600.0), "wider than the area: no clamp on that axis");
+        assert_eq!(target(Layout::MoveLeft, &WIN, &one(), &Options { step: -5.0, ..DEFAULTS }).unwrap(), WIN, "a negative step is no step");
+    }
+
+    #[test]
+    fn state_layouts_are_not_computed_here() {
+        for l in [Layout::Restore, Layout::Fullscreen, Layout::Minimize, Layout::Unminimize] {
+            assert_eq!(target(l, &WIN, &one(), &DEFAULTS), None);
+            assert!(!l.is_frame());
+        }
+        assert!(Layout::LeftHalf.is_frame() && Layout::Larger.is_frame() && Layout::NextDisplay.is_frame());
     }
 
     #[test]
@@ -356,6 +482,6 @@ mod tests {
         let o: Options = serde_json::from_str("{}").unwrap();
         assert_eq!(o, Options::default());
         let o: Options = serde_json::from_str(r#"{"gap": 8}"#).unwrap();
-        assert_eq!((o.gap, o.almost_maximize_percent), (8.0, 90.0));
+        assert_eq!((o.gap, o.almost_maximize_percent, o.step), (8.0, 90.0, 32.0));
     }
 }

@@ -1,44 +1,45 @@
-// My Schedule: the next days' events over the core's calendar capability
-// (EventKit on macOS, khal on Linux), live so the "now" tag and the join
-// links are current on every show. Today, Tomorrow, This week and Later as
-// sections; the current or next event carries the tag; a row joins its
-// call, opens in Calendar, copies its details, or deletes it; New event is
-// a form. The permission is the extension's own row while it is missing.
-import { calendar, settings, type Action, type Calendar, type CalendarEvent, type CalendarStatus, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+// Calendar: My Schedule (the week), Today (the day, live) and the
+// `upcoming` bar item, over one source and one cache (source.ts): the
+// core's calendar capability (EventKit on macOS, khal on Linux) or Google
+// Calendar per account through a token command (google.ts). Sections
+// Today / Tomorrow / This week / Later in the week view; the current or
+// next event carries the tag; a row joins its call, opens in Calendar (a
+// browser link for a Google event), copies its details, or deletes it
+// (the system source); New event is a form. The permission is the
+// extension's own row while it is missing.
+//
+// The bar item: the next event as `Standup in 12m` (`now` while it runs),
+// hidden when nothing starts inside `horizon_hours`, muted far off, amber
+// inside `warn_minutes`, red inside `urgent_minutes`, a dot when there is
+// a call to join. The core asks every five minutes and on wake, the
+// network and the minute tick; a tick renders from the cache, the rest
+// fetch. A click opens Today in the popover; Enter on a row joins.
+import { calendar, settings, tinted, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
+import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, permission, type Loaded, type Settings } from "./source.ts";
+import { duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
 
-type Settings = { calendars: string[]; days: number; hide_declined: boolean };
-
-const EXTENSION = "calendar";
-const ICON = "\u{f00ed}";
+/** nf-md-calendar_check for a Today row, tinted with the calendar's colour; nf-md-calendar_blank for a clear day. */
+const ROW = "\u{f00ee}";
+const CLEAR = "\u{f00ef}";
 const NEW = "new";
 const GRANT = "grant";
 const HINT = "hint";
-const CALENDARS_TTL = 5 * 60_000;
+const NOTHING = "nothing";
 const MAC = process.platform === "darwin";
+/** How old the cache may be for a palette show, and for a bar render on the minute tick. */
+const PALETTE_AGE = 60_000;
+const BAR_AGE = 5 * 60_000;
 
 /** Row id to event, from the last listing; a pick after a restart refetches. */
 const table = new Map<string, CalendarEvent>();
-let calendarCache: { at: number; list: Calendar[] } | undefined;
 
 const rowId = (e: CalendarEvent) => `${e.id}@${e.start}`;
 const STATUS_COLOR: Record<string, string> = { accepted: "green", declined: "red", tentative: "amber", pending: "grey", unknown: "grey" };
+/** The rows are Google's (one source at a time): an event opens in the browser and cannot be deleted from here (the token may be read-only). */
+const isGoogle = () => active() === "google";
 
-async function calendars(refresh = false): Promise<Calendar[]> {
-  if (!refresh && calendarCache && Date.now() - calendarCache.at < CALENDARS_TTL) return calendarCache.list;
-  const list = await calendar.calendars();
-  calendarCache = { at: Date.now(), list };
-  return list;
-}
-
-/** The `calendars` setting (titles or ids) as ids; undefined means all. */
-async function chosenIds(s: Settings, refresh: boolean): Promise<string[] | undefined> {
-  const want = (s.calendars ?? []).map((c) => c.trim().toLowerCase()).filter(Boolean);
-  if (!want.length) return;
-  const all = await calendars(refresh);
-  const ids = all.filter((c) => want.includes(c.id.toLowerCase()) || want.includes(c.title.toLowerCase())).map((c) => c.id);
-  return ids.length ? ids : undefined;
-}
+settings.onChange(() => forget(), EXTENSION);
 
 /** The permission's own rows: the ask, the pane, or the missing backend. */
 function statusRows(status: CalendarStatus | null): Item[] {
@@ -49,21 +50,26 @@ function statusRows(status: CalendarStatus | null): Item[] {
     case "restricted":
       return [{ id: GRANT, name: status === "denied" ? "Calendar access denied" : "Calendar access restricted", subtitle: "Switch pal on under Privacy & Security > Calendars", icon: "\u{f033e}", actions: [{ id: "settings", title: "Open System Settings" }] }];
     default:
-      return [{ id: HINT, name: "No calendar on this machine", subtitle: MAC ? "EventKit did not answer" : "Install khal: pal reads your calendars through it", icon: ICON, actions: [] }];
+      return [{ id: HINT, name: "No calendar on this machine", subtitle: MAC ? "EventKit did not answer; or add a Google account under Settings > Calendar" : "Install khal, or add a Google account under Settings > Calendar", icon: ICON, actions: [] }];
   }
 }
 
 const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: e instanceof Error ? e.message : String(e), style: "failure" } });
+const hintRow = (name: string, subtitle: string): Item => ({ id: HINT, name, subtitle, icon: ICON, actions: [] });
 
 function actions(e: CalendarEvent): Action[] {
   const out: Action[] = [];
+  const google = isGoogle();
   if (e.conference_url) out.push({ id: "join", title: "Join call" });
-  if (MAC) out.push({ id: "open", title: "Open in Calendar" });
+  if (google) out.push({ id: "open", title: "Open in Google Calendar" });
+  else if (MAC) out.push({ id: "open", title: "Open in Calendar" });
   if (e.conference_url) out.push({ id: "copy_link", title: "Copy conference link", shortcut: "cmd+shift+c" });
   out.push({ id: "copy_details", title: "Copy event details", shortcut: "cmd+c" });
-  if (MAC) out.push({ id: "delete", title: e.recurring ? "Delete this occurrence" : "Delete event", shortcut: "ctrl+x", style: "destructive", confirm: `Delete "${e.title}"${e.recurring ? " on " + dayName(e.start) : ""}?` });
+  if (MAC && !google) out.push({ id: "delete", title: e.recurring ? "Delete this occurrence" : "Delete event", shortcut: "ctrl+x", style: "destructive", confirm: `Delete "${e.title}"${e.recurring ? " on " + dayName(e.start) : ""}?` });
   return out;
 }
+
+const replyTag = (e: CalendarEvent): Accessory[] => (e.my_status === "declined" ? [{ tag: "declined", color: "red" }] : e.my_status === "tentative" ? [{ tag: "maybe", color: "amber" }] : []);
 
 function row(e: CalendarEvent, now: number, tagged: boolean): Item {
   const id = rowId(e);
@@ -71,8 +77,7 @@ function row(e: CalendarEvent, now: number, tagged: boolean): Item {
   const tag = tagged ? soonTag(e, now) : undefined;
   const accessories: Item["accessories"] = [];
   if (tag) accessories.push({ tag, color: tag === "now" ? "green" : "blue" });
-  if (e.my_status === "declined") accessories.push({ tag: "declined", color: "red" });
-  else if (e.my_status === "tentative") accessories.push({ tag: "maybe", color: "amber" });
+  accessories.push(...replyTag(e));
   const n = people(e.attendees.length);
   if (n) accessories.push({ text: n });
   if (e.conference_url) accessories.push({ tag: "Join", color: "green" });
@@ -83,6 +88,28 @@ function row(e: CalendarEvent, now: number, tagged: boolean): Item {
     icon: e.calendar.color ?? ICON,
     section: section(e.start, now),
     keywords: [e.calendar.title, ...(e.location ? [e.location] : []), section(e.start, now).toLowerCase(), dayName(e.start)],
+    accessories,
+    actions: actions(e),
+  };
+}
+
+/** A Today row: the time and how long, the state as the first tag, the calendar's colour on the glyph. */
+function todayRow(e: CalendarEvent, now: number, sec: string): Item {
+  const id = rowId(e);
+  table.set(id, e);
+  const s = state(e, now);
+  const accessories: Item["accessories"] = [{ tag: s.text, color: stateColor(s) }, ...replyTag(e)];
+  const n = people(e.attendees.length);
+  if (n) accessories.push({ text: n });
+  if (e.conference_url) accessories.push({ tag: "Join", color: "green" });
+  const color = e.calendar.color && /^#[0-9a-f]{6}$/i.test(e.calendar.color) ? (e.calendar.color as `#${string}`) : undefined;
+  return {
+    id,
+    name: e.title || "(no title)",
+    subtitle: [e.all_day ? "All day" : `${timeRange(e)} · ${duration(e)}`, e.location].filter(Boolean).join(" · "),
+    icon: color ? tinted(ROW, color) : ROW,
+    section: sec,
+    keywords: [e.calendar.title, ...(e.location ? [e.location] : []), s.kind, sec.toLowerCase()],
     accessories,
     actions: actions(e),
   };
@@ -149,6 +176,7 @@ async function create(values: Record<string, string | boolean>): Promise<Effect>
   } catch (e) {
     return { form: await form(values, { title: e instanceof Error ? e.message : String(e) }) };
   }
+  forget();
   return { keep: true, toast: { title: "Added", message: allDay ? `${title}, ${dayNameYear(start)}` : `${title}, ${dayName(start)} ${timeRange({ start, end, all_day: false })}`, style: "success" } };
 }
 
@@ -158,7 +186,7 @@ async function find(id: string): Promise<CalendarEvent | undefined> {
   if (have) return have;
   const at = Number(id.slice(id.lastIndexOf("@") + 1));
   if (!Number.isFinite(at)) return;
-  const es = await calendar.events(at - 1, at + 1);
+  const es = active() === "google" ? (await load(startOfDay(at), addDays(at, 1), undefined, PALETTE_AGE)).events : await calendar.events(at - 1, at + 1);
   const e = es.find((e) => rowId(e) === id);
   if (e) table.set(id, e);
   return e;
@@ -172,9 +200,11 @@ async function pickEvent(e: CalendarEvent, action?: string): Promise<Effect> {
     case "delete":
       try { await calendar.delete(e.id, e.occurrence); } catch (err) { return failed("delete the event", err); }
       table.delete(rowId(e));
+      forget();
       return { keep: true, toast: { title: "Deleted", message: e.title, style: "success" } };
     case "open":
     default:
+      if (isGoogle()) return e.url ? { open: e.url } : { copy: details(e) };
       try { await calendar.open(e.id, e.occurrence); } catch (err) { return failed("open the event", err); }
       return { hide: true };
   }
@@ -184,89 +214,192 @@ async function pickEvent(e: CalendarEvent, action?: string): Promise<Effect> {
 async function loadFilters(): Promise<{ id: string; title: string }[]> {
   const all = [{ id: "all", title: "All calendars" }];
   try {
-    if ((await calendar.permission()) !== "granted") return all;
+    if ((await permission()) !== "granted") return all;
     const s = settings.get<Settings>(EXTENSION);
     const ids = await chosenIds(s, false);
     const cals = (await calendars()).filter((c) => !ids || ids.includes(c.id));
-    return [...all, ...cals.map((c) => ({ id: c.id, title: c.title }))];
+    return [...all, ...cals.map((c) => ({ id: c.id, title: c.source && active() === "google" ? `${c.title} (${c.source})` : c.title }))];
   } catch (e) {
     console.error(`calendar: filters: ${e instanceof Error ? e.message : e}`);
     return all;
   }
 }
 
+/** The window every reader shares: local midnight to `days` ahead (two at least, so Today has tomorrow). */
+function window(s: Settings, now: number): { from: number; to: number } {
+  const days = Math.max(2, Math.round(Number(s.days) || 7));
+  return { from: startOfDay(now), to: addDays(now, days) };
+}
+
+/** The events for a palette: the permission rows, a hint row on a failure, else the rows; `stale` rides along. */
+async function events(ctx: Ctx | undefined, maxAge: number, withNew = false): Promise<{ events: CalendarEvent[]; stale: boolean; error?: string } | { rows: Item[] }> {
+  const status = await permission();
+  if (status !== "granted") return { rows: statusRows(status) };
+  const s = conf();
+  const now = Date.now();
+  const { from, to } = window(s, now);
+  try {
+    const chosen = ctx?.filter && ctx.filter !== "all" ? [ctx.filter] : await chosenIds(s, !!ctx?.refresh);
+    const l = await load(from, to, chosen, ctx?.refresh ? 0 : maxAge);
+    return { events: l.events, stale: l.stale, error: l.error };
+  } catch (e) {
+    return { rows: [hintRow("Could not read the calendar", e instanceof Error ? e.message : String(e)), ...(withNew && active() === "system" ? [newRow] : [])] };
+  }
+}
+
+async function scheduleRows(_query: string | undefined, ctx?: Ctx): Promise<Item[]> {
+  const r = await events(ctx, PALETTE_AGE, true);
+  if ("rows" in r) return r.rows;
+  const s = conf();
+  const now = Date.now();
+  table.clear();
+  let tagged = false;
+  const rows = upcoming(r.events, now, s.hide_declined !== false).map((e) => {
+    const tag = !tagged && !e.all_day && soonTag(e, now) !== undefined;
+    if (tag) tagged = true;
+    return row(e, now, tag);
+  });
+  return active() === "system" ? [...rows, newRow] : rows;
+}
+
+/**
+ * Today's rows in time order, every state (`over`, `now`, `in 12 min`),
+ * then tomorrow's under their own section once no timed event is left
+ * today (from the bar, `args.rest`: the over ones dropped and tomorrow
+ * always there, the strip's popover being about what is still to come).
+ * A "Nothing else today" row names the next timed event's day when the
+ * day is done, "Nothing today" when it never had one.
+ */
+async function todayRows(_query: string | undefined, ctx?: Ctx): Promise<Item[]> {
+  const r = await events(ctx, PALETTE_AGE);
+  if ("rows" in r) return r.rows;
+  const s = conf();
+  const now = Date.now();
+  const rest = !!(ctx?.args && typeof ctx.args === "object" && (ctx.args as { rest?: boolean }).rest);
+  const hideDeclined = s.hide_declined !== false;
+  const keep = (e: CalendarEvent) => !(hideDeclined && e.my_status === "declined") && !(rest && e.end <= now);
+  table.clear();
+  const today = onDay(r.events, now).filter(keep);
+  // An all-day event is not something else to attend: the day is done once the timed ones are.
+  const left = today.filter((e) => e.end > now && !e.all_day);
+  const rows: Item[] = today.map((e) => todayRow(e, now, "Today"));
+  const tomorrow = onDay(r.events, addDays(now, 1)).filter(keep);
+  if (!left.length) {
+    const next = r.events.filter((e) => e.start >= addDays(now, 1) && !e.all_day && keep(e)).sort((a, b) => a.start - b.start)[0];
+    rows.push({ id: NOTHING, name: today.length ? "Nothing else today" : "Nothing today", subtitle: nextWords(next, now), icon: CLEAR, section: "Today", keywords: ["free", "clear"], actions: [] });
+  }
+  if (!left.length || rest) rows.push(...tomorrow.map((e) => todayRow(e, now, "Tomorrow")));
+  if (r.stale) rows.unshift({ ...hintRow("Showing the last events read", r.error ?? "The source did not answer"), section: "Today" });
+  return rows;
+}
+
+/**
+ * The empty root's "Now" row: the event the bar strip speaks for (the
+ * current one, else the next inside `horizon_hours`, the strip's rules),
+ * as a Today row with Join first when it has a call. From the cache when
+ * it is under a minute old, so a show costs nothing; nothing without the
+ * permission or with a clear day.
+ */
+async function suggest(): Promise<Item[]> {
+  if ((await permission()) !== "granted") return [];
+  const s = conf();
+  const now = Date.now();
+  const { from, to } = window(s, now);
+  let l: Loaded;
+  try { l = await load(from, to, await chosenIds(s, false), PALETTE_AGE); } catch { const c = cached(); if (!c) return []; l = { ...c, stale: true }; }
+  const rules = { horizon_hours: Number(s.horizon_hours) || 10, warn_minutes: Number(s.warn_minutes) || 15, urgent_minutes: Number(s.urgent_minutes) || 5, hide_declined: s.hide_declined !== false, hide_all_day: s.hide_all_day !== false };
+  const e = nextEvent(l.events, now, rules);
+  return e ? [todayRow(e, now, "Now")] : [];
+}
+
+async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
+  if (id === HINT || id === NOTHING) return;
+  if (id === GRANT) {
+    if (action === "settings") {
+      try { await calendar.openSettings(); } catch (e) { return failed("open System Settings", e); }
+      return { hide: true };
+    }
+    let status: CalendarStatus;
+    try { status = await calendar.request(); } catch (e) { return failed("ask for calendar access", e); }
+    if (status === "granted") { forget(); return { keep: true, toast: { title: "Calendar access granted", style: "success" } }; }
+    return { keep: true, toast: { title: "Calendar access not granted yet", message: status === "not_determined" ? "Answer the system prompt, then open My Schedule again" : "Switch pal on under Privacy & Security > Calendars" } };
+  }
+  if (id === NEW) {
+    if (action === "create" && ctx?.values) return create(ctx.values);
+    return { form: await form() };
+  }
+  let e: CalendarEvent | undefined;
+  try { e = await find(id); } catch (err) { return failed("read the event", err); }
+  if (!e) return { keep: true, toast: { title: "Event not found", message: "It may have been moved or deleted; the list is fresh now", style: "failure" } };
+  return pickEvent(e, action);
+}
+
+async function detail(id: string): Promise<Detail | void> {
+  if (id === HINT || id === GRANT || id === NEW || id === NOTHING) return;
+  let e: CalendarEvent | undefined;
+  try { e = await find(id); } catch { return; }
+  if (!e) return;
+  const metadata: Metadata[] = [
+    { label: "When", value: e.all_day ? `${dayNameYear(e.start)} (${timeRange(e).toLowerCase()})` : `${dayNameYear(e.start)}, ${timeRange(e)} (${duration(e)})` },
+    { label: "Calendar", tags: [{ text: e.calendar.source ? `${e.calendar.title} (${e.calendar.source})` : e.calendar.title }] },
+  ];
+  if (e.location) metadata.push({ label: "Location", value: e.location });
+  if (e.conference_url) metadata.push({ label: "Call", link: { text: e.conference_url.replace(/^https?:\/\//, "").slice(0, 60), href: e.conference_url } });
+  else if (e.url) metadata.push({ label: "Link", link: { text: e.url.replace(/^https?:\/\//, "").slice(0, 60), href: e.url } });
+  if (e.organizer) metadata.push({ label: "Organizer", value: e.organizer });
+  if (e.attendees.length) metadata.push({ label: `Attendees (${e.attendees.length})`, tags: e.attendees.slice(0, 12).map((a) => ({ text: a.me ? `${a.name} (you)` : a.name, color: STATUS_COLOR[a.status] })) });
+  if (e.my_status) metadata.push({ label: "Your reply", tags: [{ text: e.my_status, color: STATUS_COLOR[e.my_status] }] });
+  if (e.recurring) metadata.push({ label: "Repeats", value: "yes" });
+  return { markdown: e.notes ? e.notes : `# ${e.title || "(no title)"}`, metadata };
+}
+
+// ---- the bar item ------------------------------------------------------------------
+
+/**
+ * A minute tick reads the cache (a render is then well under a
+ * millisecond); every other reason (the five-minute timer, a wake, the
+ * network back, a settings change, the CLI) fetches. Nothing to show
+ * without permission or with no cache and a source that fails: the strip
+ * has no room for a hint, the palette says why.
+ */
+async function renderUpcoming(ctx: BarCtx): Promise<BarItem> {
+  if ((await permission()) !== "granted") return { hidden: true };
+  const s = conf();
+  const now = Date.now();
+  const { from, to } = window(s, now);
+  const maxAge = ctx.reason === "minute" ? BAR_AGE : 0;
+  let l: Loaded;
+  try { l = await load(from, to, await chosenIds(s, false), maxAge); } catch (e) {
+    const c = cached();
+    if (!c) throw e;
+    l = { ...c, stale: true };
+  }
+  return upcomingItem(l.events, now, s, l.stale);
+}
+
 export default {
   palettes: {
     schedule: {
       title: "My Schedule",
-      icon: ICON,
       live: true,
       placeholder: "Search your events",
       filters: await loadFilters(),
-      list: async (_query, ctx): Promise<Item[]> => {
-        let status: CalendarStatus | null;
-        try { status = await calendar.permission(); } catch { status = null; }
-        if (status !== "granted") return statusRows(status);
-        const s = settings.get<Settings>();
-        const now = Date.now();
-        const days = Math.max(1, Math.round(Number(s.days) || 7));
-        const from = startOfDay(now);
-        const to = addDays(now, days);
-        let events: CalendarEvent[];
-        try {
-          const chosen = ctx?.filter && ctx.filter !== "all" ? [ctx.filter] : await chosenIds(s, !!ctx?.refresh);
-          events = await calendar.events(from, to, chosen);
-        } catch (e) {
-          return [{ id: HINT, name: "Could not read the calendar", subtitle: e instanceof Error ? e.message : String(e), icon: ICON, actions: [] }, newRow];
-        }
-        table.clear();
-        let tagged = false;
-        const rows = upcoming(events, now, s.hide_declined !== false).map((e) => {
-          const tag = !tagged && !e.all_day && soonTag(e, now) !== undefined;
-          if (tag) tagged = true;
-          return row(e, now, tag);
-        });
-        return [...rows, newRow];
-      },
-      pick: async (id, action, ctx): Promise<Effect | void> => {
-        if (id === HINT) return;
-        if (id === GRANT) {
-          if (action === "settings") {
-            try { await calendar.openSettings(); } catch (e) { return failed("open System Settings", e); }
-            return { hide: true };
-          }
-          let status: CalendarStatus;
-          try { status = await calendar.request(); } catch (e) { return failed("ask for calendar access", e); }
-          if (status === "granted") { calendarCache = undefined; return { keep: true, toast: { title: "Calendar access granted", style: "success" } }; }
-          return { keep: true, toast: { title: "Calendar access not granted yet", message: status === "not_determined" ? "Answer the system prompt, then open My Schedule again" : "Switch pal on under Privacy & Security > Calendars" } };
-        }
-        if (id === NEW) {
-          if (action === "create" && ctx?.values) return create(ctx.values);
-          return { form: await form() };
-        }
-        let e: CalendarEvent | undefined;
-        try { e = await find(id); } catch (err) { return failed("read the event", err); }
-        if (!e) return { keep: true, toast: { title: "Event not found", message: "It may have been moved or deleted; the list is fresh now", style: "failure" } };
-        return pickEvent(e, action);
-      },
-      detail: async (id): Promise<Detail | void> => {
-        if (id === HINT || id === GRANT || id === NEW) return;
-        let e: CalendarEvent | undefined;
-        try { e = await find(id); } catch { return; }
-        if (!e) return;
-        const metadata: Metadata[] = [
-          { label: "When", value: e.all_day ? `${dayNameYear(e.start)} (${timeRange(e).toLowerCase()})` : `${dayNameYear(e.start)}, ${timeRange(e)}` },
-          { label: "Calendar", tags: [{ text: e.calendar.source ? `${e.calendar.title} (${e.calendar.source})` : e.calendar.title }] },
-        ];
-        if (e.location) metadata.push({ label: "Location", value: e.location });
-        if (e.conference_url) metadata.push({ label: "Call", link: { text: e.conference_url.replace(/^https?:\/\//, "").slice(0, 60), href: e.conference_url } });
-        else if (e.url) metadata.push({ label: "Link", link: { text: e.url.replace(/^https?:\/\//, "").slice(0, 60), href: e.url } });
-        if (e.organizer) metadata.push({ label: "Organizer", value: e.organizer });
-        if (e.attendees.length) metadata.push({ label: `Attendees (${e.attendees.length})`, tags: e.attendees.slice(0, 12).map((a) => ({ text: a.me ? `${a.name} (you)` : a.name, color: STATUS_COLOR[a.status] })) });
-        if (e.my_status) metadata.push({ label: "Your reply", tags: [{ text: e.my_status, color: STATUS_COLOR[e.my_status] }] });
-        if (e.recurring) metadata.push({ label: "Repeats", value: "yes" });
-        return { markdown: e.notes ? e.notes : `# ${e.title || "(no title)"}`, metadata };
-      },
+      list: scheduleRows,
+      pick,
+      detail,
     },
+    [TODAY]: {
+      title: "Today",
+      live: true,
+      placeholder: "Search today's events",
+      list: todayRows,
+      // The empty root's Now section: the current or next event, Join on Enter.
+      suggest,
+      pick,
+      detail,
+    },
+  },
+  bar: {
+    [ITEM]: { render: renderUpcoming },
   },
 } satisfies Extension;

@@ -158,7 +158,6 @@ export default {
   palettes: {
     entities: {
       title: "Home Assistant",
-      icon: "\u{f07d0}",
       live: true,
       placeholder: "Search entities",
       filters: [
@@ -202,7 +201,6 @@ export default {
     },
     services: {
       title: "Home Assistant Services",
-      icon: "\u{f0241}",
       placeholder: "Search services",
       list: async (): Promise<Item[]> => {
         try { return serviceRows(await client().services()); } catch (e) { return hint(e); }
@@ -218,7 +216,6 @@ export default {
     },
     areas: {
       title: "Home Assistant Areas",
-      icon: HOUSE,
       placeholder: "Search areas",
       list: async (): Promise<Item[]> => {
         let c: Client;

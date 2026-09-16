@@ -1,6 +1,7 @@
 // system against canned core/system.* replies with the core's real ids, a
 // temp folder standing in for the Trash (`PAL_TRASH_DIR`).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -33,7 +34,7 @@ const list = (q?: string) => host.list("system", "system", q);
 
 describe("system", () => {
   test("meta: a live palette, indexed (not input), so its rows are root results", () => {
-    expect(host.loaded().find((l) => l.extension === "system")!.palettes[0]).toMatchObject({ name: "system", title: "System", live: true, input: false, icon: "\u{f0425}" });
+    expect(host.loaded().find((l) => l.extension === "system")!.palettes[0]).toMatchObject({ name: "system", title: "System", live: true, input: false, icon: tile("slate", "\u{f0425}") });
   });
 
   test("only available commands, mapped one to one, one run action each", async () => {

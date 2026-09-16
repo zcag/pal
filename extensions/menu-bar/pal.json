@@ -1,0 +1,70 @@
+{
+  "name": "menu-bar",
+  "title": "Menu Bar Items",
+  "description": "Every menu item of the app in front as one searchable list: File > Export > PDF with its shortcut; Enter presses it. macOS, over Accessibility.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "\udb80\udf5c",
+      "bg": "slate"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "store": {
+    "tagline": "The front app's menus, searched and pressed from one list",
+    "category": "productivity",
+    "features": [
+      "Live: the menus of the app in front are read every time the panel shows, so `export pdf` at the root finds Safari's or Preview's item without opening the palette",
+      "One row per enabled item: the title, the menus above it as the subtitle, the shortcut as key caps, a check mark when it is on, a section per top menu in menu order",
+      "Enter presses the item through Accessibility after pal hides, so a sheet or a dialog it opens lands in the app; the HUD names what was pressed",
+      "Separators, disabled items and the Apple menu are left out; menus deeper than four levels or past 150 ms of reading are cut, so a slow app never delays the panel",
+      "Without Accessibility the one row opens System Settings on the pane; on Linux it says the menu bar is macOS only"
+    ],
+    "permissions": [
+      "accessibility"
+    ],
+    "platforms": [
+      "macos"
+    ],
+    "screenshots": [
+      {
+        "file": "1-list.png",
+        "caption": "TextEdit's menus in one list: a section per menu, the path as the subtitle, shortcuts as key caps"
+      },
+      {
+        "file": "2-checked.png",
+        "caption": "A checked item carries its mark; Enter Full Screen shows its Globe key"
+      },
+      {
+        "file": "3-search.png",
+        "caption": "Typing narrows by the whole path: font finds every Format > Font item"
+      },
+      {
+        "file": "4-root.png",
+        "caption": "The rows are root results too: export from the root, no palette first"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Press",
+        "description": "Hides the panel, then presses the item in the app.",
+        "keys": "enter"
+      }
+    ]
+  },
+  "palettes": {
+    "menu-bar": {
+      "tier": "primary",
+      "kind": "live",
+      "description": "The menus of the app in front; Enter presses the item.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Press the menu item"
+        }
+      ]
+    }
+  }
+}

@@ -3,7 +3,7 @@
   "title": "Windows",
   "description": "Every open window, with its app's icon, grouped by app. Enter switches to it; close, minimise, close or minimise all of the app, and hide the app from the action panel.",
   "version": "0.1.0",
-  "icon": "󱂬",
+  "icon": { "tile": { "glyph": "󱂬", "bg": "slate" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

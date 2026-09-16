@@ -1,8 +1,9 @@
 /**
- * `?shot=<extension>&palette=<key>`: the launcher alone, at the panel's size,
- * centred on the site's wallpaper, its rows from `shots/<extension>.json`
- * (fixture data, never the owner's). `app/scripts/shots.mjs` drives it with
- * real keys in a headless browser and saves the store screenshots.
+ * `?shot=<extension>&palette=<key>[&theme=dark]`: the launcher alone, at the
+ * panel's size, centred on the site's wallpaper, its rows from
+ * `shots/<extension>.json` (fixture data, never the owner's).
+ * `app/scripts/shots.mjs` drives it with real keys in a headless browser
+ * and saves the store screenshots (light; `theme=dark` is for looking).
  *
  * A fixture names its palettes as the host would (`PaletteMeta` fields plus
  * the rows) and, where a screenshot needs one, the answers a pick, a detail
@@ -22,10 +23,12 @@ import { svgIcon } from "./data";
 
 type Palette = {
   title: string;
-  icon?: string;
+  /** A string, or `{ tile }` as the manifest writes it. */
+  icon?: unknown;
   live?: boolean;
   input?: boolean;
   view?: "list" | "grid" | "view";
+  tier?: "primary" | "normal" | "catalog";
   columns?: number;
   placeholder?: string;
   showDetail?: boolean;
@@ -53,14 +56,14 @@ function rows(key: string, p: Palette, items: WireItem[] = p.items ?? []): Hit[]
   return items.map((w) => {
     const app = w.icon && typeof w.icon === "object" && typeof (w.icon as { app?: unknown }).app === "string" ? appName((w.icon as { app: string }).app) : undefined;
     const icon = app !== undefined ? { image: svgIcon(tileFor(app), app[0]?.toUpperCase() ?? "") } : w.icon;
-    const item = toItem({ source: { extension: "", palette: key }, id: w.id, score: 0, name_positions: [], item: { ...w, icon } }, { title: p.title, detail: p.details ? "lazy" : undefined });
+    const item = toItem({ source: { extension: "", palette: key }, id: w.id, score: 0, name_positions: [], item: { ...w, icon } }, { title: p.title, detail: p.details ? "lazy" : undefined, icon: p.icon, view: p.view, tier: p.tier });
     return { item };
   });
 }
 
 const haystack = (h: Hit) => [h.item.name, h.item.subtitle, ...(h.item.keywords ?? [])].filter(Boolean).join(" ");
 
-function Shot({ fixture, palette: open }: { fixture: Fixture; palette?: string }) {
+function Shot({ fixture, palette: open, theme }: { fixture: Fixture; palette?: string; theme: "light" | "dark" }) {
   const launcher = useRef<LauncherHandle>(null);
   const sources = useMemo<SourceInfo[]>(() => {
     const own = Object.entries(fixture.palettes).map(([key, p]) => ({
@@ -104,7 +107,7 @@ function Shot({ fixture, palette: open }: { fixture: Fixture; palette?: string }
 
   useEffect(() => { if (open) launcher.current?.open(open); }, [open]);
   return (
-    <div className="g-shot" data-theme="light">
+    <div className="g-shot" data-theme={theme}>
       <div className="g-frame">
         <Launcher ref={launcher} sources={sources} search={search} detail={detail} view={view} onPick={onPick} onHide={() => {}} onRefresh={() => {}} onSettings={() => {}} />
       </div>
@@ -113,14 +116,14 @@ function Shot({ fixture, palette: open }: { fixture: Fixture; palette?: string }
 }
 
 /** Loads the fixture the URL names, then mounts the shot; `data-ready` on the root tells the driver the panel is up. */
-export default function Shots({ extension, palette }: { extension: string; palette?: string }) {
+export default function Shots({ extension, palette, theme = "light" }: { extension: string; palette?: string; theme?: "light" | "dark" }) {
   const [fixture, setFixture] = useState<Fixture | null>(null);
   useEffect(() => {
-    document.documentElement.dataset.theme = "light";
+    document.documentElement.dataset.theme = theme;
     const load = fixtures[`./shots/${extension}.json`];
     if (!load) { document.title = `no fixture for ${extension}`; return; }
     load().then((m) => setFixture(m.default));
-  }, [extension]);
+  }, [extension, theme]);
   useEffect(() => { if (fixture) requestAnimationFrame(() => { document.documentElement.dataset.ready = ""; }); }, [fixture]);
-  return fixture ? <Shot fixture={fixture} palette={palette} /> : null;
+  return fixture ? <Shot fixture={fixture} palette={palette} theme={theme} /> : null;
 }

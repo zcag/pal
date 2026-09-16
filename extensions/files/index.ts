@@ -8,13 +8,21 @@
 // The empty query lists the recently used files (recent.ts: Spotlight's
 // last-used date, or GTK's recently-used.xbel), which the `recent` palette
 // lists on its own too, with the same rows and actions.
-import { readFile, stat } from "node:fs/promises";
+// Contents too (content.ts): a query starting with `'` or `content:`
+// searches what files say instead of what they are called; a plain query
+// gets the content matches as a second section, "In files", under the
+// name matches, each row's subtitle the first matching line. Spotlight's
+// text index on macOS (`mdfind` without `-name`), `rg` else `grep` on
+// Linux, 1 s at most. `PAL_FILES_CONTENT` forces a tool (the tests use
+// `grep` on their temp folder).
+import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
-import { apps as appsApi, home, settings, type Action, type App, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, conceal, home, ocr, settings, type Action, type App, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
 import { parseMdfindRecent, parseXbel, type Recent } from "./recent.ts";
 
 /** `[extensions.files]`, defaults in pal.json. */
-type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclude: string[] };
+type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclude: string[]; content_search: boolean; ocr_concealed: boolean };
 /** The args of the level "Open with…" pushes: which file the rows open. */
 type OpenWith = { open_with: string };
 const openWithOf = (ctx?: Ctx): string | undefined => (ctx?.args as OpenWith | undefined)?.open_with;
@@ -40,6 +48,62 @@ const CANDIDATES: Backend[] = MAC ? ["mdfind"] : ["fd", "locate", "find"];
 const forced = process.env.PAL_FILES_BACKEND as Backend | undefined;
 const BACKEND: Backend | undefined = [...(forced && forced in LABEL ? [forced] : []), ...CANDIDATES].find((b) => Bun.which(b));
 console.error(`[files] backend: ${BACKEND ? LABEL[BACKEND] : "none"}`);
+
+// ---- content -------------------------------------------------------------
+
+/** A content search past this is killed; what it printed is the answer. */
+const CONTENT_MS = 1000;
+const CONTENT_SECTION = "In files";
+/** How many snippet lookups run at once. */
+const SNIPPETS = 8;
+const CONTENT_CANDIDATES: ContentBackend[] = MAC ? ["mdfind", "rg", "grep"] : ["rg", "grep"];
+const forcedContent = process.env.PAL_FILES_CONTENT as ContentBackend | undefined;
+const CONTENT: ContentBackend | undefined = [...(forcedContent ? [forcedContent] : []), ...CONTENT_CANDIDATES].find((b) => Bun.which(b));
+/** The snippet tool: `rg` when there, else `grep` (Spotlight only lists). */
+const SNIPPET: ContentBackend = Bun.which("rg") ? "rg" : "grep";
+console.error(`[files] content: ${CONTENT ?? "none"}`);
+
+let runningContent: Bun.Subprocess<"ignore", "pipe", "ignore"> | undefined;
+
+/** Files whose text contains `q`, at most `limit`, within the budget; a newer search supersedes this one. */
+async function searchContent(q: string, s: Settings, folders: string[]): Promise<string[]> {
+  if (!CONTENT) return [];
+  runningContent?.kill();
+  const proc = Bun.spawn(contentArgv(CONTENT, q, folders, s.show_hidden), { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+  runningContent = proc;
+  const timer = setTimeout(() => proc.kill(), CONTENT_MS);
+  const out = await readLines(proc, s.limit, (p) => (s.show_hidden || !hidden(p, folders)) && !excluded(p, folders, s.exclude) && under(p, folders) !== undefined);
+  clearTimeout(timer);
+  proc.kill();
+  if (runningContent === proc) runningContent = undefined;
+  return out;
+}
+
+/** The first line of `path` containing `q`, for the row's subtitle; empty when the tool finds none (a binary Spotlight indexed, a PDF). */
+async function firstMatch(q: string, path: string): Promise<string> {
+  const proc = Bun.spawn(snippetArgv(SNIPPET, q, path), { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+  const timer = setTimeout(() => proc.kill(), CONTENT_MS);
+  const text = await new Response(proc.stdout).text().catch(() => "");
+  clearTimeout(timer);
+  return snippet(text);
+}
+
+/** Content rows for `paths` (a `searchContent` answer) minus `skip` (what the name search listed): a file row in the section "In files", the first matching line as its subtitle. */
+async function contentRows(q: string, paths: string[], skip: Set<string>): Promise<Item[]> {
+  const wanted = paths.filter((p) => !skip.has(p));
+  const rows: Item[] = [];
+  for (let i = 0; i < wanted.length; i += SNIPPETS) {
+    const batch = await Promise.all(wanted.slice(i, i + SNIPPETS).map(async (p) => {
+      const row = await item(p, undefined, CONTENT_SECTION);
+      if (!row || row.icon === GLYPH.folder) return;
+      const line = await firstMatch(q, p);
+      const out: Item = { ...row, subtitle: line ? `${line} · ${short(dirname(p))}` : row.subtitle };
+      return out;
+    }));
+    rows.push(...batch.filter((r): r is Item => r !== undefined));
+  }
+  return rows;
+}
 
 /** `*`, `?`, `[` and `\` in the query taken literally by find's `-iname`. */
 const globEscape = (s: string) => s.replace(/[\\*?[]/g, "\\$&");
@@ -70,13 +134,8 @@ const excluded = (p: string, folders: string[], exclude: string[]) => {
 
 let running: Bun.Subprocess<"ignore", "pipe", "ignore"> | undefined;
 
-/** Paths matching `q`, at most `limit`, in the backend's order; a newer search supersedes this one. */
-async function search(q: string, s: Settings, folders: string[]): Promise<string[]> {
-  running?.kill();
-  const proc = Bun.spawn(argv(BACKEND!, q, s, folders), { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
-  running = proc;
-  const timer = setTimeout(() => proc.kill(), SEARCH_MS);
-  const keep = (p: string) => (s.show_hidden || !hidden(p, folders)) && !excluded(p, folders, s.exclude) && (BACKEND !== "locate" || under(p, folders) !== undefined);
+/** The process's stdout a line at a time until `limit` lines pass `keep`; stops reading then (the caller kills it). */
+async function readLines(proc: Bun.Subprocess<"ignore", "pipe", "ignore">, limit: number, keep: (line: string) => boolean): Promise<string[]> {
   const out: string[] = [];
   const decoder = new TextDecoder();
   let buf = "";
@@ -88,10 +147,21 @@ async function search(q: string, s: Settings, folders: string[]): Promise<string
         const line = buf.slice(0, i);
         buf = buf.slice(i + 1);
         if (line && keep(line)) out.push(line);
-        if (out.length >= s.limit) break read;
+        if (out.length >= limit) break read;
       }
     }
   } catch {}
+  return out;
+}
+
+/** Paths matching `q`, at most `limit`, in the backend's order; a newer search supersedes this one. */
+async function search(q: string, s: Settings, folders: string[]): Promise<string[]> {
+  running?.kill();
+  const proc = Bun.spawn(argv(BACKEND!, q, s, folders), { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+  running = proc;
+  const timer = setTimeout(() => proc.kill(), SEARCH_MS);
+  const keep = (p: string) => (s.show_hidden || !hidden(p, folders)) && !excluded(p, folders, s.exclude) && (BACKEND !== "locate" || under(p, folders) !== undefined);
+  const out = await readLines(proc, s.limit, keep);
   clearTimeout(timer);
   proc.kill();
   if (running === proc) running = undefined;
@@ -125,6 +195,10 @@ const ACTIONS: Action[] = [
   { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c" },
   { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?" },
 ];
+/** An image or a PDF gets OCR after Copy file: its text onto the clipboard. */
+const OCR_ACTION: Action = { id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t" };
+const ocrable = (p: string, k: Kind) => k === "image" || extname(p).toLowerCase() === ".pdf";
+const actionsFor = (p: string, k: Kind): Action[] => (ocrable(p, k) ? [...ACTIONS.slice(0, 6), OCR_ACTION, ACTIONS[6]] : ACTIONS);
 
 /** A row for a path that still exists; `usedAt` (a recent file) replaces the modified date on the right. */
 async function item(p: string, usedAt?: number, section?: string): Promise<Item | undefined> {
@@ -139,8 +213,42 @@ async function item(p: string, usedAt?: number, section?: string): Promise<Item 
     icon: MAC && p.endsWith(".app") ? { app: p } : GLYPH[k],
     accessories: [...(k === "folder" ? [] : [{ text: size(st.size) }]), { date: usedAt ?? st.mtimeMs }],
     ...(section && { section }),
-    actions: ACTIONS,
+    actions: actionsFor(p, k),
   };
+}
+
+// ---- a typed path ----------------------------------------------------------
+
+/** A root query that is a path: `/` or `~` first (`~/Doc`, `/usr/local`); what the inline section answers. */
+export const PATH_RE = /^\s*(~|\/)/;
+/** Rows the inline section may show for a typed path. */
+const PATH_ROWS = 5;
+
+/**
+ * The rows for a typed path: the path itself when it exists, else the
+ * entries of its parent whose names start with the last segment (a
+ * completion: `~/Down` lists Downloads), hidden ones only when the segment
+ * starts with a dot or `show_hidden` is on. Nothing for a path whose
+ * parent does not exist.
+ */
+export async function pathRows(query: string, showHidden: boolean, limit = PATH_ROWS): Promise<Item[]> {
+  const q = query.trim();
+  if (!PATH_RE.test(q)) return [];
+  const p = home(q);
+  if (!q.endsWith("/")) {
+    const exact = await item(p);
+    if (exact) return [exact];
+  }
+  const dir = q.endsWith("/") ? p : dirname(p);
+  const prefix = q.endsWith("/") ? "" : basename(p);
+  let names: string[];
+  try { names = await readdir(dir); } catch { return []; }
+  const rows = await Promise.all(names
+    .filter((n) => n.toLowerCase().startsWith(prefix.toLowerCase()) && (showHidden || prefix.startsWith(".") || !n.startsWith(".")))
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, limit)
+    .map((n) => item(`${dir.replace(/\/$/, "")}/${n}`)));
+  return rows.filter((i): i is Item => i !== undefined);
 }
 
 // ---- recent --------------------------------------------------------------
@@ -251,6 +359,12 @@ async function fileAction(id: string, action: string | undefined, palette: strin
     case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith } };
     case "copy": return { copy: id };
     case "copy-file": return { copy_files: [id] };
+    case "copy-text": {
+      let text: string;
+      try { text = await ocr.image({ path: id }); } catch (e) { return { keep: true, toast: { title: "Could not read the text", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+      if (!text) return { keep: true, toast: { title: "No text found", message: basename(id) } };
+      return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
+    }
     case "trash":
       try { await trash(id); } catch (e) { return { keep: true, toast: { title: "Could not move to Trash", message: String((e as Error)?.message ?? e), style: "failure" } }; }
       return { keep: true, toast: { title: "Moved to Trash", message: basename(id) } };
@@ -279,8 +393,11 @@ export default {
   palettes: {
     files: {
       title: "Files",
-      icon: ICON,
       input: true,
+      // At the root a typed path (`~/Down`, `/usr/local/bin`) lists the file or its completions inline; any other query gets a Search Files fallback row.
+      match: PATH_RE,
+      inline: true,
+      fallback: "Search Files for “{query}”",
       placeholder: "Search files by name",
       // A level pushed by "Open with…" (`args.open_with` is the file) lists the apps for it instead; its rows' ids are app paths.
       list: async (query = "", ctx) => {
@@ -288,15 +405,26 @@ export default {
         if (file) return appRows(file, query);
         const s = settings.get<Settings>();
         const folders = s.folders.map(home);
-        const q = query.trim();
+        // A path completes rather than searches, inside the palette too: the backends match names, not paths.
+        if (ctx?.inline) return pathRows(query, s.show_hidden);
+        if (PATH_RE.test(query.trim())) return pathRows(query, s.show_hidden, s.limit);
+        const ask = parseQuery(query);
+        if (ask.only) {
+          if (!ask.content) return [hint("Type words to find in file contents", CONTENT ? `${CONTENT} in ${folders.map(short).join(", ")}` : "No content search tool: Spotlight, rg or grep")];
+          return contentRows(ask.content, await searchContent(ask.content, s, folders), new Set());
+        }
+        const q = ask.name;
         if (!q || !BACKEND) {
           // The empty query is the recently used files, as in Raycast; the hints when there are none.
           const recent = BACKEND ? await recentRows(s, folders, RECENT_SECTION) : [];
           return recent.length ? recent : hints(folders);
         }
+        // Names and contents at once; the content rows come after, minus what the names found.
+        const content = s.content_search && CONTENT ? searchContent(q, s, folders) : Promise.resolve([]);
         const paths = await search(q, s, folders);
         const rows = (await Promise.all(paths.map((p) => item(p)))).filter((i): i is Item => i !== undefined);
-        return rank(rows, q);
+        const named = rank(rows, q);
+        return [...named, ...(await contentRows(q, await content, new Set(named.map((r) => r.id))))];
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
@@ -309,7 +437,6 @@ export default {
     },
     recent: {
       title: "Recent Files",
-      icon: "\u{f02da}",
       // Newest first is the order; listed again on a show once the listing is a minute old.
       live: true,
       placeholder: "Search recent files",

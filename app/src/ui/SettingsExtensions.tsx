@@ -173,7 +173,7 @@ function ExtensionPane({ ext, busy, failed, onChange, onUpdate, onRemove, onOpen
     <>
     <div className="pal-pane pal-xpane" data-anchor={`extensions:${ext.name}`}>
       <header className="pal-xpane__hero">
-        <span className="pal-xpane__tile" data-image={ext.icon?.kind === "image" || ext.icon?.kind === "app" || undefined}><Icon icon={ext.icon} size="lg" /></span>
+        <span className="pal-xpane__tile" data-image={ext.icon?.kind === "image" || ext.icon?.kind === "app" || ext.icon?.kind === "tile" || undefined}><Icon icon={ext.icon} size="lg" /></span>
         <div className="pal-xpane__titles">
           <h3 className="pal-xpane__title">{ext.title}</h3>
           <p className="pal-xpane__tagline">{ext.tagline ?? ext.description}</p>

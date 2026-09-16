@@ -1,6 +1,7 @@
 // windows against canned core/windows.* replies: the harness fixtures plus
 // a second kitty window, so the per-app actions have a set to act on.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import type { Window } from "../../../sdk/src/index.ts";
 import { Host, fixtures } from "../harness.ts";
 
@@ -30,7 +31,7 @@ const perApp = MAC ? ["hide-app", "minimize-all", "close-all"] : ["minimize-all"
 
 describe("windows", () => {
   test("meta: live, not input, so titles are root results", () => {
-    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: "\u{f10ac}", placeholder: "Switch to a window", tier: "primary" }]);
+    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: tile("slate", "\u{f10ac}"), placeholder: "Switch to a window", tier: "primary" }]);
   });
 
   test("rows in the core's order: title, app as subtitle, section and keyword, app icon or a glyph, state accessories", async () => {

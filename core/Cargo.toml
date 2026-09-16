@@ -24,6 +24,8 @@ resvg = { version = "0.48", default-features = false }
 ureq = { version = "3", default-features = false, features = ["rustls", "gzip"] }
 url = "2"
 sha2 = "0.10"
+# media: the MediaRemote stream's artwork arrives base64
+base64 = "0.22"
 # extensions: the GitHub tarball, and staging inside the store
 tar = "0.4"
 flate2 = "1"
@@ -51,6 +53,10 @@ objc2-io-bluetooth = { version = "0.3", default-features = false, features = ["s
 # calendar: EventKit (the store, events, calendars, participants; block2 for the access prompt's completion, CGColor for a calendar's colour)
 objc2-event-kit = { version = "0.3", default-features = false, features = ["std", "block2", "objc2-core-graphics", "EKObject", "EKTypes", "EKEventStore", "EKEvent", "EKCalendar", "EKCalendarItem", "EKParticipant", "EKSource"] }
 block2 = "0.6"
+# ocr: the Vision text recogniser (VNRecognizeTextRequest over a file URL or bytes)
+objc2-vision = { version = "0.3", default-features = false, features = ["std", "VNObservation", "VNRecognizeTextRequest", "VNRequest", "VNRequestHandler", "VNTypes"] }
+# wifi: CoreWLAN for the current network's name, signal and channel and for a scan (the names only show with Location Services, which the app asks for)
+objc2-core-wlan = { version = "0.3", default-features = false, features = ["std", "CWWiFiClient", "CWInterface", "CWNetwork", "CWChannel", "CoreWLANTypes"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 freedesktop-icons = "0.4"

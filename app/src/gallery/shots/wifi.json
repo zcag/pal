@@ -3,7 +3,12 @@
     "wifi": {
       "title": "Wi-Fi",
       "live": true,
-      "icon": "󰖩",
+      "icon": {
+        "tile": {
+          "glyph": "󰖩",
+          "bg": "blue"
+        }
+      },
       "placeholder": "Join a network",
       "items": [
         {

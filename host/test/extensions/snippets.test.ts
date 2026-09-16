@@ -14,12 +14,32 @@ import { Host, fixtures, stored } from "../harness.ts";
 const at = new Date(2026, 8, 16, 9, 5); // local 2026-09-16 09:05
 const pinned = { clipboard: () => "from the clipboard", now: () => at, uuid: () => "u-u-i-d" };
 
+describe("create from the clipboard", () => {
+  test("a level pushed with args.create is one row whose form comes filled with the text", async () => {
+    const rows = await host.list("snippets", "snippets", "", { args: { create: "Best,\nAda" } });
+    expect(rows).toEqual([{ id: "create", name: "Create Snippet from the clipboard", subtitle: "Best, Ada", icon: "\u{f0415}", actions: [{ id: "create", title: "Create snippet" }] }]);
+    const r = await host.pick("snippets", "snippets", "create", undefined, { args: { create: "Best,\nAda" } });
+    expect(r.form!.fields.find((f) => f.id === "text")).toMatchObject({ default: "Best,\nAda" });
+    expect((await host.pick("snippets", "snippets", "create")).form!.fields.find((f) => f.id === "text")).not.toHaveProperty("default");
+  });
+});
+
 describe("placeholders", () => {
-  test("date, time, datetime, uuid and clipboard are filled, selection from the clipboard too; {cursor} and anything else in braces stays", async () => {
+  test("date, time, datetime, uuid and clipboard are filled, selection from the clipboard without a selection source; {cursor} and anything else in braces stays", async () => {
     expect(await expand("On {date} at {time} ({datetime}) id {uuid}: {clipboard} {cursor} {x}", pinned)).toBe("On 2026-09-16 at 09:05 (2026-09-16 09:05) id u-u-i-d: from the clipboard {cursor} {x}");
     expect(await expand("<{selection}>", pinned)).toBe("<from the clipboard>");
     expect(isoDate(at)).toBe("2026-09-16");
     expect(isoTime(at)).toBe("09:05");
+  });
+  test("{selection} is the selected text; the clipboard when nothing is selected or the read fails; each source read once", async () => {
+    let sel = 0, clip = 0;
+    const s = { ...pinned, clipboard: () => { clip++; return "clip"; }, selection: () => { sel++; return "marked"; } };
+    expect(await expand("<{selection}> <{selection}> <{clipboard}>", s)).toBe("<marked> <marked> <clip>");
+    expect([sel, clip]).toEqual([1, 1]);
+    expect(await expand("<{selection}>", { ...pinned, selection: () => null })).toBe("<from the clipboard>");
+    expect(await expand("<{selection}>", { ...pinned, selection: () => "" })).toBe("<from the clipboard>");
+    expect(await expand("<{selection}>", { ...pinned, selection: async () => { throw new Error("needs Accessibility"); } })).toBe("<from the clipboard>");
+    expect(await expand("<{clipboard}>", { ...pinned, selection: () => { throw new Error("not asked"); } })).toBe("<from the clipboard>");
   });
   test("every {uuid} is a fresh one; the clipboard is read once and only when asked for", async () => {
     let n = 0, reads = 0;
@@ -58,8 +78,10 @@ beforeAll(async () => {
     { id: "sig", name: "Signature", keyword: "sig", text: "Best,\nCagdas" },
     { id: "stamp", name: "Stamp", text: "Reviewed {date} {time}\n{clipboard}" },
   ]);
-  host = await Host.bundled();
+  host = await Host.bundled({ core: { "selection.text": () => selected } });
 });
+/** What the canned `core/selection.text` answers. */
+let selected: string | null = "the marked words";
 afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
 
 const list = () => host.list("snippets", "snippets");
@@ -144,5 +166,14 @@ describe("snippets", () => {
     expect((await list()).map((i) => i.id)).not.toContain("stamp");
     expect((await host.call("pick", { extension: "snippets", palette: "snippets", id: "nope" })).error).toMatch(/no snippet nope/);
     expect((await host.hello()).pid).toBe(host.pid);
+  });
+  test("{selection} asks the core for the app in front's selected text, and takes the clipboard when nothing is selected", async () => {
+    await pick("create", "save", { values: { name: "Quote", keyword: "", text: "> {selection}" } });
+    const quote = (stored.get("snippets\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Quote")!;
+    expect(await pick(quote.id, "copy")).toEqual({ copy: "> the marked words" });
+    expect(host.coreCalls.filter((c) => c.method === "selection.text")).toHaveLength(1);
+    selected = null;
+    expect(await pick(quote.id, "copy")).toEqual({ copy: `> ${fixtures.clipboard[0].text}` });
+    await pick(quote.id, "delete");
   });
 });

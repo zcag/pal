@@ -52,11 +52,13 @@ export const grammar: { keys: string[]; does: string }[] = [
   { keys: ["home", "end", "pageup", "pagedown"], does: "Scroll the list" },
   { keys: ["cmd+c"], does: "Any other modifier combo runs the action carrying that shortcut" },
   { keys: ["h", "space", "backspace"], does: "In a view level with bare-key actions, a bare key runs the action carrying it" },
+  { keys: ["shift+↑"], does: "A shifted arrow runs the action carrying it (a view's big step), else moves" },
 ];
 
 const keyName = (e: KeyboardEvent) => {
   const m = /^(?:Key|Digit)(\w)$/.exec(e.code);
-  if (m) return m[1].toLowerCase();
+  // A letter by its physical key (a shifted or caps-locked A is `a`, and a non-QWERTY layout goes by position); a digit key that produced a symbol (`#` on shift+3, `%`) by the symbol, which is what was typed.
+  if (m) return e.code.startsWith("Digit") && e.key.length === 1 && !/\d/.test(e.key) ? e.key : m[1].toLowerCase();
   const k = e.key.toLowerCase();
   return k === " " ? "space" : k.replace(/^arrow/, "");
 };
@@ -74,6 +76,8 @@ export function resolve(e: KeyboardEvent): Command | null {
   const cmd = isMac ? e.metaKey : e.ctrlKey;
   const k = keyName(e);
   if (e.ctrlKey && !e.metaKey && !e.altKey && (k === "n" || k === "p")) return { type: "move", dir: k === "n" ? "down" : "up" };
+  // A shifted arrow is a shortcut (`shift+up`: a view's big step); a level that has no action for it moves as for the bare arrow (Launcher).
+  if (!cmd && !e.altKey && e.shiftKey && /^Arrow/.test(e.key)) return { type: "shortcut", combo: comboOf(e) };
   if (!cmd && !e.altKey) {
     switch (e.key) {
       case "ArrowDown": return { type: "move", dir: "down" };
@@ -113,8 +117,12 @@ export const keepFocus = (e: { target: EventTarget | null; preventDefault(): voi
   if (!isEditable(e.target)) e.preventDefault();
 };
 
-/** Only cursor movement should repeat while a key is held; Enter, Escape, shortcuts and bare-key actions fire once. */
-const repeats = (cmd: Command) => cmd.type === "move" || cmd.type === "jump";
+/** A shifted arrow, as `resolve` spells it. */
+const SHIFT_ARROW = /^shift\+(up|down|left|right)$/;
+/** Only cursor movement (a shifted arrow included) should repeat while a key is held; Enter, Escape, shortcuts and bare-key actions fire once. */
+const repeats = (cmd: Command) => cmd.type === "move" || cmd.type === "jump" || (cmd.type === "shortcut" && SHIFT_ARROW.test(cmd.combo));
+/** The arrow under a `shift+<arrow>` combo, for a level that treats the two alike. */
+export const shiftedArrow = (combo: string): "up" | "down" | "left" | "right" | undefined => SHIFT_ARROW.exec(combo)?.[1] as "up" | undefined;
 
 type Options = {
   /** Element to listen on; the window when absent. Element scopes swallow handled keys. */

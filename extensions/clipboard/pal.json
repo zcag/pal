@@ -3,7 +3,7 @@
   "title": "Clipboard",
   "description": "What you copied, searchable, with images; pinned entries first, a filter by kind (text, images, files, links, colors). Enter pastes it back into the app in front.",
   "version": "0.1.0",
-  "icon": "⎘",
+  "icon": { "tile": { "glyph": "󰅍", "bg": "violet" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -40,6 +40,13 @@
       "default": 30
     },
     {
+      "kind": "boolean",
+      "id": "ocr_concealed",
+      "label": "OCR copies are private",
+      "text": "Text read from an image (Copy text from image) is kept out of this history",
+      "default": false
+    },
+    {
       "kind": "select",
       "id": "primary_action",
       "label": "Primary action",
@@ -65,8 +72,8 @@
       "The detail pane open from the start: the full text, the image, or the file list, with kind, size, source app and time",
       "Pinned entries in a section at the top, never expiring; the rest newest first, kept for `max_age_days` and `max_entries`",
       "Filters: All, Text, Images, Files, Links (text that is one url) and Colors (a `#hex` or `rgb()`, drawn as a swatch)",
-      "Paste (`enter`) or copy back (`cmd+enter`), paste as plain text (`cmd+shift+v`), open a link (`cmd+o`), copy an image as a file (`cmd+shift+c`)",
-      "Never recorded: what a password manager marks concealed, copies over 10 MB, copies made in an excluded app"
+      "Paste (`enter`) or copy back (`cmd+enter`), paste as plain text (`cmd+shift+v`), open a link (`cmd+o`), copy an image as a file (`cmd+shift+c`), copy the text in an image (`cmd+shift+t`, OCR: the Vision framework on macOS, `tesseract` on Linux)",
+      "Never recorded: what a password manager marks concealed (pal's own concealed copies too: a 1Password password, a verification code), copies over 10 MB, copies made in an excluded app"
     ],
     "permissions": [
       "accessibility"
@@ -139,7 +146,55 @@
       }
     ]
   },
+  "links": {
+    "copy": {
+      "description": "Put a history entry back on the clipboard",
+      "params": {
+        "index": {
+          "description": "Which entry, newest first: 0 is the newest (the default)",
+          "type": "number"
+        }
+      }
+    }
+  },
   "palettes": {
+    "rows": {
+      "title": "Clipboard",
+      "kind": "input",
+      "description": "What is on the clipboard now, as the things it could be: a web address (open, private window, markdown link, QR code), a colour (the picker, every notation), paths (open, reveal, open with), an email, a phone number, JSON (pretty, minified), an expression or a number (the answer, other bases), a timestamp or ISO date (local and relative), hex or base64 that decodes to text, a tracking number (the carrier), a git sha or owner/repo#12 (GitHub), an image (save, copy as file, OCR), and the text itself (counts, case and slug transforms, paste as plain, save as snippet). The root's Clipboard section before you type; Hide keeps it away until the next copy. Only what history recorded is read: a concealed copy or one from an excluded app never shows.",
+      "settings": [
+        {
+          "kind": "boolean",
+          "id": "fetch_titles",
+          "label": "Fetch page titles",
+          "text": "Ask a copied web address for its title (one request, 1 s at most; the only thing these rows send off the machine)",
+          "default": true
+        },
+        {
+          "kind": "text",
+          "id": "shortener",
+          "label": "URL shortener",
+          "description": "A URL with {url} in it whose response body is the short link, for the Shorten action (https://is.gd/create.php?format=simple&url={url}). Empty: no Shorten action.",
+          "placeholder": "https://is.gd/create.php?format=simple&url={url}",
+          "default": ""
+        },
+        {
+          "kind": "text",
+          "id": "private_browser",
+          "label": "Private window browser",
+          "description": "Which browser opens a private window: Google Chrome, Brave Browser, Microsoft Edge, Chromium, Vivaldi or Firefox. Empty: the first of those that is installed.",
+          "placeholder": "Firefox",
+          "default": ""
+        }
+      ],
+      "keys": [
+        { "keys": "enter", "title": "What the row is for: open, call, paste as plain, copy the answer" },
+        { "keys": "cmd+shift+h", "title": "Hide the section until the next copy" },
+        { "keys": "cmd+shift+o", "title": "Open the address in a private window" },
+        { "keys": "cmd+shift+m", "title": "Copy as a Markdown link, or minified JSON" },
+        { "keys": "cmd+s", "title": "Save the text as a snippet" }
+      ]
+    },
     "history": {
       "kind": "input",
       "description": "Every copy, pinned ones first, then newest.",

@@ -179,7 +179,6 @@ export default {
   palettes: {
     make: {
       title: "Makefile Targets",
-      icon: ICON,
       placeholder: "Target or project",
       actions: ACTIONS,
       list,

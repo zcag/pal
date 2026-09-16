@@ -8,21 +8,24 @@
 // item, `notifications`: the unread count as a badge over the same cache.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { home, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { home, tinted, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit, run } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type Notification, type PR, type PRDetail, type Repo, type SearchKind, type User,
 } from "./data.ts";
 
-/** Octicons from the bundled Nerd Font (nf-oct-*): pull request, issue, repo, bell, search, person, info, plus. */
-const ICON = { prs: "\uf407", issues: "\uf41b", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", info: "\uf449", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
+/** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, info, plus. */
+const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", info: "\uf449", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
 /** The bar's glyph (nf-fa-github). */
 const BAR_GLYPH = "\u{f09b}";
 /** Rows of the bar item's menu; the palette has the rest. */
 const BAR_ROWS = 5;
-/** The tag palette's hues as hex, for the state dot a PR or issue row carries. */
-const DOT = { open: "#1a7f37", draft: "#6e7781", merged: "#8250df", closed: "#cf222e", done: "#8250df" } as const;
+/** A PR or issue row's mark: the state's octicon in the state's colour (GitHub's own: open green, merged violet, closed red, draft slate). */
+const STATE = {
+  open: tinted(ICON.prs, "green"), draft: tinted(ICON.draft, "slate"), merged: tinted(ICON.merged, "violet"), closed: tinted(ICON.prClosed, "red"),
+  issue: tinted(ICON.issues, "green"), done: tinted(ICON.issueClosed, "violet"),
+} as const;
 const TYPE_GLYPH: Record<string, string> = { PullRequest: ICON.prs, Issue: ICON.issues, Release: "\uf412", Discussion: "\uf442", Commit: "\uf417" };
 const REASON: Record<string, string> = { review_requested: "Review requested", mention: "Mentioned", team_mention: "Mentioned", assign: "Assigned", author: "Your threads", comment: "Comments", subscribed: "Subscribed", state_change: "State changed", ci_activity: "CI", security_alert: "Security" };
 const REASON_ORDER = ["Review requested", "Mentioned", "Assigned", "Your threads", "Comments", "State changed", "CI", "Security", "Subscribed"];
@@ -139,7 +142,7 @@ function prRow(pr: PR, section?: string): Item {
     id: pr.id,
     name: pr.title,
     subtitle: `${pr.repo} #${pr.number}`,
-    icon: pr.state === "merged" ? DOT.merged : pr.state === "closed" ? DOT.closed : pr.draft ? DOT.draft : DOT.open,
+    icon: pr.state === "merged" ? STATE.merged : pr.state === "closed" ? STATE.closed : pr.draft ? STATE.draft : STATE.open,
     keywords: [pr.repo.split("/")[1], pr.repo, `#${pr.number}`, String(pr.number), pr.author, pr.head],
     url: pr.url,
     section,
@@ -241,7 +244,7 @@ function issueRow(i: Issue, section?: string): Item {
     id: i.id,
     name: i.title,
     subtitle: `${i.repo} #${i.number}`,
-    icon: i.state === "open" ? DOT.open : DOT.done,
+    icon: i.state === "open" ? STATE.issue : STATE.done,
     keywords: [i.repo.split("/")[1], i.repo, `#${i.number}`, String(i.number), i.author, ...i.labels.map((l) => l.name)],
     url: i.url,
     section,
@@ -675,7 +678,6 @@ export default {
   palettes: {
     prs: {
       title: "Pull Requests",
-      icon: ICON.prs,
       showDetail: true,
       filters: PR_FILTERS,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await prRows(ctx))]),
@@ -684,7 +686,6 @@ export default {
     },
     issues: {
       title: "Issues",
-      icon: ICON.issues,
       showDetail: true,
       filters: ISSUE_FILTERS,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await issueRows(ctx))]),
@@ -697,7 +698,6 @@ export default {
     },
     repos: {
       title: "Repositories",
-      icon: ICON.repos,
       filters: REPO_FILTERS,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await repoRows(ctx))]),
       pick: async (id, action, ctx) => {
@@ -710,14 +710,12 @@ export default {
     },
     notifications: {
       title: "Notifications",
-      icon: ICON.notifications,
       live: true,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await notifRows(ctx))]),
       pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickNotif(id, action)),
     },
     search: {
       title: "Search GitHub",
-      icon: ICON.search,
       input: true,
       placeholder: "Text, repo:owner/name, is:pr, author:login",
       filters: SEARCH_FILTERS,

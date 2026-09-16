@@ -1,0 +1,157 @@
+{
+  "name": "slack",
+  "title": "Slack",
+  "description": "What Slack is holding for you: direct messages, mentions and threads as rows with the message and who sent it, the channels you are in, Slack's search, and your status, presence and Do Not Disturb. Signs in through the desktop app's own session or a user token.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰒱", "bg": "violet" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "select",
+      "id": "auth",
+      "label": "Sign in",
+      "description": "app reads the desktop app's own session (its token from Local Storage and its cookie from the cookie jar, decrypted with the Safe Storage password in the keychain), so it sees exactly your inbox; token uses a user token from a Slack app of your own.",
+      "options": [
+        { "id": "app", "title": "The Slack desktop app's session" },
+        { "id": "token", "title": "A user token" }
+      ],
+      "default": "app"
+    },
+    {
+      "kind": "secret",
+      "id": "token",
+      "label": "Token",
+      "description": "A user token (xoxp-...) with channels:read, groups:read, im:read, mpim:read, channels:history, groups:history, im:history, mpim:history, users:read, chat:write, search:read, users.profile:write, users:write, dnd:write. Only with Sign in set to token.",
+      "placeholder": "xoxp-...",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "workspace",
+      "label": "Workspace",
+      "description": "The workspace to use when the app is signed in to several, by id (T...) or domain (acme for acme.slack.com); empty lists every signed-in one, with status and search on the first.",
+      "placeholder": "acme",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "statuses",
+      "label": "Status presets",
+      "description": "One per line as :emoji: text (expiry); the expiry is 30m, 2h, 1d or today, or left out for no expiry.",
+      "placeholder": ":coffee: Coffee break (15m)",
+      "default": [
+        ":spiral_calendar_pad: In a meeting (1h)",
+        ":knife_fork_plate: Lunch (1h)",
+        ":headphones: Focus time (2h)",
+        ":house_with_garden: Working from home (today)",
+        ":palm_tree: Out of office"
+      ]
+    },
+    {
+      "kind": "boolean",
+      "id": "dm_urgent",
+      "label": "Direct messages",
+      "text": "Draw the bar item as urgent (red) while a direct message is unread",
+      "default": true
+    },
+    {
+      "kind": "number",
+      "id": "refresh",
+      "label": "Refresh",
+      "description": "Seconds between refreshes of the bar item; it also refreshes when the panel shows, after a wake and when the network is back.",
+      "min": 10,
+      "max": 3600,
+      "unit": "s",
+      "default": 120
+    }
+  ],
+  "palettes": {
+    "unreads": {
+      "title": "Unreads",
+      "description": "Direct messages, mentions and threads addressed to you, then the channels that are only unread; each row with who said what and how long ago.",
+      "kind": "live",
+      "keys": [
+        { "keys": "enter", "title": "Open the conversation in Slack" },
+        { "keys": "cmd+shift+r", "title": "Mark as read" },
+        { "keys": "cmd+shift+o", "title": "Open in the browser" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "channels": {
+      "title": "Channels",
+      "description": "Every channel, group and direct message you are in, with the topic and the member count.",
+      "kind": "list",
+      "ttl": 3600,
+      "tier": "catalog",
+      "keys": [
+        { "keys": "enter", "title": "Open in Slack" },
+        { "keys": "cmd+shift+o", "title": "Open in the browser" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "search": {
+      "title": "Search Slack",
+      "description": "Slack's message search as you type, its syntax passed through: from:@name, in:#channel, has:link, before:yesterday.",
+      "kind": "input",
+      "keys": [
+        { "keys": "enter", "title": "Open the message in Slack" },
+        { "keys": "cmd+shift+o", "title": "Open in the browser" },
+        { "keys": "cmd+c", "title": "Copy the text" }
+      ]
+    },
+    "status": {
+      "title": "Status",
+      "description": "Your status, presence and Do Not Disturb as the first rows; set a status from the presets, clear it, snooze notifications for 30 minutes, an hour or until tomorrow, go away or active.",
+      "kind": "live",
+      "keys": [
+        { "keys": "enter", "title": "Set it" }
+      ]
+    }
+  },
+  "bar": {
+    "unreads": {
+      "title": "Unreads",
+      "description": "What is addressed to you (direct messages, mentions, thread replies) as a count, hidden at zero, red while a direct message waits; the popover lists them with the channels that are only unread.",
+      "refresh": { "every": 120, "on": ["show", "wake", "network"] }
+    }
+  },
+  "store": {
+    "tagline": "Your Slack inbox, the part that is yours, in the panel and on the bar",
+    "category": "integration",
+    "features": [
+      "Unreads: direct messages, mentions and thread replies as rows with the sender's avatar, the message and how long ago; the channels that are merely unread named under them",
+      "Enter opens the conversation in the Slack app at the message; Reply is a one-field form that posts from the panel; Mark as read from the row",
+      "The bar item counts only what is addressed to you, so it is usually hidden and worth reading when it is not; red while a direct message waits",
+      "Channels: every channel, group and direct message you are in, with the topic and the member count",
+      "Search Slack as you type with Slack's own syntax: from:@name, in:#channel, has:link",
+      "Status: presets with an expiry, clear, Do Not Disturb for 30 minutes, an hour or until tomorrow, away or active",
+      "No Slack app to install: the desktop app's own session is read from its files, so what you see is exactly your inbox"
+    ],
+    "permissions": ["network", "keychain"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-unreads.png", "caption": "Unreads: direct messages, mentions and threads addressed to you, then the channels that are only unread" },
+      { "file": "2-unread-detail.png", "caption": "The pane: the unread run of the conversation, oldest first" },
+      { "file": "3-status.png", "caption": "Status: what is set now, then the presets, Do Not Disturb and presence" },
+      { "file": "4-search.png", "caption": "Search Slack: Slack's syntax typed into the panel" },
+      { "file": "bar-menubar-dark.png", "caption": "On the menu bar: the Slack glyph with the count of what is addressed to you", "kind": "bar" },
+      { "file": "bar-menubar-light.png", "caption": "The same item on a light menu bar", "kind": "bar" },
+      { "file": "bar-menubar-popover.png", "caption": "A click opens the popover: direct messages, mentions and threads, the channels also unread, Open in pal, Mark all read, Open Slack", "kind": "bar" },
+      { "file": "bar-sketchybar.png", "caption": "On sketchybar: the glyph and the count, red while a direct message waits", "kind": "bar" }
+    ],
+    "actions": [
+      { "title": "Open", "description": "The conversation in the Slack app, at the message when one is known.", "keys": "enter" },
+      { "title": "Reply", "description": "A one-field form; posts to the conversation (into the thread for a threaded mention).", "keys": "cmd+enter" },
+      { "title": "Mark as read", "description": "Up to the latest message; the count falls at the next refresh.", "keys": "cmd+shift+r" },
+      { "title": "Open in browser", "description": "The web client's archive page.", "keys": "cmd+shift+o" },
+      { "title": "Copy link", "keys": "cmd+c" },
+      { "title": "Copy text", "description": "A found message's text.", "keys": "cmd+c" },
+      { "title": "Set status", "description": "A preset, with its expiry." },
+      { "title": "Clear status" },
+      { "title": "Do Not Disturb", "description": "30 minutes, 1 hour, or until tomorrow; End Do Not Disturb while it is on." },
+      { "title": "Set away / Set active" }
+    ]
+  }
+}

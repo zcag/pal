@@ -140,19 +140,21 @@ export function hotkeyList(raw: string | string[] | undefined): string[] {
   return (Array.isArray(raw) ? raw : [raw ?? ""]).map((s) => s.trim()).filter(Boolean);
 }
 
-/** core::calendar::Status. */
-export type CalendarPermission = "granted" | "denied" | "not_determined" | "restricted" | "unavailable";
+/** core::permission::Status (Calendars, Location): `not_determined` prompts on request, `denied` is switched in System Settings. */
+export type PromptPermission = "granted" | "denied" | "not_determined" | "restricted" | "unavailable";
 
 /** permissions.rs `Status`: what the OS lets pal do. Always granted off macOS. */
 export type PermissionsStatus = {
   accessibility: boolean;
-  calendar?: CalendarPermission;
+  calendar?: PromptPermission;
   /** `undefined`: nothing to probe (Messages never ran here). */
   full_disk_access?: boolean;
   input_monitoring?: boolean;
+  /** Location Services: Wi-Fi network names on macOS 15+. */
+  location?: PromptPermission;
 };
 
-export type PermissionId = "accessibility" | "calendar" | "full_disk_access" | "input_monitoring";
+export type PermissionId = "accessibility" | "calendar" | "full_disk_access" | "input_monitoring" | "location";
 
 /** One permission as a row: granted or not, what needs it, where the switch is. */
 export type PermissionRow = {
@@ -161,6 +163,8 @@ export type PermissionRow = {
   granted: boolean;
   /** Not on this machine at all (`unavailable`, nothing to probe): no row. */
   state: "granted" | "missing" | "unknown";
+  /** What in pal needs it, a few words: the General list's note after the title. */
+  brief: string;
   /** What in pal needs it, one line. */
   needs: string;
   /** Where the switch is, one line. */
@@ -171,19 +175,22 @@ export type PermissionRow = {
  * The permissions as rows. Every row is listed (the Overview and General
  * say what each is for); `unknown` is a probe with no answer, shown as such.
  */
-export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: boolean; calendar?: boolean; bar?: boolean } = {}): PermissionRow[] {
+export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: boolean; calendar?: boolean; bar?: boolean; wifi?: boolean } = {}): PermissionRow[] {
   if (!p) return [];
   const rows: PermissionRow[] = [
-    { id: "accessibility", title: "Accessibility", granted: p.accessibility, state: p.accessibility ? "granted" : "missing", needs: "Paste into the app in front, switch to a window, pal action type", where: "Privacy & Security > Accessibility" },
+    { id: "accessibility", title: "Accessibility", granted: p.accessibility, state: p.accessibility ? "granted" : "missing", brief: "paste, window switching", needs: "Paste into the app in front, switch to a window, pal action type", where: "Privacy & Security > Accessibility" },
   ];
   if (p.calendar && p.calendar !== "unavailable") {
-    rows.push({ id: "calendar", title: "Calendars", granted: p.calendar === "granted", state: p.calendar === "granted" ? "granted" : "missing", needs: opts.calendar ? "The Calendar extension: My Schedule, Create Event" : "The Calendar extension (not installed)", where: p.calendar === "not_determined" ? "the system prompt, once" : "Privacy & Security > Calendars" });
+    rows.push({ id: "calendar", title: "Calendars", granted: p.calendar === "granted", state: p.calendar === "granted" ? "granted" : "missing", brief: "the Calendar extension", needs: opts.calendar ? "The Calendar extension: My Schedule, Create Event" : "The Calendar extension (not installed)", where: p.calendar === "not_determined" ? "the system prompt, once" : "Privacy & Security > Calendars" });
   }
   if (p.full_disk_access !== undefined || opts.otp) {
-    rows.push({ id: "full_disk_access", title: "Full Disk Access", granted: p.full_disk_access === true, state: p.full_disk_access === true ? "granted" : p.full_disk_access === false ? "missing" : "unknown", needs: "Verification codes (the OTP palette reads the Messages database)", where: "Privacy & Security > Full Disk Access; add pal there by hand" });
+    rows.push({ id: "full_disk_access", title: "Full Disk Access", granted: p.full_disk_access === true, state: p.full_disk_access === true ? "granted" : p.full_disk_access === false ? "missing" : "unknown", brief: "verification codes", needs: "Verification codes (the OTP palette reads the Messages database)", where: "Privacy & Security > Full Disk Access; add pal there by hand" });
   }
   if (p.input_monitoring !== undefined) {
-    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", needs: opts.bar ? "A bar peek closes on the next key press" : "A bar peek closes on the next key press (no bar items yet)", where: "Privacy & Security > Input Monitoring" });
+    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", brief: "bar peeks", needs: opts.bar ? "A bar peek closes on the next key press" : "A bar peek closes on the next key press (no bar items yet)", where: "Privacy & Security > Input Monitoring" });
+  }
+  if (p.location && p.location !== "unavailable") {
+    rows.push({ id: "location", title: "Location", granted: p.location === "granted", state: p.location === "granted" ? "granted" : "missing", brief: "Wi-Fi network names", needs: opts.wifi ? "Wi-Fi network names (macOS shows them only to apps with Location access); asked the first time the Wi-Fi palette lists" : "Wi-Fi network names (the Wi-Fi extension, not installed)", where: p.location === "not_determined" ? "the system prompt, once" : "Privacy & Security > Location Services" });
   }
   return rows;
 }

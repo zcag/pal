@@ -3,7 +3,7 @@
   "title": "Snippets",
   "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {date}, {time} and {uuid} filled in. Created and edited in the panel; imported and exported as JSON.",
   "version": "0.1.0",
-  "icon": "󰆐",
+  "icon": { "tile": { "glyph": "󰆐", "bg": "violet" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -80,6 +80,21 @@
         "keys": "enter"
       }
     ]
+  },
+  "links": {
+    "paste": {
+      "description": "Paste a snippet by name or keyword, placeholders filled",
+      "params": {
+        "name": {
+          "description": "The snippet's name or keyword, case-insensitive",
+          "required": true
+        },
+        "copy": {
+          "description": "Copy it instead of pasting",
+          "type": "boolean"
+        }
+      }
+    }
   },
   "palettes": {
     "snippets": {

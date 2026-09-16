@@ -4,8 +4,13 @@
 
 export type Snippet = { id: string; name: string; keyword?: string; text: string };
 
-/** What a placeholder needs from outside: the clipboard's text (asked only when `{clipboard}` occurs), the moment, and fresh ids. */
-export type Sources = { clipboard: () => Promise<string> | string; now?: () => Date; uuid?: () => string };
+/**
+ * What a placeholder needs from outside: the clipboard's text (asked only
+ * when `{clipboard}` occurs), the selected text (asked only for
+ * `{selection}`; the clipboard stands in when it answers nothing or is
+ * absent), the moment, and fresh ids.
+ */
+export type Sources = { clipboard: () => Promise<string> | string; selection?: () => Promise<string | null> | string | null; now?: () => Date; uuid?: () => string };
 
 const two = (n: number) => String(n).padStart(2, "0");
 /** Local date as `YYYY-MM-DD`. */
@@ -15,9 +20,9 @@ export const isoTime = (d: Date) => `${two(d.getHours())}:${two(d.getMinutes())}
 
 /**
  * The placeholders in the order they are looked for; `{datetime}` is date
- * and time with a space. `{selection}` is Raycast's spelling for the
- * selected text, which pal cannot read: it is filled from the clipboard
- * like `{clipboard}`, the documented fallback. `{cursor}` is not one: pal
+ * and time with a space. `{selection}` is the text selected in the app in
+ * front (`selection.text()`; Raycast's spelling), the clipboard when
+ * nothing is selected or the read is refused. `{cursor}` is not one: pal
  * pastes whole and cannot place the caret, so it stays in the text.
  */
 export const PLACEHOLDERS = ["clipboard", "selection", "date", "time", "datetime", "uuid"] as const;
@@ -27,18 +32,26 @@ const RE = /\{(clipboard|selection|date|time|datetime|uuid)\}/g;
 export const hasPlaceholders = (text: string) => new RegExp(RE.source).test(text);
 
 /**
- * Every `{clipboard}`, `{date}`, `{time}`, `{datetime}` and `{uuid}`
- * replaced; every `{uuid}` is a fresh one, the clipboard is read once.
- * Anything else in braces is left as it is (a snippet of code has braces).
+ * Every `{clipboard}`, `{selection}`, `{date}`, `{time}`, `{datetime}` and
+ * `{uuid}` replaced; every `{uuid}` is a fresh one, the clipboard and the
+ * selection are read once each and only when asked for. A selection read
+ * that fails (no Accessibility) falls back to the clipboard rather than
+ * failing the paste. Anything else in braces is left as it is (a snippet
+ * of code has braces).
  */
 export async function expand(text: string, s: Sources): Promise<string> {
   if (!hasPlaceholders(text)) return text;
   const now = (s.now ?? (() => new Date()))();
   const uuid = s.uuid ?? (() => crypto.randomUUID());
-  const clip = text.includes("{clipboard}") || text.includes("{selection}") ? await s.clipboard() : "";
+  let selected: string | null = null;
+  if (text.includes("{selection}") && s.selection) {
+    try { selected = await s.selection(); } catch { selected = null; }
+  }
+  const clip = text.includes("{clipboard}") || (text.includes("{selection}") && !selected) ? await s.clipboard() : "";
   return text.replace(RE, (_, k: string) => {
     switch (k) {
-      case "clipboard": case "selection": return clip;
+      case "clipboard": return clip;
+      case "selection": return selected || clip;
       case "date": return isoDate(now);
       case "time": return isoTime(now);
       case "datetime": return `${isoDate(now)} ${isoTime(now)}`;

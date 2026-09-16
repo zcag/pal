@@ -1,6 +1,7 @@
-//! Open windows: list them; focus, close or minimise one; read and set a
-//! window's frame, the displays, and the focused window, which is what the
-//! layouts in [`layout`] need ([`apply`] runs one).
+//! Open windows: list them; focus, close, minimise or unminimise one,
+//! toggle its full screen; read and set a window's frame, the displays,
+//! and the focused window, which is what the layouts in [`layout`] need
+//! ([`apply`] runs one, the state verbs included).
 //!
 //! One [`Window`] shape on every platform; the backend behind it is picked at
 //! runtime ([`backend`]):
@@ -17,24 +18,29 @@
 //!   (name only with Screen Recording) and `focus` on it activates the app,
 //!   which is what switches Spaces. Focus is `activateWithOptions` on the
 //!   app plus `AXRaise` on the window; close presses the window's close
-//!   button; minimise sets `AXMinimized`. Without Accessibility the list
-//!   still works, focus falls back to activating the app ([`activate`] is
-//!   that step on its own), and close / minimise / set_frame fail with
+//!   button; minimise sets `AXMinimized`, full screen flips
+//!   `AXFullScreen`. Without Accessibility the list still works, focus
+//!   falls back to activating the app ([`activate`] is that step on its
+//!   own), and close / minimise / fullscreen / set_frame fail with
 //!   [`Error::NeedsAccessibility`]. A frame is read from CoreGraphics and
 //!   written through `AXPosition` / `AXSize`; the displays are `NSScreen`'s
 //!   `frame` and `visibleFrame` (menu bar and Dock taken out) flipped into
 //!   the same top-left space; the focused window is the frontmost app's
 //!   `AXFocusedWindow`.
 //! - **Linux**: Hyprland (`hyprctl clients -j`, `dispatch focuswindow` /
-//!   `closewindow`, minimise = move to the `special:minimized` workspace;
+//!   `closewindow`, minimise = move to the `special:minimized` workspace,
+//!   full screen = `focuswindow` then `dispatch fullscreen 0`, which only
+//!   takes the active window;
 //!   frames from `clients -j`, set with `movewindowpixel exact` /
 //!   `resizewindowpixel exact` after floating a tiled window; displays from
 //!   `monitors -j` with `reserved` taken out; focused = `activewindow -j`),
 //!   Sway (`swaymsg -t get_tree`, `[con_id=N] focus` / `kill` / `move
-//!   scratchpad`; `floating enable`, `move absolute position`, `resize set`;
+//!   scratchpad` / `fullscreen toggle`; `floating enable`, `move absolute
+//!   position`, `resize set`;
 //!   displays from `get_outputs` and `get_workspaces`; focused = the tree's
 //!   `focused` node), or X11 (`wmctrl -lpx`, `-i -a` / `-i -c`, minimise via
-//!   `xdotool` when present; frames `wmctrl -lG`, set `-i -r <id> -e`;
+//!   `xdotool` when present, full screen `-i -r <id> -b toggle,fullscreen`;
+//!   frames `wmctrl -lG`, set `-i -r <id> -e`;
 //!   displays from `xrandr --listmonitors` and the work area of `wmctrl -d`;
 //!   focused via `xprop -root _NET_ACTIVE_WINDOW`). Detected from the
 //!   session's environment, then by which tool answers; [`Error::Unavailable`]
@@ -181,6 +187,18 @@ pub fn minimize(id: &str) -> Result<()> {
     platform::minimize(id)
 }
 
+/// Bring a minimised window back, in front: [`focus`] restores as part of
+/// raising on every backend, so that is what this is.
+pub fn unminimize(id: &str) -> Result<()> {
+    focus(id)
+}
+
+/// Toggle the window's full screen (macOS `AXFullScreen`, a Space of its
+/// own; the compositor's fullscreen on Linux).
+pub fn fullscreen(id: &str) -> Result<()> {
+    platform::fullscreen(id)
+}
+
 /// The file whose icon is the window's app's, for `icons::app_icon`.
 pub fn app_icon_source(w: &Window) -> Option<PathBuf> {
     platform::app_icon_source(w)
@@ -232,6 +250,17 @@ struct Move {
 /// In memory only: pal's own moves this run.
 static MOVES: LazyLock<Mutex<HashMap<String, Move>>> = LazyLock::new(Default::default);
 
+/// The window the `minimize` layout last put away, for `unminimize`.
+static MINIMIZED: LazyLock<Mutex<Option<String>>> = LazyLock::new(Default::default);
+
+/// The window `unminimize` brings back: the one pal's `minimize` last put
+/// away while it is still minimised, else the frontmost minimised window in
+/// `all` (the list is front to back, so the most recently active one).
+fn to_unminimize(last: Option<&str>, all: &[Window]) -> Option<String> {
+    let still = |id: &str| all.iter().any(|w| w.id == id && w.minimized);
+    last.filter(|id| still(id)).map(str::to_string).or_else(|| all.iter().find(|w| w.minimized).map(|w| w.id.clone()))
+}
+
 /// A frame read back within this of the one set counts as unmoved.
 const MOVE_SLACK: f64 = 2.0;
 
@@ -246,14 +275,33 @@ fn original_of(moves: &HashMap<String, Move>, id: &str, from: Rect) -> Rect {
 }
 
 /// Put the window (`id`, else the focused one) where `layout` says
-/// ([`layout::target`]), remembering the frame it left for `restore`.
+/// ([`layout::target`]), remembering the frame it left for `restore`; or,
+/// for the state verbs, flip its full screen, minimise it, or bring back
+/// the last one minimised (`unminimize` picks its own window when none is
+/// given: [`to_unminimize`]).
 pub fn apply(id: Option<&str>, layout: layout::Layout, opts: &layout::Options) -> Result<Applied> {
-    let id = match id {
-        Some(id) => id.to_string(),
-        None => focused()?.ok_or_else(|| Error::Failed("no window has focus".into()))?.id,
+    use layout::Layout as L;
+    let id = match (id, layout) {
+        (Some(id), _) => id.to_string(),
+        (None, L::Unminimize) => {
+            let last = MINIMIZED.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone();
+            to_unminimize(last.as_deref(), &list()?).ok_or_else(|| Error::Failed("no minimised window".into()))?
+        }
+        (None, _) => focused()?.ok_or_else(|| Error::Failed("no window has focus".into()))?.id,
     };
     let from = frame(&id)?;
-    let (to, remember) = if layout == layout::Layout::Restore {
+    if matches!(layout, L::Fullscreen | L::Minimize | L::Unminimize) {
+        match layout {
+            L::Fullscreen => fullscreen(&id)?,
+            L::Minimize => {
+                minimize(&id)?;
+                *MINIMIZED.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(id.clone());
+            }
+            _ => unminimize(&id)?,
+        }
+        return Ok(Applied { id, layout, from, to: from });
+    }
+    let (to, remember) = if layout == L::Restore {
         let original = MOVES.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(&id).map(|m| m.original);
         (original.ok_or_else(|| Error::Failed("nothing to restore: pal has not moved that window".into()))?, None)
     } else {
@@ -281,6 +329,17 @@ pub fn apply(id: Option<&str>, layout: layout::Layout, opts: &layout::Options) -
 #[cfg(test)]
 mod restore_tests {
     use super::*;
+
+    #[test]
+    fn unminimize_takes_the_last_one_pal_minimised_else_the_front_minimised_window() {
+        let w = |id: &str, minimized: bool| Window { id: id.into(), app: "a".into(), title: "t".into(), bundle_or_class: "b".into(), pid: 1, minimized, on_screen: !minimized, monitor: None, workspace: None };
+        let all = vec![w("1", false), w("2", true), w("3", true)];
+        assert_eq!(to_unminimize(Some("3"), &all).as_deref(), Some("3"), "pal's own, still minimised");
+        assert_eq!(to_unminimize(Some("1"), &all).as_deref(), Some("2"), "pal's own was restored by hand since: the front minimised one");
+        assert_eq!(to_unminimize(Some("gone"), &all).as_deref(), Some("2"));
+        assert_eq!(to_unminimize(None, &all).as_deref(), Some("2"));
+        assert_eq!(to_unminimize(None, &[w("1", false)]), None);
+    }
 
     #[test]
     fn a_run_of_layouts_keeps_the_first_original_and_a_hand_move_starts_a_new_one() {
@@ -603,6 +662,13 @@ mod platform {
         ax_of(&cg, "minimize")?.set_minimized(true).then_some(()).ok_or_else(|| Error::Failed("the window cannot be minimised".into()))
     }
 
+    pub fn fullscreen(id: &str) -> Result<()> {
+        let cg = find(id)?;
+        let win = ax_of(&cg, "fullscreen")?;
+        let on = win.fullscreen().ok_or_else(|| Error::Failed("the window cannot go full screen".into()))?;
+        win.set_fullscreen(!on).then_some(()).ok_or_else(|| Error::Failed("the app refused to change full screen".into()))
+    }
+
     pub fn app_icon_source(w: &Window) -> Option<PathBuf> {
         let url = NSRunningApplication::runningApplicationWithProcessIdentifier(w.pid)?.bundleURL()?;
         Some(PathBuf::from(url.path()?.to_string()))
@@ -737,6 +803,19 @@ mod platform {
             Backend::Sway => swaymsg(&format!("[con_id={id}] move scratchpad")),
             Backend::X11 if has("xdotool") => run("xdotool", &["windowminimize", id]).map(drop),
             Backend::X11 => Err(Error::Unavailable("minimise on X11 needs xdotool".into())),
+        }
+    }
+
+    /// Hyprland's `fullscreen` dispatcher takes no window: the window is
+    /// focused first, which is what the verb means anyway.
+    pub fn fullscreen(id: &str) -> Result<()> {
+        match need()? {
+            Backend::Hyprland => {
+                hyprctl(&["dispatch", "focuswindow", &format!("address:{id}")])?;
+                hyprctl(&["dispatch", "fullscreen", "0"]).map(drop)
+            }
+            Backend::Sway => swaymsg(&format!("[con_id={id}] fullscreen toggle")),
+            Backend::X11 => run("wmctrl", &["-i", "-r", id, "-b", "toggle,fullscreen"]).map(drop),
         }
     }
 

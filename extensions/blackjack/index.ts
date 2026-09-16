@@ -23,7 +23,6 @@ export default {
   palettes: {
     blackjack: {
       title: "Blackjack",
-      icon: "🃏",
       view: async () => render(await load(current()), current()),
       pick: async (_id, action) => {
         const s = current();

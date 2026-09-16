@@ -2,7 +2,12 @@
   "palettes": {
     "history": {
       "title": "Clipboard History",
-      "icon": "⎘",
+      "icon": {
+        "tile": {
+          "glyph": "󰅍",
+          "bg": "violet"
+        }
+      },
       "live": true,
       "input": true,
       "showDetail": true,

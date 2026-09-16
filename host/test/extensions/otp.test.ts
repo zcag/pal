@@ -3,6 +3,7 @@
 // `attributedBody` when `text` is NULL) and a fixture Contacts database, so
 // the real ~/Library/Messages is never touched.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { Database } from "bun:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -79,7 +80,7 @@ const pick = (id: string, action?: string) => host.pick("otp", "otp", id, action
 
 describe.skipIf(!MAC)("otp", () => {
   test("meta: live, indexed", () => {
-    expect(host.loaded().find((l) => l.extension === "otp")!.palettes[0]).toMatchObject({ name: "otp", title: "Verification Codes", live: true, input: false, icon: "\u{f0369}" });
+    expect(host.loaded().find((l) => l.extension === "otp")!.palettes[0]).toMatchObject({ name: "otp", title: "Verification Codes", live: true, input: false, icon: tile("green", "\u{f0369}") });
   });
 
   test("codes newest first, one row per message, Today then Earlier; no row for a sent message, a denied sender or a text without a code", async () => {
@@ -110,7 +111,8 @@ describe.skipIf(!MAC)("otp", () => {
     await list();
     expect(await pick("1")).toEqual({ paste: { text: "483920" } });
     expect(await pick("2", "paste")).toEqual({ paste: { text: "712345" } });
-    expect(await pick("1", "copy")).toEqual({ copy: "483920" });
+    // Concealed: out of every clipboard history and cleared after 30 s.
+    expect(await pick("1", "copy")).toEqual({ copy: { text: "483920", concealed: true, clear_after: 30 }, hud: "Copied code, clears in 30 s" });
     expect(await pick("4", "copy-sender")).toEqual({ copy: "+905551112233" });
     expect(await pick("no-such", "copy")).toMatchObject({ keep: true, toast: { style: "failure" } });
   });
@@ -160,7 +162,7 @@ describe.skipIf(!MAC)("otp bar: latest-code", () => {
       expect(item).toMatchObject({ icon: "\u{f084}", title: "424242", color: "green", tooltip: "AKBANK: Your verification code is 424242" });
       expect(item.refresh).toBeGreaterThanOrEqual(39);
       expect(item.refresh).toBeLessThanOrEqual(40);
-      expect(await host.barOpen("otp", "latest-code", { reason: "open", anchor: "menubar" })).toEqual({ copy: "424242" });
+      expect(await host.barOpen("otp", "latest-code", { reason: "open", anchor: "menubar" })).toEqual({ copy: { text: "424242", concealed: true, clear_after: 30 }, hud: "Copied code, clears in 30 s" });
     } finally { remove(50); }
   });
 

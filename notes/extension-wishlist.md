@@ -7,7 +7,7 @@ line says what the Raycast one does and how it would fit pal. Status:
 
 | Raycast extension | What it does | pal | Notes |
 | --- | --- | --- | --- |
-| [Hue](https://www.raycast.com/pindab0ter/hue) | Philips Hue lights, scenes, rooms | partial | Home Assistant covers Hue through HA; a direct Hue bridge extension for people without HA |
+| [Hue](https://www.raycast.com/pindab0ter/hue) | Philips Hue lights, scenes, rooms | todo | Cagdas (2026-09-16 22:20): not partial; wants native-Hue-app quality with every feature (bridge pairing, rooms/zones, colour/temperature/brightness, scenes, schedules, sensors). Building |
 | [Iconify](https://www.raycast.com/destiner/iconify) | Search 200k icons across sets, copy SVG | partial | Icons has Nerd Font and freedesktop; Iconify's API adds every set with SVG copy |
 | [Gmail](https://www.raycast.com/tonka3000/gmail) | Unread mail, search, compose, mark read | todo | His token broker mints Gmail for both accounts; read and mark-read only for the work account (never send from it) |
 | [TinyPNG](https://www.raycast.com/kawamataryo/tinypng) | Compress images from Finder selection or clipboard | todo | `images` extension: compress (pngquant/oxipng/mozjpeg local, TinyPNG API optional), resize, convert |
@@ -27,4 +27,9 @@ line says what the Raycast one does and how it would fit pal. Status:
 | [Speedtest](https://www.raycast.com/tonka3000/speedtest) | Run a speed test in the panel | todo | Network extension: `speedtest-cli`/Ookla CLI with a live view |
 | [Slack](https://www.raycast.com/mommertf/slack) | Unreads, search, status, presence | have | Slack extension (2026-09-16) |
 | [Google Translate](https://www.raycast.com/gebeto/translate) | Translate typed or selected text | todo | Input palette; Google free endpoint or DeepL key; uses `selection.text()` once it lands (pit 19) |
-| [Spotify Player](https://www.raycast.com/mattisssa/spotify-player) | Search, play, queue, like, devices | partial | Now Playing controls the player; a Spotify extension needs the Web API (OAuth) for search/queue/like |
+| [Spotify Player](https://www.raycast.com/mattisssa/spotify-player) | Search, play, queue, like, devices | todo | Cagdas: a Spotify extension with an impeccable lyrics view (synced lyrics from lrclib.net). Building |
+
+## Added by Cagdas (2026-09-16 22:20)
+
+- **Multiple instances of one extension**: two Gmail accounts as two instances, each with its own settings, palettes and bar item (`[extensions.gmail.personal]`, `[extensions.gmail.work]`). An architecture item, designed first (docs/design/instances.md), then built into the host, the registry, the config, Settings and the store.
+- **telawiki**: an extremely rich extension for tela (his wiki product): search and research, open/create/append pages, spaces, decks, sheets, with the panel's views. Building.

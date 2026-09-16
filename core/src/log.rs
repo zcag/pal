@@ -14,6 +14,11 @@ const MAX: u64 = 5 * 1024 * 1024;
 /// `~/Library/Logs/pal/pal.log` on macOS, `$XDG_STATE_HOME/pal/pal.log`
 /// (else `~/.local/state/pal/pal.log`) elsewhere.
 pub fn path() -> PathBuf {
+    // A scratch instance sets XDG_DATA_HOME for its own profile; its log
+    // goes there too, so the daily log is the daily app's alone.
+    if let Some(d) = std::env::var_os("XDG_DATA_HOME").filter(|p| !p.is_empty()) {
+        return PathBuf::from(d).join("pal/pal.log");
+    }
     if cfg!(target_os = "macos") {
         if let Some(h) = dirs::home_dir() {
             return h.join("Library/Logs/pal/pal.log");

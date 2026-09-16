@@ -1,0 +1,309 @@
+{
+  "key": "calendar/upcoming",
+  "title": "Upcoming",
+  "item": {
+    "icon": "󰃭",
+    "title": "Weekly sync in 12m",
+    "color": "amber",
+    "badge": "dot",
+    "tooltip": "Weekly sync, 10:12 – 10:42 (Work), Enter joins",
+    "menu": {
+      "palette": "today",
+      "extension": "calendar",
+      "args": {
+        "rest": true
+      }
+    }
+  },
+  "states": [
+    {
+      "id": "far",
+      "item": {
+        "title": "Design review: settings win… in 3h",
+        "color": "muted",
+        "badge": null,
+        "tooltip": "Design review: settings window, 11:00 – 12:00 (Team)"
+      }
+    },
+    {
+      "id": "urgent",
+      "item": {
+        "title": "Weekly sync in 4m",
+        "color": "red",
+        "tooltip": "Weekly sync, 10:12 – 10:42 (Work), Enter joins"
+      }
+    },
+    {
+      "id": "now",
+      "item": {
+        "title": "Weekly sync now",
+        "color": "green",
+        "tooltip": "Weekly sync, 10:12 – 10:42 (Work), Enter joins"
+      }
+    },
+    {
+      "id": "stale",
+      "item": {
+        "stale": true,
+        "tooltip": "Weekly sync, 10:12 – 10:42 (Work), Enter joins (stale)"
+      }
+    }
+  ],
+  "palette": {
+    "title": "Today",
+    "placeholder": "Search today's events",
+    "rows": [
+      {
+        "id": "sync@1",
+        "name": "Weekly sync",
+        "subtitle": "10:12 – 10:42 · 30 min",
+        "icon": {
+          "glyph": "󰃮",
+          "color": "#3B82F6"
+        },
+        "section": "Today",
+        "keywords": [
+          "Work",
+          "soon",
+          "today"
+        ],
+        "accessories": [
+          {
+            "tag": "in 12 min",
+            "color": "blue"
+          },
+          {
+            "text": "2 people"
+          },
+          {
+            "tag": "Join",
+            "color": "green"
+          }
+        ],
+        "actions": [
+          {
+            "id": "join",
+            "title": "Join call"
+          },
+          {
+            "id": "open",
+            "title": "Open in Calendar"
+          },
+          {
+            "id": "copy_link",
+            "title": "Copy conference link",
+            "shortcut": "cmd+shift+c"
+          },
+          {
+            "id": "copy_details",
+            "title": "Copy event details",
+            "shortcut": "cmd+c"
+          }
+        ]
+      },
+      {
+        "id": "design@1",
+        "name": "Design review: settings window",
+        "subtitle": "11:00 – 12:00 · 1 h · Room 4",
+        "icon": {
+          "glyph": "󰃮",
+          "color": "#8B5CF6"
+        },
+        "section": "Today",
+        "keywords": [
+          "Team",
+          "Room 4",
+          "soon",
+          "today"
+        ],
+        "accessories": [
+          {
+            "tag": "in 1 h",
+            "color": "blue"
+          },
+          {
+            "text": "4 people"
+          },
+          {
+            "tag": "Join",
+            "color": "green"
+          }
+        ],
+        "actions": [
+          {
+            "id": "join",
+            "title": "Join call"
+          },
+          {
+            "id": "open",
+            "title": "Open in Calendar"
+          },
+          {
+            "id": "copy_link",
+            "title": "Copy conference link",
+            "shortcut": "cmd+shift+c"
+          },
+          {
+            "id": "copy_details",
+            "title": "Copy event details",
+            "shortcut": "cmd+c"
+          }
+        ]
+      },
+      {
+        "id": "dentist@1",
+        "name": "Dentist",
+        "subtitle": "15:30 – 16:15 · 45 min · Kadıköy",
+        "icon": {
+          "glyph": "󰃮",
+          "color": "#10B981"
+        },
+        "section": "Today",
+        "keywords": [
+          "Home",
+          "Kadıköy",
+          "soon",
+          "today"
+        ],
+        "accessories": [
+          {
+            "tag": "in 5 h 30 min",
+            "color": "blue"
+          }
+        ],
+        "actions": [
+          {
+            "id": "open",
+            "title": "Open in Calendar"
+          },
+          {
+            "id": "copy_details",
+            "title": "Copy event details",
+            "shortcut": "cmd+c"
+          }
+        ]
+      },
+      {
+        "id": "1on1@2",
+        "name": "1:1 with Mara",
+        "subtitle": "10:00 – 10:30 · 30 min",
+        "icon": {
+          "glyph": "󰃮",
+          "color": "#3B82F6"
+        },
+        "section": "Tomorrow",
+        "keywords": [
+          "Work",
+          "later",
+          "tomorrow"
+        ],
+        "accessories": [
+          {
+            "tag": "in 19 h",
+            "color": "blue"
+          },
+          {
+            "text": "2 people"
+          },
+          {
+            "tag": "Join",
+            "color": "green"
+          }
+        ],
+        "actions": [
+          {
+            "id": "join",
+            "title": "Join call"
+          },
+          {
+            "id": "open",
+            "title": "Open in Calendar"
+          },
+          {
+            "id": "copy_link",
+            "title": "Copy conference link",
+            "shortcut": "cmd+shift+c"
+          },
+          {
+            "id": "copy_details",
+            "title": "Copy event details",
+            "shortcut": "cmd+c"
+          }
+        ]
+      },
+      {
+        "id": "release@2",
+        "name": "Release 0.3 planning",
+        "subtitle": "14:00 – 15:00 · 1 h",
+        "icon": {
+          "glyph": "󰃮",
+          "color": "#8B5CF6"
+        },
+        "section": "Tomorrow",
+        "keywords": [
+          "Team",
+          "later",
+          "tomorrow"
+        ],
+        "accessories": [
+          {
+            "tag": "in 23 h",
+            "color": "blue"
+          },
+          {
+            "text": "5 people"
+          },
+          {
+            "tag": "Join",
+            "color": "green"
+          }
+        ],
+        "actions": [
+          {
+            "id": "join",
+            "title": "Join call"
+          },
+          {
+            "id": "open",
+            "title": "Open in Calendar"
+          },
+          {
+            "id": "copy_link",
+            "title": "Copy conference link",
+            "shortcut": "cmd+shift+c"
+          },
+          {
+            "id": "copy_details",
+            "title": "Copy event details",
+            "shortcut": "cmd+c"
+          }
+        ]
+      }
+    ]
+  },
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the next event and how long until it, amber inside fifteen minutes, a dot for a call to join"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "state": "urgent",
+      "caption": "Inside five minutes the item turns red"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens Today: what is left of the day and tomorrow, Enter joins the call"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "state": "far",
+      "caption": "On sketchybar, hours out: muted, the strip's own text; hidden when nothing starts within ten hours"
+    }
+  }
+}

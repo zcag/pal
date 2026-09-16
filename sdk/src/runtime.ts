@@ -13,8 +13,8 @@ export type Caller = { extension: string; palette?: string };
 
 /** What a host provides. Not for extensions: the host's side of `api.ts`. */
 export type Runtime = {
-  /** One `core/<method>` request over the bridge, resolved with its result. */
-  call<T = unknown>(method: string, params?: unknown): Promise<T>;
+  /** One `core/<method>` request over the bridge, resolved with its result; `timeout` in ms replaces the bridge's own (5 s) for a call that waits on the user. */
+  call<T = unknown>(method: string, params?: unknown, opts?: { timeout?: number }): Promise<T>;
   /** The calling extension: the one given, else the one the host knows from context or the stack; throws when neither. */
   caller(extension?: string): Caller;
   /** The extension's resolved settings, as the core last sent them. */

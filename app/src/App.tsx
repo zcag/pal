@@ -3,9 +3,11 @@ import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Launcher, type LauncherHandle } from "./Launcher";
-import { mark, useCore } from "./core";
-import { Confirm, Presence } from "./ui";
+import { mark, useCore, usePrefs } from "./core";
+import { Confirm, Presence, type ToastSpec } from "./ui";
 import { SHOWN_EVENT } from "./ui/virtual";
+import type { Effect } from "./items";
+import type { Item } from "./ui/types";
 
 const hide = () => invoke("hide");
 
@@ -13,7 +15,8 @@ const hide = () => invoke("hide");
 type Ask = { title: string; message?: string; ok: string; cancel: string; token: number };
 
 export default function App() {
-  const { sources, version, bump, showing, search, detail, view, pick, refresh } = useCore(hide);
+  const { sources, version, bump, showing, search, inline, fallback, suggest, history, forget, detail, view, pick, refresh } = useCore(hide);
+  const prefs = usePrefs();
   const launcher = useRef<LauncherHandle>(null);
 
   // A copy landed in history: re-list, but only when the clipboard palette is what is showing.
@@ -24,10 +27,11 @@ export default function App() {
     };
   }, [bump, showing]);
 
-  // hotkey -> painted panel; a palette hotkey names where to open
+  // hotkey -> painted panel; a palette hotkey names where to open; `keep` (general.pop_to_root, pop.rs) leaves the level and query as they were
   useEffect(() => {
-    const un = listen<{ t0: number; palette?: string }>("pal://shown", (e) => {
+    const un = listen<{ t0: number; palette?: string; keep?: boolean }>("pal://shown", (e) => {
       if (e.payload.palette) launcher.current?.open(e.payload.palette);
+      else if (e.payload.keep) launcher.current?.shown();
       else launcher.current?.reset();
       window.dispatchEvent(new Event(SHOWN_EVENT));
       requestAnimationFrame(() => mark("hotkey->paint ms", Date.now() - e.payload.t0));
@@ -37,11 +41,17 @@ export default function App() {
     };
   }, []);
 
-  // A `pal://` link: the query to type (after the palette `pal://shown` opened), at the root when asked.
+  // A `pal://` link (deeplink.rs): the query to type and the filter to pick (after the palette `pal://shown` opened), at the root when asked;
+  // a pick's answer to apply with the item it came from (`deliver`); a toast while the panel is up.
   useEffect(() => {
-    const un = listen<{ query?: string; reset?: boolean }>("pal://deeplink", (e) => {
-      if (e.payload.reset) launcher.current?.reset();
-      if (e.payload.query !== undefined) launcher.current?.type(e.payload.query);
+    type Delivered = { query?: string | null; filter?: string | null; reset?: boolean; effect?: Effect; item?: Item & { args?: unknown }; toast?: { title: string; message?: string | null } };
+    const un = listen<Delivered>("pal://deeplink", (e) => {
+      const p = e.payload;
+      if (p.reset) launcher.current?.reset();
+      if (p.query != null) launcher.current?.type(p.query);
+      if (p.filter != null) launcher.current?.filter(p.filter);
+      if (p.effect && p.item) { const { args, ...item } = p.item; launcher.current?.apply(item, p.effect, args ?? undefined); }
+      if (p.toast) launcher.current?.toast({ style: "success", title: p.toast.title, message: p.toast.message ?? undefined } satisfies ToastSpec);
     });
     return () => {
       un.then((f) => f());
@@ -66,10 +76,12 @@ export default function App() {
 
   // The welcome marker goes; the core puts the rows back and bumps the index.
   const welcome = useCallback(() => invoke("welcome_reset"), []);
+  // "Copy deep link": the core hides the panel, copies with the bundle's scheme, and says so in the HUD.
+  const link = useCallback((link: string) => invoke("link_copy", { link }), []);
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

@@ -2,7 +2,12 @@
   "palettes": {
     "files": {
       "title": "Files",
-      "icon": "󰱽",
+      "icon": {
+        "tile": {
+          "glyph": "󰉋",
+          "bg": "slate"
+        }
+      },
       "input": true,
       "placeholder": "Search files by name",
       "byQuery": {
@@ -652,7 +657,12 @@
     },
     "recent": {
       "title": "Recent Files",
-      "icon": "󰋚",
+      "icon": {
+        "tile": {
+          "glyph": "󰉋",
+          "bg": "slate"
+        }
+      },
       "live": true,
       "placeholder": "Search recent files",
       "items": [

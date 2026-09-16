@@ -1,0 +1,693 @@
+{
+  "palettes": {
+    "shortcuts": {
+      "title": "Shortcuts",
+      "icon": {
+        "tile": {
+          "svg": "M8 1.5 13.5 5 8 8.5 2.5 5Zm0 6.3 2.9 1.8L8 11.4 5.1 9.6Zm-5.5 3.2L8 7.5l5.5 3.5L8 14.5Zm2.6 0L8 12.7l2.9-1.7L8 9.3Z",
+          "bg": "violet"
+        }
+      },
+      "tier": "primary",
+      "placeholder": "Search shortcuts by name or folder",
+      "items": [
+        {
+          "id": "Open Today's Note",
+          "name": "Open Today's Note",
+          "icon": "󰐋",
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Open Today's Note"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2B3C4D-4F1E-4C3B-9A2D-5A6B7C8D9E0F"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Adjust Clipboard",
+          "name": "Adjust Clipboard",
+          "icon": "󰐋",
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Adjust Clipboard"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2B4D5E-4F1E-4C3B-9A2D-5A6B7C8D9E10"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Text to Speech",
+          "name": "Text to Speech",
+          "icon": "󰐋",
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Text to Speech"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2B5E6F-4F1E-4C3B-9A2D-5A6B7C8D9E11"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Lights On",
+          "name": "Lights On",
+          "icon": "󰐋",
+          "section": "Home",
+          "keywords": [
+            "Home"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Lights On"
+              },
+              {
+                "label": "Folder",
+                "value": "Home"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2B6F80-4F1E-4C3B-9A2D-5A6B7C8D9E12"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Lights Off",
+          "name": "Lights Off",
+          "icon": "󰐋",
+          "section": "Home",
+          "keywords": [
+            "Home"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Lights Off"
+              },
+              {
+                "label": "Folder",
+                "value": "Home"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2B8091-4F1E-4C3B-9A2D-5A6B7C8D9E13"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Movie Night",
+          "name": "Movie Night",
+          "icon": "󰐋",
+          "section": "Home",
+          "keywords": [
+            "Home"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Movie Night"
+              },
+              {
+                "label": "Folder",
+                "value": "Home"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2B91A2-4F1E-4C3B-9A2D-5A6B7C8D9E14"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Good Morning",
+          "name": "Good Morning",
+          "icon": "󰐋",
+          "section": "Home",
+          "keywords": [
+            "Home"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Good Morning"
+              },
+              {
+                "label": "Folder",
+                "value": "Home"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2BA2B3-4F1E-4C3B-9A2D-5A6B7C8D9E15"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Standup Notes",
+          "name": "Standup Notes",
+          "icon": "󰐋",
+          "section": "Work",
+          "keywords": [
+            "Work"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Standup Notes"
+              },
+              {
+                "label": "Folder",
+                "value": "Work"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2BB3C4-4F1E-4C3B-9A2D-5A6B7C8D9E16"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Log Hours",
+          "name": "Log Hours",
+          "icon": "󰐋",
+          "section": "Work",
+          "keywords": [
+            "Work"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Log Hours"
+              },
+              {
+                "label": "Folder",
+                "value": "Work"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2BC4D5-4F1E-4C3B-9A2D-5A6B7C8D9E17"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Start Focus",
+          "name": "Start Focus",
+          "icon": "󰐋",
+          "section": "Work",
+          "keywords": [
+            "Work"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Start Focus"
+              },
+              {
+                "label": "Folder",
+                "value": "Work"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2BD5E6-4F1E-4C3B-9A2D-5A6B7C8D9E18"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Resize to 1080p",
+          "name": "Resize to 1080p",
+          "icon": "󰐋",
+          "section": "Media",
+          "keywords": [
+            "Media"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Resize to 1080p"
+              },
+              {
+                "label": "Folder",
+                "value": "Media"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2BE6F7-4F1E-4C3B-9A2D-5A6B7C8D9E19"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Make GIF",
+          "name": "Make GIF",
+          "icon": "󰐋",
+          "section": "Media",
+          "keywords": [
+            "Media"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Make GIF"
+              },
+              {
+                "label": "Folder",
+                "value": "Media"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2BF808-4F1E-4C3B-9A2D-5A6B7C8D9E1A"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "Strip Metadata",
+          "name": "Strip Metadata",
+          "icon": "󰐋",
+          "section": "Media",
+          "keywords": [
+            "Media"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Name",
+                "value": "Strip Metadata"
+              },
+              {
+                "label": "Folder",
+                "value": "Media"
+              },
+              {
+                "label": "Identifier",
+                "value": "1A2C0919-4F1E-4C3B-9A2D-5A6B7C8D9E1B"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "clipboard",
+              "title": "Run with clipboard"
+            },
+            {
+              "id": "text",
+              "title": "Run with text…",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "open",
+              "title": "Open in Shortcuts",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "shortcuts/Standup Notes:text": {
+      "form": {
+        "id": "Standup Notes",
+        "title": "Run Standup Notes",
+        "fields": [
+          {
+            "kind": "textarea",
+            "id": "input",
+            "label": "Input",
+            "required": true,
+            "placeholder": "What the shortcut receives as its input",
+            "description": "Given to the shortcut as a text file; a shortcut that takes no input ignores it."
+          }
+        ],
+        "submit": {
+          "id": "run_text",
+          "title": "Run"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "shortcuts",
+      "keys": [
+        "down*3"
+      ]
+    },
+    "2-actions": {
+      "palette": "shortcuts",
+      "keys": [
+        "down*3",
+        "cmd+k"
+      ]
+    },
+    "3-root": {
+      "keys": [
+        "type:lights"
+      ]
+    },
+    "4-form": {
+      "palette": "shortcuts",
+      "keys": [
+        "down*7",
+        "cmd+t",
+        "type:Shipped the settings window; reviewing PRs after lunch"
+      ]
+    }
+  }
+}

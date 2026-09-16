@@ -15,5 +15,13 @@
   <string>pal lists your upcoming events in My Schedule and can add or remove one from the panel.</string>
   <key>NSCalendarsUsageDescription</key>
   <string>pal lists your upcoming events in My Schedule and can add or remove one from the panel.</string>
+  <!-- The Location Services prompt (permissions.rs, `location`): macOS 15+
+       shows Wi-Fi network names only to an app with it. Asked the first
+       time the Wi-Fi palette lists with the names withheld. Same text under
+       the pre-11 key, which older readers of the plist look for. -->
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>pal reads the names of Wi-Fi networks; macOS only shows them to apps with Location access.</string>
+  <key>NSLocationUsageDescription</key>
+  <string>pal reads the names of Wi-Fi networks; macOS only shows them to apps with Location access.</string>
 </dict>
 </plist>

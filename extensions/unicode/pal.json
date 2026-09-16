@@ -3,7 +3,7 @@
   "title": "Unicode Characters",
   "description": "A grid of arrows, math, currency, punctuation, keyboard symbols, box drawing, Greek, accented letters and other characters one pastes; searched by name, alias, HTML entity, LaTeX name or code point.",
   "version": "0.1.0",
-  "icon": "󰏉",
+  "icon": { "tile": { "glyph": "󰏉", "bg": "pink" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

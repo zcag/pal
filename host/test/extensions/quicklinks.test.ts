@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords } from "../../../extensions/quicklinks/links.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
+import type { Item } from "../../../sdk/src/index.ts";
 import { Host, stored } from "../harness.ts";
 
 describe("links", () => {
@@ -58,6 +59,25 @@ afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
 
 const list = () => host.list("quicklinks", "quicklinks");
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("quicklinks", "quicklinks", id, action, ctx);
+
+describe("quicklinks at the root", () => {
+  test("a typed web address lists one inline Open row (favicon from the url), picked by its id; a word does not match", async () => {
+    const inline = (q: string) => host.request<{ extension: string; items: Item[] }[]>("inline", { query: q }).then((r) => r.find((s) => s.extension === "quicklinks")?.items);
+    const rows = await inline("docs.rs/serde");
+    expect(rows).toEqual([{ id: "open:https://docs.rs/serde", name: "Open docs.rs/serde", subtitle: "https://docs.rs/serde", url: "https://docs.rs/serde", actions: [{ id: "open", title: "Open" }, { id: "copy", title: "Copy URL", shortcut: "cmd+c" }] }]);
+    expect((await inline("https://x.io/a?b"))![0].id).toBe("open:https://x.io/a?b");
+    expect(await inline("github")).toBeUndefined();
+    expect(await pick("open:https://docs.rs/serde")).toEqual({ open: "https://docs.rs/serde" });
+    expect(await pick("open:https://docs.rs/serde", "copy")).toEqual({ copy: "https://docs.rs/serde" });
+  });
+  test("the fallback rows: every {query} link filled with the query, opened or copied by id", async () => {
+    const r = await host.request<{ extension: string; items: Item[] }[]>("fallback", { query: "pal launcher" });
+    const rows = r.find((s) => s.extension === "quicklinks")!.items;
+    expect(rows).toEqual([{ id: "open:https://github.com/search?q=pal%20launcher", name: "GitHub search", subtitle: "https://github.com/search?q=pal%20launcher", url: "https://github.com/search?q=pal%20launcher", actions: [{ id: "open", title: "Open" }, { id: "copy", title: "Copy URL", shortcut: "cmd+c" }] }]);
+    expect(await pick(rows[0].id)).toEqual({ open: "https://github.com/search?q=pal%20launcher" });
+    expect(await host.request<unknown[]>("fallback", { query: "  " })).toEqual([]);
+  });
+});
 
 describe("quicklinks", () => {
   test("rows: the create row first, then stored links (favicon from url, {query} as a tag, edit and delete), then the import file's, read-only, then Import and Export", async () => {

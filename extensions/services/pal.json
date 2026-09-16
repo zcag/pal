@@ -3,7 +3,7 @@
   "title": "Services",
   "description": "systemd units on Linux (user and system), launchd agents on macOS: start, stop, restart, enable, logs.",
   "version": "0.1.0",
-  "icon": "󰒓",
+  "icon": { "tile": { "glyph": "󰒓", "bg": "slate" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

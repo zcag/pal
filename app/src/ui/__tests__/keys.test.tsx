@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { hasShortcut, resolve, shortcutsOf, useKeys, type Handlers } from "../keys";
+import { hasShortcut, resolve, shiftedArrow, shortcutsOf, useKeys, type Handlers } from "../keys";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -19,6 +19,20 @@ describe("resolve", () => {
     // The modifier combos keep their own meaning.
     expect(resolve(ev("Backspace", { ctrlKey: true }))).toEqual({ type: "back" });
     expect(resolve(ev("Backspace", { altKey: true }))).toBeNull();
+  });
+});
+
+describe("resolve and the shifted keys", () => {
+  it("names a digit key by the symbol it produced, a letter by its physical key, and a shifted arrow as a shortcut", () => {
+    expect(resolve(ev("#", { code: "Digit3", shiftKey: true }))).toEqual({ type: "key", key: "#" });
+    expect(resolve(ev("3", { code: "Digit3" }))).toEqual({ type: "key", key: "3" });
+    expect(resolve(ev("A", { code: "KeyA", shiftKey: true }))).toEqual({ type: "key", key: "a" });
+    expect(resolve(ev("ArrowUp", { shiftKey: true }))).toEqual({ type: "shortcut", combo: "shift+up" });
+    expect(resolve(ev("ArrowRight", { shiftKey: true }))).toEqual({ type: "shortcut", combo: "shift+right" });
+    expect(resolve(ev("ArrowUp"))).toEqual({ type: "move", dir: "up" });
+    expect(shiftedArrow("shift+left")).toBe("left");
+    expect(shiftedArrow("cmd+shift+left")).toBeUndefined();
+    expect(shiftedArrow("shift+a")).toBeUndefined();
   });
 });
 

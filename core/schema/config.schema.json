@@ -159,9 +159,30 @@
       },
       "type": "object"
     },
+    "Confirm": {
+      "anyOf": [
+        {
+          "description": "`deeplink_confirm = true` (ask) or `false` (never).",
+          "type": "boolean"
+        },
+        {
+          "description": "`deeplink_confirm = [\"timer\", \"quicklinks\"]`: ask, except for these.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      ],
+      "description": "`general.deeplink_confirm`: whether a link that acts shows the confirm\ncard. `true`/`false` for all, or the extensions whose links are trusted\n(the card is skipped for `run`, `form` and routes into them)."
+    },
     "General": {
       "additionalProperties": false,
       "properties": {
+        "alias_space": {
+          "default": true,
+          "description": "Typing a palette's alias (or its name, or its one-word title) and a\nspace at the root jumps into that palette with the rest typed:\n`calc 2+2`, `emoji cat`. `false` leaves the space as a character.",
+          "type": "boolean"
+        },
         "ask_permissions_on_start": {
           "default": true,
           "description": "macOS: ask for the Accessibility permission (the system prompt, and\nSystem Settings on that pane) the first time the panel shows on a\nprofile that has not hidden the Welcome tips yet. Paste and window\nswitching need it; `false` leaves the ask to the Welcome row and to\nSettings > General > Permissions.",
@@ -173,9 +194,9 @@
           "type": "boolean"
         },
         "deeplink_confirm": {
+          "$ref": "#/$defs/Confirm",
           "default": true,
-          "description": "A `pal://run/...` link (a web page can emit one) shows a confirm\ncard naming the item before it runs; `false` runs it straight away,\nfor scripts that drive pal by link. `pal://install/...` always asks.",
-          "type": "boolean"
+          "description": "A `pal://` link that acts (`run`, `form`, `paste`, `open?url=`, an\nextension's route; a web page can emit one) shows a confirm card\nfirst. `true` asks; `false` runs it straight away, for scripts that\ndrive pal by link; a list of extension names asks for everything\nexcept links into those extensions. `install`, `update` and\n`remove` always ask; the CLI never does (docs/design/links.md)."
         },
         "extension_dirs": {
           "default": [],
@@ -184,6 +205,25 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "fallbacks": {
+          "default": [
+            "web",
+            "url",
+            "quicklinks",
+            "calc",
+            "files"
+          ],
+          "description": "The rows offered when a typed query matches nothing, in this order:\n`web` (Search the web, `search_engine`), `url` (Open as URL, when the\nquery looks like one), then palette ids that opted in (`quicklinks`\nfills its `{query}` links, `calc` and `files` open with the query\ntyped, any other input palette as \"Ask <name>\"). A fallback palette\nnot named here comes after these, in load order; one named here that\ndoes not exist is skipped.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "fallbacks_always": {
+          "default": false,
+          "description": "Show the fallback rows under the hits as well, not only when nothing\nmatched.",
+          "type": "boolean"
         },
         "hotkey": {
           "$ref": "#/$defs/Hotkeys",
@@ -200,6 +240,24 @@
           "description": "Show pal's icon in the menu bar (macOS) or system tray (Linux). The\napp has no Dock icon, so this is the visible way to reach Settings\nand Quit; the hotkey and `pal settings` work without it.",
           "type": "boolean"
         },
+        "now": {
+          "default": [
+            "calendar-today",
+            "timer-timers",
+            "media",
+            "clipboard-rows"
+          ],
+          "description": "The palettes whose `suggest()` rows lead the empty root (\"Now\"), in\nthis order; suggesting palettes not named here follow in load order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "pop_to_root": {
+          "default": "after 90s",
+          "description": "What a re-show lands on: `\"always\"` back at the root (as before),\n`\"never\"` where you left (the level and the query kept), or `\"after\n90s\"`: kept while the panel was hidden for less than that many\nseconds, the root after. A palette hotkey always opens its palette.",
+          "type": "string"
+        },
         "position": {
           "$ref": "#/$defs/Position",
           "default": "top",
@@ -213,6 +271,21 @@
             "primary": 8
           },
           "description": "How many rows one palette may show at the root for a typed query,\nby its tier: `{ primary = 8, normal = 6, catalog = 3 }`. The rest\nis a \"N more in ...\" row that opens the palette. The empty query\nand a palette's own level are never capped."
+        },
+        "search_engine": {
+          "default": "https://www.google.com/search?q={query}",
+          "description": "The \"Search the web\" fallback's URL, `{query}` percent-encoded into it.",
+          "type": "string"
+        },
+        "search_history": {
+          "default": true,
+          "description": "Remember the last 20 root queries that led to a pick (never synced:\n`frecency.json` in the profile). Up at the top of an empty root\nlist walks them; \"Clear Search History\" in pal's commands empties\nthem. `false` neither records nor recalls.",
+          "type": "boolean"
+        },
+        "selection_snapshot": {
+          "default": true,
+          "description": "When an app does not expose its selected text to the accessibility\nAPI (`selection.text()`, `{selection}` in a snippet), fall back to\nsending the copy shortcut and reading the clipboard, which is put\nback as it was. `false` keeps pal off the clipboard: the selection\nis then only what the API reports. macOS needs Accessibility for\neither.",
+          "type": "boolean"
         },
         "theme": {
           "$ref": "#/$defs/Theme",
@@ -345,19 +418,38 @@
     "general": {
       "$ref": "#/$defs/General",
       "default": {
+        "alias_space": true,
         "ask_permissions_on_start": true,
         "check_updates": true,
         "deeplink_confirm": true,
         "extension_dirs": [],
+        "fallbacks": [
+          "web",
+          "url",
+          "quicklinks",
+          "calc",
+          "files"
+        ],
+        "fallbacks_always": false,
         "hotkey": "ctrl+space",
         "launch_at_login": false,
         "menu_bar_icon": true,
+        "now": [
+          "calendar-today",
+          "timer-timers",
+          "media",
+          "clipboard-rows"
+        ],
+        "pop_to_root": "after 90s",
         "position": "top",
         "root_caps": {
           "catalog": 3,
           "normal": 6,
           "primary": 8
         },
+        "search_engine": "https://www.google.com/search?q={query}",
+        "search_history": true,
+        "selection_snapshot": true,
         "theme": "system"
       }
     },

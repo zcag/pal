@@ -2,7 +2,12 @@
   "palettes": {
     "docker": {
       "title": "Docker Containers",
-      "icon": "󰡨",
+      "icon": {
+        "tile": {
+          "glyph": "󰡨",
+          "bg": "cyan"
+        }
+      },
       "live": true,
       "placeholder": "Search containers",
       "items": [
@@ -713,7 +718,12 @@
     },
     "images": {
       "title": "Docker Images",
-      "icon": "󰡨",
+      "icon": {
+        "tile": {
+          "glyph": "󰡨",
+          "bg": "cyan"
+        }
+      },
       "live": true,
       "placeholder": "Search images",
       "items": [
@@ -1113,7 +1123,12 @@
     },
     "compose": {
       "title": "Compose Projects",
-      "icon": "󰡨",
+      "icon": {
+        "tile": {
+          "glyph": "󰡨",
+          "bg": "cyan"
+        }
+      },
       "live": true,
       "placeholder": "Search Compose projects",
       "items": [

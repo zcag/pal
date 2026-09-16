@@ -1,6 +1,7 @@
 import "./fonts.css";
 import "./tokens.css";
 import "./ui.css";
+import "./icons.css";
 
 // Types live in ./types (component names Icon and Detail would shadow them here).
 
@@ -23,7 +24,7 @@ export { Hud } from "./Hud";
 export { Presence } from "./presence";
 export { useNavStack, type NavStack } from "./nav";
 export { useCursor, type Cursor } from "./cursor";
-export { useKeys, useCmdHeld, keepFocus, grammar, shortcutsOf, hasShortcut, type Command, type Handlers } from "./keys";
+export { useKeys, useCmdHeld, keepFocus, grammar, shortcutsOf, hasShortcut, shiftedArrow, type Command, type Handlers } from "./keys";
 export { groupBySection, domId } from "./virtual";
 export { relativeDate, shortcutKeys, graphemePositions } from "./format";
 import "./settings.css";
@@ -40,6 +41,6 @@ export { SettingsDiagnostics } from "./SettingsDiagnostics";
 export { describeDefault, hotkeyList, isModified, needsSetup, permissionRows } from "./SettingsTypes";
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
-  GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, CalendarPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
+  GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, PromptPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
   BarTarget, BarConfig, BarItemConfig, BarItem,
 } from "./SettingsTypes";

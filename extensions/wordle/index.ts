@@ -32,7 +32,6 @@ export default {
   palettes: {
     wordle: {
       title: "Wordle",
-      icon: "🟩",
       view: async () => {
         const s = current(), today = dayOf();
         const { stored, st } = await load(s, today);

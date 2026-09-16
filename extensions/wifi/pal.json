@@ -3,7 +3,7 @@
   "title": "Wi-Fi",
   "description": "The current network, the saved ones and what is in range: join, forget, copy the password, turn Wi-Fi off.",
   "version": "0.1.0",
-  "icon": "󰖩",
+  "icon": { "tile": { "glyph": "󰖩", "bg": "blue" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -16,6 +16,7 @@
       "`cmd+shift+c` copies a saved network's password (the keychain prompts on macOS)",
       "`ctrl+x` forgets a network, after a confirm; `cmd+c` copies the IP or the network's name",
       "A Scan for Networks row on macOS, where a scan takes seconds; a Wi-Fi row turns the radio off or on",
+      "macOS shows network names only with Location access: the first listing asks once, a refusal is a row that opens the pane",
       "Live: read again on every show"
     ],
     "permissions": [
@@ -78,6 +79,11 @@
       {
         "title": "Turn off / Turn on",
         "description": "On the Wi-Fi row: the radio.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open System Settings",
+        "description": "On the Location row (macOS, access refused): the Location Services pane.",
         "keys": "enter"
       }
     ]

@@ -1,5 +1,6 @@
 // clipboard against canned core/clipboard.* replies (harness fixtures).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import type { ClipboardEntry } from "../../../sdk/src/index.ts";
 import { Host, fixtures } from "../harness.ts";
 
@@ -11,6 +12,8 @@ const ENTRIES: ClipboardEntry[] = [
   { id: 6, kind: "text", text: "rgb(255, 0, 128)", image: null, files: null, source_app: null, at: 1758000005000, bytes: 16, pinned: false, width: null, height: null },
 ];
 let entries = ENTRIES;
+/** What the canned `core/ocr.image` reads; null makes it fail. */
+let ocrText: string | null = "";
 beforeAll(async () => {
   host = await Host.bundled({
     core: {
@@ -21,6 +24,7 @@ beforeAll(async () => {
       "clipboard.delete": (p: { id: number }) => { calls.del.push(p); entries = entries.filter((e) => e.id !== p.id); return null; },
       "clipboard.copy": (p) => { calls.copy.push(p); return null; },
       "clipboard.clear": () => { calls.clear++; return null; },
+      "ocr.image": () => { if (ocrText === null) throw new Error("OCR unavailable: tesseract is not installed"); return { text: ocrText }; },
     },
   });
 });
@@ -32,8 +36,10 @@ const pick = (id: string, action?: string) => host.pick("clipboard", "history", 
 describe("clipboard", () => {
   test("meta: live input palette that opens with the detail pane, six kind filters", () => {
     expect(host.loaded().find((l) => l.extension === "clipboard")!.palettes).toEqual([
-      { name: "history", title: "Clipboard History", live: true, input: true, icon: "⎘", placeholder: "Search clipboard history", showDetail: true,
+      { name: "history", title: "Clipboard History", live: true, input: true, icon: tile("violet", "\u{f014d}"), placeholder: "Search clipboard history", showDetail: true,
         filters: [{ id: "all", title: "All" }, { id: "text", title: "Text" }, { id: "image", title: "Images" }, { id: "files", title: "Files" }, { id: "links", title: "Links" }, { id: "colors", title: "Colors" }] },
+      // What is on the clipboard now (now.ts): an input palette that suggests the root's Clipboard section.
+      { name: "rows", title: "Clipboard", live: false, input: true, icon: tile("violet", "\u{f014d}"), placeholder: "What is on the clipboard", suggest: true },
     ]);
   });
 
@@ -91,7 +97,8 @@ describe("clipboard", () => {
     expect(text.actions![3].title).toBe("Pin");
     expect(multi.actions![3].title).toBe("Unpin");
     expect(url.actions!.map((a) => a.id)).toEqual(["paste", "copy", "open", "paste-plain", "pin", "delete", "delete-unpinned", "clear"]);
-    expect(image.actions!.map((a) => a.id)).toEqual(["paste", "copy", "copy-file", "pin", "delete", "delete-unpinned", "clear"]);
+    expect(image.actions!.map((a) => a.id)).toEqual(["paste", "copy", "copy-file", "copy-text", "pin", "delete", "delete-unpinned", "clear"]);
+    expect(image.actions![3]).toEqual({ id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" });
     expect(files.actions!.map((a) => a.id)).toEqual(["paste", "copy", "pin", "delete", "delete-unpinned", "clear"]);
     const del = text.actions!.find((a) => a.id === "delete")!;
     expect(del).toEqual({ id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?" });
@@ -106,6 +113,20 @@ describe("clipboard", () => {
     // The wrong kind falls back to the entry paste rather than failing.
     expect(await pick("1", "open")).toEqual({ paste: { entry: 1 } });
     expect(await pick("1", "copy-file")).toEqual({ paste: { entry: 1 } });
+  });
+
+  test("pick: Copy text from image runs OCR over the core and copies what it read; concealed when the setting says so; failures and empties are toasts", async () => {
+    ocrText = "Total 42.00";
+    expect(await pick("3", "copy-text")).toEqual({ copy: "Total 42.00", hud: "Copied text" });
+    expect(host.coreCalls.at(-1)).toEqual({ method: "ocr.image", params: { path: "/tmp/clip-3.png" } });
+    host.changeSettings("clipboard", { settings: { ocr_concealed: true } });
+    expect(await pick("3", "copy-text")).toEqual({ copy: { text: "Total 42.00", concealed: true }, hud: "Copied text" });
+    host.changeSettings("clipboard", {});
+    ocrText = "";
+    expect(await pick("3", "copy-text")).toMatchObject({ keep: true, toast: { title: "No text in the image" } });
+    ocrText = null;
+    expect(await pick("3", "copy-text")).toMatchObject({ keep: true, toast: { title: "Could not read the text", message: "OCR unavailable: tesseract is not installed", style: "failure" } });
+    expect(await pick("1", "copy-text")).toEqual({ paste: { entry: 1 } });
   });
 
   test("pick: Enter pastes the entry by id; copy goes through the core and hides", async () => {

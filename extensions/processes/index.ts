@@ -131,7 +131,6 @@ export default {
   palettes: {
     processes: {
       title: "Processes",
-      icon: ICON,
       live: true,
       input: true,
       placeholder: "Name, pid, or :port",

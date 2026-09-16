@@ -2,7 +2,12 @@
   "palettes": {
     "timers": {
       "title": "Timers",
-      "icon": "󰥔",
+      "icon": {
+        "tile": {
+          "glyph": "󰔛",
+          "bg": "amber"
+        }
+      },
       "live": true,
       "placeholder": "Find a timer by name",
       "items": [

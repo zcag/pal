@@ -58,7 +58,7 @@ const positions = [
 /** What the search field finds on this page. */
 export const generalIndex: SettingsIndexEntry[] = [
   { page: "general", label: "Hotkey", hint: "Show pal from any app", anchor: "general:hotkey", keywords: "shortcut keys spotlight cmd space several second another" },
-  { page: "general", label: "Permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring", anchor: "general:permissions", keywords: "grant privacy" },
+  { page: "general", label: "Permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", anchor: "general:permissions", keywords: "grant privacy" },
   { page: "general", label: "Ask on first launch", hint: "Permissions", anchor: "general:ask" },
   { page: "general", label: "Theme", hint: "Appearance", anchor: "general:theme", keywords: "dark light system" },
   { page: "general", label: "Window position", hint: "Appearance", anchor: "general:position", keywords: "top centre last" },
@@ -179,6 +179,7 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
                 <li key={r.id} className="pal-permission" data-granted={r.granted || undefined} data-state={r.state} title={r.needs}>
                   <span className="pal-permission__dot" aria-hidden />
                   <span className="pal-permission__title">{r.title}</span>
+                  <span className="pal-permission__note">{r.brief}</span>
                   {r.state === "missing" && onRequestPermission && <button type="button" className="pal-button" data-small onClick={() => onRequestPermission(r.id)}>{r.id === "full_disk_access" ? "Open…" : "Grant…"}</button>}
                   {r.state === "unknown" && <span className="pal-permission__note">nothing to probe</span>}
                 </li>

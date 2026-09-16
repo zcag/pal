@@ -3,7 +3,7 @@
   "title": "Audio",
   "description": "Output and input devices: switch the default, set the volume, mute.",
   "version": "0.1.0",
-  "icon": "♫",
+  "icon": { "tile": { "glyph": "󰕾", "bg": "violet" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

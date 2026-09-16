@@ -1,69 +1,173 @@
 # Calendar
 
-Your next days of events, one key to join the call. One live palette,
-**My Schedule** (`calendar-schedule`), over the core's calendar capability:
-EventKit on macOS, so every account Calendar.app has (iCloud, Google,
-Exchange) is one store and one permission; `khal` on Linux. Sections by
-day (Today, Tomorrow, This week, Later), the current event tagged `now`
-and the next one `in 12 min`, a `Join` tag where the event has a Zoom,
-Meet, Teams or Webex link. The palette is live with a 60 s ttl: the rows
-are current on every show, and the store is read at most once a minute.
+Today at a glance, one key to join the call. Two live palettes and a bar
+item over one source and one cache:
+
+- **Today** (`calendar-today`): the day's events in order with the time,
+  how long, and where each stands (`in 12 min`, `now, 25 min left`,
+  `over`); tomorrow's under their own section once nothing timed is left
+  today; a **Nothing else today** row naming the next event's day.
+- **My Schedule** (`calendar-schedule`): the week, sectioned Today /
+  Tomorrow / This week / Later, the current event tagged `now` and the
+  next one `in 12 min`; New event at the end (system calendar).
+- **Upcoming** (`calendar/upcoming`, the bar item): the next event as
+  `Standup in 12m` on the menu bar or sketchybar, `now` while it runs,
+  hidden when nothing starts within ten hours; muted far off, amber inside
+  fifteen minutes, red inside five; a dot when there is a call to join. A
+  click opens Today in the popover; Enter on a row joins.
+
+## Sources
+
+| `source` | what | where |
+| --- | --- | --- |
+| `system` | the core's calendar capability: EventKit on macOS (every account Calendar.app has: iCloud, Google, Exchange; one store, one permission), `khal` on Linux | `core/src/calendar.rs` |
+| `google` | Google Calendar API v3 read directly, per account, `events.list` with `singleEvents` and the `conferenceData` join links | `google.ts` |
+| `auto` (default) | `google` once an account is listed, else `system` | `source.ts` |
+
+**Google needs a token, and the command is the secret's owner.** Each
+account is one entry of the `accounts` setting, `name = command`: the
+command prints an access token for the Calendar API on stdout, either a
+bare token or the JSON an OAuth endpoint answers (`access_token`,
+`expires_in`). pal runs it through `sh -c`, keeps the token in memory
+until the expiry it stated (30 minutes for a bare one), mints again on a
+401, and never writes a token or a refresh token anywhere. What the
+command is, is yours: gcloud (below), a helper that holds a refresh
+token in the keychain, a token broker behind ssh. There is no OAuth flow inside pal: a Google
+client id would have to ship with it, and a read-only token from a
+command you already trust is the honest shape for a launcher.
+
+With `gcloud`: `gcloud auth application-default login
+--scopes=https://www.googleapis.com/auth/calendar.readonly,https://www.googleapis.com/auth/cloud-platform`
+once (gcloud's plain login does not carry the Calendar scope), then
+`gcloud auth application-default print-access-token` is the command. If
+Google answers 403 asking for a quota project, `gcloud auth
+application-default set-quota-project <project>` with the Calendar API
+enabled on it. Not verified here: the owner's accounts go through a
+broker, so treat the gcloud path as the documented one, not a tested one.
+
+```toml
+[extensions.calendar]
+accounts = [
+  "work = gcloud auth application-default print-access-token",
+  # a broker on another box: quote the remote command for its shell, the `?` in the url is a glob there
+  "personal = ssh archer \"curl -s 'http://127.0.0.1:8776/token?aud=calendar'\"",
+]
+```
+
+An account reads its primary calendar. To read others, write the entry
+as a table in the config file with the calendar ids from
+`calendarList`:
+
+```toml
+[[extensions.calendar.accounts]]
+name = "work"
+token_command = "gcloud auth application-default print-access-token"
+calendars = ["primary", "team@group.calendar.google.com"]
+```
+
+Calendars are named `<account>:<id>` (`work:primary`) in the filter
+dropdown and the `calendars` setting; the account's name is the row's
+source. A Google event opens in the browser (its `htmlLink`) and cannot
+be deleted from here, and New event is off: the token may be read-only,
+and creating an event with attendees is Google sending mail as you.
+
+One account being away is not the other's problem: its error goes to
+the log and the rest list. Every account away keeps the last events read
+and says so in a hint row (the bar item goes `stale`); nothing read yet
+is one hint row with the reason.
 
 ## Rows
 
-| part | what |
-| --- | --- |
-| icon | the calendar's colour as a dot |
-| title | the event's title |
-| subtitle | the time range and the location: `10:00 – 10:30 · Room 4`, `All day`, `All day, until Fri 18 Sep` |
-| accessories | `now` or `in 12 min` on the current or next event, `declined` or `maybe` for your reply, the head count, `Join` when there is a call |
-| keywords | the calendar, the location, the section and the day, so `work`, `room 4` or `fri` finds the row |
+| part | Today | My Schedule |
+| --- | --- | --- |
+| icon | the calendar glyph in the calendar's colour | the calendar's colour as a dot |
+| title | the event's title | the same |
+| subtitle | `10:00 – 10:30 · 30 min · Room 4`, `All day` | `10:00 – 10:30 · Room 4`, `All day, until Fri 18 Sep` |
+| accessories | the state first: `in 12 min` (blue), `now, 25 min left` (green), `over` (grey), `today` for an all-day one; then `declined` / `maybe`, the head count, `Join` | `now` or `in 12 min` on the current or next event, `declined` / `maybe`, the head count, `Join` |
+| keywords | the calendar, the location, the state, the section | the calendar, the location, the section, the day |
 
-Events that have ended are gone; an all-day one lasts until its midnight.
-The last row is **New event**. The filter dropdown is one entry per
-calendar, read when the host loads.
+My Schedule drops events that have ended; Today keeps them as `over`, in
+order, so the day reads whole. Both hide declined invitations by default.
+The bar's popover opens Today with `args: { rest: true }`: the over ones
+dropped and tomorrow always there, since the strip is about what is still
+to come.
 
 ## Keyboard
 
 | keys | action |
 | --- | --- |
-| `enter` | Join call when the event has a link, else Open in Calendar (macOS); Copy event details on Linux without a call |
+| `enter` | Join call when the event has a link, else Open in Calendar (macOS) or Open in Google Calendar (a Google account); Copy event details on Linux without a call |
 | `cmd+shift+c` | Copy conference link |
 | `cmd+c` | Copy event details: title, when, where and the link as text |
-| `ctrl+x` | Delete event, or Delete this occurrence of a repeating one; asks first; macOS only |
-| `cmd+i` | Details: the notes as markdown, when, the calendar and its account, the location, the call, the organizer, every attendee with their reply, whether it repeats |
+| `ctrl+x` | Delete event, or Delete this occurrence of a repeating one; asks first; macOS, system calendar only |
+| `cmd+i` | Details: the description as text (HTML stripped for a Google event), when with the duration, the calendar and its account, the location, the call, the organizer, every attendee with their reply, whether it repeats |
 | `tab` | Cycle the calendars |
 
-**New event** is a form: a title, a day in words (`today`, `fri`, `next
-mon`, `2026-09-20`, `20 sep`), a start and an end (`14:30`, `2pm`, `1430`;
-an end before the start is the next day), an all-day checkbox, the
-calendar, a location and notes. A field that does not parse shows its
-complaint and keeps what was typed.
+A call is Google's `conferenceData` video entry point (else
+`hangoutLink`), or the first Zoom, Meet, Teams, Webex, Jitsi, Whereby or
+GoTo meeting link in the location, then the description; the system
+source looks in the url, the location and the notes. Outlook safelinks
+are unwrapped; a Zoom marketing page or an agenda doc does not count.
+
+**New event** (system calendar) is a form: a title, a day in words
+(`today`, `fri`, `next mon`, `2026-09-20`, `20 sep`), a start and an end
+(`14:30`, `2pm`, `1430`; an end before the start is the next day), an
+all-day checkbox, the calendar, a location and notes.
+
+## The bar item
+
+`calendar/upcoming` speaks for the first event that has not ended, timed
+(all-day ones skipped unless `hide_all_day` is off), not declined, and
+starting within `horizon_hours`; a running one counts and reads `now`
+until it ends. Colour: `muted` far off, `amber` from `warn_minutes`
+before the start, `red` from `urgent_minutes`, `green` while it runs
+(the boundaries inclusive). `badge: "dot"` when there is a call. The
+tooltip is the title, the time range and the calendar. sketchybar draws
+the same colours through the bar module's map.
+
+The core asks every five minutes and on wake, the network coming back
+and the minute tick (`refresh: { every: 300, on: ["minute", "wake",
+"network"] }`). A minute tick renders from the cache, which is what keeps
+`in 12m` counting down without a fetch; every other reason fetches. A
+render from the cache is well under a millisecond (`bar/render` through
+the host measured at 0.1 ms in the tests); the first fetch is the
+source's: about 80 ms for a week from EventKit, 250 to 350 ms for two
+Google accounts whose token commands hop over ssh.
 
 ## Setup
 
-macOS asks for calendar access once: while it has not, the palette is one
-row, **Grant calendar access**, whose Enter shows the system prompt; a
-denial is one row that opens Privacy & Security > Calendars. Linux needs
-`khal` on PATH, with a `[locale]` section that sets `datetimeformat`, or
-a timed New event is refused with the format to set.
+macOS asks for calendar access once (system source): while it has not,
+the palettes are one row, **Grant calendar access**, whose Enter shows
+the system prompt; a denial is one row that opens Privacy & Security >
+Calendars. Linux needs `khal` on PATH, with a `[locale]` section that
+sets `datetimeformat`, or a timed New event is refused with the format to
+set. Google needs nothing on the machine but the token command.
 
 Settings, `[extensions.calendar]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `calendars` | list | `[]` | Calendar names (or ids) to list; empty is every calendar. Also narrows the filter dropdown. |
-| `days` | number | `7` | How many days from today. |
-| `hide_declined` | boolean | `true` | Leave out invitations you declined. |
+| `source` | select | `auto` | `auto`, `system`, `google` (above). |
+| `accounts` | list | `[]` | Google accounts as `name = command`, or tables `{ name, token_command, calendars }` in the file. |
+| `calendars` | list | `[]` | Calendar names (or ids, `work:primary` for Google) to list; empty is every calendar. Also narrows the filter dropdown. |
+| `days` | number | `7` | How many days from today My Schedule lists (two at least, so Today has tomorrow). |
+| `hide_declined` | boolean | `true` | Leave out invitations you declined, everywhere. |
+| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours. |
+| `warn_minutes` | number | `15` | The bar item turns amber this many minutes before the event. |
+| `urgent_minutes` | number | `5` | The bar item turns red this many minutes before the event. |
+| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
 
 ## What it does not do
 
 - Accept or decline an invitation: EventKit has no public API for the
-  current user's reply.
-- Toggle a calendar's visibility, or list reminders.
+  current user's reply, and the Google tokens this is built for are
+  read-only.
+- Create, edit or delete a Google event; toggle a calendar's visibility;
+  list reminders.
 - Delete or open an event on Linux: khal has no command for either.
-- Edit an event: New event creates; changes are made in the calendar app.
+- Run an OAuth flow: the token command is the whole of the setup.
 
 ## Platforms
 
-macOS (EventKit, the Calendars permission) and Linux (`khal`).
+macOS (EventKit, the Calendars permission), Linux (`khal`), and Google
+Calendar on either through a token command.

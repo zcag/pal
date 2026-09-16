@@ -17,8 +17,12 @@
 //!   tail past [`Retention::max_entries`]. Pinned entries never expire.
 //! - **Size cap.** Anything over [`Retention::max_bytes`] is not recorded.
 //! - **Privacy.** Items a password manager marks `org.nspasteboard.ConcealedType`
-//!   or `TransientType` are skipped (macOS convention, <http://nspasteboard.org>);
-//!   so is anything copied while an app in the exclude list is frontmost.
+//!   or `TransientType` are skipped (macOS convention, <http://nspasteboard.org>),
+//!   as is the `x-kde-passwordManagerHint` type on Linux; so is anything
+//!   copied while an app in the exclude list is frontmost, and every change
+//!   inside a [`suppress_watch`] window, which is how pal's own concealed
+//!   writes ([`write_text_concealed`]), their clear-after restore and the
+//!   selection snapshot ([`selection_snapshot`]) stay out of history.
 //! - **Priority** when a copy carries several representations: files, then
 //!   text, then image. Spreadsheet cells come with a picture of themselves; the
 //!   text is what the user meant.
@@ -37,10 +41,10 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{params, Connection, OptionalExtension};
 
@@ -250,12 +254,12 @@ impl Clipboard {
                     if !watcher.changed(POLL) {
                         continue;
                     }
-                    let app = platform::source_app();
-                    if app.as_deref().is_some_and(|a| exclude_apps.iter().any(|x| x == a)) {
+                    if suppressed() || platform::concealed() {
                         continue;
                     }
+                    let app = platform::source_app();
                     if let Some(content) = platform::read() {
-                        if let Ok(Some(entry)) = store.record(content, app) {
+                        if let Ok(Some(entry)) = store.observe(content, app, &exclude_apps) {
                             on_record(&entry);
                         }
                     }
@@ -263,6 +267,15 @@ impl Clipboard {
             })
             .expect("spawn clipboard watcher");
         WatchHandle { stop, thread: Some(thread) }
+    }
+
+    /// What the watcher does with a change: nothing inside a
+    /// [`suppress_watch`] window or from an excluded app, else [`record`](Self::record).
+    pub fn observe(&self, content: Content, source_app: Option<String>, exclude_apps: &[String]) -> Result<Option<Entry>> {
+        if suppressed() || source_app.as_deref().is_some_and(|a| exclude_apps.iter().any(|x| x == a)) {
+            return Ok(None);
+        }
+        self.record(content, source_app)
     }
 
     /// Store one copy. `None` when it was empty or over the size cap.
@@ -401,6 +414,24 @@ impl Clipboard {
         Ok(())
     }
 
+    /// The history entry for what is on the clipboard right now, if history
+    /// recorded it: the pasteboard is read (concealed content skipped, as
+    /// the watcher skips it) and looked up by content hash. `None` when
+    /// the clipboard is empty, holds something history never took (a copy
+    /// from an excluded app, one over the size cap, a type pal does not
+    /// read) or it was deleted from history since: what the root's
+    /// Clipboard section may show is exactly what history shows.
+    pub fn current(&self) -> Result<Option<Entry>> {
+        let Some(content) = platform::read() else { return Ok(None) };
+        self.find_by_hash(&content_hash(&content))
+    }
+
+    fn find_by_hash(&self, hash: &str) -> Result<Option<Entry>> {
+        let db = self.0.db.lock().unwrap();
+        let e = db.query_row(&format!("SELECT {COLS} FROM entries e WHERE hash = ?1"), params![hash], row_entry).optional()?;
+        Ok(e.map(|e| self.resolve(e)))
+    }
+
     /// Put the entry back on the clipboard and bump it to the top.
     pub fn copy(&self, id: i64) -> Result<()> {
         let content = self.content(id)?;
@@ -537,6 +568,118 @@ pub fn write_text(text: &str) -> Result<()> {
     platform::write(&Content::Text(text.into()))
 }
 
+/// Text onto the clipboard marked for clipboard managers to skip
+/// (`org.nspasteboard.ConcealedType` on macOS, `x-kde-passwordManagerHint`
+/// on Linux), and kept out of pal's own history too (a [`suppress_watch`]
+/// window covers the poll after the write). For a password or a one-time
+/// code: the `copy` effect with `concealed`.
+pub fn write_text_concealed(text: &str) -> Result<()> {
+    suppress_watch(SUPPRESS);
+    platform::write_concealed(text)
+}
+
+/// [`write_text_concealed`], then after `delay` the previous clipboard put
+/// back (or the clipboard emptied when there was none) if the secret is
+/// still what is on it; a copy the user made meanwhile is left alone.
+/// Returns at once; the wait runs on its own thread.
+pub fn write_text_concealed_for(text: &str, delay: Duration) -> Result<()> {
+    let previous = platform::read_any();
+    write_text_concealed(text)?;
+    let secret = text.to_string();
+    std::thread::Builder::new()
+        .name("clipboard-clear".into())
+        .spawn(move || {
+            std::thread::sleep(delay);
+            match restore_plan(platform::read_any().as_ref(), &secret, previous) {
+                Restore::Leave => {}
+                Restore::Clear => {
+                    suppress_watch(SUPPRESS);
+                    platform::clear();
+                }
+                Restore::Write(c) => {
+                    suppress_watch(SUPPRESS);
+                    let _ = platform::write(&c);
+                }
+            }
+        })
+        .map(|_| ())
+        .map_err(Error::Io)
+}
+
+/// What the clear-after does once the delay is up.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Restore {
+    /// The user copied something else meanwhile: nothing.
+    Leave,
+    /// The secret is still there and nothing preceded it: empty the clipboard.
+    Clear,
+    /// The secret is still there: put back what preceded it.
+    Write(Content),
+}
+
+/// The decision behind [`write_text_concealed_for`]: `now` is what the
+/// clipboard holds when the delay is up, `previous` what it held before
+/// the secret went on.
+pub fn restore_plan(now: Option<&Content>, secret: &str, previous: Option<Content>) -> Restore {
+    match now {
+        Some(Content::Text(t)) if t == secret => previous.map_or(Restore::Clear, Restore::Write),
+        _ => Restore::Leave,
+    }
+}
+
+/// How long the watcher ignores changes after one of pal's own writes it
+/// should not record: two polls, so the poll that sees the change and the
+/// one after (the restore) both skip.
+const SUPPRESS: Duration = Duration::from_millis(600);
+
+/// Unix milliseconds until which the watcher records nothing.
+static SUPPRESS_UNTIL: AtomicU64 = AtomicU64::new(0);
+
+/// Ignore clipboard changes for `d` from now: for a write pal makes that
+/// is not a copy (a concealed secret, a restore, the selection snapshot).
+pub fn suppress_watch(d: Duration) {
+    let until = to_millis(SystemTime::now() + d) as u64;
+    SUPPRESS_UNTIL.fetch_max(until, Ordering::Relaxed);
+}
+
+fn suppressed() -> bool {
+    (to_millis(SystemTime::now()) as u64) < SUPPRESS_UNTIL.load(Ordering::Relaxed)
+}
+
+/// The text the frontmost app has selected, read by copying it: the
+/// clipboard is saved, the copy shortcut sent (Cmd+C, which needs
+/// Accessibility on macOS like paste), the new text read once the
+/// clipboard changes (up to `wait`), and the saved contents put back. The
+/// watcher records none of it. `None` when nothing was selected (the
+/// clipboard did not change). The caller has hidden pal's window first.
+/// [`crate::selection`] tries the accessibility API before this.
+pub fn selection_snapshot(wait: Duration) -> Result<Option<String>> {
+    if !crate::ax::trusted() {
+        return Err(Error::NeedsAccessibility);
+    }
+    suppress_watch(SUPPRESS + wait);
+    let previous = platform::read_any();
+    let mut watcher = platform::Watcher::new();
+    platform::copy_key()?;
+    let deadline = Instant::now() + wait;
+    let mut changed = false;
+    while Instant::now() < deadline {
+        if watcher.changed(Duration::from_millis(20)) {
+            changed = true;
+            break;
+        }
+    }
+    let text = if changed { read_text() } else { None };
+    if changed {
+        suppress_watch(SUPPRESS);
+        match previous {
+            Some(c) => platform::write(&c)?,
+            None => platform::clear(),
+        }
+    }
+    Ok(text.filter(|t| !t.is_empty()))
+}
+
 /// Files onto the clipboard (file URLs on macOS, `text/uri-list` on Linux
 /// through arboard, which needs X11 or the wlr data-control protocol:
 /// [`Error::Unavailable`] otherwise), as [`write_text`] for text: the
@@ -589,6 +732,18 @@ mod platform {
     /// what pal-like tools set on programmatic writes they want ignored.
     const SKIP_TYPES: [&str; 2] = ["org.nspasteboard.ConcealedType", "org.nspasteboard.TransientType"];
     const KEY_V: u16 = 9;
+    const KEY_C: u16 = 8;
+
+    /// The general pasteboard is one object and not thread-safe: the
+    /// watcher thread and the bridge's blocking threads (`current`, a
+    /// `copy` effect) both reach it, and two `types` calls at once crashed
+    /// in `-[NSPasteboard _updateTypeCacheIfNeeded]` (hornet, 2026-09-16).
+    /// Every access here holds this; the poll's sleep is outside it.
+    static PASTEBOARD: Mutex<()> = Mutex::new(());
+
+    fn lock() -> std::sync::MutexGuard<'static, ()> {
+        PASTEBOARD.lock().unwrap_or_else(|e| e.into_inner())
+    }
 
     pub struct Watcher {
         count: isize,
@@ -596,12 +751,14 @@ mod platform {
 
     impl Watcher {
         pub fn new() -> Self {
+            let _g = lock();
             Self { count: NSPasteboard::generalPasteboard().changeCount() }
         }
 
         /// Sleep `poll`, then report whether the pasteboard moved on.
         pub fn changed(&mut self, poll: Duration) -> bool {
             std::thread::sleep(poll);
+            let _g = lock();
             let now = NSPasteboard::generalPasteboard().changeCount();
             std::mem::replace(&mut self.count, now) != now
         }
@@ -611,10 +768,27 @@ mod platform {
         Some(NSWorkspace::sharedWorkspace().frontmostApplication()?.bundleIdentifier()?.to_string())
     }
 
+    /// Whether what is on the pasteboard carries a type history should skip.
+    pub fn concealed() -> bool {
+        let _g = lock();
+        NSPasteboard::generalPasteboard().types().is_some_and(|ts| ts.iter().any(|t| SKIP_TYPES.contains(&t.to_string().as_str())))
+    }
+
+    /// [`read`] minus the concealed check: for pal's own bookkeeping (what
+    /// to restore, whether a secret is still there), never for history.
+    pub fn read_any() -> Option<Content> {
+        read_with(false)
+    }
+
     pub fn read() -> Option<Content> {
+        read_with(true)
+    }
+
+    fn read_with(skip_concealed: bool) -> Option<Content> {
+        let _g = lock();
         let pb = NSPasteboard::generalPasteboard();
         let types: Vec<String> = pb.types()?.iter().map(|t| t.to_string()).collect();
-        if types.iter().any(|t| SKIP_TYPES.contains(&t.as_str())) {
+        if skip_concealed && types.iter().any(|t| SKIP_TYPES.contains(&t.as_str())) {
             return None;
         }
         // SAFETY: reading AppKit's exported type constants.
@@ -661,6 +835,7 @@ mod platform {
     }
 
     pub fn write(c: &Content) -> Result<()> {
+        let _g = lock();
         let pb = NSPasteboard::generalPasteboard();
         pb.clearContents();
         // SAFETY: reading AppKit's exported type constants.
@@ -686,11 +861,38 @@ mod platform {
         ok.then_some(()).ok_or_else(|| Error::Unavailable("pasteboard refused the write".into()))
     }
 
+    /// The text plus the nspasteboard.org concealed marker on the same
+    /// item; the marker's value is not read by anyone, the type is.
+    pub fn write_concealed(text: &str) -> Result<()> {
+        let _g = lock();
+        let pb = NSPasteboard::generalPasteboard();
+        pb.clearContents();
+        // SAFETY: reading AppKit's exported type constant.
+        let t_string = unsafe { NSPasteboardTypeString };
+        let ok = pb.setString_forType(&NSString::from_str(text), t_string)
+            && pb.setString_forType(&NSString::from_str(""), &NSString::from_str(SKIP_TYPES[0]));
+        ok.then_some(()).ok_or_else(|| Error::Unavailable("pasteboard refused the write".into()))
+    }
+
+    pub fn clear() {
+        let _g = lock();
+        NSPasteboard::generalPasteboard().clearContents();
+    }
+
     /// Cmd+V down and up on the HID tap, as if typed.
     pub fn paste_key() -> Result<()> {
+        command_key(KEY_V)
+    }
+
+    /// Cmd+C, the same way: the selection snapshot.
+    pub fn copy_key() -> Result<()> {
+        command_key(KEY_C)
+    }
+
+    fn command_key(key: u16) -> Result<()> {
         let src = CGEventSource::new(CGEventSourceStateID::CombinedSessionState);
         for down in [true, false] {
-            let ev = CGEvent::new_keyboard_event(src.as_deref(), KEY_V, down)
+            let ev = CGEvent::new_keyboard_event(src.as_deref(), key, down)
                 .ok_or_else(|| Error::Unavailable("CGEvent creation failed".into()))?;
             CGEvent::set_flags(Some(&ev), CGEventFlags::MaskCommand);
             CGEvent::post(CGEventTapLocation::HIDEventTap, Some(&ev));
@@ -770,6 +972,26 @@ mod platform {
         None
     }
 
+    /// The KDE password-manager hint (what KeePassXC and arboard's
+    /// `exclude_from_history` set) among the offered types, listed by
+    /// `wl-paste` or `xclip` since arboard does not expose the types; no
+    /// tool, no way to tell.
+    pub fn concealed() -> bool {
+        let out = if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+            Command::new("wl-paste").args(["--list-types"]).stdin(Stdio::null()).stderr(Stdio::null()).output()
+        } else {
+            Command::new("xclip").args(["-selection", "clipboard", "-o", "-t", "TARGETS"]).stdin(Stdio::null()).stderr(Stdio::null()).output()
+        };
+        out.is_ok_and(|o| String::from_utf8_lossy(&o.stdout).lines().any(|l| l.trim() == KDE_HINT))
+    }
+
+    const KDE_HINT: &str = "x-kde-passwordManagerHint";
+
+    /// No type check on the read here (the watcher asks [`concealed`] once per change).
+    pub fn read_any() -> Option<Content> {
+        read()
+    }
+
     pub fn read() -> Option<Content> {
         let mut cb = arboard::Clipboard::new().ok()?;
         if let Ok(files) = cb.get().file_list() {
@@ -802,11 +1024,36 @@ mod platform {
         }
     }
 
+    /// arboard's `exclude_from_history`: the text plus the KDE hint.
+    pub fn write_concealed(text: &str) -> Result<()> {
+        use arboard::SetExtLinux;
+        let mut cb = arboard::Clipboard::new().map_err(|e| Error::Unavailable(e.to_string()))?;
+        cb.set().exclude_from_history().text(text).map_err(|e| Error::Unavailable(e.to_string()))
+    }
+
+    pub fn clear() {
+        if let Ok(mut cb) = arboard::Clipboard::new() {
+            let _ = cb.clear();
+        }
+    }
+
     /// Ctrl+V via `wtype` (wlroots virtual keyboard), else `ydotool` (uinput,
     /// needs ydotoold running).
     pub fn paste_key() -> Result<()> {
-        let attempts: [(&str, &[&str]); 2] =
-            [("wtype", &["-M", "ctrl", "-k", "v", "-m", "ctrl"]), ("ydotool", &["key", "29:1", "47:1", "47:0", "29:0"])];
+        control_key("v", "47")
+    }
+
+    /// Ctrl+C, the same way: the selection snapshot.
+    pub fn copy_key() -> Result<()> {
+        control_key("c", "46")
+    }
+
+    /// `key` is the letter for wtype, `code` its evdev keycode for ydotool.
+    fn control_key(key: &str, code: &str) -> Result<()> {
+        let down = format!("{code}:1");
+        let up = format!("{code}:0");
+        let attempts: [(&str, Vec<&str>); 2] =
+            [("wtype", vec!["-M", "ctrl", "-k", key, "-m", "ctrl"]), ("ydotool", vec!["key", "29:1", &down, &up, "29:0"])];
         for (bin, args) in attempts {
             if let Ok(s) = Command::new(bin).args(args).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status() {
                 if s.success() {
@@ -814,7 +1061,7 @@ mod platform {
                 }
             }
         }
-        Err(Error::Unavailable("no wtype or ydotool to send Ctrl+V".into()))
+        Err(Error::Unavailable(format!("no wtype or ydotool to send Ctrl+{}", key.to_uppercase())))
     }
 }
 
@@ -837,13 +1084,26 @@ mod platform {
     pub fn source_app() -> Option<String> {
         None
     }
+    pub fn concealed() -> bool {
+        false
+    }
     pub fn read() -> Option<Content> {
+        None
+    }
+    pub fn read_any() -> Option<Content> {
         None
     }
     pub fn write(_: &Content) -> Result<()> {
         Err(Error::Unavailable("unsupported platform".into()))
     }
+    pub fn write_concealed(_: &str) -> Result<()> {
+        Err(Error::Unavailable("unsupported platform".into()))
+    }
+    pub fn clear() {}
     pub fn paste_key() -> Result<()> {
+        Err(Error::Unavailable("unsupported platform".into()))
+    }
+    pub fn copy_key() -> Result<()> {
         Err(Error::Unavailable("unsupported platform".into()))
     }
 }
@@ -891,6 +1151,22 @@ mod tests {
         assert!(matches!(cb.get(999), Err(Error::NotFound(999))));
         assert!(cb.record(Content::Text(String::new()), None).unwrap().is_none(), "empty is skipped");
         assert!(dir.path().join("clipboard.db").is_file());
+    }
+
+    #[test]
+    fn find_by_hash_is_what_current_looks_up() {
+        let dir = tempfile::tempdir().unwrap();
+        let cb = open(dir.path(), Retention::default());
+        let a = text(&cb, "on the board", 100);
+        let p = png(2, 2, [9, 9, 9, 255]);
+        let i = cb.record_at(Content::Image(p.clone()), None, t(200)).unwrap().unwrap();
+        assert_eq!(cb.find_by_hash(&content_hash(&Content::Text("on the board".into()))).unwrap(), Some(a.clone()));
+        let found = cb.find_by_hash(&content_hash(&Content::Image(p))).unwrap().unwrap();
+        assert_eq!(found.id, i.id);
+        assert!(found.image.as_ref().is_some_and(|f| f.is_absolute() && f.is_file()), "the image path is resolved: {:?}", found.image);
+        assert_eq!(cb.find_by_hash(&content_hash(&Content::Text("never copied".into()))).unwrap(), None);
+        cb.delete(a.id).unwrap();
+        assert_eq!(cb.find_by_hash(&content_hash(&Content::Text("on the board".into()))).unwrap(), None, "deleted from history: not current either");
     }
 
     #[test]
@@ -1046,6 +1322,62 @@ mod tests {
         let json = serde_json::to_value(cb.get(id).unwrap()).unwrap();
         assert_eq!(json["kind"], "files");
         assert!(json["at"].is_i64());
+    }
+
+    #[test]
+    fn observe_skips_a_suppressed_window_and_excluded_apps() {
+        let dir = tempfile::tempdir().unwrap();
+        let cb = open(dir.path(), Retention::default());
+        let excluded = vec!["com.agilebits.onepassword".to_string()];
+        assert!(cb.observe(Content::Text("from 1password".into()), Some("com.agilebits.onepassword".into()), &excluded).unwrap().is_none());
+        suppress_watch(Duration::from_millis(80));
+        assert!(suppressed());
+        assert!(cb.observe(Content::Text("s3cret".into()), None, &excluded).unwrap().is_none(), "a concealed write's change is not recorded");
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(!suppressed());
+        let e = cb.observe(Content::Text("plain".into()), Some("com.apple.Safari".into()), &excluded).unwrap().unwrap();
+        assert_eq!(e.text.as_deref(), Some("plain"));
+        assert_eq!(cb.list("", None, 10, 0).unwrap().len(), 1, "only the plain copy is in history");
+        // A longer window is never shortened by a later, shorter one.
+        suppress_watch(Duration::from_millis(200));
+        suppress_watch(Duration::from_millis(10));
+        std::thread::sleep(Duration::from_millis(30));
+        assert!(suppressed());
+    }
+
+    #[test]
+    fn restore_plan_after_the_clear_delay() {
+        let secret = "hunter2";
+        let prev = Content::Text("before".into());
+        assert_eq!(restore_plan(Some(&Content::Text(secret.into())), secret, Some(prev.clone())), Restore::Write(prev.clone()), "still the secret: the previous text comes back");
+        assert_eq!(restore_plan(Some(&Content::Text(secret.into())), secret, None), Restore::Clear, "nothing preceded it: the clipboard is emptied");
+        assert_eq!(restore_plan(Some(&Content::Text("something else".into())), secret, Some(prev.clone())), Restore::Leave, "the user copied meanwhile");
+        assert_eq!(restore_plan(Some(&Content::Files(vec!["/tmp/a".into()])), secret, Some(prev.clone())), Restore::Leave);
+        assert_eq!(restore_plan(None, secret, Some(prev)), Restore::Leave, "an empty clipboard is not the secret either");
+    }
+
+    /// Needs a real pasteboard, and leaves it as it found it:
+    /// `cargo test -p pal-core -- --ignored concealed_write_live`.
+    #[cfg(target_os = "macos")]
+    #[test]
+    #[ignore]
+    fn concealed_write_live() {
+        let previous = platform::read_any();
+        let marker = format!("pal-concealed-test-{}", std::process::id());
+        write_text_concealed(&marker).unwrap();
+        assert!(platform::concealed(), "the ConcealedType is on the item");
+        assert_eq!(platform::read(), None, "history's read skips it");
+        assert_eq!(platform::read_any(), Some(Content::Text(marker.clone())), "the text is there for a paste");
+        assert!(suppressed());
+        // The clear-after: the previous contents come back once the delay is up.
+        match &previous {
+            Some(c) => platform::write(c).unwrap(),
+            None => platform::clear(),
+        }
+        write_text_concealed_for(&marker, Duration::from_millis(300)).unwrap();
+        assert_eq!(platform::read_any(), Some(Content::Text(marker.clone())));
+        std::thread::sleep(Duration::from_millis(600));
+        assert_eq!(platform::read_any(), previous, "restored");
     }
 
     /// Needs a real pasteboard: `cargo test -p pal-core -- --ignored watcher_records_pbcopy`.

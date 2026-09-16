@@ -1,0 +1,50 @@
+/*
+ * Icon tiles and tinted glyphs (Icon.tsx; the brief's Iconography). A tile
+ * is a rounded square in one of the twelve --pal-brand-* colours with a
+ * white mark; it is the extension's own icon at the root, in the crumb, in
+ * the settings window. The side follows the box it sits in: 24 in a row,
+ * 20 in the crumb, 32 in a grid cell, 56 on a settings page; the radius is
+ * a quarter of the side, so every size has the same shape. A hairline
+ * inset ring keeps ink a square on the dark panel and gives the light
+ * tiles an edge on white. Selection changes nothing on a tile, as on an
+ * app icon: it is the brand, not a state.
+ */
+.pal-icon[data-brand="red"] { --brand: var(--pal-brand-red, #e5484d); }
+.pal-icon[data-brand="orange"] { --brand: var(--pal-brand-orange, #ec6a2c); }
+.pal-icon[data-brand="amber"] { --brand: var(--pal-brand-amber, #d98c0a); }
+.pal-icon[data-brand="green"] { --brand: var(--pal-brand-green, #2e9e5f); }
+.pal-icon[data-brand="teal"] { --brand: var(--pal-brand-teal, #139c8f); }
+.pal-icon[data-brand="cyan"] { --brand: var(--pal-brand-cyan, #0e8fbe); }
+.pal-icon[data-brand="blue"] { --brand: var(--pal-brand-blue, #2f74e0); }
+.pal-icon[data-brand="indigo"] { --brand: var(--pal-brand-indigo, #5854d6); }
+.pal-icon[data-brand="violet"] { --brand: var(--pal-brand-violet, #8a4fd0); }
+.pal-icon[data-brand="pink"] { --brand: var(--pal-brand-pink, #d23f9c); }
+.pal-icon[data-brand="slate"] { --brand: var(--pal-brand-slate, #5f6b7c); }
+.pal-icon[data-brand="ink"] { --brand: var(--pal-brand-ink, #24292f); }
+/* Ink is a tile colour, not a mark colour: an ink-tinted glyph would vanish on the dark panel, so it takes the text colour instead. */
+.pal-icon[data-kind="glyph"][data-brand="ink"], .pal-icon[data-brand="ink"]:has(> .pal-icon__globe) { --brand: var(--pal-fg, #ececf0); }
+
+.pal-icon[data-kind="tile"] {
+  --tile: var(--pal-icon-box, 24px);
+  width: var(--tile);
+  height: var(--tile);
+  border-radius: calc(var(--tile) / 4);
+  background: var(--brand, var(--pal-brand-slate, #5f6b7c));
+  color: var(--pal-tile-fg, #fff);
+  box-shadow: inset 0 0 0 1px var(--pal-tile-ring, rgba(0, 0, 0, 0.1));
+  font-family: var(--pal-font-symbols, "Symbols Nerd Font Mono"), var(--pal-font-mono, ui-monospace, monospace);
+  font-size: calc(var(--tile) * 0.62);
+  line-height: 1;
+  overflow: visible;
+}
+.pal-icon[data-kind="tile"][data-size="sm"] { --tile: 20px; }
+.pal-icon[data-kind="tile"][data-size="lg"] { --tile: var(--pal-grid-tile, 56px); }
+.pal-tile__box > .pal-icon[data-kind="tile"] { --tile: 32px; }
+.pal-xpane__tile .pal-icon[data-kind="tile"] { --tile: 48px; }
+/* The symbols font sits a hair low in its em box at these sizes; the nudge centres the mark optically. */
+.pal-icon__glyph { display: block; transform: translateY(-2%); }
+.pal-icon__mark { display: block; width: 66%; height: 66%; fill: currentColor; }
+
+/* A tinted glyph (or a tinted globe, the missing-favicon mark) keeps its colour on the selected row: the tint is the extension's or a state's, which the selection does not change. */
+.pal-icon[data-kind="glyph"][data-brand], .pal-row[data-active] .pal-icon[data-kind="glyph"][data-brand], .pal-action[data-active] .pal-icon[data-kind="glyph"][data-brand],
+.pal-icon[data-brand] .pal-icon__globe, .pal-row .pal-icon[data-brand] .pal-icon__globe, .pal-row[data-active] .pal-icon[data-brand] .pal-icon__globe { color: var(--brand); }

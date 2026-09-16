@@ -2,7 +2,12 @@
   "palettes": {
     "schedule": {
       "title": "My Schedule",
-      "icon": "󰃭",
+      "icon": {
+        "tile": {
+          "glyph": "󰃭",
+          "bg": "red"
+        }
+      },
       "live": true,
       "placeholder": "Search your events",
       "filters": [
@@ -363,7 +368,7 @@
           "metadata": [
             {
               "label": "When",
-              "value": "Wed 16 Sep 2026, 11:00 – 12:00"
+              "value": "Wed 16 Sep 2026, 11:00 – 12:00 (1 h)"
             },
             {
               "label": "Calendar",
@@ -425,7 +430,7 @@
           "metadata": [
             {
               "label": "When",
-              "value": "Wed 16 Sep 2026, 09:30 – 09:45"
+              "value": "Wed 16 Sep 2026, 09:30 – 09:45 (15 min)"
             },
             {
               "label": "Calendar",
@@ -474,6 +479,294 @@
             {
               "label": "Repeats",
               "value": "yes"
+            }
+          ]
+        }
+      }
+    },
+    "today": {
+      "title": "Today",
+      "icon": {
+        "tile": {
+          "glyph": "󰃭",
+          "bg": "red"
+        }
+      },
+      "live": true,
+      "placeholder": "Search today's events",
+      "items": [
+        {
+          "id": "standup@1",
+          "name": "Daily standup",
+          "subtitle": "09:30 – 09:45 · 15 min",
+          "icon": {
+            "glyph": "󰃮",
+            "color": "#8B5CF6"
+          },
+          "section": "Today",
+          "keywords": [
+            "Team",
+            "over",
+            "today"
+          ],
+          "accessories": [
+            {
+              "tag": "over",
+              "color": "grey"
+            },
+            {
+              "text": "6 people"
+            },
+            {
+              "tag": "Join",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join call"
+            },
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy conference link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "design@1",
+          "name": "Design review: settings window",
+          "subtitle": "11:00 – 12:00 · 1 h · Room 4",
+          "icon": {
+            "glyph": "󰃮",
+            "color": "#3B82F6"
+          },
+          "section": "Today",
+          "keywords": [
+            "Work",
+            "Room 4",
+            "now",
+            "today"
+          ],
+          "accessories": [
+            {
+              "tag": "now, 25 min left",
+              "color": "green"
+            },
+            {
+              "text": "4 people"
+            },
+            {
+              "tag": "Join",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join call"
+            },
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy conference link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "lunch@1",
+          "name": "Lunch with Ada",
+          "subtitle": "12:30 – 13:30 · 1 h · Moda",
+          "icon": {
+            "glyph": "󰃮",
+            "color": "#10B981"
+          },
+          "section": "Today",
+          "keywords": [
+            "Home",
+            "Moda",
+            "soon",
+            "today"
+          ],
+          "accessories": [
+            {
+              "tag": "in 55 min",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "dentist@1",
+          "name": "Dentist",
+          "subtitle": "15:30 – 16:15 · 45 min · Kadıköy",
+          "icon": {
+            "glyph": "󰃮",
+            "color": "#10B981"
+          },
+          "section": "Today",
+          "keywords": [
+            "Home",
+            "Kadıköy",
+            "soon",
+            "today"
+          ],
+          "accessories": [
+            {
+              "tag": "in 3 h 55 min",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "retro@1",
+          "name": "Sprint retro",
+          "subtitle": "17:00 – 17:45 · 45 min",
+          "icon": {
+            "glyph": "󰃮",
+            "color": "#8B5CF6"
+          },
+          "section": "Today",
+          "keywords": [
+            "Team",
+            "soon",
+            "today"
+          ],
+          "accessories": [
+            {
+              "tag": "in 5 h 25 min",
+              "color": "blue"
+            },
+            {
+              "text": "6 people"
+            },
+            {
+              "tag": "Join",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join call"
+            },
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy conference link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "design@1": {
+          "markdown": "Walk through the six pages of the settings window: Overview, General, Palettes, Extensions, Bar, About.\n\nBring the hotkey conflict flow and the permissions rows; we decide on the search field placement.\n\n- Overview first, everything that needs attention with the fix inline\n- One grouped table for the palettes\n- The store hero on the Extensions page",
+          "metadata": [
+            {
+              "label": "When",
+              "value": "Wed 16 Sep 2026, 11:00 – 12:00 (1 h)"
+            },
+            {
+              "label": "Calendar",
+              "tags": [
+                {
+                  "text": "Work (iCloud)"
+                }
+              ]
+            },
+            {
+              "label": "Location",
+              "value": "Room 4"
+            },
+            {
+              "label": "Call",
+              "link": {
+                "text": "meet.google.com/abc-defg-hij",
+                "href": "https://meet.google.com/abc-defg-hij"
+              }
+            },
+            {
+              "label": "Organizer",
+              "value": "Mara Lind"
+            },
+            {
+              "label": "Attendees (4)",
+              "tags": [
+                {
+                  "text": "Mara Lind",
+                  "color": "green"
+                },
+                {
+                  "text": "Sam Ortega (you)",
+                  "color": "green"
+                },
+                {
+                  "text": "Tomas Ruiz",
+                  "color": "amber"
+                },
+                {
+                  "text": "Ada Chen",
+                  "color": "grey"
+                }
+              ]
+            },
+            {
+              "label": "Your reply",
+              "tags": [
+                {
+                  "text": "accepted",
+                  "color": "green"
+                }
+              ]
             }
           ]
         }
@@ -591,6 +884,12 @@
         "type:new event",
         "enter",
         "wait:300"
+      ]
+    },
+    "4-today": {
+      "palette": "today",
+      "keys": [
+        "down"
       ]
     }
   }

@@ -2,7 +2,12 @@
   "palettes": {
     "prs": {
       "title": "Pull Requests",
-      "icon": "",
+      "icon": {
+        "tile": {
+          "glyph": "",
+          "bg": "ink"
+        }
+      },
       "showDetail": true,
       "filters": [
         {
@@ -27,7 +32,10 @@
           "id": "acme/widgets#142",
           "name": "Batch the index writes on startup",
           "subtitle": "acme/widgets #142",
-          "icon": "#1a7f37",
+          "icon": {
+            "glyph": "",
+            "color": "green"
+          },
           "keywords": [
             "widgets",
             "acme/widgets",
@@ -155,7 +163,10 @@
           "id": "acme/widgets#139",
           "name": "Rename the settings pages",
           "subtitle": "acme/widgets #139",
-          "icon": "#6e7781",
+          "icon": {
+            "glyph": "",
+            "color": "slate"
+          },
           "keywords": [
             "widgets",
             "acme/widgets",
@@ -264,7 +275,10 @@
           "id": "acme/api#517",
           "name": "Retry the webhook delivery with backoff",
           "subtitle": "acme/api #517",
-          "icon": "#1a7f37",
+          "icon": {
+            "glyph": "",
+            "color": "green"
+          },
           "keywords": [
             "api",
             "acme/api",
@@ -386,7 +400,10 @@
           "id": "acme/docs#88",
           "name": "Document the export format",
           "subtitle": "acme/docs #88",
-          "icon": "#1a7f37",
+          "icon": {
+            "glyph": "",
+            "color": "green"
+          },
           "keywords": [
             "docs",
             "acme/docs",
@@ -499,7 +516,10 @@
           "id": "acme/widgets#131",
           "name": "Drop the legacy importer",
           "subtitle": "acme/widgets #131",
-          "icon": "#8250df",
+          "icon": {
+            "glyph": "",
+            "color": "violet"
+          },
           "keywords": [
             "widgets",
             "acme/widgets",
@@ -594,7 +614,10 @@
           "id": "acme/widgets#127",
           "name": "Pin bun to 1.4",
           "subtitle": "acme/widgets #127",
-          "icon": "#8250df",
+          "icon": {
+            "glyph": "",
+            "color": "violet"
+          },
           "keywords": [
             "widgets",
             "acme/widgets",
@@ -692,7 +715,10 @@
             "id": "acme/widgets#142",
             "name": "Batch the index writes on startup",
             "subtitle": "acme/widgets #142",
-            "icon": "#1a7f37",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -820,7 +846,10 @@
             "id": "acme/widgets#139",
             "name": "Rename the settings pages",
             "subtitle": "acme/widgets #139",
-            "icon": "#6e7781",
+            "icon": {
+              "glyph": "",
+              "color": "slate"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -931,7 +960,10 @@
             "id": "acme/api#517",
             "name": "Retry the webhook delivery with backoff",
             "subtitle": "acme/api #517",
-            "icon": "#1a7f37",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
             "keywords": [
               "api",
               "acme/api",
@@ -1053,7 +1085,10 @@
             "id": "acme/docs#88",
             "name": "Document the export format",
             "subtitle": "acme/docs #88",
-            "icon": "#1a7f37",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
             "keywords": [
               "docs",
               "acme/docs",
@@ -1168,7 +1203,10 @@
             "id": "acme/widgets#131",
             "name": "Drop the legacy importer",
             "subtitle": "acme/widgets #131",
-            "icon": "#8250df",
+            "icon": {
+              "glyph": "",
+              "color": "violet"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -1263,7 +1301,10 @@
             "id": "acme/widgets#127",
             "name": "Pin bun to 1.4",
             "subtitle": "acme/widgets #127",
-            "icon": "#8250df",
+            "icon": {
+              "glyph": "",
+              "color": "violet"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -1450,7 +1491,12 @@
     },
     "issues": {
       "title": "Issues",
-      "icon": "",
+      "icon": {
+        "tile": {
+          "glyph": "",
+          "bg": "ink"
+        }
+      },
       "showDetail": true,
       "filters": [
         {
@@ -1491,7 +1537,10 @@
           "id": "acme/widgets#201",
           "name": "Search loses the cursor when rows stream in",
           "subtitle": "acme/widgets #201",
-          "icon": "#1a7f37",
+          "icon": {
+            "glyph": "",
+            "color": "green"
+          },
           "keywords": [
             "widgets",
             "acme/widgets",
@@ -1590,7 +1639,10 @@
           "id": "acme/api#530",
           "name": "Rate limit headers are not surfaced",
           "subtitle": "acme/api #530",
-          "icon": "#1a7f37",
+          "icon": {
+            "glyph": "",
+            "color": "green"
+          },
           "keywords": [
             "api",
             "acme/api",
@@ -1680,7 +1732,10 @@
           "id": "acme/docs#91",
           "name": "Getting started skips the Linux install",
           "subtitle": "acme/docs #91",
-          "icon": "#1a7f37",
+          "icon": {
+            "glyph": "",
+            "color": "green"
+          },
           "keywords": [
             "docs",
             "acme/docs",
@@ -1767,7 +1822,10 @@
           "id": "acme/widgets#188",
           "name": "Add a dark icon set",
           "subtitle": "acme/widgets #188",
-          "icon": "#1a7f37",
+          "icon": {
+            "glyph": "",
+            "color": "green"
+          },
           "keywords": [
             "widgets",
             "acme/widgets",
@@ -1918,7 +1976,12 @@
     },
     "repos": {
       "title": "Repositories",
-      "icon": "",
+      "icon": {
+        "tile": {
+          "glyph": "",
+          "bg": "ink"
+        }
+      },
       "filters": [
         {
           "id": "all",
@@ -3198,7 +3261,12 @@
     },
     "notifications": {
       "title": "Notifications",
-      "icon": "",
+      "icon": {
+        "tile": {
+          "glyph": "",
+          "bg": "ink"
+        }
+      },
       "live": true,
       "items": [
         {
@@ -3573,7 +3641,12 @@
     },
     "search": {
       "title": "Search GitHub",
-      "icon": "",
+      "icon": {
+        "tile": {
+          "glyph": "",
+          "bg": "ink"
+        }
+      },
       "input": true,
       "placeholder": "Text, repo:owner/name, is:pr, author:login",
       "filters": [
@@ -3609,7 +3682,10 @@
             "id": "acme/widgets#142",
             "name": "Batch the index writes on startup",
             "subtitle": "acme/widgets #142",
-            "icon": "#1a7f37",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -3737,7 +3813,10 @@
             "id": "acme/widgets#139",
             "name": "Rename the settings pages",
             "subtitle": "acme/widgets #139",
-            "icon": "#6e7781",
+            "icon": {
+              "glyph": "",
+              "color": "slate"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -3959,7 +4038,10 @@
             "id": "acme/widgets#201",
             "name": "Search loses the cursor when rows stream in",
             "subtitle": "acme/widgets #201",
-            "icon": "#1a7f37",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -4058,7 +4140,10 @@
             "id": "acme/widgets#188",
             "name": "Add a dark icon set",
             "subtitle": "acme/widgets #188",
-            "icon": "#1a7f37",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",
@@ -4157,7 +4242,10 @@
             "id": "acme/widgets#142",
             "name": "Batch the index writes on startup",
             "subtitle": "acme/widgets #142",
-            "icon": "#1a7f37",
+            "icon": {
+              "glyph": "",
+              "color": "green"
+            },
             "keywords": [
               "widgets",
               "acme/widgets",

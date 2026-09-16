@@ -22,6 +22,8 @@ pub const CLIPBOARD: &str = "pal://clipboard";
 /// The HUD window's text: `{ text }`; the page shows it with the brief's
 /// motion (hud.rs).
 pub const HUD: &str = "pal://hud";
+/// The Large Type window's text: `{ text }` (large.rs).
+pub const LARGE: &str = "pal://large";
 /// A permission changed hands: `permissions::Status` (today: Accessibility
 /// was granted, seen by the poll in permissions.rs).
 pub const PERMISSIONS: &str = "pal://permissions";

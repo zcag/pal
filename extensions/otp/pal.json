@@ -3,7 +3,7 @@
   "title": "Verification Codes",
   "description": "One-time codes from your recent text messages, newest first. Enter pastes the code into the app in front.",
   "version": "0.1.0",
-  "icon": "󰍩",
+  "icon": { "tile": { "glyph": "󰍩", "bg": "green" } },
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -80,7 +80,8 @@
       "A message counts when it names a code (code, kod, şifre, OTP, PIN, verification, `G-123456`) and carries 4 to 8 digits that are not an amount, a date or a phone number",
       "The sender as Messages knows it, a contact's name for a number or email in Contacts, the code as a green tag with how long ago it arrived",
       "Live: the code that just arrived is the first row and a root result; Today and Earlier sections",
-      "A bar item that shows the newest code for a minute after it arrives; a click copies it"
+      "A bar item that shows the newest code for a minute after it arrives; a click copies it",
+      "A copied code is concealed: clipboard managers skip it, pal's history never sees it, and the previous clipboard is back after 30 s"
     ],
     "permissions": [
       "full-disk-access",

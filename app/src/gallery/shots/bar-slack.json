@@ -1,0 +1,163 @@
+{
+  "key": "slack/unreads",
+  "title": "Unreads",
+  "item": {
+    "icon": "󰒱",
+    "badge": 8,
+    "urgent": true,
+    "tooltip": "3 direct messages, 2 mentions, 4 thread replies; 3 channels unread",
+    "refresh": 120,
+    "menu": [
+      {
+        "type": "section",
+        "title": "Direct messages",
+        "children": [
+          {
+            "type": "item",
+            "id": "dm:T1/D_MARA",
+            "title": "Mara",
+            "subtitle": "can you look at the parser before standup? the tests are green now",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+            }
+          },
+          {
+            "type": "item",
+            "id": "dm:T1/D_TOMAS",
+            "title": "Tomas",
+            "subtitle": "📎 release-notes-0.4.md",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%230ea5e9%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3ET%3C%2Ftext%3E%3C%2Fsvg%3E"
+            }
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "title": "Mentions",
+        "children": [
+          {
+            "type": "item",
+            "id": "mention:T1/C_ENG",
+            "title": "#eng",
+            "subtitle": "Lina: @cagdas the build on #ops is red since the runner image bump",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23f59e0b%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EL%3C%2Ftext%3E%3C%2Fsvg%3E"
+            }
+          },
+          {
+            "type": "item",
+            "id": "mention:T1/C_DESIGN",
+            "title": "#design",
+            "subtitle": "Ola: @channel review the new empty states by Friday",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2310b981%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EO%3C%2Ftext%3E%3C%2Fsvg%3E"
+            }
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "title": "Threads",
+        "children": [
+          {
+            "type": "item",
+            "id": "thread:T1/C_PRODUCT",
+            "title": "#product",
+            "subtitle": "4 new replies",
+            "icon": "󰊌"
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "title": "Also unread",
+        "children": [
+          {
+            "type": "item",
+            "id": "channel:T1/C_SUPPORT",
+            "title": "#support",
+            "icon": "󰐣"
+          },
+          {
+            "type": "item",
+            "id": "channel:T1/C_GENERAL",
+            "title": "#general",
+            "icon": "󰐣"
+          },
+          {
+            "type": "item",
+            "id": "channel:T1/C_OPSPRIV",
+            "title": "#ops-oncall",
+            "icon": "󰌾"
+          }
+        ]
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "open-pal",
+        "title": "Open in pal",
+        "subtitle": "8 items with Reply and Mark as read",
+        "icon": "󰚇"
+      },
+      {
+        "type": "item",
+        "id": "read-all",
+        "title": "Mark all read",
+        "subtitle": "4 conversations",
+        "icon": "󰄭",
+        "shortcut": "cmd+shift+a",
+        "style": "destructive"
+      },
+      {
+        "type": "item",
+        "id": "open-slack",
+        "title": "Open Slack",
+        "icon": "󰒱"
+      }
+    ]
+  },
+  "states": [
+    {
+      "id": "calm",
+      "item": {
+        "badge": 4,
+        "urgent": false,
+        "tooltip": "4 thread replies; 3 channels unread"
+      }
+    },
+    {
+      "id": "stale",
+      "item": {
+        "stale": true,
+        "tooltip": "3 direct messages, 2 mentions, 4 thread replies; 3 channels unread (stale)"
+      }
+    }
+  ],
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the Slack glyph with the count of what is addressed to you, red while a direct message waits"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: direct messages, mentions and threads, the channels also unread, Open in pal, Mark all read, Open Slack"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the glyph and the count, red while a direct message waits"
+    }
+  }
+}

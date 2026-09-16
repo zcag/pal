@@ -4,7 +4,12 @@
       "title": "Windows",
       "live": true,
       "input": false,
-      "icon": "󱂬",
+      "icon": {
+        "tile": {
+          "glyph": "󱂬",
+          "bg": "slate"
+        }
+      },
       "placeholder": "Switch to a window",
       "items": [
         {

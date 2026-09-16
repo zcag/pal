@@ -2,27 +2,35 @@
 //! Accessibility (paste sends a keystroke into the app in front, window
 //! switching raises another app's window, `pal action type`), Calendars
 //! (the calendar extension, EventKit), Full Disk Access (the OTP palette
-//! reads the Messages database) and Input Monitoring (the bar popover's
-//! key monitor while a peek is up). macOS lists an app under Privacy &
-//! Security > Accessibility only after the app has called the trust check
-//! with the prompt once, so every ask here is both: the system prompt
-//! (`ax::request`, which adds pal to the list) and System Settings opened
-//! on that pane, where the switch is. Full Disk Access has no prompt at
-//! all (the pane is the only way), Input Monitoring and Calendars prompt
-//! once. Off macOS every permission is a given and `status` says so.
+//! reads the Messages database), Input Monitoring (the bar popover's key
+//! monitor while a peek is up) and Location Services (macOS 15+ hands
+//! Wi-Fi network names only to an app with it: the wifi extension). macOS
+//! lists an app under Privacy & Security > Accessibility only after the
+//! app has called the trust check with the prompt once, so every ask here
+//! is both: the system prompt (`ax::request`, which adds pal to the list)
+//! and System Settings opened on that pane, where the switch is. Full
+//! Disk Access has no prompt at all (the pane is the only way), Input
+//! Monitoring, Calendars and Location prompt once. Off macOS every
+//! permission is a given and `status` says so.
 //!
 //! Who asks: the panel's first show on a fresh profile (once per run,
 //! `general.ask_permissions_on_start`), the Welcome row (every time), an
-//! effect refused for want of it (once per run, `effects.rs`) and the
-//! Settings window's Grant buttons. Nothing polls the OS for a change; a
-//! grant is seen by [`watch`], which checks every [`POLL`] while a window is
-//! open and something was missing, and emits [`events::PERMISSIONS`] on a
-//! change (the Welcome row goes, Settings turns the dot green).
+//! effect refused for want of it (once per run, `effects.rs`), an
+//! extension over `core/permissions.request` (the wifi palette asks for
+//! Location from a listing the user is looking at, never from the startup
+//! load: [`call`]) and the Settings window's Grant buttons. Nothing polls the OS for
+//! a change; a grant is seen by [`watch`], which checks every [`POLL`]
+//! while a window is open and something was missing, and emits
+//! [`events::PERMISSIONS`] on a change (the Welcome row goes, Settings
+//! turns the dot green).
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 
+use pal_core::permission::Status as Permission;
 use serde::Serialize;
+use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
 use crate::{events, panel, settings, welcome};
@@ -34,7 +42,7 @@ pub struct Status {
     /// May drive other apps (send keys, raise windows). Always true off macOS.
     pub accessibility: bool,
     /// Calendars (EventKit): `granted`, `not_determined`, `denied`, `restricted`, or `unavailable` off macOS without a backend.
-    pub calendar: pal_core::calendar::Status,
+    pub calendar: Permission,
     /// Full Disk Access, probed by opening the Messages database the OTP
     /// palette reads: `true` readable, `false` refused, `None` when there is
     /// no database to probe (Messages never ran) or off macOS.
@@ -42,17 +50,19 @@ pub struct Status {
     pub full_disk_access: Option<bool>,
     /// Input Monitoring (`IOHIDCheckAccess`): the bar popover's key monitor. Always true off macOS.
     pub input_monitoring: bool,
+    /// Location Services (CoreLocation): Wi-Fi network names on macOS 15+. `unavailable` off macOS.
+    pub location: Permission,
 }
 
 impl Status {
     /// Nothing left to grant: what stops [`watch`].
     fn complete(&self) -> bool {
-        self.accessibility && self.calendar != pal_core::calendar::Status::NotDetermined && self.calendar != pal_core::calendar::Status::Denied && self.full_disk_access != Some(false) && self.input_monitoring
+        self.accessibility && !self.calendar.missing() && self.full_disk_access != Some(false) && self.input_monitoring && !self.location.missing()
     }
 }
 
 pub fn status() -> Status {
-    Status { accessibility: pal_core::ax::trusted(), calendar: pal_core::calendar::permission(), full_disk_access: full_disk_access(), input_monitoring: input_monitoring() }
+    Status { accessibility: pal_core::ax::trusted(), calendar: pal_core::calendar::permission(), full_disk_access: full_disk_access(), input_monitoring: input_monitoring(), location: location::status() }
 }
 
 /// The Messages database is behind Full Disk Access and nothing else, so
@@ -90,6 +100,90 @@ pub fn input_monitoring() -> bool {
     }
     #[cfg(not(target_os = "macos"))]
     true
+}
+
+/// Location Services over CoreLocation. The state is the class method,
+/// answered without a manager; the prompt is `requestWhenInUseAuthorization`
+/// on a manager made on the main thread and kept for the run with its
+/// delegate (CoreLocation answers asynchronously and only to a manager that
+/// still exists, so a dropped one shows nothing). The prompt needs
+/// `NSLocationWhenInUseUsageDescription` in the bundle's Info.plist and
+/// shows once per bundle identifier; a `denied` state is switched in
+/// System Settings > Privacy & Security > Location Services.
+#[cfg(target_os = "macos")]
+mod location {
+    use std::cell::RefCell;
+
+    use objc2::rc::Retained;
+    use objc2::runtime::{NSObjectProtocol, ProtocolObject};
+    use objc2::{define_class, msg_send, MainThreadMarker, MainThreadOnly};
+    use objc2_core_location::{CLAuthorizationStatus, CLLocationManager, CLLocationManagerDelegate};
+    use objc2_foundation::NSObject;
+
+    use super::Permission;
+
+    define_class!(
+        // SAFETY: NSObject has no subclassing requirements; no Drop.
+        #[unsafe(super(NSObject))]
+        #[thread_kind = MainThreadOnly]
+        #[name = "PalLocationDelegate"]
+        struct Delegate;
+
+        unsafe impl NSObjectProtocol for Delegate {}
+
+        unsafe impl CLLocationManagerDelegate for Delegate {
+            /// The answer to the prompt (and any later switch); `watch` carries it to the windows, this is the log line.
+            #[unsafe(method(locationManagerDidChangeAuthorization:))]
+            fn did_change(&self, manager: &CLLocationManager) {
+                // SAFETY: a property read on the manager CoreLocation handed us.
+                let s = unsafe { manager.authorizationStatus() };
+                eprintln!("permissions\tlocation\tchanged\t{:?}", of(s));
+            }
+        }
+    );
+
+    thread_local! {
+        static MANAGER: RefCell<Option<(Retained<CLLocationManager>, Retained<Delegate>)>> = const { RefCell::new(None) };
+    }
+
+    pub(super) fn of(s: CLAuthorizationStatus) -> Permission {
+        match s {
+            CLAuthorizationStatus::NotDetermined => Permission::NotDetermined,
+            CLAuthorizationStatus::Restricted => Permission::Restricted,
+            CLAuthorizationStatus::AuthorizedAlways | CLAuthorizationStatus::AuthorizedWhenInUse => Permission::Granted,
+            _ => Permission::Denied,
+        }
+    }
+
+    pub fn status() -> Permission {
+        // SAFETY: a class method with no arguments. Deprecated for the instance property, which would need a manager per read.
+        #[allow(deprecated)]
+        of(unsafe { CLLocationManager::authorizationStatus_class() })
+    }
+
+    /// The prompt, on the main thread; returns at once, the answer comes to the delegate.
+    pub fn request(mtm: MainThreadMarker) {
+        MANAGER.with(|m| {
+            let mut m = m.borrow_mut();
+            if m.is_none() {
+                // SAFETY: plain inits on the main thread; the delegate is a weak property, so the pair is retained here for the run.
+                let delegate: Retained<Delegate> = unsafe { msg_send![Delegate::alloc(mtm), init] };
+                let manager = unsafe { CLLocationManager::new() };
+                unsafe { manager.setDelegate(Some(ProtocolObject::from_ref(&*delegate))) };
+                *m = Some((manager, delegate));
+            }
+            // SAFETY: a call on the retained manager; a second call while the prompt is up is a no-op.
+            unsafe { m.as_ref().unwrap().0.requestWhenInUseAuthorization() };
+        });
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+mod location {
+    use super::Permission;
+    pub fn status() -> Permission {
+        Permission::Unavailable
+    }
 }
 
 /// A Privacy & Security pane by its anchor, reaped like `ax::open_settings`.
@@ -134,7 +228,7 @@ pub fn request(app: &AppHandle, which: &str) -> Result<Status, String> {
         // The prompt when the OS still has one to show; the pane once it was answered no.
         "calendar" => {
             let s = pal_core::calendar::request(Duration::from_secs(3)).map_err(|e| e.to_string())?;
-            if matches!(s, pal_core::calendar::Status::Denied | pal_core::calendar::Status::Restricted) {
+            if matches!(s, Permission::Denied | Permission::Restricted) {
                 pal_core::calendar::open_settings().map_err(pane)?;
             }
             eprintln!("permissions\tcalendar\trequested\t{s:?}");
@@ -151,21 +245,39 @@ pub fn request(app: &AppHandle, which: &str) -> Result<Status, String> {
             }
             eprintln!("permissions\tinput_monitoring\trequested\tgranted={granted}");
         }
+        // The prompt while the OS still has one to show (asynchronous: the
+        // answer reaches `watch`); the pane once it was answered no.
+        "location" => {
+            let s = location::status();
+            match s {
+                Permission::NotDetermined => {
+                    #[cfg(target_os = "macos")]
+                    app.run_on_main_thread(|| location::request(objc2::MainThreadMarker::new().expect("main thread"))).map_err(|e| e.to_string())?;
+                }
+                Permission::Denied | Permission::Restricted => open_privacy_pane("Privacy_LocationServices").map_err(pane)?,
+                Permission::Granted | Permission::Unavailable => {}
+            }
+            eprintln!("permissions\tlocation\trequested\t{s:?}");
+        }
         other => return Err(format!("unknown permission {other}")),
     }
     watch(app);
     Ok(status())
 }
 
-/// [`request`] at most once per run across every caller that wants it
-/// only in passing (an effect refused, the first show): the prompt is a
-/// modal and a second one on the same run is noise.
+/// [`request`] at most once per run and permission across every caller
+/// that wants it only in passing (an effect refused, the first show): the
+/// prompt is a modal and a second one on the same run is noise.
 pub fn request_once(app: &AppHandle, which: &str) {
-    static ASKED: AtomicBool = AtomicBool::new(false);
-    if !ASKED.swap(true, Ordering::Relaxed) {
-        if let Err(e) = request(app, which) {
-            eprintln!("permissions\t{which}\t{e}");
-        }
+    static ASKED: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    let mut asked = ASKED.lock().unwrap_or_else(|e| e.into_inner());
+    if asked.iter().any(|w| w == which) {
+        return;
+    }
+    asked.push(which.to_string());
+    drop(asked);
+    if let Err(e) = request(app, which) {
+        eprintln!("permissions\t{which}\t{e}");
     }
 }
 
@@ -221,6 +333,31 @@ pub fn watch(app: &AppHandle) {
     });
 }
 
+/// The bridge's `core/permissions.{status, request}` for an extension:
+/// `request { which }` is [`request`] (the prompt, or the pane), answered
+/// with the state as of now. An extension asks from a listing, and a
+/// listing also runs at startup (every palette, for the cache) and on a
+/// background refresh, so the ask is honoured only while a pal window is
+/// in front of the user and skipped otherwise: the extension asks again on
+/// its next listing, and the first one the user looks at is the one that
+/// prompts.
+pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
+    let s = match func {
+        "status" => status(),
+        "request" => {
+            let which = params["which"].as_str().ok_or("permissions.request: no which")?;
+            if window_open(app) {
+                request(app, which)?
+            } else {
+                eprintln!("permissions\t{which}\tskipped\tno pal window in front");
+                status()
+            }
+        }
+        _ => return Err(format!("unknown permissions.{func}")),
+    };
+    Ok(serde_json::to_value(s).unwrap())
+}
+
 #[tauri::command]
 pub fn permissions_status() -> Status {
     status()
@@ -245,4 +382,37 @@ pub fn open_system_settings(pane: String) -> Result<(), String> {
         other => return Err(format!("unknown pane {other}")),
     }
     .map_err(|e| format!("could not open System Settings: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn location_status_reads_as_a_permission() {
+        #[cfg(target_os = "macos")]
+        {
+            use objc2_core_location::CLAuthorizationStatus as C;
+            assert_eq!(location::of(C::NotDetermined), Permission::NotDetermined);
+            assert_eq!(location::of(C::Restricted), Permission::Restricted);
+            assert_eq!(location::of(C::Denied), Permission::Denied);
+            assert_eq!(location::of(C::AuthorizedAlways), Permission::Granted);
+            assert_eq!(location::of(C::AuthorizedWhenInUse), Permission::Granted);
+            // Whatever a later macOS adds reads as a refusal, never as a grant.
+            assert_eq!(location::of(C(99)), Permission::Denied);
+        }
+        #[cfg(not(target_os = "macos"))]
+        assert_eq!(location::status(), Permission::Unavailable);
+    }
+
+    #[test]
+    fn complete_needs_location_settled() {
+        let granted = Status { accessibility: true, calendar: Permission::Granted, full_disk_access: Some(true), input_monitoring: true, location: Permission::Granted };
+        assert!(granted.complete());
+        assert!(!Status { location: Permission::NotDetermined, ..granted }.complete());
+        assert!(!Status { location: Permission::Denied, ..granted }.complete());
+        // Restricted (a profile) and unavailable (Linux) are nobody's to grant: nothing to watch for.
+        assert!(Status { location: Permission::Restricted, ..granted }.complete());
+        assert!(Status { location: Permission::Unavailable, ..granted }.complete());
+    }
 }

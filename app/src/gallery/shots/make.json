@@ -2,7 +2,12 @@
   "palettes": {
     "make": {
       "title": "Makefile Targets",
-      "icon": "󰣪",
+      "icon": {
+        "tile": {
+          "glyph": "󰣪",
+          "bg": "orange"
+        }
+      },
       "placeholder": "Target or project",
       "items": [
         {

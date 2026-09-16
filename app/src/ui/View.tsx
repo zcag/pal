@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useReducer, useRef, type CSSProperties, type Ref } from "react";
+import { createContext, useContext, useEffect, useImperativeHandle, useLayoutEffect, useReducer, useRef, type CSSProperties, type Ref } from "react";
 import { Kbd } from "./Kbd";
 import { Tag } from "./Row";
 import { Presence, reduced } from "./presence";
@@ -8,6 +8,48 @@ import type { ViewNode } from "./types";
 const IMAGE_SRC = /^(icon:\/\/|data:image\/)/;
 /** `Transition.delay` steps, at most. */
 const MAX_DELAY = 8;
+/** A colour of the extension's own on a tile or a gradient stop (`HexColor`): `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`. */
+export const HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const TAG_COLORS = new Set(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal", "neutral", "accent"]);
+
+/** `#rgb[a]` / `#rrggbb[aa]` as channels 0..255 and alpha 0..1; undefined for anything else. */
+export function parseHex(hex: unknown): { r: number; g: number; b: number; a: number } | undefined {
+  if (typeof hex !== "string" || !HEX_COLOR.test(hex)) return;
+  const s = hex.slice(1);
+  const full = s.length <= 4 ? [...s].map((c) => c + c).join("") : s;
+  const n = (i: number) => parseInt(full.slice(i, i + 2), 16);
+  return { r: n(0), g: n(2), b: n(4), a: full.length === 8 ? n(6) / 255 : 1 };
+}
+
+/**
+ * Black or white ink on a colour, by WCAG contrast: white once the
+ * colour's relative luminance is under 0.179, where the two ratios meet.
+ */
+export function inkOn(hex: string): "#000" | "#fff" {
+  const c = parseHex(hex);
+  if (!c) return "#fff";
+  const lin = (v: number) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+  const l = 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+  return l > 0.179 ? "#000" : "#fff";
+}
+
+const SIDES = { right: "to right", left: "to left", down: "to bottom", up: "to top" } as const;
+/**
+ * The `background` of a gradient node: its layers as CSS linear gradients
+ * in paint order (the first at the bottom, the last on top; CSS lists the
+ * topmost first, hence the reverse) over the `fill` colour when there is
+ * one. Stops may carry alpha (`#ffffff00`), which is what makes the
+ * classic plane: a white-to-transparent layer rightwards and a
+ * black-to-transparent layer upwards over the hue as the fill.
+ */
+export function gradientCss(layers: { stops: string[]; direction?: string }[], fill?: unknown): string {
+  const parts = layers
+    .filter((l) => l && Array.isArray(l.stops) && l.stops.filter((c) => HEX_COLOR.test(String(c))).length >= 2)
+    .map((l) => `linear-gradient(${SIDES[(l.direction ?? "right") as keyof typeof SIDES] ?? SIDES.right}, ${l.stops.filter((c) => HEX_COLOR.test(String(c))).join(", ")})`)
+    .reverse();
+  if (typeof fill === "string" && HEX_COLOR.test(fill)) parts.push(fill);
+  return parts.join(", ");
+}
 
 /**
  * Where the moving nodes of one view are (`Transition.move`): the element
@@ -34,7 +76,7 @@ function movingKeys(tree: ViewNode, into = new Set<string>()): Set<string> {
 /**
  * A render tree (`ViewNode`, mirrored from sdk/src/protocol.ts) drawn with
  * the tokens: a fixed vocabulary of stacks, text, images, tiles, badges,
- * dividers, spacers, progress bars and key caps, never HTML. A node of a
+ * dividers, spacers, progress bars, gradients and key caps, never HTML. A node of a
  * type this build does not know is skipped, not thrown on, so a newer
  * extension still draws the rest. Keyed children of a stack animate in and
  * out per their `transition`: a new key enters (fade, a slide, flip, pop),
@@ -43,8 +85,9 @@ function movingKeys(tree: ViewNode, into = new Set<string>()): Set<string> {
  * tree slides from there (a FLIP: measured before the commit, animated
  * after it, `--pal-motion-move`).
  */
-export function View({ tree, label, autoFocus }: { tree: ViewNode; label?: string; /** Take focus on mount: the level has no input, so the document itself is what the keys and a screen reader land on. */ autoFocus?: boolean }) {
+export function View({ tree, label, autoFocus, rootRef }: { tree: ViewNode; label?: string; /** Take focus on mount: the level has no input, so the document itself is what the keys and a screen reader land on. */ autoFocus?: boolean; /** The document element, for a caller that hands focus back to it (after a `View.input` field closes). */ rootRef?: Ref<HTMLDivElement> }) {
   const root = useRef<HTMLDivElement>(null);
+  useImperativeHandle(rootRef, () => root.current as HTMLDivElement, []);
   useEffect(() => { if (autoFocus) root.current?.focus({ preventScroll: true }); }, [autoFocus]);
   const moves = useRef<Moves>({ els: new Map(), boxes: new Map(), anims: new Map(), moving: new Set(), gen: 0 }).current;
   const last = useRef<ViewNode | null>(null);
@@ -170,10 +213,26 @@ function Node({ node }: { node: ViewNode }) {
       const width = px(node.width) ?? 0, height = px(node.height) ?? 0;
       const text = node.text === undefined || node.text === null ? "" : String(node.text);
       const sub = node.sub === undefined || node.sub === null ? "" : String(node.sub);
+      // A hex colour of the extension's own: the box is that colour, the ink black or white by contrast, a checker under a translucent one. Anything else the tokens draw (an unknown name falls back to neutral).
+      const own = typeof node.color === "string" && !TAG_COLORS.has(node.color) ? parseHex(node.color) : undefined;
+      const color = own ? "custom" : TAG_COLORS.has(String(node.color)) ? node.color : "neutral";
+      const ownStyle: CSSProperties | undefined = own ? ({ "--tile": node.color, "--tile-ink": inkOn(node.color as string) } as CSSProperties) : undefined;
       return (
-        <div className="pal-view__node pal-view__tile" data-color={node.color ?? "neutral"} data-fill={node.fill ?? "soft"} data-small={Math.min(width, height) < 44 || undefined} {...motion} style={{ ...motion.style, width, height }}>
+        <div className="pal-view__node pal-view__tile" data-color={color} data-fill={node.fill ?? "soft"} data-alpha={own && own.a < 1 ? "" : undefined} data-small={Math.min(width, height) < 44 || undefined} {...motion} style={{ ...motion.style, ...ownStyle, width, height }}>
           {text && <span className="pal-view__tile-text" style={tileType(width, height, text, !!sub)}>{text}</span>}
           {sub && <span className="pal-view__tile-sub">{sub}</span>}
+        </div>
+      );
+    }
+    case "gradient": {
+      const width = px(node.width) ?? 0, height = px(node.height) ?? 0;
+      const background = gradientCss(Array.isArray(node.layers) ? node.layers : [], node.fill);
+      const m = node.marker && typeof node.marker === "object" ? node.marker : undefined;
+      const unit = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : undefined);
+      const mx = unit(m?.x), my = unit(m?.y);
+      return (
+        <div className="pal-view__node pal-view__gradient" role="img" {...motion} style={{ ...motion.style, width, height, background: background || undefined }}>
+          {mx !== undefined && my !== undefined && <span className="pal-view__marker" aria-hidden style={{ left: `${mx * 100}%`, top: `${my * 100}%` }} />}
         </div>
       );
     }

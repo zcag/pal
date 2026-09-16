@@ -1,8 +1,8 @@
 /* Fixtures the settings tests share beyond the gallery's four extensions: bar items, permissions, an extension that needs setup. */
 import type { BarItem, PermissionsStatus, SettingsExtension } from "../SettingsTypes";
 
-export const allGranted: PermissionsStatus = { accessibility: true, calendar: "granted", full_disk_access: true, input_monitoring: true };
-export const nothingGranted: PermissionsStatus = { accessibility: false, calendar: "not_determined", full_disk_access: false, input_monitoring: false };
+export const allGranted: PermissionsStatus = { accessibility: true, calendar: "granted", full_disk_access: true, input_monitoring: true, location: "granted" };
+export const nothingGranted: PermissionsStatus = { accessibility: false, calendar: "not_determined", full_disk_access: false, input_monitoring: false, location: "not_determined" };
 
 /** Home Assistant as installed with nothing filled in: url and token are what it cannot work without. */
 export const homeAssistant: SettingsExtension = {

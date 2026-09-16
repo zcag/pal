@@ -10,7 +10,7 @@
 // PATH).
 import { readFile } from "node:fs/promises";
 import { hostname } from "node:os";
-import { settings, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { settings, wifi as wifiCore, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.network]`, default in pal.json. */
 type Settings = { public_ip_url: string };
@@ -19,8 +19,6 @@ const OS = process.env.PAL_NETWORK_OS ?? process.platform;
 const MAC = OS === "darwin";
 /** The tests point this at a fixture. */
 const RESOLV_CONF = process.env.PAL_NETWORK_RESOLV ?? "/etc/resolv.conf";
-/** md-lan, the palette's own row; the rows carry their kind's glyph. */
-const ICON = "\u{f0317}";
 const GLYPH = { wifi: "\u{f05a9}", wired: "\u{f0200}", tailscale: "\u{f0582}", host: "\u{f0322}", public: "\u{f01e7}", gateway: "\u{f1087}", dns: "\u{f01d6}" }; // md-wifi, md-ethernet, md-vpn, md-laptop, md-earth, md-router_network, md-dns
 const TOOL_MS = 3000;
 const FETCH_MS = 3000;
@@ -44,7 +42,7 @@ async function run(argv: string[], ms = TOOL_MS): Promise<string> {
 
 // ---- what is gathered ------------------------------------------------------
 
-type Iface = { name: string; kind?: string; v4: string[]; v6: string[]; mac?: string; ssid?: string; /** macOS gave `<redacted>`: the SSID needs Location Services. */ ssidHidden?: boolean; security?: string; up?: boolean };
+type Iface = { name: string; kind?: string; v4: string[]; v6: string[]; mac?: string; ssid?: string; /** macOS gave `<redacted>` and the core had no name either: pal lacks Location Services. */ ssidHidden?: boolean; security?: string; up?: boolean };
 type Public = { ip: string; city?: string; region?: string; country?: string; org?: string; at: number };
 type Snapshot = { ifaces: Iface[]; gateway?: { ip: string; dev?: string }; dns: string[]; tailscale: string[]; host: string; localHost?: string; public?: Public | { error: string } };
 
@@ -96,7 +94,14 @@ async function macSnapshot(): Promise<Omit<Snapshot, "public" | "tailscale" | "h
   const kinds = parseHardwarePorts(ports);
   for (const i of ifaces) i.kind = kinds.get(i.name);
   const wifi = ifaces.find((i) => i.kind === "Wi-Fi");
-  if (wifi) Object.assign(wifi, parseSummary(await run(["ipconfig", "getsummary", wifi.name])));
+  if (wifi) {
+    Object.assign(wifi, parseSummary(await run(["ipconfig", "getsummary", wifi.name])));
+    // `<redacted>` for a process without Location Services, and pal's own grant does not reach the tools it runs: the core reads the name in-process (CoreWLAN), which the grant covers.
+    if (wifi.ssidHidden) {
+      const ssid = await wifiCore.status().then((s) => s?.current?.ssid ?? null).catch(() => null);
+      if (ssid) Object.assign(wifi, { ssid, ssidHidden: false });
+    }
+  }
   const gw = /gateway: (\S+)/.exec(route)?.[1];
   const dev = /interface: (\S+)/.exec(route)?.[1];
   const localHost = local.trim() || undefined;
@@ -194,7 +199,7 @@ function row(id: string, value: string, subtitle: string, section: string, keywo
 const hint = (id: string, name: string, subtitle: string, section: string, icon: string): Item => ({ id, name, subtitle, icon, section, actions: [] });
 
 const ifaceDetail = (i: Iface): Detail => ({
-  metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid ?? (i.ssidHidden ? "hidden by macOS: the process needs Location Services" : undefined)], ["Security", i.security], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac], ["Status", i.up === undefined ? undefined : i.up ? "active" : "inactive"]]),
+  metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid ?? (i.ssidHidden ? "hidden by macOS until pal has Location access (the Wi-Fi palette asks)" : undefined)], ["Security", i.security], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac], ["Status", i.up === undefined ? undefined : i.up ? "active" : "inactive"]]),
 });
 
 function rows(s: Snapshot, withPublic: boolean): Item[] {
@@ -245,7 +250,6 @@ export default {
   palettes: {
     network: {
       title: "Network",
-      icon: ICON,
       live: true,
       showDetail: true,
       placeholder: "Address, interface, DNS",

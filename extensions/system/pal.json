@@ -3,7 +3,7 @@
   "title": "System",
   "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake.",
   "version": "0.1.0",
-  "icon": "󰐥",
+  "icon": { "tile": { "glyph": "󰐥", "bg": "slate" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -57,6 +57,18 @@
         "keys": "enter"
       }
     ]
+  },
+  "links": {
+    "run": {
+      "description": "Run a system command",
+      "confirm": true,
+      "params": {
+        "id": {
+          "description": "sleep, lock, logout, restart, shutdown, empty-trash, dark-mode, volume-up, volume-down, volume-mute, brightness-up, brightness-down, dnd, eject-all, show-desktop, keep-awake",
+          "required": true
+        }
+      }
+    }
   },
   "palettes": {
     "system": {

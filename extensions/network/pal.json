@@ -3,7 +3,7 @@
   "title": "Network",
   "description": "This machine's addresses: every interface's IPs (the Wi-Fi one with its SSID), the public IP with its country and ISP, the default gateway, the DNS servers, the Tailscale IP, the hostname. Enter copies the value.",
   "version": "0.1.0",
-  "icon": "󰌗",
+  "icon": { "tile": { "glyph": "󰌗", "bg": "cyan" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

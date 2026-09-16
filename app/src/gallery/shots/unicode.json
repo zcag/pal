@@ -2,7 +2,12 @@
   "palettes": {
     "unicode": {
       "title": "Unicode Characters",
-      "icon": "󰏉",
+      "icon": {
+        "tile": {
+          "glyph": "󰏉",
+          "bg": "pink"
+        }
+      },
       "view": "grid",
       "columns": 10,
       "items": [

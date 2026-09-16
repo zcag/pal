@@ -20,20 +20,11 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::tool::{Error, Result};
 
-/// Where the app stands with the OS: `granted` lists and writes;
-/// `not_determined` means [`request`] will prompt; `denied` and
-/// `restricted` are switched in System Settings (restricted: a profile
-/// forbids it); `unavailable` is a machine without a backend (Linux
-/// without `khal`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Status {
-    Granted,
-    Denied,
-    NotDetermined,
-    Restricted,
-    Unavailable,
-}
+/// Where the app stands with the OS ([`crate::permission::Status`]):
+/// `granted` lists and writes; `not_determined` means [`request`] will
+/// prompt; `denied` and `restricted` are switched in System Settings;
+/// `unavailable` is a machine without a backend (Linux without `khal`).
+pub use crate::permission::Status;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Calendar {

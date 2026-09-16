@@ -286,7 +286,6 @@ export default {
   palettes: {
     tabs: {
       title: "Browser Tabs",
-      icon: ICON,
       live: true,
       placeholder: "Switch to a tab",
       filters: FILTERS,

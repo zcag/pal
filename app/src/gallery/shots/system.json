@@ -4,7 +4,12 @@
       "title": "System",
       "live": true,
       "input": false,
-      "icon": "󰐥",
+      "icon": {
+        "tile": {
+          "glyph": "󰐥",
+          "bg": "slate"
+        }
+      },
       "placeholder": "Sleep, lock, volume, dark mode...",
       "items": [
         {

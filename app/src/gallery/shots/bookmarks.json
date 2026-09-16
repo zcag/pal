@@ -2,7 +2,12 @@
   "palettes": {
     "bookmarks": {
       "title": "Bookmarks",
-      "icon": "🔖",
+      "icon": {
+        "tile": {
+          "glyph": "󰃀",
+          "bg": "orange"
+        }
+      },
       "placeholder": "A name, a folder or a keyword",
       "items": [
         {

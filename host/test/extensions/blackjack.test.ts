@@ -2,6 +2,7 @@
 // (render.ts), and the extension over the wire: a view palette's meta, its
 // opening tree, a pick that answers a tree and persists the state.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { DEFAULTS, RESHUFFLE_AT, actions, apply, canDouble, canSplit, isBlackjack, newGame, shoe, value, type Settings, type State } from "../../../extensions/blackjack/game.ts";
 import { backSvg, cardSvg, type Card } from "../../../extensions/blackjack/cards.ts";
 import { money, render } from "../../../extensions/blackjack/render.ts";
@@ -232,7 +233,7 @@ describe("over the wire", () => {
 
   test("a view palette is input on the wire with view: view", async () => {
     const l = host.loaded().find((l) => l.extension === "blackjack")!;
-    expect(l.palettes).toEqual([{ name: "blackjack", title: "Blackjack", live: false, input: true, icon: "🃏", view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
+    expect(l.palettes).toEqual([{ name: "blackjack", title: "Blackjack", live: false, input: true, icon: tile("red", "\u{f18a1}"), view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
   });
   test("list is refused, view answers the opening tree", async () => {
     await expect(host.request("list", { extension: "blackjack", palette: "blackjack" })).rejects.toThrow("view palette has no list");

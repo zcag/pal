@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { tinted } from "../../../sdk/src/icon.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 
@@ -183,17 +184,17 @@ describe("github", () => {
       expect(ops("PRs")[0].body.variables.merged).toMatch(/^is:pr is:merged author:@me merged:>=\d{4}-\d{2}-\d{2}/);
     });
 
-    test("row: title, owner/repo #n, keywords, state dot, tags for checks, review, draft, conflicts, merged, and the updated date", async () => {
+    test("row: title, owner/repo #n, keywords, state octicon in its colour, tags for checks, review, draft, conflicts, merged, and the updated date", async () => {
       const items = await list("prs");
       const [a, draft, review, merged] = items;
-      expect(a).toMatchObject({ name: "Directory readiness", subtitle: "acme/widgets #71", url: "https://github.com/acme/widgets/pull/71", icon: "#1a7f37" });
+      expect(a).toMatchObject({ name: "Directory readiness", subtitle: "acme/widgets #71", url: "https://github.com/acme/widgets/pull/71", icon: tinted("\uf407", "green") });
       expect(a.keywords).toEqual(expect.arrayContaining(["widgets", "acme/widgets", "#71", "zcag", "feat-71"]));
       expect(tags(a)).toEqual(["checks ✓", "review", "conflicts"]);
       expect(a.accessories!.at(-1)).toEqual({ date: "2026-09-15T10:00:00Z" });
-      expect(draft.icon).toBe("#6e7781");
+      expect(draft.icon).toEqual(tinted("\uf4dd", "slate"));
       expect(tags(draft)).toEqual(["draft"]);
       expect(tags(review)).toEqual(["checks ✗", "changes requested"]);
-      expect(merged.icon).toBe("#8250df");
+      expect(merged.icon).toEqual(tinted("\uf419", "violet"));
       expect(tags(merged)).toEqual(["merged"]);
       // Inline metadata for the pane before the lazy detail lands.
       expect(a.detail!.metadata!.map((m) => m.label)).toEqual(["Repository", "Author", "Branch", "Size", "State", "Review requested", "Labels", "Opened", "Updated"]);
@@ -275,12 +276,12 @@ describe("github", () => {
       expect(ids(items)).toEqual(["create", "acme/widgets#5", "acme/api#8", "zcag/pal#3"]);
       expect(items.slice(1).map((i) => i.section)).toEqual(["Assigned", "Mentioned", "Created"]);
       const crash = items[1];
-      expect(crash).toMatchObject({ name: "Crash on start", subtitle: "acme/widgets #5", icon: "#1a7f37" });
+      expect(crash).toMatchObject({ name: "Crash on start", subtitle: "acme/widgets #5", icon: tinted("\uf41b", "green") });
       expect(crash.accessories).toEqual([{ tag: "bug", color: "grey" }, { tag: "p1", color: "grey" }, { text: "3 comments" }, { date: "2026-09-14T10:00:00Z" }]);
       expect(crash.keywords).toEqual(expect.arrayContaining(["widgets", "#5", "alice", "bug"]));
       expect(crash.actions!.map((a) => a.id)).toEqual(["open", "copy", "ref", "close"]);
       expect(crash.actions![3]).toMatchObject({ style: "destructive", confirm: "Close #5?" });
-      expect(items[3]).toMatchObject({ icon: "#8250df", accessories: [{ tag: "closed", color: "violet" }, { date: "2026-09-14T10:00:00Z" }] });
+      expect(items[3]).toMatchObject({ icon: tinted("\uf41d", "violet"), accessories: [{ tag: "closed", color: "violet" }, { date: "2026-09-14T10:00:00Z" }] });
       expect(items[3].actions!.map((a) => a.id)).toEqual(["open", "copy", "ref"]);
       expect(ids(await list("issues", "mentioned"))).toEqual(["create", "acme/widgets#5", "acme/api#8"]);
       expect(ops("Issues")).toHaveLength(1);

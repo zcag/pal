@@ -66,7 +66,6 @@ export default {
   palettes: {
     emoji: {
       title: "Emoji",
-      icon: "😀",
       view: "grid",
       live: true,
       placeholder: "Name, keyword or :shortcode:",

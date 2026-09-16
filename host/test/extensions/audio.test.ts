@@ -1,5 +1,6 @@
 // audio against canned core/audio.* replies.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import type { AudioDevice } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
 
@@ -28,7 +29,7 @@ const pick = (id: string, action?: string, args?: unknown) => host.pick("audio",
 
 describe("audio", () => {
   test("meta: live", () => {
-    expect(host.loaded().find((l) => l.extension === "audio")!.palettes).toEqual([{ name: "audio", title: "Audio", live: true, input: false, icon: "♫", placeholder: "Switch output or input, set the volume" }]);
+    expect(host.loaded().find((l) => l.extension === "audio")!.palettes).toEqual([{ name: "audio", title: "Audio", live: true, input: false, icon: tile("violet", "\u{f057e}"), placeholder: "Switch output or input, set the volume" }]);
   });
 
   test("rows per direction with default and muted tags, the volume, and the actions", async () => {

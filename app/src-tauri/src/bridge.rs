@@ -8,12 +8,18 @@
 //! - `core/bar.{update, refresh}` (bar/mod.rs)
 //! - `core/bluetooth.{devices, connect, disconnect}` (bluetooth.rs)
 //! - `core/clipboard.{list, get, pin, delete, clear, copy}` (clipboard.rs)
-//! - `core/media.{now_playing, control}` (media.rs)
+//! - `core/color.sample` (color.rs)
+//! - `core/effects.run` (effects.rs)
+//! - `core/media.{now_playing, control, artwork}` (media.rs)
+//! - `core/ocr.{image {path | data}, available}` (ocr.rs)
+//! - `core/selection.text` (selection.rs)
+//! - `core/menubar.{items, press {pid, id}}` (menubar.rs)
+//! - `core/permissions.{status, request {which}}` (permissions.rs)
 //! - `core/settings.get {extension, manifest}` (settings.rs)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
 //! - `core/system.{commands, run}` (system.rs)
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
-//! - `core/windows.{list, close, minimize, frame, set_frame, displays, focused, layout}` (windows.rs)
+//! - `core/windows.{list, close, minimize, unminimize, fullscreen, frame, set_frame, displays, focused, layout}` (windows.rs)
 //! - `core/calendar.{permission, request, open_settings, calendars, events, create, delete, open}` (calendar.rs)
 
 use serde_json::Value;
@@ -34,11 +40,17 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "bar" => crate::bar::call(app, func, params),
         "bluetooth" => crate::bluetooth::call(app, func, params),
         "clipboard" => crate::clipboard::call(app, func, params),
+        "color" => crate::color::call(app, func, params),
+        "effects" => crate::effects::call(app, func, params),
         "media" => crate::media::call(app, func, params),
+        "menubar" => menubar::call(app, func, params),
+        "permissions" => crate::permissions::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
         "storage" => crate::storage::call(app, func, params),
         "system" => crate::system::call(app, func, params),
         "wifi" => crate::wifi::call(app, func, params),
+        "ocr" => crate::ocr::call(app, func, params),
+        "selection" => crate::selection::call(app, func, params),
         "windows" => crate::windows::call(app, func, params),
         "calendar" => calendar::call(app, func, params),
         _ => Err(format!("unknown capability {capability}")),
@@ -57,6 +69,12 @@ mod tests {
         assert_eq!(route("core/bar.update"), Ok(("bar", "update")));
         assert_eq!(route("core/wifi.set_power"), Ok(("wifi", "set_power")));
         assert_eq!(route("core/calendar.events"), Ok(("calendar", "events")));
+        assert_eq!(route("core/ocr.image"), Ok(("ocr", "image")));
+        assert_eq!(route("core/selection.text"), Ok(("selection", "text")));
+        assert_eq!(route("core/menubar.press"), Ok(("menubar", "press")));
+        assert_eq!(route("core/color.sample"), Ok(("color", "sample")));
+        assert_eq!(route("core/effects.run"), Ok(("effects", "run")));
+        assert_eq!(route("core/permissions.request"), Ok(("permissions", "request")));
         assert!(route("list").is_err());
         assert!(route("core/list").is_err(), "no capability");
         assert!(route("core/.list").is_err());
@@ -68,3 +86,5 @@ mod tests {
 // this round): the calendar capability is reached through this router only.
 #[path = "calendar.rs"]
 mod calendar;
+#[path = "menubar.rs"]
+mod menubar;

@@ -1,0 +1,1210 @@
+{
+  "palettes": {
+    "unreads": {
+      "title": "Unreads",
+      "icon": {
+        "tile": {
+          "glyph": "󰒱",
+          "bg": "violet"
+        }
+      },
+      "live": true,
+      "items": [
+        {
+          "id": "dm:T1/D_MARA",
+          "name": "Mara",
+          "subtitle": "can you look at the parser before standup? the tests are green now",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Mara",
+            "dm"
+          ],
+          "section": "Direct messages",
+          "accessories": [
+            {
+              "tag": "2",
+              "color": "red"
+            },
+            {
+              "date": 1789584027797
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "reply",
+              "title": "Reply"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "dm:T1/D_TOMAS",
+          "name": "Tomas",
+          "subtitle": "📎 release-notes-0.4.md",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%230ea5e9%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3ET%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Tomas",
+            "dm"
+          ],
+          "section": "Direct messages",
+          "accessories": [
+            {
+              "tag": "1",
+              "color": "red"
+            },
+            {
+              "date": 1789581147797
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "reply",
+              "title": "Reply"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "mention:T1/C_ENG",
+          "name": "#eng",
+          "subtitle": "Lina: @cagdas the build on #ops is red since the runner image bump",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23f59e0b%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EL%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "eng",
+            "Lina",
+            "mention"
+          ],
+          "section": "Mentions",
+          "accessories": [
+            {
+              "tag": "1+",
+              "color": "red"
+            },
+            {
+              "date": 1789583247797
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "reply",
+              "title": "Reply"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "mention:T1/C_DESIGN",
+          "name": "#design",
+          "subtitle": "Ola: @channel review the new empty states by Friday",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2310b981%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EO%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "design",
+            "Ola",
+            "mention"
+          ],
+          "section": "Mentions",
+          "accessories": [
+            {
+              "tag": "1",
+              "color": "red"
+            },
+            {
+              "date": 1789573947797
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "reply",
+              "title": "Reply"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "thread:T1/C_PRODUCT",
+          "name": "#product",
+          "subtitle": "4 new replies",
+          "icon": "󰊌",
+          "keywords": [
+            "product",
+            "thread"
+          ],
+          "section": "Threads",
+          "accessories": [
+            {
+              "tag": "4",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "channel:T1/C_SUPPORT",
+          "name": "#support",
+          "subtitle": "Unread",
+          "icon": "󰐣",
+          "keywords": [
+            "support",
+            "channel"
+          ],
+          "section": "Channels",
+          "accessories": [
+            {
+              "date": 1789584267797
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "reply",
+              "title": "Reply"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "channel:T1/C_GENERAL",
+          "name": "#general",
+          "subtitle": "Unread",
+          "icon": "󰐣",
+          "keywords": [
+            "general",
+            "channel"
+          ],
+          "section": "Channels",
+          "accessories": [
+            {
+              "date": 1789577547797
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "reply",
+              "title": "Reply"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "channel:T1/C_OPSPRIV",
+          "name": "#ops-oncall",
+          "subtitle": "Unread",
+          "icon": "󰌾",
+          "keywords": [
+            "ops-oncall",
+            "channel"
+          ],
+          "section": "Channels",
+          "accessories": [
+            {
+              "date": 1789566747797
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "reply",
+              "title": "Reply"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "dm:T1/D_MARA": {
+          "markdown": "**Mara** · 09:37 PM\n\nhey @cagdas, can you look at the parser before standup?\n\n---\n\n**Mara** · 09:40 PM\n\nthe tests are green now, only the fixture for the empty run is missing",
+          "metadata": [
+            {
+              "label": "Conversation",
+              "value": "Mara"
+            },
+            {
+              "label": "Kind",
+              "value": "Direct message"
+            },
+            {
+              "label": "Unread",
+              "value": "2"
+            },
+            {
+              "label": "Latest",
+              "value": "09:40 PM"
+            }
+          ]
+        },
+        "dm:T1/D_TOMAS": {
+          "markdown": "**Tomas** · 08:52 PM\n\n📎 release-notes-0.4.md",
+          "metadata": [
+            {
+              "label": "Conversation",
+              "value": "Tomas"
+            },
+            {
+              "label": "Kind",
+              "value": "Direct message"
+            },
+            {
+              "label": "Unread",
+              "value": "1"
+            },
+            {
+              "label": "Latest",
+              "value": "08:52 PM"
+            }
+          ]
+        },
+        "mention:T1/C_ENG": {
+          "markdown": "**Tomas** · 09:02 PM\n\nbumped the runner image to 24.04\n\n---\n\n**Lina** · 09:27 PM\n\n@cagdas the build on #ops is red since the runner image bump\n\n---\n\n**Tomas** · 09:32 PM\n\nlooking\n\n---\n\n_…and more before these._",
+          "metadata": [
+            {
+              "label": "Conversation",
+              "value": "#eng"
+            },
+            {
+              "label": "Kind",
+              "value": "Mention"
+            },
+            {
+              "label": "Unread",
+              "value": "1 or more"
+            },
+            {
+              "label": "Latest",
+              "value": "09:32 PM"
+            }
+          ]
+        },
+        "thread:T1/C_PRODUCT": {
+          "markdown": "_4 new replies in threads you follow in #product; open Slack to read them._",
+          "metadata": [
+            {
+              "label": "Conversation",
+              "value": "#product"
+            },
+            {
+              "label": "Kind",
+              "value": "Thread"
+            },
+            {
+              "label": "Unread",
+              "value": "4"
+            }
+          ]
+        }
+      }
+    },
+    "channels": {
+      "title": "Channels",
+      "icon": {
+        "tile": {
+          "glyph": "󰒱",
+          "bg": "violet"
+        }
+      },
+      "items": [
+        {
+          "id": "T1/C_DESIGN",
+          "name": "#design",
+          "subtitle": "Mocks, reviews, the design system",
+          "icon": "󰐣",
+          "keywords": [
+            "design",
+            "channel"
+          ],
+          "accessories": [
+            {
+              "text": "9 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/C_ENG",
+          "name": "#eng",
+          "subtitle": "Engineering",
+          "icon": "󰐣",
+          "keywords": [
+            "eng",
+            "channel"
+          ],
+          "accessories": [
+            {
+              "text": "14 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/C_GENERAL",
+          "name": "#general",
+          "subtitle": "Company wide announcements",
+          "icon": "󰐣",
+          "keywords": [
+            "general",
+            "channel"
+          ],
+          "accessories": [
+            {
+              "text": "41 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/C_PRODUCT",
+          "name": "#product",
+          "subtitle": "Roadmap and specs",
+          "icon": "󰐣",
+          "keywords": [
+            "product",
+            "channel"
+          ],
+          "accessories": [
+            {
+              "text": "12 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/C_RANDOM",
+          "name": "#random",
+          "icon": "󰐣",
+          "keywords": [
+            "random",
+            "channel"
+          ],
+          "accessories": [
+            {
+              "text": "41 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/C_SUPPORT",
+          "name": "#support",
+          "subtitle": "Customer tickets that need an engineer",
+          "icon": "󰐣",
+          "keywords": [
+            "support",
+            "channel"
+          ],
+          "accessories": [
+            {
+              "text": "18 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/C_OPSPRIV",
+          "name": "#ops-oncall",
+          "subtitle": "The pager rotation",
+          "icon": "󰌾",
+          "keywords": [
+            "ops-oncall",
+            "private channel"
+          ],
+          "accessories": [
+            {
+              "tag": "private",
+              "color": "amber"
+            },
+            {
+              "text": "4 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/G_1",
+          "name": "Mara, Tomas, Lina",
+          "subtitle": "Group message",
+          "icon": "󰀎",
+          "keywords": [
+            "Mara, Tomas, Lina",
+            "group message"
+          ],
+          "accessories": [
+            {
+              "tag": "group",
+              "color": "grey"
+            },
+            {
+              "text": "4 members"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/D_INES",
+          "name": "Ines",
+          "subtitle": "Direct message",
+          "icon": "󰀄",
+          "keywords": [
+            "Ines",
+            "direct message"
+          ],
+          "accessories": [
+            {
+              "tag": "DM",
+              "color": "grey"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/D_LINA",
+          "name": "Lina",
+          "subtitle": "Direct message",
+          "icon": "󰀄",
+          "keywords": [
+            "Lina",
+            "direct message"
+          ],
+          "accessories": [
+            {
+              "tag": "DM",
+              "color": "grey"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/D_MARA",
+          "name": "Mara",
+          "subtitle": "Direct message",
+          "icon": "󰀄",
+          "keywords": [
+            "Mara",
+            "direct message"
+          ],
+          "accessories": [
+            {
+              "tag": "DM",
+              "color": "grey"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "T1/D_TOMAS",
+          "name": "Tomas",
+          "subtitle": "Direct message",
+          "icon": "󰀄",
+          "keywords": [
+            "Tomas",
+            "direct message"
+          ],
+          "accessories": [
+            {
+              "tag": "DM",
+              "color": "grey"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Slack"
+            },
+            {
+              "id": "browser",
+              "title": "Open in browser",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "search": {
+      "title": "Search Slack",
+      "icon": {
+        "tile": {
+          "glyph": "󰒱",
+          "bg": "violet"
+        }
+      },
+      "input": true,
+      "placeholder": "Text, from:@name, in:#channel, has:link",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Search Slack",
+            "subtitle": "Text, from:@name, in:#channel, has:link, before:yesterday",
+            "icon": "󰋼",
+            "actions": []
+          }
+        ],
+        "from:@mara parser": [
+          {
+            "id": "T1/C_ENG/1",
+            "name": "the parser now keeps the restart array out of the entries, @cagdas can you double check the varint reader",
+            "subtitle": "Mara in #eng",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mara",
+              "eng"
+            ],
+            "accessories": [
+              {
+                "date": 1789411947797
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Slack"
+              },
+              {
+                "id": "browser",
+                "title": "Open in browser",
+                "shortcut": "cmd+shift+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "T1/D_MARA/2",
+            "name": "parser PR is up, the fixture for the empty run is the last bit",
+            "subtitle": "Direct message",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mara",
+              "Mara"
+            ],
+            "accessories": [
+              {
+                "date": 1789325547797
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Slack"
+              },
+              {
+                "id": "browser",
+                "title": "Open in browser",
+                "shortcut": "cmd+shift+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "T1/C_PRODUCT/3",
+            "name": "we said the parser ships behind a flag for 0.4",
+            "subtitle": "Mara in #product",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mara",
+              "product"
+            ],
+            "accessories": [
+              {
+                "date": 1789066347797
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Slack"
+              },
+              {
+                "id": "browser",
+                "title": "Open in browser",
+                "shortcut": "cmd+shift+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "status": {
+      "title": "Status",
+      "icon": {
+        "tile": {
+          "glyph": "󰒱",
+          "bg": "violet"
+        }
+      },
+      "live": true,
+      "items": [
+        {
+          "id": "status:current",
+          "name": "In a meeting",
+          "subtitle": "Your status, until 10:37 PM",
+          "icon": "🗓️",
+          "section": "Now",
+          "keywords": [
+            "status"
+          ],
+          "actions": [
+            {
+              "id": "clear",
+              "title": "Clear status"
+            }
+          ]
+        },
+        {
+          "id": "dnd:current",
+          "name": "Notifications on",
+          "subtitle": "Do Not Disturb is off",
+          "icon": "󰂚",
+          "section": "Now",
+          "keywords": [
+            "dnd"
+          ],
+          "actions": []
+        },
+        {
+          "id": "presence:current",
+          "name": "Active",
+          "subtitle": "Shown as active",
+          "icon": "󰀈",
+          "section": "Now",
+          "keywords": [
+            "presence",
+            "away",
+            "active"
+          ],
+          "actions": [
+            {
+              "id": "presence:toggle",
+              "title": "Set away"
+            }
+          ]
+        },
+        {
+          "id": "status:0",
+          "name": "In a meeting",
+          "subtitle": "for 1h",
+          "icon": "🗓️",
+          "section": "Status",
+          "keywords": [
+            "status"
+          ],
+          "actions": [
+            {
+              "id": "set",
+              "title": "Set status"
+            }
+          ]
+        },
+        {
+          "id": "status:1",
+          "name": "Lunch",
+          "subtitle": "for 1h",
+          "icon": "🍽️",
+          "section": "Status",
+          "keywords": [
+            "status"
+          ],
+          "actions": [
+            {
+              "id": "set",
+              "title": "Set status"
+            }
+          ]
+        },
+        {
+          "id": "status:2",
+          "name": "Focus time",
+          "subtitle": "for 2h",
+          "icon": "🎧",
+          "section": "Status",
+          "keywords": [
+            "status"
+          ],
+          "actions": [
+            {
+              "id": "set",
+              "title": "Set status"
+            }
+          ]
+        },
+        {
+          "id": "status:3",
+          "name": "Working from home",
+          "subtitle": "until tomorrow",
+          "icon": "🏡",
+          "section": "Status",
+          "keywords": [
+            "status"
+          ],
+          "actions": [
+            {
+              "id": "set",
+              "title": "Set status"
+            }
+          ]
+        },
+        {
+          "id": "status:4",
+          "name": "Out of office",
+          "subtitle": "no expiry",
+          "icon": "🌴",
+          "section": "Status",
+          "keywords": [
+            "status"
+          ],
+          "actions": [
+            {
+              "id": "set",
+              "title": "Set status"
+            }
+          ]
+        },
+        {
+          "id": "dnd:30",
+          "name": "Do Not Disturb for 30 minutes",
+          "icon": "󰂠",
+          "section": "Do Not Disturb",
+          "keywords": [
+            "dnd",
+            "snooze"
+          ],
+          "actions": [
+            {
+              "id": "snooze",
+              "title": "Pause notifications"
+            }
+          ]
+        },
+        {
+          "id": "dnd:60",
+          "name": "Do Not Disturb for 1 hour",
+          "icon": "󰂠",
+          "section": "Do Not Disturb",
+          "keywords": [
+            "dnd",
+            "snooze"
+          ],
+          "actions": [
+            {
+              "id": "snooze",
+              "title": "Pause notifications"
+            }
+          ]
+        },
+        {
+          "id": "dnd:tomorrow",
+          "name": "Do Not Disturb until tomorrow",
+          "icon": "󰂠",
+          "section": "Do Not Disturb",
+          "keywords": [
+            "dnd",
+            "snooze"
+          ],
+          "actions": [
+            {
+              "id": "snooze",
+              "title": "Pause notifications"
+            }
+          ]
+        },
+        {
+          "id": "presence:away",
+          "name": "Set away",
+          "icon": "󰀒",
+          "section": "Presence",
+          "keywords": [
+            "presence"
+          ],
+          "actions": [
+            {
+              "id": "set",
+              "title": "Set away"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "unreads/dm:T1/D_MARA:reply": {
+      "form": {
+        "id": "dm:T1/D_MARA",
+        "title": "Reply to Mara",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "text",
+            "label": "Message",
+            "required": true,
+            "placeholder": "Posted to the conversation"
+          }
+        ],
+        "submit": {
+          "id": "send",
+          "title": "Send"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-unreads": {
+      "palette": "unreads",
+      "keys": [
+        "down*2"
+      ]
+    },
+    "2-unread-detail": {
+      "palette": "unreads",
+      "keys": [
+        "cmd+i",
+        "wait:400"
+      ]
+    },
+    "3-status": {
+      "palette": "status",
+      "keys": [
+        "down*3"
+      ]
+    },
+    "4-search": {
+      "palette": "search",
+      "keys": [
+        "type:from:@mara parser",
+        "wait:300"
+      ]
+    }
+  }
+}

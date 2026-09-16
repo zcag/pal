@@ -46,10 +46,13 @@ PATH (or Tailscale.app) adds the Tailscale rows.
 **The SSID on macOS**: since Sonoma the system redacts the network name
 for a process without Location Services access (`ipconfig getsummary`
 prints `<redacted>`, `networksetup -getairportnetwork` says not
-associated), so without that grant the Wi-Fi row is labelled by kind
-(`en0 · Wi-Fi`) and the detail pane says the SSID is hidden. Grant pal
-Location access in System Settings and the name appears; everything else
-works without it.
+associated), and pal's own grant does not reach the tools it runs, so a
+redacted summary is followed by a read through the core's wifi
+capability (CoreWLAN, in-process), which has the name once pal holds
+Location access: the Wi-Fi palette asks for it the first time it lists,
+and Settings > General > Permissions has the button. Without it the Wi-Fi
+row is labelled by kind (`en0 · Wi-Fi`) and the detail pane says what is
+missing; everything else works without it.
 
 The public IP is one request to `public_ip_url` (ipinfo.io by default);
 set it empty for no Internet section and no request at all.

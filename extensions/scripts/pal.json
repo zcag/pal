@@ -1,43 +1,175 @@
 {
   "name": "scripts",
   "title": "Scripts and data files",
-  "description": "Runs v1-style palettes from a pal v1 config: script plugins (run.sh speaking JSON lines) and data files (json, jsonl, toml). The zero-code tier.",
+  "description": "Runs v1-style palettes from a pal v1 config: script plugins (run.sh speaking JSON lines) and data files (json, jsonl, toml), plus single-file script commands from a folder, one row per executable with a # @pal.title header (Raycast's @raycast.* headers accepted). The zero-code tier.",
   "version": "0.1.0",
-  "icon": "󰆍",
+  "icon": {
+    "tile": {
+      "glyph": "󰆍",
+      "bg": "slate"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "path", "id": "config", "label": "v1 config", "description": "A pal v1 config.toml; every [palette.<name>] in it becomes a palette here.", "pick": "file", "placeholder": "~/.config/pal/config.toml", "default": "~/.config/pal/config.toml" },
-    { "kind": "list", "id": "skip", "label": "Skip", "description": "v1 palette names not to load, because a native extension covers them.", "placeholder": "calc", "default": ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"] },
-    { "kind": "path", "id": "v1_repo", "label": "v1 checkout", "description": "The v1 checkout: where github:zcag/pal/... bases resolve when v1's plugin cache (~/.local/share/pal) has no copy, and where a base under a v1 checkout missing on this box is looked up. ~/proj/pal is tried when this path has no plugins.", "pick": "folder", "default": "~/proj/pal-v1" },
-    { "kind": "number", "id": "timeout", "label": "Script timeout", "description": "A list or pick script still running after this is killed.", "min": 1, "max": 300, "unit": "s", "default": 30 },
-    { "kind": "number", "id": "preview_max", "label": "Previews at once", "description": "An item's preview command runs when the detail pane rests on it; at most this many run at the same time. 0 turns previews off.", "min": 0, "max": 32, "unit": "runs", "default": 4 },
-    { "kind": "number", "id": "ttl", "label": "Listing lifetime", "description": "A palette that declares no ttl keeps its last listing across restarts and shows for this long before its script runs again; a palette's own ttl wins, and a live palette is exempt (it relists on every show unless it sets its own). Default an hour: scripts are the slow tier, and the root answers from the kept listing meanwhile. 0 runs every script on every start.", "min": 0, "max": 604800, "unit": "s", "default": 3600 }
+    {
+      "kind": "path",
+      "id": "config",
+      "label": "v1 config",
+      "description": "A pal v1 config.toml; every [palette.<name>] in it becomes a palette here.",
+      "pick": "file",
+      "placeholder": "~/.config/pal/config.toml",
+      "default": "~/.config/pal/config.toml"
+    },
+    {
+      "kind": "list",
+      "id": "skip",
+      "label": "Skip",
+      "description": "v1 palette names not to load, because a native extension covers them.",
+      "placeholder": "calc",
+      "default": [
+        "combine",
+        "pals",
+        "apps",
+        "bookmarks",
+        "calc",
+        "emoji",
+        "clipboard"
+      ]
+    },
+    {
+      "kind": "path",
+      "id": "v1_repo",
+      "label": "v1 checkout",
+      "description": "The v1 checkout: where github:zcag/pal/... bases resolve when v1's plugin cache (~/.local/share/pal) has no copy, and where a base under a v1 checkout missing on this box is looked up. ~/proj/pal is tried when this path has no plugins.",
+      "pick": "folder",
+      "default": "~/proj/pal-v1"
+    },
+    {
+      "kind": "path",
+      "id": "commands",
+      "label": "Script commands",
+      "description": "A folder of single-file script commands: every executable in it with a # @pal.title line in its header (or Raycast's # @raycast.title) is one row of the Script Commands palette. Watched: a saved file shows on the next listing.",
+      "pick": "folder",
+      "placeholder": "~/.config/pal/commands",
+      "default": "~/.config/pal/commands"
+    },
+    {
+      "kind": "number",
+      "id": "timeout",
+      "label": "Script timeout",
+      "description": "A list or pick script still running after this is killed.",
+      "min": 1,
+      "max": 300,
+      "unit": "s",
+      "default": 30
+    },
+    {
+      "kind": "number",
+      "id": "preview_max",
+      "label": "Previews at once",
+      "description": "An item's preview command runs when the detail pane rests on it; at most this many run at the same time. 0 turns previews off.",
+      "min": 0,
+      "max": 32,
+      "unit": "runs",
+      "default": 4
+    },
+    {
+      "kind": "number",
+      "id": "ttl",
+      "label": "Listing lifetime",
+      "description": "A palette that declares no ttl keeps its last listing across restarts and shows for this long before its script runs again; a palette's own ttl wins, and a live palette is exempt (it relists on every show unless it sets its own). Default an hour: scripts are the slow tier, and the root answers from the kept listing meanwhile. 0 runs every script on every start.",
+      "min": 0,
+      "max": 604800,
+      "unit": "s",
+      "default": 3600
+    }
   ],
   "store": {
-    "tagline": "Palettes from shell scripts and data files, no TypeScript",
+    "tagline": "Palettes from shell scripts, data files and script commands",
     "category": "developer",
     "features": [
       "Every `[palette.<name>]` table of a v1-style config becomes a palette, `scripts-<name>` in the settings",
       "A data-file palette: `auto_list = true` and a `data` file (JSON array, JSON lines or TOML), each row an item with `name`, `subtitle`, `keywords`, `url`, `section`, `accessories`, `detail`",
       "A script palette: a `run.sh` answering `list` with JSON lines and `pick` with a result envelope (`clipboard`, `open`, `toast`, `show`, `palette` to drill in, `reload`)",
-      "Actions per table or per row: `copy`, `open`, `cmd`, `type`, or `pick` back into the script, with a shortcut, a confirm and `reload`",
+      "Script Commands: one row per executable in a folder with a `# @pal.title` header; `@pal.mode` silent, hud, show, list or inline, `@pal.args` as a form, `@pal.confirm`, `@pal.keyword`; Raycast's `@raycast.*` headers work as they are",
       "`input` palettes list on every keystroke with the query on stdin, `live` ones on every show, `filter` gives a scope dropdown, `view = \"grid\"` tiles",
       "`preview`: a shell command run lazily for the detail pane; a `ttl` keeps a listing across restarts so a slow script is not run on every start"
     ],
-    "permissions": ["accessibility"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "accessibility"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-data-file.png", "caption": "A data-file palette: six rows from links.json, sectioned, the table's icon unless a row has its own" },
-      { "file": "2-script.png", "caption": "A script palette: the rows run.sh printed as JSON lines, with sections and tags" },
-      { "file": "3-root.png", "caption": "A script palette's rows at the root: deploy finds both deploy commands" },
-      { "file": "4-actions.png", "caption": "The table's actions on a row: Open and Copy link" }
+      {
+        "file": "1-data-file.png",
+        "caption": "A data-file palette: six rows from links.json, sectioned, the table's icon unless a row has its own"
+      },
+      {
+        "file": "2-script.png",
+        "caption": "A script palette: the rows run.sh printed as JSON lines, with sections and tags"
+      },
+      {
+        "file": "3-root.png",
+        "caption": "A script palette's rows at the root: deploy finds both deploy commands"
+      },
+      {
+        "file": "4-actions.png",
+        "caption": "The table's actions on a row: Open and Copy link"
+      },
+      {
+        "file": "5-commands.png",
+        "caption": "Script Commands: one row per file in the folder, the mode on the right, an inline command's first output line as its subtitle"
+      },
+      {
+        "file": "6-command-list.png",
+        "caption": "A list-mode command: the rows its script printed, as a level"
+      },
+      {
+        "file": "7-command-form.png",
+        "caption": "A command with @pal.args asks for them in a form"
+      }
     ],
     "actions": [
-      { "title": "Open", "description": "An `open` action on the row's url.", "keys": "enter" },
-      { "title": "Copy link", "description": "A `copy` action on a row field.", "keys": "cmd+c" },
-      { "title": "Select", "description": "The default of a script palette without actions: run.sh pick with the row in the environment.", "keys": "enter" }
+      {
+        "title": "Open",
+        "description": "An `open` action on the row's url.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy link",
+        "description": "A `copy` action on a row field.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Select",
+        "description": "The default of a script palette without actions: run.sh pick with the row in the environment.",
+        "keys": "enter"
+      },
+      {
+        "title": "Run",
+        "description": "A script command, as its mode says: hud shows the first output line, show the whole output, list its rows, silent nothing. Asks first with @pal.confirm.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open script",
+        "description": "The command's file in its editor.",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Copy output",
+        "description": "Runs the command and copies what it printed.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy path",
+        "description": "The command's file path.",
+        "keys": "cmd+shift+c"
+      }
     ]
   }
 }

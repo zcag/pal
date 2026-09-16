@@ -192,6 +192,11 @@ pub fn config(app: &AppHandle) -> Config {
     lock(&app.state::<Settings>().loaded).config.clone()
 }
 
+/// `pal.json` of `name` as the host reported it, loaded or not (deeplink.rs reads `links` for the card's text).
+pub fn manifest_of(app: &AppHandle, name: &str) -> Option<Value> {
+    lock(&app.state::<Settings>().extensions).iter().find(|e| e.name == name).map(|e| e.manifest.clone())
+}
+
 /// The root's per-source caps (`[general] root_caps`), without copying the config: read per keystroke.
 pub fn root_caps(app: &AppHandle) -> pal_core::index::Caps {
     lock(&app.state::<Settings>().loaded).config.general.root_caps
@@ -588,6 +593,14 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
 #[tauri::command]
 pub fn settings_theme(st: State<'_, Settings>) -> pal_core::config::Theme {
     lock(&st.loaded).config.general.theme
+}
+
+/// `[general]` as loaded, for the panel's page (what it reads of it:
+/// `alias_space`, `fallbacks_always`, `now`, `search_history`); the page
+/// follows `pal://config` for changes.
+#[tauri::command]
+pub fn settings_general(st: State<'_, Settings>) -> pal_core::config::General {
+    lock(&st.loaded).config.general.clone()
 }
 
 /// One retry on `Contended`: a hand save that landed while we held the

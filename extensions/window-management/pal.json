@@ -1,9 +1,14 @@
 {
   "name": "window-management",
   "title": "Window Management",
-  "description": "Halves, thirds, quarters, maximize, center, the other display, restore: move and resize the focused window, or any window, from the keyboard.",
+  "description": "Halves, thirds, quarters, maximize, larger and smaller, nudge by a step, center, fullscreen, minimize, the other display, restore: move and resize the focused window, or any window, from the keyboard.",
   "version": "0.1.0",
-  "icon": "󱂪",
+  "icon": {
+    "tile": {
+      "glyph": "\udb84\udcaa",
+      "bg": "indigo"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -40,17 +45,29 @@
       "step": 1,
       "unit": "%",
       "default": 60
+    },
+    {
+      "kind": "number",
+      "id": "step",
+      "label": "Move step",
+      "description": "Pixels Move Left, Right, Up and Down nudge the window by.",
+      "min": 1,
+      "max": 512,
+      "step": 1,
+      "unit": "px",
+      "default": 32
     }
   ],
   "store": {
-    "tagline": "Halves, thirds, quarters, maximize, center for any window",
+    "tagline": "Halves, thirds, quarters, resize, nudge, fullscreen: any window",
     "category": "productivity",
     "features": [
-      "Twenty layouts as rows: Left Half, Right Third, Top Left Quarter, Maximize, Almost Maximize, Center, Reasonable Size, Next Display, Restore",
+      "Thirty-one rows: Left Half, Right Third, Top Left Quarter, Maximize, Almost Maximize, Maximize Height, Maximize Width, Center, Reasonable Size, Larger, Smaller, Move Left / Right / Up / Down, Next Display, Toggle Fullscreen, Minimize, Unminimize, Restore",
       "Enter applies the layout to the window you were in: pal hides first, so the window behind the panel is the one moved, and the HUD names the layout",
-      "Apply to… (`cmd+enter`) picks a window from the open ones first; Arrange Window goes the other way round, a window then its layout",
+      "Apply to\u2026 (`cmd+enter`) picks a window from the open ones first; Arrange Window goes the other way round, a window then its layout",
       "Restore puts the window back where it was before a run of layouts; moving it by hand in between starts a new run",
-      "`gap` keeps pixels between windows and the screen edge; the halves, thirds and quarters are equal cells with the gap between them",
+      "`gap` keeps pixels between windows and the screen edge; the halves, thirds and quarters are equal cells with the gap between them; `step` is how far a Move nudges",
+      "Larger and Smaller scale the window by 10% about its centre and keep it on screen; Toggle Fullscreen is the app's own full screen (a Space on macOS); Unminimize brings back the window Minimize last put away",
       "Per-layout global hotkeys in `[palettes.window-management.item_hotkeys]` move the focused window without showing pal"
     ],
     "permissions": [
@@ -76,6 +93,10 @@
       {
         "file": "4-target.png",
         "caption": "The layouts again, with the picked window as the subtitle"
+      },
+      {
+        "file": "5-verbs.png",
+        "caption": "The moves by a step, Toggle Fullscreen, Minimize and Unminimize, each with its diagram"
       }
     ],
     "actions": [
@@ -85,7 +106,7 @@
         "keys": "enter"
       },
       {
-        "title": "Apply to…",
+        "title": "Apply to\u2026",
         "description": "Pick a window from the open ones, then the layout goes on that one.",
         "keys": "cmd+enter"
       },
@@ -95,6 +116,17 @@
         "keys": "enter"
       }
     ]
+  },
+  "links": {
+    "layout": {
+      "description": "Move the focused window to a layout",
+      "params": {
+        "name": {
+          "description": "left_half, right_half, maximize, larger, move_left, fullscreen, minimize, next_display, restore, ... (the row ids)",
+          "required": true
+        }
+      }
+    }
   },
   "palettes": {
     "window-management": {

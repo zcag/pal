@@ -1,7 +1,12 @@
 //! The media capability: `pal_core::media` over the bridge
-//! (`media.now_playing` / `control`). Controls run without hiding the
-//! panel, so a palette can skip a track and stay up. [`install`] tells the
-//! core where the bundled MediaRemote adapter is (macOS).
+//! (`media.now_playing` / `control` / `artwork`). Controls run without
+//! hiding the panel, so a palette can skip a track and stay up. [`install`]
+//! tells the core where the bundled MediaRemote adapter is (macOS) and
+//! wires the core's stream to the bar: every track, state or cover change
+//! the stream sees is the `media` trigger, so an item with `media` in its
+//! `refresh.on` re-renders at once instead of on its cadence. The stream
+//! child ends with the process (it reads pal's end of a pipe), so there
+//! is nothing to stop at exit.
 
 use pal_core::media::{self, Command};
 use serde::Deserialize;
@@ -23,6 +28,8 @@ pub fn install(app: &AppHandle) {
         if !media::configure(&dir) {
             eprintln!("media\tno MediaRemote adapter at {}: system-wide Now Playing needs nowplaying-cli", dir.display());
         }
+        let app = app.clone();
+        media::on_change(move || crate::bar::trigger(&app, "media"));
     }
     #[cfg(not(target_os = "macos"))]
     let _ = app;
@@ -37,6 +44,10 @@ struct Params {
 pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     match func {
         "now_playing" => Ok(serde_json::to_value(media::now_playing().map_err(|e| e.to_string())?).unwrap()),
+        "artwork" => {
+            let id = params["id"].as_str().ok_or("bad params: id")?;
+            Ok(serde_json::to_value(media::artwork(id).map_err(|e| e.to_string())?).unwrap())
+        }
         "control" => {
             let p: Params = serde_json::from_value(params).map_err(|e| format!("bad params: {e}"))?;
             media::control(&p.player, p.command).map(|_| Value::Null).map_err(|e| e.to_string())

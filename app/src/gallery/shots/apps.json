@@ -2,7 +2,12 @@
   "palettes": {
     "apps": {
       "title": "Applications",
-      "icon": "▢",
+      "icon": {
+        "tile": {
+          "glyph": "󰀻",
+          "bg": "slate"
+        }
+      },
       "items": [
         {
           "id": "/System/Applications/Utilities/Activity Monitor.app",

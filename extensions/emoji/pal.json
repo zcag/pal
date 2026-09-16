@@ -3,7 +3,7 @@
   "title": "Emoji",
   "description": "An emoji picker: a grid of glyphs by category, recently used first, searched by name, keyword and :shortcode:. Copies or pastes the emoji (with your skin tone), or copies its :shortcode:.",
   "version": "0.2.0",
-  "icon": "😀",
+  "icon": { "tile": { "glyph": "󰱱", "bg": "amber" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

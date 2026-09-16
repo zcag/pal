@@ -1,6 +1,7 @@
 // unicode: the generated character table as a grid, by block, with the
 // recently picked characters first.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { Host } from "../harness.ts";
 
 let host: Host;
@@ -13,7 +14,7 @@ const pick = (id: string, action?: string) => host.pick("unicode", "unicode", id
 describe("unicode", () => {
   test("meta: a grid with the palette setting's columns and a lazy detail; the five actions once, on the palette", () => {
     const l = host.loaded().find((l) => l.extension === "unicode")!;
-    expect(l.palettes).toMatchObject([{ name: "unicode", title: "Unicode Characters", live: false, input: false, icon: "\u{f03c9}", view: "grid", columns: 10, detail: "lazy", tier: "catalog", placeholder: "Name, entity, LaTeX or code point" }]);
+    expect(l.palettes).toMatchObject([{ name: "unicode", title: "Unicode Characters", live: false, input: false, icon: tile("pink", "\u{f03c9}"), view: "grid", columns: 10, detail: "lazy", tier: "catalog", placeholder: "Name, entity, LaTeX or code point" }]);
     expect(l.palettes[0].actions!.map((a) => a.id)).toEqual(["copy", "paste", "codepoint", "entity", "numeric"]);
   });
 

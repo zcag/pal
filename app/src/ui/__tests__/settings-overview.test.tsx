@@ -52,6 +52,12 @@ describe("overviewItems", () => {
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.action).toEqual({ label: "Open the pane", permission: "full_disk_access" });
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.detail).toContain("Switch it on under Privacy & Security > Full Disk Access");
     expect(withOtp.find((i) => i.id === "permission:input_monitoring")?.detail).toContain("Input Monitoring");
+    // Location is the wifi extension's: listed with it, with the prompt as the first step.
+    expect(withOtp.map((i) => i.id)).not.toContain("permission:location");
+    const withWifi = overviewItems({ ...ok, permissions: nothingGranted, extensions: [...quiet, { ...otp, name: "wifi" }] });
+    expect(withWifi.find((i) => i.id === "permission:location")).toMatchObject({ action: { label: "Grant…", permission: "location" } });
+    expect(withWifi.find((i) => i.id === "permission:location")?.detail).toContain("Wi-Fi network names");
+    expect(overviewItems({ ...ok, permissions: { ...nothingGranted, location: "denied" }, extensions: [...quiet, { ...otp, name: "wifi" }] }).find((i) => i.id === "permission:location")?.detail).toContain("Switch it on under Privacy & Security > Location Services");
   });
   it("flags an extension with nothing to work with, and what to fill in", () => {
     expect(needsSetup(homeAssistant).map((s) => s.id)).toEqual(["url", "token"]);

@@ -1,0 +1,839 @@
+{
+  "palettes": {
+    "generate": {
+      "title": "Generate",
+      "icon": {
+        "tile": {
+          "glyph": "󰝮",
+          "bg": "amber"
+        }
+      },
+      "input": true,
+      "placeholder": "uuid, password 32, lorem, sha256 <text>, qr <text>, jwt <token>",
+      "byQuery": {
+        "": [
+          {
+            "id": "uuid4",
+            "name": "bcd5c1a6-259c-41c7-a9a5-5c59e8f8ba25",
+            "subtitle": "UUID v4, random",
+            "icon": "󰻾",
+            "keywords": [
+              "uuid",
+              "guid"
+            ],
+            "detail": {
+              "markdown": "```\nbcd5c1a6-259c-41c7-a9a5-5c59e8f8ba25\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "UUID v4"
+                },
+                {
+                  "label": "Length",
+                  "value": "36 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "uuid7",
+            "name": "01a0abb1-4cc6-7d35-a95d-e6d16dd7d41f",
+            "subtitle": "UUID v7, time-ordered",
+            "icon": "󰻾",
+            "keywords": [
+              "uuid",
+              "guid"
+            ],
+            "detail": {
+              "markdown": "```\n01a0abb1-4cc6-7d35-a95d-e6d16dd7d41f\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "UUID v7"
+                },
+                {
+                  "label": "Length",
+                  "value": "36 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "ulid",
+            "name": "01M2NV2K67Y1AZCECN29SZZR3X",
+            "subtitle": "ULID, time-ordered",
+            "icon": "󰻾",
+            "keywords": [
+              "ulid",
+              "id"
+            ],
+            "detail": {
+              "markdown": "```\n01M2NV2K67Y1AZCECN29SZZR3X\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "ULID"
+                },
+                {
+                  "label": "Length",
+                  "value": "26 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "nanoid",
+            "name": "2sF5BLIgzB8dXAYeJP6AW",
+            "subtitle": "Nano ID, 21 characters",
+            "icon": "󰻾",
+            "keywords": [
+              "nanoid",
+              "id"
+            ],
+            "detail": {
+              "markdown": "```\n2sF5BLIgzB8dXAYeJP6AW\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "Nano ID"
+                },
+                {
+                  "label": "Length",
+                  "value": "21 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "password",
+            "name": "^rpc8Vf6LgyTCx6Z8iRY",
+            "subtitle": "Password, 20 characters, letters, digits and symbols",
+            "icon": "󰟵",
+            "keywords": [
+              "password",
+              "secret"
+            ],
+            "accessories": [
+              {
+                "tag": "very strong",
+                "color": "teal"
+              },
+              {
+                "text": "129 bits"
+              }
+            ],
+            "detail": {
+              "markdown": "```\n^rpc8Vf6LgyTCx6Z8iRY\n```",
+              "metadata": [
+                {
+                  "label": "Length",
+                  "value": "20 characters"
+                },
+                {
+                  "label": "Characters",
+                  "value": "letters, digits and symbols"
+                },
+                {
+                  "label": "Entropy",
+                  "value": "129 bits, very strong"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "passphrase",
+            "name": "pasty-block-goose-boggy-fatal",
+            "subtitle": "Passphrase, 5 words",
+            "icon": "󰦩",
+            "keywords": [
+              "passphrase",
+              "diceware",
+              "words"
+            ],
+            "accessories": [
+              {
+                "tag": "fair",
+                "color": "amber"
+              },
+              {
+                "text": "57 bits"
+              }
+            ],
+            "detail": {
+              "markdown": "```\npasty-block-goose-boggy-fatal\n```",
+              "metadata": [
+                {
+                  "label": "Words",
+                  "value": "5 of 2551"
+                },
+                {
+                  "label": "Entropy",
+                  "value": "57 bits, fair"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "number",
+            "name": "46",
+            "subtitle": "Random number, 1 to 100",
+            "icon": "󰎠",
+            "keywords": [
+              "number",
+              "random",
+              "dice",
+              "integer"
+            ],
+            "detail": {
+              "markdown": "```\n46\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "Random number"
+                },
+                {
+                  "label": "Length",
+                  "value": "2 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "hex",
+            "name": "1807d766012cb2cdbc2e1b3af52c7838",
+            "subtitle": "Random hex, 16 bytes",
+            "icon": "󱊧",
+            "keywords": [
+              "hex",
+              "bytes",
+              "random",
+              "token"
+            ],
+            "detail": {
+              "markdown": "```\n1807d766012cb2cdbc2e1b3af52c7838\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "Random hex"
+                },
+                {
+                  "label": "Length",
+                  "value": "32 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "bytes",
+            "name": "Chk3xjZgP71DNt0x0klxqg==",
+            "subtitle": "Random base64, 16 bytes",
+            "icon": "󰒟",
+            "keywords": [
+              "base64",
+              "bytes",
+              "random",
+              "secret",
+              "token"
+            ],
+            "detail": {
+              "markdown": "```\nChk3xjZgP71DNt0x0klxqg==\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "Random base64"
+                },
+                {
+                  "label": "Length",
+                  "value": "24 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "lorem",
+            "name": "Lorem ipsum dolor sit amet, consectetur, adipiscing elit commodo elit. In sed d…",
+            "subtitle": "Lorem ipsum, 1 paragraph, 50 words",
+            "icon": "󰦪",
+            "keywords": [
+              "lorem",
+              "ipsum",
+              "placeholder",
+              "text"
+            ],
+            "detail": {
+              "markdown": "Lorem ipsum dolor sit amet, consectetur, adipiscing elit commodo elit. In sed deserunt ipsum fugiat excepteur laborum ut occaecat. Duis consequat cillum ullamco et eiusmod, dolor, sint aliquip, et esse duis quis, velit. Labore reprehenderit aliqua aliquip ipsum dolor, sit amet ut laboris. Cillum non excepteur sunt occaecat aliqua excepteur.",
+              "metadata": [
+                {
+                  "label": "Words",
+                  "value": "50"
+                },
+                {
+                  "label": "Length",
+                  "value": "342 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              }
+            ]
+          },
+          {
+            "id": "colour",
+            "name": "#f5af89",
+            "subtitle": "Random colour, rgb(245, 175, 137)",
+            "icon": "#f5af89",
+            "keywords": [
+              "colour",
+              "color",
+              "random",
+              "hex"
+            ],
+            "detail": {
+              "markdown": "# #f5af89",
+              "metadata": [
+                {
+                  "label": "Hex",
+                  "value": "#f5af89"
+                },
+                {
+                  "label": "RGB",
+                  "value": "rgb(245, 175, 137)"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "picker",
+                "title": "Open in Colour Picker",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "hint:hash",
+            "name": "Hash text",
+            "subtitle": "sha256 <text>, also md5, sha1, sha512, or hash for all four; alone, the clipboard",
+            "icon": "󰐣",
+            "actions": []
+          },
+          {
+            "id": "hint:encode",
+            "name": "Encode or decode text",
+            "subtitle": "base64 <text>, url <text>, hex <text>, encode <text> for every form, decode <text>",
+            "icon": "󰅪",
+            "actions": []
+          },
+          {
+            "id": "hint:qr",
+            "name": "QR code",
+            "subtitle": "qr <text>, or qr alone for the clipboard",
+            "icon": "󰐲",
+            "actions": []
+          },
+          {
+            "id": "hint:jwt",
+            "name": "Decode a JWT",
+            "subtitle": "jwt <token>: the header, the payload and its times; the signature is not checked",
+            "icon": "󰌋",
+            "actions": []
+          }
+        ],
+        "hash pal": [
+          {
+            "id": "md5",
+            "name": "46d85374284e4224cbad52d4d7882e08",
+            "subtitle": "MD5 of “pal”",
+            "icon": "󰐣",
+            "detail": {
+              "markdown": "```\n46d85374284e4224cbad52d4d7882e08\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "MD5"
+                },
+                {
+                  "label": "Length",
+                  "value": "32 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          },
+          {
+            "id": "sha1",
+            "name": "e888f350fa7bc553d2485760cd0f1a1eb66006da",
+            "subtitle": "SHA1 of “pal”",
+            "icon": "󰐣",
+            "detail": {
+              "markdown": "```\ne888f350fa7bc553d2485760cd0f1a1eb66006da\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "SHA1"
+                },
+                {
+                  "label": "Length",
+                  "value": "40 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          },
+          {
+            "id": "sha256",
+            "name": "a1a38b5bae5866d7d998a9834229ec2f9db7a4fc8fb6f58b1115a96a446875ff",
+            "subtitle": "SHA256 of “pal”",
+            "icon": "󰐣",
+            "detail": {
+              "markdown": "```\na1a38b5bae5866d7d998a9834229ec2f9db7a4fc8fb6f58b1115a96a446875ff\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "SHA256"
+                },
+                {
+                  "label": "Length",
+                  "value": "64 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          },
+          {
+            "id": "sha512",
+            "name": "ebdaa35e672ba415f552b9a3e73da8d242de2c2190cf64d8a0a79a5f7cec9e61ecda2c23a79aab4…",
+            "subtitle": "SHA512 of “pal”",
+            "icon": "󰐣",
+            "detail": {
+              "markdown": "```\nebdaa35e672ba415f552b9a3e73da8d242de2c2190cf64d8a0a79a5f7cec9e61ecda2c23a79aab47ace737cfbc2e701bad7296f469b8a266ae4a03f83cae1aa1\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "SHA512"
+                },
+                {
+                  "label": "Length",
+                  "value": "128 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          }
+        ],
+        "qr https://pal.cagdas.io": [
+          {
+            "id": "qr",
+            "name": "https://pal.cagdas.io",
+            "subtitle": "QR code of “https://pal.cagdas.io”: version 2, 25 × 25 modules, level M",
+            "icon": {
+              "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMyAzMyIgd2lkdGg9IjIyNCIgaGVpZ2h0PSIyMjQiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHJlY3Qgd2lkdGg9IjMzIiBoZWlnaHQ9IjMzIiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTQgNGgxdjFoLTF6TTUgNGgxdjFoLTF6TTYgNGgxdjFoLTF6TTcgNGgxdjFoLTF6TTggNGgxdjFoLTF6TTkgNGgxdjFoLTF6TTEwIDRoMXYxaC0xek0xMiA0aDF2MWgtMXpNMTMgNGgxdjFoLTF6TTE0IDRoMXYxaC0xek0xNSA0aDF2MWgtMXpNMTYgNGgxdjFoLTF6TTE3IDRoMXYxaC0xek0yMiA0aDF2MWgtMXpNMjMgNGgxdjFoLTF6TTI0IDRoMXYxaC0xek0yNSA0aDF2MWgtMXpNMjYgNGgxdjFoLTF6TTI3IDRoMXYxaC0xek0yOCA0aDF2MWgtMXpNNCA1aDF2MWgtMXpNMTAgNWgxdjFoLTF6TTEzIDVoMXYxaC0xek0xNiA1aDF2MWgtMXpNMTcgNWgxdjFoLTF6TTIwIDVoMXYxaC0xek0yMiA1aDF2MWgtMXpNMjggNWgxdjFoLTF6TTQgNmgxdjFoLTF6TTYgNmgxdjFoLTF6TTcgNmgxdjFoLTF6TTggNmgxdjFoLTF6TTEwIDZoMXYxaC0xek0xMiA2aDF2MWgtMXpNMTQgNmgxdjFoLTF6TTE3IDZoMXYxaC0xek0xOSA2aDF2MWgtMXpNMjAgNmgxdjFoLTF6TTIyIDZoMXYxaC0xek0yNCA2aDF2MWgtMXpNMjUgNmgxdjFoLTF6TTI2IDZoMXYxaC0xek0yOCA2aDF2MWgtMXpNNCA3aDF2MWgtMXpNNiA3aDF2MWgtMXpNNyA3aDF2MWgtMXpNOCA3aDF2MWgtMXpNMTAgN2gxdjFoLTF6TTEzIDdoMXYxaC0xek0xNyA3aDF2MWgtMXpNMjIgN2gxdjFoLTF6TTI0IDdoMXYxaC0xek0yNSA3aDF2MWgtMXpNMjYgN2gxdjFoLTF6TTI4IDdoMXYxaC0xek00IDhoMXYxaC0xek02IDhoMXYxaC0xek03IDhoMXYxaC0xek04IDhoMXYxaC0xek0xMCA4aDF2MWgtMXpNMTMgOGgxdjFoLTF6TTE1IDhoMXYxaC0xek0xNiA4aDF2MWgtMXpNMTggOGgxdjFoLTF6TTIyIDhoMXYxaC0xek0yNCA4aDF2MWgtMXpNMjUgOGgxdjFoLTF6TTI2IDhoMXYxaC0xek0yOCA4aDF2MWgtMXpNNCA5aDF2MWgtMXpNMTAgOWgxdjFoLTF6TTEyIDloMXYxaC0xek0xMyA5aDF2MWgtMXpNMTQgOWgxdjFoLTF6TTE1IDloMXYxaC0xek0xNyA5aDF2MWgtMXpNMTggOWgxdjFoLTF6TTIyIDloMXYxaC0xek0yOCA5aDF2MWgtMXpNNCAxMGgxdjFoLTF6TTUgMTBoMXYxaC0xek02IDEwaDF2MWgtMXpNNyAxMGgxdjFoLTF6TTggMTBoMXYxaC0xek05IDEwaDF2MWgtMXpNMTAgMTBoMXYxaC0xek0xMiAxMGgxdjFoLTF6TTE0IDEwaDF2MWgtMXpNMTYgMTBoMXYxaC0xek0xOCAxMGgxdjFoLTF6TTIwIDEwaDF2MWgtMXpNMjIgMTBoMXYxaC0xek0yMyAxMGgxdjFoLTF6TTI0IDEwaDF2MWgtMXpNMjUgMTBoMXYxaC0xek0yNiAxMGgxdjFoLTF6TTI3IDEwaDF2MWgtMXpNMjggMTBoMXYxaC0xek0xMyAxMWgxdjFoLTF6TTIwIDExaDF2MWgtMXpNNCAxMmgxdjFoLTF6TTYgMTJoMXYxaC0xek0xMCAxMmgxdjFoLTF6TTExIDEyaDF2MWgtMXpNMTQgMTJoMXYxaC0xek0xNSAxMmgxdjFoLTF6TTE5IDEyaDF2MWgtMXpNMjAgMTJoMXYxaC0xek0yMyAxMmgxdjFoLTF6TTI2IDEyaDF2MWgtMXpNMjggMTJoMXYxaC0xek00IDEzaDF2MWgtMXpNNSAxM2gxdjFoLTF6TTYgMTNoMXYxaC0xek03IDEzaDF2MWgtMXpNOCAxM2gxdjFoLTF6TTkgMTNoMXYxaC0xek0xMSAxM2gxdjFoLTF6TTEyIDEzaDF2MWgtMXpNMTQgMTNoMXYxaC0xek0xNiAxM2gxdjFoLTF6TTE3IDEzaDF2MWgtMXpNMTkgMTNoMXYxaC0xek0yMCAxM2gxdjFoLTF6TTIyIDEzaDF2MWgtMXpNMjMgMTNoMXYxaC0xek0yNSAxM2gxdjFoLTF6TTI3IDEzaDF2MWgtMXpNMjggMTNoMXYxaC0xek01IDE0aDF2MWgtMXpNNiAxNGgxdjFoLTF6TTggMTRoMXYxaC0xek0xMCAxNGgxdjFoLTF6TTEzIDE0aDF2MWgtMXpNMTQgMTRoMXYxaC0xek0xNyAxNGgxdjFoLTF6TTE4IDE0aDF2MWgtMXpNMTkgMTRoMXYxaC0xek0yMSAxNGgxdjFoLTF6TTIyIDE0aDF2MWgtMXpNMjMgMTRoMXYxaC0xek0yNCAxNGgxdjFoLTF6TTI1IDE0aDF2MWgtMXpNMjYgMTRoMXYxaC0xek0yOCAxNGgxdjFoLTF6TTQgMTVoMXYxaC0xek02IDE1aDF2MWgtMXpNOCAxNWgxdjFoLTF6TTkgMTVoMXYxaC0xek0xNCAxNWgxdjFoLTF6TTE1IDE1aDF2MWgtMXpNMTggMTVoMXYxaC0xek0xOSAxNWgxdjFoLTF6TTIwIDE1aDF2MWgtMXpNMjEgMTVoMXYxaC0xek0yNSAxNWgxdjFoLTF6TTYgMTZoMXYxaC0xek04IDE2aDF2MWgtMXpNMTAgMTZoMXYxaC0xek0xMSAxNmgxdjFoLTF6TTEzIDE2aDF2MWgtMXpNMTUgMTZoMXYxaC0xek0xNiAxNmgxdjFoLTF6TTE5IDE2aDF2MWgtMXpNMjAgMTZoMXYxaC0xek0yMiAxNmgxdjFoLTF6TTI4IDE2aDF2MWgtMXpNNSAxN2gxdjFoLTF6TTcgMTdoMXYxaC0xek0xMSAxN2gxdjFoLTF6TTEzIDE3aDF2MWgtMXpNMTQgMTdoMXYxaC0xek0xNiAxN2gxdjFoLTF6TTE3IDE3aDF2MWgtMXpNMTkgMTdoMXYxaC0xek0yMCAxN2gxdjFoLTF6TTIyIDE3aDF2MWgtMXpNMjMgMTdoMXYxaC0xek0yNyAxN2gxdjFoLTF6TTI4IDE3aDF2MWgtMXpNNCAxOGgxdjFoLTF6TTUgMThoMXYxaC0xek04IDE4aDF2MWgtMXpNMTAgMThoMXYxaC0xek0xNiAxOGgxdjFoLTF6TTE5IDE4aDF2MWgtMXpNMjUgMThoMXYxaC0xek0yNiAxOGgxdjFoLTF6TTI4IDE4aDF2MWgtMXpNOSAxOWgxdjFoLTF6TTExIDE5aDF2MWgtMXpNMTUgMTloMXYxaC0xek0xNiAxOWgxdjFoLTF6TTE4IDE5aDF2MWgtMXpNMjMgMTloMXYxaC0xek0yNCAxOWgxdjFoLTF6TTI1IDE5aDF2MWgtMXpNNCAyMGgxdjFoLTF6TTUgMjBoMXYxaC0xek02IDIwaDF2MWgtMXpNOCAyMGgxdjFoLTF6TTkgMjBoMXYxaC0xek0xMCAyMGgxdjFoLTF6TTEzIDIwaDF2MWgtMXpNMTQgMjBoMXYxaC0xek0xNyAyMGgxdjFoLTF6TTE4IDIwaDF2MWgtMXpNMTkgMjBoMXYxaC0xek0yMCAyMGgxdjFoLTF6TTIxIDIwaDF2MWgtMXpNMjIgMjBoMXYxaC0xek0yMyAyMGgxdjFoLTF6TTI0IDIwaDF2MWgtMXpNMjcgMjBoMXYxaC0xek0xMiAyMWgxdjFoLTF6TTE3IDIxaDF2MWgtMXpNMjAgMjFoMXYxaC0xek0yNCAyMWgxdjFoLTF6TTI4IDIxaDF2MWgtMXpNNCAyMmgxdjFoLTF6TTUgMjJoMXYxaC0xek02IDIyaDF2MWgtMXpNNyAyMmgxdjFoLTF6TTggMjJoMXYxaC0xek05IDIyaDF2MWgtMXpNMTAgMjJoMXYxaC0xek0xMiAyMmgxdjFoLTF6TTEzIDIyaDF2MWgtMXpNMTQgMjJoMXYxaC0xek0xNSAyMmgxdjFoLTF6TTIwIDIyaDF2MWgtMXpNMjIgMjJoMXYxaC0xek0yNCAyMmgxdjFoLTF6TTI4IDIyaDF2MWgtMXpNNCAyM2gxdjFoLTF6TTEwIDIzaDF2MWgtMXpNMTMgMjNoMXYxaC0xek0xNyAyM2gxdjFoLTF6TTE5IDIzaDF2MWgtMXpNMjAgMjNoMXYxaC0xek0yNCAyM2gxdjFoLTF6TTI3IDIzaDF2MWgtMXpNNCAyNGgxdjFoLTF6TTYgMjRoMXYxaC0xek03IDI0aDF2MWgtMXpNOCAyNGgxdjFoLTF6TTEwIDI0aDF2MWgtMXpNMTQgMjRoMXYxaC0xek0xNSAyNGgxdjFoLTF6TTE2IDI0aDF2MWgtMXpNMTcgMjRoMXYxaC0xek0xOSAyNGgxdjFoLTF6TTIwIDI0aDF2MWgtMXpNMjEgMjRoMXYxaC0xek0yMiAyNGgxdjFoLTF6TTIzIDI0aDF2MWgtMXpNMjQgMjRoMXYxaC0xek0yOCAyNGgxdjFoLTF6TTQgMjVoMXYxaC0xek02IDI1aDF2MWgtMXpNNyAyNWgxdjFoLTF6TTggMjVoMXYxaC0xek0xMCAyNWgxdjFoLTF6TTE0IDI1aDF2MWgtMXpNMTYgMjVoMXYxaC0xek0xOSAyNWgxdjFoLTF6TTIwIDI1aDF2MWgtMXpNMjQgMjVoMXYxaC0xek0yNiAyNWgxdjFoLTF6TTI3IDI1aDF2MWgtMXpNNCAyNmgxdjFoLTF6TTYgMjZoMXYxaC0xek03IDI2aDF2MWgtMXpNOCAyNmgxdjFoLTF6TTEwIDI2aDF2MWgtMXpNMTIgMjZoMXYxaC0xek0xNCAyNmgxdjFoLTF6TTE2IDI2aDF2MWgtMXpNMTcgMjZoMXYxaC0xek0xOCAyNmgxdjFoLTF6TTE5IDI2aDF2MWgtMXpNMjAgMjZoMXYxaC0xek0yMSAyNmgxdjFoLTF6TTIzIDI2aDF2MWgtMXpNMjQgMjZoMXYxaC0xek0yNSAyNmgxdjFoLTF6TTI3IDI2aDF2MWgtMXpNMjggMjZoMXYxaC0xek00IDI3aDF2MWgtMXpNMTAgMjdoMXYxaC0xek0xMyAyN2gxdjFoLTF6TTE0IDI3aDF2MWgtMXpNMTUgMjdoMXYxaC0xek0xNiAyN2gxdjFoLTF6TTE4IDI3aDF2MWgtMXpNMjAgMjdoMXYxaC0xek0yMSAyN2gxdjFoLTF6TTIyIDI3aDF2MWgtMXpNMjMgMjdoMXYxaC0xek0yNCAyN2gxdjFoLTF6TTQgMjhoMXYxaC0xek01IDI4aDF2MWgtMXpNNiAyOGgxdjFoLTF6TTcgMjhoMXYxaC0xek04IDI4aDF2MWgtMXpNOSAyOGgxdjFoLTF6TTEwIDI4aDF2MWgtMXpNMTIgMjhoMXYxaC0xek0xMyAyOGgxdjFoLTF6TTE0IDI4aDF2MWgtMXpNMTcgMjhoMXYxaC0xek0xOCAyOGgxdjFoLTF6TTIwIDI4aDF2MWgtMXpNMjEgMjhoMXYxaC0xek0yNSAyOGgxdjFoLTF6TTI4IDI4aDF2MWgtMXoiIGZpbGw9IiMwMDAiLz48L3N2Zz4="
+            },
+            "detail": {
+              "markdown": "![QR code](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMyAzMyIgd2lkdGg9IjIyNCIgaGVpZ2h0PSIyMjQiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyI+PHJlY3Qgd2lkdGg9IjMzIiBoZWlnaHQ9IjMzIiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTQgNGgxdjFoLTF6TTUgNGgxdjFoLTF6TTYgNGgxdjFoLTF6TTcgNGgxdjFoLTF6TTggNGgxdjFoLTF6TTkgNGgxdjFoLTF6TTEwIDRoMXYxaC0xek0xMiA0aDF2MWgtMXpNMTMgNGgxdjFoLTF6TTE0IDRoMXYxaC0xek0xNSA0aDF2MWgtMXpNMTYgNGgxdjFoLTF6TTE3IDRoMXYxaC0xek0yMiA0aDF2MWgtMXpNMjMgNGgxdjFoLTF6TTI0IDRoMXYxaC0xek0yNSA0aDF2MWgtMXpNMjYgNGgxdjFoLTF6TTI3IDRoMXYxaC0xek0yOCA0aDF2MWgtMXpNNCA1aDF2MWgtMXpNMTAgNWgxdjFoLTF6TTEzIDVoMXYxaC0xek0xNiA1aDF2MWgtMXpNMTcgNWgxdjFoLTF6TTIwIDVoMXYxaC0xek0yMiA1aDF2MWgtMXpNMjggNWgxdjFoLTF6TTQgNmgxdjFoLTF6TTYgNmgxdjFoLTF6TTcgNmgxdjFoLTF6TTggNmgxdjFoLTF6TTEwIDZoMXYxaC0xek0xMiA2aDF2MWgtMXpNMTQgNmgxdjFoLTF6TTE3IDZoMXYxaC0xek0xOSA2aDF2MWgtMXpNMjAgNmgxdjFoLTF6TTIyIDZoMXYxaC0xek0yNCA2aDF2MWgtMXpNMjUgNmgxdjFoLTF6TTI2IDZoMXYxaC0xek0yOCA2aDF2MWgtMXpNNCA3aDF2MWgtMXpNNiA3aDF2MWgtMXpNNyA3aDF2MWgtMXpNOCA3aDF2MWgtMXpNMTAgN2gxdjFoLTF6TTEzIDdoMXYxaC0xek0xNyA3aDF2MWgtMXpNMjIgN2gxdjFoLTF6TTI0IDdoMXYxaC0xek0yNSA3aDF2MWgtMXpNMjYgN2gxdjFoLTF6TTI4IDdoMXYxaC0xek00IDhoMXYxaC0xek02IDhoMXYxaC0xek03IDhoMXYxaC0xek04IDhoMXYxaC0xek0xMCA4aDF2MWgtMXpNMTMgOGgxdjFoLTF6TTE1IDhoMXYxaC0xek0xNiA4aDF2MWgtMXpNMTggOGgxdjFoLTF6TTIyIDhoMXYxaC0xek0yNCA4aDF2MWgtMXpNMjUgOGgxdjFoLTF6TTI2IDhoMXYxaC0xek0yOCA4aDF2MWgtMXpNNCA5aDF2MWgtMXpNMTAgOWgxdjFoLTF6TTEyIDloMXYxaC0xek0xMyA5aDF2MWgtMXpNMTQgOWgxdjFoLTF6TTE1IDloMXYxaC0xek0xNyA5aDF2MWgtMXpNMTggOWgxdjFoLTF6TTIyIDloMXYxaC0xek0yOCA5aDF2MWgtMXpNNCAxMGgxdjFoLTF6TTUgMTBoMXYxaC0xek02IDEwaDF2MWgtMXpNNyAxMGgxdjFoLTF6TTggMTBoMXYxaC0xek05IDEwaDF2MWgtMXpNMTAgMTBoMXYxaC0xek0xMiAxMGgxdjFoLTF6TTE0IDEwaDF2MWgtMXpNMTYgMTBoMXYxaC0xek0xOCAxMGgxdjFoLTF6TTIwIDEwaDF2MWgtMXpNMjIgMTBoMXYxaC0xek0yMyAxMGgxdjFoLTF6TTI0IDEwaDF2MWgtMXpNMjUgMTBoMXYxaC0xek0yNiAxMGgxdjFoLTF6TTI3IDEwaDF2MWgtMXpNMjggMTBoMXYxaC0xek0xMyAxMWgxdjFoLTF6TTIwIDExaDF2MWgtMXpNNCAxMmgxdjFoLTF6TTYgMTJoMXYxaC0xek0xMCAxMmgxdjFoLTF6TTExIDEyaDF2MWgtMXpNMTQgMTJoMXYxaC0xek0xNSAxMmgxdjFoLTF6TTE5IDEyaDF2MWgtMXpNMjAgMTJoMXYxaC0xek0yMyAxMmgxdjFoLTF6TTI2IDEyaDF2MWgtMXpNMjggMTJoMXYxaC0xek00IDEzaDF2MWgtMXpNNSAxM2gxdjFoLTF6TTYgMTNoMXYxaC0xek03IDEzaDF2MWgtMXpNOCAxM2gxdjFoLTF6TTkgMTNoMXYxaC0xek0xMSAxM2gxdjFoLTF6TTEyIDEzaDF2MWgtMXpNMTQgMTNoMXYxaC0xek0xNiAxM2gxdjFoLTF6TTE3IDEzaDF2MWgtMXpNMTkgMTNoMXYxaC0xek0yMCAxM2gxdjFoLTF6TTIyIDEzaDF2MWgtMXpNMjMgMTNoMXYxaC0xek0yNSAxM2gxdjFoLTF6TTI3IDEzaDF2MWgtMXpNMjggMTNoMXYxaC0xek01IDE0aDF2MWgtMXpNNiAxNGgxdjFoLTF6TTggMTRoMXYxaC0xek0xMCAxNGgxdjFoLTF6TTEzIDE0aDF2MWgtMXpNMTQgMTRoMXYxaC0xek0xNyAxNGgxdjFoLTF6TTE4IDE0aDF2MWgtMXpNMTkgMTRoMXYxaC0xek0yMSAxNGgxdjFoLTF6TTIyIDE0aDF2MWgtMXpNMjMgMTRoMXYxaC0xek0yNCAxNGgxdjFoLTF6TTI1IDE0aDF2MWgtMXpNMjYgMTRoMXYxaC0xek0yOCAxNGgxdjFoLTF6TTQgMTVoMXYxaC0xek02IDE1aDF2MWgtMXpNOCAxNWgxdjFoLTF6TTkgMTVoMXYxaC0xek0xNCAxNWgxdjFoLTF6TTE1IDE1aDF2MWgtMXpNMTggMTVoMXYxaC0xek0xOSAxNWgxdjFoLTF6TTIwIDE1aDF2MWgtMXpNMjEgMTVoMXYxaC0xek0yNSAxNWgxdjFoLTF6TTYgMTZoMXYxaC0xek04IDE2aDF2MWgtMXpNMTAgMTZoMXYxaC0xek0xMSAxNmgxdjFoLTF6TTEzIDE2aDF2MWgtMXpNMTUgMTZoMXYxaC0xek0xNiAxNmgxdjFoLTF6TTE5IDE2aDF2MWgtMXpNMjAgMTZoMXYxaC0xek0yMiAxNmgxdjFoLTF6TTI4IDE2aDF2MWgtMXpNNSAxN2gxdjFoLTF6TTcgMTdoMXYxaC0xek0xMSAxN2gxdjFoLTF6TTEzIDE3aDF2MWgtMXpNMTQgMTdoMXYxaC0xek0xNiAxN2gxdjFoLTF6TTE3IDE3aDF2MWgtMXpNMTkgMTdoMXYxaC0xek0yMCAxN2gxdjFoLTF6TTIyIDE3aDF2MWgtMXpNMjMgMTdoMXYxaC0xek0yNyAxN2gxdjFoLTF6TTI4IDE3aDF2MWgtMXpNNCAxOGgxdjFoLTF6TTUgMThoMXYxaC0xek04IDE4aDF2MWgtMXpNMTAgMThoMXYxaC0xek0xNiAxOGgxdjFoLTF6TTE5IDE4aDF2MWgtMXpNMjUgMThoMXYxaC0xek0yNiAxOGgxdjFoLTF6TTI4IDE4aDF2MWgtMXpNOSAxOWgxdjFoLTF6TTExIDE5aDF2MWgtMXpNMTUgMTloMXYxaC0xek0xNiAxOWgxdjFoLTF6TTE4IDE5aDF2MWgtMXpNMjMgMTloMXYxaC0xek0yNCAxOWgxdjFoLTF6TTI1IDE5aDF2MWgtMXpNNCAyMGgxdjFoLTF6TTUgMjBoMXYxaC0xek02IDIwaDF2MWgtMXpNOCAyMGgxdjFoLTF6TTkgMjBoMXYxaC0xek0xMCAyMGgxdjFoLTF6TTEzIDIwaDF2MWgtMXpNMTQgMjBoMXYxaC0xek0xNyAyMGgxdjFoLTF6TTE4IDIwaDF2MWgtMXpNMTkgMjBoMXYxaC0xek0yMCAyMGgxdjFoLTF6TTIxIDIwaDF2MWgtMXpNMjIgMjBoMXYxaC0xek0yMyAyMGgxdjFoLTF6TTI0IDIwaDF2MWgtMXpNMjcgMjBoMXYxaC0xek0xMiAyMWgxdjFoLTF6TTE3IDIxaDF2MWgtMXpNMjAgMjFoMXYxaC0xek0yNCAyMWgxdjFoLTF6TTI4IDIxaDF2MWgtMXpNNCAyMmgxdjFoLTF6TTUgMjJoMXYxaC0xek02IDIyaDF2MWgtMXpNNyAyMmgxdjFoLTF6TTggMjJoMXYxaC0xek05IDIyaDF2MWgtMXpNMTAgMjJoMXYxaC0xek0xMiAyMmgxdjFoLTF6TTEzIDIyaDF2MWgtMXpNMTQgMjJoMXYxaC0xek0xNSAyMmgxdjFoLTF6TTIwIDIyaDF2MWgtMXpNMjIgMjJoMXYxaC0xek0yNCAyMmgxdjFoLTF6TTI4IDIyaDF2MWgtMXpNNCAyM2gxdjFoLTF6TTEwIDIzaDF2MWgtMXpNMTMgMjNoMXYxaC0xek0xNyAyM2gxdjFoLTF6TTE5IDIzaDF2MWgtMXpNMjAgMjNoMXYxaC0xek0yNCAyM2gxdjFoLTF6TTI3IDIzaDF2MWgtMXpNNCAyNGgxdjFoLTF6TTYgMjRoMXYxaC0xek03IDI0aDF2MWgtMXpNOCAyNGgxdjFoLTF6TTEwIDI0aDF2MWgtMXpNMTQgMjRoMXYxaC0xek0xNSAyNGgxdjFoLTF6TTE2IDI0aDF2MWgtMXpNMTcgMjRoMXYxaC0xek0xOSAyNGgxdjFoLTF6TTIwIDI0aDF2MWgtMXpNMjEgMjRoMXYxaC0xek0yMiAyNGgxdjFoLTF6TTIzIDI0aDF2MWgtMXpNMjQgMjRoMXYxaC0xek0yOCAyNGgxdjFoLTF6TTQgMjVoMXYxaC0xek02IDI1aDF2MWgtMXpNNyAyNWgxdjFoLTF6TTggMjVoMXYxaC0xek0xMCAyNWgxdjFoLTF6TTE0IDI1aDF2MWgtMXpNMTYgMjVoMXYxaC0xek0xOSAyNWgxdjFoLTF6TTIwIDI1aDF2MWgtMXpNMjQgMjVoMXYxaC0xek0yNiAyNWgxdjFoLTF6TTI3IDI1aDF2MWgtMXpNNCAyNmgxdjFoLTF6TTYgMjZoMXYxaC0xek03IDI2aDF2MWgtMXpNOCAyNmgxdjFoLTF6TTEwIDI2aDF2MWgtMXpNMTIgMjZoMXYxaC0xek0xNCAyNmgxdjFoLTF6TTE2IDI2aDF2MWgtMXpNMTcgMjZoMXYxaC0xek0xOCAyNmgxdjFoLTF6TTE5IDI2aDF2MWgtMXpNMjAgMjZoMXYxaC0xek0yMSAyNmgxdjFoLTF6TTIzIDI2aDF2MWgtMXpNMjQgMjZoMXYxaC0xek0yNSAyNmgxdjFoLTF6TTI3IDI2aDF2MWgtMXpNMjggMjZoMXYxaC0xek00IDI3aDF2MWgtMXpNMTAgMjdoMXYxaC0xek0xMyAyN2gxdjFoLTF6TTE0IDI3aDF2MWgtMXpNMTUgMjdoMXYxaC0xek0xNiAyN2gxdjFoLTF6TTE4IDI3aDF2MWgtMXpNMjAgMjdoMXYxaC0xek0yMSAyN2gxdjFoLTF6TTIyIDI3aDF2MWgtMXpNMjMgMjdoMXYxaC0xek0yNCAyN2gxdjFoLTF6TTQgMjhoMXYxaC0xek01IDI4aDF2MWgtMXpNNiAyOGgxdjFoLTF6TTcgMjhoMXYxaC0xek04IDI4aDF2MWgtMXpNOSAyOGgxdjFoLTF6TTEwIDI4aDF2MWgtMXpNMTIgMjhoMXYxaC0xek0xMyAyOGgxdjFoLTF6TTE0IDI4aDF2MWgtMXpNMTcgMjhoMXYxaC0xek0xOCAyOGgxdjFoLTF6TTIwIDI4aDF2MWgtMXpNMjEgMjhoMXYxaC0xek0yNSAyOGgxdjFoLTF6TTI4IDI4aDF2MWgtMXoiIGZpbGw9IiMwMDAiLz48L3N2Zz4=)",
+              "metadata": [
+                {
+                  "label": "Text",
+                  "value": "https://pal.cagdas.io"
+                },
+                {
+                  "label": "Version",
+                  "value": "2 (25 × 25)"
+                },
+                {
+                  "label": "Error correction",
+                  "value": "M"
+                },
+                {
+                  "label": "Bytes",
+                  "value": "21"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "show",
+                "title": "Show QR code"
+              },
+              {
+                "id": "copy_svg",
+                "title": "Copy SVG",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy",
+                "title": "Copy text"
+              }
+            ]
+          }
+        ],
+        "jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MDAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c": [
+          {
+            "id": "jwt-header",
+            "name": "Header: HS256, JWT",
+            "subtitle": "{\"alg\":\"HS256\",\"typ\":\"JWT\"}",
+            "icon": "󰌋",
+            "accessories": [
+              {
+                "text": "2 fields"
+              }
+            ],
+            "detail": {
+              "markdown": "```json\n{\n  \"alg\": \"HS256\",\n  \"typ\": \"JWT\"\n}\n```",
+              "metadata": [
+                {
+                  "label": "Algorithm",
+                  "value": "HS256"
+                },
+                {
+                  "label": "Signature",
+                  "value": "43 characters, not verified"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          },
+          {
+            "id": "jwt-payload",
+            "name": "Payload: 1234567890",
+            "subtitle": "{\"sub\":\"1234567890\",\"name\":\"John Doe\",\"iat\":1516239022,\"exp\":1900000000}",
+            "icon": "󰌋",
+            "accessories": [
+              {
+                "tag": "expires in 4 y",
+                "color": "green"
+              },
+              {
+                "text": "4 claims"
+              }
+            ],
+            "detail": {
+              "markdown": "```json\n{\n  \"sub\": \"1234567890\",\n  \"name\": \"John Doe\",\n  \"iat\": 1516239022,\n  \"exp\": 1900000000\n}\n```",
+              "metadata": [
+                {
+                  "label": "sub",
+                  "value": "1234567890"
+                },
+                {
+                  "label": "name",
+                  "value": "John Doe"
+                },
+                {
+                  "label": "iat",
+                  "value": "2018-01-18 01:30:22 (9 y ago)"
+                },
+                {
+                  "label": "exp",
+                  "value": "2030-03-17 17:46:40 (in 4 y)"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          },
+          {
+            "id": "jwt-exp",
+            "name": "2030-03-17 17:46:40",
+            "subtitle": "Expires (exp), in 4 y",
+            "icon": "󰅐",
+            "accessories": [
+              {
+                "text": "1900000000"
+              }
+            ],
+            "detail": {
+              "markdown": "```\n2030-03-17 17:46:40\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "Expires"
+                },
+                {
+                  "label": "Length",
+                  "value": "19 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          },
+          {
+            "id": "jwt-iat",
+            "name": "2018-01-18 01:30:22",
+            "subtitle": "Issued (iat), 9 y ago",
+            "icon": "󰅐",
+            "accessories": [
+              {
+                "text": "1516239022"
+              }
+            ],
+            "detail": {
+              "markdown": "```\n2018-01-18 01:30:22\n```",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "Issued"
+                },
+                {
+                  "label": "Length",
+                  "value": "19 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy_all",
+                "title": "Copy all",
+                "shortcut": "cmd+shift+c"
+              }
+            ]
+          },
+          {
+            "id": "hint:jwt-unverified",
+            "name": "Signature not verified",
+            "subtitle": "pal only decodes the token; whether it is genuine is for the issuer's key to say",
+            "icon": "󰗖",
+            "actions": []
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-everything": {
+      "palette": "generate",
+      "keys": [
+        "down*4"
+      ]
+    },
+    "2-hash": {
+      "palette": "generate",
+      "keys": [
+        "type:hash pal",
+        "cmd+k"
+      ]
+    },
+    "3-qr": {
+      "palette": "generate",
+      "keys": [
+        "type:qr https://pal.cagdas.io",
+        "cmd+i"
+      ]
+    },
+    "4-jwt": {
+      "palette": "generate",
+      "keys": [
+        "type:jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MDAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        "down"
+      ]
+    }
+  }
+}

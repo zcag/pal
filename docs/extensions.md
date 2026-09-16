@@ -42,7 +42,7 @@ whose code fails to load.
   "title": "Hello",
   "description": "One palette, three rows, one setting.",
   "version": "0.1.0",
-  "icon": "👋",
+  "icon": { "tile": { "glyph": "󱠡", "bg": "teal" } },
   "author": "you",
   "repo": "github.com/you/pal-hello",
   "settings": [
@@ -57,14 +57,18 @@ whose code fails to load.
 - `name`: required, the directory name and the config key; lowercase
   letters, digits, `-`, `_`, `.`. `pal install` refuses anything else.
 - `version`: required (a string).
-- `title`, `description`, `icon` (an emoji, glyph or hex colour), `author`,
-  `repo`: what the settings window shows.
+- `title`, `description`, `icon`, `author`, `repo`: what the settings
+  window and the store show. `icon` is the extension's tile ("Icons",
+  below): a rounded square in one of twelve brand colours with a white
+  mark; every palette wears it at the root unless the code gives the
+  palette one of its own.
 - `settings`: extension-level settings, `[extensions.<name>]` in the config
   file. Kinds: `text`, `secret`, `number`, `boolean`, `select`, `hotkey`,
   `path`, `list`; each with `id`, `label`, optional `description` and a
   `default`.
 - `palettes.<key>`: the palette's static description: `title`,
-  `description`, `kind`, `ttl`, `tier`, `keys`, `rank`, `settings`
+  `description`, `kind`, `ttl`, `tier`, `keys`, `rank`, `settings`,
+  `match`, `inline`, `fallback`
   (`[palettes.<id>].settings` in the file). The key is the palette's key
   in the code's `palettes` object; what goes here and what goes in the
   code is the next section.
@@ -161,8 +165,7 @@ import { defineExtension, settings, type Item } from "@zcag/pal";
 export default defineExtension({
   palettes: {
     hello: {
-      title: "Hello",          // the section label at the root
-      icon: "👋",
+      title: "Hello",          // the section label at the root; the manifest's tile is its icon
       list: (): Item[] => [    // rows; indexed unless `input: true`
         { id: "greet", name: "Hello, world", subtitle: "a row", icon: "👋", actions: [{ id: "copy", title: "Copy" }] },
       ],
@@ -189,14 +192,30 @@ is left to the load-time check.
   settings change, on `cmd+r`, or after `ttl` seconds at the next start.
   With `input: true` it runs on every keystroke inside the palette and the
   root has only the palette's own row (a calculator).
-- `pick(id, action?, ctx?)` returns an `Effect`: `copy`, `copy_files` (a
+- `pick(id, action?, ctx?)` returns an `Effect`: `copy` (text, or a
+  `CopyText` for a secret, see the note below), `copy_files` (a
   list of paths: the files themselves, see the note below), `open` (url or
   path), `paste`, `focus` (a window id), `hide`, `toast`, `hud` (a line in
   the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
+  `large_type` (the text across the screen, below),
   `keep` (stay open and list again), `push` (drill into a palette with
   `args`), `show` (a detail-only level), `view` (a render tree, below),
   `form` (a prompt with fields, below). `ctx` carries `filter`, the `args`
   of the `push` that opened the level, and on a form's submit its `values`.
+- A secret is a concealed copy: `{ copy: conceal(password) }`, that is
+  `{ copy: { text, concealed: true, clear_after: 30 } }`. The text goes on
+  the clipboard marked for clipboard managers to skip
+  (`org.nspasteboard.ConcealedType` on macOS, the KDE password-manager
+  hint on Linux), never enters pal's own history, and after `clear_after`
+  seconds the previous clipboard is put back (or the clipboard emptied) if
+  the secret is still on it; the HUD says "Copied, clears in 30 s". The
+  bundled 1Password and Verification Codes palettes copy this way;
+  `conceal(text, 0)` conceals without the clear.
+- `large_type`: the panel hides and the text is shown across the screen
+  in a type size fitted to the width (a run of digits grouped, a code-like
+  text in monospace), until any key, a click, or 8 s: an OTP, an IP, a
+  licence key read from across the room. Blank text shows nothing; 400
+  characters is the cut.
 - `detail(id, ctx?)`: the detail pane's content for a row, asked lazily.
 - Palette flags: `live` (arrival order, re-listed on every show, not twice
   within 2 s; with a `ttl`, only once the last listing is older than that),
@@ -205,6 +224,37 @@ is left to the load-time check.
   above); the code's is a fallback. Without a `ttl` a palette is listed on
   every load: most bundled TypeScript extensions have none, they are cheap;
   `scripts` defaults its tables to an hour ([Scripts](scripts.md)).
+- The root's sections a palette may take part in, all optional:
+  - **Inline results**: `inline: true` with a `match` (a regex, a regex
+    source, or a predicate `(query) => boolean`; the manifest may carry
+    the string form under `palettes.<key>.match` for the store). A root
+    query the match accepts runs `list(query, { inline: true })`, and its
+    first five rows show at the root under the palette's title, above the
+    index's hits, with their own actions (Enter on a calc row copies the
+    result, on a colour row opens the picker, on a path row opens the
+    file). The core asks 120 ms after the last keystroke, after the local
+    hits painted, and drops a reply for a query that moved on; a list
+    slower than 1.5 s is left out. A palette that lists hints for the
+    empty query returns `[]` when `ctx.inline` is set and nothing matched.
+    Make the match tight: it decides how often the list runs.
+  - **Fallback rows** (`fallback`): what a query the index has nothing
+    for can still do. `fallback: true` adds an "Ask <title>" row that
+    opens the palette with the query typed; a string is that row's title
+    with `{query}` filled in (`"Search Files for “{query}”"`); a function
+    `(query) => Item[]` answers the rows itself (quicklinks lists every
+    `{query}` link filled in), picked through `pick` like any row. The
+    manifest may declare `true` or the title. `general.fallbacks` orders
+    the rows; `general.fallbacks_always` shows them under the hits too.
+  - **Suggestions** (`suggest: () => Item[]`): a few rows for the empty
+    root's "Now" section, asked on every show of the empty root and after
+    every pick from it (the next
+    event, the running timer, what is playing, what is on the clipboard).
+    Keep it fast and cached: it runs with every other palette's, each on
+    a 1.5 s budget, and a slow or failing one is left out. A row's own
+    `section` names its section ("Clipboard"); rows without one go under
+    "Now". `general.now` orders the palettes.
+- `Effect.push` may carry `query`: the level opens with that text in its
+  search box (a fallback row hands the root query in this way).
 - An `Item` has `id` (stable), `name`, `subtitle`, `icon`, `keywords`,
   `url`, `accessories`, `detail`, `actions` (first is Enter, second
   cmd+Enter; an empty list is an inert hint row). Rows that all do the
@@ -215,6 +265,34 @@ is left to the load-time check.
 Settings reach the code resolved: the manifest's defaults with the file's
 values on top, kept current on every config change (an extension whose
 values changed is listed again).
+
+### Icons
+
+Every icon field (`icon` in the manifest, on a palette, on a row, on a bar
+item's menu rows) takes the same forms:
+
+| Form | Draws as | For |
+| --- | --- | --- |
+| `{ tile: { glyph, bg } }` or `{ tile: { svg, bg } }`, or `tile(bg, mark)` from `@zcag/pal` | a rounded square in the brand colour `bg`, the mark white: one Nerd Font glyph, or SVG path data (`d` only, no markup, under 400 bytes) drawn in a 16 by 16 box | the extension's own icon: `icon` in `pal.json`, which every palette wears at the root, in the crumb, in Settings and on the store |
+| `{ glyph, color }`, or `tinted(glyph, color)` | the glyph in a brand colour or a hex of your own | a state on a row: an open pull request's octicon in green, a merged one's in violet |
+| a Nerd Font codepoint (`"\u{f0868}"`, or `xdg("dialog-error")`) | the glyph, tinted in the palette's tile colour; the text colour on a palette without a tile | most rows |
+| an emoji | the platform's colour emoji | rows whose content is the emoji |
+| a hex colour (`"#4F46D6"`) | a dot in that colour | a swatch |
+| `{ app: path }` | the application's own artwork | apps, windows, processes |
+| `{ image: url }` | the picture, `icon://` or `data:image/` | artwork, avatars, a diagram the extension drew |
+| nothing, with a `url` on the row | the site's favicon; the globe mark, in the palette's colour, until it loads | bookmarks, quicklinks, tabs |
+
+The brand colours (`TILE_COLORS`, the `--pal-brand-*` tokens, each with a
+light and a dark value): `red orange amber green teal cyan blue indigo
+violet pink slate ink`. Pick the one the thing is known by (GitHub `ink`,
+1Password `blue`, Home Assistant `teal`); the neutral family (apps,
+windows, files, processes, services, system, scripts) is `slate`. A row
+with a real picture shows it (an app's icon, a favicon, an avatar, album
+art, a colour swatch) and only falls back to a glyph without one. The
+host checks every icon on load (`checkIcon`): a tile off the palette or
+with markup for its svg is a warning in Settings and the palette's own
+icon falls back to the manifest's. Glyphs listed as content (a catalog,
+a grid) are not tinted: they are what the palette lists.
 
 ## View palettes: a render tree
 
@@ -253,12 +331,30 @@ export default {
   `actions` with their keys, Escape (and ⌘⌫) leaves. Enter runs the first
   listed action, ⌘Enter the second, a modifier combo the action carrying
   it as `shortcut`. With `keys: "actions"` a **bare key** does too: a
-  letter or digit, `space`, `backspace`, `delete`, `+`, `-`, `up`, `down`,
-  `left`, `right` as `shortcut`. `shortcut` may be a list of alternatives
-  (`["up", "k"]`): any of them runs the action, ⌘K draws the first and the
-  rest faintly. `hidden: true` keeps an action out of ⌘K, the footer and
-  the Enter / ⌘Enter pair; its key still runs it (Wordle's 26 letters), so
-  it must have one.
+  letter or digit, a symbol as it was typed (`#`, `+`, `-`, `=`), `space`,
+  `backspace`, `delete`, `tab`, `up`, `down`, `left`, `right` as
+  `shortcut`; a shifted arrow arrives as the combo `shift+up` (and
+  `shift+tab` likewise), and one no action carries runs the plain arrow's,
+  so a picker's big steps cost no second binding. `shortcut` may be a list
+  of alternatives (`["up", "k"]`): any of them runs the action, ⌘K draws
+  the first and the rest faintly. `hidden: true` keeps an action out of
+  ⌘K, the footer and the Enter / ⌘Enter pair; its key still runs it
+  (Wordle's 26 letters), so it must have one.
+- **A line of text**: `input: { value?, placeholder?, submit, cancel? }`
+  on the view turns the search row into a text field (the caret at the
+  end of `value`, focused) for as long as trees carry it. Typing goes to
+  the field, bare keys are typing, arrows move the caret, a modifier combo
+  still runs its action. Enter picks the `submit` action with the text as
+  `ctx.values.input`, Escape the `cancel` action (or leaves the level when
+  there is none); both must be actions of the view (`checkView`). Answer
+  with a tree without `input` to close the field (the query clears, the
+  view's document takes the keys again), or with one to keep it: a
+  `value` that differs from the previous tree's replaces the text, the
+  same value leaves what was typed alone. Keys that queued while the tree
+  with the field was on its way are typed into it. The bundled picker
+  opens the field from a hidden action on the first digit or `#` typed
+  and answers with that character as `value`, so a notation is typed
+  without a mode key.
 - One pick at a time, and the search row sweeps meanwhile; a key pressed
   while the reply is on its way **queues** (four at most, the rest dropped)
   and runs against the tree the reply brings, so fast typing loses
@@ -289,7 +385,8 @@ The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key` and
 | `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `surface` sunken/elevated (a well behind a board, a card behind stats; give it `padding`), `radius`, `children` | a flex box |
 | `text` | `value`, `style` title/body/muted/mono/number, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`), `width` / `minWidth` px (a column that lines up; a run with a `width` clips instead of wrapping), `align` start/center/end inside it | one run of text |
 | `image` | `src` (`icon://…` or `data:image/…`, anything else is not shown), `width`/`height` px, `mask` rounded/circle, `alt` | a picture the extension made or the app's icon scheme serves |
-| `tile` | `width`/`height` px, `text`, `sub` (small, under the text), `color` (tag palette, `neutral` (default), `accent`), `fill` `solid` (the colour, the panel's background as ink; solid neutral is paper, the elevated surface), `soft` (the tint, the colour as ink; default), `outline` | a rounded box with the tokens' colours, so it follows the theme: a game tile, a keycap of an on-screen keyboard, a stat. The type is tabular, scales with the box, gets heavier as it grows and shrinks to fit the text; under 44 px the box takes the control radius |
+| `tile` | `width`/`height` px, `text`, `sub` (small, under the text), `color` (tag palette, `neutral` (default), `accent`, or a hex colour of the extension's own: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`), `fill` `solid` (the colour, the panel's background as ink; solid neutral is paper, the elevated surface), `soft` (the tint, the colour as ink; default), `outline` | a rounded box with the tokens' colours, so it follows the theme: a game tile, a keycap of an on-screen keyboard, a stat. The type is tabular, scales with the box, gets heavier as it grows and shrinks to fit the text; under 44 px the box takes the control radius. A hex colour paints the box with itself whatever the fill (a hairline in it for `outline`), takes black or white ink by contrast, and shows a checker through a translucent one: a swatch |
+| `gradient` | `width`/`height` px, `fill` (a hex colour under everything), `layers` (each `stops`: two or more hex colours, alpha allowed (`#ffffff00`), spread evenly along `direction` right (default), down, up or left; in paint order, a later layer composites over an earlier one), `marker` `{ x, y }` in 0..1 | a box of CSS linear gradients with the tile radius and, with `marker`, a ring at that point drawn to read on any colour: a hue strip (seven stops round the wheel), the classic saturation/value plane (`fill` the pure hue, white to transparent rightwards, black to transparent upwards) |
 | `badge` | `text`, `color` (grey, blue, green, amber, red, violet, pink, teal) | a tag, as on a row |
 | `divider` | | a hairline (vertical in a row) |
 | `spacer` | `size` px, else the free space | space |
@@ -361,6 +458,71 @@ pick: async (id, action, ctx) => {
 - The host refuses a form without fields, with two fields of one id, a
   field of a kind the panel cannot draw, a submit id starting with `pal:`,
   or `errors` for a field that is not there.
+
+## Links: routes of your own
+
+Every row already has a deep link (`pal://run/<ext>/<palette>/<id>`,
+[Links](links.md)), and "Copy deep link" in the panel writes it. A route
+of your own is for what a row cannot say: an argument from the outside
+(`pal://timer/start?duration=25m&name=tea`), a thing by name rather than
+by id (`pal://snippets/paste?name=sig`), a keybind that should not go
+through a row at all. Declare it in `pal.json` and answer it in the code:
+
+```json
+"links": {
+  "start": {
+    "description": "Start a timer",
+    "params": {
+      "duration": { "description": "25m, 90s, 1h30m", "required": true },
+      "name": { "description": "Optional; the duration otherwise" },
+      "ring": { "description": "Ring the phone when it lands", "type": "boolean" }
+    }
+  }
+}
+```
+
+```ts
+export default defineExtension(manifest, {
+  palettes: { ... },
+  link: async (route, params) => {
+    if (route === "start") return { hud: await timer(String(params.duration), String(params.name ?? "")) };
+  },
+});
+```
+
+`pal://<name>/<route>?key=value` (and `pal call <name>/<route> key=value`)
+then reaches `link(route, params)`. A route name is lowercase letters,
+digits and `-`. A param has a `description` (the store and the settings
+window show it), `required`, and a `type`: `string` (the default),
+`number`, `boolean` (`1`, `true`, `yes`, `on`), `json` (a percent-encoded
+JSON value) or `string[]` (a repeated key). The host checks the route is
+declared, refuses a missing required param with a line in the HUD
+(`pal: timer/start: duration is required`), coerces the rest and drops a
+missing optional one, so `params.name` is `undefined` rather than `""`. A
+key the manifest does not name rides through as a string.
+
+The answer is an `Effect` like a pick's, run with the panel down: `copy`,
+`copy_files`, `open`, `paste`, `focus`, `layout`, `hud`, `toast` (its title
+is the HUD's line), `push` (the panel shows inside that palette, with the
+args) or nothing. `keep`, `show`, `view` and `form` need the level a pick
+came from and are refused with the reason, as `effects.run` refuses them;
+to open a form from a link, point the link at the row that opens it
+(`pal://form/<ext>/<palette>/<id>?field=value`, which also prefills it).
+Throw for what cannot be done (`no snippet "x"`): the message is the
+HUD's line.
+
+A link from a web page asks first ("“Start a timer” from a link?
+timer/start duration=25m"), unless the user trusts your extension in
+`general.deeplink_confirm`; `"confirm": true` on a route keeps the card
+whatever they set, for a route that does something irreversible
+(system's `run`). The `pal` command never asks.
+
+`checkLinks(manifest, ext)` runs on every load like `checkPalettes`: a
+`links` block with no `link` function, a `link` function with no `links`
+block (a route is reachable only when declared), a bad route name or a
+param type not in the table is a load warning the settings window shows.
+Your own tests can call it, and `checkLinkParams(spec, raw, where)` to
+see what your handler would get.
 
 ## Bar items: glanceable state on the bar
 
@@ -455,7 +617,7 @@ export default defineExtension({
   extension is reloaded or removed, since the old module stays resident
   and would keep pushing otherwise.
 
-**The four bundled items**, each in the extension that already owns the
+**The bundled items**, each in the extension that already owns the
 data, so the strip and the palette share one loader and one cache:
 
 - **GitHub, `notifications`** (`extensions/github/`): the unread count as a
@@ -483,6 +645,15 @@ data, so the strip and the palette share one loader and one cache:
   (`menu: { palette }`). The second-level ticks are the extension's own:
   an `fs.watch` on the CLI's state directory pushes on every change, and
   a 1 Hz interval pushes the countdown while a timer runs.
+- **Slack, `unreads`** (`extensions/slack/`, [Palettes](palettes.md#slack-slack-unreads-slack-channels-slack-search-slack-status)):
+  the count of what is addressed to you (direct messages, mentions,
+  thread replies) as the badge, hidden at zero, urgent while a direct
+  message waits; never the unread channels, which are only named in the
+  popover. The popover is a menu level: a section per kind with the
+  newest five, "Also unread", Open in pal, Mark all read, Open Slack.
+  Refresh every `refresh` seconds (120) and on `show`, `wake`,
+  `network`; the palette and the item share one inbox for 30 s, so the
+  panel showing costs one `client.counts`.
 
 ## Storage
 
@@ -530,6 +701,39 @@ to the core.
   Linux. `apps.openWith(path, app)` opens the file with one of them.
 - `storage.get(key)`, `set(key, value)`, `remove(key)`, `keys()`: the
   extension's own key-value file (above).
+- `color.sample()`: one pixel off the screen, picked by the user with the
+  OS's own loupe (`NSColorSampler` on macOS, no permission; the
+  `org.freedesktop.portal.Screenshot.PickColor` portal on Linux, which may
+  ask once), as `{ r, g, b, hex }` in sRGB, or null on Escape. The panel
+  hides first and stays hidden. The user may take a while, so the call
+  waits up to two minutes (`SAMPLE_TIMEOUT_MS`), longer than a pick may:
+  from `pick` start it, return at once, and finish in the background
+  with `effects.run`.
+- `effects.run(effect)`: an `Effect` from outside a pick, for work that
+  finished after the pick returned. The OS effects (`copy` with "Copied"
+  or the `hud` text in the HUD, `copy_files`, `open`, `paste`, `focus`,
+  `layout`, `hud`) and `push`, which shows the panel inside that palette
+  (its `view` or `list` asked afresh, as a palette hotkey would). `toast`,
+  `keep`, `view`, `form` and `show` need the level a pick came from and
+  are refused.
+- `selection.text()`: the text selected in the app in front, or null.
+  The accessibility API first (`AXSelectedText` of the focused element on
+  macOS, the primary selection on Linux); when that answers nothing and
+  `general.selection_snapshot` allows (the default), the copy shortcut is
+  sent and the clipboard read and put back as it was, with pal's own
+  history looking away. Rejects on macOS without Accessibility (the
+  prompt is shown once per run). Reading it from `pick` works: the panel
+  does not take the selection from the app behind it. The Snippets
+  palette fills `{selection}` with it.
+- `ocr.image({ path })` or `ocr.image({ data })` (base64 bytes): the text
+  in an image, lines top to bottom, an empty string for none; a PDF is
+  its first page (`pdftoppm` when installed, else `sips` on macOS). The
+  Vision framework on macOS (accurate level, language detected),
+  `tesseract` on Linux when installed; `ocr.available()` says, and
+  `image` rejects with "OCR unavailable" otherwise. Waits up to 30 s.
+  The Clipboard History and Files palettes offer it on images.
+- `conceal(text, clearAfter?)`: the `CopyText` for a secret (above);
+  `CONCEAL_SECONDS` (30) is the default clear.
 - `home(path)`: a leading `~` expanded. `core.call(method, params)`: the
   raw bridge.
 - `xdg(name)`: a freedesktop icon name as the glyph the app draws it with
@@ -562,14 +766,17 @@ to the core.
   `nmcli` on Linux.
 - `media.nowPlaying()` (`players`: `MediaPlayer[]` with `id`, `name`,
   `state`, `title`, `artist`, `album`, `artwork`, `url`, `app`,
-  `position`, `duration`, playing first; `system_wide`: whether
-  `playerctl` / `nowplaying-cli` is there), `control(player, command)`
-  (`play_pause`, `play`, `pause`, `next`, `previous`; the panel stays up).
-  Spotify and Music over AppleScript plus `nowplaying-cli` on macOS,
-  `playerctl` on Linux.
+  `position`, `duration`, playing first; `system_wide`: whether a
+  system-wide source is there: the bundled MediaRemote adapter or
+  `nowplaying-cli` on macOS, `playerctl` on Linux), `control(player,
+  command)` (`play_pause`, `play`, `pause`, `next`, `previous`; the panel
+  stays up). Spotify and Music over AppleScript plus the system's Now
+  Playing as the `system` player on macOS (a title-less player with a
+  state is one that reports no track, Chrome for one), `playerctl` on
+  Linux.
 
 The protocol's types ride along: `Extension`, `Palette`, `Item`, `Action`,
-`Icon`, `Effect`, `Ctx`, `Detail`, `View`, `ViewNode`, `Form`,
+`Icon`, `Effect`, `CopyText`, `Ctx`, `Detail`, `View`, `ViewNode`, `Form`,
 `FormField`, `FormValues`, `BarItem`, `BarMenu`, `BarMenuNode`,
 `BarSegment`, `BarColor`, `BarCtx`, `BarSource`, `Manifest`,
 `SettingSpec`, and the API's own

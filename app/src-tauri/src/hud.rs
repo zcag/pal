@@ -38,12 +38,25 @@ static SHOWS: AtomicU64 = AtomicU64::new(0);
 #[derive(Clone, Serialize)]
 struct Payload<'a> {
     text: &'a str,
+    /// `pal://confetti`: the page bursts CSS particles around the capsule.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    celebrate: bool,
 }
 
 /// Show `text` for the hold, then hide. Safe from any thread.
 pub fn show(app: &AppHandle, text: &str) {
+    show_with(app, text, false);
+}
+
+/// [`show`] with a celebration: the page draws a confetti burst behind the
+/// capsule (HudPage.tsx), the same window and clock.
+pub fn celebrate(app: &AppHandle, text: &str) {
+    show_with(app, text, true);
+}
+
+fn show_with(app: &AppHandle, text: &str, celebrate: bool) {
     let n = SHOWS.fetch_add(1, Ordering::Relaxed) + 1;
-    events::emit_to(app, WINDOW, events::HUD, Payload { text });
+    events::emit_to(app, WINDOW, events::HUD, Payload { text, celebrate });
     let handle = app.clone();
     if let Err(e) = app.run_on_main_thread(move || {
         place(&handle);

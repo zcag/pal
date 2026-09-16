@@ -5,15 +5,41 @@
 // recents (Spotlight's last-used dates would not know the folder either).
 // Skipped where `find` is missing.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { contentArgv, parseQuery, snippet, snippetArgv } from "../../../extensions/files/content.ts";
 import { parseMdfindRecent, parseXbel } from "../../../extensions/files/recent.ts";
+import type { Item } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
 
 const HAS_FIND = Bun.which("find") !== null;
+const HAS_GREP = Bun.which("grep") !== null;
 const MAC = process.platform === "darwin";
 const FILE_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "open-with", "copy", "copy-file", "trash"];
+/** An image or a PDF: Copy text (OCR) before the trash. */
+const OCR_ACTIONS = [...FILE_ACTIONS.slice(0, -1), "copy-text", "trash"];
+
+describe("content search helpers", () => {
+  test("a ' or content: prefix asks for contents only; anything else for names with contents second", () => {
+    expect(parseQuery("'secret phrase")).toEqual({ name: "", content: "secret phrase", only: true });
+    expect(parseQuery("content: secret ")).toEqual({ name: "", content: "secret", only: true });
+    expect(parseQuery("'")).toEqual({ name: "", content: "", only: true });
+    expect(parseQuery(" report ")).toEqual({ name: "report", content: "report", only: false });
+    expect(parseQuery("it's")).toEqual({ name: "it's", content: "it's", only: false });
+  });
+  test("the listing commands per tool, and the one-line snippet", () => {
+    expect(contentArgv("mdfind", 'say "hi"', ["/a", "/b"], false)).toEqual(["mdfind", "-onlyin", "/a", "-onlyin", "/b", 'kMDItemTextContent == "*say \\"hi\\"*"cd']);
+    expect(contentArgv("rg", "x", ["/a"], true)).toEqual(["rg", "--files-with-matches", "--fixed-strings", "--ignore-case", "--no-messages", "--hidden", "--", "x", "/a"]);
+    expect(contentArgv("grep", "x", ["/a"], false)).toEqual(["grep", "-rlIiF", "--exclude-dir=.*", "--", "x", "/a"]);
+    expect(snippetArgv("rg", "x", "/a/f")).toEqual(["rg", "--line-number", "--max-count", "1", "--fixed-strings", "--ignore-case", "--no-messages", "--", "x", "/a/f"]);
+    expect(snippetArgv("grep", "x", "/a/f")).toEqual(["grep", "-niF", "-m", "1", "--", "x", "/a/f"]);
+    expect(snippet("12:   the   secret\tphrase  \n")).toBe("the secret phrase");
+    expect(snippet("")).toBe("");
+    expect(snippet("3:" + "x".repeat(200), 20)).toBe("x".repeat(19) + "…");
+  });
+});
 
 describe("recent sources", () => {
   test("mdfind -attr lines: path and last-used date, newest first, other lines skipped", () => {
@@ -57,7 +83,9 @@ beforeAll(async () => {
   mkdirSync(join(dir, "Library", "Caches"), { recursive: true });
   writeFileSync(join(dir, "Library", "Caches", "report-epsilon.txt"), "epsilon\n");
   const at = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400_000).toISOString();
-  writeFileSync(join(dir, "recent.xbel"), `<?xml version="1.0" encoding="UTF-8"?>
+  // Outside the search folder: its text names every file, which the content search would otherwise list it for.
+  const xbel = join(mkdtempSync(join(tmpdir(), "pal-files-xbel-")), "recent.xbel");
+  writeFileSync(xbel, `<?xml version="1.0" encoding="UTF-8"?>
 <xbel version="1.0">
   <bookmark href="file://${join(dir, "Report-Beta.md")}" visited="${at(1)}"/>
   <bookmark href="file://${join(dir, "reports", "report-gamma.txt")}" visited="${at(2)}"/>
@@ -68,8 +96,11 @@ beforeAll(async () => {
   <bookmark href="file://${join(dir, "photo.png")}" visited="${at(9)}"/>
   <bookmark href="file:///etc/hosts" visited="${at(0)}"/>
 </xbel>`);
+  writeFileSync(join(dir, "notes.md"), "shopping\nthe Secret Phrase is here\n");
+  writeFileSync(join(dir, "scan.pdf"), "%PDF-1.4\n");
   process.env.PAL_FILES_BACKEND = "find";
-  process.env.PAL_RECENT_XBEL = join(dir, "recent.xbel");
+  process.env.PAL_FILES_CONTENT = "grep";
+  process.env.PAL_RECENT_XBEL = xbel;
   host = await Host.bundled({
     settings: { files: { settings: { folders: [dir] } } },
     core: {
@@ -83,11 +114,29 @@ afterAll(() => { host?.kill(); if (dir) rmSync(dir, { recursive: true, force: tr
 const list = (q?: string) => host.list("files", "files", q);
 const pick = (id: string, action?: string) => host.pick("files", "files", id, action);
 
+describe.skipIf(!HAS_FIND)("files at the root", () => {
+  test("a typed path lists the file, or the entries its last segment starts (hidden ones only when the segment does); inline and inside the palette alike", async () => {
+    const { pathRows } = await import("../../../extensions/files/index.ts");
+    expect((await pathRows(join(dir, "report-alpha.txt"), false)).map((i) => i.id)).toEqual([join(dir, "report-alpha.txt")]);
+    expect((await pathRows(join(dir, "rep"), false)).map((i) => i.name)).toEqual(["report-alpha.txt", "Report-Beta.md", "reports"]);
+    expect((await pathRows(join(dir, ".rep"), false)).map((i) => i.name)).toEqual([".report-hidden.txt"]);
+    expect((await pathRows(join(dir, "reports") + "/", false)).map((i) => i.name)).toEqual(["report-gamma.txt"]);
+    expect(await pathRows(join(dir, "nope", "x"), false)).toEqual([]);
+    expect(await pathRows("report", false)).toEqual([]); // not a path
+    const inline = await host.request<{ extension: string; items: Item[] }[]>("inline", { query: join(dir, "rep") });
+    expect(inline.find((s) => s.extension === "files")!.items.map((i) => i.name)).toEqual(["report-alpha.txt", "Report-Beta.md", "reports"]);
+    expect((await inline.find((s) => s.extension === "files")!.items[0].actions!)[0].id).toBe("open");
+    expect((await list(join(dir, "rep"))).map((i) => i.name)).toEqual(["report-alpha.txt", "Report-Beta.md", "reports"]);
+    expect(await host.request("inline", { query: "report" }).then((r: any) => r.find((s: any) => s.extension === "files"))).toBeUndefined();
+    expect(host.loaded().find((l) => l.extension === "files")!.palettes[0]).toMatchObject({ inline: true, fallback: "ask", fallbackTitle: "Search Files for “{query}”" });
+  });
+});
+
 describe.skipIf(!HAS_FIND)("files", () => {
   test("meta: an input palette with lazy detail, and the live Recent Files palette with a ttl", () => {
     expect(host.loaded().find((l) => l.extension === "files")!.palettes).toEqual([
-      { name: "files", title: "Files", live: false, input: true, icon: "󰱽", placeholder: "Search files by name", detail: "lazy" },
-      { name: "recent", title: "Recent Files", live: true, input: false, icon: "󰋚", placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary" },
+      { name: "files", title: "Files", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Search files by name", detail: "lazy", inline: true, match: "^\\s*(~|\\/)", fallback: "ask", fallbackTitle: "Search Files for “{query}”" },
+      { name: "recent", title: "Recent Files", live: true, input: false, icon: tile("slate", "\u{f024b}"), placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary" },
     ]);
   });
 
@@ -172,6 +221,45 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(img.metadata![3].value).toBe("image");
     const folder = await host.detail("files", "files", join(dir, "reports"));
     expect(folder.metadata!.map((m) => m.label)).toEqual(["Path", "Modified", "Kind"]);
+  });
+
+  test("contents: a ' query lists files whose text has the words, the matching line as the subtitle, in the In files section", async () => {
+    if (!HAS_GREP) return;
+    const rows = await list("'secret phrase");
+    expect(rows.map((r) => r.name)).toEqual(["notes.md"]);
+    expect(rows[0]).toMatchObject({ id: join(dir, "notes.md"), section: "In files", subtitle: `the Secret Phrase is here · ${dir}` });
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
+    expect((await list("content:shopping")).map((r) => r.name)).toEqual(["notes.md"]);
+    expect(await list("'nothing-like-this")).toEqual([]);
+    const blank = await list("'");
+    expect(blank).toHaveLength(1);
+    expect(blank[0]).toMatchObject({ name: "Type words to find in file contents", subtitle: `grep in ${dir}`, actions: [] });
+  });
+
+  test("contents: a plain query gets the content matches as a second section after the name matches, never a file twice; off with content_search", async () => {
+    if (!HAS_GREP) return;
+    // "line two" is in report-alpha.txt, whose name does not match; "alpha" is in its name and its path only.
+    const rows = await list("line two");
+    expect(rows.map((r) => [r.name, r.section])).toEqual([["report-alpha.txt", "In files"]]);
+    expect(rows[0].subtitle).toBe(`line two · ${dir}`);
+    const both = await list("shopping");
+    expect(both.map((r) => r.name)).toEqual(["notes.md"]);
+    // A name match whose text also has the query is listed once, as the name match.
+    writeFileSync(join(dir, "gamma-notes.txt"), "gamma\n");
+    const once = await list("gamma");
+    expect(once.filter((r) => r.name === "gamma-notes.txt")).toHaveLength(1);
+    expect(once.find((r) => r.name === "gamma-notes.txt")!.section).toBeUndefined();
+    expect(once.every((r) => r.section === undefined)).toBe(true);
+    host.changeSettings("files", { settings: { folders: [dir], content_search: false } });
+    expect(await list("line two")).toEqual([]);
+    expect((await list("'line two")).map((r) => r.name)).toEqual(["report-alpha.txt"]);
+    host.changeSettings("files", { settings: { folders: [dir] } });
+  });
+
+  test("Copy text (OCR) is offered on images and PDFs, before the trash", async () => {
+    expect((await list("photo"))[0].actions!.map((a) => a.id)).toEqual(OCR_ACTIONS);
+    expect((await list("scan"))[0].actions!.map((a) => a.id)).toEqual(OCR_ACTIONS);
+    expect((await list("photo"))[0].actions!.find((a) => a.id === "copy-text")).toEqual({ id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t" });
   });
 
   test("pick: open by default, copy path, copy file (reveal is not exercised: it would raise Finder)", async () => {

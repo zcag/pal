@@ -3,11 +3,14 @@
 // the matching, order is pinned first then newest; the pinned ones get a
 // section). The filter dropdown narrows by kind: the core's three, plus
 // links and colours, which are text entries this side recognises. Enter
-// pastes, the rest of the actions manage the entry.
-import { clipboard, settings, type Action, type ClipboardEntry, type Detail, type Extension, type Item } from "@zcag/pal";
+// pastes, the rest of the actions manage the entry. A second palette,
+// `rows` (now.ts), reads what is on the clipboard right now as the things
+// it could be and is the root's Clipboard section.
+import { clipboard, conceal, ocr, settings, type Action, type ClipboardEntry, type Detail, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
+import { rowsPalette } from "./now.ts";
 
 /** `[extensions.clipboard]`, defaults in pal.json. `max_entries` and `max_age_days` are the recorder's (app clipboard.rs); this side never reads them. */
-type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy" };
+type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy"; ocr_concealed: boolean };
 
 /** Rows asked from the core per list; retention decides what exists, this only bounds one page. */
 const PAGE = 200;
@@ -98,7 +101,7 @@ const actions = (e: ClipboardEntry, primary: Settings["primary_action"], url?: s
   ...(primary === "copy" ? [{ id: "copy", title: "Copy" }, { id: "paste", title: "Paste" }] : [{ id: "paste", title: "Paste" }, { id: "copy", title: "Copy" }]),
   ...(url ? [{ id: "open", title: "Open link", shortcut: "cmd+o" }] : []),
   ...(e.kind === "text" ? [{ id: "paste-plain", title: "Paste as plain text", shortcut: "cmd+shift+v" }] : []),
-  ...(e.kind === "image" ? [{ id: "copy-file", title: "Copy image file", shortcut: "cmd+shift+c" }] : []),
+  ...(e.kind === "image" ? [{ id: "copy-file", title: "Copy image file", shortcut: "cmd+shift+c" }, { id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" }] : []),
   { id: "pin", title: e.pinned ? "Unpin" : "Pin", shortcut: "cmd+p" },
   { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?" },
   { id: "delete-unpinned", title: "Delete all unpinned", style: "destructive", confirm: "Delete every unpinned entry? Pinned ones stay." },
@@ -146,10 +149,21 @@ function shown(e: ClipboardEntry, s: Settings): boolean {
 }
 
 export default {
+  // `pal://clipboard/copy?index=2`: the nth newest entry (0 the newest) back on the clipboard.
+  link: async (route: string, params: LinkParams): Promise<Effect | void> => {
+    if (route !== "copy") return;
+    const index = typeof params.index === "number" ? params.index : 0;
+    if (!Number.isInteger(index) || index < 0) throw new Error(`index must be 0 or more, not ${index}`);
+    const s = settings.get<Settings>();
+    const entries = (await clipboard.list({ limit: index + 1 + s.exclude_apps.length * 4 })).filter((e) => shown(e, s));
+    const e = entries[index];
+    if (!e) throw new Error(`no history entry ${index} (${entries.length} in history)`);
+    await clipboard.copy(e.id);
+    return { hud: "Copied" };
+  },
   palettes: {
     history: {
       title: "Clipboard History",
-      icon: "⎘",
       live: true,
       input: true,
       showDetail: true,
@@ -167,6 +181,15 @@ export default {
           case "open": { const url = urlOf(await clipboard.get(entry)); return url ? { open: url } : { paste: { entry } }; }
           case "paste-plain": { const e = await clipboard.get(entry); return e.kind === "text" ? { paste: { text: e.text! } } : { paste: { entry } }; }
           case "copy-file": { const e = await clipboard.get(entry); return e.image ? { copy_files: [e.image] } : { paste: { entry } }; }
+          case "copy-text": {
+            // OCR over the core (Vision on macOS, tesseract on Linux); the text goes on the clipboard as a copy of its own, concealed when the setting says so.
+            const e = await clipboard.get(entry);
+            if (!e.image) return { paste: { entry } };
+            let text: string;
+            try { text = await ocr.image({ path: e.image }); } catch (err) { return { keep: true, toast: { title: "Could not read the text", message: String((err as Error)?.message ?? err), style: "failure" } }; }
+            if (!text) return { keep: true, toast: { title: "No text in the image" } };
+            return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
+          }
           case "pin": { const e = await clipboard.get(entry); await clipboard.pin(entry, !e.pinned); return { keep: true }; }
           case "delete": await clipboard.delete(entry); return { keep: true };
           case "delete-unpinned": { const n = await deleteUnpinned(); return { keep: true, toast: { title: `Deleted ${n} unpinned ${n === 1 ? "entry" : "entries"}` } }; }
@@ -175,5 +198,7 @@ export default {
         }
       },
     },
+    // What is on the clipboard now, as the things it could be (now.ts, rows.ts); the root's Clipboard section comes from its `suggest`.
+    rows: rowsPalette,
   },
 } satisfies Extension;

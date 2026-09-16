@@ -3,7 +3,7 @@
   "title": "GitHub",
   "description": "Your pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.",
   "version": "0.1.0",
-  "icon": "",
+  "icon": { "tile": { "glyph": "", "bg": "ink" } },
   "author": "pal",
   "repo": "bundled",
   "settings": [

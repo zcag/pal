@@ -3,6 +3,7 @@
 // mode is exercised with a listener opened here, and its parsers over
 // canned lsof and ss output.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { parseLsofListeners, parseSsListeners, portQuery } from "../../../extensions/processes/ports.ts";
 import { Host } from "../harness.ts";
 
@@ -42,7 +43,7 @@ const pick = (id: string, action?: string) => host.pick("processes", "processes"
 describe("processes", () => {
   test("meta: live input palette with the four filters", () => {
     expect(host.loaded().find((l) => l.extension === "processes")!.palettes[0]).toMatchObject({
-      name: "processes", title: "Processes", live: true, input: true, icon: "\u{f035b}",
+      name: "processes", title: "Processes", live: true, input: true, icon: tile("slate", "\u{f035b}"),
       filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "cpu", title: "Top CPU" }, { id: "memory", title: "Top memory" }],
     });
   });

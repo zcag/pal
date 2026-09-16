@@ -3,6 +3,7 @@
 // the wire: a view palette's meta, its opening tree, picks that type,
 // submit and persist the game and the stats, the settings.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { COLS, DEFAULTS, ROWS, actions, apply, hardModeError, isState, isValid, keyMarks, mark, share, stats0, sync, type Game, type State } from "../../../extensions/wordle/game.ts";
 import { render } from "../../../extensions/wordle/render.ts";
 import { ALLOWED, ANSWERS, STRIDE, dailyAnswer, dayOf } from "../../../extensions/wordle/words.ts";
@@ -239,7 +240,7 @@ describe("over the wire", () => {
 
   test("a view palette is input on the wire with view: view", async () => {
     const l = host.loaded().find((l) => l.extension === "wordle")!;
-    expect(l.palettes).toEqual([{ name: "wordle", title: "Wordle", live: false, input: true, icon: "🟩", view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
+    expect(l.palettes).toEqual([{ name: "wordle", title: "Wordle", live: false, input: true, icon: tile("green", { svg: "M1.5 1.5h3.5v3.5H1.5zM6.25 1.5h3.5v3.5h-3.5zM11 1.5h3.5v3.5H11zM1.5 6.25h3.5v3.5H1.5zM6.25 6.25h3.5v3.5h-3.5zM11 6.25h3.5v3.5H11zM1.5 11h3.5v3.5H1.5zM6.25 11h3.5v3.5h-3.5zM11 11h3.5v3.5H11z" }), view: "view", ttl: undefined, detail: undefined, columns: undefined, placeholder: undefined, showDetail: undefined, filters: undefined }]);
   });
   test("view answers today's daily and stores it with fresh stats", async () => {
     await expect(host.request("list", { extension: "wordle", palette: "wordle" })).rejects.toThrow("view palette has no list");

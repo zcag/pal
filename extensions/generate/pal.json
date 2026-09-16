@@ -1,0 +1,62 @@
+{
+  "name": "generate",
+  "title": "Generate",
+  "description": "UUIDs, ULIDs, Nano IDs, passwords and passphrases with their strength, random numbers and bytes, hashes and encodings of typed or copied text, lorem ipsum, a random colour, a QR code, a JWT taken apart. Every value copies on Enter.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰝮", "bg": "amber" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "number", "id": "password_length", "label": "Password length", "description": "Characters in a generated password; `password 32` in the panel overrides it for one listing.", "min": 4, "max": 256, "unit": "characters", "default": 20 },
+    { "kind": "select", "id": "password_charset", "label": "Password characters", "description": "What a password is drawn from; a word after `password` (`password 16 alnum`) overrides it for one listing.", "options": [
+      { "id": "full", "title": "Letters, digits and symbols" },
+      { "id": "alnum", "title": "Letters and digits" },
+      { "id": "letters", "title": "Letters only" },
+      { "id": "digits", "title": "Digits only (a PIN)" }
+    ], "default": "full" },
+    { "kind": "number", "id": "passphrase_words", "label": "Passphrase words", "description": "Words in a passphrase, from a list of 2551 common five-letter words (about 11 bits each); `passphrase 7` overrides it for one listing.", "min": 2, "max": 20, "unit": "words", "default": 5 },
+    { "kind": "text", "id": "passphrase_separator", "label": "Passphrase separator", "description": "What goes between the words.", "placeholder": "-", "default": "-" }
+  ],
+  "store": {
+    "tagline": "UUIDs, passwords, hashes, base64, lorem, QR codes and JWTs",
+    "category": "developer",
+    "features": [
+      "The empty query lists a fresh value of everything: UUID v4 and v7, ULID, Nano ID, a password and a passphrase with their strength, a random number, hex and base64 bytes, a lorem ipsum paragraph, a random colour",
+      "A mode word narrows and parameterises: `password 32 alnum`, `passphrase 7`, `number 1-6`, `hex 32`, `lorem 3 paragraphs`, `colour`",
+      "Transforms work on the text typed after the mode, or on the newest clipboard text when nothing follows: `sha256`, `md5`, `sha1`, `sha512`, `hash` for all four, `base64`, `url`, `hex`, `encode`, `decode`",
+      "`qr <text>` draws the QR code (a small pure-TypeScript encoder, versions 1 to 40): the row shows it, Enter shows it large, `cmd+c` copies the SVG",
+      "`jwt <token>` takes a token apart: header, payload, expiry as relative time; the signature is never verified and the palette says so",
+      "Enter copies, `cmd+enter` pastes into the app in front, `cmd+shift+c` copies a whole group (all hashes, all encodings, header and payload); `cmd+r` lists again with fresh values"
+    ],
+    "permissions": ["accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-everything.png", "caption": "The empty query: a fresh value of every generator, the secrets with their strength" },
+      { "file": "2-hash.png", "caption": "hash of typed text: all four digests, Copy all on cmd+shift+c" },
+      { "file": "3-qr.png", "caption": "qr of a link: the code on the row and large in the detail pane" },
+      { "file": "4-jwt.png", "caption": "jwt: the header, the payload with its expiry, the times, and a reminder that nothing is verified" }
+    ],
+    "actions": [
+      { "title": "Copy", "description": "The value onto the clipboard.", "keys": "enter" },
+      { "title": "Paste", "description": "Hides, then pastes the value into the app in front.", "keys": "cmd+enter" },
+      { "title": "Copy all", "description": "Every row of the group (all hashes, all encodings, the JWT's header and payload) as lines.", "keys": "cmd+shift+c" },
+      { "title": "Open in Colour Picker", "description": "A random colour in the Colors palette's picker.", "keys": "cmd+o" },
+      { "title": "Show QR code", "description": "The code large, on the QR row.", "keys": "enter" },
+      { "title": "Copy SVG", "description": "The QR code as SVG markup.", "keys": "cmd+c" }
+    ]
+  },
+  "palettes": {
+    "generate": {
+      "kind": "input",
+      "description": "Type nothing for a value of everything, a mode word to narrow it, or a mode and text to hash, encode, decode, draw or take apart.",
+      "keys": [
+        { "keys": "enter", "title": "Copy the value (show the QR code on its row)" },
+        { "keys": "cmd+enter", "title": "Paste the value into the app in front" },
+        { "keys": "cmd+shift+c", "title": "Copy the whole group" },
+        { "keys": "cmd+o", "title": "Open a colour in the Colour Picker" },
+        { "keys": "cmd+c", "title": "Copy the QR code as SVG" }
+      ]
+    }
+  }
+}

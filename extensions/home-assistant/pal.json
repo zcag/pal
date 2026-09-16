@@ -3,7 +3,7 @@
   "title": "Home Assistant",
   "description": "Your entities at the root with their state: toggle, dim, set a temperature, run a scene; every service as a form; areas as drill-ins. Over the REST API with a long-lived token.",
   "version": "0.1.0",
-  "icon": "󰟐",
+  "icon": { "tile": { "glyph": "󰟐", "bg": "teal" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

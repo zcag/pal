@@ -2,8 +2,8 @@
  * Adapts what the core sends per hit (a host item, fields pass through) to
  * the UI item model. Provisional, like the wire shape it reads.
  */
-import { isSymbol } from "./ui/icons";
-import type { Accessory, Action, Detail, FilterOption, FormField, FormSpec, FormValues, Icon, Item, ViewSpec } from "./ui/types";
+import { isBrand, isSymbol } from "./ui/icons";
+import type { Accessory, Action, Brand, Detail, FilterOption, FormField, FormSpec, FormValues, Icon, Item, ViewSpec } from "./ui/types";
 
 /** `pal_core::index::Source`. */
 export type Source = { extension: string; palette: string };
@@ -22,18 +22,21 @@ export type WireItem = {
   /** As in sdk/src/protocol.ts; both replace what would be derived here. */
   accessories?: Accessory[];
   detail?: Detail;
+  /** A fallback "Ask" row (`fallback.rs`): the palette to open with the query typed. */
+  push?: { extension: string; palette: string; args?: unknown; query?: string };
   [extra: string]: unknown;
 };
 
-/** One row of the `query` command's reply (`HitView` in src-tauri/src/index.rs). */
-export type WireHit = { source: Source; id: string; score: number; name_positions: number[]; item: WireItem };
+/** One row of the `query` command's reply (`HitView` in src-tauri/src/index.rs); `group` names a root section that is not the palette's. */
+export type WireHit = { source: Source; id: string; score: number; name_positions: number[]; item: WireItem; group?: string };
 
 /** One row of the `sources` command's reply (`SourceView`): `PaletteMeta` plus the count. */
 export type SourceInfo = Source & {
   title: string;
   live: boolean;
   input: boolean;
-  icon?: string;
+  /** The palette's icon as the code gave it: a string, `{ tile }`, `{ glyph, color }` (`iconOf`). */
+  icon?: unknown;
   /** `view`: opened as a view level (the palette answers `view(ctx)`), never listed. */
   view?: "list" | "grid" | "view";
   columns?: number;
@@ -50,6 +53,16 @@ export type SourceInfo = Source & {
   ttl?: number;
   /** The palette's tier at the root as the manifest and the code resolved it (the config's override stays in the core). */
   tier?: "primary" | "normal" | "catalog";
+  /** Lists inline at the root for queries its `match` accepts (the host matches; the root asks it once any inline palette exists). */
+  inline?: true;
+  match?: string;
+  /** `ask`: the core builds an "Ask" fallback row for it; `rows`: it answers `fallback(query)` itself. */
+  fallback?: "ask" | "rows";
+  fallbackTitle?: string;
+  /** Answers `suggest()` for the empty root's "Now" section. */
+  suggest?: true;
+  /** `[palettes.<id>] alias`, for the alias-and-space jump. */
+  alias?: string;
   count: number;
   /** The rows are a restored (or expired) listing and a fresh one is pending: "updating" in the footer. */
   stale: boolean;
@@ -70,8 +83,8 @@ export type Effect = {
   /** Shown by the core in the HUD window after the panel hides. */
   hud?: string;
   keep?: true;
-  /** Drill in: a level scoped to that palette, its `list` given `args`. */
-  push?: { extension: string; palette: string; args?: unknown };
+  /** Drill in: a level scoped to that palette, its `list` given `args`; `query` is typed into its search box. */
+  push?: { extension: string; palette: string; args?: unknown; query?: string };
   /** A detail-only level to read. */
   show?: Detail & { title?: string };
   /** A render tree: a new view level from a list, the next tree of the view it came from. */
@@ -91,7 +104,10 @@ export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "objec
 const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined });
 
 /** A `View` off the wire as the UI keeps it; the host has checked the tree. */
-export const toView = (v: ViewSpec): ViewSpec => ({ tree: v.tree, actions: (v.actions ?? []).map(toAction), title: v.title, id: v.id, keys: v.keys });
+export const toView = (v: ViewSpec): ViewSpec => ({
+  tree: v.tree, actions: (v.actions ?? []).map(toAction), title: v.title, id: v.id, keys: v.keys,
+  input: v.input && typeof v.input === "object" && typeof v.input.submit === "string" ? { value: v.input.value, placeholder: v.input.placeholder, submit: v.input.submit, cancel: v.input.cancel } : undefined,
+});
 
 /** A wire field (`default`) as the Form component takes it (`value`); a kind the UI cannot draw is dropped by the host already. */
 type WireField = Omit<FormField, "value"> & { default?: string | boolean };
@@ -109,26 +125,51 @@ export const sourceKey = (s: Source) => (s.extension ? `${s.extension}/${s.palet
 export const PALETTES = "pal/palettes";
 /** The synthetic source of the first-run tips (`welcome::source` in welcome.rs): leads the empty query until hidden. */
 export const WELCOME = "pal/welcome";
+/** The synthetic source of the shell's own fallback rows (`fallback::source` in fallback.rs): never indexed, picked by id. */
+export const FALLBACK = "pal/fallback";
+/** The empty root's sections that are not a palette's: the Frequent rows (`FREQUENT` in index.rs) and the extensions' `suggest()` rows. */
+export const FREQUENT = "Frequent";
+export const NOW = "Now";
+/** The palette whose section follows Frequent at the empty root: the recently used files. */
+export const RECENT_FILES = "files/recent";
+/** The id of every fallback "Ask" row (`ASK_ID` in fallback.rs). */
+export const ASK_ID = "pal:ask";
 
 const pictographic = /\p{Extended_Pictographic}/u;
 
+const HEX = /^#[0-9a-f]{3,8}$/i;
+
 /**
  * `{ app: path }` (or a bare path, as v1 rows carry) is the app's artwork;
- * `{ image: url }` a picture to load as is; a hex colour is a tinted dot; a
- * private-use codepoint is a Nerd Font glyph (the bundled symbols font); a
- * pictograph is an emoji (the platform's colour font); any other string is
- * a glyph in the mono font. No icon: the favicon when there is a url, else
- * the name's initial.
+ * `{ image: url }` a picture to load as is; `{ tile }` an icon tile in a
+ * brand colour (sdk/src/icon.ts; a bad one is a plain glyph of its mark);
+ * `{ glyph, color }` a glyph tinted in a brand colour or a hex; a hex
+ * colour is a tinted dot; a private-use codepoint is a Nerd Font glyph
+ * (the bundled symbols font); a pictograph is an emoji (the platform's
+ * colour font); any other string is a glyph in the mono font. No icon: the
+ * favicon when there is a url, else the name's initial.
  */
 export function iconOf(icon: unknown, name: string, url?: string): Icon | undefined {
   const letter = name ? name[0].toUpperCase() : "";
-  const obj = icon && typeof icon === "object" ? (icon as { app?: unknown; image?: unknown }) : undefined;
+  const obj = icon && typeof icon === "object" ? (icon as { app?: unknown; image?: unknown; tile?: unknown; glyph?: unknown; color?: unknown }) : undefined;
   if (typeof obj?.app === "string") return { kind: "app", path: obj.app, letter };
   if (typeof obj?.image === "string") return { kind: "image", src: obj.image, mask: "rounded" };
+  if (obj?.tile && typeof obj.tile === "object") {
+    const t = obj.tile as { glyph?: unknown; svg?: unknown; bg?: unknown };
+    const glyph = typeof t.glyph === "string" && isSymbol(t.glyph) ? t.glyph : undefined;
+    const svg = typeof t.svg === "string" && t.svg.trim() ? t.svg : undefined;
+    if (isBrand(t.bg) && (glyph || svg)) return glyph ? { kind: "tile", bg: t.bg, glyph } : { kind: "tile", bg: t.bg, svg };
+    return glyph ? { kind: "glyph", value: glyph } : letter ? { kind: "glyph", value: letter } : undefined;
+  }
+  if (typeof obj?.glyph === "string" && obj.glyph.trim()) {
+    const value = obj.glyph.trim();
+    if (isBrand(obj.color)) return { kind: "glyph", value, tint: obj.color };
+    return typeof obj.color === "string" && HEX.test(obj.color) ? { kind: "glyph", value, color: obj.color } : { kind: "glyph", value };
+  }
   const s = typeof icon === "string" ? icon.trim() : "";
   if (s.startsWith("/")) return { kind: "app", path: s, letter };
   if (s) {
-    if (/^#[0-9a-f]{3,8}$/i.test(s)) return { kind: "glyph", value: "●", color: s };
+    if (HEX.test(s)) return { kind: "glyph", value: "●", color: s };
     if (isSymbol(s)) return { kind: "glyph", value: s };
     return pictographic.test(s) ? { kind: "emoji", value: s } : { kind: "glyph", value: s };
   }
@@ -153,8 +194,29 @@ function detailOf(w: WireItem, paletteTitle: string): Detail {
 
 const safeHost = (url: string) => { try { return new URL(url).host; } catch { return url; } };
 
-/** What `toItem` reads of a row's palette: the section label, whether details are lazy, the rows' shared actions. */
-export type PaletteInfo = Pick<SourceInfo, "title" | "detail" | "actions">;
+/** What `toItem` reads of a row's palette: the section label, whether details are lazy, the rows' shared actions, its icon and kind (a tile's colour tints the rows' plain glyphs, except in a catalog or a grid, where the glyphs are the content). */
+export type PaletteInfo = Pick<SourceInfo, "title" | "detail" | "actions" | "icon" | "view" | "tier">;
+
+/** The brand colour a palette's rows are marked in: its tile icon's, unless its glyphs are what it lists (a catalog, a grid). */
+export const brandOf = (p: Pick<PaletteInfo, "icon" | "view" | "tier">): Brand | undefined => {
+  if (p.view === "grid" || p.tier === "catalog") return undefined;
+  const i = iconOf(p.icon, "");
+  return i?.kind === "tile" ? i.bg : undefined;
+};
+
+/**
+ * A row's icon with its palette's colour: a plain Nerd Font glyph (no
+ * colour of its own, not a letter fallback) in a palette whose icon is a
+ * tile takes the tile's brand as its tint, so the rows of an extension are
+ * marked in its colour rather than grey; a favicon's globe fallback the
+ * same. Anything else is as it came.
+ */
+const tintedBy = (icon: Icon | undefined, brand: Brand | undefined): Icon | undefined => {
+  if (!brand || !icon) return icon;
+  if (icon.kind === "glyph" && !icon.color && !icon.tint && isSymbol(icon.value)) return { ...icon, tint: brand };
+  if (icon.kind === "favicon" && !icon.tint) return { ...icon, tint: brand };
+  return icon;
+};
 
 /**
  * `palette.detail === "lazy"`: the palette answers `detail(id)`. An item
@@ -171,7 +233,7 @@ export function toItem(hit: WireHit, palette: PaletteInfo): Item {
     id: w.id,
     name: w.name,
     subtitle: w.subtitle,
-    icon: iconOf(w.icon, w.name, w.url),
+    icon: tintedBy(iconOf(w.icon, w.name, w.url), brandOf(palette)),
     keywords: w.keywords,
     palette: key,
     source: hit.source,
@@ -182,6 +244,8 @@ export function toItem(hit: WireHit, palette: PaletteInfo): Item {
     actions: (w.actions ?? shared)?.map(toAction),
     // The core's "N more in X" row after a capped section (`more_row` in src-tauri/src/index.rs): muted, Enter opens the palette.
     muted: w.more === true ? true : undefined,
+    group: hit.group,
+    push: w.push && typeof w.push === "object" && typeof w.push.extension === "string" && typeof w.push.palette === "string" ? { extension: w.push.extension, palette: w.push.palette, args: w.push.args, query: typeof w.push.query === "string" ? w.push.query : undefined } : undefined,
   };
 }
 

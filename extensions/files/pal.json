@@ -1,9 +1,9 @@
 {
   "name": "files",
   "title": "Files",
-  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; the recently used files before you type, and as a palette of their own. Open, open with another app, reveal, Quick Look, copy the path or the file, trash.",
+  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; by contents too, as a second section or alone with a ' prefix; the recently used files before you type, and as a palette of their own. Open, open with another app, reveal, Quick Look, copy the path, the file or the text in an image (OCR), trash.",
   "version": "0.1.0",
-  "icon": "󰱽",
+  "icon": { "tile": { "glyph": "󰉋", "bg": "slate" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -36,6 +36,20 @@
       "default": false
     },
     {
+      "kind": "boolean",
+      "id": "content_search",
+      "label": "Search contents",
+      "text": "Also list files whose text contains the query, under the name matches (a query starting with ' or content: searches contents only)",
+      "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "ocr_concealed",
+      "label": "OCR copies are private",
+      "text": "Text read from an image (Copy text) is kept out of clipboard history",
+      "default": false
+    },
+    {
       "kind": "list",
       "id": "exclude",
       "label": "Exclude",
@@ -55,6 +69,8 @@
     "features": [
       "Spotlight (`mdfind -name`) on macOS; `fd`, else `locate`, else a bounded `find` on Linux, one process per keystroke, killed after 3 s",
       "Exact and prefix name matches first, at most `limit` rows, the folder as the subtitle, size and date on the right",
+      "Contents too: files whose text has the query as a second section, the first matching line as the subtitle (Spotlight's text index on macOS, `rg` or `grep` on Linux, 1 s at most); `'query` or `content:query` searches contents only",
+      "Copy text (OCR, `cmd+shift+t`) on an image or a PDF's first page: the Vision framework on macOS, `tesseract` on Linux",
       "Before you type: the files used in the last seven days; the same rows as the Recent Files palette",
       "Open with… (`cmd+o`) lists the apps the OS registers for the file, the default tagged",
       "Reveal (`cmd+enter`), Quick Look (`cmd+y`), Copy path (`cmd+c`), Copy file (`cmd+shift+c`), Move to Trash (`cmd+d`, asks first)",
@@ -125,7 +141,10 @@
   "palettes": {
     "files": {
       "kind": "input",
-      "description": "Type part of a file name; rows are the matches under the configured folders. Before you type: the recently used files.",
+      "inline": true,
+      "match": "^\\s*(~|/)",
+      "fallback": "Search Files for “{query}”",
+      "description": "Type part of a file name; rows are the matches under the configured folders. Before you type: the recently used files. A path (`~/Down`, `/usr/local`) lists the file or its completions, at the root too; a root query nothing matched gets a Search Files fallback row.",
       "keys": [
         {
           "keys": "enter",

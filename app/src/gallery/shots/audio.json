@@ -3,7 +3,12 @@
     "audio": {
       "title": "Audio",
       "live": true,
-      "icon": "♫",
+      "icon": {
+        "tile": {
+          "glyph": "󰕾",
+          "bg": "violet"
+        }
+      },
       "placeholder": "Switch output or input, set the volume",
       "items": [
         {

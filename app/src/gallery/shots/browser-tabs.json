@@ -2,7 +2,12 @@
   "palettes": {
     "tabs": {
       "title": "Browser Tabs",
-      "icon": "◍",
+      "icon": {
+        "tile": {
+          "glyph": "󰓩",
+          "bg": "cyan"
+        }
+      },
       "live": true,
       "placeholder": "Switch to a tab",
       "filters": [

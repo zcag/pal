@@ -328,7 +328,6 @@ export default {
   palettes: {
     services: {
       title: BACKEND === "systemd" ? "Services" : "Launch Agents",
-      icon: ICON,
       live: true,
       ttl: TTL,
       placeholder: BACKEND === "systemd" ? "Unit name or description" : "Label",

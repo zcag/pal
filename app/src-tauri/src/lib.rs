@@ -12,20 +12,25 @@ mod bridge;
 mod cache;
 mod cli;
 mod clipboard;
+mod color;
 mod commands;
 mod compat;
 mod crash;
 mod deeplink;
 mod effects;
 mod events;
+mod fallback;
 mod firstrun;
 mod host;
 mod hotkey;
 mod hud;
 mod icon;
 mod index;
+mod large;
 mod media;
+mod ocr;
 mod registry;
+mod selection;
 mod settings;
 mod storage;
 mod system;
@@ -38,6 +43,7 @@ mod windows;
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
 mod panel;
 mod permissions;
+mod pop;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
@@ -88,6 +94,9 @@ struct Shown {
     /// `extension/palette` to open straight into (a palette hotkey).
     #[serde(skip_serializing_if = "Option::is_none")]
     palette: Option<String>,
+    /// The page keeps its level and query (`general.pop_to_root`, pop.rs)
+    /// instead of going back to the root.
+    keep: bool,
 }
 
 // ---- show / hide ---------------------------------------------------------
@@ -132,13 +141,14 @@ fn show(app: &AppHandle) {
 /// a palette hotkey switches what is showing.
 pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     let t0 = now_ms();
+    let keep = pop::keep(&settings::config(app).general.pop_to_root);
     if !panel::is_visible(app) {
         place(app);
         panel::show(app);
     } else if palette.is_none() {
         return;
     }
-    events::emit(app, events::SHOWN, Shown { t0, palette });
+    events::emit(app, events::SHOWN, Shown { t0, palette, keep });
     // After the event: the live palettes list again off this thread.
     index::on_shown(app);
     bar::on_shown(app);
@@ -254,6 +264,11 @@ pub fn run() {
             index::detail,
             index::filter,
             index::index_refresh,
+            index::frecency_forget,
+            index::search_history,
+            index::search_history_clear,
+            fallback::fallback,
+            settings::settings_general,
             settings::settings_get,
             settings::settings_theme,
             settings::settings_set,
@@ -282,6 +297,9 @@ pub fn run() {
             bar::popover::bar_size,
             bar::popover::bar_action,
             bar::popover::bar_refresh,
+            deeplink::link_copy,
+            large::large_hide,
+            large::large_show,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
@@ -320,6 +338,10 @@ pub fn run() {
             match app.get_webview_window(hud::WINDOW) {
                 Some(w) => panel::hud_install(&w),
                 None => eprintln!("hud\ttauri.conf.json has no `hud` window; no HUD this run"),
+            }
+            match app.get_webview_window(large::WINDOW) {
+                Some(w) => panel::large_install(&w),
+                None => eprintln!("large\ttauri.conf.json has no `large` window; no Large Type this run"),
             }
             // The index cache and frecency are keyed by config file, so two
             // configs (a dev profile, `config.toml`) never share one.

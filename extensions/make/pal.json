@@ -3,7 +3,7 @@
   "title": "Makefile Targets",
   "description": "The targets of every Makefile under your project folders. Enter runs one in a terminal (or in the background, with a toast).",
   "version": "0.1.0",
-  "icon": "󰣪",
+  "icon": { "tile": { "glyph": "󰣪", "bg": "orange" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

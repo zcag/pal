@@ -312,8 +312,16 @@ mark.p-m { background: var(--pal-match); color: inherit; border-radius: var(--pa
 .p-ibox .app { width: 24px; height: 24px; border-radius: var(--pal-radius-icon); display: grid; place-items: center; font: 600 11px/1 var(--pal-font-ui); color: #fff; }
 .p-ibox .sw { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18), inset 0 0 0 2px rgba(255,255,255,.35); }
 .p-ibox .av { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 500 9px/1 var(--pal-font-ui); color: #fff; }
-.p-ibox .tint { width: 24px; height: 24px; border-radius: var(--pal-radius-icon); display: grid; place-items: center; }
-.p-ibox .tint svg { width: 14px; height: 14px; }
+/* icon tile: the brand square with a white mark; --tile is the side, the radius a quarter of it (app/src/ui/icons.css) */
+.p-ibox .tile { --tile: 24px; width: var(--tile); height: var(--tile); border-radius: calc(var(--tile) / 4); background: var(--brand); color: var(--pal-tile-fg); box-shadow: inset 0 0 0 1px var(--pal-tile-ring); display: grid; place-items: center; }
+.p-ibox .tile svg { width: 66%; height: 66%; stroke-width: 1.8; }
+.p-ibox.sm { width: 20px; height: 20px; } .p-ibox.sm .tile { --tile: 20px; }
+.p-ibox.md32 { width: 32px; height: 32px; } .p-ibox.md32 .tile { --tile: 32px; }
+.p-ibox.lg { width: 56px; height: 56px; } .p-ibox.lg .tile { --tile: 56px; }
+.brand-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 12px 0; max-width: 900px; }
+.brand-grid .b { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--pal-bg); color: var(--pal-fg); box-shadow: 0 0 0 1px var(--pal-line-strong); font-size: 12px; }
+.brand-grid .b .sw { flex: none; width: 24px; height: 24px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--pal-tile-ring); }
+.brand-grid .b small { display: block; color: var(--pal-fg-muted); font-size: 11px; }
 
 /* detail */
 .p-split { flex: 1; min-height: 0; display: flex; }
@@ -549,10 +557,14 @@ mark.p-m { background: var(--pal-match); color: inherit; border-radius: var(--pa
   <h2>Iconography</h2>
   <p>One 24px box, always. What changes is how each kind sits inside it, so a list mixing apps, emoji, favicons and glyphs still has one optical column.</p>
   <div class="icons" id="icon-spec"></div>
+  <div class="icons" id="tile-spec"></div>
+  <p><b>The brand palette</b>, <code>--pal-brand-*</code>: twelve colours, one light and one dark value each, picked so a white mark reads on every one in both themes. An extension names the one it is known by; the neutral family (apps, windows, files, processes, services, system, scripts) is slate.</p>
+  <div class="brand-grid" id="brand-spec"></div>
   <ul class="plain">
     <li><b>App icons</b> fill the box at 24px, unmasked. macOS icons carry their own shape and Linux icons are inconsistent; a mask would cut the first and not fix the second. Rendered here as placeholders; the app draws the real artwork.</li>
     <li><b>Monochrome glyphs</b> are 16px, 1.5px stroke, round caps, centred. Tinted <code>--pal-fg-muted</code>, and <code>--pal-fg</code> on the selected row so the icon lights up with the title.</li>
-    <li><b>Tinted glyphs</b> (an extension's own commands): the same 14px glyph on a 24px rounded square (radius 6) in a tag tint. This is how a palette gets a colour without a bitmap.</li>
+    <li><b>Icon tiles</b> are the extension's own icon: a rounded square in one of the twelve brand colours below with a white mark, one Nerd Font glyph at 62% of the side or an SVG path at 66%. The side follows the box (24 in a row, 20 in the crumb and the footer, 32 in a grid cell, 56 on a settings page) and the radius is a quarter of it, so every size is the same shape; a hairline inset ring (<code>--pal-tile-ring</code>) keeps ink a square on the dark panel. Selection changes nothing on a tile, as on an app icon. Every palette of an extension wears the tile at the root, so the root reads as a grid of marks, like Raycast's.</li>
+    <li><b>Tinted glyphs</b> are a row's mark in a colour: a plain Nerd Font glyph takes its palette's tile colour (so an extension's rows are marked in its colour, never grey next to a tile), a state keeps its own (an open pull request's octicon in green, a merged one in violet). Ink-tinted glyphs draw in the text colour instead, since ink vanishes on the dark panel. Glyphs listed as content (a catalog, a grid) are not tinted. The tint holds on the selected row.</li>
     <li><b>Emoji</b> render at 17px in the platform colour font, no background. 17 matches the optical weight of a 16px stroke glyph.</li>
     <li><b>Favicons</b> are 16px with a 3px corner mask, centred in the box. Sixteen is what sites ship; scaling them up shows the pixels. Missing favicon: the globe glyph.</li>
     <li><b>Colour swatches</b> are 18px circles with a 1px inner ring, so white and near-background colours still show an edge.</li>
@@ -705,7 +717,7 @@ const glyphIcon = (n) => ibox(svg(n));
 const emoji = (e) => ibox(`<span class="emoji">${e}</span>`);
 const swatch = (hex) => ibox(`<span class="sw" style="background:${hex}"></span>`);
 const avatar = (ini, bg) => ibox(`<span class="av" style="background:${bg}">${ini}</span>`);
-const tinted = (n, colour) => ibox(`<span class="tint" style="background:var(--pal-tag-${colour}-bg);color:var(--pal-tag-${colour})">${svg(n)}</span>`);
+const tinted = (n, colour) => ibox(`<span style="color:var(--pal-brand-${colour})">${svg(n)}</span>`);
 const tag = (t, c = '', dot = false) => `<span class="p-tag ${c}">${dot ? '<i class="dot"></i>' : ''}${t}</span>`;
 const kbd = (k) => `<span class="p-kbd">${k}</span>`;
 
@@ -864,12 +876,31 @@ put('rest-dark', rootPanel(0));
   }
 })();
 
+/* icon tiles: the same tile at the four sides it is drawn at, and the brand palette */
+const tileIcon = (brand, n, cls = '') => `<span class="p-ibox ${cls}"><span class="tile" style="--brand:var(--pal-brand-${brand})">${svg(n)}</span></span>`;
+put('tile-spec', [
+  [tileIcon('ink', 'branch'), 'Tile, row', '24, radius 6'],
+  [tileIcon('ink', 'branch', 'sm'), 'Tile, crumb', '20, radius 5'],
+  [tileIcon('ink', 'branch', 'md32'), 'Tile, grid cell', '32, radius 8'],
+  [tileIcon('ink', 'branch', 'lg'), 'Tile, settings', '56, radius 14'],
+  [tileIcon('amber', 'clock'), 'Tile, amber', 'Timer'],
+  [tileIcon('teal', 'sliders'), 'Tile, teal', 'Home Assistant'],
+  [tileIcon('violet', 'copy'), 'Tile, violet', 'Clipboard'],
+  [tileIcon('slate', 'window'), 'Tile, slate', 'the neutral family'],
+  [ibox(`<span style="color:var(--pal-brand-green)">${svg('pr')}</span>`), 'Tinted glyph', 'a state, green'],
+  [ibox(`<span style="color:var(--pal-brand-cyan)">${svg('box')}</span>`), 'Tinted glyph', "the palette's colour"],
+].map(([i, b, s]) => `<div class="ic"><span class="box">${i}</span><span><b>${b}</b>${s}</span></div>`).join(''));
+put('brand-spec', [
+  ['red', 'Calendar, Blackjack'], ['orange', 'Bookmarks, Quicklinks, Make'], ['amber', 'Timer, 2048, Emoji'], ['green', 'Now Playing, Wordle, OTP'],
+  ['teal', 'Home Assistant, SSH'], ['cyan', 'Docker, Network, Browser Tabs'], ['blue', '1Password, Bluetooth, Wi-Fi'], ['indigo', 'Calculator, Window Management'],
+  ['violet', 'Clipboard, Snippets, Audio'], ['pink', 'Icons, Unicode'], ['slate', 'Apps, Windows, Files, Processes, Services, System, Scripts'], ['ink', 'GitHub'],
+].map(([n, who]) => `<div class="b"><span class="sw" style="background:var(--pal-brand-${n})"></span><span>${n}<small>${who}</small></span></div>`).join(''));
+
 /* icon specimens */
 put('icon-spec', [
   [ibox(app('chrome')), 'App icon', '24, unmasked'],
   [ibox(app('kitty')), 'App icon', 'placeholder tile, radius 6'],
   [glyphIcon('pr'), 'Glyph', '16, 1.5 stroke, fg-muted'],
-  [tinted('terminal', 'teal'), 'Tinted glyph', '14 on 24 tile, tag tint'],
   [emoji('🍑'), 'Emoji', '17, no background'],
   [ibox(FAV.grafana), 'Favicon', '16, radius 3'],
   [glyphIcon('globe'), 'Missing favicon', 'globe glyph'],

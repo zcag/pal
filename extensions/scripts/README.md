@@ -4,8 +4,35 @@ The zero-code tier. A palette can be a data file (json, jsonl or toml) or
 a shell script that prints JSON lines, described by a small TOML table. No
 TypeScript. The extension reads those tables from a pal v1 style config
 file and turns each `[palette.<name>]` into a palette named after its
-table, with the config id `scripts-<name>`. The full format is in
-[docs/scripts.md](../../docs/scripts.md); this is the short version.
+table, with the config id `scripts-<name>`. It also runs **script
+commands**: single executable files with a `# @pal.title` header, one row
+each in the Script Commands palette (`scripts-commands`). The full format
+is in [docs/scripts.md](../../docs/scripts.md); this is the short version.
+
+## A script command
+
+```bash
+#!/usr/bin/env bash
+# @pal.title Deploy site
+# @pal.icon 🚀
+# @pal.mode hud
+# @pal.confirm true
+# @pal.args target Environment: staging or prod
+echo "Deployed to $1"
+```
+
+`chmod +x` it and put it in `~/.config/pal/commands/` (the `commands`
+setting; the folder is watched). Enter runs it, a form first when it has
+`args`; `hud` shows the first output line in the HUD, `silent` nothing,
+`show` the whole output as a level, `list` its JSON-lines output as rows
+(a row with `url` opens, one with `copy` copies, another runs the script
+again with `PAL_PICK`), `inline` its first line as the row's subtitle,
+refreshed every `@pal.refresh`. `@pal.keyword`, `@pal.section`,
+`@pal.cwd` and an icon that is an emoji, a glyph, a hex, a brand colour, an
+image next to the script or a url. Raycast's `@raycast.*` headers are
+accepted as they are, so a Raycast script command drops in unchanged.
+`cmd+o` opens the file, `cmd+c` copies its output, `cmd+shift+c` its
+path. Two examples are in `examples/commands/`.
 
 ## A data-file palette
 
@@ -68,6 +95,15 @@ is Select, which runs `run.sh pick`.
 | `tab` | The next `filter` scope |
 | `cmd+r` | Run the script again past any `ttl` |
 
+In Script Commands:
+
+| keys | action |
+| --- | --- |
+| `enter` | Run the command as its mode says; Open a `list` one; a form first when it has `args` |
+| `cmd+o` | Open the script file |
+| `cmd+c` | Copy output: run it and copy what it printed |
+| `cmd+shift+c` | Copy the file's path |
+
 ## Setup
 
 Point `config` at the file that holds the tables. The default is pal's
@@ -92,13 +128,14 @@ Settings, `[extensions.scripts]`:
 | `config` | path | `~/.config/pal/config.toml` | The file whose `[palette.<name>]` tables become palettes. |
 | `skip` | list | `["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"]` | Table names not to load, because a bundled extension covers them. |
 | `v1_repo` | path | `~/proj/pal-v1` | The v1 checkout: where `github:zcag/pal/...` bases resolve when v1's plugin cache has no copy, and where a base under a v1 checkout missing on this box (`~/proj/pal/plugins/...` or `~/proj/pal-v1/plugins/...`) is looked up. `~/proj/pal` is tried when this path has no `plugins/palettes`. |
+| `commands` | path | `~/.config/pal/commands` | The folder of single-file script commands, read on every listing and watched. |
 | `timeout` | seconds, 1 to 300 | `30` | A `list` or `pick` still running after this is killed. |
 | `preview_max` | 0 to 32 | `4` | How many `preview` commands run at the same time. 0 turns previews off. |
 | `ttl` | seconds, 0 to 604800 | `3600` | Listing lifetime for non-live tables that declare no `ttl`; a table's own `ttl` wins. 0 runs every script on every start. |
 
 `config`, `skip`, `v1_repo` and `ttl` are read when the extension loads;
-after changing them, Settings > Restart extension host. `timeout` and
-`preview_max` apply to the next run.
+after changing them, Settings > Restart extension host. `timeout`,
+`preview_max` and `commands` apply to the next run or listing.
 
 ## What it does not do
 
@@ -108,7 +145,10 @@ after changing them, Settings > Restart extension host. `timeout` and
 - Metadata separators in `detail`: no equivalent, left out.
 - Run a `list` or `pick` past `timeout`: it is killed with its process
   group and counts as failed.
-- Watch the config: a new table shows after Restart extension host.
+- Watch the config: a new table shows after Restart extension host (the
+  commands folder is watched; the v1 config is not).
+- Confirm a script command that takes arguments: its form is the
+  confirmation.
 
 ## Platforms
 

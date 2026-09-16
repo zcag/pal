@@ -4,6 +4,7 @@
 //! as the `paste` effect. Every recorded copy is a `pal://clipboard` event.
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use pal_core::clipboard::{self as cb, Clipboard, Kind, Retention, WatchHandle};
 use pal_core::config::spec_defaults;
@@ -112,6 +113,8 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
             store.delete(p.id).map_err(err).map(|_| Value::Null)
         }
         "clear" => store.clear().map_err(err).map(|_| Value::Null),
+        // What is on the clipboard now, as history recorded it (`null` when history has no entry for it).
+        "current" => serde_json::to_value(store.current().map_err(err)?).map_err(|e| e.to_string()),
         "copy" => {
             let p: IdParams = arg(params)?;
             store.copy(p.id).map_err(err).map(|_| Value::Null)
@@ -122,10 +125,43 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
 
 // ---- copy and paste effects ----------------------------------------------
 
-/// The `copy` effect: through the core's writer, so the watcher records it
-/// like any other copy.
-pub fn copy_text(text: &str) -> Result<(), String> {
-    cb::write_text(text).map_err(err)
+/// The `copy` effect's payload: a string, or `{ text, concealed?,
+/// clear_after? }` (protocol.ts `CopyText`). Concealed: marked for
+/// clipboard managers to skip and kept out of pal's history; with
+/// `clear_after` seconds the previous clipboard comes back once they are
+/// up, if the secret is still there.
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum Copy {
+    Text(String),
+    Options {
+        text: String,
+        #[serde(default)]
+        concealed: bool,
+        #[serde(default)]
+        clear_after: Option<u64>,
+    },
+}
+
+impl Copy {
+    /// The clear delay, on a concealed copy that asked for one (0 is none).
+    pub fn clear_after(&self) -> Option<Duration> {
+        match self {
+            Copy::Options { concealed: true, clear_after: Some(s), .. } if *s > 0 => Some(Duration::from_secs(*s)),
+            _ => None,
+        }
+    }
+}
+
+/// The `copy` effect: a plain copy goes through the core's writer, so the
+/// watcher records it like any other; a concealed one through the marked
+/// write the watcher skips.
+pub fn copy(what: Copy) -> Result<(), String> {
+    match (&what, what.clear_after()) {
+        (Copy::Text(text), _) | (Copy::Options { text, concealed: false, .. }, _) => cb::write_text(text).map_err(err),
+        (Copy::Options { text, .. }, Some(delay)) => cb::write_text_concealed_for(text, delay).map_err(err),
+        (Copy::Options { text, .. }, None) => cb::write_text_concealed(text).map_err(err),
+    }
 }
 
 /// The `copy_files` effect: the files themselves (file URLs on macOS,
@@ -173,6 +209,20 @@ mod tests {
         assert!(matches!(serde_json::from_value::<Paste>(json!({ "text": "hi" })), Ok(Paste::Text { text }) if text == "hi"));
         assert!(serde_json::from_value::<Paste>(json!(true)).is_err());
         assert!(serde_json::from_value::<Paste>(json!({ "entry": "7" })).is_err(), "an id is a number");
+    }
+
+    #[test]
+    fn copy_envelope_shapes() {
+        let c: Copy = serde_json::from_value(json!("hi")).unwrap();
+        assert!(matches!(c, Copy::Text(ref t) if t == "hi") && c.clear_after().is_none());
+        let c: Copy = serde_json::from_value(json!({ "text": "s", "concealed": true, "clear_after": 30 })).unwrap();
+        assert_eq!(c.clear_after(), Some(Duration::from_secs(30)));
+        let c: Copy = serde_json::from_value(json!({ "text": "s", "concealed": true, "clear_after": 0 })).unwrap();
+        assert_eq!(c.clear_after(), None, "0 is never");
+        let c: Copy = serde_json::from_value(json!({ "text": "s", "clear_after": 30 })).unwrap();
+        assert_eq!(c.clear_after(), None, "a plain copy does not clear");
+        assert!(serde_json::from_value::<Copy>(json!({ "concealed": true })).is_err(), "text is required");
+        assert!(serde_json::from_value::<Copy>(json!(7)).is_err());
     }
 
     #[test]

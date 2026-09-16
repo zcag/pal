@@ -92,6 +92,8 @@ pub const MAX_SCORE: f32 = 1.0 + QUERY_EXACT_BONUS;
 pub const BOOST_SCALE: f32 = 100.0;
 /// Items kept; past this the lowest-scoring one is evicted on insert.
 pub const MAX_KEYS: usize = 5000;
+/// Root queries remembered in order (the search history), newest first.
+pub const MAX_HISTORY: usize = 20;
 /// Quiet time after the last change before the file is written.
 pub const SAVE_DEBOUNCE: Duration = Duration::from_millis(500);
 const FILE_VERSION: u32 = 1;
@@ -237,6 +239,9 @@ struct FileEntry {
 struct File {
     version: u32,
     items: Vec<FileEntry>,
+    /// The search history, newest first; absent in files written before it existed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    history: Vec<String>,
 }
 
 enum Save {
@@ -247,6 +252,11 @@ enum Save {
 /// The store. Cheap to query, owns its file.
 pub struct Frecency {
     entries: HashMap<Key, Entry>,
+    /// The last [`MAX_HISTORY`] root queries that led to a pick, newest
+    /// first, each once (as typed, trimmed): what Up at the top of an empty
+    /// root list walks back through. Lives here because it is the same
+    /// memory as the per-item queries, kept in order.
+    history: Vec<String>,
     path: Option<PathBuf>,
     saver: Option<mpsc::Sender<Save>>,
     notice: Option<String>,
@@ -255,7 +265,7 @@ pub struct Frecency {
 impl Frecency {
     /// No file: nothing is loaded or saved.
     pub fn in_memory() -> Self {
-        Self { entries: HashMap::new(), path: None, saver: None, notice: None }
+        Self { entries: HashMap::new(), history: Vec::new(), path: None, saver: None, notice: None }
     }
 
     /// [`FILE_NAME`] under `dir`, see the module docs.
@@ -271,7 +281,7 @@ impl Frecency {
     /// Either way [`notice`](Self::notice) says what happened.
     pub fn load(path: impl Into<PathBuf>) -> Self {
         let path = path.into();
-        let mut store = Self { entries: HashMap::new(), path: Some(path.clone()), saver: None, notice: None };
+        let mut store = Self { entries: HashMap::new(), history: Vec::new(), path: Some(path.clone()), saver: None, notice: None };
         let bytes = match std::fs::read(&path) {
             Ok(b) => b,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return store,
@@ -284,6 +294,8 @@ impl Frecency {
         let why = match serde_json::from_slice::<File>(&bytes) {
             Ok(file) if file.version == FILE_VERSION => {
                 store.entries = file.items.into_iter().map(|e| (e.key, e.entry)).collect();
+                store.history = file.history;
+                store.history.truncate(MAX_HISTORY);
                 return store;
             }
             Ok(file) => format!("file version {} (this pal writes {FILE_VERSION})", file.version),
@@ -345,17 +357,48 @@ impl Frecency {
         self.changed();
     }
 
-    /// Drop one item's history (a "remove from recents" action).
-    pub fn forget(&mut self, key: &Key) {
-        if self.entries.remove(key).is_some() {
+    /// Drop one item's history (the "Reset ranking" action): its visits
+    /// and the queries that led to it. Whether there was anything to drop.
+    pub fn forget(&mut self, key: &Key) -> bool {
+        let had = self.entries.remove(key).is_some();
+        if had {
+            self.changed();
+        }
+        had
+    }
+
+    /// Drop all history, the search history included.
+    pub fn clear(&mut self) {
+        if !self.entries.is_empty() || !self.history.is_empty() {
+            self.entries.clear();
+            self.history.clear();
             self.changed();
         }
     }
 
-    /// Drop all history.
-    pub fn clear(&mut self) {
-        if !self.entries.is_empty() {
-            self.entries.clear();
+    /// A root query that led to a pick, onto the front of the search
+    /// history (once: an earlier copy moves up). Trimmed as typed, case
+    /// kept; empty queries are not history.
+    pub fn record_history(&mut self, query: &str) {
+        let q = query.trim();
+        if q.is_empty() {
+            return;
+        }
+        self.history.retain(|old| old != q);
+        self.history.insert(0, q.to_string());
+        self.history.truncate(MAX_HISTORY);
+        self.changed();
+    }
+
+    /// The search history, newest first.
+    pub fn history(&self) -> &[String] {
+        &self.history
+    }
+
+    /// Forget the search history, the items' own history untouched.
+    pub fn clear_history(&mut self) {
+        if !self.history.is_empty() {
+            self.history.clear();
             self.changed();
         }
     }
@@ -451,7 +494,7 @@ impl Frecency {
             .iter()
             .map(|(k, e)| FileEntry { key: k.clone(), entry: e.clone() })
             .collect();
-        serde_json::to_string(&File { version: FILE_VERSION, items }).expect("plain data")
+        serde_json::to_string(&File { version: FILE_VERSION, items, history: self.history.clone() }).expect("plain data")
     }
 
     fn evict_lowest(&mut self, now: u64) {
@@ -688,11 +731,45 @@ mod tests {
         let mut f = Frecency::in_memory();
         f.record(&key("a"), t(D));
         f.record(&key("b"), t(D));
-        f.forget(&key("a"));
+        assert!(f.forget(&key("a")), "there was history to drop");
+        assert!(!f.forget(&key("a")), "and none the second time");
         assert_eq!(f.score(&key("a"), "", t(D)), 0.0);
         assert_eq!(f.len(), 1);
+        f.record_history("b");
         f.clear();
         assert!(f.is_empty());
+        assert!(f.history().is_empty(), "clear takes the search history too");
+    }
+
+    #[test]
+    fn search_history_is_ordered_deduped_capped_and_persisted() {
+        let mut f = Frecency::in_memory();
+        f.record_history("  ");
+        assert!(f.history().is_empty(), "an empty query is not history");
+        f.record_history("chrome");
+        f.record_history(" Slack ");
+        f.record_history("chrome");
+        assert_eq!(f.history(), ["chrome", "Slack"], "newest first, once each, trimmed as typed");
+        for i in 0..(MAX_HISTORY + 5) {
+            f.record_history(&format!("q{i}"));
+        }
+        assert_eq!(f.history().len(), MAX_HISTORY);
+        assert_eq!(f.history()[0], format!("q{}", MAX_HISTORY + 4));
+        f.clear_history();
+        assert!(f.history().is_empty());
+        // The file keeps it; a file without the key (written before it existed) loads as none.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("frecency.json");
+        {
+            let mut f = Frecency::load(&path);
+            f.record_history("emoji");
+            f.record_history("2+2");
+            f.flush().unwrap();
+        }
+        assert_eq!(Frecency::load(&path).history(), ["2+2", "emoji"]);
+        std::fs::write(&path, r#"{"version":1,"items":[]}"#).unwrap();
+        let f = Frecency::load(&path);
+        assert!(f.history().is_empty() && f.notice().is_none());
     }
 
     #[test]

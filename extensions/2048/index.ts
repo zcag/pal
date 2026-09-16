@@ -24,7 +24,6 @@ export default {
   palettes: {
     "2048": {
       title: "2048",
-      icon: "🔢",
       view: async () => render(await load(), current()),
       pick: async (_id, action) => {
         const s = current();

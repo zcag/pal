@@ -2,7 +2,12 @@
   "palettes": {
     "media": {
       "title": "Now Playing",
-      "icon": "",
+      "icon": {
+        "tile": {
+          "glyph": "󰝚",
+          "bg": "green"
+        }
+      },
       "live": true,
       "placeholder": "Play, pause, skip",
       "items": [

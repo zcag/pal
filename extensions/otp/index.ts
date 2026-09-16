@@ -4,7 +4,9 @@
 // incoming messages, a code pulled out of each text that names one, newest
 // first, Today then Earlier. Live: listed again on every show, so the code
 // that just arrived is at the top. Enter pastes the code into the app in
-// front, the other actions copy the code or the sender.
+// front, the other actions copy the code or the sender. A copied code is
+// a concealed copy (`conceal`): out of every clipboard history and gone
+// from the clipboard after 30 s.
 //
 // The database is behind Full Disk Access on macOS: SQLite answers
 // `SQLITE_AUTH` ("authorization denied") for a process without it, and so
@@ -19,7 +21,7 @@ import { Database } from "bun:sqlite";
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { home, settings, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
+import { CONCEAL_SECONDS, conceal, home, settings, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.otp]`, defaults in pal.json. */
 type Settings = { hours: number; senders: string[]; db: string; contacts: string };
@@ -269,13 +271,14 @@ function renderBar(): BarItem {
   return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${clip(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (Date.now() - c.at)) / 1000)) };
 }
 
-const copyLatest = (): Effect => { const c = latestCode(); return c ? { copy: c.code } : { hud: "No recent code" }; };
+/** The code onto the clipboard, concealed, cleared after `CONCEAL_SECONDS`. */
+const copyCode = (code: string): Effect => ({ copy: conceal(code), hud: `Copied code, clears in ${CONCEAL_SECONDS} s` });
+const copyLatest = (): Effect => { const c = latestCode(); return c ? copyCode(c.code) : { hud: "No recent code" }; };
 
 export default {
   palettes: {
     otp: {
       title: "Verification Codes",
-      icon: ICON,
       live: true,
       placeholder: "Search codes and senders",
       list,
@@ -284,7 +287,7 @@ export default {
         const c = codes.get(id);
         if (!c) return { keep: true, toast: { title: "That code is no longer listed", style: "failure" } };
         switch (action) {
-          case "copy": return { copy: c.code };
+          case "copy": return copyCode(c.code);
           case "copy-sender": return { copy: c.sender };
           default: return { paste: { text: c.code } };
         }

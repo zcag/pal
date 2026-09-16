@@ -14,8 +14,6 @@ type PaletteSettings = { columns: number };
 const RECENT_KEY = "recent";
 const RECENT_MAX = 12;
 const RECENT = "Recent";
-/** md-font_awesome, the palette's own row. */
-const ICON = "\u{f0151}";
 
 /** The sets in the order the grid lists them, with the label the section shows. */
 const SETS: Record<string, string> = {
@@ -85,7 +83,6 @@ export default {
   palettes: {
     icons: {
       title: "Nerd Font icons",
-      icon: ICON,
       view: "grid",
       // Palette meta is read once at load (see emoji).
       columns: settings.palette<PaletteSettings>("icons").columns,
@@ -109,7 +106,6 @@ export default {
     },
     freedesktop: {
       title: "Freedesktop icon names",
-      icon: ICON,
       view: "grid",
       columns: 10,
       actions: XDG_ACTIONS,

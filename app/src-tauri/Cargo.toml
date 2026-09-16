@@ -43,10 +43,13 @@ percent-encoding = "2"
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
 window-vibrancy = "0.6"
 # bar items: the popover's key monitor and the wake/focus triggers (bar/popover.rs, bar/mod.rs)
+# colour: NSColorSampler, the loupe the system draws, and NSColor/NSColorSpace to read the pick in sRGB (color.rs)
 objc2 = "0.6"
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSEvent", "NSWorkspace", "NSRunningApplication", "NSResponder", "NSWindow", "NSPanel", "NSScreen", "NSGraphics", "block2"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSEvent", "NSWorkspace", "NSRunningApplication", "NSResponder", "NSWindow", "NSPanel", "NSScreen", "NSGraphics", "NSColor", "NSColorSampler", "NSColorSpace", "objc2-core-foundation", "block2"] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSNotification", "NSString", "NSGeometry", "NSOperation", "block2"] }
 block2 = "0.6"
+# permissions: CoreLocation for the Location Services prompt that unlocks Wi-Fi network names (permissions.rs)
+objc2-core-location = { version = "0.3", default-features = false, features = ["std", "CLLocationManager", "CLLocationManagerDelegate"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 zbus = "5"

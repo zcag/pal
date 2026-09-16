@@ -1,15 +1,18 @@
 # Now Playing
 
 One row per running player: the track as the title, artist and album as
-the subtitle, the artwork (else the app's icon) and a `playing` /
-`paused` / `stopped` tag, with the player's name next to it. A player
-with nothing loaded reads "Nothing playing" with the player's name; one
-that is playing but reports no track (Chrome with a YouTube tab on macOS
-gives the position and nothing else) is its app's name, with the position
-as the subtitle (`42:12 / 1:06:03`). A live palette: read again on every
-show through the core's media capability, so the track that is on right
-now is a root result too (type its title or artist at the root). With no
-player running the one row says so, and on Linux how to see players.
+the subtitle, the cover (the system's Now Playing artwork on macOS, else
+the player's artwork url, else the app's icon), the position
+(`42:12 / 1:06:03`) and a `playing` / `paused` / `stopped` tag, with the
+player's name next to it. A player with nothing loaded reads "Nothing
+playing" with the player's name; one that is playing but reports no
+track (Chrome with a YouTube tab on macOS gives the position and nothing
+else) is its app's name, with the position as the subtitle. A live
+palette: read again on every show through the core's media capability,
+so the track that is on right now is a root result too (type its title
+or artist at the root), and the position is the core's estimate at that
+moment. With no player running the one row says so, and on Linux how to
+see players.
 
 Every control keeps the palette up and lists again, so the tag follows
 what you did; a player that refuses (Music not running, a player that
@@ -30,7 +33,10 @@ actions.
 
 ## Setup
 
-No settings. What is listed depends on what the core's media capability
+One setting, **Cover on the bar** (`bar_artwork`, off): the cover instead
+of the note on the menu bar strip, only when the cover is square (a 24 pt
+picture of anything else is a smudge); the popover shows the cover
+either way. What is listed depends on what the core's media capability
 can see:
 
 - **macOS**: Spotify and Music through AppleScript, only while the app is
@@ -44,18 +50,24 @@ can see:
   still works on macOS 15.4 and later, where `mediaremoted` answers only
   entitled clients and `nowplaying-cli` gets null for everything. Nothing
   to install. The row is the app's name and icon (from its bundle id),
-  the track when the player reports one, and the position.
+  the track and cover when the player reports them, and the position.
+  The adapter runs as one long-lived child of pal (`stream`): every
+  change the system reports lands in memory as it happens, so a look is
+  microseconds and a track change reaches the bar at once.
 - **Linux**: `playerctl` over MPRIS, one row per player; the icon is the
   player's `.desktop` when one is named like it. Without `playerctl` the
   one row says to install it.
 
 The bar item **Now Playing** puts the playing track on the strip (hidden
-while nothing plays) with the transport in its popover: Pause (`space`),
-Next (`right`), Previous (`left`), Copy track (`cmd+c`), Open (`cmd+o`).
-The core asks for it every 30 s and on show and wake; in between the
-extension looks at the players itself every 5 s while one was playing at
-the last look, and pushes when the track or the state changed, so a skip
-shows within seconds and an idle machine costs nothing.
+while nothing plays) with the track row (the cover or the app's icon at
+row size; a click opens the track) and the transport in its popover:
+Pause (`space`), Next (`right`), Previous (`left`), Copy track (`cmd+c`),
+Open (`cmd+o`). The core asks for it every 30 s, on show and wake, and,
+on macOS, the moment the stream sees the track, the state or the cover
+change (the `media` trigger). Without that stream (Linux) the extension
+looks at the players itself every 5 s while one was playing at the last
+look and pushes when the track or the state changed, so a skip shows
+within seconds and an idle machine costs nothing.
 
 ## What it does not do
 
@@ -64,8 +76,11 @@ shows within seconds and an idle machine costs nothing.
 - Launch a player: a player that is not running is not listed, and
   nothing here starts one.
 - Show a queue or a playlist; one row per player, the current track only.
-- Artwork for Music on macOS: Music gives no url, so the row shows the
-  app's icon.
+- Artwork for Music on macOS from Music itself: Music gives no url; the
+  row shows the system's cover for it while the system reports one, else
+  the app's icon.
+- Tick the position while the palette stays open: the row is what the
+  core estimated when the list was made; the next show has the new one.
 
 ## Platforms
 

@@ -1,260 +1,749 @@
 {
- "palettes": {
-  "links": {
-   "title": "links",
-   "icon": "🔗",
-   "items": [
-    {
-     "name": "Home Assistant",
-     "url": "http://homeassistant.local:8123",
-     "keywords": [
-      "ha",
-      "home"
-     ],
-     "section": "Home",
-     "id": "Home Assistant",
-     "icon": "🔗",
-     "actions": [
-      {
-       "id": "open",
-       "title": "Open"
+  "palettes": {
+    "links": {
+      "title": "links",
+      "icon": {
+        "tile": {
+          "glyph": "󰆍",
+          "bg": "slate"
+        }
       },
-      {
-       "id": "copy",
-       "title": "Copy link",
-       "shortcut": "cmd+c"
-      }
-     ]
+      "items": [
+        {
+          "name": "Home Assistant",
+          "url": "http://homeassistant.local:8123",
+          "keywords": [
+            "ha",
+            "home"
+          ],
+          "section": "Home",
+          "id": "Home Assistant",
+          "icon": "🔗",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "name": "Router",
+          "url": "http://192.168.1.1",
+          "subtitle": "admin page",
+          "section": "Home",
+          "id": "Router",
+          "icon": "🔗",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "name": "Grafana",
+          "url": "https://grafana.example.com",
+          "subtitle": "dashboards",
+          "section": "Work",
+          "id": "Grafana",
+          "icon": "🔗",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "name": "CI",
+          "url": "https://ci.acme.dev",
+          "subtitle": "pipelines",
+          "section": "Work",
+          "id": "CI",
+          "icon": "🔗",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "name": "Docs",
+          "url": "https://docs.acme.dev",
+          "section": "Work",
+          "id": "Docs",
+          "icon": "📚",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "name": "GitHub",
+          "url": "https://github.com",
+          "section": "Work",
+          "id": "GitHub",
+          "icon": "🐙",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
     },
-    {
-     "name": "Router",
-     "url": "http://192.168.1.1",
-     "subtitle": "admin page",
-     "section": "Home",
-     "id": "Router",
-     "icon": "🔗",
-     "actions": [
-      {
-       "id": "open",
-       "title": "Open"
+    "cmds": {
+      "title": "cmds",
+      "icon": {
+        "tile": {
+          "glyph": "󰆍",
+          "bg": "slate"
+        }
       },
-      {
-       "id": "copy",
-       "title": "Copy link",
-       "shortcut": "cmd+c"
-      }
-     ]
+      "items": [
+        {
+          "id": "deploy",
+          "name": "Deploy site",
+          "subtitle": "rsync dist/ to web-1",
+          "section": "Deploy",
+          "icon": "🚀",
+          "accessories": [
+            {
+              "tag": "prod",
+              "color": "red"
+            }
+          ],
+          "actions": [
+            {
+              "id": "_default",
+              "title": "Select"
+            }
+          ]
+        },
+        {
+          "id": "deploy-staging",
+          "name": "Deploy staging",
+          "subtitle": "rsync dist/ to staging",
+          "section": "Deploy",
+          "icon": "🚀",
+          "accessories": [
+            {
+              "tag": "staging",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "_default",
+              "title": "Select"
+            }
+          ]
+        },
+        {
+          "id": "backup",
+          "name": "Backup now",
+          "subtitle": "restic backup ~",
+          "section": "Maintenance",
+          "icon": "💾",
+          "actions": [
+            {
+              "id": "_default",
+              "title": "Select"
+            }
+          ]
+        },
+        {
+          "id": "update",
+          "name": "Update packages",
+          "subtitle": "brew upgrade",
+          "section": "Maintenance",
+          "icon": "⬆",
+          "actions": [
+            {
+              "id": "_default",
+              "title": "Select"
+            }
+          ]
+        },
+        {
+          "id": "theme",
+          "name": "Toggle theme",
+          "subtitle": "theme toggle",
+          "section": "Desktop",
+          "icon": "◐",
+          "accessories": [
+            {
+              "text": "dark"
+            }
+          ],
+          "actions": [
+            {
+              "id": "_default",
+              "title": "Select"
+            }
+          ]
+        },
+        {
+          "id": "screensaver",
+          "name": "Start screen saver",
+          "section": "Desktop",
+          "icon": "🌙",
+          "actions": [
+            {
+              "id": "_default",
+              "title": "Select"
+            }
+          ]
+        }
+      ]
     },
-    {
-     "name": "Grafana",
-     "url": "https://grafana.example.com",
-     "subtitle": "dashboards",
-     "section": "Work",
-     "id": "Grafana",
-     "icon": "🔗",
-     "actions": [
-      {
-       "id": "open",
-       "title": "Open"
+    "commands": {
+      "title": "Script Commands",
+      "icon": {
+        "tile": {
+          "glyph": "󰆍",
+          "bg": "slate"
+        }
       },
-      {
-       "id": "copy",
-       "title": "Copy link",
-       "shortcut": "cmd+c"
+      "live": true,
+      "placeholder": "Search script commands",
+      "items": [
+        {
+          "id": "deploy-site.sh",
+          "name": "Deploy site",
+          "subtitle": "Push the site to an environment",
+          "icon": "🚀",
+          "keywords": [
+            "deploy",
+            "ship"
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "File",
+                "value": "~/.config/pal/commands/deploy-site.sh"
+              },
+              {
+                "label": "Mode",
+                "value": "hud"
+              },
+              {
+                "label": "Arguments",
+                "value": "target, note"
+              },
+              {
+                "label": "Confirm",
+                "value": "yes"
+              },
+              {
+                "label": "Runs in",
+                "value": "~/.config/pal/commands"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run…"
+            },
+            {
+              "id": "open",
+              "title": "Open script",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy_output",
+              "title": "Copy output",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "listening-ports.sh",
+          "name": "Listening ports",
+          "subtitle": "Every TCP port something is listening on",
+          "icon": {
+            "tile": {
+              "glyph": "󰯃",
+              "bg": "cyan"
+            }
+          },
+          "keywords": [
+            "ports",
+            "lsof"
+          ],
+          "accessories": [
+            {
+              "text": "list"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "File",
+                "value": "~/.config/pal/commands/listening-ports.sh"
+              },
+              {
+                "label": "Mode",
+                "value": "list"
+              },
+              {
+                "label": "Runs in",
+                "value": "~/.config/pal/commands"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Open"
+            },
+            {
+              "id": "open",
+              "title": "Open script",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy_output",
+              "title": "Copy output",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "battery.sh",
+          "name": "Battery",
+          "subtitle": "87%, 3:10 left, not charging",
+          "icon": {
+            "tile": {
+              "glyph": "󰯃",
+              "bg": "green"
+            }
+          },
+          "accessories": [
+            {
+              "text": "inline"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "File",
+                "value": "~/.config/pal/commands/battery.sh"
+              },
+              {
+                "label": "Mode",
+                "value": "inline"
+              },
+              {
+                "label": "Runs in",
+                "value": "~/.config/pal/commands"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "open",
+              "title": "Open script",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy_output",
+              "title": "Copy output",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "toggle-vpn.sh",
+          "name": "Toggle VPN",
+          "subtitle": "Connect or disconnect the office VPN",
+          "icon": "🔒",
+          "keywords": [
+            "vpn",
+            "wireguard"
+          ],
+          "accessories": [
+            {
+              "text": "silent"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "File",
+                "value": "~/.config/pal/commands/toggle-vpn.sh"
+              },
+              {
+                "label": "Mode",
+                "value": "silent"
+              },
+              {
+                "label": "Confirm",
+                "value": "yes"
+              },
+              {
+                "label": "Runs in",
+                "value": "~/.config/pal/commands"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run",
+              "confirm": "Toggle VPN?"
+            },
+            {
+              "id": "open",
+              "title": "Open script",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy_output",
+              "title": "Copy output",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "say-hi.sh",
+          "name": "Say hi",
+          "icon": "👋",
+          "section": "Raycast",
+          "detail": {
+            "metadata": [
+              {
+                "label": "File",
+                "value": "~/.config/pal/commands/say-hi.sh"
+              },
+              {
+                "label": "Mode",
+                "value": "hud"
+              },
+              {
+                "label": "Arguments",
+                "value": "argument1"
+              },
+              {
+                "label": "Runs in",
+                "value": "~/.config/pal/commands"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run…"
+            },
+            {
+              "id": "open",
+              "title": "Open script",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy_output",
+              "title": "Copy output",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "weather.sh",
+          "name": "Weather",
+          "subtitle": "The forecast for today, from wttr.in",
+          "icon": "🌤",
+          "section": "Raycast",
+          "accessories": [
+            {
+              "text": "show"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "File",
+                "value": "~/.config/pal/commands/weather.sh"
+              },
+              {
+                "label": "Mode",
+                "value": "show"
+              },
+              {
+                "label": "Runs in",
+                "value": "~/.config/pal/commands"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "open",
+              "title": "Open script",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy_output",
+              "title": "Copy output",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy_path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        }
+      ],
+      "levels": {
+        "ports": [
+          {
+            "id": "5173",
+            "name": ":5173",
+            "subtitle": "node (pid 8123)",
+            "icon": {
+              "tile": {
+                "glyph": "󰯃",
+                "bg": "cyan"
+              }
+            },
+            "accessories": [
+              {
+                "text": "IPv4"
+              }
+            ],
+            "actions": [
+              {
+                "id": "pick",
+                "title": "Copy"
+              }
+            ]
+          },
+          {
+            "id": "8080",
+            "name": ":8080",
+            "subtitle": "caddy (pid 612)",
+            "icon": {
+              "tile": {
+                "glyph": "󰯃",
+                "bg": "cyan"
+              }
+            },
+            "accessories": [
+              {
+                "text": "IPv4"
+              }
+            ],
+            "actions": [
+              {
+                "id": "pick",
+                "title": "Copy"
+              }
+            ]
+          },
+          {
+            "id": "9222",
+            "name": ":9222",
+            "subtitle": "Google Chrome (pid 2231)",
+            "icon": {
+              "tile": {
+                "glyph": "󰯃",
+                "bg": "cyan"
+              }
+            },
+            "accessories": [
+              {
+                "text": "IPv4"
+              }
+            ],
+            "actions": [
+              {
+                "id": "pick",
+                "title": "Copy"
+              }
+            ]
+          },
+          {
+            "id": "22",
+            "name": ":22",
+            "subtitle": "launchd (pid 1)",
+            "icon": {
+              "tile": {
+                "glyph": "󰯃",
+                "bg": "cyan"
+              }
+            },
+            "accessories": [
+              {
+                "text": "IPv6"
+              }
+            ],
+            "actions": [
+              {
+                "id": "pick",
+                "title": "Copy"
+              }
+            ]
+          }
+        ]
       }
-     ]
-    },
-    {
-     "name": "CI",
-     "url": "https://ci.acme.dev",
-     "subtitle": "pipelines",
-     "section": "Work",
-     "id": "CI",
-     "icon": "🔗",
-     "actions": [
-      {
-       "id": "open",
-       "title": "Open"
-      },
-      {
-       "id": "copy",
-       "title": "Copy link",
-       "shortcut": "cmd+c"
-      }
-     ]
-    },
-    {
-     "name": "Docs",
-     "url": "https://docs.acme.dev",
-     "section": "Work",
-     "id": "Docs",
-     "icon": "📚",
-     "actions": [
-      {
-       "id": "open",
-       "title": "Open"
-      },
-      {
-       "id": "copy",
-       "title": "Copy link",
-       "shortcut": "cmd+c"
-      }
-     ]
-    },
-    {
-     "name": "GitHub",
-     "url": "https://github.com",
-     "section": "Work",
-     "id": "GitHub",
-     "icon": "🐙",
-     "actions": [
-      {
-       "id": "open",
-       "title": "Open"
-      },
-      {
-       "id": "copy",
-       "title": "Copy link",
-       "shortcut": "cmd+c"
-      }
-     ]
     }
-   ]
   },
-  "cmds": {
-   "title": "cmds",
-   "icon": "󰆍",
-   "items": [
-    {
-     "id": "deploy",
-     "name": "Deploy site",
-     "subtitle": "rsync dist/ to web-1",
-     "section": "Deploy",
-     "icon": "🚀",
-     "accessories": [
-      {
-       "tag": "prod",
-       "color": "red"
+  "effects": {
+    "cmds/deploy": {
+      "keep": true,
+      "toast": {
+        "title": "Ran deploy",
+        "message": "exit 0"
       }
-     ],
-     "actions": [
-      {
-       "id": "_default",
-       "title": "Select"
-      }
-     ]
     },
-    {
-     "id": "deploy-staging",
-     "name": "Deploy staging",
-     "subtitle": "rsync dist/ to staging",
-     "section": "Deploy",
-     "icon": "🚀",
-     "accessories": [
-      {
-       "tag": "staging",
-       "color": "amber"
+    "commands/listening-ports.sh": {
+      "push": {
+        "extension": "",
+        "palette": "commands",
+        "args": "ports"
       }
-     ],
-     "actions": [
-      {
-       "id": "_default",
-       "title": "Select"
-      }
-     ]
     },
-    {
-     "id": "backup",
-     "name": "Backup now",
-     "subtitle": "restic backup ~",
-     "section": "Maintenance",
-     "icon": "💾",
-     "actions": [
-      {
-       "id": "_default",
-       "title": "Select"
+    "commands/deploy-site.sh": {
+      "form": {
+        "id": "deploy-site.sh",
+        "title": "Deploy site",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "target",
+            "label": "Target",
+            "placeholder": "Environment: staging or prod",
+            "required": true
+          },
+          {
+            "kind": "text",
+            "id": "note",
+            "label": "Note",
+            "placeholder": "Release note (optional)",
+            "required": false
+          }
+        ],
+        "submit": {
+          "id": "run_args",
+          "title": "Run"
+        }
       }
-     ]
-    },
-    {
-     "id": "update",
-     "name": "Update packages",
-     "subtitle": "brew upgrade",
-     "section": "Maintenance",
-     "icon": "⬆",
-     "actions": [
-      {
-       "id": "_default",
-       "title": "Select"
-      }
-     ]
-    },
-    {
-     "id": "theme",
-     "name": "Toggle theme",
-     "subtitle": "theme toggle",
-     "section": "Desktop",
-     "icon": "◐",
-     "accessories": [
-      {
-       "text": "dark"
-      }
-     ],
-     "actions": [
-      {
-       "id": "_default",
-       "title": "Select"
-      }
-     ]
-    },
-    {
-     "id": "screensaver",
-     "name": "Start screen saver",
-     "section": "Desktop",
-     "icon": "🌙",
-     "actions": [
-      {
-       "id": "_default",
-       "title": "Select"
-      }
-     ]
     }
-   ]
-  }
- },
- "effects": {
-  "cmds/deploy": {
-   "keep": true,
-   "toast": {
-    "title": "Ran deploy",
-    "message": "exit 0"
-   }
-  }
- },
- "shots": {
-  "1-data-file": {
-   "palette": "links",
-   "keys": [
-    "down"
-   ]
   },
-  "2-script": {
-   "palette": "cmds",
-   "keys": [
-    "down"
-   ]
-  },
-  "3-root": {
-   "keys": [
-    "type:deploy"
-   ]
-  },
-  "4-actions": {
-   "palette": "links",
-   "keys": [
-    "down*2",
-    "cmd+k"
-   ]
+  "shots": {
+    "1-data-file": {
+      "palette": "links",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-script": {
+      "palette": "cmds",
+      "keys": [
+        "down"
+      ]
+    },
+    "3-root": {
+      "keys": [
+        "type:deploy"
+      ]
+    },
+    "4-actions": {
+      "palette": "links",
+      "keys": [
+        "down*2",
+        "cmd+k"
+      ]
+    },
+    "5-commands": {
+      "palette": "commands",
+      "keys": [
+        "down"
+      ]
+    },
+    "6-command-list": {
+      "palette": "commands",
+      "keys": [
+        "down",
+        "enter",
+        "down"
+      ]
+    },
+    "7-command-form": {
+      "palette": "commands",
+      "keys": [
+        "enter",
+        "type:prod",
+        "tab",
+        "type:v2.4, the settings window"
+      ]
+    }
   }
- }
 }

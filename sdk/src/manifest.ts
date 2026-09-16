@@ -9,7 +9,8 @@
 // extension's own tests can run it too (`checkPalettes(manifest, ext)`).
 // The typed `defineExtension(manifest, ext)` (index.ts) is the same rule at
 // type level: `ExtensionFor<M>` names the palettes the manifest declares.
-import type { Extension, ListPalette, Manifest, ManifestPalette, Palette, PaletteKind, PaletteMeta, ViewPalette } from "./protocol.ts";
+import { checkIcon } from "./icon.ts";
+import type { Extension, LinkParams, ListPalette, Manifest, ManifestLink, ManifestPalette, OwnIcon, Palette, PaletteKind, PaletteMeta, ViewPalette } from "./protocol.ts";
 
 /** A palette whose `view` is a function draws a tree instead of listing rows. */
 export const isViewPalette = (p: Palette): p is ViewPalette => typeof p.view === "function";
@@ -42,17 +43,20 @@ const SPELLING: Record<PaletteKind, string> = {
 /**
  * One palette's meta, the manifest's entry merged over the code's: `title`
  * and `ttl` from the manifest when it has them (the code's as a fallback,
- * the key when neither has a title); everything else is the code's. A view
- * palette is `input` on the wire: the core indexes nothing of it and the
- * root keeps only its own row, which is what `input` already means.
+ * the key when neither has a title); everything else is the code's. The
+ * icon is the code's own when it has one, else `fallbackIcon`, the
+ * extension's icon from the manifest: an extension's palettes wear its
+ * tile unless one says otherwise. A view palette is `input` on the wire:
+ * the core indexes nothing of it and the root keeps only its own row,
+ * which is what `input` already means.
  */
-export function paletteMeta(name: string, p: Palette, m?: ManifestPalette): PaletteMeta {
+export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallbackIcon?: OwnIcon): PaletteMeta {
   return {
     name,
     title: m?.title ?? p.title ?? name,
     live: !!p.live,
     input: !!p.input || isViewPalette(p),
-    icon: p.icon,
+    icon: p.icon ?? fallbackIcon,
     view: isViewPalette(p) ? "view" : p.view,
     columns: p.columns,
     placeholder: p.placeholder,
@@ -62,7 +66,55 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette): Pale
     detail: typeof p.detail === "function" ? "lazy" : undefined,
     ttl: m?.ttl ?? p.ttl,
     tier: m?.tier ?? p.tier,
+    ...(inlineOf(p, m) && { inline: true as const }),
+    ...(matchSource(p, m) !== undefined && { match: matchSource(p, m) }),
+    ...(fallbackOf(p, m)),
+    ...(typeof p.suggest === "function" && { suggest: true as const }),
   };
+}
+
+/** Whether the palette lists inline at the root: `inline` on either side, and a `match` to gate it (a palette that matches everything would run on every keystroke). */
+const inlineOf = (p: Palette, m?: ManifestPalette) => !!(p.inline ?? m?.inline) && (p.match !== undefined || m?.match !== undefined);
+
+/** The regex source the meta carries for the store: the code's string or regex, else the manifest's (which, next to a predicate in the code, only documents it). */
+function matchSource(p: Palette, m?: ManifestPalette): string | undefined {
+  if (p.match instanceof RegExp) return p.match.source;
+  if (typeof p.match === "string") return p.match;
+  return m?.match;
+}
+
+/** The meta's `fallback`/`fallbackTitle` for what the code and the manifest declare (the code's function first, then either side's ask form). */
+function fallbackOf(p: Palette, m?: ManifestPalette): Pick<PaletteMeta, "fallback" | "fallbackTitle"> {
+  if (typeof p.fallback === "function") return { fallback: "rows" };
+  const f = p.fallback ?? m?.fallback;
+  if (f === true) return { fallback: "ask" };
+  if (typeof f === "string" && f.trim()) return { fallback: "ask", fallbackTitle: f };
+  return {};
+}
+
+/** The regex a palette's `match` names, compiled once per source (the manifest's string form when the code has none). */
+const compiled = new Map<string, RegExp | null>();
+function regexOf(source: string): RegExp | null {
+  let r = compiled.get(source);
+  if (r === undefined) {
+    try { r = new RegExp(source, "i"); } catch { r = null; }
+    compiled.set(source, r);
+  }
+  return r;
+}
+
+/**
+ * Whether the root query `q` is one this palette answers inline: the
+ * code's predicate, else its regex (or string, or the manifest's string)
+ * against the query. Never for an empty query, never for a palette that
+ * is not `inline`. A regex that does not compile matches nothing.
+ */
+export function inlineMatches(p: Palette, m: ManifestPalette | undefined, q: string): boolean {
+  if (!inlineOf(p, m) || !q.trim()) return false;
+  if (typeof p.match === "function") { try { return !!p.match(q); } catch { return false; } }
+  if (p.match instanceof RegExp) return p.match.test(q);
+  const source = typeof p.match === "string" ? p.match : m?.match;
+  return source !== undefined && !!regexOf(source)?.test(q);
 }
 
 /** What `checkPalettes` answers: the metas to serve, and every disagreement as one line (`palettes.<key>: ...`). */
@@ -80,7 +132,11 @@ export type PaletteCheck = { metas: PaletteMeta[]; warnings: string[] };
  *   (`kindOf`); the warning says how the code spells the manifest's kind
  *   and what to set;
  * - `title` and `ttl` set on both sides must agree; the manifest's is
- *   served either way.
+ *   served either way;
+ * - the manifest's `icon` and every palette's `icon` are well formed
+ *   (`checkIcon`, icon.ts): a tile names a brand colour and carries one
+ *   glyph or a short SVG path. A bad palette icon is dropped from its meta;
+ *   a palette without one takes the manifest's (`paletteMeta`).
  *
  * A manifest without a `palettes` key at all declares nothing static (the
  * bundled `scripts` discovers its palettes from a config file), so every
@@ -91,9 +147,13 @@ export function checkPalettes(manifest: Manifest, ext: Extension): PaletteCheck 
   const warnings: string[] = [];
   const declared = manifest.palettes;
   const metas: PaletteMeta[] = [];
+  const manifestIcon = checkIcon(manifest.icon, "icon");
+  if (manifestIcon) warnings.push(manifestIcon);
   for (const [name, p] of Object.entries(ext.palettes ?? {})) {
     const m = declared?.[name];
     const kind = kindOf(p);
+    const badIcon = checkIcon(p.icon, `palettes.${name}`);
+    if (badIcon) warnings.push(badIcon);
     if (declared && !m) {
       warnings.push(`palettes.${name}: in the code but not in pal.json; add "${name}": { "kind": "${kind}" } to its "palettes"`);
     } else if (m) {
@@ -112,12 +172,91 @@ export function checkPalettes(manifest: Manifest, ext: Extension): PaletteCheck 
         warnings.push(`palettes.${name}: tier "${p.tier}" in the code, "${m.tier}" in pal.json; the manifest's is used, drop the code's`);
       }
     }
-    metas.push(paletteMeta(name, p, m));
+    metas.push(paletteMeta(name, badIcon ? { ...p, icon: undefined } : p, m, manifestIcon ? undefined : manifest.icon));
   }
   for (const name of Object.keys(declared ?? {})) {
     if (!(name in (ext.palettes ?? {}))) warnings.push(`palettes.${name}: in pal.json but not in the code; nothing serves it`);
   }
   return { metas, warnings };
+}
+
+// ---- links (pal://<extension>/<route>) --------------------------------------
+
+/** A route name as a link path part: lowercase, digits, `-`. */
+const ROUTE_NAME = /^[a-z0-9][a-z0-9-]*$/;
+export const LINK_PARAM_TYPES = ["string", "number", "boolean", "json", "string[]"] as const;
+
+/**
+ * The manifest's `links` against the code's `link`, one warning per
+ * disagreement (`links.<route>: ...`), none when they agree, run on every
+ * load like `checkPalettes`: a `links` block with no `link` function
+ * (nothing could answer them), a `link` function with no `links` block
+ * (nothing can reach it: a route is served only when declared), a route
+ * name a link path cannot carry, a param `type` not in
+ * `LINK_PARAM_TYPES`. The routes are the manifest's either way; a warned
+ * route is still listed, since the settings window shows the warning next
+ * to it.
+ */
+export function checkLinks(manifest: Manifest, ext: Extension): string[] {
+  const warnings: string[] = [];
+  const links = manifest.links;
+  const declared = Object.keys(links ?? {});
+  if (links !== undefined && (typeof links !== "object" || Array.isArray(links))) return [`links: not an object of routes`];
+  if (declared.length && typeof ext.link !== "function") warnings.push(`links: ${declared.length === 1 ? "a route is" : `${declared.length} routes are`} declared in pal.json but the code exports no link(route, params); nothing answers ${declared.map((r) => `"${r}"`).join(", ")}`);
+  if (!declared.length && typeof ext.link === "function") warnings.push(`links: the code exports link(route, params) but pal.json declares no "links"; a route is reachable only when declared`);
+  for (const [route, spec] of Object.entries(links ?? {})) {
+    if (!ROUTE_NAME.test(route)) warnings.push(`links.${route}: a route is lowercase letters, digits and "-" (pal://${manifest.name}/${route} cannot be typed)`);
+    if (!spec || typeof spec !== "object") { warnings.push(`links.${route}: not an object`); continue; }
+    for (const [name, p] of Object.entries(spec.params ?? {})) {
+      if (!p || typeof p !== "object") warnings.push(`links.${route}: param "${name}" is not an object`);
+      else if (p.type !== undefined && !(LINK_PARAM_TYPES as readonly string[]).includes(p.type)) warnings.push(`links.${route}: param "${name}" has type "${p.type}", not one of ${LINK_PARAM_TYPES.join(", ")}`);
+    }
+  }
+  return warnings;
+}
+
+const TRUE = new Set(["1", "true", "yes", "on"]);
+
+/**
+ * The query string's values (each a string, or an array of strings for a
+ * repeated key) as `link` receives them, by the route's declared params:
+ * a required one missing throws naming it, `number` parses (NaN throws),
+ * `boolean` reads `1 true yes on`, `json` parses, `string[]` wraps a
+ * single value; an undeclared key rides through as it came, so a route
+ * that takes free-form params still gets them. Throws with the route and
+ * the reason.
+ */
+export function checkLinkParams(spec: ManifestLink, raw: Record<string, unknown>, where: string): LinkParams {
+  const out: LinkParams = { ...raw };
+  for (const [name, p] of Object.entries(spec.params ?? {})) {
+    const v = raw[name];
+    const first = Array.isArray(v) ? v[0] : v;
+    if (first === undefined || first === "") {
+      if (p.required) throw new Error(`${where}: ${name} is required`);
+      delete out[name];
+      continue;
+    }
+    switch (p.type ?? "string") {
+      case "string": out[name] = String(first); break;
+      case "number": { const n = Number(first); if (Number.isNaN(n)) throw new Error(`${where}: ${name} must be a number, not "${first}"`); out[name] = n; break; }
+      case "boolean": out[name] = TRUE.has(String(first).trim().toLowerCase()); break;
+      case "json": { try { out[name] = JSON.parse(String(first)); } catch (e) { throw new Error(`${where}: ${name} is not JSON: ${e instanceof Error ? e.message : e}`); } break; }
+      case "string[]": out[name] = (Array.isArray(v) ? v : [v]).map(String); break;
+    }
+  }
+  return out;
+}
+
+/** What a `link` may answer: a pick's effects minus the ones that need the level a pick came from (the same set `effects.run` refuses). */
+export const LINK_EFFECT_REFUSED = ["keep", "show", "view", "form"] as const;
+
+/** The effect a `link` answered, refused when it carries one of `LINK_EFFECT_REFUSED`; returns it untouched. */
+export function checkLinkEffect<T>(r: T, where: string): T {
+  if (r && typeof r === "object") {
+    const k = LINK_EFFECT_REFUSED.find((k) => (r as Record<string, unknown>)[k] !== undefined);
+    if (k) throw new Error(`${where}: a link cannot answer \`${k}\`; that needs the level a pick came from (answer push, copy, paste, open, hud, toast, ...)`);
+  }
+  return r;
 }
 
 // ---- the same rule at type level ------------------------------------------

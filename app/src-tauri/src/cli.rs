@@ -5,6 +5,13 @@
 //! loaded. Wayland has no global hotkey API, so this is what a compositor
 //! keybind runs.
 //!
+//! `pal link <url>` and its readable twins (`open`, `run`, `form`, `copy`,
+//! `paste`, `hud`, `toast`, `confetti`, `command`, `call`) are the
+//! `pal://` routes from a shell (docs/design/links.md): each spells its
+//! link (`Cmd::link`), this process refuses a bad one with the reason and
+//! exit 2 before sending, and the instance runs it with no confirm card
+//! (`deeplink::handle_trusted`). Every link's outcome is the HUD's.
+//!
 //! `pal install|update|remove|list` work the extension store in this process
 //! (`Cmd::run_store`: results on stdout, one `pal\t<reason>` line on stderr
 //! and exit 1 on failure), then `reload` reaches the running instance so
@@ -70,6 +77,158 @@ pub enum Cmd {
         #[command(subcommand)]
         cmd: BarCmd,
     },
+    /// Run a pal:// link as written (docs/links.md); no confirm card, this is your own hand.
+    Link {
+        /// `pal://open/emoji/emoji?q=smile`; `--list` prints every route instead.
+        #[arg(required_unless_present = "list")]
+        url: Option<String>,
+        /// Print the route table and exit.
+        #[arg(long)]
+        list: bool,
+    },
+    /// Open the panel inside a palette (pal://open/EXT/PALETTE), or a url with the OS opener (--url).
+    Open {
+        /// `emoji/emoji`: the extension and palette names from its pal.json.
+        #[arg(required_unless_present = "url")]
+        palette: Option<String>,
+        /// Typed into the search box.
+        #[arg(short, long)]
+        query: Option<String>,
+        /// One of the palette's filters.
+        #[arg(long)]
+        filter: Option<String>,
+        /// A url, path or app for the OS opener instead (pal://open?url=).
+        #[arg(long, conflicts_with_all = ["palette", "query", "filter"])]
+        url: Option<String>,
+    },
+    /// Run one item as a pick, the panel down (pal://run/EXT/PALETTE/ID).
+    Run {
+        /// `apps/apps/com.apple.Safari`: extension, palette and the row's id.
+        item: String,
+        /// One of the row's action ids; the first otherwise.
+        #[arg(short, long)]
+        action: Option<String>,
+        /// The level's args as JSON, for a row inside a drill-in.
+        #[arg(long)]
+        args: Option<String>,
+    },
+    /// Open the form an item's pick answers, prefilled (pal://form/EXT/PALETTE/ID?field=value).
+    Form {
+        /// `quicklinks/quicklinks/create`: extension, palette and the row's id.
+        item: String,
+        /// The action that answers the form.
+        #[arg(short, long)]
+        action: Option<String>,
+        /// `field=value` per field to prefill.
+        #[arg(value_name = "FIELD=VALUE")]
+        fields: Vec<String>,
+    },
+    /// Put text on the clipboard (pal://copy?text=); stdin when no text is given.
+    Copy { text: Option<String> },
+    /// Paste text into the app in front (pal://paste?text=); stdin when no text is given.
+    Paste { text: Option<String> },
+    /// One line in the HUD (pal://hud?text=).
+    Hud { text: String },
+    /// A toast in the panel when it is up, else the HUD (pal://toast?title=&message=).
+    Toast { title: String, message: Option<String> },
+    /// A celebration in the HUD (pal://confetti).
+    Confetti { text: Option<String> },
+    /// One of pal's own rows: settings, store, refresh, updates, theme, ... (pal://commands/ID).
+    Command { id: String },
+    /// A route an extension declares (pal://EXT/ROUTE?key=value).
+    Call {
+        /// `timer/start`: the extension and the route from its pal.json.
+        route: String,
+        /// `key=value` per parameter; repeat a key for an array.
+        #[arg(value_name = "KEY=VALUE")]
+        params: Vec<String>,
+    },
+}
+
+/// Percent-encoding for a link's path part or query value: everything but
+/// the unreserved set, so `/`, `?`, `&`, `=`, `+` and spaces are escaped.
+const ENCODE: &percent_encoding::AsciiSet = &percent_encoding::NON_ALPHANUMERIC.remove(b'-').remove(b'_').remove(b'.').remove(b'~');
+
+fn enc(s: &str) -> String {
+    percent_encoding::utf8_percent_encode(s, ENCODE).to_string()
+}
+
+/// `k=v&k=v` from `(key, value)` pairs, encoded; empty for none.
+fn query(pairs: &[(&str, &str)]) -> String {
+    let q: Vec<String> = pairs.iter().map(|(k, v)| format!("{}={}", enc(k), enc(v))).collect();
+    if q.is_empty() { String::new() } else { format!("?{}", q.join("&")) }
+}
+
+/// `KEY=VALUE` words as pairs; a word without `=` is a flag set to `1`.
+fn pairs(words: &[String]) -> Vec<(&str, &str)> {
+    words.iter().map(|w| w.split_once('=').unwrap_or((w.as_str(), "1"))).collect()
+}
+
+/// The text given, else stdin (for `pal copy`, `pal paste` in a pipe).
+fn text_or_stdin(text: &Option<String>) -> String {
+    text.clone().unwrap_or_else(|| {
+        let mut s = String::new();
+        let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut s);
+        s.trim_end_matches('\n').to_string()
+    })
+}
+
+impl Cmd {
+    /// The `pal://` link a link twin spells, `None` for the rest. `Link`
+    /// passes its url through as written.
+    pub fn link(&self) -> Option<String> {
+        let path = |parts: &[&str]| parts.iter().map(|p| enc(p)).collect::<Vec<_>>().join("/");
+        let s = crate::deeplink::SCHEME;
+        Some(match self {
+            Cmd::Link { url: Some(url), .. } => url.clone(),
+            Cmd::Open { url: Some(url), .. } => format!("{s}://open{}", query(&[("url", url)])),
+            Cmd::Open { palette: Some(p), query: q, filter, .. } => {
+                let mut pairs = Vec::new();
+                if let Some(q) = q { pairs.push(("q", q.as_str())); }
+                if let Some(f) = filter { pairs.push(("filter", f.as_str())); }
+                format!("{s}://open/{}{}", path(&p.split('/').collect::<Vec<_>>()), query(&pairs))
+            }
+            Cmd::Run { item, action, args } => {
+                let mut pairs = Vec::new();
+                if let Some(a) = action { pairs.push(("action", a.as_str())); }
+                if let Some(a) = args { pairs.push(("args", a.as_str())); }
+                format!("{s}://run/{}{}", item_path(item), query(&pairs))
+            }
+            Cmd::Form { item, action, fields } => {
+                let mut pairs = Vec::new();
+                if let Some(a) = action { pairs.push(("action", a.as_str())); }
+                pairs.extend(self::pairs(fields));
+                format!("{s}://form/{}{}", item_path(item), query(&pairs))
+            }
+            Cmd::Copy { text } => format!("{s}://copy{}", query(&[("text", &text_or_stdin(text))])),
+            Cmd::Paste { text } => format!("{s}://paste{}", query(&[("text", &text_or_stdin(text))])),
+            Cmd::Hud { text } => format!("{s}://hud{}", query(&[("text", text)])),
+            Cmd::Toast { title, message } => {
+                let mut pairs = vec![("title", title.as_str())];
+                if let Some(m) = message { pairs.push(("message", m.as_str())); }
+                format!("{s}://toast{}", query(&pairs))
+            }
+            Cmd::Confetti { text } => format!("{s}://confetti{}", text.as_ref().map_or(String::new(), |t| query(&[("text", t)]))),
+            Cmd::Command { id } => format!("{s}://commands/{}", enc(id)),
+            Cmd::Call { route, params } => format!("{s}://{}{}", path(&route.split('/').collect::<Vec<_>>()), query(&pairs(params))),
+            _ => return None,
+        })
+    }
+
+    /// The route table, for `pal link --list`.
+    pub fn print_routes() {
+        for spec in crate::deeplink::ROUTES {
+            println!("{}://{:<36} {}", crate::deeplink::SCHEME, spec.pattern, spec.doc);
+        }
+    }
+}
+
+/// `ext/palette/id` as a link path: the first two parts are names, the
+/// rest (an id may hold slashes) is one part, encoded.
+fn item_path(item: &str) -> String {
+    let mut it = item.splitn(3, '/');
+    let (e, p, id) = (it.next().unwrap_or_default(), it.next().unwrap_or_default(), it.next().unwrap_or_default());
+    format!("{}/{}/{}", enc(e), enc(p), enc(id))
 }
 
 #[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
@@ -108,6 +267,16 @@ impl Cmd {
     pub fn run_compat(&self) -> Option<i32> {
         match self {
             Cmd::Action { name } => Some(crate::compat::action(name)),
+            Cmd::Link { list: true, .. } => {
+                Cmd::print_routes();
+                Some(0)
+            }
+            // A link the grammar refuses never leaves this process: the reason, exit 2.
+            cmd if cmd.link().is_some_and(|l| crate::deeplink::parse(&l).is_err()) => {
+                let link = cmd.link().unwrap_or_default();
+                eprintln!("pal\t{}\t{link}", crate::deeplink::parse(&link).err().unwrap_or_default());
+                Some(2)
+            }
             Cmd::Bar { cmd: BarCmd::List } => {
                 let feed = crate::bar::read_feed();
                 for (key, e) in &feed.items {
@@ -234,6 +403,12 @@ impl Cmd {
             // Reaches the instance only when a second process skipped
             // `run_store` (it never does); the store is that process's job.
             Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } => {}
+            // A link twin: the instance runs the link it spells, trusted (module docs).
+            ref cmd => {
+                if let Some(link) = cmd.link() {
+                    crate::deeplink::handle_trusted(&handle, &link);
+                }
+            }
         });
     }
 }
@@ -326,4 +501,55 @@ fn send(identifier: &str, args: &[String], cwd: &str) -> zbus::Result<()> {
         &(args, cwd),
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::deeplink::{parse, Route};
+
+    fn cmd(args: &[&str]) -> Cmd {
+        let mut argv = vec!["pal"];
+        argv.extend(args);
+        Cli::try_parse_from(argv).unwrap_or_else(|e| panic!("{args:?}: {e}")).cmd.expect("a subcommand")
+    }
+
+    #[test]
+    fn twins_spell_their_links_and_the_parser_reads_them_back() {
+        let cases: &[(&[&str], &str)] = &[
+            (&["open", "emoji/emoji", "-q", "two words!"], "pal://open/emoji/emoji?q=two%20words%21"),
+            (&["open", "clipboard/history", "--filter", "links"], "pal://open/clipboard/history?filter=links"),
+            (&["open", "--url", "https://a.b/c?d=1"], "pal://open?url=https%3A%2F%2Fa.b%2Fc%3Fd%3D1"),
+            (&["run", "apps/apps/com.apple.Safari", "-a", "quit"], "pal://run/apps/apps/com.apple.Safari?action=quit"),
+            (&["run", "a/b/with/slash", "--args", "{\"x\":1}"], "pal://run/a/b/with%2Fslash?args=%7B%22x%22%3A1%7D"),
+            (&["form", "quicklinks/quicklinks/create", "-a", "create", "name=GitHub", "url=https://github.com"], "pal://form/quicklinks/quicklinks/create?action=create&name=GitHub&url=https%3A%2F%2Fgithub.com"),
+            (&["copy", "hi there"], "pal://copy?text=hi%20there"),
+            (&["paste", "x"], "pal://paste?text=x"),
+            (&["hud", "Done"], "pal://hud?text=Done"),
+            (&["toast", "Deployed", "v1.2"], "pal://toast?title=Deployed&message=v1.2"),
+            (&["confetti"], "pal://confetti"),
+            (&["confetti", "Shipped"], "pal://confetti?text=Shipped"),
+            (&["command", "refresh"], "pal://commands/refresh"),
+            (&["call", "timer/start", "duration=25m", "name=tea", "ring"], "pal://timer/start?duration=25m&name=tea&ring=1"),
+            (&["link", "pal://toggle"], "pal://toggle"),
+        ];
+        for (args, link) in cases {
+            let got = cmd(args).link().unwrap_or_else(|| panic!("{args:?} is no link twin"));
+            assert_eq!(&got, link, "{args:?}");
+            assert!(parse(&got).is_ok(), "{got}: the parser reads what the twin spells");
+        }
+        assert_eq!(parse(&cmd(&["run", "a/b/with/slash"]).link().unwrap()), Ok(Route::Run { source: pal_core::index::Source::new("a", "b"), id: "with/slash".into(), action: None, args: None, fill: None }), "a slash inside the id survives the round trip");
+        assert!(cmd(&["toggle"]).link().is_none(), "the plain subcommands are not links");
+        assert!(cmd(&["bar", "list"]).link().is_none());
+    }
+
+    #[test]
+    fn a_link_the_grammar_refuses_never_leaves_this_process() {
+        assert_eq!(cmd(&["link", "pal://nope"]).run_compat(), Some(2));
+        assert_eq!(cmd(&["link", "toggle"]).run_compat(), Some(2), "no scheme");
+        assert_eq!(cmd(&["link", "pal://toggle"]).run_compat(), None, "a good link goes on to the handover");
+        assert_eq!(cmd(&["link", "--list"]).run_compat(), Some(0));
+        assert!(Cli::try_parse_from(["pal", "link"]).is_err(), "a url or --list");
+        assert!(Cli::try_parse_from(["pal", "open"]).is_err(), "a palette or --url");
+    }
 }

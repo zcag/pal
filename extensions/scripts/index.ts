@@ -4,17 +4,16 @@
 // lines out; `run.sh pick`, the item on stdin and as PAL_<KEY> env vars) and
 // maps v1's item fields, actions and result envelope onto the new shapes.
 // Discovery happens once at import; a changed config path needs a host
-// restart.
+// restart. The single-file script commands (a folder of executables with
+// `# @pal.*` headers) are `commands.ts`, one more palette next to these;
+// what both share (running a script, the row vocabulary) is `shared.ts`.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { home, settings, xdg, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Palette, type Tier } from "@zcag/pal";
+import { commands } from "./commands.ts";
+import { accessory, detail, glyph, HOME, log, parseLines, PATH, run as runScript, S, toActions, type Env, type Raw, type V1Action } from "./shared.ts";
 
-/** `[extensions.scripts]`, defaults in pal.json. */
-type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number; ttl: number };
-/** A v1 row, action or envelope: untyped JSON from a script, mapped field by field below. */
-type Raw = Record<string, any>;
-type V1Action = { id?: string; title?: string; action?: string; value?: string; key?: string; shortcut?: string; style?: string; confirm?: string; reload?: boolean; primary?: boolean };
 type V1Palette = Raw & {
   base?: string; data?: string; command?: string | string[];
   icon?: string; icon_utf?: string; icon_xdg?: string; input?: boolean; input_prompt?: string; live?: boolean;
@@ -23,8 +22,6 @@ type V1Palette = Raw & {
   requires?: string[]; os?: string; ttl?: number; tier?: Tier;
 };
 
-const HOME = home("~");
-const log = (...a: unknown[]) => console.error("[scripts]", ...a);
 /** A data file with this many rows is a catalog at the root (the nerd icons' 12.5k, kde icons' 287, chars' 100; colors' 40 are not) unless the table says `tier` itself. */
 const CATALOG_ROWS = 100;
 const TIERS: readonly Tier[] = ["primary", "normal", "catalog"];
@@ -32,13 +29,7 @@ const TIERS: readonly Tier[] = ["primary", "normal", "catalog"];
 const SCRIPT_ICON = xdg("utilities-terminal")!;
 const DATA_ICON = xdg("text-x-generic")!;
 const WARN_ICON = xdg("dialog-warning")!;
-// Read live (timeout, preview_max apply to the next run); config, skip,
-// v1_repo and ttl are used at discovery, which runs once at import.
-const S = () => settings.get<Settings>("scripts");
 settings.onChange(() => log("settings changed; restart the host to rediscover palettes"), "scripts");
-
-// Scripts call jq, pal, bt, gh...; the app's PATH under launchd has none of them.
-const PATH = [...new Set([...(process.env.PATH ?? "").split(":"), `${HOME}/.local/bin`, `${HOME}/.cargo/bin`, "/opt/homebrew/bin", "/usr/local/bin"])].filter(Boolean).join(":");
 
 // ---- paths -----------------------------------------------------------------
 
@@ -93,48 +84,10 @@ function readData(file: string): Raw[] {
   return parseLines(text);
 }
 
-const parseLines = (text: string): Raw[] =>
-  text.split("\n").flatMap((l) => { if (!l.trim()) return []; try { const v = JSON.parse(l); return v && typeof v === "object" ? [v] : []; } catch { return []; } });
-
 // ---- processes --------------------------------------------------------------
 
-type Env = Record<string, string>;
-type Run = { out: string; ok: boolean; timedOut: boolean };
-
-/** After the exit, how long stdout is still read for: a child the script left behind may hold the pipe. */
-const DRAIN_MS = 500;
-/** A script that ignores SIGTERM gets SIGKILL this much later. */
-const KILL_MS = 2000;
-
-/**
- * Runs the script in its own process group, so a timeout kills its whole
- * pipeline: killing bash alone leaves `sleep | jq` holding stdout, and a
- * read to EOF would then wait on the orphan, not on the timeout.
- */
-async function run(cmd: string[], opts: { stdin?: string; env: Env; cwd?: string; timeout?: number }): Promise<Run> {
-  const ms = (opts.timeout ?? S().timeout) * 1000;
-  let proc: ReturnType<typeof Bun.spawn>;
-  try {
-    proc = Bun.spawn(cmd, { stdin: opts.stdin === undefined ? "ignore" : new Blob([opts.stdin]), stdout: "pipe", stderr: "inherit", cwd: opts.cwd, env: { ...process.env, PATH, ...opts.env }, detached: true });
-  } catch (e) {
-    log(`cannot run ${cmd[0]}: ${e}`);
-    return { out: "", ok: false, timedOut: false };
-  }
-  const chunks: Uint8Array[] = [];
-  // Kept reading past the race below, so it must never reject (an unhandled rejection exits Bun).
-  const reading = (async () => { try { for await (const c of proc.stdout as ReadableStream<Uint8Array>) chunks.push(c); } catch {} })();
-  const kill = (sig: NodeJS.Signals) => { try { process.kill(-proc.pid, sig); } catch {} };
-  let timedOut = false;
-  const timers = [
-    setTimeout(() => { timedOut = true; kill("SIGTERM"); }, ms),
-    setTimeout(() => kill("SIGKILL"), ms + KILL_MS),
-  ];
-  const code = await proc.exited;
-  timers.forEach(clearTimeout);
-  await Promise.race([reading, Bun.sleep(DRAIN_MS)]);
-  if (timedOut) log(`${cmd.join(" ")} killed after ${ms} ms`);
-  return { out: Buffer.concat(chunks).toString(), ok: code === 0 && !timedOut, timedOut };
-}
+/** A script run with the extension's timeout unless the caller sets one; stderr goes to pal's log. */
+const run = (cmd: string[], opts: { stdin?: string; env: Env; cwd?: string; timeout?: number }) => runScript(cmd, { ...opts, timeout: opts.timeout ?? S().timeout });
 
 /**
  * v1's `cmd` action: `bash -c` with the item's env. Waited on briefly so a
@@ -183,41 +136,6 @@ function effect(env?: Raw): Effect {
 }
 
 // ---- v1 item -> Item ---------------------------------------------------------
-
-/** A glyph, emoji or hex colour is an icon here; an xdg name goes through the host's table, a Raycast name is dropped. */
-const glyph = (s: unknown): string | undefined => {
-  if (typeof s !== "string") return;
-  const t = s.trim();
-  return t && (/[^\x00-\x7f]/.test(t) || /^#[0-9a-f]{3,8}$/i.test(t)) ? t : undefined;
-};
-
-/** v1 (Raycast) `{text:{value,color}} | {tag:{value,color}} | {date}`, or a plain `{text}`. */
-function accessory(a: Raw): Accessory | undefined {
-  if (a.tag !== undefined) return typeof a.tag === "object" ? { tag: String(a.tag.value), color: a.tag.color } : { tag: String(a.tag), color: a.color };
-  if (a.text !== undefined) return { text: String(typeof a.text === "object" ? a.text.value : a.text) };
-  if (a.date !== undefined) return { date: typeof a.date === "object" ? a.date.value : a.date };
-}
-
-/** v1 `{markdown, metadata:[{label, text, link, tags} | {separator}]}`; separators have no equivalent. */
-function detail(d: Raw | undefined, markdown?: string): Detail | undefined {
-  if (!d && markdown === undefined) return;
-  const metadata = ((d?.metadata ?? []) as Raw[]).filter((m) => m.label).map((m) => ({
-    label: String(m.label),
-    value: m.link ? undefined : m.text === undefined ? undefined : String(m.text),
-    link: m.link ? { text: String(m.text ?? m.link), href: String(m.link) } : undefined,
-    tags: Array.isArray(m.tags) ? m.tags.map((t: any) => (typeof t === "string" ? { text: t } : { text: String(t.text ?? t.value), color: t.color })) : undefined,
-  }));
-  return { markdown: markdown ?? d?.markdown, metadata: metadata.length ? metadata : undefined };
-}
-
-/** v1 picks the `primary` action, else the first; here the first is Enter, so the primary goes first. */
-function ordered(actions: V1Action[]): V1Action[] {
-  const i = actions.findIndex((a) => a.primary);
-  return i > 0 ? [actions[i], ...actions.filter((_, j) => j !== i)] : actions;
-}
-
-const toActions = (actions: V1Action[]): Action[] =>
-  ordered(actions).map((a) => ({ id: String(a.id ?? a.title), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style === "destructive" ? "destructive" : undefined, confirm: a.confirm }));
 
 const DEFAULT_TITLE: Record<string, string> = { copy: "Copy", open: "Open", cmd: "Run", type: "Paste" };
 
@@ -395,11 +313,13 @@ function discover(): Record<string, Palette> {
       report.push(`${name}: nothing to run`);
       continue;
     }
+    // The table's own icon, if the config names one; the rows fall back to a terminal or a document, the palette's row to the extension's tile.
+    const own = glyph(cfg.icon_utf) ?? glyph(cfg.icon) ?? xdg(cfg.icon_xdg);
     const p: Loaded = {
       name, cfg, dir, exec, data,
       // The table's own ttl, else the setting; a live table is exempt from the default (it asked for fresh rows on every show, and a ttl would skip that relist).
       ttl: cfg.ttl ?? (defaultTtl > 0 && !cfg.live ? defaultTtl : undefined),
-      icon: glyph(cfg.icon_utf) ?? glyph(cfg.icon) ?? xdg(cfg.icon_xdg) ?? (cfg.auto_list && data ? DATA_ICON : SCRIPT_ICON),
+      icon: own ?? (cfg.auto_list && data ? DATA_ICON : SCRIPT_ICON),
       env: { ...baseEnv, _PAL_PALETTE: name, _PAL_PLUGIN_CONFIG: JSON.stringify(cfg) },
       actions: cfg.actions?.length ? toActions(cfg.actions) : undefined,
       defaultTitle: cfg.auto_pick ? DEFAULT_TITLE[cfg.default_action ?? "cmd"] : exec ? "Select" : undefined,
@@ -407,7 +327,7 @@ function discover(): Record<string, Palette> {
     };
     palettes[name] = {
       title: name,
-      icon: p.icon,
+      icon: own,
       input: !!cfg.input,
       placeholder: cfg.input_prompt,
       live: !!cfg.live,
@@ -429,4 +349,5 @@ function discover(): Record<string, Palette> {
   return palettes;
 }
 
-export default { palettes: discover() } satisfies Extension;
+const cmds = commands();
+export default { palettes: { ...discover(), commands: cmds.palette }, dispose: cmds.dispose } satisfies Extension;

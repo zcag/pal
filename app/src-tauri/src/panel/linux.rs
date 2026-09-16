@@ -44,6 +44,9 @@ pub fn show(app: &AppHandle) {
 
 pub fn hide(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(WINDOW) {
+        if is_visible(app) {
+            crate::pop::note_hidden();
+        }
         let _ = w.hide();
     }
 }
@@ -92,6 +95,42 @@ pub fn hud_show(app: &AppHandle) {
 
 pub fn hud_hide(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(crate::hud::WINDOW) {
+        let _ = w.hide();
+    }
+}
+
+// ---- Large Type ----------------------------------------------------------
+//
+// The Large Type window (large.rs) is a toplevel like the HUD but focused
+// while up (any key dismisses it; a focus loss hides it). Its rule keys on
+// the title `pal Large Type` and spans the monitor's width:
+//
+// ```text
+// windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, size monitor_w (monitor_h*0.5), move 0 (monitor_h*0.25), match:title ^(pal Large Type)$
+// ```
+
+pub fn large_install(window: &WebviewWindow) {
+    let app = window.app_handle().clone();
+    window.on_window_event(move |e| {
+        if matches!(e, WindowEvent::Focused(false)) {
+            large_hide(&app);
+        }
+    });
+    let _ = window.show();
+    let _ = window.hide();
+}
+
+pub fn large_show(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(crate::large::WINDOW) {
+        let _ = w.show();
+        let _ = w.set_focus();
+        let webview: &tauri::Webview = w.as_ref();
+        let _ = webview.set_focus();
+    }
+}
+
+pub fn large_hide(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(crate::large::WINDOW) {
         let _ = w.hide();
     }
 }

@@ -3,7 +3,7 @@
   "title": "Browser Tabs",
   "description": "Every open tab of your browsers with its favicon. Enter switches to it; close, mute and copy from the action panel.",
   "version": "0.1.0",
-  "icon": "◍",
+  "icon": { "tile": { "glyph": "󰓩", "bg": "cyan" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

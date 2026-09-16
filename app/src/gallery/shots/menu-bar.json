@@ -1,0 +1,1060 @@
+{
+  "palettes": {
+    "menu-bar": {
+      "name": "menu-bar",
+      "title": "Menu Bar Items",
+      "live": true,
+      "input": false,
+      "icon": {
+        "tile": {
+          "glyph": "\udb80\udf5c",
+          "bg": "slate"
+        }
+      },
+      "placeholder": "Search the front app's menus",
+      "tier": "primary",
+      "items": [
+        {
+          "id": "File > New",
+          "name": "New",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+n"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Open\u2026",
+          "name": "Open\u2026",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+o"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Open Recent > notes.txt",
+          "name": "notes.txt",
+          "subtitle": "File > Open Recent",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "Open Recent",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Open Recent > Clear Menu",
+          "name": "Clear Menu",
+          "subtitle": "File > Open Recent",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "Open Recent",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Close",
+          "name": "Close",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+w"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Save",
+          "name": "Save",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+s"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Save As\u2026",
+          "name": "Save As\u2026",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "alt+shift+cmd+s"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Duplicate",
+          "name": "Duplicate",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "shift+cmd+s"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Rename\u2026",
+          "name": "Rename\u2026",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Move To\u2026",
+          "name": "Move To\u2026",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Export as PDF\u2026",
+          "name": "Export as PDF\u2026",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Show Properties",
+          "name": "Show Properties",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "alt+cmd+p"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Page Setup\u2026",
+          "name": "Page Setup\u2026",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "shift+cmd+p"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "File > Print\u2026",
+          "name": "Print\u2026",
+          "subtitle": "File",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "File",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+p"
+            }
+          ],
+          "section": "File",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Undo",
+          "name": "Undo",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+z"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Redo",
+          "name": "Redo",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "shift+cmd+z"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Cut",
+          "name": "Cut",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+x"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Copy",
+          "name": "Copy",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+c"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Paste",
+          "name": "Paste",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+v"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Paste and Match Style",
+          "name": "Paste and Match Style",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "alt+shift+cmd+v"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Select All",
+          "name": "Select All",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+a"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Find > Find\u2026",
+          "name": "Find\u2026",
+          "subtitle": "Edit > Find",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "Find",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+f"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Find > Find Next",
+          "name": "Find Next",
+          "subtitle": "Edit > Find",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "Find",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+g"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Spelling and Grammar > Check Document Now",
+          "name": "Check Document Now",
+          "subtitle": "Edit > Spelling and Grammar",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "Spelling and Grammar",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+;"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Edit > Emoji & Symbols",
+          "name": "Emoji & Symbols",
+          "subtitle": "Edit",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Edit",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "ctrl+cmd+space"
+            }
+          ],
+          "section": "Edit",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Font > Bold",
+          "name": "Bold",
+          "subtitle": "Format > Font",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "Font",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+b"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Font > Italic",
+          "name": "Italic",
+          "subtitle": "Format > Font",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "Font",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+i"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Font > Underline",
+          "name": "Underline",
+          "subtitle": "Format > Font",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "Font",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+u"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Font > Bigger",
+          "name": "Bigger",
+          "subtitle": "Format > Font",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "Font",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd++"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Font > Smaller",
+          "name": "Smaller",
+          "subtitle": "Format > Font",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "Font",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+-"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Text > Align Left",
+          "name": "Align Left",
+          "subtitle": "Format > Text",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "Text",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "shift+cmd+["
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Text > Center",
+          "name": "Center",
+          "subtitle": "Format > Text",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "Text",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "shift+cmd+|"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Make Plain Text",
+          "name": "Make Plain Text",
+          "subtitle": "Format",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "shift+cmd+t"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Wrap to Page",
+          "name": "Wrap to Page",
+          "subtitle": "Format",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "shift+cmd+w"
+            }
+          ],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Format > Allow Hyphenation",
+          "name": "Allow Hyphenation",
+          "subtitle": "Format",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Format",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "Format",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "View > Show Toolbar",
+          "name": "Show Toolbar",
+          "subtitle": "View",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "View",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "text": "\u2713"
+            },
+            {
+              "keys": "alt+cmd+t"
+            }
+          ],
+          "section": "View",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "View > Customize Toolbar\u2026",
+          "name": "Customize Toolbar\u2026",
+          "subtitle": "View",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "View",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "View",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "View > Use Dark Background for Windows",
+          "name": "Use Dark Background for Windows",
+          "subtitle": "View",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "View",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "text": "\u2713"
+            }
+          ],
+          "section": "View",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "View > Enter Full Screen",
+          "name": "Enter Full Screen",
+          "subtitle": "View",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "View",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "fn+f"
+            }
+          ],
+          "section": "View",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Window > Minimize",
+          "name": "Minimize",
+          "subtitle": "Window",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Window",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+m"
+            }
+          ],
+          "section": "Window",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Window > Zoom",
+          "name": "Zoom",
+          "subtitle": "Window",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Window",
+            "TextEdit"
+          ],
+          "accessories": [],
+          "section": "Window",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Window > notes.txt",
+          "name": "notes.txt",
+          "subtitle": "Window",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Window",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "text": "\u2713"
+            }
+          ],
+          "section": "Window",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        },
+        {
+          "id": "Help > TextEdit Help",
+          "name": "TextEdit Help",
+          "subtitle": "Help",
+          "icon": {
+            "app": "/System/Applications/TextEdit.app"
+          },
+          "keywords": [
+            "Help",
+            "TextEdit"
+          ],
+          "accessories": [
+            {
+              "keys": "cmd+?"
+            }
+          ],
+          "section": "Help",
+          "actions": [
+            {
+              "id": "press",
+              "title": "Press"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "menu-bar",
+      "keys": [
+        "down*3"
+      ]
+    },
+    "2-checked": {
+      "palette": "menu-bar",
+      "keys": [
+        "down*38"
+      ]
+    },
+    "3-search": {
+      "palette": "menu-bar",
+      "keys": [
+        "type:font"
+      ]
+    },
+    "4-root": {
+      "keys": [
+        "type:export"
+      ]
+    }
+  }
+}

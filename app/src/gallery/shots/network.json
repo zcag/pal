@@ -2,7 +2,12 @@
   "palettes": {
     "network": {
       "title": "Network",
-      "icon": "󰌗",
+      "icon": {
+        "tile": {
+          "glyph": "󰌗",
+          "bg": "cyan"
+        }
+      },
       "live": true,
       "showDetail": true,
       "items": [

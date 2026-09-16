@@ -8,7 +8,7 @@
 //   node app/scripts/shots.mjs bar [extension ...] # bar items (below)
 //   SHOTS_URL=http://127.0.0.1:1430 (a Vite dev server: `npx vite --port 1430`)
 //
-// A fixture's `shots` maps a file name to { palette?, keys?, caption? }:
+// A fixture's `shots` maps a file name to { palette?, keys?, caption?, raw? }:
 // `palette` opens that palette first; `keys` are pressed in order, each
 // "type:<text>", "down", "up", "down*3", "tab", "enter", "escape",
 // "cmd+i", "cmd+k", "cmd+shift+c", or "wait:<ms>". The captions go to
@@ -51,7 +51,8 @@ async function press(page, step) {
   for (let i = 0; i < Number(times); i++) { await page.keyboard.press(combo(key)); await page.waitForTimeout(40); }
 }
 
-const quant = (path) => (process.env.SHOTS_RAW ? { status: 0 } : spawnSync("python3", [join(here, "shot-quant.py"), path]));
+/** A shot with `raw: true` keeps its true colours: a colour picker's gradients do not survive 256 colours. */
+const quant = (path, raw) => (process.env.SHOTS_RAW || raw ? { status: 0 } : spawnSync("python3", [join(here, "shot-quant.py"), path]));
 
 /** The bar strip's URL for one of the fixture's shots. */
 const barUrl = (key, shot) => {
@@ -109,8 +110,8 @@ for (const name of names) {
       await page.waitForTimeout(shot.settle ?? 450);
       const path = join(out, `${file}.png`);
       await page.screenshot({ path, type: "png" });
-      const q = quant(path);
-      console.log(`${name}/${file}.png${q.status === 0 ? "" : " (not quantised: no Pillow)"}`);
+      const q = quant(path, shot.raw);
+      console.log(`${name}/${file}.png${shot.raw ? " (raw)" : q.status === 0 ? "" : " (not quantised: no Pillow)"}`);
       done.push({ file: `${file}.png`, caption: shot.caption });
     } catch (e) {
       failed++;

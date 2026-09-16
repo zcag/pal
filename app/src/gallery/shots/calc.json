@@ -2,7 +2,12 @@
   "palettes": {
     "calc": {
       "title": "Calculator",
-      "icon": "=",
+      "icon": {
+        "tile": {
+          "glyph": "󰃬",
+          "bg": "indigo"
+        }
+      },
       "input": true,
       "placeholder": "An expression, a conversion, a date or a time",
       "byQuery": {
@@ -11,7 +16,7 @@
             "id": "result",
             "name": "1,060",
             "subtitle": "2^10 + 15% of 240",
-            "icon": "=",
+            "icon": "󰇼",
             "actions": [
               {
                 "id": "copy",
@@ -39,7 +44,7 @@
             "id": "result",
             "name": "7:00 PM",
             "subtitle": "10:00 UTC (UTC) → Tokyo (GMT+9)",
-            "icon": "=",
+            "icon": "󰇼",
             "accessories": [
               {
                 "text": "Asia/Tokyo"
@@ -70,7 +75,7 @@
             "id": "full",
             "name": "Wednesday, September 16, 2026 at 7:00 PM",
             "subtitle": "in Asia/Tokyo",
-            "icon": "=",
+            "icon": "󰇼",
             "actions": [
               {
                 "id": "copy",
@@ -98,7 +103,7 @@
             "id": "result",
             "name": "583.67 TRY",
             "subtitle": "12 USD to TRY",
-            "icon": "=",
+            "icon": "󰇼",
             "accessories": [
               {
                 "text": "1 USD = 48.6395 TRY"
@@ -164,7 +169,7 @@
             "id": "reverse",
             "name": "0.25 USD",
             "subtitle": "12 TRY to USD",
-            "icon": "=",
+            "icon": "󰇼",
             "accessories": [
               {
                 "text": "1 TRY = 0.0205594 USD"
@@ -232,7 +237,7 @@
             "id": "result",
             "name": "100 days",
             "subtitle": "days until Friday, December 25, 2026",
-            "icon": "=",
+            "icon": "󰇼",
             "accessories": [
               {
                 "text": "14 weeks 2 days"
@@ -268,21 +273,21 @@
             "id": "hint:Type an expression",
             "name": "Type an expression",
             "subtitle": "2+2 · sqrt 2 · 15% of 240 · 255 to hex",
-            "icon": "=",
+            "icon": "󰇼",
             "actions": []
           },
           {
             "id": "hint:Convert",
             "name": "Convert",
             "subtitle": "12 usd to try · 5 km to miles · 72 f to c",
-            "icon": "=",
+            "icon": "󰇼",
             "actions": []
           },
           {
             "id": "hint:Dates and time",
             "name": "Dates and time",
             "subtitle": "today + 3 days · days until 2026-12-25 · 10:00 in tokyo",
-            "icon": "=",
+            "icon": "󰇼",
             "actions": []
           }
         ],
@@ -291,7 +296,7 @@
             "id": "result",
             "name": "3.10686 miles",
             "subtitle": "5 km to miles",
-            "icon": "=",
+            "icon": "󰇼",
             "accessories": [
               {
                 "text": "miles"

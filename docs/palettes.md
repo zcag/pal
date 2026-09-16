@@ -15,8 +15,9 @@ refreshed with `⌘R`; a `scripts` palette keeps its listing across restarts
 for the extension's `ttl` (an hour by default) unless it sets its own.
 
 At the root every palette also has a **tier** ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)):
-`primary` for what is reached by name (Applications, Windows, Bookmarks,
-Quicklinks, Snippets, Recent Files, Browser Tabs, System, SSH Hosts),
+`primary` for what is reached by name (Applications, Windows, Menu Bar
+Items, Bookmarks, Quicklinks, Snippets, Recent Files, Browser Tabs, System,
+SSH Hosts),
 ranked up and capped at 8 rows per palette; `catalog` for the big static
 lists (Emoji, Unicode Characters, Colors, both Icons palettes, a v1 data
 file of 100 rows or more), ranked down and capped at 3, the rest behind a
@@ -30,6 +31,7 @@ file of 100 rows or more), ranked down and capped at 3, the rest behind a
 | Bookmarks | `bookmarks` | indexed | opens the link |
 | Calculator | `calc` | input | copies the result |
 | Clipboard History | `clipboard-history` | live, input | pastes into the app in front |
+| Clipboard | `clipboard-rows` | input | what the row is for: opens the address, the picker, the file; pastes as plain |
 | Emoji | `emoji` | indexed, grid | copies the emoji |
 | Files | `files` | input | opens the file |
 | Processes | `processes` | live, input | kills the process (after a confirm) |
@@ -38,9 +40,17 @@ file of 100 rows or more), ranked down and capped at 3, the rest behind a
 | SSH Hosts | `ssh` | indexed | opens a terminal running `ssh` |
 | System | `system` | live | runs the command |
 | Windows | `windows` | live | focuses the window |
-| Window Management | `window-management` | indexed | moves and resizes the focused window |
+| Window Management | `window-management` | indexed | moves, resizes, minimises or full-screens the focused window |
+| Menu Bar Items | `menu-bar` | live | presses the front app's menu item |
 | Arrange Window | `window-management-arrange` | input | picks a window, then a layout for it |
 | Scripts and data files | `scripts-<name>` | as configured | as configured |
+| Script Commands | `scripts-commands` | live | runs the script command as its header says |
+| Generate | `generate` | input | copies the value |
+| Shortcuts | `shortcuts` | indexed | runs the Apple Shortcut |
+| Search tela | `tela-search` | input | opens the page in tela |
+| Ask tela | `tela-research` | input | asks the wiki; on a source, opens it |
+| Pages | `tela-pages` | indexed | opens the page in tela |
+| Spaces | `tela-spaces` | indexed | lists the space's pages |
 
 ## Applications (`apps`)
 
@@ -232,6 +242,13 @@ What does not:
 - `12 usd to try` at the root: the calculator is an input palette, so
   open it first (its row, or an alias).
 
+At the root, a query that reads as sums, a conversion or a date (`2+2`,
+`15% of 80`, `12 usd to try`, `5 km to miles`, `3 days from now`,
+`today + 3 days`) is answered inline under a Calculator section above the
+hits, with the same actions (Enter copies the result). A bare number or a
+word never wakes it. A query nothing matched gets an "Ask Calculator"
+fallback row that opens the palette with it typed.
+
 Settings, `[extensions.calc]`:
 
 | key | type | default | what |
@@ -256,6 +273,7 @@ Actions:
 | --- | --- | --- |
 | Paste | `Enter` | hides the panel and pastes the entry into the app that was in front |
 | Copy | `⌘Enter` | puts the entry back on the clipboard |
+| Copy text from image | `⌘⇧T` | on an image entry: the text in it read by OCR (the Vision framework on macOS, `tesseract` on Linux when installed) goes on the clipboard as a copy of its own, "Copied text" in the HUD; an image with no text is a toast |
 | Pin / Unpin | `⌘P` | pinned entries sort first and never expire |
 | Delete | `⌘D` | removes the entry; asks first |
 | Clear history | `⌘⇧D` | removes every entry, pinned ones included; asks first |
@@ -272,9 +290,13 @@ paste is Ctrl+V through `wtype`, else `ydotool` (which needs `ydotoold`
 running); with neither, paste fails and the toast says so.
 
 What is never recorded: anything a password manager marks as concealed or
-transient (the `org.nspasteboard` convention), copies over 10 MB, and
-copies made while an app in `exclude_apps` is in front. Copying something
-already in history bumps it to the top instead of adding a duplicate.
+transient (the `org.nspasteboard` convention on macOS, the
+`x-kde-passwordManagerHint` type on Linux, read through `wl-paste` or
+`xclip`), pal's own concealed copies (a 1Password password, a
+verification code: marked the same way, and their clear-after restore),
+copies over 10 MB, and copies made while an app in `exclude_apps` is in
+front. Copying something already in history bumps it to the top instead
+of adding a duplicate.
 
 Retention runs after every copy: unpinned entries older than
 `max_age_days` are deleted, then the unpinned tail past `max_entries`.
@@ -289,12 +311,57 @@ Settings, `[extensions.clipboard]`:
 | `max_entries` | number, 1 to 100000 | `1000` | How many unpinned entries history keeps. |
 | `max_age_days` | number, 0 to 3650 | `30` | Unpinned entries older than this are deleted. `0` is no age limit: entries stay until the count limit. |
 | `primary_action` | `paste`, `copy` | `"paste"` | What `Enter` does on an entry. |
+| `ocr_concealed` | bool | `false` | Text read from an image (Copy text from image) is copied concealed, so it never enters this history. |
 
 The recorder reads the three retention keys once, when pal starts, so a
 change to them takes effect at the next launch (`primary_action` applies
 live). On Linux the source app of a copy is not known (neither X11 nor the
 Wayland data-control protocol says who owns the selection), so
 `exclude_apps` has no effect there.
+
+## Clipboard (`clipboard-rows`)
+
+What is on the clipboard right now, read as the things it could be: the
+**Clipboard** section of the empty root (before you type), and the same
+rows as a palette of their own. The rows are built from the history entry
+for the current clipboard, so what history never recorded (a concealed
+copy from a password manager, one made while an excluded app was in
+front, one over the size cap) never shows here either, and nothing leaves
+the machine except the page-title fetch below.
+
+Each row's Enter is the one thing it is for; ⌘K has the rest, and every
+row ends in **Hide from the root** (`⌘⇧H`), which keeps the section away
+until the next copy:
+
+| what is on the clipboard | rows | Enter | also |
+| --- | --- | --- | --- |
+| a web address | the page (its title fetched, 1 s at most, else the address; the site's favicon) and a QR code of it | Open | Open in private window (`⌘⇧O`), Copy as Markdown link (`⌘⇧M`), Copy URL, Shorten and copy (with `shortener`); the QR row: Show it large, Save to Desktop (SVG) |
+| a colour (hex, `rgb()`, `hsl()`, …, a CSS name) | a swatch with the hex, rgb and hsl forms | Open in Colour Picker | Copy hex, rgb(), hsl() |
+| a path, or lines of paths, or files copied in Finder | one row per path (three at most) with its size, then "N files" | Open | Reveal in Finder (`⌘Enter`), Open with… (`⌘O`), Copy name, Copy path; the count row: Reveal all, Copy paths, Copy names |
+| an email address | the address | Compose | Copy address |
+| a phone number | the number, with the digits | Call (`tel:`) | Copy digits, FaceTime |
+| JSON | `JSON · 3 keys` with its size and line count; the pretty form in the detail pane | Pretty-print to clipboard | Minify to clipboard (`⌘⇧M`) |
+| an expression (`2+2*3`, `(1+2)/4`, `2^10`, `15% * 80`) | `2+2*3 = 8` | Copy answer | Paste answer (`⌘Enter`), Copy expression = answer |
+| a number | the number formatted, its hex, binary and octal | Copy without formatting | Copy as hex, Copy as binary |
+| a unix timestamp (10 or 13 digits) or an ISO date | the moment in local time, how far off it is, the ISO form | Copy local time | Copy ISO 8601 (UTC), Copy unix seconds |
+| hex or base64 that decodes to text | the decoded text | Copy decoded text | Paste decoded text (`⌘Enter`) |
+| a tracking number (UPS, USPS, FedEx, DHL) | Track with the carrier | Open the carrier's page | |
+| a git sha, `owner/repo#12`, `owner/repo` | the commit, the issue, the repo | Copy short sha / Open on GitHub | Copy full sha, Copy GitHub URL |
+| an image | `Image 640 × 480` with its thumbnail and size; Recognise text when the core can OCR | Save to Desktop | Copy as PNG file (`⌘⇧C`), Paste; the OCR row: Recognise and copy, Recognise and paste |
+| any text | the text with its word, character and line counts | Paste as plain text | Save as snippet (`⌘S`, the Snippets form pre-filled), Copy as Title Case, lowercase, UPPERCASE, as slug, trimmed |
+
+A text is read as everything it is at once: `1700000000` is a number and
+a timestamp, a path is a path and a text. Text over 64 KB keeps its
+counts only. Every row has a detail pane (`⌘I`): the QR code large, the
+swatch wide, the JSON pretty-printed, the file list, the image itself.
+
+Settings, `[palettes.clipboard-rows.settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `fetch_titles` | bool | `true` | Ask a copied web address for its `<title>` (one request, 1 s at most, http and https only). The only thing these rows send off the machine. |
+| `shortener` | text | empty | A URL with `{url}` in it whose response body is the short link, for the Shorten action (`https://is.gd/create.php?format=simple&url={url}`). Empty: no Shorten action. |
+| `private_browser` | text | empty | Which browser opens a private window: Google Chrome, Brave Browser, Microsoft Edge, Chromium, Vivaldi or Firefox. Empty: the first of those that is installed. Safari has no such switch. |
 
 ## Emoji (`emoji`)
 
@@ -357,6 +424,10 @@ Settings, `[extensions.processes]`:
 ## Quicklinks (`quicklinks`)
 
 Your own links, kept in the extension's storage and edited in the panel.
+At the root a typed web address (`docs.rs/serde`, `https://…`) gets one
+inline Open row under a Quicklinks section (`https://` is assumed when
+there is no scheme), and a query nothing matched gets every link with a
+`{query}` in it filled with the query as a fallback row.
 Enter on a link opens it. A link whose url has a `{query}` placeholder
 (`https://github.com/search?q={query}`; Raycast's `{argument}` and
 `{argument name="Repo"}` are read the same way) drills in instead: the
@@ -472,7 +543,13 @@ Settings, `[extensions.ssh]`:
 ## Files (`files`)
 
 An input palette over the operating system's own file index: what you type
-is a name search on every keystroke, never a walk pal indexes itself. The
+is a name search on every keystroke, never a walk pal indexes itself. A
+typed path (`~/Down`, `/usr/local/bin`) completes instead of searching:
+the file itself when it exists, else the entries of its folder that start
+with the last segment (hidden ones only when the segment starts with a
+dot or `show_hidden` is on); at the root the same rows show inline under
+a Files section. A root query nothing matched gets a "Search Files for
+“…”" fallback row that opens the palette with it typed. The
 row is the file name; the parent folder is the subtitle (home shortened to
 `~`); the size and the modification date are accessories. `.app` bundles
 get their own icon, everything else a glyph by kind (folder, image,
@@ -496,6 +573,23 @@ the answer (Spotlight, locate); fd also stops eight levels down, since with
 fewer than `limit` matches it would otherwise walk the whole home. The
 backend picked is logged once at load (`[files] backend: fd`).
 
+**Contents** are searched too. A plain query lists the name matches, then
+a second section, "In files", of files whose text contains the query,
+each row's subtitle the first matching line (`12: the line` collapsed to
+one line, then the folder). A query starting with `'` or `content:`
+(`'invoice total`, Alfred's `in` prefix) searches contents only. The
+content backend, picked once at load and logged (`[files] content:
+mdfind`): Spotlight's text index on macOS (`mdfind -onlyin <folder>...
+'kMDItemTextContent == "*<query>*"cd'`, so PDFs and documents count, and
+only what Spotlight has indexed), `rg --files-with-matches` on Linux when
+ripgrep is installed, else `grep -rlI`. One process per keystroke, killed
+after 1 s: what it printed by then is the answer. The snippet is `rg -n
+-m1` (or `grep -n -m 1`) per file, eight at a time; a file the tool
+cannot read as text (a PDF Spotlight matched) keeps the folder as its
+subtitle. A file both searches find is listed once, as the name match.
+`content_search = false` keeps the second section off; the prefix still
+works.
+
 The detail pane (lazy, asked when the cursor rests on a row) shows the
 path, size, modified time and kind; for a text file under 64 KB the first
 40 lines in a code block. No image preview: the app's `icon://` scheme
@@ -510,6 +604,7 @@ Actions:
 | Open with… | `⌘O` | a level listing the apps registered for the file (below) |
 | Copy path | `⌘C` | copies the absolute path |
 | Copy file | `⌘⇧C` | the file itself onto the clipboard: a paste in Finder or a file manager copies it, a paste in a text field gets its path |
+| Copy text (OCR) | `⌘⇧T` | on an image or a PDF: the text in it (the PDF's first page) read by OCR onto the clipboard, "Copied text" in the HUD; the Vision framework on macOS, `tesseract` on Linux when installed (a toast otherwise). A PDF page is rendered by `pdftoppm` when installed, else `sips` on macOS |
 | Move to Trash | `⌘D` | asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
 
 **Open with…** drills into a level of the applications the OS registers
@@ -537,6 +632,8 @@ Settings, `[extensions.files]`:
 | `limit` | number, 1 to 500 | `50` | At most this many rows per query. |
 | `show_hidden` | bool | `false` | List files and folders whose name starts with a dot (below the configured folder; `~/.config` as a folder is fine either way). |
 | `exclude` | list of names | `["node_modules", ".cache", "Library/Caches", "target"]` | Folders skipped below the search folders, by name or a short path. |
+| `content_search` | bool | `true` | The "In files" section under the name matches. Off, only the `'` prefix searches contents. |
+| `ocr_concealed` | bool | `false` | Text read from an image (Copy text) is copied concealed, so it never enters the clipboard history. |
 
 ## System (`system`)
 
@@ -618,7 +715,9 @@ Settings, `[extensions.windows]`:
 ## Window Management (`window-management`)
 
 Move and resize windows from the keyboard, Raycast's set: one row per
-layout, `Enter` applies it to the window you were in. pal hides its panel
+layout (halves, thirds, quarters, the maximize family, larger and smaller,
+a nudge by a step, the other display, fullscreen, minimize, restore),
+`Enter` applies it to the window you were in. pal hides its panel
 first, so the window with focus is the one behind the panel, not pal; the
 HUD then names the layout, or says why it did not happen ("Restore: nothing
 to restore", "Next Display: only one display").
@@ -629,13 +728,13 @@ to restore", "Next Display: only one display").
 | Left Third, Center Third, Right Third | `left_third` `center_third` `right_third` | a third |
 | Left Two Thirds, Right Two Thirds | `left_two_thirds` `right_two_thirds` | two thirds |
 | Top Left, Top Right, Bottom Left, Bottom Right Quarter | `top_left_quarter` `top_right_quarter` `bottom_left_quarter` `bottom_right_quarter` | a quarter |
-| Maximize | `maximize` | the whole screen |
-| Almost Maximize | `almost_maximize` | `almost_maximize_percent` of the screen, centred |
-| Center | `center` | the same size, centred |
-| Reasonable Size | `reasonable_size` | `reasonable_size_percent` of the screen, centred |
-| Next Display, Previous Display | `next_display` `previous_display` | the same place and proportions on the other display; refused with one |
-| Restore | `restore` | back to where the window was before pal moved it |
+| `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills. |
+| `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
 
+## What it does not do
+
+- No custom layouts: the thirty-one above are the set; `gap`, `step` and
+  the two percentages are the knobs. Larger and Smaller are a fixed 10%.
 "The screen" is the display the window's centre is on (the one it overlaps
 most when the centre is off every display), minus the menu bar, Dock, or
 bars, minus `gap` on every side; the halves, thirds and quarters are equal
@@ -658,7 +757,8 @@ subtitle, and `Enter` on a layout applies it there.
 
 Per-layout global hotkeys, which move the focused window without showing
 pal at all, are `item_hotkeys` under the palette in the config file (see
-[Config](config.md#palettesid)):
+[Config](config.md#palettesid)); the moves and the resizes are the ones
+worth a key, since they repeat:
 
 ```toml
 [palettes.window-management.item_hotkeys]
@@ -666,7 +766,23 @@ left_half = "ctrl+alt+left"
 right_half = "ctrl+alt+right"
 maximize = "ctrl+alt+enter"
 restore = "ctrl+alt+backspace"
+larger = "ctrl+alt+="
+smaller = "ctrl+alt+-"
+move_left = "ctrl+alt+shift+left"
+move_right = "ctrl+alt+shift+right"
+move_up = "ctrl+alt+shift+up"
+move_down = "ctrl+alt+shift+down"
+fullscreen = "ctrl+alt+f"
+minimize = "ctrl+alt+m"
 ```
+
+Toggle Fullscreen, Minimize and Unminimize are window state, not a frame:
+Restore does not undo them, and Unminimize picks its own window (the one
+Minimize last put away while it is still minimised, else the frontmost
+minimised one), so it has no Apply to… and is not offered for a picked
+window. Larger and Smaller scale each side by 10% about the centre and
+are then pushed back inside the screen where they fit; the moves stop at
+the screen's edge; both leave a window larger than the screen where it is.
 
 - **macOS**: needs the Accessibility permission (the frame is set through
   the window's `AXPosition` and `AXSize`); without it `Enter` shows the same
@@ -676,12 +792,16 @@ restore = "ctrl+alt+backspace"
 - **Linux**: Hyprland (`movewindowpixel exact` / `resizewindowpixel exact`;
   a tiled window is floated first, since an exact frame means nothing
   inside the tiling layout; the display is `monitors -j` with `reserved`
-  taken out), Sway (`floating enable`, `move absolute position`, `resize
-  set`; the workspace rect is the usable part), or X11 (`wmctrl -i -r
-  <id> -e`; `xrandr --listmonitors` for the displays, `wmctrl -d`'s work
-  area for the usable part, `xprop -root _NET_ACTIVE_WINDOW` for the focused
-  window). Sway and X11 are written to the tools' documented shapes and
-  unit-tested on fixtures, not run against a live session yet.
+  taken out; Toggle Fullscreen is `focuswindow` then `dispatch fullscreen
+  0`, since that dispatcher takes no window), Sway (`floating enable`,
+  `move absolute position`, `resize set`, `fullscreen toggle`; the
+  workspace rect is the usable part), or X11 (`wmctrl -i -r <id> -e`, `-b
+  toggle,fullscreen`; `xrandr --listmonitors` for the displays, `wmctrl
+  -d`'s work area for the usable part, `xprop -root _NET_ACTIVE_WINDOW` for
+  the focused window). Minimize is the Windows palette's (`special:minimized`,
+  the scratchpad, `xdotool`), Unminimize its focus. Sway and X11 are written
+  to the tools' documented shapes and unit-tested on fixtures, not run
+  against a live session yet.
 
 Settings, `[extensions.window-management]`:
 
@@ -690,6 +810,7 @@ Settings, `[extensions.window-management]`:
 | `gap` | number (px) | `0` | Pixels between a window and the screen edge, and between two windows of a split. |
 | `almost_maximize_percent` | number (%) | `90` | How much of the screen Almost Maximize fills. |
 | `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills. |
+| `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
 
 ## Scripts and data files (`scripts`)
 
@@ -1308,18 +1429,26 @@ and a `connected` tag; a known network that a scan also sees carries its
 signal and an `in range` tag; an available one shows its security
 (`Open` for none) and channel. Live: read again on every show.
 
-- **macOS**: `networksetup` (the interface, the radio, the preferred
-  list, join, forget), `scutil` and `ipconfig getsummary` for the current
-  link, `security find-generic-password -wa <ssid>` for a password (the
-  keychain prompts; that dialog is yours to answer), `system_profiler
-  SPAirPortDataType -json` for a scan. That scan takes several seconds, so
-  Available shows the last one (kept for a minute) and the **Scan for
-  Networks** row runs a fresh one. macOS 15 and later withhold every
-  network name from a process without Location Services (`<redacted>` in
-  `ipconfig`, `scutil` and `system_profiler` alike; `wdutil info` would
-  say, but needs sudo): the current row then reads "Connected network"
-  with its IP and channel, and the Scan row counts the nearby networks
-  whose names are hidden instead of listing them.
+- **macOS**: CoreWLAN in-process for the interface, the radio, the
+  current link (name, signal, channel, security) and a scan;
+  `networksetup` for the preferred list, join, forget and the radio
+  switch; `ipconfig getsummary` for the IP; `security
+  find-generic-password -wa <ssid>` for a password (the keychain prompts;
+  that dialog is yours to answer). A scan takes several seconds (the
+  radio walks every channel; CoreWLAN and `system_profiler` take the
+  same 9 s on an M-series laptop), so Available shows the last one (kept
+  for a minute) and the **Scan for Networks** row runs a fresh one.
+  macOS 15 and later show network names only to an app with **Location
+  Services** (CoreWLAN answers nil, the CLIs `<redacted>`; `wdutil info`
+  would say, but needs sudo), so the first time the palette lists with
+  the names withheld it asks, once: the system prompt, the same as
+  Calendars. Say yes and the next listing has the names; until then the
+  current row reads "Connected network" with its IP and channel, and the
+  Scan row counts the nearby networks whose names are hidden. A refusal
+  is a row in the palette (**Wi-Fi names need Location access**, `Enter`
+  opens Privacy & Security > Location Services) and a Grant button in
+  Settings > General > Permissions and on the Overview. Nothing asks at
+  first run.
 - **Linux**: NetworkManager over `nmcli -t` (`device wifi list`, which
   answers from NetworkManager's own scan cache, so Available lists at
   once; `connection show` for the saved ones; `device wifi connect`;
@@ -1335,20 +1464,25 @@ signal and an `in range` tag; an available one shows its security
 | Forget | `⌃X` | removes the saved network, after a confirm |
 | Scan | `Enter` on the Scan row | a fresh scan, then the list again |
 | Turn Wi-Fi Off / On | `Enter` on the Wi-Fi row | the radio; off, only that row is listed |
+| Open System Settings | `Enter` on the Location row (macOS, access refused) | the Location Services pane |
 
 No settings.
 
 ## Now Playing (`media`)
 
-One row per running player over the core's media capability: the track
-as the title, artist and album as the subtitle, the artwork (else the
-app's icon) and a `playing` / `paused` / `stopped` tag, playing ones
-first. A player with nothing loaded reads "Nothing playing" with the
-player's name; one playing without a track (Chrome with YouTube on macOS
-reports the position and nothing else) is its app's name with the
-position as the subtitle. Live: read again on every show. With no player
-running the one row says so; on Linux without `playerctl` it says to
-install it.
+The playing track is also the empty root's Now section's row (nothing
+while nothing plays). One row per running player over the core's media capability: the track
+as the title, artist and album as the subtitle, the cover (the system's
+Now Playing artwork on macOS, else the player's artwork url, else the
+app's icon), the position as `12:34 / 1:06:03`, the player's name and a
+`playing` / `paused` / `stopped` tag, playing ones first. A player with
+nothing loaded reads "Nothing playing" with the player's name; one
+playing without a track (Chrome with YouTube on macOS reports the
+position and nothing else) is its app's name with the position as the
+subtitle. Live: read again on every show, and the position is the core's
+estimate at that moment (it advances from the last report and the clock
+while playing). With no player running the one row says so; on Linux
+without `playerctl` it says to install it.
 
 - **macOS**: Spotify and Music through AppleScript, only while the app is
   running (the check is `NSRunningApplication`, so pal never launches one
@@ -1357,7 +1491,11 @@ install it.
   and iconed from the app's bundle id, through the bundled MediaRemote
   adapter (`mediaremote-adapter.pl` plus a framework, run by
   `/usr/bin/perl`; the one source that works on macOS 15.4 and later,
-  where `nowplaying-cli` gets null). Nothing to install.
+  where `nowplaying-cli` gets null). The adapter runs as one `stream`
+  child of pal for as long as pal does (started on the first look,
+  restarted if it dies, ended with pal): every change the system reports
+  lands in memory as it happens, with the cover, so a look costs
+  microseconds and never a process. Nothing to install.
 - **Linux**: `playerctl` over MPRIS, one row per player; the icon is the
   player's `.desktop` when one is named like it.
 
@@ -1370,11 +1508,17 @@ install it.
 | Open in … | `⌘O` | the track's url (Spotify's `spotify:track:` link), else the app on macOS |
 
 The bar item `media/now-playing` puts the playing track on the strip
-(hidden while nothing plays) with Pause, Next, Previous, Copy Track and
-Open in its popover; the extension polls the players every 5 s while one
-plays and pushes a track change itself.
+(hidden while nothing plays) with the track row (the cover, or the app's
+icon, at row size; a click opens the track) over Pause, Next, Previous,
+Copy Track and Open in its popover. On macOS the core's stream fires the
+item's `media` trigger the moment the track, the state or the cover
+changes, so the strip follows a skip at once; on Linux the extension
+polls the players every 5 s while one plays and pushes a track change
+itself.
 
-No settings.
+| setting | default | what |
+| --- | --- | --- |
+| Cover on the bar (`bar_artwork`) | off | the cover instead of the note on the menu bar strip, only when the cover is square (a 24 pt picture of anything else is a smudge); the popover shows the cover either way |
 
 ## Unicode Characters (`unicode`)
 
@@ -1424,52 +1568,102 @@ Settings, per palette, `[palettes.unicode.settings]`:
 | --- | --- | --- | --- |
 | `columns` | number, 4 to 16 | `10` | Tiles per row in the grid. Read once when the extension loads, like Emoji's. |
 
-## Colors (`colors`, `convert`)
+## Colors (`picker`, `colors`, `history`, `convert`)
 
-Two palettes. **Colors** is a grid of 700 named colours as swatch tiles
-(the tile is an SVG of the colour, so it fills the box; a `catalog` at
-the root, three rows there and the rest behind the "more" row): the 148 CSS
-names, pal's own tokens from `app/src/ui/tokens.css` (the light and the
-dark value of each, `accent (light)`, `tag blue (dark)`), Tailwind 3.4's
-palette (`slate 500`) and Material's 2014 palette (`red a200`); one
-section per set. The search matches the name, the hex (`#64748b`), the
-token spelling (`slate-500`) and the set (`tailwind`). The last twelve
-picked lead in a **Recent** section, as in Unicode Characters.
+Four palettes over one colour maths (`extensions/colors/color.ts`) and one
+history. At the root a hex, an `rgb()`/`hsl()`/`oklch()`… notation or a
+CSS name answers inline under a Convert Colour section (the first four
+notations; Enter opens the picker on it). **Colour Picker** is a view level: a large swatch on a sunken
+well over a hue strip and a saturation/value plane (both drawn by the
+app from the colour, the ring marking where it sits), the colour in hex,
+rgb, hsl, hwb, oklch, oklab, lab and display-p3 with its CSS name (or the
+nearest, in OKLab), the nearest Tailwind and Material tokens, the
+contrast on white, on black and against the previous colour with the
+WCAG level as a badge, and to the right nine tints, nine shades and the
+complementary, analogous, triadic, split and tetradic harmonies as tiles.
+The keys edit the colour in place: `←`/`→` turn the hue 5°, `↑`/`↓` move
+the lightness 2 points, `-`/`+` the saturation 5 points, `⇧` makes an arrow
+step three to five times bigger, `m` switches to OKLCH (lightness, chroma
+and hue; a chroma step stops at the sRGB gamut edge instead of clipping)
+and back. `⇥` moves the focus from the swatch to the tints, the shades and
+each harmony row in turn (`⇧⇥` back): the arrows then walk the row, the
+label names the tile and `Enter` takes it. A digit or `#` opens a text
+field in the search row with that character; type any notation and
+`Enter` applies it, `Escape` closes the field (a notation that does not
+parse stays in the field with a toast). `c` (and `Enter` on the swatch)
+copies in the notation the `format` setting names, `⌘C` always the hex,
+`⌘⇧R` rgb, `⌘⇧H` hsl, `⌘⇧O` oklch, `⌘⇧L` lab, `⌘⇧P` display-p3, `⌘⇧N` the
+CSS name, hwb and oklab from ⌘K. `p` picks from the screen: the panel
+hides, the system's loupe appears (`NSColorSampler` on macOS, the
+screenshot portal on Linux), and the panel comes back in the picker on the
+picked colour (unchanged after Escape). `h` opens the history, `n` the
+named sets, `u` goes back to the previous colour, `r` makes a random one.
+The colour, the model and the history live in the extension's storage,
+so Escape and a restart lose nothing.
 
-| action | shortcut | what |
-| --- | --- | --- |
-| Copy hex | `Enter` | `#64748b` |
-| Copy rgb | `⌘Enter` | `rgb(100, 116, 139)` |
-| Copy hsl | `⌘⇧H` | `hsl(215, 16%, 47%)` |
-| Copy name | `⌘⇧N` | the token: `slate-500`, `aliceblue`, `tag-blue` |
+**Named Colours** is a grid of 995 swatch tiles (a `catalog` at the root:
+three rows there, the rest behind the "more" row), one section per set,
+with a filter per set in the dropdown (`⇥` cycles them): the 148 CSS
+names, Tailwind 3.4 (`slate 500`), the Material 3 baseline tonal palettes
+(`primary 40`, generated from the seed `#6750A4` with Google's
+material-color-utilities), the 2014 Material palette (`red a200`), Apple's
+system colours in the light and the dark appearance (`blue`, `gray6`),
+Catppuccin's four flavours, Rosé Pine's three variants, Nord, Solarized,
+and pal's own tokens. The search matches the name, the hex, the token
+spelling (`slate-500`, `systemBlue`, `mocha/mauve`) and the set. `Enter`
+opens the tile in the picker; `⌘Enter` copies it in the chosen notation,
+`⌘⇧C` the hex, `⌘⇧N` the token. The detail pane (`⌘I`) adds where the
+token is used: the Tailwind utilities, the Material 3 role, the
+`UIColor`/`NSColor` name and what Apple uses it for, the role a theme gives
+it (Catppuccin's `mauve` is keywords, Nord's `nord8` the primary accent).
+The last twelve opened lead in a **Recent** section. The `sets` setting
+narrows what All lists; the dropdown reaches every set regardless.
+
+**Colour History** (live, so its rows at the root follow every pick and
+copy) lists every picked and copied colour, newest first, one row per
+colour, with the hex, where it came from (the screen, typed, a
+set with its token, the picker, the converter) and when; the CSS name (or
+`≈` the nearest) is the accessory, the chosen notation when it is not hex.
+The first row is **Pick Colour from Screen**, which is also at the root:
+the loupe, then the colour copied in the chosen notation with the HUD
+naming it, and remembered. `Enter` on a colour opens it in the picker,
+`⌘Enter` copies it, `⌘D` removes it, `⌘⇧D` clears the history (with a
+question). The `history_size` setting caps it (50).
 
 **Convert Colour** is an input palette: type a colour in any notation and
-the rows are its conversions, each with a swatch, `Enter` copying the
-row. It reads hex in every length with or without the hash (`#f80`,
-`ff880080`), `rgb()`/`rgba()` in the comma and the space syntax with
-percentages and alpha (`rgb(255 136 0 / 50%)`), a bare triple (`255 136
-0`), `hsl()`/`hsla()` with hue units (`deg`, `turn`, `grad`, `rad`),
-`hwb()`, `oklch()` and the CSS names. The rows: hex, rgb, hsl, hwb, oklch,
-the CSS name (or the nearest one, tagged `close`, `near` or `far` by its
-OKLab distance), and the contrast ratio on white and on black, each tagged
-with what it passes for normal text (`AAA` at 7, `AA` at 4.5, `AA large`
-at 3, else `fail`, WCAG 2). Something that is not a colour gives one inert
+the rows are its conversions, each with a swatch. It reads hex in every
+length with or without the hash (`#f80`, `ff880080`), `rgb()`/`rgba()` in
+the comma and the space syntax with percentages and alpha (`rgb(255 136 0
+/ 50%)`), a bare triple (`255 136 0`), `hsl()`/`hsla()` with hue units
+(`deg`, `turn`, `grad`, `rad`), `hwb()`, `oklch()`, `oklab()`, `lab()` (CIE
+Lab against D50, as CSS means it), `color(display-p3 …)`, `color(srgb …)`
+and the CSS names. The rows: every notation, the CSS name (or the nearest
+one, tagged `close`, `near` or `far` by its OKLab distance), and the
+contrast ratio on white and on black, each tagged with what it passes for
+normal text (`AAA` at 7, `AA` at 4.5, `AA large` at 3, else `fail`, WCAG
+2). `Enter` opens the picker on the colour, `⌘Enter` copies the row; a
+contrast row only copies. Something that is not a colour gives one inert
 row saying so.
 
-The detail pane, for a grid tile or a conversion row, shows a wide swatch,
-every notation, the exact or nearest CSS name, both contrast ratios with
-their levels, and the complementary colour with three lighter and three
-darker steps as coloured tags. The maths is `extensions/colors/color.ts`
-(sRGB, HSL, HWB, OKLab/OKLCH by Ottosson's matrices, WCAG luminance),
-unit-tested on its own.
+The rows of the sets are generated by `bun run extensions/colors/build.ts`
+(the CSS table from `color.ts`, the tokens read from `tokens.css`,
+Tailwind and Material fetched from unpkg, Material 3 computed with the
+library from esm.sh, Catppuccin from its GitHub palette; Apple, Rosé Pine,
+Nord and Solarized are hand-kept in `sets.ts`) into `data.json` (72 KB),
+committed. The maths is unit-tested against the CSS Color 4 reference
+points (`host/test/extensions/colors.test.ts`).
 
-No pick-from-screen: the core has no screen-sampling capability, and an
-extension cannot read pixels, so the action is not offered. The palette's
-rows are generated by `bun run extensions/colors/build.ts` (the CSS table
-from `color.ts`, the tokens read from `tokens.css`, Tailwind and Material
-fetched from unpkg) into `data.json` (48 KB), committed.
+Settings, `[extensions.colors]`:
 
-Settings, per palette, `[palettes.colors.settings]`:
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `format` | `hex`, `rgb`, `hsl`, `hwb`, `oklch`, `oklab`, `lab`, `p3`, `name` | `hex` | What `c`, Copy and the grid's `⌘Enter` write. |
+| `uppercase` | boolean | `false` | `#FF8800` rather than `#ff8800`. |
+| `alpha` | `keep`, `drop` | `keep` | Whether a translucent colour copies with its alpha (`#ff880080`, `rgba(…)`, `/ 0.5`) or as the opaque colour. |
+| `sets` | list of set ids | every set | Which sets the grid lists under All: `css`, `tailwind`, `material3`, `material`, `apple`, `catppuccin`, `rosepine`, `nord`, `solarized`, `pal`. |
+| `history_size` | number, 5 to 500 | `50` | How many colours the history keeps. |
+
+Per palette, `[palettes.colors.settings]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
@@ -1545,9 +1739,13 @@ says why when the fetch fails.
 **The SSID on macOS**: since Sonoma the system redacts the network name
 for a process without Location Services access (`ipconfig getsummary`
 prints `<redacted>`, `networksetup -getairportnetwork` says not
-associated), and pal has no such grant, so the Wi-Fi row is labelled by
-kind (`en0 · Wi-Fi`) and the detail pane says the SSID is hidden. Grant
-pal Location access in System Settings and the name appears.
+associated), and pal's own grant does not reach the tools it runs:
+`ipconfig` under a granted pal still prints `<redacted>` (checked on
+hornet). So when the summary is redacted the palette asks the core's wifi
+capability, which reads the name in-process (CoreWLAN) and has it once
+pal holds Location access (the Wi-Fi palette asks for it); until then the
+Wi-Fi row is labelled by kind (`en0 · Wi-Fi`) and the detail pane says
+what is missing.
 
 Actions:
 
@@ -1578,6 +1776,8 @@ owner's dotfiles): the CLI keeps the timers, one detached process per
 timer that fires on its own (confetti, a chime, a phone ping) and one KV
 file per timer under its state directory. pal is a view of that directory
 and asks the CLI for every change, so a timer started from a terminal and
+the empty root's Now section shows the most urgent one (running, paused
+or just landed) with its own actions; nothing when there is none.
 one started here are the same thing. Live: listed again on every show.
 
 One row per timer, most urgent first (landed, then running soonest first,
@@ -1812,44 +2012,111 @@ Settings, `[extensions.emoji]`:
 
 Reviewed, nothing changed: no bug found.
 
-## My Schedule (`calendar-schedule`)
+## Calendar: Today, My Schedule, the Upcoming bar item (`calendar-today`, `calendar-schedule`, `calendar/upcoming`)
 
-The next days of events over the core's calendar capability
-(`pal_core::calendar`): EventKit on macOS, so every account Calendar.app
-has (iCloud, Google, Exchange) is one store and one permission; `khal` on
-Linux, read through its `list --json`. Live with a 60 s ttl: the rows are
-current on every show and the store is read at most once a minute.
+Two live palettes and a bar item over one source and one cache; Today
+also suggests the empty root's Now section its first row: the current
+event, else the next inside `horizon_hours` (the strip's rules), with
+Join first when it has a call, from the cache when that is under a minute
+old
+(`extensions/calendar/source.ts`). The source is a setting: `system` is
+the core's calendar capability (`pal_core::calendar`: EventKit on macOS,
+so every account Calendar.app has is one store and one permission; `khal`
+on Linux, read through its `list --json`); `google` is the Calendar API
+v3 read directly per account; `auto` (the default) is `google` once an
+account is listed, else `system`. Every reader goes through `load`,
+which keeps the last window fetched (local midnight to `days` ahead, two
+at least) and answers it while it is younger than the caller's allowance:
+a palette show takes up to a minute, the bar's minute tick five, a
+`refresh` nothing. A fetch that fails leaves the last events in place as
+`stale`, so a source that is away costs the strip its freshness, not the
+meeting.
 
-Sections by day: **Today**, **Tomorrow**, **This week** (within seven days),
-**Later** (up to the `days` setting). Events that have ended are gone; an
-all-day one lasts until its midnight. The current event carries a `now`
-tag, else the next one `in 12 min` (`in 2 h` further out, nothing past a
-day). The row is the title, the time range and the location (`10:00 –
-10:30 · Room 4`, `All day`, `All day, until Fri 18 Sep`), the calendar's
-colour as its dot, the head count, a `Join` tag when the event has a
-call, `declined` or `maybe` for your reply. The last row is **New event**.
+**Today** is the day's events in time order, whatever their state: the
+row is the title, the time range with how long (`10:00 – 10:30 · 30 min
+· Room 4`, `All day`), the calendar glyph tinted with the calendar's
+colour, and the state as the first tag: `in 12 min` (`in 2 h 5 min`) in
+blue, `now, 25 min left` in green, `over` in grey, `today` for an all-day
+one; then `declined` / `maybe`, the head count, `Join` when there is a
+call. Once no timed event is left today a **Nothing else today** row
+names the next timed event's day (`Next: Concert, tomorrow 19:00`,
+`Next: Review, Sat 19 Sep 09:00`; **Nothing today** on a day that never
+had one) and tomorrow's rows follow under their own section. The bar's
+popover opens the same palette with `args: { rest: true }`: the over
+ones dropped and tomorrow always there.
 
-A call is the first Zoom, Google Meet, Teams, Webex, Jitsi, Whereby or
-GoTo link in the event's url, then its location, then its notes; Outlook
-safelinks are unwrapped and `&amp;` unescaped. A Zoom marketing page or a
-docs link does not count.
+**My Schedule** is the week: sections **Today**, **Tomorrow**, **This
+week** (within seven days), **Later** (up to the `days` setting); events
+that have ended are gone, an all-day one lasts until its midnight; the
+current event carries a `now` tag, else the next one `in 12 min` (`in 2
+h` further out, nothing past a day); the calendar's colour as the row's
+dot, the head count, `Join`, `declined` or `maybe`. The last row is
+**New event** on the system source.
+
+A call is Google's `conferenceData` video entry point (else
+`hangoutLink`), or the first Zoom, Google Meet, Teams, Webex, Jitsi,
+Whereby or GoTo meeting link in the event's url (system), location, then
+notes or description; Outlook safelinks are unwrapped and `&amp;`
+unescaped. A Zoom marketing page or a docs link does not count.
 
 | action | shortcut | what |
 | --- | --- | --- |
 | Join call | `Enter` | opens the call link; first only when there is one |
-| Open in Calendar | `Enter` (`⌘Enter` with a call) | `ical://ekevent/…` into Calendar.app, the occurrence for a repeating event; macOS only |
+| Open in Calendar / Open in Google Calendar | `Enter` (`⌘Enter` with a call) | `ical://ekevent/…` into Calendar.app, the occurrence for a repeating event (macOS, system source); the event's `htmlLink` in the browser for a Google account |
 | Copy conference link | `⌘⇧C` | |
 | Copy event details | `⌘C` | title, when, where and the link as text; the primary action on Linux without a call |
-| Delete event / Delete this occurrence | `⌃X` | asks first; on a repeating event only that occurrence goes; macOS only (khal has no delete) |
-| New event | `Enter` on the last row | the form below |
+| Delete event / Delete this occurrence | `⌃X` | asks first; on a repeating event only that occurrence goes; macOS, system source only (khal has no delete; a Google token may be read-only) |
+| New event | `Enter` on the last row | the form below; system source only |
 | Grant access | `Enter` on the permission row | the system prompt, or System Settings when it was denied |
 
 The filter dropdown is one entry per calendar (read when the host loads,
-so a calendar added later shows at the next start). The detail pane is
-the notes as markdown (the title when there are none) over when, the
-calendar and its account, the location, the call or link, the organizer,
-every attendee with their reply as a coloured tag, your own reply, and
-whether it repeats.
+so a calendar added later shows at the next start; a Google account's
+are named by account, `Personal (personal)`). The detail pane is the
+notes as markdown (a Google description as text, its HTML stripped; the
+title when there are none) over when with the duration, the calendar and
+its account, the location, the call or link, the organizer, every
+attendee with their reply as a coloured tag, your own reply, and whether
+it repeats.
+
+**The bar item** (`calendar/upcoming`, [Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)):
+the next event as `Standup in 12m` (`Standup now` while it runs, the
+title cut to 36 characters), hidden when nothing timed starts within
+`horizon_hours` (10), so a clear evening is a clear strip. The event is
+the first that has not ended, timed unless `hide_all_day` is off, not
+declined unless `hide_declined` is off, starting inside the horizon; a
+running one counts until it ends. Colour by escalation, the boundaries
+inclusive: `muted` far off, `amber` from `warn_minutes` (15) before the
+start, `red` from `urgent_minutes` (5), `green` while it runs; sketchybar
+draws the same names through the bar module's colour map. A `dot` badge
+says there is a call. The tooltip is the title, the time range and the
+calendar. A click opens Today in the popover (the rest of today and
+tomorrow, Enter joins). The core asks every five minutes and on wake, the
+network coming back and the minute tick; a minute tick renders from the
+cache (0.1 ms through the host in the tests; the count-down needs no
+fetch), every other reason fetches (about 80 ms for a week from EventKit
+on hornet, 250 to 350 ms for two Google accounts whose token commands
+hop over ssh). A failed fetch keeps the last item as `stale`; no cache
+and no source is hidden.
+
+**Google.** Each account is one entry of `accounts`, `name = command`:
+the command prints an access token for the Calendar API on stdout (a
+bare token, or the JSON an OAuth endpoint answers with `access_token`
+and `expires_in`); pal runs it through `sh -c`, keeps the token in memory
+until its expiry (30 minutes for a bare one, a minute's margin), mints
+again once on a 401, and never writes a token anywhere: the command is
+the secret's owner, so nothing secret sits in the config. `gcloud auth
+application-default print-access-token` after an `application-default
+login` with the `calendar.readonly` scope (documented, not verified
+here), a keychain helper, a broker behind ssh (quote the remote command
+for its shell: `ssh archer "curl -s 'http://…/token?aud=calendar'"`).
+An entry reads the account's primary calendar; a table in the file, `{
+name, token_command, calendars = ["primary", "<id>"] }`, reads more.
+Events are read with `events.list` (`singleEvents`, `timeMin`/`timeMax`,
+the `conferenceData` entry points), the calendars from `calendarList`
+(their colour, title and access role), all accounts at once. One account
+away is logged and the rest list; every account away keeps the last
+events read behind a hint row. Google rows open in the browser and are
+not deleted or created from here.
 
 On Linux, `khal new` prints no id and reads dates in the formats of its
 own `[locale]` section; with none set (the C locale's `%c`), khal cannot
@@ -1874,20 +2141,29 @@ after answering). `denied` and `restricted` are one row that opens that
 pane. The app carries `NSCalendarsFullAccessUsageDescription` (and the
 pre-14 `NSCalendarsUsageDescription`) in its Info.plist; without the
 string macOS ends the process instead of asking. On Linux without `khal`
-the one row says so.
+the one row says so. The Google source needs no permission: a token that
+fails shows on the listing.
 
 Settings, `[extensions.calendar]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `calendars` | list | `[]` | Calendar names (or ids) to list; empty is every calendar. Also narrows the filter dropdown. |
-| `days` | number | `7` | How many days from today. |
+| `source` | select | `auto` | `auto`, `system`, `google`. |
+| `accounts` | list | `[]` | Google accounts as `name = command`, or tables `{ name, token_command, calendars }` in the file. |
+| `calendars` | list | `[]` | Calendar names (or ids, `work:primary` for Google) to list; empty is every calendar. Also narrows the filter dropdown. |
+| `days` | number | `7` | How many days from today My Schedule lists. |
 | `hide_declined` | boolean | `true` | Leave out invitations you declined. |
+| `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours. |
+| `warn_minutes` | number | `15` | The bar item turns amber this many minutes before the event. |
+| `urgent_minutes` | number | `5` | The bar item turns red this many minutes before the event. |
+| `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
 
 Not built: accept and decline (EventKit has no public API to change a
 participant's status; Raycast does it through the private
-`EKParticipant` setter), a second `calendars` palette toggling visibility
-(an extension cannot write its own settings), reminders.
+`EKParticipant` setter; the Google tokens this is built for are
+read-only), a second `calendars` palette toggling visibility
+(an extension cannot write its own settings), reminders, an OAuth flow
+of pal's own (a Google client id would have to ship with it).
 
 ## 2048 (`2048`)
 
@@ -1953,3 +2229,416 @@ guesses, 69 KB in all. Nothing is fetched.
 daily = true
 hard_mode = false
 ```
+
+## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)
+
+One extension, four palettes and a bar item, signed in through the Slack
+desktop app's own session (or a user token). It replaces the v1 `slack`
+script and the sketchybar `slack` item.
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Unreads | `slack-unreads` | live | opens the conversation in the Slack app, at the message |
+| Channels | `slack-channels` | indexed, 1 h, catalog | opens the conversation in the Slack app |
+| Search Slack | `slack-search` | input | opens the message in the Slack app |
+| Status | `slack-status` | live | sets the status, snoozes, or flips presence |
+
+**Signing in.** `auth = "app"` (the default) reads the desktop app's
+session: the `xoxc-` token per workspace out of its Local Storage (a
+LevelDB: the SSTables and the write-ahead log are parsed, both copied
+first) and the `d` cookie out of its cookie jar (AES-128-CBC under the
+"Slack Safe Storage" password from the login keychain, or the Secret
+Service / "peanuts" on Linux). Read-only, kept in memory, extracted again
+once when Slack answers `invalid_auth`. It is the only way to
+`client.counts`, the client call that answers every unread at once; the
+public API has no unread endpoint. `auth = "token"` sends a user token
+(`xoxp-`) as a bearer and falls back to `conversations.info` per
+conversation: direct messages and unread channels, no mention counts, no
+threads. Without either, one hint row per palette; Enter opens the
+extension's settings.
+
+**Unreads.** Addressed versus merely unread: direct messages, mentions
+(`@you`, `@here`, `@channel`) and replies in followed threads are the
+rows and the count; channels that are only unread are named last, no
+count. Sections Direct messages, Mentions, Threads, Channels, newest
+first in each. The row: the conversation's name, the sender's avatar, the
+message (in a channel the one naming you, not the last), a count badge
+(red; blue for thread replies; `1+` past a page), the time. The pane is
+the unread run, oldest first, up to eight messages. One `client.counts`
+per refresh; `conversations.history` only for an addressed conversation,
+the newest twelve, once per change of its `latest`; the inbox is shared
+with the bar item for 30 s.
+
+| action | shortcut | when |
+| --- | --- | --- |
+| Open in Slack | `Enter` | `slack://channel?team=&id=&message=` |
+| Reply | `⌘Enter` | not a thread row; a one-field form, `chat.postMessage` (into the thread for a threaded mention) |
+| Mark as read | `⌘⇧R` | not a thread row; `conversations.mark` at the latest message |
+| Open in browser | `⌘⇧O` | the archive page |
+| Copy link | `⌘C` | |
+
+**Channels.** Every channel, private channel, group message and direct
+message you are in (`users.conversations`, an hour), channels first then
+by name, with the topic or purpose, the member count and a tag for
+private, group, DM. Actions: Open in Slack, Open in browser (`⌘⇧O`),
+Copy link (`⌘C`).
+
+**Search Slack.** `search.messages` with the query as typed, Slack's
+syntax through (`from:@name`, `in:#channel`, `has:link`,
+`before:yesterday`), newest first; rows are the message, who said it
+where, the time. A keystroke waits 300 ms for the next. Actions: Open in
+Slack (at the message), Open in browser (the permalink), Copy text.
+
+**Status.** What is set now first (the status with its expiry, Do Not
+Disturb, presence; Enter clears, ends, flips), then the `statuses`
+presets (`:emoji: text (expiry)`, common Slack shortcodes drawn as the
+emoji), Do Not Disturb for 30 minutes, an hour, until tomorrow, and Set
+away / Set active. `users.profile.set`, `dnd.setSnooze` / `endSnooze`,
+`users.setPresence`; every pick keeps the palette open with a toast.
+
+**The bar item** `slack/unreads`: the count of what is addressed (DMs +
+mentions + thread replies) as the badge, hidden at zero, urgent while a
+direct message waits (`dm_urgent`); every `refresh` seconds and on show,
+wake, network. The popover is a menu: a section per kind with the newest
+five (a row opens the conversation), "Also unread" naming the quiet
+channels, then Open in pal, Mark all read (`⌘⇧A`), Open Slack. A failed
+refresh leaves it stale; not signed in hides it.
+
+Settings, `[extensions.slack]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `auth` | `app` / `token` | `app` | The desktop app's session, or a user token. |
+| `token` | secret | (none) | The user token, with `auth = "token"`. |
+| `workspace` | text | (none) | The workspace when the app is signed in to several (id or domain); empty lists every one. |
+| `statuses` | list | five presets | `:emoji: text (expiry)` per line; expiry `30m`, `2h`, `1d`, `today`, or none. |
+| `dm_urgent` | boolean | `true` | The bar item red while a direct message is unread. |
+| `refresh` | number (s) | `120` | Seconds between bar refreshes, 10 at least. |
+
+For the tests, `PAL_SLACK_API` replaces the API host, `PAL_SLACK_APP_DIR`
+the app's directory and `PAL_SLACK_TOKEN` the token setting.
+
+## Menu Bar Items (`menu-bar`)
+
+The menus of the app in front as one list, Raycast's Search Menu Bar
+Items: every enabled item with the menus above it as the subtitle ("File
+> Export"), its shortcut as key caps, a check mark when it is on, the
+app's icon on every row, a section per top menu in menu order. Live, so
+the menus are read again every time the panel shows (pal's panel never
+takes the app's place, so the app behind it is the one read) and the rows
+are root results: `export pdf` at the root finds Preview's item without
+opening the palette; the whole path is searched (the segments are
+keywords, and so is the app's name).
+
+`Enter` presses the item: pal hides first and waits a few frames for key
+focus to return to the app, so an item that opens a sheet or a dialog
+lands there, then presses the very element it listed through Accessibility
+(`AXPress`); the HUD names the app and the path ("TextEdit: File > Export
+as PDF…"), or says why the press failed. A pick more than two seconds
+after the listing, or of an id it does not have (`pal run
+'menu-bar/menu-bar/File > New'`, an item hotkey, the app in front changed
+since), reads the menus once more first, so the press lands in the app in
+front now and `item_hotkeys` on a menu item work as long as its path is
+stable.
+
+What is left out: separators and disabled items (what the app would not
+let you click now), the Apple menu (the System palette has what matters
+there), submenus deeper than four levels (`File > Export > As > PDF` is the
+deepest listed) and whatever was not reached within 150 ms of reading. The
+walk is one round trip to the app's main thread per item (seven attributes
+in one `AXUIElementCopyMultipleAttributeValues`) plus one per submenu, so a
+warm app is fast: Finder 40 items in 18 ms, kitty 54 in 7 ms, TextEdit
+with a document 144 in 11 ms, Chrome 271 in 81 ms (deep bookmark folders
+cut). An app answers slowly for a moment right after it comes to the
+front (TextEdit just activated: 22 items in 188 ms; a second later 144 in
+11 ms), so a walk the budget cuts short is answered with the last fuller
+listing of the same app when there is one, and pressing checks the item is
+still enabled.
+
+- **macOS**: needs the Accessibility permission (the menus are read through
+  the app's `AXMenuBar`); without it the one row says so and `Enter` on it
+  opens System Settings on the pane. Fn (Globe) shortcuts have no
+  Accessibility bit: a bare letter with the "no command" flag is drawn as
+  `fn F`, which is what Enter Full Screen carries.
+- **Linux**: not available; no desktop exposes an app's menus to read. The
+  one row says so.
+
+No settings.
+
+## Generate (`generate`)
+
+Identifiers, secrets, random values, hashes, encodings, lorem ipsum, a
+random colour, a QR code and a JWT taken apart, from `extensions/generate/`.
+An input palette: the rows come from what is typed, and every value
+copies on `enter`, pastes on `cmd+enter`; `cmd+r` (Refresh) lists again
+with fresh values, which is how a value is regenerated.
+
+The empty query lists one fresh value of every generator: UUID v4, UUID
+v7 (time-ordered), ULID, Nano ID, a password (`password_length`
+characters from `password_charset`, the strength as a tag on the right:
+bits of entropy, weak under 36, fair under 60, good under 80, strong
+under 128), a passphrase (`passphrase_words` words from a list of 2551
+common five-letter words, about 11 bits each), a random number (1 to
+100), 16 random bytes as hex and as base64, a lorem ipsum paragraph, a
+random colour (the swatch as its icon, `cmd+o` opens it in the Colour
+Picker). A mode word narrows and parameterises: `password 32 alnum`,
+`passphrase 7`, `number 1-6` (or `dice`), `hex 32`, `bytes 32`, `lorem
+3 paragraphs`, `colour` (five). Anything else filters the generators by
+name and keyword.
+
+A transform mode works on the text after it, or on the newest clipboard
+text when nothing follows (the subtitle says which): `sha256`, `md5`,
+`sha1`, `sha512`, `hash` (all four, `cmd+shift+c` copies them as lines),
+`base64`, `b64url`, `url`, `hex` (each decoding first when the text is
+already that), `encode` (every form), `decode` (whatever the text turns
+out to be: base64, URL escapes, hex, a JWT). `qr <text>` is one row
+wearing the code as its icon, drawn large in the detail pane; `enter`
+shows it full width, `cmd+c` copies the SVG. The encoder is the
+extension's own (`qr.ts`, byte mode, versions 1 to 40, after Nayuki's
+qrcodegen). `jwt <token>` is the header, the payload with its expiry as a
+tag, a row per time claim (`exp`, `iat`, `nbf`) as a date with the
+relative time, and a reminder row: the signature is never verified.
+
+| keys | action |
+| --- | --- |
+| `enter` | Copy the value; show the QR code large on its row |
+| `cmd+enter` | Paste the value into the app in front |
+| `cmd+shift+c` | Copy the whole group: all hashes, all encodings, the JWT's header and payload |
+| `cmd+o` | Open a colour in the Colour Picker |
+| `cmd+c` | Copy the QR code as SVG |
+| `cmd+r` | List again: every value regenerated |
+
+Settings, `[extensions.generate]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `password_length` | 4 to 256 | `20` | Characters in a password; `password 32` overrides it once. |
+| `password_charset` | `full`, `alnum`, `letters`, `digits` | `full` | What a password is drawn from; with `full` or `alnum` one of each class is guaranteed. |
+| `passphrase_words` | 2 to 20 | `5` | Words in a passphrase; `passphrase 7` overrides it once. |
+| `passphrase_separator` | text | `-` | Between the words. |
+
+## Shortcuts (`shortcuts`)
+
+Every shortcut from the Shortcuts app, from `extensions/shortcuts/`, over
+the `shortcuts` command line tool (macOS 12 and later): indexed and
+primary, so a shortcut's name at the root finds it; the folder is the
+section inside the palette and a keyword. `enter` runs the shortcut and
+the panel hides; when the run ends, however long it took, the HUD shows
+`<name>: Done`, the first line of what the shortcut output, or the tool's
+message when it failed. `cmd+enter` runs it with the newest clipboard
+text as its input (a temporary file handed to `shortcuts run -i`),
+`cmd+t` asks for the input in a form, `cmd+o` opens the shortcut in the
+Shortcuts app, `cmd+c` copies its name. The listing is kept five minutes
+(`ttl`); `cmd+r` lists again now.
+
+| keys | action |
+| --- | --- |
+| `enter` | Run the shortcut |
+| `cmd+enter` | Run it with the clipboard's text as input |
+| `cmd+t` | Run with text: a form for the input |
+| `cmd+o` | Open it in Shortcuts |
+| `cmd+c` | Copy its name |
+
+A global hotkey per shortcut is `[palettes.shortcuts.item_hotkeys]` with
+the shortcut's name as the key (`"Lights On" = "ctrl+alt+l"`); a second
+shortcut of the same name has `<name> (<identifier>)` as its id. The
+Shortcuts database is behind macOS's privacy guard and the tool does not
+expose a shortcut's icon or colour, so every row wears the palette's
+mark. On Linux, or a Mac without the tool, the palette is one row saying
+so.
+
+## Script Commands (`scripts-commands`)
+
+Part of the `scripts` extension: every executable file in the `commands`
+folder (`~/.config/pal/commands` by default, watched) whose header has a
+`# @pal.title` line is one row. The header says the mode (`hud`, the
+default: the HUD shows the first output line; `silent`; `show`: the whole
+output as a level; `list`: the output's JSON lines as rows, a row with
+`url` opening, one with `copy` copying, any other running the script again
+with `PAL_PICK`; `inline`: the first output line as the row's subtitle,
+refreshed every `@pal.refresh`), the arguments (`@pal.args`, a form on
+`enter`), `@pal.confirm`, `@pal.keyword`, `@pal.section`, `@pal.cwd` and
+`@pal.icon` (an emoji, a glyph, a hex, a brand colour, an image next to
+the script, a url). Raycast's `@raycast.*` headers are read as aliases,
+so a Raycast script command drops in unchanged. The row's id is the file
+name, the key for `[palettes.scripts-commands.item_hotkeys]`. The whole
+format is in [Scripts and data files](scripts.md#script-commands); two
+examples are under `examples/commands/`.
+
+| keys | action |
+| --- | --- |
+| `enter` | Run (Open, for a `list` command; a form first with `args`) |
+| `cmd+o` | Open the script file |
+| `cmd+c` | Copy output: run it and copy what it printed |
+| `cmd+shift+c` | Copy the file's path |
+
+## tela (`tela-search`, `tela-research`, `tela-pages`, `tela-spaces`, `tela-new-page`, `tela-append`, `tela-decks`, `tela-sheets`, `tela-comments`, `tela-backlinks`)
+
+One extension, ten palettes and a bar item over a [tela](https://telawiki.com)
+instance, signed in with a personal access token. Everything goes to the
+instance's own API: the REST routes for lists, pages, search and writes,
+and `/api/mcp` (what tela's `tela-mcp` package proxies to) for `research`.
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Search tela | `tela-search` | input | opens the page in tela |
+| Ask tela | `tela-research` | input | asks; on a source, opens it |
+| Pages | `tela-pages` | indexed, 5 min | opens the page in tela |
+| Spaces | `tela-spaces` | indexed, 1 h | lists the space's pages |
+| New Page | `tela-new-page` | indexed, 1 h | the form, the space chosen |
+| Append to Page | `tela-append` | indexed, 5 min | the form for that page |
+| Decks | `tela-decks` | indexed, 1 h | opens the deck in tela |
+| Sheets | `tela-sheets` | indexed, 1 h | opens the sheet in tela |
+| Comments | `tela-comments` | live | marks read and opens the page |
+| Backlinks | `tela-backlinks` | indexed, 5 min | opens the linking page |
+
+**Signing in.** `base_url` is the instance, `token` a personal access
+token from Settings, API Keys on tela (`tela_pat_...`, kept in the
+keychain). A read token lists, searches and researches; a page, an
+append, a comment and marking read need write scope. Without either
+setting every palette is one hint row naming which; a 401 is one naming
+the renewal, Enter on tela's API Keys page.
+
+**Search tela.** Ranked full-text over titles and bodies (a phrase in
+quotes, `-word` excluded), 250 ms after the last keystroke; rows by
+space with the breadcrumb and the matching passage, a public-only hit
+tagged; the pane is the page. **Ask tela.** tela's `research`: a numbered
+grounding, the cited sources, disagreements, a low-confidence flag. Enter
+on the question opens the answer as a view: the flags on top, the
+sources as numbered rows, the selected one's excerpt rendered under its
+row. `↓`/`j`, `↑`/`k`, a digit select; Enter opens the source, `⌘Enter`
+reads it in pal, `⌘C` its link, `⌘⇧C` the grounding, `⌘⇧O` the question
+on tela's Ask page, `+` twice the sources when truncated, `n` a new
+question in the search row. Twelve questions are remembered; `⌘⇧D`
+forgets one.
+
+**Pages.** At the root four commands (New tela page, Search tela, Ask
+tela, Quick Notes), favourites, then the pages that changed lately by
+space with who changed them; from Spaces, one space's tree by top-level
+page. On every page row: Open (`Enter`), Read in pal (`⌘Enter`, the
+markdown drawn as a view: headings, lists, callouts as tinted cards, code
+and quotes on sunken wells, tables as aligned columns, links under their
+paragraph; bold and code inside a paragraph are flattened, the view's
+text is one run), Copy link (`⌘C`), Outline (`⌘⇧O`), Backlinks (`⌘B`),
+Append (`⌘⇧A`), Comment (`⌘⇧M`, anchored on a run of the page's text).
+**Spaces**: every space with its page count, tags for public, personal and
+the default; `⌘Enter` opens it, `⌘N` starts a page in it. **New Page** and
+**Append to Page**: forms whose body starts as the front app's selection,
+else the clipboard's text; an append goes at the end of Quick Notes (tela's
+scratchpad, created on first use), the page opened last, a favourite or a
+recent page, with a `## <today>` heading on request. **Decks** and
+**Sheets**: the flagged pages across every space, newest first; a deck's
+pane leads with its first slide. **Comments**: mentions and replies to your
+comments, unread first; Enter marks read and opens, `⌘⇧R` marks read,
+`⌘⇧A` marks all. **Backlinks**: what links to the page opened last, or to
+the row `⌘B` came from.
+
+**The bar item** `tela/inbox`: unread mentions and replies as the badge,
+hidden at zero; every 300 s and on show, wake, network. The popover: the
+newest five, Open in pal, Mark all read.
+
+Not there: a daily page (tela has none; Quick Notes stands in), a space
+filter on Search (the REST search takes none), an LLM answer (that is
+tela's Ask page, `⌘⇧O`).
+
+Settings, `[extensions.tela]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `base_url` | text | (none) | The instance's origin. |
+| `token` | secret | (none) | A personal access token from Settings, API Keys. |
+| `default_space` | text | (none) | The space New tela page offers first: name, slug or id. |
+| `research` | boolean | `true` | Show Ask tela; needs an embedder on the instance. |
+
+For the tests, `PAL_TELA_URL` and `PAL_TELA_TOKEN` replace the two settings.
+
+## Hue (`hue-rooms`, `hue-lights`, `hue-scenes`, `hue-light`, `hue-setup`, `hue-sensors`, `hue-automations`, `hue-entertainment`, `hue/home`)
+
+Philips Hue over the bridge's CLIP v2 API on the LAN (https, the
+`hue-application-key` header), nothing through the Hue cloud beyond one
+discovery lookup during setup. One `GET /clip/v2/resource` per bridge reads
+the home whole; the bridge's event stream (`/eventstream/clip/v2`) patches
+it from then on, so every palette below is drawn from memory and follows a
+change made in the Hue app, on a switch or by an automation without a
+request. A change from pal is one `PUT`, applied to the model at once and
+confirmed by the stream; per resource the newest state goes out no more
+often than Hue asks (10 a second to a light, 1 a second to a group), so a
+held arrow key is one command. Several bridges make one home. The
+extension's README (`extensions/hue/README.md`) has the pairing story, the
+TLS pinning (Signify's `root-bridge` CA plus the certificate pinned at
+pairing; `insecure` skips it) and every key.
+
+**Set up Hue** (`hue-setup`, a view) finds the bridges (the cloud endpoint
+and mDNS), asks each its name and id with no key, and `1`..`9` starts
+press-link: "Press the round button on the bridge" with a thirty-second
+countdown while a background task asks the bridge every second; Escape
+leaves and the panel comes back on its own once the key is in. The key and
+the client key go to pal's storage with the certificate pinned; `c` copies
+the key for the keychain (Settings › Extensions › Hue › Application key
+with the `bridge` address, which then wins for that address). Until a
+bridge is paired every other palette is one "Set up Hue" row and the bar
+item is hidden.
+
+**Hue Rooms** (`hue-rooms`, live, primary) lists rooms then zones with a
+tile of the lit lights' colours as stripes (faded by the brightness, an
+outline when off), the count on and the grouped brightness; Enter toggles
+the grouped light, `⌘Enter` opens the room under the keys, `⌘S` its
+scenes, `⌘L` its lights, `⌘⇧C` copies the id. **Hue Lights** (`hue-lights`,
+live) is every light under its room's section with its colour as a
+swatch, the archetype, the kelvin, `unreachable`, the effect and the
+brightness; Enter toggles, `⌘Enter` opens, `⌘B` blinks, `⌘C` copies the
+hex. **Hue Scenes** (`hue-scenes`, live, primary) is every scene by room as
+a five-swatch strip of its palette, tagged `active`, `playing`, `dynamic`
+or `smart`; Enter recalls it with the `transition`, `⌘Enter` plays the
+palette dynamically, `⌘O` opens the room. Rooms and scenes are primary at
+the root: `living room` and Enter toggles the room, `relax` and Enter
+plays the scene.
+
+**Hue Light** (`hue-light`, a view, opened from a row) puts a light or a
+room under the keys: the tile in its colour with the brightness, the
+brightness bar, the temperature on a warm-to-cool strip with a marker
+across the light's mirek range, the hue/saturation plane with a marker
+(the same `gradient` node as the colour picker), then the presets (Relax,
+Read, Concentrate, Energize, Bright, Dimmed, Nightlight), the room's
+scenes as strips, the effects the light supports and the options. `←`/`→`
+brightness (5 %, `⇧` 20 %), `↑`/`↓` cooler/warmer (20 mirek, `⇧` 80),
+`1`..`9` and `0`, `t`/`space` toggle, `⇥` walks light, colour (the arrows
+become hue and saturation, clamped into the gamut), presets, scenes,
+effects (`←`/`→` choose, Enter applies), `a` this light or the whole room,
+`d` the transition (instant, 400 ms, 1 s, 4 s), `s` scenes, `o` the room,
+`i` blink, `c` copy, `r` re-read. The tree redraws on the next key: the
+model is live, the tree is not pushed.
+
+**Hue Sensors** (`hue-sensors`, live): motion, temperature, light level
+(lux), buttons and dials with their last event, contact sensors, by
+device with the battery on the device's first row (red when low) and when
+the reading changed; Enter copies the reading, `⌘E` enables or disables.
+**Hue Automations** (`hue-automations`, live): the behaviour instances
+with their script and status; Enter enables or disables. **Hue
+Entertainment** (`hue-entertainment`, live): the areas; Enter starts
+streaming, `⌘Enter` stops.
+
+**The bar item** (`hue/home`): the main room's colour as a dot (a PNG; the
+`main_room` setting, else the room with most lights on) and `N on`; the
+popover toggles every room, plays the scenes (`bar_scenes`, else the main
+room's), opens pal, turns everything off. Rendered every 60 s and on show,
+wake and network, pushed on every stream event (at most every 300 ms).
+
+**Links**: `pal://hue/toggle?room=living-room` (`on=1` sets),
+`pal://hue/scene?name=relax&room=living-room` (`dynamic=1`),
+`pal://hue/off`. Ids are slugs (`room:living-room`,
+`scene:living-room/relax`, `light:sofa-lamp`), so
+`[palettes.hue-rooms.item_hotkeys]` with `"room:living-room" =
+"ctrl+alt+l"` toggles the room without showing pal.
+
+Settings, `[extensions.hue]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `bridge` | text | unset | The bridge's address, for a key kept in the keychain; pairing needs neither. |
+| `application_key` | secret | unset | The key for `bridge`, a `keychain:` or `env:` reference. |
+| `insecure` | boolean | `false` | Skip the certificate check (a bridge behind a proxy). |
+| `transition` | number (ms) | `400` | How long a change from a row or a link takes; the view cycles its own with `d`. |
+| `main_room` | text | unset | The bar dot's room and the popover's scenes. |
+| `bar_scenes` | list | `[]` | Scene names or ids in the popover, in order. |
+| `timeout` | number (s) | `5` | One request's limit. |

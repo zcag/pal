@@ -4,7 +4,12 @@
       "title": "Snippets",
       "live": false,
       "input": false,
-      "icon": "󰆐",
+      "icon": {
+        "tile": {
+          "glyph": "󰆐",
+          "bg": "violet"
+        }
+      },
       "items": [
         {
           "id": "create",

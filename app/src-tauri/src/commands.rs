@@ -4,7 +4,7 @@
 //! "Documentation": Settings (and its pages), the extension store and an
 //! install form, host restart, an index refresh, the update check, the
 //! config file, the tips, the docs, a bug report, diagnostics, the theme,
-//! quit, restart, and the version.
+//! the search history, quit, restart, and the version.
 //!
 //! The rows are seeded once at startup (`install`, from
 //! `index::restore_cache`) after the cached palettes, so the empty query
@@ -54,6 +54,7 @@ pub const THEME: &str = "theme";
 pub const QUIT: &str = "quit";
 pub const RESTART: &str = "restart";
 pub const VERSION: &str = "version";
+pub const HISTORY_CLEAR: &str = "history-clear";
 
 /// The install form's one field and its submit action.
 const SPEC: &str = "spec";
@@ -115,6 +116,7 @@ pub fn rows(version: &str) -> Vec<Item> {
         row(BUG, "Report a Bug", "A GitHub issue with your version and OS filled in", &["issue", "feedback", "github", "problem"], &icon),
         row(DIAGNOSTICS, "Copy Diagnostics", "Version, OS, config, extensions, hotkey, permissions", &["debug", "support", "info", "troubleshoot"], &icon),
         row(THEME, "Toggle Theme", "Light, dark, or the system's", &["dark", "light", "appearance", "mode"], &icon),
+        row(HISTORY_CLEAR, "Clear Search History", "The queries Up recalls at an empty root; rankings stay", &["search", "history", "recent", "queries", "forget"], &icon),
         row(QUIT, "Quit pal", "Stops the extension host and exits", &["exit", "close"], &icon),
         row(RESTART, "Restart pal", "Quit and launch again", &["relaunch", "reboot", "reopen"], &icon),
         row(VERSION, "pal Version", version, &["version", "about", "build"], &icon),
@@ -156,6 +158,7 @@ pub enum Plan {
     ReportBug,
     CopyDiagnostics,
     ToggleTheme,
+    ClearSearchHistory,
     Quit,
     Restart,
     CopyVersion,
@@ -183,6 +186,7 @@ pub fn plan(id: &str, action: Option<&str>, values: Option<&Value>) -> Plan {
         BUG => Plan::ReportBug,
         DIAGNOSTICS => Plan::CopyDiagnostics,
         THEME => Plan::ToggleTheme,
+        HISTORY_CLEAR => Plan::ClearSearchHistory,
         QUIT => Plan::Quit,
         RESTART => Plan::Restart,
         VERSION => Plan::CopyVersion,
@@ -419,6 +423,10 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             settings::settings_set(app.state(), "general.theme".into(), json!(theme_name(next)))?;
             Ok(toast(&format!("Theme: {}", theme_name(next)), "general.theme in the config file", "success"))
         }
+        Plan::ClearSearchHistory => {
+            index::search_history_clear(app.state());
+            Ok(toast("Search history cleared", "Up at an empty root recalls nothing until the next pick", "success"))
+        }
         Plan::Quit => {
             crate::quit(app);
             hide()
@@ -444,7 +452,7 @@ mod tests {
         assert_eq!(ids.len(), ids.iter().collect::<HashSet<_>>().len(), "no duplicate ids: {ids:?}");
         assert_eq!(ids[0], SETTINGS, "Settings leads");
         assert_eq!(ids[ids.len() - 1], VERSION, "the version row is last");
-        assert_eq!(ids.len(), 19);
+        assert_eq!(ids.len(), 20);
         for r in &rows {
             assert!(r.keywords.iter().any(|k| k == "pal"), "{}: `pal` is a keyword", r.id);
             assert!(r.subtitle.as_deref().is_some_and(|s| !s.is_empty()), "{}: a subtitle", r.id);
@@ -489,6 +497,7 @@ mod tests {
         assert_eq!(plan(VERSION, Some("copy"), None), Plan::CopyVersion);
         assert_eq!(plan(RESTART, None, None), Plan::Restart);
         assert_eq!(plan(THEME, None, None), Plan::ToggleTheme);
+        assert_eq!(plan(HISTORY_CLEAR, None, None), Plan::ClearSearchHistory);
         assert_eq!(plan(TIPS, None, None), Plan::ShowTips);
         assert_eq!(plan(REFRESH, None, None), Plan::RefreshIndex);
         assert_eq!(plan(RELOAD, None, None), Plan::RestartHost);

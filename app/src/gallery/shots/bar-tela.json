@@ -1,0 +1,81 @@
+{
+  "key": "tela/inbox",
+  "title": "Inbox",
+  "item": {
+    "icon": "󰗚",
+    "badge": 2,
+    "tooltip": "1 mention, 1 reply",
+    "menu": [
+      {
+        "type": "section",
+        "title": "Unread",
+        "children": [
+          {
+            "type": "item",
+            "id": "notif:901",
+            "title": "mara mentioned you in “Indexing”",
+            "subtitle": "@cagdas is the 2 s budget still right?",
+            "icon": "󰁥"
+          },
+          {
+            "type": "item",
+            "id": "notif:902",
+            "title": "tomas replied to your comment in “How we ship”",
+            "subtitle": "agreed, weekly it is",
+            "icon": "󰼠"
+          }
+        ]
+      },
+      {
+        "type": "separator"
+      },
+      {
+        "type": "item",
+        "id": "open",
+        "title": "Open in pal",
+        "subtitle": "2 in Comments",
+        "icon": "󰚇"
+      },
+      {
+        "type": "item",
+        "id": "read-all",
+        "title": "Mark all read",
+        "icon": "󰄭",
+        "shortcut": "cmd+shift+a",
+        "style": "destructive"
+      }
+    ]
+  },
+  "states": [
+    {
+      "id": "one",
+      "item": {
+        "badge": 1,
+        "tooltip": "1 mention"
+      }
+    }
+  ],
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the tela glyph with the count of unread mentions and replies"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: the newest mentions and replies, Open in pal, Mark all read"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the glyph and the count"
+    }
+  }
+}

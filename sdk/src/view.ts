@@ -19,6 +19,9 @@ export const IMAGE_SRC = /^(icon:\/\/|data:image\/)/;
 
 const TAG_COLORS = new Set(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal"]);
 const TILE_COLORS = new Set([...TAG_COLORS, "neutral", "accent"]);
+/** A colour of the extension's own (`HexColor`): `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`. */
+export const HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const DIRECTIONS = new Set(["right", "down", "up", "left"]);
 const TILE_FILLS = new Set(["solid", "soft", "outline"]);
 const SURFACES = new Set(["sunken", "elevated"]);
 const ENTERS = new Set(["fade", "slide-up", "slide-down", "slide-left", "slide-right", "flip", "pop"]);
@@ -46,6 +49,14 @@ export function checkView(v: unknown, where = "view"): View {
     if (a.hidden && !shortcutsOf(a).length) throw new Error(`${where}: action "${a.id}" is hidden and has no shortcut, so nothing could run it`);
   }
   if (view.keys !== undefined && view.keys !== "actions") throw new Error(`${where}: keys must be "actions"`);
+  if (view.input !== undefined) {
+    const inp = view.input;
+    if (!inp || typeof inp !== "object") throw new Error(`${where}: input must be an object`);
+    if (typeof inp.submit !== "string" || !ids.has(inp.submit)) throw new Error(`${where}: input.submit must be the id of one of the view's actions`);
+    if (inp.cancel !== undefined && (typeof inp.cancel !== "string" || !ids.has(inp.cancel))) throw new Error(`${where}: input.cancel must be the id of one of the view's actions`);
+    if (inp.value !== undefined && typeof inp.value !== "string") throw new Error(`${where}: input.value must be a string`);
+    if (inp.placeholder !== undefined && typeof inp.placeholder !== "string") throw new Error(`${where}: input.placeholder must be a string`);
+  }
   let count = 0;
   const moving = new Set<string>();
   const walk = (n: ViewNode, depth: number, path: string) => {
@@ -68,8 +79,23 @@ export function checkView(v: unknown, where = "view"): View {
     if (n.type === "image" && !IMAGE_SRC.test(n.src)) throw new Error(`${where}: ${path} image src must be icon:// or data:image/`);
     if (n.type === "tile") {
       if (!isPx(n.width) || !isPx(n.height)) throw new Error(`${where}: ${path} tile needs width and height in px`);
-      if (n.color !== undefined && !TILE_COLORS.has(n.color)) throw new Error(`${where}: ${path} tile has an unknown color "${n.color}"`);
+      if (n.color !== undefined && !TILE_COLORS.has(n.color) && !(typeof n.color === "string" && HEX_COLOR.test(n.color))) throw new Error(`${where}: ${path} tile has an unknown color "${n.color}" (a tag colour, neutral, accent, or #hex)`);
       if (n.fill !== undefined && !TILE_FILLS.has(n.fill)) throw new Error(`${where}: ${path} tile has an unknown fill "${n.fill}"`);
+    }
+    if (n.type === "gradient") {
+      if (!isPx(n.width) || !isPx(n.height)) throw new Error(`${where}: ${path} gradient needs width and height in px`);
+      if (!Array.isArray(n.layers) || !n.layers.length) throw new Error(`${where}: ${path} gradient needs layers`);
+      n.layers.forEach((l, i) => {
+        if (!l || !Array.isArray(l.stops) || l.stops.length < 2) throw new Error(`${where}: ${path} gradient layer ${i} needs at least two stops`);
+        for (const c of l.stops) if (typeof c !== "string" || !HEX_COLOR.test(c)) throw new Error(`${where}: ${path} gradient layer ${i} has a stop that is not a #hex colour`);
+        if (l.direction !== undefined && !DIRECTIONS.has(l.direction)) throw new Error(`${where}: ${path} gradient layer ${i} has an unknown direction "${l.direction}"`);
+      });
+      if (n.fill !== undefined && !(typeof n.fill === "string" && HEX_COLOR.test(n.fill))) throw new Error(`${where}: ${path} gradient fill must be a #hex colour`);
+      if (n.marker !== undefined) {
+        const m = n.marker as { x?: unknown; y?: unknown } | null;
+        const unit = (v: unknown) => typeof v === "number" && v >= 0 && v <= 1;
+        if (!m || !unit(m.x) || !unit(m.y)) throw new Error(`${where}: ${path} gradient marker must be { x, y } in 0..1`);
+      }
     }
     if (n.type === "text") {
       if (n.width !== undefined && !isPx(n.width)) throw new Error(`${where}: ${path} text width must be px`);

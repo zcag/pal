@@ -3,11 +3,11 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import type { BarItem, ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
+import type { BarItem, CopyText, Effect, ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
 import { checkBarItem } from "./view.ts";
 
-const call = <T = unknown>(method: string, params?: unknown): Promise<T> => runtime().call<T>(method, params);
+const call = <T = unknown>(method: string, params?: unknown, opts?: { timeout?: number }): Promise<T> => runtime().call<T>(method, params, opts);
 const who = (extension?: string): string => runtime().caller(extension).extension;
 
 /**
@@ -117,6 +117,14 @@ export const clipboard = {
   clear: () => call<null>("clipboard.clear"),
   /** Back onto the clipboard, and to the top of history. */
   copy: (id: number) => call<null>("clipboard.copy", { id }),
+  /**
+   * The history entry for what is on the clipboard right now, or `null`:
+   * the pasteboard is read and looked up by content, so what history never
+   * recorded (a copy from an excluded app, a concealed one, one over the
+   * size cap, or an entry deleted since) is not current either. What the
+   * root's Clipboard rows are built from.
+   */
+  current: () => call<ClipboardEntry | null>("clipboard.current"),
   /**
    * An image entry as the webview loads it: a thumbnail fitted into `size`
    * px, or the image itself for 0. The `icon://` scheme is the app's
@@ -258,7 +266,7 @@ export const bluetooth = {
   disconnect: (address: string) => call<null>("bluetooth.disconnect", { address }),
 };
 
-/** `pal_core::wifi::Current`: the network the machine is on. `ssid` is null when the OS hides it (macOS 15+ without Location Services). */
+/** `pal_core::wifi::Current`: the network the machine is on. `ssid` is null when the OS hides it (macOS 15+ without Location Services: `permissions.request("location")`). */
 export type WifiCurrent = { ssid: string | null; signal: number | null; channel: string | null; security: string | null; ip: string | null };
 /** `pal_core::wifi::Status`: `interface` is null on a machine without Wi-Fi; `current` null while off or not associated. */
 export type WifiStatus = { interface: string | null; powered: boolean; current: WifiCurrent | null };
@@ -271,7 +279,7 @@ export type WifiScan = { networks: WifiNetwork[]; hidden: number; age_secs: numb
 /** `cached`: never runs the tool (empty without a previous scan); `auto`: the cache while under 60 s old; `fresh`: scan now. */
 export type WifiScanMode = "cached" | "auto" | "fresh";
 
-/** Wi-Fi (`pal_core::wifi`): `networksetup`/`ipconfig`/`system_profiler` on macOS, `nmcli` on Linux. */
+/** Wi-Fi (`pal_core::wifi`): CoreWLAN plus `networksetup`/`ipconfig` on macOS, `nmcli` on Linux. */
 export const wifi = {
   status: () => call<WifiStatus>("wifi.status"),
   /** The saved networks. */
@@ -319,8 +327,29 @@ export const media = {
   control: (player: string, command: MediaCommand) => call<null>("media.control", { player, command }),
 };
 
-/** `pal_core::calendar::Status`: `not_determined` means `request` will prompt; `denied`/`restricted` are switched in System Settings; `unavailable` is a machine without a backend (Linux without `khal`). */
-export type CalendarStatus = "granted" | "denied" | "not_determined" | "restricted" | "unavailable";
+/** `pal_core::permission::Status` (Calendars, Location): `not_determined` means a request will prompt; `denied`/`restricted` are switched in System Settings; `unavailable` is a machine without the backend (Linux without `khal`, Location off macOS). */
+export type PermissionStatus = "granted" | "denied" | "not_determined" | "restricted" | "unavailable";
+/** `pal_core::calendar::Status`: the same enum. */
+export type CalendarStatus = PermissionStatus;
+
+/** permissions.rs `Status`: what the OS lets pal do. Every field is a given off macOS (`true`, `unavailable`); `full_disk_access` is absent when there is nothing to probe. */
+export type Permissions = { accessibility: boolean; calendar: PermissionStatus; full_disk_access?: boolean; input_monitoring: boolean; location: PermissionStatus };
+/** What `permissions.request` takes: the prompt for the ones that have one (`accessibility`, `calendar`, `input_monitoring`, `location`), the System Settings pane for the rest or once the prompt was answered no. */
+export type PermissionId = "accessibility" | "calendar" | "full_disk_access" | "input_monitoring" | "location";
+
+/**
+ * The OS permissions pal holds (`permissions.rs`), for an extension whose
+ * palette needs one: `status()` says where each stands, `request(which)`
+ * shows the system prompt while the OS still has one to show (the answer
+ * lands later; the state as of now comes back) or opens the pane once it
+ * was answered no. Ask lazily, from the listing that needs it, and only
+ * while `not_determined`: the prompt is modal. The wifi extension asks
+ * for `location` the first time it lists with the names withheld.
+ */
+export const permissions = {
+  status: () => call<Permissions>("permissions.status"),
+  request: (which: PermissionId) => call<Permissions>("permissions.request", { which }),
+};
 
 /** `pal_core::calendar::Calendar`: `id` is what `events` filters on and `create` takes. */
 export type Calendar = {
@@ -387,4 +416,80 @@ export const calendar = {
   delete: (id: string, occurrence?: number | null) => call<null>("calendar.delete", { id, occurrence }),
   /** Show the event in Calendar.app (`ical://ekevent/…`). Not possible over khal. */
   open: (id: string, occurrence?: number | null) => call<null>("calendar.open", { id, occurrence }),
+};
+
+/** What `color.sample` answers: sRGB, 0..255 per channel, `hex` lower case `#rrggbb`. */
+export type Color = { r: number; g: number; b: number; hex: string };
+
+/** How long a screen pick may take before the call gives up: the user is aiming a loupe, not a handler hanging. */
+export const SAMPLE_TIMEOUT_MS = 120_000;
+
+/**
+ * The screen's colours (`color.rs` in the app): `sample` hides the panel
+ * and lets the user pick one pixel with the OS's own loupe, `NSColorSampler`
+ * on macOS (no permission; the colour comes back in sRGB) and the
+ * `org.freedesktop.portal.Screenshot.PickColor` portal on Linux (the
+ * portal asks the first time on some desktops). Resolves with the colour,
+ * or null when the user cancelled (Escape). The panel stays hidden: from
+ * `pick` return at once and run the rest in the background, then
+ * `effects.run({ push })` to bring the panel back where the colour is, or
+ * `effects.run({ copy, hud })` to hand it over (a pick that waited here
+ * would hit the shell's 10 s limit before the user has aimed).
+ */
+export const color = {
+  sample: () => call<Color | null>("color.sample", undefined, { timeout: SAMPLE_TIMEOUT_MS }),
+};
+
+/**
+ * An effect from outside a pick (`effects.rs` in the app): what a `pick`
+ * would answer, run now, for work that finished after the pick returned (a
+ * screen pick, a timer, a download). The OS effects only: `copy` (with
+ * "Copied" in the HUD, or the `hud` text), `copy_files`, `open`, `paste`,
+ * `focus`, `layout`, `hud`, and `push`, which shows the panel inside that
+ * palette (its `view` or `list` asked afresh). `toast`, `keep`, `view`,
+ * `form` and `show` need the level a pick came from and are refused.
+ */
+export const effects = {
+  run: (effect: Effect) => call<null>("effects.run", { effect }),
+};
+
+/** How long a concealed copy stays on the clipboard by default (`conceal`): long enough to paste, short enough to be gone by the next coffee. */
+export const CONCEAL_SECONDS = 30;
+
+/**
+ * A `copy` effect for a secret: `{ copy: conceal(password) }`. Marked for
+ * clipboard managers to skip, kept out of pal's history, and replaced by
+ * the previous clipboard after `clearAfter` seconds (`CONCEAL_SECONDS`;
+ * 0 leaves it). The HUD says "Copied, clears in N s" unless the effect
+ * carries its own `hud`.
+ */
+export const conceal = (text: string, clearAfter = CONCEAL_SECONDS): CopyText => ({ text, concealed: true, ...(clearAfter > 0 && { clear_after: clearAfter }) });
+
+/**
+ * The frontmost app's selected text (`selection.rs` in the app, over
+ * `pal_core::selection`): the accessibility API first (`AXSelectedText`
+ * of the focused element on macOS; the primary selection on Linux), then,
+ * when `general.selection_snapshot` allows, a copy-shortcut snapshot with
+ * the clipboard put back as it was. Resolves with null when nothing is
+ * selected; rejects on macOS without Accessibility (the prompt is shown
+ * once per run). The panel is up in front of the app during a pick, and
+ * the selection is still the app's: reading it from `pick` works.
+ */
+export const selection = {
+  text: () => call<string | null>("selection.text"),
+};
+
+/**
+ * Text out of an image (`pal_core::ocr`): the Vision framework on macOS,
+ * `tesseract` on Linux when installed (`available()` says; `image`
+ * rejects with "OCR unavailable" otherwise). A PDF is its first page.
+ * Lines top to bottom joined by newlines; an empty string for no text.
+ */
+/** A page-sized scan at the accurate level takes a few seconds; longer than the bridge's default. */
+export const OCR_TIMEOUT_MS = 30_000;
+
+export const ocr = {
+  available: () => call<boolean>("ocr.available"),
+  /** A file by `path`, or base64 image bytes as `data`. */
+  image: (source: { path: string } | { data: string }) => call<{ text: string }>("ocr.image", source, { timeout: OCR_TIMEOUT_MS }).then((r) => r.text),
 };

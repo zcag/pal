@@ -43,6 +43,23 @@
         "alwaysOnTop": true,
         "visibleOnAllWorkspaces": true,
         "acceptFirstMouse": false
+      },
+      {
+        "label": "large",
+        "title": "pal Large Type",
+        "url": "index.html?large",
+        "width": 1200,
+        "height": 400,
+        "visible": false,
+        "focus": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "visibleOnAllWorkspaces": true,
+        "acceptFirstMouse": true
       }
     ],
     "security": {

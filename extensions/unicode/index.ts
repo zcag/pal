@@ -13,8 +13,6 @@ type PaletteSettings = { columns: number };
 const RECENT_KEY = "recent";
 const RECENT_MAX = 12;
 const RECENT = "Recent";
-/** nf-md-omega, from the bundled Nerd Font. */
-const ICON = "\u{f03c9}";
 /** Text presentation for a character the platform would draw as a colour emoji (⏏, ⏭, 🖱): the tile stays a glyph; what is copied is the bare character. */
 const TEXT = "\uFE0E";
 
@@ -88,7 +86,6 @@ export default {
   palettes: {
     unicode: {
       title: "Unicode Characters",
-      icon: ICON,
       view: "grid",
       placeholder: "Name, entity, LaTeX or code point",
       // Palette meta is read once at load (see emoji).

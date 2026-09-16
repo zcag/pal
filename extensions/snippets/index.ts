@@ -3,7 +3,7 @@
 // placeholders filled (placeholders.ts), cmd+c copies it instead. The
 // keyword is a row keyword, so typing `sig` finds the signature. The Import
 // and Export rows move snippets in and out as JSON files.
-import { clipboard, home, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item } from "@zcag/pal";
+import { clipboard, home, selection, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
 
 const KEY = "snippets";
@@ -26,6 +26,8 @@ const all = async () => asSnippets(await storage.get(KEY));
 
 /** The newest text on the clipboard, for `{clipboard}`; empty when there is none. */
 const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text ?? "";
+/** The placeholders' sources: the clipboard, and the app in front's selected text for `{selection}` (the clipboard when nothing is selected). */
+const SOURCES = { clipboard: clipboardText, selection: selection.text };
 
 function row(s: Snippet): Item {
   return {
@@ -46,14 +48,14 @@ function row(s: Snippet): Item {
   };
 }
 
-/** The create or edit form; `errors` when a submit was refused. */
-const form = (s?: Snippet, errors?: Record<string, string>): Form => ({
+/** The create or edit form; `errors` when a submit was refused; `text` pre-fills a new snippet (the clipboard's rows push it in). */
+const form = (s?: Snippet, errors?: Record<string, string>, text?: string): Form => ({
   id: s?.id ?? CREATE,
   title: s ? `Edit ${s.name}` : "Create Snippet",
   fields: [
     { kind: "text", id: "name", label: "Name", required: true, default: s?.name, placeholder: "Email signature" },
     { kind: "text", id: "keyword", label: "Keyword", default: s?.keyword, placeholder: "sig", description: "One word that finds it." },
-    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text, placeholder: "Best,\nAda", description: "{clipboard}, {date}, {time}, {datetime} and {uuid} are filled in when pasted; {selection} is the clipboard too. {cursor} is not supported." },
+    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "{clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} and {uuid} are filled in when pasted. {cursor} is not supported." },
   ],
   submit: { id: "save", title: s ? "Save" : "Create" },
   errors,
@@ -108,30 +110,44 @@ async function save(id: string, values: FormValues): Promise<Effect> {
 }
 
 export default {
+  // `pal://snippets/paste?name=sig` pastes the snippet by name or keyword, `&copy=1` copies it.
+  link: async (route: string, params: LinkParams): Promise<Effect | void> => {
+    if (route !== "paste") return;
+    const n = String(params.name).trim().toLowerCase();
+    const snippets = await all();
+    const s = snippets.find((x) => x.name.toLowerCase() === n) ?? snippets.find((x) => x.keyword?.toLowerCase() === n);
+    if (!s) throw new Error(`no snippet "${params.name}"`);
+    const text = await expand(s.text, SOURCES);
+    return params.copy === true ? { copy: text } : { paste: { text } };
+  },
   palettes: {
     snippets: {
       title: "Snippets",
-      icon: ICON,
-      list: async (): Promise<Item[]> => [
+      // A level pushed with `args.create` (the clipboard's "Save as snippet") is one row whose form comes pre-filled with that text.
+      list: async (_query, ctx): Promise<Item[]> => {
+        const create = (ctx?.args as { create?: string } | undefined)?.create;
+        if (typeof create === "string") return [{ id: CREATE, name: "Create Snippet from the clipboard", subtitle: create.replace(/\s+/g, " ").trim().slice(0, 100), icon: ICON_CREATE, actions: [{ id: CREATE, title: "Create snippet" }] }];
+        return [
         { id: CREATE, name: "Create Snippet", subtitle: "A text to paste by name or keyword", icon: ICON_CREATE, keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create snippet" }] },
         ...(await all()).map(row),
         { id: IMPORT, name: "Import Snippets", subtitle: "From a JSON file", icon: ICON_IMPORT, keywords: ["json", "restore"], actions: [{ id: IMPORT, title: "Import…" }] },
         { id: EXPORT, name: "Export Snippets", subtitle: "To a JSON file", icon: ICON_EXPORT, keywords: ["json", "backup"], actions: [{ id: EXPORT, title: "Export…" }] },
-      ],
+        ];
+      },
       pick: async (id, action, ctx?: Ctx): Promise<Effect | void> => {
         if (id === IMPORT || id === EXPORT) return action === "save" ? transfer(id, ctx?.values ?? {}) : { form: pathForm(id) };
         if (action === "save") return save(id, ctx?.values ?? {});
-        if (id === CREATE) return { form: form() };
+        if (id === CREATE) { const create = (ctx?.args as { create?: string } | undefined)?.create; return { form: form(undefined, undefined, typeof create === "string" ? create : undefined) }; }
         const s = (await all()).find((x) => x.id === id);
         if (!s) throw new Error(`no snippet ${id}`);
         switch (action) {
-          case "copy": return { copy: await expand(s.text, { clipboard: clipboardText }) };
+          case "copy": return { copy: await expand(s.text, SOURCES) };
           case "edit": return { form: form(s) };
           case "delete": {
             await storage.set(KEY, (await all()).filter((x) => x.id !== id));
             return { keep: true, toast: { title: "Deleted", message: s.name } };
           }
-          default: return { paste: { text: await expand(s.text, { clipboard: clipboardText }) } };
+          default: return { paste: { text: await expand(s.text, SOURCES) } };
         }
       },
     },

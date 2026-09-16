@@ -6,6 +6,7 @@
 // Firefox `recovery.jsonlz4` compressed here by hand (one match, so the
 // decoder's copy path runs). The real :9222 is never touched.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { tile } from "../../../sdk/src/icon.ts";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -145,7 +146,7 @@ const ids = (items: { id: string }[]) => items.map((i) => i.id);
 describe("browser-tabs", () => {
   test("meta: live, indexed, three filters", () => {
     expect(host.loaded().find((l) => l.extension === "browser-tabs")!.palettes[0]).toMatchObject({
-      name: "tabs", title: "Browser Tabs", live: true, input: false, icon: "◍",
+      name: "tabs", title: "Browser Tabs", live: true, input: false, icon: tile("cyan", "\u{f04e9}"),
       filters: [{ id: "all", title: "All" }, { id: "audible", title: "Audible" }, { id: "window", title: "This window" }],
     });
   });

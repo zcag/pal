@@ -5,16 +5,21 @@
 
 export type IconMask = "circle" | "rounded";
 
+/** One of the twelve `--pal-brand-*` colours (`BRAND` in icons.ts; `TILE_COLORS` in sdk/src/icon.ts). */
+export type Brand = "red" | "orange" | "amber" | "green" | "teal" | "cyan" | "blue" | "indigo" | "violet" | "pink" | "slate" | "ink";
+
 export type Icon =
   /** Drawn in the platform's colour emoji font. */
   | { kind: "emoji"; value: string }
-  /** Text in the mono font, or a Nerd Font codepoint in the bundled symbols font; `color` tints it. */
-  | { kind: "glyph"; value: string; color?: string }
+  /** Text in the mono font, or a Nerd Font codepoint in the bundled symbols font; `color` tints it in any CSS colour, `tint` in a brand colour. */
+  | { kind: "glyph"; value: string; color?: string; tint?: Brand }
+  /** A rounded square in a brand colour with a white mark: one Nerd Font glyph, or SVG path data drawn in a 16 by 16 box (an extension's icon). */
+  | { kind: "tile"; bg: Brand; glyph?: string; svg?: string }
   | { kind: "image"; src: string; mask?: IconMask }
   /** An application's own artwork via the `icon://` scheme; `letter` when it has none. */
   | { kind: "app"; path: string; letter: string }
-  /** The site's favicon via the `icon://` scheme; the globe glyph when it has none. */
-  | { kind: "favicon"; url: string };
+  /** The site's favicon via the `icon://` scheme; the globe glyph, in `tint` when given, when it has none. */
+  | { kind: "favicon"; url: string; tint?: Brand };
 
 export type Accessory =
   | { text: string }
@@ -72,6 +77,10 @@ export type Item = {
   disabled?: boolean;
   /** Drawn muted but live: the "N more in ..." row after a capped section at the root. */
   muted?: boolean;
+  /** The root section the row goes under instead of its palette's ("Frequent", "Now", "Use “q” with"). */
+  group?: string;
+  /** A row that opens a palette (a fallback "Ask" row): the level to push, with `query` typed into it; no pick is sent. */
+  push?: { extension: string; palette: string; args?: unknown; query?: string };
 };
 
 /** Match positions per field, as fzf reports them (character indexes). */
@@ -112,6 +121,11 @@ export type FormSpec = { id?: string; title: string; fields: FormField[]; submit
 
 export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";
 
+/** A colour of the extension's own: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` (`HEX_COLOR` in View.tsx). */
+export type HexColor = `#${string}`;
+/** One linear gradient of a `gradient` node: hex stops evenly along `direction`. */
+export type GradientLayer = { stops: HexColor[]; direction?: "right" | "down" | "up" | "left" };
+
 /** `enter` on a new key, `exit` on a gone one, `delay` in steps of `--pal-dur-fast`, `move` slides a key found at another box in the previous tree. */
 export type Transition = { enter?: "fade" | "slide-up" | "slide-down" | "slide-left" | "slide-right" | "flip" | "pop"; exit?: "fade" | "none"; delay?: number; move?: true };
 
@@ -124,12 +138,16 @@ export type ViewNode =
   | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated"; radius?: boolean; children: ViewNode[] })
   | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
   | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: IconMask; alt?: string })
-  | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent"; fill?: "solid" | "soft" | "outline" })
+  | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent" | HexColor; fill?: "solid" | "soft" | "outline" })
+  | (NodeBase & { type: "gradient"; width: number; height: number; layers: GradientLayer[]; fill?: HexColor; marker?: { x: number; y: number } })
   | (NodeBase & { type: "badge"; text: string; color?: TagColor })
   | (NodeBase & { type: "divider" })
   | (NodeBase & { type: "spacer"; size?: number })
   | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor })
   | (NodeBase & { type: "keycap"; keys: string });
 
-/** A view level: the tree, its actions (first is Enter), an optional title over the tree; `keys: "actions"` maps bare keys to actions. */
-export type ViewSpec = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions" };
+/** `View.input`: the search row as a text field the view reads on Enter (`submit`) and drops on Escape (`cancel`, else the level pops). */
+export type ViewInput = { value?: string; placeholder?: string; submit: string; cancel?: string };
+
+/** A view level: the tree, its actions (first is Enter), an optional title over the tree; `keys: "actions"` maps bare keys to actions; `input` asks for a line of text. */
+export type ViewSpec = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions"; input?: ViewInput };

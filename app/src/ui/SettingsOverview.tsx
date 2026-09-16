@@ -88,12 +88,13 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
   }
 
   const names = new Set(v.extensions.map((e) => e.name));
-  for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0 })) {
+  for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0, wifi: names.has("wifi") })) {
     if (p.state !== "missing") continue;
     // A permission only an absent extension needs is not something to do.
     if (p.id === "full_disk_access" && !names.has("otp")) continue;
     if (p.id === "calendar" && !names.has("calendar")) continue;
     if (p.id === "input_monitoring" && !(v.bar?.length ?? 0)) continue;
+    if (p.id === "location" && !names.has("wifi")) continue;
     items.push({ id: `permission:${p.id}`, level: "attention", title: p.title, detail: `${p.needs}. ${p.where.startsWith("Privacy") ? `Switch it on under ${p.where}` : `Granted in ${p.where}`}.`, action: { label: p.id === "full_disk_access" ? "Open the pane" : "Grant…", permission: p.id } });
   }
 

@@ -2,7 +2,12 @@
   "palettes": {
     "icons": {
       "title": "Nerd Font icons",
-      "icon": "󰅑",
+      "icon": {
+        "tile": {
+          "glyph": "󰠱",
+          "bg": "pink"
+        }
+      },
       "view": "grid",
       "columns": 10,
       "items": [
@@ -9250,7 +9255,12 @@
     },
     "freedesktop": {
       "title": "Freedesktop icon names",
-      "icon": "󰅑",
+      "icon": {
+        "tile": {
+          "glyph": "󰠱",
+          "bg": "pink"
+        }
+      },
       "view": "grid",
       "columns": 10,
       "items": [

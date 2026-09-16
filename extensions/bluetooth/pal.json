@@ -3,7 +3,7 @@
   "title": "Bluetooth",
   "description": "Paired devices: connect, disconnect, see the battery.",
   "version": "0.1.0",
-  "icon": "󰂯",
+  "icon": { "tile": { "glyph": "󰂯", "bg": "blue" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

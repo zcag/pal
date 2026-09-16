@@ -565,6 +565,13 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 /* Solid neutral is paper: the elevated surface with a hairline, the way a card sits on a table. */
 .pal-view__tile[data-color="neutral"][data-fill="solid"] { background: var(--pal-bg-elevated, #26262d); color: var(--pal-fg, #ececf0); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)), var(--pal-bevel, inset 0 1px 0 rgba(255, 255, 255, 0.07)); }
 .pal-view__tile[data-fill="outline"] { background: transparent; color: var(--tile); box-shadow: inset 0 0 0 1.5px var(--tile-line); }
+/* A tile in a colour of the extension's own (`#hex`, View.tsx sets --tile and the ink by contrast): the box is that colour for soft and solid alike, a hairline in it for outline. A translucent one sits on a checker so the alpha shows; the checker is the foreground at 14% over the elevated surface, which reads in both themes. */
+.pal-view__tile[data-color="custom"] { --tile-line: var(--tile); }
+.pal-view__tile[data-color="custom"][data-fill="soft"], .pal-view__tile[data-color="custom"][data-fill="solid"] { background: var(--tile); color: var(--tile-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pal-fg, #ececf0) 10%, transparent); }
+.pal-view__tile[data-color="custom"][data-alpha]:not([data-fill="outline"]) { background: linear-gradient(var(--tile), var(--tile)), var(--pal-checker, repeating-conic-gradient(color-mix(in srgb, var(--pal-fg, #ececf0) 14%, transparent) 0 25%, var(--pal-bg-elevated, #26262d) 0 50%) 0 0 / 12px 12px); }
+/* A gradient: the layers as one background (View.tsx gradientCss), the tile radius, and the marker ring, white over a dark halo so it sits on any colour. */
+.pal-view__gradient { position: relative; flex: none; box-sizing: border-box; border-radius: var(--pal-radius-tile, 10px); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pal-fg, #ececf0) 10%, transparent); }
+.pal-view__marker { position: absolute; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(0, 0, 0, 0.45); transition: left var(--pal-dur-base, 120ms) var(--pal-ease, ease), top var(--pal-dur-base, 120ms) var(--pal-ease, ease); pointer-events: none; }
 .pal-view__divider { flex: none; align-self: stretch; margin: 0; border: 0; height: 1px; background: var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-view__stack[data-direction="row"] > .pal-view__divider, .pal-view__stack[data-direction="row"] > [data-exiting] > .pal-view__divider { width: 1px; height: auto; }
 .pal-view__spacer { flex: 1 1 0; min-width: 0; min-height: 0; }
@@ -621,6 +628,31 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-hud .pal-icon { color: var(--pal-success, #4fc98a); }
+/* `pal://confetti`: 24 particles flung sideways from behind the capsule in a low arc (the HUD window is 480 by 72, so a tall burst would leave it at once), each on its own distance and colour (nth-child cycles the tag palette), fading as they fall; reduced motion zeroes --pal-dur-hud-hold, so they never fly. */
+.pal-hud[data-celebrate] { position: relative; }
+.pal-hud__confetti { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: -1; }
+.pal-hud__confetti i {
+  position: absolute; left: -3px; top: -4px; width: 6px; height: 9px; border-radius: 1px;
+  --s: 1;
+  --x: calc(var(--s) * (34px + var(--i) * 9px));
+  --y: calc(-14px - (var(--i) * 0.7px));
+  opacity: 0;
+  animation: pal-confetti calc(var(--pal-dur-hud-hold, 900ms) + var(--pal-dur-hud-out, 240ms)) cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation-delay: calc(var(--i) * 5ms);
+}
+.pal-hud__confetti i:nth-child(odd) { --s: -1; }
+.pal-hud__confetti i:nth-child(6n+1) { background: var(--pal-tag-blue, #4a8bf5); }
+.pal-hud__confetti i:nth-child(6n+2) { background: var(--pal-tag-green, #4fc98a); }
+.pal-hud__confetti i:nth-child(6n+3) { background: var(--pal-tag-amber, #f0b429); }
+.pal-hud__confetti i:nth-child(6n+4) { background: var(--pal-tag-red, #e5484d); }
+.pal-hud__confetti i:nth-child(6n+5) { background: var(--pal-tag-violet, #9b7bf5); }
+.pal-hud__confetti i:nth-child(6n+6) { background: var(--pal-tag-pink, #e874b2); }
+@keyframes pal-confetti {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  8% { opacity: 1; }
+  55% { opacity: 1; transform: translate(calc(var(--x) * 0.8), var(--y)) rotate(200deg); }
+  100% { opacity: 0; transform: translate(var(--x), 16px) rotate(420deg); }
+}
 /* The HUD window's page (HudPage.tsx): the capsule at the bottom centre, 24px in so the shadow (20px below) stays inside the window; the text clips before the window does. Out: slower than the in, so it is not read as a flicker. */
 /* The bar popover's page (BarPage.tsx): the panel fills the window; `urgent` paints the title bar red. */
 .pal-bar-page { position: fixed; inset: 0; }

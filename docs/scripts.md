@@ -4,7 +4,9 @@ The zero-code tier. A palette can be a data file (json, jsonl or toml) or a
 shell script that prints JSON lines, described by a small TOML table. No
 TypeScript. The `scripts` extension reads those tables from a pal v1 style
 config file and turns each into a palette named after its table, with the
-config id `scripts-<name>`.
+config id `scripts-<name>`. The same extension also runs **script
+commands**: single executable files with a `# @pal.title` header, one row
+each, in one Script Commands palette ("Script commands", at the end).
 
 ## Where the tables live
 
@@ -239,6 +241,122 @@ for `pick`. At most `preview_max` (default 4) run at once, each with a 10
 second limit; the answer is cached per row until the palette lists again.
 `preview_max = 0` turns previews off. Data-file rows never run previews.
 
+## Script commands
+
+The cheapest palette of all: a folder of executable files, each one a row
+of the **Script Commands** palette (`scripts-commands`), described by a
+comment block at the top of the file. Nothing else to declare. The folder
+is the `commands` setting, `~/.config/pal/commands` by default, and it is
+watched: a file saved there is read again on the next listing (the
+palette is live, so the next time the panel shows).
+
+```bash
+#!/usr/bin/env bash
+# @pal.title Deploy site
+# @pal.description Push the site to an environment
+# @pal.icon 🚀
+# @pal.mode hud
+# @pal.confirm true
+# @pal.keyword deploy ship
+# @pal.args target Environment: staging or prod
+# @pal.args note Release note (optional)
+
+echo "Deployed to $1${2:+ ($2)}"
+```
+
+`chmod +x` it. Enter on the row opens a form for `target` and `note`,
+Run runs the file with them as `$1` and `$2`, the panel hides, and the
+HUD shows the first line it printed. The two files under
+`examples/commands/` in the repo are this one and a list-mode one.
+
+Any language: the file runs as it is, so the shebang decides
+(`#!/usr/bin/env python3`), and the tags are read from `#`, `//`, `--`,
+`;` or `*` comments in the first 60 lines. A file that is not executable,
+has no `title`, is a dotfile or has `.template.` in its name is not a
+command.
+
+### The tags
+
+| tag | what |
+| --- | --- |
+| `@pal.title` | The row's name. Required. |
+| `@pal.description` | The row's subtitle (an `inline` command's output replaces it). |
+| `@pal.icon` | An emoji or a Nerd Font glyph, a hex colour, one of the twelve brand colours (`amber`: a tile in that colour with the script mark), a PNG, JPEG or SVG next to the script (relative to it, inlined up to 64 KB), or an https url. Without one the row wears the script mark in the extension's colour. |
+| `@pal.mode` | `hud` (default): the panel hides and the HUD shows the first output line, "Done" with none. `silent`: nothing shown unless the run failed. `show`: the whole output comes back as a level, in the detail pane, with a Copy action. `list`: the output is rows, below. `inline`: the first output line is the row's subtitle, refreshed on every show once `refresh` has passed. |
+| `@pal.args` | `<name> <placeholder…>`, one per line, in the order the script gets them as `$1`, `$2`, ... Enter opens a form; a placeholder ending in `(optional)` makes the field optional, the rest are required. |
+| `@pal.confirm` | `true`: ask before running (the title as the go-ahead). A command with `args` asks through its form instead. |
+| `@pal.keyword` | Extra words the search matches, space or comma separated; repeatable. |
+| `@pal.section` | A section header the rows with the same one share. |
+| `@pal.cwd` | The working directory (`~` expanded, relative to the script's folder); the script's folder by default. |
+| `@pal.refresh` | How long an `inline` command's line is kept before it runs again: `10s`, `2m`, `1h`, a bare number of seconds. A minute by default. |
+
+**Raycast's headers work as they are.** A script command written for
+Raycast drops into the folder unchanged: `@raycast.title`, `@raycast.mode`
+(`compact` is `hud`, `fullOutput` is `show`, `silent` and `inline` are
+themselves), `@raycast.icon`, `@raycast.description`,
+`@raycast.packageName` (the section), `@raycast.argument1..3` (the JSON
+form, `placeholder` and `optional` read), `@raycast.needsConfirmation`,
+`@raycast.currentDirectoryPath`, `@raycast.refreshTime`.
+`@raycast.schemaVersion`, `author`, `authorURL` and `iconDark` are
+ignored.
+
+### The palette
+
+| keys | action |
+| --- | --- |
+| `enter` | Run (as the mode says); Open, for a `list` command; Run…, a form first, for one with `args` |
+| `cmd+o` | Open the script file in its editor |
+| `cmd+c` | Copy output: runs the command (up to 8 s) and copies what it printed |
+| `cmd+shift+c` | Copy the file's path |
+| `cmd+i` | The detail pane: file, mode, arguments, confirm, working directory |
+| `cmd+r` | List again now |
+
+The row's id is the file name, so a global hotkey for one command is
+`[palettes.scripts-commands.item_hotkeys]` with `"deploy-site.sh" =
+"ctrl+alt+d"` ([Config](config.md)). The mode sits on the right of the
+row unless it is `hud`. A run that exceeds the extension's `timeout`
+(30 s) is killed with its process group; `inline` lines and Copy output
+get 8 s at most. Scripts get the same PATH as the v1 tables (the app's
+plus `~/.local/bin`, `~/.cargo/bin`, `/opt/homebrew/bin`,
+`/usr/local/bin`).
+
+### `list` mode
+
+Enter pushes a level whose rows are what the script printed: JSON lines
+(the row fields of "The script protocol" above: `name`, `id`, `subtitle`,
+`keywords`, `section`, `url`, `icon_utf`, `accessories`, `detail`,
+`actions`), a JSON array of them, or, when no line is JSON, one row per
+plain line. A row with `url` opens it on Enter, one with `copy` copies
+that string; any other row runs the script again with `PAL_PICK` set to
+the row's id (and the same arguments), and the HUD shows the first line it
+prints. A row's own `actions` (the v1 shape, `copy` and `open` with `key`
+or `value`) are honoured.
+
+```bash
+#!/usr/bin/env bash
+# @pal.title Listening ports
+# @pal.mode list
+# @pal.icon cyan
+[ -n "$PAL_PICK" ] && { echo "Port $PAL_PICK"; exit 0; }
+lsof -nP -iTCP -sTCP:LISTEN | awk 'NR > 1 { split($9, a, ":"); p = a[length(a)]
+  printf "{\"id\":\"%s\",\"name\":\":%s\",\"subtitle\":\"%s\",\"copy\":\"%s\"}\n", p, p, $1, p }'
+```
+
+### `inline` mode
+
+```bash
+#!/usr/bin/env bash
+# @pal.title Battery
+# @pal.mode inline
+# @pal.refresh 30s
+pmset -g batt | awk -F'\t' 'NR == 2 { print $2 }'
+```
+
+The first line the script prints is the row's subtitle. The palette is
+live, so every show of the panel lists it again; the line is kept for
+`refresh` and the script runs again only past that. Enter runs it once
+more, in `hud` mode.
+
 ## Settings
 
 `[extensions.scripts]`:
@@ -248,10 +366,11 @@ second limit; the answer is cached per row until the palette lists again.
 | `config` | path | `~/.config/pal/config.toml` | The file whose `[palette.<name>]` tables become palettes. |
 | `skip` | list | `["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"]` | Table names not to load, because a bundled extension covers them. |
 | `v1_repo` | path | `~/proj/pal-v1` | Where `github:zcag/pal/...` bases resolve when v1's plugin cache has no copy. |
+| `commands` | path | `~/.config/pal/commands` | The folder of single-file script commands ("Script commands", above). Read on every listing, and watched. |
 | `timeout` | seconds, 1 to 300 | `30` | A `list` or `pick` still running after this is killed. |
 | `preview_max` | 0 to 32 | `4` | How many `preview` commands run at the same time. 0 turns previews off. |
 | `ttl` | seconds, 0 to 604800 | `3600` | Listing lifetime for non-live tables that declare no `ttl`; a table's own `ttl` wins. 0 runs every script on every start. |
 
 `config`, `skip`, `v1_repo` and `ttl` are read when the extension loads;
-after changing them, Settings > Restart extension host. `timeout` and
-`preview_max` apply to the next run.
+after changing them, Settings > Restart extension host. `timeout`,
+`preview_max` and `commands` apply to the next run or listing.

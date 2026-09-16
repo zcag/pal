@@ -1,0 +1,21 @@
+/* Large Type: the page fills the window (the work area's width, half its height); the text sits in one wide capsule drawn like the HUD's. */
+.pal-large-page { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: var(--pal-space-6, 24px); cursor: default; user-select: none; }
+.pal-large {
+  max-width: 100%;
+  max-height: 100%;
+  padding: var(--pal-space-6, 24px) var(--pal-space-8, 40px);
+  border-radius: var(--pal-radius-hud, 12px);
+  background: var(--pal-bg-elevated, #26262d);
+  color: var(--pal-fg, #ececf0);
+  box-shadow: var(--pal-shadow-hud, 0 0 0 1px rgba(0, 0, 0, 0.5), 0 6px 20px -6px rgba(0, 0, 0, 0.6));
+  font-family: var(--pal-font-ui, -apple-system, system-ui, sans-serif);
+  font-weight: var(--pal-weight-semibold, 600);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease);
+}
+.pal-large[data-code] { font-family: var(--pal-font-mono, ui-monospace, monospace); font-weight: var(--pal-weight-medium, 500); letter-spacing: 0.04em; }

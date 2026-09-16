@@ -4,7 +4,12 @@
       "title": "Quicklinks",
       "live": false,
       "input": false,
-      "icon": "🔗",
+      "icon": {
+        "tile": {
+          "glyph": "󰌹",
+          "bg": "orange"
+        }
+      },
       "items": [
         {
           "id": "create",
