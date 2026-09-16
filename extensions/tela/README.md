@@ -5,10 +5,9 @@ the matching passage, a question answered by meaning with its sources laid
 out, the pages that changed lately with your favourites first, the spaces,
 the decks and sheets, what links to a page, the mentions and replies that
 address you. A page opens in tela, or reads inside the panel with its
-headings, callouts, lists, code and tables drawn in pal's own tokens. New
-pages and appends are forms whose body starts as whatever you had selected
-or copied. One bar item counts unread mentions and replies and stays hidden
-otherwise.
+headings, callouts, lists, code and tables drawn in pal's own tokens. A new
+page is a form whose body starts as whatever you had selected or copied.
+One bar item counts unread mentions and replies and stays hidden otherwise.
 
 | palette | id | kind | what `Enter` does |
 | --- | --- | --- | --- |
@@ -17,7 +16,6 @@ otherwise.
 | Pages | `tela-pages` | indexed, 5 min | opens the page in tela |
 | Spaces | `tela-spaces` | indexed, 1 h | lists the space's pages |
 | New Page | `tela-new-page` | indexed, 1 h | the form, the space chosen |
-| Append to Page | `tela-append` | indexed, 5 min | the form for that page |
 | Decks | `tela-decks` | indexed, 1 h | opens the deck in tela |
 | Sheets | `tela-sheets` | indexed, 1 h | opens the sheet in tela |
 | Comments | `tela-comments` | live | marks read and opens the page |
@@ -29,7 +27,7 @@ Two settings, under Settings, Extensions, tela: the **Address** of the
 instance (`https://telawiki.com`, or your own) and a **Token**, a personal
 access token made under Settings, API Keys on tela (`tela_pat_...`, kept
 in the OS keychain). A read-scoped token lists, searches and researches;
-writes (a new page, an append, a comment, marking notifications read) need
+writes (a new page, a comment, marking notifications read) need
 write scope, and tela says so in the form when they do not have it. A token
 pinned to one space sees that space alone. Without either setting every
 palette is one hint row naming which; an expired token is one naming the
@@ -74,7 +72,7 @@ space, newest first, with who changed it. Pushed from Spaces it is one
 space's pages in tree order, sectioned by their top-level page. Every page
 row: Open in tela (`Enter`), Read in pal (`⌘Enter`: the page drawn in the
 panel), Copy link (`⌘C`), Outline (`⌘⇧O`, the headings), Backlinks
-(`⌘B`), Append to page (`⌘⇧A`), Comment on page (`⌘⇧M`).
+(`⌘B`), Comment on page (`⌘⇧M`).
 
 **Read in pal** draws the page's markdown with the view tree (`md.ts`):
 headings by level, paragraphs, bullet, numbered and task lists (nested),
@@ -88,7 +86,7 @@ view's text node is one run, so bold, italic and code inside a paragraph
 are flattened to their words; a paragraph that is one bold or code run
 keeps the weight or the mono. Front matter is left out, and a leading `#`
 that repeats the title. Past 1200 nodes the view says the rest is in
-tela. From the view: Open in tela, Copy link, Backlinks, Outline, Append,
+tela. From the view: Open in tela, Copy link, Backlinks, Outline,
 Comment, Copy markdown (`⌘⇧C`).
 
 **Spaces** lists every space the token sees with its page count (one
@@ -99,13 +97,7 @@ lists its pages, `⌘Enter` opens it in tela, `⌘N` starts a page in it.
 **New Page** is one row per space (the default first); Enter opens the
 form: title, space (a select), body. The body starts as the front app's
 selected text, else the clipboard's text (under 20 KB); the description
-says so. The page opens in tela once created. **Append to Page** lists
-where an append can go: Quick Notes first (created on first use through
-tela's own `/n` call), the page you opened or read last, favourites,
-recent pages; the form is the text (prefilled the same way) and a
-checkbox for a `## <today>` heading first; the text goes at the end of the
-page with a blank line before it, through one body update (tela has no
-append call).
+says so. The page opens in tela once created.
 
 **Comment on page** anchors on a run of the page's text, as tela's
 comments do: the form's second field is that run, the first line of the
@@ -129,7 +121,9 @@ palette), Mark all read.
 ## What it does not do
 
 - No daily or journal page: tela has none; Quick Notes is its scratchpad
-  and stands in at the top of Pages and Append.
+  and stands in at the top of Pages.
+- No editing of a page's body (no append): that is tela's MCP, not a
+  launcher's job; the panel reads, opens, comments and creates.
 - No per-space filter on Search: the REST search has no space parameter;
   sections by space do the sorting.
 - The research answer is tela's grounding and sources, not an LLM's prose:

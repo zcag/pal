@@ -1,15 +1,16 @@
-// tela: the wiki in the panel. Eleven palettes over one client (api.ts)
+// tela: the wiki in the panel. Nine palettes over one client (api.ts)
 // and one data layer (data.ts): full-text Search and semantic Research
 // (input), Pages (recent across spaces, favourites first; a space's tree
-// when pushed from Spaces), Spaces, New Page and Append (forms), Decks,
-// Sheets, Comments (what addresses you), Backlinks (of the page opened
-// last). A page is one id everywhere, `page:<n>`: a list row, the view it
-// opens as (`render.ts` over `md.ts`), the form that appends to it. One
-// bar item, `inbox`: unread mentions and replies, hidden at zero.
+// when pushed from Spaces), Spaces, New Page (a form), Decks, Sheets,
+// Comments (what addresses you), Backlinks (of the page opened last). A
+// page is one id everywhere, `page:<n>`: a list row, the view it opens as
+// (`render.ts` over `md.ts`), the form that comments on it. Editing a
+// page's body is not the panel's job (tela's MCP does that). One bar
+// item, `inbox`: unread mentions and replies, hidden at zero.
 import { clipboard, selection, storage, tinted, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, EXTENSION, askUrl, baseUrl, conf, keysUrl, log, notesUrl, pageUrl, researchOn, searchUrl, spaceUrl } from "./api.ts";
 import {
-  RESEARCH_LIMIT, RESEARCH_MAX, addComment, addressed, appendToPage, backlinks, catalog, createPage, deckCover, describe, favorites, findSpace, iso, markAllRead, markRead, notifications, page, pageCounts, quickNotes, recent, research, search, spaceName, spaceTree, spaces,
+  RESEARCH_LIMIT, RESEARCH_MAX, addComment, addressed, backlinks, catalog, createPage, deckCover, describe, favorites, findSpace, iso, markAllRead, markRead, notifications, page, pageCounts, recent, research, search, spaceName, spaceTree, spaces,
   type Notification, type Page, type PageRef, type Space,
 } from "./data.ts";
 import { frontmatter, outline, plain } from "./md.ts";
@@ -73,7 +74,6 @@ const PAGE_ACTIONS: Action[] = [
   { id: "copy", title: "Copy link", shortcut: "cmd+c" },
   { id: "outline", title: "Outline", shortcut: "cmd+shift+o" },
   { id: "backlinks", title: "Backlinks", shortcut: "cmd+b" },
-  { id: "append", title: "Append to page", shortcut: "cmd+shift+a" },
   { id: "comment", title: "Comment on page", shortcut: "cmd+shift+m" },
 ];
 
@@ -102,7 +102,7 @@ async function refOf(id: number): Promise<PageRef> {
   return ref;
 }
 
-/** The last page opened or read, for Backlinks and Append with nothing pushed. */
+/** The last page opened or read, for Backlinks with nothing pushed. */
 type Last = { id: number; title: string; space: number };
 const remember = (r: PageRef) => storage.set("last", { id: r.id, title: r.title, space: r.space_id } satisfies Last, EXTENSION).catch(() => {});
 const last = () => storage.get<Last>("last", EXTENSION).catch(() => null);
@@ -139,7 +139,6 @@ const outlineDetail = (p: Page): Detail => {
 };
 
 async function pickPage(id: number, action: string | undefined, ctx?: Ctx): Promise<Effect | void> {
-  if (action === "append:save") return saveAppend(id, ctx?.values ?? {});
   if (action === "comment:save") return saveComment(id, ctx?.values ?? {});
   const ref = await refOf(id);
   const url = pageUrl(ref.space_id, id, ref.title);
@@ -149,13 +148,12 @@ async function pickPage(id: number, action: string | undefined, ctx?: Ctx): Prom
     case "read": { const p = await page(id); await remember(ref); return { view: pageView(p, ref.space_name ?? `Space ${p.space_id}`, ref.breadcrumb) }; }
     case "outline": return { show: { title: `Outline of ${short(ref.title, 40)}`, ...outlineDetail(await page(id)) } };
     case "backlinks": await remember(ref); return { push: { extension: EXTENSION, palette: "backlinks", args: { page: id, title: ref.title } } };
-    case "append": return { form: await appendForm(ref) };
     case "comment": return { form: await commentForm(ref) };
     default: await remember(ref); return { open: url };
   }
 }
 
-// ---- forms: new page, append, comment -----------------------------------------
+// ---- forms: new page, comment -----------------------------------------
 
 /** What a new page's body starts as: the front app's selection, else the clipboard's text. */
 async function prefill(): Promise<string> {
@@ -200,38 +198,6 @@ async function saveNewPage(values: FormValues): Promise<Effect> {
   }
 }
 
-const NOTES = "notes";
-const todayHeading = () => `## ${new Date().toISOString().slice(0, 10)}`;
-
-async function appendForm(target: PageRef | typeof NOTES, values?: FormValues, errors?: Record<string, string>): Promise<Form> {
-  const name = target === NOTES ? "Quick Notes" : target.title;
-  return {
-    id: target === NOTES ? NOTES : `page:${target.id}`,
-    title: `Append to ${short(name, 40)}`,
-    fields: [
-      { kind: "textarea", id: "body", label: "Text", required: true, default: values ? str(values.body) : await prefill(), description: "Markdown, added at the end of the page. Prefilled from your selection or the clipboard." },
-      { kind: "checkbox", id: "stamp", label: "Heading", text: `Start with a heading for today (${todayHeading().slice(3)})`, default: values ? values.stamp === true : false },
-    ],
-    submit: { id: "append:save", title: "Append" },
-    errors,
-  };
-}
-
-async function saveAppend(id: number | typeof NOTES, values: FormValues): Promise<Effect> {
-  const body = str(values.body).trim();
-  const target = id === NOTES ? NOTES : (pageTable.get(id) ?? { id, space_id: 0, title: `Page ${id}` });
-  if (!body) return { form: await appendForm(target, values, { body: "Nothing to append" }) };
-  try {
-    const p = id === NOTES ? await quickNotes() : undefined;
-    const text = values.stamp === true ? `${todayHeading()}\n\n${body}` : body;
-    const saved = await appendToPage(p?.id ?? (id as number), text);
-    await remember({ id: saved.id, space_id: saved.space_id, title: saved.title });
-    return { hud: `Appended to ${short(saved.title, 40)}` };
-  } catch (e) {
-    return { form: await appendForm(target, values, { body: e instanceof Error ? e.message : String(e) }) };
-  }
-}
-
 async function commentForm(ref: PageRef, values?: FormValues, errors?: Record<string, string>): Promise<Form> {
   const firstLine = values ? "" : plain((await page(ref.id).catch(() => ({ body: "" }))).body).split("\n").find((l) => l.trim()) ?? ref.title;
   return {
@@ -265,7 +231,7 @@ const COMMANDS: Item[] = [
   { id: "cmd:new", name: "New tela page", subtitle: "A page in a space, the body from your selection or the clipboard", icon: ICON.plus, keywords: ["create", "write", "wiki"], actions: [{ id: "new", title: "New page" }] },
   { id: "cmd:search", name: "Search tela", subtitle: "Full-text over every page you can see", icon: ICON.search, keywords: ["find", "wiki"], actions: [{ id: "search", title: "Search" }, { id: "browser", title: "Search in the browser", shortcut: "cmd+enter" }] },
   { id: "cmd:ask", name: "Ask tela", subtitle: "A question answered from the pages that matter", icon: ICON.research, keywords: ["research", "question", "wiki"], actions: [{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter" }] },
-  { id: "cmd:notes", name: "Quick Notes", subtitle: "Your scratchpad page on tela", icon: ICON.note, keywords: ["scratch", "journal", "daily"], actions: [{ id: "open", title: "Open Quick Notes" }, { id: "append", title: "Append to Quick Notes", shortcut: "cmd+enter" }] },
+  { id: "cmd:notes", name: "Quick Notes", subtitle: "Your scratchpad page on tela", icon: ICON.note, keywords: ["scratch", "journal", "daily"], actions: [{ id: "open", title: "Open Quick Notes" }] },
 ];
 
 async function pickCommand(id: string, action?: string): Promise<Effect | void> {
@@ -273,7 +239,7 @@ async function pickCommand(id: string, action?: string): Promise<Effect | void> 
     case "cmd:new": return { form: await newPageForm() };
     case "cmd:search": return action === "browser" ? { open: searchUrl("") } : { push: { extension: EXTENSION, palette: "search" } };
     case "cmd:ask": return action === "browser" ? { open: askUrl("") } : { push: { extension: EXTENSION, palette: "research" } };
-    case "cmd:notes": return action === "append" ? { form: await appendForm(NOTES) } : { open: notesUrl() };
+    case "cmd:notes": return { open: notesUrl() };
   }
 }
 
@@ -296,15 +262,29 @@ async function spaceRows(space: number, refresh: boolean): Promise<Item[]> {
 
 // ---- search ---------------------------------------------------------------------
 
+/**
+ * The wait between the last keystroke and the request. The panel lists an
+ * input palette on every keystroke and never debounces, so the wait lives
+ * here: one per query, restarted by a newer query only. A call for the
+ * query already waiting joins it; a call a newer query overtook answers
+ * with that query's rows once they are in (the panel has moved on and
+ * drops the reply; what it would show is never an older query's list).
+ */
 let searchSeq = 0;
-let lastSearch: Item[] = [];
+let newest: { q: string; rows: Promise<Item[]>; done: boolean } | undefined;
 
-async function searchRows(query = ""): Promise<Item[]> {
+function searchRows(query = ""): Promise<Item[]> {
   const q = query.trim();
-  if (q.length < 2) return [hint("search", "Search tela", "Words, a phrase in quotes, -excluded; ranked over titles and bodies")];
+  if (q.length < 2) return Promise.resolve([hint("search", "Search tela", "Words, a phrase in quotes, -excluded; ranked over titles and bodies")]);
+  if (newest?.q === q && !newest.done) return newest.rows;
   const seq = ++searchSeq;
-  await Bun.sleep(SEARCH_WAIT_MS);
-  if (seq !== searchSeq) return lastSearch;
+  const entry = { q, done: false, rows: Bun.sleep(SEARCH_WAIT_MS).then(() => (seq === searchSeq ? hitRows(q) : newest!.rows)) };
+  entry.rows.then(() => { entry.done = true; }, () => { entry.done = true; });
+  newest = entry;
+  return entry.rows;
+}
+
+async function hitRows(q: string): Promise<Item[]> {
   const [hits, all] = await Promise.all([search(q), spaces().catch(() => [] as Space[])]);
   const nameOf = (id: number) => all.find((s) => s.id === id)?.name ?? `Space ${id}`;
   const rows = hits.map((h) => {
@@ -316,9 +296,7 @@ async function searchRows(query = ""): Promise<Item[]> {
       detail: { markdown: `…${h.snippet.replace(/<mark>/g, "**").replace(/<\/mark>/g, "**")}…` },
     });
   });
-  const out = rows.length ? rows : [hint("empty", "Nothing found", `No page has “${q}”; Ask tela finds pages by meaning`, [{ id: "ask", title: "Ask tela" }], ICON.research)];
-  lastSearch = out;
-  return out;
+  return rows.length ? rows : [hint("empty", "Nothing found", `No page has “${q}”; Ask tela finds pages by meaning`, [{ id: "ask", title: "Ask tela" }], ICON.research)];
 }
 
 // ---- research -------------------------------------------------------------------
@@ -443,20 +421,6 @@ async function pickSpace(id: string, action?: string, ctx?: Ctx): Promise<Effect
     case "new": return { form: await newPageForm(sid) };
     default: return { push: { extension: EXTENSION, palette: "pages", args: { space: sid } } };
   }
-}
-
-// ---- append palette: which page ------------------------------------------------------
-
-async function appendRows(refresh: boolean): Promise<Item[]> {
-  const rows: Item[] = [{ id: NOTES, name: "Quick Notes", subtitle: "Your scratchpad page; created on first use", icon: ICON.note, keywords: ["scratch", "journal", "daily"], actions: [{ id: "append", title: "Append to Quick Notes" }, { id: "open", title: "Open Quick Notes", shortcut: "cmd+enter" }] }];
-  const l = await last();
-  const seen = new Set<number>();
-  const target = (r: PageRef, section: string) => { seen.add(r.id); return pageRow(r, section, { actions: [{ id: "append", title: "Append to page" }, { id: "open", title: "Open in tela", shortcut: "cmd+enter" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }] }); };
-  if (l) rows.push(target({ id: l.id, space_id: l.space, title: l.title, space_name: await spaceName(l.space) }, "Last opened"));
-  const [fav, rec] = await Promise.all([favorites(refresh).catch(() => [] as PageRef[]), recent(refresh)]);
-  for (const f of fav) if (!seen.has(f.id)) rows.push(target(f, "Favourites"));
-  for (const r of rec) if (!seen.has(r.id)) rows.push(target(r, "Recent"));
-  return rows;
 }
 
 // ---- decks and sheets ------------------------------------------------------------------
@@ -593,7 +557,6 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
   }
   if (id === "new") return action === "save" ? saveNewPage(ctx?.values ?? {}) : { form: await newPageForm() };
   if (id.startsWith("cmd:")) return pickCommand(id, action);
-  if (id === NOTES) return action === "append:save" ? saveAppend(NOTES, ctx?.values ?? {}) : action === "open" ? { open: notesUrl() } : { form: await appendForm(NOTES) };
   if (id.startsWith("space:")) return pickSpace(id, action, ctx);
   if (id.startsWith("notif:")) return pickNotif(id, action);
   if (id === "research" || id.startsWith("ask:")) return pickResearch(id, action, ctx);
@@ -644,12 +607,6 @@ export default {
         return rows.length ? rows : [hint("none", "No spaces", "The token sees none; tela's home page creates one")];
       }),
       pick: async (id, action, ctx) => (id.startsWith("space:") && action !== "new:save" ? { form: await newPageForm(Number(id.slice(6))) } : pickAny(id, action, ctx)),
-    },
-    append: {
-      title: "Append to Page",
-      placeholder: "Which page",
-      list: (_q, ctx) => guard(() => appendRows(!!ctx?.refresh)),
-      pick: pickAny,
     },
     decks: {
       title: "Decks",

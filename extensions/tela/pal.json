@@ -1,7 +1,7 @@
 {
   "name": "tela",
   "title": "tela",
-  "description": "Your tela wiki in the panel: full-text search, semantic research with sources, recent pages and favourites, spaces, decks, sheets, mentions and replies, backlinks; new pages and appends from what you selected.",
+  "description": "Your tela wiki in the panel: full-text search, semantic research with sources, recent pages and favourites, spaces, decks, sheets, mentions and replies, backlinks; new pages from what you selected.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -24,7 +24,7 @@
       "kind": "secret",
       "id": "token",
       "label": "Token",
-      "description": "A personal access token from Settings, API Keys on tela (tela_pat_...). Read scope lists and searches; write scope creates pages, appends and comments.",
+      "description": "A personal access token from Settings, API Keys on tela (tela_pat_...). Read scope lists and searches; write scope creates pages and comments.",
       "placeholder": "tela_pat_...",
       "default": ""
     },
@@ -70,10 +70,6 @@
         {
           "keys": "cmd+b",
           "title": "What links to the page"
-        },
-        {
-          "keys": "cmd+shift+a",
-          "title": "Append to the page"
         },
         {
           "keys": "cmd+shift+m",
@@ -156,10 +152,6 @@
           "title": "What links to the page"
         },
         {
-          "keys": "cmd+shift+a",
-          "title": "Append to the page"
-        },
-        {
           "keys": "cmd+shift+m",
           "title": "Comment on the page"
         },
@@ -207,27 +199,6 @@
         }
       ]
     },
-    "append": {
-      "title": "Append to Page",
-      "description": "Markdown added at the end of Quick Notes, the page you opened last, a favourite or a recent page.",
-      "kind": "list",
-      "lazy": true,
-      "ttl": 300,
-      "keys": [
-        {
-          "keys": "enter",
-          "title": "The form"
-        },
-        {
-          "keys": "cmd+enter",
-          "title": "Open the page in tela"
-        },
-        {
-          "keys": "cmd+c",
-          "title": "Copy the link"
-        }
-      ]
-    },
     "decks": {
       "title": "Decks",
       "description": "Slide decks across spaces, newest first; the pane shows the first slide.",
@@ -254,10 +225,6 @@
         {
           "keys": "cmd+b",
           "title": "What links to the deck"
-        },
-        {
-          "keys": "cmd+shift+a",
-          "title": "Append to the deck"
         },
         {
           "keys": "cmd+shift+m",
@@ -295,10 +262,6 @@
         {
           "keys": "cmd+b",
           "title": "What links to the sheet"
-        },
-        {
-          "keys": "cmd+shift+a",
-          "title": "Append to the sheet"
         },
         {
           "keys": "cmd+shift+m",
@@ -367,10 +330,6 @@
           "title": "Its own backlinks"
         },
         {
-          "keys": "cmd+shift+a",
-          "title": "Append to it"
-        },
-        {
           "keys": "cmd+shift+m",
           "title": "Comment on it"
         },
@@ -404,7 +363,7 @@
       "Ask tela: a question answered by meaning, the sources as rows with the cited excerpt, disagreements and low confidence flagged",
       "Pages: favourites first, then what changed across every space; a page read in pal keeps headings, lists, callouts, code and tables in the tokens",
       "Spaces with page counts, Decks with the first slide in the pane, Sheets, Backlinks of the page you opened last",
-      "New tela page and Append as forms, the body from your selection or the clipboard; Comment on a page anchored on its text",
+      "New tela page as a form, the body from your selection or the clipboard; Comment on a page anchored on its text",
       "Comments: mentions of you and replies to your comments; the bar item counts them and hides at zero"
     ],
     "permissions": [
@@ -487,11 +446,6 @@
         "keys": "cmd+b"
       },
       {
-        "title": "Append to page",
-        "description": "A form: markdown added at the end, prefilled from your selection or the clipboard.",
-        "keys": "cmd+shift+a"
-      },
-      {
         "title": "Comment on page",
         "description": "A form: the comment and the passage it anchors on.",
         "keys": "cmd+shift+m"
@@ -566,10 +520,6 @@
       {
         "title": "Open Quick Notes",
         "description": "Your scratchpad page on tela."
-      },
-      {
-        "title": "Append to Quick Notes",
-        "keys": "cmd+enter"
       },
       {
         "title": "Mark as read",

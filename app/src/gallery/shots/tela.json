@@ -57,11 +57,6 @@
                 "shortcut": "cmd+b"
               },
               {
-                "id": "append",
-                "title": "Append to page",
-                "shortcut": "cmd+shift+a"
-              },
-              {
                 "id": "comment",
                 "title": "Comment on page",
                 "shortcut": "cmd+shift+m"
@@ -108,11 +103,6 @@
                 "shortcut": "cmd+b"
               },
               {
-                "id": "append",
-                "title": "Append to page",
-                "shortcut": "cmd+shift+a"
-              },
-              {
                 "id": "comment",
                 "title": "Comment on page",
                 "shortcut": "cmd+shift+m"
@@ -156,11 +146,6 @@
                 "id": "backlinks",
                 "title": "Backlinks",
                 "shortcut": "cmd+b"
-              },
-              {
-                "id": "append",
-                "title": "Append to page",
-                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "comment",
@@ -213,11 +198,6 @@
                 "shortcut": "cmd+b"
               },
               {
-                "id": "append",
-                "title": "Append to page",
-                "shortcut": "cmd+shift+a"
-              },
-              {
                 "id": "comment",
                 "title": "Comment on page",
                 "shortcut": "cmd+shift+m"
@@ -237,7 +217,7 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:55548/spaces/1"
+                "href": "http://127.0.0.1:50860/spaces/1"
               }
             },
             {
@@ -261,12 +241,12 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "11 h ago"
+              "value": "12 h ago"
             },
             {
               "label": "Created",
@@ -289,12 +269,12 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "12 h ago"
+              "value": "13 h ago"
             },
             {
               "label": "Created",
@@ -313,12 +293,12 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:55548/spaces/1"
+                "href": "http://127.0.0.1:50860/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "13 h ago"
+              "value": "14 h ago"
             },
             {
               "label": "Created",
@@ -337,7 +317,7 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
@@ -361,7 +341,7 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
@@ -389,7 +369,7 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:55548/spaces/3"
+                "href": "http://127.0.0.1:50860/spaces/3"
               }
             },
             {
@@ -413,7 +393,7 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:55548/spaces/1"
+                "href": "http://127.0.0.1:50860/spaces/1"
               }
             },
             {
@@ -437,12 +417,12 @@
               "label": "Space",
               "link": {
                 "text": "Design",
-                "href": "http://127.0.0.1:55548/spaces/4"
+                "href": "http://127.0.0.1:50860/spaces/4"
               }
             },
             {
               "label": "Updated",
-              "value": "4 d ago"
+              "value": "5 d ago"
             },
             {
               "label": "Created",
@@ -461,12 +441,12 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:55548/spaces/3"
+                "href": "http://127.0.0.1:50860/spaces/3"
               }
             },
             {
               "label": "Updated",
-              "value": "5 d ago"
+              "value": "6 d ago"
             },
             {
               "label": "Created",
@@ -605,11 +585,6 @@
             {
               "id": "open",
               "title": "Open Quick Notes"
-            },
-            {
-              "id": "append",
-              "title": "Append to Quick Notes",
-              "shortcut": "cmd+enter"
             }
           ]
         },
@@ -647,11 +622,6 @@
               "id": "backlinks",
               "title": "Backlinks",
               "shortcut": "cmd+b"
-            },
-            {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
             },
             {
               "id": "comment",
@@ -696,11 +666,6 @@
               "shortcut": "cmd+b"
             },
             {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
-            },
-            {
               "id": "comment",
               "title": "Comment on page",
               "shortcut": "cmd+shift+m"
@@ -741,11 +706,6 @@
               "id": "backlinks",
               "title": "Backlinks",
               "shortcut": "cmd+b"
-            },
-            {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
             },
             {
               "id": "comment",
@@ -796,11 +756,6 @@
               "shortcut": "cmd+b"
             },
             {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
-            },
-            {
               "id": "comment",
               "title": "Comment on page",
               "shortcut": "cmd+shift+m"
@@ -849,11 +804,6 @@
               "shortcut": "cmd+b"
             },
             {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
-            },
-            {
               "id": "comment",
               "title": "Comment on page",
               "shortcut": "cmd+shift+m"
@@ -897,11 +847,6 @@
               "id": "backlinks",
               "title": "Backlinks",
               "shortcut": "cmd+b"
-            },
-            {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
             },
             {
               "id": "comment",
@@ -952,11 +897,6 @@
               "shortcut": "cmd+b"
             },
             {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
-            },
-            {
               "id": "comment",
               "title": "Comment on page",
               "shortcut": "cmd+shift+m"
@@ -1003,11 +943,6 @@
               "id": "backlinks",
               "title": "Backlinks",
               "shortcut": "cmd+b"
-            },
-            {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
             },
             {
               "id": "comment",
@@ -1058,11 +993,6 @@
               "shortcut": "cmd+b"
             },
             {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
-            },
-            {
               "id": "comment",
               "title": "Comment on page",
               "shortcut": "cmd+shift+m"
@@ -1111,11 +1041,6 @@
               "shortcut": "cmd+b"
             },
             {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
-            },
-            {
               "id": "comment",
               "title": "Comment on page",
               "shortcut": "cmd+shift+m"
@@ -1131,7 +1056,7 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:55548/spaces/1"
+                "href": "http://127.0.0.1:50860/spaces/1"
               }
             },
             {
@@ -1155,12 +1080,12 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "11 h ago"
+              "value": "12 h ago"
             },
             {
               "label": "Created",
@@ -1183,12 +1108,12 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
               "label": "Updated",
-              "value": "12 h ago"
+              "value": "13 h ago"
             },
             {
               "label": "Created",
@@ -1207,12 +1132,12 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:55548/spaces/1"
+                "href": "http://127.0.0.1:50860/spaces/1"
               }
             },
             {
               "label": "Updated",
-              "value": "13 h ago"
+              "value": "14 h ago"
             },
             {
               "label": "Created",
@@ -1231,7 +1156,7 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
@@ -1255,7 +1180,7 @@
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
@@ -1283,7 +1208,7 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:55548/spaces/3"
+                "href": "http://127.0.0.1:50860/spaces/3"
               }
             },
             {
@@ -1307,7 +1232,7 @@
               "label": "Space",
               "link": {
                 "text": "Notes",
-                "href": "http://127.0.0.1:55548/spaces/1"
+                "href": "http://127.0.0.1:50860/spaces/1"
               }
             },
             {
@@ -1331,12 +1256,12 @@
               "label": "Space",
               "link": {
                 "text": "Design",
-                "href": "http://127.0.0.1:55548/spaces/4"
+                "href": "http://127.0.0.1:50860/spaces/4"
               }
             },
             {
               "label": "Updated",
-              "value": "4 d ago"
+              "value": "5 d ago"
             },
             {
               "label": "Created",
@@ -1355,12 +1280,12 @@
               "label": "Space",
               "link": {
                 "text": "Blog",
-                "href": "http://127.0.0.1:55548/spaces/3"
+                "href": "http://127.0.0.1:50860/spaces/3"
               }
             },
             {
               "label": "Updated",
-              "value": "5 d ago"
+              "value": "6 d ago"
             },
             {
               "label": "Created",
@@ -1701,11 +1626,6 @@
               "shortcut": "cmd+b"
             },
             {
-              "id": "append",
-              "title": "Append to page",
-              "shortcut": "cmd+shift+a"
-            },
-            {
               "id": "comment",
               "title": "Comment on page",
               "shortcut": "cmd+shift+m"
@@ -1715,13 +1635,13 @@
       ],
       "details": {
         "page:12": {
-          "markdown": "![first slide](http://127.0.0.1:55548/api/deck/d/abc/cover.png)\n\n\n# Release\n\n---\n\n## Numbers",
+          "markdown": "![first slide](http://127.0.0.1:50860/api/deck/d/abc/cover.png)\n\n\n# Release\n\n---\n\n## Numbers",
           "metadata": [
             {
               "label": "Space",
               "link": {
                 "text": "Engineering",
-                "href": "http://127.0.0.1:55548/spaces/2"
+                "href": "http://127.0.0.1:50860/spaces/2"
               }
             },
             {
@@ -2002,7 +1922,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Engineering · Indexing › Steps · 11 h ago",
+                          "value": "Engineering · Indexing › Steps · 12 h ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2344,7 +2264,7 @@
                         },
                         {
                           "type": "text",
-                          "value": "Engineering · Indexing › Steps · 11 h ago",
+                          "value": "Engineering · Indexing › Steps · 12 h ago",
                           "style": "muted",
                           "size": "xs"
                         },
@@ -2564,7 +2484,7 @@
                 },
                 {
                   "type": "text",
-                  "value": "Engineering · updated 11 h ago · 137 words",
+                  "value": "Engineering · updated 12 h ago · 137 words",
                   "style": "muted",
                   "size": "xs"
                 }
@@ -3038,11 +2958,6 @@
             "id": "outline",
             "title": "Outline",
             "shortcut": "cmd+shift+o"
-          },
-          {
-            "id": "append",
-            "title": "Append to page",
-            "shortcut": "cmd+shift+a"
           },
           {
             "id": "comment",
@@ -3075,7 +2990,7 @@
                 },
                 {
                   "type": "text",
-                  "value": "Engineering · updated 11 h ago · 137 words",
+                  "value": "Engineering · updated 12 h ago · 137 words",
                   "style": "muted",
                   "size": "xs"
                 }
@@ -3549,11 +3464,6 @@
             "id": "outline",
             "title": "Outline",
             "shortcut": "cmd+shift+o"
-          },
-          {
-            "id": "append",
-            "title": "Append to page",
-            "shortcut": "cmd+shift+a"
           },
           {
             "id": "comment",

@@ -2,7 +2,7 @@
 // routes the extension reads and writes, and `/api/mcp` as the Streamable
 // HTTP transport (a session opened by `initialize`, `tools/call research`
 // answered as an event stream). Rows, sections and actions per palette,
-// the page read as a view tree, the research view and its keys, the three
+// the page read as a view tree, the research view and its keys, the two
 // forms and their writes, the inbox item, and the hint rows naming the fix
 // for a missing address, a missing or expired token, an instance without
 // an embedder, and one that does not answer.
@@ -29,12 +29,12 @@ const texts = (n: ViewNode): string[] => (n.type === "text" ? [n.value] : n.type
 const nodes = (n: ViewNode, type: string): ViewNode[] => [...(n.type === type ? [n] : []), ...(n.type === "stack" ? n.children.flatMap((c) => nodes(c, type)) : [])];
 
 describe("tela", () => {
-  test("meta: ten palettes (search and research input, comments live, the rest indexed with the manifest's ttl), the bar item, the four settings", () => {
+  test("meta: nine palettes (search and research input, comments live, the rest indexed with the manifest's ttl), the bar item, the four settings", () => {
     const l = host.loaded().find((x) => x.extension === "tela")!;
     expect(l.warnings).toEqual([]);
     expect(l.palettes.map((m) => [m.name, m.input, m.live, m.ttl])).toEqual([
       ["search", true, false, undefined], ["research", true, false, undefined], ["pages", false, false, 300], ["spaces", false, false, 3600], ["new-page", false, false, 3600],
-      ["append", false, false, 300], ["decks", false, false, 3600], ["sheets", false, false, 3600], ["comments", false, true, 60], ["backlinks", false, false, 300],
+      ["decks", false, false, 3600], ["sheets", false, false, 3600], ["comments", false, true, 60], ["backlinks", false, false, 300],
     ]);
     expect(l.palettes.find((m) => m.name === "search")!.detail).toBe("lazy");
     expect(l.bar).toEqual([{ id: "inbox", title: "Inbox", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, source: true }]);
@@ -49,7 +49,7 @@ describe("tela", () => {
       expect(items[6]).toMatchObject({ name: "Quick Notes", icon: "\u{f09ee}", accessories: [{ text: "cagdas" }, { date: "2026-09-16T07:00:00Z" }] });
       expect(items[6].subtitle).toBeUndefined();
       expect(items[4].icon).toBe("\u{f04ce}");
-      expect(items[5].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "outline", "backlinks", "append", "comment"]);
+      expect(items[5].actions!.map((a) => a.id)).toEqual(["open", "read", "copy", "outline", "backlinks", "comment"]);
       expect(calls("GET", "/api/recent-changes")).toHaveLength(1);
     });
 
@@ -115,21 +115,7 @@ describe("tela", () => {
       expect(widths.length).toBeGreaterThanOrEqual(9);
       expect((nodes(v.tree, "text")[0] as { size?: string }).size).toBe("xl");
       expect(nodes(v.tree, "text").find((n) => n.type === "text" && n.value === "Steps")).toMatchObject({ style: "title", size: "lg" });
-      expect(v.actions.map((a) => a.id)).toEqual(["open", "copy", "backlinks", "outline", "append", "comment", "markdown"]);
-    });
-
-    test("append: the form names the page, the submit patches the body with a blank line before the text, a heading for today when asked; empty text stays in the form", async () => {
-      const f = (await pick("pages", "page:11", "append")).form as Form;
-      expect(f).toMatchObject({ id: "page:11", title: "Append to Startup", submit: { id: "append:save" } });
-      expect(f.fields.map((x) => x.id)).toEqual(["body", "stamp"]);
-      const r = await pick("pages", "page:11", "append:save", { values: { body: "Then the index.", stamp: false } });
-      expect(r).toEqual({ hud: "Appended to Startup" });
-      const patch = calls("PATCH", "/api/pages/11").at(-1)!;
-      expect(patch.body).toEqual({ body: "# Startup\n\nThe host spawns after [[Indexing]] restores the cache.\n\nThen the index.\n" });
-      await pick("pages", "page:11", "append:save", { values: { body: "Later.", stamp: true } });
-      expect(calls("PATCH", "/api/pages/11").at(-1)!.body.body).toMatch(/\n\n## \d{4}-\d{2}-\d{2}\n\nLater\.\n$/);
-      const again = await pick("pages", "page:11", "append:save", { values: { body: "  ", stamp: false } });
-      expect((again.form as Form).errors).toEqual({ body: "Nothing to append" });
+      expect(v.actions.map((a) => a.id)).toEqual(["open", "copy", "backlinks", "outline", "comment", "markdown"]);
     });
 
     test("comment: the anchor defaults to the page's first line of plain text; the submit posts body and anchor; tela's no-anchor refusal lands on the anchor field", async () => {
@@ -152,6 +138,25 @@ describe("tela", () => {
       const many = await list("search", "cache");
       expect(ids(many)).toEqual(["page:10", "page:11"]);
       expect(many[1].subtitle).toMatch(/^Indexing · .*restores the cache\./);
+    });
+
+    test("typed letter by letter, the calls overlapping: one request, for the last query, and every reply is that query's rows; a repeat of the query in flight joins it", async () => {
+      const before = calls("GET", "/api/search").length;
+      const word = "spawns";
+      const asks: Promise<{ id: string }[]>[] = [];
+      for (let i = 2; i <= word.length; i++) {
+        asks.push(list("search", word.slice(0, i)));
+        if (i < word.length) await Bun.sleep(60);
+      }
+      // The panel lists again on an index event: the same query, mid-wait.
+      await Bun.sleep(100);
+      asks.push(list("search", word));
+      const replies = await Promise.all(asks);
+      for (const r of replies) expect(ids(r)).toEqual(["page:11"]);
+      expect(calls("GET", "/api/search").slice(before).map((c) => c.path)).toEqual(["/api/search?q=spawns"]);
+      // Once answered, the query lists afresh (the cache, not the wait, saves the request).
+      expect(ids(await list("search", "spawns"))).toEqual(["page:11"]);
+      expect(calls("GET", "/api/search").length).toBe(before + 1);
     });
 
     test("nothing found is a hint whose Enter goes to Ask tela; a hit's actions are the page's, cmd+Enter is the view", async () => {
@@ -281,19 +286,6 @@ describe("tela", () => {
       const bad = await pick("new-page", "new", "save", { values: { title: " ", space: "1", body: "" } });
       expect((bad.form as Form).errors).toEqual({ title: "Required" });
       expect((bad.form as Form).fields[2]).toMatchObject({ default: "" });
-    });
-  });
-
-  describe("append palette", () => {
-    test("Quick Notes first, the page opened last, favourites, recent; an append to Quick Notes finds the page through tela's quick-notes call", async () => {
-      const items = await list("append");
-      expect(ids(items).slice(0, 3)).toEqual(["notes", "page:99", "page:21"]);
-      expect(items[1].section).toBe("Last opened");
-      expect(items.map((i) => i.section).slice(2)).toEqual(["Favourites", "Favourites", "Recent", "Recent", "Recent"]);
-      expect((await pick("append", "notes")).form).toMatchObject({ id: "notes", title: "Append to Quick Notes" });
-      expect(await pick("append", "notes", "append:save", { values: { body: "buy milk", stamp: false } })).toEqual({ hud: "Appended to Quick Notes" });
-      expect(calls("POST", "/api/users/me/quick-notes")).toHaveLength(1);
-      expect(calls("PATCH", "/api/pages/20").at(-1)!.body).toEqual({ body: "- call the bank\n\nbuy milk\n" });
     });
   });
 

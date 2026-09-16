@@ -1,7 +1,8 @@
 // tela's resources as the palettes read them: spaces, pages (recent,
 // favourites, a space's tree), search hits, research answers, backlinks,
-// comments, notifications, and the few writes (a page, an append, a
-// comment, marking read). Every reader goes through `cached` (api.ts) so a
+// comments, notifications, and the few writes (a page, a comment,
+// marking read). A page's body is not edited from here: that is tela's
+// MCP, not the panel. Every reader goes through `cached` (api.ts) so a
 // palette and the bar item share one fetch; a write forgets what it moved.
 import { cached, forget, rest, redirectOf, tool, RESEARCH_MS } from "./api.ts";
 
@@ -143,18 +144,6 @@ export async function createPage(space: number, title: string, body: string, par
   forget("recent", "pages:all", `tree:${space}`);
   return r.page;
 }
-
-/** Markdown added at the end of the page (a blank line between), through a full-body PATCH: tela has no append call. */
-export async function appendToPage(id: number, text: string): Promise<Page> {
-  const p = await page(id, true);
-  const body = p.body.replace(/\s+$/, "") + (p.body.trim() ? "\n\n" : "") + text.trim() + "\n";
-  const r = await rest<{ page: Page }>("PATCH", `pages/${id}`, { body });
-  forget(`page:${id}`, "recent");
-  return r.page;
-}
-
-/** The caller's Quick Notes page, created on first use (tela's `/n`, its one scratchpad). */
-export const quickNotes = async () => (await rest<{ page: Page }>("POST", "users/me/quick-notes")).page;
 
 /** A root comment anchored on `exact` (a run of the page's plain text), or a reply to `parent`. */
 export async function addComment(pageId: number, body: string, anchor?: { prefix?: string; exact: string; suffix?: string }, parent?: number): Promise<Comment> {

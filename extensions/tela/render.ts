@@ -99,7 +99,6 @@ export function pageView(p: Page, where: string, crumb: string[] = []): View {
       { id: "copy", title: "Copy link", shortcut: "cmd+c" },
       { id: "backlinks", title: "Backlinks", shortcut: "cmd+b" },
       { id: "outline", title: "Outline", shortcut: "cmd+shift+o" },
-      { id: "append", title: "Append to page", shortcut: "cmd+shift+a" },
       { id: "comment", title: "Comment on page", shortcut: "cmd+shift+m" },
       { id: "markdown", title: "Copy markdown", shortcut: "cmd+shift+c" },
     ],

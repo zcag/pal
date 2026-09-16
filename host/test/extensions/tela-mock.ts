@@ -168,8 +168,6 @@ export const server = Bun.serve({
       if ((m = /^\/api\/pages\/(\d+)$/.exec(p))) { const x = PAGES[Number(m[1])]; return x ? json({ page: x, exposure: null }) : json({ error: "page not found", code: "not_found" }, 404); }
     }
     if (req.method === "POST" && p === "/api/pages") { const id = 99; PAGES[id] = { id, space_id: body.space_id, parent_id: body.parent_id ?? null, title: body.title, body: body.body, props: {}, created_at: "2026-09-16 10:00:00", updated_at: "2026-09-16 10:00:00" }; return json({ page: PAGES[id] }, 201); }
-    if (req.method === "PATCH" && (m = /^\/api\/pages\/(\d+)$/.exec(p))) { const x = PAGES[Number(m[1])]; if (body.body !== undefined) x.body = body.body; if (body.title !== undefined) x.title = body.title; return json({ page: x }); }
-    if (req.method === "POST" && p === "/api/users/me/quick-notes") return json({ page: PAGES[20] });
     if (req.method === "POST" && (m = /^\/api\/pages\/(\d+)\/comments$/.exec(p))) {
       if (!body.parent_id && !body.anchor_exact) return json({ error: "root comments require anchor_prefix, anchor_exact, anchor_suffix", code: "comment_no_anchor" }, 400);
       return json({ comment: { id: 7, page_id: Number(m[1]), parent_id: body.parent_id ?? null, author_username: "cagdas", body: body.body, resolved: false, created_at: "2026-09-16 10:00:00", updated_at: "2026-09-16 10:00:00" } }, 201);

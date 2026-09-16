@@ -332,12 +332,18 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   // Replies can land out of order (a slow one behind a fast one): only the
   // latest request's answer is shown. A show, view or form level has nothing
-  // to list; a menu level's rows are its own, filtered here.
+  // to list; a menu level's rows are its own, filtered here. A level the
+  // host lists (an input palette, a push with args) is asked per keystroke
+  // and not again on `version`: its rows are not in the index, and a show
+  // lands one index event per palette for seconds, each of which would be
+  // another host call for the same query (tela's search waits 250 ms after
+  // the last call, so a storm of them kept it from ever answering).
+  const indexVersion = scope?.input || ctx?.args !== undefined ? 0 : version;
   useEffect(() => {
     const n = ++seq.current;
     if (view.kind === "show" || view.kind === "view" || view.kind === "form" || view.kind === "menu") return setFound([]);
     search(query, scope, ctx).then((h) => { if (n === seq.current) setFound(h); });
-  }, [search, query, scopeKey, view.kind, ctx, version]);
+  }, [search, query, scopeKey, view.kind, ctx, indexVersion]);
   // The root's inline and fallback sections: asked `ROOT_DEBOUNCE` after the
   // last keystroke, the local hits already painted; the next keystroke
   // cancels a pending ask and a late reply is dropped by its key. Both
