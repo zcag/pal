@@ -115,3 +115,10 @@ Things an agent could not decide alone; each waits for a call.
 - **Font, match highlight, selection shape** from the brief (bundled Plex vs
   system stack; amber highlighter vs coloured glyphs; inset pill vs full-bleed
   row). Unchanged until you have used the panel.
+- **v1 config lines to fix by hand** once v1 stops reading the file:
+  `[palette.ha-states]`/`[palette.ha-services]` still say
+  `base = "~/proj/pal/plugins/..."` (the old checkout); the `scripts`
+  extension falls back to `~/proj/pal-v1` so they load, but the file should
+  say where they really live.
+- **`ssh` and `psg`** were v1 builtins and show as inert rows under `scripts`.
+  Reimplement as real extensions (small: `~/.ssh/config` parser; `ps` + kill)?
