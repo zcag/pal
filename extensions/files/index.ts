@@ -10,7 +10,7 @@ import { basename, dirname, extname } from "node:path";
 import { apps as appsApi, home, settings, type Action, type App, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.files]`, defaults in pal.json. */
-type Settings = { folders: string[]; limit: number; show_hidden: boolean };
+type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclude: string[] };
 /** The args of the level "Open with…" pushes: which file the rows open. */
 type OpenWith = { open_with: string };
 const openWithOf = (ctx?: Ctx): string | undefined => (ctx?.args as OpenWith | undefined)?.open_with;
@@ -20,6 +20,8 @@ const MAC = process.platform === "darwin";
 const ICON = "▤";
 /** A search that has not produced `limit` lines by then is killed; what it printed is the answer. */
 const SEARCH_MS = 3000;
+/** How deep fd walks below a folder: with fewer than `limit` matches it would otherwise walk all of `~` (1.2 s on a full home). */
+const FD_MAX_DEPTH = 8;
 /** Finder's delete or `gio trash` waited on this long. */
 const TRASH_MS = 10_000;
 const TEXT_MAX = 64 * 1024;
@@ -32,6 +34,7 @@ const LABEL: Record<Backend, string> = { mdfind: "Spotlight (mdfind)", fd: "fd",
 const CANDIDATES: Backend[] = MAC ? ["mdfind"] : ["fd", "locate", "find"];
 const forced = process.env.PAL_FILES_BACKEND as Backend | undefined;
 const BACKEND: Backend | undefined = [...(forced && forced in LABEL ? [forced] : []), ...CANDIDATES].find((b) => Bun.which(b));
+console.error(`[files] backend: ${BACKEND ? LABEL[BACKEND] : "none"}`);
 
 /** `*`, `?`, `[` and `\` in the query taken literally by find's `-iname`. */
 const globEscape = (s: string) => s.replace(/[\\*?[]/g, "\\$&");
@@ -41,11 +44,12 @@ function argv(b: Backend, q: string, s: Settings, folders: string[]): string[] {
     // `-name` is a case-insensitive substring match on the display name; `-onlyin` repeats as a union.
     case "mdfind": return ["mdfind", "-name", q, ...folders.flatMap((f) => ["-onlyin", f])];
     // Name match (fd's default), not `--full-path`: that would list every descendant of a folder whose name matches.
-    case "fd": return ["fd", "--absolute-path", "--fixed-strings", "--max-results", String(s.limit), ...(s.show_hidden ? ["--hidden"] : []), q, ...folders];
-    // Whole database; the folders and the limit are applied to the stream below, so no `-l`.
+    // `--exclude` prunes the walk (a gitignore glob: `node_modules` at any depth, `Library/Caches` under the folder).
+    case "fd": return ["fd", "--absolute-path", "--fixed-strings", "--max-results", String(s.limit), "--max-depth", String(FD_MAX_DEPTH), ...s.exclude.flatMap((x) => ["--exclude", x]), ...(s.show_hidden ? ["--hidden"] : []), q, ...folders];
+    // Whole database; the folders, the excludes and the limit are applied to the stream below, so no `-l`.
     case "locate": return ["locate", "-i", "--", q];
-    // Dot entries pruned below the folders (never a starting point, so `~/.config` as a folder still works).
-    case "find": return ["find", ...folders, "-mindepth", "1", ...(s.show_hidden ? [] : ["-name", ".*", "-prune", "-o"]), "-iname", `*${globEscape(q)}*`, "-print"];
+    // Dot entries and the excludes pruned below the folders (never a starting point, so `~/.config` as a folder still works).
+    case "find": return ["find", ...folders, "-mindepth", "1", ...(s.show_hidden ? [] : ["-name", ".*", "-prune", "-o"]), ...s.exclude.flatMap((x) => ["-path", `*/${x}`, "-prune", "-o"]), "-iname", `*${globEscape(q)}*`, "-print"];
   }
 }
 
@@ -53,6 +57,11 @@ const short = (p: string) => (p === HOME ? "~" : p.startsWith(HOME + "/") ? "~" 
 const under = (p: string, folders: string[]) => folders.find((f) => p === f || p.startsWith(f.endsWith("/") ? f : f + "/"));
 /** A dot segment below the configured folder (the folder itself may be `~/.config`). */
 const hidden = (p: string, folders: string[]) => /\/\./.test(p.slice(under(p, folders)?.length ?? 0));
+/** An `exclude` entry (one segment, or a few like `Library/Caches`) below the configured folder, whichever backend answered. */
+const excluded = (p: string, folders: string[], exclude: string[]) => {
+  const rel = p.slice(under(p, folders)?.length ?? 0) + "/";
+  return exclude.some((x) => rel.includes(`/${x}/`));
+};
 
 let running: Bun.Subprocess<"ignore", "pipe", "ignore"> | undefined;
 
@@ -62,7 +71,7 @@ async function search(q: string, s: Settings, folders: string[]): Promise<string
   const proc = Bun.spawn(argv(BACKEND!, q, s, folders), { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
   running = proc;
   const timer = setTimeout(() => proc.kill(), SEARCH_MS);
-  const keep = (p: string) => (s.show_hidden || !hidden(p, folders)) && (BACKEND !== "locate" || under(p, folders) !== undefined);
+  const keep = (p: string) => (s.show_hidden || !hidden(p, folders)) && !excluded(p, folders, s.exclude) && (BACKEND !== "locate" || under(p, folders) !== undefined);
   const out: string[] = [];
   const decoder = new TextDecoder();
   let buf = "";

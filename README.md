@@ -18,7 +18,9 @@ defaults.
 
 ## Dev setup
 
-Prerequisites: Rust (stable), Node 20+, Bun, and the
+Prerequisites: Rust (stable), Node 20+, Bun 1.4 or newer (the pinned
+release in `app/scripts/fetch-bun.sh`; a 1.3 `bun install` rewrites every
+`bun.lock` in the tree, so an older bun leaves the checkout dirty), and the
 [Tauri v2 system prerequisites](https://v2.tauri.app/start/prerequisites/)
 for your platform (Xcode command line tools on macOS; webkit2gtk-4.1, gtk3,
 librsvg, openssl, base-devel on Linux).

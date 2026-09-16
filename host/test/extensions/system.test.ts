@@ -12,8 +12,8 @@ afterAll(() => host.kill());
 const list = (q?: string) => host.list("system", "system", q);
 
 describe("system", () => {
-  test("meta: live input palette", () => {
-    expect(host.loaded().find((l) => l.extension === "system")!.palettes[0]).toMatchObject({ name: "system", title: "System", live: true, input: true, icon: "⏻" });
+  test("meta: a live palette, indexed (not input), so its rows are root results", () => {
+    expect(host.loaded().find((l) => l.extension === "system")!.palettes[0]).toMatchObject({ name: "system", title: "System", live: true, input: false, icon: "⏻" });
   });
 
   test("only available commands, mapped one to one, one run action each", async () => {
@@ -35,12 +35,8 @@ describe("system", () => {
     expect((await list())[1].actions![0].confirm).toBe("Shut Down now?");
   });
 
-  test("the query matches every word against title, subtitle and keywords", async () => {
-    expect((await list("shut")).map((i) => i.id)).toEqual(["shutdown"]);
-    expect((await list("power off")).map((i) => i.id)).toEqual(["shutdown"]);
-    expect((await list("bin")).map((i) => i.id)).toEqual(["trash"]);
-    expect((await list("focus")).map((i) => i.id)).toEqual([]);
-    expect(await list("nothing here")).toEqual([]);
+  test("the list ignores a query: matching is the index's", async () => {
+    expect((await list("shut")).map((i) => i.id)).toEqual(["sleep", "shutdown", "trash"]);
   });
 
   test("pick runs through the core and hides; a refusal is a failure toast that keeps the palette", async () => {

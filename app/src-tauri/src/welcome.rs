@@ -81,7 +81,9 @@ impl Env {
 }
 
 /// `ctrl+space` as the platform writes it: `⌃Space` on macOS, `Ctrl+Space`
-/// elsewhere. "the hotkey" when none is set.
+/// elsewhere (docs/config.md's modifier names; `cmdorctrl` is the shell's
+/// own key, `⌘` or `Ctrl`, as the footer spells it). "the hotkey" when
+/// none is set.
 pub fn hotkey_label(hotkey: &str) -> String {
     let hotkey = hotkey.trim();
     if hotkey.is_empty() {
@@ -90,10 +92,12 @@ pub fn hotkey_label(hotkey: &str) -> String {
     let mac = cfg!(target_os = "macos");
     let part = |p: &str| -> String {
         match (p, mac) {
-            ("cmd" | "super" | "meta", true) => "⌘".into(),
+            ("cmd" | "command" | "super" | "meta" | "cmdorctrl", true) => "⌘".into(),
             ("ctrl" | "control", true) => "⌃".into(),
             ("alt" | "option", true) => "⌥".into(),
             ("shift", true) => "⇧".into(),
+            ("cmdorctrl" | "control", false) => "Ctrl".into(),
+            ("cmd" | "command" | "meta", false) => "Super".into(),
             _ => {
                 let mut c = p.chars();
                 c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
@@ -123,6 +127,8 @@ fn row(id: &str, name: &str, subtitle: &str, icon: &str, markdown: String) -> It
 /// the one thing a first run has to do.
 pub fn rows(env: &Env) -> Vec<Item> {
     let hk = hotkey_label(&env.hotkey);
+    // The shell's own keys as the footer spells them: `⌘K` here, `Ctrl+K` on Linux.
+    let (k, enter, comma, i) = (hotkey_label("cmdorctrl+k"), hotkey_label("cmdorctrl+enter"), hotkey_label("cmdorctrl+,"), hotkey_label("cmdorctrl+i"));
     let mut rows = Vec::new();
     if !env.ax_trusted {
         rows.push(row(
@@ -139,7 +145,7 @@ pub fn rows(env: &Env) -> Vec<Item> {
         "",
         "\u{f1821}",
         format!(
-            "# pal\n\nOne search box over everything: apps, bookmarks, emoji, clipboard history, windows, and whatever your extensions add. The sections are the palettes that matched.\n\n- **{hk}** opens and hides pal from any app\n- **Type** to search; the list narrows as you go\n- **Enter** runs the row's first action, **⌘Enter** its second\n- **⌘K** lists every action for the row\n- **Esc** clears the query, then steps back, then hides\n- **⌘,** opens Settings; **⌘I** shows a row's details, like this one"
+            "# pal\n\nOne search box over everything: apps, bookmarks, emoji, clipboard history, windows, and whatever your extensions add. The sections are the palettes that matched.\n\n- **{hk}** opens and hides pal from any app\n- **Type** to search; the list narrows as you go\n- **Enter** runs the row's first action, **{enter}** its second\n- **{k}** lists every action for the row\n- **Esc** clears the query, then steps back, then hides\n- **{comma}** opens Settings; **{i}** shows a row's details, like this one"
         ),
     );
     about.extra.insert("actions".into(), json!([]));
@@ -170,9 +176,9 @@ pub fn rows(env: &Env) -> Vec<Item> {
     rows.push(row(
         HIDE,
         "Hide these tips",
-        "Bring them back any time with “Show tips again” in ⌘K",
+        &format!("Bring them back any time with “Show tips again” in {k}"),
         "\u{f06d1}",
-        "# Hide these tips\n\nThe Welcome section goes and the empty query starts with your palettes and apps. ⌘K at the root has “Show tips again”.".into(),
+        format!("# Hide these tips\n\nThe Welcome section goes and the empty query starts with your palettes and apps. {k} at the root has “Show tips again”."),
     ));
     rows
 }
@@ -309,6 +315,21 @@ mod tests {
         } else {
             assert_eq!(hotkey_label("ctrl+space"), "Ctrl+Space");
             assert_eq!(hotkey_label("alt+space"), "Alt+Space");
+            assert_eq!(hotkey_label("cmd+space"), "Super+Space");
+            assert_eq!(hotkey_label("cmdorctrl+k"), "Ctrl+K");
         }
+    }
+
+    #[test]
+    fn shell_keys_are_spelled_for_the_platform() {
+        let rows = rows(&env(true));
+        let hide = rows.iter().find(|r| r.id == HIDE).unwrap();
+        let about = rows[0].extra["detail"]["markdown"].as_str().unwrap();
+        let (k, enter) = if cfg!(target_os = "macos") { ("⌘K", "⌘Enter") } else { ("Ctrl+K", "Ctrl+Enter") };
+        assert!(hide.subtitle.as_deref().unwrap().contains(k), "{:?}", hide.subtitle);
+        assert!(hide.extra["detail"]["markdown"].as_str().unwrap().contains(k));
+        assert!(about.contains(enter) && about.contains(k), "{about}");
+        assert!(!cfg!(target_os = "macos") || !about.contains("Ctrl+"));
+        assert!(cfg!(target_os = "macos") || !about.contains('⌘'), "{about}");
     }
 }

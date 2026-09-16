@@ -121,6 +121,25 @@ describe("form level", () => {
     expect(picks[1]).toMatchObject({ id: "ql-1", action: "save" });
   });
 
+  it("names the key that submits from where focus is: Enter in a field, cmd+Enter in a textarea, which Enter does not submit", async () => {
+    const withBody: Effect["form"] = { ...form, fields: [form.fields[0], { kind: "textarea", id: "body", label: "Body" }] };
+    answer = (_id, action) => (action === "create" ? { form: withBody } : action === "save" ? {} : undefined);
+    await openForm();
+    const hint = () => el.querySelector(".pal-footer__hint .pal-kbd")?.getAttribute("aria-label");
+    const button = () => el.querySelector(".pal-form__buttons [data-primary] .pal-kbd")?.getAttribute("aria-label");
+    expect(document.activeElement).toBe(field("name"));
+    expect([hint(), button()]).toEqual(["enter", "enter"]);
+    await act(() => { field("body").focus(); });
+    expect([hint(), button()]).toEqual(["cmd+enter", "cmd+enter"]);
+    await type("name", "Docs");
+    await key(field("body"), "Enter");
+    await flush();
+    expect(picks).toHaveLength(1);
+    await key(field("body"), "Enter", { metaKey: true, ctrlKey: true });
+    await flush();
+    expect(picks[1]).toMatchObject({ id: "create", action: "save" });
+  });
+
   it("Escape pops the form without a pick; the list is back", async () => {
     await openForm();
     await key(field("name"), "Escape");

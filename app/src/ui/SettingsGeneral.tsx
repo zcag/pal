@@ -98,10 +98,9 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         <SettingsRow
           label="Show pal"
           description={
-            <>
-              From anywhere. Press the new combination while the control is recording, or pick one of the presets.
-              {isMac && <> ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly.</>}
-            </>
+            isMac
+              ? "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets. ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly."
+              : "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets. On Wayland the registration goes through X11 and fires only while an X11 window has focus: bind pal toggle in the compositor instead and set hotkey = \"\" in the config file."
           }
         >
           <div className="pal-hotkey-field">

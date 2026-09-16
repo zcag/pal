@@ -27,7 +27,7 @@ for the extension's `ttl` (an hour by default) unless it sets its own.
 | Quicklinks | `quicklinks` | indexed | opens the link, or asks for its `{query}` first |
 | Snippets | `snippets` | indexed | pastes the text into the app in front |
 | SSH Hosts | `ssh` | indexed | opens a terminal running `ssh` |
-| System | `system` | live, input | runs the command |
+| System | `system` | live | runs the command |
 | Windows | `windows` | live | focuses the window |
 | Window Management | `window-management` | indexed | moves and resizes the focused window |
 | Arrange Window | `window-management-arrange` | input | picks a window, then a layout for it |
@@ -408,12 +408,16 @@ The backend is picked once when the extension loads:
 | platform | backend | how |
 | --- | --- | --- |
 | macOS | Spotlight | `mdfind -name <query> -onlyin <folder>...`; case-insensitive substring of the display name, so `kitty` finds `kitty.app` |
-| Linux | `fd` | `fd --absolute-path --fixed-strings --max-results <limit> <query> <folders>`; respects `.gitignore` like fd does everywhere |
+| Linux | `fd` | `fd --absolute-path --fixed-strings --max-results <limit> --max-depth 8 --exclude <x>... <query> <folders>`; respects `.gitignore` like fd does everywhere |
 | Linux, no fd | `locate` | `locate -i <query>`, filtered to the folders (`updatedb` decides how fresh it is) |
 | Linux, neither | `find` | `find <folders> -iname '*<query>*'`; walks the folders on every keystroke, and a second hint row says so |
 
 Every search is one process: killed after 3 s, killed as soon as `limit`
 paths have been read, and killed when the next keystroke starts a new one.
+The `exclude` folders are pruned from the walk (fd, find) or dropped from
+the answer (Spotlight, locate); fd also stops eight levels down, since with
+fewer than `limit` matches it would otherwise walk the whole home. The
+backend picked is logged once at load (`[files] backend: fd`).
 
 The detail pane (lazy, asked when the cursor rests on a row) shows the
 path, size, modified time and kind; for a text file under 64 KB the first
@@ -455,15 +459,17 @@ Settings, `[extensions.files]`:
 | `folders` | list of paths | `["~"]` | Where to search. `~` is expanded. |
 | `limit` | number, 1 to 500 | `50` | At most this many rows per query. |
 | `show_hidden` | bool | `false` | List files and folders whose name starts with a dot (below the configured folder; `~/.config` as a folder is fine either way). |
+| `exclude` | list of names | `["node_modules", ".cache", "Library/Caches", "target"]` | Folders skipped below the search folders, by name or a short path. |
 
 ## System (`system`)
 
 Sleep, lock, log out, restart, shut down, empty the trash, dark mode,
-volume, brightness, do not disturb, eject, show desktop, keep awake. An
-input palette (the query filters the rows by title, subtitle and keyword),
-live because the Keep Awake row flips to Allow Sleep while a keep-awake is
-running. pal hides the panel before running a command, so it lands on the
-desktop, not on pal.
+volume, brightness, do not disturb, eject, show desktop, keep awake. The
+rows are indexed, so `mute` or `sleep` at the root finds them (each
+carries keywords: `suspend`, `power off`, `bin`); live because the Keep
+Awake row flips to Allow Sleep while a keep-awake is running, and a live
+palette lists again on every show. pal hides the panel before running a
+command, so it lands on the desktop, not on pal.
 
 Only commands this machine can run are listed:
 

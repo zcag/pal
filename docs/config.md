@@ -205,8 +205,10 @@ index cache and the frecency file are keyed by config file: they live under
 `~/.config/pal/config.toml` and the first 8 hex digits of the sha256 of the
 file's canonical path otherwise. Two config files never share a cache or a
 search history, since a palette enabled in one may not be in the other. The
-profile is logged at startup. `clipboard.db` stays one level up: it is
-history, not a view of one config.
+profile is logged at startup. `clipboard.db` and `storage/` (what
+extensions keep through the storage API: quicklinks, snippets) stay one
+level up and are shared by every profile: they are your data, not a view of
+one config, so a quicklink made under a test profile shows up in all of them.
 
 The data dir is `~/Library/Application Support/pal` on macOS and
 `~/.local/share/pal` on Linux (`$XDG_DATA_HOME/pal` when set). The

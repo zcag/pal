@@ -7,7 +7,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, Toast, View,
-  groupBySection, domId, graphemePositions, useCursor, useKeys, useNavStack, type Hit, type ListHandle, type ToastSpec,
+  groupBySection, domId, graphemePositions, useCursor, useKeys, useNavStack, useSubmitKey, type Hit, type ListHandle, type ToastSpec,
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewSpec } from "./ui/types";
@@ -135,6 +135,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const list = useRef<ListHandle>(null);
   const show = useRef<HTMLDivElement>(null);
   const formEl = useRef<HTMLDivElement>(null);
+  const submitKey = useSubmitKey(formEl);
   const keyAt = useRef(0);
   const seq = useRef(0);
   const formSeq = useRef(0);
@@ -445,7 +446,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
           icon={isShow ? undefined : isView || isForm ? (scope?.icon ? iconOf(scope.icon, scope.title) : undefined) : current?.icon}
           title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : isView || isForm ? viewTitle : current?.name}
           note={updating && !isShow && !isView && !isForm ? "updating…" : undefined}
-          primary={isShow ? { title: "Back" } : form ? { title: form.spec.submit.title } : (isView || current) && actions[0] ? { title: actions[0].title } : undefined}
+          primary={isShow ? { title: "Back" } : form ? { title: form.spec.submit.title, shortcut: submitKey } : (isView || current) && actions[0] ? { title: actions[0].title } : undefined}
           actions={actions.length > 0}
           onPrimary={() => (isShow ? pop() : form ? requestSubmit() : isView ? actions[0] && run(actions[0]) : current && actions[0] && run(actions[0]))}
           onActions={() => setActionsOpen(true)}

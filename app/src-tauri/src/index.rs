@@ -501,6 +501,40 @@ pub struct SourceView {
     listed_at: Option<u64>,
 }
 
+/// Added to a palette row's score on a typed query, so `clip` lists
+/// Clipboard History above the emoji and icon rows that match as well: a
+/// palette row is the way into everything behind it (Raycast lists its
+/// commands first for the same reason). Sized against the other
+/// adjustments (`pal_core::index::EXACT_BONUS` has the numbers): a
+/// frecency boost tops out at 200, and two rows matching the same query
+/// are apart by at most a fraction of that query's own score (about 16
+/// per typed char, half of it for a subtitle hit), so 500 puts a palette
+/// row above every non-exact row for any query a launcher sees (the
+/// worst case, a subtitle-only palette hit against a hot name hit, needs
+/// a query past 18 chars to close it) while staying under the exact
+/// bonus: a row named what was typed keeps its lead by at least 300.
+/// The empty query is untouched: it is ordered by insertion and use, and
+/// the palettes are inserted first anyway.
+pub const PALETTE_BONUS: f32 = 500.0;
+
+/// The root's boost over `fre_boost` (a frecency, `Frecency::boost`): the
+/// welcome rows lead the empty query outright, palette rows get
+/// [`PALETTE_BONUS`] on a typed one, everything else is its frecency.
+fn root_boost<'a>(q: &str, fre_boost: &'a dyn Fn(&Source, &str) -> f32) -> impl Fn(&Source, &str) -> f32 + 'a {
+    let welcome = welcome::source();
+    let palettes = palettes_source();
+    let palette_bonus = if q.trim().is_empty() { 0.0 } else { PALETTE_BONUS };
+    move |s: &Source, id: &str| {
+        if *s == welcome {
+            welcome::BOOST
+        } else if *s == palettes {
+            palette_bonus + fre_boost(s, id)
+        } else {
+            fre_boost(s, id)
+        }
+    }
+}
+
 /// Off the main thread: the scan is well under a millisecond, but a
 /// `replace` holding the lock must never stall a paint.
 ///
@@ -518,8 +552,8 @@ pub fn query(
     static FIRST: Once = Once::new();
     let fre = lock(&frecency);
     let fre_boost = fre.boost(&q, SystemTime::now());
+    let boost = root_boost(&q, &fre_boost);
     let welcome = welcome::source();
-    let boost = |s: &Source, id: &str| if *s == welcome { welcome::BOOST } else { fre_boost(s, id) };
     let mut ix = lock(&index);
     let sources = match sources {
         None if !q.is_empty() => Some(ix.sources().into_iter().map(|s| s.source).filter(|s| *s != welcome).collect()),
@@ -718,6 +752,44 @@ mod tests {
         assert!(relist_due(&budgeted, None, None, 161));
         // Both gates hold at once.
         assert!(!relist_due(&budgeted, Some(Duration::from_secs(1)), Some(100), 161));
+    }
+
+    fn row(id: &str, name: &str, keywords: &[&str]) -> Item {
+        Item { id: id.into(), name: name.into(), subtitle: None, keywords: keywords.iter().map(|k| k.to_string()).collect(), icon: None, section: None, extra: Default::default() }
+    }
+
+    /// `q` over an index of icon rows and one palette row, ranked with the root's boost.
+    fn ranked(q: &str, fre: &Frecency) -> Vec<String> {
+        let mut ix = Index::new();
+        ix.replace(palettes_source(), vec![row("clipboard/history", "Clipboard History", &["history", "clipboard"])]);
+        ix.replace(Source::new("iconnerd", "icons"), vec![row("nf-clip", "clipboard", &[]), row("nf-clip2", "clipboard_text", &[]), row("nf-hist", "history", &[])]);
+        ix.replace(Source::new("apps", "apps"), vec![row("clipper.app", "Clipper", &[])]);
+        let fre_boost = fre.boost(q, SystemTime::now());
+        let boost = root_boost(q, &fre_boost);
+        ix.query(q, QueryOpts { boost: Some(&boost), ..Default::default() }).into_iter().map(|h| h.id).collect()
+    }
+
+    #[test]
+    fn palette_rows_lead_a_typed_query_but_not_an_exact_name() {
+        let mut fre = Frecency::in_memory();
+        // Shorter names win ties otherwise: `clipboard` (9) over `Clipboard History` (17).
+        assert_eq!(ranked("clip", &fre)[0], "clipboard/history");
+        assert_eq!(ranked("clipboard", &fre)[0], "clipboard/history", "an exact keyword on the palette row too");
+        // A hot icon row (the frecency maximum is 200) still loses to the palette row.
+        let now = SystemTime::now();
+        for _ in 0..20 {
+            fre.record(&Key::new("iconnerd", "icons", "nf-clip"), now);
+        }
+        assert_eq!(ranked("clip", &fre)[0], "clipboard/history");
+        // An item named what was typed keeps its lead (EXACT_BONUS > PALETTE_BONUS + a frecency).
+        assert_eq!(ranked("Clipper", &fre)[0], "clipper.app");
+        // Both exact (`history` is the palette row's keyword): the bonus decides.
+        assert_eq!(ranked("history", &fre)[0], "clipboard/history");
+        // The empty query is ordered by use, no bonus: the hot icon row leads there.
+        assert_eq!(ranked("", &fre)[0], "nf-clip");
+        // The sizing the doc comment on PALETTE_BONUS relies on (constants, so a plain comparison).
+        let (max_frecency, exact) = (pal_core::frecency::MAX_SCORE * pal_core::frecency::BOOST_SCALE, pal_core::index::EXACT_BONUS);
+        assert!(PALETTE_BONUS + max_frecency < exact, "{PALETTE_BONUS} + {max_frecency} vs {exact}");
     }
 
     #[test]

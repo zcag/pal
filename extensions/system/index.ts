@@ -1,7 +1,9 @@
 // System commands over the core's system capability: sleep, lock, log out,
 // power, trash, dark mode, volume, brightness, do not disturb, eject, show
 // desktop, keep awake. Static rows (the core says which this machine can
-// do); the destructive ones ask first unless the setting turns that off.
+// do), indexed so `mute` and `sleep` are root results; `live` because the
+// keep-awake row flips its title, and a live palette lists again on every
+// show. The destructive ones ask first unless the setting turns that off.
 // The core hides the panel before running, so the command lands on the
 // desktop, not on pal.
 import { settings, system, type Extension, type Item, type SystemCommand } from "@zcag/pal";
@@ -19,17 +21,12 @@ export default {
     system: {
       title: "System",
       icon: "⏻",
-      // The keep-awake row flips between Keep Awake and Allow Sleep.
+      // The keep-awake row flips between Keep Awake and Allow Sleep: relisted on every show.
       live: true,
-      input: true,
       placeholder: "Sleep, lock, volume, dark mode...",
-      list: async (query = "") => {
+      list: async () => {
         const confirm = settings.get<Settings>().confirm_destructive;
-        const q = query.toLowerCase().split(/\s+/).filter(Boolean);
-        return (await system.commands())
-          .filter((c) => c.available)
-          .filter((c) => q.every((w) => `${c.title} ${c.subtitle} ${c.keywords.join(" ")}`.toLowerCase().includes(w)))
-          .map((c) => item(c, confirm));
+        return (await system.commands()).filter((c) => c.available).map((c) => item(c, confirm));
       },
       pick: async (id) => {
         try {

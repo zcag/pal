@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Kbd } from "./Kbd";
 import { useKeys } from "./keys";
-import type { FormField, FormValues } from "./types";
+import type { FormField, FormValues, Shortcut } from "./types";
 
 export type FormProps = {
   title?: string;
@@ -25,8 +25,32 @@ export const missing = (fields: FormField[], values: FormValues): Record<string,
   Object.fromEntries(fields.filter((f) => f.required && empty(values[f.id])).map((f) => [f.id, "Required"]));
 
 /**
+ * The key that submits from where focus is: cmd+enter always does, and
+ * Enter too outside a textarea (where it is a newline), so the hint says
+ * `enter` there and `cmd+enter` in a textarea under `root`. Listens on the
+ * document: `root` may be empty when this mounts (the launcher's form
+ * level) and fill later.
+ */
+export function useSubmitKey(root: RefObject<HTMLElement | null>): Shortcut {
+  const [inTextarea, setInTextarea] = useState(false);
+  useEffect(() => {
+    const on = () => {
+      const a = document.activeElement;
+      setInTextarea(a instanceof HTMLTextAreaElement && !!root.current?.contains(a));
+    };
+    document.addEventListener("focusin", on);
+    document.addEventListener("focusout", on);
+    return () => { document.removeEventListener("focusin", on); document.removeEventListener("focusout", on); };
+  }, [root]);
+  return inTextarea ? "cmd+enter" : "enter";
+}
+
+/**
  * A prompt with fields. Enter submits from any field but a textarea, where
- * cmd+enter does; Escape cancels; Tab, arrows, Home/End and cmd+backspace
+ * cmd+enter does (as in Raycast: cmd+enter submits a form from anywhere,
+ * Enter in a single-line field as well); the submit button and the
+ * footer's hint name whichever holds where focus is (`useSubmitKey`).
+ * Escape cancels; Tab, arrows, Home/End and cmd+backspace
  * stay native inside the fields and never reach the launcher behind, nor do
  * cmd+1..9 and cmd+i, which would move or open things under the form. A
  * submit with a `required` field empty goes nowhere: the field is marked,
@@ -35,6 +59,7 @@ export const missing = (fields: FormField[], values: FormValues): Record<string,
  */
 export function Form({ title, fields, submitTitle = "Submit", cancelTitle = "Cancel", errors, onSubmit, onCancel }: FormProps) {
   const root = useRef<HTMLFormElement>(null);
+  const submitKey = useSubmitKey(root);
   const [values, setValues] = useState(() => initial(fields));
   /** Messages under fields: the last submit's misses, then whatever came back for it. A field's clears when it changes. */
   const [shown, setShown] = useState<Record<string, string>>({});
@@ -106,7 +131,7 @@ export function Form({ title, fields, submitTitle = "Submit", cancelTitle = "Can
       })}
       <div className="pal-form__buttons">
         <button type="button" className="pal-button" onClick={onCancel}>{cancelTitle} <Kbd shortcut="escape" /></button>
-        <button type="submit" className="pal-button" data-primary>{submitTitle} <Kbd shortcut="enter" /></button>
+        <button type="submit" className="pal-button" data-primary>{submitTitle} <Kbd shortcut={submitKey} /></button>
       </div>
     </form>
   );

@@ -29,6 +29,10 @@ beforeAll(async () => {
   writeFileSync(join(dir, ".report-hidden.txt"), "secret\n");
   mkdirSync(join(dir, "reports"));
   writeFileSync(join(dir, "reports", "report-gamma.txt"), "gamma\n");
+  mkdirSync(join(dir, "node_modules", "dep"), { recursive: true });
+  writeFileSync(join(dir, "node_modules", "dep", "report-delta.txt"), "delta\n");
+  mkdirSync(join(dir, "Library", "Caches"), { recursive: true });
+  writeFileSync(join(dir, "Library", "Caches", "report-epsilon.txt"), "epsilon\n");
   process.env.PAL_FILES_BACKEND = "find";
   host = await Host.bundled({
     settings: { files: { settings: { folders: [dir] } } },
@@ -79,6 +83,15 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect((await list("hidden")).map((i) => i.name)).toEqual([".report-hidden.txt"]);
     host.changeSettings("files", { settings: { folders: [dir], limit: 2 } });
     expect(await list("report")).toHaveLength(2);
+    host.changeSettings("files", { settings: { folders: [dir] } });
+    expect(await list("report")).toHaveLength(4);
+  });
+
+  test("the exclude folders are pruned (node_modules at any depth, Library/Caches as a path) until the setting empties", async () => {
+    expect((await list("report")).map((i) => i.name)).not.toContain("report-delta.txt");
+    host.changeSettings("files", { settings: { folders: [dir], exclude: [] } });
+    expect((await list("report")).map((i) => i.name).sort()).toContain("report-delta.txt");
+    expect((await list("report")).map((i) => i.name)).toContain("report-epsilon.txt");
     host.changeSettings("files", { settings: { folders: [dir] } });
     expect(await list("report")).toHaveLength(4);
   });

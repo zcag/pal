@@ -59,13 +59,19 @@ everything else still works: the hotkey, `pal toggle` and `pal settings`.
 **Wayland has no global hotkey API.** pal's hotkey registration goes through
 X11, so under Wayland it only fires while an X11 client has focus. Bind
 `pal toggle` in the compositor instead and set `hotkey = ""` in the config
-(see [Config](config.md)). On Hyprland, this is the rule set that floats,
-pins and places the panel a fifth of the way down the screen, plus the bind:
+(see [Config](config.md)). On Hyprland, these are the rules that float,
+pin and place the panel a fifth of the way down the screen and the HUD
+(the "Copied" capsule) at the bottom, plus the bind:
 
 ```text
-windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal)$
+windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:title ^(pal)$
+windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, no_focus on, move (monitor_w*0.5-window_w*0.5) (monitor_h-window_h-8), match:title ^(pal HUD)$
 bind = CTRL, space, exec, pal toggle
 ```
+
+The rules key on the window title, not the class: every pal window has
+the class `pal`, and the settings window (`pal Settings`) is a normal
+window that should tile like any other.
 
 Other compositors: bind `pal toggle` to a key the same way. Bind the deb's
 `/usr/bin/pal` or the `usr/bin/pal` of an extracted AppImage, not the

@@ -1,15 +1,15 @@
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { keepFocus } from "./keys";
-import type { Icon as IconSpec } from "./types";
+import type { Icon as IconSpec, Shortcut } from "./types";
 
 export type FooterProps = {
   icon?: IconSpec;
   title?: string;
   /** A quiet status after the title ("updating…"). */
   note?: string;
-  /** Primary action hint, right side: "Open ↵". */
-  primary?: { title: string };
+  /** Primary action hint, right side: "Open ↵"; `shortcut` when Enter is not the key (a form's textarea: ⌘↵). */
+  primary?: { title: string; shortcut?: Shortcut };
   /** Show the "Actions ⌘K" affordance. */
   actions?: boolean;
   onActions?: () => void;
@@ -27,7 +27,7 @@ export function Footer({ icon, title, note, primary, actions, onActions, onPrima
       <div className="pal-footer__hints">
         {primary && (
           <button type="button" className="pal-footer__hint" onClick={onPrimary} tabIndex={-1}>
-            {primary.title} <Kbd shortcut="enter" />
+            {primary.title} <Kbd shortcut={primary.shortcut ?? "enter"} />
           </button>
         )}
         {actions && (

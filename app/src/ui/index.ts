@@ -15,7 +15,7 @@ export { Detail } from "./Detail";
 export { View } from "./View";
 export { ActionPanel, actionShortcut } from "./ActionPanel";
 export { Footer } from "./Footer";
-export { Form } from "./Form";
+export { Form, useSubmitKey } from "./Form";
 export { Confirm } from "./Confirm";
 export { Empty } from "./Empty";
 export { Toast, type ToastSpec } from "./Toast";

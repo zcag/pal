@@ -9,7 +9,8 @@
   "settings": [
     { "kind": "list", "id": "folders", "label": "Folders", "description": "Where to search. `~` is expanded.", "placeholder": "~/Documents", "default": ["~"] },
     { "kind": "number", "id": "limit", "label": "Results", "description": "At most this many rows per query.", "min": 1, "max": 500, "unit": "rows", "default": 50 },
-    { "kind": "boolean", "id": "show_hidden", "label": "Hidden files", "text": "List files and folders whose name starts with a dot", "default": false }
+    { "kind": "boolean", "id": "show_hidden", "label": "Hidden files", "text": "List files and folders whose name starts with a dot", "default": false },
+    { "kind": "list", "id": "exclude", "label": "Exclude", "description": "Folders skipped below the search folders, by name (`node_modules`) or a short path (`Library/Caches`).", "placeholder": "node_modules", "default": ["node_modules", ".cache", "Library/Caches", "target"] }
   ],
   "palettes": {
     "files": { "description": "Type part of a file name; rows are the matches under the configured folders." }

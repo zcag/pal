@@ -117,9 +117,15 @@ pub fn read_all(dir: &Path) -> Vec<(Source, Entry)> {
 /// root; those files are the `default` profile's. Its frecency moves under
 /// `default/` when that has none (else the root copy is left for the user
 /// to look at), and the root `index/` is deleted: it is a cache, relisted
-/// on the next start. Returns one line per thing done, for the log.
-pub fn adopt_pre_profile(root: &Path) -> Vec<String> {
+/// on the next start. Only the `default` profile adopts (`profile` is
+/// `ConfigFile::profile`): a start under `PAL_CONFIG` leaves the default
+/// profile's history where it found it. Returns one line per thing done,
+/// for the log.
+pub fn adopt_pre_profile(root: &Path, profile: &str) -> Vec<String> {
     let mut notes = Vec::new();
+    if profile != "default" {
+        return notes;
+    }
     let old = root.join(pal_core::frecency::FILE_NAME);
     if old.is_file() {
         let new = root.join("default").join(pal_core::frecency::FILE_NAME);
@@ -233,19 +239,22 @@ mod tests {
     fn pre_profile_files_move_under_default() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        assert!(adopt_pre_profile(root).is_empty(), "nothing old, nothing said");
+        assert!(adopt_pre_profile(root, "default").is_empty(), "nothing old, nothing said");
         std::fs::write(root.join("frecency.json"), "{}").unwrap();
         std::fs::create_dir_all(root.join("index/apps")).unwrap();
         std::fs::write(root.join("index/apps/apps.json"), "{}").unwrap();
-        let notes = adopt_pre_profile(root);
+        // Another profile starting first (a `PAL_CONFIG` run) leaves the default profile's files alone.
+        assert!(adopt_pre_profile(root, "7c16813b").is_empty());
+        assert!(root.join("frecency.json").exists() && root.join("index").exists() && !root.join("default").exists());
+        let notes = adopt_pre_profile(root, "default");
         assert_eq!(notes.len(), 2, "{notes:?}");
         assert!(notes[0].starts_with("moved\t") && notes[1].starts_with("removed\t"), "{notes:?}");
         assert_eq!(std::fs::read_to_string(root.join("default/frecency.json")).unwrap(), "{}");
         assert!(!root.join("frecency.json").exists() && !root.join("index").exists());
-        assert!(adopt_pre_profile(root).is_empty(), "once");
+        assert!(adopt_pre_profile(root, "default").is_empty(), "once");
         // A root file next to a profile that already has one is left alone.
         std::fs::write(root.join("frecency.json"), "old").unwrap();
-        let notes = adopt_pre_profile(root);
+        let notes = adopt_pre_profile(root, "default");
         assert!(notes[0].starts_with("kept\t"), "{notes:?}");
         assert_eq!(std::fs::read_to_string(root.join("default/frecency.json")).unwrap(), "{}");
         assert!(root.join("frecency.json").exists());

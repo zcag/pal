@@ -3121,6 +3121,7 @@ name = "pal"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "gtk",
  "pal-core",
  "serde",
  "serde_json",

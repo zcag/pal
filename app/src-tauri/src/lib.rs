@@ -286,7 +286,7 @@ pub fn run() {
             let config = ConfigFile::locate();
             let data = config.data_dir();
             eprintln!("profile\t{}\t{}\t{}", config.profile(), config.path().display(), data.display());
-            for n in cache::adopt_pre_profile(&pal_core::fs::data_dir()) {
+            for n in cache::adopt_pre_profile(&pal_core::fs::data_dir(), &config.profile()) {
                 eprintln!("profile\t{n}");
             }
             index::install(app.handle(), &data);

@@ -89,22 +89,27 @@ Re-checked 2026-09-16 with the Launcher UI: same, and `floating: true`,
 Rule set that gave pinned, no border, no shadow, centred at 20% down, verified
 live with `hyprctl keyword` (Hyprland 0.56 syntax):
 
-```
-windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal)$
+```text
+windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:title ^(pal)$
 bind = CTRL, space, exec, pal toggle
 ```
 
-(The binary was `pal-app` when this was measured; it is `pal` since the
-bundling pass, and the class follows.) The same set is quoted in
+(First measured with `match:class ^(pal)$`; the class is the binary name,
+`pal-app` then, `pal` since the bundling pass. Keyed on the title since the
+full check below: the HUD and the settings window carry the same class, and
+the class rule floated and pinned both.) The same set is quoted in
 `app/src-tauri/src/panel/linux.rs` as what the app cannot do itself.
 
-The HUD window (`hud.rs`) has the same class, so the rule above would put it
-at 20% down too; its own rule keys on the title and goes first (untested on
-marko, written from the panel's):
+The HUD window (`hud.rs`) has the same class and the title `pal HUD`; its
+rule keys on that (verified on marko in the full check below, mapped at
+`monitor_h - window_h - 8`):
 
-```
+```text
 windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, no_focus on, move (monitor_w*0.5-window_w*0.5) (monitor_h-window_h-8), match:title ^(pal HUD)$
 ```
+
+The settings window (`pal Settings`) gets no rule: it is a normal window and
+tiles like any other.
 
 `center on` also works but centres vertically. `move` with `monitor_w`/`window_w`
 expressions is what puts it where `place()` wants it, since the app cannot.
@@ -440,3 +445,30 @@ the tree described next.
   after 30000 ms`.
 - Screenshots of every step are in the Mac session's scratchpad
   (`01-root` to `42-settings-about`), not in the repo.
+
+### Fix pass (marko, 2026-09-16, release build of the Mac tree with the fixes)
+
+Same driving setup, `PAL_CONFIG=/tmp/pal-fix.toml`, profile `159cb53c`,
+everything removed afterwards.
+
+- Rules keyed on the title: panel `pal` at (580,216) 760x480 floating,
+  pinned; HUD `pal HUD` at (720,1000) 480x72 (= `monitor_h-window_h-8`),
+  the "Copied" capsule at the bottom; `pal Settings` tiled, floating and
+  pinned false, no rule.
+- HUD 480x200: GTK's floor for a non-resizable toplevel whose child
+  requests nothing (bare GTK probe: a 480x72 `resize` with a WebKitWebView
+  of minimum 0x0 in a GtkBox gives 480x200; with `set_size_request(480,
+  72)` on the webview, or `resizable` plus min = max hints, 480x72).
+  `panel/linux.rs::hud_size_request` does the former.
+- `[files] backend: fd` logged once at load. `aishot` through the palette:
+  1171 ms the first time, 133 and 147 ms right after; direct `fd` runs
+  show the same shape (1267 ms then 110 to 190 ms), so the slow tail is
+  the cold walk of about 130k entries under `~` (qmk_firmware 58k, proj
+  38k, go 37k, work 25k), not the flags. `--max-depth 8` plus the excludes
+  take a warm walk from about 160 to 115 ms.
+- System indexed (13 items, relisted on show): `sleep` lists the System
+  section first, `toggle mute` finds Toggle Mute first; a bare `mute` is
+  led by the iconnerd rows named exactly `mute` (the exact bonus), with
+  Toggle Mute further down.
+- `clip` and `history`: the Clipboard History palette row first.
+- Welcome row: "Show tips again" in Ctrl+K.

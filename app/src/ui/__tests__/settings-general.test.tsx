@@ -35,6 +35,12 @@ describe("SettingsGeneral hotkey row", () => {
   it("explains an empty hotkey", () => {
     expect(page({ hotkey: { wanted: "", registered: true } })).toContain("pal toggle");
   });
+  it("describes the field in one paragraph that reads on its own", () => {
+    const html = page({ hotkey: { wanted: "", registered: true } });
+    const desc = html.match(/<p class="pal-setting__desc">([^<]*)<\/p>/)?.[1] ?? "";
+    expect(desc.startsWith("Opens pal from any app. Press the new combination")).toBe(true);
+    expect(desc).not.toContain("From anywhere");
+  });
 });
 
 describe("SettingsGeneral permissions", () => {
