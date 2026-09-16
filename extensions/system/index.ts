@@ -4,8 +4,7 @@
 // do); the destructive ones ask first unless the setting turns that off.
 // The core hides the panel before running, so the command lands on the
 // desktop, not on pal.
-import type { Extension, Item } from "../../host/src/protocol.ts";
-import { settings, system, type SystemCommand } from "../../host/src/api.ts";
+import { settings, system, type Extension, type Item, type SystemCommand } from "@zcag/pal";
 
 /** `[extensions.system]`, defaults in pal.json. */
 type Settings = { confirm_destructive: boolean };

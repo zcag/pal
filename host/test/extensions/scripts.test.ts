@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { xdg } from "../../src/icons.ts";
+import { xdg } from "../../../sdk/src/icons.ts";
 import { Host } from "../harness.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "pal-v1-"));

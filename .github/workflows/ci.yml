@@ -76,7 +76,7 @@ jobs:
       - name: Install JS dependencies
         run: |
           (cd app && npm ci)
-          (cd host && bun install --frozen-lockfile)
+          bun install --frozen-lockfile
           for d in extensions/*/; do
             if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
           done
@@ -96,9 +96,19 @@ jobs:
         run: |
           npx tsc --noEmit
           npx vitest run
-      # host/tsconfig.json includes ../extensions, so this typechecks them too.
+      # The root `bun install` links the workspace: host/, sdk/ and the
+      # `@zcag/pal` name every extension imports (root package.json).
+      # host/tsconfig.json includes ../sdk/src, ../extensions and
+      # ../examples, so this typechecks them all.
       - name: host typecheck and tests
         working-directory: host
         run: |
           bunx tsc --noEmit
           bun test
+      # The published package: its declarations build, and the tarball
+      # holds only what `files` lists.
+      - name: sdk build and pack
+        working-directory: sdk
+        run: |
+          bun run build
+          npm pack --dry-run

@@ -5,7 +5,7 @@
 // create and edit forms, refusal, delete.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { asSnippets, badKeyword, expand, hasPlaceholders, isoDate, isoTime, preview } from "../../../extensions/snippets/placeholders.ts";
-import type { Form } from "../../src/protocol.ts";
+import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host, fixtures, stored } from "../harness.ts";
 
 const at = new Date(2026, 8, 16, 9, 5); // local 2026-09-16 09:05

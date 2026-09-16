@@ -7,19 +7,21 @@
       "ESNext"
     ],
     "types": [
-      "bun-types"
+      "bun"
     ],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "pal": ["./src/api.ts"]
+      "@zcag/pal": ["../sdk/src/index.ts"],
+      "@zcag/pal/runtime": ["../sdk/src/runtime.ts"]
     }
   },
   "include": [
     "src",
     "test",
+    "../sdk/src",
     "../extensions",
     "../examples"
   ]

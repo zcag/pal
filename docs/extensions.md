@@ -6,8 +6,9 @@ one long-lived extension host. An extension declares palettes; a palette
 lists rows, says what happens when one is picked, and can declare settings
 the settings window renders and the config file keeps.
 
-The shapes below are provisional: `host/src/protocol.ts` is the contract
-and moves ahead of this page while `pali` is being built.
+The shapes below are provisional: `sdk/src/protocol.ts` (the types of
+`@zcag/pal`, every one with a doc comment) is the contract and moves ahead
+of this page while `pali` is being built.
 
 ## Where they live
 
@@ -18,8 +19,8 @@ and moves ahead of this page while `pali` is being built.
   `~/.local/share/pal/extensions/<name>/` on Linux (`$XDG_DATA_HOME/pal/`
   when set). One store for every config file. Not in the config directory:
   that is often a dotfiles checkout, and the store's install records,
-  staging directory and the host's `node_modules/pal` link do not belong in
-  one.
+  staging directory and the host's `node_modules/@zcag/pal` link do not
+  belong in one.
 - Yours, kept wherever you like: every directory in
   `general.extension_dirs` ([Config](config.md)), one subdirectory per
   extension, for a set that lives in dotfiles.
@@ -68,12 +69,12 @@ whose code fails to load.
 ## The code, `index.ts`
 
 The default export is `{ palettes: { <key>: Palette } }`. A palette
-(provisional shape, `Palette` in `host/src/protocol.ts`):
+(provisional shape, `Palette` in `@zcag/pal`):
 
 ```ts
-import { settings, type Extension, type Item } from "pal";
+import { defineExtension, settings, type Item } from "@zcag/pal";
 
-export default {
+export default defineExtension({
   palettes: {
     hello: {
       title: "Hello",          // the section label at the root
@@ -84,8 +85,12 @@ export default {
       pick: (id, action) => ({ copy: "Hello, world" }),  // an Effect
     },
   },
-} satisfies Extension;
+});
 ```
+
+`defineExtension` only type-checks the object where it is written (it is
+`satisfies Extension` under a name an editor completes); the bundled
+extensions use `satisfies` directly.
 
 - `list(query?, ctx?)` returns `Item[]`, sync or async. Without `input:
   true` the host lists once, the core indexes the rows, and the root search
@@ -168,8 +173,8 @@ export default {
   `title` and settings like any other; `detail` and `filters` have no
   meaning for it.
 
-The vocabulary (`ViewNode` in `host/src/protocol.ts`; every node may carry
-`key` and `transition`):
+The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key` and
+`transition`):
 
 | node | fields | draws |
 | --- | --- | --- |
@@ -241,7 +246,7 @@ pick: async (id, action, ctx) => {
 
 ## Storage
 
-`storage` in the `pal` module is a small per-extension key-value store:
+`storage` in `@zcag/pal` is a small per-extension key-value store:
 `get(key)` (null when unset), `set(key, value)` (any JSON; null removes),
 `remove(key)`, `keys()`. The core keeps one file per extension,
 `<data dir>/pal/storage/<extension>.json` (`~/Library/Application
@@ -253,14 +258,19 @@ choice; not for a cache. Which extension is asking is known inside
 `list`/`pick`/`view` and at import time; elsewhere pass the name as the
 last argument.
 
-## The `pal` module
+## The `@zcag/pal` package
 
-`import { ... } from "pal"` is the host's API (`host/src/api.ts`); the host
-links it into `<root>/node_modules/pal` in the store and in every
-`extension_dirs` root, so the bare name resolves for an extension there
-(the bundled ones import it by relative path). Do not list `pal` as a
-dependency in `package.json`: the npm package of that name is something
-else. Every call is one request to the core.
+`import { ... } from "@zcag/pal"` is pal's extension API: the calls into
+the core and the types of everything above. It lives in `sdk/` in the repo
+and is the package of that name on npm (not yet published; see "Writing
+one"). The host links it into `<root>/node_modules/@zcag/pal` in the store
+and in every `extension_dirs` root, so the name resolves for an extension
+there without a fetch (the host runs Bun with `--no-install`). An
+extension that carries its own copy in `node_modules` (a `bun add`) gets
+that one instead, which works the same: the package reaches the host
+through a process-wide slot, not a shared module, so the version in your
+`node_modules` only has to speak the same wire. Every call is one request
+to the core.
 
 - `settings.get<T>()`: the extension's values, `[extensions.<name>]`.
   `settings.palette<T>()`: the current palette's declared values.
@@ -277,13 +287,21 @@ else. Every call is one request to the core.
   extension's own key-value file (above).
 - `home(path)`: a leading `~` expanded. `core.call(method, params)`: the
   raw bridge.
+- `xdg(name)`: a freedesktop icon name as the glyph the app draws it with
+  (`icon: xdg("dialog-error")`), undefined for a name it does not know.
+- `checkView(view)`, `checkForm(form)`: what the host runs on every answer
+  (the limits above), for an extension's own tests. `defineExtension(ext)`:
+  the typed default export.
 
-The protocol's types ride along: `Extension`, `Palette`, `Item`, `Effect`,
-`Ctx`, `Detail`, `View`, `ViewNode`, `Form`, `FormField`, `FormValues`,
-`Manifest`.
+The protocol's types ride along: `Extension`, `Palette`, `Item`, `Action`,
+`Icon`, `Effect`, `Ctx`, `Detail`, `View`, `ViewNode`, `Form`,
+`FormField`, `FormValues`, `Manifest`, `SettingSpec`, and the API's own
+(`ClipboardEntry`, `Window`, `WindowLayout`, `SystemCommand`).
 
 Dependencies: a `package.json` next to `index.ts` is honoured; `pal
-install` runs `bun install --production` in the copy it makes.
+install` runs `bun install --production` in the copy it makes. List
+`@zcag/pal` under `devDependencies` (it is for the editor; the host
+provides it at runtime), so that install skips it.
 
 ## Install, update, remove
 
@@ -316,14 +334,83 @@ settings; delete them by hand if you want them gone.
 After each of these the extension host is restarted, so the new set is
 loaded and a removed extension is gone from the root.
 
-## The hello example
+## Writing one
 
-`examples/hello-extension/` is the smallest complete extension: one
-palette, three rows, one setting. Install it from a checkout with `pal
-install path/to/pal/examples/hello-extension`, or from GitHub with `pal
-install github:zcag/pal/examples/hello-extension@main`. Then type `hello`
-in the panel; change the greeting under Settings, Extensions, Hello and
-the row follows.
+An extension is a directory; nothing else is needed. The walkthrough
+below is what `examples/hello-extension/` is, step by step.
+
+1. A directory and its manifest:
+
+   ```sh
+   mkdir hello && cd hello
+   cat > pal.json <<'EOF'
+   {
+     "name": "hello",
+     "title": "Hello",
+     "version": "0.1.0",
+     "icon": "👋",
+     "settings": [
+       { "kind": "text", "id": "greeting", "label": "Greeting", "default": "Hello" }
+     ]
+   }
+   EOF
+   ```
+
+2. The API, for the editor. `@zcag/pal` is not on npm yet, so link it from
+   a checkout of pal (once: `bun run build` in `sdk/` produces the `.d.ts`
+   the editor reads, `bun link` registers the package under its name):
+
+   ```sh
+   (cd path/to/pal/sdk && bun run build && bun link)
+   echo '{ "name": "hello", "private": true, "type": "module" }' > package.json
+   bun link @zcag/pal
+   ```
+
+   That puts the symlink under `node_modules` and writes nothing to
+   `package.json`. Once the package is published this is `bun add -d
+   @zcag/pal`: a dev dependency, since the host provides the package at
+   runtime and `pal install` skips dev dependencies.
+
+3. The code:
+
+   ```ts
+   // index.ts
+   import { defineExtension, settings, type Item } from "@zcag/pal";
+
+   type Settings = { greeting: string };
+
+   export default defineExtension({
+     palettes: {
+       hello: {
+         title: "Hello",
+         icon: "👋",
+         list: (): Item[] => [
+           { id: "greet", name: `${settings.get<Settings>().greeting}, world`, icon: "👋", actions: [{ id: "copy", title: "Copy greeting" }] },
+           { id: "time", name: "What time is it", icon: "🕰", actions: [{ id: "tell", title: "Tell me" }] },
+         ],
+         pick: (id) => (id === "greet" ? { copy: `${settings.get<Settings>().greeting}, world` } : { toast: { title: new Date().toLocaleTimeString() } }),
+       },
+     },
+   });
+   ```
+
+4. Install it: `pal install .` copies the directory into the store (without
+   `node_modules`), and the host loads it. Type `hello` in the panel.
+
+5. Edit and reload. `pal update hello` copies the directory again (the
+   install recorded where it came from; `pal install .` a second time is
+   refused, the name is taken), and the host reloads the extension: the
+   store is watched, a changed file reloads its extension in place. For a
+   real edit loop skip the copy: add the directory you are editing to
+   `general.extension_dirs` ([Config](config.md)) and every save reloads
+   it, the rows in the panel following on the next open. `cmd+r` in the
+   panel lists it again by hand.
+
+The example's full form (three rows, a setting with a description, the
+manifest's `palettes` block) is `examples/hello-extension/`. Install it
+from a checkout with `pal install path/to/pal/examples/hello-extension`,
+or from GitHub with `pal install github:zcag/pal/examples/hello-extension@main`;
+change the greeting under Settings, Extensions, Hello and the row follows.
 
 ## Trust
 

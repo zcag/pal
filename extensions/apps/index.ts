@@ -3,8 +3,7 @@
 // or Linux .desktop entries from the XDG data dirs. Same item shape either
 // way; the platform picks the scan and the launch.
 import { readdir } from "node:fs/promises";
-import type { Extension, Item } from "../../host/src/protocol.ts";
-import { home, settings } from "../../host/src/api.ts";
+import { home, settings, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.apps]`, defaults in pal.json. */
 type Settings = { folders: string[] };

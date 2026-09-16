@@ -6,8 +6,7 @@
 // applies the chosen layout to the one picked; opened from the root,
 // `arrange` goes the other way round: pick a window, then its layout, the
 // same rows with the window's title as subtitle.
-import type { Action, Extension, Item } from "../../host/src/protocol.ts";
-import { settings, windows, type Window, type WindowLayout, type WindowLayoutOptions } from "../../host/src/api.ts";
+import { settings, windows, type Action, type Extension, type Item, type Window, type WindowLayout, type WindowLayoutOptions } from "@zcag/pal";
 
 /** `[extensions.window-management]`, defaults in pal.json. */
 type Settings = WindowLayoutOptions;

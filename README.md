@@ -11,7 +11,9 @@ defaults.
 - `core/` `pal-core`, the parts that are neither UI nor OS glue (config,
   index, clipboard, icons)
 - `host/` the extension host, one long-lived Bun process the app talks to over stdio
+- `sdk/` `@zcag/pal`, the extension API: what an extension imports, published to npm
 - `extensions/` the default extensions, one directory each with an `index.ts`
+- `examples/` the smallest complete extension, what `docs/extensions.md` walks through
 - `notes/` decisions and platform notes
 
 ## Dev setup
@@ -24,7 +26,7 @@ librsvg, openssl, base-devel on Linux).
 ```sh
 git clone git@github.com:zcag/pal.git && cd pal
 (cd app && npm install)
-(cd host && bun install)
+bun install
 for d in extensions/*/; do
   [ -f "$d/package.json" ] && (cd "$d" && bun install)
 done
@@ -43,9 +45,12 @@ migrated aside first). On
 Wayland there is no global hotkey API, so bind `pal toggle` in the
 compositor instead; `notes/linux.md` has the Hyprland rules.
 
+`bun install` at the root links the workspace (`host/`, `sdk/`) and the
+`@zcag/pal` name the extensions import.
+
 Checks: `cargo clippy --all-targets` from the repo root, `npx tsc --noEmit`
-in `app/` and `../app/node_modules/.bin/tsc --noEmit -p .` in `host/` (which
-covers `extensions/`).
+in `app/`, `bunx tsc --noEmit` in `host/` (which covers `sdk/`,
+`extensions/` and `examples/`) and in `sdk/`.
 
 ## Build
 
@@ -53,10 +58,10 @@ covers `extensions/`).
 cd app && npm run tauri build
 ```
 
-`beforeBuildCommand` builds the UI and stages the host and the extensions
-under `app/src-tauri/resources/` (`app/scripts/build-extensions.sh`: each
-extension bundled to one `index.js` with `bun build`, so no `node_modules`
-ships). The bundle also signs the updater artifacts, so it wants
+`beforeBuildCommand` builds the UI and stages the host, the SDK and the
+extensions under `app/src-tauri/resources/` (`app/scripts/build-extensions.sh`:
+each extension bundled to one `index.js` with `bun build`, the SDK inlined,
+so no `node_modules` ships). The bundle also signs the updater artifacts, so it wants
 `TAURI_SIGNING_PRIVATE_KEY` in the environment; without the key, add
 `-- --config '{"bundle":{"createUpdaterArtifacts":false}}'` (releases come
 from CI anyway: `docs/releasing.md`). Output under `target/release/bundle/`:

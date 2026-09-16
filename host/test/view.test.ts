@@ -2,8 +2,8 @@
 // draw, with action ids that cannot shadow the shell's. The form check, the
 // same way, for fields.
 import { describe, expect, test } from "bun:test";
-import { MAX_DEPTH, MAX_NODES, checkForm, checkView } from "../src/view.ts";
-import type { Form, View, ViewNode } from "../src/protocol.ts";
+import { MAX_DEPTH, MAX_NODES, checkForm, checkView } from "../../sdk/src/view.ts";
+import type { Form, View, ViewNode } from "../../sdk/src/protocol.ts";
 
 const ok: View = { tree: { type: "stack", children: [{ type: "text", value: "hi" }] }, actions: [{ id: "go", title: "Go" }] };
 

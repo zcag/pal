@@ -1,23 +1,37 @@
-// PROVISIONAL. Wire shapes for the Rust core <-> extension host stdio link,
-// and the surface an extension implements (`Extension`, `Palette`). Written
-// down so both sides compile against one file; the contract is still being
-// settled in notes/decisions.md, so change freely. One JSON object per line,
-// both directions. Requests carry an id, responses echo it, notifications
-// have none.
+// The contract: what an extension implements (`Extension`, `Palette`, what
+// `list` answers and `pick` returns) and the wire shapes of the Rust core
+// <-> extension host stdio link. One file so both sides compile against it.
 //
-// Both sides send requests: the core asks the host to `list`/`pick`/`detail`, the host
-// asks the core for a capability with a `core/<capability>.<fn>` method
-// (`core/clipboard.list`), and each answers on its own output. A line is
-// classified by shape alone: a `method` makes it a request (with an id) or
-// a notification (without); no `method` makes it a response. Each side
-// numbers its own requests, so ids only have to be unique per direction.
+// PROVISIONAL: pal is unreleased (0.x) and these shapes still move; a
+// change that breaks an extension bumps the minor version of `@zcag/pal`
+// until 1.0. What is marked provisional below is likelier to move than the
+// rest.
+//
+// The wire: one JSON object per line, both directions. Both sides send
+// requests: the core asks the host to `list`/`pick`/`detail`/`view`, the
+// host asks the core for a capability with a `core/<capability>.<fn>`
+// method (`core/clipboard.list`), and each answers on its own output. A
+// line is classified by shape alone: a `method` makes it a request (with an
+// id) or a notification (without); no `method` makes it a response. Each
+// side numbers its own requests, so ids only have to be unique per
+// direction. An extension never sees these three envelopes; they are here
+// for a host or a test harness.
 
+/** A request on the wire: the sender's own `id`, echoed by the `Response`. */
 export type Request = { id: number; method: string; params?: unknown };
+/** The answer to a `Request`: `result` on success, else `error` (a message). */
 export type Response = { id: number; result?: unknown; error?: string };
+/** A request without an id: nothing answers it (`host/ready`, `settings/changed`). */
 export type Notification = { method: string; params?: unknown };
 
+/**
+ * Right-aligned on a row: a run of `text`, a `tag` (a badge, `color` from
+ * the tag palette, `TagColor`), or a `date` (an ISO string or unix ms) the
+ * UI shows relative ("3 h ago").
+ */
 export type Accessory = { text: string } | { tag: string; color?: string } | { date: string | number };
 
+/** One line of the detail pane's metadata list: a `label` with a `value`, tags, or a link. */
 export type Metadata = {
   label: string;
   value?: string;
@@ -35,6 +49,13 @@ export type Detail = { markdown?: string; metadata?: Metadata[] };
  */
 export type Icon = string | { app: string } | { image: string };
 
+/**
+ * One row, what `list` answers. Only `id` and `name` are required. The
+ * core indexes and ranks rows by `name`, `subtitle` and `keywords`; the
+ * UI draws the rest. Keys beyond these ride through the core untouched
+ * and come back on nothing: `pick` gets the `id`, so keep what a pick
+ * needs in your own table, keyed by it.
+ */
 export type Item = {
   /** Stable across listings: frecency and the cursor are keyed by it. Unique within the palette. */
   id: string;
@@ -54,10 +75,19 @@ export type Item = {
    * action id. Empty: an inert row (a hint).
    */
   actions?: Action[];
-  /** Anything else rides along untouched to the UI and back to `pick`. */
+  /**
+   * Anything else rides along untouched (the core keeps unknown keys, the
+   * UI ignores them). For a field of your own, a future version of the
+   * shape cannot collide with; `pick` does not get it back.
+   */
   [extra: string]: unknown;
 };
 
+/**
+ * One thing a row can do. The first in `Item.actions` runs on Enter, the
+ * second on Cmd+Enter, all of them from the action panel (Cmd+K). In a
+ * `View`, the same shape lists what a key does.
+ */
 export type Action = {
   id: string;
   title: string;
@@ -72,9 +102,9 @@ export type Action = {
 // A level the UI draws from a small fixed vocabulary, never HTML: a game
 // board, a dashboard, a card. The extension sends a tree, the UI renders it
 // with the tokens; a pick from it carries an action id and usually answers
-// with a new tree. `host/src/view.ts` checks a tree before it goes out.
+// with a new tree. `view.ts` (`checkView`) checks a tree before it goes out.
 
-/** The tag palette (`--pal-tag-*` in tokens.css). */
+/** The tag palette (`--pal-tag-*` in the app's tokens): what a badge, a tag accessory or a text node may be coloured. */
 export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";
 
 /**
@@ -101,6 +131,12 @@ type NodeBase = {
 /** Spacing in steps of the 4 px grid (`--pal-space-1..6`); 0 is none. */
 export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+/**
+ * One node of a `View.tree`, by `type`. A node of a type the app does not
+ * know is skipped (not an error), so a newer extension still draws on an
+ * older app. Every node may carry `key` and `transition` (`NodeBase`).
+ * Provisional: node types get added; fields of the ones here stay.
+ */
 export type ViewNode =
   /** A flex box. `grow` takes the free space along its parent; `minHeight` (px) holds a row's height while its keyed children come and go. */
   | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; children: ViewNode[] })
@@ -313,8 +349,20 @@ export type ViewPalette = PaletteBase & {
   list?: never;
 };
 
+/**
+ * What an extension declares under a key of `Extension.palettes`: rows
+ * (`ListPalette`, has `list`) or a drawing (`ViewPalette`, has `view`).
+ * Both share `PaletteBase`: `title`, `icon`, `pick`, `detail`, the flags.
+ */
 export type Palette = ListPalette | ViewPalette;
 
+/**
+ * The default export of an extension's `index.ts`: its palettes by key.
+ * The key is the palette's id in the config file (`[palettes.<id>]`), the
+ * manifest (`Manifest.palettes`) and an `Effect.push`. Write it as
+ * `export default defineExtension({ palettes: { ... } })`, or with
+ * `satisfies Extension`.
+ */
 export type Extension = { palettes: Record<string, Palette> };
 
 // ---- manifest (pal.json) -------------------------------------------------
@@ -322,6 +370,7 @@ export type Extension = { palettes: Record<string, Palette> };
 // window can show an extension whose code fails to load. Mirrored by hand in
 // app/src/ui/SettingsTypes.ts.
 
+/** One choice of a `select` setting: `id` is the stored value, `title` what the window shows. */
 export type SettingOption = { id: string; title: string };
 
 type SettingBase = { id: string; label: string; description?: string };
@@ -343,7 +392,13 @@ export type SettingSpec = SettingBase &
 /** What the manifest says about one palette; the code still defines it. */
 export type ManifestPalette = { title?: string; description?: string; settings?: SettingSpec[]; /** See `Palette.ttl`; the code's value wins. */ ttl?: number };
 
+/**
+ * `pal.json`, next to `index.ts`. `name` and `version` are required by
+ * `pal install`; the rest is what the settings window shows and the
+ * settings the extension declares.
+ */
 export type Manifest = {
+  /** The directory name and the config key: lowercase letters, digits, `-`, `_`, `.`. */
   name: string;
   title: string;
   description?: string;
@@ -365,7 +420,7 @@ export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Re
 /** `settings/changed`, core to host: every extension's resolved values (or the ones that changed). */
 export type SettingsChanged = { extensions: Record<string, ResolvedSettings> };
 
-/** What `hello` and `extension/loaded` say about a palette. */
+/** What `hello` and `extension/loaded` (host to core) say about a palette: the flags the core and the UI need without the code. */
 export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" | "showDetail" | "filters" | "ttl"> & {
   name: string;
   title: string;

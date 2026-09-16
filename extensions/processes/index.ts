@@ -3,8 +3,7 @@
 // matches the name and the pid. Kill sends SIGTERM, Force kill SIGKILL,
 // both after a confirm; the palette stays open and lists again so the row
 // is seen to go.
-import type { Accessory, Action, Extension, Item } from "../../host/src/protocol.ts";
-import { settings } from "../../host/src/api.ts";
+import { settings, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.processes]`, defaults in pal.json. */
 type Settings = { include_system: boolean };

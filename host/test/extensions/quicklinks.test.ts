@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { asLinks, badUrl, fill, placeholder, splitKeywords } from "../../../extensions/quicklinks/links.ts";
-import type { Form } from "../../src/protocol.ts";
+import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 
 describe("links", () => {

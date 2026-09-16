@@ -8,9 +8,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
-import type { Accessory, Action, Ctx, Detail, Effect, Extension, Item, Palette } from "../../host/src/protocol.ts";
-import { home, settings } from "../../host/src/api.ts";
-import { xdg } from "../../host/src/icons.ts";
+import { home, settings, xdg, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Palette } from "@zcag/pal";
 
 /** `[extensions.scripts]`, defaults in pal.json. */
 type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number; ttl: number };

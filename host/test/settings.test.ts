@@ -1,12 +1,15 @@
-// settings.ts in-process: the resolved table, listeners, and how `caller`
-// tells which extension is asking (explicit, async context, or the stack).
+// settings.ts in-process: the resolved table, listeners, how `caller` tells
+// which extension is asking (explicit, async context, or the stack), and
+// the SDK's `settings` over it once sdk.ts has bound the two.
 import { afterAll, describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
-import { settings as api } from "../src/api.ts";
+import { settings as api } from "../../sdk/src/index.ts";
+import { bindSdk } from "../src/sdk.ts";
 import { caller, context, resolved, setRoots, subscribe, update } from "../src/settings.ts";
 import { Root } from "./harness.ts";
 
 const SETTINGS = resolve(import.meta.dir, "../src/settings.ts");
+bindSdk();
 
 describe("table", () => {
   test("resolved is empty for an unknown extension and replaces whole on update", () => {

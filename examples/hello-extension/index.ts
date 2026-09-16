@@ -1,12 +1,12 @@
 // The smallest extension: one palette with three rows and one setting.
-// `pal` is the host's API (host/src/api.ts) and its protocol types; an
-// installed extension imports it by that bare name.
-import { settings, type Extension, type Item } from "pal";
+// `@zcag/pal` is pal's extension API (sdk/ in the repo): the calls into the
+// core and the types of what an extension answers.
+import { defineExtension, settings, type Item } from "@zcag/pal";
 
 /** `[extensions.hello]`, defaults in pal.json. */
 type Settings = { greeting: string };
 
-export default {
+export default defineExtension({
   palettes: {
     hello: {
       title: "Hello",
@@ -28,4 +28,4 @@ export default {
       },
     },
   },
-} satisfies Extension;
+});

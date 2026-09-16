@@ -13,10 +13,11 @@
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
+import { checkForm, checkView } from "../../sdk/src/view.ts";
+import type { Ctx, Extension, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, ViewPalette } from "../../sdk/src/protocol.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
+import { bindSdk, SDK } from "./sdk.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
-import { checkForm, checkView } from "./view.ts";
-import type { Ctx, Extension, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, ViewPalette } from "./protocol.ts";
 
 const VERSION = "0.0.1";
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
@@ -56,7 +57,7 @@ async function entry(root: string, name: string): Promise<Found | undefined> {
   }
 }
 
-/** `node_modules` (the `pal` link lives there) and dotfiles are never extensions. */
+/** `node_modules` (the `@zcag/pal` link lives there) and dotfiles are never extensions. */
 const isExtensionName = (name: string) => !!name && name !== "node_modules" && !name.startsWith(".");
 
 /** Every extension across the roots; a later root replaces an earlier one's entry. */
@@ -167,27 +168,31 @@ function describe(e: unknown): string {
 const realOr = (p: string) => realpath(p).catch(() => resolve(p));
 
 /**
- * `<root>/node_modules/pal` -> this host, so `import { settings } from "pal"`
- * in an installed extension resolves to api.ts (host/package.json `exports`)
- * by Bun's ordinary walk up the directory tree, and never to the npm package
- * of that name (Bun auto-installs a bare import it cannot resolve; a
- * `Bun.plugin` onResolve did not intercept it, 2026-09-16). The bundled
- * root, next to the host's own dir, imports by relative path and is left
- * alone (compared by real path, so a symlinked config dir still counts as
- * the user's). Re-pointed when the host moved (an app update); a real
- * directory at that path is someone else's and is left as it is.
+ * `<root>/node_modules/@zcag/pal` -> the SDK next to this host (`sdk/`,
+ * `@zcag/pal` on npm), so `import { settings } from "@zcag/pal"` in an
+ * installed extension resolves by Bun's ordinary walk up the directory
+ * tree without a fetch (the host runs with `--no-install`, and a
+ * `Bun.plugin` onResolve did not intercept a bare import, 2026-09-16). An
+ * extension that carries its own copy of the package in its node_modules
+ * gets that one instead, which is fine: the SDK reaches the host through a
+ * process-wide slot (sdk/src/runtime.ts), not a shared module. The bundled
+ * root, next to the host's own dir, has the SDK inlined by
+ * build-extensions.sh (in the repo it resolves through the workspace) and
+ * is left alone (compared by real path, so a symlinked config dir still
+ * counts as the user's). Re-pointed when the host moved (an app update); a
+ * real directory at that path is someone else's and is left as it is.
  */
 async function linkApi(root: string) {
   const host = resolve(import.meta.dir, "..");
   if (dirname(await realOr(root)) === dirname(await realOr(host))) return;
-  const link = `${root}/node_modules/pal`;
+  const link = `${root}/node_modules/@zcag/pal`;
   const current = await lstat(link).catch(() => undefined);
   if (current && !current.isSymbolicLink()) return log(`${link} exists and is not a link; leaving it`);
-  if (current && (await readlink(link).catch(() => undefined)) === host) return;
-  await mkdir(`${root}/node_modules`, { recursive: true });
+  if (current && (await readlink(link).catch(() => undefined)) === SDK) return;
+  await mkdir(dirname(link), { recursive: true });
   if (current) await rm(link, { force: true });
-  await symlink(host, link);
-  log(`linked ${link} -> ${host}`);
+  await symlink(SDK, link);
+  log(`linked ${link} -> ${SDK}`);
 }
 
 /** Everything under a root, in one pass; what a fresh root gets when it appears. */
@@ -410,6 +415,7 @@ async function handle(line: string) {
   log("stdin closed, exiting");
   process.exit(0);
 })().catch((e) => { log(`stdin failed: ${describe(e)}`); process.exit(1); });
+bindSdk();
 await loadAll();
 await watchExtensions();
 // `known`: every extension found on disk, loaded or not (the core keeps a failed one's cache).

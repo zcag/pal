@@ -5,8 +5,7 @@
 // recently focused first on Hyprland), never a ranking. Enter focuses (a
 // `focus` effect: the panel hides, then the window comes up), the rest of
 // the actions close or minimise without leaving the palette.
-import type { Accessory, Action, Extension, Item } from "../../host/src/protocol.ts";
-import { settings, windows, type Window } from "../../host/src/api.ts";
+import { settings, windows, type Accessory, type Action, type Extension, type Item, type Window } from "@zcag/pal";
 
 /** `[extensions.windows]`, defaults in pal.json. */
 type Settings = { include_minimized: boolean };

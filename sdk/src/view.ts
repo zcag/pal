@@ -1,9 +1,11 @@
 // A `View` (protocol.ts) checked before it leaves the host, so the UI only
-// ever sees a tree it can draw (and a `Form`, at the end, likewise): a node count and depth it can lay out in
-// one frame, action ids that cannot shadow the shell's, image sources it
-// may load. A node of an unknown type is left in (the UI skips it, so an
-// older app still draws the rest); a tree over the limits is an error the
-// extension sees, since a silently trimmed board would mislead.
+// ever sees a tree it can draw (and a `Form`, at the end, likewise): a node
+// count and depth it can lay out in one frame, action ids that cannot
+// shadow the shell's, image sources it may load. A node of an unknown type
+// is left in (the UI skips it, so an older app still draws the rest); a
+// tree over the limits is an error the extension sees, since a silently
+// trimmed board would mislead. The host runs these on every answer; an
+// extension's own tests can run them too (`checkView(render(state))`).
 import type { Form, View, ViewNode } from "./protocol.ts";
 
 /** Nodes in one tree: a board is tens, a table hundreds; past this the UI would spend the frame on layout. */

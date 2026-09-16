@@ -6,15 +6,14 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { ClipboardEntry, SystemCommand, Window } from "../src/api.ts";
-import type { Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec } from "../src/protocol.ts";
+import type { ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, Window } from "../../sdk/src/index.ts";
 
 export const HOST = resolve(import.meta.dir, "../src/host.ts");
 /** The bundled extensions, for the integration tests. */
 export const BUNDLED = resolve(import.meta.dir, "../../extensions");
-/** Absolute import specifiers for fixture extensions written outside the repo. */
-export const API = resolve(import.meta.dir, "../src/api.ts");
-export const PROTOCOL = resolve(import.meta.dir, "../src/protocol.ts");
+/** Absolute import specifiers for fixture extensions written outside the repo (the SDK by path; `@zcag/pal` by name works too, through the link the host makes). */
+export const API = resolve(import.meta.dir, "../../sdk/src/index.ts");
+export const PROTOCOL = resolve(import.meta.dir, "../../sdk/src/protocol.ts");
 
 export type Kind = "request" | "notification" | "response";
 /** protocol.ts: a `method` makes a request (with id) or a notification (without); no method is a response. */

@@ -1,7 +1,8 @@
 // Resolved settings per extension, as the core sends them (`settings/changed`,
-// see protocol.ts), and how `api.ts` knows which extension is asking. Its own
-// module so `api.ts` and `host.ts` share one table without importing each
-// other (same reason as bridge.ts).
+// see sdk/src/protocol.ts), and how the SDK's `settings` knows which
+// extension is asking (`caller`, handed over by sdk.ts). Its own module so
+// the SDK and `host.ts` share one table without importing each other (same
+// reason as bridge.ts).
 //
 // Which extension is asking: the host runs every `list`/`pick` inside an
 // async context naming the extension and palette, so a call from there needs
@@ -12,7 +13,7 @@
 // the extension's name.
 import { AsyncLocalStorage } from "node:async_hooks";
 import { realpathSync } from "node:fs";
-import type { ResolvedSettings } from "./protocol.ts";
+import type { ResolvedSettings } from "../../sdk/src/protocol.ts";
 
 export type Context = { extension: string; palette?: string };
 

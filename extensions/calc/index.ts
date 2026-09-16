@@ -2,8 +2,7 @@
 // keystroke. The result is the row's title (what you read and copy), the
 // expression the subtitle. Percent-of and °C/°F are rewritten into mathjs
 // syntax first; the rest (functions, units, `to` conversions) is mathjs's.
-import type { Extension, Item } from "../../host/src/protocol.ts";
-import { settings } from "../../host/src/api.ts";
+import { settings, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.calc]`, default in pal.json. */
 type Settings = { precision: number };

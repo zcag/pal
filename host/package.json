@@ -2,12 +2,12 @@
   "name": "pal-host",
   "private": true,
   "type": "module",
-  "exports": "./src/api.ts",
   "scripts": {
     "start": "bun run src/host.ts",
     "test": "bun test"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.0"
+    "@types/bun": "^1.2.0",
+    "typescript": "~6.0.3"
   }
 }

@@ -7,8 +7,7 @@
 // of them: the tests run `find` on a temp folder no index knows about.
 import { readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
-import type { Action, Detail, Extension, Item, Metadata } from "../../host/src/protocol.ts";
-import { home, settings } from "../../host/src/api.ts";
+import { home, settings, type Action, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.files]`, defaults in pal.json. */
 type Settings = { folders: string[]; limit: number; show_hidden: boolean };

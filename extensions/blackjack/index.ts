@@ -3,8 +3,7 @@
 // the move, and the reply is the next tree. The state persists whole in
 // the extension's storage after every move, so Escape mid-hand loses
 // nothing and the bankroll and the record survive restarts.
-import type { Extension } from "../../host/src/protocol.ts";
-import { settings, storage } from "../../host/src/api.ts";
+import { settings, storage, type Extension } from "@zcag/pal";
 import { DEFAULTS, apply, isState, newGame, type Action, type Settings, type State } from "./game.ts";
 import { render } from "./render.ts";
 

@@ -1,5 +1,5 @@
 //! Per-extension key-value storage: what `storage.get/set/remove/keys` in
-//! `host/src/api.ts` reach over the bridge. One JSON object per extension
+//! `sdk/src/api.ts` reach over the bridge. One JSON object per extension
 //! in `<data dir>/pal/storage/<extension>.json` (the top-level data dir, so
 //! every config profile sees the same bankroll, like the clipboard history),
 //! written whole and atomically on every change ([`crate::fs::write_atomic`]).

@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { DEFAULTS, RESHUFFLE_AT, actions, apply, canDouble, canSplit, isBlackjack, newGame, shoe, value, type Settings, type State } from "../../../extensions/blackjack/game.ts";
 import { backSvg, cardSvg, type Card } from "../../../extensions/blackjack/cards.ts";
 import { money, render } from "../../../extensions/blackjack/render.ts";
-import type { View, ViewNode } from "../../src/protocol.ts";
+import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 
 /** A shoe that deals `order` in that order: the dealer pops from the end. */

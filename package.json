@@ -1,0 +1,8 @@
+{
+  "name": "pal-workspace",
+  "private": true,
+  "workspaces": ["sdk", "host"],
+  "devDependencies": {
+    "@zcag/pal": "workspace:*"
+  }
+}

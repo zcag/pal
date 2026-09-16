@@ -17,9 +17,9 @@ export type WireItem = {
   icon?: unknown;
   section?: string;
   url?: string;
-  /** `Action` in host/protocol.ts: id, title, shortcut?, style?, confirm?. */
+  /** `Action` in sdk/src/protocol.ts: id, title, shortcut?, style?, confirm?. */
   actions?: Action[];
-  /** As in host/protocol.ts; both replace what would be derived here. */
+  /** As in sdk/src/protocol.ts; both replace what would be derived here. */
   accessories?: Accessory[];
   detail?: Detail;
   [extra: string]: unknown;
@@ -53,10 +53,10 @@ export type SourceInfo = Source & {
   listed_at?: number;
 };
 
-/** How a level was opened (`Ctx` in host/protocol.ts): the filter picked, the args of the `push` that opened it, a form's values on its submit. */
+/** How a level was opened (`Ctx` in sdk/src/protocol.ts): the filter picked, the args of the `push` that opened it, a form's values on its submit. */
 export type Ctx = { filter?: string; args?: unknown; values?: FormValues };
 
-/** What a pick returns (`Effect` in host/protocol.ts); `copy` and `open` already ran in the core. */
+/** What a pick returns (`Effect` in sdk/src/protocol.ts); `copy` and `open` already ran in the core. */
 export type Effect = {
   copy?: string;
   open?: string;

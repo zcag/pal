@@ -298,7 +298,7 @@ export const nerdGlyphs: Item[] = [
   { id: "nf-weather", name: "Sunny", subtitle: "Weather Icons, U+E30D", icon: { kind: "glyph", value: "\u{e30d}" }, palette: "glyphs", section: "Nerd Font glyphs" },
   { id: "nf-pl", name: "Branch", subtitle: "Powerline, U+E0A0", icon: { kind: "glyph", value: "\u{e0a0}" }, palette: "glyphs", section: "Nerd Font glyphs" },
   { id: "nf-tinted", name: "Deploy", subtitle: "Tinted, U+F06B0", icon: { kind: "glyph", value: "\u{f06b0}", color: "#8b7cf6" }, palette: "glyphs", section: "Nerd Font glyphs" },
-  { id: "nf-xdg", name: "No calculator found", subtitle: "xdg dialog-error, mapped by host/src/icons.ts", icon: { kind: "glyph", value: "\u{f0029}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-xdg", name: "No calculator found", subtitle: "xdg dialog-error, mapped by sdk/src/icons.ts", icon: { kind: "glyph", value: "\u{f0029}" }, palette: "glyphs", section: "Nerd Font glyphs" },
   { id: "nf-text", name: "Search", subtitle: "Text glyph, stays in the mono font", icon: { kind: "glyph", value: "⌕" }, palette: "glyphs", section: "Nerd Font glyphs" },
   { id: "nf-emoji", name: "Sparkles", subtitle: "Emoji, the platform colour font", icon: { kind: "emoji", value: "✨" }, palette: "glyphs", section: "Nerd Font glyphs" },
 ];

@@ -2,8 +2,7 @@
 // forms in the panel. Enter pastes one into the app in front with its
 // placeholders filled (placeholders.ts), cmd+c copies it instead. The
 // keyword is a row keyword, so typing `sig` finds the signature.
-import type { Action, Ctx, Effect, Extension, Form, FormValues, Item } from "../../host/src/protocol.ts";
-import { clipboard, storage } from "../../host/src/api.ts";
+import { clipboard, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item } from "@zcag/pal";
 import { asSnippets, badKeyword, expand, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
 
 const KEY = "snippets";

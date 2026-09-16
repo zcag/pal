@@ -85,7 +85,7 @@ jobs:
       - name: Install JS dependencies
         run: |
           (cd app && npm ci)
-          (cd host && bun install --frozen-lockfile)
+          bun install --frozen-lockfile
           for d in extensions/*/; do
             if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
           done

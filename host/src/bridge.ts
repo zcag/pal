@@ -1,8 +1,8 @@
 // The host's side of the reverse RPC: `call` writes a `core/...` request on
 // stdout and resolves when the core's reply comes back on stdin (host.ts
-// hands replies to `resolve`). Its own module so `api.ts` and `host.ts`
-// share one pending table without importing each other.
-import type { Request, Response } from "./protocol.ts";
+// hands replies to `resolve`). Its own module so the SDK (through sdk.ts)
+// and `host.ts` share one pending table without importing each other.
+import type { Request, Response } from "../../sdk/src/protocol.ts";
 
 /** A hung core handler must not hang the extension that asked. */
 const TIMEOUT_MS = 5000;

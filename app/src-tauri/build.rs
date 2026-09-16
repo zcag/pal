@@ -17,7 +17,7 @@ fn main() {
         let status = Command::new("../scripts/fetch-bun.sh").arg(&target).status();
         assert!(status.map(|s| s.success()).unwrap_or(false), "fetch-bun.sh failed for {target}");
     }
-    for dir in ["resources/host", "resources/extensions"] {
+    for dir in ["resources/host", "resources/sdk", "resources/extensions"] {
         std::fs::create_dir_all(dir).expect("resources placeholder");
     }
     tauri_build::build()

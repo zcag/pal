@@ -1,12 +1,12 @@
-// The table as a view tree (`View` in host/src/protocol.ts): dealer's row,
+// The table as a view tree (`View` in `@zcag/pal`): dealer's row,
 // a message line, the player's hands, and a status line with the bet, the
 // bankroll, the record and the shoe. Cards are keyed per deal and slot so
 // a hit rises in, the hole card flips over, a split moves its card across,
 // and a cleared table fades out; rows hold their height meanwhile. No host
 // imports: the gallery renders a fixture state with this same function.
+import type { Action, View, ViewNode } from "@zcag/pal";
 import { CARD_H, CARD_W, backSvg, cardSvg, type Card } from "./cards.ts";
 import { actions as legal, canDouble, canSplit, isBlackjack, isBust, lastNet, value, type Action as Move, type Settings, type State } from "./game.ts";
-import type { Action, View, ViewNode } from "../../host/src/protocol.ts";
 
 /** Whole dollars as `$1,000`, cents only when there are any: a 3:2 blackjack on $15 pays $22.50. */
 export const money = (n: number): string => {

@@ -21,14 +21,14 @@ describe("loading", () => {
       broken: { "index.ts": "export default { palettes: { x: {\n  list: () => [{{{\n" },
       nopalettes: { "index.ts": "export default { nothing: true };" },
       notext: { "README.md": "not an extension" },
-      // An installed extension imports the API by its bare name (docs/extensions.md).
-      bare_import: { "index.ts": `import { settings, type Extension } from "pal";\nexport default { palettes: { p: { list: () => [{ id: "a", name: String(settings.get().greeting) }], pick: () => {} } } } satisfies Extension;`, "pal.json": manifest("bare_import", { settings: [{ kind: "text", id: "greeting", label: "G", default: "hey" }] }) },
+      // An installed extension imports the API by its package name (docs/extensions.md).
+      bare_import: { "index.ts": `import { settings, type Extension } from "@zcag/pal";\nexport default { palettes: { p: { list: () => [{ id: "a", name: String(settings.get().greeting) }], pick: () => {} } } } satisfies Extension;`, "pal.json": manifest("bare_import", { settings: [{ kind: "text", id: "greeting", label: "G", default: "hey" }] }) },
     });
     host = await Host.start({ roots: [root.dir] });
   });
   afterAll(() => { host.kill(); root.rm(); });
 
-  test("`pal` resolves to the host's api.ts through <root>/node_modules/pal, which the host links", async () => {
+  test("`@zcag/pal` resolves to the SDK through <root>/node_modules/@zcag/pal, which the host links", async () => {
     const h = await host.hello();
     expect(h.extensions.find((e) => e.name === "bare_import")?.loaded).toBe(true);
     expect(await host.list("bare_import", "p")).toEqual([{ id: "a", name: "hey" }]);
@@ -240,7 +240,7 @@ describe("watching", () => {
     root.rm();
   });
 
-  test("a root created after start is watched: its extensions load and reload, and it gets the pal link", async () => {
+  test("a root created after start is watched: its extensions load and reload, and it gets the @zcag/pal link", async () => {
     const parent = new Root();
     const late = join(parent.dir, "extensions");
     const host = await Host.start({ roots: [late] });
@@ -250,7 +250,7 @@ describe("watching", () => {
     writeFileSync(join(late, "fresh", "index.ts"), simpleExt("fresh"));
     expect((await loaded).params).toMatchObject({ extension: "fresh", root: late });
     expect(await host.list("fresh", "fresh")).toEqual([{ id: "a", name: "A" }]);
-    expect(existsSync(join(late, "node_modules", "pal"))).toBe(true);
+    expect(existsSync(join(late, "node_modules", "@zcag", "pal"))).toBe(true);
     const reloaded = host.next("extension/loaded", (p) => p.extension === "fresh");
     writeFileSync(join(late, "fresh", "index.ts"), simpleExt("fresh", { list: `() => [{ id: "b", name: "B" }]` }));
     await reloaded;
@@ -274,13 +274,13 @@ describe("watching", () => {
     parent.rm();
   });
 
-  test("the pal link: made once, re-pointed when stale, a real directory at that path is left alone", async () => {
+  test("the @zcag/pal link: made once, re-pointed when stale, a real directory at that path is left alone", async () => {
     const root = new Root({ e: { "index.ts": simpleExt("e") } });
-    const link = join(root.dir, "node_modules", "pal");
+    const link = join(root.dir, "node_modules", "@zcag", "pal");
     mkdirSync(dirname(link), { recursive: true });
     symlinkSync("/nonexistent/old-host", link);
     let host = await Host.start({ roots: [root.dir] });
-    expect(readlinkSync(link)).toBe(resolve(HOST, "../.."));
+    expect(readlinkSync(link)).toBe(resolve(HOST, "../../../sdk"));
     expect(host.stderr).toContain(`linked ${link}`);
     host.kill();
     host = await Host.start({ roots: [root.dir] });

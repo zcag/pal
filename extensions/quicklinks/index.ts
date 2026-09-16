@@ -2,8 +2,7 @@
 // through forms in the panel. A url with a `{query}` placeholder opens
 // through a drill-in level whose input fills it (a search engine); one
 // without opens at once. An `import` file adds read-only links.
-import type { Action, Ctx, Effect, Extension, Form, FormValues, Item } from "../../host/src/protocol.ts";
-import { home, settings, storage } from "../../host/src/api.ts";
+import { home, settings, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item } from "@zcag/pal";
 import { asLinks, badUrl, fill, placeholder, splitKeywords, type Link } from "./links.ts";
 
 const KEY = "links";

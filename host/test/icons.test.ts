@@ -1,6 +1,6 @@
 // icons.ts: freedesktop icon names to the bundled symbols font.
 import { describe, expect, test } from "bun:test";
-import { XDG_ICONS, xdg } from "../src/icons.ts";
+import { XDG_ICONS, xdg } from "../../sdk/src/icons.ts";
 
 describe("xdg", () => {
   test("a standard name maps to one private-use codepoint", () => {

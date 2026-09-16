@@ -1,15 +1,20 @@
-// What an extension imports to reach the core's OS capabilities: the `pal`
-// module (host.ts resolves that bare name to this file for an installed
-// extension; the bundled ones import it by relative path, the same module).
-// Every function is one `core/<capability>.<fn>` request over the bridge.
-// The protocol's types ride along, so `import type { Extension } from "pal"`.
+// What an extension imports from `@zcag/pal` to reach the core's OS
+// capabilities. Every function is one `core/<capability>.<fn>` request over
+// the host's bridge, which reaches this module through `runtime.ts`. The
+// protocol's types ride along (`index.ts`), so
+// `import { settings, type Extension } from "@zcag/pal"`.
 import { homedir } from "node:os";
-import { call } from "./bridge.ts";
-import { caller, resolved, subscribe } from "./settings.ts";
 import type { ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
+import { runtime } from "./runtime.ts";
 
-export type * from "./protocol.ts";
+const call = <T = unknown>(method: string, params?: unknown): Promise<T> => runtime().call<T>(method, params);
+const who = (extension?: string): string => runtime().caller(extension).extension;
 
+/**
+ * The raw bridge: `core.call("clipboard.list", { limit: 5 })` is one
+ * `core/clipboard.list` request. What the typed objects below wrap; for a
+ * capability they do not cover yet.
+ */
 export const core = { call };
 
 /** A leading `~` (bare, or `~/...`) replaced by the home directory, as paths from settings and data files carry it. */
@@ -19,21 +24,21 @@ export const home = (path: string): string => path.replace(/^~(?=\/|$)/, homedir
  * The extension's settings as the user set them: the manifest's defaults
  * (pal.json) with the config file's `[extensions.<name>]` on top, kept
  * current by the core on every config change. Which extension is asking is
- * known inside `list`/`pick` and at import time; elsewhere pass the name
- * (see settings.ts).
+ * known inside `list`/`pick`/`view` and at import time; elsewhere pass the
+ * name.
  */
 export const settings = {
   /** Extension-level values, `[extensions.<name>]`. */
-  get: <T = Record<string, unknown>>(extension?: string): T => resolved(caller(extension).extension).settings as T,
+  get: <T = Record<string, unknown>>(extension?: string): T => runtime().resolved(who(extension)).settings as T,
   /** One palette's declared values, `[palettes.<id>].settings`; the current palette inside `list`/`pick`. */
   palette: <T = Record<string, unknown>>(palette?: string, extension?: string): T => {
-    const c = caller(extension);
+    const c = runtime().caller(extension);
     const name = palette ?? c.palette;
     if (!name) throw new Error("settings.palette: no palette in context; pass its name");
-    return (resolved(c.extension).palettes[name] ?? {}) as T;
+    return (runtime().resolved(c.extension).palettes[name] ?? {}) as T;
   },
   /** Called with the new values whenever they change; returns the unsubscribe. */
-  onChange: (cb: (s: ResolvedSettings) => void, extension?: string) => subscribe(caller(extension).extension, cb),
+  onChange: (cb: (s: ResolvedSettings) => void, extension?: string): (() => void) => runtime().subscribe(who(extension), cb),
 };
 
 /**
@@ -49,11 +54,13 @@ export const settings = {
 export const storage = {
   /** Bytes per extension file, serialised. */
   LIMIT: 256 * 1024,
-  get: <T = unknown>(key: string, extension?: string) => call<T | null>("storage.get", { extension: caller(extension).extension, key }),
-  set: (key: string, value: unknown, extension?: string) => call<null>("storage.set", { extension: caller(extension).extension, key, value }),
-  remove: (key: string, extension?: string) => call<null>("storage.remove", { extension: caller(extension).extension, key }),
+  /** The value under `key`, or null. */
+  get: <T = unknown>(key: string, extension?: string) => call<T | null>("storage.get", { extension: who(extension), key }),
+  /** Any JSON value; null removes the key. */
+  set: (key: string, value: unknown, extension?: string) => call<null>("storage.set", { extension: who(extension), key, value }),
+  remove: (key: string, extension?: string) => call<null>("storage.remove", { extension: who(extension), key }),
   /** Every key the extension has set, sorted. */
-  keys: (extension?: string) => call<string[]>("storage.keys", { extension: caller(extension).extension }),
+  keys: (extension?: string) => call<string[]>("storage.keys", { extension: who(extension) }),
 };
 
 /** `pal_core::clipboard::Entry`: one of text/image/files is set, by kind. */
@@ -74,13 +81,18 @@ export type ClipboardEntry = {
   height: number | null;
 };
 
+/** `clipboard.list` options: a prefix-word `query` over text and file paths, one `kind`, and a page. */
 export type ClipboardListOpts = { query?: string; kind?: ClipboardEntry["kind"]; limit?: number; offset?: number };
 
+/** The clipboard history the core keeps (`pal_core::clipboard`). */
 export const clipboard = {
   /** Pinned first, then newest; `query` is a prefix-word search over text and file paths. */
   list: (opts: ClipboardListOpts = {}) => call<ClipboardEntry[]>("clipboard.list", opts),
+  /** One entry by id; rejects when it is gone. */
   get: (id: number) => call<ClipboardEntry>("clipboard.get", { id }),
+  /** Pin (or unpin with `false`): a pinned entry lists first and is exempt from retention (the age and count limits), not from `clear`. */
   pin: (id: number, pinned = true) => call<null>("clipboard.pin", { id, pinned }),
+  /** Remove one entry. */
   delete: (id: number) => call<null>("clipboard.delete", { id }),
   /** Everything, pinned included. */
   clear: () => call<null>("clipboard.clear"),
@@ -123,6 +135,7 @@ export type Display = { id: string; frame: Rect; visible_frame: Rect; primary: b
 /** What `windows.layout` did: the window, and where it went from and to. */
 export type Applied = { id: string; layout: string; from: Rect; to: Rect };
 
+/** Windows of every app, over the OS's accessibility API (`pal_core::windows`). */
 export const windows = {
   /** Every window of every regular app, front to back; minimised ones included. */
   list: () => call<Window[]>("windows.list"),
@@ -158,6 +171,7 @@ export type SystemCommand = {
   available: boolean;
 };
 
+/** The system commands the core knows how to run (`pal_core::system`). */
 export const system = {
   /** The whole catalogue; filter on `available`. */
   commands: () => call<SystemCommand[]>("system.commands"),

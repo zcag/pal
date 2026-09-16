@@ -101,6 +101,7 @@ clippy with `-D warnings`, `cargo test --workspace` (tests that need a
 pasteboard, an unlocked keychain or the fixture corpus are `#[ignore]`d and
 run by hand with `--ignored`), a `cargo build` of the app crate (build.rs,
 tauri-build, no bundle), `tsc` and `vitest` in `app/`, `tsc` and `bun test`
-in `host/` (the `apps` test is macOS-only). Caches: cargo (rust-cache), npm
+in `host/` (the `apps` test is macOS-only), the declaration build and a
+`npm pack --dry-run` in `sdk/`. Caches: cargo (rust-cache), npm
 (setup-node), bun's package cache and the fetched bun sidecar
 (`app/src-tauri/binaries`, keyed on `fetch-bun.sh`).

@@ -6,9 +6,7 @@
 // copy the name or the command.
 import { readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, resolve } from "node:path";
-import type { Accessory, Action, Extension, Item } from "../../host/src/protocol.ts";
-import { home, settings } from "../../host/src/api.ts";
-import { xdg } from "../../host/src/icons.ts";
+import { home, settings, xdg, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.ssh]`, defaults in pal.json. */
 type Settings = { config: string; include_known_hosts: boolean; terminal: "auto" | "kitty" | "Terminal" | "iTerm2" | "Ghostty" | "Alacritty" };

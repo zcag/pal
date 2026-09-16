@@ -4,11 +4,12 @@
 // standard names plus a few common app names) to the Nerd Font codepoint
 // that draws it, from the symbols font the app bundles
 // (app/src/assets/fonts). Every value is one private-use codepoint, which
-// the UI renders as a glyph icon. The v1 `scripts` tier reads it for rows
-// that only carry `icon_xdg`; an extension can use it directly:
+// the UI renders as a glyph icon. The bundled `scripts` extension reads it
+// for rows that only carry `icon_xdg`; an extension can use it directly:
 // `icon: xdg("dialog-error")`. Names are Material Design glyphs
 // (`md-*` in nerd-fonts/glyphnames.json); a name not in the table gives
 // undefined so the caller can fall back to the palette's icon.
+/** Freedesktop icon name to Nerd Font glyph, the table `xdg` reads. */
 export const XDG_ICONS: Record<string, string> = {
   "accessories-calculator":    "\u{f00ec}", // md-calculator
   "accessories-text-editor":   "\u{f03eb}", // md-pencil

@@ -225,7 +225,7 @@ impl Store {
     /// every config, the directory `app/src-tauri/src/host.rs` passes as
     /// the user root. Not next to the config file: that is a dotfiles
     /// checkout for many, and the store, its staging dir and the host's
-    /// `node_modules/pal` link are not dotfiles (a dotfiles-managed
+    /// `node_modules/@zcag/pal` link are not dotfiles (a dotfiles-managed
     /// extensions dir is `general.extension_dirs`).
     pub fn locate() -> Store {
         Store::at(fs::data_dir().join("extensions"))

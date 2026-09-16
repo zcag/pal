@@ -10,7 +10,7 @@ const IMAGE_SRC = /^(icon:\/\/|data:image\/)/;
 const MAX_DELAY = 8;
 
 /**
- * A render tree (`ViewNode`, mirrored from host/src/protocol.ts) drawn with
+ * A render tree (`ViewNode`, mirrored from sdk/src/protocol.ts) drawn with
  * the tokens: a fixed vocabulary of stacks, text, images, badges, dividers,
  * spacers, progress bars and key caps, never HTML. A node of a type this
  * build does not know is skipped, not thrown on, so a newer extension still

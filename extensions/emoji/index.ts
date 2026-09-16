@@ -1,8 +1,7 @@
 // Emoji picker over data.json ({emoji, name, keywords}[], names are
 // shortcodes): a grid inside, tiles are the glyphs; copy the emoji, or its
 // :shortcode:.
-import type { Extension, Item } from "../../host/src/protocol.ts";
-import { settings } from "../../host/src/api.ts";
+import { settings, type Extension, type Item } from "@zcag/pal";
 import data from "./data.json";
 
 type Row = { emoji: string; name: string; keywords: string[] };

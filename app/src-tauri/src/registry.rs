@@ -16,7 +16,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::{lock, welcome};
 
-/// A palette as the host describes it (`PaletteMeta` in host/protocol.ts).
+/// A palette as the host describes it (`PaletteMeta` in sdk/src/protocol.ts).
 /// The optional fields ride to the UI untouched through `SourceView`.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 pub struct PaletteMeta {

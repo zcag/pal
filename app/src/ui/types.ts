@@ -80,7 +80,7 @@ export type Filter = {
 };
 
 /**
- * One form field (`FormField` in host/src/protocol.ts, with `default`
+ * One form field (`FormField` in sdk/src/protocol.ts, with `default`
  * named `value` here). `required` blocks the submit while empty (unticked
  * for a checkbox), `description` is a help line under the field.
  */
@@ -94,11 +94,11 @@ export type FormField = { id: string; label: string; placeholder?: string; requi
 
 export type FormValues = Record<string, string | boolean>;
 
-/** A form level (`Form` in host/src/protocol.ts): the submit is a pick with `submit.id` and the values; `errors` by field id come from the extension. */
+/** A form level (`Form` in sdk/src/protocol.ts): the submit is a pick with `submit.id` and the values; `errors` by field id come from the extension. */
 export type FormSpec = { id?: string; title: string; fields: FormField[]; submit: { id: string; title: string }; cancel?: string; errors?: Record<string, string> };
 
 // ---- view: a declarative render tree ------------------------------------
-// Mirrors `ViewNode` / `View` in host/src/protocol.ts (the contract); this
+// Mirrors `ViewNode` / `View` in sdk/src/protocol.ts (the contract); this
 // side only adds nothing. Unknown node types are skipped by the renderer.
 
 export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";

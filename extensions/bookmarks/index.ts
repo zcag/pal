@@ -1,8 +1,7 @@
 // Hand-picked links from a JSON file of {name, url, keywords?, ...}: open
 // the url, or copy it. Same data file as v1's bookmarks palette, read on
 // every list so an edit shows at once.
-import type { Action, Extension, Item } from "../../host/src/protocol.ts";
-import { home, settings } from "../../host/src/api.ts";
+import { home, settings, type Action, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.bookmarks]`, default in pal.json. */
 type Settings = { file: string };

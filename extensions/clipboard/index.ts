@@ -2,8 +2,7 @@
 // so every keystroke is a `clipboard.list` with the query (SQLite FTS does
 // the matching, order is pinned first then newest). Enter pastes, the rest
 // of the actions manage the entry.
-import type { Action, Detail, Extension, Item } from "../../host/src/protocol.ts";
-import { clipboard, settings, type ClipboardEntry } from "../../host/src/api.ts";
+import { clipboard, settings, type Action, type ClipboardEntry, type Detail, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.clipboard]`, defaults in pal.json. `max_entries` and `max_age_days` are the recorder's (app clipboard.rs); this side never reads them. */
 type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy" };
