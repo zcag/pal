@@ -1,0 +1,24 @@
+{
+  "name": "make",
+  "title": "Makefile targets",
+  "description": "The targets of every Makefile under your project folders. Enter runs one in a terminal (or in the background, with a toast).",
+  "version": "0.1.0",
+  "icon": "󰣪",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "list", "id": "projects", "label": "Project folders", "description": "Folders scanned two levels deep for a Makefile, makefile or GNUmakefile. ~ is expanded.", "placeholder": "~/proj", "default": ["~/proj"] },
+    { "kind": "select", "id": "terminal", "label": "Run in", "description": "Where Run puts make. A terminal keeps its window open until you press Enter; background runs it unseen and toasts the exit status (the output opens in the panel when it failed; a run past 8 s is left to finish on its own). On Linux the terminal is $TERMINAL, else kitty, foot, alacritty, xterm.", "options": [
+      { "id": "auto", "title": "Terminal (auto)" },
+      { "id": "background", "title": "Background" },
+      { "id": "kitty", "title": "kitty" },
+      { "id": "Terminal", "title": "Terminal" },
+      { "id": "iTerm2", "title": "iTerm2" },
+      { "id": "Ghostty", "title": "Ghostty" },
+      { "id": "Alacritty", "title": "Alacritty" }
+    ], "default": "auto" }
+  ],
+  "palettes": {
+    "make": { "description": "Every target of every Makefile in the project folders, one section per project." }
+  }
+}

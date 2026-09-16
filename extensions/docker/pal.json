@@ -1,0 +1,26 @@
+{
+  "name": "docker",
+  "title": "Docker",
+  "description": "Containers, images and Compose projects over the docker CLI. Enter starts or stops a container; logs open in the panel, a shell in a terminal.",
+  "version": "0.1.0",
+  "icon": "󰡨",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "text", "id": "binary", "label": "Binary", "description": "The CLI to run: docker, or podman (its docker-compatible commands are what is used).", "placeholder": "docker", "default": "docker" },
+    { "kind": "number", "id": "ttl", "label": "Refresh after", "description": "Seconds a listing stays good for: the palettes list again on show only once the rows are older than this. Read when the extension loads.", "min": 0, "max": 3600, "unit": "s", "default": 10 },
+    { "kind": "select", "id": "terminal", "label": "Terminal (macOS)", "description": "Which terminal Shell opens. Auto picks the first installed of kitty, Ghostty, Alacritty, iTerm2, Terminal. On Linux $TERMINAL, else kitty, foot, alacritty, xterm.", "options": [
+      { "id": "auto", "title": "Auto" },
+      { "id": "kitty", "title": "kitty" },
+      { "id": "Terminal", "title": "Terminal" },
+      { "id": "iTerm2", "title": "iTerm2" },
+      { "id": "Ghostty", "title": "Ghostty" },
+      { "id": "Alacritty", "title": "Alacritty" }
+    ], "default": "auto" }
+  ],
+  "palettes": {
+    "docker": { "description": "Every container, running first: start, stop, restart, logs, a shell, remove." },
+    "images": { "description": "Local images: run one (name and ports asked), remove, copy the id." },
+    "compose": { "description": "Compose projects docker knows of: up, down, restart, logs." }
+  }
+}

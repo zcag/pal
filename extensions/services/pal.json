@@ -1,0 +1,17 @@
+{
+  "name": "services",
+  "title": "Services",
+  "description": "systemd units on Linux (user and system), launchd agents on macOS: start, stop, restart, enable, logs.",
+  "version": "0.1.0",
+  "icon": "󰒓",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "number", "id": "ttl", "label": "Refresh after", "description": "Seconds a listing stays good for: the palette lists again on show only once the rows are older than this. Read when the extension loads.", "min": 0, "max": 3600, "unit": "s", "default": 10 },
+    { "kind": "boolean", "id": "confirm_user", "label": "Confirm user units", "text": "Ask before stopping or restarting a user unit too (system units always ask)", "default": false },
+    { "kind": "list", "id": "agent_dirs", "label": "Agent folders (macOS)", "description": "Where the launchd agent plists are read from; the first is yours, the second every user's.", "default": ["~/Library/LaunchAgents", "/Library/LaunchAgents"] }
+  ],
+  "palettes": {
+    "services": { "description": "Every service unit (Linux) or launchd job (macOS), with its state." }
+  }
+}
