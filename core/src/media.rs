@@ -605,12 +605,13 @@ mod platform {
             id: "spotify",
             name: "Spotify",
             bundle: "com.spotify.client",
+            // `st` is a term in Spotify's dictionary (a syntax error as a variable); `ps` is not.
             script: r#"tell application "Spotify"
   set sep to character id 31
-  set st to player state as text
-  if st is "stopped" then return st
+  set ps to player state as text
+  if ps is "stopped" then return ps
   set t to current track
-  return st & sep & (name of t) & sep & (artist of t) & sep & (album of t) & sep & (artwork url of t) & sep & (spotify url of t) & sep & (duration of t) & sep & (player position)
+  return ps & sep & (name of t) & sep & (artist of t) & sep & (album of t) & sep & (artwork url of t) & sep & (spotify url of t) & sep & (duration of t) & sep & (player position)
 end tell"#,
             unit: 1e-3,
         },
@@ -620,10 +621,10 @@ end tell"#,
             bundle: "com.apple.Music",
             script: r#"tell application "Music"
   set sep to character id 31
-  set st to player state as text
-  if st is "stopped" then return st
+  set ps to player state as text
+  if ps is "stopped" then return ps
   set t to current track
-  return st & sep & (name of t) & sep & (artist of t) & sep & (album of t) & sep & "" & sep & "" & sep & (duration of t) & sep & (player position)
+  return ps & sep & (name of t) & sep & (artist of t) & sep & (album of t) & sep & "" & sep & "" & sep & (duration of t) & sep & (player position)
 end tell"#,
             unit: 1.0,
         },
