@@ -158,7 +158,7 @@ export function loremWords(n: number): string {
     if (sentence === 0 && out.length >= OPENING.length) w = w[0].toUpperCase() + w.slice(1);
     sentence++;
     if (sentence >= target || out.length === n - 1) { w = w.replace(/,$/, "") + "."; sentence = 0; target = 8 + randInt(9); }
-    else if (sentence > 3 && randInt(8) === 0 && !w.endsWith(",")) w += ",";
+    else if (sentence > 3 && out.length >= OPENING.length && randInt(8) === 0 && !w.endsWith(",")) w += ",";
     out.push(w);
   }
   return out.join(" ");

@@ -8,6 +8,11 @@
 // `upcoming` bar item, its escalation and horizon, the cache a minute
 // tick reads and how long that render takes. The Google source is
 // calendar-google.test.ts.
+//
+// The clock is pinned: `PAL_NOW` is the host's clock (calendar/clock.ts)
+// and `TZ` its zone, both passed through the harness, so the fixtures are
+// fixed instants around Wed 16 Sep 2026 10:30 UTC and every `over`, `now`,
+// `in 42 min`, tomorrow and horizon reads the same at any hour of any day.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
@@ -18,6 +23,7 @@ import { checkView } from "../../../sdk/src/view.ts";
 import { Host } from "../harness.ts";
 
 process.env.TZ = "UTC";
+process.env.PAL_NOW = "2026-09-16T10:30:00";
 const E = "calendar";
 const P = "schedule";
 const MAC = process.platform === "darwin";
@@ -33,14 +39,14 @@ const ev = (id: string, title: string, start: number, end: number, extra: Partia
   id, occurrence: null, title, start, end, all_day: false, location: null, notes: null, url: null, calendar: cals[0], attendees: [], organizer: null, conference_url: null, recurring: false, my_status: null, ...extra,
 });
 
-// Fixtures relative to the clock: a running event, the next one, one tomorrow, one this week, one later, an all-day, a declined one, a past one.
-const now = Date.now();
+// Fixtures around the pinned clock (Wed 16 Sep 2026 10:30): a running event, the next one, one tomorrow, one this week, one later, an all-day, a declined one, a past one.
+const now = Date.parse(process.env.PAL_NOW);
 const today = startOfDay(now);
-const curStart = Math.max(now - 10 * MIN, today);
+const curStart = now - 10 * MIN;
 const ZOOM = "https://serpapi.zoom.us/j/85712227948?pwd=abc";
 const events: CalendarEvent[] = [
   ev("standup", "Standup", curStart, now + 20 * MIN, { occurrence: curStart, recurring: true, conference_url: ZOOM, location: ZOOM, attendees: [{ name: "Terry", status: "accepted", me: false }, { name: "Cagdas", status: "accepted", me: true }], organizer: "terry@serpapi.com", my_status: "accepted", notes: "Daily sync\n\n- items" }),
-  ev("past", "Earlier today", today, Math.min(today + 1, curStart)),
+  ev("past", "Earlier today", today + 8 * H, today + 9 * H),
   ev("next", "Dentist", now + 42 * MIN, now + 72 * MIN, { calendar: cals[1], location: "Room 4" }),
   ev("declined", "Sales sync", now + 3 * H, now + 4 * H, { my_status: "declined", attendees: [{ name: "Bob", status: "accepted", me: false }, { name: "Cagdas", status: "declined", me: true }] }),
   ev("tmr", "Concert", addDays(now, 1) + 19 * H, addDays(now, 1) + 21 * H, { calendar: cals[1] }),
@@ -63,7 +69,7 @@ const core = (list: CalendarEvent[] = events) => ({
   "calendar.open": (p: any) => { calls.push({ method: "open", params: p }); return null; },
 });
 beforeAll(async () => { host = await Host.bundled({ core: core(), settings: { [E]: { settings: { days: 14 } } } }); });
-afterAll(() => host.kill());
+afterAll(() => { host.kill(); delete process.env.PAL_NOW; });
 
 const list = (ctx?: Parameters<Host["list"]>[3]) => host.list(E, P, "", ctx);
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick(E, P, id, action, ctx);
@@ -277,14 +283,14 @@ describe("today helpers", () => {
     expect(nodes(open.tree).find((n) => n.key === `t1@${tmr1.start}`)).toMatchObject({ selected: true });
     expect(open.actions.map((a) => a.id)).toContain(`join:t1@${tmr1.start}`);
     expect(texts(open)).toContain("1:1 with Mara");
-    expect(texts(open)).not.toContain(`tomorrow ${new Date(tmr1.start).toTimeString().slice(0, 5)}`);
+    expect(texts(open)).not.toContain("tomorrow 10:00");
     expect(open.actions[0]).toEqual({ id: "primary", title: "Join call" });
     expect(popoverActions(l, { ...st, expanded: true, cursor: 3 })[0]).toEqual({ id: "primary", title: "Open in Calendar" });
     expect(popoverActions(l, { ...st, google: true, expanded: true, cursor: 3 })[0]).toEqual({ id: "primary", title: "Open in Google Calendar" });
     // A clear day: the card names the next event; no ring, Enter opens the calendar.
     const clear = checkView(popover([gone, tmr1], t0, true, { ...st, expanded: true }));
     expect(texts(clear)).toContain("Nothing today");
-    expect(texts(clear)).toContain(`Next: 1:1 with Mara, tomorrow ${new Date(tmr1.start).toTimeString().slice(0, 5)}`);
+    expect(texts(clear)).toContain("Next: 1:1 with Mara, tomorrow 10:00");
     // Tomorrow open on a clear day: the ring is on its first row, so Enter joins that call; folded, Enter opens the calendar.
     expect(clear.actions[0]).toEqual({ id: "primary", title: "Join call" });
     expect(checkView(popover([gone, tmr1], t0, true, st)).actions[0]).toEqual({ id: "open-calendar", title: "Open Calendar" });
@@ -311,10 +317,10 @@ describe("calendar extension", () => {
     expect(last().params).toEqual({ from: today, to: addDays(now, 14), calendars: undefined });
     const standup = items[0];
     expect(standup).toMatchObject({ name: "Standup", icon: "#1e4d8c", accessories: [{ tag: "now", color: "green" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
-    expect(standup.subtitle).toBe(`${timeRange(events[0])} · ${ZOOM}`);
+    expect(standup.subtitle).toBe(`10:20 – 10:50 · ${ZOOM}`);
     expect(standup.keywords).toContain("Work");
     // Only the first upcoming event carries a tag.
-    expect(items[1]).toMatchObject({ name: "Dentist", icon: "#34aadc", subtitle: `${timeRange(events[2])} · Room 4`, accessories: [] });
+    expect(items[1]).toMatchObject({ name: "Dentist", icon: "#34aadc", subtitle: "11:12 – 11:42 · Room 4", accessories: [] });
     expect(items[4]).toMatchObject({ name: "Republic Day", subtitle: "All day", icon: "#16a765" });
     expect(items[6]).toMatchObject({ id: "new", name: "New event" });
   });
@@ -327,7 +333,7 @@ describe("calendar extension", () => {
       expect(withCall).toEqual(["join", "open", "copy_link", "copy_details", "delete"]);
       expect(without).toEqual(["open", "copy_details", "delete"]);
       expect(items[0].actions![4]).toMatchObject({ title: "Delete this occurrence", style: "destructive", shortcut: "ctrl+x" });
-      expect(items[0].actions![4].confirm).toMatch(/^Delete "Standup" on /);
+      expect(items[0].actions![4].confirm).toBe('Delete "Standup" on Wed 16 Sep?');
       expect(items[1].actions![2].title).toBe("Delete event");
     } else {
       expect(withCall).toEqual(["join", "copy_link", "copy_details"]);
@@ -389,7 +395,7 @@ describe("calendar extension", () => {
     const d = await host.detail(E, P, rid(events[0]));
     expect(d.markdown).toBe("Daily sync\n\n- items");
     expect(d.metadata).toEqual([
-      { label: "When", value: `${details(events[0]).split("\n")[1]} (30 min)` },
+      { label: "When", value: "Wed 16 Sep 2026, 10:20 – 10:50 (30 min)" },
       { label: "Calendar", tags: [{ text: "Work (Google)" }] },
       { label: "Location", value: ZOOM },
       { label: "Call", link: { text: ZOOM.replace("https://", "").slice(0, 60), href: ZOOM } },
@@ -400,7 +406,7 @@ describe("calendar extension", () => {
     ]);
     const plain = await host.detail(E, P, rid(events[6]));
     expect(plain.markdown).toBe("# Republic Day");
-    expect(plain.metadata![0]).toEqual({ label: "When", value: `${details(events[6]).split("\n")[1].replace(" (all day)", "")} (all day)` });
+    expect(plain.metadata![0]).toEqual({ label: "When", value: "Mon 21 Sep 2026 (all day)" });
     expect(await host.detail(E, P, "new")).toEqual({});
   });
 
@@ -411,6 +417,9 @@ describe("calendar extension", () => {
     const cal = f.fields.find((x) => x.id === "calendar") as Extract<Form["fields"][number], { kind: "select" }>;
     expect(cal.options.map((o) => o.id)).toEqual(["", "cal-work", "cal-home"]);
     expect(f.fields.find((x) => x.id === "day")).toMatchObject({ default: "today" });
+    // The next quarter hour after the clock, an hour long.
+    expect(f.fields.find((x) => x.id === "start")).toMatchObject({ default: "10:45" });
+    expect(f.fields.find((x) => x.id === "end")).toMatchObject({ default: "11:45" });
     const day = new Date(2026, 8, 20).getTime();
     const ok = await pick("new", "create", { values: { title: " Dentist ", day: "2026-09-20", start: "2pm", end: "15:30", all_day: false, calendar: "cal-home", location: "Room 1", notes: "bring card" } });
     expect(ok).toEqual({ keep: true, toast: { title: "Added", message: "Dentist, Sun 20 Sep 14:00 – 15:30", style: "success" } });
@@ -426,6 +435,7 @@ describe("calendar extension", () => {
     expect(bad.fields.find((x) => x.id === "day")).toMatchObject({ default: "someday" });
     const refused = (await pick("new", "create", { values: { title: "Holiday", day: "today", start: "10:00", end: "11:00", all_day: false, calendar: "cal-hol" } })).form as Form;
     expect(refused.errors).toEqual({ title: "Holidays does not take new events" });
+    expect(last().params).toMatchObject({ title: "Holiday", start: today + 10 * H, end: today + 11 * H });
   });
 
   test("permission rows: the ask, the pane, the missing backend", async () => {
@@ -476,23 +486,24 @@ describe("today palette and the upcoming bar item", () => {
     expect(items.map((i) => i.id)).toEqual([rid(events[1]), rid(events[0]), rid(events[2])]);
     expect(items.map((i) => i.section)).toEqual(["Today", "Today", "Today"]);
     expect(items[0]).toMatchObject({ name: "Earlier today", accessories: [{ tag: "over", color: "grey" }] });
-    expect(items[1]).toMatchObject({ name: "Standup", icon: { glyph: "\u{f00ee}", color: "#1e4d8c" }, subtitle: `${timeRange(events[0])} · 30 min · ${ZOOM}`, accessories: [{ tag: "now, 20 min left", color: "green" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
-    expect(items[2]).toMatchObject({ name: "Dentist", icon: { glyph: "\u{f00ee}", color: "#34aadc" }, subtitle: `${timeRange(events[2])} · 30 min · Room 4`, accessories: [{ tag: "in 42 min", color: "blue" }] });
+    expect(items[0].subtitle).toBe("08:00 – 09:00 · 1 h");
+    expect(items[1]).toMatchObject({ name: "Standup", icon: { glyph: "\u{f00ee}", color: "#1e4d8c" }, subtitle: `10:20 – 10:50 · 30 min · ${ZOOM}`, accessories: [{ tag: "now, 20 min left", color: "green" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
+    expect(items[2]).toMatchObject({ name: "Dentist", icon: { glyph: "\u{f00ee}", color: "#34aadc" }, subtitle: "11:12 – 11:42 · 30 min · Room 4", accessories: [{ tag: "in 42 min", color: "blue" }] });
     expect(items[2].keywords).toEqual(["Home", "Room 4", "soon", "today"]);
     expect(items[1].actions![0]).toEqual({ id: "join", title: "Join call" });
     // The popover's form drops what is over and adds tomorrow.
     const rest = await host.list(E, T, "", { args: { rest: true } });
     expect(rest.map((i) => [i.name, i.section])).toEqual([["Standup", "Today"], ["Dentist", "Today"], ["Concert", "Tomorrow"]]);
-    expect((rest[2].accessories![0] as { tag: string }).tag).toMatch(/^in \d+ h/);
+    expect(rest[2]).toMatchObject({ subtitle: "19:00 – 21:00 · 2 h", accessories: [{ tag: "in 32 h", color: "blue" }] });
   });
 
   test("the day done: Nothing else today names the next event's day, tomorrow's rows follow; a clear day says so", async () => {
-    const done = [events[1], ev("gone", "Morning sync", today + 1, Math.min(today + 2, now)), events[4], events[5]];
+    const done = [events[1], ev("gone", "Morning sync", today + 9 * H, today + 9 * H + 30 * MIN), events[4], events[5]];
     const h2 = await Host.bundled({ core: core(done) });
     try {
       const rows = await h2.list(E, T);
       expect(rows.map((i) => [i.id, i.section])).toEqual([[rid(events[1]), "Today"], [rid(done[1]), "Today"], ["nothing", "Today"], [rid(events[4]), "Tomorrow"]]);
-      expect(rows[2]).toMatchObject({ name: "Nothing else today", subtitle: `Next: Concert, tomorrow ${new Date(events[4].start).toTimeString().slice(0, 5)}`, icon: "\u{f00ef}", actions: [] });
+      expect(rows[2]).toMatchObject({ name: "Nothing else today", subtitle: "Next: Concert, tomorrow 19:00", icon: "\u{f00ef}", actions: [] });
       expect(await h2.pick(E, T, "nothing")).toEqual({});
       expect(await h2.detail(E, T, "nothing")).toEqual({});
       // The strip: nothing inside ten hours.
@@ -503,13 +514,13 @@ describe("today palette and the upcoming bar item", () => {
     try {
       const rows = await h3.list(E, T);
       expect(rows).toHaveLength(1);
-      expect(rows[0]).toMatchObject({ id: "nothing", name: "Nothing today", subtitle: `Next: Review, ${new Date(events[5].start).toDateString().replace(/ \d{4}$/, "").replace(/^(\w+) (\w+) 0?(\d+)$/, "$1 $3 $2")} ${new Date(events[5].start).toTimeString().slice(0, 5)}` });
+      expect(rows[0]).toMatchObject({ id: "nothing", name: "Nothing today", subtitle: "Next: Review, Sun 20 Sep 10:00" });
     } finally { h3.kill(); }
   });
 
   test("the bar item: the running call as now with a dot, a minute tick from the cache in under 5 ms, the rest fetch", async () => {
     const first = await host.render(E, "upcoming", { reason: "load" });
-    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup now", color: "green", badge: "dot", tooltip: `Standup, ${timeRange(events[0])} (Work), Enter joins`, menu: { view: { id: "upcoming", keys: "actions", title: `Today · ${dayName(now)}` } } });
+    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup now", color: "green", badge: "dot", tooltip: "Standup, 10:20 – 10:50 (Work), Enter joins", menu: { view: { id: "upcoming", keys: "actions", title: "Today · Wed 16 Sep" } } });
     expect(first.stale).toBeUndefined();
     const before = eventsCalls();
     const t = performance.now();
@@ -542,7 +553,7 @@ describe("today palette and the upcoming bar item", () => {
     expect(sel(view(await host.barAction(E, "upcoming", "up", ctx)))).toBe(rid(events[0]));
     expect(await host.barAction(E, "upcoming", "primary", ctx)).toEqual({ open: ZOOM });
     expect(await host.barAction(E, "upcoming", "copy-link", ctx)).toEqual({ copy: ZOOM });
-    expect(await host.barAction(E, "upcoming", "join-next", ctx)).toEqual({ open: ZOOM, hud: `Standup, ${timeRange(events[0])}` });
+    expect(await host.barAction(E, "upcoming", "join-next", ctx)).toEqual({ open: ZOOM, hud: "Standup, 10:20 – 10:50" });
     // Tomorrow: folded at first, t opens it and the Concert row appears; a click on it focuses it; t folds it and the ring comes back today.
     expect(JSON.stringify(first.menu)).not.toContain("Concert");
     const opened = view(await host.barAction(E, "upcoming", "tomorrow", ctx));
@@ -550,7 +561,7 @@ describe("today palette and the upcoming bar item", () => {
     expect(sel(view(await host.barAction(E, "upcoming", `focus:${rid(events[4])}`, ctx)))).toBe(rid(events[4]));
     expect(sel(view(await host.barAction(E, "upcoming", "tomorrow", ctx)))).toBe(rid(events[2]));
     // The Join button on a row is that row's call whatever the ring is on.
-    expect(await host.barAction(E, "upcoming", `join:${rid(events[0])}`, ctx)).toEqual({ open: ZOOM, hud: `Standup, ${timeRange(events[0])}` });
+    expect(await host.barAction(E, "upcoming", `join:${rid(events[0])}`, ctx)).toEqual({ open: ZOOM, hud: "Standup, 10:20 – 10:50" });
     expect(await host.barAction(E, "upcoming", `join:${rid(events[2])}`, ctx)).toEqual({ keep: true });
     // The calendar itself, and a refresh that forgets the cache (the next render fetches).
     expect(await host.barAction(E, "upcoming", "open-calendar", ctx)).toEqual(MAC ? { open: "/System/Applications/Calendar.app" } : { hide: true });
@@ -621,6 +632,16 @@ describe("today palette and the upcoming bar item", () => {
         expect(await h3.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist in 42m", color: "muted" });
         expect((await h3.render(E, "upcoming", { reason: "load" }) as BarItem).badge).toBeUndefined();
       } finally { h3.kill(); }
+      // The boundaries are inclusive: 42 minutes out is amber under warn 42 / urgent 41, red under urgent 42.
+      const h4 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 42, urgent_minutes: 41 } } } });
+      try { expect(await h4.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Dentist in 42m", color: "amber" }); } finally { h4.kill(); }
+      const h5 = await Host.bundled({ core: core(events.slice(1)), settings: { [E]: { settings: { warn_minutes: 60, urgent_minutes: 42 } } } });
+      try { expect(await h5.render(E, "upcoming", { reason: "load" })).toMatchObject({ color: "red" }); } finally { h5.kill(); }
+      // The horizon is inclusive too: the Concert tomorrow at 19:00 is 32 h 30 min out.
+      const h6 = await Host.bundled({ core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32.5 } } } });
+      try { expect(await h6.render(E, "upcoming", { reason: "load" })).toMatchObject({ title: "Concert in 32h 30m", color: "muted" }); } finally { h6.kill(); }
+      const h7 = await Host.bundled({ core: core([events[4]]), settings: { [E]: { settings: { horizon_hours: 32 } } } });
+      try { expect(await h7.render(E, "upcoming", { reason: "load" })).toEqual({ hidden: true }); } finally { h7.kill(); }
     } finally {
       host.changeSettings(E, { settings: { days: 14 } });
       await Bun.sleep(50);

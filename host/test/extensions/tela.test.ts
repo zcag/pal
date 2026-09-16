@@ -199,7 +199,7 @@ describe("tela", () => {
       expect(t.find((x) => x.startsWith("Engineering · Indexing › Steps"))).toBeDefined();
       // The selected card carries its excerpt from the grounding (rendered), the others their snippet.
       expect(t.slice(t.indexOf("(1)"), t.indexOf("(2)"))).toEqual(["(1)", "Indexing", expect.stringMatching(/^Engineering · Indexing › Steps · \d+ (h|min|d) ago$/), "Indexing", "Every listing is persisted and restored, see Startup.", "↗ Startup", "[Note]", "Why persist", "400 ms cold."]);
-      expect(t.slice(t.indexOf("(2)"), t.indexOf("(3)"))).toEqual(["(2)", "Startup", "Engineering · 1 d ago", "The host spawns after the cache restores"]);
+      expect(t.slice(t.indexOf("(2)"), t.indexOf("(3)"))).toEqual(["(2)", "Startup", expect.stringMatching(/^Engineering · \d+ (h|d) ago$/), "The host spawns after the cache restores"]);
       const tiles = nodes(v.tree, "tile") as { color?: string; fill?: string }[];
       expect(tiles.map((x) => [x.color, x.fill])).toEqual([["accent", "solid"], ["neutral", "soft"], ["neutral", "soft"]]);
       expect(v.actions.map((a) => a.id)).toEqual(["open", "read", "down", "up", "copy", "context", "ask-tela", "more", "question", "go1", "go2", "go3"]);

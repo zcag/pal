@@ -4,6 +4,7 @@
 // takes. Everything runs on the local clock through `Date`; nothing here
 // touches the core, so it is tested by import.
 import type { CalendarEvent } from "@zcag/pal";
+import { now as current } from "./clock.ts";
 
 export const DAY = 86_400_000;
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -74,7 +75,7 @@ export const people = (n: number): string | undefined => (n ? `${n} ${n === 1 ? 
  * today included), `2026-09-20`, `20.9` / `20.9.2026`, `20 sep`, `sep 20`.
  * Local midnight of that day, or undefined.
  */
-export function parseDay(s: string, now = Date.now()): number | undefined {
+export function parseDay(s: string, now = current()): number | undefined {
   const l = s.trim().toLowerCase().replace(/,/g, "");
   if (!l || l === "today") return startOfDay(now);
   if (l === "tomorrow" || l === "tmr") return addDays(now, 1);

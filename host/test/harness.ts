@@ -74,8 +74,9 @@ export class Host {
   private seq = 0;
 
   private constructor(readonly opts: Options) {
-    // TZ by hand: bun 1.3 keeps a `process.env.TZ` assigned at runtime out of the spread (seen on 1.3.14; calc.test.ts sets it).
-    this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, ...(process.env.TZ ? { TZ: process.env.TZ } : {}), NO_COLOR: "1" } });
+    // TZ and PAL_NOW by hand: bun 1.3 kept a `process.env.TZ` assigned at runtime out of the spread (seen on 1.3.14; calc.test.ts sets it), and the tests pin both at runtime (PAL_NOW is the extensions' clock, calendar/clock.ts).
+    const pinned = Object.fromEntries(["TZ", "PAL_NOW"].filter((k) => process.env[k]).map((k) => [k, process.env[k]]));
+    this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, ...pinned, NO_COLOR: "1" } });
     this.exited = this.proc.exited;
     this.read();
     this.drainStderr();

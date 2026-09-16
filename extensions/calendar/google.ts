@@ -11,6 +11,7 @@
 // `PAL_GOOGLE_API` replaces `https://www.googleapis.com/calendar/v3` (the
 // tests point it at a local server).
 import type { Attendee, Calendar, CalendarEvent } from "@zcag/pal";
+import { now as clock } from "./clock.ts";
 import { startOfDay } from "./schedule.ts";
 
 export type Account = { name: string; token_command: string; calendars: string[] };
@@ -59,7 +60,7 @@ export function parseAccounts(raw: unknown): Account[] {
 // ---- tokens -------------------------------------------------------------------
 
 /** The token a command's output carries and when it stops being good: JSON with `access_token` (`expires_in` seconds, or `expiry`/`expires_at`), else the first non-empty line. */
-export function parseToken(out: string, now = Date.now()): { token: string; until: number } | undefined {
+export function parseToken(out: string, now = clock()): { token: string; until: number } | undefined {
   const s = out.trim();
   if (!s) return;
   if (s.startsWith("{")) {
@@ -82,7 +83,7 @@ const minting = new Map<string, Promise<string>>();
 /** Runs `token_command` through `sh -c`; its stdout is the token. Cached until the expiry it stated, less a minute; two callers wanting one at once share the run. */
 function token(a: Account, fresh = false): Promise<string> {
   const have = tokens.get(a.token_command);
-  if (have && !fresh && Date.now() < have.until) return Promise.resolve(have.token);
+  if (have && !fresh && clock() < have.until) return Promise.resolve(have.token);
   const running = minting.get(a.token_command);
   if (running) return running;
   const p = mint(a).finally(() => minting.delete(a.token_command));

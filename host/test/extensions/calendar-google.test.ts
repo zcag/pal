@@ -2,11 +2,12 @@
 // accounts setting, a token command's output, the join link, HTML to
 // text), then the extension through the harness against a local mock of
 // the Calendar API v3 (calendar-google.fixture.json, shaped like the API,
-// its times shifted so the fixture's 10:00 is the test's now) with two
-// accounts whose token commands are scripts: one prints a bare token, the
-// other the JSON an OAuth endpoint answers. Rows and actions per palette,
-// the filter list, the detail's text, the bar item, the token cache and a
-// 401 re-mint, one account failing and both failing.
+// written for 2026-09-16 10:00 UTC, which `PAL_NOW` makes the host's clock,
+// calendar/clock.ts, in `TZ=UTC`) with two accounts whose token commands
+// are scripts: one prints a bare token, the other the JSON an OAuth
+// endpoint answers. Rows and actions per palette, the filter list, the
+// detail's text, the bar item, the token cache and a 401 re-mint, one
+// account failing and both failing.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,41 +19,10 @@ import fixture from "./calendar-google.fixture.json" with { type: "json" };
 
 const E = "calendar";
 const MIN = 60_000;
-const H = 60 * MIN;
-const DAY = 24 * H;
 
-// The fixture is written for 2026-09-16 10:00, times in +00:00. Every time
-// in it is shifted so the fixture's 10:00 is the test's start, and the
-// host's zone is a fixed whole-hour offset (`Etc/GMT+8`, the only fixed
-// form bun's ICU takes) chosen so the local clock reads 10:xx at that
-// start: the fixture's hours land in the rows' local hours plus the
-// start's minutes, whatever the hour the test runs at, and today is
-// today. The test process keeps the system zone (bun ignores a `TZ` set
-// at runtime), so `local` formats a moment as the host would.
-const FIXTURE_NOW = Date.parse("2026-09-16T10:00:00Z");
-const T0 = Date.now();
-const shift = T0 - FIXTURE_NOW;
-const offHours = 10 - new Date(T0).getUTCHours(); // local = UTC + offHours
-process.env.TZ = `Etc/GMT${offHours > 0 ? "-" : "+"}${Math.abs(offHours)}`; // POSIX sign: Etc/GMT-3 is three hours ahead
-const offMs = offHours * H;
-const localMidnight = (t: number) => Math.floor((t + offMs) / DAY) * DAY - offMs;
-const dayShift = Math.round((localMidnight(T0) - Date.UTC(2026, 8, 16)) / DAY);
-/** `HH:MM` of a fixture time as the host's clock shows it. */
-const local = (iso: string) => { const d = new Date(Date.parse(iso) + shift + offMs); return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; };
-const at = (iso: string) => Date.parse(iso) + shift;
-const shifted = (o: unknown): unknown => {
-  if (Array.isArray(o)) return o.map(shifted);
-  if (o && typeof o === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
-      if (k === "dateTime" && typeof v === "string") out[k] = new Date(Date.parse(v) + shift).toISOString().replace("Z", "+00:00");
-      else if (k === "date" && typeof v === "string") out[k] = new Date(Date.parse(v) + dayShift * DAY).toISOString().slice(0, 10);
-      else out[k] = shifted(v);
-    }
-    return out;
-  }
-  return o;
-};
+// The fixture's times are in +00:00 and its day is Wed 16 Sep 2026; the host reads the same clock and zone, so the rows say the fixture's own hours.
+process.env.TZ = "UTC";
+process.env.PAL_NOW = "2026-09-16T10:00:00";
 const json = (body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), { ...init, headers: { "content-type": "application/json" } });
 
 let dir: string;
@@ -71,7 +41,7 @@ const server = Bun.serve({
     if (url.pathname === "/users/me/calendarList") return json(fixture.calendarList[account]);
     if (url.pathname === "/calendars/primary/events") {
       if (url.searchParams.get("singleEvents") !== "true" || !url.searchParams.get("timeMin") || !url.searchParams.get("timeMax")) return json({ error: { code: 400, message: "bad query" } }, { status: 400 });
-      return json(shifted(fixture.events[account]));
+      return json(fixture.events[account]);
     }
     return json({ error: { code: 404, message: `no ${url.pathname}` } }, { status: 404 });
   },
@@ -91,9 +61,9 @@ beforeAll(async () => {
   process.env.PAL_GOOGLE_API = `http://127.0.0.1:${server.port}`;
   host = await Host.bundled({ settings: { [E]: { settings: { accounts: [`personal = ${join(dir, "tok-personal.sh")}`, { name: "work", token_command: join(dir, "tok-work.sh"), calendars: ["primary"] }] } } } });
 });
-afterAll(() => { host.kill(); server.stop(true); rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); server.stop(true); rmSync(dir, { recursive: true, force: true }); delete process.env.PAL_NOW; });
 
-const rid = (id: string, iso: string) => `${id}@${at(iso)}`;
+const rid = (id: string, iso: string) => `${id}@${Date.parse(iso)}`;
 
 describe("google helpers", () => {
   test("parseAccounts: strings and tables, names, blanks", () => {
@@ -165,7 +135,9 @@ describe("google source", () => {
     expect(sync).toMatchObject({ id: rid("work:sync", "2026-09-16T10:12:00Z"), icon: "#4986e7", accessories: [{ tag: "in 12 min", color: "blue" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
     expect(sync.actions).toEqual([{ id: "join", title: "Join call" }, { id: "open", title: "Open in Google Calendar" }, { id: "copy_link", title: "Copy conference link", shortcut: "cmd+shift+c" }, { id: "copy_details", title: "Copy event details", shortcut: "cmd+c" }]);
     expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "copy_details"]);
-    expect(items[1]).toMatchObject({ icon: "#9fe1e7", subtitle: `${local("2026-09-16T11:00:00Z")} – ${local("2026-09-16T12:00:00Z")} · Room 4`, accessories: [{ tag: "maybe", color: "amber" }, { text: "4 people" }, { tag: "Join", color: "green" }] });
+    expect(items[1]).toMatchObject({ icon: "#9fe1e7", subtitle: "11:00 – 12:00 · Room 4", accessories: [{ tag: "maybe", color: "amber" }, { text: "4 people" }, { tag: "Join", color: "green" }] });
+    expect(items[2]).toMatchObject({ name: "Dentist", subtitle: "15:30 – 16:15 · Kadıköy", accessories: [] });
+    expect(items[4]).toMatchObject({ name: "Team offsite", subtitle: "All day, until Sat 19 Sep", section: "This week" });
     // The token commands ran once per account for the filter list and once more is not needed: the events read reused the token.
     expect(runs("personal")).toBe(1);
     expect(runs("work")).toBe(1);
@@ -184,11 +156,15 @@ describe("google source", () => {
   test("Today: the standup over, the sync in 12 min, the declined one hidden, tomorrow waiting; the detail's description as text", async () => {
     const rows = await host.list(E, "today");
     expect(rows.map((r) => [r.name, (r.accessories![0] as { tag: string }).tag])).toEqual([["Daily standup", "over"], ["Weekly sync", "in 12 min"], ["Design review: settings window", "in 1 h"], ["Dentist", "in 5 h 30 min"]]);
-    expect(rows[1]).toMatchObject({ icon: { glyph: "\u{f00ee}", color: "#4986e7" }, subtitle: `${local("2026-09-16T10:12:00Z")} – ${local("2026-09-16T10:42:00Z")} · 30 min` });
+    expect(rows[0]).toMatchObject({ subtitle: "09:30 – 09:45 · 15 min", accessories: [{ tag: "over", color: "grey" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
+    expect(rows[1]).toMatchObject({ icon: { glyph: "\u{f00ee}", color: "#4986e7" }, subtitle: "10:12 – 10:42 · 30 min" });
+    // The strip's form: the standup gone, tomorrow's 1:1 after today's.
+    const rest = await host.list(E, "today", "", { args: { rest: true } });
+    expect(rest.map((r) => [r.name, r.section, (r.accessories![0] as { tag: string }).tag])).toEqual([["Weekly sync", "Today", "in 12 min"], ["Design review: settings window", "Today", "in 1 h"], ["Dentist", "Today", "in 5 h 30 min"], ["1:1 with Mara", "Tomorrow", "in 24 h"]]);
     const d = await host.detail(E, "today", rid("personal:design", "2026-09-16T11:00:00Z"));
     expect(d.markdown).toBe("Walk through the six pages.\n- Overview first\n- One grouped table\nNotes: doc & agenda");
     expect(d.metadata).toEqual([
-      { label: "When", value: expect.stringMatching(/, \d\d:\d\d – \d\d:\d\d \(1 h\)$/) },
+      { label: "When", value: "Wed 16 Sep 2026, 11:00 – 12:00 (1 h)" },
       { label: "Calendar", tags: [{ text: "Personal (personal)" }] },
       { label: "Location", value: "Room 4" },
       { label: "Call", link: { text: "meet.google.com/abc-defg-hij", href: "https://meet.google.com/abc-defg-hij" } },
@@ -202,14 +178,14 @@ describe("google source", () => {
 
   test("the bar item: the sync in 12 minutes, amber with a dot; a minute tick reads the cache", async () => {
     const item = await host.render(E, "upcoming", { reason: "load" });
-    expect(item).toMatchObject({ title: "Weekly sync in 12m", color: "amber", badge: "dot", tooltip: expect.stringContaining("Weekly sync, "), menu: { view: { id: "upcoming", keys: "actions" } } });
+    expect(item).toMatchObject({ title: "Weekly sync in 12m", color: "amber", badge: "dot", tooltip: "Weekly sync, 10:12 – 10:42 (someone@example.com), Enter joins", menu: { view: { id: "upcoming", keys: "actions", title: "Today · Wed 16 Sep" } } });
     // The popover over Google's events: Enter joins the sync, `o` is the day's page on calendar.google.com, the primary of a row without a call opens it in the browser.
     const view = (item.menu as { view: { actions: { id: string; title: string }[] } }).view;
     expect(view.actions[0]).toEqual({ id: "primary", title: "Join call" });
     expect(view.actions.find((a) => a.id === "open-calendar")?.title).toBe("Open Google Calendar");
     expect(JSON.stringify(view)).toContain("in 12 min");
     const ctx = { reason: "open" as const, compact: true as const };
-    expect(await host.barAction(E, "upcoming", "open-calendar", ctx)).toEqual({ open: expect.stringMatching(/^https:\/\/calendar\.google\.com\/calendar\/r\/day\/\d{4}\/\d{1,2}\/\d{1,2}$/) });
+    expect(await host.barAction(E, "upcoming", "open-calendar", ctx)).toEqual({ open: "https://calendar.google.com/calendar/r/day/2026/9/16" });
     const n = seen.length;
     expect(await host.render(E, "upcoming", { reason: "minute" })).toEqual(item);
     expect(seen.length).toBe(n);

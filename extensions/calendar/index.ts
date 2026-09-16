@@ -16,8 +16,10 @@
 // fetch. A click opens the popover (view.ts): today's rows with the one
 // running on a card, Join buttons, tomorrow folded; the keys walk the
 // rows and Enter joins or opens; while it shows, a 30 s tick redraws it
-// from the cache so `in 12 min` keeps counting.
+// from the cache so `in 12 min` keeps counting. Every read of the time
+// is clock.ts (`PAL_NOW` pins it for the tests).
 import { calendar, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { now as clock } from "./clock.ts";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
 import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, permission, type Loaded, type Settings } from "./source.ts";
 import { duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
@@ -124,7 +126,7 @@ const newRow: Item = { id: NEW, name: "New event", subtitle: "Title, day, time a
 async function form(values: Record<string, string | boolean> = {}, errors?: Record<string, string>): Promise<Form> {
   let cals: Calendar[] = [];
   try { cals = (await calendars()).filter((c) => c.writable); } catch { /* the backend's default calendar then */ }
-  const now = Date.now();
+  const now = clock();
   const start = typeof values.start === "string" ? values.start : nextQuarter(now);
   const v = (k: string, d: string) => (typeof values[k] === "string" ? (values[k] as string) : d);
   return {
@@ -147,7 +149,7 @@ async function form(values: Record<string, string | boolean> = {}, errors?: Reco
 
 async function create(values: Record<string, string | boolean>): Promise<Effect> {
   const errors: Record<string, string> = {};
-  const now = Date.now();
+  const now = clock();
   const title = String(values.title ?? "").trim();
   if (!title) errors.title = "Give the event a title";
   const day = parseDay(String(values.day ?? ""), now);
@@ -240,7 +242,7 @@ async function events(ctx: Ctx | undefined, maxAge: number, withNew = false): Pr
   const status = await permission();
   if (status !== "granted") return { rows: statusRows(status) };
   const s = conf();
-  const now = Date.now();
+  const now = clock();
   const { from, to } = window(s, now);
   try {
     const chosen = ctx?.filter && ctx.filter !== "all" ? [ctx.filter] : await chosenIds(s, !!ctx?.refresh);
@@ -255,7 +257,7 @@ async function scheduleRows(_query: string | undefined, ctx?: Ctx): Promise<Item
   const r = await events(ctx, PALETTE_AGE, true);
   if ("rows" in r) return r.rows;
   const s = conf();
-  const now = Date.now();
+  const now = clock();
   table.clear();
   let tagged = false;
   const rows = upcoming(r.events, now, s.hide_declined !== false).map((e) => {
@@ -278,7 +280,7 @@ async function todayRows(_query: string | undefined, ctx?: Ctx): Promise<Item[]>
   const r = await events(ctx, PALETTE_AGE);
   if ("rows" in r) return r.rows;
   const s = conf();
-  const now = Date.now();
+  const now = clock();
   const rest = !!(ctx?.args && typeof ctx.args === "object" && (ctx.args as { rest?: boolean }).rest);
   const hideDeclined = s.hide_declined !== false;
   const keep = (e: CalendarEvent) => !(hideDeclined && e.my_status === "declined") && !(rest && e.end <= now);
@@ -307,7 +309,7 @@ async function todayRows(_query: string | undefined, ctx?: Ctx): Promise<Item[]>
 async function suggest(): Promise<Item[]> {
   if ((await permission()) !== "granted") return [];
   const s = conf();
-  const now = Date.now();
+  const now = clock();
   const { from, to } = window(s, now);
   let l: Loaded;
   try { l = await load(from, to, await chosenIds(s, false), PALETTE_AGE); } catch { const c = cached(); if (!c) return []; l = { ...c, stale: true }; }
@@ -369,7 +371,7 @@ async function detail(id: string): Promise<Detail | void> {
 async function renderUpcoming(ctx: BarCtx): Promise<BarItem> {
   if ((await permission()) !== "granted") return { hidden: true };
   const s = conf();
-  const now = Date.now();
+  const now = clock();
   const { from, to } = window(s, now);
   const maxAge = ctx.reason === "minute" ? BAR_AGE : 0;
   let l: Loaded;
@@ -394,7 +396,7 @@ let tick: ReturnType<typeof setInterval> | undefined;
 const POPOVER_TICK_MS = Number(process.env.PAL_CALENDAR_POPOVER_TICK_MS) || 30_000;
 
 /** The popover's tree from the cache, no fetch: what the tick and every key answer with. */
-function popoverView(now = Date.now()): ReturnType<typeof popover> | undefined {
+function popoverView(now = clock()): ReturnType<typeof popover> | undefined {
   const c = cached();
   if (!c) return;
   const s = conf();
@@ -421,7 +423,7 @@ const calendarHome = (now: number): Effect => {
  * action goes through `pickEvent`, as from the palette.
  */
 async function popoverAction(action: string, ctx: BarCtx): Promise<Effect | void> {
-  const now = Date.now();
+  const now = clock();
   const s = conf();
   const c = cached();
   const l = c ? listed(c.events, now, s.hide_declined !== false) : undefined;

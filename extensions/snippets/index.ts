@@ -5,6 +5,7 @@
 // and Export rows move snippets in and out as JSON files.
 import { clipboard, home, selection, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
+import { now } from "./clock.ts";
 
 const KEY = "snippets";
 /** Material Design glyphs in the bundled Nerd Font: scissors for a snippet, plus, import, export for the command rows. */
@@ -27,7 +28,7 @@ const all = async () => asSnippets(await storage.get(KEY));
 /** The newest text on the clipboard, for `{clipboard}`; empty when there is none. */
 const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text ?? "";
 /** The placeholders' sources: the clipboard, and the app in front's selected text for `{selection}` (the clipboard when nothing is selected). */
-const SOURCES = { clipboard: clipboardText, selection: selection.text };
+const SOURCES = { clipboard: clipboardText, selection: selection.text, now };
 
 function row(s: Snippet): Item {
   return {

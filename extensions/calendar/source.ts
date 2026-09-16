@@ -10,6 +10,7 @@
 // them stale, so a broker that is away costs the strip its freshness, not
 // the meeting.
 import { calendar, settings, type Calendar, type CalendarEvent, type CalendarStatus } from "@zcag/pal";
+import { now } from "./clock.ts";
 import * as google from "./google.ts";
 
 export type SourceName = "auto" | "system" | "google";
@@ -34,14 +35,14 @@ let calendarCache: { at: number; source: string; list: Calendar[] } | undefined;
 /** Every calendar of the source (Google: the ones each account reads, its `calendars`), cached five minutes; `refresh` reads again. */
 export async function calendars(refresh = false): Promise<Calendar[]> {
   const src = active();
-  if (!refresh && calendarCache && calendarCache.source === src && Date.now() - calendarCache.at < CALENDARS_TTL) return calendarCache.list;
+  if (!refresh && calendarCache && calendarCache.source === src && now() - calendarCache.at < CALENDARS_TTL) return calendarCache.list;
   let list: Calendar[];
   if (src === "google") {
     // Every account at once: each token command is a process (his is an ssh hop).
     const per = await Promise.allSettled(accounts().map(async (a) => (await google.calendars(a)).filter((c) => a.calendars.includes(c.id.slice(a.name.length + 1)))));
     list = per.flatMap((r) => (r.status === "fulfilled" ? r.value : (console.error(`calendar: ${r.reason instanceof Error ? r.reason.message : r.reason}`), [])));
   } else list = await calendar.calendars();
-  calendarCache = { at: Date.now(), source: src, list };
+  calendarCache = { at: now(), source: src, list };
   return list;
 }
 
@@ -77,12 +78,12 @@ const keyOf = (from: number, to: number, ids?: string[]) => `${active()}\0${from
  */
 export async function load(from: number, to: number, ids: string[] | undefined, maxAge: number): Promise<Loaded> {
   const key = keyOf(from, to, ids);
-  if (last && last.key === key && Date.now() - last.at < maxAge) return last;
+  if (last && last.key === key && now() - last.at < maxAge) return last;
   if (inflight) return inflight;
   inflight = (async () => {
     try {
       const events = await fetchEvents(from, to, ids);
-      last = { key, events, at: Date.now(), stale: false };
+      last = { key, events, at: now(), stale: false };
       return last;
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);

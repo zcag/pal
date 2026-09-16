@@ -1,6 +1,7 @@
 // Snippets: the placeholder expansion (placeholders.ts, pure, with the
 // clock and the clipboard pinned), then the extension over the wire
-// against the harness's in-memory storage and clipboard: rows with the
+// against the harness's in-memory storage and clipboard (its clock pinned
+// too, `PAL_NOW` through the harness, snippets/clock.ts): rows with the
 // keyword as a row keyword, paste and copy with placeholders filled, the
 // create and edit forms, refusal, delete.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
@@ -11,6 +12,7 @@ import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, isoDate, iso
 import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host, fixtures, stored } from "../harness.ts";
 
+process.env.PAL_NOW = "2026-09-16T09:05:00"; // the host's clock, local to its zone
 const at = new Date(2026, 8, 16, 9, 5); // local 2026-09-16 09:05
 const pinned = { clipboard: () => "from the clipboard", now: () => at, uuid: () => "u-u-i-d" };
 
@@ -82,7 +84,7 @@ beforeAll(async () => {
 });
 /** What the canned `core/selection.text` answers. */
 let selected: string | null = "the marked words";
-afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); delete process.env.PAL_NOW; });
 
 const list = () => host.list("snippets", "snippets");
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("snippets", "snippets", id, action, ctx);
@@ -107,8 +109,7 @@ describe("snippets", () => {
     expect(await pick("sig", "copy")).toEqual({ copy: "Best,\nCagdas" });
     const r = await pick("stamp", "paste");
     const text = (r.paste as { text: string }).text;
-    const today = isoDate(new Date());
-    expect(text).toMatch(new RegExp(`^Reviewed ${today} \\d\\d:\\d\\d\\n`));
+    expect(text.startsWith("Reviewed 2026-09-16 09:05\n")).toBe(true);
     // The harness lists the fixtures in order; the first text entry is the clipboard's newest.
     expect(text.endsWith(`\n${fixtures.clipboard[0].text}`)).toBe(true);
     expect(host.coreCalls.filter((c) => c.method === "clipboard.list").pop()!.params).toEqual({ kind: "text", limit: 1 });
