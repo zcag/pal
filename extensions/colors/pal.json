@@ -1,0 +1,21 @@
+{
+  "name": "colors",
+  "title": "Colors",
+  "description": "Named colours as swatches (CSS names, pal's tokens, Tailwind, Material) with hex, rgb and hsl to copy, and a converter: type any colour and get every notation, the nearest CSS name and its contrast.",
+  "version": "0.1.0",
+  "icon": "#4F46D6",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [],
+  "palettes": {
+    "colors": {
+      "description": "The bundled palettes as swatch tiles; recently copied colours first.",
+      "settings": [
+        { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 8 }
+      ]
+    },
+    "convert": {
+      "description": "Type a colour in any notation; the rows are its conversions."
+    }
+  }
+}

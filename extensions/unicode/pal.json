@@ -1,0 +1,18 @@
+{
+  "name": "unicode",
+  "title": "Unicode characters",
+  "description": "A grid of arrows, math, currency, punctuation, keyboard symbols, box drawing, Greek, accented letters and other characters one pastes; searched by name, alias, HTML entity, LaTeX name or code point.",
+  "version": "0.1.0",
+  "icon": "Ω",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [],
+  "palettes": {
+    "unicode": {
+      "description": "The bundled character table, by block; recently copied characters first.",
+      "settings": [
+        { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 10 }
+      ]
+    }
+  }
+}

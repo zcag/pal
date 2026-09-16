@@ -1,0 +1,15 @@
+{
+  "name": "network",
+  "title": "Network",
+  "description": "This machine's addresses: every interface's IPs (the Wi-Fi one with its SSID), the public IP with its country and ISP, the default gateway, the DNS servers, the Tailscale IP, the hostname. Enter copies the value.",
+  "version": "0.1.0",
+  "icon": "󰋉",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "text", "id": "public_ip_url", "label": "Public IP endpoint", "description": "Fetched with a 3 s timeout and kept 10 minutes; JSON with `ip` (and `city`, `country`, `org` when it has them) or a bare address. Empty: no public IP row.", "placeholder": "https://ipinfo.io/json", "default": "https://ipinfo.io/json" }
+  ],
+  "palettes": {
+    "network": { "description": "Live rows, listed again when the panel shows and the last listing is over a minute old; ⌘R lists now and fetches the public IP again." }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "icons",
+  "title": "Icons",
+  "description": "Every Nerd Font glyph (Material Design, Font Awesome, Codicons, Octicons, Devicons, Seti, Weather, Powerline and the rest) as a grid, searched by name; copies the glyph, its code point, its nf- name or CSS class. A second grid of the freedesktop icon names the app draws.",
+  "version": "0.1.0",
+  "icon": "󰅑",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [],
+  "palettes": {
+    "icons": {
+      "title": "Nerd Font icons",
+      "description": "The glyphs of the Symbols Nerd Font the app bundles, by set; recently copied glyphs first.",
+      "settings": [
+        { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 10 }
+      ]
+    },
+    "freedesktop": {
+      "title": "Freedesktop icon names",
+      "description": "The freedesktop icon names pal maps to a glyph (`xdg()` in the SDK), for a script's `icon_xdg`."
+    }
+  }
+}
