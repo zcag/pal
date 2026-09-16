@@ -7,7 +7,9 @@ the footer shows the primary key, and `cmd+k` lists every move with its
 key. The table is a render tree the extension builds from a pure game
 state (`game.ts`, `render.ts`); every key is a pick whose action is the
 move, and the reply is the next tree, so a hit rises in, the hole card
-flips over and a split moves its card across.
+flips over and a split's second card glides across to its new hand (a
+`move` transition: the card keeps its key, so the app slides it from its
+old place). The cards sit on a sunken well drawn with the app's tokens.
 
 - **Betting**: `+` and `-` move the bet by the minimum, Enter deals.
 - **Playing**: `H` hit, `S` stand, `D` double down (first two cards, one

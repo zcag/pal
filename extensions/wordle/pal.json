@@ -1,0 +1,119 @@
+{
+  "name": "wordle",
+  "title": "Wordle",
+  "description": "The five-letter word game in the panel, keyboard only: type a word, Enter submits, the tiles flip. A daily puzzle from the date, practice games on N, the streak and the stats persist.",
+  "version": "0.1.0",
+  "icon": "🟩",
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "daily",
+      "label": "Daily puzzle",
+      "text": "One puzzle a day from the date",
+      "description": "Opening the palette on a new day starts that day's word, the same on every machine. Off, every game is a random word.",
+      "default": true
+    },
+    {
+      "kind": "boolean",
+      "id": "hard_mode",
+      "label": "Hard mode",
+      "text": "Revealed hints must be used",
+      "description": "A guess must keep every green letter in place and use every amber one. Applies from the next game.",
+      "default": false
+    }
+  ],
+  "store": {
+    "tagline": "Wordle in the panel: a daily puzzle, practice words, stats",
+    "category": "fun",
+    "features": [
+      "The board as a view level: letters type into the row, Enter submits, the row flips tile by tile into green, amber and grey; the on-screen keyboard colours as the letters are found",
+      "A daily puzzle seeded from the date (`daily` setting): opening on a new day starts it, one word a day, the same on every machine",
+      "`N` for a practice word once the day's puzzle is done (or any time with dailies off, as `cmd+n` mid-game)",
+      "A word not in the list, or a hard-mode slip, is a red badge over the board; hard mode keeps greens in place and makes ambers count",
+      "The result view: played, win %, streak and best, the guess distribution as bars, `C` copies the emoji grid for sharing",
+      "Escape leaves at any point; the game and the stats are there when you come back, across restarts",
+      "The word lists ship with the extension (public domain sources, see the README); nothing is fetched"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-game.png",
+        "caption": "The daily, three guesses in and two letters typed: the keyboard shows what the guesses found"
+      },
+      {
+        "file": "2-notice.png",
+        "caption": "A word that is not in the list: the badge over the board, the row stays for editing"
+      },
+      {
+        "file": "3-solved.png",
+        "caption": "Solved in four: the praise, the stats and the guess distribution, C copies the grid"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Type a letter",
+        "description": "Any letter key fills the current row.",
+        "keys": "a"
+      },
+      {
+        "title": "Submit the guess",
+        "description": "Five letters that make a word in the list.",
+        "keys": "enter"
+      },
+      {
+        "title": "Delete a letter",
+        "description": "Backspace takes the last letter back.",
+        "keys": "backspace"
+      },
+      {
+        "title": "Copy the result",
+        "description": "The emoji grid with the puzzle number and the score, once the game is over.",
+        "keys": "c"
+      },
+      {
+        "title": "Today's puzzle / Practice game",
+        "description": "New game: today's puzzle if it is unplayed, else a practice word. `n` once the game is over, `cmd+n` while a practice game is on.",
+        "keys": "n, cmd+n"
+      }
+    ]
+  },
+  "palettes": {
+    "wordle": {
+      "kind": "view",
+      "description": "The board. Escape leaves mid-game; the game is there when you come back.",
+      "keys": [
+        {
+          "keys": "a",
+          "title": "Type a letter"
+        },
+        {
+          "keys": "enter",
+          "title": "Submit the guess"
+        },
+        {
+          "keys": "backspace",
+          "title": "Delete a letter"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the result, once the game is over"
+        },
+        {
+          "keys": "n",
+          "title": "New game, once the game is over"
+        },
+        {
+          "keys": "cmd+n",
+          "title": "New game mid-game, when a practice word can be dropped"
+        }
+      ]
+    }
+  }
+}

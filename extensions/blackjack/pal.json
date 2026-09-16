@@ -8,14 +8,55 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "number", "id": "decks", "label": "Decks", "description": "Decks in the shoe; it is reshuffled once a quarter is left.", "min": 1, "max": 8, "default": 6 },
-    { "kind": "number", "id": "starting_bankroll", "label": "Starting bankroll", "description": "Chips a new game starts with.", "min": 10, "max": 1000000, "step": 10, "unit": "$", "default": 1000 },
-    { "kind": "number", "id": "min_bet", "label": "Minimum bet", "description": "The smallest bet, and the step + and - move it by.", "min": 1, "max": 10000, "unit": "$", "default": 10 },
-    { "kind": "boolean", "id": "dealer_hits_soft_17", "label": "Dealer hits soft 17", "text": "The dealer draws on a soft 17 (H17) instead of standing (S17).", "default": false },
-    { "kind": "boolean", "id": "insurance", "label": "Offer insurance", "text": "Ask about insurance when the dealer shows an ace.", "default": false }
+    {
+      "kind": "number",
+      "id": "decks",
+      "label": "Decks",
+      "description": "Decks in the shoe; it is reshuffled once a quarter is left.",
+      "min": 1,
+      "max": 8,
+      "default": 6
+    },
+    {
+      "kind": "number",
+      "id": "starting_bankroll",
+      "label": "Starting bankroll",
+      "description": "Chips a new game starts with.",
+      "min": 10,
+      "max": 1000000,
+      "step": 10,
+      "unit": "$",
+      "default": 1000
+    },
+    {
+      "kind": "number",
+      "id": "min_bet",
+      "label": "Minimum bet",
+      "description": "The smallest bet, and the step + and - move it by.",
+      "min": 1,
+      "max": 10000,
+      "unit": "$",
+      "default": 10
+    },
+    {
+      "kind": "boolean",
+      "id": "dealer_hits_soft_17",
+      "label": "Dealer hits soft 17",
+      "text": "H17: the dealer draws on a soft 17",
+      "description": "Off, the dealer stands on every 17 (S17). Applies from the next hand.",
+      "default": false
+    },
+    {
+      "kind": "boolean",
+      "id": "insurance",
+      "label": "Offer insurance",
+      "text": "Ask when the dealer shows an ace",
+      "description": "I takes it for half the bet; Enter declines. Off, the hand plays on without the question.",
+      "default": false
+    }
   ],
   "store": {
-    "tagline": "A hand of blackjack in the panel, keyboard only; the bankroll and the record persist.",
+    "tagline": "Blackjack in the panel: H, S, D, P; the bankroll persists",
     "category": "fun",
     "features": [
       "The table as a view level: the phase replaces the search input (`Place your bet`, `Your turn`, `Dealer busts`), the footer shows the primary key, `cmd+k` lists every move",
@@ -26,23 +67,70 @@
       "Cards are SVG the extension draws itself, pips laid out as on a real deck"
     ],
     "permissions": [],
-    "platforms": ["macos", "linux"],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-bet.png", "caption": "Placing a bet: + and - move it by the minimum, Enter deals" },
-      { "file": "2-hand.png", "caption": "Mid-hand after a split: hand 1 is being played, the hole card is face down" },
-      { "file": "3-settled.png", "caption": "Settled: the dealer drew and bust, the net for the hand, the record moved" },
-      { "file": "4-moves.png", "caption": "A pair of eights against a king: hit, stand, double down or split, each with its key" }
+      {
+        "file": "1-bet.png",
+        "caption": "Placing a bet: + and - move it by the minimum, Enter deals"
+      },
+      {
+        "file": "2-hand.png",
+        "caption": "Mid-hand after a split: hand 1 is being played, the hole card is face down"
+      },
+      {
+        "file": "3-settled.png",
+        "caption": "Settled: the dealer drew and bust, the net for the hand, the record moved"
+      },
+      {
+        "file": "4-moves.png",
+        "caption": "A pair of eights against a king: hit, stand, double down or split, each with its key"
+      }
     ],
     "actions": [
-      { "title": "Deal", "description": "Also Next hand once a hand is settled.", "keys": "enter" },
-      { "title": "Hit", "keys": "h" },
-      { "title": "Stand", "keys": "s" },
-      { "title": "Double down", "description": "On the first two cards: one card, then stand.", "keys": "d" },
-      { "title": "Split", "description": "A pair, once; split aces take one card each.", "keys": "p" },
-      { "title": "Raise the bet", "keys": "+" },
-      { "title": "Lower the bet", "keys": "-" },
-      { "title": "Take insurance", "description": "Offered on an ace with `insurance` on; Enter declines.", "keys": "i" },
-      { "title": "New game", "description": "A fresh bankroll and record; asks first.", "keys": "n" }
+      {
+        "title": "Deal",
+        "description": "Also Next hand once a hand is settled.",
+        "keys": "enter"
+      },
+      {
+        "title": "Hit",
+        "keys": "h"
+      },
+      {
+        "title": "Stand",
+        "keys": "s"
+      },
+      {
+        "title": "Double down",
+        "description": "On the first two cards: one card, then stand.",
+        "keys": "d"
+      },
+      {
+        "title": "Split",
+        "description": "A pair, once; split aces take one card each.",
+        "keys": "p"
+      },
+      {
+        "title": "Raise the bet",
+        "keys": "+"
+      },
+      {
+        "title": "Lower the bet",
+        "keys": "-"
+      },
+      {
+        "title": "Take insurance",
+        "description": "Offered on an ace with `insurance` on; Enter declines.",
+        "keys": "i"
+      },
+      {
+        "title": "New game",
+        "description": "A fresh bankroll and record; asks first.",
+        "keys": "n"
+      }
     ]
   },
   "palettes": {
@@ -50,11 +138,42 @@
       "kind": "view",
       "description": "The table. Escape leaves mid-hand; the hand is there when you come back.",
       "keys": [
-        { "keys": "enter", "title": "Deal, or the next hand" },
-        { "keys": "h", "title": "Hit" },
-        { "keys": "s", "title": "Stand" },
-        { "keys": "d", "title": "Double down" },
-        { "keys": "p", "title": "Split" }
+        {
+          "keys": "enter",
+          "title": "Deal, or the next hand; declines insurance"
+        },
+        {
+          "keys": "h",
+          "title": "Hit"
+        },
+        {
+          "keys": "s",
+          "title": "Stand"
+        },
+        {
+          "keys": "d",
+          "title": "Double down"
+        },
+        {
+          "keys": "p",
+          "title": "Split"
+        },
+        {
+          "keys": "+",
+          "title": "Raise the bet"
+        },
+        {
+          "keys": "-",
+          "title": "Lower the bet"
+        },
+        {
+          "keys": "i",
+          "title": "Take insurance, when offered"
+        },
+        {
+          "keys": "n",
+          "title": "New game, after a confirm"
+        }
       ]
     }
   }

@@ -195,7 +195,15 @@ describe("render", () => {
     const images = find(v.tree, (n) => n.type === "image");
     expect(images).toHaveLength(4);
     expect(images.every((n) => n.type === "image" && n.src.startsWith("data:image/svg+xml") && n.width === 56 && n.height === 80)).toBe(true);
-    expect(images.map((n) => n.key)).toEqual(["d0-1", "d-hole-1", "p0-0-1", "p0-1-1"]);
+    expect(images.map((n) => n.key)).toEqual(["d0-1", "d-hole-1", "p-5S-1", "p-7D-1"]);
+    expect(images[2].transition).toEqual({ enter: "slide-up", delay: 0, move: true });
+    expect(find(v.tree, (n) => n.key === "felt")[0]).toMatchObject({ surface: "sunken", radius: true, padding: 3 });
+    // A split carries the second card to the new hand under the same key, so it moves rather than re-enters; a same card again is numbered.
+    const pair = apply(dealt(["8S", "9H", "8S", "6C", "3D", "4D"]), "split");
+    expect(pair.hands.map((h) => h.cards)).toEqual([["8S", "3D"], ["8S", "4D"]]);
+    const keys = find(render(pair, DEFAULTS).tree, (n) => n.type === "image").map((n) => n.key);
+    expect(keys).toEqual(["d0-1", "d-hole-1", "p-8S-1", "p-3D-1", "p-8S#1-1", "p-4D-1"]);
+    expect(find(render(dealt(["8S", "9H", "8S", "6C"]), DEFAULTS).tree, (n) => n.type === "image").map((n) => n.key)).toEqual(["d0-1", "d-hole-1", "p-8S-1", "p-8S#1-1"]);
     const hole = images[1] as Extract<ViewNode, { type: "image" }>;
     expect(hole.src).toBe(backSvg());
     expect(hole.transition).toEqual({ enter: "slide-up", exit: "none", delay: 3 });

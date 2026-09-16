@@ -1,9 +1,12 @@
-// The table as a view tree (`View` in `@zcag/pal`): dealer's row,
-// a message line, the player's hands, and a status line with the bet, the
-// bankroll, the record and the shoe. Cards are keyed per deal and slot so
-// a hit rises in, the hole card flips over, a split moves its card across,
-// and a cleared table fades out; rows hold their height meanwhile. No host
-// imports: the gallery renders a fixture state with this same function.
+// The table as a view tree (`View` in `@zcag/pal`): a sunken well holding
+// the dealer's row, a message line and the player's hands, then a status
+// line with the bet, the bankroll, the record and the shoe. The dealer's
+// cards are keyed per deal and slot so a hit rises in and the hole card
+// flips over; the player's are keyed per deal and card with `move`, so a
+// split's second card glides across to its new hand instead of fading out
+// and in; a cleared table fades out; rows hold their height meanwhile. No
+// host imports: the gallery renders a fixture state with this same
+// function.
 import type { Action, View, ViewNode } from "@zcag/pal";
 import { CARD_H, CARD_W, backSvg, cardSvg, type Card } from "./cards.ts";
 import { actions as legal, canDouble, canSplit, isBlackjack, isBust, lastNet, value, type Action as Move, type Settings, type State } from "./game.ts";
@@ -35,7 +38,17 @@ const text = (value: string, extra: Partial<Extract<ViewNode, { type: "text" }>>
 const row = (children: ViewNode[], extra: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
 const column = (children: ViewNode[], extra: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
 
-const card = (key: string, c: Card, delay = 0, enter: "slide-up" | "flip" = "slide-up"): ViewNode => ({ type: "image", key, src: cardSvg(c), width: CARD_W, height: CARD_H, alt: c, transition: { enter, delay } });
+const card = (key: string, c: Card, delay = 0, enter: "slide-up" | "flip" = "slide-up", move?: true): ViewNode => ({ type: "image", key, src: cardSvg(c), width: CARD_W, height: CARD_H, alt: c, transition: { enter, delay, ...(move ? { move } : {}) } });
+
+/**
+ * The player's cards keyed by deal and card, a same card again in the
+ * same deal numbered by its turn (a six-deck shoe holds six of each), so a
+ * card keeps its key when a split carries it to the other hand.
+ */
+function playerKeys(hands: { cards: Card[] }[], no: number): string[][] {
+  const seen = new Map<Card, number>();
+  return hands.map((h) => h.cards.map((c) => { const n = seen.get(c) ?? 0; seen.set(c, n + 1); return `p-${c}${n ? `#${n}` : ""}-${no}`; }));
+}
 const back = (key: string, delay = 0): ViewNode => ({ type: "image", key, src: backSvg(), width: CARD_W, height: CARD_H, alt: "face down", transition: { enter: "slide-up", exit: "none", delay } });
 
 /** `17`, `Soft 17`, `Blackjack`, `Bust`. */
@@ -73,9 +86,10 @@ export function render(st: State, s: Settings): View {
   const dealerShown = st.revealed ? st.dealer : st.dealer.slice(0, 1);
   const dealerTotal = st.dealer.length ? totalText(dealerShown, st.revealed && isBlackjack({ cards: st.dealer })) : "";
 
+  const keys = playerKeys(st.hands, no);
   const hands: ViewNode[] = st.hands.map((h, hi) => {
     const active = st.phase === "play" && hi === st.active;
-    const cards = h.cards.map((c, i) => card(`p${hi}-${i}-${no}`, c, st.hands.length === 1 && i < 2 ? dealDelay("p", i) : 0));
+    const cards = h.cards.map((c, i) => card(keys[hi][i], c, st.hands.length === 1 && i < 2 ? dealDelay("p", i) : 0, "slide-up", true));
     const label: ViewNode[] = [
       text(st.hands.length > 1 ? `Hand ${hi + 1}` : "You", { style: "muted", size: "xs", weight: "medium" }),
       { type: "badge", key: `t${hi}-${h.cards.map((c) => c).join("")}`, text: totalText(h.cards, isBlackjack(h)), color: isBust(h.cards) ? "red" : isBlackjack(h) ? "green" : active ? "blue" : "grey", transition: { enter: "fade" } },
@@ -142,16 +156,16 @@ export function render(st: State, s: Settings): View {
     { gap: 2 },
   );
 
-  const tree = column(
+  const felt = column(
     [
       row([text("Dealer", { style: "muted", size: "xs", weight: "medium" }), ...(dealerTotal ? [{ type: "badge", key: `dt-${dealerTotal}-${no}`, text: dealerTotal, color: st.revealed && isBust(st.dealer) ? "red" : "grey", transition: { enter: "fade" } } as ViewNode] : [])], { key: "dealer-label", minHeight: 18 }),
       row(dealerCards, { key: "dealer-cards", minHeight: CARD_H, gap: 1 }),
       column(middle, { key: "middle", grow: true, align: "center", justify: "center", gap: 2, minHeight: 44 }),
       row(hands, { key: "hands", align: "start", gap: 5, minHeight: CARD_H + 22 }),
-      status,
     ],
-    { key: "table", padding: 4, gap: 2, grow: true },
+    { key: "felt", padding: 3, gap: 2, grow: true, surface: "sunken", radius: true },
   );
+  const tree = column([felt, status], { key: "table", padding: 4, gap: 2, grow: true });
 
   return { tree, actions: legal(st, s).map((m) => MOVES[m]), title, keys: "actions" };
 }

@@ -1,0 +1,97 @@
+{
+  "name": "2048",
+  "title": "2048",
+  "description": "The sliding-tile game in the panel, keyboard only: arrows or hjkl move, N starts over, U takes a move back. The board and the best score persist.",
+  "version": "0.1.0",
+  "icon": "🔢",
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "undo",
+      "label": "Undo",
+      "text": "U takes the last move back",
+      "description": "One move only; taking a win back restores the banner. Off, the key does nothing and the move is not listed.",
+      "default": true
+    }
+  ],
+  "store": {
+    "tagline": "2048 in the panel, keyboard only; the board persists",
+    "category": "fun",
+    "features": [
+      "The board as a view level: arrows or `hjkl` slide the tiles, the title carries the score, `cmd+k` lists every move",
+      "The classic rules: equal neighbours merge once per move, a 2 (or a 4, one in ten) lands on a free cell after every move, no move means no spawn",
+      "Tiles slide and fade in, a merge flips, the spawned tile lands a beat later; the colours follow the value up the panel's own hues",
+      "`U` takes one move back (a setting); `N` starts over, asking first mid-game",
+      "A banner at 2048 with Keep going or New game; game over shows the score with New game on Enter",
+      "Escape leaves at any point; the board, the score, the move count and the best score are there when you come back, across restarts"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-board.png",
+        "caption": "Mid-game: the score, the best and the move count above the board, the keys under it"
+      },
+      {
+        "file": "2-won.png",
+        "caption": "The first 2048: keep going or start over"
+      },
+      {
+        "file": "3-over.png",
+        "caption": "Game over: no move left, the score, Enter for a new game"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Up, Down, Left, Right",
+        "description": "Slide every tile that way; equal neighbours merge. `k`, `j`, `h`, `l` too.",
+        "keys": "up, down, left, right"
+      },
+      {
+        "title": "Undo the last move",
+        "description": "One move back, when the `undo` setting is on.",
+        "keys": "u"
+      },
+      {
+        "title": "New game",
+        "description": "A fresh board; asks first mid-game, where Enter is this too. The best score is kept.",
+        "keys": "n"
+      },
+      {
+        "title": "Keep going",
+        "description": "After the first 2048, play on for a higher tile.",
+        "keys": "enter"
+      }
+    ]
+  },
+  "palettes": {
+    "2048": {
+      "kind": "view",
+      "description": "The board. Escape leaves mid-game; it is there when you come back.",
+      "keys": [
+        {
+          "keys": "up",
+          "title": "Move (also down, left, right, and hjkl)"
+        },
+        {
+          "keys": "u",
+          "title": "Undo the last move"
+        },
+        {
+          "keys": "n",
+          "title": "New game"
+        },
+        {
+          "keys": "enter",
+          "title": "New game (asks mid-game); Keep going after the first 2048"
+        }
+      ]
+    }
+  }
+}
