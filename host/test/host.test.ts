@@ -19,10 +19,18 @@ describe("loading", () => {
       broken: { "index.ts": "export default { palettes: { x: {\n  list: () => [{{{\n" },
       nopalettes: { "index.ts": "export default { nothing: true };" },
       notext: { "README.md": "not an extension" },
+      // An installed extension imports the API by its bare name (docs/extensions.md).
+      bare_import: { "index.ts": `import { settings, type Extension } from "pal";\nexport default { palettes: { p: { list: () => [{ id: "a", name: String(settings.get().greeting) }], pick: () => {} } } } satisfies Extension;`, "pal.json": manifest("bare_import", { settings: [{ kind: "text", id: "greeting", label: "G", default: "hey" }] }) },
     });
     host = await Host.start({ roots: [root.dir] });
   });
   afterAll(() => { host.kill(); root.rm(); });
+
+  test("`pal` resolves to the host's api.ts through <root>/node_modules/pal, which the host links", async () => {
+    const h = await host.hello();
+    expect(h.extensions.find((e) => e.name === "bare_import")?.loaded).toBe(true);
+    expect(await host.list("bare_import", "p")).toEqual([{ id: "a", name: "hey" }]);
+  });
 
   test("hello: version, bun, pid, roots, every extension with its manifest and load state, errors", async () => {
     const h = await host.hello();
@@ -31,7 +39,7 @@ describe("loading", () => {
     expect(h.pid).toBe(host.pid);
     expect(h.roots).toEqual([root.dir]);
     const names = h.extensions.map((e) => e.name).sort();
-    expect(names).toEqual(["badjson", "bare", "broken", "good", "nopalettes", "renamed"]);
+    expect(names).toEqual(["badjson", "bare", "bare_import", "broken", "good", "nopalettes", "renamed"]);
     const good = h.extensions.find((e) => e.name === "good")!;
     expect(good.loaded).toBe(true);
     expect(good.root).toBe(root.dir);
@@ -65,7 +73,7 @@ describe("loading", () => {
 
   test("settings.get is asked per extension with its manifest before the code runs", () => {
     const asked = host.coreCalls.filter((c) => c.method === "settings.get").map((c) => (c.params as any).extension).sort();
-    expect(asked).toEqual(["badjson", "bare", "broken", "good", "nopalettes", "renamed"]);
+    expect(asked).toEqual(["badjson", "bare", "bare_import", "broken", "good", "nopalettes", "renamed"]);
     expect((host.coreCalls.find((c) => (c.params as any)?.extension === "good")!.params as any).manifest.title).toBe("Good");
   });
 

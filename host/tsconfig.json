@@ -12,11 +12,15 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "pal": ["./src/api.ts"]
+    }
   },
   "include": [
     "src",
     "test",
-    "../extensions"
+    "../extensions",
+    "../examples"
   ]
 }

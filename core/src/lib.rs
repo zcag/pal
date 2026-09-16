@@ -3,6 +3,7 @@
 pub mod ax;
 pub mod clipboard;
 pub mod config;
+pub mod extensions;
 pub mod frecency;
 pub mod fs;
 pub mod icons;

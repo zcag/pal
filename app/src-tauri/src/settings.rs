@@ -13,6 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use pal_core::config::secrets::{platform_store, SecretRef};
 use pal_core::config::{Config, ConfigFile, Diagnostic, Error, Loaded, Watcher};
+use pal_core::extensions::{Installed, Store, Update};
 use pal_core::frecency::Frecency;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -39,6 +40,9 @@ pub struct Ext {
     /// The extension directory's creation time, unix ms.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installed: Option<u64>,
+    /// `.pal-install.json`, for one `pal install` put there.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub record: Option<pal_core::extensions::Record>,
 }
 
 pub struct Settings {
@@ -114,7 +118,9 @@ pub fn config(app: &AppHandle) -> Config {
 /// `extension/loaded` or `extension/error` from the host.
 pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
     let root = params["root"].as_str().unwrap_or_default().to_string();
-    let installed = std::fs::metadata(Path::new(&root).join(name)).and_then(|m| m.created()).ok().map(unix_ms);
+    let dir = Path::new(&root).join(name);
+    let installed = std::fs::metadata(&dir).and_then(|m| m.created()).ok().map(unix_ms);
+    let record = std::fs::read(dir.join(pal_core::extensions::RECORD)).ok().and_then(|b| serde_json::from_slice(&b).ok());
     let ext = Ext {
         name: name.to_string(),
         manifest: if params["manifest"].is_object() { params["manifest"].clone() } else { json!({ "name": name, "title": name }) },
@@ -123,6 +129,7 @@ pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
         error: params["message"].as_str().map(str::to_string),
         palettes: serde_json::from_value(params["palettes"].clone()).unwrap_or_default(),
         installed,
+        record,
     };
     let st = app.state::<Settings>();
     let mut exts = st.extensions.lock().unwrap();
@@ -311,6 +318,54 @@ pub fn settings_reset_frecency(app: AppHandle, frecency: State<'_, Mutex<Frecenc
 pub async fn settings_restart_host(host: State<'_, Arc<Host>>) -> Result<(), String> {
     host.restart().await;
     Ok(())
+}
+
+// ---- the extension store ---------------------------------------------------
+// `pal_core::extensions` does the work off the runtime; the host is restarted
+// after every change to the store, since its watcher only covers a root that
+// existed when it started and never unloads a removed extension.
+
+/// The store next to the config file the window is a front for.
+fn store(st: &Settings) -> Store {
+    Store::at(st.file.path().parent().unwrap_or(Path::new(".")).join("extensions"))
+}
+
+async fn in_store<T: Send + 'static>(st: &Settings, f: impl FnOnce(Store) -> pal_core::extensions::Result<T> + Send + 'static) -> Result<T, String> {
+    let store = store(st);
+    tauri::async_runtime::spawn_blocking(move || f(store)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn extensions_install(st: State<'_, Settings>, host: State<'_, Arc<Host>>, spec: String) -> Result<Installed, String> {
+    let bun = crate::host::bun();
+    let r = in_store(&st, move |s| s.install(&spec, Some(&bun))).await?;
+    eprintln!("extensions	installed	{} {}", r.name, r.version);
+    host.restart().await;
+    Ok(r)
+}
+
+#[tauri::command]
+pub async fn extensions_update(st: State<'_, Settings>, host: State<'_, Arc<Host>>, name: String) -> Result<Installed, String> {
+    let bun = crate::host::bun();
+    let r = in_store(&st, move |s| s.update(&name, Some(&bun))).await?;
+    eprintln!("extensions	updated	{} {}", r.name, r.version);
+    host.restart().await;
+    Ok(r)
+}
+
+#[tauri::command]
+pub async fn extensions_remove(st: State<'_, Settings>, host: State<'_, Arc<Host>>, name: String) -> Result<(), String> {
+    in_store(&st, move |s| s.remove(&name)).await?;
+    eprintln!("extensions	removed");
+    host.restart().await;
+    Ok(())
+}
+
+/// GitHub-installed extensions whose branch moved; network, so up to 10 s
+/// per extension, and an extension whose check fails is simply not listed.
+#[tauri::command]
+pub async fn extensions_check_updates(st: State<'_, Settings>) -> Result<Vec<Update>, String> {
+    in_store(&st, |s| s.check_updates()).await
 }
 
 #[tauri::command]

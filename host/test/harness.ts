@@ -70,7 +70,7 @@ export class Host {
   private seq = 0;
 
   private constructor(readonly opts: Options) {
-    this.proc = Bun.spawn(["bun", "run", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, NO_COLOR: "1" } });
+    this.proc = Bun.spawn(["bun", "run", "--no-install", HOST, ...opts.roots], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { ...process.env, NO_COLOR: "1" } });
     this.exited = this.proc.exited;
     this.read();
     this.drainStderr();

@@ -566,9 +566,13 @@ enabld = false
         assert!(l.diagnostics.is_empty());
     }
 
+    /// Env is process-global: the test that flips it and the one that
+    /// reads `config_dir` twice in one call take turns.
+    static ENV: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn locate_honours_env() {
-        // Env is process-global; both cases in one test to avoid races.
+        let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("PAL_CONFIG", "/x/pal.toml");
         assert_eq!(ConfigFile::locate().path(), Path::new("/x/pal.toml"));
         std::env::remove_var("PAL_CONFIG");
@@ -580,6 +584,7 @@ enabld = false
 
     #[test]
     fn profile_keys_on_the_path() {
+        let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(ConfigFile::new(fs::config_dir().join("config.toml")).profile(), "default");
         let dir = tempfile::tempdir().unwrap();
         let a = ConfigFile::new(dir.path().join("pali.toml"));

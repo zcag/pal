@@ -11,7 +11,7 @@
 // core passes the bundled root first and the user's own last. A root that
 // does not exist is skipped.
 import { watch } from "node:fs";
-import { readdir, stat } from "node:fs/promises";
+import { mkdir, readdir, readlink, rm, stat, symlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
@@ -123,7 +123,28 @@ function describe(e: unknown): string {
     .join("; ");
 }
 
+/**
+ * `<root>/node_modules/pal` -> this host, so `import { settings } from "pal"`
+ * in an installed extension resolves to api.ts (host/package.json `exports`)
+ * by Bun's ordinary walk up the directory tree, and never to the npm package
+ * of that name (Bun auto-installs a bare import it cannot resolve; a
+ * `Bun.plugin` onResolve did not intercept it, 2026-09-16). The bundled
+ * root, next to the host's own dir, imports by relative path and is left
+ * alone. Re-pointed when the host moved (an app update).
+ */
+async function linkApi(root: string) {
+  const host = resolve(import.meta.dir, "..");
+  if (resolve(root, "..") === resolve(host, "..")) return;
+  const link = `${root}/node_modules/pal`;
+  if ((await readlink(link).catch(() => undefined)) === host) return;
+  await mkdir(`${root}/node_modules`, { recursive: true });
+  await rm(link, { recursive: true, force: true });
+  await symlink(host, link);
+  log(`linked ${link} -> ${host}`);
+}
+
 async function loadAll() {
+  for (const root of ROOTS) if (await exists(root)) await linkApi(root).catch((e) => log(`link pal in ${root} failed: ${describe(e)}`));
   for (const [name, f] of await discover()) found.set(name, f);
   await Promise.all([...found.keys()].map(load));
 }

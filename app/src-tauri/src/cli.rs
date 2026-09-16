@@ -1,12 +1,17 @@
-//! `pal [toggle|show|hide|settings|quit]`. No subcommand runs the app. With one, and
+//! `pal [toggle|show|hide|settings|reload|quit]`. No subcommand runs the app. With one, and
 //! an instance already running, the argv reaches that instance through the
 //! single-instance plugin's channel and this process exits at once; with
 //! none running the app starts and applies the command once the page has
 //! loaded. Wayland has no global hotkey API, so this is what a compositor
 //! keybind runs.
+//!
+//! `pal install|update|remove|list` work the extension store in this process
+//! (`Cmd::run_store`, printing to the terminal), then `reload` reaches the
+//! running instance so its host picks the change up.
 
 use clap::{Parser, Subcommand};
-use tauri::AppHandle;
+use pal_core::extensions::Store;
+use tauri::{AppHandle, Manager};
 
 #[derive(Parser)]
 #[command(version, about = "pal launcher")]
@@ -15,7 +20,7 @@ pub struct Cli {
     pub cmd: Option<Cmd>,
 }
 
-#[derive(Subcommand, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
 pub enum Cmd {
     /// Show the panel if hidden, hide it if shown.
     Toggle,
@@ -25,11 +30,71 @@ pub enum Cmd {
     Hide,
     /// Open the settings window.
     Settings,
+    /// Restart the extension host, so it reloads every extension from disk.
+    Reload,
     /// Quit the running instance (flushes its state, stops the extension host).
     Quit,
+    /// Install an extension: a directory, github:user/repo[/subdir][@ref], or a github.com URL.
+    Install { spec: String },
+    /// Fetch an installed extension's source again; every one with a source when no name is given.
+    Update { name: Option<String> },
+    /// Remove an installed extension (its settings stay in the config file).
+    Remove { name: String },
+    /// List the extensions in the store.
+    List,
 }
 
 impl Cmd {
+    /// The store commands, run in this process: `Some(changed)` for one of
+    /// them (printed, exit status set on failure), `None` for the rest.
+    pub fn run_store(&self) -> Option<bool> {
+        let store = Store::locate();
+        let bun = crate::host::bun();
+        let r: Result<bool, String> = match self {
+            Cmd::Install { spec } => store.install(spec, Some(&bun)).map(|i| {
+                println!("installed {} {} at {}", i.name, i.version, i.dir.display());
+                true
+            }),
+            Cmd::Update { name: Some(name) } => store.update(name, Some(&bun)).map(|i| {
+                println!("updated {} {}", i.name, i.version);
+                true
+            }),
+            Cmd::Update { name: None } => store.list().map(|all| {
+                let mut changed = false;
+                for i in all.iter().filter(|i| i.record.is_some()) {
+                    match store.update(&i.name, Some(&bun)) {
+                        Ok(u) => {
+                            println!("updated {} {}", u.name, u.version);
+                            changed = true;
+                        }
+                        Err(e) => eprintln!("{}: {e}", i.name),
+                    }
+                }
+                changed
+            }),
+            Cmd::Remove { name } => store.remove(name).map(|()| {
+                println!("removed {name}");
+                true
+            }),
+            Cmd::List => store.list().map(|all| {
+                for i in &all {
+                    let source = i.record.as_ref().map_or("(by hand)", |r| r.source.as_str());
+                    println!("{}\t{}\t{}", i.name, i.version, source);
+                }
+                false
+            }),
+            _ => return None,
+        }
+        .map_err(|e| e.to_string());
+        match r {
+            Ok(changed) => Some(changed),
+            Err(e) => {
+                eprintln!("pal\t{e}");
+                std::process::exit(1);
+            }
+        }
+    }
+
     /// A second instance's argv. No subcommand there means show: what a
     /// second launch of a single-instance app conventionally does.
     pub fn from_args(args: Vec<String>) -> Option<Cmd> {
@@ -52,7 +117,16 @@ impl Cmd {
             Cmd::Show => crate::show(&handle),
             Cmd::Hide => crate::panel::hide(&handle),
             Cmd::Settings => crate::settings::open(&handle),
+            Cmd::Reload => {
+                if let Some(host) = handle.try_state::<std::sync::Arc<crate::host::Host>>() {
+                    let host = host.inner().clone();
+                    tauri::async_runtime::spawn(async move { host.restart().await });
+                }
+            }
             Cmd::Quit => crate::quit(&handle),
+            // Reaches the instance only when a second process skipped
+            // `run_store` (it never does); the store is that process's job.
+            Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List => {}
         });
     }
 }
@@ -67,6 +141,18 @@ impl Cmd {
 /// when no instance answered; the plugin then settles it.
 pub fn handover(identifier: &str) -> bool {
     let args: Vec<String> = std::env::args().collect();
+    handover_with(identifier, args)
+}
+
+/// Same channel, a different subcommand than this process was given
+/// (`reload` after a store command). `argv[0]` stays ours.
+pub fn handover_args(identifier: &str, args: &[&str]) -> bool {
+    let mut argv = vec![std::env::args().next().unwrap_or_else(|| "pal".into())];
+    argv.extend(args.iter().map(|a| a.to_string()));
+    handover_with(identifier, argv)
+}
+
+fn handover_with(identifier: &str, args: Vec<String>) -> bool {
     let cwd = std::env::current_dir().unwrap_or_default().to_string_lossy().into_owned();
     send(identifier, &args, &cwd).is_ok()
 }

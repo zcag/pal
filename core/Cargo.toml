@@ -24,6 +24,10 @@ resvg = { version = "0.48", default-features = false }
 ureq = { version = "3", default-features = false, features = ["rustls", "gzip"] }
 url = "2"
 sha2 = "0.10"
+# extensions: the GitHub tarball, and staging inside the store
+tar = "0.4"
+flate2 = "1"
+tempfile = "3"
 # clipboard: history store; bundled so the app ships one known SQLite (with FTS5) on both platforms
 rusqlite = { version = "0.40", features = ["bundled"] }
 

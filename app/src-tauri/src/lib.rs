@@ -158,11 +158,20 @@ pub fn run() {
     START.get_or_init(Instant::now);
     let cli = cli::Cli::parse();
     let context = tauri::generate_context!();
+    // The store commands run here, in this process, so their output lands
+    // on the caller's terminal; a running instance is then told to restart
+    // its host (`reload`), and none of them starts the app.
+    if let Some(changed) = cli.cmd.as_ref().and_then(cli::Cmd::run_store) {
+        if changed && !cli::handover_args(&context.config().identifier, &["reload"]) {
+            eprintln!("pal	not running; the extension loads at the next start");
+        }
+        return;
+    }
     if cli.cmd.is_some() && cli::handover(&context.config().identifier) {
         return;
     }
-    if cli.cmd == Some(cli::Cmd::Quit) {
-        // Nothing answered: starting an app to quit it is not what was asked.
+    if matches!(cli.cmd, Some(cli::Cmd::Quit | cli::Cmd::Reload)) {
+        // Nothing answered: starting an app to quit or reload it is not what was asked.
         eprintln!("pal\tnot running");
         return;
     }
@@ -207,6 +216,10 @@ pub fn run() {
             settings::settings_reveal_file,
             settings::settings_reset_frecency,
             settings::settings_restart_host,
+            settings::extensions_install,
+            settings::extensions_update,
+            settings::extensions_remove,
+            settings::extensions_check_updates,
             settings::settings_open,
             settings::settings_close,
             updater::check_updates,

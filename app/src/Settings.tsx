@@ -30,7 +30,10 @@ type ManifestPalette = { title?: string; description?: string; settings?: Settin
 type Manifest = { name: string; title?: string; description?: string; version?: string; icon?: string; author?: string; repo?: string; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette> };
 /** `PaletteMeta` (index.rs): what the code said about a palette. */
 type Meta = { name: string; title: string; icon?: string };
-type Ext = { name: string; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; installed?: number };
+type Record_ = { source: string; ref?: string; installed_at: number; commit_or_etag?: string };
+type Ext = { name: string; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; installed?: number; record?: Record_ };
+/** `pal_core::extensions::Update`. */
+type Update = { name: string; current: string; latest: string };
 type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[] };
 
 /** `palettes.<id>`: the extension's name when the palette is named like it, else `<extension>-<palette>` (index.rs `palette_id`). */
@@ -41,7 +44,7 @@ const seg = (s: string) => (/^[A-Za-z0-9_-]+$/.test(s) ? s : JSON.stringify(s));
 
 const sameValue = (a: SettingValue, b: SettingValue) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
-function toExtension(e: Ext, config: RawConfig): SettingsExtension {
+function toExtension(e: Ext, config: RawConfig, userRoot: string, latest?: string): SettingsExtension {
   const m = e.manifest;
   const title = m.title ?? e.name;
   const codePalettes = new Map(e.palettes.map((p) => [p.name, p]));
@@ -66,7 +69,10 @@ function toExtension(e: Ext, config: RawConfig): SettingsExtension {
     description: m.description ?? "",
     icon: m.icon ? iconOf(m.icon, title) : undefined,
     version: m.version ?? "",
-    repo: m.repo ?? "bundled",
+    latest,
+    repo: m.repo ?? (e.root === userRoot ? "" : "bundled"),
+    bundled: e.root !== userRoot,
+    source: e.record?.source,
     installed: e.installed,
     palettes,
     settings: m.settings ?? [],
@@ -111,7 +117,25 @@ export default function Settings() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const extensions = useMemo(() => (view ? view.extensions.map((e) => toExtension(e, view.config)) : []), [view]);
+  // `latest` per extension, from one `extensions_check_updates` the first
+  // time the Extensions page opens (network, unauthenticated GitHub API);
+  // cleared for an extension once it is updated or removed.
+  const [updates, setUpdates] = useState<Record<string, string> | null>(null);
+  useEffect(() => {
+    if (page !== "extensions" || updates !== null) return;
+    setUpdates({});
+    invoke<Update[]>("extensions_check_updates")
+      .then((u) => setUpdates(Object.fromEntries(u.map((x) => [x.name, x.latest.slice(0, 7)]))))
+      .catch((e) => setError(String(e)));
+  }, [page, updates]);
+  const forget = (name: string) => setUpdates((u) => (u && name in u ? Object.fromEntries(Object.entries(u).filter(([k]) => k !== name)) : u));
+
+  /** The user's store, `extensions/` next to the config file: what the host loads last (host.rs `Layout`). */
+  const userRoot = view ? view.path.replace(/\/[^/]*$/, "/extensions") : "";
+  const extensions = useMemo(() => (view ? view.extensions.map((e) => toExtension(e, view.config, userRoot, updates?.[e.name])) : []), [view, userRoot, updates]);
+  const onInstall = async (spec: string) => { await invoke("extensions_install", { spec }); };
+  const onExtUpdate = async (name: string) => { await invoke("extensions_update", { name }); forget(name); };
+  const onExtRemove = async (name: string) => { await invoke("extensions_remove", { name }); forget(name); };
   useEffect(() => {
     if (!palette && extensions[0]?.palettes[0]) setPalette(extensions[0].palettes[0].id);
     if (!ext && extensions[0]) setExt(extensions[0].name);
@@ -202,7 +226,7 @@ export default function Settings() {
         />
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} />}
-      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} onChange={onExtension} />}
+      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} />}
     </SettingsWindow>
   );
 }

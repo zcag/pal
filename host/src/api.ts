@@ -1,11 +1,14 @@
-// What an extension imports to reach the core's OS capabilities. Today a
-// relative import (`../../host/src/api.ts`); it becomes the `pal` package
-// (`import { clipboard } from "pal"`) once extensions are packaged. Every
-// function is one `core/<capability>.<fn>` request over the bridge.
+// What an extension imports to reach the core's OS capabilities: the `pal`
+// module (host.ts resolves that bare name to this file for an installed
+// extension; the bundled ones import it by relative path, the same module).
+// Every function is one `core/<capability>.<fn>` request over the bridge.
+// The protocol's types ride along, so `import type { Extension } from "pal"`.
 import { homedir } from "node:os";
 import { call } from "./bridge.ts";
 import { caller, resolved, subscribe } from "./settings.ts";
 import type { ResolvedSettings } from "./protocol.ts";
+
+export type * from "./protocol.ts";
 
 export const core = { call };
 

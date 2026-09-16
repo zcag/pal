@@ -1,0 +1,15 @@
+{
+  "name": "hello",
+  "title": "Hello",
+  "description": "The smallest extension: one palette, three rows, one setting.",
+  "version": "0.1.0",
+  "icon": "👋",
+  "author": "pal",
+  "repo": "github.com/zcag/pal",
+  "settings": [
+    { "kind": "text", "id": "greeting", "label": "Greeting", "description": "What the first row says.", "default": "Hello" }
+  ],
+  "palettes": {
+    "hello": { "description": "Three rows that show the shape of an extension." }
+  }
+}

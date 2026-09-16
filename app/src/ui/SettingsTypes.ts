@@ -57,6 +57,10 @@ export type SettingsExtension = {
   latest?: string;
   /** Source repository, or "bundled" for the ones that ship with pal. */
   repo: string;
+  /** Ships with pal: cannot be removed. Decided by the root it loaded from, not the manifest. */
+  bundled?: boolean;
+  /** What `pal install` was given (`.pal-install.json`), for an extension in the user's store. */
+  source?: string;
   installed?: string | number | Date;
   palettes: SettingsPalette[];
   /** Extension-level settings the extension declared. */

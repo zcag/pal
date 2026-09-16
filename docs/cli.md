@@ -19,7 +19,12 @@ pal toggle          show the panel if hidden, hide it if shown
 pal show            show the panel
 pal hide            hide the panel
 pal settings        open the settings window
+pal reload          restart the extension host (reloads every extension from disk)
 pal quit            quit the running instance (flushes its state, stops the extension host)
+pal install SPEC    install an extension into ~/.config/pal/extensions
+pal update [NAME]   fetch an installed extension's source again (all of them without a name)
+pal remove NAME     remove an installed extension
+pal list            the installed extensions: name, version, source
 pal --version
 pal --help
 ```
@@ -36,5 +41,19 @@ what a second launch of a single-instance app conventionally does.
 
 ## `pal install`, `update`, `remove`, `list`
 
-Coming: an install command for extensions is being added; not in this
-build.
+These work the extension store in the calling process (so their output is
+on your terminal), then tell a running instance to `reload` its host so it
+sees the change. With no instance running the change is on disk and the
+extension loads at the next start. None of them starts the app.
+
+```text
+pal install github:user/repo                  the repo's root is the extension
+pal install github:user/repo/sub/dir@v1.2     a subdirectory, at a tag or branch
+pal install https://github.com/user/repo/tree/main/sub/dir
+pal install ~/src/my-extension                a local directory, copied
+pal list
+pal update my-extension
+pal remove my-extension
+```
+
+What each does and what an extension is: [Extensions](extensions.md).

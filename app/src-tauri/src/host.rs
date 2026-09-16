@@ -57,15 +57,20 @@ struct Layout {
     roots: Vec<PathBuf>,
 }
 
+/// The bun that runs the host and installs an extension's dependencies
+/// (`pal_core::extensions`): needs no app handle, so the CLI resolves it too.
+pub(crate) fn bun() -> PathBuf {
+    let sidecar = tauri::utils::platform::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|d| d.join(SIDECAR)))
+        .filter(|p| p.is_file());
+    let on_path = std::env::var_os("PATH").and_then(|p| std::env::split_paths(&p).map(|d| d.join("bun")).find(|b| b.is_file()));
+    if cfg!(debug_assertions) { on_path.or(sidecar) } else { sidecar.or(on_path) }.unwrap_or_else(|| PathBuf::from("bun"))
+}
+
 impl Layout {
     fn resolve(app: &AppHandle) -> Layout {
-        let sidecar = tauri::utils::platform::current_exe()
-            .ok()
-            .and_then(|exe| exe.parent().map(|d| d.join(SIDECAR)))
-            .filter(|p| p.is_file());
-        let on_path = std::env::var_os("PATH")
-            .and_then(|p| std::env::split_paths(&p).map(|d| d.join("bun")).find(|b| b.is_file()));
-        let bun = if cfg!(debug_assertions) { on_path.or(sidecar) } else { sidecar.or(on_path) }.unwrap_or_else(|| PathBuf::from("bun"));
+        let bun = bun();
         let staged = app.path().resource_dir().ok().filter(|d| d.join("host/src/host.ts").is_file());
         let base = match (cfg!(debug_assertions), staged) {
             (false, Some(dir)) => dir,
@@ -128,8 +133,11 @@ impl Host {
         *lock(&self.started) = t0;
         let layout = Layout::resolve(&self.app);
         eprintln!("host\tspawn\t{} {} {}", layout.bun.display(), layout.host.display(), layout.roots.iter().map(|r| r.display().to_string()).collect::<Vec<_>>().join(" "));
+        // Without --no-install Bun fetches any unresolved bare import from npm
+        // at load time; an extension's typo would pull arbitrary code.
         let mut child = Command::new(&layout.bun)
             .arg("run")
+            .arg("--no-install")
             .arg(&layout.host)
             .args(&layout.roots)
             .current_dir(layout.host.parent().unwrap_or(Path::new("/")))
