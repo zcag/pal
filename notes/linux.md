@@ -293,3 +293,150 @@ and gstreamer plugin scripts, `linuxdeploy-plugin-appimage` and `AppRun` into
 - Hyprland aside: `hyprctl` needs `HYPRLAND_INSTANCE_SIGNATURE` too, not
   just `WAYLAND_DISPLAY`; all of them come from
   `systemctl --user show-environment`.
+
+## Full check (marko, 2026-09-16 14:00, Mac working tree at 1922261 plus uncommitted work)
+
+Driven from the Mac over ssh: `hyprctl keyword` bind and rules, `ydotool`
+for keys, `grim` crops of the panel; `PAL_CONFIG=/tmp/pal-check.toml`
+(`hotkey = ""`, `menu_bar_icon = false`), log `/tmp/pal-check.log`, a kitty
+with `map ctrl+v paste_from_clipboard` and `cat` as the paste target.
+Everything below was removed afterwards (config, profile `7c16813b`, bind,
+rules via `hyprctl reload`, the test kitty, my storage and clipboard rows);
+the clone is back at a clean 1922261 with `target/release/pal` built from
+the tree described next.
+
+### Build: the pushed commit does not build
+
+- HEAD 1922261 as pushed fails both builds. `npm run build`:
+  `src/ui/index.ts(34,60): Cannot find module './SettingsAbout'`, same for
+  `./SettingsList`, `Gallery.tsx(571)` `onOpenLink` unknown prop,
+  `Gallery.tsx(572)` page `"about"` not in `SettingsPage`. `cargo build`:
+  `lib.rs:215` `settings::__cmd__settings_about` and `settings_open_link`
+  missing, `lib.rs:204` `tauri_plugin_window_state` and `settings::STATE`
+  missing. The Mac working tree has the rest: 68 modified files and 16
+  untracked ones (`sdk/` package, root `package.json` workspace,
+  `app/src/ui/SettingsAbout.tsx`, `SettingsList.tsx`, `host/src/sdk.ts`,
+  `LICENSE`, ...), all uncommitted. The check ran against that tree,
+  rsync'd onto marko (`.git`, `target`, `node_modules`, `dist`, the darwin
+  sidecar and `resources/` excluded). Fix: commit it.
+- Fresh clone, even with that tree: `npx tsc --noEmit` in `app/` fails with
+  `../sdk/src/api.ts(6,25): error TS2591: Cannot find name 'node:os'`. The
+  app reaches `@zcag/pal` through `extensions/blackjack/render.ts` (Gallery
+  imports it); the package's `exports` gives `types: ./dist/index.d.ts`, so
+  on the Mac, where `sdk/dist` exists, tsc reads the declarations and never
+  sees `api.ts`. Without `dist` it falls to `src/index.ts`, and the app's
+  tsconfig has no bun or node types. `cd sdk && bun run build` first, then
+  it passes (3m57s release build, 17.0 MB binary). ci.yml runs the app
+  typecheck (line 94) before `sdk build and pack` (line 110), so CI fails
+  the same way. Fix: build the sdk before the app typecheck (CI order, a
+  Makefile target, or a `prebuild` in app/package.json), or point
+  `types` at `src` with a `/// <reference types="node" />` in `api.ts`.
+- `bun install` (1.3.14) rewrites `host/bun.lock`,
+  `extensions/calc/bun.lock`, `extensions/scripts/bun.lock` every time;
+  `git checkout -- .` before a pull, as before.
+
+### Runtime, per item
+
+1. Panel: working. Bind fired 100% through ydotool; `hotkey->paint 22.4`
+   first show, later shows under 1 ms; `key->paint` 4 to 30 ms per letter.
+   Mapped at (580,216) 760x480, floating, pinned, per the class rule. Hide
+   unmaps (no client listed). Chromium pick: `pick apps/apps
+   /usr/share/applications/chromium.desktop 8.4ms`, a window came up 3 s
+   later (a second Chromium instance under Xwayland, class `Chromium`: the
+   daily one runs a custom profile at `~/.local/share/chrome-main`, so the
+   .desktop launch starts the default profile), closed with `closewindow`.
+   Cosmetic: the Welcome row says "Show tips again" in `⌘K` on Linux while
+   the footer says `Ctrl K` (screenshot 01-root).
+2. Blackjack: working. `pick blackjack/blackjack 24.0`, `view 33.0`; cards
+   are the SVG images, keycaps and footer render; `pick view (deal)`,
+   `(hit)`, `(stand)`, `(next)` logged for Enter/H/S/Enter, each 4 to 7
+   ms; a bust ignores S. Escape pops the level, then clears the query, then
+   hides, as keyboard.md says (screenshots 04 to 11).
+3. Quicklinks: working. Form renders, Tab moves between fields, Enter
+   submits (`pick create (save) 4.0`, toast "Created"), the row drills in
+   on Enter, typing a query shows `Open Example check
+   https://example.com/?q=hello%20world`, Enter opens it (`pick ... (open)
+   9.0`, a Chromium window titled "Example Domain", closed).
+   Snippets: working. Ctrl+C: `pick ... (copy) 12.0`, `wl-paste` gives
+   `hello from pal on 2026-09-16`, the HUD says Copied. Enter: `pick ...
+   (paste) 184.0`, the text landed in the kitty's `cat`. `wtype` is not
+   installed on marko, so this went through `ydotool key 29:1 47:1 ...`
+   (`clipboard.rs:798`). Plain kitty does not paste on Ctrl+V (that is
+   Ctrl+Shift+V), so a real kitty target needs the map; GTK apps and
+   Chromium take Ctrl+V. Cosmetic: the textarea submits on Ctrl+Enter
+   (`Form.tsx:28`) but the Create button and the footer both say `Enter`.
+4. Window management: working on Hyprland. Kitty tiled 0,0 1920x1080
+   before; `left_half` gave 0,0 960x1080 floating, `maximize` 0,0
+   1920x1080, `restore` 0,0 1920x1080 but still floating (the frame comes
+   back, the tiled state does not), `right_half` 960,0 960x1080; `pick
+   left_half (apply) 131.0`, maximize 149, restore 124. The HUD names the
+   layout (screenshot 26-wm-hud-full).
+   BROKEN, rules: with the two rules in the order this file gives (HUD rule
+   first), the HUD mapped at (720,216), the panel's spot. Both rules match
+   the HUD (class `pal` and the title), and Hyprland applies the last
+   `move` that matches. Appending the HUD rule after the panel rule put it
+   at (720,872) = `monitor_h - window_h - 8`. Fix: swap the order in this
+   file, docs/getting-started.md and `panel/linux.rs:56`, or better, key
+   the panel rule on `match:title ^(pal)$` so it stops matching the HUD
+   and Settings. The HUD toplevel is 480x200 on Hyprland, not the 480x72 in
+   tauri.conf.json; the capsule sits at the window's bottom edge (CSS
+   `flex-end`), so it still reads 32 px above the screen edge, but the
+   invisible surface is 200 px tall.
+5. Files: working. Empty state row says `fd in ~` (the only place the
+   backend is named; nothing in the log). `aishot` listed three rows with
+   size and age, Enter: `pick files/files
+   /home/cagdas/cloud/other/wp/aishot-575.jpg (open) 1.0`, xdg default
+   for image/jpeg here is Chromium, a window came up, closed. Slow tail:
+   `host list 1195.77ms` for `aishot` (fd walks all of `~` when fewer than
+   50 names match; two-letter queries took 14 to 45 ms).
+6. System: working. `pick system/system volume-mute 15.2ms`, `wpctl
+   get-volume` went `1.00 [MUTED]` then `1.00`. The rows are not in the
+   root index (`index system/system 0 items`): typing `toggle mute` at the
+   root found nothing from System and Enter ran a `scripts/tabs` row
+   instead (which focused a tab in the daily Chromium; put back with `bt
+   activate`). Drill into System first.
+   Clipboard history: working. Two `wl-copy` texts and a `wl-copy --type
+   image/png` all recorded (`clipboard.db` rows 4 to 6), the palette shows
+   them with the image row "Image 800 x 340", its thumbnail, and the
+   preview pane with kind, 9.7 KB, 800 x 340 px and the time (screenshot
+   35-cliphist). Ranking at the root: `clipboard` lists the emoji and 73
+   iconnerd rows first, `history` five iconnerd rows first; `clipboard
+   history` puts the palette row on top.
+7. Settings: working. `pal settings` 54 ms, `settings open after 720x520`,
+   General renders (Hotkey with presets, Theme, Window position, Startup).
+   Clicking Light then Dark wrote `theme = "light"`/`"dark"` to the file,
+   `config reloaded ... 0 diagnostics`, and both the Settings page and the
+   panel flipped (screenshots 39, 40). The GTK header bar stays dark: it is
+   GTK's CSD and follows the GTK theme, not `general.theme`. About renders;
+   Ctrl+W closes. Two rule problems: the window has class `pal`, so the
+   panel rule floated and pinned it at (600,216) with no border, and
+   `settings after 300ms ... maximized=Ok(true)` while Hyprland shows it
+   at 720x567 floating (567 = 520 + the 47 px header bar). Same fix as the
+   HUD: key the panel rule on the title. Copy: "No hotkey: bind `pal
+   toggle` in your compositor or desktop. From anywhere. Press the new
+   combination ..." reads as a fragment. Driving note: `ydotool mousemove
+   -a` did not land on this Hyprland; `hyprctl dispatch movecursor X Y`
+   then `ydotool click 0xC0` did.
+8. Tray: skipped (no bar on marko). `pal quit`: `quit requested`, `[host]
+   stdin closed, exiting`, `host exit exit status: 0`, `host stopped
+   21.1ms`, `quit flushed`; no `pal` or `pal-bun` left.
+
+### Also seen
+
+- First start with the temp profile logged `profile moved
+  ~/.local/share/pal/frecency.json -> ~/.local/share/pal/default/frecency.json`:
+  a non-default profile moved the default profile's file (a v2 file from
+  an earlier run today, `{"version":1,"items":[{"extension":...`). Harmless
+  here; check whether that move is meant to run for every profile.
+- `~/.local/share/pal/storage/` (`quicklinks.json`, `snippets.json`,
+  `blackjack.json`) and `clipboard.db` sit one level above the profile
+  dir, so a test profile's quicklinks and snippets show up in every
+  profile on the box. Deleted by hand this time.
+- `permissions accessibility true` is logged on Linux.
+- One iconnerd `clipboard` row rendered as tofu (a glyph outside the bundled
+  PUA range, guess); the rest of the Nerd Font rows were fine.
+- Scripts extension noise from marko's v1 plugins, not pal's: `[scripts]
+  cannot run ~/.config/pal/plugins/ss/ss: ENOENT`, `ble/run.sh list killed
+  after 30000 ms`.
+- Screenshots of every step are in the Mac session's scratchpad
+  (`01-root` to `42-settings-about`), not in the repo.

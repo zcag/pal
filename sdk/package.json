@@ -10,8 +10,8 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "default": "./src/index.ts" },
-    "./runtime": { "types": "./dist/runtime.d.ts", "default": "./src/runtime.ts" }
+    ".": { "types": "./src/index.ts", "default": "./src/index.ts" },
+    "./runtime": { "types": "./src/runtime.ts", "default": "./src/runtime.ts" }
   },
   "files": ["dist", "src", "README.md", "LICENSE"],
   "scripts": {

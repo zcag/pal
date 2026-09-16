@@ -269,7 +269,8 @@ mod platform {
         let mut ids = candidates(&mime, default.as_deref(), &lists, &caches);
         // An editor registered for text/plain opens any text/* the desktop knows no better app for.
         if mime.starts_with("text/") && mime != "text/plain" {
-            ids.extend(candidates("text/plain", None, &lists, &caches).into_iter().filter(|i| !ids.contains(i)));
+            let more: Vec<String> = candidates("text/plain", None, &lists, &caches).into_iter().filter(|i| !ids.contains(i)).collect();
+            ids.extend(more);
         }
         let is_default = |id: &str| default.as_deref() == Some(id);
         Ok(ids

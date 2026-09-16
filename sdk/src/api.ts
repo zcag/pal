@@ -3,7 +3,6 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import { homedir } from "node:os";
 import type { ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
 
@@ -18,7 +17,11 @@ const who = (extension?: string): string => runtime().caller(extension).extensio
 export const core = { call };
 
 /** A leading `~` (bare, or `~/...`) replaced by the home directory, as paths from settings and data files carry it. */
-export const home = (path: string): string => path.replace(/^~(?=\/|$)/, homedir());
+// No `node:os` import: this file is also type-checked by consumers without
+// node types (the app's gallery). Bun and Node both expose the env.
+declare const process: { env: Record<string, string | undefined> } | undefined;
+const homeDir = (): string => (typeof process === "undefined" ? "" : process.env.HOME || process.env.USERPROFILE || "");
+export const home = (path: string): string => path.replace(/^~(?=\/|$)/, homeDir());
 
 /**
  * The extension's settings as the user set them: the manifest's defaults
