@@ -1,0 +1,4579 @@
+{
+  "palettes": {
+    "notes": {
+      "title": "Notes",
+      "icon": {
+        "tile": {
+          "glyph": "󰩪",
+          "bg": "violet"
+        }
+      },
+      "tier": "primary",
+      "placeholder": "A note by title, alias, tag or folder",
+      "items": [
+        {
+          "id": "cmd:today",
+          "name": "Today's note",
+          "subtitle": "Open today's daily note; created from the template when missing",
+          "icon": "󰃶",
+          "keywords": [
+            "daily",
+            "journal",
+            "log"
+          ],
+          "section": "Obsidian",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open today's note"
+            },
+            {
+              "id": "append",
+              "title": "Append to today",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "cmd:new",
+          "name": "New note",
+          "subtitle": "A note by title in a folder of the vault",
+          "icon": "󰎝",
+          "keywords": [
+            "create",
+            "write"
+          ],
+          "section": "Obsidian",
+          "actions": [
+            {
+              "id": "new",
+              "title": "New note"
+            }
+          ]
+        },
+        {
+          "id": "cmd:search",
+          "name": "Search notes",
+          "subtitle": "Full-text over every note",
+          "icon": "󱎸",
+          "keywords": [
+            "find",
+            "grep"
+          ],
+          "section": "Obsidian",
+          "actions": [
+            {
+              "id": "search",
+              "title": "Search"
+            },
+            {
+              "id": "obsidian",
+              "title": "Search in Obsidian",
+              "shortcut": "cmd+enter"
+            }
+          ]
+        },
+        {
+          "id": "cmd:random",
+          "name": "Random note",
+          "subtitle": "Open one at random",
+          "icon": "󰝮",
+          "keywords": [
+            "shuffle",
+            "surprise"
+          ],
+          "section": "Obsidian",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open a random note"
+            }
+          ]
+        },
+        {
+          "id": "note:_index.md",
+          "name": "Wiki Index",
+          "subtitle": "Summary and pointer layer for the vault.",
+          "icon": "󱇗",
+          "keywords": [
+            "_index"
+          ],
+          "section": "Vault",
+          "accessories": [
+            {
+              "date": 1789488638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:_log.md",
+          "name": "Log",
+          "subtitle": "Append-only. One line per thing learned.",
+          "icon": "󱇗",
+          "keywords": [
+            "_log"
+          ],
+          "section": "Vault",
+          "accessories": [
+            {
+              "date": 1789524638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:_rules.md",
+          "name": "Rules",
+          "subtitle": "Routing, conventions and write-back rules.",
+          "icon": "󱇗",
+          "keywords": [
+            "_rules"
+          ],
+          "section": "Vault",
+          "accessories": [
+            {
+              "date": 1787076638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-13.md",
+          "name": "2026-09-13",
+          "subtitle": "Nothing much",
+          "icon": "󱇗",
+          "keywords": [
+            "daily"
+          ],
+          "section": "daily",
+          "accessories": [
+            {
+              "date": 1789258238073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-15.md",
+          "name": "2026-09-15",
+          "subtitle": "Ferry times for Kaş",
+          "icon": "󱇗",
+          "keywords": [
+            "daily"
+          ],
+          "section": "daily",
+          "accessories": [
+            {
+              "date": 1789431038073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-16.md",
+          "name": "2026-09-16",
+          "subtitle": "Moved the reader's port, updated infra/theater",
+          "icon": "󱇗",
+          "keywords": [
+            "daily"
+          ],
+          "section": "daily",
+          "accessories": [
+            {
+              "date": 1789517438073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:infra/archer.md",
+          "name": "archer",
+          "subtitle": "The always-on home server, and the token broker on it",
+          "icon": "󱇗",
+          "keywords": [
+            "#infra",
+            "#homelab",
+            "infra"
+          ],
+          "section": "infra",
+          "accessories": [
+            {
+              "tag": "infra"
+            },
+            {
+              "tag": "homelab"
+            },
+            {
+              "date": 1789164638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:infra/theater.md",
+          "name": "theater",
+          "subtitle": "The media box under the TV, and what runs on it",
+          "icon": "󱇗",
+          "keywords": [
+            "the box",
+            "#infra",
+            "#homelab",
+            "infra"
+          ],
+          "section": "infra",
+          "accessories": [
+            {
+              "tag": "infra"
+            },
+            {
+              "tag": "homelab"
+            },
+            {
+              "date": 1789503038073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:personal/projects/ken.md",
+          "name": "ken",
+          "subtitle": "The feed reader that sends one digest a day",
+          "icon": "󱇗",
+          "keywords": [
+            "#project",
+            "#reading/rss",
+            "personal/projects"
+          ],
+          "section": "personal/projects",
+          "accessories": [
+            {
+              "tag": "project"
+            },
+            {
+              "tag": "reading/rss"
+            },
+            {
+              "date": 1789578638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:personal/projects/tan.md",
+          "name": "tan",
+          "subtitle": "The standing agent. Runs every few hours and keeps one page of everything open. #project #agent",
+          "icon": "󱇗",
+          "keywords": [
+            "#project",
+            "#agent",
+            "personal/projects"
+          ],
+          "section": "personal/projects",
+          "accessories": [
+            {
+              "tag": "project"
+            },
+            {
+              "tag": "agent"
+            },
+            {
+              "date": 1789589438073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:personal/trip-to-kas.md",
+          "name": "Trip to Kaş",
+          "subtitle": "#travel",
+          "icon": "󱇗",
+          "keywords": [
+            "trip-to-kas",
+            "#travel",
+            "personal"
+          ],
+          "section": "personal",
+          "accessories": [
+            {
+              "tag": "travel"
+            },
+            {
+              "date": 1789416638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:preferences/voice.md",
+          "name": "voice",
+          "subtitle": "How I write. #preferences",
+          "icon": "󱇗",
+          "keywords": [
+            "#preferences",
+            "preferences"
+          ],
+          "section": "preferences",
+          "accessories": [
+            {
+              "tag": "preferences"
+            },
+            {
+              "date": 1788156638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:setup/dotfiles.md",
+          "name": "dotfiles",
+          "subtitle": "One repo, stowed per machine. #setup",
+          "icon": "󱇗",
+          "keywords": [
+            "#setup",
+            "setup"
+          ],
+          "section": "setup",
+          "accessories": [
+            {
+              "tag": "setup"
+            },
+            {
+              "date": 1788516638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:setup/keyboard.md",
+          "name": "keyboard",
+          "subtitle": "The layout and the layers. #setup #keyboard",
+          "icon": "󱇗",
+          "keywords": [
+            "#setup",
+            "#keyboard",
+            "setup"
+          ],
+          "section": "setup",
+          "accessories": [
+            {
+              "tag": "setup"
+            },
+            {
+              "tag": "keyboard"
+            },
+            {
+              "date": 1788876638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:work/onboarding.md",
+          "name": "onboarding",
+          "subtitle": "First weeks at the new place. #work",
+          "icon": "󱇗",
+          "keywords": [
+            "#work",
+            "work"
+          ],
+          "section": "work",
+          "accessories": [
+            {
+              "tag": "work"
+            },
+            {
+              "date": 1789542638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:work/people/lina.md",
+          "name": "Lina",
+          "subtitle": "Team lead. Owns the on-call rota. #work #people",
+          "icon": "󱇗",
+          "keywords": [
+            "lina",
+            "#work",
+            "#people",
+            "work/people"
+          ],
+          "section": "work/people",
+          "accessories": [
+            {
+              "tag": "work"
+            },
+            {
+              "tag": "people"
+            },
+            {
+              "date": 1789380638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "note:_index.md": {
+          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-lxmkdn&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-lxmkdn&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-lxmkdn&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) the standing agent",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_index.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 19:10"
+            },
+            {
+              "label": "Words",
+              "value": "57"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "_rules"
+                },
+                {
+                  "text": "_log"
+                },
+                {
+                  "text": "infra/theater"
+                },
+                {
+                  "text": "infra/archer"
+                },
+                {
+                  "text": "setup/keyboard"
+                },
+                {
+                  "text": "personal/projects/ken"
+                },
+                {
+                  "text": "personal/projects/tan"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:_log.md": {
+          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-14, ken: two digests a day was too many, back to one\n- 2026-09-08, keyboard: home row mods on, tap-hold at 180 ms",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_log.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 05:10"
+            },
+            {
+              "label": "Words",
+              "value": "47"
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:_rules.md": {
+          "markdown": "# Rules\n\nRouting, conventions and write-back rules.\n\n## Principle\nWhen a file grows past ~50 lines, consider splitting it.\n\n## Conventions\n- File names: `kebab-case.md`\n- Each file: single `# Title` header, sections with `##`\n- Dates always as `YYYY-MM-DD`",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_rules.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-08-18 21:10"
+            },
+            {
+              "label": "Words",
+              "value": "40"
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:daily/2026-09-13.md": {
+          "markdown": "# 2026-09-13\n\n## Log\n\n- Nothing much",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-13.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-13 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "7"
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:daily/2026-09-15.md": {
+          "markdown": "# 2026-09-15\n\n## Log\n\n- Ferry times for Kaş",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-15.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "9"
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:daily/2026-09-16.md": {
+          "markdown": "# 2026-09-16\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater)\n- Read the ken digest",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-16.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "16"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "infra/theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:infra/archer.md": {
+          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "infra/archer.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-12 01:10"
+            },
+            {
+              "label": "Words",
+              "value": "35"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "infra"
+                },
+                {
+                  "text": "homelab"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "2: Wiki Index, theater"
+            }
+          ]
+        },
+        "note:infra/theater.md": {
+          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "infra/theater.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "118"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "infra"
+                },
+                {
+                  "text": "homelab"
+                }
+              ]
+            },
+            {
+              "label": "Aliases",
+              "value": "the box"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "personal/projects/ken"
+                },
+                {
+                  "text": "infra/archer"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "4: Wiki Index, 2026-09-16, archer, ken"
+            }
+          ]
+        },
+        "note:personal/projects/ken.md": {
+          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/projects/ken.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 20:10"
+            },
+            {
+              "label": "Words",
+              "value": "71"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "project"
+                },
+                {
+                  "text": "reading/rss"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "3: Wiki Index, theater, tan"
+            }
+          ]
+        },
+        "note:personal/projects/tan.md": {
+          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/projects/tan.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "33"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "project"
+                },
+                {
+                  "text": "agent"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "ken"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "2: Wiki Index, Trip to Kaş"
+            }
+          ]
+        },
+        "note:personal/trip-to-kas.md": {
+          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/trip-to-kas.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-14 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "28"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "travel"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "personal/projects/tan"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:preferences/voice.md": {
+          "markdown": "# voice\n\nHow I write. #preferences\n\n- Short. Plain. No padding.\n- Say what it is, then stop.",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "preferences/voice.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-08-31 09:10"
+            },
+            {
+              "label": "Words",
+              "value": "18"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "preferences"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:setup/dotfiles.md": {
+          "markdown": "# dotfiles\n\nOne repo, stowed per machine. #setup\n\n```\nrobot dotty sync\n```",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "setup/dotfiles.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-04 13:10"
+            },
+            {
+              "label": "Words",
+              "value": "13"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "setup"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: keyboard"
+            }
+          ]
+        },
+        "note:setup/keyboard.md": {
+          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-lxmkdn&file=setup%2Fdotfiles).",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "setup/keyboard.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-08 17:10"
+            },
+            {
+              "label": "Words",
+              "value": "41"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "setup"
+                },
+                {
+                  "text": "keyboard"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "setup/dotfiles"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:work/onboarding.md": {
+          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-lxmkdn&file=work%2Fpeople%2Flina)",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "work/onboarding.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 10:10"
+            },
+            {
+              "label": "Words",
+              "value": "23"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "work"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "work/people/lina"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:work/people/lina.md": {
+          "markdown": "# Lina\n\nTeam lead. Owns the on-call rota. #work #people",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "work/people/lina.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-14 13:10"
+            },
+            {
+              "label": "Words",
+              "value": "10"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "work"
+                },
+                {
+                  "text": "people"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: onboarding"
+            }
+          ]
+        }
+      }
+    },
+    "search": {
+      "title": "Search Notes",
+      "icon": {
+        "tile": {
+          "glyph": "󰩪",
+          "bg": "violet"
+        }
+      },
+      "input": true,
+      "placeholder": "Words in any note",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Search every note's text",
+            "subtitle": "Words as typed, case-insensitive; ripgrep over the vault",
+            "icon": "󱎸",
+            "actions": [
+              {
+                "id": "obsidian",
+                "title": "Search in Obsidian"
+              }
+            ]
+          }
+        ],
+        "caddy": [
+          {
+            "id": "note:infra/theater.md",
+            "name": "theater",
+            "subtitle": "A small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per serv…",
+            "icon": "󱇗",
+            "keywords": [
+              "the box",
+              "#infra",
+              "#homelab",
+              "infra"
+            ],
+            "section": "infra",
+            "accessories": [
+              {
+                "text": "3 lines"
+              },
+              {
+                "date": 1789503038073
+              }
+            ],
+            "actions": [
+              {
+                "id": "obsidian",
+                "title": "Open in Obsidian"
+              },
+              {
+                "id": "editor",
+                "title": "Open in editor",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-link",
+                "title": "Copy wikilink",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "read",
+                "title": "Read in pal",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "backlinks",
+                "title": "Backlinks",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "outgoing",
+                "title": "Outgoing links",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy path",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "detail": {
+              "markdown": "8: A small box under the TV that runs the media stack and the reader. **Caddy** fronts everything on it, one hostname per service.  \n11: Every service is <name>.lan; **Caddy** reads the list from sites.yml and reloads on change.  \n27: ssh theater systemctl --user restart **caddy**",
+              "metadata": [
+                {
+                  "label": "Path",
+                  "value": "infra/theater.md"
+                }
+              ]
+            }
+          },
+          {
+            "id": "note:_log.md",
+            "name": "Log",
+            "subtitle": "2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite",
+            "icon": "󱇗",
+            "keywords": [
+              "_log"
+            ],
+            "section": "Vault",
+            "accessories": [
+              {
+                "text": "1 line"
+              },
+              {
+                "date": 1789524638073
+              }
+            ],
+            "actions": [
+              {
+                "id": "obsidian",
+                "title": "Open in Obsidian"
+              },
+              {
+                "id": "editor",
+                "title": "Open in editor",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-link",
+                "title": "Copy wikilink",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "read",
+                "title": "Read in pal",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "backlinks",
+                "title": "Backlinks",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "outgoing",
+                "title": "Outgoing links",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "copy-path",
+                "title": "Copy path",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "detail": {
+              "markdown": "5: 2026-09-16, infra / theater: the reader's port moved to 8791 after the **Caddy** rewrite",
+              "metadata": [
+                {
+                  "label": "Path",
+                  "value": "_log.md"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "daily": {
+      "title": "Daily Notes",
+      "icon": {
+        "tile": {
+          "glyph": "󰩪",
+          "bg": "violet"
+        }
+      },
+      "live": true,
+      "placeholder": "Today, yesterday, this week",
+      "items": [
+        {
+          "id": "daily:create",
+          "name": "Create today's note",
+          "subtitle": "daily/2026-09-17.md, from the template",
+          "icon": "󰃶",
+          "keywords": [
+            "today",
+            "daily"
+          ],
+          "section": "Daily notes",
+          "actions": [
+            {
+              "id": "create",
+              "title": "Create today's note",
+              "confirm": "Create today's note from the template?"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-16.md",
+          "name": "2026-09-16",
+          "subtitle": "Yesterday · Moved the reader's port, updated infra/theater",
+          "icon": "󰃶",
+          "keywords": [
+            "daily"
+          ],
+          "section": "Daily notes",
+          "accessories": [
+            {
+              "date": 1789517438073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-15.md",
+          "name": "2026-09-15",
+          "subtitle": "Ferry times for Kaş",
+          "icon": "󰨳",
+          "keywords": [
+            "daily"
+          ],
+          "section": "This week",
+          "accessories": [
+            {
+              "date": 1789431038073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-13.md",
+          "name": "2026-09-13",
+          "subtitle": "Nothing much",
+          "icon": "󰨳",
+          "keywords": [
+            "daily"
+          ],
+          "section": "This week",
+          "accessories": [
+            {
+              "date": 1789258238073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "append",
+          "name": "Append to today",
+          "subtitle": "A line onto today's note, from the clipboard or what you type",
+          "icon": "󰲶",
+          "keywords": [
+            "log",
+            "journal",
+            "add"
+          ],
+          "section": "Write",
+          "actions": [
+            {
+              "id": "append",
+              "title": "Append to today"
+            }
+          ]
+        },
+        {
+          "id": "new",
+          "name": "New note",
+          "subtitle": "A note by title in a folder of the vault",
+          "icon": "󰎝",
+          "keywords": [
+            "create",
+            "write"
+          ],
+          "section": "Write",
+          "actions": [
+            {
+              "id": "new",
+              "title": "New note"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "note:_index.md": {
+          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-lxmkdn&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-lxmkdn&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-lxmkdn&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) the standing agent",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_index.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 19:10"
+            },
+            {
+              "label": "Words",
+              "value": "57"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "_rules"
+                },
+                {
+                  "text": "_log"
+                },
+                {
+                  "text": "infra/theater"
+                },
+                {
+                  "text": "infra/archer"
+                },
+                {
+                  "text": "setup/keyboard"
+                },
+                {
+                  "text": "personal/projects/ken"
+                },
+                {
+                  "text": "personal/projects/tan"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:_log.md": {
+          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-14, ken: two digests a day was too many, back to one\n- 2026-09-08, keyboard: home row mods on, tap-hold at 180 ms",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_log.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 05:10"
+            },
+            {
+              "label": "Words",
+              "value": "47"
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:_rules.md": {
+          "markdown": "# Rules\n\nRouting, conventions and write-back rules.\n\n## Principle\nWhen a file grows past ~50 lines, consider splitting it.\n\n## Conventions\n- File names: `kebab-case.md`\n- Each file: single `# Title` header, sections with `##`\n- Dates always as `YYYY-MM-DD`",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_rules.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-08-18 21:10"
+            },
+            {
+              "label": "Words",
+              "value": "40"
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:daily/2026-09-13.md": {
+          "markdown": "# 2026-09-13\n\n## Log\n\n- Nothing much",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-13.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-13 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "7"
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:daily/2026-09-15.md": {
+          "markdown": "# 2026-09-15\n\n## Log\n\n- Ferry times for Kaş",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-15.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "9"
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:daily/2026-09-16.md": {
+          "markdown": "# 2026-09-16\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater)\n- Read the ken digest",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-16.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "16"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "infra/theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:infra/archer.md": {
+          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "infra/archer.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-12 01:10"
+            },
+            {
+              "label": "Words",
+              "value": "35"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "infra"
+                },
+                {
+                  "text": "homelab"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "2: Wiki Index, theater"
+            }
+          ]
+        },
+        "note:infra/theater.md": {
+          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "infra/theater.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "118"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "infra"
+                },
+                {
+                  "text": "homelab"
+                }
+              ]
+            },
+            {
+              "label": "Aliases",
+              "value": "the box"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "personal/projects/ken"
+                },
+                {
+                  "text": "infra/archer"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "4: Wiki Index, 2026-09-16, archer, ken"
+            }
+          ]
+        },
+        "note:personal/projects/ken.md": {
+          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/projects/ken.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 20:10"
+            },
+            {
+              "label": "Words",
+              "value": "71"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "project"
+                },
+                {
+                  "text": "reading/rss"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "3: Wiki Index, theater, tan"
+            }
+          ]
+        },
+        "note:personal/projects/tan.md": {
+          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/projects/tan.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "33"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "project"
+                },
+                {
+                  "text": "agent"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "ken"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "2: Wiki Index, Trip to Kaş"
+            }
+          ]
+        },
+        "note:personal/trip-to-kas.md": {
+          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/trip-to-kas.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-14 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "28"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "travel"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "personal/projects/tan"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:preferences/voice.md": {
+          "markdown": "# voice\n\nHow I write. #preferences\n\n- Short. Plain. No padding.\n- Say what it is, then stop.",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "preferences/voice.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-08-31 09:10"
+            },
+            {
+              "label": "Words",
+              "value": "18"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "preferences"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:setup/dotfiles.md": {
+          "markdown": "# dotfiles\n\nOne repo, stowed per machine. #setup\n\n```\nrobot dotty sync\n```",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "setup/dotfiles.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-04 13:10"
+            },
+            {
+              "label": "Words",
+              "value": "13"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "setup"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: keyboard"
+            }
+          ]
+        },
+        "note:setup/keyboard.md": {
+          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-lxmkdn&file=setup%2Fdotfiles).",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "setup/keyboard.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-08 17:10"
+            },
+            {
+              "label": "Words",
+              "value": "41"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "setup"
+                },
+                {
+                  "text": "keyboard"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "setup/dotfiles"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:work/onboarding.md": {
+          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-lxmkdn&file=work%2Fpeople%2Flina)",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "work/onboarding.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 10:10"
+            },
+            {
+              "label": "Words",
+              "value": "23"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "work"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "work/people/lina"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:work/people/lina.md": {
+          "markdown": "# Lina\n\nTeam lead. Owns the on-call rota. #work #people",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "work/people/lina.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-14 13:10"
+            },
+            {
+              "label": "Words",
+              "value": "10"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "work"
+                },
+                {
+                  "text": "people"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: onboarding"
+            }
+          ]
+        }
+      }
+    },
+    "tags": {
+      "title": "Tags",
+      "icon": {
+        "tile": {
+          "glyph": "󰩪",
+          "bg": "violet"
+        }
+      },
+      "tier": "catalog",
+      "placeholder": "A tag",
+      "items": [
+        {
+          "id": "tag:homelab",
+          "name": "#homelab",
+          "icon": "󰐣",
+          "keywords": [
+            "homelab"
+          ],
+          "accessories": [
+            {
+              "text": "2 notes"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:infra",
+          "name": "#infra",
+          "icon": "󰐣",
+          "keywords": [
+            "infra"
+          ],
+          "accessories": [
+            {
+              "text": "2 notes"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:project",
+          "name": "#project",
+          "icon": "󰐣",
+          "keywords": [
+            "project"
+          ],
+          "accessories": [
+            {
+              "text": "2 notes"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:setup",
+          "name": "#setup",
+          "icon": "󰐣",
+          "keywords": [
+            "setup"
+          ],
+          "accessories": [
+            {
+              "text": "2 notes"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:work",
+          "name": "#work",
+          "icon": "󰐣",
+          "keywords": [
+            "work"
+          ],
+          "accessories": [
+            {
+              "text": "2 notes"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:agent",
+          "name": "#agent",
+          "icon": "󰐣",
+          "keywords": [
+            "agent"
+          ],
+          "accessories": [
+            {
+              "text": "1 note"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:keyboard",
+          "name": "#keyboard",
+          "icon": "󰐣",
+          "keywords": [
+            "keyboard"
+          ],
+          "accessories": [
+            {
+              "text": "1 note"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:people",
+          "name": "#people",
+          "icon": "󰐣",
+          "keywords": [
+            "people"
+          ],
+          "accessories": [
+            {
+              "text": "1 note"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:preferences",
+          "name": "#preferences",
+          "icon": "󰐣",
+          "keywords": [
+            "preferences"
+          ],
+          "accessories": [
+            {
+              "text": "1 note"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:reading/rss",
+          "name": "#reading/rss",
+          "icon": "󰐣",
+          "keywords": [
+            "reading",
+            "rss"
+          ],
+          "accessories": [
+            {
+              "text": "1 note"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "tag:travel",
+          "name": "#travel",
+          "icon": "󰐣",
+          "keywords": [
+            "travel"
+          ],
+          "accessories": [
+            {
+              "text": "1 note"
+            }
+          ],
+          "actions": [
+            {
+              "id": "notes",
+              "title": "Notes with the tag"
+            },
+            {
+              "id": "copy",
+              "title": "Copy tag",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "recent": {
+      "title": "Recent Notes",
+      "icon": {
+        "tile": {
+          "glyph": "󰩪",
+          "bg": "violet"
+        }
+      },
+      "live": true,
+      "placeholder": "A note changed lately",
+      "items": [
+        {
+          "id": "note:personal/projects/tan.md",
+          "name": "tan",
+          "subtitle": "personal/projects · The standing agent. Runs every few hours and keeps one page of everything open. #project #agent",
+          "icon": "󰋚",
+          "keywords": [
+            "#project",
+            "#agent",
+            "personal/projects"
+          ],
+          "accessories": [
+            {
+              "tag": "project"
+            },
+            {
+              "tag": "agent"
+            },
+            {
+              "date": 1789589438073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:personal/projects/ken.md",
+          "name": "ken",
+          "subtitle": "personal/projects · The feed reader that sends one digest a day",
+          "icon": "󰋚",
+          "keywords": [
+            "#project",
+            "#reading/rss",
+            "personal/projects"
+          ],
+          "accessories": [
+            {
+              "tag": "project"
+            },
+            {
+              "tag": "reading/rss"
+            },
+            {
+              "date": 1789578638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:work/onboarding.md",
+          "name": "onboarding",
+          "subtitle": "work · First weeks at the new place. #work",
+          "icon": "󰋚",
+          "keywords": [
+            "#work",
+            "work"
+          ],
+          "accessories": [
+            {
+              "tag": "work"
+            },
+            {
+              "date": 1789542638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:_log.md",
+          "name": "Log",
+          "subtitle": "Append-only. One line per thing learned.",
+          "icon": "󰋚",
+          "keywords": [
+            "_log"
+          ],
+          "accessories": [
+            {
+              "date": 1789524638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-16.md",
+          "name": "2026-09-16",
+          "subtitle": "daily · Moved the reader's port, updated infra/theater",
+          "icon": "󰋚",
+          "keywords": [
+            "daily"
+          ],
+          "accessories": [
+            {
+              "date": 1789517438073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:infra/theater.md",
+          "name": "theater",
+          "subtitle": "infra · The media box under the TV, and what runs on it",
+          "icon": "󰋚",
+          "keywords": [
+            "the box",
+            "#infra",
+            "#homelab",
+            "infra"
+          ],
+          "accessories": [
+            {
+              "tag": "infra"
+            },
+            {
+              "tag": "homelab"
+            },
+            {
+              "date": 1789503038073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:_index.md",
+          "name": "Wiki Index",
+          "subtitle": "Summary and pointer layer for the vault.",
+          "icon": "󰋚",
+          "keywords": [
+            "_index"
+          ],
+          "accessories": [
+            {
+              "date": 1789488638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-15.md",
+          "name": "2026-09-15",
+          "subtitle": "daily · Ferry times for Kaş",
+          "icon": "󰋚",
+          "keywords": [
+            "daily"
+          ],
+          "accessories": [
+            {
+              "date": 1789431038073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:personal/trip-to-kas.md",
+          "name": "Trip to Kaş",
+          "subtitle": "personal · #travel",
+          "icon": "󰋚",
+          "keywords": [
+            "trip-to-kas",
+            "#travel",
+            "personal"
+          ],
+          "accessories": [
+            {
+              "tag": "travel"
+            },
+            {
+              "date": 1789416638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:work/people/lina.md",
+          "name": "Lina",
+          "subtitle": "work/people · Team lead. Owns the on-call rota. #work #people",
+          "icon": "󰋚",
+          "keywords": [
+            "lina",
+            "#work",
+            "#people",
+            "work/people"
+          ],
+          "accessories": [
+            {
+              "tag": "work"
+            },
+            {
+              "tag": "people"
+            },
+            {
+              "date": 1789380638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:daily/2026-09-13.md",
+          "name": "2026-09-13",
+          "subtitle": "daily · Nothing much",
+          "icon": "󰋚",
+          "keywords": [
+            "daily"
+          ],
+          "accessories": [
+            {
+              "date": 1789258238073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:infra/archer.md",
+          "name": "archer",
+          "subtitle": "infra · The always-on home server, and the token broker on it",
+          "icon": "󰋚",
+          "keywords": [
+            "#infra",
+            "#homelab",
+            "infra"
+          ],
+          "accessories": [
+            {
+              "tag": "infra"
+            },
+            {
+              "tag": "homelab"
+            },
+            {
+              "date": 1789164638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:setup/keyboard.md",
+          "name": "keyboard",
+          "subtitle": "setup · The layout and the layers. #setup #keyboard",
+          "icon": "󰋚",
+          "keywords": [
+            "#setup",
+            "#keyboard",
+            "setup"
+          ],
+          "accessories": [
+            {
+              "tag": "setup"
+            },
+            {
+              "tag": "keyboard"
+            },
+            {
+              "date": 1788876638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:setup/dotfiles.md",
+          "name": "dotfiles",
+          "subtitle": "setup · One repo, stowed per machine. #setup",
+          "icon": "󰋚",
+          "keywords": [
+            "#setup",
+            "setup"
+          ],
+          "accessories": [
+            {
+              "tag": "setup"
+            },
+            {
+              "date": 1788516638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:preferences/voice.md",
+          "name": "voice",
+          "subtitle": "preferences · How I write. #preferences",
+          "icon": "󰋚",
+          "keywords": [
+            "#preferences",
+            "preferences"
+          ],
+          "accessories": [
+            {
+              "tag": "preferences"
+            },
+            {
+              "date": 1788156638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "note:_rules.md",
+          "name": "Rules",
+          "subtitle": "Routing, conventions and write-back rules.",
+          "icon": "󰋚",
+          "keywords": [
+            "_rules"
+          ],
+          "accessories": [
+            {
+              "date": 1787076638073
+            }
+          ],
+          "actions": [
+            {
+              "id": "obsidian",
+              "title": "Open in Obsidian"
+            },
+            {
+              "id": "editor",
+              "title": "Open in editor",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy-link",
+              "title": "Copy wikilink",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "read",
+              "title": "Read in pal",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "backlinks",
+              "title": "Backlinks",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "outgoing",
+              "title": "Outgoing links",
+              "shortcut": "cmd+l"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "note:_index.md": {
+          "markdown": "# Wiki Index\n\nSummary and pointer layer for the vault.\n\n## System files\n- [_rules](obsidian://open?vault=vault-lxmkdn&file=_rules) routing, write-back rules, conventions\n- [_log](obsidian://open?vault=vault-lxmkdn&file=_log) append-only activity log\n\n## Content\n- [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater) the media box under the TV\n- [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher) the always-on home server\n- [setup/keyboard](obsidian://open?vault=vault-lxmkdn&file=setup%2Fkeyboard) the layout and the layers\n- [personal/projects/ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) the feed reader\n- [personal/projects/tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) the standing agent",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_index.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 19:10"
+            },
+            {
+              "label": "Words",
+              "value": "57"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "_rules"
+                },
+                {
+                  "text": "_log"
+                },
+                {
+                  "text": "infra/theater"
+                },
+                {
+                  "text": "infra/archer"
+                },
+                {
+                  "text": "setup/keyboard"
+                },
+                {
+                  "text": "personal/projects/ken"
+                },
+                {
+                  "text": "personal/projects/tan"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:_log.md": {
+          "markdown": "# Log\n\nAppend-only. One line per thing learned.\n\n- 2026-09-16, infra / theater: the reader's port moved to 8791 after the Caddy rewrite\n- 2026-09-14, ken: two digests a day was too many, back to one\n- 2026-09-08, keyboard: home row mods on, tap-hold at 180 ms",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_log.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 05:10"
+            },
+            {
+              "label": "Words",
+              "value": "47"
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:_rules.md": {
+          "markdown": "# Rules\n\nRouting, conventions and write-back rules.\n\n## Principle\nWhen a file grows past ~50 lines, consider splitting it.\n\n## Conventions\n- File names: `kebab-case.md`\n- Each file: single `# Title` header, sections with `##`\n- Dates always as `YYYY-MM-DD`",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "_rules.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-08-18 21:10"
+            },
+            {
+              "label": "Words",
+              "value": "40"
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:daily/2026-09-13.md": {
+          "markdown": "# 2026-09-13\n\n## Log\n\n- Nothing much",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-13.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-13 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "7"
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:daily/2026-09-15.md": {
+          "markdown": "# 2026-09-15\n\n## Log\n\n- Ferry times for Kaş",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-15.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "9"
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:daily/2026-09-16.md": {
+          "markdown": "# 2026-09-16\n\n## Log\n\n- Moved the reader's port, updated [infra/theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater)\n- Read the ken digest",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "daily/2026-09-16.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 03:10"
+            },
+            {
+              "label": "Words",
+              "value": "16"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "infra/theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:infra/archer.md": {
+          "markdown": "# archer\n\nThe always-on box. Runs the token broker, the mail webhooks and the backup target for [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater).\n\n## Backups\n\n- Nightly at 03:00 to the second disk\n- Weekly to the cloud bucket, encrypted",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "infra/archer.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-12 01:10"
+            },
+            {
+              "label": "Words",
+              "value": "35"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "infra"
+                },
+                {
+                  "text": "homelab"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "2: Wiki Index, theater"
+            }
+          ]
+        },
+        "note:infra/theater.md": {
+          "markdown": "# theater\n\nA small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service.\n\n> **Note**\n> Every service is `<name>.lan`; Caddy reads the list from `sites.yml` and reloads on change.\n\n## Services\n\n| service | port | what |\n|---|---|---|\n| read | 8791 | the ebook reader, [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken) feeds it |\n| photos | 2283 | the photo library |\n| bak | 8790 | the published-files viewer |\n\n## Gotchas\n\n- The disk spins down after 20 min; the first request after that takes 4 s.\n- A reboot needs the vault mounted first, see [infra/archer](obsidian://open?vault=vault-lxmkdn&file=infra%2Farcher).\n\n```sh\nssh theater systemctl --user restart caddy\n```",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "infra/theater.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-15 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "118"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "infra"
+                },
+                {
+                  "text": "homelab"
+                }
+              ]
+            },
+            {
+              "label": "Aliases",
+              "value": "the box"
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "personal/projects/ken"
+                },
+                {
+                  "text": "infra/archer"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "4: Wiki Index, 2026-09-16, archer, ken"
+            }
+          ]
+        },
+        "note:personal/projects/ken.md": {
+          "markdown": "# ken\n\nA feed reader. Pulls the feeds every hour, writes one digest a day, keeps read state itself so the mail is only a nudge.\n\n## Decisions\n\n1. One digest a day, not two: the second was never opened.\n2. Read state lives in ken, not in the mail client.\n3. Runs on [theater](obsidian://open?vault=vault-lxmkdn&file=infra%2Ftheater), next to the reader it feeds.\n\n- [ ] Archive view\n- [x] Mark all read",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/projects/ken.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 20:10"
+            },
+            {
+              "label": "Words",
+              "value": "71"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "project"
+                },
+                {
+                  "text": "reading/rss"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "theater"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "3: Wiki Index, theater, tan"
+            }
+          ]
+        },
+        "note:personal/projects/tan.md": {
+          "markdown": "# tan\n\nThe standing agent. Runs every few hours and keeps one page of everything open. #project #agent\n\nReads [ken](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Fken)'s digests and the mail; writes to its own space, never to this vault.",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/projects/tan.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "33"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "project"
+                },
+                {
+                  "text": "agent"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "ken"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "2: Wiki Index, Trip to Kaş"
+            }
+          ]
+        },
+        "note:personal/trip-to-kas.md": {
+          "markdown": "# Trip to Kaş\n\n#travel\n\n- Ferry times: 09:00 and 17:30\n- The cove past the harbour, go early\n- Book the [tan](obsidian://open?vault=vault-lxmkdn&file=personal%2Fprojects%2Ftan) reminder for the return ferry",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "personal/trip-to-kas.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-14 23:10"
+            },
+            {
+              "label": "Words",
+              "value": "28"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "travel"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "personal/projects/tan"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:preferences/voice.md": {
+          "markdown": "# voice\n\nHow I write. #preferences\n\n- Short. Plain. No padding.\n- Say what it is, then stop.",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "preferences/voice.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-08-31 09:10"
+            },
+            {
+              "label": "Words",
+              "value": "18"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "preferences"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:setup/dotfiles.md": {
+          "markdown": "# dotfiles\n\nOne repo, stowed per machine. #setup\n\n```\nrobot dotty sync\n```",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "setup/dotfiles.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-04 13:10"
+            },
+            {
+              "label": "Words",
+              "value": "13"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "setup"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: keyboard"
+            }
+          ]
+        },
+        "note:setup/keyboard.md": {
+          "markdown": "# keyboard\n\nThe layout and the layers. #setup #keyboard\n\n- Home row mods, tap-hold at 180 ms\n- Layer 1 on the right thumb: arrows and the number row\n- Layer 2: symbols\n\nThe firmware lives in the dotfiles, see [setup/dotfiles](obsidian://open?vault=vault-lxmkdn&file=setup%2Fdotfiles).",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "setup/keyboard.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-08 17:10"
+            },
+            {
+              "label": "Words",
+              "value": "41"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "setup"
+                },
+                {
+                  "text": "keyboard"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "setup/dotfiles"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: Wiki Index"
+            }
+          ]
+        },
+        "note:work/onboarding.md": {
+          "markdown": "# onboarding\n\nFirst weeks at the new place. #work\n\n- [x] Laptop\n- [x] Accounts\n- [ ] The on-call rota, ask [work/people/lina](obsidian://open?vault=vault-lxmkdn&file=work%2Fpeople%2Flina)",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "work/onboarding.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-16 10:10"
+            },
+            {
+              "label": "Words",
+              "value": "23"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "work"
+                }
+              ]
+            },
+            {
+              "label": "Links",
+              "tags": [
+                {
+                  "text": "work/people/lina"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "none"
+            }
+          ]
+        },
+        "note:work/people/lina.md": {
+          "markdown": "# Lina\n\nTeam lead. Owns the on-call rota. #work #people",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "work/people/lina.md"
+            },
+            {
+              "label": "Modified",
+              "value": "2026-09-14 13:10"
+            },
+            {
+              "label": "Words",
+              "value": "10"
+            },
+            {
+              "label": "Tags",
+              "tags": [
+                {
+                  "text": "work"
+                },
+                {
+                  "text": "people"
+                }
+              ]
+            },
+            {
+              "label": "Backlinks",
+              "value": "1: onboarding"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "effects": {
+    "notes/note:infra/theater.md:read": {
+      "view": {
+        "id": "note:infra/theater.md",
+        "title": "theater",
+        "tree": {
+          "type": "stack",
+          "gap": 3,
+          "padding": 4,
+          "children": [
+            {
+              "type": "stack",
+              "gap": 0,
+              "children": [
+                {
+                  "type": "text",
+                  "value": "theater",
+                  "style": "title",
+                  "size": "xl"
+                },
+                {
+                  "type": "text",
+                  "value": "infra · 118 words · #infra #homelab · 4 backlinks",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            },
+            {
+              "type": "divider"
+            },
+            {
+              "type": "stack",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "A small box under the TV that runs the media stack and the reader. Caddy fronts everything on it, one hostname per service."
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "badge",
+                          "text": "Note",
+                          "color": "blue"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "text",
+                      "value": "Every service is .lan; Caddy reads the list from sites.yml and reloads on change."
+                    }
+                  ],
+                  "surface": "elevated",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 2
+                },
+                {
+                  "type": "text",
+                  "value": "Services",
+                  "style": "title",
+                  "size": "lg",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "service",
+                          "width": 61,
+                          "align": "start",
+                          "size": "sm",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "port",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm",
+                          "weight": "semibold"
+                        },
+                        {
+                          "type": "text",
+                          "value": "what",
+                          "width": 222,
+                          "align": "start",
+                          "size": "sm",
+                          "weight": "semibold"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "read",
+                          "width": 61,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "8791",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "the ebook reader, ken feeds it",
+                          "width": 222,
+                          "align": "start",
+                          "size": "sm"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "photos",
+                          "width": 61,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "2283",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "the photo library",
+                          "width": 222,
+                          "align": "start",
+                          "size": "sm"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "bak",
+                          "width": 61,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "8790",
+                          "width": 40,
+                          "align": "start",
+                          "size": "sm"
+                        },
+                        {
+                          "type": "text",
+                          "value": "the published-files viewer",
+                          "width": 222,
+                          "align": "start",
+                          "size": "sm"
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "text",
+                  "value": "Gotchas",
+                  "style": "title",
+                  "size": "lg",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "•",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "The disk spins down after 20 min; the first request after that takes 4 s."
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    },
+                    {
+                      "type": "stack",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "•",
+                          "width": 14,
+                          "style": "muted",
+                          "align": "center"
+                        },
+                        {
+                          "type": "stack",
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "A reboot needs the vault mounted first, see infra/archer."
+                            },
+                            {
+                              "type": "text",
+                              "value": "↗ infra/archer",
+                              "style": "muted",
+                              "size": "xs"
+                            }
+                          ],
+                          "gap": 1,
+                          "grow": true
+                        }
+                      ],
+                      "direction": "row",
+                      "gap": 2,
+                      "align": "start"
+                    }
+                  ],
+                  "gap": 1
+                },
+                {
+                  "type": "stack",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "ssh theater systemctl --user restart caddy",
+                      "style": "mono"
+                    }
+                  ],
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 3,
+                  "gap": 1
+                }
+              ],
+              "gap": 3,
+              "padding": 0
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "obsidian",
+            "title": "Open in Obsidian"
+          },
+          {
+            "id": "editor",
+            "title": "Open in editor",
+            "shortcut": "cmd+enter"
+          },
+          {
+            "id": "copy-link",
+            "title": "Copy wikilink",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "backlinks",
+            "title": "Backlinks",
+            "shortcut": "cmd+b"
+          },
+          {
+            "id": "outgoing",
+            "title": "Outgoing links",
+            "shortcut": "cmd+l"
+          },
+          {
+            "id": "copy-markdown",
+            "title": "Copy markdown",
+            "shortcut": "cmd+shift+c"
+          }
+        ]
+      }
+    },
+    "daily/append": {
+      "form": {
+        "id": "append",
+        "title": "Append to today",
+        "fields": [
+          {
+            "kind": "textarea",
+            "id": "text",
+            "label": "Text",
+            "required": true,
+            "default": "The reader's first request after the disk spins down takes 4 s; worth a cache warm at 07:00.",
+            "placeholder": "What happened, a link, a thought",
+            "description": "Added as a new line at the end of daily/2026-09-17.md. {selection}, {clipboard}, {date} and {time} are filled in."
+          }
+        ],
+        "submit": {
+          "id": "append:save",
+          "title": "Append"
+        }
+      }
+    },
+    "notes/cmd:new": {
+      "form": {
+        "id": "new",
+        "title": "New note",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "title",
+            "label": "Title",
+            "required": true,
+            "default": "",
+            "placeholder": "What the note is about",
+            "description": "The file name too; Obsidian's forbidden characters become dashes."
+          },
+          {
+            "kind": "select",
+            "id": "folder",
+            "label": "Folder",
+            "options": [
+              {
+                "id": "",
+                "title": "/ (the vault)"
+              },
+              {
+                "id": "daily",
+                "title": "daily"
+              },
+              {
+                "id": "infra",
+                "title": "infra"
+              },
+              {
+                "id": "personal",
+                "title": "personal"
+              },
+              {
+                "id": "personal/projects",
+                "title": "personal/projects"
+              },
+              {
+                "id": "preferences",
+                "title": "preferences"
+              },
+              {
+                "id": "setup",
+                "title": "setup"
+              },
+              {
+                "id": "work",
+                "title": "work"
+              },
+              {
+                "id": "work/people",
+                "title": "work/people"
+              }
+            ],
+            "default": ""
+          },
+          {
+            "kind": "textarea",
+            "id": "body",
+            "label": "Body",
+            "default": "The reader's first request after the disk spins down takes 4 s; worth a cache warm at 07:00.",
+            "placeholder": "# Title\n\nMarkdown, [[wikilinks]], #tags",
+            "description": "Starts as your selection or the clipboard's text; a template setting replaces that."
+          }
+        ],
+        "submit": {
+          "id": "new:save",
+          "title": "Create note"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-notes": {
+      "palette": "notes",
+      "keys": [
+        "down*11",
+        "wait:300"
+      ]
+    },
+    "2-detail": {
+      "palette": "notes",
+      "keys": [
+        "type:theater",
+        "wait:300",
+        "down",
+        "cmd+i",
+        "wait:500"
+      ]
+    },
+    "3-search": {
+      "palette": "search",
+      "keys": [
+        "type:caddy",
+        "wait:500",
+        "cmd+i",
+        "wait:400"
+      ]
+    },
+    "4-daily": {
+      "palette": "daily",
+      "keys": [
+        "down",
+        "wait:300"
+      ]
+    },
+    "5-append": {
+      "palette": "daily",
+      "keys": [
+        "down*4",
+        "enter",
+        "wait:500"
+      ]
+    },
+    "6-read": {
+      "palette": "notes",
+      "keys": [
+        "type:theater",
+        "wait:300",
+        "down",
+        "cmd+shift+r",
+        "wait:500"
+      ]
+    }
+  }
+}

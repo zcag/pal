@@ -1,0 +1,242 @@
+{
+  "name": "obsidian",
+  "title": "Obsidian",
+  "description": "Your Obsidian vault in the panel: every note by title at the root, full-text search, today's daily note and a line appended to it, new notes from a template, tags, backlinks; a note opens in Obsidian or your editor, or reads inside pal.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰩪", "bg": "violet" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "path",
+      "id": "vault",
+      "label": "Vault",
+      "description": "The vault folder. Empty takes the vault Obsidian has open, or opened last (obsidian.json).",
+      "pick": "folder",
+      "placeholder": "~/Sync/vault",
+      "default": ""
+    },
+    {
+      "kind": "select",
+      "id": "open_with",
+      "label": "Open with",
+      "description": "What Enter does on a note; cmd+Enter is the other one.",
+      "options": [
+        { "id": "obsidian", "title": "Obsidian" },
+        { "id": "editor", "title": "The editor" }
+      ],
+      "default": "obsidian"
+    },
+    {
+      "kind": "text",
+      "id": "editor",
+      "label": "Editor",
+      "description": "The command Open in editor runs with the file's path last (code, subl, zed). Empty opens the file with whatever the OS opens .md files with.",
+      "placeholder": "code",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "daily_folder",
+      "label": "Daily notes folder",
+      "description": "Where daily notes live, relative to the vault. Empty reads Obsidian's daily-notes plugin (.obsidian/daily-notes.json).",
+      "placeholder": "daily",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "daily_format",
+      "label": "Daily note name",
+      "description": "The date format of a daily note's name, moment's tokens as Obsidian takes them. Empty reads the plugin; YYYY-MM-DD when it says nothing.",
+      "placeholder": "YYYY-MM-DD",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "daily_template",
+      "label": "Daily note template",
+      "description": "The note a new daily note starts as, relative to the vault ({{date}}, {{time}}, {{title}} filled). Empty reads the plugin.",
+      "placeholder": "templates/daily",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "template",
+      "label": "New note template",
+      "description": "The note New note starts as, relative to the vault ({{title}}, {{date}}, {{time}} filled). Empty starts from your selection or the clipboard.",
+      "placeholder": "templates/note",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "exclude",
+      "label": "Exclude",
+      "description": "Folders and files left out of every palette, as globs relative to the vault. Dot folders (.obsidian, .trash) are always out.",
+      "placeholder": "templates/**",
+      "default": []
+    }
+  ],
+  "store": {
+    "tagline": "Your Obsidian vault: notes, search, daily note, tags, links",
+    "category": "productivity",
+    "features": [
+      "Every note at the root by title, alias, tag or folder, sectioned by folder; Enter opens it in Obsidian, cmd+Enter in your editor (or the other way round, a setting)",
+      "Search Notes: full-text as you type over the vault (ripgrep when installed, a scan otherwise), the matching line as the subtitle and the matches bold in the pane",
+      "Daily Notes: today (created from the template when missing), yesterday, this week; Append to today is a form prefilled from the clipboard, {selection} and {date} filled in",
+      "New note as a form: title, folder, body from a template or your selection; Tags with counts, Recent Notes, Backlinks and Outgoing links of any note",
+      "The pane (cmd+i) is the note with its tags, links and backlinks; Read in pal (cmd+shift+r) draws it with headings, lists, callouts, code and tables in pal's tokens",
+      "Copy wikilink (cmd+c) writes [[name]] as Obsidian would; the index rebuilds when the vault changes on disk"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      { "file": "1-notes.png", "caption": "Notes: every note by title, sectioned by folder, tags and the change date on the row" },
+      { "file": "2-detail.png", "caption": "The pane: the note rendered, its tags, links and backlinks under it" },
+      { "file": "3-search.png", "caption": "Search Notes: the matching line on each row, the matches bold in the pane" },
+      { "file": "4-daily.png", "caption": "Daily Notes: today, yesterday, this week, Append to today, New note" },
+      { "file": "5-append.png", "caption": "Append to today: a line onto today's note, prefilled from the clipboard" },
+      { "file": "6-read.png", "caption": "A note read in pal: callouts, lists, code and tables drawn with the tokens" }
+    ],
+    "actions": [
+      { "title": "Open in Obsidian", "description": "The note in Obsidian, through obsidian://open; first or second per the Open with setting.", "keys": "enter" },
+      { "title": "Open in editor", "description": "The editor command with the file's path; the OS opener without one.", "keys": "cmd+enter" },
+      { "title": "Copy wikilink", "description": "[[name]], or [[folder/name]] when another note shares the name.", "keys": "cmd+c" },
+      { "title": "Read in pal", "description": "The note drawn in the panel.", "keys": "cmd+shift+r" },
+      { "title": "Backlinks", "description": "The notes that link to it.", "keys": "cmd+b" },
+      { "title": "Outgoing links", "description": "The notes it links to; a link to nothing yet offers Create the note.", "keys": "cmd+l" },
+      { "title": "Copy path", "description": "The file's absolute path.", "keys": "cmd+shift+c" },
+      { "title": "Create today's note", "description": "From the daily template; asks first.", "keys": "enter" },
+      { "title": "Append to today", "description": "The form; the text lands on its own line at the end of today's note.", "keys": "enter" },
+      { "title": "New note", "description": "The form: title, folder, body.", "keys": "enter" },
+      { "title": "Notes with the tag", "description": "On a tag row: the notes carrying it.", "keys": "enter" },
+      { "title": "Search in Obsidian", "description": "On the Search notes command: Obsidian's own search.", "keys": "cmd+enter" }
+    ]
+  },
+  "links": {
+    "open": {
+      "description": "Open a note in Obsidian or the editor",
+      "params": {
+        "path": { "description": "The note's path in the vault (with or without .md) or its name as a wikilink says it", "required": true }
+      }
+    },
+    "new": {
+      "description": "Create a note and open it",
+      "params": {
+        "title": { "description": "The title, also the file name", "required": true },
+        "body": { "description": "The markdown body; {{title}} and {{date}} are filled" },
+        "folder": { "description": "A folder of the vault; the top when empty" }
+      }
+    },
+    "append-today": {
+      "description": "Append a line to today's daily note, created when missing",
+      "params": {
+        "text": { "description": "The line; {selection}, {clipboard}, {date} and {time} are filled", "required": true }
+      }
+    }
+  },
+  "palettes": {
+    "notes": {
+      "title": "Notes",
+      "description": "Every note of the vault by title, alias, tag or folder, sectioned by folder; Today's note, New note, Search notes and Random note at the top.",
+      "kind": "list",
+      "tier": "primary",
+      "ttl": 300,
+      "keys": [
+        { "keys": "enter", "title": "Open in Obsidian (or the editor, per the setting)" },
+        { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
+        { "keys": "cmd+c", "title": "Copy the wikilink" },
+        { "keys": "cmd+shift+r", "title": "Read the note in pal" },
+        { "keys": "cmd+b", "title": "What links to the note" },
+        { "keys": "cmd+l", "title": "What the note links to" },
+        { "keys": "cmd+shift+c", "title": "Copy the path" }
+      ]
+    },
+    "search": {
+      "title": "Search Notes",
+      "description": "Full-text over every note as you type: ripgrep when on PATH, a one-second scan otherwise; the matching line on the row, the matches bold in the pane.",
+      "kind": "input",
+      "keys": [
+        { "keys": "enter", "title": "Open in Obsidian (or the editor, per the setting)" },
+        { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
+        { "keys": "cmd+c", "title": "Copy the wikilink" },
+        { "keys": "cmd+shift+r", "title": "Read the note in pal" },
+        { "keys": "cmd+b", "title": "What links to the note" },
+        { "keys": "cmd+l", "title": "What the note links to" },
+        { "keys": "cmd+shift+c", "title": "Copy the path" }
+      ]
+    },
+    "daily": {
+      "title": "Daily Notes",
+      "description": "Today's note (created from the template when missing), yesterday's, this week's; Append to today and New note as forms.",
+      "kind": "live",
+      "keys": [
+        { "keys": "enter", "title": "Open the note; on Create today's note, create it (asks first); on the forms, open them" },
+        { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
+        { "keys": "cmd+c", "title": "Copy the wikilink" },
+        { "keys": "cmd+shift+r", "title": "Read the note in pal" },
+        { "keys": "cmd+b", "title": "What links to the note" },
+        { "keys": "cmd+l", "title": "What the note links to" },
+        { "keys": "cmd+shift+c", "title": "Copy the path" }
+      ]
+    },
+    "tags": {
+      "title": "Tags",
+      "description": "Every tag in the vault with how many notes carry it; Enter lists them.",
+      "kind": "list",
+      "tier": "catalog",
+      "ttl": 300,
+      "keys": [
+        { "keys": "enter", "title": "The notes with the tag" },
+        { "keys": "cmd+c", "title": "Copy the tag" }
+      ]
+    },
+    "recent": {
+      "title": "Recent Notes",
+      "description": "The twenty notes changed last, newest first.",
+      "kind": "live",
+      "keys": [
+        { "keys": "enter", "title": "Open in Obsidian (or the editor, per the setting)" },
+        { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
+        { "keys": "cmd+c", "title": "Copy the wikilink" },
+        { "keys": "cmd+shift+r", "title": "Read the note in pal" },
+        { "keys": "cmd+b", "title": "What links to the note" },
+        { "keys": "cmd+l", "title": "What the note links to" },
+        { "keys": "cmd+shift+c", "title": "Copy the path" }
+      ]
+    },
+    "backlinks": {
+      "title": "Backlinks",
+      "description": "The notes that link to the note you opened last, or to the row cmd+b came from.",
+      "kind": "list",
+      "ttl": 300,
+      "keys": [
+        { "keys": "enter", "title": "Open the linking note" },
+        { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
+        { "keys": "cmd+c", "title": "Copy the wikilink" },
+        { "keys": "cmd+shift+r", "title": "Read the note in pal" },
+        { "keys": "cmd+b", "title": "What links to the note" },
+        { "keys": "cmd+l", "title": "What the note links to" },
+        { "keys": "cmd+shift+c", "title": "Copy the path" }
+      ]
+    },
+    "outgoing": {
+      "title": "Outgoing Links",
+      "description": "The notes the note you opened last links to, or the row cmd+l came from; a link to nothing yet offers Create the note.",
+      "kind": "list",
+      "ttl": 300,
+      "keys": [
+        { "keys": "enter", "title": "Open the linked note; on a link to nothing, create it" },
+        { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
+        { "keys": "cmd+c", "title": "Copy the wikilink" },
+        { "keys": "cmd+shift+r", "title": "Read the note in pal" },
+        { "keys": "cmd+b", "title": "What links to the note" },
+        { "keys": "cmd+l", "title": "What the note links to" },
+        { "keys": "cmd+shift+c", "title": "Copy the path" }
+      ]
+    }
+  }
+}

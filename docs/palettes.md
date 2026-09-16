@@ -2717,3 +2717,79 @@ Settings, `[extensions.spotify]`: `client_id` (text), `redirect_port`
 playlist names or `spotify:playlist:` links). A `429` is waited out
 under two seconds and otherwise refused locally until its `Retry-After`;
 offline, no device and Premium-required states are one line each.
+
+## Obsidian (`obsidian-notes`, `obsidian-search`, `obsidian-daily`, `obsidian-tags`, `obsidian-recent`, `obsidian-backlinks`, `obsidian-outgoing`)
+
+One extension, seven palettes over an Obsidian vault on disk: the folder
+in the `vault` setting, else the one Obsidian has open in its own
+`obsidian.json`. Nothing goes through Obsidian itself except opening a
+note (`obsidian://open`); the notes are read as files.
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Notes | `obsidian-notes` | indexed, 5 min, primary | opens the note |
+| Search Notes | `obsidian-search` | input | opens the note |
+| Daily Notes | `obsidian-daily` | live | opens today's note, or creates it |
+| Tags | `obsidian-tags` | indexed, 5 min, catalog | lists the notes with the tag |
+| Recent Notes | `obsidian-recent` | live | opens the note |
+| Backlinks | `obsidian-backlinks` | indexed, 5 min | opens the linking note |
+| Outgoing Links | `obsidian-outgoing` | indexed, 5 min | opens the linked note |
+
+**Notes.** Every `.md` in the vault (dot folders and the `exclude` globs
+out) as a row: the title (front matter `title`, else the first `#`
+heading, else the file name), the description (front matter, else the
+first body line) as the subtitle, the folder as the section, up to three
+tags and the change date on the right; the file name, the aliases, the
+tags and the folder are keywords. Four commands lead: Today's note
+(`⌘Enter` appends to it), New note, Search notes (`⌘Enter` opens
+Obsidian's search), Random note. On a note: Open in Obsidian and Open in
+editor (`Enter` and `⌘Enter`, swapped by the `open_with` setting; the
+`editor` command gets the path, empty is the OS opener), Copy wikilink
+(`⌘C`: `[[name]]`, `[[folder/name]]` when the name is shared), Read in
+pal (`⌘⇧R`: the note as a view through tela's markdown renderer, with
+callouts, tables, tasks, code), Backlinks (`⌘B`), Outgoing links (`⌘L`),
+Copy path (`⌘⇧C`). The pane (`⌘I`) is the note as markdown (front matter
+off, callouts a bold lead, wikilinks as links into Obsidian) over its
+path, modified time, words, tags, aliases, links and backlinks. The index
+is per file by mtime and size; a watcher on the vault marks it stale, the
+next listing rebuilds it.
+
+**Search Notes.** Full-text as you type, the words as typed, case-
+insensitive: ripgrep over the vault when `rg` is on PATH, else a scan in
+Bun cut at one second. Rows by folder with the first matching line as the
+subtitle and the count of matching lines; the pane lists them with the
+match bold; a note named like the query first. **Daily Notes.** Today's
+note (Create today's note when missing, asking first, from the template),
+yesterday's, the last seven days under This week; then Append to today (a
+form prefilled from the clipboard; `{selection}`, `{clipboard}`,
+`{date}`, `{time}` filled; the text lands as the last line, the note
+created when missing) and New note (title, a folder of the vault, the
+body from the `template` setting with `{{title}}` and `{{date}}` filled,
+else your selection or the clipboard; a title already taken is refused).
+The folder, name format and template of a daily note come from the
+`daily_*` settings, else Obsidian's `.obsidian/daily-notes.json`, else
+`YYYY-MM-DD`; the format is moment's tokens as Obsidian takes them.
+**Tags**: every tag with its count, most used first; Enter lists the
+carriers (a nested `#a/b` counts under `#a` too). **Recent Notes**: the
+twenty changed last. **Backlinks** and **Outgoing Links**: for the note
+opened last, or the row `⌘B` / `⌘L` came from; a link to nothing yet
+offers Create the note.
+
+Links: `pal://obsidian/open?path=`, `pal://obsidian/new?title=&body=&folder=`,
+`pal://obsidian/append-today?text=`.
+
+Settings, `[extensions.obsidian]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `vault` | path | (none) | The vault folder; empty takes the vault Obsidian has open. |
+| `open_with` | select | `obsidian` | What Enter does on a note (`obsidian` or `editor`); `⌘Enter` is the other. |
+| `editor` | text | (none) | The command Open in editor runs with the path last; empty opens with the OS. |
+| `daily_folder` | text | (none) | Where daily notes live; empty reads the plugin. |
+| `daily_format` | text | (none) | The daily note's name; empty reads the plugin, then `YYYY-MM-DD`. |
+| `daily_template` | text | (none) | The template a new daily note starts as; empty reads the plugin. |
+| `template` | text | (none) | The template New note starts as. |
+| `exclude` | list | `[]` | Globs relative to the vault left out of every palette. |
+
+Not there: editing a note's body, Obsidian's search operators (`tag:`,
+`path:`), weekly and monthly notes, canvases and attachments.
