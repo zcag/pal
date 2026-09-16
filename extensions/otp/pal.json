@@ -101,6 +101,26 @@
       {
         "file": "3-actions.png",
         "caption": "Paste the code into the app in front, copy it, or copy the sender"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the code that just arrived, in green, for a minute",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "No popover: a click copies the code and the HUD says so",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the key glyph and the code, both green",
+        "kind": "bar"
       }
     ],
     "actions": [

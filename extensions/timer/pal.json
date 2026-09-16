@@ -85,6 +85,26 @@
       {
         "file": "3-actions.png",
         "caption": "Pause, add five minutes, or stop a running timer"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: what is left of the soonest timer, a fill under the glyph, amber past two thirds",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "A timer that landed: the item turns into a red alarm with its name",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the Timers palette: every timer, pause, add five minutes, stop",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the fill as a rule of box-drawing cells before the glyph, the countdown as the label",
+        "kind": "bar"
       }
     ],
     "actions": [

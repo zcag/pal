@@ -1,0 +1,35 @@
+{
+  "key": "github/notifications",
+  "title": "Notifications",
+  "item": {
+    "icon": "",
+    "badge": 7,
+    "tooltip": "7 unread notifications",
+    "menu": [
+      {
+        "type": "section",
+        "title": "Unread",
+        "children": [
+          { "type": "item", "id": "n1", "title": "Retry the index build on a host restart", "subtitle": "zcag/pal", "icon": "⎇" },
+          { "type": "item", "id": "n2", "title": "Settings window loses the hotkey field on tab switch", "subtitle": "zcag/pal", "icon": "◉" },
+          { "type": "item", "id": "n3", "title": "v0.4.0", "subtitle": "zcag/tela", "icon": "⏏" },
+          { "type": "item", "id": "n4", "title": "Should the store show bar items separately from palettes?", "subtitle": "zcag/pal-site", "icon": "☰" },
+          { "type": "item", "id": "n5", "title": "Bump serde_json to 1.0.145", "subtitle": "zcag/dek", "icon": "⎇" }
+        ]
+      },
+      { "type": "separator" },
+      { "type": "item", "id": "open", "title": "Open all", "subtitle": "7 in pal" },
+      { "type": "item", "id": "read-all", "title": "Mark all read", "shortcut": "cmd+shift+r", "style": "destructive" }
+    ]
+  },
+  "states": [
+    { "id": "dot", "item": { "badge": "dot", "tooltip": "1 unread notification" } },
+    { "id": "stale", "item": { "stale": true, "tooltip": "7 unread notifications (stale)" } }
+  ],
+  "shots": {
+    "bar-menubar-dark": { "target": "menubar", "theme": "dark", "caption": "On the menu bar: the GitHub glyph with the unread count as a red badge" },
+    "bar-menubar-light": { "target": "menubar", "theme": "light", "caption": "The same item on a light menu bar" },
+    "bar-menubar-popover": { "target": "menubar", "theme": "light", "popover": true, "caption": "A click opens the popover: the newest five unread, Open all, Mark all read" },
+    "bar-sketchybar": { "target": "sketchybar", "theme": "dark", "caption": "On sketchybar: the glyph and the count in red on the label" }
+  }
+}

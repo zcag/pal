@@ -21,6 +21,7 @@ import {
 } from "../ui";
 import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyBlocked, settingsPermissions } from "./data";
 import Shots from "./shots";
+import BarShot from "./bar-shot";
 import "./gallery.css";
 
 const themes = ["light", "dark"] as const;
@@ -282,6 +283,9 @@ export default function Gallery() {
   // `?gallery&shot=<extension>&palette=<key>`: one launcher on the wallpaper, for the store screenshots (shots.tsx).
   const shot = params.get("shot");
   if (shot) return <Shots extension={shot} palette={params.get("palette") ?? undefined} />;
+  // `?gallery&bar=<ext>/<id>&target=menubar|sketchybar&theme=dark|light[&state=<id>][&popover=1]`: a bar item on its strip (bar-shot.tsx).
+  const bar = params.get("bar");
+  if (bar) return <BarShot bar={bar} target={params.get("target") === "sketchybar" ? "sketchybar" : "menubar"} theme={params.get("theme") === "dark" ? "dark" : "light"} state={params.get("state") ?? undefined} popover={params.has("popover")} />;
   return <GalleryPage />;
 }
 

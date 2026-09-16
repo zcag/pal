@@ -52,3 +52,45 @@
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 44px);
 }
 .g-shot .g-frame { max-width: none; }
+
+/* Bar shot (bar-shot.tsx): a bar item on a 720 by 60 strip, the band at the top and the desktop under it. */
+/* The desktop under the band is a short, low-chroma gradient: the 256-colour quantiser (shot-quant.py) spends its palette on what has few pixels, and a wide gradient would take it from the badge. */
+.g-bar { position: relative; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; background: linear-gradient(120deg, #E2E5F0 0%, #ECE3EA 55%, #EEE6DE 100%); }
+.g-bar[data-theme="dark"] { background: linear-gradient(120deg, #2C3247 0%, #383047 55%, #3E3341 100%); }
+.g-bar [data-symbol] { font-family: "Symbols Nerd Font Mono", ui-monospace, monospace; }
+.g-bar__popover { position: absolute; top: 32px; border-radius: var(--pal-radius-popover, 12px); overflow: hidden; }
+.g-bar__popover .pal-panel { border-radius: var(--pal-radius-popover, 12px); box-shadow: var(--pal-shadow-popover); }
+.g-bar[data-target="sketchybar"] .g-bar__popover { top: 34px; }
+.g-bar__hud { position: absolute; transform: translateX(-50%); }
+
+/* The macOS menu bar: 24 pt, the bar's blur over the desktop, 13 pt text, Apple's items last, 22 px between items. */
+.g-mb { --g-mb-fg: rgba(0, 0, 0, 0.85); --g-mb-muted: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: flex-end; padding: 0 10px 0 0; background: rgba(255, 255, 255, 0.62); -webkit-backdrop-filter: blur(30px) saturate(150%); backdrop-filter: blur(30px) saturate(150%); color: var(--g-mb-fg); font-size: 13px; line-height: 1; letter-spacing: 0.005em; -webkit-font-smoothing: subpixel-antialiased; }
+.g-bar[data-theme="dark"] .g-mb { --g-mb-fg: rgba(255, 255, 255, 0.85); --g-mb-muted: rgba(255, 255, 255, 0.45); background: rgba(44, 44, 48, 0.72); -webkit-font-smoothing: antialiased; }
+.g-mb__items { display: flex; align-items: center; height: 100%; }
+.g-mb__item { display: inline-flex; align-items: center; height: 100%; margin-left: 22px; white-space: nowrap; }
+.g-mb__glyph { display: block; }
+.g-mb__clock { font-variant-numeric: tabular-nums; }
+.g-mb__time { margin-left: 8px; }
+.g-mb__pal { gap: 5px; }
+.g-mb__pal[data-stale] .g-mb__image { opacity: 0.5; }
+.g-mb__image { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; }
+.g-mb__icon { font-size: 16px; line-height: 1; }
+.g-mb__image[data-progress] .g-mb__icon { font-size: 14px; margin-bottom: 4px; }
+.g-mb__seg-icon { font-size: 12px; }
+.g-mb__title { font-size: 13px; }
+.g-mb__dot { position: absolute; top: 0; right: -1px; width: 6px; height: 6px; border-radius: 50%; background: #ff3b30; }
+.g-mb__count { position: absolute; top: -3px; right: -6px; min-width: 11px; height: 11px; padding: 0 3px; border-radius: 6px; background: #ff3b30; color: #fff; font-size: 8px; font-weight: 700; line-height: 11px; text-align: center; letter-spacing: 0; }
+.g-mb__progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; }
+.g-mb__progress::before { content: ""; position: absolute; inset: 0; border-radius: 1px; background: currentColor; opacity: 0.25; }
+.g-mb__progress > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 1px; background: currentColor; }
+
+/* sketchybar, the owner's: flat, opaque, SF 14 labels, icon font 15, icon padding 8/4, label padding 4/8, the urgent wash the one box. */
+.g-sb { display: flex; align-items: center; justify-content: flex-end; padding: 0 6px; font-size: 14px; line-height: 1; -webkit-font-smoothing: antialiased; }
+.g-sb__items { display: flex; align-items: center; height: 100%; }
+.g-sb__group { display: inline-flex; align-items: center; height: 22px; }
+.g-sb__item { display: inline-flex; align-items: center; height: 100%; white-space: nowrap; }
+.g-sb__icon { padding-left: 8px; padding-right: 4px; font-size: 15px; }
+.g-sb__icon--opt { font-size: 18px; }
+.g-sb__rule { padding-left: 8px; font: 11px/1 ui-monospace, Menlo, monospace; letter-spacing: 0; }
+.g-sb__rule + .g-sb__icon { padding-left: 4px; }
+.g-sb__label { padding-left: 4px; padding-right: 8px; font-variant-numeric: tabular-nums; }

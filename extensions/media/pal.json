@@ -73,6 +73,26 @@
       {
         "file": "3-root.png",
         "caption": "The playing track found from the root by its title"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the playing track and its artist beside the note",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the transport: pause, skip, copy the track, open it in Spotify",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the note in the icon font, the track as the label",
+        "kind": "bar"
       }
     ],
     "actions": [

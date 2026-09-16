@@ -235,6 +235,26 @@
       {
         "file": "4-search.png",
         "caption": "Search GitHub: repositories, issues, pull requests and users for one query"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the GitHub glyph with the unread count as a red badge",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: the newest five unread, Open all, Mark all read",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the glyph and the count in red on the label",
+        "kind": "bar"
       }
     ],
     "actions": [

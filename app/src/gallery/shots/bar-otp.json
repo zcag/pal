@@ -1,0 +1,20 @@
+{
+  "key": "otp/latest-code",
+  "title": "Latest code",
+  "item": {
+    "icon": "",
+    "title": "482913",
+    "color": "green",
+    "tooltip": "Akbank: Akbank Mobil giris kodunuz: 482913. Kodu kimseyle paylasmayin.",
+    "refresh": 47
+  },
+  "states": [
+    { "id": "gcode", "item": { "title": "G-731064", "tooltip": "Google: G-731064 is your Google verification code." } }
+  ],
+  "shots": {
+    "bar-menubar-dark": { "target": "menubar", "theme": "dark", "caption": "On the menu bar: the code that just arrived, in green, for a minute" },
+    "bar-menubar-light": { "target": "menubar", "theme": "light", "caption": "The same item on a light menu bar" },
+    "bar-menubar-popover": { "target": "menubar", "theme": "light", "popover": true, "caption": "No popover: a click copies the code and the HUD says so" },
+    "bar-sketchybar": { "target": "sketchybar", "theme": "dark", "caption": "On sketchybar: the key glyph and the code, both green" }
+  }
+}

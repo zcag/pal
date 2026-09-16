@@ -1,0 +1,34 @@
+{
+  "key": "timer/timer",
+  "title": "Timer",
+  "item": {
+    "icon": "󰥔",
+    "title": "3:12",
+    "progress": 0.87,
+    "color": "amber",
+    "tooltip": "tea (+1 more)",
+    "menu": { "palette": "timers", "extension": "timer" }
+  },
+  "states": [
+    { "id": "early", "item": { "title": "22:41", "progress": 0.09, "color": "blue", "tooltip": "laundry" } },
+    { "id": "late", "item": { "title": "0:48", "progress": 0.97, "color": "red", "tooltip": "tea (+1 more)" } },
+    { "id": "paused", "item": { "title": "41:05", "progress": 0.31, "color": "muted", "tooltip": "focus, paused" } },
+    { "id": "landed", "item": { "title": "tea", "progress": 1, "color": null, "urgent": true, "tooltip": "tea landed 0:35 ago (+1 more)" } }
+  ],
+  "palette": {
+    "title": "Timers",
+    "placeholder": "Timers",
+    "rows": [
+      { "id": "tea", "name": "tea", "subtitle": "3:12 left, done at 04:41 PM", "icon": "󰥔", "accessories": [{ "tag": "running", "color": "blue" }], "actions": [{ "id": "pause", "title": "Pause" }, { "id": "add", "title": "Add 5 minutes", "shortcut": "cmd++" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+backspace", "style": "destructive" }] },
+      { "id": "laundry", "name": "laundry", "subtitle": "22:41 left, done at 05:01 PM", "icon": "󰥔", "accessories": [{ "tag": "running", "color": "blue" }], "actions": [{ "id": "pause", "title": "Pause" }, { "id": "add", "title": "Add 5 minutes", "shortcut": "cmd++" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+backspace", "style": "destructive" }] },
+      { "id": "focus", "name": "focus", "subtitle": "Paused at 41:05", "icon": "󰥔", "accessories": [{ "tag": "paused", "color": "amber" }], "actions": [{ "id": "resume", "title": "Resume" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+backspace", "style": "destructive" }] },
+      { "id": "new", "name": "New timer", "subtitle": "A duration and a name", "icon": "+", "actions": [{ "id": "new", "title": "New timer" }] }
+    ]
+  },
+  "shots": {
+    "bar-menubar-dark": { "target": "menubar", "theme": "dark", "caption": "On the menu bar: what is left of the soonest timer, a fill under the glyph, amber past two thirds" },
+    "bar-menubar-light": { "target": "menubar", "theme": "light", "state": "landed", "caption": "A timer that landed: the item turns into a red alarm with its name" },
+    "bar-menubar-popover": { "target": "menubar", "theme": "light", "popover": true, "caption": "A click opens the Timers palette: every timer, pause, add five minutes, stop" },
+    "bar-sketchybar": { "target": "sketchybar", "theme": "dark", "caption": "On sketchybar: the fill as a rule of box-drawing cells before the glyph, the countdown as the label" }
+  }
+}

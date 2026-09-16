@@ -1,0 +1,26 @@
+{
+  "key": "media/now-playing",
+  "title": "Now Playing",
+  "item": {
+    "icon": "",
+    "title": "Motion Picture Soundtrack · Radiohead",
+    "tooltip": "Radiohead - Motion Picture Soundtrack (Spotify)",
+    "menu": [
+      { "type": "item", "id": "play_pause", "title": "Pause", "shortcut": "space" },
+      { "type": "item", "id": "next", "title": "Next Track", "shortcut": "right" },
+      { "type": "item", "id": "previous", "title": "Previous Track", "shortcut": "left" },
+      { "type": "separator" },
+      { "type": "item", "id": "copy", "title": "Copy Track", "shortcut": "cmd+c" },
+      { "type": "item", "id": "open", "title": "Open in Spotify", "shortcut": "cmd+o" }
+    ]
+  },
+  "states": [
+    { "id": "short", "item": { "title": "Weird Fishes · Radiohead", "tooltip": "Radiohead - Weird Fishes / Arpeggi (Spotify)" } }
+  ],
+  "shots": {
+    "bar-menubar-dark": { "target": "menubar", "theme": "dark", "caption": "On the menu bar: the playing track and its artist beside the note" },
+    "bar-menubar-light": { "target": "menubar", "theme": "light", "caption": "The same item on a light menu bar" },
+    "bar-menubar-popover": { "target": "menubar", "theme": "light", "popover": true, "caption": "A click opens the transport: pause, skip, copy the track, open it in Spotify" },
+    "bar-sketchybar": { "target": "sketchybar", "theme": "dark", "caption": "On sketchybar: the note in the icon font, the track as the label" }
+  }
+}
