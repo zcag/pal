@@ -128,8 +128,11 @@ async function list(filter = "all", refresh = false): Promise<Item[]> {
   try { all = await items(refresh); } catch (e) {
     const msg = String((e as Error)?.message ?? e);
     // A terminal's `op signin` session never reaches pal; the desktop app integration is the way.
+    // The CLI reaches the vault through the desktop app: not running, locked, or the integration off are the three failures a user can fix.
+    if (/couldn't connect to the 1Password desktop app/i.test(msg)) return [hint("app", "1Password is not running", "The CLI reaches the vault through the app; Enter opens 1Password, then refresh with cmd+r", [{ id: "open", title: "Open 1Password" }], HINT_ICON.signin)];
+    if (/context deadline exceeded|did not answer/i.test(msg)) return [hint("locked", "1Password did not answer", "Unlock 1Password (or allow pal when it asks), then refresh with cmd+r", [{ id: "open", title: "Open 1Password" }], HINT_ICON.signin)];
     if (signedOut(msg)) return [hint("signin", "Connect the 1Password CLI to the app", "In 1Password: Settings, Developer, turn on \"Integrate with 1Password CLI\"; then refresh with cmd+r and allow pal when 1Password asks", [{ id: "help", title: "Open the setup guide" }], HINT_ICON.signin)];
-    return [hint("error", "op failed", msg, [], HINT_ICON.error)];
+    return [hint("error", "1Password CLI failed", msg.split("\n")[0], [{ id: "help", title: "Open the troubleshooting guide" }], HINT_ICON.error)];
   }
   const wanted = new Set(vaults.map((v) => v.toLowerCase()));
   const rows = all.filter((i) => (filter !== "all" ? i.vault.name.toLowerCase() === filter.toLowerCase() : wanted.size === 0 || wanted.has(i.vault.name.toLowerCase())));
@@ -152,6 +155,8 @@ export default {
       pick: async (id, action) => {
         if (id === "install") return { open: INSTALL_URL };
         if (id === "signin") return action === "help" ? { open: SIGNIN_URL } : { keep: true };
+        if (id === "app" || id === "locked") return { open: process.platform === "darwin" ? "/Applications/1Password.app" : "1password://", hud: "Opening 1Password" };
+        if (id === "error") return action === "help" ? { open: "https://developer.1password.com/docs/cli/app-integration/#troubleshooting" } : { keep: true };
         if (id === "error" || id === "none") return { keep: true };
         switch (action) {
           case "username": {
