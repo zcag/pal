@@ -1,0 +1,18 @@
+{
+  "name": "window-management",
+  "title": "Window Management",
+  "description": "Halves, thirds, quarters, maximize, center, the other display, restore: move and resize the focused window, or any window, from the keyboard.",
+  "version": "0.1.0",
+  "icon": "◧",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "number", "id": "gap", "label": "Gap", "description": "Pixels between a window and the screen edge, and between two windows of a split.", "min": 0, "max": 128, "step": 1, "unit": "px", "default": 0 },
+    { "kind": "number", "id": "almost_maximize_percent", "label": "Almost Maximize", "description": "How much of the screen Almost Maximize fills, centred.", "min": 10, "max": 100, "step": 1, "unit": "%", "default": 90 },
+    { "kind": "number", "id": "reasonable_size_percent", "label": "Reasonable Size", "description": "How much of the screen Reasonable Size fills, centred.", "min": 10, "max": 100, "step": 1, "unit": "%", "default": 60 }
+  ],
+  "palettes": {
+    "window-management": { "description": "One row per layout; Enter applies it to the window you were in." },
+    "arrange": { "description": "Pick a window first, then the layout." }
+  }
+}

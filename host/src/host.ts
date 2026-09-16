@@ -15,7 +15,7 @@ import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "no
 import { basename, dirname, resolve } from "node:path";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
-import { checkView } from "./view.ts";
+import { checkForm, checkView } from "./view.ts";
 import type { Ctx, Extension, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, ViewPalette } from "./protocol.ts";
 
 const VERSION = "0.0.1";
@@ -291,7 +291,11 @@ const metas = (ext: Extension, manifest?: Manifest): PaletteMeta[] =>
  */
 const details = new Map<string, Map<string, Promise<unknown>>>();
 const paletteKey = (p: any) => `${p?.extension}/${p?.palette}`;
-const ctxOf = (p: any): Ctx | undefined => (p?.filter !== undefined || p?.args !== undefined || p?.refresh ? { filter: p.filter, args: p.args, ...(p.refresh && { refresh: true }) } : undefined);
+// The core sends `args: null` and `values: null` for a level without them: absent, as far as the extension is told.
+const ctxOf = (p: any): Ctx | undefined =>
+  p?.filter !== undefined || p?.args != null || p?.refresh || p?.values != null
+    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }) }
+    : undefined;
 
 function palette(p: any) {
   const ext = exts.get(p?.extension);
@@ -334,10 +338,11 @@ const methods: Record<string, (params: any) => unknown> = {
     if (!Array.isArray(items)) throw new Error(`${paletteKey(p)}: list returned ${items === null ? "null" : typeof items}, not an array`);
     return { items };
   },
-  // An effect carrying a view is checked like a `view` answer: the UI draws it the same way.
+  // An effect carrying a view is checked like a `view` answer: the UI draws it the same way. A form likewise.
   pick: async (p) => {
     const r = (await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {};
     if (r && typeof r === "object" && "view" in r && r.view !== undefined) checkView(r.view, `${paletteKey(p)}: pick ${p.action ?? ""} view`);
+    if (r && typeof r === "object" && "form" in r && r.form !== undefined) checkForm(r.form, `${paletteKey(p)}: pick ${p.action ?? ""} form`);
     return r;
   },
   // The tree a view palette opens with; `filter`/`args` reach it as ctx like a list.

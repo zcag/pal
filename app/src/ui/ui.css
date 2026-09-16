@@ -344,6 +344,9 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 
 /* Form */
 .pal-form { display: flex; flex-direction: column; gap: var(--pal-space-3, 12px); padding: var(--pal-space-4, 16px) var(--pal-space-5, 20px); overflow-y: auto; }
+/* The form as a level: the wrapper fills the body like a view, the form scrolls inside it. */
+.pal-form-level { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.pal-form-level .pal-form { flex: 1; min-height: 0; }
 .pal-form__title { margin: 0; font-size: var(--pal-text-lg, 15px); font-weight: var(--pal-weight-semibold, 600); }
 .pal-field { display: grid; grid-template-columns: minmax(96px, 30%) 1fr; align-items: baseline; gap: var(--pal-space-3, 12px); }
 .pal-field__label { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); text-align: right; }
@@ -364,6 +367,11 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 }
 .pal-field__input:focus { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 1px #9f97ff); }
 .pal-field__input::placeholder { color: var(--pal-fg-faint, #868794); }
+.pal-field__body { display: flex; flex-direction: column; gap: var(--pal-space-1, 4px); min-width: 0; }
+.pal-field__required { color: var(--pal-fg-faint, #868794); }
+.pal-field__help { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
+.pal-field__error { color: var(--pal-destructive, #ff6e66); font-size: var(--pal-text-sm, 12px); }
+.pal-field[data-invalid] .pal-field__input { box-shadow: 0 0 0 1px var(--pal-destructive, #ff6e66); }
 .pal-field__check { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); min-height: var(--pal-control-h, 32px); }
 .pal-field__check input { accent-color: var(--pal-accent, #9f97ff); margin: 0; }
 .pal-form__buttons { display: flex; justify-content: flex-end; gap: var(--pal-space-2, 8px); margin-top: auto; }

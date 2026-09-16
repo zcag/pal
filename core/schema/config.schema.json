@@ -68,6 +68,13 @@
           "description": "Icon override; the extension's own icon when unset.",
           "type": "string"
         },
+        "item_hotkeys": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Global hotkeys that run one of the palette's items without showing\nthe panel, keyed by item id: `left_half = \"ctrl+alt+left\"` under\n`[palettes.window-management.item_hotkeys]`. The item's primary\naction runs as if picked.",
+          "type": "object"
+        },
         "settings": {
           "additionalProperties": true,
           "default": {},

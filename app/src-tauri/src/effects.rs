@@ -6,8 +6,9 @@
 //! also asks: the system prompt and the System Settings pane,
 //! `permissions::request_once`). Feedback after the panel
 //! hides is the HUD's (hud.rs): "Copied" after a `copy` that hides, an
-//! extension's own `hud` text, and the once-per-run note when a `focus`
-//! could only bring the app forward.
+//! extension's own `hud` text, the once-per-run note when a `focus`
+//! could only bring the app forward, and the layout's name (or why it
+//! failed) after a `layout`.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -15,7 +16,7 @@ use std::time::Duration;
 use serde_json::{json, Value};
 use tauri::AppHandle;
 
-use crate::{clipboard, hud, panel, permissions};
+use crate::{clipboard, hud, panel, permissions, windows};
 
 /// After `panel::hide`, before a keystroke or an activate: the orderOut
 /// has to reach the window server and the app in front has to become key
@@ -44,7 +45,7 @@ fn focus_feedback(trusted: bool, first: bool, app: &str) -> Option<String> {
 /// Whether the webview keeps the panel up for this envelope (`staysOpen`
 /// in app/src/items.ts): the HUD is for what hides.
 fn stays_open(envelope: &Value) -> bool {
-    ["keep", "toast", "push", "show", "view"].iter().any(|k| envelope.get(k).is_some())
+    ["keep", "toast", "push", "show", "view", "form"].iter().any(|k| envelope.get(k).is_some())
 }
 
 /// The toast for a `what` that needs Accessibility, as an envelope.
@@ -54,11 +55,21 @@ pub fn accessibility_toast(what: &str) -> Value {
 
 /// Hide the panel and wait for its orderOut to hand key focus back to the
 /// app in front, so what follows (a keystroke, an activate) lands there.
+/// Harmless on a panel that was not up (an item hotkey fired).
 async fn hide_first(app: &AppHandle) -> Result<(), String> {
     let handle = app.clone();
     app.run_on_main_thread(move || panel::hide(&handle)).map_err(|e| e.to_string())?;
     tokio::time::sleep(HIDE_SETTLE).await;
     Ok(())
+}
+
+/// What the HUD says after a `layout`: the layout's name, or the reason it
+/// did not happen (the panel is down by then, so a toast cannot carry it).
+fn layout_feedback(name: &str, result: &Result<pal_core::windows::Applied, String>) -> String {
+    match result {
+        Ok(a) => a.layout.title().to_string(),
+        Err(e) => format!("{}: {e}", pal_core::windows::layout::Layout::parse(name).map_or(name, |l| l.title())),
+    }
 }
 
 /// The OS calls run on blocking threads: a pasteboard write or a paste
@@ -110,6 +121,17 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
             permissions::request_once(app, "accessibility");
         }
     }
+    if let Some(what) = envelope.get("layout") {
+        let p: windows::LayoutParams = serde_json::from_value(what.clone()).map_err(|e| format!("bad layout effect: {e}"))?;
+        if let Some(toast) = accessibility_blocked(app, "Window layout") {
+            return Ok(toast);
+        }
+        // Hidden first so the focused window is the one the user was in.
+        hide_first(app).await?;
+        let name = p.name.clone();
+        let r = blocking(move || windows::apply_layout(&p)).await;
+        hud::show(app, &layout_feedback(&name, &r));
+    }
     if let Some(text) = envelope.get("hud").and_then(Value::as_str) {
         hud::show(app, text);
     }
@@ -135,6 +157,15 @@ mod tests {
         assert_eq!(focus_feedback(true, false, "Safari"), None);
         assert_eq!(focus_feedback(false, true, "Safari").as_deref(), Some("Switched to Safari; per-window switching needs Accessibility"));
         assert_eq!(focus_feedback(false, false, "Safari"), None, "the reason is said once per run");
+    }
+
+    #[test]
+    fn layout_feedback_is_the_title_or_the_reason() {
+        use pal_core::windows::{layout::Layout, Applied, Rect};
+        let ok = Ok(Applied { id: "1".into(), layout: Layout::LeftHalf, from: Rect::default(), to: Rect::default() });
+        assert_eq!(layout_feedback("left_half", &ok), "Left Half");
+        assert_eq!(layout_feedback("restore", &Err("nothing to restore".into())), "Restore: nothing to restore");
+        assert_eq!(layout_feedback("bogus", &Err("no layout \"bogus\"".into())), "bogus: no layout \"bogus\"", "an unknown name is shown as given");
     }
 
     #[test]

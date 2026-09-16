@@ -24,9 +24,13 @@ for the extension's `ttl` (an hour by default) unless it sets its own.
 | Emoji | `emoji` | indexed, grid | copies the emoji |
 | Files | `files` | input | opens the file |
 | Processes | `processes` | live, input | kills the process (after a confirm) |
+| Quicklinks | `quicklinks` | indexed | opens the link, or asks for its `{query}` first |
+| Snippets | `snippets` | indexed | pastes the text into the app in front |
 | SSH Hosts | `ssh` | indexed | opens a terminal running `ssh` |
 | System | `system` | live, input | runs the command |
 | Windows | `windows` | live | focuses the window |
+| Window Management | `window-management` | indexed | moves and resizes the focused window |
+| Arrange Window | `window-management-arrange` | input | picks a window, then a layout for it |
 | Scripts and data files | `scripts-<name>` | as configured | as configured |
 
 ## Applications (`apps`)
@@ -273,6 +277,77 @@ Settings, `[extensions.processes]`:
 | --- | --- | --- | --- |
 | `include_system` | bool | `false` | List system processes too: pids below 100, and kernel threads (children of `kthreadd`) on Linux. |
 
+## Quicklinks (`quicklinks`)
+
+Your own links, kept in the extension's storage and edited in the panel.
+Enter on a link opens it. A link whose url has a `{query}` placeholder
+(`https://github.com/search?q={query}`; Raycast's `{argument}` and
+`{argument name="Repo"}` are read the same way) drills in instead: the
+input fills the placeholder as you type, percent-encoded, and Enter opens
+the filled url (⌘C copies it). The row shows the placeholder as a tag and
+the url as its subtitle; the icon is the site's favicon.
+
+The root row **Create Quicklink** opens a form (name, url, keywords);
+**Edit** (⌘E) opens the same form filled in, and a url the opener could
+not take (no scheme, not a path) is refused with the message under the
+field. **Delete** (⌃X) asks first. Keywords are extra words the search
+matches, space or comma separated.
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Open | `Enter` | opens the url, or drills in to fill its `{query}` |
+| Copy URL | `⌘C` | copies the url as stored |
+| Edit | `⌘E` | the form, filled in |
+| Delete | `⌃X` | removes it, after a confirm |
+
+Settings, `[extensions.quicklinks]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `import` | path | (none) | A JSON array of `{name, url, keywords?}` listed alongside your own links, read-only (Open and Copy URL only), read on every listing. `~` is expanded. A file that cannot be read lists nothing and says so in the log. |
+
+The links themselves live in `<data dir>/pal/storage/quicklinks.json`
+(see Storage in [Extensions](extensions.md)), shared by every config
+profile.
+
+## Snippets (`snippets`)
+
+Short texts by name and keyword, kept in the extension's storage and
+edited in the panel. Enter pastes the text into the app that was in front
+(needs Accessibility on macOS, like Clipboard History), ⌘C copies it
+instead. The keyword is a row keyword, so typing `sig` finds the
+signature; it shows as a tag, the first line of the text is the subtitle,
+and the whole text is in the detail pane (⌘I).
+
+Placeholders in the text are filled in when it is pasted or copied:
+
+| placeholder | becomes |
+| --- | --- |
+| `{clipboard}` | the newest text on the clipboard |
+| `{date}` | today, `YYYY-MM-DD` |
+| `{time}` | now, `HH:MM` |
+| `{datetime}` | both, with a space between |
+| `{uuid}` | a fresh UUID, a different one per occurrence |
+
+Anything else in braces is left as it is, so a snippet of code keeps its
+braces. A snippet with placeholders carries a "dynamic" accessory.
+
+The root row **Create Snippet** opens a form (name, keyword, text);
+**Edit** (⌘E) opens it filled in; a keyword with a space in it is refused
+(one word, so typing it finds the row whole). **Delete** (⌃X) asks first.
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Paste | `Enter` | hides, then pastes the filled text into the app in front |
+| Copy | `⌘C` | copies the filled text |
+| Edit | `⌘E` | the form, filled in |
+| Delete | `⌃X` | removes it, after a confirm |
+
+No settings. The snippets live in `<data dir>/pal/storage/snippets.json`,
+shared by every config profile. Expansion by typing the keyword in other
+apps (Raycast's snippet expansion) is not part of this: pal pastes on
+Enter.
+
 ## SSH Hosts (`ssh`)
 
 Every `Host` in `~/.ssh/config` that is a name rather than a pattern
@@ -440,6 +515,82 @@ Settings, `[extensions.windows]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `include_minimized` | bool | `true` | List minimised windows too (focusing one restores it). |
+
+## Window Management (`window-management`)
+
+Move and resize windows from the keyboard, Raycast's set: one row per
+layout, `Enter` applies it to the window you were in. pal hides its panel
+first, so the window with focus is the one behind the panel, not pal; the
+HUD then names the layout, or says why it did not happen ("Restore: nothing
+to restore", "Next Display: only one display").
+
+| layout | id | what |
+| --- | --- | --- |
+| Left Half, Right Half, Top Half, Bottom Half | `left_half` `right_half` `top_half` `bottom_half` | half of the screen |
+| Left Third, Center Third, Right Third | `left_third` `center_third` `right_third` | a third |
+| Left Two Thirds, Right Two Thirds | `left_two_thirds` `right_two_thirds` | two thirds |
+| Top Left, Top Right, Bottom Left, Bottom Right Quarter | `top_left_quarter` `top_right_quarter` `bottom_left_quarter` `bottom_right_quarter` | a quarter |
+| Maximize | `maximize` | the whole screen |
+| Almost Maximize | `almost_maximize` | `almost_maximize_percent` of the screen, centred |
+| Center | `center` | the same size, centred |
+| Reasonable Size | `reasonable_size` | `reasonable_size_percent` of the screen, centred |
+| Next Display, Previous Display | `next_display` `previous_display` | the same place and proportions on the other display; refused with one |
+| Restore | `restore` | back to where the window was before pal moved it |
+
+"The screen" is the display the window's centre is on (the one it overlaps
+most when the centre is off every display), minus the menu bar, Dock, or
+bars, minus `gap` on every side; the halves, thirds and quarters are equal
+cells with `gap` between them. Restore remembers, per window and in memory
+until pal quits, the frame a window had before a run of layouts started: a
+run is any sequence of pal layouts, and moving the window by hand in
+between starts a new one, so Restore goes back to where you had put it.
+
+Actions:
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Apply | `Enter` | the layout on the focused window |
+| Apply to… | `⌘Enter` | pick a window from the open ones (the Arrange Window palette), then the layout goes on that one |
+
+**Arrange Window** (`window-management-arrange`) is the same thing the
+other way round: an input palette of the open windows (minimised ones left
+out); `Enter` on one lists the layouts with that window's title as the
+subtitle, and `Enter` on a layout applies it there.
+
+Per-layout global hotkeys, which move the focused window without showing
+pal at all, are `item_hotkeys` under the palette in the config file (see
+[Config](config.md#palettesid)):
+
+```toml
+[palettes.window-management.item_hotkeys]
+left_half = "ctrl+alt+left"
+right_half = "ctrl+alt+right"
+maximize = "ctrl+alt+enter"
+restore = "ctrl+alt+backspace"
+```
+
+- **macOS**: needs the Accessibility permission (the frame is set through
+  the window's `AXPosition` and `AXSize`); without it `Enter` shows the same
+  toast as paste and asks once. The displays are `NSScreen`'s frames with
+  `visibleFrame` for the usable part, so an auto-hidden menu bar or Dock
+  gives the whole screen. Apps keep their minimum size and may round.
+- **Linux**: Hyprland (`movewindowpixel exact` / `resizewindowpixel exact`;
+  a tiled window is floated first, since an exact frame means nothing
+  inside the tiling layout; the display is `monitors -j` with `reserved`
+  taken out), Sway (`floating enable`, `move absolute position`, `resize
+  set`; the workspace rect is the usable part), or X11 (`wmctrl -i -r
+  <id> -e`; `xrandr --listmonitors` for the displays, `wmctrl -d`'s work
+  area for the usable part, `xprop -root _NET_ACTIVE_WINDOW` for the focused
+  window). Sway and X11 are written to the tools' documented shapes and
+  unit-tested on fixtures, not run against a live session yet.
+
+Settings, `[extensions.window-management]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `gap` | number (px) | `0` | Pixels between a window and the screen edge, and between two windows of a split. |
+| `almost_maximize_percent` | number (%) | `90` | How much of the screen Almost Maximize fills. |
+| `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills. |
 
 ## Scripts and data files (`scripts`)
 

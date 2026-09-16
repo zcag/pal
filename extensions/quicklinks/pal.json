@@ -1,0 +1,15 @@
+{
+  "name": "quicklinks",
+  "title": "Quicklinks",
+  "description": "Your own links, with a {query} placeholder for search URLs: open one, fill it in, or copy it. Created and edited in the panel.",
+  "version": "0.1.0",
+  "icon": "🔗",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "path", "id": "import", "label": "Import file", "pick": "file", "description": "A JSON array of {name, url, keywords?} listed alongside your own links, read-only; empty for none.", "default": "" }
+  ],
+  "palettes": {
+    "quicklinks": { "description": "Every quicklink by name and keyword, plus Create Quicklink." }
+  }
+}

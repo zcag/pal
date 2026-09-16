@@ -1,0 +1,12 @@
+{
+  "name": "snippets",
+  "title": "Snippets",
+  "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {date}, {time} and {uuid} filled in. Created and edited in the panel.",
+  "version": "0.1.0",
+  "icon": "✂",
+  "author": "pal",
+  "repo": "bundled",
+  "palettes": {
+    "snippets": { "description": "Every snippet by name and keyword, plus Create Snippet." }
+  }
+}

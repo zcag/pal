@@ -6,12 +6,12 @@
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionPanel, Confirm, Detail, Empty, Footer, Grid, List, Panel, Presence, Search, Toast, View,
+  ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, Toast, View,
   groupBySection, domId, graphemePositions, useCursor, useKeys, useNavStack, type Hit, type ListHandle, type ToastSpec,
 } from "./ui";
 import { Fzf } from "fzf";
-import type { Action, Detail as DetailSpec, Item, Match, ViewSpec } from "./ui/types";
-import { PALETTES, WELCOME, iconOf, sourceKey, type Ctx, type Effect, type SourceInfo } from "./items";
+import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewSpec } from "./ui/types";
+import { PALETTES, WELCOME, iconOf, sourceKey, toForm, type Ctx, type Effect, type SourceInfo } from "./items";
 import { paletteTitle } from "./fixtures";
 
 export const LIMIT = 200;
@@ -28,13 +28,17 @@ const OPEN: Action = { id: "open", title: "Open" };
  * opened it (its rows come from the extension, listed with them). A show
  * level is a detail to read, nothing to search. A view level is a render
  * tree from a view palette: `spec` is absent while the tree is on its way,
- * and every pick from it usually brings the next one.
+ * and every pick from it usually brings the next one. A form level is an
+ * `Effect.form` from a pick on `from`: its submit is a pick on that item
+ * (or the form's own `id`) carrying the values; `key` tells one form from
+ * the next at the same depth, so the fields never keep a gone form's text.
  */
 type Level =
   | { kind: "root" }
   | { kind: "palette"; palette: string; args?: unknown }
   | { kind: "show"; detail: DetailSpec; title?: string }
-  | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec };
+  | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec }
+  | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; key: number };
 /** The item a pick from a view level is addressed to: the view's `id`, else this. */
 const VIEW_ID = "view";
 
@@ -130,17 +134,19 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<ListHandle>(null);
   const show = useRef<HTMLDivElement>(null);
+  const formEl = useRef<HTMLDivElement>(null);
   const keyAt = useRef(0);
   const seq = useRef(0);
-  /** A pick from a view level in flight: the next tree is coming, further keys are dropped, not queued. */
-  const [viewBusy, setViewBusy] = useState(false);
+  const formSeq = useRef(0);
+  /** A pick from a view or form level in flight: the reply is coming, further keys (a second Enter) are dropped, not queued. */
+  const [busy, setBusy] = useState(false);
   /** The level as of the last render, for a reply that lands after the user moved on. */
   const level = useRef(view);
   level.current = view;
 
   const byKey = useMemo(() => new Map(sources.map((s) => [sourceKey(s), s])), [sources]);
   const titleOf = (key: string) => byKey.get(key)?.title ?? key;
-  const scopeKey = view.kind === "palette" || view.kind === "view" ? view.palette : view.kind === "root" && filter !== "all" ? filter : null;
+  const scopeKey = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? view.palette : view.kind === "root" && filter !== "all" ? filter : null;
   const scope = scopeKey ? byKey.get(scopeKey) : undefined;
   // The palette and welcome rows are not items to count, and an input palette has none to filter by.
   const filterable = sources.filter((s) => { const k = sourceKey(s); return k !== PALETTES && k !== WELCOME && !s.input; });
@@ -148,19 +154,20 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const extensions = new Set(filterable.map((s) => s.extension || s.palette)).size;
   // A listing is pending for what is showing: restored rows awaiting the host, or a refresh running.
   const updating = scope ? scope.stale : filterable.some((s) => s.stale);
-  const isView = view.kind === "view";
+  const isView = view.kind === "view", isForm = view.kind === "form";
   const spec = view.kind === "view" ? view.spec : undefined;
-  const loading = isView ? !spec || viewBusy : sources.length === 0 || updating;
+  const form = view.kind === "form" ? view : undefined;
+  const loading = isView ? !spec || busy : isForm ? busy : sources.length === 0 || updating;
   const total = scope ? scope.count : filterable.reduce((n, s) => n + s.count, 0);
-  const args = view.kind === "palette" || view.kind === "view" ? view.args : undefined;
+  const args = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? view.args : undefined;
   const scopeFilter = view.kind === "palette" && scope?.filters?.length ? paletteFilter ?? scope.filters[0].id : undefined;
   const ctx = useMemo<Ctx | undefined>(() => (scopeFilter !== undefined || args !== undefined ? { filter: scopeFilter, args } : undefined), [scopeFilter, args]);
 
   // Replies can land out of order (a slow one behind a fast one): only the
-  // latest request's answer is shown. A show or view level has nothing to list.
+  // latest request's answer is shown. A show, view or form level has nothing to list.
   useEffect(() => {
     const n = ++seq.current;
-    if (view.kind === "show" || view.kind === "view") return setFound([]);
+    if (view.kind === "show" || view.kind === "view" || view.kind === "form") return setFound([]);
     search(query, scope, ctx).then((h) => { if (n === seq.current) setFound(h); });
   }, [search, query, scopeKey, view.kind, ctx, version]);
 
@@ -177,8 +184,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     return () => { live = false; };
   }, [view, scope, ctx]);
 
-  // Leaving a view level, the search input comes back and takes the keys again.
-  useEffect(() => { if (view.kind !== "view") input.current?.focus({ preventScroll: true }); }, [view.kind]);
+  // Leaving a view or form level, the search input comes back and takes the keys again (a form's first field takes them meanwhile).
+  useEffect(() => { if (view.kind !== "view" && view.kind !== "form") input.current?.focus({ preventScroll: true }); }, [view.kind]);
 
   // At the root, palettes are the sections; inside one, the palette's own sections are.
   const hits = useMemo(() => (view.kind === "root" ? groupBySection(found.map((h) => ({ ...h, item: { ...h.item, section: titleOf(h.item.palette!) } }))) : groupBySection(found)), [found, view.kind, byKey]);
@@ -239,7 +246,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const enter = useCallback((palette: string, args?: unknown) => push(byKey.get(palette)?.view === "view" ? { kind: "view", palette, args } : { kind: "palette", palette, args }), [byKey]);
   const closeActions = () => { setActionsOpen(false); focus(); };
   const closeConfirm = () => { setConfirming(null); focus(); };
-  const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setActionsOpen(false); setConfirming(null); setToast(null); setViewBusy(false); input.current?.focus(); }, [nav.reset, cur.reset]);
+  const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); input.current?.focus(); }, [nav.reset, cur.reset]);
   const open = useCallback((palette: string) => { reset(); enter(palette); }, [reset, enter]);
   useImperativeHandle(ref, () => ({ reset, open }), [reset, open]);
 
@@ -249,8 +256,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   // has somewhere to go.
   const actions = useMemo<Action[]>(() => {
     const a: Action[] = [];
-    // A view level's actions are the view's own, with their keys; the shell adds nothing (Escape leaves).
+    // A view level's actions are the view's own, with their keys; the shell adds nothing (Escape leaves). A form has its submit and nothing else.
     if (view.kind === "view") return view.spec?.actions ?? [];
+    if (view.kind === "form") return [];
     if (current) {
       const isPalette = current.palette === PALETTES, isTip = current.palette === WELCOME;
       a.push(...(current.actions ?? [isPalette ? { ...OPEN, title: `Open ${current.name}` } : OPEN]));
@@ -267,23 +275,44 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   // The envelope's copy/open/hide are the caller's; the toast shows here, a
   // push/show opens its level, a view replaces the tree of the view level it
-  // came from (the game loop) or opens one from a list.
-  const pickItem = (item: Item, action?: string) =>
-    Promise.resolve(onPick(item, query, action, ctx)).then(
+  // came from (the game loop) or opens one from a list, a form opens a form
+  // level or, answering that form's submit, shows it again with its errors.
+  // Any other answer to a submit closes the form first: the pick is done.
+  const pickItem = (item: Item, action?: string, c: Ctx | undefined = ctx, submit = false) =>
+    Promise.resolve(onPick(item, query, action, c)).then(
       (r) => {
         const e = (r ?? {}) as Effect;
+        const top = level.current;
+        if (submit && !e.form && top.kind === "form") pop();
         if (e.toast) setToast({ style: e.toast.style ?? "success", title: e.toast.title, message: e.toast.message });
         if (e.push) enter(sourceKey(e.push), e.push.args);
         if (e.show) push({ kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title });
         if (e.view) {
           // The next tree of the view it came from, if that is still the level on top; else a fresh level.
-          const top = level.current;
           if (top.kind === "view" && top.palette === item.palette) nav.replace({ ...top, spec: e.view });
-          else if (view.kind !== "view") push({ kind: "view", palette: item.palette!, spec: e.view });
+          else if (top.kind !== "view") push({ kind: "view", palette: item.palette!, spec: e.view });
+        }
+        if (e.form) {
+          if (submit && top.kind === "form") nav.replace({ ...top, spec: toForm(e.form) });
+          else push({ kind: "form", palette: item.palette!, args: c?.args, spec: toForm(e.form), from: item, key: ++formSeq.current });
         }
       },
       (e) => setToast({ style: "failure", title: "Failed", message: String(e) }),
     );
+
+  /**
+   * The form level's submit: a pick addressed to the form's `id` (else the
+   * item it came from) with the submit action and the values in the ctx.
+   * One at a time, as for a view.
+   */
+  const submitForm = (values: FormValues) => {
+    if (view.kind !== "form" || busy) return;
+    setBusy(true);
+    const item: Item = { ...view.from, id: view.spec.id ?? view.from.id };
+    pickItem(item, view.spec.submit.id, { ...ctx, values }, true).finally(() => setBusy(false));
+  };
+  /** Enter from outside the fields (the footer's hint): the form validates and submits as from inside. */
+  const requestSubmit = () => formEl.current?.querySelector("form")?.requestSubmit();
 
   /**
    * A pick from the view level: addressed to the view's id with the action's
@@ -292,11 +321,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
    * search row sweeps meanwhile.
    */
   const pickView = (a: Action) => {
-    if (view.kind !== "view" || !view.spec || viewBusy) return;
+    if (view.kind !== "view" || !view.spec || busy) return;
     const s = byKey.get(view.palette);
-    setViewBusy(true);
+    setBusy(true);
     const item: Item = { id: view.spec.id ?? VIEW_ID, name: view.spec.title ?? titleOf(view.palette), palette: view.palette, source: s && { extension: s.extension, palette: s.palette } };
-    pickItem(item, a.id).finally(() => setViewBusy(false));
+    pickItem(item, a.id).finally(() => setBusy(false));
   };
 
   /** `confirmed`: the user already said yes to `a.confirm`. */
@@ -337,7 +366,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   /** In a view level with bare-key actions, the action carrying `key` as its shortcut; nothing while a pick is in flight. */
   const viewKey = (key: string) => {
     if (view.kind !== "view" || view.spec?.keys !== "actions") return false;
-    if (viewBusy) return;
+    if (busy) return;
     const a = actions.find((x) => x.shortcut === key);
     return a ? run(a) : false;
   };
@@ -345,22 +374,24 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   useKeys(
     {
       move: ({ dir }) => {
+        if (view.kind === "form") return false;
         if (view.kind === "view") return viewKey(dir);
         if (view.kind === "show") return dir === "down" || dir === "up" ? scrollShow(dir === "down" ? 1 : -1) : false;
         if (dir === "left" || dir === "right") { if (!isGrid) return false; cur.move(dir === "right" ? 1 : -1); return; }
         cur.move((dir === "down" ? 1 : -1) * (isGrid ? columns : 1));
       },
       jump: ({ to }) => {
-        if (view.kind === "view") return false;
+        if (view.kind === "view" || view.kind === "form") return false;
         if (view.kind === "show") { const el = show.current; if (!el) return false; if (to === "home") el.scrollTo({ top: 0 }); else if (to === "end") el.scrollTo({ top: el.scrollHeight }); else scrollShow(to === "pageDown" ? 1 : -1, true); return; }
         if (to === "home") cur.set(0);
         else if (to === "end") cur.set(cur.last);
         else cur.move((to === "pageDown" ? 1 : -1) * (list.current?.pageSize() ?? 10));
       },
-      jumpTo: ({ index }) => (view.kind !== "view" && index < hits.length ? cur.set(index) : false),
+      jumpTo: ({ index }) => (view.kind !== "view" && view.kind !== "form" && index < hits.length ? cur.set(index) : false),
       // Enter and cmd+enter are a row's: with nothing under the cursor the shell's actions wait in the panel.
-      primary: () => (view.kind === "show" ? pop() : view.kind === "view" ? (viewBusy ? undefined : actions[0] ? run(actions[0]) : false) : current && actions[0] ? run(actions[0]) : false),
-      secondary: () => (view.kind === "view" ? (viewBusy ? undefined : actions[1] ? run(actions[1]) : false) : current && actions[1] ? run(actions[1]) : false),
+      // A form's fields take them first (Form's own scope); reaching here means focus is elsewhere, so the form is asked to submit.
+      primary: () => (view.kind === "show" ? pop() : view.kind === "form" ? requestSubmit() : view.kind === "view" ? (busy ? undefined : actions[0] ? run(actions[0]) : false) : current && actions[0] ? run(actions[0]) : false),
+      secondary: () => (view.kind === "form" ? requestSubmit() : view.kind === "view" ? (busy ? undefined : actions[1] ? run(actions[1]) : false) : current && actions[1] ? run(actions[1]) : false),
       actions: () => (actions.length ? setActionsOpen(true) : false),
       escape: () => (query ? setQuery("") : nav.depth > 1 ? pop() : onHide()),
       back: () => (query || nav.depth === 1 ? false : pop()),
@@ -369,10 +400,10 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         const o = filterSpec.options, i = o.findIndex((x) => x.id === filterSpec.value);
         filterSpec.onChange(o[(i + dir + o.length) % o.length].id);
       } : () => {},
-      detail: () => (view.kind === "view" ? false : setShowDetail((s) => !s)),
+      detail: () => (view.kind === "view" || view.kind === "form" ? false : setShowDetail((s) => !s)),
       shortcut: ({ combo }) => {
         if (combo === "cmd+," && onSettings) return onSettings();
-        if (view.kind === "view" && viewBusy) return;
+        if (view.kind === "view" && busy) return;
         const a = actions.find((x) => x.shortcut === combo);
         return a ? run(a) : false;
       },
@@ -383,14 +414,17 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   const isShow = view.kind === "show";
   const showTitle = view.kind === "show" ? view.title ?? "Output" : "";
-  const viewTitle = isView ? spec?.title ?? titleOf(view.palette) : "";
-  const back = view.kind === "palette" || view.kind === "view" ? { title: titleOf(view.palette), icon: scope?.icon ? iconOf(scope.icon, scope.title) : undefined, onBack: pop } : isShow ? { title: showTitle, onBack: pop } : undefined;
-  const placeholder = view.kind === "root" ? "Search…" : view.kind === "show" || view.kind === "view" ? "" : scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
+  const viewTitle = isView ? spec?.title ?? titleOf(view.palette) : form ? form.spec.title : "";
+  const back = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: titleOf(view.palette), icon: scope?.icon ? iconOf(scope.icon, scope.title) : undefined, onBack: pop } : isShow ? { title: showTitle, onBack: pop } : undefined;
+  const placeholder = view.kind === "root" ? "Search…" : view.kind === "show" || view.kind === "view" || view.kind === "form" ? "" : scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
   const onPickAt = (i: number) => { cur.set(i); const a = actions[0]; if (a) run(a); };
   const body = view.kind === "show"
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
     : view.kind === "view"
     ? (spec ? <View tree={spec.tree} label={viewTitle} autoFocus /> : null)
+    : form
+    // The title is the search row's (as for a view), so the form draws none of its own.
+    ? <div ref={formEl} className="pal-form-level" aria-busy={busy || undefined}><Form key={form.key} fields={form.spec.fields} submitTitle={form.spec.submit.title} cancelTitle={form.spec.cancel} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} /></div>
     : !hits.length
       ? <Empty
           icon={{ kind: "glyph", value: "⌕" }}
@@ -404,16 +438,16 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   return (
     <Panel
-      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={isShow || isView ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow} title={isView ? viewTitle : undefined} />}
-      aside={showDetail && !isShow && !isView && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
+      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={isShow || isView || isForm ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow} title={isView || isForm ? viewTitle : undefined} />}
+      aside={showDetail && !isShow && !isView && !isForm && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={
         <Footer
-          icon={isShow ? undefined : isView ? (scope?.icon ? iconOf(scope.icon, scope.title) : undefined) : current?.icon}
-          title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : isView ? viewTitle : current?.name}
-          note={updating && !isShow && !isView ? "updating…" : undefined}
-          primary={isShow ? { title: "Back" } : (isView || current) && actions[0] ? { title: actions[0].title } : undefined}
+          icon={isShow ? undefined : isView || isForm ? (scope?.icon ? iconOf(scope.icon, scope.title) : undefined) : current?.icon}
+          title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : isView || isForm ? viewTitle : current?.name}
+          note={updating && !isShow && !isView && !isForm ? "updating…" : undefined}
+          primary={isShow ? { title: "Back" } : form ? { title: form.spec.submit.title } : (isView || current) && actions[0] ? { title: actions[0].title } : undefined}
           actions={actions.length > 0}
-          onPrimary={() => (isShow ? pop() : isView ? actions[0] && run(actions[0]) : current && actions[0] && run(actions[0]))}
+          onPrimary={() => (isShow ? pop() : form ? requestSubmit() : isView ? actions[0] && run(actions[0]) : current && actions[0] && run(actions[0]))}
           onActions={() => setActionsOpen(true)}
         />
       }

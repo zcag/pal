@@ -49,7 +49,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use pal_core::config::Config;
 use pal_core::frecency::{Frecency, Key};
 use pal_core::index::{Hit, Index, Item, QueryOpts, Source};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, State};
 
@@ -584,38 +584,34 @@ pub async fn index_refresh(app: AppHandle, source: Option<Source>, host: State<'
 /// (`welcome::pick`) and never remembered.
 ///
 /// `args` are the level's (`Effect.push`), handed back so the extension
-/// knows which listing the id came from. A `keep` (stay open, list again)
+/// knows which listing the id came from; `values` are a form's fields on
+/// its submit (`Effect.form`), both riding in the extension's ctx. A
+/// `keep` (stay open, list again)
 /// on an indexed palette lists it again here, so the page's next query
 /// already has the new rows; an input palette's page lists by itself.
+/// What the page sends for a pick: the row, the action, the query that led
+/// there, and the level's `args`/`values`.
+#[derive(Deserialize)]
+pub struct PickRequest {
+    pub source: Source,
+    pub id: String,
+    #[serde(default)]
+    pub action: Option<String>,
+    #[serde(default)]
+    pub query: String,
+    #[serde(default)]
+    pub args: Option<Value>,
+    #[serde(default)]
+    pub values: Option<Value>,
+}
+
 #[tauri::command]
-pub async fn pick(
-    app: AppHandle,
-    source: Source,
-    id: String,
-    action: Option<String>,
-    query: String,
-    args: Option<Value>,
-    host: State<'_, Arc<Host>>,
-) -> Result<Value, String> {
+pub async fn pick(app: AppHandle, req: PickRequest, host: State<'_, Arc<Host>>) -> Result<Value, String> {
+    let PickRequest { source, id, action, query, args, values } = req;
     if source == welcome::source() {
         return welcome::pick(&app, &id).await;
     }
-    let r = if source == palettes_source() {
-        json!({ "keep": true })
-    } else {
-        let params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action, "args": args });
-        let t0 = Instant::now();
-        let r = host.request("pick", params).await?;
-        eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, ms(t0));
-        let r = effects::apply(&app, r).await?;
-        if r.get("keep").is_some() && args.is_none() {
-            let meta = Palettes::with(&app, |reg| reg.iter().find(|r| r.source == source && r.enabled && !r.meta.input).map(|r| r.meta.clone()));
-            if let Some(m) = meta {
-                list_palette(&app, &host, &source, &m, "keep").await;
-            }
-        }
-        r
-    };
+    let r = if source == palettes_source() { json!({ "keep": true }) } else { run_pick(&app, &host, &source, &id, action.as_deref(), args.as_ref(), values.as_ref()).await? };
     // Live and input palettes carry transient ids (a clipboard entry, a calc
     // result); remembering those would only fill the store with junk. A
     // drill-in level's ids are its parent's business.
@@ -625,6 +621,24 @@ pub async fn pick(
         let mut fre = lock(&frecency);
         fre.record(&key, SystemTime::now());
         fre.record_query(&key, &query);
+    }
+    Ok(r)
+}
+
+/// The pick itself: the host's `pick`, its effects, and the relist a
+/// `keep` asks for. Shared by the `pick` command and an item hotkey
+/// (`hotkey::pressed`), which runs a pick with the panel down.
+pub async fn run_pick(app: &AppHandle, host: &Arc<Host>, source: &Source, id: &str, action: Option<&str>, args: Option<&Value>, values: Option<&Value>) -> Result<Value, String> {
+    let params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action, "args": args, "values": values });
+    let t0 = Instant::now();
+    let r = host.request("pick", params).await?;
+    eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, ms(t0));
+    let r = effects::apply(app, r).await?;
+    if r.get("keep").is_some() && args.is_none() {
+        let meta = Palettes::with(app, |reg| reg.iter().find(|r| r.source == *source && r.enabled && !r.meta.input).map(|r| r.meta.clone()));
+        if let Some(m) = meta {
+            list_palette(app, host, source, &m, "keep").await;
+        }
     }
     Ok(r)
 }

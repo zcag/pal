@@ -72,17 +72,20 @@ mod platform {
     }
 }
 
-/// The `AXUIElement` API, as much of it as the window switcher needs: an
-/// application's windows, their title, frame and minimised state, and the
-/// raise / minimise / close-button-press actions. Every call is a Mach
-/// message to the other app, answered on its main thread; a hung app would
-/// stall it, so [`Element::app`] caps the wait at [`TIMEOUT`] seconds.
+/// The `AXUIElement` API, as much of it as the window switcher and the
+/// layouts need: an application's windows and its focused one, their title,
+/// frame and minimised state, the raise / minimise / close-button-press
+/// actions, and setting a frame. Every call is a Mach message to the other
+/// app, answered on its main thread; a hung app would stall it, so
+/// [`Element::app`] caps the wait at [`TIMEOUT`] seconds.
 #[cfg(target_os = "macos")]
 pub mod element {
     use std::ffi::c_void;
     use std::ptr::NonNull;
 
     use objc2_core_foundation::{CFArray, CFBoolean, CFRetained, CFString, CFType, CGPoint, CGSize};
+
+    pub use crate::windows::Rect;
 
     /// Seconds an app gets to answer one attribute read before it is skipped.
     pub const TIMEOUT: f32 = 0.3;
@@ -99,6 +102,7 @@ pub mod element {
         fn AXUIElementPerformAction(element: *const CFType, action: *const CFString) -> i32;
         fn AXUIElementSetMessagingTimeout(element: *const CFType, timeout: f32) -> i32;
         fn AXValueGetValue(value: *const CFType, kind: u32, out: *mut c_void) -> bool;
+        fn AXValueCreate(kind: u32, value: *const c_void) -> *mut CFType;
         static kCFBooleanTrue: &'static CFBoolean;
         static kCFBooleanFalse: &'static CFBoolean;
     }
@@ -110,16 +114,6 @@ pub mod element {
     // Mach message to the other app); the ref is an immutable handle.
     unsafe impl Send for Element {}
     unsafe impl Sync for Element {}
-
-    /// Where a window sits and how big it is, in the global top-left-origin
-    /// coordinate space `CGWindowListCopyWindowInfo` also reports in.
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    pub struct Frame {
-        pub x: f64,
-        pub y: f64,
-        pub w: f64,
-        pub h: f64,
-    }
 
     impl Element {
         /// The application element for `pid`, with the messaging timeout set.
@@ -164,6 +158,12 @@ pub mod element {
                 .collect()
         }
 
+        /// The app's window with keyboard focus (`AXFocusedWindow`); none
+        /// when the app has no window up.
+        pub fn focused_window(&self) -> Option<Element> {
+            self.attr("AXFocusedWindow").map(Element)
+        }
+
         pub fn title(&self) -> Option<String> {
             self.attr("AXTitle").and_then(|v| v.downcast::<CFString>().ok()).map(|s| s.to_string())
         }
@@ -172,7 +172,9 @@ pub mod element {
             self.attr("AXMinimized").and_then(|v| v.downcast::<CFBoolean>().ok()).is_some_and(|b| b.value())
         }
 
-        pub fn frame(&self) -> Option<Frame> {
+        /// Where the window is, in the global top-left-origin space
+        /// `CGWindowListCopyWindowInfo` also reports in.
+        pub fn frame(&self) -> Option<Rect> {
             let mut p = CGPoint { x: 0.0, y: 0.0 };
             let mut s = CGSize { width: 0.0, height: 0.0 };
             let pos = self.attr("AXPosition")?;
@@ -182,7 +184,26 @@ pub mod element {
                 AXValueGetValue(CFRetained::as_ptr(&pos).as_ptr(), AX_VALUE_POINT, (&mut p as *mut CGPoint).cast())
                     && AXValueGetValue(CFRetained::as_ptr(&size).as_ptr(), AX_VALUE_SIZE, (&mut s as *mut CGSize).cast())
             };
-            ok.then_some(Frame { x: p.x, y: p.y, w: s.width, h: s.height })
+            ok.then_some(Rect { x: p.x, y: p.y, w: s.width, h: s.height })
+        }
+
+        /// Move and resize: position, size, then position again, since a
+        /// window that grows against a screen edge is pushed by the app
+        /// before its size settles. The app keeps its minimum size and may
+        /// round; true when every set was accepted.
+        pub fn set_frame(&self, r: Rect) -> bool {
+            let p = CGPoint { x: r.x, y: r.y };
+            let s = CGSize { width: r.w, height: r.h };
+            let set = |attr: &str, kind: u32, v: *const c_void| {
+                // SAFETY: `v` points at the struct `kind` names; the value is released on drop.
+                let value = NonNull::new(unsafe { AXValueCreate(kind, v) }).map(|p| unsafe { CFRetained::from_raw(p) });
+                let Some(value) = value else { return false };
+                let key = CFString::from_str(attr);
+                // SAFETY: element, key and value are valid for the call.
+                unsafe { AXUIElementSetAttributeValue(self.ptr(), CFRetained::as_ptr(&key).as_ptr(), CFRetained::as_ptr(&value).as_ptr()) == AX_SUCCESS }
+            };
+            let pos = || set("AXPosition", AX_VALUE_POINT, (&p as *const CGPoint).cast());
+            pos() && set("AXSize", AX_VALUE_SIZE, (&s as *const CGSize).cast()) && pos()
         }
 
         pub fn set_minimized(&self, on: bool) -> bool {

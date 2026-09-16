@@ -140,7 +140,7 @@ let details = 0;
 export default { palettes: {
   main: {
     list: (query, ctx) => { console.log("list-time stdout"); console.info("info too"); return [{ id: "q", name: query ?? "", ctx: ctx ?? null }]; },
-    pick: (id, action, ctx) => { if (id === "throw") throw new Error("boom"); return { id, action: action ?? null, ctx: ctx ?? null }; },
+    pick: (id, action, ctx) => { if (id === "throw") throw new Error("boom"); if (id === "badform") return { form: { title: "x", fields: [], submit: { id: "s", title: "S" } } }; return { id, action: action ?? null, ctx: ctx ?? null }; },
     detail: (id, ctx) => ({ markdown: \`\${id} \${JSON.stringify(ctx?.args ?? null)} #\${++details}\` }),
   },
   bad: { list: () => ({ not: "an array" }), pick: () => {} },
@@ -189,6 +189,12 @@ export default { palettes: {
     expect(await host.pick("ext", "main", "i", "act", { filter: "f2" })).toEqual({ id: "i", action: "act", ctx: { filter: "f2" } });
     expect(await host.pick("ext", "main", "i")).toEqual({ id: "i", action: null, ctx: null });
     expect(await host.detail("ext", "main", "d", { args: [1] })).toMatchObject({ markdown: expect.stringContaining("d [1]") });
+  });
+
+  test("a form's values reach pick as ctx.values (null, as the core sends when there are none, makes no ctx); a bad form answer is refused", async () => {
+    expect(await host.pick("ext", "main", "f", "save", { values: { name: "x", pin: true } })).toEqual({ id: "f", action: "save", ctx: { values: { name: "x", pin: true } } });
+    expect(await host.request<unknown>("pick", { extension: "ext", palette: "main", id: "i", args: null, values: null })).toEqual({ id: "i", action: null, ctx: null });
+    expect((await host.call("pick", { extension: "ext", palette: "main", id: "badform" })).error).toMatch(/pick  form: no fields/);
   });
 
   test("detail is cached per item and args until the palette lists again", async () => {

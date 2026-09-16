@@ -145,6 +145,12 @@ pub struct Palette {
     pub alias: Option<String>,
     /// Hotkey that opens pal directly in this palette.
     pub hotkey: Option<String>,
+    /// Global hotkeys that run one of the palette's items without showing
+    /// the panel, keyed by item id: `left_half = "ctrl+alt+left"` under
+    /// `[palettes.window-management.item_hotkeys]`. The item's primary
+    /// action runs as if picked.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub item_hotkeys: BTreeMap<String, String>,
     /// Icon override; the extension's own icon when unset.
     pub icon: Option<String>,
     /// Settings the extension declared for this palette.
@@ -157,7 +163,7 @@ pub struct Palette {
 
 impl Default for Palette {
     fn default() -> Self {
-        Self { enabled: true, alias: None, hotkey: None, icon: None, settings: toml::Table::new(), extra: BTreeMap::new() }
+        Self { enabled: true, alias: None, hotkey: None, item_hotkeys: BTreeMap::new(), icon: None, settings: toml::Table::new(), extra: BTreeMap::new() }
     }
 }
 
@@ -444,6 +450,10 @@ theme = "dark"
 alias = "cb"
 settings.history = 200
 
+[palettes.window-management.item_hotkeys]
+left_half = "ctrl+alt+left"
+maximize = "ctrl+alt+enter"
+
 [extensions.github]
 token = "keychain:pal/github-token"
 "#,
@@ -456,6 +466,10 @@ token = "keychain:pal/github-token"
         assert!(cb.enabled, "default survives next to a set sibling");
         assert_eq!(cb.alias.as_deref(), Some("cb"));
         assert_eq!(cb.settings["history"].as_integer(), Some(200));
+        assert!(cb.item_hotkeys.is_empty());
+        let wm = &c.palettes["window-management"];
+        assert_eq!(wm.item_hotkeys.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect::<Vec<_>>(), [("left_half", "ctrl+alt+left"), ("maximize", "ctrl+alt+enter")]);
+        assert!(!toml::to_string(&c).unwrap().contains("item_hotkeys = {}"), "an empty map is not written back");
         assert_eq!(c.extensions["github"]["token"].as_str(), Some("keychain:pal/github-token"));
         assert!(c.palette("nope").enabled);
     }

@@ -6,7 +6,7 @@
 import { homedir } from "node:os";
 import { call } from "./bridge.ts";
 import { caller, resolved, subscribe } from "./settings.ts";
-import type { ResolvedSettings } from "./protocol.ts";
+import type { ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
 
 export type * from "./protocol.ts";
 
@@ -114,12 +114,34 @@ export type Window = {
   icon: string | null;
 };
 
+/** `pal_core::windows::Rect`: global top-left origin, points on macOS, logical pixels on Linux. */
+export type Rect = { x: number; y: number; w: number; h: number };
+
+/** `pal_core::windows::Display`: `visible_frame` is `frame` minus the menu bar, Dock and bars. */
+export type Display = { id: string; frame: Rect; visible_frame: Rect; primary: boolean };
+
+/** What `windows.layout` did: the window, and where it went from and to. */
+export type Applied = { id: string; layout: string; from: Rect; to: Rect };
+
 export const windows = {
   /** Every window of every regular app, front to back; minimised ones included. */
   list: () => call<Window[]>("windows.list"),
   /** Focus is not here: return `{ focus: id }` from `pick`, so the panel hides first. */
   close: (id: string) => call<null>("windows.close", { id }),
   minimize: (id: string) => call<null>("windows.minimize", { id }),
+  frame: (id: string) => call<Rect>("windows.frame", { id }),
+  /** Move and resize; needs Accessibility on macOS. A tiled window on Hyprland or Sway is floated first. */
+  setFrame: (id: string, rect: Rect) => call<null>("windows.set_frame", { id, ...rect }),
+  /** Every display, the primary first. */
+  displays: () => call<Display[]>("windows.displays"),
+  /** The window with keyboard focus; null when nothing has it. With the panel up this is the app behind it. */
+  focused: () => call<Window | null>("windows.focused"),
+  /**
+   * Run a named layout on a window (the focused one without `id`) right
+   * now, without hiding the panel. From `pick` prefer the `layout` effect,
+   * which hides first and shows the layout's name in the HUD.
+   */
+  layout: (req: WindowLayoutRequest) => call<Applied>("windows.layout", req),
 };
 
 /** `pal_core::system::SystemCommand`. */

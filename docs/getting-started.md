@@ -25,16 +25,17 @@ macOS 11 or newer.
 pal has no Dock icon. It lives in the menu bar, and the hotkey brings up the
 panel from anywhere.
 
-Two palettes need the Accessibility permission: clipboard history (pasting
-into the app in front sends a synthesised Cmd+V) and windows (raise, close,
-minimise); so does `pal action type`. macOS lists an app under Privacy &
+Three palettes need the Accessibility permission: clipboard history
+(pasting into the app in front sends a synthesised Cmd+V), windows (raise,
+close, minimise) and window management (move and resize); so does
+`pal action type`. macOS lists an app under Privacy &
 Security > Accessibility only once the app has asked, so pal asks: the
 first time the panel opens on a new profile (the system prompt, and System
 Settings opened on that pane; `ask_permissions_on_start = false` in the
 config turns that off), from the first row of the Welcome section, from
 Settings > General > Permissions (a granted / not granted dot and a Grant
-button), and the first time a paste or a window switch is refused (a toast
-says so). Flip the switch next to pal in that pane; pal sees it within a
+button), and the first time a paste, a window switch or a layout is refused (a
+toast says so). Flip the switch next to pal in that pane; pal sees it within a
 couple of seconds, no restart. Nothing else asks for a permission.
 
 The grant is tied to the app's code signature, and pal's releases are

@@ -7,7 +7,7 @@
 //! - `core/settings.get {extension, manifest}` (settings.rs)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
 //! - `core/system.{commands, run}` (system.rs)
-//! - `core/windows.{list, close, minimize}` (windows.rs)
+//! - `core/windows.{list, close, minimize, frame, set_frame, displays, focused, layout}` (windows.rs)
 
 use serde_json::Value;
 use tauri::AppHandle;

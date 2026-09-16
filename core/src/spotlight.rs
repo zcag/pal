@@ -53,18 +53,28 @@ mod platform {
     }
 }
 
+// The parse and its tests read plist values, a macOS-only dependency.
+
 /// The `AppleSymbolicHotKeys` entry Spotlight's search binding lives under.
+#[cfg(target_os = "macos")]
 const SHOW_SPOTLIGHT: &str = "64";
 /// Factory default: on, ⌘Space.
+#[cfg(target_os = "macos")]
 const DEFAULT: &str = "cmd+space";
 /// Virtual keycode of Space, and the NSEvent modifier flag bits.
+#[cfg(target_os = "macos")]
 const VK_SPACE: i64 = 49;
+#[cfg(target_os = "macos")]
 const SHIFT: i64 = 1 << 17;
+#[cfg(target_os = "macos")]
 const CTRL: i64 = 1 << 18;
+#[cfg(target_os = "macos")]
 const ALT: i64 = 1 << 19;
+#[cfg(target_os = "macos")]
 const CMD: i64 = 1 << 20;
 
 /// `AppleSymbolicHotKeys` as read: `None` for a Spotlight that is off.
+#[cfg(target_os = "macos")]
 fn parse(table: Option<&plist::Dictionary>) -> Option<String> {
     let Some(entry) = table.and_then(|t| t.get(SHOW_SPOTLIGHT)).and_then(plist::Value::as_dictionary) else {
         return Some(DEFAULT.into());
@@ -83,7 +93,7 @@ fn parse(table: Option<&plist::Dictionary>) -> Option<String> {
     Some(mods.chain([key.as_str()]).collect::<Vec<_>>().join("+"))
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 mod tests {
     use super::*;
     use plist::{Dictionary, Value};

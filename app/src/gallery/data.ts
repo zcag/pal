@@ -120,8 +120,9 @@ export const future: Item = { id: "future", name: "Dentist", subtitle: "Reminder
 export const handWritten: Item[] = [deploy, raycastDocs, person, longTitle, noIcon, emojiRow, future];
 
 export const formFields: FormField[] = [
-  { kind: "text", id: "title", label: "Title", placeholder: "What is this bookmark called?", value: "Raycast API reference" },
-  { kind: "text", id: "url", label: "URL", placeholder: "https://" },
+  { kind: "text", id: "title", label: "Title", placeholder: "What is this bookmark called?", value: "Raycast API reference", required: true },
+  { kind: "text", id: "url", label: "URL", placeholder: "https://", required: true, description: "Submit with this empty to see the required mark." },
+  { kind: "password", id: "token", label: "Token", placeholder: "Only for private pages" },
   { kind: "select", id: "folder", label: "Folder", options: [{ id: "ref", title: "Reference" }, { id: "daily", title: "Daily" }, { id: "infra", title: "Infra" }] },
   { kind: "textarea", id: "notes", label: "Notes", placeholder: "Anything worth remembering (cmd+enter submits from here)" },
   { kind: "checkbox", id: "pin", label: "Pinned", text: "Show at the top of the folder", value: true },

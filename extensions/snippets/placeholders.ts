@@ -1,0 +1,59 @@
+// Snippet text as data: the stored shape and the dynamic placeholders
+// filled in when a snippet is pasted. Pure; the clipboard and the clock
+// come in as arguments so the tests can pin them.
+
+export type Snippet = { id: string; name: string; keyword?: string; text: string };
+
+/** What a placeholder needs from outside: the clipboard's text (asked only when `{clipboard}` occurs), the moment, and fresh ids. */
+export type Sources = { clipboard: () => Promise<string> | string; now?: () => Date; uuid?: () => string };
+
+const two = (n: number) => String(n).padStart(2, "0");
+/** Local date as `YYYY-MM-DD`. */
+export const isoDate = (d: Date) => `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+/** Local time as `HH:MM`. */
+export const isoTime = (d: Date) => `${two(d.getHours())}:${two(d.getMinutes())}`;
+
+/** The placeholders in the order they are looked for; `{datetime}` is date and time with a space. */
+export const PLACEHOLDERS = ["clipboard", "date", "time", "datetime", "uuid"] as const;
+const RE = /\{(clipboard|date|time|datetime|uuid)\}/g;
+
+/** True when the text has a placeholder to fill. */
+export const hasPlaceholders = (text: string) => new RegExp(RE.source).test(text);
+
+/**
+ * Every `{clipboard}`, `{date}`, `{time}`, `{datetime}` and `{uuid}`
+ * replaced; every `{uuid}` is a fresh one, the clipboard is read once.
+ * Anything else in braces is left as it is (a snippet of code has braces).
+ */
+export async function expand(text: string, s: Sources): Promise<string> {
+  if (!hasPlaceholders(text)) return text;
+  const now = (s.now ?? (() => new Date()))();
+  const uuid = s.uuid ?? (() => crypto.randomUUID());
+  const clip = text.includes("{clipboard}") ? await s.clipboard() : "";
+  return text.replace(RE, (_, k: string) => {
+    switch (k) {
+      case "clipboard": return clip;
+      case "date": return isoDate(now);
+      case "time": return isoTime(now);
+      case "datetime": return `${isoDate(now)} ${isoTime(now)}`;
+      default: return uuid();
+    }
+  });
+}
+
+/** The stored list, defensively: whatever is not a snippet with an id, a name and a text is dropped. */
+export const asSnippets = (v: unknown): Snippet[] =>
+  Array.isArray(v)
+    ? v.filter((x): x is Snippet => !!x && typeof x === "object" && typeof (x as Snippet).id === "string" && typeof (x as Snippet).name === "string" && typeof (x as Snippet).text === "string")
+        .map((x) => ({ id: x.id, name: x.name, text: x.text, ...(typeof x.keyword === "string" && x.keyword ? { keyword: x.keyword } : {}) }))
+    : [];
+
+/** A keyword is one word: no spaces, so typing it finds the row whole. */
+export const badKeyword = (k: string): string | undefined => (/\s/.test(k.trim()) ? "One word, no spaces" : undefined);
+
+/** The first line of the text, trimmed to `max` characters, for a subtitle. */
+export function preview(text: string, max = 80): string {
+  const line = text.split("\n").find((l) => l.trim()) ?? "";
+  return line.length > max ? `${line.slice(0, max - 1)}…` : line;
+}
+

@@ -31,6 +31,8 @@ export { SettingsWindow, settingsPages } from "./SettingsWindow";
 export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
 export { SettingsPalettes, palettesIndex, paletteIcon } from "./SettingsPalettes";
 export { SettingsExtensions, extensionsIndex } from "./SettingsExtensions";
+export { SettingsAbout, aboutIndex, type UpdateInfo } from "./SettingsAbout";
+export { SettingsList, type SettingsListItem } from "./SettingsList";
 export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
 export { SettingsDiagnostics } from "./SettingsDiagnostics";
 export { describeDefault, isModified } from "./SettingsTypes";

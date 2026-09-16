@@ -1,7 +1,9 @@
 //! Global hotkeys: `general.hotkey` shows the panel, `palettes.<id>.hotkey`
-//! shows it straight inside that palette. All come from the config file and
-//! are swapped live when it changes (`settings::on_reload`) or a palette
-//! arrives (`index::sync_extension`). An empty `general.hotkey` means none
+//! shows it straight inside that palette, and `palettes.<id>.item_hotkeys`
+//! (`<item id> = "<keys>"`) run one item of the palette with the panel down,
+//! as if picked (`index::run_pick`: the host's `pick`, then its effects).
+//! All come from the config file and are swapped live when it changes
+//! (`settings::on_reload`) or a palette arrives (`index::sync_extension`). An empty `general.hotkey` means none
 //! (a compositor keybind runs `pal toggle` instead). On Linux this only
 //! reaches X11 clients (the global-hotkey crate is X11-only); Wayland goes
 //! through `pal toggle`. The plugin hops to the main thread itself and
@@ -22,25 +24,29 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use pal_core::config::Config;
+use pal_core::index::Source;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
-use crate::{events, lock, settings};
+use crate::host::Host;
+use crate::{events, index, lock, settings};
 
 const FALLBACK: &str = "ctrl+space";
 const POLL: Duration = Duration::from_secs(2);
 
-/// What a registered shortcut does: toggle the panel, or open it in a
-/// palette (by its `extension/palette` key, what the UI scopes on).
+/// What a registered shortcut does: toggle the panel, open it in a
+/// palette (by its `extension/palette` key, what the UI scopes on), or
+/// pick one item of a palette without the panel.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Target {
     Root,
     Palette(String),
+    Item(Source, String),
 }
 
 /// How the last `apply` went for the root hotkey (`general.hotkey`).
@@ -142,11 +148,23 @@ fn watch(app: &AppHandle) {
 }
 
 /// The plugin's handler, on the main thread: look the shortcut up and act.
+/// An item pick goes to the runtime (the host round trip and the effect's
+/// hide-and-settle must not sit on the main thread); its failure is a log
+/// line, since nothing is on screen to show it.
 pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
     let target = lock(&app.state::<Registered>().map).get(shortcut).cloned();
     match target {
         Some(Target::Root) => crate::toggle(app),
         Some(Target::Palette(key)) => crate::show_in(app, Some(key)),
+        Some(Target::Item(source, id)) => {
+            let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = index::run_pick(&app, &host, &source, &id, None, None, None).await {
+                    eprintln!("hotkey\titem pick failed\t{}/{}\t{id}\t{e}", source.extension, source.palette);
+                }
+            });
+        }
         None => {}
     }
 }
@@ -168,18 +186,31 @@ fn parse_root(s: &str) -> Option<(Shortcut, Option<String>)> {
 }
 
 /// Register what the config wants and drop what it no longer does. A
-/// palette's hotkey is only registered once the palette exists. The root
-/// hotkey wins a clash with a palette's; a hotkey another app holds is
-/// reported and skipped, the rest still apply.
+/// palette's hotkeys are only registered once the palette exists. In a
+/// clash the root hotkey wins over a palette's, a palette's over an item's;
+/// a hotkey another app holds is reported and skipped, the rest still
+/// apply.
 pub fn apply(app: &AppHandle, config: &Config) {
     let mut wanted: HashMap<Shortcut, Target> = HashMap::new();
-    for (id, source) in crate::registry::registered_palettes(app) {
-        if let Some(h) = config.palette(&id).hotkey.as_deref().map(str::trim).filter(|h| !h.is_empty()) {
-            match h.parse::<Shortcut>() {
-                Ok(s) => {
-                    wanted.insert(s, Target::Palette(format!("{}/{}", source.extension, source.palette)));
-                }
-                Err(e) => eprintln!("hotkey\tbad palettes.{id}.hotkey\t{h:?}: {e}; ignored"),
+    let parse = |what: String, h: &str| match h.trim().parse::<Shortcut>() {
+        Ok(s) => Some(s),
+        Err(e) => {
+            eprintln!("hotkey\tbad {what}\t{h:?}: {e}; ignored");
+            None
+        }
+    };
+    let palettes = crate::registry::registered_palettes(app);
+    for (id, source) in &palettes {
+        for (item, h) in &config.palette(id).item_hotkeys {
+            if let Some(s) = parse(format!("palettes.{id}.item_hotkeys.{item}"), h) {
+                wanted.insert(s, Target::Item(source.clone(), item.clone()));
+            }
+        }
+    }
+    for (id, source) in &palettes {
+        if let Some(h) = config.palette(id).hotkey.as_deref().filter(|h| !h.trim().is_empty()) {
+            if let Some(s) = parse(format!("palettes.{id}.hotkey"), h) {
+                wanted.insert(s, Target::Palette(format!("{}/{}", source.extension, source.palette)));
             }
         }
     }

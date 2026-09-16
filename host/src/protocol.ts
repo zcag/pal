@@ -136,6 +136,54 @@ export type ViewNode =
  */
 export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions" };
 
+// ---- form: a prompt with fields --------------------------------------------
+// An effect that asks: the UI pushes a form level drawn from these fields,
+// Enter submits it as a pick carrying the values, Escape leaves. The
+// extension answers that pick like any other, or with another `form`
+// carrying `errors` to show the same form again with the messages.
+
+/**
+ * One field. `id` is the key in `ctx.values`; `default` is the initial
+ * value (a string, a boolean for a checkbox); `required` blocks the submit
+ * while the field is empty (or, for a checkbox, unticked) with a message
+ * under it; `description` is a line of help under the field.
+ */
+export type FormField = { id: string; label: string; placeholder?: string; required?: boolean; description?: string } & (
+  | { kind: "text"; default?: string }
+  | { kind: "textarea"; default?: string }
+  | { kind: "password"; default?: string }
+  | { kind: "select"; options: { id: string; title: string }[]; default?: string }
+  | { kind: "checkbox"; text?: string; default?: boolean }
+);
+
+/** What `ctx.values` carries on the submit: a string per field, a boolean per checkbox. */
+export type FormValues = Record<string, string | boolean>;
+
+/**
+ * A form level. The submit is `pick(id, submit.id, { values })` with this
+ * `id` (default: the id of the row the form came from) and the values by
+ * field id. `cancel` is the cancel button's label ("Cancel"). Answer the
+ * submit with `{ form }` again, `errors` set by field id, and the form
+ * stays with the messages under the fields (the typed values kept); any
+ * other effect closes it and runs as from a row (`keep` lists again,
+ * `toast` shows over the list, nothing hides).
+ */
+export type Form = { id?: string; title: string; fields: FormField[]; submit: { id: string; title: string }; cancel?: string; errors?: Record<string, string> };
+
+/** `pal_core::windows::layout::Layout`, the wire names. */
+export type WindowLayout =
+  | "left_half" | "right_half" | "top_half" | "bottom_half"
+  | "left_third" | "center_third" | "right_third" | "left_two_thirds" | "right_two_thirds"
+  | "top_left_quarter" | "top_right_quarter" | "bottom_left_quarter" | "bottom_right_quarter"
+  | "maximize" | "almost_maximize" | "center" | "reasonable_size"
+  | "next_display" | "previous_display" | "restore";
+
+/** `pal_core::windows::layout::Options`: the knobs, all optional (gap 0, 90%, 60%). */
+export type WindowLayoutOptions = { gap?: number; almost_maximize_percent?: number; reasonable_size_percent?: number };
+
+/** The `layout` effect's payload and `windows.layout`'s params, one shape. */
+export type WindowLayoutRequest = WindowLayoutOptions & { name: WindowLayout; id?: string };
+
 /**
  * What `pick` returns and the shell acts on. `copy` and `open` run in the
  * core; the window hides afterwards unless `keep` or `toast` is set (a
@@ -157,6 +205,14 @@ export type Effect = {
    * with the same toast when missing.
    */
   focus?: string;
+  /**
+   * Hide, then move and resize a window: `name` is a layout from
+   * `WindowLayout`, `id` a window from `windows.list` (the focused window
+   * when absent, which is why the panel hides first). The HUD then shows the
+   * layout's name, or why it did not happen. Needs Accessibility on macOS
+   * like `focus`, with the same toast when missing.
+   */
+  layout?: WindowLayoutRequest;
   hide?: true;
   toast?: { title: string; message?: string; style?: "success" | "failure" };
   /**
@@ -178,6 +234,8 @@ export type Effect = {
   show?: Detail & { title?: string };
   /** A render tree (`View`): from a list, pushes a view level; from a view, replaces its tree. */
   view?: View;
+  /** A prompt (`Form`): pushes a form level; from a form, shows it again (with `errors`). */
+  form?: Form;
 };
 
 /**
@@ -186,8 +244,9 @@ export type Effect = {
  * that opened this level (absent at the root and on a plain drill-in).
  * `refresh` on a `list`: the user asked for a fresh listing (the shell's
  * Refresh action), so a cache the palette keeps should step aside.
+ * `values` on a `pick`: the submitted fields of an `Effect.form`.
  */
-export type Ctx = { filter?: string; args?: unknown; refresh?: boolean };
+export type Ctx = { filter?: string; args?: unknown; refresh?: boolean; values?: FormValues };
 
 type PaletteBase = {
   /** Section label at the root; the palette key otherwise. */

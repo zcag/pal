@@ -3,7 +3,7 @@
  * the UI item model. Provisional, like the wire shape it reads.
  */
 import { isSymbol } from "./ui/icons";
-import type { Accessory, Action, Detail, FilterOption, Icon, Item, ViewSpec } from "./ui/types";
+import type { Accessory, Action, Detail, FilterOption, FormField, FormSpec, FormValues, Icon, Item, ViewSpec } from "./ui/types";
 
 /** `pal_core::index::Source`. */
 export type Source = { extension: string; palette: string };
@@ -53,8 +53,8 @@ export type SourceInfo = Source & {
   listed_at?: number;
 };
 
-/** How a level was opened (`Ctx` in host/protocol.ts): the filter picked, the args of the `push` that opened it. */
-export type Ctx = { filter?: string; args?: unknown };
+/** How a level was opened (`Ctx` in host/protocol.ts): the filter picked, the args of the `push` that opened it, a form's values on its submit. */
+export type Ctx = { filter?: string; args?: unknown; values?: FormValues };
 
 /** What a pick returns (`Effect` in host/protocol.ts); `copy` and `open` already ran in the core. */
 export type Effect = {
@@ -72,10 +72,12 @@ export type Effect = {
   show?: Detail & { title?: string };
   /** A render tree: a new view level from a list, the next tree of the view it came from. */
   view?: ViewSpec;
+  /** A prompt: a form level from a row, the same form again (with errors) from its submit. */
+  form?: FormSpec;
 };
 
-/** A toast needs the window; `keep` asks for it; `push`, `show` and `view` open or refresh a level in it. Everything else hides. */
-export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r || "push" in r || "show" in r || "view" in r);
+/** A toast needs the window; `keep` asks for it; `push`, `show`, `view` and `form` open or refresh a level in it. Everything else hides. */
+export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r || "push" in r || "show" in r || "view" in r || "form" in r);
 
 /**
  * An action as the wire carries it, and nothing more: the UI keys its own
@@ -86,6 +88,15 @@ const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.tit
 
 /** A `View` off the wire as the UI keeps it; the host has checked the tree. */
 export const toView = (v: ViewSpec): ViewSpec => ({ tree: v.tree, actions: (v.actions ?? []).map(toAction), title: v.title, id: v.id, keys: v.keys });
+
+/** A wire field (`default`) as the Form component takes it (`value`); a kind the UI cannot draw is dropped by the host already. */
+type WireField = Omit<FormField, "value"> & { default?: string | boolean };
+const toField = ({ default: value, ...f }: WireField): FormField => ({ ...f, value } as FormField);
+
+/** A `Form` off the wire as the UI keeps it; the host has checked the fields and the submit id. */
+export const toForm = (f: FormSpec & { fields: WireField[] }): FormSpec => ({
+  id: f.id, title: String(f.title), fields: (f.fields ?? []).map(toField), submit: { id: String(f.submit.id), title: String(f.submit.title ?? f.submit.id) }, cancel: f.cancel, errors: f.errors,
+});
 
 /** `Item.palette` for a source. Fixture rows (the gallery) have no extension and keep their bare palette name. */
 export const sourceKey = (s: Source) => (s.extension ? `${s.extension}/${s.palette}` : s.palette);

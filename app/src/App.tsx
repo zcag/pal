@@ -89,7 +89,7 @@ export default function App() {
   // The core ran the envelope's copy/open; whether the window stays is decided here, the toast is the Launcher's.
   const pick = async (item: Item, query: string, action?: string, ctx?: Ctx) => {
     const t0 = performance.now();
-    const r = await invoke<Effect>("pick", { source: item.source, id: item.id, action, query, args: ctx?.args });
+    const r = await invoke<Effect>("pick", { req: { source: item.source, id: item.id, action, query, args: ctx?.args, values: ctx?.values } });
     mark(`pick ${item.id}${action ? ` (${action})` : ""} ms`, performance.now() - t0);
     if (!staysOpen(r)) invoke("hide");
     bump(); // the pick changed frecency; the next list has it

@@ -79,13 +79,23 @@ export type Filter = {
   onChange: (id: string) => void;
 };
 
-export type FormField =
-  | { kind: "text"; id: string; label: string; placeholder?: string; value?: string }
-  | { kind: "textarea"; id: string; label: string; placeholder?: string; value?: string }
-  | { kind: "select"; id: string; label: string; options: FilterOption[]; value?: string }
-  | { kind: "checkbox"; id: string; label: string; text?: string; value?: boolean };
+/**
+ * One form field (`FormField` in host/src/protocol.ts, with `default`
+ * named `value` here). `required` blocks the submit while empty (unticked
+ * for a checkbox), `description` is a help line under the field.
+ */
+export type FormField = { id: string; label: string; placeholder?: string; required?: boolean; description?: string } & (
+  | { kind: "text"; value?: string }
+  | { kind: "textarea"; value?: string }
+  | { kind: "password"; value?: string }
+  | { kind: "select"; options: FilterOption[]; value?: string }
+  | { kind: "checkbox"; text?: string; value?: boolean }
+);
 
 export type FormValues = Record<string, string | boolean>;
+
+/** A form level (`Form` in host/src/protocol.ts): the submit is a pick with `submit.id` and the values; `errors` by field id come from the extension. */
+export type FormSpec = { id?: string; title: string; fields: FormField[]; submit: { id: string; title: string }; cancel?: string; errors?: Record<string, string> };
 
 // ---- view: a declarative render tree ------------------------------------
 // Mirrors `ViewNode` / `View` in host/src/protocol.ts (the contract); this

@@ -16,8 +16,8 @@ import { cardSvg, backSvg } from "../../../extensions/blackjack/cards.ts";
 import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
-  SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
-  extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
+  SettingsAbout, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
+  aboutIndex, extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
 import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyBlocked, settingsPermissions } from "./data";
 import "./gallery.css";
@@ -92,7 +92,17 @@ function StreamingList({ pool }: { pool: Item[] }) {
 }
 
 /** The `cmds` rows as a lazy palette: metadata inline, the markdown answered 700 ms after the cursor rests. */
-const lazyFixture = (items: Item[]): Item[] => items.map((i) => (i.palette === "cmds" ? { ...i, detail: { metadata: i.detail?.metadata }, lazyDetail: true } : i));
+const lazyFixture = (items: Item[]): Item[] => items.map((i) => (i.palette === "cmds" ? { ...i, detail: { metadata: i.detail?.metadata }, lazyDetail: true } : i.palette === "bookmarks" ? { ...i, actions } : i));
+
+/** The rename form a bookmark's "Rename…" answers with; `errors` when the submit is refused. */
+const renameForm = (item: Item, errors?: Record<string, string>) => ({
+  id: item.id, title: `Rename ${item.name}`,
+  fields: [
+    { kind: "text" as const, id: "name", label: "Name", required: true, default: item.name, description: "Try submitting it unchanged, or empty." },
+    { kind: "checkbox" as const, id: "pin", label: "Pinned", text: "Show at the top" },
+  ],
+  submit: { id: "save", title: "Rename" }, errors,
+});
 
 /** One live launcher at a time: both listen on the window, as the app's one does, so two would answer every key. */
 type Live = "playground" | "blackjack";
@@ -108,7 +118,7 @@ function Playground({ items }: { items: Item[] }) {
   const lazy = useMemo(() => lazyFixture(items), [items]);
   return (
     <div className="g-playground">
-      <p className="g-note">Live: every key in the grammar works here. Enter and Escape at the root flash a HUD instead of hiding. Marks go to the console. Commands are a lazy-detail palette (skeleton, then markdown); a palette with a few sections has them as its filter dropdown (Tab cycles); Enter on a command opens a show level (its output), Enter on a bookmark a drill-in level (Commands, with args).</p>
+      <p className="g-note">Live: every key in the grammar works here. Enter and Escape at the root flash a HUD instead of hiding. Marks go to the console. Commands are a lazy-detail palette (skeleton, then markdown); a palette with a few sections has them as its filter dropdown (Tab cycles); Enter on a command opens a show level (its output), Enter on a bookmark a drill-in level (Commands, with args), ⌘R on a bookmark a form level (Rename…): an unchanged name comes back refused, a changed one is a toast.</p>
       <div className="g-frame g-frame--live">
         <Launcher
           items={lazy}
@@ -116,7 +126,14 @@ function Playground({ items }: { items: Item[] }) {
           onPick={(item, _q, action, ctx) => {
             flash(`Picked ${item.name}`); setLog((l) => [`pick ${item.id}${action ? ` (${action})` : ""}${ctx?.args ? ` args=${JSON.stringify(ctx.args)}` : ""}`, ...l].slice(0, 5));
             if (item.palette === "cmds" && !ctx?.args) return { show: { markdown: "```\n$ " + item.id + "\n" + Array.from({ length: 40 }, (_, i) => `[${String(i + 1).padStart(2, "0")}/40] ${item.name}: step ${i + 1} ok`).join("\n") + "\n```", title: `${item.name} output` } };
-            if (item.palette === "bookmarks" && !ctx?.args) return { push: { extension: "", palette: "cmds", args: { parent: item.id } } };
+            if (action === "rename") return { form: renameForm(item) };
+            if (action === "save") {
+              const name = String(ctx?.values?.name ?? "").trim();
+              setLog((l) => [`values ${JSON.stringify(ctx?.values)}`, ...l].slice(0, 5));
+              if (name === item.name) return { form: renameForm(item, { name: "That is its name already" }) };
+              return { toast: { title: `Renamed to ${name}` } };
+            }
+            if (item.palette === "bookmarks" && !ctx?.args && (!action || action === "open")) return { push: { extension: "", palette: "cmds", args: { parent: item.id } } };
           }}
           onHide={() => flash("Hidden")}
           mark={(name, t) => console.debug(name, Math.round(t))}
@@ -231,7 +248,30 @@ const toasts: ToastSpec[] = [
   { style: "animated", title: "Deploying…" },
 ];
 
+/**
+ * `?gallery=settings:<page>[&theme=dark]`: one settings window alone,
+ * filling the viewport, so a headless browser at the window's size
+ * screenshots exactly what the app shows.
+ */
+function Solo({ what }: { what: string }) {
+  const params = new URLSearchParams(location.search);
+  const theme = params.get("theme") === "dark" ? "dark" : "light";
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
+  const [, page = "general"] = what.split(":");
+  return (
+    <div className="g-solo" data-theme={theme}>
+      <SettingsDemo page={page as SettingsPage} diagnostics={params.has("diagnostics")} />
+    </div>
+  );
+}
+
 export default function Gallery() {
+  const solo = new URLSearchParams(location.search).get("gallery");
+  if (solo?.startsWith("settings")) return <Solo what={solo} />;
+  return <GalleryPage />;
+}
+
+function GalleryPage() {
   const [raws, setRaws] = useState<Raw[]>([]);
   const [live, setLive] = useState<Live>("playground");
   const [theme, setTheme] = useState<(typeof themes)[number]>(() => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
@@ -431,8 +471,15 @@ export default function Gallery() {
       </Section>
 
       <Section id="form" title="Form">
-        <State label="Text, textarea, select, checkbox; enter submits, cmd+enter from the textarea, escape cancels">
+        <State label="Text (required), password, select, textarea, checkbox; a help line; enter submits, cmd+enter from the textarea, escape cancels; a required field left empty is marked and focused">
           <Pair><FormDemo /></Pair>
+        </State>
+        <State label="Refused by the extension: `errors` by field id, shown under the field until it changes">
+          <Pair panel>
+            <Panel search={<Search value="" onChange={noop} back={{ title: "Bookmarks", onBack: noop }} title="Add bookmark" />} footer={<Footer title="Add bookmark" primary={{ title: "Save" }} />}>
+              <div className="pal-form-level"><Form fields={formFields} submitTitle="Save" errors={{ url: "Not a URL: no scheme" }} onSubmit={noop} onCancel={noop} /></div>
+            </Panel>
+          </Pair>
         </State>
       </Section>
 
@@ -455,15 +502,18 @@ export default function Gallery() {
       </Section>
 
       <Section id="settings" title="Settings">
-        <p className="g-note">A separate window, 960 by 600: sidebar 200 (labels on the panel's 52px text edge), content 760 (the panel's 720 plus its 20px gutters). Live: arrows move the sidebar, the table and the extension list; Space toggles a palette; the hotkey recorder records.</p>
+        <p className="g-note">A separate window, 720 by 520 by default (resizable): a 52px toolbar with the pages as icon tabs, the page under it at a 560px measure, forms as cards with a 160px right-aligned label column. Live: arrows move the tabs and the lists; Tab walks the palettes table; the hotkey recorder records. <code>?gallery=settings:palettes&amp;theme=dark</code> shows one window alone at the viewport size.</p>
         <State label="General, at rest">
           <WidePair>{(t) => <SettingsDemo key={t} page="general" />}</WidePair>
         </State>
-        <State label="Palettes, a row selected: pal's per-palette defaults and the extension's declared settings in the pane">
+        <State label="Palettes, GitHub open: the table of pal's per-palette columns, the selected palette's declared settings under it">
           <WidePair>{(t) => <SettingsDemo key={t} page="palettes" />}</WidePair>
         </State>
-        <State label="Extensions, GitHub selected: update available, the declared settings form under the separator">
+        <State label="Extensions, GitHub selected: update available, the declared settings, Update and Remove in the footer">
           <WidePair>{(t) => <SettingsDemo key={t} page="extensions" />}</WidePair>
+        </State>
+        <State label="About: the version, the update check, the links">
+          <WidePair>{(t) => <SettingsDemo key={t} page="about" />}</WidePair>
         </State>
         <State label="Config file problems: one warning, one error, under the page">
           <WidePair>{(t) => <SettingsDemo key={t} page="general" diagnostics />}</WidePair>
@@ -512,14 +562,14 @@ function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diag
   const patchPalette = (id: string, config: PaletteConfig) =>
     setExts((es) => es.map((e) => ({ ...e, palettes: e.palettes.map((p) => (p.id === id ? { ...p, config } : p)) })));
   const patchExt = (name: string, values: SettingValues) => setExts((es) => es.map((e) => (e.name === name ? { ...e, values } : e)));
-  const index = [...generalIndex, ...palettesIndex(exts), ...extensionsIndex(exts)];
-  const count = exts.reduce((n, e) => n + e.palettes.length, 0);
-  const aside = page === "palettes" ? `${count} palettes from ${exts.length} extensions` : page === "extensions" ? `${exts.length} installed` : undefined;
+  const index = [...generalIndex, ...palettesIndex(exts), ...extensionsIndex(exts), ...aboutIndex];
+  const mac = /Mac/.test(navigator.platform);
   return (
-    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" version="0.1.0">
-      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} hotkey={{ ...settingsHotkeyBlocked, wanted: general.hotkey, registered: general.hotkey !== "cmd+space", spotlight: general.hotkey === "cmd+space" ? "cmd+space" : undefined }} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} />}
+    <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
+      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} hotkey={{ ...settingsHotkeyBlocked, wanted: general.hotkey, registered: general.hotkey !== "cmd+space", spotlight: general.hotkey === "cmd+space" ? "cmd+space" : undefined }} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} />}
       {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
-      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} onChange={patchExt} />}
+      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} />}
+      {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal" }} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0" }), 800))} onOpenLink={noop} onRevealFile={noop} />}
     </SettingsWindow>
   );
 }

@@ -200,6 +200,8 @@ pub fn run() {
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
     let builder = icon::register(builder).plugin(tauri_plugin_updater::Builder::new().build()).plugin(autostart::plugin());
+    // Size and position of the settings window only; the panel and the HUD place themselves.
+    let builder = builder.plugin(tauri_plugin_window_state::Builder::new().with_state_flags(settings::STATE).with_filter(|label| label == settings::WINDOW).build());
     builder
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -232,6 +234,8 @@ pub fn run() {
             settings::extensions_update,
             settings::extensions_remove,
             settings::extensions_check_updates,
+            settings::settings_about,
+            settings::settings_open_link,
             settings::settings_open,
             settings::settings_close,
             updater::check_updates,

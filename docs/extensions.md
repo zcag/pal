@@ -97,7 +97,9 @@ export default {
   path), `paste`, `focus` (a window id), `hide`, `toast`, `hud` (a line in
   the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
   `keep` (stay open and list again), `push` (drill into a palette with
-  `args`), `show` (a detail-only level), `view` (a render tree, below).
+  `args`), `show` (a detail-only level), `view` (a render tree, below),
+  `form` (a prompt with fields, below). `ctx` carries `filter`, the `args`
+  of the `push` that opened the level, and on a form's submit its `values`.
 - `detail(id, ctx?)`: the detail pane's content for a row, asked lazily.
 - Palette flags: `live` (arrival order, re-listed on every show, not twice
   within 2 s; with a `ttl`, only once the last listing is older than that),
@@ -189,6 +191,54 @@ entrance in steps of 80 ms (0..8). Durations and easings are the tokens';
 reduced motion turns them off. A row whose keyed children come and go wants
 a `minHeight` so the layout holds still.
 
+## Forms: asking for values
+
+A pick can answer `{ form }` instead of doing something, and pal pushes a
+**form level**: the fields in place of the list, the form's `title` in
+the search row, the submit in the footer. Enter submits (⌘Enter from a
+textarea), Escape leaves, Tab moves between fields. The bundled Quicklinks
+and Snippets create and edit their rows this way (`extensions/quicklinks/`,
+`extensions/snippets/`).
+
+```ts
+pick: async (id, action, ctx) => {
+  if (action === "edit") return { form: {
+    id,                                  // what the submit is addressed to; default: the row's id
+    title: "Edit Quicklink",
+    fields: [
+      { kind: "text", id: "name", label: "Name", required: true, default: link.name },
+      { kind: "text", id: "url", label: "URL", required: true, default: link.url, description: "{query} stands for what you type." },
+      { kind: "checkbox", id: "pin", label: "Pinned", text: "Show at the top" },
+    ],
+    submit: { id: "save", title: "Save" },
+  } };
+  if (action === "save") {
+    const { name, url } = ctx!.values!;         // a string per field, a boolean per checkbox
+    if (!/^https?:/.test(String(url))) return { form: { ...editForm(id), errors: { url: "Not a URL" } } };
+    await store(id, name, url);
+    return { keep: true, toast: { title: "Saved" } };
+  }
+},
+```
+
+- Fields: `text`, `textarea`, `password`, `select` (with `options`),
+  `checkbox` (with `text` beside the box); each has `id`, `label`, and
+  optionally `placeholder`, `default`, `required`, `description` (a help
+  line under the field). A `required` field left empty (unticked, for a
+  checkbox) blocks the submit in the panel: the field is marked and
+  focused, and no pick goes out.
+- The submit is `pick(form.id ?? rowId, submit.id, ctx)` with
+  `ctx.values` keyed by field id (`ctx.args` are the level's, as for any
+  pick). Answer it with `{ form }` again carrying `errors: { field:
+  message }` and the same form stays with the messages under the fields,
+  what was typed kept; any other effect closes the form and runs as from a
+  row: `keep` lists the palette again (the new row is there), `toast`
+  shows over the list, `copy` or nothing hides. `cancel` names the cancel
+  button ("Cancel").
+- The host refuses a form without fields, with two fields of one id, a
+  field of a kind the panel cannot draw, a submit id starting with `pal:`,
+  or `errors` for a field that is not there.
+
 ## Storage
 
 `storage` in the `pal` module is a small per-extension key-value store:
@@ -229,7 +279,8 @@ else. Every call is one request to the core.
   raw bridge.
 
 The protocol's types ride along: `Extension`, `Palette`, `Item`, `Effect`,
-`Ctx`, `Detail`, `View`, `ViewNode`, `Manifest`.
+`Ctx`, `Detail`, `View`, `ViewNode`, `Form`, `FormField`, `FormValues`,
+`Manifest`.
 
 Dependencies: a `package.json` next to `index.ts` is honoured; `pal
 install` runs `bun install --production` in the copy it makes.
