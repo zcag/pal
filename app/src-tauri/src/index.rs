@@ -314,7 +314,7 @@ async fn refresh_expired(app: AppHandle, host: Arc<Host>) {
 async fn fetch(host: &Arc<Host>, source: &Source, filter: Option<&str>, refresh: bool) -> Option<Vec<Item>> {
     let params = json!({ "extension": source.extension, "palette": source.palette, "filter": filter, "refresh": refresh.then_some(true) });
     match host.request("list", params).await {
-        Ok(v) => Some(serde_json::from_value::<Vec<Item>>(v["items"].clone()).unwrap_or_else(|e| {
+        Ok(mut v) => Some(serde_json::from_value::<Vec<Item>>(v["items"].take()).unwrap_or_else(|e| {
             eprintln!("index\t{}/{}\tbad items\t{e}", source.extension, source.palette);
             Vec::new()
         })),

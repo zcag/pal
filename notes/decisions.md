@@ -119,6 +119,7 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 
 - Daily instance on hornet since 2026-09-16 12:50: `/Applications/pal.app` on the real `~/.config/pal/config.toml` (migrated; v1 kept as `config.v1.toml`), `pal` on PATH is `~/.local/bin/pal` -> the app binary, v1 uninstalled. Dev instance: `cd app && PAL_CONFIG="$HOME/Library/Application Support/pal/dev.toml" npm run tauri dev` (a second profile, so it never touches the daily one; give it another hotkey in that file). Host and extensions load from the repo and reload on change; README has the installs. `pal toggle|show|hide|settings|quit` drive the running instance.
 - `make test`: Rust workspace, app vitest, host bun test.
+- Scratch release instance on hornet (a measurement, not the daily one): `CARGO_TARGET_DIR=target/scratch-<x> TAURI_CONFIG='{"identifier":"io.cagdas.pal.scratch"}' cargo build --release --features tauri/custom-protocol -p pal` (the identifier is baked in; each agent its own, the single-instance socket is `$TMPDIR/../io_cagdas_pal_<id>_si.sock`), stage `scripts/build-extensions.sh` and rsync `app/src-tauri/resources/{host,sdk,extensions}` into `target/scratch-<x>/release/` for the bundled layout (without a staged `host/src/host.ts` there the binary falls back to the repo's `.ts`, which reloads on every edit another agent makes), then run it with its own `PAL_CONFIG` (another hotkey, `menu_bar_icon = false`, `[bar] target = "off"` so it never touches the daily sketchybar) and `XDG_DATA_HOME`. Write `date +%s` to `$XDG_DATA_HOME/pal/launchd/handover` first: a hand-started release build otherwise hands itself to launchd within the minute and its stderr is gone. `pal quit` through the same env ends it.
 - Logs: tab-separated marks on stderr (`profile`, `hotkey\t...`, `quit\tflushed`, extension `console.log`), so in dev the `tauri dev` terminal; no log file. Data in `<data dir>/pal/<profile>/`.
 - Daily instance on marko since 2026-09-16 17:00: bare release binary `~/.local/share/pal/bin/pal` (+ `pal-bun`), `~/.local/bin/pal` -> it, host and extensions from the `~/proj/pali` clone (`Layout::resolve` repo fallback), v1 uninstalled, `~/proj/pal` kept for the v1 plugins the scripts tier reads. Super+Space is an xremap entry running `pal toggle`; `hyprland.conf` has the title-keyed panel and HUD rules, `exec-once = pal`, and a `$mod, space` bind that only fires when xremap is down. Log: `nohup pal > /tmp/pal-daily.log` this session, exec-once from the next login.
 - marko: clone `marko:~/proj/pali` (`pali` branch). Release: `cargo build --release --features tauri/custom-protocol`; bundle: `NO_STRIP=true npm run tauri build` in `app/`; take `WAYLAND_DISPLAY`/`DISPLAY` from `systemctl --user show-environment` when launching by hand. `notes/linux.md`.
@@ -310,3 +311,99 @@ Every bundled extension (35) was read against the brief, `docs/keyboard.md` and 
 | window-management | mixed-weight Unicode layout shapes, the thirds as text ("◂⅓"); `◧ ▢` palette icons; tagline 123 | one SVG diagram per layout as `{ image }` (`icons.ts`), md-dock_left / md-window_maximize palette icons; tagline 57; test: every row a distinct SVG |
 | windows | `▣` palette icon, `▢` fallback; `keys` lacked `cmd+shift+m` / `cmd+shift+w`; tagline 76 | md-dock_window, md-window_maximize fallback; both listed; tagline 55 |
 | wordle | tagline 101; boolean settings with the whole explanation as checkbox text; `keys` lacked `a` and `cmd+n`; store's "New game" did not match the code's titles | tagline 56; settings split; keys list letters, enter, backspace, c, n, cmd+n; store action retitled |
+
+## Findings: performance pass (2026-09-16)
+
+Measured on hornet with a scratch release build (`TAURI_CONFIG` identifier
+`io.cagdas.pal.scratch`, own `PAL_CONFIG` and `XDG_DATA_HOME`, `[bar]
+target = "off"`, no v1 scripts config), the 36 bundled extensions from the
+staged resource tree (`scripts/build-extensions.sh`), warm index cache, the
+panel never shown unless the row says so. Stderr lines with `since start`
+(`mark`, `profile`, `cache loaded`, `host spawn`, `host ready`, the page's
+new `first paint` mark in `Launcher.tsx`) are the clock; `footprint` for
+memory (RSS on macOS counts the shared WebKit frameworks and freed heap);
+`ps cputime` over 60 s for idle CPU; the core's `corpus_heads` ignored test
+(`PAL_CORPUS=<profile>/index`, now printing the restore cost, the
+per-keystroke time and the reply's bytes per source) for the index numbers.
+
+| What | Before | After |
+| --- | --- | --- |
+| Cold start (warm cache) to cache restored | 336 ms (read+parse 35 ms) | 190-204 ms (14 ms) |
+| Cold start to first paint | ~580 ms (first query answered at 531 ms, no mark) | 458-513 ms (`first paint` mark) |
+| Cold start to `host/ready` | ~590 ms (spawn 355 + 236) | 404-416 ms; 1071 ms on the first run after a build (signature check) |
+| `pal show` to paint, after the first show | 2.1-3.3 ms | 1.3-2.2 ms (unchanged) |
+| Idle after 2 min, app: RSS / footprint / peak | 353 MB / 99 MB / 237 MB | 171 MB / 62 MB / 93 MB |
+| Idle after 2 min, `pal-bun` | 184 MB / 65 MB / 124 MB | 161 MB / 68 MB / 107 MB |
+| Idle CPU over 60 s, app / host | 0.02% / 0.2% (bar renders every 10 s with the target off) | 0.02-0.03% / 0.02-0.1%, no renders (daily instance, sketchybar target: 0.02% / 0.02%) |
+| `icons/icons` listing (10995 rows) | 3363 KB, 22 ms in the host, 108 ms round trip, cache file 3.47 MB | 1570 KB, 16 ms, 24-25 ms, 1.63 MB |
+| `unicode/unicode` (1795) | 767 KB | 250 KB |
+| `colors/colors` (700) | 370 KB | 239 KB |
+| `apps/apps` (132) | 61 KB | 36 KB |
+| `make/make` (69), `icons/freedesktop` (114) | 25 KB, 27 KB | 11 KB, 13 KB |
+| `emoji/emoji` (1906), `bookmarks/bookmarks` (321) | 626 KB, 197 KB | unchanged (see below) |
+| All 35 default listings | 5654 KB | 3169 KB |
+| Index restore (46 files, `corpus_heads`) | 5.9 MB in 61 ms (parse 44, fill 4.6) | 3.4 MB in 23 ms (parse 15, fill 4.2) |
+| Per keystroke, core, 16.5k items: `c` / `chr` / `git` / `ha` / `""` | 1.13 / 0.85 / 0.90 / 1.18 / 0.10 ms | 1.08 / 0.83 / 0.89 / 1.17 / 0.10 ms (unchanged; fixture `c` 0.70, `chrome` 0.32, `ha` 0.58) |
+| Root reply on the wire: `c` / `chr` / `git` / `""` | 92.7 / 59.1 / 56.0 / 96.8 KB | 87.0 / 54.0 / 51.3 / 71.6 KB |
+
+What was out of line, and the fix:
+
+- **Per-row actions were half of every catalog listing.** Every icons row
+  carried the same four `{ id, title }` objects (1.8 MB of 3.4 MB), unicode
+  five (517 of 767 KB), colors four, make four, apps six. Now a palette
+  declares `actions` once (`PaletteBase.actions` in `sdk/src/protocol.ts`,
+  carried in `PaletteMeta` by `paletteMeta` in `sdk/src/manifest.ts`,
+  opaque `actions: Option<Value>` on the core's `PaletteMeta` in
+  `registry.rs`, so it rides in the cache and `SourceView`), and a row
+  without its own gets them in the UI (`toItem` in `app/src/items.ts`,
+  which now takes a `PaletteInfo { title, detail, actions }` instead of two
+  positional args; `[]` on a row still means inert). icons, unicode, colors,
+  make and apps (macOS rows: the running ones and those without a bundle id
+  still say their own) moved. emoji stays per row: its order follows
+  `paste_by_default`, and a meta is sent once at load. bookmarks stays: the
+  browser rows each add "Open in <browser>". github rows are ~1.1-1.2 KB
+  each (inline `detail` 460 B plus 300 B of actions) and lead every typed
+  root reply's bytes; the palette could go `detail: lazy`, left to its owner.
+- **Two full clones of every reply's JSON tree.** `host.rs` cloned
+  `msg["result"]` out of the parsed line and `index::fetch` cloned
+  `v["items"]` again before `from_value`: a 3.4 MB listing was four trees
+  in memory at once (`phys_footprint_peak` 237 MB). Both `take()` now
+  (`host.rs` reader loop, `index.rs` `fetch`); the icons round trip went
+  108 -> 25 ms with the smaller reply, the peak 237 -> 93 MB.
+- **`permissions::install` probed on the main thread during setup**: AX
+  trust, EventKit, a file open behind Full Disk Access, IOHIDCheckAccess,
+  ~85 ms before the cache restore could start. Now `spawn_blocking`
+  (`permissions.rs`); nothing at startup waits on it.
+- **Bar items rendered on their timers with nothing to draw them.** With
+  `[bar] target = "off"` the host was still asked for otp and timer every
+  10 s and media every 30 s (12-14 round trips a minute, the host at 0.2%
+  CPU). `Bar::draws(key)` (`core/src/config/mod.rs`: enabled and not aimed
+  at `off`) now gates the load render, the timer (`schedule`), the
+  triggers and `apply_config` in `bar/mod.rs`; a target flip renders them.
+- **The bar popover took the keyboard at launch.** AppKit hands the
+  frontmost key-capable window the keyboard when an app activates at
+  launch; the popover panel is ordered front last (invisible), so on hornet
+  a scratch start ate a user's typing for six seconds (`key->paint "ok
+  sent" (0)` from the popover page, then `window_did_resign_key` when they
+  clicked away). `set_becomes_key_only_if_needed(true)` on the popover
+  panel (`panel/macos.rs`), plus a `bar popover key` log line: three starts
+  after the change show none at launch. The engaged path
+  (`show_and_make_key`, an explicit `makeKeyWindow`) was not exercised
+  this round: verify a click-opened popover still types.
+
+Left as measured, not changed:
+
+- Every show relists ten live palettes with no `ttl` (browser-tabs 44 ms
+  over CDP, wifi 79 ms, bluetooth 80-140 ms, windows 15 ms, system,
+  audio, media, otp, home-assistant): after the paint, ~80 ms wall in
+  parallel, all by their manifests ("device palettes" is open above).
+- The settings window's page loads at startup (created hidden in
+  `settings::install`) and its Overview effect runs `check_updates` and
+  `extensions_check_updates` at every launch (`updater error` at 0.9 s
+  with `check_updates = false`; a GitHub API call). Four WebContent
+  processes sit behind the app (main 135 MB RSS, popover 80, settings 78,
+  HUD 45 on the scratch instance). Settings is another agent's this round.
+- `sketchybar --query bar` is spawned every 30 s to detect the bar while
+  the target is `auto` (the daily instance): a fork per half minute.
+- The clipboard watcher's 250 ms `changeCount` read is in the app's
+  0.02%.

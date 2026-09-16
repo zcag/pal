@@ -99,12 +99,18 @@ fn open_privacy_pane(anchor: &str) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Off the main thread: the probes (AX trust, EventKit, a file open behind
+/// Full Disk Access, IOHIDCheckAccess) took ~85 ms of the startup on
+/// hornet, and nothing at startup waits on the answer.
 pub fn install(app: &AppHandle) {
-    let s = status();
-    eprintln!("permissions\t{s:?}");
-    if !s.complete() {
-        watch(app);
-    }
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let s = status();
+        eprintln!("permissions\t{s:?}\t{:.1}ms since start", crate::since_start_ms());
+        if !s.complete() {
+            watch(&app);
+        }
+    });
 }
 
 /// The ask: the system prompt (adds pal to the list) and the pane with the

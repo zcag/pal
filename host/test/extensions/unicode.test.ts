@@ -11,9 +11,10 @@ const list = () => host.list("unicode", "unicode");
 const pick = (id: string, action?: string) => host.pick("unicode", "unicode", id, action);
 
 describe("unicode", () => {
-  test("meta: a grid with the palette setting's columns and a lazy detail", () => {
+  test("meta: a grid with the palette setting's columns and a lazy detail; the five actions once, on the palette", () => {
     const l = host.loaded().find((l) => l.extension === "unicode")!;
-    expect(l.palettes).toEqual([{ name: "unicode", title: "Unicode Characters", live: false, input: false, icon: "\u{f03c9}", view: "grid", columns: 10, detail: "lazy", tier: "catalog", placeholder: "Name, entity, LaTeX or code point" }]);
+    expect(l.palettes).toMatchObject([{ name: "unicode", title: "Unicode Characters", live: false, input: false, icon: "\u{f03c9}", view: "grid", columns: 10, detail: "lazy", tier: "catalog", placeholder: "Name, entity, LaTeX or code point" }]);
+    expect(l.palettes[0].actions!.map((a) => a.id)).toEqual(["copy", "paste", "codepoint", "entity", "numeric"]);
   });
 
   test("1795 rows with unique ids, in section order; the arrow has its name, code point, entity, LaTeX and words as keywords", async () => {
@@ -27,7 +28,7 @@ describe("unicode", () => {
     const arrow = items.find((i) => i.id === "2192")!;
     expect(arrow).toMatchObject({ name: "rightwards arrow", subtitle: "U+2192", icon: "→", section: "Arrows" });
     expect(arrow.keywords).toEqual(["U+2192", "right", "arrow", "right arrow", "rarr", "srarr", "rightarrow", "\\rightarrow"]);
-    expect(arrow.actions!.map((a) => a.id)).toEqual(["copy", "paste", "codepoint", "entity", "numeric"]);
+    expect(items.every((i) => i.actions === undefined)).toBe(true);
   });
 
   test("the keyboard block has the Mac keys with their plain names; letters carry their language", async () => {

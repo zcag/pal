@@ -130,9 +130,10 @@ describe("checkPalettes", () => {
     expect(r.warnings.map((w) => w.split(":")[1].trim().split(" ")[0])).toEqual(["kind", "title", "ttl"]);
   });
 
-  test("paletteMeta: the code's flags, the manifest's title and ttl over the code's", () => {
-    expect(paletteMeta("p", { ...grid, columns: 8, placeholder: "Type", showDetail: true, icon: "★", detail: () => ({}) }, { title: "M", ttl: 3 })).toEqual({
-      name: "p", title: "M", live: false, input: false, icon: "★", view: "grid", columns: 8, placeholder: "Type", showDetail: true, filters: undefined, detail: "lazy", ttl: 3,
+  test("paletteMeta: the code's flags, the manifest's title and ttl over the code's, the shared actions once", () => {
+    const actions = [{ id: "copy", title: "Copy" }];
+    expect(paletteMeta("p", { ...grid, columns: 8, placeholder: "Type", showDetail: true, icon: "★", actions, detail: () => ({}) }, { title: "M", ttl: 3 })).toEqual({
+      name: "p", title: "M", live: false, input: false, icon: "★", view: "grid", columns: 8, placeholder: "Type", showDetail: true, filters: undefined, actions, detail: "lazy", ttl: 3,
     });
   });
 });

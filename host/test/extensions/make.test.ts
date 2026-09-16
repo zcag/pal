@@ -72,7 +72,7 @@ describe("make", () => {
     ]);
   });
 
-  test("rows: project subtitle with the ## or above-the-rule description, project name and phony as keywords, four actions", async () => {
+  test("rows: project subtitle with the ## or above-the-rule description, project name and phony as keywords; the four actions on the palette", async () => {
     const by = Object.fromEntries((await list()).map((i) => [i.id, i]));
     expect(by[id("test", pal)]).toMatchObject({ subtitle: `${pal}: Rust, app and host`, keywords: ["pal", "phony"], section: "pal" });
     expect(by[id("release", pal)]).toMatchObject({ subtitle: `${pal}: Build a release; VERSION=x.y.z`, keywords: ["pal", "phony"] });
@@ -81,7 +81,8 @@ describe("make", () => {
     expect(by[id("fail", bare)].subtitle).toBe(bare);
     expect(by[id("a", pal)].keywords).toEqual(["pal"]);
     expect(by[id("up", deep)]).toMatchObject({ subtitle: `${deep}: Start the stack`, keywords: ["theater"] });
-    expect(by[id("all", bare)].actions!.map((a) => a.id)).toEqual(["run", "copy", "open", "makefile"]);
+    expect(by[id("all", bare)].actions).toBeUndefined();
+    expect(host.loaded().find((l) => l.extension === "make")!.palettes[0].actions!.map((a) => a.id)).toEqual(["run", "copy", "open", "makefile"]);
   });
 
   test("detail: the recipe fenced, project and Makefile name, description, phony", async () => {

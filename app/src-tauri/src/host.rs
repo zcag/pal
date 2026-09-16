@@ -154,17 +154,19 @@ impl Host {
         self.alive.send_replace(true);
         let mut lines = BufReader::new(child.stdout.take().expect("stdout is piped")).lines();
         while let Ok(Some(line)) = lines.next_line().await {
-            let Ok(msg) = serde_json::from_str::<Value>(&line) else { continue };
+            let Ok(mut msg) = serde_json::from_str::<Value>(&line) else { continue };
             // With a method it is the host speaking (a request when it has an
             // id, a notification otherwise); without one, a reply to ours.
-            match (msg.get("id").and_then(Value::as_u64), msg.get("method").and_then(Value::as_str)) {
-                (Some(id), Some(method)) => self.serve(id, method.to_string(), msg["params"].clone()),
+            // The payload is moved out, not cloned: a listing is megabytes.
+            let (id, method) = (msg.get("id").and_then(Value::as_u64), msg.get("method").and_then(Value::as_str).map(str::to_string));
+            match (id, method) {
+                (Some(id), Some(method)) => self.serve(id, method, msg["params"].take()),
                 (Some(id), None) => {
                     let reply = lock(&self.pending).remove(&id);
                     if let Some(tx) = reply {
                         let _ = tx.send(match msg.get("error") {
                             Some(e) => Err(e.as_str().unwrap_or("error").to_string()),
-                            None => Ok(msg.get("result").cloned().unwrap_or(Value::Null)),
+                            None => Ok(msg["result"].take()),
                         });
                     }
                 }
@@ -172,7 +174,7 @@ impl Host {
                     if method == "host/ready" {
                         eprintln!("host\tready\t{:.1}ms\t{:.1}ms since start", t0.elapsed().as_secs_f64() * 1000.0, crate::since_start_ms());
                     }
-                    crate::index::on_notification(&self.app, self, method, &msg["params"]);
+                    crate::index::on_notification(&self.app, self, &method, &msg["params"]);
                     events::emit(&self.app, events::HOST, msg);
                 }
                 (None, None) => {}

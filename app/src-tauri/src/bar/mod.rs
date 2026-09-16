@@ -404,11 +404,11 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>) {
         let source = entry(app, k).is_some_and(|e| e.manifest.source);
         if !source {
             eprintln!("bar\t{k}\tregistered\tno render in the code; never rendered");
-        } else if config.bar.item(k).enabled {
+        } else if config.bar.draws(k) {
             eprintln!("bar\t{k}\tregistered");
             render(app, k, "load");
         } else {
-            eprintln!("bar\t{k}\tregistered\tdisabled");
+            eprintln!("bar\t{k}\tregistered\tnot drawn");
         }
     }
     write_feed(app);
@@ -633,7 +633,7 @@ fn schedule(app: &AppHandle, key: &str) {
     let next = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
         entry.timer_gen += 1;
-        if entry.fixture || !config.bar.item(key).enabled {
+        if entry.fixture || !config.bar.draws(key) {
             return None;
         }
         let every = entry.manifest.refresh.as_ref().and_then(|r| r.every);
@@ -677,7 +677,7 @@ pub fn update(app: &AppHandle, key: &str, item: BarItem) {
 /// Every enabled item that asked for `trigger` renders now.
 pub fn trigger(app: &AppHandle, trigger: &'static str) {
     let config = settings::config(app);
-    let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(k, en)| !en.fixture && en.manifest.wants(trigger) && config.bar.item(k).enabled).map(|(k, _)| k.clone()).collect());
+    let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(k, en)| !en.fixture && en.manifest.wants(trigger) && config.bar.draws(k)).map(|(k, _)| k.clone()).collect());
     for k in keys {
         render(app, &k, trigger);
     }
@@ -696,7 +696,7 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     }
     let keys: Vec<String> = Bar::with(app, |e| e.keys().cloned().collect());
     for key in &keys {
-        let (was, now) = (prev.bar.item(key).enabled, next.bar.item(key).enabled);
+        let (was, now) = (prev.bar.draws(key), next.bar.draws(key));
         if !was && now {
             render(app, key, "settings");
         } else if was && !now {

@@ -1370,8 +1370,19 @@ mod tests {
             t.drain(..5);
             t.sort();
             let r = ix.query(q, root());
-            let wire: usize = r.iter().map(|h| serde_json::to_vec(h).unwrap().len() + serde_json::to_vec(ix.get(&h.source, &h.id).unwrap()).unwrap().len()).sum();
-            eprintln!("{q:>7}: median {:?}  p95 {:?}  {} hits  {:.1} KB on the wire", t[t.len() / 2], t[t.len() * 95 / 100], r.len(), wire as f64 / 1024.0);
+            let mut per: Vec<(String, usize, usize)> = Vec::new();
+            for h in r.iter() {
+                let bytes = serde_json::to_vec(h).unwrap().len() + serde_json::to_vec(ix.get(&h.source, &h.id).unwrap()).unwrap().len();
+                let k = format!("{}/{}", h.source.extension, h.source.palette);
+                match per.iter_mut().find(|(s, _, _)| *s == k) {
+                    Some(p) => { p.1 += 1; p.2 += bytes }
+                    None => per.push((k, 1, bytes)),
+                }
+            }
+            let wire: usize = per.iter().map(|p| p.2).sum();
+            per.sort_by_key(|p| std::cmp::Reverse(p.2));
+            let top: Vec<String> = per.iter().take(4).map(|(s, n, b)| format!("{s} {n} rows {:.1} KB", *b as f64 / 1024.0)).collect();
+            eprintln!("{q:>7}: median {:?}  p95 {:?}  {} hits  {:.1} KB on the wire  ({})", t[t.len() / 2], t[t.len() * 95 / 100], r.len(), wire as f64 / 1024.0, top.join(", "));
         }
     }
 }

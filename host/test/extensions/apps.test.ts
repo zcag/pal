@@ -82,7 +82,9 @@ const pick = (id: string, action?: string) => host.pick("apps", "apps", id, acti
 describe.skipIf(!mac)("apps", () => {
   test("loads with one palette and the manifest's folders setting", async () => {
     const l = host.loaded().find((l) => l.extension === "apps")!;
-    expect(l.palettes).toEqual([{ name: "apps", title: "Applications", live: false, input: false, tier: "primary", detail: "lazy" }]);
+    expect(l.palettes).toMatchObject([{ name: "apps", title: "Applications", live: false, input: false, tier: "primary", detail: "lazy" }]);
+    // The actions every row shares ride once, on the palette; a row says its own only when running or without a bundle id.
+    expect(l.palettes[0].actions!.map((a) => a.id)).toEqual(["open", "reveal", "copy-path", "copy-id", "quit", "hide"]);
     expect(l.manifest.settings?.map((s) => s.id)).toEqual(["folders"]);
   });
 
@@ -95,7 +97,7 @@ describe.skipIf(!mac)("apps", () => {
     expect(chrome.icon).toEqual({ app: "/Applications/Google Chrome.app" });
     expect(chrome.keywords).toEqual(["com.google.Chrome", "Chrome"]); // the bundle id, then CFBundleName
     expect(chrome.subtitle).toBe("Applications");
-    expect(chrome.actions!.map((a) => a.id)).toContain("copy-id");
+    if (!chrome.accessories) expect(chrome.actions).toBeUndefined();
     for (const i of items) expect(existsSync((i.icon as { app: string }).app), i.name).toBe(true);
     expect(items.map((i) => i.name)).toEqual([...items.map((i) => i.name)].sort((a, b) => a.localeCompare(b)));
     // Names repeat across roots (GitHub runners ship several); ids are paths and must not.
@@ -121,7 +123,7 @@ describe.skipIf(!mac)("apps", () => {
     expect(fake.keywords).toEqual(["io.pal.test.fake", "Fake Display"]);
     expect(fake.actions!.map((a) => a.id)).toEqual(["open", "quit", "hide", "reveal", "copy-path", "copy-id"]);
     const chrome = (await list()).find((i) => i.name === "Google Chrome")!;
-    if (!chrome.accessories!.length) expect(chrome.actions!.map((a) => a.id)).toEqual(["open", "reveal", "copy-path", "copy-id", "quit", "hide"]);
+    if (!chrome.accessories) expect(chrome.actions).toBeUndefined();
   });
 
   test("the scan is cached: a second list is the same and asks nothing of the core", async () => {
@@ -153,8 +155,8 @@ describe.skipIf(!mac)("apps", () => {
     await child!.exited;
     expect(child!.signalCode).toBe("SIGTERM");
     const fake = (await list()).find((i) => i.id === fakeApp)!;
-    expect(fake.accessories).toEqual([]);
-    expect(fake.actions!.map((a) => a.id)).toEqual(["open", "reveal", "copy-path", "copy-id", "quit", "hide"]);
+    expect(fake.accessories).toBeUndefined();
+    expect(fake.actions).toBeUndefined();
     expect(await pick(fakeApp, "quit")).toEqual({ keep: true, toast: { title: "Pal Fake is not running" } });
     expect(await pick(fakeApp, "hide")).toEqual({ keep: true, toast: { title: "Pal Fake is not running" } });
   });

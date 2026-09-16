@@ -9,14 +9,16 @@ beforeAll(async () => { host = await Host.bundled(); });
 afterAll(() => host.kill());
 
 const list = () => host.list("icons", "icons");
+const NF_ACTIONS = [{ id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point" }, { id: "name", title: "Copy name", shortcut: "cmd+shift+n" }, { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c" }];
+const XDG_ACTIONS = [{ id: "name", title: "Copy name" }, { id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u" }];
 const pick = (id: string, action?: string) => host.pick("icons", "icons", id, action);
 
 describe("icons", () => {
-  test("meta: two grids of 10 columns; the Nerd Font one with a lazy detail", () => {
+  test("meta: two grids of 10 columns; the Nerd Font one with a lazy detail; the copy actions once, on the palette", () => {
     const l = host.loaded().find((l) => l.extension === "icons")!;
     expect(l.palettes).toEqual([
-      { name: "icons", title: "Nerd Font icons", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, detail: "lazy", tier: "catalog" },
-      { name: "freedesktop", title: "Freedesktop icon names", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, tier: "catalog" },
+      { name: "icons", title: "Nerd Font icons", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, detail: "lazy", tier: "catalog", actions: NF_ACTIONS },
+      { name: "freedesktop", title: "Freedesktop icon names", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, tier: "catalog", actions: XDG_ACTIONS },
     ]);
   });
 
@@ -30,13 +32,12 @@ describe("icons", () => {
     expect(items.filter((i) => i.section === "Powerline")).toHaveLength(9);
   });
 
-  test("a row: the glyph as the tile, the name with spaces, the code point as subtitle, the nf- name as keyword, four copy actions", async () => {
+  test("a row: the glyph as the tile, the name with spaces, the code point as subtitle, the nf- name as keyword, no actions of its own (the palette's four)", async () => {
     const items = await list();
     const account = items.find((i) => i.id === "nf-md-account_circle")!;
-    expect(account).toEqual({
-      id: "nf-md-account_circle", name: "account circle", subtitle: "U+F0009", icon: "\u{f0009}", keywords: ["nf-md-account_circle"], section: "Material Design",
-      actions: [{ id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point" }, { id: "name", title: "Copy name", shortcut: "cmd+shift+n" }, { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c" }],
-    });
+    expect(account).toEqual({ id: "nf-md-account_circle", name: "account circle", subtitle: "U+F0009", icon: "\u{f0009}", keywords: ["nf-md-account_circle"], section: "Material Design" });
+    // Eleven thousand rows: nothing rides on a row that the palette can say once (2026-09-16: the four actions were half the 3.4 MB listing).
+    expect(items.every((i) => i.actions === undefined && i.detail === undefined && i.accessories === undefined)).toBe(true);
     // A BMP glyph and an astral one both draw as one code point.
     expect(items.find((i) => i.id === "nf-fa-github")).toMatchObject({ icon: "\u{f09b}", subtitle: "U+F09B" });
     expect([...(items.find((i) => i.id === "nf-md-account")!.icon as string)]).toHaveLength(1);
@@ -73,7 +74,7 @@ describe("freedesktop", () => {
     expect(items).toHaveLength(Object.keys(XDG_ICONS).length);
     expect(items.map((i) => i.id)).toEqual(Object.keys(XDG_ICONS));
     const err = items.find((i) => i.id === "dialog-error")!;
-    expect(err).toEqual({ id: "dialog-error", name: "dialog-error", subtitle: "nf-md-alert_octagon", icon: "\u{f0029}", keywords: ["nf-md-alert_octagon"], actions: [{ id: "name", title: "Copy name" }, { id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u" }] });
+    expect(err).toEqual({ id: "dialog-error", name: "dialog-error", subtitle: "nf-md-alert_octagon", icon: "\u{f0029}", keywords: ["nf-md-alert_octagon"] });
     expect(items.every((i) => i.subtitle)).toBe(true);
   });
 

@@ -43,6 +43,8 @@ const HIDE: Action = { id: "hide", title: "Hide", shortcut: "cmd+h" };
 const REVEAL: Action = { id: "reveal", title: "Reveal in Finder", shortcut: "cmd+shift+r" };
 const COPY_PATH: Action = { id: "copy-path", title: "Copy path", shortcut: "cmd+c" };
 const COPY_ID: Action = { id: "copy-id", title: "Copy bundle id", shortcut: "cmd+shift+c" };
+/** The palette's actions: what every macOS row does unless it is running (Quit and Hide move up) or has no bundle id; a row says so only then. */
+const MAC_ACTIONS: Action[] = [OPEN, REVEAL, COPY_PATH, COPY_ID, QUIT, HIDE];
 
 /** What a pick needs beyond the path, filled by the scan. */
 type MacApp = { name: string; bundleId?: string };
@@ -94,14 +96,15 @@ async function scanMac(extra: string[]): Promise<Item[]> {
       macApps.set(path, { name, bundleId });
       const keywords = [...new Set([bundleId, ...names].filter((k): k is string => !!k && k.toLowerCase() !== name.toLowerCase()))];
       const isRunning = running.has(path);
+      const actions = isRunning || !bundleId ? [OPEN, ...(isRunning ? [QUIT, HIDE] : []), REVEAL, COPY_PATH, ...(bundleId ? [COPY_ID] : []), ...(isRunning ? [] : [QUIT, HIDE])] : undefined;
       items.push({
         id: path,
         name,
         subtitle: source,
         icon: { app: path },
         keywords,
-        accessories: isRunning ? [{ tag: "Running", color: "green" }] : [],
-        actions: [OPEN, ...(isRunning ? [QUIT, HIDE] : []), REVEAL, COPY_PATH, ...(bundleId ? [COPY_ID] : []), ...(isRunning ? [] : [QUIT, HIDE])],
+        ...(isRunning && { accessories: [{ tag: "Running", color: "green" }] }),
+        ...(actions && { actions }),
       });
     }
   }
@@ -354,6 +357,8 @@ export default {
   palettes: {
     apps: {
       title: "Applications",
+      // The Linux rows carry their own (a .desktop file's actions differ per app).
+      ...(!LINUX && { actions: MAC_ACTIONS }),
       list: (_query, ctx) => apps(ctx?.refresh),
       pick: (id, action) => (LINUX ? pickLinux(id, action) : pickMac(id, action)),
       detail: (id) => (LINUX ? detailLinux(id) : detailMac(id)),

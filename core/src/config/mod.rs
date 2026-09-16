@@ -303,6 +303,14 @@ impl Bar {
         self.item(key).target.unwrap_or(self.target)
     }
 
+    /// Whether `key` is drawn anywhere: enabled and not aimed at `off`. An
+    /// item nothing draws is not rendered or polled either (a `[bar]
+    /// target = "off"` config still asked the host for every item on its
+    /// timer, otp and timer every 10 s).
+    pub fn draws(&self, key: &str) -> bool {
+        self.item(key).enabled && self.target_of(key) != BarTarget::Off
+    }
+
     /// Whether a hover peeks `key` on `target`: the item's say, else the target's.
     pub fn open_on_hover(&self, key: &str, target: BarTarget) -> bool {
         self.item(key).open_on_hover.unwrap_or(match target {
@@ -698,6 +706,13 @@ order = 20
         assert!(c.bar.open_on_hover("other/item", BarTarget::Menubar), "the target's default for the rest");
         assert_eq!(c.bar.position_of("github/notifications"), "after:pal.github.prs");
         assert_eq!(c.bar.position_of("other/item"), "before:clock");
+        assert!(!c.bar.draws("github/notifications"), "disabled");
+        assert!(c.bar.draws("other/item"));
+        let (c, _) = parse("[bar]\ntarget = \"off\"\n[bar.items.\"a/b\"]\ntarget = \"menubar\"\n[bar.items.\"c/d\"]\ntarget = \"off\"\n").unwrap();
+        assert!(!c.bar.draws("x/y"), "off everywhere: nothing renders or polls");
+        assert!(c.bar.draws("a/b"), "an item aimed at a target still draws");
+        let (c, _) = parse("[bar]\ntarget = \"auto\"\n[bar.items.\"c/d\"]\ntarget = \"off\"\n").unwrap();
+        assert!(!c.bar.draws("c/d") && c.bar.draws("x/y"));
         assert!(parse("[bar]\ntarget = \"tray\"\n").is_err(), "an unknown target is a parse error");
         let (_, d) = parse("[bar]\nhover = 1\n[bar.items.\"a/b\"]\nenable = true\n").unwrap();
         assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["bar.hover", "bar.items.a/b.enable"]);

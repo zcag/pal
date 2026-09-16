@@ -117,12 +117,14 @@ const grid = () => host.list("colors", "colors");
 const convert = (q?: string) => host.list("colors", "convert", q);
 
 describe("colors grid", () => {
-  test("meta: a swatch grid of 8 columns with a lazy detail, and the converter as an input palette", () => {
+  test("meta: a swatch grid of 8 columns with a lazy detail and the four copy actions, and the converter as an input palette", () => {
     const l = host.loaded().find((l) => l.extension === "colors")!;
-    expect(l.palettes).toEqual([
+    expect(l.palettes).toMatchObject([
       { name: "colors", title: "Colors", live: false, input: false, icon: "#4F46D6", view: "grid", columns: 8, detail: "lazy", tier: "catalog" },
       { name: "convert", title: "Convert Colour", live: false, input: true, icon: "#4F46D6", placeholder: "#ff8800, rgb(255 136 0), hsl(30 100% 50%), a name" },
     ]);
+    expect(l.palettes[0].actions!.map((a) => a.id)).toEqual(["hex", "rgb", "hsl", "name"]);
+    expect(l.palettes[1].actions).toBeUndefined();
   });
 
   test("700 rows in four sections; a tile is an SVG swatch of its hex, the hex and the token are keywords", async () => {
@@ -135,7 +137,7 @@ describe("colors grid", () => {
     expect(items.filter((i) => i.section === "Material")).toHaveLength(254);
     const slate = items.find((i) => i.id === "tw/slate-500")!;
     expect(slate).toMatchObject({ name: "slate 500", subtitle: "#64748b", icon: { image: swatch("#64748b") }, keywords: ["#64748b", "slate-500", "tailwind"], section: "Tailwind" });
-    expect(slate.actions!.map((a) => a.id)).toEqual(["hex", "rgb", "hsl", "name"]);
+    expect(slate.actions).toBeUndefined();
     expect(items.find((i) => i.id === "pal/light/accent")).toMatchObject({ name: "accent (light)", subtitle: "#4f46d6", keywords: ["#4f46d6", "accent", "pal tokens"] });
     expect(items.find((i) => i.id === "pal/dark/tag-blue")).toMatchObject({ subtitle: "#7fb0ff" });
     expect(items.find((i) => i.id === "md/red-a200")).toMatchObject({ name: "red a200", subtitle: "#ff5252" });

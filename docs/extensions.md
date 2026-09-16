@@ -207,7 +207,10 @@ is left to the load-time check.
   `scripts` defaults its tables to an hour ([Scripts](scripts.md)).
 - An `Item` has `id` (stable), `name`, `subtitle`, `icon`, `keywords`,
   `url`, `accessories`, `detail`, `actions` (first is Enter, second
-  cmd+Enter; an empty list is an inert hint row).
+  cmd+Enter; an empty list is an inert hint row). Rows that all do the
+  same things declare `actions` once on the palette instead: a row without
+  its own gets those (the icons catalog's eleven thousand rows carried
+  four copies of `Copy glyph` each, half the listing on the wire).
 
 Settings reach the code resolved: the manifest's defaults with the file's
 values on top, kept current on every config change (an extension whose

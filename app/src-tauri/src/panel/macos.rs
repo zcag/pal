@@ -210,6 +210,7 @@ mod bar {
             }
         })
         panel_event!(BarPanelEvents {
+            window_did_become_key(notification: &NSNotification) -> (),
             window_did_resign_key(notification: &NSNotification) -> ()
         })
     }
@@ -224,8 +225,15 @@ mod bar {
         panel.set_collection_behavior(CollectionBehavior::new().can_join_all_spaces().full_screen_auxiliary().ignores_cycle().into());
         panel.set_has_shadow(true);
         panel.set_corner_radius(12.0);
+        // Key only when `show(engaged)` says so (`makeKeyWindow`): AppKit
+        // otherwise hands the frontmost key-capable window the keyboard when
+        // the app activates at launch, and this panel, ordered front last,
+        // invisible, took a user's keystrokes for six seconds on hornet
+        // (2026-09-16, `key->paint "ok sent" (0)` in the popover's page).
+        panel.set_becomes_key_only_if_needed(true);
         let app = window.app_handle().clone();
         let events = BarPanelEvents::new();
+        events.window_did_become_key(move |_| eprintln!("bar\tpopover\tkey\t{:.1}ms since start", crate::since_start_ms()));
         let h = app.clone();
         events.window_did_resign_key(move |_| crate::bar::popover::on_resign(&h));
         let h = app.clone();
