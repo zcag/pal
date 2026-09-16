@@ -11,7 +11,7 @@ import {
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Detail as DetailSpec, Item, Match } from "./ui/types";
-import { PALETTES, iconOf, sourceKey, type Ctx, type Effect, type SourceInfo } from "./items";
+import { PALETTES, WELCOME, iconOf, sourceKey, type Ctx, type Effect, type SourceInfo } from "./items";
 import { paletteTitle } from "./fixtures";
 
 export const LIMIT = 200;
@@ -20,7 +20,7 @@ const LIST_ID = "results";
 /** Fixture palettes (the gallery) best browsed as tiles; a real palette declares `view` itself. */
 const gridFixtures = new Set(["emoji", "iconnerd", "chars", "colors"]);
 /** The shell's own actions, kept apart from an item's by the prefix. */
-const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh";
+const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh", TIPS = "pal:welcome";
 const OPEN: Action = { id: "open", title: "Open" };
 
 /**
@@ -53,6 +53,8 @@ export type LauncherProps = {
   onSettings?: () => void;
   /** Lists `scope` again now (everything at the root), past any ttl; the action is only offered when given. */
   onRefresh?: (scope?: SourceInfo) => void;
+  /** Brings the first-run tips (the `pal/welcome` source) back; offered at the root while they are hidden. */
+  onWelcome?: () => void;
   mark?: (name: string, t: number) => void;
 };
 
@@ -101,7 +103,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, onSettings, onRefresh, mark } = props;
+  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, mark } = props;
   const local = useLocalSearch(props.items);
   const sources = props.sources ?? local.sources;
   const search = props.search ?? local.search;
@@ -125,8 +127,10 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const titleOf = (key: string) => byKey.get(key)?.title ?? key;
   const scopeKey = view.kind === "palette" ? view.palette : view.kind === "root" && filter !== "all" ? filter : null;
   const scope = scopeKey ? byKey.get(scopeKey) : undefined;
-  // The palette rows are not items to count, and an input palette has none to filter by.
-  const filterable = sources.filter((s) => sourceKey(s) !== PALETTES && !s.input);
+  // The palette and welcome rows are not items to count, and an input palette has none to filter by.
+  const filterable = sources.filter((s) => { const k = sourceKey(s); return k !== PALETTES && k !== WELCOME && !s.input; });
+  // Loaded extensions (fixture rows carry a bare palette name, which stands in): the empty state hints at installing more when few.
+  const extensions = new Set(filterable.map((s) => s.extension || s.palette)).size;
   // A listing is pending for what is showing: restored rows awaiting the host, or a refresh running.
   const updating = scope ? scope.stale : filterable.some((s) => s.stale);
   const loading = sources.length === 0 || updating;
@@ -204,19 +208,25 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const open = useCallback((palette: string) => { reset(); nav.push({ kind: "palette", palette }); }, [reset, nav.push]);
   useImperativeHandle(ref, () => ({ reset, open }), [reset, open]);
 
-  // The item's own actions first (the default "Open" when it declares none), then the shell's.
+  // The item's own actions first (the default "Open" when it declares none;
+  // a welcome tip declares `[]`, so Enter on it shows its detail), then the
+  // shell's. With no item (nothing matched) the shell's still stand, so cmd+k
+  // has somewhere to go.
   const actions = useMemo<Action[]>(() => {
-    if (!current) return [];
-    const isPalette = current.palette === PALETTES;
-    const a: Action[] = current.actions ? [...current.actions] : [isPalette ? { ...OPEN, title: `Open ${current.name}` } : OPEN];
-    if (view.kind === "root" && !isPalette) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
-    a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
+    const a: Action[] = [];
+    if (current) {
+      const isPalette = current.palette === PALETTES, isTip = current.palette === WELCOME;
+      a.push(...(current.actions ?? [isPalette ? { ...OPEN, title: `Open ${current.name}` } : OPEN]));
+      if (view.kind === "root" && !isPalette && !isTip) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
+      a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
+    }
     // An indexed level only: an input palette or a drill-in lists per keystroke anyway.
     if (onRefresh && (view.kind === "root" || (view.kind === "palette" && !scope?.input && args === undefined)))
       a.push({ id: REFRESH, title: view.kind === "root" ? "Refresh everything" : `Refresh ${titleOf(view.palette)}`, icon: { kind: "glyph", value: "↻" }, shortcut: "cmd+r", section: "pal" });
     if (onSettings && view.kind === "root") a.push({ id: SETTINGS, title: "Open Settings", icon: { kind: "glyph", value: "⚙" }, shortcut: "cmd+,", section: "pal" });
+    if (onWelcome && view.kind === "root" && !byKey.has(WELCOME)) a.push({ id: TIPS, title: "Show tips again", icon: { kind: "glyph", value: "?" }, section: "pal" });
     return a;
-  }, [current, view, showDetail, byKey, onSettings, onRefresh, scope, args]);
+  }, [current, view, showDetail, byKey, onSettings, onRefresh, onWelcome, scope, args]);
 
   // The envelope's copy/open/hide are the caller's; the toast shows here, and a push/show opens its level.
   const pickItem = (item: Item, action?: string) =>
@@ -232,17 +242,18 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   /** `confirmed`: the user already said yes to `a.confirm`. */
   const run = (a: Action, confirmed = false) => {
-    if (!current) return;
     setActionsOpen(false);
     if (a.confirm && !confirmed) return setConfirming(a);
     setConfirming(null);
     focus();
     switch (a.id) {
-      case BROWSE: push({ kind: "palette", palette: current.palette! }); break;
-      case DETAIL: setShowDetail((s) => !s); break;
       case SETTINGS: onSettings?.(); break;
       case REFRESH: onRefresh?.(view.kind === "palette" ? scope : undefined); break;
+      case TIPS: onWelcome?.(); break;
+      case DETAIL: setShowDetail((s) => !s); break;
+      case BROWSE: if (current) push({ kind: "palette", palette: current.palette! }); break;
       default:
+        if (!current) return;
         // A palette row drills in; the pick only records the choice.
         if (current.palette === PALETTES) push({ kind: "palette", palette: current.id });
         pickItem(current, current.actions ? a.id : undefined);
@@ -277,8 +288,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         else cur.move((to === "pageDown" ? 1 : -1) * (list.current?.pageSize() ?? 10));
       },
       jumpTo: ({ index }) => (index < hits.length ? cur.set(index) : false),
-      primary: () => (view.kind === "show" ? pop() : actions[0] ? run(actions[0]) : false),
-      secondary: () => (actions[1] ? run(actions[1]) : false),
+      // Enter and cmd+enter are a row's: with nothing under the cursor the shell's actions wait in the panel.
+      primary: () => (view.kind === "show" ? pop() : current && actions[0] ? run(actions[0]) : false),
+      secondary: () => (current && actions[1] ? run(actions[1]) : false),
       actions: () => (actions.length ? setActionsOpen(true) : false),
       escape: () => (query ? setQuery("") : nav.depth > 1 ? pop() : onHide()),
       back: () => (query || nav.depth === 1 ? false : pop()),
@@ -305,7 +317,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const body = view.kind === "show"
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
     : !hits.length
-      ? <Empty icon={{ kind: "glyph", value: "⌕" }} title={query ? "No results" : loading ? "Loading…" : "Nothing here"} hint={query && !scope?.input ? "Try a different search" : undefined} />
+      ? <Empty
+          icon={{ kind: "glyph", value: "⌕" }}
+          title={query ? `No results for “${query}”` : loading ? "Loading…" : "Nothing here"}
+          hint={query && !scope?.input ? "Try a different word, or ⌘K for actions" : undefined}
+          note={query && view.kind === "root" && sources.length > 0 && extensions < 2 ? `${extensions === 0 ? "No extensions are" : "Only one extension is"} loaded, so there is little to find. Settings (⌘,) › Extensions lists them; the Welcome tips link the guide to adding more.` : undefined}
+        />
       : isGrid
         ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} columns={columns} />
         : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} />;
@@ -319,9 +336,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
           icon={isShow ? undefined : current?.icon}
           title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : current?.name}
           note={updating && !isShow ? "updating…" : undefined}
-          primary={isShow ? { title: "Back" } : actions[0] && { title: actions[0].title }}
+          primary={isShow ? { title: "Back" } : current && actions[0] ? { title: actions[0].title } : undefined}
           actions={actions.length > 0}
-          onPrimary={() => (isShow ? pop() : actions[0] && run(actions[0]))}
+          onPrimary={() => (isShow ? pop() : current && actions[0] && run(actions[0]))}
           onActions={() => setActionsOpen(true)}
         />
       }

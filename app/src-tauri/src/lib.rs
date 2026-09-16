@@ -18,6 +18,7 @@ mod settings;
 mod system;
 mod tray;
 mod updater;
+mod welcome;
 mod windows;
 #[cfg_attr(target_os = "macos", path = "panel/macos.rs")]
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
@@ -201,6 +202,7 @@ pub fn run() {
             settings::settings_open,
             settings::settings_close,
             updater::check_updates,
+            welcome::welcome_reset,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.

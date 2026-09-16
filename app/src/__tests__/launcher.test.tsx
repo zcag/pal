@@ -26,3 +26,13 @@ describe("Launcher staleness", () => {
     expect(html).not.toContain("data-loading");
   });
 });
+
+describe("Launcher welcome source", () => {
+  it("keeps the tips out of the scope dropdown and the count", () => {
+    const html = markup([source("pal", "welcome", false), source("pal", "palettes", false), source("apps", "apps", false)]);
+    expect(html).toContain('<option value="apps/apps">apps</option>');
+    expect(html).not.toContain("pal/welcome");
+    expect(html).not.toContain("pal/palettes");
+    expect(html).toContain("0 of 3");
+  });
+});

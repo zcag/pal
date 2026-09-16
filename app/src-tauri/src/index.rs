@@ -18,6 +18,10 @@
 //! until the palette lists again. An item's lazy detail (`detail`) is one
 //! host round trip, cached there.
 //!
+//! Two synthetic sources besides `pal/palettes`: `pal/welcome`
+//! (`crate::welcome`) leads the empty query on a fresh profile and is left
+//! out of every other one; its picks are the shell's and never remembered.
+//!
 //! Every default listing also goes to disk (`crate::cache`), and at startup,
 //! before the host is spawned, `restore_cache` puts every cached palette
 //! back: items, meta and palette row, flagged `stale`. When the host then
@@ -42,7 +46,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::host::Host;
-use crate::{cache, effects, hotkey, settings};
+use crate::{cache, effects, hotkey, settings, welcome};
 
 const DEFAULT_LIMIT: usize = 200;
 /// A live palette slower than this on show keeps its old rows for this show.
@@ -167,6 +171,16 @@ pub fn palettes_source() -> Source {
     Source::new("pal", "palettes")
 }
 
+/// The meta of a synthetic source (`pal/*`), which no extension reported.
+fn synthetic_meta(source: &Source) -> Option<PaletteMeta> {
+    let title = match source {
+        s if *s == palettes_source() => "Palettes",
+        s if *s == welcome::source() => "Welcome",
+        _ => return None,
+    };
+    Some(PaletteMeta { name: source.palette.clone(), title: title.into(), ..Default::default() })
+}
+
 fn palette_row(r: &Registered, config: &Config) -> Item {
     let m = &r.meta;
     let mut keywords = vec![m.name.clone()];
@@ -199,6 +213,7 @@ pub fn install(app: &AppHandle, data: &Path) {
     app.manage(Mutex::new(frecency));
     app.manage(Palettes::default());
     app.manage(cache::Saver::new(data.join(cache::DIR_NAME)));
+    welcome::install(app, data);
 }
 
 /// The index cache directory of this run.
@@ -209,8 +224,9 @@ fn cache_dir(app: &AppHandle) -> PathBuf {
 /// Put every cached palette back before the host is spawned: registry
 /// entry (enabled per the config), items in the index flagged stale, the
 /// palette rows, the palettes' hotkeys. Needs the settings installed. The
-/// order is the empty query's order until frecency has a say: the palette
-/// rows first, then apps, then the rest by name.
+/// order is the empty query's order until frecency has a say: the welcome
+/// rows (a fresh profile), the palette rows, then apps, then the rest by
+/// name.
 pub fn restore_cache(app: &AppHandle) {
     let t0 = Instant::now();
     let mut cached = cache::read_all(&cache_dir(app));
@@ -218,6 +234,7 @@ pub fn restore_cache(app: &AppHandle) {
     cached.sort_by_key(|(s, _)| rank(s));
     let config = settings::config(app);
     let (mut sources, mut items) = (0, 0);
+    welcome::sync(app);
     with_index(app, |ix| ix.replace(palettes_source(), Vec::new()));
     Palettes::with(app, |reg| {
         for (source, e) in cached {
@@ -242,7 +259,7 @@ pub fn restore_cache(app: &AppHandle) {
 
 /// Runs `f` with the index locked; the registry is locked the same way
 /// through `Palettes::with`. Neither is held across an await.
-fn with_index<T>(app: &AppHandle, f: impl FnOnce(&mut Index) -> T) -> T {
+pub(crate) fn with_index<T>(app: &AppHandle, f: impl FnOnce(&mut Index) -> T) -> T {
     let st = app.state::<Mutex<Index>>();
     let mut ix = st.lock().unwrap();
     f(&mut ix)
@@ -449,6 +466,8 @@ async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &Pa
 /// show never waits on it; the paint has the old rows, the next keystroke
 /// (or the `pal://index` re-query) the new ones.
 pub fn on_shown(app: &AppHandle) {
+    // The welcome rows follow the permission and the marker; a no-op once hidden.
+    welcome::sync(app);
     let live: Vec<(Source, PaletteMeta)> = Palettes::with(app, |reg| {
         reg.iter().filter(|r| r.enabled && r.meta.relists_on_show()).map(|r| (r.source.clone(), r.meta.clone())).collect()
     });
@@ -569,6 +588,10 @@ pub struct SourceView {
 
 /// Off the main thread: the scan is well under a millisecond, but a
 /// `replace` holding the lock must never stall a paint.
+///
+/// The welcome rows are for the unscoped empty query only, where they lead
+/// whatever frecency says; a query with text is answered from every other
+/// source.
 #[tauri::command(async)]
 pub fn query(
     q: String,
@@ -578,8 +601,14 @@ pub fn query(
     frecency: State<'_, Mutex<Frecency>>,
 ) -> Vec<HitView> {
     let fre = frecency.lock().unwrap();
-    let boost = fre.boost(&q, SystemTime::now());
+    let fre_boost = fre.boost(&q, SystemTime::now());
+    let welcome = welcome::source();
+    let boost = |s: &Source, id: &str| if *s == welcome { welcome::BOOST } else { fre_boost(s, id) };
     let mut ix = index.lock().unwrap();
+    let sources = match sources {
+        None if !q.is_empty() => Some(ix.sources().into_iter().map(|s| s.source).filter(|s| *s != welcome).collect()),
+        s => s,
+    };
     let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost) };
     let hits: Vec<HitView> = ix
         .query(&q, opts)
@@ -594,14 +623,13 @@ pub fn query(
 #[tauri::command(async)]
 pub fn sources(index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) -> Vec<SourceView> {
     let reg = palettes.0.lock().unwrap();
-    let palettes_meta = PaletteMeta { name: "palettes".into(), title: "Palettes".into(), ..Default::default() };
     index
         .lock()
         .unwrap()
         .sources()
         .into_iter()
         .map(|s| SourceView {
-            meta: reg.iter().find(|r| r.source == s.source).map_or_else(|| palettes_meta.clone(), |r| r.meta.clone()),
+            meta: reg.iter().find(|r| r.source == s.source).map(|r| r.meta.clone()).or_else(|| synthetic_meta(&s.source)).unwrap_or_default(),
             extension: s.source.extension,
             palette: s.source.palette,
             count: s.len,
@@ -637,7 +665,8 @@ pub async fn index_refresh(app: AppHandle, source: Option<Source>, host: State<'
 /// Runs the item through the host and its effects here (`copy`, `open`,
 /// `paste`), then remembers the pick and the query that led to it. Returns
 /// the host's envelope, as `effects::apply` left it. A palette row is the
-/// UI's to push: only remembered.
+/// UI's to push: only remembered. A welcome row is the shell's
+/// (`welcome::pick`) and never remembered.
 ///
 /// `args` are the level's (`Effect.push`), handed back so the extension
 /// knows which listing the id came from. A `keep` (stay open, list again)
@@ -653,6 +682,9 @@ pub async fn pick(
     args: Option<Value>,
     host: State<'_, Arc<Host>>,
 ) -> Result<Value, String> {
+    if source == welcome::source() {
+        return welcome::pick(&app, &id).await;
+    }
     let r = if source == palettes_source() {
         json!({ "keep": true })
     } else {

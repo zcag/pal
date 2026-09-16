@@ -23,7 +23,12 @@ fn accessibility_blocked(what: &str) -> Option<Value> {
     if !ASKED.swap(true, Ordering::Relaxed) {
         pal_core::ax::request();
     }
-    Some(json!({ "toast": { "title": format!("{what} needs Accessibility"), "message": "Grant pal in System Settings > Privacy & Security > Accessibility", "style": "failure" } }))
+    Some(accessibility_toast(what))
+}
+
+/// The toast for a `what` that needs Accessibility, as an envelope.
+pub fn accessibility_toast(what: &str) -> Value {
+    json!({ "toast": { "title": format!("{what} needs Accessibility"), "message": "Grant pal in System Settings > Privacy & Security > Accessibility", "style": "failure" } })
 }
 
 /// Hide the panel and wait for its orderOut to hand key focus back to the

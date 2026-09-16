@@ -10,7 +10,7 @@ import {
 import type { FormValues, Item } from "../ui/types";
 import { Launcher } from "../Launcher";
 import { toItem, type Raw } from "../fixtures";
-import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample } from "./data";
+import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
   SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
   extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
@@ -199,8 +199,17 @@ export default function Gallery() {
             </Panel>
           </Pair>
         </State>
-        <State label="Empty results">
-          <Pair panel><Panel search={<Search value="zzzz" onChange={noop} />} footer={<Footer title="0 of 14719" />}><Empty icon={{ kind: "glyph", value: "⌕" }} title="No results" hint="Try a different search" /></Panel></Pair>
+        <State label="Welcome: a fresh profile's empty query leads with the tips (Enter on the first shows its detail, the last hides them)">
+          <Pair panel><Panel search={<Search value="" onChange={noop} />} footer={<Footer icon={welcomeRows[0].icon} title={welcomeRows[0].name} primary={{ title: "Show details" }} actions />}><DemoList items={[...welcomeRows.map((i) => ({ ...i, section: "Welcome" })), ...byPalette("apps", 4).map((i) => ({ ...i, section: "Apps" }))]} /></Panel></Pair>
+        </State>
+        <State label="Welcome, first row's detail open: the panel explained in the pane">
+          <Pair panel><Panel search={<Search value="" onChange={noop} />} aside={<Detail detail={welcomeRows[0].detail!} />} footer={<Footer icon={welcomeRows[0].icon} title={welcomeRows[0].name} primary={{ title: "Hide details" }} actions />}><DemoList items={[...welcomeRows.map((i) => ({ ...i, section: "Welcome" })), ...byPalette("apps", 4).map((i) => ({ ...i, section: "Apps" }))]} /></Panel></Pair>
+        </State>
+        <State label="Empty results: what was searched and what to try; the shell's actions stay under cmd+k">
+          <Pair panel><Panel search={<Search value="zzzz" onChange={noop} />} footer={<Footer title="0 of 14719" actions />}><Empty icon={{ kind: "glyph", value: "⌕" }} title="No results for “zzzz”" hint="Try a different word, or ⌘K for actions" /></Panel></Pair>
+        </State>
+        <State label="Empty results with one extension loaded: a note about the setup under the hint">
+          <Pair panel><Panel search={<Search value="zzzz" onChange={noop} />} footer={<Footer title="0 of 212" actions />}><Empty icon={{ kind: "glyph", value: "⌕" }} title="No results for “zzzz”" hint="Try a different word, or ⌘K for actions" note="Only one extension is loaded, so there is little to find. Settings (⌘,) › Extensions lists them; the Welcome tips link the guide to adding more." /></Panel></Pair>
         </State>
         <State label="Action panel open">
           <Pair panel>
@@ -303,7 +312,8 @@ export default function Gallery() {
 
       <Section id="empty" title="Empty">
         {[
-          ["Icon, title, hint", <Empty icon={{ kind: "glyph", value: "⌕" }} title="No results" hint="Try a different search" />],
+          ["Icon, title, hint", <Empty icon={{ kind: "glyph", value: "⌕" }} title="No results for “zzq”" hint="Try a different word, or ⌘K for actions" />],
+          ["With a note under the hint", <Empty icon={{ kind: "glyph", value: "⌕" }} title="No results for “zzq”" hint="Try a different word, or ⌘K for actions" note="No extensions are loaded, so there is little to find." />],
           ["Title only", <Empty title="Nothing here yet" />],
           ["Emoji", <Empty icon={{ kind: "emoji", value: "📭" }} title="Inbox zero" hint="Nothing is waiting on you" />],
         ].map(([label, el]) => <State key={label as string} label={label as string}><Pair surface>{el}</Pair></State>)}

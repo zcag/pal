@@ -388,6 +388,7 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--pal-space-2, 8px); padding: var(--pal-space-6, 24px); text-align: center; }
 .pal-empty__title { font-size: var(--pal-text-lg, 15px); color: var(--pal-fg-muted, #a3a4ae); }
 .pal-empty__hint { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-sm, 12px); }
+.pal-empty__note { margin-top: var(--pal-space-2, 8px); max-width: 44ch; line-height: var(--pal-leading-prose, 1.55); }
 
 /* Confirm */
 .pal-confirm {

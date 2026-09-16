@@ -77,6 +77,8 @@ export const sourceKey = (s: Source) => (s.extension ? `${s.extension}/${s.palet
 
 /** The synthetic source whose rows are the palettes (`palettes_source` in index.rs); a row's id is the palette's `sourceKey`. */
 export const PALETTES = "pal/palettes";
+/** The synthetic source of the first-run tips (`welcome::source` in welcome.rs): leads the empty query until hidden. */
+export const WELCOME = "pal/welcome";
 
 const pictographic = /\p{Extended_Pictographic}/u;
 
