@@ -6,8 +6,8 @@
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionPanel, Confirm, Detail, Empty, Footer, Grid, List, Panel, Search, Toast,
-  groupBySection, domId, useCursor, useKeys, useNavStack, type Hit, type ListHandle, type ToastSpec,
+  ActionPanel, Confirm, Detail, Empty, Footer, Grid, List, Panel, Presence, Search, Toast,
+  groupBySection, domId, graphemePositions, useCursor, useKeys, useNavStack, type Hit, type ListHandle, type ToastSpec,
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Item, Match } from "./ui/types";
@@ -47,7 +47,7 @@ export type LauncherProps = {
 
 const haystack = (i: Item) => [i.name, i.subtitle, ...(i.keywords ?? [])].filter(Boolean).join(" ");
 
-/** fzf positions index the haystack; map them back onto name and subtitle. */
+/** fzf positions are UTF-16 offsets into the haystack; map them back onto name and subtitle as grapheme positions, the unit the core reports. */
 function splitMatch(item: Item, positions: Set<number>): Match {
   const name = new Set<number>(), subtitle = new Set<number>();
   const subStart = item.name.length + 1;
@@ -55,7 +55,7 @@ function splitMatch(item: Item, positions: Set<number>): Match {
     if (p < item.name.length) name.add(p);
     else if (item.subtitle && p >= subStart && p < subStart + item.subtitle.length) subtitle.add(p - subStart);
   }
-  return { name, subtitle };
+  return { name: graphemePositions(item.name, name), subtitle: graphemePositions(item.subtitle ?? "", subtitle) };
 }
 
 /** In-webview fzf over `items`, shaped like the core's `sources`/`search` pair. Fixture rows carry a bare palette name, so that is the key. */
@@ -199,10 +199,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       actions: () => (actions.length ? setActionsOpen(true) : false),
       escape: () => (query ? setQuery("") : nav.depth > 1 ? pop() : onHide()),
       back: () => (query || nav.depth === 1 ? false : pop()),
-      filter: filterSpec && (({ dir }) => {
+      // Without a filter, Tab is still swallowed: it would otherwise walk focus out of the input.
+      filter: filterSpec ? ({ dir }) => {
         const o = filterSpec.options, i = o.findIndex((x) => x.id === filterSpec.value);
         filterSpec.onChange(o[(i + dir + o.length) % o.length].id);
-      }),
+      } : () => {},
       detail: () => setShowDetail((s) => !s),
       shortcut: ({ combo }) => {
         if (combo === "cmd+," && onSettings) return onSettings();
@@ -224,7 +225,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   return (
     <Panel
-      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} loading={loading} placeholder={placeholder} />}
+      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} />}
       aside={showDetail && (current?.detail ? <Detail detail={current.detail} /> : <Empty title="No details" />)}
       footer={
         <Footer
@@ -238,9 +239,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       }
       overlay={
         <>
-          {toast && <Toast toast={toast} />}
-          {actionsOpen && <ActionPanel actions={actions} onRun={run} onClose={closeActions} title={current?.name} />}
-          {confirming && <Confirm title={confirming.confirm!} action={confirming.title} destructive={confirming.style === "destructive"} onConfirm={() => run(confirming, true)} onCancel={closeConfirm} />}
+          <Presence show={!!toast} dur="base">{toast && <Toast toast={toast} />}</Presence>
+          <Presence show={actionsOpen}><ActionPanel actions={actions} onRun={run} onClose={closeActions} title={current?.name} /></Presence>
+          <Presence show={!!confirming}>{confirming && <Confirm title={confirming.confirm!} action={confirming.title} destructive={confirming.style === "destructive"} onConfirm={() => run(confirming, true)} onCancel={closeConfirm} />}</Presence>
         </>
       }
     >

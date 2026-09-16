@@ -429,11 +429,17 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   animation: pal-spin 0.8s linear infinite;
 }
 @keyframes pal-spin { to { transform: rotate(360deg); } }
-/* Entrances from the brief's motion table. Exits need the element kept mounted while it fades; the shell unmounts on close, so those wait on it. */
+/* Entrances from the brief's motion table. */
 @keyframes pal-fade { from { opacity: 0; } }
 @keyframes pal-rise { from { opacity: 0; transform: translateY(6px); } }
 @keyframes pal-pop { from { opacity: 0; transform: scale(0.98); } }
 @keyframes pal-pop-centred { from { opacity: 0; transform: translate(-50%, -50%) scale(0.98); } }
+/* Exits, same table: Presence (ui/presence.tsx) keeps the element mounted under data-exiting until the transition ends. Small things leave fast and accelerate away; the toast drops back the 6px it rose; the pane fades as the list widens. */
+[data-exiting] > .pal-scrim { animation: none; opacity: 0; transition: opacity var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in); }
+[data-exiting] > .pal-actions { animation: none; opacity: 0; transform: scale(0.98); transition: opacity var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in); }
+[data-exiting] > .pal-confirm { animation: none; opacity: 0; transform: translate(-50%, -50%) scale(0.98); transition: opacity var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in); }
+[data-exiting] > .pal-toast { animation: none; opacity: 0; transform: translateY(6px); transition: opacity var(--pal-dur-base, 120ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-base, 120ms) var(--pal-ease-in, ease-in); }
+.pal-panel__aside[data-exiting] { animation: none; opacity: 0; overflow: hidden; border-left-color: transparent; transition: opacity var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
 
 /* HUD */
 .pal-hud {
