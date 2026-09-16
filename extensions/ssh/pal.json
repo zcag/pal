@@ -1,0 +1,24 @@
+{
+  "name": "ssh",
+  "title": "SSH Hosts",
+  "description": "The hosts in ~/.ssh/config (and its Include files). Enter opens a terminal running ssh.",
+  "version": "0.1.0",
+  "icon": "󰒋",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "path", "id": "config", "label": "Config file", "description": "The ssh config to read; Include lines in it are followed one level.", "pick": "file", "default": "~/.ssh/config" },
+    { "kind": "boolean", "id": "include_known_hosts", "label": "Known hosts", "text": "List the names in ~/.ssh/known_hosts too, in a second section", "description": "Only hosts you have connected to by name; hashed and numeric entries are skipped.", "default": false },
+    { "kind": "select", "id": "terminal", "label": "Terminal (macOS)", "description": "Which terminal Connect opens. Auto picks the first installed of kitty, Ghostty, Alacritty, iTerm2, Terminal. On Linux $TERMINAL, else kitty, foot, alacritty, xterm.", "options": [
+      { "id": "auto", "title": "Auto" },
+      { "id": "kitty", "title": "kitty" },
+      { "id": "Terminal", "title": "Terminal" },
+      { "id": "iTerm2", "title": "iTerm2" },
+      { "id": "Ghostty", "title": "Ghostty" },
+      { "id": "Alacritty", "title": "Alacritty" }
+    ], "default": "auto" }
+  ],
+  "palettes": {
+    "ssh": { "description": "Every Host in your ssh config, and what it connects to." }
+  }
+}

@@ -19,6 +19,9 @@ is neither is indexed: listed once, searched from the index, refreshed with
 | Calculator | `calc` | input | copies the result |
 | Clipboard History | `clipboard-history` | live, input | pastes into the app in front |
 | Emoji | `emoji` | indexed, grid | copies the emoji |
+| Files | `files` | input | opens the file |
+| Processes | `processes` | live, input | kills the process (after a confirm) |
+| SSH Hosts | `ssh` | indexed | opens a terminal running `ssh` |
 | System | `system` | live, input | runs the command |
 | Windows | `windows` | live | focuses the window |
 | Scripts and data files | `scripts-<name>` | as configured | as configured |
@@ -192,6 +195,135 @@ Settings, per palette, `[palettes.emoji.settings]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `columns` | number, 4 to 16 | `10` | Tiles per row in the grid. Read once when the extension loads: after a change, Settings > Restart extension host. |
+
+## Processes (`processes`)
+
+What is running, from `ps`, listed again on every keystroke because the
+set changes constantly (an input palette; the root only has its own row).
+The query matches the name or a pid prefix. The row is the executable's
+name, its full path the subtitle on macOS (Linux `ps` gives only the
+name); the pid and the resident memory sit on the right, and a process
+above 10% CPU carries a `NN% cpu` tag (orange, red from 50%). Rows are
+sorted by CPU, then memory. On macOS a process that lives in a `.app`
+bundle gets that app's icon.
+
+The filter dropdown scopes the list:
+
+| filter | rows |
+| --- | --- |
+| All | everything (the default) |
+| Mine | your own user's processes |
+| Top CPU | the 25 busiest |
+| Top memory | the 25 largest, by resident memory |
+
+Actions:
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Kill | `Enter` | `SIGTERM`, after a confirm; the palette stays open and lists again |
+| Force kill | `⌘⇧K` | `SIGKILL`, after a confirm |
+| Copy PID | `⌘C` | copies the pid |
+
+A kill that fails (a process of another user, a pid that is gone) keeps
+the panel open with a toast carrying the OS's message.
+
+Settings, `[extensions.processes]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `include_system` | bool | `false` | List system processes too: pids below 100, and kernel threads (children of `kthreadd`) on Linux. |
+
+## SSH Hosts (`ssh`)
+
+Every `Host` in `~/.ssh/config` that is a name rather than a pattern
+(`*`, `?` and `!` entries are skipped, a `Host a b` line gives two rows),
+in file order. `Include` lines are followed one level: `~`, absolute and
+globbed operands work, a relative one is under `~/.ssh`. A `Match` block
+ends the current host. `HostName` is the subtitle (and a keyword, so the
+real name finds the alias), `User` an accessory and a keyword, `Port` a
+tag.
+
+With `include_known_hosts` on, the names in `~/.ssh/known_hosts` (next to
+the config) come after, in a second section: `[host]:port` unwrapped,
+comma lists split, hashed lines, bare IPs and hosts already in the config
+skipped.
+
+Actions:
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Connect | `Enter` | opens a terminal window running `ssh <host>` |
+| Copy host | `⌘C` | copies the host name |
+| Copy ssh command | `⌘⇧C` | copies `ssh <host>` |
+
+Which terminal Connect opens:
+
+- **macOS**: the `terminal` setting. `auto` takes the first installed of
+  kitty, Ghostty, Alacritty, iTerm2, Terminal (Terminal is always there,
+  so it is the fallback). kitty gets `kitty -1 ssh host` (a new OS window
+  in the running instance when that was started single-instance), Ghostty
+  and Alacritty `open -na <app> --args -e ssh host`, Terminal and iTerm2
+  an AppleScript that opens a window running the command. A terminal that
+  is picked but not installed keeps the panel open with a toast.
+- **Linux**: `$TERMINAL`, else the first of kitty, foot, alacritty, xterm
+  on PATH; kitty and foot take the command as arguments, the others after
+  `-e`. Same rule as the Applications palette's terminal entries.
+
+Settings, `[extensions.ssh]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `config` | path | `~/.ssh/config` | The config to read. `~` is expanded; `known_hosts` is looked for next to it. |
+| `include_known_hosts` | bool | `false` | List the names in `known_hosts` too, in a second section. |
+| `terminal` | `auto`, `kitty`, `Terminal`, `iTerm2`, `Ghostty`, `Alacritty` | `auto` | macOS only: which terminal Connect opens. |
+
+## Files (`files`)
+
+An input palette over the operating system's own file index: what you type
+is a name search on every keystroke, never a walk pal indexes itself. The
+row is the file name; the parent folder is the subtitle (home shortened to
+`~`); the size and the modification date are accessories. `.app` bundles
+get their own icon, everything else a glyph by kind (folder, image,
+document, code, archive). Exact and prefix name matches come first, the
+rest in the backend's order, at most `limit` rows. With nothing typed the
+palette shows one hint row naming the backend and the folders it searches.
+
+The backend is picked once when the extension loads:
+
+| platform | backend | how |
+| --- | --- | --- |
+| macOS | Spotlight | `mdfind -name <query> -onlyin <folder>...`; case-insensitive substring of the display name, so `kitty` finds `kitty.app` |
+| Linux | `fd` | `fd --absolute-path --fixed-strings --max-results <limit> <query> <folders>`; respects `.gitignore` like fd does everywhere |
+| Linux, no fd | `locate` | `locate -i <query>`, filtered to the folders (`updatedb` decides how fresh it is) |
+| Linux, neither | `find` | `find <folders> -iname '*<query>*'`; walks the folders on every keystroke, and a second hint row says so |
+
+Every search is one process: killed after 3 s, killed as soon as `limit`
+paths have been read, and killed when the next keystroke starts a new one.
+
+The detail pane (lazy, asked when the cursor rests on a row) shows the
+path, size, modified time and kind; for a text file under 64 KB the first
+40 lines in a code block. No image preview: the app's `icon://` scheme
+serves app icons, favicons and clipboard images only.
+
+Actions:
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Open | `Enter` | the system opener |
+| Reveal in Finder / Show in file manager | `⌘Enter` | `open -R` on macOS, `xdg-open` on the parent folder on Linux |
+| Copy path | `⌘C` | copies the absolute path |
+| Move to Trash | `⌘D` | asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
+
+Not there yet: copying the file itself (the clipboard effect carries text
+only) and "Open with…" (needs an application picker from the core).
+
+Settings, `[extensions.files]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `folders` | list of paths | `["~"]` | Where to search. `~` is expanded. |
+| `limit` | number, 1 to 500 | `50` | At most this many rows per query. |
+| `show_hidden` | bool | `false` | List files and folders whose name starts with a dot (below the configured folder; `~/.config` as a folder is fine either way). |
 
 ## System (`system`)
 

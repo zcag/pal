@@ -1,0 +1,15 @@
+{
+  "name": "processes",
+  "title": "Processes",
+  "description": "What is running, busiest first, with its memory. Kill from the action panel.",
+  "version": "0.1.0",
+  "icon": "▤",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "boolean", "id": "include_system", "label": "System processes", "text": "List system processes too (pid below 100, and kernel threads on Linux)", "default": false }
+  ],
+  "palettes": {
+    "processes": { "description": "Every process, by CPU then memory." }
+  }
+}
