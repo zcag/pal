@@ -1,4 +1,5 @@
-// media (Now Playing) against canned core/media.* replies.
+// media (Now Playing) against canned core/media.* replies: the palette, and
+// the `now-playing` bar item with its own poll pushing on a track change.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { MediaPlayer, NowPlaying } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
@@ -59,6 +60,31 @@ describe("media", () => {
     expect(await pick("spotify", "copy")).toEqual({ copy: "New Order - Blue Monday" });
     expect(await pick("spotify", "open")).toEqual({ open: "spotify:track:abc" });
     expect(await pick("music", "open")).toEqual(MAC ? { open: "/System/Applications/Music.app" } : { keep: true });
+  });
+
+  describe("bar: now-playing", () => {
+    test("meta and render: the playing track as the title, the transport and copy/open as the menu", async () => {
+      expect(host.loaded().find((l) => l.extension === "media")!.bar).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), refresh: { every: 30, on: ["show", "wake"] }, source: true }]);
+      const item = await host.render("media", "now-playing");
+      expect(item).toMatchObject({ icon: "\uf001", title: "Blue Monday · New Order", tooltip: "New Order - Blue Monday (Spotify)" });
+      expect((item.menu as any[]).map((n) => n.id ?? n.type)).toEqual(["play_pause", "next", "previous", "separator", "copy", "open"]);
+    });
+
+    test("actions go to the playing player and keep the popover; copy and open", async () => {
+      calls.length = 0;
+      expect(await host.barAction("media", "now-playing", "play_pause")).toEqual({ keep: true });
+      expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true });
+      expect(calls).toEqual([{ player: "spotify", command: "play_pause" }, { player: "spotify", command: "next" }]);
+      expect(await host.barAction("media", "now-playing", "copy")).toEqual({ copy: "New Order - Blue Monday" });
+      expect(await host.barAction("media", "now-playing", "open")).toEqual({ open: "spotify:track:abc" });
+    });
+
+    test("only a playing player shows: paused or nothing is hidden; an action then says so", async () => {
+      np = { players: [music, idle], system_wide: true };
+      expect(await host.render("media", "now-playing")).toEqual({ hidden: true });
+      expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true, hud: "Nothing playing" });
+      np = { players: [spotify, music, idle], system_wide: true };
+    });
   });
 
   test("nothing running: one inert row, with the install hint when there is no system-wide source", async () => {

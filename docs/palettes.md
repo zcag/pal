@@ -818,6 +818,10 @@ Permissions and platforms:
   read error, is one inert row with the reason.
 - **Linux**: one "Unavailable" row; there is no Messages.
 
+The bar item `otp/latest-code` puts the newest code on the strip, green,
+for a minute after it arrived (hidden otherwise); a click copies it. The
+same reader, the same permission.
+
 Settings, `[extensions.otp]`:
 
 | key | type | default | what |
@@ -1033,7 +1037,10 @@ count (its actions: open the inbox, mark all read). A row's url is the
 subject's page (pull, issue, commit; a release or discussion falls back to
 the repository's page). Enter marks the thread read and opens it, so the
 count is honest when you are back; Mark as read (`⌘⇧R`) does not open;
-Mark all as read (`⌘⇧A`) asks first.
+Mark all as read (`⌘⇧A`) asks first. The bar item `github/notifications`
+shows the unread count as a badge (hidden at zero) over the same cache;
+its popover has the newest five, Open all (this palette) and Mark all
+read.
 
 **Search GitHub.** GitHub's own search syntax, typed: free text,
 `repo:owner/name`, `is:pr`, `author:login`, `label:bug`. Filters
@@ -1342,6 +1349,11 @@ players beyond Spotify and Music.
 | Copy Track | `⌘C` | copies `artist - title` |
 | Open in … | `⌘O` | the track's url (Spotify's `spotify:track:` link), else the app on macOS |
 
+The bar item `media/now-playing` puts the playing track on the strip
+(hidden while nothing plays) with Pause, Next, Previous, Copy Track and
+Open in its popover; the extension polls the players every 5 s while one
+plays and pushes a track change itself.
+
 No settings.
 
 ## Unicode characters (`unicode`)
@@ -1533,6 +1545,52 @@ Settings, `[extensions.network]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `public_ip_url` | text | `https://ipinfo.io/json` | The endpoint the public IP row asks. Empty: no Internet section. `https://api.ipify.org` (a bare address) and `http://ip-api.com/json` work too. |
+
+## Timer (`timer-timers`)
+
+Named countdown timers over the `timer` CLI (`~/.local/bin/timer` in the
+owner's dotfiles): the CLI keeps the timers, one detached process per
+timer that fires on its own (confetti, a chime, a phone ping) and one KV
+file per timer under its state directory. pal is a view of that directory
+and asks the CLI for every change, so a timer started from a terminal and
+one started here are the same thing. Live: listed again on every show.
+
+One row per timer, most urgent first (landed, then running soonest first,
+then paused): the name, what is left and when it lands (or "Paused at
+12:34", "Landed 0:42 ago"), a state tag. The last row is **New timer**, a
+form: a duration (`25m`, `90s`, `1h30m`, `2:30`, a bare number is minutes;
+the CLI parses it and its complaint comes back under the field), an
+optional name (the duration otherwise; a name already taken restarts that
+timer), and a checkbox to ring the phone out loud when it lands (`--ring`).
+
+Actions, by state:
+
+| row | `Enter` | `⌘+` | `⌘⌫` |
+| --- | --- | --- | --- |
+| running | Pause | Add 5 minutes | Stop |
+| paused | Resume | Add 5 minutes | Stop |
+| landed | Dismiss (the CLI's `done`) | Add 5 minutes (restarts it) | Stop |
+
+Every pick runs the CLI (`timer pause <id>`, `resume`, `add 5m <id>`,
+`stop <id>`, `done`) with the state directory as `TIMER_DIR` and lists
+again; a refusal is a toast with the CLI's words.
+
+**The bar item** (`timer/timer`, [Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)):
+the soonest timer's remaining time as the title with a fill for how far
+along it is, blue, then amber past two thirds, red past nine tenths,
+muted while paused; a landed timer is the alarm (its name, or "Done" for
+an unnamed one, in red) until the CLI's badge ttl (5 minutes) or a
+Dismiss removes it. Hidden with no timer at all. A click opens this
+palette. The second-level countdown is pushed by the extension itself
+(a watch on the state directory plus a 1 Hz tick while a timer runs);
+the core asks every 10 s and on wake besides.
+
+Settings, `[extensions.timer]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `command` | path | `timer` | The CLI, a name on PATH or a path. |
+| `dir` | path | `~/.local/share/timer` | Its state directory (`TIMER_DIR`); made if missing. `~` is expanded. |
 
 ## Raycast parity pass on the bundled palettes (2026-09-16)
 

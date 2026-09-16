@@ -6,7 +6,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, Window } from "../../sdk/src/index.ts";
+import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, Window } from "../../sdk/src/index.ts";
 
 export const HOST = resolve(import.meta.dir, "../src/host.ts");
 /** The bundled extensions, for the integration tests. */
@@ -33,11 +33,11 @@ export type Options = {
   timeout?: number;
 };
 
-export type Loaded = { extension: string; root: string; palettes: PaletteMeta[]; manifest: Manifest };
+export type Loaded = { extension: string; root: string; palettes: PaletteMeta[]; bar: BarMeta[]; manifest: Manifest };
 export type Failed = { extension: string; root: string; message: string; manifest: Manifest };
 export type Hello = {
   version: string; bun: string; pid: number; roots: string[];
-  extensions: { name: string; root?: string; manifest: Manifest; loaded: boolean; palettes: PaletteMeta[] }[];
+  extensions: { name: string; root?: string; manifest: Manifest; loaded: boolean; palettes: PaletteMeta[]; bar: BarMeta[] }[];
   errors: Record<string, string>;
 };
 
@@ -129,6 +129,29 @@ export class Host {
   }
   detail(extension: string, palette: string, id: string, ctx?: Ctx) {
     return this.request<Detail>("detail", { extension, palette, id, ...ctx });
+  }
+  /** `bar/render` of one item, as the core asks it. */
+  render(extension: string, id: string, ctx: BarCtx = { reason: "load" }) {
+    return this.request<BarItem>("bar/render", { extension, id, ctx });
+  }
+  barAction(extension: string, id: string, action: string, ctx: BarCtx = { reason: "open" }) {
+    return this.request<Effect & Record<string, unknown>>("bar/action", { extension, id, action, ctx });
+  }
+  barOpen(extension: string, id: string, ctx: BarCtx = { reason: "open" }) {
+    return this.request<Effect & Record<string, unknown>>("bar/open", { extension, id, ctx });
+  }
+  /** The `bar/shown` notification. */
+  barShown(extension: string, id: string) { this.notify("bar/shown", { extension, id }); }
+  /** The `bar.update` pushes the host made for one item, in order (the items themselves). */
+  updates(extension: string, id: string): BarItem[] {
+    return this.coreCalls.filter((c) => c.method === "bar.update" && (c.params as any)?.extension === extension && (c.params as any)?.id === id).map((c) => (c.params as any).item as BarItem);
+  }
+  /** Polls until a `bar.update` of the item satisfying `pred` has arrived; resolves with it. */
+  async nextUpdate(extension: string, id: string, pred: (item: BarItem) => boolean = () => true, timeout = 3000): Promise<BarItem> {
+    const from = this.updates(extension, id).length;
+    let hit: BarItem | undefined;
+    await this.until(() => { hit = this.updates(extension, id).slice(from).find(pred); return !!hit; }, timeout, `bar.update ${extension}/${id}`);
+    return hit!;
   }
 
   /** `settings/changed` for one extension: manifest defaults with `overlay` on top. */

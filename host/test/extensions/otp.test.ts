@@ -133,8 +133,51 @@ describe.skipIf(!MAC)("otp", () => {
   });
 });
 
+describe.skipIf(!MAC)("otp bar: latest-code", () => {
+  /** A code `ageMs` old, as the newest message, from the fixture's handle `from` (1 is AKBANK, 3 SPAMCO); removed after. */
+  const arrive = (id: number, text: string, ageMs: number, from = 1) => {
+    const c = new Database(db);
+    c.run("INSERT INTO message (ROWID, guid, text, attributedBody, handle_id, date, is_from_me) VALUES (?, ?, ?, NULL, ?, ?, 0)", [id, `g${id}`, text, from, at(Date.now() - ageMs)]);
+    c.run("INSERT INTO chat_message_join VALUES (?, ?)", [from, id]);
+    c.close();
+  };
+  const remove = (id: number) => { const c = new Database(db); c.run("DELETE FROM message WHERE ROWID = ?", [id]); c.run("DELETE FROM chat_message_join WHERE message_id = ?", [id]); c.close(); };
+
+  test("meta: the manifest entry with a 10 s refresh", () => {
+    expect(host.loaded().find((l) => l.extension === "otp")!.bar).toEqual([{ id: "latest-code", title: "Latest code", description: expect.any(String), refresh: { every: 10 }, source: true }]);
+  });
+
+  test("the newest code of the fixture is a minute old: hidden; open says there is none", async () => {
+    expect(await host.render("otp", "latest-code")).toEqual({ hidden: true });
+    expect(await host.barOpen("otp", "latest-code")).toEqual({ hud: "No recent code" });
+  });
+
+  test("a code that just arrived is the title, green, with the sender in the tooltip and a refresh that lands at the minute; a click copies it", async () => {
+    arrive(50, "Your verification code is 424242", 20_000);
+    try {
+      const item = await host.render("otp", "latest-code", { reason: "every" });
+      expect(item).toMatchObject({ icon: "\u{f084}", title: "424242", color: "green", tooltip: "AKBANK: Your verification code is 424242" });
+      expect(item.refresh).toBeGreaterThanOrEqual(39);
+      expect(item.refresh).toBeLessThanOrEqual(40);
+      expect(await host.barOpen("otp", "latest-code", { reason: "open", anchor: "menubar" })).toEqual({ copy: "424242" });
+    } finally { remove(50); }
+  });
+
+  test("older than a minute is hidden; a denied sender never shows; a missing database is hidden, not an error", async () => {
+    arrive(51, "Your verification code is 131313", 61_000);
+    arrive(52, "Kod: 777777", 5_000, 3);
+    try {
+      expect(await host.render("otp", "latest-code")).toEqual({ hidden: true });
+    } finally { remove(51); remove(52); }
+    host.changeSettings("otp", { settings: { db: join(dir, "nope.db"), contacts, hours: 48 } });
+    expect(await host.render("otp", "latest-code")).toEqual({ hidden: true });
+    host.changeSettings("otp", { settings: { db, contacts, senders: ["spamco"], hours: 48 } });
+  });
+});
+
 describe.skipIf(MAC)("otp on linux", () => {
-  test("one Unavailable row", async () => {
+  test("one Unavailable row; the bar item is hidden", async () => {
     expect(await list()).toEqual([expect.objectContaining({ id: "unavailable", name: "Unavailable", actions: [] })]);
+    expect(await host.render("otp", "latest-code")).toEqual({ hidden: true });
   });
 });

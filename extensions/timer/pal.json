@@ -1,0 +1,19 @@
+{
+  "name": "timer",
+  "title": "Timer",
+  "description": "Named countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette.",
+  "version": "0.1.0",
+  "icon": "󰔛",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "path", "id": "command", "label": "timer command", "description": "The timer CLI (a name on PATH or a path). It keeps the timers; pal only reads and asks.", "pick": "file", "default": "timer" },
+    { "kind": "path", "id": "dir", "label": "State directory", "description": "Where the CLI keeps one file per timer (its TIMER_DIR). ~ is expanded.", "pick": "folder", "default": "~/.local/share/timer" }
+  ],
+  "palettes": {
+    "timers": { "title": "Timers", "description": "Every timer with what is left; New timer asks for a duration and a name." }
+  },
+  "bar": {
+    "timer": { "title": "Timer", "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running.", "refresh": { "every": 10, "on": ["wake"] } }
+  }
+}

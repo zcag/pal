@@ -64,25 +64,27 @@ comment, `src/protocol.ts` is the contract.
 
 | export | what |
 | --- | --- |
-| `Extension`, `Palette`, `ListPalette`, `ViewPalette` | what `index.ts` exports: palettes with `list` or `view`, `pick`, `detail` |
+| `Extension`, `Palette`, `ListPalette`, `ViewPalette` | what `index.ts` exports: palettes with `list` or `view`, `pick`, `detail`; `bar` items; `dispose` |
 | `Item`, `Action`, `Icon`, `Accessory`, `Detail`, `Metadata` | a row and what it carries |
 | `Effect`, `Ctx` | what `pick` returns (`copy`, `open`, `paste`, `focus`, `layout`, `toast`, `hud`, `keep`, `push`, `show`, `view`, `form`) and how a level was opened |
 | `View`, `ViewNode`, `Transition`, `TagColor`, `Space` | a render tree |
 | `Form`, `FormField`, `FormValues` | a prompt with fields |
-| `Manifest`, `SettingSpec`, `ManifestPalette`, `ResolvedSettings` | `pal.json` and the values it resolves to |
+| `BarItem`, `BarSegment`, `BarColor`, `BarMenu`, `BarMenuNode`, `BarSource`, `BarCtx`, `BarRefresh` | a bar item: what `Extension.bar[id].render` answers, its popover menu, why it ran |
+| `Manifest`, `SettingSpec`, `ManifestPalette`, `ManifestBar`, `ResolvedSettings` | `pal.json` and the values it resolves to |
 | `settings` | `get()`, `palette()`, `onChange()` |
 | `storage` | `get()`, `set()`, `remove()`, `keys()`, per-extension JSON, `LIMIT` bytes |
+| `bar` | `update()` (push an item now), `refresh()` (ask for a render) |
 | `clipboard` | `list()`, `get()`, `pin()`, `delete()`, `clear()`, `copy()`, `imageUrl()`; `ClipboardEntry` |
 | `windows` | `list()`, `close()`, `minimize()`, `frame()`, `setFrame()`, `displays()`, `focused()`, `layout()`; `Window`, `Rect`, `Display`, `WindowLayout` |
 | `system` | `commands()`, `run()`; `SystemCommand` |
 | `home()`, `core.call()` | `~` expansion; the raw bridge |
 | `xdg()`, `XDG_ICONS` | freedesktop icon names as glyphs |
-| `checkView()`, `checkForm()`, `MAX_NODES`, `MAX_DEPTH`, `SHELL_PREFIX` | what the host checks a view or form against, for your tests |
+| `checkView()`, `checkForm()`, `checkBarItem()`, `checkEffect()`, `MAX_NODES`, `MAX_DEPTH`, `MAX_BAR_*`, `SHELL_PREFIX` | what the host checks a view, form, bar item or effect against, for your tests |
 | `defineExtension()` | type-checks the default export where it is written |
 | `@zcag/pal/runtime` | the host's side (`bind`); not for extensions |
 
 Wire shapes (`Request`, `Response`, `Notification`, `PaletteMeta`,
-`SettingsChanged`) are exported for a host or a test harness.
+`BarMeta`, `SettingsChanged`) are exported for a host or a test harness.
 
 ## License
 

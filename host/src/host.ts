@@ -1,7 +1,8 @@
 // The extension host: loads every extension under the given roots into this
-// one process, serves list/pick over stdio, re-imports an extension when its
-// files change, and relays extensions' capability calls to the core
-// (bridge.ts). Logs go to stderr; stdout is the protocol.
+// one process, serves list/pick (and the bar items' render/action, bar.ts)
+// over stdio, re-imports an extension when its files change, and relays
+// extensions' capability calls to the core (bridge.ts). Logs go to stderr;
+// stdout is the protocol.
 //
 //   bun run host.ts <root>...
 //
@@ -13,8 +14,9 @@
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
-import { checkForm, checkView } from "../../sdk/src/view.ts";
+import { checkEffect, checkView } from "../../sdk/src/view.ts";
 import type { Ctx, Extension, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, ViewPalette } from "../../sdk/src/protocol.ts";
+import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { bindSdk, SDK } from "./sdk.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
@@ -117,6 +119,7 @@ async function reload(name: string) {
   } catch (e) {
     log(`settings for ${name} unavailable: ${describe(e)}`);
   }
+  await dispose(name);
   try {
     // The query string defeats Bun's module cache on re-import; the old
     // module instance stays resident, which is the price of no restart.
@@ -126,8 +129,9 @@ async function reload(name: string) {
     exts.set(name, ext);
     errors.delete(name);
     forgetDetails(name);
-    log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}) from ${f.root} in ${(performance.now() - t0).toFixed(1)}ms`);
-    notify("extension/loaded", { extension: name, root: f.root, palettes: metas(ext, manifest), manifest });
+    const bar = barMetas(ext, manifest);
+    log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}${bar.length ? `; bar ${bar.map((b) => b.id).join(",")}` : ""}) from ${f.root} in ${(performance.now() - t0).toFixed(1)}ms`);
+    notify("extension/loaded", { extension: name, root: f.root, palettes: metas(ext, manifest), bar, manifest });
   } catch (e) {
     const message = describe(e);
     exts.delete(name);
@@ -143,8 +147,9 @@ async function reload(name: string) {
  * be unloaded, but nothing routes to it any more. A name that was never
  * an extension (a stray file in a root) is nothing to report.
  */
-function drop(name: string) {
+async function drop(name: string) {
   if (!manifests.has(name)) return;
+  await dispose(name);
   found.delete(name);
   exts.delete(name);
   errors.delete(name);
@@ -155,6 +160,14 @@ function drop(name: string) {
 }
 
 const forgetDetails = (name: string) => { for (const k of details.keys()) if (k.startsWith(`${name}/`)) details.delete(k); };
+
+/** The resident module's `dispose` before it is replaced or let go: its intervals and watchers would otherwise run on. Its failure is its own (logged). */
+async function dispose(name: string) {
+  const ext = exts.get(name);
+  if (!ext?.dispose) return;
+  exts.delete(name);
+  try { await timeout(context.run({ extension: name }, () => Promise.resolve(ext.dispose!())), 1000, `dispose of ${name}`); } catch (e) { log(`dispose ${name} failed: ${describe(e)}`); }
+}
 
 // Bun raises BuildMessage (one) or AggregateError of them (many) for a file
 // that fails to compile; neither prints its position by itself.
@@ -302,10 +315,15 @@ const ctxOf = (p: any): Ctx | undefined =>
     ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }) }
     : undefined;
 
+/** The loaded extension, or the reason it is not: its load error, or that there is none. */
+function extension(name: string): Extension {
+  const ext = exts.get(name);
+  if (!ext) throw new Error(errors.get(name) ?? `no extension ${name}`);
+  return ext;
+}
+
 function palette(p: any) {
-  const ext = exts.get(p?.extension);
-  if (!ext) throw new Error(errors.get(p?.extension) ?? `no extension ${p?.extension}`);
-  const pal = ext.palettes[p?.palette];
+  const pal = extension(p?.extension).palettes[p?.palette];
   if (!pal) throw new Error(`no palette ${p?.extension}/${p?.palette}`);
   return pal;
 }
@@ -332,7 +350,7 @@ const methods: Record<string, (params: any) => unknown> = {
     bun: Bun.version,
     pid: process.pid,
     roots: ROOTS,
-    extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: exts.has(name) ? metas(exts.get(name)!, manifest) : [] })),
+    extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: exts.has(name) ? metas(exts.get(name)!, manifest) : [], bar: exts.has(name) ? barMetas(exts.get(name), manifest) : [] })),
     errors: Object.fromEntries(errors),
   }),
   list: async (p) => {
@@ -344,12 +362,7 @@ const methods: Record<string, (params: any) => unknown> = {
     return { items };
   },
   // An effect carrying a view is checked like a `view` answer: the UI draws it the same way. A form likewise.
-  pick: async (p) => {
-    const r = (await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {};
-    if (r && typeof r === "object" && "view" in r && r.view !== undefined) checkView(r.view, `${paletteKey(p)}: pick ${p.action ?? ""} view`);
-    if (r && typeof r === "object" && "form" in r && r.form !== undefined) checkForm(r.form, `${paletteKey(p)}: pick ${p.action ?? ""} form`);
-    return r;
-  },
+  pick: async (p) => checkEffect((await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {}, `${paletteKey(p)}: pick ${p.action ?? ""}`),
   // The tree a view palette opens with; `filter`/`args` reach it as ctx like a list.
   view: async (p) => {
     const pal = palette(p);
@@ -372,6 +385,7 @@ const methods: Record<string, (params: any) => unknown> = {
     }
     return r;
   },
+  ...barMethods(extension),
   // Notification from the core: the resolved values of the named extensions.
   "settings/changed": (p: SettingsChanged) => {
     const changed = p?.extensions ?? {};

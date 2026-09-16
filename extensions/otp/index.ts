@@ -11,11 +11,15 @@
 // does `cp`, so the one hint row points at the Privacy pane. A database
 // SQLite reports locked is copied (with its -wal and -shm) and the copy is
 // read. Linux has no Messages, so the palette is one "Unavailable" row.
+//
+// The bar item `latest-code` puts the newest code on the strip for
+// `BAR_WINDOW_MS` after it arrived (the same reader; hidden otherwise, and
+// on Linux) and a click copies it.
 import { Database } from "bun:sqlite";
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { home, settings, type Action, type Extension, type Item } from "@zcag/pal";
+import { home, settings, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.otp]`, defaults in pal.json. */
 type Settings = { hours: number; senders: string[]; db: string; contacts: string };
@@ -25,6 +29,10 @@ type Code = { id: string; code: string; sender: string; name: string; text: stri
 
 const MAC = process.platform === "darwin";
 const ICON = "✉";
+/** The bar's glyph (nf-fa-key), drawn from the bundled Nerd Font. */
+const BAR_GLYPH = "\u{f084}";
+/** How long a code stays on the strip after it arrived. */
+const BAR_WINDOW_MS = 60_000;
 /** Rows read per listing at most; the time window bounds it first. */
 const LIMIT = 400;
 /** Seconds between the unix epoch and Apple's (2001-01-01). */
@@ -211,29 +219,55 @@ function item(c: Code, now: Date): Item {
   };
 }
 
+/** The codes of the last `hours`, newest first; throws what SQLite did (a locked database is read from a copy first). */
+function readCodes(s: Settings, hours = s.hours): Code[] {
+  const file = home(s.db);
+  const since = Date.now() - Math.max(1, hours) * 3600_000;
+  let rows: Row[];
+  try { rows = read(file, since); } catch (e) { if (!locked(e)) throw e; rows = readCopy(file, since); }
+  return collect(rows, s).slice(0, LIMIT);
+}
+
 function list(): Item[] {
   codes.clear();
   if (!MAC) return [hint("unavailable", "Unavailable", "Verification codes read the Messages database, which only macOS has.")];
   const s = settings.get<Settings>();
-  const file = home(s.db);
-  const since = Date.now() - Math.max(1, s.hours) * 3600_000;
-  let rows: Row[];
+  let found: Code[];
   try {
-    try { rows = read(file, since); } catch (e) { if (!locked(e)) throw e; rows = readCopy(file, since); }
+    found = readCodes(s);
   } catch (e) {
     const code = sqlite(e), msg = String((e as Error)?.message ?? e);
     if (code === "SQLITE_AUTH" || /authorization denied|not permitted|EPERM/i.test(msg)) {
       return [hint("fda", "Full Disk Access needed", "Messages keeps its database behind Full Disk Access: allow pal under Privacy & Security, Full Disk Access, then open the palette again.", [{ id: "settings", title: "Open System Settings" }])];
     }
-    if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${file} is not there; Messages has not run on this Mac, or the db setting points elsewhere.`)];
+    if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${home(s.db)} is not there; Messages has not run on this Mac, or the db setting points elsewhere.`)];
     return [hint("error", "Could not read Messages", msg)];
   }
   const now = new Date();
-  const found = collect(rows, s).slice(0, LIMIT);
   for (const c of found) codes.set(c.id, c);
   if (found.length === 0) return [hint("none", "No codes", `No message of the last ${s.hours} h names a code.`)];
   return found.map((c) => item(c, now));
 }
+
+// ---- the bar item -----------------------------------------------------------
+
+/** The newest code, while it is younger than the window; the scan covers one hour, plenty for a minute. Not on Linux, and not without the database (hidden, no hint). */
+function latestCode(): Code | undefined {
+  if (!MAC) return undefined;
+  let found: Code[];
+  try { found = readCodes(settings.get<Settings>(), 1); } catch { return undefined; }
+  const c = found[0];
+  return c && Date.now() - c.at <= BAR_WINDOW_MS ? c : undefined;
+}
+
+/** The code as the title, green, for a minute: `refresh` asks for the render that hides it once the minute is up. */
+function renderBar(): BarItem {
+  const c = latestCode();
+  if (!c) return { hidden: true };
+  return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${clip(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (Date.now() - c.at)) / 1000)) };
+}
+
+const copyLatest = (): Effect => { const c = latestCode(); return c ? { copy: c.code } : { hud: "No recent code" }; };
 
 export default {
   palettes: {
@@ -254,5 +288,8 @@ export default {
         }
       },
     },
+  },
+  bar: {
+    "latest-code": { render: renderBar, onOpen: copyLatest },
   },
 } satisfies Extension;

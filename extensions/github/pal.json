@@ -20,5 +20,8 @@
     "repos": { "title": "Repositories", "description": "Yours, starred, and your organisation's recently pushed.", "ttl": 300 },
     "notifications": { "title": "Notifications", "description": "Unread, by reason; opening one marks it read.", "ttl": 60 },
     "search": { "title": "Search GitHub", "description": "GitHub's search syntax over issues, pull requests, repositories and users." }
+  },
+  "bar": {
+    "notifications": { "title": "Notifications", "description": "The unread count as a badge, hidden at zero; the newest five and Mark all read in the popover.", "refresh": { "every": 300, "on": ["show", "wake", "network"] } }
   }
 }

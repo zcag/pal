@@ -453,6 +453,50 @@ describe("github", () => {
     });
   });
 
+  describe("bar: notifications", () => {
+    test("meta: the manifest entry with its refresh, backed by the code", () => {
+      expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual([{ id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, source: true }]);
+    });
+
+    test("render: the unread count as the badge, the newest five as a menu section, Open all and Mark all read under them", async () => {
+      const item = await host.render("github", "notifications", { reason: "load" });
+      expect(item).toMatchObject({ icon: "\u{f09b}", badge: 3, tooltip: "3 unread notifications" });
+      expect(item.hidden).toBeUndefined();
+      const menu = item.menu as any[];
+      expect(menu[0]).toMatchObject({ type: "section", title: "Unread" });
+      expect(menu[0].children.map((n: any) => n.id)).toEqual(["thread:1002", "thread:1001", "thread:1003"]);
+      expect(menu[0].children[0]).toEqual({ type: "item", id: "thread:1002", title: "Fix the parser", subtitle: "acme/api", icon: "⎇" });
+      expect(menu.slice(1)).toEqual([{ type: "separator" }, { type: "item", id: "open", title: "Open all", subtitle: "3 in pal" }, { type: "item", id: "read-all", title: "Mark all read", shortcut: "cmd+shift+r", style: "destructive" }]);
+    });
+
+    test("a show/wake/network render asks GitHub (a 304 with the ETag); a timer render takes the cache", async () => {
+      const before = gets("/notifications").length;
+      await host.render("github", "notifications", { reason: "every" });
+      expect(gets("/notifications")).toHaveLength(before);
+      await host.render("github", "notifications", { reason: "show", anchor: "menubar" });
+      expect(gets("/notifications")).toHaveLength(before + 1);
+      expect(gets("/notifications").at(-1)!.etag).toBe(NOTIF_ETAG);
+    });
+
+    test("actions: a row marks the thread read and opens it, Open all pushes the palette, Mark all read PUTs and re-renders with a HUD line", async () => {
+      expect(await host.barAction("github", "notifications", "thread:1001")).toEqual({ open: "https://github.com/acme/api/releases" });
+      expect(seen.find((s) => s.method === "PATCH" && s.path === "/notifications/threads/1001")).toBeDefined();
+      expect(await host.barAction("github", "notifications", "open")).toEqual({ push: { extension: "github", palette: "notifications" } });
+      const puts = seen.filter((s) => s.method === "PUT" && s.path === "/notifications").length;
+      expect(await host.barAction("github", "notifications", "read-all")).toEqual({ keep: true, hud: "Marked read" });
+      expect(seen.filter((s) => s.method === "PUT" && s.path === "/notifications")).toHaveLength(puts + 1);
+    });
+
+    test("nothing unread is hidden", async () => {
+      const unread = NOTIFICATIONS.map((n) => n.unread);
+      NOTIFICATIONS.forEach((n) => { n.unread = false; });
+      try {
+        // Mark all read forgot the cache, so this render fetches.
+        expect(await host.render("github", "notifications", { reason: "every" })).toEqual({ hidden: true });
+      } finally { NOTIFICATIONS.forEach((n, i) => { n.unread = unread[i]; }); }
+    });
+  });
+
   test("a rejected token is a hint row, not an error", async () => {
     stored.clear();
     process.env.PAL_GITHUB_TOKEN = "wrong";
@@ -478,6 +522,8 @@ describe("github", () => {
       const items = await h.list("github", "notifications");
       expect(items).toHaveLength(1);
       expect(items[0]).toMatchObject({ id: "hint:auth", name: "Sign in to GitHub", subtitle: expect.stringContaining("gh auth login") });
+      // The bar item has no room for the hint: signed out is hidden, not an error.
+      expect(await h.render("github", "notifications")).toEqual({ hidden: true });
       expect(seen.length).toBe(before);
       // A token in the settings takes over without a restart.
       h.changeSettings("github", { settings: { token: "test-token" } });

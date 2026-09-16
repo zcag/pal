@@ -3,8 +3,9 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import type { ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
+import type { BarItem, ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
+import { checkBarItem } from "./view.ts";
 
 const call = <T = unknown>(method: string, params?: unknown): Promise<T> => runtime().call<T>(method, params);
 const who = (extension?: string): string => runtime().caller(extension).extension;
@@ -42,6 +43,21 @@ export const settings = {
   },
   /** Called with the new values whenever they change; returns the unsubscribe. */
   onChange: (cb: (s: ResolvedSettings) => void, extension?: string): (() => void) => runtime().subscribe(who(extension), cb),
+};
+
+/**
+ * The extension's bar items (`Extension.bar`, `docs/design/bar.md`), pushed
+ * from the extension's own side: a webhook, a file watcher, a poll it runs
+ * itself. The core renders a pushed item to every target as it would a
+ * `render` answer (diffed, so a 1 Hz push costs one change per second at
+ * most). Which extension is asking is known inside `render`/`onAction`/
+ * `list`/`pick` and at import time; from a timer or a watcher pass the name.
+ */
+export const bar = {
+  /** Replace the item now; the core renders it to every target. Checked like a `render` answer (`checkBarItem`) before it goes. */
+  update: (id: string, item: BarItem, extension?: string) => call<null>("bar.update", { extension: who(extension), id, item: checkBarItem(item, `bar.update ${id}`) }),
+  /** Ask for a `render` with reason `update`. */
+  refresh: (id: string, extension?: string) => call<null>("bar.refresh", { extension: who(extension), id }),
 };
 
 /**

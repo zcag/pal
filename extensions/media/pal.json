@@ -8,5 +8,8 @@
   "repo": "bundled",
   "palettes": {
     "media": { "description": "One row per player with the track and its artwork." }
+  },
+  "bar": {
+    "now-playing": { "title": "Now Playing", "description": "The playing track on the strip, hidden while nothing plays; pause and skip from the popover.", "refresh": { "every": 30, "on": ["show", "wake"] } }
   }
 }

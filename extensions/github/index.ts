@@ -4,10 +4,11 @@
 // an input palette. Every row's id is stable (`owner/repo#n`,
 // `owner/repo`, `@login`, `thread:<id>`), so a pick after a restart still
 // knows what it is about: the row table is in memory, the cache behind it
-// on disk, and a PR or issue no table knows is fetched by its id.
+// on disk, and a PR or issue no table knows is fetched by its id. One bar
+// item, `notifications`: the unread count as a badge over the same cache.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { home, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { home, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit, run } from "./api.ts";
 import {
   NOTIF_TTL, TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
@@ -15,6 +16,10 @@ import {
 } from "./data.ts";
 
 const ICON = { prs: "⎇", issues: "◉", repos: "▤", notifications: "◍", search: "⌕", user: "◯" } as const;
+/** The bar's glyph (nf-fa-github): drawn from the bundled Nerd Font, unlike the palette icons above. */
+const BAR_GLYPH = "\u{f09b}";
+/** Rows of the bar item's menu; the palette has the rest. */
+const BAR_ROWS = 5;
 /** The tag palette's hues as hex, for the state dot a PR or issue row carries. */
 const DOT = { open: "#1a7f37", draft: "#6e7781", merged: "#8250df", closed: "#cf222e", done: "#8250df" } as const;
 const TYPE_GLYPH: Record<string, string> = { PullRequest: ICON.prs, Issue: ICON.issues, Release: "⏏", Discussion: "☰", Commit: "⌾" };
@@ -569,6 +574,47 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
   }
 }
 
+/**
+ * The bar item: the unread count as a badge, hidden at zero, the newest
+ * five as a menu level with the palette and Mark all read under them. The
+ * cache is the palette's (`notifications`, ETag): a trigger from the bar
+ * (the panel shown, a wake, the network back, the CLI) asks GitHub, which
+ * answers 304 for free when nothing changed; the timer and a first render
+ * take what is cached. Signed out is hidden, not an error: the strip has
+ * no room for a hint.
+ */
+async function notifItem(ctx: BarCtx): Promise<BarItem> {
+  let list: Notification[];
+  try { list = await notifications(ctx.reason === "show" || ctx.reason === "wake" || ctx.reason === "network" || ctx.reason === "cli"); } catch (e) {
+    if (e instanceof AuthError) return { hidden: true };
+    throw e;
+  }
+  if (list.length === 0) return { hidden: true };
+  const newest = list.slice().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, BAR_ROWS);
+  const rows: BarMenuNode[] = newest.map((n) => { notifTable.set(n.id, n); return { type: "item", id: n.id, title: short(n.title, 60), subtitle: n.repo, icon: TYPE_GLYPH[n.type] ?? ICON.notifications }; });
+  return {
+    icon: BAR_GLYPH,
+    badge: list.length,
+    tooltip: `${list.length} unread notification${list.length === 1 ? "" : "s"}`,
+    menu: [
+      { type: "section", title: "Unread", children: rows },
+      { type: "separator" },
+      { type: "item", id: "open", title: "Open all", subtitle: `${list.length} in pal` },
+      { type: "item", id: "read-all", title: "Mark all read", shortcut: "cmd+shift+r", style: "destructive" },
+    ],
+  };
+}
+
+/** A row opens the thread (and marks it read, as the palette does); the two commands are the palette's own picks. */
+async function notifAction(action: string): Promise<Effect> {
+  if (action === "open") return { push: { extension: "github", palette: "notifications" } };
+  if (action === "read-all") {
+    const r = await pickNotif(SUMMARY, "read-all");
+    return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };
+  }
+  return pickNotif(action);
+}
+
 // ---- search -----------------------------------------------------------------
 
 const SEARCH_FILTERS = [{ id: "all", title: "Everything" }, { id: "issues", title: "Issues and PRs" }, { id: "repos", title: "Repositories" }, { id: "users", title: "Users" }];
@@ -685,5 +731,8 @@ export default {
         if (issueTable.has(id)) return pane(() => issuePane(issueTable.get(id)!));
       },
     },
+  },
+  bar: {
+    notifications: { render: notifItem, onAction: notifAction },
   },
 } satisfies Extension;

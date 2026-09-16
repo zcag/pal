@@ -4,7 +4,8 @@ Every palette in pal is an extension, the bundled ones included: a
 directory with a `pal.json` manifest and an `index.ts` that Bun runs inside
 one long-lived extension host. An extension declares palettes; a palette
 lists rows, says what happens when one is picked, and can declare settings
-the settings window renders and the config file keeps.
+the settings window renders and the config file keeps. An extension can
+also put items on the bar ("Bar items", below).
 
 The shapes below are provisional: `sdk/src/protocol.ts` (the types of
 `@zcag/pal`, every one with a doc comment) is the contract and moves ahead
@@ -65,6 +66,8 @@ whose code fails to load.
 - `palettes.<key>`: per-palette `title` (a fallback while the code fails),
   `description`, `settings` (`[palettes.<id>].settings` in the file) and
   `ttl`. The key is the palette's key in the code's `palettes` object.
+- `bar.<id>`: a bar item's `title`, `description` and `refresh` schedule
+  (below, "Bar items"). The id is the key in the code's `bar` object.
 
 ## The code, `index.ts`
 
@@ -245,6 +248,128 @@ pick: async (id, action, ctx) => {
   field of a kind the panel cannot draw, a submit id starting with `pal:`,
   or `errors` for a field that is not there.
 
+## Bar items: glanceable state on the bar
+
+An extension can put an item on the bar (the macOS menu bar, sketchybar,
+later a Linux bar): a glyph, a short title, a badge, a fill, and something
+that opens on a click. The design is `docs/design/bar.md`; this is the
+extension's side of it. One model, `BarItem`, rendered by the core on
+every target; the extension never talks to a bar.
+
+**The model.** `render(ctx)` answers the item's whole state and the core
+diffs it against the last one:
+
+- `hidden`: the rule. An item earns its slot by having something to say;
+  `hidden: true` takes no space on any target, and `render` keeps
+  running so it can come back.
+- `icon` (a glyph from the bundled Nerd Font, an emoji, `{ image }`,
+  `{ app }`), `title` (short: 64 characters at most, the menu bar does not
+  truncate), `segments` (up to 8 extra runs after the title, each with its
+  own `color`), `badge` (a count, or `"dot"`), `color` (the tag palette
+  plus `text`, `muted`, `accent`, `destructive`), `urgent` (drawn as an
+  alarm), `stale` (muted, "could not refresh"), `progress` (0..1, a thin
+  fill), `tooltip`, `refresh` (seconds until the next `render`, this once).
+- `menu`: what a click, the item's hotkey or a hover peek opens, always in
+  pal's own popover. An array of `BarMenuNode` is a **menu level**: rows
+  (`{ type: "item", id, title, subtitle?, icon?, shortcut?, checked?,
+  disabled?, style?, action? }`), `section`s, `submenu`s (3 deep at most),
+  `separator`s; 64 nodes at most. `{ palette: "name", extension?, args? }`
+  opens that **palette level**, the panel machinery unchanged.
+  `{ view: View }` draws the tree as a **view level**. Without a `menu`
+  the click is `onOpen` and the extension answers an Effect.
+
+**The manifest.** `bar.<id>` next to `palettes`, so the settings window
+lists the item without running the code:
+
+```json
+"bar": {
+  "notifications": { "title": "Notifications", "description": "Unread count", "refresh": { "every": 300, "on": ["show", "wake", "network"] } }
+}
+```
+
+`refresh.every` is seconds between renders (10 at least), `on` adds
+triggers: `show` (the panel shown), `wake`, `network` (back online),
+`focus` (the front app changed), `minute`. The core renders every item
+once at load and whenever the extension's settings change.
+
+**The code.** `bar.<id>` in the default export, next to `palettes`:
+
+```ts
+export default defineExtension({
+  palettes: { /* ... */ },
+  bar: {
+    notifications: {
+      render: async (ctx) => {                    // ctx.reason: load | every | show | wake | network | focus | minute | settings | update | cli | open
+        const n = await notifications();          // the palette's own loader, one cache
+        if (n.length === 0) return { hidden: true };
+        return { icon: "\u{f09b}", badge: n.length, menu: [
+          { type: "section", title: "Unread", children: n.slice(0, 5).map((x) => ({ type: "item", id: x.id, title: x.title, subtitle: x.repo })) },
+          { type: "separator" },
+          { type: "item", id: "read-all", title: "Mark all read", shortcut: "cmd+shift+r" },
+        ] };
+      },
+      onAction: async (action, ctx) => {          // a menu row was picked (its `action`, default its `id`); `segment:<id>` for a segment
+        if (action === "read-all") { await markAllRead(); return { keep: true, hud: "Marked read" }; }
+        return { open: urlOf(action) };
+      },
+      onOpen: async (ctx) => ({ copy: code }),    // the click on an item that has no `menu`
+      onShown: async (ctx) => { /* the popover opened (a peek counts): warm a cache */ },
+    },
+  },
+});
+```
+
+- `render(ctx)` returns a `BarItem`, sync or async. `ctx.reason` says why
+  (the manifest's timer is `every`; a push asking for a render is
+  `update`; a click that opened the popover is `open`), `ctx.anchor` where
+  a click came from (`menubar`, `sketchybar`, `hotkey`, `cli`). The host
+  checks every answer (`checkBarItem`, the limits above, no `pal:` action
+  ids, a `{ view }` menu through `checkView`); over the limits is an
+  error the core marks the item `stale` with.
+- `onAction(action, ctx)` and `onOpen(ctx)` answer an `Effect` like
+  `pick`: `open`, `copy`, `hud`, `push` (drill into a palette in the
+  popover), `view`, `form`, `keep` (re-render the item, the popover stays).
+  `settings.get()` works inside all of them without an argument.
+- `bar.update(id, item)` in `@zcag/pal` **pushes** an item from the
+  extension's own side, for a webhook, a file watcher or a poll it runs
+  itself: the core draws it as if `render` had answered. `bar.refresh(id)`
+  asks for a `render` with reason `update`. From a timer or a watcher
+  (outside `render`/`list`/`pick`) pass the extension's name as the last
+  argument, as for `storage`. A push is checked like a render answer.
+- An extension that runs an interval or a watcher for its pushes declares
+  `dispose()` on the default export: the host calls it before the
+  extension is reloaded or removed, since the old module stays resident
+  and would keep pushing otherwise.
+
+**The four bundled items**, each in the extension that already owns the
+data, so the strip and the palette share one loader and one cache:
+
+- **GitHub, `notifications`** (`extensions/github/`): the unread count as a
+  badge, hidden at zero. The popover is a menu level with the newest five
+  (a row marks the thread read and opens it), "Open all" (pushes the
+  Notifications palette) and "Mark all read". Refresh every 300 s and on
+  `show`, `wake`, `network`; those triggers ask GitHub with the ETag (a
+  304 is free), the timer takes the cache. Signed out is hidden, not an
+  error: the strip has no room for a hint.
+- **Now Playing, `now-playing`** (`extensions/media/`): the playing track
+  as the title, hidden while nothing plays; the popover has Pause, Next,
+  Previous, Copy Track and Open. The core asks every 30 s; while a player
+  was playing at the last look the extension polls the players every 5 s
+  itself and pushes on a track or state change, so a skip shows within
+  seconds and an idle machine costs nothing.
+- **Verification Codes, `latest-code`** (`extensions/otp/`): the newest
+  code as the title, green, for a minute after it arrived, then hidden;
+  a click copies it (no `menu`, so `onOpen`). The render sets `refresh`
+  to the seconds left in that minute, so the item leaves on time; the
+  manifest asks every 10 s otherwise.
+- **Timer, `timer`** (`extensions/timer/`, [Palettes](palettes.md#timer-timer-timers)):
+  the soonest timer's remaining time with a `progress` fill, blue then
+  amber then red, muted while paused, `urgent` once it landed; hidden
+  with no timer at all. A click opens the `timers` palette
+  (`menu: { palette }`). The second-level ticks are the extension's own:
+  an `fs.watch` on the CLI's state directory pushes on every change, and
+  a 1 Hz interval pushes the countdown while a timer runs.
+
 ## Storage
 
 `storage` in `@zcag/pal` is a small per-extension key-value store:
@@ -295,9 +420,11 @@ to the core.
   raw bridge.
 - `xdg(name)`: a freedesktop icon name as the glyph the app draws it with
   (`icon: xdg("dialog-error")`), undefined for a name it does not know.
-- `checkView(view)`, `checkForm(form)`: what the host runs on every answer
-  (the limits above), for an extension's own tests. `defineExtension(ext)`:
-  the typed default export.
+- `bar.update(id, item)`: push a bar item now (above, "Bar items");
+  `bar.refresh(id)`: ask for a render.
+- `checkView(view)`, `checkForm(form)`, `checkBarItem(item)`: what the
+  host runs on every answer (the limits above), for an extension's own
+  tests. `defineExtension(ext)`: the typed default export.
 - `audio.devices()` (every output and input, `AudioDevice[]`: `id`,
   `name`, `kind`, `default`, `volume`, `muted`, `transport`),
   `setDefault(id, kind)`, `setVolume(id, kind, percent)`,
@@ -325,7 +452,9 @@ to the core.
 
 The protocol's types ride along: `Extension`, `Palette`, `Item`, `Action`,
 `Icon`, `Effect`, `Ctx`, `Detail`, `View`, `ViewNode`, `Form`,
-`FormField`, `FormValues`, `Manifest`, `SettingSpec`, and the API's own
+`FormField`, `FormValues`, `BarItem`, `BarMenu`, `BarMenuNode`,
+`BarSegment`, `BarColor`, `BarCtx`, `BarSource`, `Manifest`,
+`SettingSpec`, and the API's own
 (`ClipboardEntry`, `Window`, `WindowLayout`, `SystemCommand`, `App`,
 `AudioDevice`, `BluetoothDevice`, `WifiStatus`, `WifiNetwork`, `WifiScan`,
 `MediaPlayer`, `NowPlaying`).

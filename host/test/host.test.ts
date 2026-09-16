@@ -1,9 +1,11 @@
 // The host over the wire: load reports, errors, hot reload, the request
-// envelope, the detail cache, ctx, the reverse core path, and exit on EOF.
+// envelope, the detail cache, ctx, the reverse core path, the bar items'
+// requests and limits, and exit on EOF.
 // One host per describe block against a throwaway root.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import type { BarItem, BarMeta } from "../../sdk/src/protocol.ts";
 import { API, HOST, Host, Root, manifest, simpleExt } from "./harness.ts";
 
 describe("loading", () => {
@@ -220,6 +222,140 @@ export default { palettes: {
     expect(await host.list("ext", "echo")).toEqual([{ id: "x", name: '{"s":"cba"}' }]);
     expect(host.coreCalls.find((c) => c.method === "echo.reverse")).toEqual({ method: "echo.reverse", params: { s: "abc" } });
     expect(await host.pick("ext", "echo", "x")).toEqual({ failed: "core says no" });
+  });
+});
+
+describe("bar", () => {
+  let root: Root;
+  let host: Host;
+  beforeAll(async () => {
+    root = new Root({
+      ext: {
+        "index.ts": `
+import { bar, settings } from "${API}";
+let shown = 0;
+const tick = setInterval(() => {}, 1000);
+export default {
+  palettes: { p: { list: () => [], pick: () => {} } },
+  bar: {
+    a: {
+      render: (ctx) => ({ icon: "x", title: \`\${settings.get().greeting} \${ctx.reason}\`, badge: 3, menu: [{ type: "item", id: "one", title: "One" }], shown }),
+      onAction: (action, ctx) => {
+        if (action === "throw") throw new Error("nope");
+        if (action === "view") return { view: { tree: { type: "text", value: "v" }, actions: [{ id: "pal:x", title: "bad" }] } };
+        return { action, ctx };
+      },
+      onOpen: (ctx) => ({ open: "https://x", ctx }),
+      onShown: () => { shown++; },
+    },
+    b: { render: () => ({ hidden: true }) },
+    echo: { render: (ctx) => ctx.item },
+    push: { render: async () => { await bar.update("push", { title: "pushed" }); await bar.refresh("push"); return { title: "p" }; } },
+    badpush: { render: async () => { try { await bar.update("badpush", { title: "x".repeat(65) }); } catch (e) { return { title: e.message }; } return {}; } },
+  },
+  dispose: () => { clearInterval(tick); console.log("disposed"); },
+};`,
+        "pal.json": manifest("ext", { settings: [{ kind: "text", id: "greeting", label: "G", default: "hi" }], bar: { a: { title: "A", description: "the a", refresh: { every: 60, on: ["show"] } }, ghost: { title: "Ghost" } } }),
+      },
+      plain: { "index.ts": simpleExt("plain") },
+    });
+    host = await Host.start({ roots: [root.dir] });
+  });
+  afterAll(() => { host.kill(); root.rm(); });
+
+  test("hello and extension/loaded carry the manifest's bar entries merged with the code's keys; a manifest-only id has source: false", async () => {
+    const expected: BarMeta[] = [
+      { id: "a", title: "A", description: "the a", refresh: { every: 60, on: ["show"] }, source: true },
+      { id: "ghost", title: "Ghost", source: false },
+      { id: "b", title: "b", source: true },
+      { id: "echo", title: "echo", source: true },
+      { id: "push", title: "push", source: true },
+      { id: "badpush", title: "badpush", source: true },
+    ];
+    expect(host.loaded().find((l) => l.extension === "ext")!.bar).toEqual(expected);
+    const h = await host.hello();
+    expect(h.extensions.find((e) => e.name === "ext")!.bar).toEqual(expected);
+    expect(h.extensions.find((e) => e.name === "plain")!.bar).toEqual([]);
+    expect(host.loaded().find((l) => l.extension === "plain")!.bar).toEqual([]);
+  });
+
+  test("bar/render answers the item, with ctx and the extension's settings in scope", async () => {
+    expect(await host.render("ext", "a")).toEqual({ icon: "x", title: "hi load", badge: 3, menu: [{ type: "item", id: "one", title: "One" }], shown: 0 } as BarItem);
+    expect((await host.render("ext", "a", { reason: "show", anchor: "menubar" })).title).toBe("hi show");
+    expect(await host.render("ext", "b")).toEqual({ hidden: true });
+    expect(await host.request("bar/render", { extension: "ext", id: "a" })).toMatchObject({ title: "hi load" });
+  });
+
+  test("an unknown item, a manifest-only one, or an unknown extension is an error reply", async () => {
+    expect((await host.call("bar/render", { extension: "ext", id: "nope", ctx: { reason: "load" } })).error).toBe("no bar item ext/nope");
+    expect((await host.call("bar/render", { extension: "ext", id: "ghost", ctx: { reason: "load" } })).error).toBe("no bar item ext/ghost");
+    expect((await host.call("bar/render", { extension: "none", id: "a", ctx: { reason: "load" } })).error).toBe("no extension none");
+    expect((await host.call("bar/action", { extension: "ext", id: "nope", action: "x", ctx: { reason: "open" } })).error).toBe("no bar item ext/nope");
+  });
+
+  test("the limits: title, segments, menu nodes, submenu depth, pal: action ids, a { view } menu, badge, progress", async () => {
+    const refused = async (item: unknown) => (await host.call("bar/render", { extension: "ext", id: "echo", ctx: { reason: "load", item } })).error;
+    expect(await refused({ title: "x".repeat(65) })).toBe("ext/echo: render: title longer than 64 chars");
+    expect(await refused({ title: "x".repeat(64) })).toBeUndefined();
+    expect(await refused({ segments: Array.from({ length: 9 }, (_, i) => ({ id: `s${i}` })) })).toMatch(/more than 8 segments/);
+    expect(await refused({ segments: [{ id: "s" }, { id: "s" }] })).toMatch(/segment id "s" twice/);
+    expect(await refused({ menu: Array.from({ length: 65 }, (_, i) => ({ type: "item", id: `i${i}`, title: "x" })) })).toMatch(/more than 64 menu nodes/);
+    expect(await refused({ menu: Array.from({ length: 64 }, (_, i) => ({ type: "item", id: `i${i}`, title: "x" })) })).toBeUndefined();
+    const nest = (depth: number): unknown => (depth === 0 ? { type: "item", id: "leaf", title: "l" } : { type: "submenu", title: `s${depth}`, children: [nest(depth - 1)] });
+    expect(await refused({ menu: [nest(3)] })).toBeUndefined();
+    expect(await refused({ menu: [nest(4)] })).toMatch(/nested deeper than 3/);
+    expect(await refused({ menu: [{ type: "section", title: "S", children: [{ type: "item", id: "x", title: "x", action: "pal:settings" }] }] })).toMatch(/"pal:settings" is the shell's/);
+    expect(await refused({ menu: [{ type: "item", id: "pal:x", title: "x" }] })).toMatch(/"pal:x" is the shell's/);
+    expect(await refused({ menu: [{ type: "item", id: "d", title: "x" }, { type: "separator" }, { type: "item", id: "d", title: "y" }] })).toMatch(/menu id "d" twice/);
+    expect(await refused({ menu: [{ type: "row", id: "d" }] })).toMatch(/menu\/0 is not a menu node/);
+    expect(await refused({ menu: { view: { tree: { type: "text", value: "v" }, actions: [{ id: "pal:x", title: "b" }] } } })).toMatch(/menu view: action id "pal:x"/);
+    expect(await refused({ menu: { view: { tree: { type: "text", value: "v" }, actions: [] } } })).toBeUndefined();
+    expect(await refused({ menu: { palette: "" } })).toMatch(/menu palette must be a name/);
+    expect(await refused({ menu: { palette: "p", extension: "ext", args: { n: 1 } } })).toBeUndefined();
+    expect(await refused({ menu: "nodes" })).toMatch(/menu must be nodes/);
+    expect(await refused({ badge: "x" })).toMatch(/badge must be a number or "dot"/);
+    expect(await refused({ badge: "dot", progress: 0.5, color: "amber", refresh: 30 })).toBeUndefined();
+    expect(await refused({ progress: 2 })).toMatch(/progress must be 0..1/);
+    expect(await refused({ color: "chartreuse" })).toMatch(/unknown color/);
+    expect(await refused(null)).toMatch(/not an object/);
+  });
+
+  test("bar/action and bar/open reach the handlers with the action and ctx; a throw is an error reply; a bad effect is refused; no handler answers {}", async () => {
+    expect(await host.barAction("ext", "a", "one", { reason: "open", anchor: "sketchybar" })).toEqual({ action: "one", ctx: { reason: "open", anchor: "sketchybar" } });
+    expect((await host.call("bar/action", { extension: "ext", id: "a", action: "throw", ctx: { reason: "open" } })).error).toBe("nope");
+    expect((await host.call("bar/action", { extension: "ext", id: "a", action: "view", ctx: { reason: "open" } })).error).toMatch(/action view view: action id "pal:x"/);
+    expect(await host.barAction("ext", "b", "x")).toEqual({});
+    expect(await host.barOpen("ext", "a", { reason: "open", anchor: "hotkey" })).toEqual({ open: "https://x", ctx: { reason: "open", anchor: "hotkey" } });
+    expect(await host.barOpen("ext", "b")).toEqual({});
+  });
+
+  test("bar/shown is a notification: no reply, the item's onShown runs", async () => {
+    const before = host.notifications.length;
+    host.barShown("ext", "a");
+    host.barShown("ext", "nope");
+    await host.untilStderr("bar/shown failed: no bar item ext/nope");
+    expect((await host.render("ext", "a") as BarItem & { shown: number }).shown).toBe(1);
+    expect(host.notifications.length).toBe(before);
+    expect(host.garbage).toEqual([]);
+  });
+
+  test("bar.update and bar.refresh reach the core with the extension and id; a bad push is refused in the SDK", async () => {
+    expect(await host.render("ext", "push")).toEqual({ title: "p" });
+    expect(host.coreCalls.filter((c) => c.method.startsWith("bar."))).toEqual([
+      { method: "bar.update", params: { extension: "ext", id: "push", item: { title: "pushed" } } },
+      { method: "bar.refresh", params: { extension: "ext", id: "push" } },
+    ]);
+    expect(await host.render("ext", "badpush")).toEqual({ title: "bar.update badpush: title longer than 64 chars" });
+    expect(host.updates("ext", "badpush")).toEqual([]);
+  });
+
+  test("hot reload disposes the resident module first and announces the bar entries again", async () => {
+    const reloaded = host.next("extension/loaded", (p) => p.extension === "ext");
+    root.write("ext", "index.ts", `export default { palettes: { p: { list: () => [], pick: () => {} } }, bar: { a: { render: () => ({ title: "again" }) } } };`);
+    expect(((await reloaded).params as any).bar).toEqual([{ id: "a", title: "A", description: "the a", refresh: { every: 60, on: ["show"] }, source: true }, { id: "ghost", title: "Ghost", source: false }]);
+    expect(host.stderr).toContain("disposed");
+    expect(await host.render("ext", "a")).toEqual({ title: "again" });
+    expect((await host.call("bar/render", { extension: "ext", id: "b", ctx: { reason: "load" } })).error).toBe("no bar item ext/b");
   });
 });
 

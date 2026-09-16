@@ -14,5 +14,8 @@
   ],
   "palettes": {
     "otp": { "description": "Codes from the last day of messages, Today and Earlier." }
+  },
+  "bar": {
+    "latest-code": { "title": "Latest code", "description": "The newest verification code on the strip for a minute after it arrives; a click copies it.", "refresh": { "every": 10 } }
   }
 }

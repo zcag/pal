@@ -1,12 +1,12 @@
 // A `View` (protocol.ts) checked before it leaves the host, so the UI only
-// ever sees a tree it can draw (and a `Form`, at the end, likewise): a node
+// ever sees a tree it can draw (a `Form` and a `BarItem` likewise): a node
 // count and depth it can lay out in one frame, action ids that cannot
 // shadow the shell's, image sources it may load. A node of an unknown type
 // is left in (the UI skips it, so an older app still draws the rest); a
 // tree over the limits is an error the extension sees, since a silently
 // trimmed board would mislead. The host runs these on every answer; an
 // extension's own tests can run them too (`checkView(render(state))`).
-import type { Form, View, ViewNode } from "./protocol.ts";
+import type { BarItem, BarMenu, BarMenuNode, Form, View, ViewNode } from "./protocol.ts";
 
 /** Nodes in one tree: a board is tens, a table hundreds; past this the UI would spend the frame on layout. */
 export const MAX_NODES = 2000;
@@ -82,4 +82,98 @@ export function checkForm(f: unknown, where = "form"): Form {
     for (const k of Object.keys(form.errors)) if (!ids.has(k)) throw new Error(`${where}: an error for "${k}", which is no field`);
   }
   return form;
+}
+
+/** An `Effect` answered by `pick`, `onAction` or `onOpen`: a `view` or `form` in it is checked like a direct answer, since the UI draws it the same way. Returns the effect untouched. */
+export function checkEffect<T>(r: T, where: string): T {
+  if (r && typeof r === "object") {
+    const e = r as { view?: unknown; form?: unknown };
+    if (e.view !== undefined) checkView(e.view, `${where} view`);
+    if (e.form !== undefined) checkForm(e.form, `${where} form`);
+  }
+  return r;
+}
+
+// ---- bar items --------------------------------------------------------------
+
+/** `BarItem.title` at most this long: the menu bar has no truncation of its own. */
+export const MAX_BAR_TITLE = 64;
+/** Segments on one item: the prs strip has five. */
+export const MAX_BAR_SEGMENTS = 8;
+/** Nodes in one item's menu, submenus included: a screenful of commands. */
+export const MAX_BAR_MENU_NODES = 64;
+/** Submenus inside submenus: deeper is a palette's job. */
+export const MAX_BAR_SUBMENU_DEPTH = 3;
+
+const BAR_COLORS = new Set(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal", "text", "muted", "accent", "destructive"]);
+const BAR_NODE_TYPES = new Set(["item", "section", "submenu", "separator"]);
+
+/**
+ * A `BarItem` (protocol.ts) checked before it leaves the host, on every
+ * `render` answer and every `bar.update`: the title, segment and menu
+ * limits above, action ids that cannot shadow the shell's, a `{ view }`
+ * menu through `checkView`. Throws with the place and the reason; returns
+ * the item untouched.
+ */
+export function checkBarItem(v: unknown, where = "bar"): BarItem {
+  if (!v || typeof v !== "object") throw new Error(`${where}: not an object`);
+  const item = v as BarItem;
+  if (item.title !== undefined && typeof item.title !== "string") throw new Error(`${where}: title must be a string`);
+  if (item.title && item.title.length > MAX_BAR_TITLE) throw new Error(`${where}: title longer than ${MAX_BAR_TITLE} chars`);
+  if (item.badge !== undefined && item.badge !== "dot" && !(typeof item.badge === "number" && Number.isFinite(item.badge))) throw new Error(`${where}: badge must be a number or "dot"`);
+  if (item.color !== undefined && !BAR_COLORS.has(item.color)) throw new Error(`${where}: unknown color "${item.color}"`);
+  if (item.progress !== undefined && !(typeof item.progress === "number" && item.progress >= 0 && item.progress <= 1)) throw new Error(`${where}: progress must be 0..1`);
+  if (item.refresh !== undefined && !(typeof item.refresh === "number" && item.refresh > 0)) throw new Error(`${where}: refresh must be seconds > 0`);
+  if (item.segments !== undefined) {
+    if (!Array.isArray(item.segments)) throw new Error(`${where}: segments must be an array`);
+    if (item.segments.length > MAX_BAR_SEGMENTS) throw new Error(`${where}: more than ${MAX_BAR_SEGMENTS} segments`);
+    const ids = new Set<string>();
+    for (const s of item.segments) {
+      if (!s || typeof s.id !== "string" || !s.id) throw new Error(`${where}: a segment has no id`);
+      if (ids.has(s.id)) throw new Error(`${where}: segment id "${s.id}" twice`);
+      ids.add(s.id);
+      if (s.color !== undefined && !BAR_COLORS.has(s.color)) throw new Error(`${where}: segment "${s.id}" has an unknown color "${s.color}"`);
+    }
+  }
+  if (item.menu !== undefined) checkBarMenu(item.menu, where);
+  return item;
+}
+
+function checkBarMenu(m: BarMenu, where: string) {
+  if (Array.isArray(m)) {
+    let count = 0;
+    const ids = new Set<string>();
+    const walk = (nodes: BarMenuNode[], depth: number, path: string) => {
+      if (!Array.isArray(nodes)) throw new Error(`${where}: ${path} children must be an array`);
+      nodes.forEach((n, i) => {
+        const p = `${path}/${i}`;
+        if (!n || typeof n !== "object" || !BAR_NODE_TYPES.has(n.type)) throw new Error(`${where}: ${p} is not a menu node`);
+        if (++count > MAX_BAR_MENU_NODES) throw new Error(`${where}: more than ${MAX_BAR_MENU_NODES} menu nodes`);
+        if (n.type === "item") {
+          if (typeof n.id !== "string" || !n.id) throw new Error(`${where}: ${p} has no id`);
+          if (typeof n.title !== "string") throw new Error(`${where}: ${p} has no title`);
+          if (ids.has(n.id)) throw new Error(`${where}: menu id "${n.id}" twice`);
+          ids.add(n.id);
+          const action = n.action ?? n.id;
+          if (action.startsWith(SHELL_PREFIX)) throw new Error(`${where}: action id "${action}" is the shell's (${SHELL_PREFIX} is reserved)`);
+        } else if (n.type === "section") {
+          walk(n.children, depth, p);
+        } else if (n.type === "submenu") {
+          if (typeof n.title !== "string") throw new Error(`${where}: ${p} submenu has no title`);
+          if (depth + 1 > MAX_BAR_SUBMENU_DEPTH) throw new Error(`${where}: ${p} submenus nested deeper than ${MAX_BAR_SUBMENU_DEPTH}`);
+          walk(n.children, depth + 1, p);
+        }
+      });
+    };
+    walk(m, 0, "menu");
+    return;
+  }
+  if (!m || typeof m !== "object") throw new Error(`${where}: menu must be nodes, { palette } or { view }`);
+  if ("palette" in m) {
+    if (typeof m.palette !== "string" || !m.palette) throw new Error(`${where}: menu palette must be a name`);
+    if (m.extension !== undefined && typeof m.extension !== "string") throw new Error(`${where}: menu extension must be a name`);
+    return;
+  }
+  if ("view" in m) { checkView(m.view, `${where} menu view`); return; }
+  throw new Error(`${where}: menu must be nodes, { palette } or { view }`);
 }

@@ -45,9 +45,10 @@ export type Detail = { markdown?: string; metadata?: Metadata[] };
 /**
  * A glyph/emoji/hex string, `{ app }` for an application's own artwork (the
  * `.app` bundle or `.desktop` file), or `{ image }` for a url the webview can
- * load (an `icon://` one from `api.ts`, or any http(s) url).
+ * load (an `icon://` one from `api.ts`, or any http(s) url). `template` is
+ * for a bar item on the macOS menu bar: the image is a mask the system tints.
  */
-export type Icon = string | { app: string } | { image: string };
+export type Icon = string | { app: string } | { image: string; template?: boolean };
 
 /**
  * One row, what `list` answers. Only `id` and `name` are required. The
@@ -358,14 +359,99 @@ export type ViewPalette = PaletteBase & {
  */
 export type Palette = ListPalette | ViewPalette;
 
+// ---- bar: glanceable state on the menu bar / sketchybar --------------------
+// An extension puts an item on the bar (`docs/design/bar.md`): one `render`
+// answers the item's whole state, the core diffs it and draws it on every
+// target, and a click opens pal's own popover (a menu level, a palette, a
+// view) or asks the extension for an Effect. `view.ts` (`checkBarItem`)
+// checks an item before it goes out, as `checkView` does a tree.
+
+/** What an item may be coloured: the tag palette plus the bar's own text roles. */
+export type BarColor = TagColor | "text" | "muted" | "accent" | "destructive";
+
+/** One coloured run of a strip (`BarItem.segments`): a small glyph and/or text with its own colour. */
+export type BarSegment = { id: string; icon?: string; text?: string; color?: BarColor; tooltip?: string };
+
 /**
- * The default export of an extension's `index.ts`: its palettes by key.
- * The key is the palette's id in the config file (`[palettes.<id>]`), the
- * manifest (`Manifest.palettes`) and an `Effect.push`. Write it as
- * `export default defineExtension({ palettes: { ... } })`, or with
- * `satisfies Extension`.
+ * What `render` answers: the item's whole state. The core diffs it against
+ * the last one and touches only what changed on each target.
  */
-export type Extension = { palettes: Record<string, Palette> };
+export type BarItem = {
+  /** The rule: true takes no space, on every target. `render` keeps running. */
+  hidden?: boolean;
+  /** A glyph (drawn from the bundled Nerd Font), an emoji, `{ image }` (`icon://`, `data:image/`), `{ app }`. `Icon`'s image form gains `template?: boolean`. */
+  icon?: Icon;
+  /** Text beside the icon: a count, a code, a track. Short; the menu bar has no truncation of its own. */
+  title?: string;
+  /** Extra runs after the title, each its own colour: prs' four state counts. Menu bar: joined into the title text. */
+  segments?: BarSegment[];
+  /** A count, or a dot: drawn as a small red mark on the icon (menu bar), a coloured count after the label (sketchybar). */
+  badge?: number | "dot";
+  /** Tints the icon and the title. Menu bar: the icon is a template image (system tint) unless a colour is set. */
+  color?: BarColor;
+  /** Draws the item as an alarm (destructive colour, non-template icon) and the popover's title bar red. */
+  urgent?: boolean;
+  /** The number could not be refreshed: muted, tooltip says so. Set by the core on a failed render too. */
+  stale?: boolean;
+  /** 0..1, drawn as a thin fill under the icon (menu bar image) or a rule of box-drawing characters (sketchybar). */
+  progress?: number;
+  tooltip?: string;
+  /** Seconds until the next `render`, this once (prs: 60 while checks run, else the manifest's `every`). */
+  refresh?: number;
+  /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */
+  menu?: BarMenu;
+};
+
+/**
+ * Always pal's popover, on every target. `nodes`: a menu level (rows with
+ * shortcuts, ticks, sections, submenus). `{ palette }`: that palette level
+ * (any extension's), `args` as for `Effect.push`. `{ view }`: the tree as a
+ * view level.
+ */
+export type BarMenu = BarMenuNode[] | { palette: string; extension?: string; args?: unknown } | { view: View };
+
+export type BarMenuNode =
+  /** A row; `action` (default `id`) reaches `onAction`. `checked` draws a tick, `disabled` greys it. */
+  | { type: "item"; id: string; title: string; subtitle?: string; icon?: Icon; shortcut?: string; checked?: boolean; disabled?: boolean; style?: "destructive"; action?: string }
+  /** A captioned group; separators around it are the renderer's. */
+  | { type: "section"; title?: string; children: BarMenuNode[] }
+  | { type: "submenu"; title: string; icon?: Icon; children: BarMenuNode[] }
+  | { type: "separator" };
+
+/** When the core asks `render` again. `every` is seconds (min 10, like Raycast's interval); `on` adds triggers. */
+export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "focus" | "minute")[] };
+
+/** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh };
+
+/** Why `render` runs, and what a popover-opening click carried. */
+export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli" };
+
+export type BarSource = {
+  render(ctx: BarCtx): BarItem | Promise<BarItem>;
+  /** A menu node was picked (its `action`), or a segment clicked (`segment:<id>`). Any Effect; `keep` re-renders the item. */
+  onAction?(action: string, ctx: BarCtx): Effect | void | Promise<Effect | void>;
+  /** A click on an item without `menu`. */
+  onOpen?(ctx: BarCtx): Effect | void | Promise<Effect | void>;
+  /** The popover opened on the item (a peek counts; `bar/shown`): warm the cache the palette or view will read. */
+  onShown?(ctx: BarCtx): void | Promise<void>;
+};
+
+/** What `hello` and `extension/loaded` (host to core) say about a bar item: the manifest's entry with its id, and whether the code has a `BarSource` for it (false: an error row in Settings, never rendered). */
+export type BarMeta = ManifestBar & { id: string; source: boolean };
+
+/**
+ * The default export of an extension's `index.ts`: its palettes by key,
+ * and its bar items by id (`bar.<id>` in the manifest). The key is the
+ * palette's id in the config file (`[palettes.<id>]`), the manifest
+ * (`Manifest.palettes`) and an `Effect.push`. Write it as
+ * `export default defineExtension({ palettes: { ... } })`, or with
+ * `satisfies Extension`. `dispose` runs before the extension is reloaded
+ * or removed: clear the intervals and watchers a bar item runs, since the
+ * old module instance stays resident and what it left running would keep
+ * pushing.
+ */
+export type Extension = { palettes: Record<string, Palette>; bar?: Record<string, BarSource>; dispose?(): void | Promise<void> };
 
 // ---- manifest (pal.json) -------------------------------------------------
 // Read by the host without running the extension's code, so the settings
@@ -414,6 +500,8 @@ export type Manifest = {
   settings?: SettingSpec[];
   /** Per-palette settings, `[palettes.<id>].settings` in the file, keyed by the palette's key in `Extension.palettes`. */
   palettes?: Record<string, ManifestPalette>;
+  /** The bar items, keyed by their id in `Extension.bar`: title and refresh schedule, readable without the code. */
+  bar?: Record<string, ManifestBar>;
 };
 
 /** Resolved values one extension sees: manifest defaults with the file's keys on top. */
