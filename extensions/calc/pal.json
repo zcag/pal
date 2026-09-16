@@ -1,13 +1,15 @@
 {
   "name": "calc",
   "title": "Calculator",
-  "description": "Evaluates what you type: arithmetic, functions, units and conversions, percent-of.",
-  "version": "0.1.0",
+  "description": "Evaluates what you type: arithmetic, units, currencies, percentages, dates and time zones.",
+  "version": "0.2.0",
   "icon": "=",
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "number", "id": "precision", "label": "Precision", "description": "Significant digits in the result.", "min": 2, "max": 20, "default": 14 }
+    { "kind": "number", "id": "precision", "label": "Precision", "description": "Significant digits in a result; integers are never rounded, units and rates show at most 6.", "min": 2, "max": 20, "default": 10 },
+    { "kind": "text", "id": "locale", "label": "Locale", "description": "How numbers and dates are written (en: 1,234.5; tr: 1.234,5; de: 1.234,5). Also how a typed number is read.", "default": "en" },
+    { "kind": "text", "id": "home_currency", "label": "Home currency", "description": "What a bare amount (12 usd) converts to. Empty: the time zone's currency.", "placeholder": "TRY", "default": "" }
   ],
   "palettes": {
     "calc": { "description": "Type an expression; the result is the row." }
