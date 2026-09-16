@@ -284,3 +284,13 @@ Things an agent could not decide alone; each waits for a call.
   `focus <kitty id>`, `minimize <id>`, `list` (shows `min`), `focus <id>`
   (restores); `cargo run -q -p pal-core --example system -- run show-desktop`
   twice.
+- **Contradictions the docs pass found** (2026-09-16 06:30), to fix in code,
+  not paper over: clipboard `max_entries`/`max_age_days` mean list limits in
+  the manifest but recorder retention in `app/src-tauri/src/clipboard.rs`
+  (an explicit `max_age_days = 0` deletes every unpinned entry); an explicit
+  `exclude_apps = []` drops the Keychain/Passwords protection the absent-key
+  default gives; `alias` is an extra keyword on the palette row, not a jump,
+  while the schema doc says jump; extension settings receive `keychain:`
+  references unresolved (nothing calls `secrets::resolve`); the settings
+  window's cmd+w checks `metaKey` only, so Super+W on Linux; the deb does not
+  declare `libayatana-appindicator3-1`.
