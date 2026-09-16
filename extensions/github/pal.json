@@ -1,0 +1,24 @@
+{
+  "name": "github",
+  "title": "GitHub",
+  "description": "Your pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.",
+  "version": "0.1.0",
+  "icon": "⎇",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "secret", "id": "token", "label": "Token", "description": "A personal access token (repo, notifications, read:org). Leave empty to use the gh CLI's login.", "placeholder": "ghp_...", "default": "" },
+    { "kind": "text", "id": "default_org", "label": "Organisation", "description": "An organisation whose recently pushed repositories are listed, and an owner the Create Repository form offers.", "placeholder": "acme", "default": "" },
+    { "kind": "path", "id": "repos_root", "label": "Clones folder", "pick": "folder", "description": "Where your clones live (<root>/<name> or <root>/<owner>/<name>): enables Checkout on a pull request and Open in editor on a repository.", "placeholder": "~/proj", "default": "" },
+    { "kind": "select", "id": "clone_protocol", "label": "Clone URL", "description": "What Copy clone URL copies.", "options": [{ "id": "ssh", "title": "SSH (git@github.com:...)" }, { "id": "https", "title": "HTTPS" }], "default": "ssh" },
+    { "kind": "number", "id": "merged_days", "label": "Merged within", "description": "How far back the Merged list of Pull Requests reaches.", "min": 1, "max": 90, "unit": "days", "default": 7 },
+    { "kind": "select", "id": "merge_method", "label": "Merge method", "description": "How the Merge action merges.", "options": [{ "id": "merge", "title": "Merge commit" }, { "id": "squash", "title": "Squash" }, { "id": "rebase", "title": "Rebase" }], "default": "merge" }
+  ],
+  "palettes": {
+    "prs": { "title": "Pull Requests", "description": "Yours, the ones waiting on your review, and what merged lately.", "ttl": 300 },
+    "issues": { "title": "Issues", "description": "Assigned to you, mentioning you, opened by you; Create Issue.", "ttl": 300 },
+    "repos": { "title": "Repositories", "description": "Yours, starred, and your organisation's recently pushed.", "ttl": 300 },
+    "notifications": { "title": "Notifications", "description": "Unread, by reason; opening one marks it read.", "ttl": 60 },
+    "search": { "title": "Search GitHub", "description": "GitHub's search syntax over issues, pull requests, repositories and users." }
+  }
+}

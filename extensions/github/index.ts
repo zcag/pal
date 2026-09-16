@@ -1,0 +1,689 @@
+// GitHub: five palettes over one client (api.ts) and one data layer
+// (data.ts). Pull Requests, Issues and Repositories are indexed with a
+// five-minute ttl, Notifications is live with a one-minute one, Search is
+// an input palette. Every row's id is stable (`owner/repo#n`,
+// `owner/repo`, `@login`, `thread:<id>`), so a pick after a restart still
+// knows what it is about: the row table is in memory, the cache behind it
+// on disk, and a PR or issue no table knows is fetched by its id.
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { home, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit, run } from "./api.ts";
+import {
+  NOTIF_TTL, TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
+  type Issue, type IssueDetail, type Notification, type PR, type PRDetail, type Repo, type SearchKind, type User,
+} from "./data.ts";
+
+const ICON = { prs: "⎇", issues: "◉", repos: "▤", notifications: "◍", search: "⌕", user: "◯" } as const;
+/** The tag palette's hues as hex, for the state dot a PR or issue row carries. */
+const DOT = { open: "#1a7f37", draft: "#6e7781", merged: "#8250df", closed: "#cf222e", done: "#8250df" } as const;
+const TYPE_GLYPH: Record<string, string> = { PullRequest: ICON.prs, Issue: ICON.issues, Release: "⏏", Discussion: "☰", Commit: "⌾" };
+const REASON: Record<string, string> = { review_requested: "Review requested", mention: "Mentioned", team_mention: "Mentioned", assign: "Assigned", author: "Your threads", comment: "Comments", subscribed: "Subscribed", state_change: "State changed", ci_activity: "CI", security_alert: "Security" };
+const REASON_ORDER = ["Review requested", "Mentioned", "Assigned", "Your threads", "Comments", "State changed", "CI", "Security", "Subscribed"];
+const CHECKOUT_MS = 60_000;
+const SEARCH_WAIT_MS = 300;
+const CREATE = "create", SUMMARY = "summary";
+
+// ---- rows the palettes share ------------------------------------------------
+
+const hint = (id: string, name: string, subtitle?: string, actions: Action[] = []): Item => ({ id: `hint:${id}`, name, subtitle, icon: "ⓘ", actions });
+
+/** What a failed listing shows instead of rows: how to sign in, when the limit resets, or what went wrong. */
+function failure(e: unknown): Item[] {
+  if (e instanceof AuthError) {
+    return [e.ghPresent
+      ? hint("auth", "Sign in to GitHub", "Run `gh auth login` in a terminal, or set a token under Settings, Extensions, GitHub", [{ id: "open", title: "Open token settings" }])
+      : hint("auth", "Sign in to GitHub", "Install the gh CLI and run `gh auth login`, or set a token under Settings, Extensions, GitHub", [{ id: "open", title: "Open token settings" }])];
+  }
+  if (e instanceof ApiError && e.rateLimited) return [hint("limit", "GitHub rate limit reached", `Resets at ${e.resetAt!.toLocaleTimeString()}`)];
+  if (e instanceof ApiError && e.status === 401) return [hint("auth", "GitHub rejected the token", e.message, [{ id: "open", title: "Open token settings" }])];
+  log(e instanceof Error ? e.message : String(e));
+  return [hint("error", "GitHub did not answer", e instanceof Error ? e.message : String(e))];
+}
+
+const TOKEN_URL = "https://github.com/settings/tokens/new?scopes=repo,notifications,read:org&description=pal";
+const pickHint = (id: string): Effect | void => (id.startsWith("hint:auth") ? { open: TOKEN_URL } : undefined);
+
+const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
+
+const short = (s: string, n = 100) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+const when = (iso: string) => new Date(iso).toLocaleDateString();
+const repoLink = (repo: string): Metadata => ({ label: "Repository", link: { text: repo, href: `https://github.com/${repo}` } });
+const labelTags = (labels: { name: string }[]) => labels.map((l) => ({ text: l.name, color: "grey" }));
+
+/** A local clone under `repos_root`: `<root>/<name>` or `<root>/<owner>/<name>`, whichever is there. */
+function clonePath(repo: string): string | undefined {
+  const root = conf().repos_root?.trim();
+  if (!root) return;
+  const [owner, name] = repo.split("/");
+  return [join(home(root), name), join(home(root), owner, name)].find((p) => existsSync(p));
+}
+
+/** The body, then the latest comments and reviews newest last, so the pane reads like the page. */
+function thread(body: string, entries: { author: string; at: string; body: string; kind: string }[]): string {
+  const parts = [body.trim() || "_No description._"];
+  for (const e of entries.slice().sort((a, b) => a.at.localeCompare(b.at)).slice(-5)) parts.push("---", `**${e.author}** ${e.kind} · ${when(e.at)}`, e.body.trim() || "_(no text)_");
+  return parts.join("\n\n");
+}
+
+// ---- pull requests --------------------------------------------------------
+
+const prTable = new Map<string, PR>();
+
+function prAccessories(pr: PR): Accessory[] {
+  const a: Accessory[] = [];
+  if (pr.state === "merged") a.push({ tag: "merged", color: "violet" });
+  else if (pr.state === "closed") a.push({ tag: "closed", color: "red" });
+  else {
+    if (pr.draft) a.push({ tag: "draft", color: "grey" });
+    if (pr.checks === "SUCCESS") a.push({ tag: "checks ✓", color: "green" });
+    else if (pr.checks === "FAILURE" || pr.checks === "ERROR") a.push({ tag: "checks ✗", color: "red" });
+    else if (pr.checks === "PENDING" || pr.checks === "EXPECTED") a.push({ tag: "checks …", color: "amber" });
+    if (pr.review === "APPROVED") a.push({ tag: "approved", color: "green" });
+    else if (pr.review === "CHANGES_REQUESTED") a.push({ tag: "changes requested", color: "red" });
+    else if (pr.review === "REVIEW_REQUIRED" && !pr.draft) a.push({ tag: "review", color: "amber" });
+    if (pr.mergeable === "CONFLICTING") a.push({ tag: "conflicts", color: "red" });
+  }
+  a.push({ date: pr.updatedAt });
+  return a;
+}
+
+function prActions(pr: PR): Action[] {
+  const open = pr.state === "open";
+  return [
+    { id: "open", title: "Open" },
+    { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+    ...(open && hasGh() && clonePath(pr.repo) ? [{ id: "checkout", title: "Checkout branch", shortcut: "cmd+shift+o" }] : []),
+    { id: "branch", title: "Copy branch name", shortcut: "cmd+shift+b" },
+    { id: "checks", title: "Open checks", shortcut: "cmd+shift+k" },
+    { id: "files", title: "Open files changed", shortcut: "cmd+shift+f" },
+    { id: "ref", title: "Copy reference" },
+    ...(open && pr.draft ? [{ id: "ready", title: "Mark ready for review", shortcut: "cmd+shift+r" }] : []),
+    ...(open && !pr.draft && pr.mergeable === "MERGEABLE" ? [{ id: "merge", title: "Merge", shortcut: "cmd+shift+m", confirm: `Merge #${pr.number} into ${pr.base}?` }] : []),
+  ];
+}
+
+const prState = (pr: PR) => (pr.state === "merged" ? { text: "merged", color: "violet" } : pr.state === "closed" ? { text: "closed", color: "red" } : pr.draft ? { text: "draft", color: "grey" } : { text: "open", color: "green" });
+
+/** The pane's metadata: what the row knows, and after the lazy detail (`more`) the checks by name, the reviews and the comment count. */
+function prMetadata(pr: PR, more?: PRDetail): Metadata[] {
+  const approvers = [...new Set(more?.reviews.filter((r) => r.state === "APPROVED").map((r) => r.author) ?? [])];
+  const changers = [...new Set(more?.reviews.filter((r) => r.state === "CHANGES_REQUESTED").map((r) => r.author) ?? [])];
+  return [
+    repoLink(pr.repo),
+    { label: "Author", value: pr.author },
+    { label: "Branch", value: `${pr.head} → ${pr.base}` },
+    { label: "Size", value: `+${pr.additions} −${pr.deletions}` },
+    { label: "State", tags: [prState(pr)] },
+    ...(more ? [more.checks.length ? { label: "Checks", tags: more.checks.map((c) => ({ text: c.name, color: CHECK_COLOR[c.state] })) } : { label: "Checks", value: "none" }] : []),
+    ...(approvers.length ? [{ label: "Approved by", tags: approvers.map((text) => ({ text, color: "green" })) }] : []),
+    ...(changers.length ? [{ label: "Changes requested by", tags: changers.map((text) => ({ text, color: "red" })) }] : []),
+    ...(pr.reviewers.length ? [{ label: "Review requested", tags: pr.reviewers.map((text) => ({ text, color: "grey" })) }] : []),
+    ...(pr.labels.length ? [{ label: "Labels", tags: labelTags(pr.labels) }] : []),
+    ...(more ? [{ label: "Comments", value: String(more.comments) }] : []),
+    { label: "Opened", value: when(pr.createdAt) },
+    { label: "Updated", value: when(pr.updatedAt) },
+  ];
+}
+const CHECK_COLOR = { ok: "green", bad: "red", run: "amber", skip: "grey" } as const;
+
+function prRow(pr: PR, section?: string): Item {
+  prTable.set(pr.id, pr);
+  return {
+    id: pr.id,
+    name: pr.title,
+    subtitle: `${pr.repo} #${pr.number}`,
+    icon: pr.state === "merged" ? DOT.merged : pr.state === "closed" ? DOT.closed : pr.draft ? DOT.draft : DOT.open,
+    keywords: [pr.repo.split("/")[1], pr.repo, `#${pr.number}`, String(pr.number), pr.author, pr.head],
+    url: pr.url,
+    section,
+    accessories: prAccessories(pr),
+    detail: { metadata: prMetadata(pr) },
+    actions: prActions(pr),
+  };
+}
+
+const REVIEW_WORD: Record<string, string> = { APPROVED: "approved", CHANGES_REQUESTED: "requested changes", COMMENTED: "reviewed", DISMISSED: "review dismissed" };
+
+async function prPane(pr: PR): Promise<Detail> {
+  const s = splitId(pr.id)!;
+  const d = await prDetail(s.owner, s.name, s.number);
+  const entries = [
+    ...d.latest.map((c) => ({ ...c, kind: "commented" })),
+    ...d.reviews.filter((r) => r.body.trim()).map((r) => ({ author: r.author, at: r.at, body: r.body, kind: REVIEW_WORD[r.state] ?? "reviewed" })),
+  ];
+  return { markdown: thread(d.body, entries), metadata: prMetadata(pr, d) };
+}
+
+async function findPr(id: string): Promise<PR> {
+  const have = prTable.get(id);
+  if (have) return have;
+  const pr = await findPR(id);
+  if (!pr) throw new Error(`no pull request ${id}`);
+  prTable.set(id, pr);
+  return pr;
+}
+
+async function pickPR(pr: PR, action?: string): Promise<Effect> {
+  switch (action) {
+    case "copy": return { copy: pr.url };
+    case "branch": return { copy: pr.head };
+    case "ref": return { copy: pr.id };
+    case "checks": return { open: `${pr.url}/checks` };
+    case "files": return { open: `${pr.url}/files` };
+    case "checkout": {
+      const dir = clonePath(pr.repo);
+      if (!dir) return failToast("No local clone", `Set repos_root to where ${pr.repo} is checked out`);
+      const r = await run(["gh", "pr", "checkout", String(pr.number)], CHECKOUT_MS, dir);
+      return r.ok ? { hud: `Checked out ${pr.head}` } : failToast("Checkout failed", r.err);
+    }
+    case "ready":
+      try { await markReady(pr); } catch (e) { return failToast("Could not mark ready", e); }
+      forget("prs");
+      return { keep: true, toast: { title: "Ready for review", message: `#${pr.number} ${short(pr.title, 60)}` } };
+    case "merge":
+      try { await mergePR(pr); } catch (e) { return failToast("Merge failed", e); }
+      forget("prs");
+      return { keep: true, toast: { title: "Merged", message: `#${pr.number} ${short(pr.title, 60)}`, style: "success" } };
+    default: return { open: pr.url };
+  }
+}
+
+const PR_FILTERS = [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "reviews", title: "Review requested" }, { id: "merged", title: "Merged" }];
+
+async function prRows(ctx?: Ctx): Promise<Item[]> {
+  const lists = await prs(!!ctx?.refresh);
+  const filter = ctx?.filter ?? "all";
+  const seen = new Set<string>();
+  const rows: Item[] = [];
+  const add = (list: PR[], section: string) => { for (const pr of list) if (!seen.has(pr.id)) { seen.add(pr.id); rows.push(prRow(pr, section)); } };
+  if (filter === "all" || filter === "mine") add(lists.mine, "Mine");
+  if (filter === "all" || filter === "reviews") add(lists.reviews, "Review requested");
+  if (filter === "all" || filter === "merged") add(lists.merged, "Merged");
+  if (!rows.length) return [hint("none", filter === "reviews" ? "No reviews requested" : filter === "merged" ? `Nothing merged in the last ${conf().merged_days || 7} days` : "No open pull requests")];
+  return rows;
+}
+
+// ---- issues ---------------------------------------------------------------
+
+const issueTable = new Map<string, Issue>();
+
+function issueActions(i: Issue): Action[] {
+  return [
+    { id: "open", title: "Open" },
+    { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+    { id: "ref", title: "Copy reference" },
+    ...(i.state === "open" ? [{ id: "close", title: "Close issue", shortcut: "cmd+shift+x", style: "destructive" as const, confirm: `Close #${i.number}?` }] : []),
+  ];
+}
+
+const issueMetadata = (i: Issue, more?: IssueDetail): Metadata[] => [
+  repoLink(i.repo),
+  { label: "Author", value: i.author },
+  { label: "State", tags: [i.state === "open" ? { text: "open", color: "green" } : { text: "closed", color: "violet" }] },
+  ...(i.assignees.length ? [{ label: "Assignees", tags: i.assignees.map((text) => ({ text, color: "grey" })) }] : []),
+  ...(i.labels.length ? [{ label: "Labels", tags: labelTags(i.labels) }] : []),
+  ...(more?.milestone ? [{ label: "Milestone", value: more.milestone }] : []),
+  { label: "Comments", value: String(more?.comments ?? i.comments) },
+  { label: "Opened", value: when(i.createdAt) },
+  { label: "Updated", value: when(i.updatedAt) },
+];
+
+function issueRow(i: Issue, section?: string): Item {
+  issueTable.set(i.id, i);
+  return {
+    id: i.id,
+    name: i.title,
+    subtitle: `${i.repo} #${i.number}`,
+    icon: i.state === "open" ? DOT.open : DOT.done,
+    keywords: [i.repo.split("/")[1], i.repo, `#${i.number}`, String(i.number), i.author, ...i.labels.map((l) => l.name)],
+    url: i.url,
+    section,
+    accessories: [
+      ...(i.state === "closed" ? [{ tag: "closed", color: "violet" }] : []),
+      ...i.labels.slice(0, 2).map((l) => ({ tag: l.name, color: "grey" })),
+      ...(i.comments ? [{ text: `${i.comments} comment${i.comments === 1 ? "" : "s"}` }] : []),
+      { date: i.updatedAt },
+    ],
+    detail: { metadata: issueMetadata(i) },
+    actions: issueActions(i),
+  };
+}
+
+async function issuePane(i: Issue): Promise<Detail> {
+  const s = splitId(i.id)!;
+  const d = await issueDetail(s.owner, s.name, s.number);
+  return { markdown: thread(d.body, d.latest.map((c) => ({ ...c, kind: "commented" }))), metadata: issueMetadata(i, d) };
+}
+
+async function findIss(id: string): Promise<Issue> {
+  const have = issueTable.get(id);
+  if (have) return have;
+  const i = await findIssue(id);
+  if (!i) throw new Error(`no issue ${id}`);
+  issueTable.set(id, i);
+  return i;
+}
+
+async function pickIssue(i: Issue, action?: string): Promise<Effect> {
+  switch (action) {
+    case "copy": return { copy: i.url };
+    case "ref": return { copy: i.id };
+    case "close":
+      try { await closeIssue(i); } catch (e) { return failToast("Could not close", e); }
+      forget("issues");
+      return { keep: true, toast: { title: "Closed", message: `#${i.number} ${short(i.title, 60)}` } };
+    default: return { open: i.url };
+  }
+}
+
+/** Repositories for the create form's select: the ones with recent activity in the lists first, then mine by push date. */
+async function recentRepos(): Promise<string[]> {
+  const out: string[] = [];
+  const add = (r: string) => { if (r && !out.includes(r)) out.push(r); };
+  for (const t of [issueTable, prTable]) for (const r of t.values()) add(r.repo);
+  try { for (const r of await myRepos()) add(r.id); } catch (e) { log(`repos for the form: ${e instanceof Error ? e.message : e}`); }
+  return out.slice(0, 40);
+}
+
+async function issueForm(errors?: Record<string, string>, values?: Record<string, string | boolean>): Promise<Form> {
+  const repos = await recentRepos();
+  return {
+    id: CREATE,
+    title: "Create Issue",
+    fields: [
+      repos.length
+        ? { kind: "select", id: "repo", label: "Repository", options: repos.map((r) => ({ id: r, title: r })), default: String(values?.repo ?? repos[0]), required: true }
+        : { kind: "text", id: "repo", label: "Repository", placeholder: "owner/name", default: String(values?.repo ?? ""), required: true },
+      { kind: "text", id: "title", label: "Title", required: true, default: String(values?.title ?? "") },
+      { kind: "textarea", id: "body", label: "Body", default: String(values?.body ?? ""), description: "Markdown." },
+    ],
+    submit: { id: "save", title: "Create" },
+    errors,
+  };
+}
+
+async function saveIssue(values: Record<string, string | boolean>): Promise<Effect> {
+  const repo = String(values.repo ?? "").trim(), title = String(values.title ?? "").trim(), body = String(values.body ?? "");
+  const errors: Record<string, string> = {};
+  if (!/^[^/\s]+\/[^/\s]+$/.test(repo)) errors.repo = "owner/name";
+  if (!title) errors.title = "Required";
+  if (Object.keys(errors).length) return { form: await issueForm(errors, values) };
+  try {
+    const r = await createIssue(repo, title, body);
+    forget("issues");
+    return { open: r.url, hud: `Created ${repo}#${r.number}` };
+  } catch (e) {
+    return { form: await issueForm({ title: e instanceof Error ? e.message : String(e) }, values) };
+  }
+}
+
+const ISSUE_FILTERS = [{ id: "all", title: "All" }, { id: "assigned", title: "Assigned" }, { id: "mentioned", title: "Mentioned" }, { id: "created", title: "Created" }];
+const createIssueRow: Item = { id: CREATE, name: "Create Issue", subtitle: "A new issue in one of your repositories", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Issue" }] };
+
+async function issueRows(ctx?: Ctx): Promise<Item[]> {
+  const lists = await issues(!!ctx?.refresh);
+  const filter = ctx?.filter ?? "all";
+  const seen = new Set<string>();
+  const rows: Item[] = [createIssueRow];
+  const add = (list: Issue[], section: string) => { for (const i of list) if (!seen.has(i.id)) { seen.add(i.id); rows.push(issueRow(i, section)); } };
+  if (filter === "all" || filter === "assigned") add(lists.assigned, "Assigned");
+  if (filter === "all" || filter === "mentioned") add(lists.mentioned, "Mentioned");
+  if (filter === "all" || filter === "created") add(lists.created, "Created");
+  if (rows.length === 1) rows.push(hint("none", "No open issues", filter === "all" ? "None assigned to you, mentioning you, or opened by you" : undefined));
+  return rows;
+}
+
+// ---- repositories --------------------------------------------------------
+
+const repoTable = new Map<string, Repo>();
+
+const cloneUrl = (r: Repo) => (conf().clone_protocol === "https" ? r.https : r.ssh);
+
+function repoActions(r: Repo): Action[] {
+  const local = clonePath(r.id);
+  return [
+    { id: "open", title: "Open on GitHub" },
+    ...(local ? [{ id: "editor", title: "Open in editor", shortcut: "cmd+e" }, { id: "folder", title: "Open folder", shortcut: "cmd+o" }] : []),
+    { id: "clone", title: "Copy clone URL", shortcut: "cmd+shift+c" },
+    { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+    { id: "name", title: "Copy owner/name" },
+    { id: "issues", title: "Open issues" },
+    { id: "pulls", title: "Open pull requests" },
+  ];
+}
+
+function repoRow(r: Repo, section?: string): Item {
+  repoTable.set(r.id, r);
+  const local = clonePath(r.id);
+  return {
+    id: r.id,
+    name: r.name,
+    subtitle: r.description ? short(r.description, 120) : r.owner,
+    icon: ICON.repos,
+    keywords: [r.id, r.owner, ...(r.language ? [r.language] : [])],
+    url: r.url,
+    section,
+    accessories: [
+      ...(r.private ? [{ tag: "private", color: "amber" }] : []),
+      ...(r.archived ? [{ tag: "archived", color: "grey" }] : []),
+      ...(r.language ? [{ tag: r.language, color: "blue" }] : []),
+      ...(r.stars ? [{ text: `★ ${r.stars}` }] : []),
+      ...(r.pushedAt ? [{ date: r.pushedAt }] : []),
+    ],
+    detail: {
+      markdown: `# ${r.id}\n\n${r.description || "_No description._"}`,
+      metadata: [
+        { label: "Owner", link: { text: r.owner, href: `https://github.com/${r.owner}` } },
+        ...(r.language ? [{ label: "Language", value: r.language }] : []),
+        { label: "Stars", value: String(r.stars) },
+        { label: "Forks", value: String(r.forks) },
+        { label: "Open issues", value: String(r.issues) },
+        { label: "Default branch", value: r.defaultBranch },
+        { label: "Clone", value: cloneUrl(r) },
+        ...(local ? [{ label: "Local clone", value: local }] : []),
+        ...(r.pushedAt ? [{ label: "Pushed", value: when(r.pushedAt) }] : []),
+      ],
+    },
+    actions: repoActions(r),
+  };
+}
+
+const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
+
+async function pickRepo(r: Repo, action?: string): Promise<Effect> {
+  switch (action) {
+    case "editor": {
+      const dir = clonePath(r.id);
+      if (!dir) return failToast("No local clone", `Nothing under repos_root for ${r.id}`);
+      const editor = Bun.which("code");
+      if (!editor) return { open: dir };
+      spawnDetached([editor, dir]);
+      return { hud: `Opened ${r.name} in VS Code` };
+    }
+    case "folder": { const dir = clonePath(r.id); return dir ? { open: dir } : failToast("No local clone", `Nothing under repos_root for ${r.id}`); }
+    case "clone": return { copy: cloneUrl(r) };
+    case "copy": return { copy: r.url };
+    case "name": return { copy: r.id };
+    case "issues": return { open: `${r.url}/issues` };
+    case "pulls": return { open: `${r.url}/pulls` };
+    default: return { open: r.url };
+  }
+}
+
+async function findRepo(id: string): Promise<Repo | undefined> {
+  const have = repoTable.get(id);
+  if (have) return have;
+  for (const rows of await Promise.all([myRepos(), starredRepos()])) for (const r of rows) repoTable.set(r.id, r);
+  return repoTable.get(id);
+}
+
+async function repoForm(errors?: Record<string, string>, values?: Record<string, string | boolean>): Promise<Form> {
+  const org = conf().default_org?.trim();
+  let me = "";
+  try { me = (await viewer()).login; } catch {}
+  const owners = [...(me ? [{ id: me, title: me }] : []), ...(org ? [{ id: org, title: org }] : [])];
+  return {
+    id: CREATE,
+    title: "Create Repository",
+    fields: [
+      ...(owners.length > 1 ? [{ kind: "select" as const, id: "owner", label: "Owner", options: owners, default: String(values?.owner ?? owners[0].id) }] : []),
+      { kind: "text", id: "name", label: "Name", required: true, default: String(values?.name ?? ""), placeholder: "my-repo" },
+      { kind: "text", id: "description", label: "Description", default: String(values?.description ?? "") },
+      { kind: "checkbox", id: "private", label: "Visibility", text: "Private", default: values?.private === undefined ? true : !!values.private },
+    ],
+    submit: { id: "save", title: "Create" },
+    errors,
+  };
+}
+
+async function saveRepo(values: Record<string, string | boolean>): Promise<Effect> {
+  const name = String(values.name ?? "").trim();
+  if (!/^[\w.-]+$/.test(name)) return { form: await repoForm({ name: "Letters, digits, . - _" }, values) };
+  let me = "";
+  try { me = (await viewer()).login; } catch {}
+  const owner = String(values.owner ?? "").trim();
+  try {
+    const r = await createRepo(owner && owner !== me ? owner : undefined, name, String(values.description ?? ""), !!values.private);
+    forget("repos:mine", ...(owner && owner !== me ? [`repos:org:${owner}`] : []));
+    return { open: r.url, hud: `Created ${r.id}` };
+  } catch (e) {
+    return { form: await repoForm({ name: e instanceof Error ? e.message : String(e) }, values) };
+  }
+}
+
+const REPO_FILTERS = [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "starred", title: "Starred" }, { id: "org", title: "Organisation" }];
+const createRepoRow: Item = { id: CREATE, name: "Create Repository", subtitle: "A new repository under your account or your organisation", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Repository" }] };
+
+async function repoRows(ctx?: Ctx): Promise<Item[]> {
+  const filter = ctx?.filter ?? "all", refresh = !!ctx?.refresh;
+  const org = conf().default_org?.trim();
+  const rows: Item[] = [createRepoRow];
+  const seen = new Set<string>();
+  const add = (list: Repo[], section: string) => { for (const r of list) if (!seen.has(r.id)) { seen.add(r.id); rows.push(repoRow(r, section)); } };
+  const want = (f: string) => filter === "all" || filter === f;
+  // The three lists at once; sections in a fixed order regardless of which answers first.
+  const [mine, orgs, starred] = await Promise.all([want("mine") ? myRepos(refresh) : [], want("org") && org ? orgRepos(org, refresh) : [], want("starred") ? starredRepos(refresh) : []]);
+  add(mine, "Mine");
+  if (org) add(orgs, org);
+  else if (filter === "org") rows.push(hint("org", "No organisation set", "Set default_org under Settings, Extensions, GitHub"));
+  add(starred, "Starred");
+  return rows;
+}
+
+// ---- users (search only) --------------------------------------------------
+
+const userTable = new Map<string, User>();
+
+function userRow(u: User, section?: string): Item {
+  userTable.set(u.id, u);
+  return {
+    id: u.id,
+    name: u.name ? `${u.login} (${u.name})` : u.login,
+    subtitle: u.bio ? short(u.bio, 120) : u.org ? "Organisation" : "User",
+    icon: u.avatar ? { image: u.avatar } : ICON.user,
+    keywords: [u.login, u.name].filter(Boolean),
+    url: u.url,
+    section,
+    accessories: [{ tag: u.org ? "org" : "user", color: "grey" }],
+    detail: { markdown: `# ${u.login}\n\n${u.bio || ""}`, metadata: [{ label: "Profile", link: { text: u.url, href: u.url } }] },
+    actions: [{ id: "open", title: "Open profile" }, { id: "copy", title: "Copy login", shortcut: "cmd+c" }, { id: "repos", title: "Open repositories" }],
+  };
+}
+
+const pickUser = (u: User, action?: string): Effect => (action === "copy" ? { copy: u.login } : action === "repos" ? { open: `${u.url}?tab=repositories` } : { open: u.url });
+
+// ---- notifications --------------------------------------------------------
+
+const notifTable = new Map<string, Notification>();
+
+const NOTIF_ACTIONS: Action[] = [
+  { id: "open", title: "Open" },
+  { id: "read", title: "Mark as read", shortcut: "cmd+shift+r" },
+  { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
+  { id: "read-all", title: "Mark all as read", shortcut: "cmd+shift+a", style: "destructive", confirm: "Mark every notification as read?" },
+];
+
+function notifRow(n: Notification): Item {
+  notifTable.set(n.id, n);
+  const reason = REASON[n.reason] ?? n.reason;
+  return {
+    id: n.id,
+    name: n.title,
+    subtitle: n.repo,
+    icon: TYPE_GLYPH[n.type] ?? ICON.notifications,
+    keywords: [n.repo, n.repo.split("/")[1], n.reason, n.type.toLowerCase()],
+    url: n.url,
+    section: reason,
+    accessories: [{ tag: n.type === "PullRequest" ? "PR" : n.type.toLowerCase(), color: "grey" }, { date: n.updatedAt }],
+    detail: { markdown: `# ${n.title}`, metadata: [repoLink(n.repo), { label: "Reason", value: reason }, { label: "Type", value: n.type }, { label: "Updated", value: new Date(n.updatedAt).toLocaleString() }] },
+    actions: NOTIF_ACTIONS,
+  };
+}
+
+async function notifRows(ctx?: Ctx): Promise<Item[]> {
+  const list = await notifications(!!ctx?.refresh);
+  const order = (n: Notification) => { const i = REASON_ORDER.indexOf(REASON[n.reason] ?? ""); return i < 0 ? REASON_ORDER.length : i; };
+  const sorted = list.slice().sort((a, b) => order(a) - order(b) || b.updatedAt.localeCompare(a.updatedAt));
+  const summary: Item = {
+    id: SUMMARY,
+    name: list.length ? `${list.length} unread notification${list.length === 1 ? "" : "s"}` : "No unread notifications",
+    subtitle: "GitHub inbox",
+    icon: ICON.notifications,
+    keywords: ["unread", "inbox"],
+    accessories: list.length ? [{ tag: String(list.length), color: "blue" }] : undefined,
+    actions: list.length
+      ? [{ id: "open", title: "Open notifications" }, { id: "read-all", title: "Mark all as read", style: "destructive", confirm: "Mark every notification as read?" }]
+      : [{ id: "open", title: "Open notifications" }],
+  };
+  return [summary, ...sorted.map(notifRow)];
+}
+
+async function findNotif(id: string): Promise<Notification> {
+  const have = notifTable.get(id);
+  if (have) return have;
+  for (const n of await notifications()) notifTable.set(n.id, n);
+  const n = notifTable.get(id);
+  if (!n) throw new Error(`no notification ${id}`);
+  return n;
+}
+
+async function pickNotif(id: string, action?: string): Promise<Effect> {
+  if (action === "read-all") {
+    try { await markAllRead(); } catch (e) { return failToast("Could not mark all read", e); }
+    forget("notifications");
+    return { keep: true, toast: { title: "All notifications read" } };
+  }
+  if (id === SUMMARY) return { open: "https://github.com/notifications" };
+  const n = await findNotif(id);
+  switch (action) {
+    case "copy": return { copy: n.url };
+    case "read":
+      try { await markRead(n.thread); } catch (e) { return failToast("Could not mark read", e); }
+      forget("notifications");
+      return { keep: true, toast: { title: "Marked read", message: short(n.title, 60) } };
+    default:
+      // Opening reads it, as the page would: the count is honest by the time you are back.
+      try { await markRead(n.thread); forget("notifications"); } catch (e) { log(`mark read ${n.thread}: ${e instanceof Error ? e.message : e}`); }
+      return { open: n.url };
+  }
+}
+
+// ---- search -----------------------------------------------------------------
+
+const SEARCH_FILTERS = [{ id: "all", title: "Everything" }, { id: "issues", title: "Issues and PRs" }, { id: "repos", title: "Repositories" }, { id: "users", title: "Users" }];
+const searchCache = new Map<string, { at: number; rows: Item[] }>();
+let searchSeq = 0;
+let lastSearch: Item[] = [];
+
+async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
+  const q = query.trim(), kind = (ctx?.filter ?? "all") as SearchKind;
+  if (q.length < 2) return [hint("search", "Search GitHub", "Text, repo:owner/name, is:pr, author:login, label:bug")];
+  const key = `${kind}\0${q}`;
+  const c = searchCache.get(key);
+  if (c && Date.now() - c.at < TTL * 1000) return c.rows;
+  // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
+  const seq = ++searchSeq;
+  await Bun.sleep(SEARCH_WAIT_MS);
+  if (seq !== searchSeq) return lastSearch;
+  const r = await search(q, kind);
+  const rows = [
+    ...r.issues.map((x) => (x.kind === "pr" ? prRow(x, "Pull requests") : issueRow(x, "Issues"))),
+    ...r.repos.map((x) => repoRow(x, "Repositories")),
+    ...r.users.map((x) => userRow(x, "Users")),
+  ];
+  const out = rows.length ? rows : [hint("empty", "No results", `Nothing on GitHub matches "${q}"`)];
+  searchCache.set(key, { at: Date.now(), rows: out });
+  if (searchCache.size > 50) searchCache.delete(searchCache.keys().next().value!);
+  lastSearch = out;
+  return out;
+}
+
+/** A pick from the search level: the row's kind is in its table, or in the shape of its id. */
+async function pickAny(id: string, action?: string): Promise<Effect | void> {
+  if (id.startsWith("hint:")) return pickHint(id);
+  if (prTable.has(id)) return pickPR(prTable.get(id)!, action);
+  if (issueTable.has(id)) return pickIssue(issueTable.get(id)!, action);
+  if (repoTable.has(id)) return pickRepo(repoTable.get(id)!, action);
+  if (userTable.has(id)) return pickUser(userTable.get(id)!, action);
+  if (splitId(id)) {
+    const pr = await findPR(id).catch(() => undefined);
+    if (pr) return pickPR(pr, action);
+    return pickIssue(await findIss(id), action);
+  }
+  if (id.startsWith("@")) return pickUser({ kind: "user", id, login: id.slice(1), name: "", url: `https://github.com/${id.slice(1)}`, avatar: "", bio: "", org: false }, action);
+  if (/^[^/\s]+\/[^/\s]+$/.test(id)) return pickRepo((await findRepo(id)) ?? { kind: "repo", id, name: id.split("/")[1], owner: id.split("/")[0], url: `https://github.com/${id}`, description: "", language: null, stars: 0, forks: 0, issues: 0, private: false, fork: false, archived: false, defaultBranch: "main", pushedAt: "", ssh: `git@github.com:${id}.git`, https: `https://github.com/${id}.git` }, action);
+  throw new Error(`no row ${id}`);
+}
+
+/** Rows or the failure hint, never a thrown listing: the panel would show an error where a sentence does. */
+const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
+
+/** The pane for a PR or issue row, asked lazily; the failure is the text of the pane. */
+const pane = async (f: () => Promise<Detail>): Promise<Detail> => { try { return await f(); } catch (e) { return { markdown: `_${e instanceof Error ? e.message : String(e)}_` }; } };
+
+const limitHint = (): Item[] => (rateLimit && rateLimit.remaining === 0 && rateLimit.resetAt.getTime() > Date.now() ? [hint("limit", "GitHub rate limit reached", `Resets at ${rateLimit.resetAt.toLocaleTimeString()}; showing what was cached`)] : []);
+
+export default {
+  palettes: {
+    prs: {
+      title: "Pull Requests",
+      icon: ICON.prs,
+      ttl: TTL,
+      showDetail: true,
+      filters: PR_FILTERS,
+      list: (_q, ctx) => guard(async () => [...limitHint(), ...(await prRows(ctx))]),
+      pick: async (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickPR(await findPr(id), action)),
+      detail: async (id) => (id.startsWith("hint:") ? undefined : pane(async () => prPane(await findPr(id)))),
+    },
+    issues: {
+      title: "Issues",
+      icon: ICON.issues,
+      ttl: TTL,
+      showDetail: true,
+      filters: ISSUE_FILTERS,
+      list: (_q, ctx) => guard(async () => [...limitHint(), ...(await issueRows(ctx))]),
+      pick: async (id, action, ctx) => {
+        if (id.startsWith("hint:")) return pickHint(id);
+        if (id === CREATE) return action === "save" ? saveIssue(ctx?.values ?? {}) : { form: await issueForm() };
+        return pickIssue(await findIss(id), action);
+      },
+      detail: async (id) => (id.startsWith("hint:") || id === CREATE ? undefined : pane(async () => issuePane(await findIss(id)))),
+    },
+    repos: {
+      title: "Repositories",
+      icon: ICON.repos,
+      ttl: TTL,
+      filters: REPO_FILTERS,
+      list: (_q, ctx) => guard(async () => [...limitHint(), ...(await repoRows(ctx))]),
+      pick: async (id, action, ctx) => {
+        if (id.startsWith("hint:")) return pickHint(id);
+        if (id === CREATE) return action === "save" ? saveRepo(ctx?.values ?? {}) : { form: await repoForm() };
+        const r = await findRepo(id);
+        if (!r) throw new Error(`no repository ${id}`);
+        return pickRepo(r, action);
+      },
+    },
+    notifications: {
+      title: "Notifications",
+      icon: ICON.notifications,
+      live: true,
+      ttl: NOTIF_TTL,
+      list: (_q, ctx) => guard(async () => [...limitHint(), ...(await notifRows(ctx))]),
+      pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickNotif(id, action)),
+    },
+    search: {
+      title: "Search GitHub",
+      icon: ICON.search,
+      input: true,
+      placeholder: "Search GitHub",
+      filters: SEARCH_FILTERS,
+      list: (query, ctx) => guard(() => searchRows(query, ctx)),
+      pick: pickAny,
+      detail: async (id) => {
+        if (prTable.has(id)) return pane(() => prPane(prTable.get(id)!));
+        if (issueTable.has(id)) return pane(() => issuePane(issueTable.get(id)!));
+      },
+    },
+  },
+} satisfies Extension;
