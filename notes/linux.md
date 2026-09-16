@@ -209,7 +209,7 @@ and gstreamer plugin scripts, `linuxdeploy-plugin-appimage` and `AppRun` into
   section above runs. A Hyprland bind wants the deb's `/usr/bin/pal toggle`
   or the extracted AppDir's `usr/bin/pal`, not the AppImage file.
 
-## Tray icon and autostart (not yet run on marko)
+## Tray icon and autostart
 
 - The tray is tauri's `tray-icon` feature (`app/src-tauri/src/tray.rs`),
   which on Linux is the `libappindicator` crate: it `dlopen`s
@@ -236,3 +236,52 @@ and gstreamer plugin scripts, `linuxdeploy-plugin-appimage` and `AppRun` into
   does not read XDG autostart on its own: users there add `exec-once = pal`
   to hyprland.conf, which the settings description should say once the
   Linux copy is written.
+
+### Run on marko (2026-09-16, release build of 63a73f8, `PAL_CONFIG=/tmp/pal-test.toml`)
+
+- Log: `profile d720efea /tmp/pal-test.toml ~/.local/share/pal/d720efea`,
+  `hotkey registered control+Space Root`, `tray created ...` 200 ms after
+  start, then libayatana's "deprecated, use libayatana-appindicator-glib"
+  warning (harmless). `pal quit` from the session env: `quit requested`,
+  `host exit 0`, `host stopped 18.3ms`, `quit flushed`; no `pal`/`pal-bun`
+  left.
+- marko has no tray host: no waybar/dms process, and no
+  `org.kde.StatusNotifierWatcher` on the session bus (`busctl --user call
+  org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus
+  NameHasOwner s org.kde.StatusNotifierWatcher` says `b false`). The app
+  does not care: the item is exported on pal's own bus connection at
+  `/org/ayatana/NotificationItem/tray_icon_tray_app_pal` (+ `/Menu`) with
+  `Status Active`, `IconName /run/user/1000/tray-icon/tray-icon-pal-0.png`
+  (libappindicator writes the 22 px PNG there), and libayatana registers
+  with a watcher whenever one appears.
+- Visible check: a throwaway tray-only waybar (`/usr/bin/waybar` is
+  installed, just not running) showed the white rounded-square mark next
+  to warp-taskbar's cloud icon, 22 px, on a `#1e1e2e` bar. Screenshot
+  taken with `grim -g "1520,0 400x30" -s 3`.
+- `launch_at_login = true` in the test config: `config reloaded`,
+  `autostart registered`, and `~/.config/autostart/pal.desktop` appeared:
+  `Type=Application`, `Name=pal`, `Comment=palstartup script` (auto-launch's
+  wording, note the missing space), `Exec=/home/cagdas/proj/pali/target/release/pal `
+  (trailing space, from auto-launch's args join), `StartupNotify=false`,
+  `Terminal=false`. `= false`: `autostart removed`, file gone.
+- `menu_bar_icon = false`: `tray removed`, the PNG under
+  `/run/user/1000/tray-icon/` deleted. BROKEN on the way back: `= true`
+  logs `tray created` but libayatana says `Unable to register object on
+  path '/org/ayatana/NotificationItem/tray_icon_tray_app_pal': An object
+  is already exported`, the stale object stays exported with
+  `Status Passive`, and the bar shows nothing (screenshot with the
+  throwaway waybar: only warp-taskbar). Cause: tray-icon 0.24.2
+  `platform_impl/gtk/mod.rs` names the indicator
+  `"tray-icon tray app {id}"` (line 25) and its `Drop` only sets
+  `Passive` (line 116), never disposes it, so the same id `"pal"` collides
+  on the second build. Sidestep from our side: a fresh id per creation
+  (`pal-<n>`, and look the tray up by the current one), or keep the tray
+  and toggle its visibility instead of removing it. macOS not re-checked
+  here (guess: unaffected, NSStatusItem is released on drop).
+- `gtk_widget_get_scale_factor: assertion 'GTK_IS_WIDGET (widget)' failed`
+  (Gtk-CRITICAL) once per tray create/remove and once when the bar picked
+  the item up; guess: libappindicator's fallback GtkStatusIcon path, no
+  visible effect.
+- Hyprland aside: `hyprctl` needs `HYPRLAND_INSTANCE_SIGNATURE` too, not
+  just `WAYLAND_DISPLAY`; all of them come from
+  `systemctl --user show-environment`.
