@@ -9,12 +9,12 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use pal_core::config::Config;
-use pal_core::index::{Item, Source};
+use pal_core::index::{Item, Source, Tier};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
-use crate::{lock, welcome};
+use crate::{commands, lock, welcome};
 
 /// A palette as the host describes it (`PaletteMeta` in sdk/src/protocol.ts).
 /// The optional fields ride to the UI untouched through `SourceView`.
@@ -43,10 +43,19 @@ pub struct PaletteMeta {
     /// `[{ id, title }]`, first the default; opaque here, the UI's dropdown.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filters: Option<Value>,
+    /// The actions of every row that carries none (`Action[]`); opaque
+    /// here, the UI merges them per row. Sent once per palette instead of
+    /// once per item, so a catalog's listing is not half action titles.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actions: Option<Value>,
     /// Seconds a listing stays good for: a cached one younger than this is
     /// not listed again on load. Absent: listed again on every load.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ttl: Option<f64>,
+    /// The palette's tier at the root as the manifest or the code says;
+    /// `[palettes.<id>] tier` overrides it (`Registered::tier`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tier: Option<Tier>,
 }
 
 impl PaletteMeta {
@@ -85,12 +94,16 @@ pub struct Registered {
     pub filtered: HashMap<String, Vec<Item>>,
     /// Its cached listing is past its `ttl`: waiting for `refresh_expired`.
     pub deferred: bool,
+    /// The tier the root ranks it by: the config's `tier` over the meta's,
+    /// `normal` when neither says. Kept current by `apply_config`.
+    pub tier: Tier,
 }
 
 impl Registered {
     pub fn new(source: Source, meta: PaletteMeta, ext_title: String, config: &Config) -> Self {
-        let enabled = config.palette(&palette_id(&source)).enabled;
-        Self { source, meta, ext_title, enabled, filter: None, filtered: HashMap::new(), deferred: false }
+        let p = config.palette(&palette_id(&source));
+        let tier = p.tier.or(meta.tier).unwrap_or_default();
+        Self { source, meta, ext_title, enabled: p.enabled, filter: None, filtered: HashMap::new(), deferred: false, tier }
     }
 }
 
@@ -148,6 +161,7 @@ pub fn synthetic_meta(source: &Source) -> Option<PaletteMeta> {
     let title = match source {
         s if *s == palettes_source() => "Palettes",
         s if *s == welcome::source() => "Welcome",
+        s if *s == commands::source() => "pal",
         _ => return None,
     };
     Some(PaletteMeta { name: source.palette.clone(), title: title.into(), ..Default::default() })
@@ -199,12 +213,15 @@ pub fn replace_extension(reg: &mut Vec<Registered>, ext: &str, ext_title: &str, 
     }));
 }
 
-/// Apply `next`'s `enabled` flags: the sources switched off and the ones
+/// Apply `next`'s `enabled` flags (and its `tier` overrides, which take
+/// effect on the next query): the sources switched off and the ones
 /// switched on (with their meta, to list them).
 pub fn toggle_enabled(reg: &mut [Registered], next: &Config) -> (Vec<Source>, Vec<(Source, PaletteMeta)>) {
     let (mut off, mut on) = (Vec::new(), Vec::new());
     for r in reg.iter_mut() {
-        let wanted = next.palette(&palette_id(&r.source)).enabled;
+        let p = next.palette(&palette_id(&r.source));
+        r.tier = p.tier.or(r.meta.tier).unwrap_or_default();
+        let wanted = p.enabled;
         if wanted == r.enabled {
             continue;
         }
@@ -314,6 +331,31 @@ mod tests {
         assert_eq!(reg.iter().map(|r| r.enabled).collect::<Vec<_>>(), [false, true, true]);
         let (off, on) = toggle_enabled(&mut reg, &next);
         assert!(off.is_empty() && on.is_empty(), "the same config again changes nothing");
+    }
+
+    #[test]
+    fn tier_from_the_manifest_then_the_config() {
+        let c = Config::default();
+        let plain = Registered::new(Source::new("docker", "docker"), meta("docker", "Docker"), "Docker".into(), &c);
+        assert_eq!(plain.tier, Tier::Normal, "neither says: normal");
+        // The meta carries what the host merged from pal.json and the code.
+        let m: PaletteMeta = serde_json::from_value(json!({ "name": "emoji", "title": "Emoji", "live": true, "input": false, "tier": "catalog" })).unwrap();
+        assert_eq!(m.tier, Some(Tier::Catalog));
+        let emoji = Registered::new(Source::new("emoji", "emoji"), m.clone(), "Emoji".into(), &c);
+        assert_eq!(emoji.tier, Tier::Catalog);
+        assert_eq!(serde_json::to_value(&m).unwrap()["tier"], "catalog", "and rides to the UI");
+        // `[palettes.emoji] tier = "primary"` wins, and a config change re-resolves it.
+        let c = config(&[("emoji", Palette { tier: Some(Tier::Primary), ..Default::default() })]);
+        assert_eq!(Registered::new(Source::new("emoji", "emoji"), m.clone(), "Emoji".into(), &c).tier, Tier::Primary);
+        let mut reg = vec![emoji];
+        toggle_enabled(&mut reg, &c);
+        assert_eq!(reg[0].tier, Tier::Primary);
+        toggle_enabled(&mut reg, &Config::default());
+        assert_eq!(reg[0].tier, Tier::Catalog, "unset again: back to the manifest's");
+        // The file spells it as the manifest does.
+        let c: Config = toml::from_str("[palettes.emoji]\ntier = \"catalog\"\n[general]\nroot_caps = { primary = 5, catalog = 2 }\n").unwrap();
+        assert_eq!(c.palette("emoji").tier, Some(Tier::Catalog));
+        assert_eq!(c.general.root_caps, pal_core::index::Caps { primary: 5, normal: 6, catalog: 2 });
     }
 
     #[test]

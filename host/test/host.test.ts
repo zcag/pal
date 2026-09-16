@@ -54,17 +54,22 @@ describe("loading", () => {
     expect(Object.keys(h.errors).sort()).toEqual(["broken", "nopalettes"]);
   });
 
-  test("extension/loaded carries the manifest and the palette meta", () => {
+  test("extension/loaded carries the manifest and the palette meta; the manifest's title wins over the code's", () => {
     const l = host.loaded().find((l) => l.extension === "good")!;
     expect(l.root).toBe(root.dir);
     expect(l.manifest).toEqual({ name: "good", title: "Good", description: "fixture", settings: [{ kind: "text", id: "greeting", label: "Greeting", default: "hi" }], palettes: { main: { title: "Main" } } });
     expect(l.palettes).toEqual([{
-      name: "main", title: "main", live: true, input: false, icon: "★", view: "grid", columns: 6, placeholder: "Type", showDetail: true,
+      name: "main", title: "Main", live: true, input: false, icon: "★", view: "grid", columns: 6, placeholder: "Type", showDetail: true,
       filters: [{ id: "all", title: "All" }, { id: "some", title: "Some" }], detail: "lazy",
     }]);
+    // The code says "main", the manifest "Main": a warning, and the manifest's is served.
+    expect(l.warnings).toEqual(['palettes.main: title "main" in the code, "Main" in pal.json; the manifest\'s is used, drop the code\'s']);
+    expect(host.stderr).toContain('[good] manifest: palettes.main: title "main" in the code');
     const bare = host.loaded().find((l) => l.extension === "bare")!;
     expect(bare.palettes[0]).toMatchObject({ name: "bare", title: "bare", live: false, input: false });
     expect(bare.palettes[0].detail).toBeUndefined();
+    // No manifest at all: nothing to disagree with.
+    expect(bare.warnings).toEqual([]);
   });
 
   test("manifest: missing pal.json gives a bare one, broken JSON too (logged), the dir name wins over the file's", () => {

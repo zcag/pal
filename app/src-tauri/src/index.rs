@@ -10,7 +10,14 @@
 //! The config file has a say: a palette with `enabled = false` is kept in
 //! the registry (so re-enabling needs no host round trip to know it) but
 //! has no items in the index and no palette row; an `alias` is an extra
-//! keyword on its row. `apply_config` re-applies both when the file changes.
+//! keyword on its row; `tier` overrides the manifest's. `apply_config`
+//! re-applies all three when the file changes.
+//!
+//! A typed root query ranks with each palette's tier (`Registered::tier`,
+//! the palette rows primary plus `PALETTE_BONUS`) and caps every source at
+//! `[general] root_caps` rows; what a cap left out is a "N more in X" row
+//! after the section (`more_row`), which a pick turns into a `push` into
+//! the palette.
 //!
 //! A live palette (`live`, not `input`) is listed again every time the panel
 //! shows (`on_shown`), after the paint, so its rows are current at the root;
@@ -48,14 +55,16 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::Config;
 use pal_core::frecency::{Frecency, Key};
-use pal_core::index::{Hit, Index, Item, QueryOpts, Source};
+use pal_core::index::{Hit, Index, Item, QueryOpts, Ranked, Source, Tier};
+#[cfg(test)]
+use pal_core::index::Caps;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, State};
 
 use crate::host::Host;
 use crate::registry::{palette_rows, palettes_source, synthetic_meta, Palettes, Registered};
-use crate::{cache, effects, events, hotkey, lock, registry, settings, welcome};
+use crate::{cache, commands, effects, events, hotkey, lock, registry, settings, welcome};
 
 pub use crate::registry::{palette_id, PaletteMeta};
 
@@ -147,6 +156,7 @@ pub fn restore_cache(app: &AppHandle) {
         }
     });
     sync_palette_rows(app);
+    commands::install(app);
     hotkey::apply(app, &config);
     eprintln!("cache\tloaded\t{sources} sources {items} items in {:.1}ms\t{:.1}ms since start", ms(t0), crate::since_start_ms());
 }
@@ -183,6 +193,8 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             };
             let title = params["manifest"]["title"].as_str().unwrap_or(&ext).to_string();
             settings::register(app, &ext, params, true);
+            // Its bar items: the manifest's `bar` merged with the code's keys by the host.
+            crate::bar::on_extension_loaded(app, &ext, crate::bar::manifest_bars(&params["bar"]));
             tauri::async_runtime::spawn(sync_extension(app.clone(), host.clone(), ext, title, metas));
         }
         "extension/error" => {
@@ -450,6 +462,7 @@ pub async fn apply_config(app: AppHandle, host: Arc<Host>, prev: Config, next: C
     let on_sources: Vec<Source> = on.iter().map(|(s, _)| s.clone()).collect();
     eprintln!("config\tapplied\toff=[{}] on=[{}] settings=[{}]", ids(&off), ids(&on_sources), changed.join(","));
     settings::push(&app, &host, &changed).await;
+    crate::bar::on_settings_changed(&app, &changed);
     for (source, meta) in on {
         list_palette(&app, &host, &source, &meta, "config").await;
     }
@@ -462,6 +475,7 @@ pub async fn apply_config(app: AppHandle, host: Arc<Host>, prev: Config, next: C
 }
 
 fn remove_extension(app: &AppHandle, ext: &str) {
+    crate::bar::remove_extension(app, ext);
     let gone: Vec<Source> = Palettes::with(app, |reg| {
         let gone = reg.iter().filter(|r| r.source.extension == ext).map(|r| r.source.clone()).collect();
         reg.retain(|r| r.source.extension != ext);
@@ -501,21 +515,26 @@ pub struct SourceView {
     listed_at: Option<u64>,
 }
 
-/// Added to a palette row's score on a typed query, so `clip` lists
-/// Clipboard History above the emoji and icon rows that match as well: a
+/// Added to a palette row's score on a typed query, over the primary tier
+/// the palette rows rank as (`root_tier`), so `clip` lists Clipboard
+/// History above the Clipper app and the icon rows that match as well: a
 /// palette row is the way into everything behind it (Raycast lists its
-/// commands first for the same reason). Sized against the other
-/// adjustments (`pal_core::index::EXACT_BONUS` has the numbers): a
-/// frecency boost tops out at 200, and two rows matching the same query
-/// are apart by at most a fraction of that query's own score (about 16
-/// per typed char, half of it for a subtitle hit), so 500 puts a palette
-/// row above every non-exact row for any query a launcher sees (the
-/// worst case, a subtitle-only palette hit against a hot name hit, needs
-/// a query past 18 chars to close it) while staying under the exact
-/// bonus: a row named what was typed keeps its lead by at least 300.
-/// The empty query is untouched: it is ordered by insertion and use, and
-/// the palettes are inserted first anyway.
-pub const PALETTE_BONUS: f32 = 500.0;
+/// commands first for the same reason). One tier step: with the word
+/// bonus a palette row that has the typed word sits at 600 against a
+/// primary row's 450 (the ladder is under `pal_core::index::EXACT_BONUS`),
+/// and a palette row that only scatters the letters (`chr` across
+/// `Clipboard History`) sits at 300, under every primary row that has the
+/// word, which the old flat 500 put above Google Chrome. Under the exact
+/// bonus by far: a row named what was typed keeps its lead over a hot
+/// palette row by 500. The empty query is untouched: it is ordered by
+/// insertion and use, and the palettes are inserted first anyway.
+pub const PALETTE_BONUS: f32 = 150.0;
+
+/// The id of the row the root appends after a capped source's hits ("12
+/// more in Emoji", `more_row`): a pick on it opens the palette, nothing is
+/// remembered. Not an id an extension can list (`:` is not in any
+/// bundled id scheme, and the source's own rows are looked up first).
+pub const MORE_ID: &str = "pal:more";
 
 /// The root's boost over `fre_boost` (a frecency, `Frecency::boost`): the
 /// welcome rows lead the empty query outright, palette rows get
@@ -535,6 +554,24 @@ fn root_boost<'a>(q: &str, fre_boost: &'a dyn Fn(&Source, &str) -> f32) -> impl 
     }
 }
 
+/// The root's tiers: each registered palette's (`Registered::tier`), the
+/// palette rows and pal's own commands (`crate::commands`) primary (they
+/// are reached by name, and `PALETTE_BONUS` comes on top of the palette
+/// rows), anything else normal.
+fn root_tier(tiers: &[(Source, Tier)]) -> impl Fn(&Source) -> Tier + '_ {
+    let (palettes, commands) = (palettes_source(), commands::source());
+    move |s: &Source| if *s == palettes || *s == commands { Tier::Primary } else { tiers.iter().find(|(t, _)| t == s).map_or(Tier::Normal, |(_, t)| *t) }
+}
+
+/// The trailing row of a capped section: `count` more rows of `source`
+/// matched than the cap let through; `title` is the palette's. Muted in
+/// the UI (`more: true` in the item), Enter opens the palette.
+fn more_row(source: &Source, title: &str, count: usize) -> HitView {
+    let name = format!("{count} more in {title}");
+    let item = Item { id: MORE_ID.into(), name, subtitle: None, keywords: Vec::new(), icon: Some(json!("\u{203a}")), section: None, extra: [("more".to_string(), json!(true))].into_iter().collect() };
+    HitView { hit: Hit { source: source.clone(), id: MORE_ID.into(), score: 0.0, name_positions: Vec::new() }, item }
+}
+
 /// Off the main thread: the scan is well under a millisecond, but a
 /// `replace` holding the lock must never stall a paint.
 ///
@@ -543,13 +580,28 @@ fn root_boost<'a>(q: &str, fre_boost: &'a dyn Fn(&Source, &str) -> f32) -> impl 
 /// source.
 #[tauri::command(async)]
 pub fn query(
+    app: AppHandle,
     q: String,
     limit: Option<usize>,
     sources: Option<Vec<Source>>,
     index: State<'_, Mutex<Index>>,
     frecency: State<'_, Mutex<Frecency>>,
+    palettes: State<'_, Palettes>,
 ) -> Vec<HitView> {
     static FIRST: Once = Once::new();
+    // The registry first, then frecency, then the index (the module docs on lock order); nothing held across.
+    // Tiers and titles in one pass: the titles serve the "more" rows, and
+    // taking the registry again under the index guard would invert the order
+    // `sync_palette_rows` takes them in (a deadlock seen in the scratch instance).
+    let (tiers, titles) = {
+        let reg = palettes.lock();
+        let tiers: Vec<(Source, Tier)> = reg.iter().map(|r| (r.source.clone(), r.tier)).collect();
+        let titles: Vec<(Source, String)> = reg.iter().map(|r| (r.source.clone(), r.meta.title.clone())).collect();
+        (tiers, titles)
+    };
+    let tier = root_tier(&tiers);
+    // Caps at the root only: a palette's own level lists everything.
+    let caps = sources.is_none().then(|| settings::root_caps(&app));
     let fre = lock(&frecency);
     let fre_boost = fre.boost(&q, SystemTime::now());
     let boost = root_boost(&q, &fre_boost);
@@ -559,15 +611,24 @@ pub fn query(
         None if !q.is_empty() => Some(ix.sources().into_iter().map(|s| s.source).filter(|s| *s != welcome).collect()),
         s => s,
     };
-    let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost) };
-    // A hit always names an indexed item; `filter_map` rather than a panic
-    // on the invariant, since a panic here is the whole keystroke lost.
-    let hits: Vec<HitView> = ix
-        .query(&q, opts)
-        .into_iter()
-        .filter_map(|hit| Some(HitView { item: ix.get(&hit.source, &hit.id).cloned()?, hit }))
-        .collect();
+    let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps };
+    let ranked = ix.query(&q, opts);
+    let hits = views(&ix, ranked, &titles);
     FIRST.call_once(|| eprintln!("query\tfirst answer\t{q:?} {} hits of {} items\t{:.1}ms since start", hits.len(), ix.len(), crate::since_start_ms()));
+    hits
+}
+
+/// The reply's rows: each hit beside its item, and after the last hit of
+/// every capped source its "more" row (the hits come grouped by source).
+/// A hit always names an indexed item; `filter_map` rather than a panic
+/// on the invariant, since a panic here is the whole keystroke lost.
+fn views(ix: &Index, ranked: Ranked, titles: &[(Source, String)]) -> Vec<HitView> {
+    let mut hits: Vec<HitView> = ranked.hits.into_iter().filter_map(|hit| Some(HitView { item: ix.get(&hit.source, &hit.id).cloned()?, hit })).collect();
+    for m in ranked.more.iter().rev() {
+        let Some(end) = hits.iter().rposition(|h| h.hit.source == m.source) else { continue };
+        let title = titles.iter().find(|(s, _)| *s == m.source).map_or(m.source.palette.as_str(), |(_, t)| t.as_str());
+        hits.insert(end + 1, more_row(&m.source, title, m.count));
+    }
     hits
 }
 
@@ -639,17 +700,29 @@ pub struct PickRequest {
     pub values: Option<Value>,
 }
 
+/// `window` is the one the pick came from (the panel, or the bar popover):
+/// a hiding effect hides that one.
 #[tauri::command]
-pub async fn pick(app: AppHandle, req: PickRequest, host: State<'_, Arc<Host>>) -> Result<Value, String> {
+pub async fn pick(app: AppHandle, window: tauri::Window, req: PickRequest, host: State<'_, Arc<Host>>) -> Result<Value, String> {
     let PickRequest { source, id, action, query, args, values } = req;
     if source == welcome::source() {
         return welcome::pick(&app, &id).await;
     }
-    let r = if source == palettes_source() { json!({ "keep": true }) } else { run_pick(&app, &host, &source, &id, action.as_deref(), args.as_ref(), values.as_ref()).await? };
+    // The "N more in X" row: into the palette, remembered as nothing.
+    if id == MORE_ID && args.is_none() && with_index(&app, |ix| ix.get(&source, &id).is_none()) {
+        return Ok(json!({ "push": { "extension": source.extension, "palette": source.palette } }));
+    }
+    let r = if source == palettes_source() {
+        json!({ "keep": true })
+    } else if source == commands::source() {
+        commands::pick(&app, &id, action.as_deref(), values.as_ref()).await?
+    } else {
+        run_pick_from(&app, &host, &source, &id, action.as_deref(), args.as_ref(), values.as_ref(), window.label()).await?
+    };
     // Live and input palettes carry transient ids (a clipboard entry, a calc
     // result); remembering those would only fill the store with junk. A
     // drill-in level's ids are its parent's business.
-    if args.is_none() && !app.state::<Palettes>().is_transient(&source) {
+    if args.is_none() && !app.state::<Palettes>().is_transient(&source) && !commands::inert(&source, &id) {
         let key = Key::from_source(&source, id);
         let frecency = app.state::<Mutex<Frecency>>();
         let mut fre = lock(&frecency);
@@ -663,11 +736,17 @@ pub async fn pick(app: AppHandle, req: PickRequest, host: State<'_, Arc<Host>>) 
 /// `keep` asks for. Shared by the `pick` command and an item hotkey
 /// (`hotkey::pressed`), which runs a pick with the panel down.
 pub async fn run_pick(app: &AppHandle, host: &Arc<Host>, source: &Source, id: &str, action: Option<&str>, args: Option<&Value>, values: Option<&Value>) -> Result<Value, String> {
+    run_pick_from(app, host, source, id, action, args, values, crate::WINDOW).await
+}
+
+/// [`run_pick`] with the window the pick came from, for its hiding effects.
+#[allow(clippy::too_many_arguments)]
+pub async fn run_pick_from(app: &AppHandle, host: &Arc<Host>, source: &Source, id: &str, action: Option<&str>, args: Option<&Value>, values: Option<&Value>, window: &str) -> Result<Value, String> {
     let params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action, "args": args, "values": values });
     let t0 = Instant::now();
     let r = host.request("pick", params).await?;
     eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, ms(t0));
-    let r = effects::apply(app, r).await?;
+    let r = effects::apply_from(app, r, window).await?;
     if r.get("keep").is_some() && args.is_none() {
         let meta = Palettes::with(app, |reg| reg.iter().find(|r| r.source == *source && r.enabled && !r.meta.input).map(|r| r.meta.clone()));
         if let Some(m) = meta {
@@ -758,38 +837,76 @@ mod tests {
         Item { id: id.into(), name: name.into(), subtitle: None, keywords: keywords.iter().map(|k| k.to_string()).collect(), icon: None, section: None, extra: Default::default() }
     }
 
-    /// `q` over an index of icon rows and one palette row, ranked with the root's boost.
-    fn ranked(q: &str, fre: &Frecency) -> Vec<String> {
+    /// The root over an index of icon rows (a catalog), one palette row and
+    /// one app (primary): the ids in reply order, "N more in X" rows included.
+    fn root(q: &str, fre: &Frecency, caps: Option<Caps>) -> Vec<String> {
         let mut ix = Index::new();
         ix.replace(palettes_source(), vec![row("clipboard/history", "Clipboard History", &["history", "clipboard"])]);
-        ix.replace(Source::new("iconnerd", "icons"), vec![row("nf-clip", "clipboard", &[]), row("nf-clip2", "clipboard_text", &[]), row("nf-hist", "history", &[])]);
+        ix.replace(Source::new("iconnerd", "icons"), vec![row("nf-clip", "clipboard", &[]), row("nf-clip2", "clipboard_text", &[]), row("nf-hist", "history", &[]), row("nf-clipper", "clipper_board", &[])]);
         ix.replace(Source::new("apps", "apps"), vec![row("clipper.app", "Clipper", &[])]);
+        let tiers = [(Source::new("iconnerd", "icons"), Tier::Catalog), (Source::new("apps", "apps"), Tier::Primary)];
+        let tier = root_tier(&tiers);
         let fre_boost = fre.boost(q, SystemTime::now());
         let boost = root_boost(q, &fre_boost);
-        ix.query(q, QueryOpts { boost: Some(&boost), ..Default::default() }).into_iter().map(|h| h.id).collect()
+        let ranked = ix.query(q, QueryOpts { boost: Some(&boost), tier: Some(&tier), caps, ..Default::default() });
+        views(&ix, ranked, &[(Source::new("iconnerd", "icons"), "Nerd Icons".into())]).into_iter().map(|h| h.item.id).collect()
+    }
+
+    fn ranked(q: &str, fre: &Frecency) -> Vec<String> {
+        root(q, fre, None)
     }
 
     #[test]
     fn palette_rows_lead_a_typed_query_but_not_an_exact_name() {
         let mut fre = Frecency::in_memory();
-        // Shorter names win ties otherwise: `clipboard` (9) over `Clipboard History` (17).
-        assert_eq!(ranked("clip", &fre)[0], "clipboard/history");
+        // Shorter names win ties otherwise: `clipboard` (9) over `Clipboard History` (17); the app is primary and has the word too.
+        assert_eq!(ranked("clip", &fre)[..2], ["clipboard/history", "clipper.app"]);
         assert_eq!(ranked("clipboard", &fre)[0], "clipboard/history", "an exact keyword on the palette row too");
-        // A hot icon row (the frecency maximum is 200) still loses to the palette row.
+        // A hot icon row (the frecency maximum is 200) still loses to the palette row and to the app.
         let now = SystemTime::now();
         for _ in 0..20 {
             fre.record(&Key::new("iconnerd", "icons", "nf-clip"), now);
         }
-        assert_eq!(ranked("clip", &fre)[0], "clipboard/history");
-        // An item named what was typed keeps its lead (EXACT_BONUS > PALETTE_BONUS + a frecency).
+        assert_eq!(ranked("clip", &fre)[..3], ["clipboard/history", "clipper.app", "nf-clip"]);
+        // An item named what was typed keeps its lead (EXACT_BONUS over PALETTE_BONUS plus a frecency and the tier).
         assert_eq!(ranked("Clipper", &fre)[0], "clipper.app");
-        // Both exact (`history` is the palette row's keyword): the bonus decides.
+        // Both exact (`history` is the palette row's keyword): the palette row's full exact bonus over the catalog's.
         assert_eq!(ranked("history", &fre)[0], "clipboard/history");
         // The empty query is ordered by use, no bonus: the hot icon row leads there.
         assert_eq!(ranked("", &fre)[0], "nf-clip");
         // The sizing the doc comment on PALETTE_BONUS relies on (constants, so a plain comparison).
         let (max_frecency, exact) = (pal_core::frecency::MAX_SCORE * pal_core::frecency::BOOST_SCALE, pal_core::index::EXACT_BONUS);
-        assert!(PALETTE_BONUS + max_frecency < exact, "{PALETTE_BONUS} + {max_frecency} vs {exact}");
+        let palette_row = PALETTE_BONUS + Tier::Primary.bonus() + pal_core::index::WORD_BONUS;
+        assert!(palette_row + max_frecency < exact, "{palette_row} + {max_frecency} vs {exact}");
+        assert!(palette_row > Tier::Primary.bonus() + pal_core::index::WORD_BONUS, "a palette row that has the word over a primary row that does");
+        assert!(PALETTE_BONUS + Tier::Primary.bonus() < Tier::Primary.bonus() + pal_core::index::WORD_BONUS, "a palette row that scatters the letters under a primary row that has the word");
+    }
+
+    #[test]
+    fn capped_sections_end_in_a_more_row() {
+        let fre = Frecency::in_memory();
+        let caps = Some(Caps { primary: 8, normal: 6, catalog: 2 });
+        // Four icons match `clip`; two show, then the row into the palette, after the palette row and the app.
+        assert_eq!(root("clip", &fre, caps), ["clipboard/history", "clipper.app", "nf-clip", "nf-clipper", MORE_ID]);
+        assert_eq!(root("clip", &fre, None).len(), 5, "uncapped: everything");
+        assert_eq!(root("", &fre, caps).len(), 6, "the empty query is never capped");
+        let m = more_row(&Source::new("iconnerd", "icons"), "Nerd Icons", 12);
+        let v = serde_json::to_value(&m).unwrap();
+        assert_eq!(v["id"], MORE_ID);
+        assert_eq!(v["source"], json!({ "extension": "iconnerd", "palette": "icons" }));
+        assert_eq!(v["item"]["name"], "12 more in Nerd Icons");
+        assert_eq!(v["item"]["more"], true, "the UI mutes it by this");
+        assert!(v["name_positions"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn root_tiers_come_from_the_registry_and_the_palette_rows_are_primary() {
+        let tiers = [(Source::new("emoji", "emoji"), Tier::Catalog)];
+        let tier = root_tier(&tiers);
+        assert_eq!(tier(&Source::new("emoji", "emoji")), Tier::Catalog);
+        assert_eq!(tier(&Source::new("docker", "docker")), Tier::Normal, "unregistered: normal");
+        assert_eq!(tier(&palettes_source()), Tier::Primary);
+        assert_eq!(tier(&commands::source()), Tier::Primary, "pal's own commands too");
     }
 
     #[test]

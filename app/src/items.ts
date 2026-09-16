@@ -17,7 +17,7 @@ export type WireItem = {
   icon?: unknown;
   section?: string;
   url?: string;
-  /** `Action` in sdk/src/protocol.ts: id, title, shortcut?, style?, confirm?. */
+  /** `Action` in sdk/src/protocol.ts: id, title, shortcut?, style?, confirm?, hidden?. */
   actions?: Action[];
   /** As in sdk/src/protocol.ts; both replace what would be derived here. */
   accessories?: Accessory[];
@@ -42,10 +42,14 @@ export type SourceInfo = Source & {
   showDetail?: boolean;
   /** The palette answers `detail(id)` for an item whose inline detail has no markdown. */
   detail?: "lazy";
+  /** The actions of every row that carries none of its own (`Palette.actions` in sdk/src/protocol.ts). */
+  actions?: Action[];
   /** A scope dropdown inside the palette; first is the default. */
   filters?: FilterOption[];
   /** Seconds the core keeps a listing before listing again on load. */
   ttl?: number;
+  /** The palette's tier at the root as the manifest and the code resolved it (the config's override stays in the core). */
+  tier?: "primary" | "normal" | "catalog";
   count: number;
   /** The rows are a restored (or expired) listing and a fresh one is pending: "updating" in the footer. */
   stale: boolean;
@@ -84,7 +88,7 @@ export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "objec
  * on the `pal:` prefix, and the host refuses those ids in a view, so an
  * extension's actions can never run the shell's code.
  */
-const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm });
+const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined });
 
 /** A `View` off the wire as the UI keeps it; the host has checked the tree. */
 export const toView = (v: ViewSpec): ViewSpec => ({ tree: v.tree, actions: (v.actions ?? []).map(toAction), title: v.title, id: v.id, keys: v.keys });
@@ -149,27 +153,35 @@ function detailOf(w: WireItem, paletteTitle: string): Detail {
 
 const safeHost = (url: string) => { try { return new URL(url).host; } catch { return url; } };
 
+/** What `toItem` reads of a row's palette: the section label, whether details are lazy, the rows' shared actions. */
+export type PaletteInfo = Pick<SourceInfo, "title" | "detail" | "actions">;
+
 /**
- * `lazy`: the palette answers `detail(id)`. An item whose inline detail has
- * no markdown then keeps what it has (or the generic one) and is marked to
- * ask; the reply is merged over it (`mergeDetail`).
+ * `palette.detail === "lazy"`: the palette answers `detail(id)`. An item
+ * whose inline detail has no markdown then keeps what it has (or the
+ * generic one) and is marked to ask; the reply is merged over it
+ * (`mergeDetail`). A row without `actions` gets the palette's.
  */
-export function toItem(hit: WireHit, paletteTitle: string, lazy = false): Item {
+export function toItem(hit: WireHit, palette: PaletteInfo): Item {
   const w = hit.item;
-  const palette = sourceKey(hit.source);
+  const { title: paletteTitle, actions: shared } = palette;
+  const lazy = palette.detail === "lazy";
+  const key = sourceKey(hit.source);
   return {
     id: w.id,
     name: w.name,
     subtitle: w.subtitle,
     icon: iconOf(w.icon, w.name, w.url),
     keywords: w.keywords,
-    palette,
+    palette: key,
     source: hit.source,
     section: w.section,
-    accessories: w.accessories ?? (palette === PALETTES ? [{ text: "Palette" }] : typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined),
+    accessories: w.accessories ?? (key === PALETTES ? [{ text: "Palette" }] : typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined),
     detail: w.detail ?? detailOf(w, paletteTitle),
     lazyDetail: lazy && !w.detail?.markdown ? true : undefined,
-    actions: w.actions?.map(toAction),
+    actions: (w.actions ?? shared)?.map(toAction),
+    // The core's "N more in X" row after a capped section (`more_row` in src-tauri/src/index.rs): muted, Enter opens the palette.
+    muted: w.more === true ? true : undefined,
   };
 }
 
@@ -180,5 +192,5 @@ export const mergeDetail = (inline: Detail | undefined, reply: unknown): Detail 
 };
 
 /** A host `list` reply as hits: unranked rows, in the order given, no match positions. */
-export const toLiveHits = (source: Source, items: WireItem[], paletteTitle: string, lazy = false) =>
-  items.map((item) => ({ item: toItem({ source, id: item.id, score: 0, name_positions: [], item }, paletteTitle, lazy) }));
+export const toLiveHits = (source: Source, items: WireItem[], palette: PaletteInfo) =>
+  items.map((item) => ({ item: toItem({ source, id: item.id, score: 0, name_positions: [], item }, palette) }));

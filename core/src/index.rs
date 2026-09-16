@@ -1,8 +1,11 @@
 //! The item index: every listed item of every palette in one place, matched
 //! and ranked here so a keystroke costs one scan in Rust and only the top N
-//! cross to the webview. Ranking is the `weighted` engine from `matchbench`
+//! cross to the webview. Tiering is the `weighted` engine from `matchbench`
 //! (notes/matching.md): name, keywords and subtitle are separate
-//! nucleo-matcher fields, one thread, synchronous.
+//! nucleo-matcher fields, one thread, synchronous. On top of the match:
+//! a source's [`Tier`] (primary up, catalog down), a bonus for a row
+//! that has the typed word, the exact-name bonus, and a per-source cap so
+//! no catalog crowds the top N; the ladder is under [`EXACT_BONUS`].
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -10,6 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32String};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -63,6 +67,104 @@ pub struct Hit {
 /// Per-candidate score adjustment, see [`QueryOpts::boost`].
 pub type Boost<'a> = &'a dyn Fn(&Source, &str) -> f32;
 
+/// A source's tier at the root: what its rows are to the user when typed
+/// for next to everything else's. `primary` is what is reached by name
+/// (apps, windows, bookmarks); `normal` is what is browsed (containers,
+/// pull requests); `catalog` is a big static list where any query matches
+/// dozens of rows (emoji, icons, unicode). A palette declares it in its
+/// manifest, the config file can override it. See [`Tier::bonus`] for what
+/// it does to the score and [`Caps`] for the root's per-source cap.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Tier {
+    Primary,
+    #[default]
+    Normal,
+    Catalog,
+}
+
+impl Tier {
+    /// Added to every matched row of a source of this tier on a typed
+    /// query (the empty query is ordered by use, not by tier): the tier
+    /// bonus. Sized with the other adjustments, all in nucleo's units of
+    /// about 16 per matched char (the ladder is under [`EXACT_BONUS`]);
+    /// measured on the fixture corpus and the real index
+    /// (`fixture_heads_and_timing`, `corpus_heads`; notes/decisions.md
+    /// "Root ordering" has the tables).
+    pub const fn bonus(self) -> f32 {
+        match self {
+            Tier::Primary => PRIMARY_BONUS,
+            Tier::Normal => 0.0,
+            Tier::Catalog => -CATALOG_PENALTY,
+        }
+    }
+
+    /// What a row of this tier named what was typed gets: [`EXACT_BONUS`],
+    /// except in a catalog, where an exact name is one glyph among
+    /// thousands of short names (`git`, `c`, `chrome` are all icon names)
+    /// and [`CATALOG_EXACT_BONUS`] puts it under the primary hits that
+    /// contain the query and above the normal ones.
+    pub const fn exact_bonus(self) -> f32 {
+        match self {
+            Tier::Catalog => CATALOG_EXACT_BONUS,
+            _ => EXACT_BONUS,
+        }
+    }
+}
+
+/// [`Tier::bonus`] for a primary source.
+pub const PRIMARY_BONUS: f32 = 150.0;
+/// Taken off every catalog row, see [`Tier::bonus`].
+pub const CATALOG_PENALTY: f32 = 150.0;
+/// Added to a row where every word of the query starts a word of the
+/// name or of a keyword (case-insensitive): the typed letters are a word
+/// the user knows, not collected across a bundle id or the middle of a
+/// long title. Equal to the tier spread (primary to catalog), so a catalog
+/// row that has the word and a primary row that only scatters it are level
+/// and the match score decides (`smile`: the emoji above `System
+/// Information`, which spells it out of `com.apple.SystemProfiler`), while
+/// a primary row that has the word is above a catalog one that does by the
+/// whole spread plus what use can add.
+pub const WORD_BONUS: f32 = 300.0;
+/// [`Tier::exact_bonus`] for a catalog row: with its tier and word
+/// bonuses the row nets 400, between a primary word hit (450) and a
+/// normal one (300), so `chrome` puts Google Chrome first and the glyph
+/// after the primary rows that have the word, `git` keeps the glyph under
+/// the GitHub palettes and GitHub Desktop and above every normal row.
+pub const CATALOG_EXACT_BONUS: f32 = 250.0;
+
+/// How many rows one source may put in a typed query's answer, by tier.
+/// The rest of its matches are counted in [`Ranked::more`], for a row that
+/// drills into the palette (where nothing is capped). `[general]
+/// root_caps` in the config file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct Caps {
+    pub primary: usize,
+    pub normal: usize,
+    pub catalog: usize,
+}
+
+impl Default for Caps {
+    fn default() -> Self {
+        Self { primary: 8, normal: 6, catalog: 3 }
+    }
+}
+
+impl Caps {
+    pub const fn of(&self, tier: Tier) -> usize {
+        match tier {
+            Tier::Primary => self.primary,
+            Tier::Normal => self.normal,
+            Tier::Catalog => self.catalog,
+        }
+    }
+}
+
+/// A source's [`Tier`], see [`QueryOpts::tier`].
+pub type TierOf<'a> = &'a dyn Fn(&Source) -> Tier;
+
 pub struct QueryOpts<'a> {
     /// At most this many hits; the best ones when there are more.
     pub limit: usize,
@@ -72,11 +174,54 @@ pub struct QueryOpts<'a> {
     /// the top-N select, so a weak match with a large boost still climbs.
     /// Frecency plugs in here.
     pub boost: Option<Boost<'a>>,
+    /// Each source's tier: its [`Tier::bonus`] goes on every matched row
+    /// (typed queries only) and picks its cap from `caps`. `None` is
+    /// `Tier::Normal` for every source: no bonus, the normal cap.
+    pub tier: Option<TierOf<'a>>,
+    /// Per-source caps on a typed query, by tier; `None` caps nothing (a
+    /// palette's own level lists everything). The empty query is never
+    /// capped.
+    pub caps: Option<Caps>,
 }
 
 impl Default for QueryOpts<'_> {
     fn default() -> Self {
-        Self { limit: 200, sources: None, boost: None }
+        Self { limit: 200, sources: None, boost: None, tier: None, caps: None }
+    }
+}
+
+/// One source's matches a cap left out of [`Ranked::hits`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct More {
+    pub source: Source,
+    /// Matched rows of the source not in the hits.
+    pub count: usize,
+}
+
+/// A query's answer: the hits, grouped by source in the order of each
+/// source's best hit (the section order at the root, best first inside a
+/// section), and per capped source how many matches the cap dropped.
+/// Derefs to the hits.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Ranked {
+    pub hits: Vec<Hit>,
+    /// Sources with hits here and more matches behind the cap, in the order
+    /// of their sections.
+    pub more: Vec<More>,
+}
+
+impl std::ops::Deref for Ranked {
+    type Target = [Hit];
+    fn deref(&self) -> &[Hit] {
+        &self.hits
+    }
+}
+
+impl IntoIterator for Ranked {
+    type Item = Hit;
+    type IntoIter = std::vec::IntoIter<Hit>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.hits.into_iter()
     }
 }
 
@@ -85,29 +230,44 @@ struct Entry {
     name: Utf32String,
     keywords: Vec<Utf32String>,
     subtitle: Option<Utf32String>,
+    /// The trimmed name and keywords, Unicode-lowercased, NUL between
+    /// them: what [`is_exactly`](Self::is_exactly) and
+    /// [`starts_words`](Self::starts_words) look in, built once per item
+    /// so a scan over every match costs one `str` search per query word.
+    /// No normalisation: an accent is part of the name (`emile` is not
+    /// `Émile` here, though nucleo matches it).
+    lower: String,
 }
 
 impl Entry {
-    /// The item is called `q`: its name, or one of its keywords (an alias),
-    /// equals it case-insensitively, whitespace trimmed.
+    /// The item is called `q` (already lowercased and trimmed): its name
+    /// equals it, or one of its keywords does and `q` is two chars or
+    /// more. A one-letter keyword is a tag (a repo's language `c`, a
+    /// symbol's letter), not an alias, and every repo written in C would
+    /// otherwise be "named" `c`.
     fn is_exactly(&self, q: &str) -> bool {
-        eq_ignore_case(self.item.name.trim(), q) || self.item.keywords.iter().any(|k| eq_ignore_case(k.trim(), q))
+        let mut segs = self.lower.split('\0');
+        segs.next() == Some(q) || (q.chars().nth(1).is_some() && segs.any(|s| s == q))
     }
-}
 
-/// Case-insensitive equality by Unicode lowercase, no normalisation (an
-/// accent is part of the name). Stops at the first differing char, so a
-/// scan over every match costs about one comparison each.
-fn eq_ignore_case(a: &str, b: &str) -> bool {
-    a.chars().flat_map(char::to_lowercase).eq(b.chars().flat_map(char::to_lowercase))
+    /// Every word of `q` (lowercased) starts a word of the name or of a
+    /// keyword: it is at the start, or after a char that is not a letter
+    /// or digit. `chr` starts `Google Chrome` and `chrome_close`, not
+    /// `Clipboard History` (scattered) nor `Digital Color Meter`
+    /// (inside a word).
+    fn starts_words(&self, q: &str) -> bool {
+        q.split_whitespace().all(|w| self.lower.match_indices(w).any(|(i, _)| self.lower[..i].chars().next_back().is_none_or(|c| !c.is_alphanumeric())))
+    }
 }
 
 impl From<Item> for Entry {
     fn from(item: Item) -> Self {
+        let lower = std::iter::once(item.name.as_str()).chain(item.keywords.iter().map(String::as_str)).map(|s| s.trim().to_lowercase()).collect::<Vec<_>>().join("\0");
         Self {
             name: Utf32String::from(item.name.as_str()),
             keywords: item.keywords.iter().map(|k| Utf32String::from(k.as_str())).collect(),
             subtitle: item.subtitle.as_deref().map(Utf32String::from),
+            lower,
             item,
         }
     }
@@ -274,21 +434,32 @@ impl Index {
         &mut self.buckets[i]
     }
 
-    /// Rank `q` over the index: best `opts.limit` hits, best first. The empty
-    /// query lists everything in insertion order (plus boost). Words match
-    /// fuzzily and independently; `!`, `^`, `'` and `$` are ordinary text,
-    /// not fzf operators (Spotlight and Raycast have none, and a bookmark
-    /// called `!important` must be findable). An item named what was typed
-    /// (or with a keyword saying so) gets [`EXACT_BONUS`] and leads.
-    pub fn query(&mut self, q: &str, opts: QueryOpts) -> Vec<Hit> {
+    /// Tier `q` over the index: the best `opts.limit` hits, grouped by
+    /// source in the order of each source's best hit (best first inside a
+    /// source). The empty query lists everything in insertion order (plus
+    /// boost), uncapped. Words match fuzzily and independently; `!`, `^`,
+    /// `'` and `$` are ordinary text, not fzf operators (Spotlight and
+    /// Raycast have none, and a bookmark called `!important` must be
+    /// findable). An item named what was typed (or with a keyword saying
+    /// so) gets [`EXACT_BONUS`] and leads. With `opts.tier` every matched
+    /// row carries its source's tier bonus ([`Tier::bonus`]); with
+    /// `opts.caps` a source keeps at most its cap's worth of hits, the
+    /// best ones, chosen before the top-N select so a catalog cannot
+    /// crowd the rest out, and the count it lost is in [`Ranked::more`].
+    pub fn query(&mut self, q: &str, opts: QueryOpts) -> Ranked {
         self.pat = Pattern::new(q, CaseMatching::Smart, Normalization::Smart, AtomKind::Fuzzy);
         let matching = !self.pat.atoms.is_empty();
-        let exact_q = q.trim();
+        let typed = q.trim().to_lowercase();
         let mut cands = Vec::new();
+        // Per scanned bucket: where its candidates sit in `cands`, and its tier.
+        let mut spans: Vec<(usize, std::ops::Range<usize>, Tier)> = Vec::new();
         'scan: for (b, bucket) in self.buckets.iter().enumerate() {
             if opts.sources.is_some_and(|s| !s.contains(&bucket.source)) {
                 continue;
             }
+            let tier = opts.tier.map_or(Tier::Normal, |f| f(&bucket.source));
+            let bonus = if matching { tier.bonus() } else { 0.0 };
+            let start = cands.len();
             for (e, entry) in bucket.entries.iter().enumerate() {
                 // Without matching or boost the scan order is the result order.
                 if !matching && opts.boost.is_none() && cands.len() == opts.limit {
@@ -303,22 +474,66 @@ impl Index {
                     0.0
                 };
                 let boost = if bucket.live { None } else { opts.boost };
-                let score = score + boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id));
-                let score = if matching && entry.is_exactly(exact_q) { score + EXACT_BONUS } else { score };
+                let mut score = score + boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id)) + bonus;
+                if matching && entry.starts_words(&typed) {
+                    score += WORD_BONUS;
+                    if entry.is_exactly(&typed) {
+                        score += tier.exact_bonus();
+                    }
+                }
                 // Name length only breaks ties between matches; the empty
                 // query keeps insertion order.
                 let len = if matching { entry.name.len() as u32 } else { 0 };
                 cands.push(Cand { score, len, b: b as u32, e: e as u32 });
             }
+            spans.push((b, start..cands.len(), tier));
+        }
+        // The cap: each source's best `cap` candidates, the rest dropped
+        // here so the top-N below is chosen among what may show.
+        let caps = if matching { opts.caps } else { None };
+        if let Some(caps) = caps {
+            let mut kept = Vec::with_capacity(cands.len());
+            for (_, range, tier) in &spans {
+                let (cap, slice) = (caps.of(*tier), &mut cands[range.clone()]);
+                if slice.len() > cap {
+                    if cap > 0 {
+                        slice.select_nth_unstable_by(cap, Cand::cmp);
+                    }
+                    kept.extend_from_slice(&slice[..cap]);
+                } else {
+                    kept.extend_from_slice(slice);
+                }
+            }
+            cands = kept;
         }
         if cands.len() > opts.limit {
             cands.select_nth_unstable_by(opts.limit, Cand::cmp);
             cands.truncate(opts.limit);
         }
         cands.sort_unstable_by(Cand::cmp);
+        // Sections: a source's hits together, sources in the order of their
+        // best hit (what the UI groups by; done here so the order is one
+        // rule). `first` is a bucket's place by that rule; the stable sort
+        // keeps the ranking inside a source.
+        let mut first = vec![usize::MAX; self.buckets.len()];
+        for (i, c) in cands.iter().enumerate() {
+            let b = c.b as usize;
+            if first[b] == usize::MAX {
+                first[b] = i;
+            }
+        }
+        cands.sort_by_key(|c| first[c.b as usize]);
+        let mut more = Vec::new();
+        if caps.is_some() {
+            let mut shown = vec![0; self.buckets.len()];
+            cands.iter().for_each(|c| shown[c.b as usize] += 1);
+            let mut cut: Vec<(usize, usize)> = spans.iter().filter(|(b, r, _)| shown[*b] > 0 && r.len() > shown[*b]).map(|(b, r, _)| (*b, r.len() - shown[*b])).collect();
+            cut.sort_by_key(|(b, _)| first[*b]);
+            more = cut.into_iter().map(|(b, count)| More { source: self.buckets[b].source.clone(), count }).collect();
+        }
 
         let mut buf = Vec::new();
-        cands
+        let hits = cands
             .into_iter()
             .map(|c| {
                 let bucket = &self.buckets[c.b as usize];
@@ -337,33 +552,60 @@ impl Index {
                 name_positions.dedup();
                 Hit { source: bucket.source.clone(), id: entry.item.id.clone(), score: c.score, name_positions }
             })
-            .collect()
+            .collect();
+        Ranked { hits, more }
     }
 }
 
 /// Added to the score of an item named what was typed (name or keyword,
-/// case-insensitive), so it ranks above every fuzzy hit whatever their
+/// case-insensitive), so it ranks above every other hit whatever their
 /// history: what you typed *is* this item (Raycast does the same with names
-/// and aliases). Sized against the two other adjustments: a frecency boost
-/// tops out at 200 (`frecency::MAX_SCORE * BOOST_SCALE`), and nucleo gives
-/// about 16 per matched char, so a hot fuzzy hit is at most 200 plus a
-/// fraction of the query's own score above an untouched exact hit (a
-/// keyword-exact hit scores 80% of a name hit: 33 apart at `chrome`). 1000
-/// clears that for any query a launcher sees; at 16 per char the spread
-/// would need a 50-char query to approach it. The welcome source's 1e9 is
-/// only ever added on the empty query, where nothing is exact. Among exact
-/// hits the score (with its boost) and then the name length still order.
+/// and aliases). The ladder of every adjustment, in nucleo's units of about
+/// 16 per matched char, for one query and the same match score; a frecency
+/// boost (`frecency::MAX_SCORE * BOOST_SCALE`, at most 200, "hot" below)
+/// comes on top of any of them except on a live source:
 ///
-/// No prefix bonus, on purpose: nucleo scores a word-start match the same
-/// as a prefix or an exact one (`ha` is 62 for `ha`, `hat` and `Claude
-/// Code URL Handler` alike, fixture corpus), so a bonus that mattered
-/// against a boosted item would have to be at least the boost, and a used
-/// item overtaking an untouched prefix hit is what the frecency scale is
-/// designed to do (`frecency.rs`, "Composing with the match score"). The
-/// length tie-break already puts the prefix hit first among equals.
+/// | row | adjustment | hot |
+/// | --- | ---: | ---: |
+/// | exact primary | 1450 | 1650 |
+/// | exact normal (name, or a keyword alias) | 1300 | 1500 |
+/// | palette row, has the word (primary tier plus the app's `PALETTE_BONUS` 150) | 600 | 800 |
+/// | primary, has the word | 450 | 650 |
+/// | exact catalog | 400 | 600 |
+/// | normal, has the word; palette row, scattered | 300 | 500 |
+/// | primary, scattered; catalog, has the word | 150 | 350 |
+/// | normal, scattered | 0 | 200 |
+/// | catalog, scattered | -150 | 50 |
+///
+/// "Has the word": every query word starts a word of the name or a
+/// keyword ([`WORD_BONUS`]). So: an exact name wins across tiers (1300
+/// against a hot palette row's 800, the closest), except a catalog's,
+/// which is one glyph among thousands of short names and sits under the
+/// primary hits that have the word; a primary hit that has the word is
+/// above every catalog hit however hot (450 against 350); a catalog row
+/// the user picks a lot climbs above the normal rows that scatter the
+/// query (350 against 300 even for the ones that have the word) but not
+/// above a primary one; and a row that has the word is above one that
+/// scatters it whatever their tiers unless the scattered one is primary
+/// and the other a catalog, where they are level and the match score
+/// decides. The match score itself spans about 26 per typed char (prefix)
+/// down to 16 with gap penalties (scattered), so a band of 150 holds for
+/// queries a launcher sees. The welcome source's 1e9 is only ever added
+/// on the empty query, where nothing is exact. Among equals the name
+/// length and then insertion order decide.
+///
+/// The word bonus is the prefix bonus notes/matching.md rejected,
+/// re-measured with tiers: nucleo scores a word-start match the same as a
+/// prefix or an exact one (`ha` is 62 for `ha`, `hat` and `Claude Code
+/// URL Handler` alike, fixture corpus), and among those the length
+/// tie-break already puts the prefix first; what a bonus has to separate,
+/// now that a tier can add 150 to a row, is a hit on a word the user
+/// typed from one that collects the letters across a bundle id or a long
+/// title, which the flat score does not tell apart by enough.
 pub const EXACT_BONUS: f32 = 1000.0;
 
 /// A scored candidate; `(b, e)` is its insertion order.
+#[derive(Clone, Copy)]
 struct Cand {
     score: f32,
     len: u32,
@@ -469,11 +711,32 @@ mod tests {
         hits.iter().position(|h| h.id == id).unwrap_or_else(|| panic!("{id} not in {:?}", ids(hits)))
     }
 
+    fn score_of(hits: &[Hit], id: &str) -> f32 {
+        hits[pos(hits, id)].score
+    }
+
+    /// The sources in the order their sections appear, each one's hits contiguous.
+    fn sections(hits: &[Hit]) -> Vec<&str> {
+        let mut out: Vec<&str> = Vec::new();
+        for h in hits {
+            let p = h.source.palette.as_str();
+            if out.last() != Some(&p) {
+                assert!(!out.contains(&p), "{p} is split: {:?}", hits.iter().map(|h| (&h.source.palette, &h.id)).collect::<Vec<_>>());
+                out.push(p);
+            }
+        }
+        out
+    }
+
     #[test]
     fn exact_name_first_then_name_over_keyword() {
         let hits = index().query("chrome", QueryOpts::default());
-        assert_eq!(ids(&hits)[..3], ["i1", "i2", "chrome.app"]);
-        assert!(pos(&hits, "chrome.app") < pos(&hits, "i3"));
+        assert_eq!(ids(&hits)[..2], ["i1", "i2"]);
+        // Sections: the icon named `chrome` leads, so its source's hits come
+        // first, the app's after; the scores still say name over keyword.
+        assert_eq!(sections(&hits), ["icons", "apps"]);
+        assert!(score_of(&hits, "chrome.app") > score_of(&hits, "i3"));
+        assert_eq!(score_of(&hits, "i2"), score_of(&hits, "chrome.app"), "a name prefix and a word-start match score alike");
     }
 
     #[test]
@@ -486,8 +749,167 @@ mod tests {
     #[test]
     fn name_match_over_keyword_only() {
         let hits = index().query("term", QueryOpts::default());
-        assert_eq!(ids(&hits)[..2], ["terminal.app", "i7"]);
-        assert!(pos(&hits, "i7") < pos(&hits, "ghostty.app"));
+        assert_eq!(ids(&hits), ["terminal.app", "ghostty.app", "i7"], "apps first (Terminal is the best hit), Ghostty with it, the icon after");
+        assert!(score_of(&hits, "i7") > score_of(&hits, "ghostty.app"), "a name match over a keyword-only one");
+    }
+
+    #[test]
+    fn sections_follow_the_best_hit() {
+        let mut ix = index();
+        // `ha`: the bookmark is exact, then the icons (hat, hand: shorter
+        // names than the app's), then the app.
+        let hits = ix.query("ha", QueryOpts::default());
+        assert_eq!(sections(&hits), ["bookmarks", "icons", "apps"]);
+        assert_eq!(ids(&hits), ["ha", "i6", "i5", "i2", "i3", "handler.app"], "the fuzzy `h.a` icons ride in their section");
+        // A boost that lifts the app's row lifts its section.
+        let handler = |_: &Source, i: &str| if i == "handler.app" { 10.0 } else { 0.0 };
+        let hits = ix.query("ha", QueryOpts { boost: Some(&handler), ..Default::default() });
+        assert_eq!(sections(&hits), ["bookmarks", "apps", "icons"]);
+        // The empty query is insertion order, which is grouped already.
+        assert_eq!(sections(&ix.query("", QueryOpts::default())), ["apps", "icons", "bookmarks"]);
+        assert!(ix.query("", QueryOpts::default()).more.is_empty());
+        // A live source listed again between two keystrokes (the show
+        // relist) with the same rows changes nothing: the order is a
+        // function of the rows, not of when they arrived.
+        ix.set_live(src("apps"), true);
+        let before = ix.query("ha", QueryOpts { boost: Some(&handler), ..Default::default() });
+        let rows = ix.snapshot(&src("apps"));
+        ix.replace(src("apps"), rows);
+        assert_eq!(ix.query("ha", QueryOpts { boost: Some(&handler), ..Default::default() }), before);
+    }
+
+    /// The bundled tiers: apps primary, icons catalog, the rest normal.
+    fn tier(s: &Source) -> Tier {
+        match s.palette.as_str() {
+            "apps" => Tier::Primary,
+            "icons" => Tier::Catalog,
+            _ => Tier::Normal,
+        }
+    }
+
+    #[test]
+    fn tier_bonus_orders_sections_but_exact_and_use_cross_tiers() {
+        let mut ix = index();
+        ix.extend(src("docker"), vec![item("d1", "hazel", None, &[])]);
+        let opts = || QueryOpts { tier: Some(&tier), ..Default::default() };
+        // A primary prefix hit above every catalog prefix hit: Google Chrome above the `chrome` glyph.
+        let hits = ix.query("chr", opts());
+        assert_eq!(sections(&hits), ["apps", "icons"]);
+        assert_eq!(hits[0].id, "chrome.app");
+        assert_eq!(score_of(&hits, "chrome.app") - score_of(&hits, "i1"), PRIMARY_BONUS + CATALOG_PENALTY, "same match, two tiers apart");
+        // An exact catalog name is under the primary hit that contains the
+        // query and above a normal one that does; an exact name elsewhere wins.
+        ix.extend(src("docker"), vec![item("d2", "chromedriver", None, &[])]);
+        let hits = ix.query("chrome", opts());
+        assert_eq!(ids(&hits)[..3], ["chrome.app", "i1", "i2"]);
+        assert_eq!(sections(&hits), ["apps", "icons", "docker"]);
+        assert_eq!(score_of(&hits, "chrome.app") - score_of(&hits, "i1"), PRIMARY_BONUS + CATALOG_PENALTY - CATALOG_EXACT_BONUS);
+        assert_eq!(score_of(&hits, "i1") - score_of(&hits, "d2"), CATALOG_EXACT_BONUS - CATALOG_PENALTY);
+        ix.extend(src("docker"), vec![item("d3", "Chrome", None, &[])]);
+        let hits = ix.query("chrome", opts());
+        assert_eq!(hits[0].id, "d3", "an exact normal name over the primary hit");
+        assert_eq!(sections(&hits), ["docker", "apps", "icons"]);
+        assert!(score_of(&hits, "d3") > score_of(&hits, "chrome.app") + 500.0 + 200.0, "and over a hot palette row");
+        ix.replace(src("docker"), vec![item("d1", "hazel", None, &[])]);
+        // Tiers order the sections: primary, normal, catalog, at the same match.
+        let hits = ix.query("ha", opts());
+        assert_eq!(sections(&hits), ["bookmarks", "apps", "docker", "icons"], "the exact bookmark, then the tiers");
+        assert_eq!(ids(&hits), ["ha", "handler.app", "d1", "i6", "i5", "i2", "i3"]);
+        // The hottest catalog row (the frecency maximum, 200) climbs above
+        // the normal-tier fuzzy hit but not above the primary one.
+        let hot = |_: &Source, i: &str| if i == "i5" { 200.0 } else { 0.0 };
+        let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..opts() });
+        assert_eq!(ids(&hits), ["ha", "handler.app", "i5", "i6", "i2", "i3", "d1"]);
+        assert!(score_of(&hits, "i5") < score_of(&hits, "handler.app") && score_of(&hits, "i5") > score_of(&hits, "d1"));
+        // A live primary source keeps its tier (windows): no frecency, but the bonus.
+        ix.set_live(src("apps"), true);
+        let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..opts() });
+        assert_eq!(ids(&hits)[..2], ["ha", "handler.app"]);
+        // The empty query is untouched by tier: insertion order, no bonus.
+        let all = ix.query("", opts());
+        assert_eq!(ids(&all)[..4], ["chrome.app", "terminal.app", "ghostty.app", "handler.app"]);
+        assert!(all.iter().all(|h| h.score == 0.0));
+        // The ladder the constants rely on (the table under EXACT_BONUS); the
+        // frecency maximum (200) and the app's palette bonus (150) as numbers.
+        let ladder = [
+            (PRIMARY_BONUS + CATALOG_PENALTY > 200.0, "a hot catalog row never passes a primary hit that has the word"),
+            (CATALOG_PENALTY < 200.0, "a hot scattered catalog row passes a normal one"),
+            (WORD_BONUS == PRIMARY_BONUS + CATALOG_PENALTY, "a catalog word hit and a primary scattered one are level"),
+            (EXACT_BONUS > 150.0 + 200.0 + PRIMARY_BONUS + WORD_BONUS, "an exact name above a hot palette row"),
+            (-CATALOG_PENALTY + WORD_BONUS + CATALOG_EXACT_BONUS < PRIMARY_BONUS + WORD_BONUS, "an exact catalog name under a primary word hit"),
+            (-CATALOG_PENALTY + WORD_BONUS + CATALOG_EXACT_BONUS > WORD_BONUS, "and above a normal one"),
+        ];
+        for (holds, why) in ladder {
+            assert!(std::hint::black_box(holds), "{why}");
+        }
+    }
+
+    #[test]
+    fn word_hits_over_scattered_ones() {
+        let mut ix = index();
+        ix.extend(src("apps"), vec![item("sysinfo.app", "System Information", None, &["com.apple.SystemProfiler"])]);
+        ix.extend(src("icons"), vec![item("i9", "smiley", None, &[])]);
+        // Flat: the glyph's prefix match outscores the scattered keyword one anyway.
+        let hits = ix.query("smile", QueryOpts::default());
+        assert_eq!(ids(&hits), ["i9", "sysinfo.app"]);
+        assert!(score_of(&hits, "i9") > WORD_BONUS && score_of(&hits, "sysinfo.app") < WORD_BONUS);
+        // With tiers the scattered primary hit would climb 300 over the catalog one; the substring bonus holds it level, and the match decides.
+        let hits = ix.query("smile", QueryOpts { tier: Some(&tier), ..Default::default() });
+        assert_eq!(ids(&hits), ["i9", "sysinfo.app"]);
+        // Accents are not folded for the bonus (nucleo still matches).
+        ix.extend(src("icons"), vec![item("e", "Émile", None, &[])]);
+        let hits = ix.query("emile", QueryOpts::default());
+        assert!(score_of(&hits, "e") < WORD_BONUS);
+        assert!(score_of(&ix.query("émile", QueryOpts::default()), "e") > EXACT_BONUS);
+        // A one-letter keyword is a tag, not an alias; a one-letter name is exact.
+        ix.extend(src("docker"), vec![item("repo", "kimi-in-c", None, &["c"]), item("letter", "c", None, &[])]);
+        let hits = ix.query("c", QueryOpts::default());
+        assert!(score_of(&hits, "repo") < EXACT_BONUS && score_of(&hits, "letter") > EXACT_BONUS);
+        assert!(score_of(&ix.query("nf", QueryOpts::default()), "i1") < EXACT_BONUS, "two-letter keyword `nf-dev` is not `nf` either");
+        // Case-insensitive, trimmed, keywords count; a word start, not any substring.
+        let hits = ix.query(" SYSTEMPROF ", QueryOpts::default());
+        assert!(hits.is_empty(), "nucleo's smart case: an upper-case query is case-sensitive");
+        assert!(score_of(&ix.query("com.apple", QueryOpts::default()), "sysinfo.app") > WORD_BONUS, "a keyword's start");
+        assert!(score_of(&ix.query("apple", QueryOpts::default()), "sysinfo.app") > WORD_BONUS, "after a dot");
+        assert!(score_of(&ix.query("profiler", QueryOpts::default()), "sysinfo.app") < WORD_BONUS, "inside SystemProfiler");
+        assert!(score_of(&ix.query("info", QueryOpts::default()), "sysinfo.app") > WORD_BONUS, "the second word");
+        assert!(score_of(&ix.query("tion", QueryOpts::default()), "sysinfo.app") < WORD_BONUS, "inside a word");
+        // Every query word must start a word, in any order.
+        assert!(score_of(&ix.query("info sys", QueryOpts::default()), "sysinfo.app") > WORD_BONUS);
+        assert!(score_of(&ix.query("sys formation", QueryOpts::default()), "sysinfo.app") < WORD_BONUS);
+    }
+
+    #[test]
+    fn caps_keep_each_source_to_its_tier() {
+        let mut ix = index();
+        let caps = Caps { primary: 8, normal: 6, catalog: 2 };
+        let opts = |limit| QueryOpts { tier: Some(&tier), caps: Some(caps), limit, ..Default::default() };
+        // `nf` lands in six icons' keywords: two shown, four more.
+        let r = ix.query("nf", opts(200));
+        assert_eq!(ids(&r), ["i6", "i5"], "the best two of the source (shortest names), not the first two scanned");
+        assert_eq!(r.more, [More { source: src("icons"), count: 4 }]);
+        // The cap is chosen before the limit: a limit of 1 still counts what the source lost.
+        let r = ix.query("nf", opts(1));
+        assert_eq!(ids(&r), ["i6"]);
+        assert_eq!(r.more, [More { source: src("icons"), count: 5 }]);
+        // Sources under their cap report nothing; `more` follows the section order.
+        ix.extend(src("bookmarks"), vec![item("b2", "nf-guide", None, &[]), item("b3", "nf-notes", None, &[])]);
+        let r = ix.query("nf", opts(200));
+        assert_eq!(sections(&r), ["bookmarks", "icons"]);
+        assert_eq!(r.more, [More { source: src("icons"), count: 4 }]);
+        let r = ix.query("nf", QueryOpts { caps: Some(Caps { normal: 1, ..caps }), ..opts(200) });
+        assert_eq!(ids(&r), ["b2", "i6", "i5"]);
+        assert_eq!(r.more, [More { source: src("bookmarks"), count: 1 }, More { source: src("icons"), count: 4 }]);
+        // A cap of zero hides the source; nothing to hang its count on.
+        let r = ix.query("nf", QueryOpts { caps: Some(Caps { catalog: 0, ..caps }), ..opts(200) });
+        assert_eq!(sections(&r), ["bookmarks"]);
+        assert!(r.more.is_empty());
+        // Without caps, or on the empty query, nothing is dropped.
+        assert_eq!(ix.query("nf", QueryOpts { tier: Some(&tier), ..Default::default() }).len(), 8);
+        let all = ix.query("", opts(200));
+        assert_eq!(all.len(), ix.len());
+        assert!(all.more.is_empty());
+        assert_eq!(Caps::default(), Caps { primary: 8, normal: 6, catalog: 3 });
     }
 
     #[test]
@@ -720,15 +1142,41 @@ mod tests {
         assert_eq!(back, serde_json::from_str::<Value>(raw).unwrap());
     }
 
-    /// Ranking heads from notes/matching.md over the real corpus, plus the
-    /// per-keystroke cost. `cargo test -p pal-core --release -- --ignored --nocapture`.
-    #[test]
-    #[ignore]
-    fn fixture_heads_and_timing() {
+    /// The ten root queries of notes/decisions.md ("Root ordering"), with
+    /// their top five and the sections, printed for the table there.
+    const ROOT_QUERIES: [&str; 10] = ["chr", "chrome", "ha", "term", "smile", "arrow", "git", "slack", "c", "a"];
+
+    /// Prints each query's top five (`name [source score]`) and its
+    /// sections with their counts and what the cap left out; returns the
+    /// answers for assertions.
+    fn print_heads(ix: &mut Index, label: &str, opts: &dyn Fn() -> QueryOpts<'static>) -> Vec<Ranked> {
+        eprintln!("== {label}");
+        let mut out = Vec::new();
+        for q in ROOT_QUERIES {
+            let r = ix.query(q, opts());
+            let mut per: Vec<(String, usize)> = Vec::new();
+            for h in r.iter() {
+                let k = format!("{}/{}", h.source.extension, h.source.palette);
+                match per.iter_mut().find(|(s, _)| *s == k) {
+                    Some(p) => p.1 += 1,
+                    None => per.push((k, 1)),
+                }
+            }
+            let more = |k: &str| r.more.iter().find(|m| format!("{}/{}", m.source.extension, m.source.palette) == k).map_or(String::new(), |m| format!("+{}", m.count));
+            let top: Vec<String> = r.iter().take(5).map(|h| format!("{} [{}/{} {:.0}]", ix.get(&h.source, &h.id).unwrap().name, h.source.extension, h.source.palette, h.score)).collect();
+            eprintln!("{q:>7}: {} hits; {}\n         sections: {}", r.len(), top.join(" | "), per.iter().map(|(s, n)| format!("{s} {n}{}", more(s))).collect::<Vec<_>>().join(", "));
+            out.push(r);
+        }
+        out
+    }
+
+    /// The fixture corpus (`app/fixtures/all.jsonl`, 14719 rows) as one
+    /// source per palette, `None` without the file.
+    fn fixture_index() -> Option<Index> {
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../app/fixtures/all.jsonl");
         let Ok(text) = std::fs::read_to_string(path) else {
             eprintln!("no fixture at {path}, skipping");
-            return;
+            return None;
         };
         let mut ix = Index::new();
         for line in text.lines().filter(|l| !l.trim().is_empty()) {
@@ -738,13 +1186,34 @@ mod tests {
             ix.extend(Source::new("fixture", palette), vec![it]);
         }
         assert_eq!(ix.len(), 14719);
-        let name = |ix: &Index, h: &Hit| ix.get(&h.source, &h.id).unwrap().name.clone();
+        Some(ix)
+    }
 
+    /// The fixture's tiers as the bundled manifests would set them.
+    fn fixture_tier(s: &Source) -> Tier {
+        match s.palette.as_str() {
+            "apps" | "bookmarks" | "tabs" => Tier::Primary,
+            "iconnerd" | "emoji" | "chars" | "colors" => Tier::Catalog,
+            _ => Tier::Normal,
+        }
+    }
+
+    /// Tiering heads from notes/matching.md over the fixture corpus, before
+    /// and after tiers and caps, plus the per-keystroke cost.
+    /// `cargo test -p pal-core --release -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn fixture_heads_and_timing() {
+        let Some(mut ix) = fixture_index() else { return };
+        let name = |ix: &Index, h: &Hit| ix.get(&h.source, &h.id).unwrap().name.clone();
+        let at = |ix: &Index, r: &Ranked, palette: &str, name: &str| r.iter().position(|h| h.source.palette == palette && ix.get(&h.source, &h.id).unwrap().name == name);
+
+        // Flat, as before tiers: name over keyword, exact first.
         let hits = ix.query("chrome", QueryOpts::default());
         assert_eq!(name(&ix, &hits[0]), "chrome");
         let gc = hits.iter().position(|h| h.source.palette == "apps" && name(&ix, h) == "Google Chrome").unwrap();
         let cast = hits.iter().position(|h| h.source.palette == "cmds" && h.id == "cast").unwrap();
-        assert!(gc < 5 && gc < cast, "Google Chrome {gc}, cast {cast}");
+        assert!(gc < cast, "Google Chrome {gc}, cast {cast}");
         let hits = ix.query("ha", QueryOpts::default());
         assert_eq!((hits[0].source.palette.as_str(), hits[0].id.as_str()), ("bookmarks", "ha"));
         let hits = ix.query("term", QueryOpts::default());
@@ -761,18 +1230,148 @@ mod tests {
         let hot = |s: &Source, id: &str| if s.palette == "apps" && id.ends_with("Google Chrome.app") { 200.0 } else { 0.0 };
         let hits = ix.query("chrome", QueryOpts { boost: Some(&hot), ..Default::default() });
         assert_eq!(name(&ix, &hits[0]), "chrome", "an exact icon name outranks the hot app");
-        assert_eq!(name(&ix, &hits[2]), "Google Chrome");
+        let gc = hits.iter().find(|h| h.source.palette == "apps").unwrap();
+        assert!(hits.iter().all(|h| h.score < EXACT_BONUS || h.score >= gc.score + 200.0), "the hot app is under the exact glyphs only");
+        assert!(hits.iter().filter(|h| h.score < EXACT_BONUS).all(|h| h.score <= gc.score), "and above every other hit");
 
-        for q in ["c", "chrome", "ha", ""] {
+        // The root: tiers and caps. The heads notes/decisions.md lists.
+        print_heads(&mut ix, "fixture, flat", &QueryOpts::default);
+        let root = || QueryOpts { tier: Some(&fixture_tier), caps: Some(Caps::default()), ..Default::default() };
+        let r = print_heads(&mut ix, "fixture, tiers + caps", &root);
+        let [chr, chrome, ha, term, smile, arrow, git, slack, c, a] = &r[..] else { unreachable!() };
+        assert_eq!(at(&ix, chr, "apps", "Google Chrome"), Some(0), "a primary prefix hit above every glyph named chrome*");
+        assert_eq!(chr.iter().filter(|h| h.source.palette == "iconnerd").count(), 3, "the catalog cap");
+        assert!(chr.more.iter().any(|m| m.source.palette == "iconnerd" && m.count > 50), "{:?}", chr.more);
+        assert_eq!(at(&ix, chrome, "apps", "Google Chrome"), Some(0), "the app above the glyph named chrome");
+        assert_eq!(name(&ix, &chrome[1]), "chrome", "the exact catalog name right after the primary rows that have the word");
+        assert_eq!((ha[0].source.palette.as_str(), ha[0].id.as_str()), ("bookmarks", "ha"));
+        assert_eq!(name(&ix, &term[0]), "Terminal");
+        assert!(name(&ix, &smile[0]).contains("smil"), "{}", name(&ix, &smile[0]));
+        assert!(smile.iter().take(10).any(|h| h.source.palette == "emoji"), "an emoji in the top ten for `smile`");
+        assert!(arrow.iter().take(10).any(|h| h.source.palette == "emoji"));
+        let glyph = git.iter().position(|h| h.source.palette == "iconnerd").unwrap();
+        assert!(glyph < 10, "the glyph named git in the top ten: {glyph}");
+        assert!(git.iter().skip(glyph).all(|h| fixture_tier(&h.source) != Tier::Primary || h.score < PRIMARY_BONUS + WORD_BONUS), "only primary rows that have the word are above it");
+        assert_eq!(name(&ix, &slack[0]), "Slack");
+        assert_eq!(c[0].source.palette, "apps", "one letter: the primary section leads, no glyph named `c` above it");
+        assert_eq!(a[0].source.palette, "apps");
+        assert!(c.iter().all(|h| h.score < EXACT_BONUS), "a one-letter keyword is not an alias");
+        for r in &r {
+            for s in ["iconnerd", "emoji"] {
+                assert!(r.iter().filter(|h| h.source.palette == s).count() <= 3, "{s} over its cap");
+            }
+        }
+        // Use crosses tiers: the hottest glyph lands above the normal-tier rows but under the primary ones.
+        let hand_id = ix.snapshot(&Source::new("fixture", "iconnerd")).into_iter().find(|i| i.name == "hand").unwrap().id;
+        let hot = |s: &Source, id: &str| if s.palette == "iconnerd" && id == hand_id { 200.0 } else { 0.0 };
+        let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..root() });
+        let hand = hits.iter().find(|h| h.source.palette == "iconnerd" && h.id == hand_id).expect("the hot glyph is in the answer").score;
+        let best = |t: Tier| hits.iter().filter(|h| fixture_tier(&h.source) == t).map(|h| h.score).fold(f32::MIN, f32::max);
+        assert!(hand < best(Tier::Primary) && hand > best(Tier::Normal), "hand {hand}, primary {}, normal {}", best(Tier::Primary), best(Tier::Normal));
+        let order: Vec<&str> = hits.iter().map(|h| h.source.palette.as_str()).collect();
+        let at = |p: &str| order.iter().position(|s| *s == p).unwrap();
+        assert!(at("bookmarks") < at("apps") && at("apps") < at("iconnerd") && at("iconnerd") < at("cmds"), "{order:?}");
+
+        let flat = QueryOpts::default;
+        let timed: [(&str, &dyn Fn() -> QueryOpts<'static>); 2] = [("flat", &flat), ("root", &root)];
+        for (label, opts) in timed {
+            for q in ["c", "chrome", "ha", ""] {
+                let mut t = Vec::new();
+                for _ in 0..205 {
+                    let s = std::time::Instant::now();
+                    std::hint::black_box(ix.query(q, opts()));
+                    t.push(s.elapsed());
+                }
+                t.drain(..5);
+                t.sort();
+                eprintln!("{label} {q:>8}: median {:?}  p95 {:?}", t[t.len() / 2], t[t.len() * 95 / 100]);
+            }
+        }
+    }
+
+    /// The same over a real index cache (`$PAL_CORPUS`, an
+    /// `index/` directory under the profile's data dir): every cached
+    /// palette as a source, a `pal/palettes` row per palette with the
+    /// app's bonus and tier, tiers from the bundled manifests (`extensions/<ext>/
+    /// pal.json`) and the scripts rule for the v1 catalogs. Prints only.
+    /// `PAL_CORPUS=~/Library/Application\ Support/pal/default/index cargo
+    /// test -p pal-core --release -- --ignored --nocapture corpus_heads`.
+    #[test]
+    #[ignore]
+    fn corpus_heads() {
+        let Ok(dir) = std::env::var("PAL_CORPUS") else {
+            eprintln!("PAL_CORPUS unset, skipping");
+            return;
+        };
+        let mut ix = Index::new();
+        let mut rows = Vec::new();
+        let mut tiers: HashMap<Source, Tier> = HashMap::new();
+        let mut files: Vec<_> = std::fs::read_dir(&dir).unwrap().flatten().flat_map(|e| std::fs::read_dir(e.path()).ok()).flatten().flatten().map(|e| e.path()).collect();
+        files.sort();
+        // The restore cost: the files read and parsed, the items into the index.
+        let (t0, mut bytes, mut parse, mut fill) = (std::time::Instant::now(), 0, std::time::Duration::ZERO, std::time::Duration::ZERO);
+        for f in &files {
+            let text = std::fs::read_to_string(f).unwrap();
+            bytes += text.len();
+            let t = std::time::Instant::now();
+            let v: Value = serde_json::from_str(&text).unwrap();
+            let items: Vec<Item> = serde_json::from_value(v["items"].clone()).unwrap();
+            parse += t.elapsed();
+            let t = std::time::Instant::now();
+            ix.replace(Source::new("restore", f.file_stem().unwrap().to_string_lossy()), items);
+            fill += t.elapsed();
+        }
+        eprintln!("restore: {} files {:.1} MB in {:?} (parse {parse:?}, fill {fill:?})", files.len(), bytes as f64 / 1e6, t0.elapsed());
+        ix = Index::new();
+        for f in files {
+            let v: Value = serde_json::from_str(&std::fs::read_to_string(&f).unwrap()).unwrap();
+            let ext = f.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
+            let pal = f.file_stem().unwrap().to_string_lossy().to_string();
+            let src = Source::new(&ext, &pal);
+            let title = v["meta"]["title"].as_str().unwrap_or(&pal).to_string();
+            let manifest = std::fs::read_to_string(format!("{}/../extensions/{ext}/pal.json", env!("CARGO_MANIFEST_DIR"))).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok());
+            let tier = match (ext.as_str(), pal.as_str()) {
+                ("scripts", "iconnerd" | "iconkde" | "chars") => Tier::Catalog,
+                _ => manifest.and_then(|m| serde_json::from_value(m["palettes"][&pal]["tier"].clone()).ok()).unwrap_or_default(),
+            };
+            tiers.insert(src.clone(), tier);
+            let mut keywords = vec![pal.clone()];
+            if ext != pal {
+                keywords.push(ext.clone());
+            }
+            rows.push(Item { id: format!("{ext}/{pal}"), name: title, subtitle: v["ext_title"].as_str().map(String::from), keywords, icon: None, section: None, extra: Default::default() });
+            ix.replace(src.clone(), serde_json::from_value(v["items"].clone()).unwrap());
+            if v["meta"]["live"].as_bool() == Some(true) {
+                ix.set_live(src, true);
+            }
+        }
+        let palettes = Source::new("pal", "palettes");
+        ix.replace(palettes.clone(), rows);
+        tiers.insert(palettes.clone(), Tier::Primary);
+        eprintln!("{} items in {} sources; primary {:?}; catalog {:?}", ix.len(), ix.sources().len(), tiers.iter().filter(|(_, r)| **r == Tier::Primary).map(|(s, _)| format!("{}/{}", s.extension, s.palette)).collect::<Vec<_>>(), tiers.iter().filter(|(_, r)| **r == Tier::Catalog).map(|(s, _)| format!("{}/{}", s.extension, s.palette)).collect::<Vec<_>>());
+        let tiers: &'static HashMap<Source, Tier> = Box::leak(Box::new(tiers));
+        let palettes: &'static Source = Box::leak(Box::new(palettes));
+        let tier = move |s: &Source| tiers.get(s).copied().unwrap_or_default();
+        let boost = move |s: &Source, _: &str| if s == palettes { 150.0 } else { 0.0 };
+        let tier: TierOf<'static> = Box::leak(Box::new(tier));
+        let boost: Boost<'static> = Box::leak(Box::new(boost));
+        print_heads(&mut ix, "cache, flat + palette bonus", &move || QueryOpts { boost: Some(boost), ..Default::default() });
+        let root = move || QueryOpts { boost: Some(boost), tier: Some(tier), caps: Some(Caps::default()), ..Default::default() };
+        print_heads(&mut ix, "cache, tiers + caps + palette bonus", &root);
+        // Per keystroke on the real index, and what the reply weighs on the
+        // wire: every hit serialised beside its item, as the app's `HitView`.
+        for q in ["c", "chr", "git", "ha", ""] {
             let mut t = Vec::new();
-            for _ in 0..205 {
+            for _ in 0..105 {
                 let s = std::time::Instant::now();
-                std::hint::black_box(ix.query(q, QueryOpts::default()));
+                std::hint::black_box(ix.query(q, root()));
                 t.push(s.elapsed());
             }
             t.drain(..5);
             t.sort();
-            eprintln!("{q:>8}: median {:?}  p95 {:?}", t[t.len() / 2], t[t.len() * 95 / 100]);
+            let r = ix.query(q, root());
+            let wire: usize = r.iter().map(|h| serde_json::to_vec(h).unwrap().len() + serde_json::to_vec(ix.get(&h.source, &h.id).unwrap()).unwrap().len()).sum();
+            eprintln!("{q:>7}: median {:?}  p95 {:?}  {} hits  {:.1} KB on the wire", t[t.len() / 2], t[t.len() * 95 / 100], r.len(), wire as f64 / 1024.0);
         }
     }
 }

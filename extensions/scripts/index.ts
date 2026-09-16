@@ -8,7 +8,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
-import { home, settings, xdg, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Palette } from "@zcag/pal";
+import { home, settings, xdg, type Accessory, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Palette, type Tier } from "@zcag/pal";
 
 /** `[extensions.scripts]`, defaults in pal.json. */
 type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number; ttl: number };
@@ -20,11 +20,18 @@ type V1Palette = Raw & {
   icon?: string; icon_utf?: string; icon_xdg?: string; input?: boolean; input_prompt?: string; live?: boolean;
   auto_list?: boolean; auto_pick?: boolean; default_action?: string; action_key?: string; actions?: V1Action[];
   view?: string; display?: { detail?: boolean; columns?: number }; filter?: { id: string; name?: string }[];
-  requires?: string[]; os?: string; ttl?: number;
+  requires?: string[]; os?: string; ttl?: number; tier?: Tier;
 };
 
 const HOME = home("~");
 const log = (...a: unknown[]) => console.error("[scripts]", ...a);
+/** A data file with this many rows is a catalog at the root (the nerd icons' 12.5k, kde icons' 287, chars' 100; colors' 40 are not) unless the table says `tier` itself. */
+const CATALOG_ROWS = 100;
+const TIERS: readonly Tier[] = ["primary", "normal", "catalog"];
+/** A table that names no icon: a terminal for a script, a document for a data file, so no row falls to its initial. */
+const SCRIPT_ICON = xdg("utilities-terminal")!;
+const DATA_ICON = xdg("text-x-generic")!;
+const WARN_ICON = xdg("dialog-warning")!;
 // Read live (timeout, preview_max apply to the next run); config, skip,
 // v1_repo and ttl are used at discovery, which runs once at import.
 const S = () => settings.get<Settings>("scripts");
@@ -248,8 +255,8 @@ const argsEnv = (ctx?: Ctx): Env =>
 const argsKey = (ctx?: Ctx) => JSON.stringify(argsEnv(ctx));
 
 const inert = (name: string, subtitle: string): Palette => ({
-  title: name, icon: "!",
-  list: () => [{ id: "hint", name: `${name} is not available`, subtitle, icon: "!", actions: [] }],
+  title: name, icon: WARN_ICON,
+  list: () => [{ id: "hint", name: `${name} is not available`, subtitle, icon: WARN_ICON, actions: [] }],
   pick: () => ({}),
 });
 
@@ -335,6 +342,15 @@ function command(dir: string, plugin: Raw, user?: Raw): string[] | undefined {
   return arr && [resolve(dir, arr[0]), ...arr.slice(1)];
 }
 
+/** The table's own `tier`, else `catalog` for a data file of `CATALOG_ROWS` rows or more (read once here; the listing reads it again); a script's rows are the default. */
+function tierOf(cfg: V1Palette, data?: string): Tier | undefined {
+  if (cfg.tier !== undefined) {
+    if (TIERS.includes(cfg.tier)) return cfg.tier;
+    log(`tier ${JSON.stringify(cfg.tier)} is not one of ${TIERS.join(", ")}; ignored`);
+  }
+  if (cfg.auto_list && data && readData(data).length >= CATALOG_ROWS) return "catalog";
+}
+
 /** `requires` (binaries, `|` between alternatives) and `os`, v1's `Palette::available`. */
 function unavailable(cfg: V1Palette): string | undefined {
   const os = process.platform === "darwin" ? "macos" : process.platform;
@@ -383,7 +399,7 @@ function discover(): Record<string, Palette> {
       name, cfg, dir, exec, data,
       // The table's own ttl, else the setting; a live table is exempt from the default (it asked for fresh rows on every show, and a ttl would skip that relist).
       ttl: cfg.ttl ?? (defaultTtl > 0 && !cfg.live ? defaultTtl : undefined),
-      icon: glyph(cfg.icon_utf) ?? glyph(cfg.icon) ?? xdg(cfg.icon_xdg),
+      icon: glyph(cfg.icon_utf) ?? glyph(cfg.icon) ?? xdg(cfg.icon_xdg) ?? (cfg.auto_list && data ? DATA_ICON : SCRIPT_ICON),
       env: { ...baseEnv, _PAL_PALETTE: name, _PAL_PLUGIN_CONFIG: JSON.stringify(cfg) },
       actions: cfg.actions?.length ? toActions(cfg.actions) : undefined,
       defaultTitle: cfg.auto_pick ? DEFAULT_TITLE[cfg.default_action ?? "cmd"] : exec ? "Select" : undefined,
@@ -397,6 +413,7 @@ function discover(): Record<string, Palette> {
       live: !!cfg.live,
       // The core keeps the last listing across restarts for this long; the in-process cache in listItems covers show relists and drill-ins with the same value.
       ttl: p.ttl,
+      tier: tierOf(cfg, data),
       view: cfg.view === "grid" ? "grid" : undefined,
       columns: cfg.display?.columns,
       showDetail: cfg.display?.detail || undefined,

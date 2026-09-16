@@ -72,8 +72,8 @@ export type Item = {
   detail?: Detail;
   /**
    * First is primary (Enter), second secondary (Cmd+Enter), all in the
-   * action panel. Omitted: one default "Open" action, `pick(id)` with no
-   * action id. Empty: an inert row (a hint).
+   * action panel. Omitted: the palette's `actions`, else one default "Open"
+   * action, `pick(id)` with no action id. Empty: an inert row (a hint).
    */
   actions?: Action[];
   /**
@@ -92,11 +92,24 @@ export type Item = {
 export type Action = {
   id: string;
   title: string;
-  /** "cmd+shift+c": lower-case, "+" joined; cmd is the platform's primary modifier. */
-  shortcut?: string;
+  /**
+   * "cmd+shift+c": lower-case, "+" joined; cmd is the platform's primary
+   * modifier. Bare keys in a view with `keys: "actions"`: a letter, a digit,
+   * `space`, `backspace`, `delete`, `up`/`down`/`left`/`right`, `+`, `-`.
+   * An array lists alternatives (`["up", "k"]`): any of them runs the
+   * action, the panel draws the first and the rest faintly.
+   */
+  shortcut?: string | string[];
   style?: "destructive";
   /** Ask first; the question shown, with the action's title as the go-ahead. */
   confirm?: string;
+  /**
+   * Routes its key, is never listed: not in ⌘K, not in the footer, and not
+   * one of the Enter / ⌘Enter pair (those are the first two listed). Needs
+   * a `shortcut`, else nothing could reach it (`checkView` refuses one
+   * without). Wordle's letters: 26 actions that would swamp the panel.
+   */
+  hidden?: true;
 };
 
 // ---- view: a declarative render tree -------------------------------------
@@ -105,19 +118,32 @@ export type Action = {
 // with the tokens; a pick from it carries an action id and usually answers
 // with a new tree. `view.ts` (`checkView`) checks a tree before it goes out.
 
-/** The tag palette (`--pal-tag-*` in the app's tokens): what a badge, a tag accessory or a text node may be coloured. */
+/** The tag palette (`--pal-tag-*` in the app's tokens): what a badge, a tag accessory, a text node, a tile or a progress bar may be coloured. */
 export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";
 
 /**
- * How a keyed node comes and goes. `enter` runs when the node first
+ * How a keyed node comes, goes and moves. `enter` runs when the node first
  * appears (its key was not in the previous tree): `fade`, `slide-up` (the
- * brief's rise, 6 px), `flip` (a horizontal unfold, for a card turning
- * over). `exit` when its key leaves: `fade` (the default) or `none` (gone
- * at once; a face-down card replaced by its face). `delay` staggers the
- * entrance in steps of `--pal-dur-fast` (0..8), so a deal lands one card
- * at a time. Durations and easings are the tokens'; nothing else.
+ * brief's rise, `--pal-motion-slide`, 6 px) and its siblings `slide-down`,
+ * `slide-left`, `slide-right` (the node arrives from that side), `flip`
+ * (a horizontal unfold, for a card turning over), `pop` (a scale from
+ * 0.8, for a merged tile or a typed letter). `exit` when its key leaves:
+ * `fade` (the default) or `none` (gone at once; a face-down card replaced
+ * by its face). `delay` staggers the entrance in steps of `--pal-dur-fast`
+ * (0..8), so a deal lands one card at a time. `move`: when the key was in
+ * the previous tree at another place (another cell, another parent), the
+ * node slides from its old box to its new one (`--pal-motion-move`)
+ * instead of entering, and the old place shows nothing of it; a 2048 tile
+ * keyed by its id slides across the board. A `move` key must be unique in
+ * the whole tree, not only among its siblings (`checkView` refuses two).
+ * Durations and easings are the tokens'; reduced motion turns them off.
  */
-export type Transition = { enter?: "fade" | "slide-up" | "flip"; exit?: "fade" | "none"; delay?: number };
+export type Transition = {
+  enter?: "fade" | "slide-up" | "slide-down" | "slide-left" | "slide-right" | "flip" | "pop";
+  exit?: "fade" | "none";
+  delay?: number;
+  move?: true;
+};
 
 type NodeBase = {
   /**
@@ -139,37 +165,61 @@ export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;
  * Provisional: node types get added; fields of the ones here stay.
  */
 export type ViewNode =
-  /** A flex box. `grow` takes the free space along its parent; `minHeight` (px) holds a row's height while its keyed children come and go. */
-  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; children: ViewNode[] })
+  /**
+   * A flex box. `grow` takes the free space along its parent; `minHeight`
+   * (px) holds a row's height while its keyed children come and go.
+   * `surface` paints it: `sunken` (`--pal-bg-sunken`, a well behind a
+   * board) or `elevated` (`--pal-bg-elevated` with a hairline, a card
+   * behind stats); `radius` rounds it (`--pal-radius-tile`). A surface
+   * without `padding` sits flush against its children, so give it some.
+   */
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated"; radius?: boolean; children: ViewNode[] })
   /**
    * One run of text. `style`: `title` (15 px semibold), `body` (13 px),
    * `muted` (13 px, muted colour), `mono` (12 px mono), `number` (tabular
    * figures, semibold). `size`/`weight`/`color` refine it: colours are
    * the tag palette plus `accent`, `success`, `destructive`, `muted`, `faint`.
+   * `width` fixes the run's width in px (a column of labels that line up),
+   * `minWidth` only its least; `align` places the text inside that width.
    */
-  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint" })
+  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
   /** An `icon://` url or a `data:image/...` the extension produced (an SVG it drew); anything else is not shown. Sized in px. */
   | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: "circle" | "rounded"; alt?: string })
+  /**
+   * A rounded box of `width` by `height` px with `text` centred in it and
+   * `sub` small under the text, drawn with the tokens so it follows the
+   * theme: a game tile, a keycap of an on-screen keyboard, a stat. `color`
+   * is the tag palette plus `neutral` (the panel's own greys, the default)
+   * and `accent`; `fill` is `solid` (the colour, ink on it), `soft` (the
+   * colour's tint, the colour as ink; the default) or `outline` (a
+   * hairline, no fill). The text is tabular and gets heavier as the box
+   * grows, and shrinks to fit its length.
+   */
+  | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent"; fill?: "solid" | "soft" | "outline" })
   /** A tag, as on a row. */
   | (NodeBase & { type: "badge"; text: string; color?: TagColor })
   /** A hairline across the stack (vertical in a row). */
   | (NodeBase & { type: "divider" })
   /** Free space, or `size` px of it. */
   | (NodeBase & { type: "spacer"; size?: number })
-  /** A bar filled to `value` (0..1); `width` in px, else it takes the free space. */
-  | (NodeBase & { type: "progress"; value: number; width?: number })
+  /** A bar filled to `value` (0..1); `width` in px, else it takes the free space; `color` from the tag palette, else the accent. */
+  | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor })
   /** A shortcut as key caps, in the `Action.shortcut` spelling (`h`, `cmd+k`, `up`). */
   | (NodeBase & { type: "keycap"; keys: string });
 
 /**
  * A view level: the search input is hidden, the body is `tree`, the footer
  * shows the first action and "Actions ⌘K", ⌘K lists `actions` with their
- * keys. `keys: "actions"`: a bare key runs the action carrying it as its
- * `shortcut` (`h`, `space`, `+`, `up`); Enter is always the first action,
- * Escape always leaves. A pick from the view is `pick(id, action, ctx)`
- * with this `id` (default `view`) and the action's id; answering with a
- * new `{ view }` replaces the level's tree, so the loop is key, pick, tree.
- * An action id may not start with `pal:` (the shell's own).
+ * keys (those not `hidden`). `keys: "actions"`: a bare key runs the action
+ * carrying it as its `shortcut` (`h`, `space`, `backspace`, `+`, `up`);
+ * Enter is always the first listed action, ⌘Enter the second, Escape
+ * always leaves. A pick from the view is `pick(id, action, ctx)` with this
+ * `id` (default `view`) and the action's id; answering with a new
+ * `{ view }` replaces the level's tree, so the loop is key, pick, tree.
+ * Keys pressed while a pick is on its way queue (four at most) and run
+ * against the tree the reply brings, so fast typing loses nothing; the
+ * queue is dropped when the level changes. An action id may not start
+ * with `pal:` (the shell's own).
  */
 export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions" };
 
@@ -287,8 +337,19 @@ export type Effect = {
  */
 export type Ctx = { filter?: string; args?: unknown; refresh?: boolean; values?: FormValues };
 
+/**
+ * What a palette's rows are at the root next to everyone else's. `primary`:
+ * reached by name (apps, windows, bookmarks, quicklinks); `normal`: browsed
+ * (containers, pull requests, devices), the default; `catalog`: a big
+ * static list where any query matches dozens of rows (emoji, icons,
+ * unicode, colours). The core ranks a tier's rows up or down and caps how
+ * many one palette shows at the root (`docs/extensions.md`, "tier"); the
+ * config file can override it per palette.
+ */
+export type Tier = "primary" | "normal" | "catalog";
+
 type PaletteBase = {
-  /** Section label at the root; the palette key otherwise. */
+  /** Section label at the root; the manifest's `title` wins over it, the palette key stands in when neither has one. */
   title?: string;
   /** The palette's own row at the root: a glyph, emoji or hex colour (the string forms of `Icon`). */
   icon?: string;
@@ -320,9 +381,20 @@ type PaletteBase = {
    * restores it at the next start; with a `ttl` it lists the palette again
    * only when the restored listing is older than that (in a low-priority
    * pass after startup), without one on every start as before. `live` still
-   * re-lists on every show. The manifest may declare it instead.
+   * re-lists on every show. The manifest's `ttl` is the one that counts
+   * (`checkPalettes`); this one is a fallback while the manifest has none.
    */
   ttl?: number;
+  /** The palette's tier at the root; the manifest may declare it instead. */
+  tier?: Tier;
+  /**
+   * The actions of every row that declares none of its own: sent once with
+   * the palette's meta rather than on every item, which is what a catalog
+   * of thousands of rows with the same four actions wants (eleven thousand
+   * copies of `Copy glyph` were half of the icons listing on the wire). A
+   * row's own `actions` replace them whole; `[]` on a row still means inert.
+   */
+  actions?: Action[];
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
   /**
    * The detail pane's content for one item, asked when the pane is open and
@@ -477,8 +549,39 @@ export type SettingSpec = SettingBase &
     | { kind: "list"; placeholder?: string; default?: string[] }
   );
 
-/** What the manifest says about one palette; the code still defines it. */
-export type ManifestPalette = { title?: string; description?: string; settings?: SettingSpec[]; /** See `Palette.ttl`; the code's value wins. */ ttl?: number };
+/**
+ * What a palette is, in one word, as the manifest states it and the code
+ * implies it (`kindOf` in manifest.ts): `view` answers `view(ctx)`, `grid`
+ * is `view: "grid"`, `input` is `input: true`, `live` is `live: true`
+ * without `input`, else `list`. The two must agree (`checkPalettes`).
+ */
+export type PaletteKind = "list" | "live" | "input" | "grid" | "view";
+
+/** One line of a palette's key table in the manifest: what a key does, for the store and the settings window. */
+export type ManifestKey = { keys: string; title: string };
+
+/**
+ * What the manifest says about one palette: its static, author-facing
+ * description (docs/extensions.md, "Where a palette is described"). The
+ * code defines the behaviour; where both say a thing (`title`, `ttl`) the
+ * manifest wins and the host warns if they differ.
+ */
+export type ManifestPalette = {
+  /** The section label at the root and the settings window's row; over the code's. */
+  title?: string;
+  description?: string;
+  /** Must agree with what the code implies; a mismatch is a load warning. */
+  kind?: PaletteKind;
+  /** The key table the store and the settings window show. */
+  keys?: ManifestKey[];
+  /** Where the palette sorts among the bundled ones (lower first). */
+  rank?: number;
+  settings?: SettingSpec[];
+  /** See `Palette.ttl`; this value wins over the code's. */
+  ttl?: number;
+  /** See `Palette.tier`; this value wins over the code's. */
+  tier?: Tier;
+};
 
 /**
  * `pal.json`, next to `index.ts`. `name` and `version` are required by
@@ -510,8 +613,14 @@ export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Re
 /** `settings/changed`, core to host: every extension's resolved values (or the ones that changed). */
 export type SettingsChanged = { extensions: Record<string, ResolvedSettings> };
 
-/** What `hello` and `extension/loaded` (host to core) say about a palette: the flags the core and the UI need without the code. */
-export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" | "showDetail" | "filters" | "ttl"> & {
+/**
+ * What `hello` and `extension/loaded` (host to core) say about a palette:
+ * the flags the core and the UI need without the code, the manifest's
+ * `title` and `ttl` merged over the code's (`checkPalettes`, manifest.ts).
+ * Both messages carry `warnings: string[]` next to `palettes`: where the
+ * manifest and the code disagreed, empty when they did not.
+ */
+export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" | "showDetail" | "filters" | "ttl" | "tier" | "actions"> & {
   name: string;
   title: string;
   live: boolean;

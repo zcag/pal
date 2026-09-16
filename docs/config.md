@@ -20,6 +20,7 @@ launch_at_login = false
 menu_bar_icon = true
 check_updates = true
 ask_permissions_on_start = true   # macOS: ask for Accessibility on first show
+deeplink_confirm = true    # a pal://run link asks first; false runs it (scripts)
 extension_dirs = ["~/dotfiles/pal-extensions"]   # extra extension roots, loaded after the store
 
 # Per-palette settings, keyed by palette id. Absent palette: all defaults.
@@ -62,11 +63,13 @@ writes those two header lines and nothing else into the config directory.
 | `hotkey` | string | `"ctrl+space"` | Global hotkey that shows pal. Empty turns it off, for a compositor keybind that runs `pal toggle` instead. |
 | `theme` | `system`, `light`, `dark` | `"system"` | Follow the OS, or force one. Applied live to the panel and the Settings window. |
 | `position` | `top`, `centre`, `last` | `"top"` | Where the panel appears on the screen with the pointer. `top`: a fifth of the way down, where Spotlight and Raycast sit. `centre`: centred. `last`: wherever it was last shown. On Wayland the compositor places the window and this key does nothing (see [Getting started](getting-started.md)). |
-| `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, an XDG autostart entry (`~/.config/autostart/pal.desktop`) on Linux. The app registers it when this changes; on macOS the plist takes effect at the next login. |
+| `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, a `pal.service` user unit (or, without systemd, an XDG autostart entry) on Linux. The same agent relaunches pal after a crash, on or off; see [Crash relaunch](#crash-relaunch). |
 | `menu_bar_icon` | bool | `true` | Show pal's icon in the menu bar (macOS) or system tray (Linux). The app has no Dock icon, so this is the visible way to reach Settings and Quit; the hotkey and `pal settings` work without it. |
 | `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day, in release builds (the GitHub release manifest; nothing is downloaded). Today a found update is a log line: download and install are not wired, and the menu's "Check for updates" is a disabled placeholder until they are, so `false` means no check at all. |
 | `extension_dirs` | list of paths | `[]` | Extra directories of extensions, one subdirectory per extension like the store, for a dotfiles-managed set. Loaded after the bundled extensions and the store, in order, so a later directory's extension replaces an earlier one's by name. `~` is expanded. Read when the host starts: `pal reload` after a change. See [Extensions](extensions.md). |
 | `ask_permissions_on_start` | bool | `true` | macOS: ask for the Accessibility permission (the system prompt, and System Settings opened on that pane) the first time the panel shows on a profile that has not hidden the Welcome tips yet. Paste and window switching need it. `false` leaves the ask to the Welcome row and to Settings > General > Permissions. Nothing on Linux. |
+| `root_caps` | table | `{ primary = 8, normal = 6, catalog = 3 }` | How many rows one palette may show at the root for a typed query, by its tier ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)); the rest is a "12 more in Emoji" row that opens the palette. Inline, `root_caps = { catalog = 5 }` keeps the other two at their defaults. The empty query and a palette's own level are never capped. |
+| `deeplink_confirm` | bool | `true` | A `pal://run/...` link (a web page can emit one) shows a card naming the item before it runs; `false` runs it straight away, for scripts that drive pal by link. `pal://install/...` always asks. See [Deep links](cli.md#deep-links). |
 
 Hotkey syntax: modifiers first, `+` between, one main key, case does not
 matter. Modifiers: `ctrl` (or `control`), `alt` (or `option`), `cmd` (or
@@ -95,12 +98,48 @@ them. A palette absent from the file gets the defaults.
 | `hotkey` | string | unset | A global hotkey that opens pal directly in this palette. Same syntax as `general.hotkey`; the root hotkey wins a clash. Registered once the palette exists. |
 | `item_hotkeys` | table of strings | `{}` | Global hotkeys that run one item of the palette without showing the panel, keyed by the item's id: the item's primary action runs as if you had pressed `Enter` on it, and whatever it shows after hiding (the HUD) still shows. `[palettes.window-management.item_hotkeys]` with `left_half = "ctrl+alt+left"` is the case it exists for ([Window Management](palettes.md#window-management-window-management)); any palette's item ids work, an indexed palette's being the stable ones. Same syntax and registration as `hotkey`; in a clash the root hotkey wins, then a palette's, then an item's. Config-only for now: the Settings window does not list these. |
 | `icon` | string | unset | Icon override for the palette's row; the extension's own icon when unset. A glyph, an emoji or a hex colour. |
+| `tier` | `primary`, `normal`, `catalog` | unset | The palette's tier at the root over what its manifest says: `primary` is ranked up and capped at `root_caps.primary` rows, `catalog` ranked down and capped at `root_caps.catalog` ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)). `tier = "catalog"` on a data-file palette whose rows flood the root; `tier = "primary"` on one you reach for by name. Config-only for now. |
 | `settings` | table | `{}` | Settings the extension declared for this palette, from `palettes.<key>.settings` in its `pal.json`. `[palettes.emoji.settings]` or inline `settings.columns = 8`. |
 
 The id is the extension's name when the palette is named like it (`apps`,
 `emoji`, `calc`, `system`, `windows`, `bookmarks`), else
 `<extension>-<palette>` (`clipboard-history`; a script palette named `otp`
 is `scripts-otp`). Bare keys, no quoting.
+
+## `[bar]`
+
+Bar items: what extensions put on the macOS menu bar or on sketchybar
+(the design in `docs/design/bar.md`; what an extension declares in
+[Extensions](extensions.md)). Every item is keyed `<extension>/<id>`.
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `target` | `"auto"`, `"menubar"`, `"sketchybar"`, `"both"`, `"off"` | `"auto"` | Where items are drawn. `auto` is sketchybar when `sketchybar --query bar` answers (probed every 30 s), else the menu bar. |
+| `hover_delay` | integer, ms | `250` | How long the pointer rests on an item before its popover peeks. |
+| `hover_grace` | integer, ms | `400` | How long after the pointer has left both the item and the popover a peek stays. |
+| `menubar.open_on_hover` | bool | `false` | A hover peeks on the menu bar (Apple's bar has no hover convention, so off). |
+| `sketchybar.open_on_hover` | bool | `true` | A hover peeks on sketchybar. |
+| `sketchybar.position` | string | `"right"` | Where pal's items go: `left`, `right`, `center`, `q`, `e`, or `before:<item>` / `after:<item>` next to one of the bar's own items. |
+| `sketchybar.colors` | table of strings | `{}` | Overrides of the colour names the model uses (`red`, `amber`, `muted`, `text`, ...) as `0xAARRGGBB` or `#rrggbb`, so a themed bar keeps its own palette. |
+
+Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `enabled` | bool | `true` | `false` takes the item off every target and stops its refresh. |
+| `target` | as above | unset | This item's target; the global one when unset. |
+| `position` | string | unset | This item's sketchybar position; `sketchybar.position` when unset. |
+| `hotkey` | string | unset | A global hotkey that opens the item's popover (or runs its open action). Same syntax as `general.hotkey`; the root and palette hotkeys win a clash. |
+| `open_on_hover` | bool | unset | This item's say on hovering; the target's default when unset. |
+| `order` | integer | `0` | Order among pal's own items, ascending left to right (on the menu bar, and within one sketchybar position). |
+
+A change re-targets, moves or removes items live. pal only ever touches
+sketchybar items named `pal.<extension>.<id>` (a segment is
+`pal.<extension>.<id>.<segment>`, a count badge `pal.<extension>.<id>.badge`);
+the bar's own items are never touched, and every pal item is removed on
+quit. A bar restarted by its own rc (which wipes its items) gets pal's
+back at the next probe, or at once with `pal bar sync` at the end of the
+rc.
 
 ## `[extensions.<name>]`
 
@@ -169,6 +208,31 @@ applied, and both windows follow `theme`.
 A save that does not parse keeps the last good config live and adds an
 error diagnostic; nothing blanks while you are mid-edit. A deleted file is a
 reload to the defaults.
+
+## Crash relaunch
+
+pal runs under the OS's service manager so that a crash brings it back
+and a quit does not. On macOS the agent is a LaunchAgent labelled after
+the bundle (`io.cagdas.pal`) with `RunAtLoad` and
+`KeepAlive { SuccessfulExit = false }`: launchd restarts pal after a
+non-zero exit or a signal, within about five seconds
+(`ThrottleInterval`), and leaves it alone after `pal quit` or the menu's
+Quit, which exit 0. `launch_at_login` only decides where the plist lives:
+on, `~/Library/LaunchAgents/`, which launchd loads at login; off,
+`~/Library/Application Support/pal/launchd/`, which nothing loads at
+login and pal bootstraps itself for the session. A pal started by hand
+(`open -a pal`, a terminal) hands itself over to the agent at startup, so
+the process you see is always the supervised one; that costs one extra
+startup and happens at most once a minute, so a manager that will not
+start pal cannot loop. On Linux the unit is `~/.config/systemd/user/pal.service`
+with `Restart=on-failure` (a transient unit of the same name when the
+setting is off); without systemd the XDG entry starts pal at login and
+nothing relaunches it. Debug builds do none of this. After a relaunch pal
+shows "pal restarted after a crash" once, logs the report it found, and
+Settings > About lists the last crash (the `.ips` under
+`~/Library/Logs/DiagnosticReports`, or the `coredumpctl` entry) and the
+last Rust panic (`<data dir>/<profile>/last-panic.txt`, written by pal's
+own panic hook with the message and a backtrace). Nothing is uploaded.
 
 Edits the settings view makes go through `toml_edit`: comments, key order
 and spacing you wrote survive.

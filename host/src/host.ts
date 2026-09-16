@@ -14,8 +14,9 @@
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
+import { checkPalettes, isViewPalette as isView } from "../../sdk/src/manifest.ts";
 import { checkEffect, checkView } from "../../sdk/src/view.ts";
-import type { Ctx, Extension, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, ViewPalette } from "../../sdk/src/protocol.ts";
+import type { Ctx, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { bindSdk, SDK } from "./sdk.ts";
@@ -34,6 +35,8 @@ const found = new Map<string, Found>();
 const errors = new Map<string, string>();
 /** Read before the code, kept across a failed load: what the settings window shows either way. */
 const manifests = new Map<string, Manifest>();
+/** Per loaded extension, the manifest checked against the code (`checkPalettes`): the metas served, the disagreements found. */
+const checked = new Map<string, { metas: PaletteMeta[]; warnings: string[] }>();
 
 const log = (...a: unknown[]) => console.error("[host]", ...a);
 const send = (msg: Response | Notification) => process.stdout.write(JSON.stringify(msg) + "\n");
@@ -129,12 +132,19 @@ async function reload(name: string) {
     exts.set(name, ext);
     errors.delete(name);
     forgetDetails(name);
+    // The manifest and the code describe the same palettes; where they
+    // disagree the load still succeeds, and each disagreement is a line on
+    // stderr and a `warnings` entry the settings window shows.
+    const check = checkPalettes(manifest, ext);
+    checked.set(name, check);
+    for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
     log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}${bar.length ? `; bar ${bar.map((b) => b.id).join(",")}` : ""}) from ${f.root} in ${(performance.now() - t0).toFixed(1)}ms`);
-    notify("extension/loaded", { extension: name, root: f.root, palettes: metas(ext, manifest), bar, manifest });
+    notify("extension/loaded", { extension: name, root: f.root, palettes: check.metas, bar, manifest, warnings: check.warnings });
   } catch (e) {
     const message = describe(e);
     exts.delete(name);
+    checked.delete(name);
     errors.set(name, message);
     log(`failed ${name}: ${message}`);
     notify("extension/error", { extension: name, root: f.root, message, manifest });
@@ -152,6 +162,7 @@ async function drop(name: string) {
   await dispose(name);
   found.delete(name);
   exts.delete(name);
+  checked.delete(name);
   errors.delete(name);
   manifests.delete(name);
   forgetDetails(name);
@@ -290,18 +301,6 @@ async function watchExtensions() {
   }
 }
 
-/** A palette whose `view` is a function draws a tree instead of listing rows. */
-const isView = (p: Palette): p is ViewPalette => typeof p.view === "function";
-
-// A view palette is `input` on the wire: the core indexes nothing of it
-// and the root keeps only its own row, which is what `input` already means.
-const metas = (ext: Extension, manifest?: Manifest): PaletteMeta[] =>
-  Object.entries(ext.palettes).map(([name, p]) => ({
-    name, title: p.title ?? name, live: !!p.live, input: !!p.input || isView(p), icon: p.icon, view: isView(p) ? "view" : p.view, columns: p.columns, placeholder: p.placeholder, showDetail: p.showDetail, filters: p.filters,
-    detail: typeof p.detail === "function" ? "lazy" : undefined,
-    ttl: p.ttl ?? manifest?.palettes?.[name]?.ttl,
-  }));
-
 /**
  * `detail(id)` answers, per palette, keyed by item id and the ctx that listed
  * it; a `list` of that palette drops them (the items may be new), a reload of
@@ -350,7 +349,7 @@ const methods: Record<string, (params: any) => unknown> = {
     bun: Bun.version,
     pid: process.pid,
     roots: ROOTS,
-    extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: exts.has(name) ? metas(exts.get(name)!, manifest) : [], bar: exts.has(name) ? barMetas(exts.get(name), manifest) : [] })),
+    extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: checked.get(name)?.metas ?? [], warnings: checked.get(name)?.warnings ?? [], bar: exts.has(name) ? barMetas(exts.get(name), manifest) : [] })),
     errors: Object.fromEntries(errors),
   }),
   list: async (p) => {

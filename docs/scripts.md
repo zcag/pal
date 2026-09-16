@@ -122,6 +122,7 @@ carry the same keys; the table's values win where set.
 | `input_prompt` | The search box placeholder inside the palette. |
 | `live` | Listed again every time the panel shows, arrival order kept. |
 | `ttl` | Seconds a listing stays good for (below). |
+| `tier` | The palette's tier at the root: `"primary"`, `"normal"` or `"catalog"` ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)). Unset, a data-file palette of 100 rows or more is a `catalog` (the nerd icons, the kde icons, `chars`), anything else `normal`. |
 | `view` | `"grid"` for tiles; `display = { columns = 8 }` sets the width. |
 | `display` | `{ detail = true }` opens the palette with the detail pane showing; `{ columns = N }` for a grid. |
 | `filter` | A list of `{ id, name }`: a scope dropdown, `Tab` cycles it, the chosen id reaches the script as `PAL_FILTER`. The first is the default. |

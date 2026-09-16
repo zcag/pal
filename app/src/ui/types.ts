@@ -19,7 +19,9 @@ export type Icon =
 export type Accessory =
   | { text: string }
   | { tag: string; color?: string }
-  | { date: string | number | Date };
+  | { date: string | number | Date }
+  /** A shortcut as key caps (a menu row's). */
+  | { keys: Shortcut };
 
 /** "cmd+shift+c", "ctrl+n", "enter", "cmd+enter". Lower-case, "+" joined. */
 export type Shortcut = string;
@@ -28,12 +30,15 @@ export type Action = {
   id: string;
   title: string;
   icon?: Icon;
-  shortcut?: Shortcut;
-  /** Actions are primary/secondary by position (first two); this only marks danger. */
+  /** One key, or alternatives (`["up", "k"]`): any runs it, the panel draws the first and the rest faintly. `shortcutsOf` (keys.ts) reads either. */
+  shortcut?: Shortcut | Shortcut[];
+  /** Actions are primary/secondary by position (first two listed); this only marks danger. */
   style?: "destructive";
   /** Ask first: the question, with the action's title as the go-ahead. */
   confirm?: string;
   section?: string;
+  /** Routes its key, is never listed (not in the panel, the footer, nor the Enter / ⌘Enter pair). */
+  hidden?: true;
 };
 
 export type Metadata = {
@@ -63,6 +68,10 @@ export type Item = {
   /** `detail` is what came inline; the rest is asked for when the pane rests on the item. */
   lazyDetail?: boolean;
   actions?: Action[];
+  /** Drawn greyed; a pick on it does nothing (a menu row). */
+  disabled?: boolean;
+  /** Drawn muted but live: the "N more in ..." row after a capped section at the root. */
+  muted?: boolean;
 };
 
 /** Match positions per field, as fzf reports them (character indexes). */
@@ -103,8 +112,8 @@ export type FormSpec = { id?: string; title: string; fields: FormField[]; submit
 
 export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";
 
-/** `enter` on a new key, `exit` on a gone one, `delay` in steps of `--pal-dur-fast`. */
-export type Transition = { enter?: "fade" | "slide-up" | "flip"; exit?: "fade" | "none"; delay?: number };
+/** `enter` on a new key, `exit` on a gone one, `delay` in steps of `--pal-dur-fast`, `move` slides a key found at another box in the previous tree. */
+export type Transition = { enter?: "fade" | "slide-up" | "slide-down" | "slide-left" | "slide-right" | "flip" | "pop"; exit?: "fade" | "none"; delay?: number; move?: true };
 
 type NodeBase = { key?: string; transition?: Transition };
 
@@ -112,13 +121,14 @@ type NodeBase = { key?: string; transition?: Transition };
 export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export type ViewNode =
-  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; children: ViewNode[] })
-  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint" })
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated"; radius?: boolean; children: ViewNode[] })
+  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
   | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: IconMask; alt?: string })
+  | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent"; fill?: "solid" | "soft" | "outline" })
   | (NodeBase & { type: "badge"; text: string; color?: TagColor })
   | (NodeBase & { type: "divider" })
   | (NodeBase & { type: "spacer"; size?: number })
-  | (NodeBase & { type: "progress"; value: number; width?: number })
+  | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor })
   | (NodeBase & { type: "keycap"; keys: string });
 
 /** A view level: the tree, its actions (first is Enter), an optional title over the tree; `keys: "actions"` maps bare keys to actions. */

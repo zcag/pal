@@ -30,6 +30,7 @@ use std::path::{Path, PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::index::{Caps, Tier};
 pub use edit::json_to_toml;
 pub use watch::Watcher;
 
@@ -47,6 +48,8 @@ pub struct Config {
     pub general: General,
     /// Per-palette settings, keyed by palette id.
     pub palettes: BTreeMap<String, Palette>,
+    /// Bar items: the menu bar and sketchybar strips (`docs/design/bar.md`).
+    pub bar: Bar,
     /// Extension settings, keyed by extension name. Shape is whatever the
     /// extension declared.
     #[schemars(with = "BTreeMap<String, BTreeMap<String, serde_json::Value>>")]
@@ -94,6 +97,15 @@ pub struct General {
     /// switching need it; `false` leaves the ask to the Welcome row and to
     /// Settings > General > Permissions.
     pub ask_permissions_on_start: bool,
+    /// A `pal://run/...` link (a web page can emit one) shows a confirm
+    /// card naming the item before it runs; `false` runs it straight away,
+    /// for scripts that drive pal by link. `pal://install/...` always asks.
+    pub deeplink_confirm: bool,
+    /// How many rows one palette may show at the root for a typed query,
+    /// by its tier: `{ primary = 8, normal = 6, catalog = 3 }`. The rest
+    /// is a "N more in ..." row that opens the palette. The empty query
+    /// and a palette's own level are never capped.
+    pub root_caps: Caps,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -101,7 +113,7 @@ pub struct General {
 
 impl Default for General {
     fn default() -> Self {
-        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), ask_permissions_on_start: true, extra: BTreeMap::new() }
+        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), ask_permissions_on_start: true, deeplink_confirm: true, root_caps: Caps::default(), extra: BTreeMap::new() }
     }
 }
 
@@ -153,6 +165,10 @@ pub struct Palette {
     pub item_hotkeys: BTreeMap<String, String>,
     /// Icon override; the extension's own icon when unset.
     pub icon: Option<String>,
+    /// The palette's tier at the root over what its manifest says:
+    /// `primary` (reached by name, ranked up), `normal`, `catalog` (a big
+    /// static list, ranked down and capped harder).
+    pub tier: Option<Tier>,
     /// Settings the extension declared for this palette.
     #[schemars(with = "BTreeMap<String, serde_json::Value>")]
     pub settings: toml::Table,
@@ -163,7 +179,141 @@ pub struct Palette {
 
 impl Default for Palette {
     fn default() -> Self {
-        Self { enabled: true, alias: None, hotkey: None, item_hotkeys: BTreeMap::new(), icon: None, settings: toml::Table::new(), extra: BTreeMap::new() }
+        Self { enabled: true, alias: None, hotkey: None, item_hotkeys: BTreeMap::new(), icon: None, tier: None, settings: toml::Table::new(), extra: BTreeMap::new() }
+    }
+}
+
+
+/// Where bar items are drawn. `auto`: sketchybar when it answers
+/// (`sketchybar --query bar`), else the macOS menu bar.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum BarTarget {
+    #[default]
+    Auto,
+    Menubar,
+    Sketchybar,
+    Both,
+    Off,
+}
+
+/// `[bar]`: the strips extensions draw on (`docs/design/bar.md`), the
+/// hover timings, one table per target and one per item.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct Bar {
+    /// Default target for every item; an item's own `target` overrides.
+    pub target: BarTarget,
+    /// Milliseconds the pointer rests on an item before a peek opens.
+    pub hover_delay: u64,
+    /// Milliseconds after the pointer has left both the item and the
+    /// popover before a peek closes.
+    pub hover_grace: u64,
+    pub menubar: BarMenubar,
+    pub sketchybar: BarSketchybar,
+    /// Per-item settings, keyed `extension/id` (`[bar.items."github/notifications"]`).
+    pub items: BTreeMap<String, BarItemConfig>,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+impl Default for Bar {
+    fn default() -> Self {
+        Self { target: BarTarget::Auto, hover_delay: 250, hover_grace: 400, menubar: BarMenubar::default(), sketchybar: BarSketchybar::default(), items: BTreeMap::new(), extra: BTreeMap::new() }
+    }
+}
+
+/// `[bar.menubar]`: the macOS menu bar target.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct BarMenubar {
+    /// A hover peeks the item's popover. Off: Apple's bar has no hover convention.
+    pub open_on_hover: bool,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+/// `[bar.sketchybar]`: the sketchybar target.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct BarSketchybar {
+    /// A hover peeks the item's popover. On: sketchybar popups open on hover.
+    pub open_on_hover: bool,
+    /// Default position of pal's items: `left`, `right`, `center`, `q`,
+    /// `e`, `before:<item>` or `after:<item>`.
+    pub position: String,
+    /// Overrides of the colour map, `0xAARRGGBB` per name (`red`,
+    /// `muted`, `text`, ...), so a themed bar keeps its own palette.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub colors: BTreeMap<String, String>,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+impl Default for BarSketchybar {
+    fn default() -> Self {
+        Self { open_on_hover: true, position: "right".into(), colors: BTreeMap::new(), extra: BTreeMap::new() }
+    }
+}
+
+/// `[bar.items."<extension>/<id>"]`: one item's settings; absent keys mean
+/// the target's defaults.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct BarItemConfig {
+    /// `false`: no slot on any target and no refresh timer.
+    pub enabled: bool,
+    /// This item's target; the global `[bar] target` when unset.
+    pub target: Option<BarTarget>,
+    /// sketchybar position for this item (as `[bar.sketchybar] position`).
+    pub position: Option<String>,
+    /// Global hotkey that opens the item's popover engaged (or runs its open action).
+    pub hotkey: Option<String>,
+    /// A hover peeks this item; the target's default when unset.
+    pub open_on_hover: Option<bool>,
+    /// Order among pal's own items: ascending left to right on the menu
+    /// bar and within a sketchybar position.
+    pub order: Option<i64>,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+impl Default for BarItemConfig {
+    fn default() -> Self {
+        Self { enabled: true, target: None, position: None, hotkey: None, open_on_hover: None, order: None, extra: BTreeMap::new() }
+    }
+}
+
+impl Bar {
+    /// One item's settings, defaults when the file has no entry for it.
+    pub fn item(&self, key: &str) -> std::borrow::Cow<'_, BarItemConfig> {
+        self.items.get(key).map_or_else(|| std::borrow::Cow::Owned(BarItemConfig::default()), std::borrow::Cow::Borrowed)
+    }
+
+    /// The target an item draws on: its own, else the global one.
+    pub fn target_of(&self, key: &str) -> BarTarget {
+        self.item(key).target.unwrap_or(self.target)
+    }
+
+    /// Whether a hover peeks `key` on `target`: the item's say, else the target's.
+    pub fn open_on_hover(&self, key: &str, target: BarTarget) -> bool {
+        self.item(key).open_on_hover.unwrap_or(match target {
+            BarTarget::Sketchybar => self.sketchybar.open_on_hover,
+            _ => self.menubar.open_on_hover,
+        })
+    }
+
+    /// The sketchybar position of `key`: its own, else the target's default.
+    pub fn position_of(&self, key: &str) -> String {
+        self.item(key).position.clone().unwrap_or_else(|| self.sketchybar.position.clone())
     }
 }
 
@@ -215,6 +365,12 @@ impl Config {
         out.extend(unknown("general.", &self.general.extra));
         for (id, p) in &self.palettes {
             out.extend(unknown(&format!("palettes.{id}."), &p.extra));
+        }
+        out.extend(unknown("bar.", &self.bar.extra));
+        out.extend(unknown("bar.menubar.", &self.bar.menubar.extra));
+        out.extend(unknown("bar.sketchybar.", &self.bar.sketchybar.extra));
+        for (key, i) in &self.bar.items {
+            out.extend(unknown(&format!("bar.items.{key}."), &i.extra));
         }
         out
     }
@@ -490,6 +646,61 @@ token = "keychain:pal/github-token"
         assert_eq!(c.general.position, Position::Centre);
         assert_eq!(c.general.extension_dirs(), [dirs::home_dir().unwrap().join("dotfiles/pal"), PathBuf::from("/opt/pal-ext")], "tilde expanded, order kept");
         assert!(parse("[general]\nposition = \"middle\"\n").is_err(), "an unknown position is a parse error, not a warning");
+    }
+
+    #[test]
+    fn bar_defaults_and_per_item_overrides() {
+        let (c, d) = parse("").unwrap();
+        assert!(d.is_empty());
+        assert_eq!(c.bar.target, BarTarget::Auto);
+        assert_eq!((c.bar.hover_delay, c.bar.hover_grace), (250, 400));
+        assert!(!c.bar.menubar.open_on_hover, "Apple's bar has no hover convention");
+        assert!(c.bar.sketchybar.open_on_hover, "sketchybar popups open on hover");
+        assert_eq!(c.bar.sketchybar.position, "right");
+        assert!(c.bar.item("github/notifications").enabled);
+        assert_eq!(c.bar.target_of("github/notifications"), BarTarget::Auto);
+        assert!(c.bar.open_on_hover("x/y", BarTarget::Sketchybar));
+        assert!(!c.bar.open_on_hover("x/y", BarTarget::Menubar));
+        let (c, d) = parse(
+            r#"
+[bar]
+target = "both"
+hover_delay = 100
+
+[bar.menubar]
+open_on_hover = true
+
+[bar.sketchybar]
+position = "before:clock"
+colors = { red = "0xffe78284", muted = "0xff737994" }
+
+[bar.items."github/notifications"]
+enabled = false
+target = "menubar"
+position = "after:pal.github.prs"
+hotkey = "ctrl+alt+n"
+open_on_hover = false
+order = 20
+"#,
+        )
+        .unwrap();
+        assert!(d.is_empty());
+        assert_eq!(c.bar.target, BarTarget::Both);
+        assert_eq!((c.bar.hover_delay, c.bar.hover_grace), (100, 400), "an untouched sibling keeps its default");
+        assert!(c.bar.menubar.open_on_hover);
+        assert_eq!(c.bar.sketchybar.colors["red"], "0xffe78284");
+        let n = c.bar.item("github/notifications");
+        assert!(!n.enabled);
+        assert_eq!(n.hotkey.as_deref(), Some("ctrl+alt+n"));
+        assert_eq!(n.order, Some(20));
+        assert_eq!(c.bar.target_of("github/notifications"), BarTarget::Menubar);
+        assert!(!c.bar.open_on_hover("github/notifications", BarTarget::Menubar), "the item's say beats the target's");
+        assert!(c.bar.open_on_hover("other/item", BarTarget::Menubar), "the target's default for the rest");
+        assert_eq!(c.bar.position_of("github/notifications"), "after:pal.github.prs");
+        assert_eq!(c.bar.position_of("other/item"), "before:clock");
+        assert!(parse("[bar]\ntarget = \"tray\"\n").is_err(), "an unknown target is a parse error");
+        let (_, d) = parse("[bar]\nhover = 1\n[bar.items.\"a/b\"]\nenable = true\n").unwrap();
+        assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["bar.hover", "bar.items.a/b.enable"]);
     }
 
     #[test]

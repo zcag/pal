@@ -33,11 +33,12 @@ export type Options = {
   timeout?: number;
 };
 
-export type Loaded = { extension: string; root: string; palettes: PaletteMeta[]; bar: BarMeta[]; manifest: Manifest };
+/** `extension/loaded`: `warnings` is where the manifest and the code disagree about a palette (`checkPalettes`), empty when they agree. */
+export type Loaded = { extension: string; root: string; palettes: PaletteMeta[]; bar: BarMeta[]; manifest: Manifest; warnings: string[] };
 export type Failed = { extension: string; root: string; message: string; manifest: Manifest };
 export type Hello = {
   version: string; bun: string; pid: number; roots: string[];
-  extensions: { name: string; root?: string; manifest: Manifest; loaded: boolean; palettes: PaletteMeta[]; bar: BarMeta[] }[];
+  extensions: { name: string; root?: string; manifest: Manifest; loaded: boolean; palettes: PaletteMeta[]; warnings: string[]; bar: BarMeta[] }[];
   errors: Record<string, string>;
 };
 

@@ -1,5 +1,164 @@
 {
   "$defs": {
+    "Bar": {
+      "additionalProperties": false,
+      "description": "`[bar]`: the strips extensions draw on (`docs/design/bar.md`), the\nhover timings, one table per target and one per item.",
+      "properties": {
+        "hover_delay": {
+          "default": 250,
+          "description": "Milliseconds the pointer rests on an item before a peek opens.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "hover_grace": {
+          "default": 400,
+          "description": "Milliseconds after the pointer has left both the item and the\npopover before a peek closes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "items": {
+          "additionalProperties": {
+            "$ref": "#/$defs/BarItemConfig"
+          },
+          "default": {},
+          "description": "Per-item settings, keyed `extension/id` (`[bar.items.\"github/notifications\"]`).",
+          "type": "object"
+        },
+        "menubar": {
+          "$ref": "#/$defs/BarMenubar",
+          "default": {
+            "open_on_hover": false
+          }
+        },
+        "sketchybar": {
+          "$ref": "#/$defs/BarSketchybar",
+          "default": {
+            "open_on_hover": true,
+            "position": "right"
+          }
+        },
+        "target": {
+          "$ref": "#/$defs/BarTarget",
+          "default": "auto",
+          "description": "Default target for every item; an item's own `target` overrides."
+        }
+      },
+      "type": "object"
+    },
+    "BarItemConfig": {
+      "additionalProperties": false,
+      "description": "`[bar.items.\"<extension>/<id>\"]`: one item's settings; absent keys mean\nthe target's defaults.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "`false`: no slot on any target and no refresh timer.",
+          "type": "boolean"
+        },
+        "hotkey": {
+          "description": "Global hotkey that opens the item's popover engaged (or runs its open action).",
+          "type": "string"
+        },
+        "open_on_hover": {
+          "description": "A hover peeks this item; the target's default when unset.",
+          "type": "boolean"
+        },
+        "order": {
+          "description": "Order among pal's own items: ascending left to right on the menu\nbar and within a sketchybar position.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "position": {
+          "description": "sketchybar position for this item (as `[bar.sketchybar] position`).",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BarTarget"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "This item's target; the global `[bar] target` when unset."
+        }
+      },
+      "type": "object"
+    },
+    "BarMenubar": {
+      "additionalProperties": false,
+      "description": "`[bar.menubar]`: the macOS menu bar target.",
+      "properties": {
+        "open_on_hover": {
+          "default": false,
+          "description": "A hover peeks the item's popover. Off: Apple's bar has no hover convention.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "BarSketchybar": {
+      "additionalProperties": false,
+      "description": "`[bar.sketchybar]`: the sketchybar target.",
+      "properties": {
+        "colors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Overrides of the colour map, `0xAARRGGBB` per name (`red`,\n`muted`, `text`, ...), so a themed bar keeps its own palette.",
+          "type": "object"
+        },
+        "open_on_hover": {
+          "default": true,
+          "description": "A hover peeks the item's popover. On: sketchybar popups open on hover.",
+          "type": "boolean"
+        },
+        "position": {
+          "default": "right",
+          "description": "Default position of pal's items: `left`, `right`, `center`, `q`,\n`e`, `before:<item>` or `after:<item>`.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "BarTarget": {
+      "description": "Where bar items are drawn. `auto`: sketchybar when it answers\n(`sketchybar --query bar`), else the macOS menu bar.",
+      "enum": [
+        "auto",
+        "menubar",
+        "sketchybar",
+        "both",
+        "off"
+      ],
+      "type": "string"
+    },
+    "Caps": {
+      "additionalProperties": false,
+      "description": "How many rows one source may put in a typed query's answer, by tier.\nThe rest of its matches are counted in [`Ranked::more`], for a row that\ndrills into the palette (where nothing is capped). `[general]\nroot_caps` in the config file.",
+      "properties": {
+        "catalog": {
+          "default": 3,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "normal": {
+          "default": 6,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "primary": {
+          "default": 8,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "General": {
       "additionalProperties": false,
       "properties": {
@@ -11,6 +170,11 @@
         "check_updates": {
           "default": true,
           "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded).\nToday a found update is a log line: download and install are not\nwired, and the menu's \"Check for updates\" is a disabled placeholder\nuntil they are.",
+          "type": "boolean"
+        },
+        "deeplink_confirm": {
+          "default": true,
+          "description": "A `pal://run/...` link (a web page can emit one) shows a confirm\ncard naming the item before it runs; `false` runs it straight away,\nfor scripts that drive pal by link. `pal://install/...` always asks.",
           "type": "boolean"
         },
         "extension_dirs": {
@@ -40,6 +204,15 @@
           "$ref": "#/$defs/Position",
           "default": "top",
           "description": "Where the panel appears on the screen with the pointer."
+        },
+        "root_caps": {
+          "$ref": "#/$defs/Caps",
+          "default": {
+            "catalog": 3,
+            "normal": 6,
+            "primary": 8
+          },
+          "description": "How many rows one palette may show at the root for a typed query,\nby its tier: `{ primary = 8, normal = 6, catalog = 3 }`. The rest\nis a \"N more in ...\" row that opens the palette. The empty query\nand a palette's own level are never capped."
         },
         "theme": {
           "$ref": "#/$defs/Theme",
@@ -80,6 +253,17 @@
           "default": {},
           "description": "Settings the extension declared for this palette.",
           "type": "object"
+        },
+        "tier": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Tier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The palette's tier at the root over what its manifest says:\n`primary` (reached by name, ranked up), `normal`, `catalog` (a big\nstatic list, ranked down and capped harder)."
         }
       },
       "type": "object"
@@ -101,12 +285,38 @@
         "dark"
       ],
       "type": "string"
+    },
+    "Tier": {
+      "description": "A source's tier at the root: what its rows are to the user when typed\nfor next to everything else's. `primary` is what is reached by name\n(apps, windows, bookmarks); `normal` is what is browsed (containers,\npull requests); `catalog` is a big static list where any query matches\ndozens of rows (emoji, icons, unicode). A palette declares it in its\nmanifest, the config file can override it. See [`Tier::bonus`] for what\nit does to the score and [`Caps`] for the root's per-source cap.",
+      "enum": [
+        "primary",
+        "normal",
+        "catalog"
+      ],
+      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "pal's settings: everything the settings view can set, in the file it\nwrites. (The set of keys is small and provisional; the mechanics around\nthem are what is settled.)",
   "properties": {
+    "bar": {
+      "$ref": "#/$defs/Bar",
+      "default": {
+        "hover_delay": 250,
+        "hover_grace": 400,
+        "items": {},
+        "menubar": {
+          "open_on_hover": false
+        },
+        "sketchybar": {
+          "open_on_hover": true,
+          "position": "right"
+        },
+        "target": "auto"
+      },
+      "description": "Bar items: the menu bar and sketchybar strips (`docs/design/bar.md`)."
+    },
     "extensions": {
       "additionalProperties": {
         "additionalProperties": true,
@@ -121,11 +331,17 @@
       "default": {
         "ask_permissions_on_start": true,
         "check_updates": true,
+        "deeplink_confirm": true,
         "extension_dirs": [],
         "hotkey": "ctrl+space",
         "launch_at_login": false,
         "menu_bar_icon": true,
         "position": "top",
+        "root_caps": {
+          "catalog": 3,
+          "normal": 6,
+          "primary": 8
+        },
         "theme": "system"
       }
     },

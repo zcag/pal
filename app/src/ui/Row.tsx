@@ -1,5 +1,6 @@
-import type { CSSProperties, HTMLAttributes, MouseEvent } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type HTMLAttributes, type MouseEvent, type Ref, type RefObject } from "react";
 import { Icon } from "./Icon";
+import { Kbd } from "./Kbd";
 import { graphemes, relativeDate, useNow } from "./format";
 import { keepFocus } from "./keys";
 import type { Accessory as AccessorySpec, Item, Match } from "./types";
@@ -25,7 +26,7 @@ export function Highlight({ text, positions }: { text: string; positions?: Set<n
 const tagNames = new Set(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal"]);
 
 /** A tag: `color` names a token palette (red, green, ...) or is any CSS colour. Other attributes land on the span. */
-export function Tag({ text, color, className, style, ...rest }: { text: string; color?: string } & HTMLAttributes<HTMLSpanElement>) {
+export function Tag({ text, color, className, style, ...rest }: { text: string; color?: string; ref?: Ref<HTMLSpanElement> } & HTMLAttributes<HTMLSpanElement>) {
   const named = color && tagNames.has(color);
   return (
     <span className={className ? `pal-tag ${className}` : "pal-tag"} data-color={named ? color : color ? "custom" : undefined} style={{ ...style, ...(color && !named ? ({ "--tag": color } as CSSProperties) : undefined) }} {...rest}>
@@ -45,7 +46,52 @@ function RelativeDate({ value }: { value: string | number | Date }) {
 export function Accessory({ acc }: { acc: AccessorySpec }) {
   if ("tag" in acc) return <Tag text={acc.tag} color={acc.color} />;
   if ("date" in acc) return <RelativeDate value={acc.date} />;
+  if ("keys" in acc) return <Kbd shortcut={acc.keys} className="pal-acc" />;
   return <span className="pal-acc">{acc.text}</span>;
+}
+
+/**
+ * The order accessories give way in when a row is too narrow for its title
+ * (a list beside a detail pane is 296 wide): plain text first, then dates,
+ * then tags past the first, each kind from the last; the first tag and key
+ * caps stay. Indices into `accs`.
+ */
+export function accessoryDropOrder(accs: AccessorySpec[] = []): number[] {
+  const last = (pick: (a: AccessorySpec, i: number) => boolean) => accs.map((a, i) => (pick(a, i) ? i : -1)).filter((i) => i >= 0).reverse();
+  const firstTag = accs.findIndex((a) => "tag" in a);
+  return [...last((a) => "text" in a), ...last((a) => "date" in a), ...last((a, i) => "tag" in a && i !== firstTag)];
+}
+
+/** A title narrower than this, while ellipsized, has an accessory dropped: the larger of 96px and 40% of the row. */
+const TITLE_MIN = 96, TITLE_SHARE = 0.4;
+
+/**
+ * Which accessories to hide so the title keeps a readable width. Measured,
+ * not estimated: the row renders, the title's width is read, and one more
+ * accessory (in `accessoryDropOrder`) goes until the title is at least
+ * `min(its text, TITLE_MIN | TITLE_SHARE of the row)`. Each step is a layout
+ * effect, so nothing paints mid-way. A resize, a new item or the ordinal
+ * appearing starts over from the full set.
+ */
+function useFitAccessories(item: Item, ordinal: boolean, row: RefObject<HTMLElement | null>, title: RefObject<HTMLElement | null>) {
+  const order = useMemo(() => accessoryDropOrder(item.accessories), [item.accessories]);
+  const [width, setWidth] = useState(0);
+  const [fit, setFit] = useState({ item, width, ordinal, dropped: 0 });
+  const dropped = fit.item === item && fit.width === width && fit.ordinal === ordinal ? fit.dropped : 0;
+  useLayoutEffect(() => {
+    const el = row.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [row]);
+  useLayoutEffect(() => {
+    const t = title.current, r = row.current;
+    if (!t || !r || dropped >= order.length) return;
+    const need = Math.min(t.scrollWidth, Math.max(TITLE_MIN, r.clientWidth * TITLE_SHARE));
+    if (t.clientWidth < need - 1) setFit({ item, width, ordinal, dropped: dropped + 1 });
+  }, [item, width, ordinal, dropped, order, row, title]);
+  return useMemo(() => new Set(order.slice(0, dropped)), [order, dropped]);
 }
 
 export type RowProps = {
@@ -61,14 +107,18 @@ export type RowProps = {
 };
 
 export function Row({ item, active, match, id, style, onHover, onClick, ordinal }: RowProps) {
+  const row = useRef<HTMLDivElement>(null);
+  const title = useRef<HTMLSpanElement>(null);
+  const showOrdinal = ordinal !== undefined && ordinal <= 9;
+  const hidden = useFitAccessories(item, showOrdinal, row, title);
   return (
-    <div id={id} role="option" aria-selected={!!active} className="pal-row" data-active={active || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
+    <div ref={row} id={id} role="option" aria-selected={!!active} aria-disabled={item.disabled || undefined} className="pal-row" data-active={active || undefined} data-disabled={item.disabled || undefined} data-muted={item.muted || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
       <Icon icon={item.icon} />
-      <span className="pal-row__title" data-solo={item.subtitle ? undefined : ""}><Highlight text={item.name} positions={match?.name} /></span>
+      <span ref={title} className="pal-row__title" data-solo={item.subtitle ? undefined : ""}><Highlight text={item.name} positions={match?.name} /></span>
       {item.subtitle && <span className="pal-row__sub"><Highlight text={item.subtitle} positions={match?.subtitle} /></span>}
       <span className="pal-row__accs">
-        {item.accessories?.map((a, i) => <Accessory key={i} acc={a} />)}
-        {ordinal !== undefined && ordinal <= 9 && <kbd className="pal-row__ordinal" aria-hidden>{ordinal}</kbd>}
+        {item.accessories?.map((a, i) => (hidden.has(i) ? null : <Accessory key={i} acc={a} />))}
+        {showOrdinal && <kbd className="pal-row__ordinal" aria-hidden>{ordinal}</kbd>}
       </span>
     </div>
   );
