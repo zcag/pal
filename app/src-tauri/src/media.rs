@@ -1,11 +1,32 @@
 //! The media capability: `pal_core::media` over the bridge
 //! (`media.now_playing` / `control`). Controls run without hiding the
-//! panel, so a palette can skip a track and stay up.
+//! panel, so a palette can skip a track and stay up. [`install`] tells the
+//! core where the bundled MediaRemote adapter is (macOS).
 
 use pal_core::media::{self, Command};
 use serde::Deserialize;
 use serde_json::Value;
 use tauri::AppHandle;
+
+/// Points `pal_core::media` at the MediaRemote adapter: the bundle's
+/// `Resources/mediaremote` (tauri.macos.conf.json ships it) when the app
+/// runs from a bundle, else `app/src-tauri/mediaremote` in the repo, where
+/// `scripts/fetch-mediaremote.sh` (run by build.rs) put it. Without either
+/// the core falls back to `nowplaying-cli`, which is logged. Nothing to do
+/// off macOS.
+pub fn install(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::Manager;
+        let staged = app.path().resource_dir().ok().map(|d| d.join("mediaremote")).filter(|d| d.join("mediaremote-adapter.pl").is_file());
+        let dir = staged.unwrap_or_else(|| std::path::PathBuf::from(crate::host::REPO).join("app/src-tauri/mediaremote"));
+        if !media::configure(&dir) {
+            eprintln!("media\tno MediaRemote adapter at {}: system-wide Now Playing needs nowplaying-cli", dir.display());
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+}
 
 #[derive(Deserialize)]
 struct Params {

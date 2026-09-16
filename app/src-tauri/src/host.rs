@@ -20,7 +20,7 @@ use tokio::sync::{oneshot, watch, Mutex as AsyncMutex};
 
 use crate::{events, lock};
 
-const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+pub(crate) const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 /// The sidecar's file name next to our executable (`bundle.externalBin`): not
 /// `bun`, which the .deb would install as /usr/bin/bun over the user's own.
 const SIDECAR: &str = "pal-bun";

@@ -107,6 +107,17 @@ jobs:
         with:
           path: app/src-tauri/binaries
           key: sidecar-${{ matrix.target }}-${{ hashFiles('app/scripts/fetch-bun.sh') }}
+      # The MediaRemote adapter (ci.yml has the note); one universal build
+      # serves both macOS targets.
+      - name: MediaRemote adapter
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: app/src-tauri/mediaremote
+          key: mediaremote-${{ runner.os }}-${{ hashFiles('app/scripts/fetch-mediaremote.sh') }}
+      - name: cmake
+        if: runner.os == 'macOS'
+        run: command -v cmake || brew install cmake
 
       # build-extensions.sh (beforeBuildCommand) bundles each extension with
       # bun, so their dependencies must be installed.

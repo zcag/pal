@@ -3,12 +3,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { MediaPlayer, NowPlaying } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
-import { trackText } from "../../../extensions/media/index.ts";
+import { clock, trackText } from "../../../extensions/media/index.ts";
 
 const MAC = process.platform === "darwin";
 const spotify: MediaPlayer = { id: "spotify", name: "Spotify", state: "playing", title: "Blue Monday", artist: "New Order", album: "Power, Corruption & Lies", artwork: "https://i.scdn.co/image/ab67", url: "spotify:track:abc", app: "/Applications/Spotify.app", position: 12.5, duration: 448 };
 const music: MediaPlayer = { id: "music", name: "Music", state: "paused", title: "Song 2", artist: "Blur", album: null, artwork: null, url: null, app: "/System/Applications/Music.app", position: 0, duration: 120 };
 const idle: MediaPlayer = { id: "firefox.instance1", name: "Firefox", state: "stopped", title: null, artist: null, album: null, artwork: null, url: null, app: null, position: null, duration: null };
+/** The macOS system-wide row for Chrome playing YouTube: the MediaRemote adapter gives the app, the state and the position, no track (captured on macOS 26.4). */
+const chrome: MediaPlayer = { id: "system", name: "Google Chrome", state: "playing", title: null, artist: null, album: null, artwork: null, url: null, app: "/Applications/Google Chrome.app", position: 2532.9, duration: 3963.08 };
 let np: NowPlaying = { players: [spotify, music, idle], system_wide: true };
 const calls: { player: string; command: string }[] = [];
 let host: Host;
@@ -46,6 +48,18 @@ describe("media", () => {
     expect(items[2].actions!.map((a) => a.id)).toEqual(["play_pause", "next", "previous"]);
   });
 
+  test("a player that reports no track (Chrome on macOS): the app as the title, the position as the subtitle, no copy", async () => {
+    np = { players: [chrome], system_wide: true };
+    const [row] = await list();
+    expect(row).toMatchObject({ id: "system", name: "Google Chrome", subtitle: "42:12 / 1:06:03", icon: { app: "/Applications/Google Chrome.app" }, accessories: [{ tag: "playing", color: "green" }] });
+    expect(row.actions!.map((a) => a.id)).toEqual(MAC ? ["play_pause", "next", "previous", "open"] : ["play_pause", "next", "previous"]);
+    np = { players: [{ ...chrome, state: "paused", position: null, duration: null }], system_wide: true };
+    expect((await list())[0]).toMatchObject({ name: "Google Chrome", subtitle: "Paused", accessories: [{ tag: "paused", color: "amber" }] });
+    expect(clock(65)).toBe("1:05");
+    expect(clock(3600)).toBe("1:00:00");
+    np = { players: [spotify, music, idle], system_wide: true };
+  });
+
   test("controls go to the core and keep the palette; a refusal is a toast", async () => {
     expect(await pick("spotify")).toEqual({ keep: true });
     expect(await pick("spotify", "next")).toEqual({ keep: true });
@@ -81,6 +95,15 @@ describe("media", () => {
       expect(await host.barAction("media", "now-playing", "open")).toEqual({ open: "spotify:track:abc" });
     });
 
+    test("a playing player without a track shows its app; copy has nothing to give", async () => {
+      np = { players: [chrome], system_wide: true };
+      const item = await host.render("media", "now-playing");
+      expect(item).toMatchObject({ icon: "\uf001", title: "Google Chrome", tooltip: "Playing in Google Chrome" });
+      expect((item.menu as any[]).map((n) => n.id ?? n.type)).toEqual(MAC ? ["play_pause", "next", "previous", "separator", "open"] : ["play_pause", "next", "previous", "separator"]);
+      expect(await host.barAction("media", "now-playing", "copy")).toEqual({ keep: true, hud: "No track title" });
+      np = { players: [spotify, music, idle], system_wide: true };
+    });
+
     test("only a playing player shows: paused or nothing is hidden; an action then says so", async () => {
       np = { players: [music, idle], system_wide: true };
       expect(await host.render("media", "now-playing")).toEqual({ hidden: true });
@@ -93,7 +116,8 @@ describe("media", () => {
     np = { players: [], system_wide: true };
     expect(await list()).toMatchObject([{ id: "empty", name: "Nothing playing", subtitle: "No player is running", actions: [] }]);
     np = { players: [], system_wide: false };
-    expect((await list())[0].subtitle).toBe(MAC ? "Spotify and Music are watched; brew install nowplaying-cli to see other players" : "Install playerctl to control MPRIS players");
+    // macOS bundles its source (the MediaRemote adapter), so no install hint there: a build without it is what the row says.
+    expect((await list())[0].subtitle).toBe(MAC ? "No player is running (this build has no MediaRemote adapter: only Spotify and Music are watched)" : "Install playerctl to control MPRIS players");
     expect(await pick("empty")).toEqual({ keep: true });
     np = { players: [spotify, music, idle], system_wide: true };
   });

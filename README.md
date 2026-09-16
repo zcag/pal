@@ -22,8 +22,9 @@ Prerequisites: Rust (stable), Node 20+, Bun 1.4 or newer (the pinned
 release in `app/scripts/fetch-bun.sh`; a 1.3 `bun install` rewrites every
 `bun.lock` in the tree, so an older bun leaves the checkout dirty), and the
 [Tauri v2 system prerequisites](https://v2.tauri.app/start/prerequisites/)
-for your platform (Xcode command line tools on macOS; webkit2gtk-4.1, gtk3,
-librsvg, openssl, base-devel on Linux).
+for your platform (Xcode command line tools and `cmake` on macOS, `brew
+install cmake`; webkit2gtk-4.1, gtk3, librsvg, openssl, base-devel on
+Linux).
 
 ```sh
 git clone git@github.com:zcag/pal.git && cd pal
@@ -38,8 +39,12 @@ cd app && npm run tauri dev
 The first cargo build fetches the pinned Bun release into
 `app/src-tauri/binaries/pal-bun-<triple>` (`app/scripts/fetch-bun.sh`, checksum
 verified, gitignored): it ships inside the app as the extension host's
-runtime, and in dev the app runs that same copy. In dev the host and the
-extensions load from the repo and reload when a file changes.
+runtime, and in dev the app runs that same copy. On macOS it also builds
+the MediaRemote adapter into `app/src-tauri/mediaremote/`
+(`app/scripts/fetch-mediaremote.sh`: a pinned clone and a cmake build,
+about ten seconds; NOTICES.md), the system-wide Now Playing source the
+`media` palette reads. In dev the host and the extensions load from the
+repo and reload when a file changes.
 
 Ctrl+Space toggles the panel (`general.hotkey` in `~/.config/pal/config.toml`,
 one combination or a list of them;
@@ -82,7 +87,8 @@ from CI anyway: `docs/releasing.md`). Output under `target/release/bundle/`:
 
 Inside the bundle, `bun` sits next to the `pal` binary (`Contents/MacOS/`,
 `usr/bin/`) and the staged tree under the resource directory
-(`Contents/Resources/`, `usr/lib/pal/`). Installed extensions go in the
+(`Contents/Resources/`, `usr/lib/pal/`; on macOS `Resources/mediaremote/`
+too, from `tauri.macos.conf.json`). Installed extensions go in the
 store under the data dir (`~/Library/Application Support/pal/extensions/`,
 `~/.local/share/pal/extensions/`), and `general.extension_dirs` adds roots
 of your own; the host loads the bundled root first and those after, so a

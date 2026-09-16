@@ -3,11 +3,13 @@
 One row per running player: the track as the title, artist and album as
 the subtitle, the artwork (else the app's icon) and a `playing` /
 `paused` / `stopped` tag, with the player's name next to it. A player
-with nothing loaded reads "Nothing playing" with the player's name. A
-live palette: read again on every show through the core's media
-capability, so the track that is on right now is a root result too (type
-its title or artist at the root). With no player running the one row says
-so, and on macOS how to see players beyond Spotify and Music.
+with nothing loaded reads "Nothing playing" with the player's name; one
+that is playing but reports no track (Chrome with a YouTube tab on macOS
+gives the position and nothing else) is its app's name, with the position
+as the subtitle (`42:12 / 1:06:03`). A live palette: read again on every
+show through the core's media capability, so the track that is on right
+now is a root result too (type its title or artist at the root). With no
+player running the one row says so, and on Linux how to see players.
 
 Every control keeps the palette up and lists again, so the tag follows
 what you did; a player that refuses (Music not running, a player that
@@ -35,9 +37,14 @@ can see:
   running (the check is `NSRunningApplication`, so pal never launches one
   to ask); Spotify gives the artwork url and the track url. The first
   AppleScript run asks whether pal may control the app (the Automation
-  permission). `nowplaying-cli` on PATH (`brew install nowplaying-cli`)
-  adds the system-wide Now Playing as one more row, for any other player
-  (a browser, VLC, IINA).
+  permission). The system-wide Now Playing (any other player: a browser,
+  VLC, IINA) is one more row, from the MediaRemote adapter pal bundles
+  ([mediaremote-adapter](https://github.com/ungive/mediaremote-adapter),
+  a small framework run through `/usr/bin/perl`): the one source that
+  still works on macOS 15.4 and later, where `mediaremoted` answers only
+  entitled clients and `nowplaying-cli` gets null for everything. Nothing
+  to install. The row is the app's name and icon (from its bundle id),
+  the track when the player reports one, and the position.
 - **Linux**: `playerctl` over MPRIS, one row per player; the icon is the
   player's `.desktop` when one is named like it. Without `playerctl` the
   one row says to install it.
@@ -63,5 +70,5 @@ shows within seconds and an idle machine costs nothing.
 ## Platforms
 
 macOS and Linux. macOS needs the Automation permission for Spotify and
-Music (asked once per app) and `nowplaying-cli` for anything else; Linux
-needs `playerctl`.
+Music (asked once per app); anything else comes through the bundled
+MediaRemote adapter. Linux needs `playerctl`.

@@ -12,3 +12,5 @@
 /resources/
 # Fetched by scripts/fetch-font.sh
 /fonts/
+# Built by scripts/fetch-mediaremote.sh
+/mediaremote/

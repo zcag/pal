@@ -307,6 +307,7 @@ pub fn run() {
             //   9. updater: the daily check (release builds)
             //  10. cache restore: last run's listings, so the root answers now
             //      bar: the popover window, the strip targets and their probes
+            //      media: where the bundled MediaRemote adapter is (macOS)
             //  11. host: spawned last, its notifications need everything above
             // Every step logs its own failure and the next one still runs:
             // no state is half-managed, a step that cannot start just leaves
@@ -338,6 +339,7 @@ pub fn run() {
             updater::install(app.handle());
             index::restore_cache(app.handle());
             bar::install(app.handle());
+            media::install(app.handle());
             host::Host::start(app.handle());
             // Icons and favicons are cached forever otherwise; a month is
             // long enough that a daily app never refetches.

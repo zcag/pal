@@ -39,6 +39,5 @@
       { "title": "Copy link", "description": "A `copy` action on a row field.", "keys": "cmd+c" },
       { "title": "Select", "description": "The default of a script palette without actions: run.sh pick with the row in the environment.", "keys": "enter" }
     ]
-  },
-  "palettes": {}
+  }
 }

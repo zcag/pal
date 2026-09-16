@@ -75,6 +75,17 @@ jobs:
         with:
           path: app/src-tauri/binaries
           key: sidecar-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('app/scripts/fetch-bun.sh') }}
+      # The MediaRemote adapter build.rs builds on macOS (fetch-mediaremote.sh:
+      # a git clone and a cmake build, ~10 s); the runner image ships cmake.
+      - name: MediaRemote adapter
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: app/src-tauri/mediaremote
+          key: mediaremote-${{ runner.os }}-${{ hashFiles('app/scripts/fetch-mediaremote.sh') }}
+      - name: cmake
+        if: runner.os == 'macOS'
+        run: command -v cmake || brew install cmake
 
       - name: Install JS dependencies
         run: |

@@ -1344,15 +1344,20 @@ One row per running player over the core's media capability: the track
 as the title, artist and album as the subtitle, the artwork (else the
 app's icon) and a `playing` / `paused` / `stopped` tag, playing ones
 first. A player with nothing loaded reads "Nothing playing" with the
-player's name. Live: read again on every show. With no player running the
-one row says so; on macOS without `nowplaying-cli` it says how to see
-players beyond Spotify and Music.
+player's name; one playing without a track (Chrome with YouTube on macOS
+reports the position and nothing else) is its app's name with the
+position as the subtitle. Live: read again on every show. With no player
+running the one row says so; on Linux without `playerctl` it says to
+install it.
 
 - **macOS**: Spotify and Music through AppleScript, only while the app is
   running (the check is `NSRunningApplication`, so pal never launches one
-  to ask); Spotify gives the artwork url and the track url. `nowplaying-cli`
-  on PATH (`brew install nowplaying-cli`) adds the system-wide Now Playing
-  as one more row for any other player.
+  to ask); Spotify gives the artwork url and the track url. The system-wide
+  Now Playing (any other player: a browser, VLC) is one more row, named
+  and iconed from the app's bundle id, through the bundled MediaRemote
+  adapter (`mediaremote-adapter.pl` plus a framework, run by
+  `/usr/bin/perl`; the one source that works on macOS 15.4 and later,
+  where `nowplaying-cli` gets null). Nothing to install.
 - **Linux**: `playerctl` over MPRIS, one row per player; the icon is the
   player's `.desktop` when one is named like it.
 

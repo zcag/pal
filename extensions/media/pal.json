@@ -1,7 +1,7 @@
 {
   "name": "media",
   "title": "Now Playing",
-  "description": "What is playing in Spotify, Music or any MPRIS player: play, pause, skip.",
+  "description": "What is playing in Spotify, Music, a browser or any MPRIS player: play, pause, skip.",
   "version": "0.1.0",
   "icon": "󰝚",
   "author": "pal",
@@ -49,10 +49,11 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "Play, pause and skip Spotify, Music or any MPRIS player",
+    "tagline": "Play, pause and skip Spotify, Music, a browser or any MPRIS player",
     "category": "media",
     "features": [
       "One row per running player: the track, artist and album, the artwork, a `playing` / `paused` / `stopped` tag",
+      "macOS: every player the system's Now Playing sees (a browser, VLC), through the bundled MediaRemote adapter, on macOS 15.4 and later too",
       "`enter` plays or pauses and the tag follows; `cmd+right` and `cmd+left` skip",
       "`cmd+c` copies `artist - title`; `cmd+o` opens the track (Spotify's `spotify:track:` link) or the app",
       "Live: the current track is a root result, so its title or artist finds it without opening the palette",

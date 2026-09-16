@@ -1,10 +1,12 @@
 // Now Playing over the core's media capability: one row per running
 // player with the track as the title, artist and album as the subtitle,
-// the artwork (or the app's icon) and a state tag. Enter plays or pauses,
-// ⌘→ / ⌘← skip, ⌘C copies "artist - title", ⌘O opens the track (its url,
-// else the app). Controls keep the palette up and list again, so the tag
-// follows. Live: listed again on every show. With nothing running the one
-// row says so, and on macOS how to see players beyond Spotify and Music.
+// the artwork (or the app's icon) and a state tag. A player that reports
+// no track (Chrome with YouTube on macOS gives the position and nothing
+// else) is its app's name with the position as the subtitle. Enter plays
+// or pauses, ⌘→ / ⌘← skip, ⌘C copies "artist - title", ⌘O opens the
+// track (its url, else the app). Controls keep the palette up and list
+// again, so the tag follows. Live: listed again on every show. With
+// nothing running the one row says so, and on Linux how to see players.
 //
 // The bar item `now-playing` is the playing track on the strip (hidden
 // while nothing plays) with the transport in its popover. The core asks
@@ -40,6 +42,17 @@ const STATE: Record<MediaPlayer["state"], { color: string; tag: string }> = {
 /** `artist - title`, or whichever there is. */
 export const trackText = (p: MediaPlayer): string => [p.artist, p.title].filter(Boolean).join(" - ");
 
+/** `4:05`, `1:06:03`. */
+export const clock = (s: number): string => {
+  const t = Math.max(0, Math.floor(s));
+  const [h, m, sec] = [Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60];
+  return (h ? [h, String(m).padStart(2, "0")] : [m]).concat(String(sec).padStart(2, "0")).join(":");
+};
+
+/** What stands in for a track on a player that reports none: `12:34 / 1:06:03`, `12:34`, or the state. */
+const untitled = (p: MediaPlayer): string =>
+  p.position != null ? [clock(p.position), p.duration != null ? clock(p.duration) : ""].filter(Boolean).join(" / ") : p.state === "playing" ? "Playing" : "Paused";
+
 /** What Open opens: the track's url, else the app on macOS (a `.desktop` path is not something the opener launches). */
 const openTarget = (p: MediaPlayer) => p.url ?? (MAC ? p.app : null);
 
@@ -56,6 +69,8 @@ async function control(player: string, action?: string): Promise<Effect> {
 
 function item(p: MediaPlayer): Item {
   const idle = !p.title;
+  // A row with a state but no track: the app is the title, the position the subtitle.
+  const untitledActive = idle && p.state !== "stopped";
   const accessories: Accessory[] = [{ tag: STATE[p.state].tag, color: STATE[p.state].color }];
   if (!idle) accessories.unshift({ text: p.name });
   const actions: Action[] = [
@@ -68,8 +83,8 @@ function item(p: MediaPlayer): Item {
   if (target) actions.push({ id: "open", title: `Open in ${p.name}`, shortcut: "cmd+o" });
   return {
     id: p.id,
-    name: p.title ?? "Nothing playing",
-    subtitle: idle ? p.name : [p.artist, p.album].filter(Boolean).join(" · ") || undefined,
+    name: p.title ?? (untitledActive ? p.name : "Nothing playing"),
+    subtitle: untitledActive ? untitled(p) : idle ? p.name : [p.artist, p.album].filter(Boolean).join(" · ") || undefined,
     icon: p.artwork ? { image: p.artwork } : p.app ? { app: p.app } : MUSIC,
     keywords: [p.name, "now playing", "music", ...(p.artist ? [p.artist] : [])],
     accessories,
@@ -77,31 +92,32 @@ function item(p: MediaPlayer): Item {
   };
 }
 
+// macOS always has a system-wide source (the bundled MediaRemote adapter); a build without it is the one case the hint covers.
 function empty(systemWide: boolean): Item {
   const subtitle = systemWide
     ? "No player is running"
-    : MAC ? "Spotify and Music are watched; brew install nowplaying-cli to see other players" : "Install playerctl to control MPRIS players";
+    : MAC ? "No player is running (this build has no MediaRemote adapter: only Spotify and Music are watched)" : "Install playerctl to control MPRIS players";
   return { id: "empty", name: "Nothing playing", subtitle, icon: MUSIC, actions: [] };
 }
 
 // ---- the bar item -----------------------------------------------------------
 
-const playing = (np: { players: MediaPlayer[] }) => np.players.find((p) => p.state === "playing" && p.title);
+const playing = (np: { players: MediaPlayer[] }) => np.players.find((p) => p.state === "playing");
 
-/** What the strip shows for a playing player: the track as the title, the transport as the menu. */
+/** What the strip shows for a playing player: the track (else the app) as the title, the transport as the menu. */
 function barItem(p: MediaPlayer | undefined): BarItem {
   if (!p) return { hidden: true };
   const target = openTarget(p);
   return {
     icon: BAR_GLYPH,
-    title: [p.title, p.artist].filter(Boolean).join(" · ").slice(0, 40),
-    tooltip: `${trackText(p)} (${p.name})`,
+    title: (p.title ? [p.title, p.artist].filter(Boolean).join(" · ") : p.name).slice(0, 40),
+    tooltip: p.title ? `${trackText(p)} (${p.name})` : `Playing in ${p.name}`,
     menu: [
       { type: "item", id: "play_pause", title: "Pause", icon: GLYPH.pause, shortcut: "space" },
       { type: "item", id: "next", title: "Next track", icon: GLYPH.next, shortcut: "right" },
       { type: "item", id: "previous", title: "Previous track", icon: GLYPH.previous, shortcut: "left" },
       { type: "separator" },
-      { type: "item", id: "copy", title: "Copy track", icon: GLYPH.copy, shortcut: "cmd+c" },
+      ...(p.title ? [{ type: "item" as const, id: "copy", title: "Copy track", icon: GLYPH.copy, shortcut: "cmd+c" }] : []),
       ...(target ? [{ type: "item" as const, id: "open", title: `Open in ${p.name}`, icon: p.app && MAC ? { app: p.app } : GLYPH.open, shortcut: "cmd+o" }] : []),
     ],
   };
@@ -135,7 +151,7 @@ async function renderBar(): Promise<BarItem> {
 async function barAction(action: string): Promise<Effect> {
   const p = playing(await media.nowPlaying());
   if (!p) return { keep: true, hud: "Nothing playing" };
-  if (action === "copy") return { copy: trackText(p) };
+  if (action === "copy") return p.title ? { copy: trackText(p) } : { keep: true, hud: "No track title" };
   if (action === "open") { const target = openTarget(p); return target ? { open: target } : { keep: true }; }
   return control(p.id, action);
 }
