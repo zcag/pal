@@ -267,7 +267,7 @@ pub fn run() {
                 None => eprintln!("hud\ttauri.conf.json has no `hud` window; no HUD this run"),
             }
             // The index cache and frecency are keyed by config file, so two
-            // configs (`pali.toml` in dev, `config.toml`) never share one.
+            // configs (a dev profile, `config.toml`) never share one.
             let config = ConfigFile::locate();
             let data = config.data_dir();
             eprintln!("profile\t{}\t{}\t{}", config.profile(), config.path().display(), data.display());
