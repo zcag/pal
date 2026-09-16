@@ -253,6 +253,15 @@ pub fn run() {
             updater::install(app.handle());
             index::restore_cache(app.handle());
             host::Host::start(app.handle());
+            // Icons and favicons are cached forever otherwise; a month is
+            // long enough that a daily app never refetches.
+            tauri::async_runtime::spawn_blocking(|| {
+                match pal_core::icons::prune(std::time::Duration::from_secs(30 * 24 * 3600)) {
+                    Ok(n) if n > 0 => eprintln!("icons\tpruned\t{n}"),
+                    Ok(_) => {}
+                    Err(e) => eprintln!("icons\tprune failed\t{e}"),
+                }
+            });
             Ok(())
         })
         .build(context)

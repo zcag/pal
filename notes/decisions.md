@@ -114,7 +114,7 @@ down as it stabilises.
 - **Data is keyed by config file.** `<data dir>/pal/<profile>/{index,
   frecency.json}` where `<profile>` is `default` for `~/.config/pal/config.toml`
   and the first 8 hex of sha256 of the canonical path otherwise
-  (`ConfigFile::profile` / `data_dir`; `pali.toml` on hornet is `72afa3f9`).
+  (`ConfigFile::profile` / `data_dir`; `pali.toml` on hornet is `ff8fb0c4`).
   Logged at startup as `profile`. `clipboard.db` stays one level up: it is
   history, not a view of one config. Nothing was migrated; the old
   `pal/index` and `pal/frecency.json` are dead files to delete by hand.
