@@ -467,21 +467,32 @@ export default {
   `title` and settings like any other; `detail` and `filters` have no
   meaning for it.
 
-The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key` and
-`transition`):
+The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key`,
+`transition`, `action` and `selected`):
 
 | node | fields | draws |
 | --- | --- | --- |
-| `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `surface` sunken/elevated (a well behind a board, a card behind stats; give it `padding`), `radius`, `children` | a flex box |
+| `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `surface` sunken/elevated (a well behind a board, a card behind stats; give it `padding`) or a hex colour of the extension's own (the box is that colour; black or white ink by contrast once its alpha is over 0.5, the panel's ink under a faint tint), `radius`, `children` | a flex box; with a hex surface a card in that colour: a room tile |
 | `text` | `value`, `style` title/body/muted/mono/number, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`), `width` / `minWidth` px (a column that lines up; a run with a `width` clips instead of wrapping), `align` start/center/end inside it | one run of text |
-| `image` | `src` (`icon://…` or `data:image/…`, anything else is not shown), `width`/`height` px, `mask` rounded/circle, `alt` | a picture the extension made or the app's icon scheme serves |
+| `image` | `src` (`icon://…` or `data:image/…`, anything else is not shown), `width`/`height` px, `mask` rounded/circle, `alt`, `dot` (a tag colour) | a picture the extension made or the app's icon scheme serves; with `dot` a presence dot on its bottom-right corner, ringed by the panel: an avatar (green active, grey away, red do not disturb) |
 | `tile` | `width`/`height` px, `text`, `sub` (small, under the text), `color` (tag palette, `neutral` (default), `accent`, or a hex colour of the extension's own: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`), `fill` `solid` (the colour, the panel's background as ink; solid neutral is paper, the elevated surface), `soft` (the tint, the colour as ink; default), `outline` | a rounded box with the tokens' colours, so it follows the theme: a game tile, a keycap of an on-screen keyboard, a stat. The type is tabular, scales with the box, gets heavier as it grows and shrinks to fit the text; under 44 px the box takes the control radius. A hex colour paints the box with itself whatever the fill (a hairline in it for `outline`), takes black or white ink by contrast, and shows a checker through a translucent one: a swatch |
 | `gradient` | `width`/`height` px, `fill` (a hex colour under everything), `layers` (each `stops`: two or more hex colours, alpha allowed (`#ffffff00`), spread evenly along `direction` right (default), down, up or left; in paint order, a later layer composites over an earlier one), `marker` `{ x, y }` in 0..1 | a box of CSS linear gradients with the tile radius and, with `marker`, a ring at that point drawn to read on any colour: a hue strip (seven stops round the wheel), the classic saturation/value plane (`fill` the pure hue, white to transparent rightwards, black to transparent upwards) |
 | `badge` | `text`, `color` (grey, blue, green, amber, red, violet, pink, teal) | a tag, as on a row |
 | `divider` | | a hairline (vertical in a row) |
 | `spacer` | `size` px, else the free space | space |
-| `progress` | `value` 0..1, `width` px, `color` (tag palette; else the accent) | a bar |
-| `keycap` | `keys` in the shortcut spelling (`h`, `cmd+k`, `up`) | key caps, as in the footer |
+| `progress` | `value` 0..1, `width` px, `color` (tag palette or a hex colour; else the accent) | a bar |
+| `slider` | `value` 0..1, `width` px (else the free space), `color` as for `progress`, `label` (for a screen reader) | a level the user sets: a 6 px track with the fill and a round thumb at its end (`role="slider"`). The keys move it through the view's own actions; with `action`, a click runs that action with the clicked fraction as `ctx.values.value` ("0.620") |
+| `switch` | `on`, `color` (tag palette; else the accent), `label` | the system's switch pill, the knob slid over when on; with `action` a click runs it |
+| `keycap` | `keys` in the shortcut spelling (`h`, `cmd+k`, `up`) | key caps, as in the footer; with `action` a click runs what the cap names |
+
+Two fields every node takes. **`action`**: the id of one of the view's
+`actions`; a click (a tap) on the node runs it as its key would, so a
+room tile toggles the room and a keycap runs what it names. The node is
+drawn as a control (a pointer, a lift on hover), and a `hidden` action
+some node runs needs no shortcut. A click inside nested controls lands
+on the innermost. **`selected`**: an accent ring on the node's box, the
+keys' cursor when arrows walk a grid; one per tree is the idea. Both are
+checked (`checkView`): an `action` naming no action of the view is refused.
 
 Unknown node types are skipped, not errors, so a newer extension still
 draws on an older app. `key` makes a node the same node across trees: the
@@ -725,7 +736,10 @@ lists the item without running the code:
 `refresh.every` is seconds between renders (10 at least), `on` adds
 triggers: `show` (the panel shown), `wake`, `network` (back online),
 `focus` (the front app changed), `minute`. The core renders every item
-once at load and whenever the extension's settings change.
+once at load and whenever the extension's settings change. `keys`, as on
+a palette (`[{ "keys": "space", "title": "Pause" }]`), is the key table
+of the item's own `{ view }` popover for the store and the settings
+window.
 
 **The code.** `bar.<id>` in the default export, next to `palettes`:
 
@@ -768,7 +782,12 @@ export default defineExtension({
 - `onAction(action, ctx)` and `onOpen(ctx)` answer an `Effect` like
   `pick`: `open`, `copy`, `hud`, `push` (drill into a palette in the
   popover), `view`, `form`, `keep` (re-render the item, the popover stays).
-  `settings.get()` works inside all of them without an argument.
+  `settings.get()` works inside all of them without an argument. From a
+  `{ view }` popover every action is `onAction` with the action's id: a
+  key of the view, Enter on the first listed action, a click on a node
+  carrying `action`. What a control read rides in `ctx.values`: the
+  view's text field on Enter (`input`), a form's fields by id, a
+  slider's clicked fraction (`value`).
 - `bar.update(id, item)` in `@zcag/pal` **pushes** an item from the
   extension's own side, for a webhook, a file watcher or a poll it runs
   itself: the core draws it as if `render` had answered. `bar.refresh(id)`
@@ -791,42 +810,52 @@ export default defineExtension({
   and would keep pushing otherwise.
 
 **The bundled items**, each in the extension that already owns the
-data, so the strip and the palette share one loader and one cache:
+data, so the strip and the palette share one loader and one cache. Every
+popover is a `{ view }` level laid out for 420 px (`extensions/<name>/view.ts`,
+Hue's `popover.ts`: a pure `render(state)` the gallery draws too), with
+`keys: "actions"`, a keycap hint row, the cursor as a `selected` ring the
+arrows move and a click sets, and the strip untouched:
 
-- **GitHub, `notifications`** (`extensions/github/`): the unread count as a
-  badge, hidden at zero. The popover is a menu level with the newest five
-  (a row marks the thread read and opens it), "Open all" (pushes the
-  Notifications palette) and "Mark all read". Refresh every 300 s and on
-  `show`, `wake`, `network`; those triggers ask GitHub with the ETag (a
-  304 is free), the timer takes the cache. Signed out is hidden, not an
-  error: the strip has no room for a hint.
-- **Now Playing, `now-playing`** (`extensions/media/`): the playing track
-  as the title, hidden while nothing plays; the popover has Pause, Next,
-  Previous, Copy Track and Open. The core asks every 30 s; while a player
-  was playing at the last look the extension polls the players every 5 s
-  itself and pushes on a track or state change, so a skip shows within
-  seconds and an idle machine costs nothing.
+- **Hue, `home`** (`extensions/hue/`): the main room's colour as a dot and
+  the count on the strip. The popover: a status row (lights on, the motion
+  and temperature sensors as badges, a bridge that is away), the rooms as
+  a grid of tiles in their lit colour with a switch, the count and a thin
+  brightness bar (a tap toggles, the chevron opens the room's lights
+  inline, each with a slider a tap sets), the scenes as five-swatch tiles
+  on the digits, `e` everything on, `x` all off. Follows the event stream
+  (a `bar.update` at most every 300 ms redraws strip and popover).
+- **Spotify, `playing`** (`extensions/spotify/`): the cover, the titles, a
+  progress row ticking every second while shown, the lyric line playing
+  with its neighbours, the transport and state keycaps, the queue's next
+  two as rows (a click skips to one).
+- **Timer, `timer`** (`extensions/timer/`): a card per timer with the
+  time left large and a progress bar in the strip's colour, `space`
+  pause/resume/dismiss, `+` five minutes, `backspace` stop, `n` a text
+  field (`25m tea`) whose Enter starts one (`ctx.values.input`), the last
+  durations as tiles. Ticks every second while shown.
+- **Calendar, `upcoming`** (`extensions/calendar/`): today's events as
+  rows (a time column, the calendar's colour bar, "in 12 min" / "ends in
+  24 min", the running one on a card), a Join tile on rows with a call,
+  all-day events as badges, tomorrow folded under a header (`t`), `o` the
+  calendar, a 30 s tick from the cache while shown.
+- **Slack, `unreads`** (`extensions/slack/`): a section per kind (direct
+  messages, mentions, threads) with avatars fetched into data urls, the
+  latest line and a count badge; Enter opens, `r` a reply field whose
+  Enter posts `ctx.values.input`, `m` marks read, `a` all read; quiet
+  channels as badges. Urgent while a direct message waits.
+- **GitHub, `notifications`** (`extensions/github/`): the unread threads
+  grouped by repository with a colour rail per subject type, a reason
+  badge and the age; Enter / `o` marks read and opens, `m` marks read,
+  `a` all read, `p` the palette; a height budget keeps six or so rows and
+  says how many more are in pal. Hidden at zero and signed out.
+- **Now Playing, `now-playing`** (`extensions/media/`): the cover large
+  (the stream's picture, a cover url fetched once, else the app's icon),
+  the titles, a progress row ticking while shown, `space` / arrows /
+  `c` / `o` keycaps. Hidden while nothing plays.
 - **Verification Codes, `latest-code`** (`extensions/otp/`): the newest
-  code as the title, green, for a minute after it arrived, then hidden;
-  a click copies it (no `menu`, so `onOpen`). The render sets `refresh`
-  to the seconds left in that minute, so the item leaves on time; the
-  manifest asks every 10 s otherwise.
-- **Timer, `timer`** (`extensions/timer/`, [Palettes](palettes.md#timer-timer-timers)):
-  the soonest timer's remaining time with a `progress` fill, blue then
-  amber then red, muted while paused, `urgent` once it landed; hidden
-  with no timer at all. A click opens the `timers` palette
-  (`menu: { palette }`). The second-level ticks are the extension's own:
-  an `fs.watch` on the CLI's state directory pushes on every change, and
-  a 1 Hz interval pushes the countdown while a timer runs.
-- **Slack, `unreads`** (`extensions/slack/`, [Palettes](palettes.md#slack-slack-unreads-slack-channels-slack-search-slack-status)):
-  the count of what is addressed to you (direct messages, mentions,
-  thread replies) as the badge, hidden at zero, urgent while a direct
-  message waits; never the unread channels, which are only named in the
-  popover. The popover is a menu level: a section per kind with the
-  newest five, "Also unread", Open in pal, Mark all read, Open Slack.
-  Refresh every `refresh` seconds (120) and on `show`, `wake`,
-  `network`; the palette and the item share one inbox for 30 s, so the
-  panel showing costs one `client.counts`.
+  code as digit tiles with the sender and a bar counting the minute
+  down, Enter copies (concealed), `p` pastes, the two before as rows a
+  click copies. The item leaves when the minute ends.
 
 ## Storage
 

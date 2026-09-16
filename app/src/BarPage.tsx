@@ -86,12 +86,13 @@ export default function BarPage() {
   // Live views in the popover: the same push, trigger and on-top report as the panel's (views.rs marks them `compact`).
   const viewOpen = useLiveViews(launcher);
 
-  // A row of the item's own level (a menu row, a view action) is `bar/action`; a palette level's rows are the usual pick.
+  // A row of the item's own level (a menu row, a view action, a form's submit) is `bar/action`; a palette level's rows are the usual pick.
   const pick = useCallback(async (item: Item, query: string, action?: string, ctx?: Ctx) => {
     const key = showing.current?.key;
     if (item.source || !key || item.palette !== key) return core.pick(item, query, action, ctx);
     const t0 = performance.now();
-    const r = await invoke<Effect>("bar_action", { key, action: action ?? item.id });
+    // What a control read rides along (`ctx.values` in the extension's `onAction`): the text field on Enter, a form's fields, a slider's fraction.
+    const r = await invoke<Effect>("bar_action", { key, action: action ?? item.id, values: ctx?.values ?? null });
     mark(`bar action ${key} ${action ?? item.id} ms`, performance.now() - t0);
     if (!staysOpen(r)) hide();
     return r;

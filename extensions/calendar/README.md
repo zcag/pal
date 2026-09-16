@@ -14,7 +14,8 @@ item over one source and one cache:
   `Standup in 12m` on the menu bar or sketchybar, `now` while it runs,
   hidden when nothing starts within ten hours; muted far off, amber inside
   fifteen minutes, red inside five; a dot when there is a call to join. A
-  click opens Today in the popover; Enter on a row joins.
+  click opens the day in the popover: the rows still to come, Join on the
+  calls, tomorrow folded; Enter joins.
 
 ## Sources
 
@@ -87,10 +88,8 @@ is one hint row with the reason.
 | keywords | the calendar, the location, the state, the section | the calendar, the location, the section, the day |
 
 My Schedule drops events that have ended; Today keeps them as `over`, in
-order, so the day reads whole. Both hide declined invitations by default.
-The bar's popover opens Today with `args: { rest: true }`: the over ones
-dropped and tomorrow always there, since the strip is about what is still
-to come.
+order, so the day reads whole. Both hide declined invitations by default,
+and so does the bar's popover (below), which lists what is still to come.
 
 ## Keyboard
 
@@ -133,6 +132,37 @@ render from the cache is well under a millisecond (`bar/render` through
 the host measured at 0.1 ms in the tests); the first fetch is the
 source's: about 80 ms for a week from EventKit, 250 to 350 ms for two
 Google accounts whose token commands hop over ssh.
+
+**The popover** (`view.ts`, a `{ view }` menu, 420 px wide) is the day
+at a glance: today's events still to come as rows, each with the start
+over the end in the time column, the calendar's colour as a thin bar, the
+title over the place, the head count and the calendar, and at the right
+how far off it is (`in 12 min`, blue inside the hour) or, on the one
+running, `ends in 24 min` on an elevated card. A row with a call carries a
+green **Join** button (solid while the call runs). All-day events are a
+line of badges above the rows; a `maybe` or `declined` badge sits by a
+title you have not accepted. Tomorrow is folded under a header row
+(`Tomorrow · 3 events · Thu 17 Sep`) that opens on `t` or a click and
+lists its events in the same shape; it opens by itself on a clear day,
+under a **Nothing today** card naming the next event. When the cache is
+what is shown after a failed fetch, an amber `showing the last events
+read` badge says so with the error. While the popover is up a 30 s tick
+redraws it from the cache (no fetch), so the minutes keep counting.
+
+| keys | action |
+| --- | --- |
+| `enter` | Join the focused event's call; without one, Open in Calendar (macOS) or Open in Google Calendar (a Google account), else Copy event details; on a clear day, Open Calendar |
+| `up`, `down` | Move the ring between the rows (tomorrow's too once it is open); a click on a row focuses it |
+| `j` | Join the next call in the list |
+| `t` | Show or fold tomorrow; a click on its header does the same |
+| `o` | Open Calendar (the app on macOS; the day's page on calendar.google.com for a Google account) |
+| `r` | Refresh: forget the cache, the next render fetches |
+| `cmd+c` | Copy the focused event's details |
+| `cmd+shift+c` | Copy the focused event's conference link |
+| a click on **Join** | Join that row's call, whatever the ring is on |
+
+A click that opens the popover starts it fresh: the ring on the first
+row, tomorrow folded.
 
 ## Setup
 

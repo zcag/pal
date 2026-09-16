@@ -35,15 +35,37 @@ impl Palette {
         self.map.get(name).copied()
     }
 
+    /// `0xAARRGGBB` for a colour spec: a name of the map, else a hex
+    /// spelling (`#rrggbb`, `0xAARRGGBB`); `None` for anything else.
+    pub fn resolve(&self, spec: &str) -> Option<u32> {
+        self.argb(spec).or_else(|| parse(spec))
+    }
+
+    /// The sketchybar spelling of a spec (see [`resolve`](Self::resolve)).
+    pub fn hex_of(&self, spec: &str) -> Option<String> {
+        self.resolve(spec).map(|c| format!("0x{c:08x}"))
+    }
+
+    /// The RGB triple of a spec (see [`resolve`](Self::resolve)), for the glyph rasteriser.
+    pub fn rgb_of(&self, spec: &str) -> Option<[u8; 3]> {
+        self.resolve(spec).map(|c| [(c >> 16) as u8, (c >> 8) as u8, c as u8])
+    }
+
+    /// The muted colour at `dim` percent: the map's `muted` (a token grey,
+    /// or the bar's own through `[bar.sketchybar.colors]`) with its alpha
+    /// scaled, the sketchybar spelling. This is what `[bar.menubar] dim`
+    /// means on sketchybar, where a colour carries its own alpha.
+    pub fn muted_hex(&self, dim: u32) -> String {
+        let c = self.argb("muted").unwrap_or(0xFFA3_A4AE);
+        let a = ((c >> 24) as f32 * dim.min(100) as f32 / 100.0).round() as u32;
+        format!("0x{:08x}", (a << 24) | (c & 0x00FF_FFFF))
+    }
+
     /// The sketchybar spelling, `0xffrrggbb`.
     pub fn hex(&self, name: &str) -> Option<String> {
         self.argb(name).map(|c| format!("0x{c:08x}"))
     }
 
-    /// The RGB triple, for the glyph rasteriser.
-    pub fn rgb(&self, name: &str) -> Option<[u8; 3]> {
-        self.argb(name).map(|c| [(c >> 16) as u8, (c >> 8) as u8, c as u8])
-    }
 }
 
 /// `0xAARRGGBB`, `0xRRGGBB` (opaque), `#RRGGBB`, `RRGGBB`.
@@ -84,7 +106,7 @@ mod tests {
     fn overrides_and_spellings() {
         let p = Palette::new(true, &BTreeMap::new());
         assert_eq!(p.hex("red").as_deref(), Some("0xffff8a82"));
-        assert_eq!(p.rgb("text"), Some([0xEC, 0xEC, 0xF0]));
+        assert_eq!(p.rgb_of("text"), Some([0xEC, 0xEC, 0xF0]));
         assert_eq!(p.hex("nope"), None);
         let o = BTreeMap::from([("red".to_string(), "0xffe78284".to_string()), ("muted".into(), "#737994".into()), ("bogus".into(), "0xff000000".into()), ("blue".into(), "zzz".into())]);
         let p = Palette::new(false, &o);
@@ -94,5 +116,12 @@ mod tests {
         assert_eq!(p.hex("bogus"), None, "an unknown name adds nothing");
         assert_eq!(parse("0x80ff0000"), Some(0x80ff0000));
         assert_eq!(parse("abc"), None);
+        assert_eq!(p.hex_of("red").as_deref(), Some("0xffe78284"), "a name resolves through the map");
+        assert_eq!(p.hex_of("#ff8800").as_deref(), Some("0xffff8800"), "a hex spelling is a colour of its own");
+        assert_eq!(p.rgb_of("0x80102030"), Some([0x10, 0x20, 0x30]));
+        assert_eq!(p.resolve("orange"), None, "not a name, not hex");
+        assert_eq!(p.muted_hex(50), "0x80737994", "the muted override at half alpha");
+        assert_eq!(Palette::new(true, &BTreeMap::new()).muted_hex(100), "0xffa3a4ae");
+        assert_eq!(Palette::new(true, &BTreeMap::new()).muted_hex(0), "0x00a3a4ae");
     }
 }

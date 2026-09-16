@@ -3,7 +3,12 @@
   "title": "Timer",
   "description": "Named countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰔛", "bg": "amber" } },
+  "icon": {
+    "tile": {
+      "glyph": "\udb81\udd1b",
+      "bg": "amber"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -66,13 +71,39 @@
   "bar": {
     "timer": {
       "title": "Timer",
-      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running.",
+      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running. The popover: a card per timer with the time left and a bar, pause, add five minutes, stop, a field to start one.",
       "refresh": {
         "every": 10,
         "on": [
           "wake"
         ]
-      }
+      },
+      "keys": [
+        {
+          "keys": "space",
+          "title": "Pause, resume or dismiss the timer with the ring"
+        },
+        {
+          "keys": "+",
+          "title": "Add five minutes"
+        },
+        {
+          "keys": "backspace",
+          "title": "Stop"
+        },
+        {
+          "keys": "up",
+          "title": "Move the ring to another timer (or click a card)"
+        },
+        {
+          "keys": "n",
+          "title": "Start one: type 25m tea in the field, Enter"
+        },
+        {
+          "keys": "o",
+          "title": "Open the Timers palette"
+        }
+      ]
     }
   },
   "license": "MIT",
@@ -84,7 +115,7 @@
       "New timer is a form: `25m`, `90s`, `1h30m` or a bare number of minutes, an optional name, and a checkbox to ring the phone when it lands",
       "`enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+d` stops",
       "The CLI keeps the timers, so one started in a terminal and one started here are the same list",
-      "A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; hidden with none"
+      "A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; its popover a card per timer with the time left, pause, add five minutes, stop, and a field that starts one (`25m tea`)"
     ],
     "permissions": [
       "timer"
@@ -118,7 +149,17 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "A click opens the Timers palette: every timer, pause, add five minutes, stop",
+        "caption": "A click opens the popover: a card per timer with the time left and a bar, space pauses, + adds five minutes, backspace stops",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "A landed timer on top, red and full; Enter dismisses it",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-new.png",
+        "caption": "n opens the field: 25m tea starts one, the last durations are a click away",
         "kind": "bar"
       },
       {

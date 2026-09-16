@@ -78,6 +78,26 @@ describe("checkView", () => {
     expect(() => checkView(one({ type: "stack", surface: "glass", children: [] }))).toThrow('unknown surface "glass"');
     expect(() => checkView(one({ type: "stack", radius: 10, children: [] }))).toThrow("radius must be a boolean");
   });
+  test("the controls: a node's action names one of the view's actions and lets a hidden one go without a shortcut; selected is true; a hex surface and bar colour; slider, switch and an avatar's dot are checked", () => {
+    const one = (node: unknown, actions = ok.actions): View => ({ ...ok, actions, tree: { type: "stack", children: [node as ViewNode] } });
+    expect(checkView(one({ type: "tile", width: 40, height: 40, action: "go", selected: true }))).toBeTruthy();
+    expect(() => checkView(one({ type: "tile", width: 40, height: 40, action: "nope" }))).toThrow('action "nope" is none of the view\'s actions');
+    expect(() => checkView(one({ type: "tile", width: 40, height: 40, selected: false }))).toThrow("selected must be true");
+    expect(checkView(one({ type: "stack", children: [], action: "tap" }, [{ id: "tap", title: "Tap", hidden: true }]))).toBeTruthy();
+    expect(() => checkView(one({ type: "stack", children: [] }, [{ id: "tap", title: "Tap", hidden: true }]))).toThrow("hidden and has no shortcut");
+    expect(checkView(one({ type: "stack", surface: "#ffcf78", children: [] }))).toBeTruthy();
+    expect(checkView(one({ type: "stack", surface: "#ffcf7840", children: [] }))).toBeTruthy();
+    expect(checkView(one({ type: "progress", value: 0.5, color: "#3967ff" }))).toBeTruthy();
+    expect(checkView(one({ type: "slider", value: 0.62, width: 120, color: "amber", label: "Volume" }))).toBeTruthy();
+    expect(checkView(one({ type: "slider", value: 0, color: "#fff" }))).toBeTruthy();
+    expect(() => checkView(one({ type: "slider", value: 1.5 }))).toThrow("slider value must be 0..1");
+    expect(() => checkView(one({ type: "slider", value: 0.5, color: "accent" }))).toThrow('slider has an unknown color "accent"');
+    expect(checkView(one({ type: "switch", on: true, color: "green" }))).toBeTruthy();
+    expect(() => checkView(one({ type: "switch", on: "yes" }))).toThrow("switch needs on");
+    expect(() => checkView(one({ type: "switch", on: true, color: "#0f0" }))).toThrow('switch has an unknown color "#0f0"');
+    expect(checkView(one({ type: "image", src: "data:image/png;base64,AA", width: 24, height: 24, mask: "circle", dot: "green" }))).toBeTruthy();
+    expect(() => checkView(one({ type: "image", src: "data:image/png;base64,AA", dot: "online" }))).toThrow('unknown dot colour "online"');
+  });
   test("a tile takes a hex colour of the extension's own in every length, nothing else beyond the tokens", () => {
     for (const c of ["#f80", "#f80a", "#ff8800", "#FF880080"]) expect(checkView({ ...ok, tree: { type: "tile", width: 40, height: 40, color: c } })).toBeTruthy();
     for (const c of ["#ff888", "#ff88000", "ff8800", "rgb(1 2 3)", "hotpink"]) expect(() => checkView({ ...ok, tree: { type: "tile", width: 40, height: 40, color: c } })).toThrow("unknown color");

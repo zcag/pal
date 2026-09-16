@@ -499,18 +499,143 @@ impl Default for Bar {
     }
 }
 
-/// `[bar.menubar]`: the macOS menu bar target.
+/// `badge_style`: how a count badge is drawn.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum BadgeStyle {
+    /// The number (` ·3` on the menu bar, in red on sketchybar's label).
+    #[default]
+    Count,
+    /// A dot, whatever the number.
+    Dot,
+    /// Nothing; the count stays in the tooltip.
+    None,
+}
+
+/// `font`: the text's face.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum BarFont {
+    /// The bar's own face.
+    #[default]
+    System,
+    /// Monospace, for codes and times that must not jitter (SF Mono on the menu bar, Menlo on sketchybar).
+    Mono,
+}
+
+/// How a target draws its items: the appearance keys of `[bar.menubar]`
+/// and `[bar.sketchybar]`, each overridable per item in
+/// `[bar.items."<key>"]` (`BarLookOverride`). The same key means the same
+/// thing on both targets where the target can; the docs say where one cannot.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct BarLook {
+    /// A muted item's strength, in percent: a stale item and an item the
+    /// extension colours `muted` draw at this opacity.
+    pub dim: u32,
+    /// Point size of the glyph and the text; `0` is the target's own (the
+    /// menu bar's 13 pt text and 14 pt glyph, sketchybar's font).
+    pub size: f64,
+    /// Points between the icon, the title and the segments.
+    pub spacing: u32,
+    /// Draw the icon.
+    pub show_icon: bool,
+    /// Draw the title and the segments; off is a glyph-only item.
+    pub show_title: bool,
+    /// The tint: a colour name (`grey`, `blue`, `green`, `amber`, `red`,
+    /// `violet`, `pink`, `teal`, `accent`, `text`, `muted`) or `#rrggbb`,
+    /// drawn in place of the colour the extension answers. Unset keeps the
+    /// extension's: a coloured item its own, the rest the bar's text colour.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    /// The colour of an urgent item, a name or `#rrggbb`.
+    pub urgent_color: String,
+    /// How a count badge is drawn: `count`, `dot` or `none`.
+    pub badge_style: BadgeStyle,
+    /// A fixed width in points, so a ticking timer does not jitter; `0`
+    /// is the natural width. Text past it is clipped.
+    pub width: u32,
+    /// `system` or `mono`.
+    pub font: BarFont,
+    /// Longest title an item draws, in characters; longer text ends in an
+    /// ellipsis. Apple's bar hides whatever runs into the notch or past the
+    /// left edge, so a lyric line or a track title must stop short.
+    pub max_chars: usize,
+}
+
+impl Default for BarLook {
+    fn default() -> Self {
+        Self { dim: 50, size: 0.0, spacing: 4, show_icon: true, show_title: true, color: None, urgent_color: "destructive".into(), badge_style: BadgeStyle::Count, width: 0, font: BarFont::System, max_chars: 32 }
+    }
+}
+
+/// One item's say on each `BarLook` key; `None` is the target's default.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+pub struct BarLookOverride {
+    /// A muted item's strength here, percent. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dim: Option<u32>,
+    /// Point size of the glyph and the text here. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<f64>,
+    /// Points between the icon, the title and the segments here. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<u32>,
+    /// Draw this item's icon. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_icon: Option<bool>,
+    /// Draw this item's title and segments. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_title: Option<bool>,
+    /// This item's tint, a colour name or `#rrggbb`. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    /// This item's colour when urgent. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub urgent_color: Option<String>,
+    /// How this item's count badge is drawn. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub badge_style: Option<BadgeStyle>,
+    /// A fixed width in points for this item; `0` is natural. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<u32>,
+    /// `system` or `mono` for this item. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font: Option<BarFont>,
+    /// This item's longest title, in characters. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_chars: Option<usize>,
+}
+
+impl BarLook {
+    /// This look with `o`'s keys on top.
+    pub fn with(&self, o: &BarLookOverride) -> BarLook {
+        BarLook {
+            dim: o.dim.unwrap_or(self.dim).min(100),
+            size: o.size.unwrap_or(self.size).max(0.0),
+            spacing: o.spacing.unwrap_or(self.spacing),
+            show_icon: o.show_icon.unwrap_or(self.show_icon),
+            show_title: o.show_title.unwrap_or(self.show_title),
+            color: o.color.clone().or_else(|| self.color.clone()).filter(|c| !c.is_empty()),
+            urgent_color: o.urgent_color.clone().unwrap_or_else(|| self.urgent_color.clone()),
+            badge_style: o.badge_style.unwrap_or(self.badge_style),
+            width: o.width.unwrap_or(self.width),
+            font: o.font.unwrap_or(self.font),
+            max_chars: o.max_chars.unwrap_or(self.max_chars).max(4),
+        }
+    }
+}
+
+/// `[bar.menubar]`: the macOS menu bar target. Hover off: Apple's bar has no hover convention.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
 pub struct BarMenubar {
     /// A hover peeks the item's popover. Off: Apple's bar has no hover convention.
     pub open_on_hover: bool,
-    /// Longest title an item draws on the menu bar, in characters; longer
-    /// text ends in an ellipsis. Apple's bar hides whatever runs into the
-    /// notch or past the left edge, so a lyric line or a track title must
-    /// stop short. Per item: `[bar.items."<key>"] max_chars`.
-    pub max_chars: usize,
+    #[serde(flatten)]
+    pub look: BarLook,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -530,6 +655,8 @@ pub struct BarSketchybar {
     /// `muted`, `text`, ...), so a themed bar keeps its own palette.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub colors: BTreeMap<String, String>,
+    #[serde(flatten)]
+    pub look: BarLook,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -537,7 +664,7 @@ pub struct BarSketchybar {
 
 impl Default for BarSketchybar {
     fn default() -> Self {
-        Self { open_on_hover: true, position: "right".into(), colors: BTreeMap::new(), extra: BTreeMap::new() }
+        Self { open_on_hover: true, position: "right".into(), colors: BTreeMap::new(), look: BarLook::default(), extra: BTreeMap::new() }
     }
 }
 
@@ -560,8 +687,9 @@ pub struct BarItemConfig {
     /// Order among pal's own items: ascending left to right on the menu
     /// bar and within a sketchybar position.
     pub order: Option<i64>,
-    /// This item's longest menu bar title; `[bar.menubar] max_chars` when unset.
-    pub max_chars: Option<usize>,
+    /// This item's appearance, each key over the target's default.
+    #[serde(flatten)]
+    pub look: BarLookOverride,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -569,13 +697,7 @@ pub struct BarItemConfig {
 
 impl Default for BarItemConfig {
     fn default() -> Self {
-        Self { enabled: true, target: None, position: None, hotkey: None, open_on_hover: None, order: None, max_chars: None, extra: BTreeMap::new() }
-    }
-}
-
-impl Default for BarMenubar {
-    fn default() -> Self {
-        Self { open_on_hover: false, max_chars: 32, extra: BTreeMap::new() }
+        Self { enabled: true, target: None, position: None, hotkey: None, open_on_hover: None, order: None, look: BarLookOverride::default(), extra: BTreeMap::new() }
     }
 }
 
@@ -598,12 +720,17 @@ impl Bar {
         self.item(key).enabled && self.target_of(key) != BarTarget::Off
     }
 
-    /// Whether a hover peeks `key` on `target`: the item's say, else the target's.
-    /// The longest menu bar title for `key`, in characters.
-    pub fn max_chars(&self, key: &str) -> usize {
-        self.item(key).max_chars.unwrap_or(self.menubar.max_chars).max(4)
+    /// How `key` is drawn on `target`: the target's defaults with the
+    /// item's own keys on top (`[bar.items."<key>"]`).
+    pub fn look(&self, key: &str, target: BarTarget) -> BarLook {
+        let base = match target {
+            BarTarget::Sketchybar => &self.sketchybar.look,
+            _ => &self.menubar.look,
+        };
+        base.with(&self.item(key).look)
     }
 
+    /// Whether a hover peeks `key` on `target`: the item's say, else the target's.
     pub fn open_on_hover(&self, key: &str, target: BarTarget) -> bool {
         self.item(key).open_on_hover.unwrap_or(match target {
             BarTarget::Sketchybar => self.sketchybar.open_on_hover,
@@ -1057,6 +1184,63 @@ order = 20
         assert!(parse("[bar]\ntarget = \"tray\"\n").is_err(), "an unknown target is a parse error");
         let (_, d) = parse("[bar]\nhover = 1\n[bar.items.\"a/b\"]\nenable = true\n").unwrap();
         assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["bar.hover", "bar.items.a/b.enable"]);
+    }
+
+    #[test]
+    fn bar_look_resolves_item_over_target_default() {
+        let (c, d) = parse("").unwrap();
+        assert!(d.is_empty());
+        let l = c.bar.look("x/y", BarTarget::Menubar);
+        assert_eq!((l.dim, l.size, l.spacing, l.width, l.max_chars), (50, 0.0, 4, 0, 32));
+        assert!(l.show_icon && l.show_title && l.color.is_none());
+        assert_eq!((l.urgent_color.as_str(), l.badge_style, l.font), ("destructive", BadgeStyle::Count, BarFont::System));
+        assert_eq!(c.bar.look("x/y", BarTarget::Sketchybar), l, "both targets start from the same look");
+        let (c, d) = parse(
+            r##"
+[bar.menubar]
+dim = 35
+size = 12
+font = "mono"
+max_chars = 20
+color = "#ff8800"
+
+[bar.sketchybar]
+spacing = 6
+badge_style = "dot"
+urgent_color = "amber"
+width = 90
+show_icon = false
+
+[bar.items."timer/timer"]
+size = 11
+color = "blue"
+badge_style = "none"
+show_title = false
+max_chars = 2
+"##,
+        )
+        .unwrap();
+        assert!(d.is_empty(), "{d:?}");
+        let m = c.bar.look("x/y", BarTarget::Menubar);
+        assert_eq!((m.dim, m.size, m.font, m.max_chars, m.color.as_deref()), (35, 12.0, BarFont::Mono, 20, Some("#ff8800")));
+        assert_eq!((m.spacing, m.badge_style, m.urgent_color.as_str(), m.width), (4, BadgeStyle::Count, "destructive", 0), "the other target's keys do not leak");
+        let s = c.bar.look("x/y", BarTarget::Sketchybar);
+        assert_eq!((s.spacing, s.badge_style, s.urgent_color.as_str(), s.width, s.show_icon), (6, BadgeStyle::Dot, "amber", 90, false));
+        assert_eq!((s.dim, s.size, s.font), (50, 0.0, BarFont::System));
+        let t = c.bar.look("timer/timer", BarTarget::Menubar);
+        assert_eq!((t.size, t.color.as_deref(), t.badge_style, t.show_title), (11.0, Some("blue"), BadgeStyle::None, false), "the item's keys win");
+        assert_eq!((t.dim, t.font), (35, BarFont::Mono), "the rest come from the target");
+        assert_eq!(t.max_chars, 4, "a floor under max_chars");
+        let ts = c.bar.look("timer/timer", BarTarget::Sketchybar);
+        assert_eq!((ts.size, ts.spacing, ts.badge_style), (11.0, 6, BadgeStyle::None), "the same overrides over sketchybar's defaults");
+        assert!(c.bar.look("x/y", BarTarget::Auto) == m && c.bar.look("x/y", BarTarget::Both) == m, "auto and both read the menu bar's");
+        let (c, _) = parse("[bar.menubar]\ndim = 300\n[bar.items.\"a/b\"]\nsize = -3\n").unwrap();
+        let l = c.bar.look("a/b", BarTarget::Menubar);
+        assert_eq!((l.dim, l.size), (100, 0.0), "clamped");
+        assert!(parse("[bar.menubar]\nbadge_style = \"pill\"\n").is_err(), "an unknown badge style is a parse error");
+        assert!(parse("[bar.items.\"a/b\"]\nfont = \"serif\"\n").is_err());
+        let (_, d) = parse("[bar.menubar]\nsizes = 1\n[bar.items.\"a/b\"]\ncolour = \"red\"\n").unwrap();
+        assert_eq!(d.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["bar.menubar.sizes", "bar.items.a/b.colour"], "unknown keys still land in the diagnostics through the flatten");
     }
 
     #[test]

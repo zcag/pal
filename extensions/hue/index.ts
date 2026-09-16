@@ -14,13 +14,14 @@
 // certificate, the entertainment client key) in storage (`bridges`); a
 // second bridge, while the settings hold one, keeps its key in storage.
 import { hostname } from "node:os";
-import { bar, effects, settings, storage, view as liveView, type BarItem, type BarMenuNode, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
+import { bar, effects, settings, storage, view as liveView, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
 import { Client, GROUP_GAP_MS, HueError, LIGHT_GAP_MS, PAIR_WINDOW_MS, SETTINGS_HINT, config, devicetype, discoverCloud, discoverMdns, peekCertificate, pressLink, type Bridge, type Found, type HueEvent } from "./api.ts";
 import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, toHex, xyToHs, type RGB } from "./color.ts";
-import { Home, aggregate, automationsOf, entertainmentOf, lightColor, lightsOf, roomsOf, scenesOf, sensorsOf, type Room, type Scene } from "./model.ts";
+import { Home, aggregate, automationsOf, entertainmentOf, lightColor, lightsOf, roomsOf, scenesOf, sensorsOf, type Light, type Room, type Scene } from "./model.ts";
 import { dotPng } from "./png.ts";
+import { freshPopover, gridRooms, moveCursor, renderPopover, VIEW_ID as POPOVER_ID, type PopoverData, type PopoverState } from "./popover.ts";
 import { DURATIONS, EFFECTS, FOCUS, PRESETS, fresh, render, renderSetup, shown, type SetupState, type Target, type ViewState } from "./render.ts";
-import { G, NAME, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, roomTile, sceneRow, sensorRows } from "./rows.ts";
+import { G, NAME, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
 
 /** `[extensions.hue]`, defaults in pal.json. */
 type Settings = { bridge: string; application_key: string; insecure: boolean; timeout: number; main_room: string; bar_scenes: string[]; transition: number };
@@ -233,7 +234,11 @@ const findScene = (id: string) => scenesOf(home).find((s) => s.id === id);
 const roomScenes = (room: Room | undefined) => (room ? scenesOf(home).filter((s) => s.room?.id === room.id && s.kind === "scene") : []);
 
 async function setRoom(r: Room, body: Record<string, unknown>, transition?: number) {
-  if (r.grouped) return put(r.bridge, "grouped_light", r.grouped.rid, body, transition);
+  if (r.grouped) {
+    // The lights take the change in the model too (the bridge confirms each within a second), so a count or a tile drawn before the events land is right.
+    for (const l of r.lights) applyLocally(l.bridge, l.rid, body);
+    return put(r.bridge, "grouped_light", r.grouped.rid, body, transition);
+  }
   await Promise.all(r.lights.map((l) => put(l.bridge, "light", l.rid, body, transition)));
 }
 
@@ -461,10 +466,101 @@ async function setupPick(action: string | undefined, ctx?: Ctx): Promise<Effect>
 // ---- the bar item ----------------------------------------------------------------------------
 
 let barTimer: ReturnType<typeof setTimeout> | undefined;
-/** A push at most every 300 ms: a scene recall is a burst of light events. */
+/** A push at most every 300 ms: a scene recall is a burst of light events. The whole item goes (the strip's dot and count change too), the popover's level replaced in place. */
 function scheduleBar() {
   if (barTimer) return;
   barTimer = setTimeout(() => { barTimer = undefined; bar.update("home", barItem(), NAME).catch(() => {}); }, 300);
+}
+
+/** The popover's cursor: which room the keys are on, which is opened, which of its lights; kept while the popover is closed, so it reopens where it was. */
+let popover: PopoverState = freshPopover();
+
+/** The scenes the popover offers: the opened room's, else the `bar_scenes` setting's, else the main room's. */
+function popoverScenes(rooms: Room[]): { scenes: Scene[]; of?: string } {
+  const scenes = scenesOf(home).filter((sc) => sc.kind === "scene");
+  const open = popover.open ? rooms.find((r) => r.id === popover.open) : undefined;
+  if (open) return { scenes: scenes.filter((sc) => sc.room?.id === open.id), of: open.name };
+  const wanted = (current().bar_scenes ?? []).map((x) => x.toLowerCase());
+  if (wanted.length) return { scenes: scenes.filter((sc) => wanted.includes(sc.name.toLowerCase()) || wanted.includes(sc.id)) };
+  const main = mainRoom(rooms);
+  return main ? { scenes: scenes.filter((sc) => sc.room?.id === main.id), of: main.name } : { scenes };
+}
+
+function popoverData(): PopoverData {
+  const rooms = roomsOf(home), lights = lightsOf(home);
+  const { scenes, of } = popoverScenes(rooms);
+  const first = home.bridges.values().next().value ?? bridges[0];
+  return { rooms, scenes, scenesOf: of, sensors: sensorsOf(home), lightsOn: lights.filter((l) => l.on).length, lightsTotal: lights.length, away: [...down.keys()].map(bridgeName), paired: home.paired, bridge: first ? `${first.name}${several() ? ` +${home.bridges.size - 1}` : ""}` : undefined };
+}
+
+/** The popover's tree for the state now; the cursor clamped to the rooms there are. */
+export function popoverView() {
+  const d = popoverData();
+  const rooms = gridRooms(d.rooms);
+  if (popover.open && !rooms.some((r) => r.id === popover.open)) popover = { ...popover, open: undefined, focus: "rooms" };
+  popover.cursor = Math.min(popover.cursor, Math.max(0, rooms.length - 1));
+  const open = popover.open ? rooms.find((r) => r.id === popover.open) : undefined;
+  popover.light = Math.min(popover.light, Math.max(0, (open?.lights.length ?? 1) - 1));
+  return renderPopover(d, popover);
+}
+
+/** A key or a tap in the popover: the cursor moves in process, a change is one PUT (the model takes it at once), the new tree is the answer. */
+async function popoverAction(action: string, ctx?: BarCtx): Promise<Effect> {
+  const rooms = gridRooms(roomsOf(home));
+  const cur = rooms[Math.min(popover.cursor, Math.max(0, rooms.length - 1))];
+  const open = popover.open ? rooms.find((r) => r.id === popover.open) : undefined;
+  const light = popover.focus === "lights" ? open?.lights[popover.light] : undefined;
+  const t = current().transition;
+  const level = async (target: Room | Light, v: number) => {
+    const body = v <= 0 ? { on: { on: false } } : { on: { on: true }, dimming: { brightness: clamp(v, 1, 100) } };
+    if ("lights" in target) await setRoom(target, body, t); else await put(target.bridge, "light", target.rid, body, t);
+  };
+  const briOf = (target: Room | Light | undefined) => ("lights" in (target ?? {}) ? aggregate(target as Room).brightness : (target as Light | undefined)?.brightness) ?? 100;
+  const onOf = (target: Room | Light) => ("lights" in target ? aggregate(target).anyOn : target.on);
+  const toggle = async (target: Room | Light) => { const on = onOf(target); if ("lights" in target) await setRoom(target, { on: { on: !on } }, t); else await put(target.bridge, "light", target.rid, { on: { on: !on } }, t); };
+  const roomAt = (r: Room) => Math.max(0, rooms.findIndex((x) => x.id === r.id));
+  const lightAt = (l: Light) => Math.max(0, (open?.lights ?? []).findIndex((x) => x.id === l.id));
+  const openRoom = (r: Room) => { popover = { ...popover, open: r.id, focus: "lights", light: 0, cursor: roomAt(r) }; };
+  try {
+    switch (action) {
+      case "enter":
+        if (light) await toggle(light);
+        else if (cur && popover.open === cur.id) popover = { ...popover, open: undefined, focus: "rooms" };
+        else if (cur) openRoom(cur);
+        break;
+      case "back": popover = { ...popover, open: undefined, focus: "rooms" }; break;
+      case "toggle": if (cur) await toggle(cur); break;
+      case "bri+": case "bri-": case "bri++": case "bri--": {
+        const target = light ?? cur;
+        if (!target) break;
+        const step = action.endsWith("++") || action.endsWith("--") ? 20 : 5;
+        await level(target, briOf(target) + (action.startsWith("bri+") ? step : -step));
+        break;
+      }
+      case "all_off": { const r = await allOff(); if (r.toast) return { ...r, view: popoverView() }; break; }
+      case "all_on":
+        await Promise.all(rooms.filter((r) => r.kind === "room" && !aggregate(r).anyOn).map((r) => setRoom(r, { on: { on: true } }, t)));
+        await Promise.all(lightsOf(home).filter((l) => !l.room && !l.on).map((l) => put(l.bridge, "light", l.rid, { on: { on: true } })));
+        break;
+      case "open": return { push: { extension: NAME, palette: "rooms" } };
+      case "refresh": await load(true); break;
+      default: {
+        const [verb, id] = [action.slice(0, action.indexOf(":")), action.slice(action.indexOf(":") + 1)];
+        if (verb === "move") { popover = moveCursor(popover, id as "up", rooms.length, open?.lights.length ?? 0); break; }
+        if (verb === "scene") { const r = await pickScene(id, "activate"); if (r.toast?.style === "failure") return { ...r, view: popoverView() }; break; }
+        const room = findRoom(id), l = findLight(id);
+        if (verb === "open" && room) { openRoom(room); break; }
+        if (verb === "toggle" && (room ?? l)) { const target = (room ?? l)!; await toggle(target); if (l && open) popover = { ...popover, focus: "lights", light: lightAt(l) }; else if (room) popover = { ...popover, focus: "rooms", cursor: roomAt(room) }; break; }
+        if (verb === "level" && l) { const v = Number(ctx?.values?.value); if (Number.isFinite(v)) await level(l, Math.round(v * 100)); if (open) popover = { ...popover, focus: "lights", light: lightAt(l) }; break; }
+        return { keep: true };
+      }
+    }
+  } catch (e) {
+    return { ...failed("reach the bridge", e), view: popoverView() };
+  }
+  // The strip follows the model at once (the stream confirms later); the popover takes the tree now.
+  scheduleBar();
+  return { view: popoverView() };
 }
 
 /** The room the dot is coloured by: the `main_room` setting, else the room with most lights on. */
@@ -476,21 +572,11 @@ function mainRoom(rooms: Room[]): Room | undefined {
 
 export function barItem(): BarItem {
   if (!bridges.length) return { hidden: true };
-  if (!home.paired) return { icon: G.bulbOff, color: "muted", stale: true, tooltip: `Hue: ${down.values().next().value?.message ?? "the bridge did not answer"}`, menu: [{ type: "item", id: "open", title: "Open in pal", subtitle: "The row says what to fix", icon: G.home }] };
-  const rooms = roomsOf(home), lights = lightsOf(home), scenes = scenesOf(home);
+  if (!home.paired) return { icon: G.bulbOff, color: "muted", stale: true, tooltip: `Hue: ${down.values().next().value?.message ?? "the bridge did not answer"}`, menu: { view: popoverView() } };
+  const rooms = roomsOf(home), lights = lightsOf(home);
   const on = lights.filter((l) => l.on).length;
   const main = mainRoom(rooms);
   const a = main ? aggregate(main) : undefined;
-  const s = current();
-  const wanted = (s.bar_scenes ?? []).map((x) => x.toLowerCase());
-  const shortcuts = (wanted.length ? scenes.filter((sc) => wanted.includes(sc.name.toLowerCase()) || wanted.includes(sc.id)) : main ? scenes.filter((sc) => sc.room?.id === main.id) : scenes).slice(0, 6);
-  const menu: BarMenuNode[] = [
-    { type: "section", title: "Rooms", children: rooms.map((r) => { const ag = aggregate(r); return { type: "item", id: `toggle:${r.id}`, title: r.name, subtitle: ag.on ? `${ag.on} of ${ag.total} on${ag.brightness !== undefined ? ` · ${Math.round(ag.brightness)}%` : ""}` : "off", icon: ag.anyOn ? { image: roomTile(ag.colors, (ag.brightness ?? 100) / 100) } : G.bulbOff, checked: ag.anyOn }; }) },
-    ...(shortcuts.length ? [{ type: "section" as const, title: "Scenes", children: shortcuts.map((sc) => ({ type: "item" as const, id: `scene:${sc.id}`, title: sc.name, subtitle: sc.room?.name, icon: sc.swatches[0] ?? G.palette, checked: sc.active !== "inactive" })) }] : []),
-    { type: "separator" },
-    { type: "item", id: "open", title: "Open in pal", subtitle: "Rooms, lights, scenes", icon: G.home },
-    { type: "item", id: "all_off", title: "All off", icon: G.power, style: "destructive", shortcut: "cmd+shift+o" },
-  ];
   const stale = down.size > 0 && down.size === home.bridges.size;
   const color: RGB | undefined = a?.anyOn ? a.color : undefined;
   return {
@@ -499,7 +585,7 @@ export function barItem(): BarItem {
     color: on ? undefined : "muted",
     tooltip: on ? `${on} of ${lights.length} lights on${main && a?.anyOn ? ` · ${main.name}${a.brightness !== undefined ? ` ${Math.round(a.brightness)}%` : ""}` : ""}` : "All lights off",
     stale: stale || undefined,
-    menu,
+    menu: { view: popoverView() },
   };
 }
 
@@ -686,13 +772,7 @@ export default {
   bar: {
     home: {
       render: async () => { try { await load(); } catch { /* hidden below */ } return barItem(); },
-      onAction: async (action) => {
-        await load();
-        if (action === "open") return { push: { extension: NAME, palette: "rooms" } };
-        if (action === "all_off") return allOff();
-        if (action.startsWith("toggle:")) { const r = await pickRoom(action.slice(7), "toggle"); return { ...r, keep: true }; }
-        if (action.startsWith("scene:")) { const r = await pickScene(action.slice(6), "activate"); return { ...r, keep: true }; }
-      },
+      onAction: async (action, ctx) => { try { await load(); } catch { /* the view says the bridge is away */ } return popoverAction(action, ctx); },
       onShown: () => load().catch(() => {}),
     },
   },

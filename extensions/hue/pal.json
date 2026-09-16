@@ -84,7 +84,7 @@
       "A light or a room under the keys: the big tile in its colour, brightness on the arrows and the digits, colour temperature along a warm-to-cool strip, hue and saturation on a colour plane, the presets, the room's scenes, the effects, apply to this light or the whole room, the transition length",
       "Live: one event stream per bridge keeps the model current, so the rows and the bar follow a change made in the Hue app or on a switch without a request",
       "Sensors: motion, temperature, light level, buttons and dials with their last event, batteries; automations enabled or disabled; entertainment areas started and stopped",
-      "The bar item: how many lights are on and the main room's colour as a dot; the popover toggles rooms, plays the scenes, turns everything off",
+      "The bar item: how many lights are on and the main room's colour as a dot; the popover is the home in reach: the rooms as colour tiles (a tap toggles, the chevron opens the room's lights with sliders), the scenes as swatch tiles on the digits, the sensors, everything on or off",
       "Set up Hue finds the bridge (the cloud endpoint and mDNS), waits for its button with a countdown, pins its certificate and keeps the key; several bridges make one home",
       "Deep links: `pal://hue/toggle?room=kitchen`, `pal://hue/scene?name=relax&room=living-room`, `pal://hue/off`"
     ],
@@ -132,12 +132,22 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "A click opens the popover: every room as a toggle, the scenes, All off",
+        "caption": "A click opens the popover: the rooms as colour tiles (a tap toggles, the chevron opens), the sensors, the scenes, the keys",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar: the glyph and the count on the label",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-room.png",
+        "caption": "A room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them",
         "kind": "bar"
       }
     ],
@@ -434,7 +444,7 @@
   "bar": {
     "home": {
       "title": "Home",
-      "description": "How many lights are on, the main room's colour as a dot; the popover toggles rooms, plays scenes, turns everything off. Hidden until a bridge is paired.",
+      "description": "How many lights are on, the main room's colour as a dot; the popover: the rooms as colour tiles that toggle on a tap, a room's lights inline with sliders, the scenes, the sensors, everything on or off. Hidden until a bridge is paired.",
       "refresh": {
         "every": 60,
         "on": [
@@ -442,7 +452,49 @@
           "wake",
           "network"
         ]
-      }
+      },
+      "keys": [
+        {
+          "keys": "up",
+          "title": "Move over the rooms; walk an opened room's lights"
+        },
+        {
+          "keys": "enter",
+          "title": "Open the room under the cursor; toggle the light under it"
+        },
+        {
+          "keys": "space",
+          "title": "Toggle the room (or the light) under the cursor"
+        },
+        {
+          "keys": "right",
+          "title": "Brighter by 5 (shift: 20); left dims"
+        },
+        {
+          "keys": "backspace",
+          "title": "Close the opened room"
+        },
+        {
+          "keys": "1",
+          "title": "Play the scene with that digit (1 to 9)"
+        },
+        {
+          "keys": "e",
+          "title": "Everything on"
+        },
+        {
+          "keys": "x",
+          "title": "All off"
+        },
+        {
+          "keys": "p",
+          "title": "Open Rooms in pal"
+        },
+        {
+          "keys": "r",
+          "title": "Read the bridge again"
+        }
+      ]
     }
   },
   "links": {

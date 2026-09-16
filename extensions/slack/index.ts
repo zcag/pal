@@ -1,22 +1,22 @@
 // Slack: four palettes and one bar item over one client (api.ts) and one
-// data layer (data.ts). Unreads is live and the bar item draws from the
+// data layer (data.ts); the bar popover's tree is view.ts. Unreads is live and the bar item draws from the
 // same inbox (one `client.counts` per refresh, shared within
 // `INBOX_FRESH_MS` so the panel showing and the bar refreshing on it cost
 // one fetch); Channels is an hourly catalog; Search Slack is an input
 // palette over `search.messages`; Status is live and lists what is set now
 // before the presets. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { settings, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { settings, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
-  MAX_MSGS, MAX_QUIET, conversations, deepLink, dnd, endSnooze, expiresAt, inbox, markRead, parsePreset, post, presence, reset as resetData, search, sessionOf, setPresence, setStatus, snooze, status, toMsg, unreadSince, webLink,
+  MAX_MSGS, MAX_QUIET, avatarData, conversations, deepLink, dnd, endSnooze, expiresAt, inbox, markRead, parsePreset, post, presence, reset as resetData, search, sessionOf, setPresence, setStatus, snooze, status, toMsg, unreadSince, webLink,
   type Conversation, type Inbox, type Kind, type Msg, type SearchHit, type Unread,
 } from "./data.ts";
+import { SECTION, render as renderBar, type BarRow, type BarState } from "./view.ts";
 
 /** Glyphs from the bundled Nerd Font's `md-` set: slack, at, forum, pound, lock, account, account-multiple, magnify, information, emoticon, bell-sleep, bell, account-check, account-off, check-all, open-in-new, inbox. */
 const ICON = { slack: "\u{f04b1}", dm: "\u{f0009}", mention: "\u{f0065}", thread: "\u{f028c}", channel: "\u{f0423}", private: "\u{f033e}", im: "\u{f0004}", mpim: "\u{f000e}", search: "\u{f0349}", info: "\u{f02fc}", status: "\u{f01f2}", dndOn: "\u{f00a0}", dndOff: "\u{f009a}", active: "\u{f0008}", away: "\u{f0012}", clear: "\u{f012d}", browser: "\u{f03cc}", inbox: "\u{f0687}" } as const;
-const SECTION: Record<Kind, string> = { dm: "Direct messages", mention: "Mentions", thread: "Threads", channel: "Channels" };
 /** How long an inbox is shared between the bar and the palette before either fetches again. */
 const INBOX_FRESH_MS = 30_000;
 const SEARCH_WAIT_MS = 300;
@@ -311,13 +311,35 @@ async function pickStatus(id: string, action?: string): Promise<Effect> {
 /**
  * The count of what is addressed to you (direct messages, mentions, thread
  * replies) as the badge, hidden at zero, urgent while a direct message
- * waits (`dm_urgent`); the popover is a menu level: a section per kind
- * with the newest five, the channels that are only unread, then Open in
- * pal (the Unreads palette), Mark all read and Open Slack. Not signed in
- * is hidden, not an error: the strip has no room for a hint. A failed
- * fetch throws, which the core draws as stale.
+ * waits (`dm_urgent`); the popover is a view of the item's own (view.ts):
+ * a section per kind with the newest five rows, a cursor the arrows move
+ * and a click sets, the channels that are only unread as badges, the keys
+ * as hints. Enter opens the focused row in Slack, `r` turns the search row
+ * into a reply field (Enter sends through `post`), `m` marks it read, `a`
+ * marks every listed conversation read, `o` opens Slack, `p` the Unreads
+ * palette. The cursor and the reply field live here between renders. Not
+ * signed in is hidden, not an error: the strip has no room for a hint. A
+ * failed fetch throws, which the core draws as stale.
  */
 const refreshSecs = () => Math.max(10, Number(conf().refresh) || 120);
+/** The row the keys act on, and the one a reply is being typed for, across renders. */
+let barFocus: string | undefined, barReplying: string | undefined, barDraft: string | undefined;
+
+/** The popover's rows from the inbox: the newest `BAR_ROWS` per kind, the avatars fetched once each (a miss is the initial's tile). */
+async function barState(i: Inbox): Promise<BarState> {
+  const picked = (["dm", "mention", "thread"] as const).flatMap((kind) => i.items.filter((u) => u.kind === kind).slice(0, BAR_ROWS));
+  const rows: BarRow[] = await Promise.all(picked.map(async (u) => {
+    const ts = u.top?.ts ?? u.latest;
+    return {
+      id: rowId(u), kind: u.kind, where: u.where, who: u.top?.who || undefined, text: u.top?.text ?? (u.kind === "channel" ? "Unread" : ""), time: ts ? clock(ts) : undefined, n: u.n, more: u.more,
+      avatar: u.top?.avatar ? await avatarData(u.top.avatar) : undefined,
+      canReply: u.kind !== "thread", canRead: u.kind !== "thread" && !!u.latest, teamName: u.teamName || undefined,
+    };
+  }));
+  const focus = Math.max(0, rows.findIndex((r) => r.id === barFocus));
+  if (barReplying && !rows.some((r) => r.id === barReplying)) { barReplying = undefined; barDraft = undefined; }
+  return { rows, quiet: i.quiet.slice(0, MAX_QUIET).map((u) => ({ id: rowId(u), name: u.where })), quietTotal: i.quiet.length, focus, replying: barReplying, draft: barDraft };
+}
 
 async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
   // The panel showing fires both this render and the palette's relist: an inbox under INBOX_FRESH_MS serves both. Only a push from the CLI or `bar.refresh` insists.
@@ -329,22 +351,6 @@ async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
   const attn = i.dm + i.mention + i.thread;
   const refresh = refreshSecs();
   if (attn === 0) return { hidden: true, refresh };
-  const menu: BarMenuNode[] = [];
-  for (const kind of ["dm", "mention", "thread"] as const) {
-    const of = i.items.filter((u) => u.kind === kind).slice(0, BAR_ROWS);
-    if (!of.length) continue;
-    menu.push({ type: "section", title: SECTION[kind], children: of.map((u) => ({ type: "item", id: rowId(u), title: u.where, subtitle: short(unreadSubtitle(u), 70), icon: unreadIcon(u) })) });
-  }
-  if (i.quiet.length) {
-    const named = i.quiet.slice(0, MAX_QUIET);
-    menu.push({ type: "section", title: i.quiet.length > named.length ? `Also unread, ${plural(i.quiet.length, "channel")}` : "Also unread", children: named.map((u) => ({ type: "item", id: rowId(u), title: u.where, icon: convIcon(u.ckind) })) });
-  }
-  menu.push(
-    { type: "separator" },
-    { type: "item", id: "open-pal", title: "Open in pal", subtitle: `${plural(attn, "item")} with Reply and Mark as read`, icon: ICON.inbox },
-    { type: "item", id: "read-all", title: "Mark all read", subtitle: plural(i.items.filter((u) => u.kind !== "thread").length, "conversation"), icon: ICON.clear, shortcut: "cmd+shift+a", style: "destructive" },
-    { type: "item", id: "open-slack", title: "Open Slack", icon: ICON.slack },
-  );
   const parts = [i.dm ? plural(i.dm, "direct message") : "", i.mention ? plural(i.mention, "mention") : "", i.thread ? plural(i.thread, "thread reply", "thread replies") : ""].filter(Boolean);
   return {
     icon: ICON.slack,
@@ -352,11 +358,14 @@ async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
     urgent: conf().dm_urgent !== false && i.dm > 0,
     tooltip: `${parts.join(", ")}${i.channels ? `; ${plural(i.channels, "channel")} unread` : ""}`,
     refresh,
-    menu,
+    menu: { view: renderBar(await barState(i)) },
   };
 }
 
-async function unreadsAction(action: string): Promise<Effect> {
+/** The popover drawn again from the inbox at hand (no fetch): what a key that only moves the cursor answers. */
+const redraw = async (): Promise<Effect> => ({ view: renderBar(await barState(await loadInbox())) });
+
+async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: "slack", palette: "unreads" } };
   if (action === "open-slack") return { open: "slack://open" };
   if (action === "read-all") {
@@ -366,7 +375,40 @@ async function unreadsAction(action: string): Promise<Effect> {
     dropInbox();
     return failed.length ? failToast("Some could not be marked", failed.join(", ")) : { keep: true, hud: "Marked read" };
   }
-  return pickUnread(await findUnread(action));
+  if (action.startsWith("focus:")) { barFocus = action.slice(6); return redraw(); }
+  if (action.startsWith("open:")) return pickUnread(await findUnread(action.slice(5)));
+  const st = await barState(await loadInbox());
+  const cur = st.rows[st.focus];
+  switch (action) {
+    case "down": case "up": {
+      if (!st.rows.length) return redraw();
+      barFocus = st.rows[(st.focus + (action === "down" ? 1 : st.rows.length - 1)) % st.rows.length].id;
+      return redraw();
+    }
+    case "reply": if (cur?.canReply) { barReplying = cur.id; barDraft = ""; } return redraw();
+    case "cancel": barReplying = undefined; barDraft = undefined; return redraw();
+    case "send": {
+      const u = barReplying ? rows.get(barReplying) : undefined;
+      const text = String(ctx?.values?.input ?? "").trim();
+      if (!u) { barReplying = undefined; return redraw(); }
+      if (!text) return { ...(await redraw()), toast: { title: "Nothing to send", message: "Type the reply first", style: "failure" } };
+      try { await post(u.team, u.cid, text, u.top?.thread_ts); } catch (e) { barDraft = text; return { ...(await redraw()), toast: { title: "Could not send", message: e instanceof Error ? e.message : String(e), style: "failure" } }; }
+      barReplying = undefined; barDraft = undefined;
+      return { ...(await redraw()), toast: { title: "Sent", message: `${u.where}: ${short(text, 60)}`, style: "success" } };
+    }
+    case "read": {
+      if (!cur?.canRead) return { keep: true };
+      const u = await findUnread(cur.id);
+      try { await markRead(u); } catch (e) { return failToast("Could not mark read", e); }
+      dropInbox();
+      return { keep: true, hud: `${u.where}: read` };
+    }
+    case "open": return cur ? pickUnread(await findUnread(cur.id)) : { open: "slack://open" };
+    case "browser": case "copy": return cur ? pickUnread(await findUnread(cur.id), action) : { keep: true };
+  }
+  // A menu-era id (`dm:T1/D_MARA`): the row itself, as a link or the CLI names it.
+  if (rows.has(action) || /^(dm|mention|thread|channel):/.test(action)) return pickUnread(await findUnread(action));
+  return { keep: true };
 }
 
 export default {
@@ -409,6 +451,6 @@ export default {
     },
   },
   bar: {
-    unreads: { render: unreadsItem, onAction: unreadsAction },
+    unreads: { render: unreadsItem, onAction: (action, ctx) => unreadsAction(action, ctx) },
   },
 } satisfies Extension;

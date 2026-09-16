@@ -606,6 +606,8 @@ pub struct BarItemView {
     state: Option<BarItemState>,
 }
 
+/// The last render's strip: what the page's state line reads and what its
+/// preview strip draws (the gallery's `BarItem` shape; `menu` stays out).
 #[derive(Serialize)]
 pub struct BarItemState {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -616,6 +618,16 @@ pub struct BarItemState {
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     dot: bool,
     urgent: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icon: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    segments: Vec<crate::bar::Segment>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    progress: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tooltip: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -637,7 +649,7 @@ fn bar_view(app: &AppHandle) -> BarView {
             .map(|(key, e)| {
                 let (extension, id) = crate::bar::split_key(&key).map(|(a, b)| (a.to_string(), b.to_string())).unwrap_or_default();
                 BarItemView {
-                    state: e.last.as_ref().map(|i| BarItemState { title: i.title.clone(), hidden: i.hidden, badge: i.count(), dot: i.dot(), urgent: i.urgent }),
+                    state: e.last.as_ref().map(|i| BarItemState { title: i.title.clone(), hidden: i.hidden, badge: i.count(), dot: i.dot(), urgent: i.urgent, icon: i.icon.clone(), segments: i.segments.clone(), color: i.color.clone(), progress: i.progress, tooltip: i.tooltip.clone() }),
                     key,
                     extension,
                     id,

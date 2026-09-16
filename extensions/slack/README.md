@@ -131,12 +131,27 @@ stale bar item) instead of piling onto the limit.
 (direct messages + mentions + thread replies) as the badge, hidden at
 zero, urgent while a direct message waits. Refreshed every `refresh`
 seconds and when the panel shows, after a wake and when the network is
-back. The popover is a menu: a section per kind with the newest five
-rows (a row opens the conversation), the channels that are only unread
-under "Also unread", then Open in pal (the Unreads palette, where each
-row has Reply and Mark as read), Mark all read (every listed
-conversation, `⌘⇧A`) and Open Slack. A refresh that fails leaves the
-item stale (muted) until the next one succeeds; not signed in hides it.
+back. The popover is a view of the item's own: a section per kind with
+the newest five rows, each the sender's picture (an initial in a colour
+while it is not fetched), the conversation, the message on one line,
+the time and a count (red for a direct message or a mention, blue for
+thread replies); the channels that are only unread as a row of badges
+under them (a click opens one), then the keys. A cursor marks the row
+the keys act on: the arrows (or `j`/`k`) move it, a click on a row sets
+it.
+
+| key | does |
+| --- | --- |
+| Enter | opens the row in the Slack app, at the message |
+| `r` | reply: the search row becomes a text field, Enter posts it to the conversation (into the thread for a threaded mention), Escape cancels |
+| `m` | marks the row read, up to its latest message |
+| `a`, `⌘⇧A` | marks every listed conversation read |
+| `o` | opens Slack |
+| `p` | opens the Unreads palette in the popover |
+| `⌘⇧O`, `⌘C` | the row in the browser, its link copied |
+
+A refresh that fails leaves the item stale (muted) until the next one
+succeeds; not signed in hides it.
 
 ## What it does not do
 

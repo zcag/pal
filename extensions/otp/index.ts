@@ -16,12 +16,16 @@
 //
 // The bar item `latest-code` puts the newest code on the strip for
 // `BAR_WINDOW_MS` after it arrived (the same reader; hidden otherwise, and
-// on Linux) and a click copies it.
+// on Linux). Its popover (view.ts) shows the code large with the sender
+// and the message, a bar counting the minute down (pushed every second
+// while the popover shows, from the last read: `view/shown` with
+// `{ bar }`), and the two codes before it; Enter or a click copies.
 import { Database } from "bun:sqlite";
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CONCEAL_SECONDS, conceal, home, settings, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
+import { CONCEAL_SECONDS, conceal, home, settings, view as liveView, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
+import { PREVIOUS, render } from "./view.ts";
 
 /** `[extensions.otp]`, defaults in pal.json. */
 type Settings = { hours: number; senders: string[]; db: string; contacts: string };
@@ -37,6 +41,10 @@ const HINT_ICON = { locked: "\u{f08ee}", none: "\u{f164d}" };
 const BAR_GLYPH = "\u{f084}";
 /** How long a code stays on the strip after it arrived. */
 const BAR_WINDOW_MS = 60_000;
+/** The popover's tick while it shows; env for the tests. */
+const TICK_MS = Number(process.env.PAL_OTP_TICK_MS) || 1000;
+const EXTENSION = "otp";
+const ITEM = "latest-code";
 /** Rows read per listing at most; the time window bounds it first. */
 const LIMIT = 400;
 /** Seconds between the unix epoch and Apple's (2001-01-01). */
@@ -255,25 +263,70 @@ function list(): Item[] {
 
 // ---- the bar item -----------------------------------------------------------
 
-/** The newest code, while it is younger than the window; the scan covers one hour, plenty for a minute. Not on Linux, and not without the database (hidden, no hint). */
-function latestCode(): Code | undefined {
-  if (!MAC) return undefined;
-  let found: Code[];
-  try { found = readCodes(settings.get<Settings>(), 1); } catch { return undefined; }
-  const c = found[0];
-  return c && Date.now() - c.at <= BAR_WINDOW_MS ? c : undefined;
+/** The last hour's codes, newest first: the first is the strip's while younger than the window, the next two the popover's "Earlier". Not on Linux, and not without the database (hidden, no hint). */
+function recentCodes(): Code[] {
+  if (!MAC) return [];
+  try { return readCodes(settings.get<Settings>(), 1); } catch { return []; }
+}
+const inWindow = (c: Code | undefined, now = Date.now()) => (c && now - c.at <= BAR_WINDOW_MS ? c : undefined);
+/** The newest code, while it is younger than the window. */
+const latestCode = (): Code | undefined => inWindow(recentCodes()[0]);
+
+/** The last read, for the popover's tick and its clicks: no database read per second. */
+let snap: { latest?: Code; previous: Code[]; at: number } = { previous: [], at: 0 };
+
+const popover = (now = Date.now()) => render({ latest: inWindow(snap.latest, now), previous: snap.previous, now, window: BAR_WINDOW_MS });
+
+/** The code as the title, green, for a minute: `refresh` asks for the render that hides it once the minute is up; the popover's tree as the menu. */
+function renderBar(): BarItem {
+  listen();
+  const found = recentCodes();
+  const now = Date.now();
+  const c = inWindow(found[0], now);
+  snap = { latest: c, previous: found.slice(1, 1 + PREVIOUS), at: now };
+  if (!c) return { hidden: true };
+  return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${clip(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (now - c.at)) / 1000)), menu: { view: popover(now) } };
 }
 
-/** The code as the title, green, for a minute: `refresh` asks for the render that hides it once the minute is up. */
-function renderBar(): BarItem {
-  const c = latestCode();
-  if (!c) return { hidden: true };
-  return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${clip(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (Date.now() - c.at)) / 1000)) };
+// ---- the popover's tick -------------------------------------------------------
+
+let tick: ReturnType<typeof setInterval> | undefined;
+/** The popover is up: every second the tree with the bar counted down, from the last read; ends with the popover, or once the minute is up (the strip's own refresh hides the item then). */
+function startTick() {
+  tick ??= setInterval(() => {
+    if (!inWindow(snap.latest)) { stopTick(); return; }
+    liveView.update(popover(), { extension: EXTENSION, bar: ITEM }).catch(() => {});
+  }, TICK_MS);
+}
+function stopTick() { clearInterval(tick); tick = undefined; }
+/** The shell says when the popover's level is up and when it left; listened for from the first render (the module is imported by tests outside the host too). */
+let listening = false;
+function listen() {
+  if (listening) return;
+  listening = true;
+  liveView.onShown((ev) => { if (ev.bar === ITEM) startTick(); }, EXTENSION);
+  liveView.onHidden((ev) => { if (ev.bar === ITEM) stopTick(); }, EXTENSION);
 }
 
 /** The code onto the clipboard, concealed, cleared after `CONCEAL_SECONDS`. */
 const copyCode = (code: string): Effect => ({ copy: conceal(code), hud: `Copied code, clears in ${CONCEAL_SECONDS} s` });
 const copyLatest = (): Effect => { const c = latestCode(); return c ? copyCode(c.code) : { hud: "No recent code" }; };
+
+/** A key or a click in the popover: the newest code copied, pasted, its sender copied, an earlier one copied, the palette opened. */
+function barAction(action: string): Effect {
+  if (action === "open") return { push: { extension: EXTENSION, palette: "otp" } };
+  if (action.startsWith("copy:")) {
+    const c = snap.previous.find((x) => x.id === action.slice(5)) ?? (snap.latest?.id === action.slice(5) ? snap.latest : undefined);
+    return c ? copyCode(c.code) : { keep: true, hud: "That code is no longer listed" };
+  }
+  const c = inWindow(snap.latest) ?? latestCode();
+  if (!c) return { keep: true, hud: "No recent code" };
+  switch (action) {
+    case "paste": return { paste: { text: c.code } };
+    case "copy-sender": return { copy: c.sender };
+    default: return copyCode(c.code);
+  }
+}
 
 export default {
   palettes: {
@@ -295,6 +348,7 @@ export default {
     },
   },
   bar: {
-    "latest-code": { render: renderBar, onOpen: copyLatest },
+    [ITEM]: { render: renderBar, onOpen: copyLatest, onAction: barAction },
   },
+  dispose: () => stopTick(),
 } satisfies Extension;

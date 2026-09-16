@@ -54,7 +54,7 @@ const now: NowState = {
   layout: "wide", track: HARBOUR, playing: true, position: 47.2, shuffle: false, repeat: "context", liked: true,
   device: { name: "hornet", volume: 45 }, lyrics: { synced: lines, id: 1 }, cover: COVERS.salt, tint,
 };
-const compact: NowState = { ...now, layout: "compact" };
+const compact: NowState = { ...now, layout: "compact", queue: [PAPER, TIDE].map((t) => ({ id: t.id, name: t.name, artist: t.artist, cover: t.cover })) };
 
 const ms = (d: number) => { const t = Math.floor(d / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
 const TRACK_ACTIONS = (liked = false) => [{ id: "play", title: "Play" }, { id: "queue", title: "Add to queue", shortcut: "cmd+enter" }, { id: "like", title: liked ? "Unlike" : "Like", shortcut: "cmd+l" }, { id: "open", title: "Open in Spotify", shortcut: "cmd+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }];
@@ -92,7 +92,7 @@ const queueRows = [
 const fixture = {
   palettes: {
     "now-playing": { title: "Lyrics", icon: ICON, view: "view", tree: render(now) },
-    // The bar popover's tree (420 wide), for looking at in the gallery; no store shot, since bar-shot.tsx draws menu and palette popovers only.
+    // The bar popover's tree (420 wide), for looking at in the gallery next to the bar shot of it.
     "now-playing-compact": { title: "Lyrics", icon: ICON, view: "view", tree: render(compact) },
     search: { title: "Search Spotify", icon: ICON, input: true, placeholder: "A track, an artist, an album, a playlist, a podcast", byQuery: { "": [], "low tide": searchRows } },
     playlists: { title: "Playlists", icon: ICON, placeholder: "A playlist by name", items: playlistRows },
@@ -128,6 +128,8 @@ const bar = {
   shots: {
     "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the lyric line playing beside the Spotify mark" },
     "bar-menubar-light": { target: "menubar", theme: "light", state: "track", caption: "The same item on a light menu bar, with the track name when lrclib has no lyrics" },
+    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: the cover and the track, the bar ticking, the lyrics around the line playing, the transport keys, and the queue's next two" },
+    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, caption: "The same popover in the dark theme" },
     "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the mark in the icon font, the line as the label" },
   },
 };

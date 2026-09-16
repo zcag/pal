@@ -57,7 +57,17 @@ Settings, `[extensions.otp]`:
 
 The bar item **Latest code** puts the newest code on the strip for a
 minute after it arrives (green, the sender and the message as its
-tooltip); a click copies it. Hidden the rest of the time.
+tooltip). Hidden the rest of the time. A click opens its popover: the
+code as a row of digit tiles (grouped as a form shows it), the sender
+and when it arrived, the message, a thin amber bar counting the minute
+down (ticking every second while the popover shows, from the last read),
+then the keys and the two codes of the last hour before it, each a row.
+`enter` (or `c`) copies the code, concealed as the palette does (out of
+every clipboard history, gone after 30 s); `p` pastes it into the app in
+front; `s` copies the raw sender; `o` opens the Verification Codes
+palette; a click on the digits or an earlier row copies that code. The
+`pal bar click` and hotkey path without the popover copies the newest
+code outright.
 
 ## What it does not do
 

@@ -3,7 +3,12 @@
   "title": "Verification Codes",
   "description": "One-time codes from your recent text messages, newest first. Enter pastes the code into the app in front.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰍩", "bg": "green" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰍩",
+      "bg": "green"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -66,10 +71,28 @@
   "bar": {
     "latest-code": {
       "title": "Latest code",
-      "description": "The newest verification code on the strip for a minute after it arrives; a click copies it.",
+      "description": "The newest verification code on the strip for a minute after it arrives; the popover shows it large with the sender, the minute counting down and the two codes before it; Enter copies it.",
       "refresh": {
         "every": 10
-      }
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Copy the code (concealed, clears after 30 s)"
+        },
+        {
+          "keys": "p",
+          "title": "Paste the code into the app in front"
+        },
+        {
+          "keys": "s",
+          "title": "Copy the sender"
+        },
+        {
+          "keys": "o",
+          "title": "Open the Verification Codes palette"
+        }
+      ]
     }
   },
   "license": "MIT",
@@ -81,7 +104,7 @@
       "A message counts when it names a code (code, kod, şifre, OTP, PIN, verification, `G-123456`) and carries 4 to 8 digits that are not an amount, a date or a phone number",
       "The sender as Messages knows it, a contact's name for a number or email in Contacts, the code as a green tag with how long ago it arrived",
       "Live: the code that just arrived is the first row and a root result; Today and Earlier sections",
-      "A bar item that shows the newest code for a minute after it arrives; a click copies it",
+      "A bar item that shows the newest code for a minute after it arrives; its popover has the code large, the sender, the minute counting down and the two codes before it, Enter copies",
       "A copied code is concealed: clipboard managers skip it, pal's history never sees it, and the previous clipboard is back after 30 s"
     ],
     "permissions": [
@@ -116,12 +139,22 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "No popover: a click copies the code and the HUD says so",
+        "caption": "A click opens the popover: the code large, who sent it, the minute counting down, the two codes before it; Enter copies",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar: the key glyph and the code, both green",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The same popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-gcode.png",
+        "caption": "A Google code forty seconds in: the bar nearly run down",
         "kind": "bar"
       }
     ],

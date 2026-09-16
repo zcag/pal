@@ -16,10 +16,10 @@ import { cardSvg, backSvg } from "../../../extensions/blackjack/cards.ts";
 import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
-  SettingsAbout, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
-  aboutIndex, extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
+  SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
+  aboutIndex, barIndex, extensionsIndex, generalIndex, palettesIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
-import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
+import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
 import Shots from "./shots";
 import BarShot from "./bar-shot";
 import "./gallery.css";
@@ -589,6 +589,9 @@ function GalleryPage() {
         <State label="Extensions, GitHub selected: update available, the declared settings, Update and Remove in the footer">
           <WidePair>{(t) => <SettingsDemo key={t} page="extensions" />}</WidePair>
         </State>
+        <State label="Bar, the timer selected: the Defaults card over the items list, the pane with the preview strips, the mono width look of its own over the menu bar defaults">
+          <WidePair>{(t) => <SettingsDemo key={t} page="bar" />}</WidePair>
+        </State>
         <State label="About: the version, the update check, the links">
           <WidePair>{(t) => <SettingsDemo key={t} page="about" />}</WidePair>
         </State>
@@ -639,13 +642,18 @@ function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diag
   const patchPalette = (id: string, config: PaletteConfig) =>
     setExts((es) => es.map((e) => ({ ...e, palettes: e.palettes.map((p) => (p.id === id ? { ...p, config } : p)) })));
   const patchExt = (name: string, values: SettingValues) => setExts((es) => es.map((e) => (e.name === name ? { ...e, values } : e)));
-  const index = [...generalIndex, ...palettesIndex(exts), ...extensionsIndex(exts), ...aboutIndex];
+  const [bar, setBar] = useState(settingsBar);
+  const [barItems, setBarItems] = useState(settingsBarItems);
+  const [barKey, setBarKey] = useState<string | undefined>("timer/timer");
+  const patchBarItem = (key: string, config: BarItemConfig) => setBarItems((bs) => bs.map((b) => (b.key === key ? { ...b, config } : b)));
+  const index = [...generalIndex, ...palettesIndex(exts), ...extensionsIndex(exts), ...barIndex(barItems), ...aboutIndex];
   const mac = /Mac/.test(navigator.platform);
   return (
     <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
       {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} />}
       {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
       {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} />}
+      {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}
       {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal" }} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0", installable: true }), 800))} update={{ available: true, version: "0.2.0", installable: true }} onInstallUpdate={() => new Promise((r) => setTimeout(r, 800))} onOpenLink={noop} onRevealFile={noop} />}
     </SettingsWindow>
   );

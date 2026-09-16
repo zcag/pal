@@ -99,7 +99,7 @@ A click, the item's hotkey and a hover peek open the same thing on every target:
 | --- | --- | --- |
 | `nodes` | a **menu level**: rows with shortcuts, ticks, sections, submenus | up to a screenful of commands and toggles: Now Playing controls, "Mark all read", the last five notifications with an "Open all" |
 | `{ palette }` | that **palette level**, the panel machinery unchanged; a view palette opens as its view level (`view(ctx)` with `ctx.compact`), live like any view (`view.update`, `refresh`) | anything with search, a detail pane, filters, forms, more than a screenful: the notifications list, a PR queue, sessions |
-| `{ view }` | a **view level** drawing the tree, the same level as the panel's (`keys: "actions"`, the text field, the keyed `move` transitions), sized to the popover's width (`compact: true` on every `BarCtx`; `ctx.compact` on a `view`/`list`/`pick` reached from the popover). Live: `view.update(tree, { bar: id })` replaces its tree in place, `view.onShown`/`onHidden` fire for it with `{ bar, compact: true }` on open (a peek counts) and close (`app/src-tauri/src/views.rs`) | a dashboard or card: battery drain with a bar per process, a timer with a big countdown, Spotify's lyrics |
+| `{ view }` | a **view level** drawing the tree, the same level as the panel's (`keys: "actions"`, the text field, the keyed `move` transitions), sized to the popover's width (`compact: true` on every `BarCtx`; `ctx.compact` on a `view`/`list`/`pick` reached from the popover). Live: `view.update(tree, { bar: id })` replaces its tree in place, `view.onShown`/`onHidden` fire for it with `{ bar, compact: true }` on open (a peek counts) and close (`app/src-tauri/src/views.rs`). Every key and click is `bar/action` with the action's id; a node carrying `action` runs it on a click, and what a control read (the text field on Enter, a form's fields, a slider's fraction) rides as `ctx.values` (`bar_action` carries them from the page) | a dashboard or card: Hue's rooms as colour tiles with switches and sliders, a timer with a big countdown and a field, Spotify's lyrics with the queue |
 | none | nothing: `bar/open` to the extension, its `Effect` runs (`open` a url, `hud`, a `push`); hover does nothing | a single-purpose item: OTP copies its code, prs opens github.com/pulls |
 
 The popover is a fourth window, `bar` (`index.html?bar`): an NSPanel like
@@ -213,9 +213,9 @@ re-renders an extension's items as it relists its palettes.
 | `icon` `{ image }` / `{ app }` | decoded by `pal_core::icons` to 36 px, non-template; `{ image, template: true }` honoured | `background.image=<cached png>`, `icon.drawing=off` | dropped |
 | `title` | the button title (`ImageLeft` of it) | `label=`; empty: `label.drawing=off` and the icon takes the label's right padding (the owner's `icon_only`, lib.sh:45) | `text` |
 | `segments` | joined into the title as `glyph text` runs, two spaces apart; colour lost, so the glyph must carry the state | one item per segment (`pal.<ext>.<id>.<seg>`) with its own `icon.color`/`label.color`, in one bracket | joined into `text` |
-| `badge` | count appended as ` ·3`; `dot` a 6 px red disc drawn into the icon's corner | count as ` <n>` in red on the label; `dot` = `icon.color=red` | `text` suffix, `class: badge` |
+| `badge` | count appended as ` ·3`; `dot` a 6 px red disc drawn into the icon's corner (`badge_style` in the look maps one to the other or drops it) | count as ` <n>` in red on the label; `dot` = `icon.color=red` | `text` suffix, `class: badge` |
 | `color`, `urgent` | the glyph PNG drawn in that colour, non-template; `text`/none stays template | `icon.color`/`label.color` from the map; `urgent` also eases `background.color` once (`--animate sin 8`) | `class: <color>`, `urgent` |
-| `stale` | icon at 50% alpha, tooltip "(stale)" | both colours at `muted` (the owner's `stale_mark`, symmetric) | `class: stale` |
+| `stale` | the template icon at `dim` (50%), tooltip "(stale)" | icon, label and segments at the `muted` colour at `dim` (the owner's `stale_mark`, symmetric) | `class: stale` |
 | `progress` | a 2 px bar drawn into the bottom of the icon | `━━━───` (8 cells of heavy/light box drawing, the owner's timer rule) before the glyph | `percentage` |
 | `tooltip` | `set_tooltip` | none (no tooltips); shown in the popover title | `tooltip` |
 | `menu` (nodes, palette, view), none | `show_menu_on_left_click(false)`, no `tauri::menu`; `on_tray_icon_event` Click with `rect` opens the popover under it / sends `bar/open` | `click_script="<pal binary> bar click <ext>/<id> --anchor sketchybar"` (absolute path: sketchybar's PATH is launchd's), the popover under the item's `bounding_rects`; no sketchybar popups | `on-click: pal bar click …`, popover |
@@ -293,11 +293,24 @@ hover_grace = 400          # ms after the pointer has left both the item and the
 
 [bar.menubar]
 open_on_hover = false      # Apple's bar has no hover convention
+# appearance, every item on this target unless it says otherwise (the section below)
+dim = 50
+size = 0
+spacing = 4
+show_icon = true
+show_title = true
+# color = "blue"           # unset: the extension's colour
+urgent_color = "destructive"
+badge_style = "count"      # count | dot | none
+width = 0                  # 0: natural
+font = "system"            # system | mono
+max_chars = 32
 
 [bar.sketchybar]
 open_on_hover = true       # the owner's popups open on hover
 position = "right"         # default for items: left | right | center | q | e | "before:<item>" | "after:<item>"
 colors = { red = "0xffe78284", muted = "0xff737994" }   # overrides of the token map, optional
+# the same appearance keys as [bar.menubar], sketchybar's own defaults
 
 [bar.items."github/notifications"]
 enabled = true             # false: no slot, no timers; the Settings view unsets true
@@ -306,17 +319,90 @@ position = "after:pal.github.prs"
 hotkey = "ctrl+alt+n"      # opens the item's popover engaged, whatever its `menu` form
 open_on_hover = true       # this item only; default the target's
 order = 20                 # among pal's own items on the menu bar (left to right ascending) and within a sketchybar position
+badge_style = "dot"        # any appearance key, this item only; default the target's
+
+[bar.items."timer/timer"]
+font = "mono"              # a countdown that does not jitter
+width = 72
 ```
 
 `pal_core::config::Config` gains `bar: Bar` (`core/src/config/mod.rs`, the
 schema in `core/schema/config.schema.json`), watched like the rest: a change
 re-targets, moves, or removes live. Per-extension settings apply as usual
 (`settings.get()` inside `render`). Settings window: a **Bar** tab after
-Palettes, a two-pane page in the Palettes shape: the list of every declared
-item (extension title as subtitle, a live dot for "visible now", "hidden" in
-muted for the rule), the form on the right: enabled, target, position, hotkey,
-open on hover, order, plus the extension's declared settings that carry
-`"scope": "bar"`.
+Palettes (the "Settings > Bar" section below).
+
+## Appearance
+
+One vocabulary for how a target draws an item, `pal_core::config::BarLook`,
+flattened into `[bar.menubar]` and `[bar.sketchybar]` (each target its own
+defaults, the built-in ones equal) and, every key optional, into
+`[bar.items."<key>"]` (`BarLookOverride`); `Bar::look(key, target)` resolves
+the item over the target it draws on, and rides on `Draw` to both
+renderers. The keys, and what each target makes of them:
+
+| key | default | menu bar (`bar/menubar.rs`) | sketchybar (`bar/sketchybar.rs`) |
+| --- | --- | --- | --- |
+| `dim` (percent) | 50 | a muted item (stale, or `color = "muted"` from the extension) is the template image at this alpha, so the bar's own tint still applies; the title text cannot be dimmed unless prerendered | the `muted` colour (token or `[bar.sketchybar.colors]` override) at this alpha on icon, label and segments |
+| `size` (pt) | 0 = the target's own | the glyph's em size in the 18 pt square (14 pt when 0); a size also prerenders the text at it (13 pt when 0) | `icon.font.size`, `label.font.size` |
+| `spacing` (pt) | 4 | the gap between the glyph square and the text in a prerendered strip; Apple's `ImageLeft` gap otherwise | `icon.padding_right` before a label or segment, a segment's `icon.padding_left` (its `label.padding_left` without an icon) |
+| `show_icon`, `show_title` | true | `BarItem::shaped` drops the icon, or the title and the segments, before either renderer sees the item; nothing left to draw is `hidden` (no slot) | the same |
+| `color` | unset | the glyph's ink (a name through `Palette::resolve`, or hex); the title text keeps the bar's colour unless prerendered | `icon.color` and `label.color`, segments without a colour of their own included |
+| `urgent_color` | `destructive` | the ink of an urgent item | the same |
+| `badge_style` | `count` | `count` is ` ·3` in the title text, `dot` the red disc in the image's corner (a count becomes the dot), `none` drops the badge (`shaped`) | `count` the red `.badge` item, `dot` a red icon, `none` nothing |
+| `width` (pt) | 0 = natural | a fixed prerendered image width (the tray keeps the aspect of an image scaled to 18 pt, so 2x pixels are half as many points); the text is clipped to it | `label.width` with `label.align=left` |
+| `font` | `system` | `mono` prerenders the text in SF Mono | `label.font.family=Menlo` |
+| `max_chars` | 32 | `menubar::clip`, an ellipsis on a word edge | `label.max_chars` |
+
+**Prerendering on the menu bar.** The title is a plain `NSString`
+(tray-icon 0.24.2 `set_title` is `button.setTitle`, `src/platform_impl/macos/mod.rs:179-191`,
+no attributed string, no font), so `size`, `font` and `width` cannot be
+title attributes. `menubar::prerendered` then puts the whole item into the
+image: `glyph::strip` draws the glyph square as before, the gap, and the
+text in the system's own face read from disk (`/System/Library/Fonts/SFNS.ttf`
+or `SFNSMono.ttf`; Helvetica and Menlo as fallbacks; a Nerd glyph inside
+the text, a segment's icon, from the bundled symbols font), at 2x into an
+image 36 px tall and as wide as the text; the tray scales any image to 18 pt
+high and keeps its aspect (`set_icon_for_ns_status_item_button`,
+`mod.rs:296-297`), so the width lands at half its pixels in points. The
+image stays a template (black ink) unless a colour is set, so the system
+tints text and glyph alike for a light or dark bar, and `dim` fades both.
+An emoji icon cannot be rasterised (Apple Color Emoji is a bitmap font)
+and stays the first run of the title text, which the tray puts right of
+the image; an image icon keeps its picture and its title text. `Draw` and
+`same_image` compare the look too, so a look change redraws.
+
+**sketchybar has no unset.** A property the bar has that the look no
+longer sets (a size back to the bar's own) cannot be reverted to the bar's
+`--default`, so `diff` removes and re-adds an item whose known properties
+lost a key; a fresh item takes the defaults.
+
+## Settings > Bar
+
+A two-column page (`app/src/ui/SettingsBar.tsx`). The left column scrolls:
+a **Defaults** card (the target with its explanation and the sketchybar
+detection dot; the peeks: per-target hover switches, delay, grace;
+sketchybar's position; then **Appearance** under a Menu bar / sketchybar
+segmented switch, the chosen target's `BarLook` in four groups, Placement
+(spacing, width), Text (font, size, longest title, icon, title), Colour
+(tint, urgent, dim), Behaviour (badge), each field with its file key, its
+description and the target's caveat), then the **Items** as a master list:
+a badged tile (the extension's icon with the last badge count or dot), the
+extension over the item title, the on switch, the target select, and the
+live state line (badge, hidden, poll, last render, stale). The right column
+is the selected item's pane: the description in full, a **preview** strip
+of the last render drawn by `ui/BarStrip.tsx` (the band the gallery's bar
+shots use, extracted from `gallery/bar-shot.tsx` so the two never drift)
+in both themes on the target the item lands on (both bands under `both`),
+with the resolved look applied; Placement (target, position, order);
+Appearance in the same four groups, each field on the resolved value with
+"from the menu bar default" (or sketchybar's) while inherited and Reset
+once overridden, a value typed equal to the default writing nothing; the
+hotkey recorder and the peek select under Popover; "Reset to defaults",
+which drops every key of the item but on/off. Every field has a search
+anchor (`bar:<target>:<key>`, `bar:<item key>:<key>`), and a hit selects
+the item. Writes go one key at a time (`lookWrites`): a target default equal
+to the built-in leaves the file, an item key equal to its target's does.
 
 ## Keyboard
 
@@ -467,9 +553,11 @@ native NSMenu is out (popover only, the why in Goals). Still open:
   bar (invisible under a hidden macOS bar) or draw nothing until it is back?
 - Work hours as a pal notion (a `[bar] profile` the CLI flips, items
   declaring `profile: "work"`) versus each extension asking `dek`.
-- Menu bar width: NSStatusItem autosizes and a long title pushes the rest;
-  a per-item `max_chars` in config (Raycast has `maxTextLength`), or the
-  64-char check alone?
+- Menu bar width: NSStatusItem autosizes and a long title pushes the rest.
+  Settled by the look: `max_chars` (32, per target and per item) cuts the
+  title with an ellipsis, and `width` fixes an item's width outright
+  (Appearance section). What macOS does with items that do not fit
+  between the front app's menus and the notch stays its own.
 - Persist the last rendered item per key under the profile's data dir and
   draw it before the host is up (Raycast restores menu bar commands without
   running code): the strip would be there at ~400 ms cold like the index.

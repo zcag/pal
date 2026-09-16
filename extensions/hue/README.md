@@ -142,10 +142,36 @@ out), `cmd+enter` stops.
 draws PNGs only) and `N on`; the bulb glyph, muted, with everything off;
 hidden until a bridge is paired; `stale` when a paired bridge does not
 answer. The main room is the `main_room` setting, else the room with most
-lights on. The popover: every room and zone as a row that toggles it
-(ticked when on, its colour tile), the scenes (`bar_scenes` by name or
-id, else the main room's, six at most), Open in pal, All off. Rendered
-every 60 s and on show, wake and network; pushed on every stream event.
+lights on. Rendered every 60 s and on show, wake and network; pushed on
+every stream event, so the popover follows a switch or the Hue app too.
+
+The popover (420 px, `popover.ts`) is the home in reach: a status row
+(how many lights are on, each motion sensor as a badge, green while it
+sees motion, the temperatures, a red badge for a bridge that is away),
+the rooms and zones as a grid of tiles two a row, each in its lit colour
+shaded by the brightness with its name, a switch, the count and
+brightness and a thin brightness bar (an off room is a plain card), then
+the scenes as five-swatch tiles with their digit (the opened room's,
+else `bar_scenes` by name or id, else the main room's, nine at most; the
+one playing is a card with its name in the accent), and the key hints. A
+tap on a tile toggles the room, the switch too; the chevron opens the
+room: its lights inline, each a swatch, the name, a brightness slider
+(a tap sets the level where it landed), the percentage and a switch.
+
+| key | does |
+| --- | --- |
+| `↑` `↓` `←` `→`, `tab` | move over the rooms (two a row); in an opened room `↑` `↓` walk its lights |
+| `enter` | open the room under the cursor (close it again); on a light, toggle it |
+| `space` | toggle the room under the cursor (or the light) |
+| `←` `→`, `+` `-` | brightness of the light under the cursor by 5 (`shift` for 20); `+` `-` on a room too |
+| `backspace` | close the opened room |
+| `1`..`9` | play that scene |
+| `e` | everything on |
+| `x`, `cmd+shift+o` | all off |
+| `p` | open Rooms in pal |
+| `r` | read the bridge again |
+
+The cursor is kept while the popover is closed, so it reopens where it was.
 
 ## Links
 

@@ -55,14 +55,33 @@ Settings, `[extensions.timer]`:
 | `command` | path | `timer` | The timer CLI: a name on PATH or a path. It keeps the timers; pal only reads and asks. |
 | `dir` | path | `~/.local/share/timer` | Where the CLI keeps one file per timer (its `TIMER_DIR`). `~` is expanded. |
 
-The bar item **Timer** shows the soonest timer's remaining time with a
-fill for how far along it is (blue, amber past two thirds, red past 90 %,
-muted while paused), the name and the count of the others as its tooltip,
-and a red alarm with the timer's name once it lands; hidden with no timer
-at all. A click opens the Timers palette. The core asks every 10 s and on
-wake; between those an `fs.watch` on the directory pushes on every change
-the CLI makes and a 1 Hz tick pushes the countdown, running only while a
-timer runs.
+## The bar item
+
+**Timer** shows the soonest timer's remaining time with a fill for how
+far along it is (blue, amber past two thirds, red past 90 %, muted while
+paused), the name and the count of the others as its tooltip, and a red
+alarm with the timer's name once it lands; hidden with no timer at all.
+
+A click opens the popover: a card per timer, most urgent first, with the
+name and when it lands (`until 02:35 PM`; a `paused` tag; `landed 0:35
+ago` with a `done` tag), the time left large on the right (`0:00` in red
+once landed) and a thin bar under them in the strip's colour. The card
+the keys act on wears the accent ring; the arrows or a click on a card
+move it. It ticks every second while it is up (the fs watcher and the
+1 Hz tick push the whole item, popover included).
+
+| keys | what |
+| --- | --- |
+| `space` / `enter` | pause a running timer, resume a paused one, dismiss a landed one (`d` too) |
+| `+` | add five minutes (`timer add 5m <id>`) |
+| `backspace` | stop it (`timer stop <id>`) |
+| `up` / `down` | move the ring to another timer |
+| `n` | start one: the search row becomes a field (`25m tea`; a trailing `ring` rings the phone), `enter` starts it, `escape` closes the field; under it the last durations used are tiles that start one on a click |
+| `o` | open the Timers palette |
+
+The core asks every 10 s and on wake; between those an `fs.watch` on
+the directory pushes on every change the CLI makes and a 1 Hz tick
+pushes the countdown, running while a timer runs or the popover is up.
 
 ## What it does not do
 

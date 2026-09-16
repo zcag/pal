@@ -3,7 +3,15 @@
 //! prerendered glyph (`glyph.rs`, a template image unless the item has a
 //! colour, a badge dot or an image icon) with `title`, the segments and a
 //! count badge joined into the title text; a hidden item is
-//! `remove_tray_by_id` (no slot), not `set_visible`. No menu is built:
+//! `remove_tray_by_id` (no slot), not `set_visible`. What the look can do
+//! here (`[bar.menubar]`, `Draw::look`): the title is a plain `NSString`
+//! (tray-icon 0.24.2 `set_title` is `button.setTitle`, no attributes), so
+//! `size`, `font` and `width` prerender the text into the image too
+//! (`glyph::strip`, [`prerendered`]); `dim` is the template ink's alpha;
+//! `color` and `urgent_color` are the glyph's ink (the title text keeps
+//! the bar's colour unless prerendered); `spacing` is the gap in a
+//! prerendered strip (Apple's own otherwise); `badge_style`, `show_icon`
+//! and `show_title` shaped the item before it got here. No menu is built:
 //! `Click`, `Enter` and `Leave` go to `popover` with the icon's rect.
 //! Order among pal's icons follows `[bar.items.<key>] order` (ascending
 //! left to right): macOS puts a new status item leftmost, so after an
@@ -22,6 +30,8 @@ use std::sync::{LazyLock, Mutex};
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{include_image, AppHandle, Manager};
+
+use pal_core::config::BarFont;
 
 use super::colors::Palette;
 use super::{glyph, popover, Draw, IconKind, Rect, Target};
@@ -66,15 +76,21 @@ pub fn clip(s: &str, max: usize) -> String {
     format!("{}…", trimmed.trim_end())
 }
 
-/// The title text beside the icon: an emoji icon first (the font has no
-/// emoji), the title, each segment as `glyph text`, two spaces apart, then
-/// a count badge as ` ·3`.
-pub fn title_text(draw: &Draw) -> String {
+/// Whether the look asks for what the title cannot carry: a face, a
+/// size or a fixed width. Then the text goes into the image
+/// (`glyph::strip`), where the system face is on disk; an image icon
+/// keeps its picture and the text stays title text.
+pub fn prerendered(draw: &Draw) -> bool {
+    let l = &draw.look;
+    (l.font == BarFont::Mono || l.size > 0.0 || l.width > 0) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
+}
+
+/// The text of the item: the title, each segment as `glyph text`, two
+/// spaces apart, then a count badge as ` ·3`, cut to `max_chars` (Apple's
+/// bar hides whatever runs under the notch or off the left edge).
+pub fn body(draw: &Draw) -> String {
     let item = &draw.item;
     let mut parts: Vec<String> = Vec::new();
-    if let Some(IconKind::Text(t)) = item.icon_kind() {
-        parts.push(t);
-    }
     if let Some(t) = item.title.as_deref().filter(|t| !t.is_empty()) {
         parts.push(t.to_string());
     }
@@ -88,9 +104,20 @@ pub fn title_text(draw: &Draw) -> String {
     if let Some(n) = item.count() {
         text.push_str(&format!(" ·{n}"));
     }
-    // Apple's bar hides whatever runs under the notch or off the left edge: a long line stops short.
-    let text = clip(&text, draw.max_chars);
-    text.trim().to_string()
+    clip(text.trim(), draw.look.max_chars)
+}
+
+/// The title text beside the icon: an emoji icon first (the font has no
+/// emoji), then [`body`] unless it is prerendered into the image.
+pub fn title_text(draw: &Draw) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if let Some(IconKind::Text(t)) = draw.item.icon_kind() {
+        parts.push(t);
+    }
+    if !prerendered(draw) {
+        parts.push(body(draw));
+    }
+    parts.join("  ").trim().to_string()
 }
 
 /// The tooltip: the item's, "(stale)" appended when it is.
@@ -103,23 +130,47 @@ pub fn tooltip(draw: &Draw) -> String {
     }
 }
 
+/// How the glyph (or the strip) is inked: the tint's RGB for a colour,
+/// none (template, the system's tint) for the bar's text colour and for a
+/// muted item, which is the template at `dim`.
+fn style(draw: &Draw, palette: &Palette) -> glyph::Style {
+    let item = &draw.item;
+    let muted = item.muted();
+    let color = match draw.tint() {
+        None | Some("text") | Some("muted") => None,
+        Some(spec) => palette.rgb_of(spec),
+    };
+    let alpha = if muted { draw.look.dim as f32 / 100.0 } else { 1.0 };
+    glyph::Style { color, dot: item.dot(), progress: item.progress.map(|p| p as f32), alpha, size: draw.look.size as f32 }
+}
+
 /// The icon image and whether it is a template: a glyph rasterised in the
-/// item's colour (none: template), an image decoded, else nothing.
+/// item's colour (none: template), the whole strip when [`prerendered`],
+/// an image decoded, else nothing.
 fn image(draw: &Draw, palette: &Palette) -> Option<(tauri::image::Image<'static>, bool)> {
     let item = &draw.item;
-    match item.icon_kind()? {
-        IconKind::Glyph(c) => {
-            let color = item.color_name().filter(|n| *n != "text").and_then(|n| palette.rgb(n));
-            let style = glyph::Style { color, dot: item.dot(), progress: item.progress.map(|p| p as f32), stale: item.stale };
-            let img = glyph::render(c, &style)?;
-            Some((tauri::image::Image::new_owned(img.data.clone(), img.width, img.height), style.template()))
-        }
-        IconKind::Image { value, template } => {
-            let img = glyph::image(&value)?;
-            Some((tauri::image::Image::new_owned(img.data, img.width, img.height), template))
-        }
-        IconKind::Text(_) => None,
+    let kind = item.icon_kind();
+    if let Some(IconKind::Image { value, template }) = &kind {
+        let img = glyph::image(value)?;
+        return Some((tauri::image::Image::new_owned(img.data, img.width, img.height), *template));
     }
+    let style = style(draw, palette);
+    let glyph = match kind {
+        Some(IconKind::Glyph(c)) => Some(c),
+        _ => None,
+    };
+    let img = if prerendered(draw) {
+        let l = &draw.look;
+        glyph::strip(glyph, &glyph::Text { text: body(draw), mono: l.font == BarFont::Mono, spacing: l.spacing as f32, width: l.width as f32 }, &style)?
+    } else {
+        glyph::render(glyph?, &style)?
+    };
+    Some((tauri::image::Image::new_owned(img.data.clone(), img.width, img.height), style.template()))
+}
+
+/// Whether two draws come out as the same image (the tooltip and the menu are not in it).
+fn same_image(a: &Draw, b: &Draw) -> bool {
+    a.item.icon == b.item.icon && a.tint() == b.tint() && a.item.muted() == b.item.muted() && a.item.badge == b.item.badge && a.item.progress == b.item.progress && a.look == b.look && (!prerendered(a) || body(a) == body(b))
 }
 
 fn build(app: &AppHandle, key: &str, draw: &Draw) -> tauri::Result<String> {
@@ -185,7 +236,7 @@ fn apply_now(app: &AppHandle, key: &str, draw: Option<Draw>) {
                 return apply_now(app, key, Some(draw));
             };
             let palette = Palette::new(dark(app), &BTreeMap::new());
-            if last.item.icon != draw.item.icon || last.item.color_name() != draw.item.color_name() || last.item.badge != draw.item.badge || last.item.progress != draw.item.progress || last.item.stale != draw.item.stale {
+            if !same_image(&last, &draw) {
                 match image(&draw, &palette) {
                     Some((img, template)) => {
                         let _ = tray.set_icon(Some(img));
@@ -283,10 +334,16 @@ impl Target for MenuBar {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pal_core::config::BarLook;
     use serde_json::json;
 
     fn draw(item: serde_json::Value) -> Draw {
-        Draw { item: serde_json::from_value(item).unwrap(), order: 0, position: "right".into(), hover: false, max_chars: 32 }
+        Draw { item: serde_json::from_value(item).unwrap(), order: 0, position: "right".into(), hover: false, look: BarLook::default() }
+    }
+
+    fn with(item: serde_json::Value, look: BarLook) -> Draw {
+        let d = draw(item);
+        Draw { item: d.item.shaped(&look), look, ..d }
     }
 
     #[test]
@@ -295,8 +352,57 @@ mod tests {
         assert_eq!(clip("With a coat that smells of rain and the radio playing", 32), "With a coat that smells of rain…");
         assert_eq!(clip("abcdefghijklmnopqrstuvwxyz0123456789", 12), "abcdefghijk…");
         let mut d = draw(json!({ "title": "A lyric line long enough to reach the notch on a 14 inch MacBook" }));
-        d.max_chars = 24;
+        d.look.max_chars = 24;
         assert_eq!(title_text(&d), "A lyric line long…");
+    }
+
+    #[test]
+    fn the_look_reaches_the_image_and_the_title() {
+        let p = Palette::new(true, &BTreeMap::new());
+        let item = json!({ "icon": "\u{f09b}", "title": "3:12", "badge": 3, "progress": 0.5, "menu": [] });
+        // The defaults: the glyph is the image, the text the title.
+        let plain = with(item.clone(), BarLook::default());
+        assert!(!prerendered(&plain));
+        assert_eq!(title_text(&plain), "3:12 ·3");
+        let (img, template) = image(&plain, &p).unwrap();
+        assert!(template && img.width() == glyph::SIZE);
+        // show_icon / show_title / badge_style shaped the item.
+        assert_eq!(title_text(&with(item.clone(), BarLook { show_title: false, ..Default::default() })), "·3", "glyph only keeps the count");
+        assert_eq!(title_text(&with(item.clone(), BarLook { show_title: false, badge_style: pal_core::config::BadgeStyle::None, ..Default::default() })), "");
+        assert!(image(&with(item.clone(), BarLook { show_icon: false, ..Default::default() }), &p).is_none(), "no icon: no image, the title alone");
+        let dotted = with(item.clone(), BarLook { badge_style: pal_core::config::BadgeStyle::Dot, ..Default::default() });
+        assert_eq!(title_text(&dotted), "3:12", "the count became the dot");
+        assert!(!image(&dotted, &p).unwrap().1, "a dot rides a coloured image");
+        // color, urgent_color, dim.
+        assert!(!image(&with(item.clone(), BarLook { color: Some("blue".into()), ..Default::default() }), &p).unwrap().1, "a tint is ink of its own");
+        assert!(!image(&with(item.clone(), BarLook { color: Some("#ff8800".into()), ..Default::default() }), &p).unwrap().1, "hex too");
+        assert_eq!(style(&with(item.clone(), BarLook { color: Some("#ff8800".into()), ..Default::default() }), &p).color, Some([0xff, 0x88, 0x00]));
+        let urgent = with(json!({ "icon": "\u{f09b}", "urgent": true }), BarLook { urgent_color: "amber".into(), ..Default::default() });
+        assert_eq!(style(&urgent, &p).color, p.rgb_of("amber"), "the look's urgent colour");
+        let stale = with(json!({ "icon": "\u{f09b}", "stale": true, "color": "green" }), BarLook { dim: 30, ..Default::default() });
+        let st = style(&stale, &p);
+        assert!(st.color.is_none() && (st.alpha - 0.3).abs() < 1e-6, "a muted item is the template at dim: {st:?}");
+        assert!(image(&stale, &p).unwrap().1, "still a template, so the bar tints it");
+        assert_eq!(style(&with(item.clone(), BarLook { size: 11.0, ..Default::default() }), &p).size, 11.0);
+        // font, size and width prerender the text into the image.
+        if glyph::can_strip(true) {
+            let mono = with(item.clone(), BarLook { font: BarFont::Mono, ..Default::default() });
+            assert!(prerendered(&mono));
+            assert_eq!(title_text(&mono), "", "the text is in the image");
+            let (img, template) = image(&mono, &p).unwrap();
+            assert!(template && img.width() > glyph::SIZE * 2, "a wide template strip: {}", img.width());
+            let fixed = with(item.clone(), BarLook { width: 60, ..Default::default() });
+            assert_eq!(image(&fixed, &p).unwrap().0.width(), 120, "60 pt at 2x");
+            let emoji = with(json!({ "icon": "🔔", "title": "Ring" }), BarLook { size: 12.0, ..Default::default() });
+            assert_eq!(title_text(&emoji), "🔔", "an emoji cannot be prerendered and stays title text");
+            assert!(image(&emoji, &p).unwrap().0.width() > 20, "the text strip without a glyph square");
+            assert!(same_image(&mono, &mono.clone()));
+            assert!(!same_image(&mono, &with(json!({ "icon": "\u{f09b}", "title": "3:11", "badge": 3, "progress": 0.5, "menu": [] }), BarLook { font: BarFont::Mono, ..Default::default() })), "a tick redraws a prerendered strip");
+            assert!(same_image(&plain, &with(json!({ "icon": "\u{f09b}", "title": "3:11", "badge": 3, "progress": 0.5, "menu": [] }), BarLook::default())), "but not a plain one: the title carries it");
+        }
+        let picture = with(json!({ "icon": { "image": "data:image/png;base64,AA==" }, "title": "x" }), BarLook { font: BarFont::Mono, ..Default::default() });
+        assert!(!prerendered(&picture) && title_text(&picture) == "x", "an image icon keeps its picture and its title text");
+        assert!(!same_image(&plain, &with(item, BarLook { dim: 10, ..Default::default() })), "a look change redraws");
     }
 
     #[test]
@@ -317,6 +423,7 @@ mod tests {
         assert!(image(&draw(json!({ "icon": "\u{f09b}", "color": "text" })), &p).unwrap().1, "text is the system tint");
         assert!(!image(&draw(json!({ "icon": "\u{f09b}", "color": "green" })), &p).unwrap().1);
         assert!(!image(&draw(json!({ "icon": "\u{f09b}", "urgent": true })), &p).unwrap().1, "an alarm is drawn in the destructive colour");
+        assert!(image(&draw(json!({ "icon": "\u{f09b}", "stale": true })), &p).unwrap().1, "stale is the template, dimmed");
         assert!(!image(&draw(json!({ "icon": "\u{f09b}", "badge": "dot" })), &p).unwrap().1);
         assert!(image(&draw(json!({ "icon": "🔔" })), &p).is_none(), "an emoji is title text");
         assert!(image(&draw(json!({ "title": "x" })), &p).is_none());

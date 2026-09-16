@@ -154,7 +154,7 @@ const barOf = (key: string): { extension: string; bar: string } | undefined => {
 /** Keys a view level holds while a pick is on its way, at most; a fast typist's letters, not a held key. */
 const VIEW_QUEUE = 4;
 /** What a view level does with a key, queued while a pick is in flight and run against the tree the reply brings; `submit` and `cancel` are the `View.input` field's Enter and Escape. */
-type ViewCommand = Extract<Command, { type: "primary" | "secondary" | "shortcut" | "key" }> | { type: "submit" } | { type: "cancel" };
+type ViewCommand = Extract<Command, { type: "primary" | "secondary" | "shortcut" | "key" }> | { type: "submit" } | { type: "cancel" } | { type: "action"; id: string; values?: FormValues };
 
 /** After the cursor rests on a lazy item: wait this long before asking, and this much longer before the skeleton shows. */
 const DETAIL_DEBOUNCE = 100, DETAIL_SKELETON_AFTER = 150;
@@ -736,6 +736,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       }
     }
     if (cmd.type === "submit" || cmd.type === "cancel") return false;
+    // A click on a node carrying `action` (View.tsx): the action of that id, listed or hidden, with what the control read (a slider's fraction).
+    if (cmd.type === "action") { const a = actions.find((x) => x.id === cmd.id); if (!a) return false; if (cmd.values && !a.confirm) { setActionsOpen(false); focus(); return pickView(a, cmd.values); } return run(a); }
     const a = cmd.type === "primary" ? listed[0]
       : cmd.type === "secondary" ? listed[1]
       // A shifted arrow with no action of its own is the plain arrow's.
@@ -894,7 +896,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const body = view.kind === "show"
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
     : view.kind === "view"
-    ? (spec ? <View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} /> : null)
+    ? (spec ? <View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} /> : null)
     : form
     // The title is the search row's (as for a view), so the form draws none of its own.
     ? <div ref={formEl} className="pal-form-level" aria-busy={busy || undefined}><Form key={form.key} fields={form.spec.fields} submitTitle={form.spec.submit.title} cancelTitle={form.spec.cancel} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} /></div>

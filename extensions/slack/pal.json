@@ -4,7 +4,12 @@
   "description": "What Slack is holding for you: direct messages, mentions and threads as rows with the message and who sent it, the channels you are in, Slack's search, and your status, presence and Do Not Disturb. Signs in through the desktop app's own session or a user token.",
   "version": "0.1.0",
   "multi": true,
-  "icon": { "tile": { "glyph": "󰒱", "bg": "violet" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰒱",
+      "bg": "violet"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -15,8 +20,14 @@
       "label": "Sign in",
       "description": "app reads the desktop app's own session (its token from Local Storage and its cookie from the cookie jar, decrypted with the Safe Storage password in the keychain), so it sees exactly your inbox; token uses a user token from a Slack app of your own.",
       "options": [
-        { "id": "app", "title": "The Slack desktop app's session" },
-        { "id": "token", "title": "A user token" }
+        {
+          "id": "app",
+          "title": "The Slack desktop app's session"
+        },
+        {
+          "id": "token",
+          "title": "A user token"
+        }
       ],
       "default": "app"
     },
@@ -76,10 +87,22 @@
       "kind": "live",
       "lazy": true,
       "keys": [
-        { "keys": "enter", "title": "Open the conversation in Slack" },
-        { "keys": "cmd+shift+r", "title": "Mark as read" },
-        { "keys": "cmd+shift+o", "title": "Open in the browser" },
-        { "keys": "cmd+c", "title": "Copy the link" }
+        {
+          "keys": "enter",
+          "title": "Open the conversation in Slack"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Mark as read"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open in the browser"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        }
       ]
     },
     "channels": {
@@ -90,9 +113,18 @@
       "ttl": 3600,
       "tier": "catalog",
       "keys": [
-        { "keys": "enter", "title": "Open in Slack" },
-        { "keys": "cmd+shift+o", "title": "Open in the browser" },
-        { "keys": "cmd+c", "title": "Copy the link" }
+        {
+          "keys": "enter",
+          "title": "Open in Slack"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open in the browser"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        }
       ]
     },
     "search": {
@@ -100,9 +132,18 @@
       "description": "Slack's message search as you type, its syntax passed through: from:@name, in:#channel, has:link, before:yesterday.",
       "kind": "input",
       "keys": [
-        { "keys": "enter", "title": "Open the message in Slack" },
-        { "keys": "cmd+shift+o", "title": "Open in the browser" },
-        { "keys": "cmd+c", "title": "Copy the text" }
+        {
+          "keys": "enter",
+          "title": "Open the message in Slack"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open in the browser"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the text"
+        }
       ]
     },
     "status": {
@@ -111,15 +152,63 @@
       "kind": "live",
       "lazy": true,
       "keys": [
-        { "keys": "enter", "title": "Set it" }
+        {
+          "keys": "enter",
+          "title": "Set it"
+        }
       ]
     }
   },
   "bar": {
     "unreads": {
       "title": "Unreads",
-      "description": "What is addressed to you (direct messages, mentions, thread replies) as a count, hidden at zero, red while a direct message waits; the popover lists them with the channels that are only unread.",
-      "refresh": { "every": 120, "on": ["show", "wake", "network"] }
+      "description": "What is addressed to you (direct messages, mentions, thread replies) as a count, hidden at zero, red while a direct message waits; the popover lists them with the sender, the message and the time, the channels that are only unread, and replies, marks read and opens from the keys.",
+      "refresh": {
+        "every": 120,
+        "on": [
+          "show",
+          "wake",
+          "network"
+        ]
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the row in Slack"
+        },
+        {
+          "keys": "up",
+          "title": "Move the cursor (down, j, k too; a click sets it)"
+        },
+        {
+          "keys": "r",
+          "title": "Reply: the search row becomes the field, Enter sends"
+        },
+        {
+          "keys": "m",
+          "title": "Mark the row read"
+        },
+        {
+          "keys": "a",
+          "title": "Mark all read (cmd+shift+a too)"
+        },
+        {
+          "keys": "o",
+          "title": "Open Slack"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Unreads palette"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open the row in the browser"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the row's link"
+        }
+      ]
     }
   },
   "store": {
@@ -134,29 +223,106 @@
       "Status: presets with an expiry, clear, Do Not Disturb for 30 minutes, an hour or until tomorrow, away or active",
       "No Slack app to install: the desktop app's own session is read from its files, so what you see is exactly your inbox"
     ],
-    "permissions": ["network", "keychain"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "network",
+      "keychain"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-unreads.png", "caption": "Unreads: direct messages, mentions and threads addressed to you, then the channels that are only unread" },
-      { "file": "2-unread-detail.png", "caption": "The pane: the unread run of the conversation, oldest first" },
-      { "file": "3-status.png", "caption": "Status: what is set now, then the presets, Do Not Disturb and presence" },
-      { "file": "4-search.png", "caption": "Search Slack: Slack's syntax typed into the panel" },
-      { "file": "bar-menubar-dark.png", "caption": "On the menu bar: the Slack glyph with the count of what is addressed to you", "kind": "bar" },
-      { "file": "bar-menubar-light.png", "caption": "The same item on a light menu bar", "kind": "bar" },
-      { "file": "bar-menubar-popover.png", "caption": "A click opens the popover: direct messages, mentions and threads, the channels also unread, Open in pal, Mark all read, Open Slack", "kind": "bar" },
-      { "file": "bar-sketchybar.png", "caption": "On sketchybar: the glyph and the count, red while a direct message waits", "kind": "bar" }
+      {
+        "file": "1-unreads.png",
+        "caption": "Unreads: direct messages, mentions and threads addressed to you, then the channels that are only unread"
+      },
+      {
+        "file": "2-unread-detail.png",
+        "caption": "The pane: the unread run of the conversation, oldest first"
+      },
+      {
+        "file": "3-status.png",
+        "caption": "Status: what is set now, then the presets, Do Not Disturb and presence"
+      },
+      {
+        "file": "4-search.png",
+        "caption": "Search Slack: Slack's syntax typed into the panel"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the Slack glyph with the count of what is addressed to you",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: direct messages, mentions and thread replies with the sender, the message and the time, the channels also unread, the keys",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-reply.png",
+        "caption": "r turns the search row into a reply field; Enter posts it to the conversation",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the glyph and the count, red while a direct message waits",
+        "kind": "bar"
+      }
     ],
     "actions": [
-      { "title": "Open", "description": "The conversation in the Slack app, at the message when one is known.", "keys": "enter" },
-      { "title": "Reply", "description": "A one-field form; posts to the conversation (into the thread for a threaded mention).", "keys": "cmd+enter" },
-      { "title": "Mark as read", "description": "Up to the latest message; the count falls at the next refresh.", "keys": "cmd+shift+r" },
-      { "title": "Open in browser", "description": "The web client's archive page.", "keys": "cmd+shift+o" },
-      { "title": "Copy link", "keys": "cmd+c" },
-      { "title": "Copy text", "description": "A found message's text.", "keys": "cmd+c" },
-      { "title": "Set status", "description": "A preset, with its expiry." },
-      { "title": "Clear status" },
-      { "title": "Do Not Disturb", "description": "30 minutes, 1 hour, or until tomorrow; End Do Not Disturb while it is on." },
-      { "title": "Set away / Set active" }
+      {
+        "title": "Open",
+        "description": "The conversation in the Slack app, at the message when one is known.",
+        "keys": "enter"
+      },
+      {
+        "title": "Reply",
+        "description": "A one-field form; posts to the conversation (into the thread for a threaded mention).",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Mark as read",
+        "description": "Up to the latest message; the count falls at the next refresh.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Open in browser",
+        "description": "The web client's archive page.",
+        "keys": "cmd+shift+o"
+      },
+      {
+        "title": "Copy link",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy text",
+        "description": "A found message's text.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Set status",
+        "description": "A preset, with its expiry."
+      },
+      {
+        "title": "Clear status"
+      },
+      {
+        "title": "Do Not Disturb",
+        "description": "30 minutes, 1 hour, or until tomorrow; End Do Not Disturb while it is on."
+      },
+      {
+        "title": "Set away / Set active"
+      }
     ]
   }
 }

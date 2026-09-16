@@ -37,7 +37,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use pal_core::config::{BarTarget, Config};
+use pal_core::config::{BadgeStyle, BarLook, BarTarget, Config};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
@@ -132,16 +132,38 @@ impl BarItem {
         icon_kind(self.icon.as_ref()?)
     }
 
-    /// The colour name the strip draws the item in: `destructive` when
-    /// urgent, `muted` when stale, else its own.
-    pub fn color_name(&self) -> Option<&str> {
-        if self.urgent {
-            Some("destructive")
-        } else if self.stale {
-            Some("muted")
-        } else {
-            self.color.as_deref()
+    /// Whether the item is drawn dim: stale, or coloured `muted` by the
+    /// extension (a paused timer); never while urgent.
+    pub fn muted(&self) -> bool {
+        !self.urgent && (self.stale || self.color.as_deref() == Some("muted"))
+    }
+
+    /// The item with `look` applied: the icon and the text dropped where
+    /// `show_icon` / `show_title` say so, the badge in `badge_style`, the
+    /// tint over the extension's colour (`muted` stays: it is a state, not
+    /// a colour), and hidden when nothing is left to draw.
+    pub fn shaped(mut self, look: &BarLook) -> BarItem {
+        if !look.show_icon {
+            self.icon = None;
         }
+        if !look.show_title {
+            self.title = None;
+            self.segments.clear();
+        }
+        self.badge = match (look.badge_style, self.badge) {
+            (BadgeStyle::None, _) => None,
+            (BadgeStyle::Dot, Some(Badge::Count(_))) => Some(Badge::Dot(DotTag::Dot)),
+            (_, b) => b,
+        };
+        if let Some(c) = &look.color {
+            if self.color.as_deref() != Some("muted") {
+                self.color = Some(c.clone());
+            }
+        }
+        if self.icon.is_none() && self.title.as_deref().is_none_or(str::is_empty) && self.segments.is_empty() && self.badge.is_none() {
+            self.hidden = true;
+        }
+        self
     }
 
     /// The badge count, when the badge is one.
@@ -301,7 +323,8 @@ pub trait Target {
     fn anchor(&self, app: &AppHandle, key: &str) -> Option<Rect>;
 }
 
-/// What a target draws: the item and the config that places it.
+/// What a target draws: the item as the look shaped it
+/// ([`BarItem::shaped`]), and the config that places and styles it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Draw {
     pub item: BarItem,
@@ -309,8 +332,23 @@ pub struct Draw {
     pub position: String,
     /// A hover peeks (the target's `open_on_hover`, per item overridable).
     pub hover: bool,
-    /// The longest title on the menu bar (`[bar.menubar] max_chars`); sketchybar ignores it.
-    pub max_chars: usize,
+    /// The target's appearance with the item's overrides (`Bar::look`).
+    pub look: BarLook,
+}
+
+impl Draw {
+    /// The colour spec the item is drawn in: `urgent_color` when urgent,
+    /// `muted` when [`BarItem::muted`], else the item's own (the look's
+    /// tint already applied); `None` is the bar's text colour.
+    pub fn tint(&self) -> Option<&str> {
+        if self.item.urgent {
+            Some(&self.look.urgent_color)
+        } else if self.item.muted() {
+            Some("muted")
+        } else {
+            self.item.color.as_deref()
+        }
+    }
 }
 
 /// One declared item.
@@ -623,7 +661,8 @@ fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind) -> Option<Dra
         Kind::Menubar => BarTarget::Menubar,
     };
     let hover = item.has_menu() && config.bar.open_on_hover(key, target);
-    Some(Draw { item, order: cfg.order.unwrap_or(0), position: config.bar.position_of(key), hover, max_chars: config.bar.max_chars(key) })
+    let look = config.bar.look(key, target);
+    Some(Draw { item: item.shaped(&look), order: cfg.order.unwrap_or(0), position: config.bar.position_of(key), hover, look })
 }
 
 /// Push `key`'s state to every target: drawn where its target says and
@@ -747,14 +786,19 @@ pub fn on_settings_changed(app: &AppHandle, exts: &[String]) {
 /// `bar/action`: the extension's `onAction`, its Effect run with `window`
 /// as the one the pick came from; a `keep` renders the item again. The
 /// envelope comes back for the page.
-pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, window: &str) -> Result<Value, String> {
+pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, window: &str, values: Option<Value>) -> Result<Value, String> {
     let (ext, id) = split_key(key).ok_or_else(|| format!("bad key {key}"))?;
     let fixture = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?.fixture;
     let r = if fixture {
         json!({ "hud": format!("{key}: {action}") })
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
-        host.request("bar/action", json!({ "extension": ext, "id": id, "action": action, "ctx": { "reason": "open", "anchor": anchor, "compact": true } })).await?
+        let mut ctx = json!({ "reason": "open", "anchor": anchor, "compact": true });
+        // What a control in the popover read (`BarCtx.values`): the view's text field on Enter, a form's fields, a slider's fraction.
+        if let Some(v) = values.filter(|v| v.is_object()) {
+            ctx["values"] = v;
+        }
+        host.request("bar/action", json!({ "extension": ext, "id": id, "action": action, "ctx": ctx })).await?
     };
     let r = effects::apply_from(app, r, window).await?;
     if r.get("keep").is_some() {
@@ -980,14 +1024,37 @@ mod tests {
     }
 
     #[test]
-    fn colour_name_follows_urgent_then_stale_then_own() {
+    fn tint_follows_urgent_then_muted_then_own() {
+        let draw = |item: BarItem, look: BarLook| Draw { item, order: 0, position: "right".into(), hover: false, look };
         let mut i = BarItem { color: Some("green".into()), ..Default::default() };
-        assert_eq!(i.color_name(), Some("green"));
+        assert_eq!(draw(i.clone(), BarLook::default()).tint(), Some("green"));
         i.stale = true;
-        assert_eq!(i.color_name(), Some("muted"), "stale dims");
+        assert!(i.muted());
+        assert_eq!(draw(i.clone(), BarLook::default()).tint(), Some("muted"), "stale dims");
         i.urgent = true;
-        assert_eq!(i.color_name(), Some("destructive"), "an alarm is never dim");
-        assert_eq!(BarItem::default().color_name(), None, "no colour: the template tint");
+        assert!(!i.muted(), "an alarm is never dim");
+        assert_eq!(draw(i.clone(), BarLook::default()).tint(), Some("destructive"));
+        assert_eq!(draw(i, BarLook { urgent_color: "#ff8800".into(), ..Default::default() }).tint(), Some("#ff8800"), "the look's urgent colour");
+        assert_eq!(draw(BarItem::default(), BarLook::default()).tint(), None, "no colour: the bar's text colour");
+        assert!(BarItem { color: Some("muted".into()), ..Default::default() }.muted(), "the extension's muted is the same dim");
+    }
+
+    #[test]
+    fn shaped_applies_the_look() {
+        let item: BarItem = serde_json::from_value(json!({ "icon": "\u{f09b}", "title": "prs", "badge": 3, "color": "green", "segments": [{ "id": "a", "text": "1" }] })).unwrap();
+        let same = item.clone().shaped(&BarLook::default());
+        assert_eq!(same, item, "the defaults change nothing");
+        let glyph_only = item.clone().shaped(&BarLook { show_title: false, ..Default::default() });
+        assert!(glyph_only.title.is_none() && glyph_only.segments.is_empty() && glyph_only.icon.is_some());
+        let no_icon = item.clone().shaped(&BarLook { show_icon: false, ..Default::default() });
+        assert!(no_icon.icon.is_none() && no_icon.title.is_some());
+        assert_eq!(item.clone().shaped(&BarLook { badge_style: BadgeStyle::Dot, ..Default::default() }).badge, Some(Badge::Dot(DotTag::Dot)), "a count drawn as a dot");
+        assert_eq!(item.clone().shaped(&BarLook { badge_style: BadgeStyle::None, ..Default::default() }).badge, None);
+        assert_eq!(item.clone().shaped(&BarLook { color: Some("blue".into()), ..Default::default() }).color.as_deref(), Some("blue"), "the tint replaces the extension's colour");
+        let paused = BarItem { color: Some("muted".into()), ..item.clone() }.shaped(&BarLook { color: Some("blue".into()), ..Default::default() });
+        assert_eq!(paused.color.as_deref(), Some("muted"), "muted is a state and stays");
+        let gone = item.shaped(&BarLook { show_icon: false, show_title: false, badge_style: BadgeStyle::None, ..Default::default() });
+        assert!(gone.hidden, "nothing left to draw takes no slot");
     }
 
     #[test]
@@ -1035,13 +1102,17 @@ mod tests {
 
     #[test]
     fn draw_carries_the_placement_and_hidden_reaches_the_target() {
-        let (config, _) = pal_core::config::parse("[bar.items.\"x/y\"]\norder = 5\nposition = \"left\"\nopen_on_hover = true\n").unwrap();
+        let (config, _) = pal_core::config::parse("[bar.menubar]\nsize = 12\n[bar.items.\"x/y\"]\norder = 5\nposition = \"left\"\nopen_on_hover = true\nbadge_style = \"dot\"\n").unwrap();
         let item: BarItem = serde_json::from_value(json!({ "hidden": true, "menu": { "palette": "apps" } })).unwrap();
         let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false };
         let d = draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap();
         assert!(d.item.hidden, "a hidden item is handed over: the target takes its slot away, its timer keeps running");
         assert!(d.item.stale, "the registry's stale rides on the item");
         assert_eq!((d.order, d.position.as_str(), d.hover), (5, "left", true));
+        assert_eq!((d.look.size, d.look.badge_style), (12.0, BadgeStyle::Dot), "the look rides on the draw: the target's default with the item's keys");
+        assert_eq!(draw_for(&config, "x/y", &entry, Kind::Sketchybar).unwrap().look.size, 0.0, "sketchybar's own defaults");
+        let counted = Entry { last: Some(BarItem { badge: Some(Badge::Count(3)), icon: Some(json!("\u{f09b}")), ..Default::default() }), ..entry.clone() };
+        assert_eq!(draw_for(&config, "x/y", &counted, Kind::Menubar).unwrap().item.badge, Some(Badge::Dot(DotTag::Dot)), "the item is shaped by the look before the target sees it");
         let none = Entry { last: None, ..entry };
         assert!(draw_for(&config, "x/y", &none, Kind::Menubar).is_none(), "nothing to draw before the first render");
         let (config, _) = pal_core::config::parse("").unwrap();

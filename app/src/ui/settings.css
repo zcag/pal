@@ -830,38 +830,80 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-xpane__palette-alias { padding: 0 0.35em; border-radius: var(--pal-radius-tag, 4px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); color: var(--pal-fg-muted, #a3a4ae); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
 .pal-xpane__palette-off { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 
-/* Bar: the target's detection, the timings, the items table */
-.pal-bar__detect { display: inline-flex; align-items: center; gap: var(--pal-space-1, 4px); margin-right: var(--pal-space-1, 4px); color: var(--pal-fg, #ececf0); }
+/* Bar: a scrolling left column (the Defaults card, then the items as a master list) and the selected item's pane on the right. */
+.pal-bar__left { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding: var(--pal-space-5, 20px) var(--pal-space-5, 20px) var(--pal-space-6, 24px); border-right: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-bar__pane { flex: 0 0 var(--pal-settings-pane-w, 40%); min-width: 0; min-height: 0; overflow-y: auto; --pal-settings-label-w: 96px; }
+.pal-bar__pane > .pal-empty { padding: var(--pal-space-5, 20px); }
+.pal-bar__detect { display: inline-flex; align-items: center; gap: var(--pal-space-1, 4px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); white-space: nowrap; }
 .pal-bar__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pal-fg-faint, #868794); }
 .pal-bar__detect[data-alive] .pal-bar__dot { background: var(--pal-success, #4fc98a); }
-.pal-bar__peeks { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); }
+.pal-bar__peeks { flex-direction: column; align-items: flex-start; }
 .pal-bar__hovers { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px) var(--pal-space-4, 16px); }
-/* The items table wants the room: the page runs wider than the forms' measure. */
-.pal-bar > * { max-width: calc(var(--pal-settings-measure, 640px) + var(--pal-space-6, 24px) * 4); }
 .pal-bar__hovers .pal-number .pal-field__input { width: 72px; }
 .pal-bar__hover { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); }
 .pal-bar__position { width: 140px; font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); }
-.pal-btable { background: var(--pal-bg-elevated, #26262d); border-radius: var(--pal-radius-tile, 10px); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); overflow: hidden; }
-.pal-btable__head, .pal-btable__row { display: grid; grid-template-columns: minmax(0, 1fr) 40px 92px 60px 84px 88px 44px; align-items: center; padding: 0 var(--pal-space-2, 8px); }
-.pal-btable__head { height: var(--pal-section-h, 28px); border-bottom: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
-.pal-btable__col { padding: 0 var(--pal-space-1, 4px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-medium, 500); text-align: center; white-space: nowrap; }
-.pal-btable__col--name { padding-left: var(--pal-space-2, 8px); text-align: left; }
-.pal-btable__row { min-height: 52px; padding-top: var(--pal-space-1, 4px); padding-bottom: var(--pal-space-1, 4px); outline: none; }
+.pal-bar__order { width: 72px; font-variant-numeric: tabular-nums; }
+.pal-bar-defaults .pal-setting[data-layout="row"] { --pal-settings-label-w: 128px; }
+.pal-bar-defaults__file { color: var(--pal-fg-faint, #868794); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
+.pal-bar-defaults__look .pal-setting__desc { max-width: none; }
+/* The appearance groups: Placement, Text, Colour, Behaviour as fieldsets in two columns, each field stacked with its key and description. */
+.pal-bar-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--pal-space-3, 12px); align-items: start; }
+.pal-bpane .pal-bar-groups { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.pal-bar-groups--flat, .pal-bpane .pal-bar-groups--flat { grid-template-columns: minmax(0, 1fr); }
+.pal-bar-defaults__groups { padding: 0 var(--pal-space-4, 16px) var(--pal-space-4, 16px); }
+.pal-bar-defaults__look.pal-setting { padding-bottom: var(--pal-space-2, 8px); }
+.pal-bar-group { min-width: 0; margin: 0; padding: var(--pal-space-2, 8px) var(--pal-space-3, 12px) var(--pal-space-3, 12px); border: 0; border-radius: var(--pal-radius-tile, 10px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }
+.pal-bar-group__title { padding: 0; margin-bottom: var(--pal-space-1, 4px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-semibold, 600); text-transform: uppercase; letter-spacing: 0.04em; }
+.pal-bar-field.pal-setting { padding: var(--pal-space-2, 8px) 0 0; }
+/* Nested under the Defaults card's row-layout setting, so the row rule's right alignment is undone here. */
+.pal-bar-field.pal-setting[data-layout="stack"] .pal-setting__label { display: flex; align-items: baseline; justify-content: flex-start; gap: var(--pal-space-2, 8px); min-height: 0; color: var(--pal-fg, #ececf0); font-size: var(--pal-text-sm, 12px); text-align: left; }
+.pal-bar-field__key { color: var(--pal-fg-faint, #868794); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
+.pal-bar-field .pal-setting__control { flex-wrap: wrap; min-height: var(--pal-icon-box, 24px); }
+.pal-bar-field .pal-setting__control > .pal-field__input, .pal-bar-field .pal-number .pal-field__input { height: var(--pal-icon-box, 24px); font-size: var(--pal-text-sm, 12px); }
+.pal-bar-field .pal-number .pal-field__input { width: 72px; }
+.pal-bar-field .pal-select__input { height: var(--pal-icon-box, 24px); font-size: var(--pal-text-sm, 12px); }
+.pal-bar-field .pal-select__chevron { width: 18px; height: 18px; right: 3px; }
+.pal-bar-field .pal-setting__desc { font-size: var(--pal-text-xs, 11px); }
+.pal-bar-field__target { color: var(--pal-fg-faint, #868794); }
+.pal-bar-field__from { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); font-style: italic; }
+.pal-bar-field[data-inherited] .pal-setting__control > :first-child { opacity: 0.75; }
+.pal-bar-color { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); min-width: 0; }
+.pal-bar-color__swatch { flex: none; width: 14px; height: 14px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1px var(--pal-line-strong, rgba(255, 255, 255, 0.16)); }
+.pal-bar-color .pal-field__input { flex: none; width: 112px; font-family: var(--pal-font-mono, ui-monospace, monospace); }
+/* The master list: a badged tile, the extension over the title, the state line, the on switch, the target. */
+.pal-btable { background: var(--pal-bg-elevated, #26262d); border-radius: var(--pal-radius-tile, 10px); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); overflow: hidden; outline: none; }
+.pal-btable__row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 40px 132px; column-gap: var(--pal-space-2, 8px); align-items: center; min-height: 52px; padding: var(--pal-space-1, 4px) var(--pal-space-3, 12px); outline: none; cursor: default; }
 .pal-btable__row + .pal-btable__row { border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-btable__row:hover { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
+.pal-btable__row[data-active] { background: var(--pal-accent-soft, rgba(159, 151, 255, 0.16)); }
 .pal-btable__row:focus-visible { box-shadow: inset 0 0 0 2px var(--pal-accent, #9f97ff); }
-.pal-btable__cell { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0 var(--pal-space-1, 4px); }
-.pal-btable__cell--name { justify-content: flex-start; gap: var(--pal-row-gap, 12px); padding-left: var(--pal-space-2, 8px); }
+.pal-btable__tile { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--pal-radius-control, 6px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }
+.pal-btable__badge { position: absolute; top: -5px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--pal-destructive, #ff6e66); color: #fff; font-size: 10px; font-weight: var(--pal-weight-semibold, 600); line-height: 16px; text-align: center; box-shadow: 0 0 0 2px var(--pal-bg-elevated, #26262d); }
+.pal-btable__badge[data-dot] { min-width: 8px; width: 8px; height: 8px; padding: 0; top: -2px; right: -2px; }
+.pal-btable__tile[data-urgent] { box-shadow: inset 0 0 0 1px var(--pal-destructive, #ff6e66); }
+.pal-btable__cell { display: flex; align-items: center; justify-content: center; min-width: 0; }
 .pal-btable__text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .pal-btable__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pal-btable__name-ext { color: var(--pal-fg-faint, #868794); }
-.pal-btable__name-ext .pal-link { color: inherit; }
+.pal-btable__name-ext { display: block; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 .pal-btable__state { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 .pal-btable__state[data-level="warning"] { color: var(--pal-tag-amber, #f0b25a); }
 .pal-btable__state[data-level="error"] { color: var(--pal-destructive, #ff6e66); }
 .pal-btable__row[data-disabled] .pal-btable__name { color: var(--pal-fg-muted, #a3a4ae); }
-.pal-btable__row[data-disabled] .pal-btable__cell--name .pal-icon { opacity: 0.5; }
+.pal-btable__row[data-disabled] .pal-btable__tile .pal-icon { opacity: 0.5; }
 .pal-btable .pal-select__input { height: var(--pal-icon-box, 24px); max-width: 100%; padding-right: calc(var(--pal-space-5, 20px) + var(--pal-space-1, 4px)); font-size: var(--pal-text-sm, 12px); }
 .pal-btable .pal-select__chevron { width: 18px; height: 18px; right: 3px; }
 .pal-inline--num { width: 44px; text-align: right; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
 .pal-inline--num::-webkit-inner-spin-button, .pal-inline--num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .pal-bar .pal-empty { padding: var(--pal-space-5, 20px); }
+/* The item's pane: the state line, the preview strips in both themes, the groups flat. */
+.pal-bpane__state { margin: var(--pal-space-2, 8px) 0 0; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-bpane__state[data-level="warning"] { color: var(--pal-tag-amber, #f0b25a); }
+.pal-bpane__state[data-level="error"] { color: var(--pal-destructive, #ff6e66); }
+.pal-bpane__strip { margin-top: var(--pal-space-2, 8px); }
+.pal-bpane__strip .g-bar { border-radius: var(--pal-radius-control, 6px); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-bpane__strip[data-hidden] .g-bar { opacity: 0.6; }
+.pal-bpane__strip-label { display: block; margin-top: 2px; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-bpane .pal-bar-groups { gap: var(--pal-space-2, 8px); }
+.pal-bpane .pal-bar-group { padding-top: var(--pal-space-1, 4px); }
+.pal-bpane__reset { display: flex; align-items: center; gap: var(--pal-space-2, 8px); margin-top: var(--pal-space-4, 16px); padding-top: var(--pal-space-3, 12px); border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-bpane__reset .pal-pane__note { margin-right: 0; font-size: var(--pal-text-xs, 11px); }

@@ -502,6 +502,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 /* Surfaces: a well behind a board, a card behind stats. A surface wants its own padding; without one it hugs its children. */
 .pal-view__stack[data-surface="sunken"] { background: var(--pal-bg-sunken, #141417); }
 .pal-view__stack[data-surface="elevated"] { background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)), var(--pal-bevel, inset 0 1px 0 rgba(255, 255, 255, 0.07)); }
+/* A hex surface (View.tsx paints the background inline): a hairline of the panel's ink so a colour near the panel's still has an edge. */
+.pal-view__stack[data-surface="custom"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pal-fg, #ececf0) 8%, transparent); }
 .pal-view__stack[data-radius] { border-radius: var(--pal-radius-tile, 10px); }
 .pal-view__text { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* A text with a width is a column: it clips instead of wrapping, and `align` places the run inside it. */
@@ -589,15 +591,55 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 /* In a column the bar keeps its 4px; it only grows along a row. */
 /* In a column a bar keeps its 4 px: direct, or under the presence wrapper of a keyed one (a `display: contents` div with no class, exiting or not). */
 .pal-view__stack:not([data-direction="row"]) > .pal-view__progress, .pal-view__stack:not([data-direction="row"]) > div:not(.pal-view__node) > .pal-view__progress { flex: 0 0 auto; }
-.pal-view__progress > span { display: block; height: 100%; border-radius: inherit; background: var(--pal-accent, #9f97ff); transition: width var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
-.pal-view__progress[data-color="grey"] > span { background: var(--pal-tag-grey); }
-.pal-view__progress[data-color="blue"] > span { background: var(--pal-tag-blue); }
-.pal-view__progress[data-color="green"] > span { background: var(--pal-tag-green); }
-.pal-view__progress[data-color="amber"] > span { background: var(--pal-tag-amber); }
-.pal-view__progress[data-color="red"] > span { background: var(--pal-tag-red); }
-.pal-view__progress[data-color="violet"] > span { background: var(--pal-tag-violet); }
-.pal-view__progress[data-color="pink"] > span { background: var(--pal-tag-pink); }
-.pal-view__progress[data-color="teal"] > span { background: var(--pal-tag-teal); }
+.pal-view__progress > span { display: block; height: 100%; border-radius: inherit; background: var(--bar, var(--pal-accent, #9f97ff)); transition: width var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
+/* The bar colour: a tag by name, a hex colour of the extension's own through --bar (View.tsx sets it), else the accent. The slider shares it. */
+.pal-view__progress[data-color="grey"], .pal-view__slider[data-color="grey"] { --bar: var(--pal-tag-grey); }
+.pal-view__progress[data-color="blue"], .pal-view__slider[data-color="blue"] { --bar: var(--pal-tag-blue); }
+.pal-view__progress[data-color="green"], .pal-view__slider[data-color="green"] { --bar: var(--pal-tag-green); }
+.pal-view__progress[data-color="amber"], .pal-view__slider[data-color="amber"] { --bar: var(--pal-tag-amber); }
+.pal-view__progress[data-color="red"], .pal-view__slider[data-color="red"] { --bar: var(--pal-tag-red); }
+.pal-view__progress[data-color="violet"], .pal-view__slider[data-color="violet"] { --bar: var(--pal-tag-violet); }
+.pal-view__progress[data-color="pink"], .pal-view__slider[data-color="pink"] { --bar: var(--pal-tag-pink); }
+.pal-view__progress[data-color="teal"], .pal-view__slider[data-color="teal"] { --bar: var(--pal-tag-teal); }
+/* A slider: a taller track with the fill and a round thumb at its end (the thumb is white with a hairline so it reads on any fill), 6 px of grab room around. */
+.pal-view__slider { position: relative; flex: 1 1 auto; min-width: 48px; height: 6px; border-radius: 3px; background: var(--pal-line-strong, rgba(255, 255, 255, 0.16)); }
+.pal-view__stack:not([data-direction="row"]) > .pal-view__slider, .pal-view__stack:not([data-direction="row"]) > div:not(.pal-view__node) > .pal-view__slider { flex: 0 0 auto; }
+.pal-view__slider > span { display: block; height: 100%; border-radius: inherit; background: var(--bar, var(--pal-accent, #9f97ff)); transition: width var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
+.pal-view__thumb { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3); transition: left var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
+.pal-view__slider[data-action] { cursor: pointer; }
+.pal-view__slider[data-action]::before { content: ""; position: absolute; inset: -8px 0; }
+/* A switch: the system's pill, 26 by 16, the knob sliding over; the accent (or a tag colour) once on, the strong line off. */
+.pal-view__switch { --sw: var(--pal-accent, #9f97ff); position: relative; flex: none; display: inline-block; width: 26px; height: 16px; border-radius: 8px; background: var(--pal-line-strong, rgba(255, 255, 255, 0.16)); transition: background var(--pal-dur-base, 120ms) var(--pal-ease, ease); }
+.pal-view__switch > i { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform var(--pal-dur-base, 120ms) var(--pal-ease, ease); }
+.pal-view__switch[data-on] { background: var(--sw); }
+.pal-view__switch[data-on] > i { transform: translateX(10px); }
+.pal-view__switch[data-color="grey"] { --sw: var(--pal-tag-grey); }
+.pal-view__switch[data-color="blue"] { --sw: var(--pal-tag-blue); }
+.pal-view__switch[data-color="green"] { --sw: var(--pal-tag-green); }
+.pal-view__switch[data-color="amber"] { --sw: var(--pal-tag-amber); }
+.pal-view__switch[data-color="red"] { --sw: var(--pal-tag-red); }
+.pal-view__switch[data-color="violet"] { --sw: var(--pal-tag-violet); }
+.pal-view__switch[data-color="pink"] { --sw: var(--pal-tag-pink); }
+.pal-view__switch[data-color="teal"] { --sw: var(--pal-tag-teal); }
+/* An avatar with a presence dot: the picture in a box of its size, the dot on the corner ringed by the panel so it reads over the picture. */
+.pal-view__avatar { position: relative; flex: none; display: inline-block; }
+.pal-view__avatar > .pal-view__image { display: block; }
+.pal-view__dot { --dot: var(--pal-tag-grey); position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 0 2px var(--pal-bg, #1c1c21); }
+.pal-view__dot[data-color="blue"] { --dot: var(--pal-tag-blue); }
+.pal-view__dot[data-color="green"] { --dot: var(--pal-tag-green); }
+.pal-view__dot[data-color="amber"] { --dot: var(--pal-tag-amber); }
+.pal-view__dot[data-color="red"] { --dot: var(--pal-tag-red); }
+.pal-view__dot[data-color="violet"] { --dot: var(--pal-tag-violet); }
+.pal-view__dot[data-color="pink"] { --dot: var(--pal-tag-pink); }
+.pal-view__dot[data-color="teal"] { --dot: var(--pal-tag-teal); }
+/* A node with `action` is a control: a pointer, and a lift on hover (a stack or a tile brightens; a keycap too). `selected` is the keys' cursor: the accent ring. */
+.pal-view [data-action] { cursor: pointer; user-select: none; }
+.pal-view .pal-view__stack[data-action], .pal-view .pal-view__tile[data-action] { transition: filter var(--pal-dur-fast, 80ms) var(--pal-ease, ease), transform var(--pal-dur-fast, 80ms) var(--pal-ease, ease); }
+.pal-view .pal-view__stack[data-action]:hover, .pal-view .pal-view__tile[data-action]:hover { filter: brightness(1.06); }
+.pal-view .pal-view__stack[data-action]:active, .pal-view .pal-view__tile[data-action]:active { transform: scale(0.985); filter: brightness(0.96); }
+.pal-view .pal-view__stack[data-action][data-surface="custom"]:hover { filter: brightness(1.1); }
+.pal-view [data-selected] { box-shadow: 0 0 0 2px var(--pal-bg, #1c1c21), 0 0 0 4px var(--pal-accent, #9f97ff); }
+.pal-view .pal-view__stack[data-selected][data-surface="elevated"] { box-shadow: 0 0 0 2px var(--pal-bg, #1c1c21), 0 0 0 4px var(--pal-accent, #9f97ff); }
 .pal-view .pal-kbd, .pal-view .pal-tag { flex: none; }
 /* Entrances (brief's motion table): fade, the toast's rise and its three siblings (--pal-motion-slide), a horizontal unfold for a card turning over, a pop from 0.8 for a merged tile. `both` keeps a delayed node hidden until its turn. A `move` (View.tsx useMove) is a transform played by script over --pal-motion-move; a re-mounted mover has its entrance switched off inline. */
 .pal-view [data-enter="fade"] { animation: pal-fade var(--pal-dur-base, 120ms) var(--pal-ease, ease) both; }

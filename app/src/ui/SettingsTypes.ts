@@ -4,6 +4,7 @@
  * setting schema an extension ships (not in the core yet; see the report
  * that introduced this file).
  */
+import { defaultLook, type BarLook } from "./BarStrip";
 import type { Icon } from "./types";
 
 export type SettingOption = { id: string; title: string };
@@ -224,6 +225,12 @@ export type SettingsIndexEntry = { page: SettingsPage; label: string; hint?: str
 
 /** `[bar]` in the file (core::config::Bar), the part the Bar page edits. */
 export type BarTarget = "auto" | "menubar" | "sketchybar" | "both" | "off";
+export type BarBadgeStyle = "count" | "dot" | "none";
+export type BarFont = "system" | "mono";
+/** The appearance keys of `[bar.menubar]` / `[bar.sketchybar]` (core `BarLook`), the strip renderer's `BarLook`. */
+export type BarLookConfig = BarLook;
+/** One item's say on each look key (core `BarLookOverride`); absent means the target's. */
+export type BarLookOverride = Partial<BarLookConfig>;
 export type BarConfig = {
   target: BarTarget;
   hoverDelay: number;
@@ -231,7 +238,48 @@ export type BarConfig = {
   menubarHover: boolean;
   sketchybarHover: boolean;
   sketchybarPosition: string;
+  menubar: BarLookConfig;
+  sketchybar: BarLookConfig;
 };
+
+/** `Bar::look`: the target's defaults with the item's keys on top. */
+export function resolveLook(base: BarLookConfig, over: BarLookOverride): BarLookConfig {
+  const out = { ...base };
+  for (const k of Object.keys(over) as (keyof BarLookConfig)[]) if (over[k] !== undefined) (out as Record<string, unknown>)[k] = over[k];
+  return out;
+}
+
+/** The built-in look (core `BarLook::default`), the same for both targets. */
+export const lookDefaults: BarLookConfig = defaultLook;
+
+/** The look keys: the page's camelCase to the file's snake_case. */
+export const LOOK_KEYS: [keyof BarLookConfig, string][] = [["dim", "dim"], ["size", "size"], ["spacing", "spacing"], ["showIcon", "show_icon"], ["showTitle", "show_title"], ["color", "color"], ["urgentColor", "urgent_color"], ["badgeStyle", "badge_style"], ["width", "width"], ["font", "font"], ["maxChars", "max_chars"]];
+
+/** The file's look keys (a target table, an item table) as the page's override. */
+export function lookOf(raw: Record<string, unknown> | undefined): BarLookOverride {
+  const out: BarLookOverride = {};
+  for (const [k, r] of LOOK_KEYS) if (raw?.[r] !== undefined) (out as Record<string, unknown>)[k] = raw[r];
+  return out;
+}
+
+/**
+ * What to write when a look moves from `cur` to `next`: each changed key
+ * as its file spelling with the value, or `undefined` (unset) when it is
+ * back at `base` (the built-in default for a target table, the target's
+ * value for an item), empty, or cleared.
+ */
+export function lookWrites(cur: BarLookOverride, next: BarLookOverride, base: BarLookConfig): [string, unknown][] {
+  const out: [string, unknown][] = [];
+  for (const [k, r] of LOOK_KEYS) {
+    if (cur[k] === next[k]) continue;
+    const v = next[k];
+    const unset = v === undefined || v === base[k] || v === "";
+    // Nothing in the file and nothing to put there: no write.
+    if (unset && cur[k] === undefined) continue;
+    out.push([r, unset ? undefined : v]);
+  }
+  return out;
+}
 
 /** `[bar.items."<key>"]`: absent keys mean the target's defaults. */
 export type BarItemConfig = {
@@ -241,6 +289,7 @@ export type BarItemConfig = {
   hotkey?: string;
   openOnHover?: boolean;
   order?: number;
+  look: BarLookOverride;
 };
 
 /** One declared bar item (settings.rs `BarItemView`) with its extension and its config. */
@@ -259,7 +308,8 @@ export type BarItem = {
   /** Unix seconds of the last render. */
   renderedAt?: number;
   stale: boolean;
-  state?: { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean };
+  /** The last render's strip (settings.rs `BarItemState`): the state line and the preview read it. */
+  state?: { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean; icon?: unknown; segments?: { id: string; icon?: string; text?: string; color?: string }[]; color?: string; progress?: number; tooltip?: string };
   config: BarItemConfig;
 };
 

@@ -12,7 +12,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsWindow,
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages,
-  type BarConfig, type BarItem, type BarItemConfig, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
+  resolveLook, lookDefaults, lookOf, lookWrites, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
@@ -22,8 +22,10 @@ import { iconOf } from "./items";
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
 
 type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; icon?: string; tier?: PaletteTier; item_hotkeys?: Record<string, string>; settings?: Record<string, unknown> };
-type RawBarItem = { enabled?: boolean; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number };
-type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: { open_on_hover: boolean }; sketchybar: { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
+/** core `BarLook` as the file spells it. */
+type RawLook = { dim?: number; size?: number; spacing?: number; show_icon?: boolean; show_title?: boolean; color?: string; urgent_color?: string; badge_style?: BarBadgeStyle; width?: number; font?: BarFont; max_chars?: number };
+type RawBarItem = RawLook & { enabled?: boolean; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number };
+type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
   general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean; check_updates: boolean };
   palettes: Record<string, RawPalette>;
@@ -132,7 +134,7 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
     renderedAt: b.rendered_at,
     stale: b.stale,
     state: b.state,
-    config: { enabled: raw.enabled ?? true, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order },
+    config: { enabled: raw.enabled ?? true, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, look: lookOf(raw) },
   };
 }
 
@@ -196,6 +198,7 @@ export default function Settings() {
   const [page, setPage] = useState<SettingsPage>(startPage);
   const [palette, setPalette] = useState<string | undefined>(undefined);
   const [ext, setExt] = useState<string | undefined>(undefined);
+  const [barKey, setBarKey] = useState<string | undefined>(undefined);
   /** The last failed command, shown in the title bar until a write succeeds. */
   const [error, setError] = useState<string | null>(null);
   const [about, setAbout] = useState<About>({ docs: "", repo: "" });
@@ -371,7 +374,16 @@ export default function Settings() {
   };
 
   const rawBar = config.bar ?? { target: "auto" as const, hover_delay: 250, hover_grace: 400, menubar: { open_on_hover: false }, sketchybar: { open_on_hover: true, position: "right" }, items: {} };
-  const bar: BarConfig = { target: rawBar.target, hoverDelay: rawBar.hover_delay, hoverGrace: rawBar.hover_grace, menubarHover: rawBar.menubar.open_on_hover, sketchybarHover: rawBar.sketchybar.open_on_hover, sketchybarPosition: rawBar.sketchybar.position };
+  const bar: BarConfig = {
+    target: rawBar.target, hoverDelay: rawBar.hover_delay, hoverGrace: rawBar.hover_grace, menubarHover: rawBar.menubar.open_on_hover, sketchybarHover: rawBar.sketchybar.open_on_hover, sketchybarPosition: rawBar.sketchybar.position,
+    // The file's keys over the built-in look: a target table missing a key is at its default.
+    menubar: resolveLook(lookDefaults, lookOf(rawBar.menubar)),
+    sketchybar: resolveLook(lookDefaults, lookOf(rawBar.sketchybar)),
+  };
+  /** Each look key that moved: written, or unset when it is back at `base` (`lookWrites`). */
+  const writeLook = (path: string[], cur: BarLookOverride, next: BarLookOverride, base: BarLookConfig) => {
+    for (const [r, v] of lookWrites(cur, next, base)) write([...path, r], v);
+  };
   const onBar = (next: BarConfig) => {
     if (next.target !== bar.target) write(["bar", "target"], next.target === "auto" ? undefined : next.target);
     if (next.hoverDelay !== bar.hoverDelay) write(["bar", "hover_delay"], next.hoverDelay === 250 ? undefined : next.hoverDelay);
@@ -379,6 +391,8 @@ export default function Settings() {
     if (next.menubarHover !== bar.menubarHover) write(["bar", "menubar", "open_on_hover"], next.menubarHover ? true : undefined);
     if (next.sketchybarHover !== bar.sketchybarHover) write(["bar", "sketchybar", "open_on_hover"], next.sketchybarHover ? undefined : false);
     if (next.sketchybarPosition !== bar.sketchybarPosition) write(["bar", "sketchybar", "position"], next.sketchybarPosition === "right" ? undefined : next.sketchybarPosition);
+    writeLook(["bar", "menubar"], bar.menubar, next.menubar, lookDefaults);
+    writeLook(["bar", "sketchybar"], bar.sketchybar, next.sketchybar, lookDefaults);
   };
   const onBarItem = (key: string, next: BarItemConfig) => {
     const cur = barItems.find((b) => b.key === key)?.config;
@@ -389,6 +403,10 @@ export default function Settings() {
     if ((next.hotkey ?? "") !== (cur.hotkey ?? "")) write(["bar", "items", key, "hotkey"], next.hotkey || undefined);
     if (next.openOnHover !== cur.openOnHover) write(["bar", "items", key, "open_on_hover"], next.openOnHover);
     if (next.order !== cur.order) write(["bar", "items", key, "order"], next.order);
+    // An item's key equal to its target's default leaves the file (the target it draws on, as the pane resolves it: sketchybar's when aimed there or under `auto` with sketchybar up, else the menu bar's).
+    const target = next.target ?? bar.target;
+    const onSketchybar = target === "sketchybar" || (target === "auto" && (view.bar?.sketchybar ?? false));
+    writeLook(["bar", "items", key], cur.look, next.look, onSketchybar ? bar.sketchybar : bar.menubar);
   };
 
   /** A page, and a row on it lit once it is up: the Overview's actions and the cross-page links. */
@@ -396,6 +414,7 @@ export default function Settings() {
     setPage(p);
     if (anchor?.startsWith("palettes:")) { const id = anchor.split(":")[1]; if (id !== "ext" && extensions.some((e) => e.palettes.some((x) => x.id === id))) setPalette(id); }
     if (anchor?.startsWith("extensions:")) { const name = anchor.split(":")[1]; if (extensions.some((e) => e.name === name)) setExt(name); }
+    if (anchor?.startsWith("bar:")) { const rest = anchor.slice(4); const key = barItems.find((b) => rest === b.key || rest.startsWith(`${b.key}:`))?.key; if (key) setBarKey(key); }
     if (anchor) requestAnimationFrame(() => { if (!flashAnchor(anchor)) setTimeout(() => flashAnchor(anchor), 120); });
   };
   const requestPermission = (which: PermissionId) => invoke("permissions_request", { which }).then(refresh, fail);
@@ -452,7 +471,7 @@ export default function Settings() {
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}
       {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} />}
-      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} />}
+      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} />}
       {page === "about" && (
         <SettingsAbout
           version={view.version}

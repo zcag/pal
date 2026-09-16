@@ -93,13 +93,23 @@ same view in a compact layout, fed the same way.
 Spotify mark, or, with **Lyrics on the bar** (`bar_lyrics`, on), the
 lyric line playing when lrclib has synced lyrics for the track; hidden
 while nothing plays. A click opens the lyrics view in the popover, in a
-compact layout (the cover in a header row, five lines), with the same
-keys; `q` and `d` open the queue and the devices inside the popover.
-While the popover is up the item is pushed every second, so the bar and
-the lines move; the playback state is read from Spotify every 5 s and
-the position between reads comes from the clock. The pushes go on for
-five minutes after the popover was last shown or used (pal does not say
-when a popover closes); outside that window the item asks to be rendered
+compact layout: the cover with the track, the artist and the album
+beside it, the progress bar with the times, the line playing large with
+one before and two after, the transport as key hints (`space` pause or
+play, `cmd+left`/`cmd+right` track, `left`/`right` seek 10 s,
+`up`/`down` volume), a row for `l` like, `d` devices, `q` queue with the
+paused/shuffle/repeat badges, and under a hairline the queue's next two
+tracks ("next", "then": the 64 px cover, the name, the artist), a click
+on one skipping to it (as many Nexts as its place, the queue palette's
+rule). The queue is asked at most every 15 s while the popover shows and
+again after a skip, an enqueue or a track change from the keys; the rows
+are left out while it is unknown. `q` and `d` open the queue and the
+devices inside the popover. While the popover is up the item is pushed
+every second, so the bar and the lines move; the playback state is read
+from Spotify every 5 s and the position between reads comes from the
+clock. The pushes go on for five minutes after the popover was last
+shown (`view/hidden` of its level ends the window early); outside that
+window the item asks to be rendered
 again exactly when the next lyric line starts, so the strip changes line
 on time without polling. The core also renders it every 30 s, on show,
 wake and network, and on its `media` trigger (macOS: the moment the

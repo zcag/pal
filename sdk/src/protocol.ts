@@ -183,6 +183,16 @@ type NodeBase = {
    */
   key?: string;
   transition?: Transition;
+  /**
+   * A click (a tap) on the node runs the view action with this id, as
+   * its key would: the node draws as a control (a pointer, a hover lift).
+   * The id must be one of the view's `actions` (`checkView`); a `hidden`
+   * action reached this way needs no shortcut. A room tile that toggles
+   * the room, a keycap that runs what it names.
+   */
+  action?: string;
+  /** Draws the node as the one the keys are on: an accent ring on its box. One per view is the idea (a cursor), not a rule. */
+  selected?: true;
 };
 
 /** Spacing in steps of the 4 px grid (`--pal-space-1..6`); 0 is none. */
@@ -200,10 +210,15 @@ export type ViewNode =
    * (px) holds a row's height while its keyed children come and go.
    * `surface` paints it: `sunken` (`--pal-bg-sunken`, a well behind a
    * board) or `elevated` (`--pal-bg-elevated` with a hairline, a card
-   * behind stats); `radius` rounds it (`--pal-radius-tile`). A surface
-   * without `padding` sits flush against its children, so give it some.
+   * behind stats), or a hex colour of the extension's own (`HexColor`,
+   * alpha allowed: the box is that colour, the ink black or white by
+   * contrast once it is opaque enough (alpha over 0.5) and the panel's
+   * otherwise, so a faint tint keeps the panel's text; a room tile in
+   * the room's colour); `radius` rounds it (`--pal-radius-tile`). A
+   * surface without `padding` sits flush against its children, so give
+   * it some.
    */
-  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated"; radius?: boolean; children: ViewNode[] })
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated" | HexColor; radius?: boolean; children: ViewNode[] })
   /**
    * One run of text. `style`: `title` (15 px semibold), `body` (13 px),
    * `muted` (13 px, muted colour), `mono` (12 px mono), `number` (tabular
@@ -213,8 +228,8 @@ export type ViewNode =
    * `minWidth` only its least; `align` places the text inside that width.
    */
   | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
-  /** An `icon://` url or a `data:image/...` the extension produced (an SVG it drew); anything else is not shown. Sized in px. */
-  | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: "circle" | "rounded"; alt?: string })
+  /** An `icon://` url or a `data:image/...` the extension produced (an SVG it drew); anything else is not shown. Sized in px. `dot` is a small filled circle on the bottom-right corner in that colour, ringed by the panel: an avatar's presence (green active, grey away, red do not disturb). */
+  | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: "circle" | "rounded"; alt?: string; dot?: TagColor })
   /**
    * A rounded box of `width` by `height` px with `text` centred in it and
    * `sub` small under the text, drawn with the tokens so it follows the
@@ -248,8 +263,19 @@ export type ViewNode =
   | (NodeBase & { type: "divider" })
   /** Free space, or `size` px of it. */
   | (NodeBase & { type: "spacer"; size?: number })
-  /** A bar filled to `value` (0..1); `width` in px, else it takes the free space; `color` from the tag palette, else the accent. */
-  | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor })
+  /** A bar filled to `value` (0..1); `width` in px, else it takes the free space; `color` from the tag palette or a hex colour of the extension's own, else the accent. */
+  | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor | HexColor })
+  /**
+   * A level the user sets: a track filled to `value` (0..1) with a round
+   * thumb at the fill's end, `width` px (else the free space), `color`
+   * as for `progress`. Drawn as a control (`role="slider"`); it moves by
+   * the view's own keys (an action per step) and, with `action`, a
+   * click on it runs that action with the clicked fraction as
+   * `ctx.values.value` ("0.62"). A volume, a brightness.
+   */
+  | (NodeBase & { type: "slider"; value: number; width?: number; color?: TagColor | HexColor; label?: string })
+  /** A switch pill, `on` or off, in the accent (or `color`); with `action` a click flips it through that action. A room's power, a setting. */
+  | (NodeBase & { type: "switch"; on: boolean; color?: TagColor; label?: string })
   /** A shortcut as key caps, in the `Action.shortcut` spelling (`h`, `cmd+k`, `up`). */
   | (NodeBase & { type: "keycap"; keys: string });
 
@@ -677,7 +703,7 @@ export type BarMenuNode =
 export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "focus" | "minute")[] };
 
 /** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
-export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh };
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[] };
 
 /**
  * Why `render` runs, and what a popover-opening click carried. `compact`:
@@ -686,7 +712,7 @@ export type ManifestBar = { title: string; description?: string; refresh?: BarRe
  * out for that width; the core sets it on every bar call today, since
  * the popover is the only surface a bar item draws on.
  */
-export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo };
+export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** On `onAction` from the popover: what a `View.input` field held on Enter (`input`), a form's fields, a slider's clicked fraction (`value`). */ values?: Record<string, string>; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo };
 
 /**
  * Which instance of a `multi` extension the code runs as (`instance()` in

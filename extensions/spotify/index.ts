@@ -33,7 +33,7 @@ import { EXTENSION, ITEM, NotSignedIn, conf, log, signIn, signOut, signedIn, sto
 import { ApiError, Offline, RateLimited, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
 import { tintOf, type Tint } from "./color.ts";
 import { cachedLyrics, currentLine, lyricsFor, searchUrl, type Lyrics } from "./lyrics.ts";
-import { clock, render, type Layout, type NowState, type Status } from "./view.ts";
+import { QUEUE_ROWS, clock, render, type Layout, type NowState, type QueueTrack, type Status } from "./view.ts";
 
 /** Nerd Font glyphs (nf-md-*, nf-fa-spotify for the bar). */
 const G = {
@@ -162,6 +162,53 @@ function coverOf(t: Track | undefined): Promise<Cover | undefined> {
   return p;
 }
 
+// ---- the queue for the popover -------------------------------------------------
+
+/** The queue is asked at most this often while the popover shows (the 1 Hz loop reads the cache). */
+const QUEUE_MS = Number(process.env.PAL_SPOTIFY_QUEUE_MS) || 15_000;
+/** The 64 px thumbs kept as data urls, this many at most. */
+const THUMB_KEEP = 24;
+let queueCache: { at: number; tracks: QueueTrack[] } | undefined;
+let queueFetch: Promise<void> | undefined;
+const thumbs = new Map<string, string | null>();
+const thumbFetch = new Map<string, Promise<void>>();
+
+/** The track's 64 px cover as a data url, once per track; a failure leaves it out (a note tile stands in). */
+function thumbOf(t: Track): Promise<void> {
+  if (!t.thumb || thumbs.has(t.id)) return Promise.resolve();
+  const running = thumbFetch.get(t.id);
+  if (running) return running;
+  const p = fetch(t.thumb, { signal: AbortSignal.timeout(COVER_MS) })
+    .then(async (r) => {
+      if (!r.ok) throw new Error(`thumb ${r.status}`);
+      const type = r.headers.get("content-type")?.split(";")[0] || "image/jpeg";
+      thumbs.set(t.id, `data:${type};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`);
+      if (thumbs.size > THUMB_KEEP) thumbs.delete(thumbs.keys().next().value!);
+    })
+    .catch((e) => { log(`thumb: ${e instanceof Error ? e.message : e}`); thumbs.set(t.id, null); })
+    .finally(() => thumbFetch.delete(t.id));
+  thumbFetch.set(t.id, p);
+  return p;
+}
+
+/** The queue's next rows for the popover, from the cache when it is under `QUEUE_MS` old, else asked (with their thumbs); undefined while unknown. */
+async function queueFor(maxAge = QUEUE_MS): Promise<QueueTrack[] | undefined> {
+  if (queueCache && Date.now() - queueCache.at <= maxAge) return queueCache.tracks;
+  queueFetch ??= readQueue()
+    .then(async (q) => {
+      const next = q.queue.slice(0, QUEUE_ROWS);
+      await Promise.all(next.map(thumbOf));
+      queueCache = { at: Date.now(), tracks: next.map((t) => ({ id: t.id, name: t.name, artist: t.artist, cover: thumbs.get(t.id) ?? undefined })) };
+    })
+    .catch((e) => { log(`queue: ${e instanceof Error ? e.message : e}`); queueCache = { at: Date.now(), tracks: queueCache?.tracks ?? [] }; })
+    .finally(() => { queueFetch = undefined; });
+  await queueFetch;
+  return queueCache?.tracks;
+}
+
+/** A skip changed the queue: the next read asks again. */
+const forgetQueue = () => { queueCache = undefined; };
+
 const likes = new Map<string, boolean>();
 async function likedOf(t: Track | undefined): Promise<boolean | undefined> {
   if (!t || t.kind !== "track") return undefined;
@@ -184,13 +231,14 @@ function stateOf(l: Live, layout: Layout): NowState {
   return {
     ...base, track: t, liked: likes.get(t.id), device: p.device ? { name: p.device.name, volume: p.device.volume } : undefined,
     lyrics: t.kind === "track" ? cachedLyrics(t.id) : null, cover: c?.data, tint: c?.tint,
+    ...(layout === "compact" && queueCache && { queue: queueCache.tracks }),
   };
 }
 
-/** The state with the cover, the like and the lyrics fetched, waiting at most `wait` ms for them. */
+/** The state with the cover, the like, the lyrics and (compact) the queue fetched, waiting at most `wait` ms for them. */
 async function fullState(l: Live, layout: Layout, wait: number): Promise<NowState> {
   const t = l.player?.track;
-  if (t) await Promise.race([Promise.all([coverOf(t), likedOf(t), askLyrics(t)]), Bun.sleep(wait)]);
+  if (t) await Promise.race([Promise.all([coverOf(t), likedOf(t), askLyrics(t), ...(layout === "compact" ? [queueFor()] : [])]), Bun.sleep(wait)]);
   return stateOf(l, layout);
 }
 
@@ -227,10 +275,13 @@ async function act(action: string, layout: Layout): Promise<Effect> {
     case "lyrics": return { view: await viewOf(l, layout) };
   }
   if (!p) return { view: await viewOf(l, layout) };
+  // A queue row clicked in the popover: as many Nexts as its place, as the queue palette does.
+  const skip = /^skip:(\d+)$/.exec(action);
+  if (skip) { const n = Math.min(MAX_SKIP, Number(skip[1]) + 1); return call("Could not skip", async () => { for (let i = 0; i < n; i++) await next(); forgetQueue(); }, undefined, true); }
   switch (action) {
     case "toggle": return call(p.playing ? "Could not pause" : "Could not play", () => (p.playing ? pause() : play()), (x) => ({ ...x, playing: !p.playing, progress: positionOf(p), at: Date.now() }));
-    case "next": return call("Could not skip", () => next(), undefined, true);
-    case "previous": return call("Could not go back", () => previous(), undefined, true);
+    case "next": return call("Could not skip", async () => { await next(); forgetQueue(); }, undefined, true);
+    case "previous": return call("Could not go back", async () => { await previous(); forgetQueue(); }, undefined, true);
     case "forward": case "back": {
       const to = Math.max(0, Math.min(t?.duration ?? Infinity, positionOf(p) + (action === "forward" ? SEEK_S : -SEEK_S) * 1000));
       return call("Could not seek", () => seek(to), (x) => ({ ...x, progress: to, at: Date.now() }));
@@ -423,7 +474,7 @@ async function pickEntity(id: string, action = "play", ctx?: Ctx): Promise<Effec
         return { hud: `Playing ${known?.name ?? e.kind} shuffled` };
       case "queue":
         if (!playable) return { keep: true };
-        await enqueue(e.uri);
+        await enqueue(e.uri); forgetQueue();
         return { keep: true, toast: { title: "Added to queue", message: known?.name } };
       case "like": {
         if (e.kind !== "track") return { keep: true };
@@ -598,6 +649,7 @@ async function pickQueue(id: string, action?: string): Promise<Effect> {
   if (action !== "skip") return pickEntity(`${table.get(`track:${m[2]}`)?.kind ?? "track"}:${m[2]}`, action);
   const n = Math.min(MAX_SKIP, Number(m[1]) + 1);
   try { for (let i = 0; i < n; i++) await next(); } catch (e) { return failToast("Could not skip", e); }
+  forgetQueue();
   holdUntil = 0;
   return { keep: true, toast: { title: n === 1 ? "Skipped" : `Skipped ${n} tracks` } };
 }

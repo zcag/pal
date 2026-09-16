@@ -6,8 +6,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { BarItem } from "../../../sdk/src/index.ts";
-import { fmt, readTimers, unquote } from "../../../extensions/timer/index.ts";
+import type { BarItem, View, ViewNode } from "../../../sdk/src/index.ts";
+import { checkView } from "../../../sdk/src/view.ts";
+import { fmt, parseNew, readTimers, unquote } from "../../../extensions/timer/index.ts";
+import { DEFAULT_RECENT, actions, render as renderPopover, type PopoverState, type Timer } from "../../../extensions/timer/view.ts";
 import { Host } from "../harness.ts";
 
 const base = mkdtempSync(join(tmpdir(), "pal-timer-"));
@@ -52,7 +54,7 @@ describe("timer", () => {
   test("meta: the palette is live, the bar entry refreshes every 10 s and on wake", () => {
     const l = host.loaded().find((l) => l.extension === "timer")!;
     expect(l.palettes).toMatchObject([{ name: "timers", title: "Timers", live: true, input: false }]);
-    expect(l.bar).toEqual([{ id: "timer", title: "Timer", description: expect.any(String), refresh: { every: 10, on: ["wake"] }, source: true }]);
+    expect(l.bar).toEqual([{ id: "timer", title: "Timer", description: expect.any(String), refresh: { every: 10, on: ["wake"] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }, { keys: "n", title: expect.any(String) }]), source: true }]);
   });
 
   test("the state directory is made on the first render; no timers is hidden, and the palette has only the New row", async () => {
@@ -76,7 +78,7 @@ describe("timer", () => {
     put("eggs", { state: "paused", left: 30 });
     put("pizza", { state: "done", fired: now() - 10, auto: true, name: "25m" });
     const done = await render();
-    expect(done).toMatchObject({ icon: "\u{f0954}", title: "Done", urgent: true, progress: 1, tooltip: "25m landed 0:10 ago (+2 more)", menu: { palette: "timers", extension: "timer" } });
+    expect(done).toMatchObject({ icon: "\u{f0954}", title: "Done", urgent: true, progress: 1, tooltip: "25m landed 0:10 ago (+2 more)", menu: { view: { id: "timer", keys: "actions", title: "3 timers" } } });
     unlinkSync(join(dir, "pizza.state"));
     // The clock may tick between the file and the render: a second less is fine.
     const tea = await render();
@@ -146,8 +148,142 @@ describe("timer", () => {
     clear();
   });
 
+  /** Every node of a tree, depth first. */
+  const nodes = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(nodes) : [])];
+  const menuView = (item: BarItem) => (item.menu as { view: View }).view;
+  const act = (action: string, values?: Record<string, string>) => host.barAction("timer", "timer", action, { reason: "open", compact: true, ...(values && { values }) });
+
+  test("the popover: a card per timer with the time left, a bar in the strip's colour and the ring on the first; the tree passes the check; the keys are the actions", async () => {
+    put("tea", { state: "running", deadline: now() + 600 });
+    put("eggs", { state: "paused", left: 30 });
+    put("pizza", { state: "done", fired: now() - 10 });
+    const v = menuView(await render());
+    expect(checkView(v)).toBe(v);
+    const all = nodes(v.tree);
+    const cards = all.filter((n) => n.type === "stack" && n.key?.startsWith("t-"));
+    expect(cards.map((c) => c.key)).toEqual(["t-pizza", "t-tea", "t-eggs"]);
+    expect(cards.map((c) => c.action)).toEqual(["focus:pizza", "focus:tea", "focus:eggs"]);
+    expect(cards.map((c) => c.selected)).toEqual([true, undefined, undefined]);
+    const bars = all.filter((n) => n.type === "progress") as Extract<ViewNode, { type: "progress" }>[];
+    expect(bars.map((b) => b.color)).toEqual(["red", "blue", "grey"]);
+    expect(bars[0].value).toBe(1);
+    const big = all.filter((n) => n.type === "text" && n.key === "left") as Extract<ViewNode, { type: "text" }>[];
+    expect(big.map((t) => t.value)).toEqual(["0:00", expect.stringMatching(/^(10:00|9:59)$/), "0:30"]);
+    expect(big[0]).toMatchObject({ style: "number", size: "xl", color: "destructive" });
+    expect(all.some((n) => n.type === "badge" && n.text === "done")).toBe(true);
+    expect(all.some((n) => n.type === "badge" && n.text === "paused")).toBe(true);
+    // The first card is the landed one: Enter dismisses; the keys of the hints row are the actions.
+    expect(v.actions[0]).toEqual({ id: "toggle", title: "Dismiss", shortcut: ["space", "d"] });
+    expect(v.actions.map((a) => a.id)).toEqual(["toggle", "stop", "new", "open", "up", "down", "focus:pizza", "focus:tea", "focus:eggs"]);
+    expect(all.filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["space", "backspace", "up", "down", "n", "o"]);
+    expect(v.input).toBeUndefined();
+  });
+
+  test("the keys route to the CLI for the card with the ring: arrows and a click move the ring, space pauses and resumes, + adds, backspace stops, Enter dismisses a landed one", async () => {
+    const logAt = asked().length;
+    // Down twice from pizza (landed) lands on eggs; space resumes it.
+    expect(await act("down")).toEqual({ keep: true });
+    expect(menuView(await render()).actions[0]).toMatchObject({ id: "toggle", title: "Pause" });
+    expect(await act("down")).toEqual({ keep: true });
+    expect(menuView(await render()).actions[0]).toMatchObject({ id: "toggle", title: "Resume" });
+    expect(await act("toggle")).toEqual({ keep: true });
+    expect(readFileSync(join(dir, "eggs.state"), "utf8")).toContain("state=running");
+    // A click on tea's card: the ring moves there, the keys follow.
+    expect(await act("focus:tea")).toEqual({ keep: true });
+    const cards = nodes(menuView(await render()).tree).filter((n) => n.type === "stack" && n.key?.startsWith("t-"));
+    expect(cards.find((c) => c.selected)?.key).toBe("t-tea");
+    expect(await act("toggle")).toEqual({ keep: true });
+    expect(readFileSync(join(dir, "tea.state"), "utf8")).toContain("state=paused");
+    expect(await act("add")).toEqual({ keep: true });
+    expect(await act("stop")).toEqual({ keep: true });
+    expect(existsSync(join(dir, "tea.state"))).toBe(false);
+    // Up from the first wraps to the last; the landed one dismissed through `done`.
+    expect(await act("focus:pizza")).toEqual({ keep: true });
+    expect(await act("toggle")).toEqual({ keep: true });
+    expect(asked().slice(logAt)).toEqual(["resume eggs", "pause tea", "add 5m tea", "stop tea", "done"]);
+    expect(await act("open")).toEqual({ push: { extension: "timer", palette: "timers" } });
+    clear();
+  });
+
+  test("the field: n opens it, Start reads 25m tea ring from ctx.values.input and starts the timer, the duration joins the tiles; Escape's cancel closes it; an empty line is a toast", async () => {
+    put("eggs", { state: "paused", left: 30 });
+    expect(await act("new")).toEqual({ keep: true });
+    let v = menuView(await render());
+    expect(v.input).toEqual({ placeholder: "25m tea", submit: "start", cancel: "cancel" });
+    expect(v.actions[0]).toEqual({ id: "start", title: "Start" });
+    expect(nodes(v.tree).filter((n) => n.type === "tile").map((n) => (n as { text: string }).text)).toEqual(DEFAULT_RECENT);
+    expect(nodes(v.tree).filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["enter", "escape"]);
+    expect(await act("start", { input: "  " })).toMatchObject({ keep: true, toast: { title: "A duration is needed", style: "failure" } });
+    expect(await act("start", { input: "nope" })).toMatchObject({ keep: true, toast: { title: "Could not start the timer", message: "bad duration 'nope' (try 25m, 90s, 1h30m, 2:30)", style: "failure" } });
+    expect(await act("start", { input: "25m tea ring" })).toEqual({ keep: true, hud: "Started tea started" });
+    expect(asked().at(-1)).toBe("25m tea --ring");
+    v = menuView(await render());
+    expect(v.input).toBeUndefined();
+    expect(nodes(v.tree).filter((n) => n.type === "stack" && n.key?.startsWith("t-")).find((c) => c.selected)?.key).toBe("t-tea");
+    // The tiles remember: the next field opens with 25m first; a tile's click starts that duration at once.
+    expect(await act("new")).toEqual({ keep: true });
+    v = menuView(await render());
+    expect(nodes(v.tree).filter((n) => n.type === "tile").map((n) => (n as { text: string }).text)).toEqual(["25m", "5m", "1h"]);
+    expect(await act("cancel")).toEqual({ keep: true });
+    expect(menuView(await render()).input).toBeUndefined();
+    expect(await act("recent:5m")).toMatchObject({ keep: true });
+    expect(asked().at(-1)).toBe("5m");
+    unlinkSync(join(dir, "5m.state"));
+    clear();
+  });
+
+  test("the popover live: shown with only a paused timer the tick still pushes (the item, tree included) every second, and stops once it is hidden", async () => {
+    put("eggs", { state: "paused", left: 30 });
+    await render();
+    await Bun.sleep(1500);
+    const before = host.updates("timer", "timer").length;
+    host.viewShown("timer", { bar: "timer" }, "timer", true);
+    await host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view, 2500);
+    await host.nextUpdate("timer", "timer", (i) => !!(i.menu as { view?: View })?.view, 2500);
+    expect(host.updates("timer", "timer").length).toBeGreaterThan(before + 1);
+    host.viewHidden("timer", { bar: "timer" }, "timer", true);
+    // A tick in flight at the hide may still land; after that, nothing.
+    await Bun.sleep(2000);
+    const n = host.updates("timer", "timer").length;
+    await Bun.sleep(2000);
+    expect(host.updates("timer", "timer")).toHaveLength(n);
+    clear();
+  }, 12000);
+
   test("a stopped timer is a toast when the CLI refuses", async () => {
     expect(await pick("gone", "nope")).toMatchObject({ keep: true, toast: { title: "Could not nope the timer", style: "failure" } });
+  });
+});
+
+describe("timer: the popover's tree", () => {
+  const T = (id: string, state: Timer["state"], extra: Partial<Timer> = {}): Timer => ({ id, name: id, total: 1500, deadline: state === "running" ? 1000 + 300 : 0, left: state === "paused" ? 750 : 0, fired: state === "done" ? 1000 - 35 : 0, state, auto: false, ...extra });
+  const st = (timers: Timer[], extra: Partial<PopoverState> = {}): PopoverState => ({ timers, field: false, recent: [], now: 1000, ...extra });
+
+  test("no timer and no field: the field is what the empty state offers, with the default tiles", () => {
+    const v = renderPopover(st([], { field: true }));
+    expect(checkView(v)).toBe(v);
+    expect(v.title).toBe("New timer");
+    expect(v.input?.submit).toBe("start");
+    expect(actions(st([], { field: true })).map((a) => a.id)).toEqual(["start", "open", "cancel", "recent:5m", "recent:25m", "recent:1h"]);
+  });
+
+  test("the colours follow the strip's rule and the ring the cursor; one timer has no arrows", () => {
+    const late = T("late", "running", { deadline: 1000 + 100 });
+    const v = renderPopover(st([late, T("mid", "running", { deadline: 1000 + 400 }), T("p", "paused")], { cursor: "mid" }));
+    const all = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(all) : [])];
+    expect(all(v.tree).filter((n) => n.type === "progress").map((n) => (n as { color: string }).color)).toEqual(["red", "amber", "grey"]);
+    expect(all(v.tree).filter((n) => n.type === "stack" && n.selected).map((n) => n.key)).toEqual(["t-mid"]);
+    expect(v.title).toBe("3 timers");
+    const one = actions(st([late]));
+    expect(one.some((a) => a.id === "up")).toBe(false);
+    expect(one[0]).toMatchObject({ id: "toggle", title: "Pause" });
+  });
+
+  test("parseNew: the first word is the duration, the rest the name, a trailing ring asks the phone", () => {
+    expect(parseNew("25m tea")).toEqual({ duration: "25m", name: "tea", ring: false });
+    expect(parseNew(" 1h30m make the tea ring ")).toEqual({ duration: "1h30m", name: "make the tea", ring: true });
+    expect(parseNew("90s")).toEqual({ duration: "90s", name: "", ring: false });
+    expect(parseNew("")).toEqual({ duration: "", name: "", ring: false });
   });
 });
 

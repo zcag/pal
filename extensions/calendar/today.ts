@@ -4,7 +4,8 @@
 // the strip's title. Nothing here touches the core; the tests import it.
 import type { BarColor, BarItem, CalendarEvent } from "@zcag/pal";
 import { addDays, clock, dayName, startOfDay, timeRange } from "./schedule.ts";
-import { EXTENSION, type Settings } from "./source.ts";
+import type { Settings } from "./source.ts";
+import { freshPopover, popover, type PopoverState } from "./view.ts";
 
 const MIN = 60_000;
 const H = 60 * MIN;
@@ -110,8 +111,13 @@ export function nextWords(e: CalendarEvent | undefined, now: number): string {
   return `Next: ${e.title || "(no title)"}, ${day}${e.all_day ? "" : ` ${clock(e.start)}`}`;
 }
 
-/** The strip for `events` at `now` under the settings' rules; pure, so the tests and the gallery fixture agree with it. */
-export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, stale = false): BarItem {
+/**
+ * The strip for `events` at `now` under the settings' rules, with the
+ * popover (view.ts) over the same events as its menu; pure, so the tests
+ * and the gallery fixture agree with it. `stale` is the error behind a
+ * cache kept past a failed fetch (the strip muted, the popover says so).
+ */
+export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, stale?: string | false, st: PopoverState = freshPopover()): BarItem {
   const rules = { horizon_hours: Number(s.horizon_hours) || 10, warn_minutes: Number(s.warn_minutes) || 15, urgent_minutes: Number(s.urgent_minutes) || 5, hide_declined: s.hide_declined !== false, hide_all_day: s.hide_all_day !== false };
   const e = nextEvent(events, now, rules);
   if (!e) return { hidden: true };
@@ -121,8 +127,8 @@ export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, 
     title: barTitle(e, now),
     color: escalation(e, now, rules.warn_minutes, rules.urgent_minutes),
     badge: e.conference_url ? "dot" : undefined,
-    stale: stale || undefined,
+    stale: stale ? true : undefined,
     tooltip: `${e.title || "(no title)"}, ${timeRange(e)}${cal}${e.conference_url ? ", Enter joins" : ""}`,
-    menu: { palette: TODAY, extension: EXTENSION, args: { rest: true } },
+    menu: { view: popover(events, now, rules.hide_declined, st, typeof stale === "string" ? stale : undefined) },
   };
 }

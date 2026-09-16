@@ -160,12 +160,22 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "A click opens Today: what is left of the day and tomorrow, Enter joins the call",
+        "caption": "A click opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar, hours out: muted, the strip's own text; hidden when nothing starts within ten hours",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "While a call runs its row sits on a card with what is left of it; Enter joins",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-tomorrow.png",
+        "caption": "t opens tomorrow in the same shape; the arrows walk the rows",
         "kind": "bar"
       }
     ],
@@ -259,7 +269,7 @@
   "bar": {
     "upcoming": {
       "title": "Upcoming",
-      "description": "The next event as `Standup in 12m`, `now` while it runs; hidden when nothing starts within the horizon; amber then red as it nears, a dot when there is a call to join. A click opens Today.",
+      "description": "The next event as `Standup in 12m`, `now` while it runs; hidden when nothing starts within the horizon; amber then red as it nears, a dot when there is a call to join. A click opens the day: what is still to come with Join on the calls, the running event on a card, tomorrow folded.",
       "refresh": {
         "every": 300,
         "on": [
@@ -267,7 +277,41 @@
           "wake",
           "network"
         ]
-      }
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Join the focused event's call, else open it in Calendar (Google Calendar for a Google account)"
+        },
+        {
+          "keys": "j",
+          "title": "Join the next call"
+        },
+        {
+          "keys": "t",
+          "title": "Show or fold tomorrow"
+        },
+        {
+          "keys": "o",
+          "title": "Open Calendar (the day's page on calendar.google.com for a Google account)"
+        },
+        {
+          "keys": "r",
+          "title": "Refresh"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the focused event's details"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the focused event's conference link"
+        },
+        {
+          "keys": "up, down",
+          "title": "Move between the rows; a click on a row focuses it, a click on Join joins it"
+        }
+      ]
     }
   }
 }

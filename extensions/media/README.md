@@ -62,15 +62,24 @@ capability can see:
   one row says to install it.
 
 The bar item **Now Playing** puts the playing track on the strip (hidden
-while nothing plays) with the track row (the cover or the app's icon at
-row size; a click opens the track) and the transport in its popover:
-Pause (`space`), Next (`right`), Previous (`left`), Copy track (`cmd+c`),
-Open (`cmd+o`). The core asks for it every 30 s, on show and wake, and,
-on macOS, the moment the stream sees the track, the state or the cover
-change (the `media` trigger). Without that stream (Linux) the extension
-looks at the players itself every 5 s while one was playing at the last
-look and pushes when the track or the state changed, so a skip shows
-within seconds and an idle machine costs nothing.
+while nothing plays). Its popover is a card: the cover large at the left
+(the stream's picture; a cover the player names by url is fetched once
+into the picture, 2 MB at most; the app's own icon without one; a note
+tile without even that), the title, the artist and the album beside it
+with the player as a badge (and `paused` in amber), a progress row (the
+position, a bar, the duration) that ticks every second while the popover
+shows (the position moved along by the clock from the last look, no
+player asked), then the transport and the rest as keys, each a click
+too: `space` pause or play, `left` / `right` (or `cmd+left` /
+`cmd+right`) previous and next, `c` (or `cmd+c`) copy `artist - title`,
+`o` (or `cmd+o`) open the track in its player; a click on the cover or
+the titles opens it too. A player that names no track (a browser) shows
+its app as the title and the position. The core asks for the item every
+30 s, on show and wake, and, on macOS, the moment the stream sees the
+track, the state or the cover change (the `media` trigger). Without that
+stream (Linux) the extension looks at the players itself every 5 s while
+one was playing at the last look and pushes when the track or the state
+changed, so a skip shows within seconds and an idle machine costs nothing.
 
 ## What it does not do
 

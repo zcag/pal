@@ -9,10 +9,12 @@
 // tick reads and how long that render takes. The Google source is
 // calendar-google.test.ts.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { addDays, DAY, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
+import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
 import { barTitle, escalation, nextEvent, nextWords, onDay, shortSpan, span, state, upcomingItem } from "../../../extensions/calendar/today.ts";
-import type { BarItem, Calendar, CalendarEvent, Form } from "../../../sdk/src/index.ts";
+import { actions as popoverActions, focusable, freshPopover, listed, popover } from "../../../extensions/calendar/view.ts";
+import type { BarItem, Calendar, CalendarEvent, Form, View, ViewNode } from "../../../sdk/src/index.ts";
+import { checkView } from "../../../sdk/src/view.ts";
 import { Host } from "../harness.ts";
 
 process.env.TZ = "UTC";
@@ -212,13 +214,86 @@ describe("today helpers", () => {
     expect(upcomingItem([], t0, s)).toEqual({ hidden: true });
     const soon = ev("s", "Standup", t0 + 12 * MIN, t0 + 42 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const item = upcomingItem([soon], t0, s);
-    expect(item).toMatchObject({ title: "Standup in 12m", color: "amber", badge: "dot", tooltip: `Standup, ${timeRange(soon)} (Work), Enter joins`, menu: { palette: "today", extension: "calendar", args: { rest: true } } });
+    expect(item).toMatchObject({ title: "Standup in 12m", color: "amber", badge: "dot", tooltip: `Standup, ${timeRange(soon)} (Work), Enter joins`, menu: { view: { id: "upcoming", keys: "actions" } } });
     expect(item.stale).toBeUndefined();
     expect(upcomingItem([ev("n", "Review", t0 + 3 * H, t0 + 4 * H)], t0, s)).toMatchObject({ title: "Review in 3h", color: "muted" });
     expect((upcomingItem([ev("n", "Review", t0 + 3 * H, t0 + 4 * H)], t0, s) as BarItem).badge).toBeUndefined();
     expect(upcomingItem([soon], t0 + 8 * MIN, s)).toMatchObject({ title: "Standup in 4m", color: "red" });
-    expect(upcomingItem([soon], t0 + 20 * MIN, s, true)).toMatchObject({ title: "Standup now", color: "green", stale: true });
+    expect(upcomingItem([soon], t0 + 20 * MIN, s, "archer is away")).toMatchObject({ title: "Standup now", color: "green", stale: true });
+    expect(JSON.stringify((upcomingItem([soon], t0 + 20 * MIN, s, "archer is away").menu as { view: View }).view.tree)).toContain("showing the last events read");
     expect(upcomingItem([soon], t0, { ...s, warn_minutes: 10 })).toMatchObject({ color: "muted" });
+  });
+
+  /** Every node of a tree, depth first. */
+  const nodes = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(nodes) : [])];
+  const texts = (v: View) => nodes(v.tree).filter((n) => n.type === "text").map((n) => (n as { value: string }).value);
+
+  test("the popover: today's rows still to come with the running one on a card and Join, all-day as badges, tomorrow folded then open, the ring on the cursor, the key hints", () => {
+    const running = ev("run", "Standup", t0 - 10 * MIN, t0 + 20 * MIN, { conference_url: ZOOM, attendees: [{ name: "Terry", status: "accepted", me: false }, { name: "Cagdas", status: "accepted", me: true }] });
+    const gone = ev("gone", "Earlier", t0 - 3 * H, t0 - 2 * H);
+    const next = ev("next", "Dentist", t0 + 42 * MIN, t0 + 72 * MIN, { calendar: cals[1], location: "Room 4" });
+    const declined = ev("dec", "Sales", t0 + 3 * H, t0 + 4 * H, { my_status: "declined" });
+    const allDay = ev("hol", "Republic Day", startOfDay(t0), addDays(t0, 1), { all_day: true, calendar: cals[2] });
+    const tmr1 = ev("t1", "1:1 with Mara", addDays(t0, 1) + 10 * H, addDays(t0, 1) + 10.5 * H, { conference_url: "https://meet.google.com/abc-defg-hij" });
+    const tmr2 = ev("t2", "Planning", addDays(t0, 1) + 14 * H, addDays(t0, 1) + 15 * H);
+    const all = [tmr2, declined, allDay, next, gone, running, tmr1];
+    const l = listed(all, t0, true);
+    expect(l.today.map((e) => e.id)).toEqual(["run", "next"]);
+    expect(l.allDay.map((e) => e.id)).toEqual(["hol"]);
+    expect(l.tomorrow.map((e) => e.id)).toEqual(["t1", "t2"]);
+    expect(listed(all, t0, false).today.map((e) => e.id)).toEqual(["run", "next", "dec"]);
+    const st = freshPopover(false, true);
+    const v = checkView(popover(all, t0, true, st));
+    expect(v).toMatchObject({ id: "upcoming", keys: "actions", title: `Today · ${dayName(t0)}` });
+    const ns = nodes(v.tree);
+    const card = ns.find((n) => n.key === `run@${running.start}`)!;
+    expect(card).toMatchObject({ type: "stack", surface: "elevated", selected: true, action: `focus:run@${running.start}` });
+    const dentist = ns.find((n) => n.key === `next@${next.start}`)!;
+    expect(dentist.type === "stack" && dentist.surface).toBeUndefined();
+    expect((dentist as { selected?: true }).selected).toBeUndefined();
+    const t = texts(v);
+    expect(t).toContain("ends in 20 min");
+    expect(t).toContain("in 42 min");
+    expect(t).toContain("Room 4 · Home");
+    expect(t).toContain("2 people · Work");
+    expect(t).not.toContain("Earlier");
+    expect(t).not.toContain("Sales");
+    expect(ns.find((n) => n.type === "badge" && n.text === "Republic Day")).toBeTruthy();
+    // The Join button on the running row is solid, and clicks to the row's join action; the tomorrow rows are not drawn while folded.
+    expect(ns.find((n) => n.type === "tile" && n.text === "Join")).toMatchObject({ color: "green", fill: "solid", action: `join:run@${running.start}` });
+    expect(t).toContain("2 events · " + dayName(addDays(t0, 1)));
+    expect(t).not.toContain("1:1 with Mara");
+    expect(ns.find((n) => n.key === "tomorrow-head")).toMatchObject({ action: "tomorrow" });
+    // The calendar's colour is the thin bar.
+    expect(ns.filter((n) => n.type === "tile" && n.width === 3).map((n) => (n as { color: string }).color)).toEqual(["#1e4d8c", "#34aadc"]);
+    const acts = v.actions.map((a) => a.id);
+    expect(v.actions[0]).toEqual({ id: "primary", title: "Join call" });
+    expect(acts.slice(0, 7)).toEqual(["primary", "join-next", "tomorrow", "open-calendar", "refresh", "copy", "copy-link"]);
+    expect(acts).not.toContain(`join:t1@${tmr1.start}`);
+    expect(v.actions.find((a) => a.id === "down")).toMatchObject({ shortcut: "down", hidden: true });
+    // Open: the ring moves on to tomorrow's rows, which say the day and time.
+    const open = checkView(popover(all, t0, true, { ...st, expanded: true, cursor: 2 }));
+    expect(focusable(l, { ...st, expanded: true }).map((e) => e.id)).toEqual(["run", "next", "t1", "t2"]);
+    expect(nodes(open.tree).find((n) => n.key === `t1@${tmr1.start}`)).toMatchObject({ selected: true });
+    expect(open.actions.map((a) => a.id)).toContain(`join:t1@${tmr1.start}`);
+    expect(texts(open)).toContain("1:1 with Mara");
+    expect(texts(open)).not.toContain(`tomorrow ${new Date(tmr1.start).toTimeString().slice(0, 5)}`);
+    expect(open.actions[0]).toEqual({ id: "primary", title: "Join call" });
+    expect(popoverActions(l, { ...st, expanded: true, cursor: 3 })[0]).toEqual({ id: "primary", title: "Open in Calendar" });
+    expect(popoverActions(l, { ...st, google: true, expanded: true, cursor: 3 })[0]).toEqual({ id: "primary", title: "Open in Google Calendar" });
+    // A clear day: the card names the next event; no ring, Enter opens the calendar.
+    const clear = checkView(popover([gone, tmr1], t0, true, { ...st, expanded: true }));
+    expect(texts(clear)).toContain("Nothing today");
+    expect(texts(clear)).toContain(`Next: 1:1 with Mara, tomorrow ${new Date(tmr1.start).toTimeString().slice(0, 5)}`);
+    // Tomorrow open on a clear day: the ring is on its first row, so Enter joins that call; folded, Enter opens the calendar.
+    expect(clear.actions[0]).toEqual({ id: "primary", title: "Join call" });
+    expect(checkView(popover([gone, tmr1], t0, true, st)).actions[0]).toEqual({ id: "open-calendar", title: "Open Calendar" });
+    expect(texts(checkView(popover([gone], t0, true, st)))).toContain("Nothing further in the days ahead");
+    expect(texts(checkView(popover([allDay], t0, true, st)))).toContain("Nothing else today");
+    // The hints follow what there is.
+    const hints = (x: View) => nodes(x.tree).filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys);
+    expect(hints(v)).toEqual(["t", "enter", "j", "t", "o", "r", "cmd+c"]);
+    expect(hints(clear)).toEqual(["t", "enter", "j", "t", "o", "r", "cmd+c"]);
   });
 });
 
@@ -393,7 +468,7 @@ describe("today palette and the upcoming bar item", () => {
     const l = host.loaded().find((l) => l.extension === E)!;
     expect(l.palettes.map((p) => p.name)).toEqual(["schedule", "today"]);
     expect(l.palettes[1]).toMatchObject({ title: "Today", live: true, ttl: 60, detail: "lazy" });
-    expect(l.bar).toEqual([{ id: "upcoming", title: "Upcoming", description: expect.any(String), refresh: { every: 300, on: ["minute", "wake", "network"] }, source: true }]);
+    expect(l.bar).toEqual([{ id: "upcoming", title: "Upcoming", description: expect.any(String), refresh: { every: 300, on: ["minute", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "j", title: "Join the next call" }, { keys: "t", title: "Show or fold tomorrow" }]), source: true }]);
   });
 
   test("rows: the day in order with over, now and in N min, the duration, the tinted glyph; tomorrow waits", async () => {
@@ -434,7 +509,7 @@ describe("today palette and the upcoming bar item", () => {
 
   test("the bar item: the running call as now with a dot, a minute tick from the cache in under 5 ms, the rest fetch", async () => {
     const first = await host.render(E, "upcoming", { reason: "load" });
-    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup now", color: "green", badge: "dot", tooltip: `Standup, ${timeRange(events[0])} (Work), Enter joins`, menu: { palette: "today", extension: "calendar", args: { rest: true } } });
+    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup now", color: "green", badge: "dot", tooltip: `Standup, ${timeRange(events[0])} (Work), Enter joins`, menu: { view: { id: "upcoming", keys: "actions", title: `Today · ${dayName(now)}` } } });
     expect(first.stale).toBeUndefined();
     const before = eventsCalls();
     const t = performance.now();
@@ -448,6 +523,67 @@ describe("today palette and the upcoming bar item", () => {
     expect(eventsCalls()).toBe(before + 1);
     await host.render(E, "upcoming", { reason: "every" });
     expect(eventsCalls()).toBe(before + 2);
+  });
+
+  test("the popover's keys through bar/action: arrows move the ring, t opens tomorrow, Enter joins or opens, a click on a row or its Join, copy, the calendar, refresh", async () => {
+    const ctx = { reason: "open" as const, compact: true as const };
+    const first = await host.render(E, "upcoming", ctx);
+    const view = (r: { view?: View }) => checkView(r.view!);
+    const sel = (v: View) => { const walk = (n: ViewNode): string | undefined => (n as { selected?: true }).selected ? n.key : n.type === "stack" ? n.children.map(walk).find(Boolean) : undefined; return walk(v.tree); };
+    expect(sel((first.menu as { view: View }).view)).toBe(rid(events[0]));
+    // Down to Dentist, Enter opens it in Calendar (macOS) with the occurrence, else copies; up again, Enter joins the standup.
+    const down = view(await host.barAction(E, "upcoming", "down", ctx));
+    expect(sel(down)).toBe(rid(events[2]));
+    expect(down.actions[0].title).toBe(MAC ? "Open in Calendar" : "Copy event details");
+    const open = await host.barAction(E, "upcoming", "primary", ctx);
+    if (MAC) { expect(open).toEqual({ hide: true }); expect(last()).toEqual({ method: "open", params: { id: "next", occurrence: null } }); } else expect(open).toEqual({ copy: details(events[2]) });
+    expect(await host.barAction(E, "upcoming", "copy", ctx)).toEqual({ copy: details(events[2]) });
+    expect(await host.barAction(E, "upcoming", "copy-link", ctx)).toEqual({ keep: true });
+    expect(sel(view(await host.barAction(E, "upcoming", "up", ctx)))).toBe(rid(events[0]));
+    expect(await host.barAction(E, "upcoming", "primary", ctx)).toEqual({ open: ZOOM });
+    expect(await host.barAction(E, "upcoming", "copy-link", ctx)).toEqual({ copy: ZOOM });
+    expect(await host.barAction(E, "upcoming", "join-next", ctx)).toEqual({ open: ZOOM, hud: `Standup, ${timeRange(events[0])}` });
+    // Tomorrow: folded at first, t opens it and the Concert row appears; a click on it focuses it; t folds it and the ring comes back today.
+    expect(JSON.stringify(first.menu)).not.toContain("Concert");
+    const opened = view(await host.barAction(E, "upcoming", "tomorrow", ctx));
+    expect(JSON.stringify(opened.tree)).toContain("Concert");
+    expect(sel(view(await host.barAction(E, "upcoming", `focus:${rid(events[4])}`, ctx)))).toBe(rid(events[4]));
+    expect(sel(view(await host.barAction(E, "upcoming", "tomorrow", ctx)))).toBe(rid(events[2]));
+    // The Join button on a row is that row's call whatever the ring is on.
+    expect(await host.barAction(E, "upcoming", `join:${rid(events[0])}`, ctx)).toEqual({ open: ZOOM, hud: `Standup, ${timeRange(events[0])}` });
+    expect(await host.barAction(E, "upcoming", `join:${rid(events[2])}`, ctx)).toEqual({ keep: true });
+    // The calendar itself, and a refresh that forgets the cache (the next render fetches).
+    expect(await host.barAction(E, "upcoming", "open-calendar", ctx)).toEqual(MAC ? { open: "/System/Applications/Calendar.app" } : { hide: true });
+    const before = eventsCalls();
+    expect(await host.barAction(E, "upcoming", "refresh", ctx)).toEqual({ keep: true, hud: "Refreshing" });
+    await host.render(E, "upcoming", { reason: "minute" });
+    expect(eventsCalls()).toBe(before + 1);
+    // A click that opens the popover starts fresh: the ring on the first row, tomorrow folded.
+    await host.barAction(E, "upcoming", "down", ctx);
+    await host.barAction(E, "upcoming", "tomorrow", ctx);
+    const again = (await host.render(E, "upcoming", ctx)).menu as { view: View };
+    expect(sel(again.view)).toBe(rid(events[0]));
+    expect(JSON.stringify(again.view.tree)).not.toContain("Concert");
+  });
+
+  test("the open popover is redrawn from the cache on a tick while it shows (30 s, 50 ms here), no fetch; nothing once it hid", async () => {
+    process.env.PAL_CALENDAR_POPOVER_TICK_MS = "50";
+    const h2 = await Host.bundled({ core: core() });
+    try {
+      await h2.render(E, "upcoming", { reason: "open", compact: true });
+      const before = calls.filter((c) => c.method === "events").length;
+      h2.viewShown(E, { bar: "upcoming" }, "upcoming", true);
+      const u = await h2.nextViewUpdate(E, { bar: "upcoming" });
+      expect(u).toMatchObject({ extension: E, bar: "upcoming", spec: { id: "upcoming", keys: "actions" } });
+      expect(JSON.stringify(u.spec)).toContain("Standup");
+      await h2.nextViewUpdate(E, { bar: "upcoming" });
+      h2.viewHidden(E, { bar: "upcoming" }, "upcoming", true);
+      await Bun.sleep(60);
+      const n = h2.viewUpdates(E, { bar: "upcoming" }).length;
+      await Bun.sleep(150);
+      expect(h2.viewUpdates(E, { bar: "upcoming" }).length).toBe(n);
+      expect(calls.filter((c) => c.method === "events").length).toBe(before);
+    } finally { h2.kill(); delete process.env.PAL_CALENDAR_POPOVER_TICK_MS; }
   });
 
   test("the bar item: a failing source keeps the last events as stale, and is hidden with nothing cached", async () => {

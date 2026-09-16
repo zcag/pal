@@ -634,11 +634,13 @@ pub fn bar_size(app: AppHandle, height: f64) {
     set_height(&app, height);
 }
 
-/// A row picked in the popover's menu level (or a segment): `bar/action`.
+/// A row picked in the popover's menu level (or a segment), a view action,
+/// a form's submit: `bar/action`. `values` is what a control read (the
+/// view's text field, a form's fields, a slider's fraction), on the ctx.
 #[tauri::command]
-pub async fn bar_action(app: AppHandle, key: String, action: String) -> Result<Value, String> {
+pub async fn bar_action(app: AppHandle, key: String, action: String, values: Option<Value>) -> Result<Value, String> {
     let anchor = lock(&app.state::<Popover>().anchors).get(&key).map_or("hotkey", |(_, a)| a);
-    super::action(&app, &key, &action, anchor, WINDOW).await
+    super::action(&app, &key, &action, anchor, WINDOW, values).await
 }
 
 /// `cmd+r` in the popover: render the item again.

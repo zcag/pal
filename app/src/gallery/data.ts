@@ -155,7 +155,7 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 };
 
 /* Settings: four extensions as installed, their palettes as configured in config.toml. */
-import type { Diagnostic, GeneralConfig, HotkeyStatus, PermissionsStatus, SettingSpec, SettingsExtension } from "../ui/SettingsTypes";
+import { lookDefaults, type BarConfig, type BarItem, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PermissionsStatus, type SettingSpec, type SettingsExtension } from "../ui/SettingsTypes";
 
 export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", askPermissionsOnStart: true };
 /** A stock Mac asking for ⌘Space: Spotlight holds it, the guidance shows. */
@@ -248,6 +248,17 @@ export const settingsExtensions: SettingsExtension[] = [
       { id: "clipboard", title: "Clipboard history", settings: [], config: { enabled: true, alias: "cb", hotkey: "cmd+shift+v", icon: "📋", settings: {} } },
     ],
   },
+];
+
+/** `[bar]` as the Bar page reads it: the menu bar target, a dimmer muted, sketchybar with wider spacing. */
+export const settingsBar: BarConfig = { target: "menubar", hoverDelay: 250, hoverGrace: 400, menubarHover: false, sketchybarHover: true, sketchybarPosition: "right", menubar: { ...lookDefaults, dim: 40 }, sketchybar: { ...lookDefaults, spacing: 6 } };
+
+/** Four declared bar items with their last render: a badge, a ticking timer with its own mono look, a landed alarm, one hidden by its rule. */
+export const settingsBarItems: BarItem[] = [
+  { key: "github/notifications", extension: "github", id: "notifications", title: "Notifications", description: "The unread count as a badge; hidden at zero. A click opens the newest five, Open all and Mark all read.", extTitle: "GitHub", extIcon: { kind: "tile", bg: "slate", glyph: "\u{f09b}" }, source: true, refreshEvery: 300, renderedAt: Math.floor(now / 1000) - 120, stale: false, state: { hidden: false, badge: 7, urgent: false, icon: "\u{f09b}", tooltip: "7 unread notifications" }, config: { enabled: true, look: {} } },
+  { key: "timer/timer", extension: "timer", id: "timer", title: "Timer", description: "What is left of the soonest timer, a fill under the glyph; amber past two thirds, red near the end, an alarm once it lands.", extTitle: "Timer", extIcon: { kind: "tile", bg: "amber", glyph: "\u{f0954}" }, source: true, refreshEvery: 10, renderedAt: Math.floor(now / 1000) - 5, stale: false, state: { hidden: false, urgent: false, icon: "\u{f0954}", title: "3:12", progress: 0.87, color: "amber", tooltip: "tea (+1 more)" }, config: { enabled: true, hotkey: "ctrl+alt+t", order: 10, look: { font: "mono", width: 72 } } },
+  { key: "calendar/upcoming", extension: "calendar", id: "upcoming", title: "Upcoming", description: "The next event and how long until it starts; a strip that colours from muted to amber to red as it nears.", extTitle: "Calendar", extIcon: { kind: "tile", bg: "red", glyph: "\u{f00ed}" }, source: true, renderedAt: Math.floor(now / 1000) - 40, stale: true, state: { hidden: false, urgent: true, icon: "\u{f00ed}", title: "Standup now", tooltip: "Standup, 10:00, now" }, config: { enabled: true, look: { badgeStyle: "none" } } },
+  { key: "otp/latest-code", extension: "otp", id: "latest-code", title: "Latest code", description: "The newest verification code from Messages while it is fresh; hidden otherwise.", extTitle: "Verification codes", extIcon: { kind: "tile", bg: "green", glyph: "\u{f0e18}" }, source: true, refreshEvery: 10, renderedAt: Math.floor(now / 1000) - 9, stale: false, state: { hidden: true, urgent: false }, config: { enabled: true, target: "off", look: {} } },
 ];
 
 export const settingsDiagnostics: Diagnostic[] = [

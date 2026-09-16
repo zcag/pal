@@ -178,7 +178,7 @@ describe("spotify", () => {
     expect(l.palettes.find((m) => m.name === "commands")).toMatchObject({ tier: "primary", title: "Spotify" });
     expect(l.palettes.find((m) => m.name === "library")!.filters!.map((f) => f.id)).toEqual(["liked", "recent", "top-tracks", "top-artists"]);
     expect(l.palettes.find((m) => m.name === "now-playing")).toMatchObject({ title: "Lyrics", suggest: true });
-    expect(l.bar).toEqual([{ id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, source: true }]);
+    expect(l.bar).toEqual([{ id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }]), source: true }]);
     expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["pinned", "list"]]);
   });
 
@@ -486,6 +486,23 @@ describe("spotify, signed in", () => {
       expect(view.title).toBe("Weird Fishes/ Arpeggi · Radiohead");
       expect(find(view.tree, (n: any) => n.type === "image")).toMatchObject({ width: 64, height: 64 });
       expect(lyricLines(view.tree)).toEqual(["The bottom of the sea", "Your eyes", "They turn me", "Why should I stay here?"]);
+      // The queue's next two as rows under the state row, each with its 64 px thumb as a data url, the labels next and then, and a hidden skip action per row; the panel's wide view has none.
+      const rows = view.tree.children.filter((n: any) => /^queue-\d/.test(n.key ?? ""));
+      expect(rows.map((r: any) => [r.action, texts(r)])).toEqual([["skip:0", ["next", "Nude", "Radiohead"]], ["skip:1", ["then", "Reckoner", "Radiohead"]]]);
+      expect(rows.map((r: any) => find(r, (n: any) => n.type === "image")?.src)).toEqual([expect.stringMatching(/^data:image\/jpeg;base64,/), expect.stringMatching(/^data:image\/jpeg;base64,/)]);
+      expect(view.actions.filter((a: any) => a.id.startsWith("skip:"))).toEqual([{ id: "skip:0", title: "Skip to Nude", hidden: true }, { id: "skip:1", title: "Skip to Reckoner", hidden: true }]);
+      expect(calls("GET", "/v1/me/player/queue").length).toBeGreaterThanOrEqual(1);
+      const wide = await pick("now-playing", "now", "retry");
+      expect((wide as any).view.tree.children.some((n: any) => /^queue-\d/.test(n.key ?? ""))).toBe(false);
+      // The queue is cached: a second render within 15 s asks nothing more.
+      const before = calls("GET", "/v1/me/player/queue").length;
+      await h.render("spotify", "playing", { reason: "update" });
+      expect(calls("GET", "/v1/me/player/queue").length).toBe(before);
+      // A queue row clicked: as many Nexts as its place (the queue palette's rule), the queue asked again after.
+      const nexts = calls("POST", "/v1/me/player/next").length;
+      expect(await h.barAction("spotify", "playing", "skip:1")).toEqual({ keep: true });
+      expect(calls("POST", "/v1/me/player/next").length).toBe(nexts + 2);
+      expect(calls("GET", "/v1/me/player/queue").length).toBeGreaterThan(before);
       state.player = { ...state.player, is_playing: false };
       expect(await h.render("spotify", "playing", { reason: "media" as never })).toEqual({ hidden: true });
       state.player = { ...state.player, is_playing: true };

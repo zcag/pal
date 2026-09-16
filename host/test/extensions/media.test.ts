@@ -5,11 +5,18 @@
 // streams).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { MediaPlayer, NowPlaying } from "../../../sdk/src/index.ts";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Host } from "../harness.ts";
-import { clock, progress, trackText } from "../../../extensions/media/index.ts";
+import { clock, positionAt, progress, trackText } from "../../../extensions/media/index.ts";
+import { render } from "../../../extensions/media/view.ts";
+import { checkView } from "../../../sdk/src/view.ts";
+import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 
 const MAC = process.platform === "darwin";
-const spotify: MediaPlayer = { id: "spotify", name: "Spotify", state: "playing", title: "Blue Monday", artist: "New Order", album: "Power, Corruption & Lies", artwork: "https://i.scdn.co/image/ab67", url: "spotify:track:abc", app: "/Applications/Spotify.app", position: 12.5, duration: 448 };
+// The artwork url is one the popover would fetch (a url it cannot draw as is): a closed port here, so the test stays off the network.
+const spotify: MediaPlayer = { id: "spotify", name: "Spotify", state: "playing", title: "Blue Monday", artist: "New Order", album: "Power, Corruption & Lies", artwork: "http://127.0.0.1:1/image/ab67", url: "spotify:track:abc", app: "/Applications/Spotify.app", position: 12.5, duration: 448 };
 const music: MediaPlayer = { id: "music", name: "Music", state: "paused", title: "Song 2", artist: "Blur", album: null, artwork: null, url: null, app: "/System/Applications/Music.app", position: 0, duration: 120 };
 const idle: MediaPlayer = { id: "firefox.instance1", name: "Firefox", state: "stopped", title: null, artist: null, album: null, artwork: null, url: null, app: null, position: null, duration: null };
 /** The macOS system-wide row for Chrome playing YouTube: the MediaRemote adapter gives the app, the state and the position, no track (captured on macOS 26.4). */
@@ -32,12 +39,41 @@ const coreFor = (asked: () => void) => ({
   "media.artwork": (p: { id: string }) => { asked(); const a = artworks[p.id]; if (!a) throw new Error(`no artwork ${p.id}`); return a; },
 });
 beforeAll(async () => {
-  host = await Host.bundled({ core: coreFor(() => artworkAsked++) });
+  process.env.PAL_MEDIA_TICK_MS = "100";
+  host = await Host.bundled({ core: coreFor(() => artworkAsked++) }).finally(() => delete process.env.PAL_MEDIA_TICK_MS);
 });
+/** The popover's tree of an item, checked as the host does. */
+const viewOf = (item: { menu?: unknown }): View => checkView((item.menu as { view: View }).view);
+/** Every node of a tree, flattened. */
+const nodes = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(nodes) : [])];
+const texts = (v: View) => nodes(v.tree).filter((n) => n.type === "text").map((n) => (n as { value: string }).value);
+const keycaps = (v: View) => nodes(v.tree).filter((n) => n.type === "keycap").map((n) => `${(n as { keys: string }).keys}:${(n as { action?: string }).action}`);
 afterAll(() => host.kill());
 
 const list = () => host.list("media", "media");
 const pick = (id: string, action?: string) => host.pick("media", "media", id, action);
+
+describe("the popover's tree (view.ts)", () => {
+  const p = { id: "spotify", name: "Spotify", state: "playing" as const, title: "Blue Monday", artist: "New Order", album: null, artwork: null, url: "spotify:track:abc", app: null, position: 100, duration: 448 };
+  test("a paused player: the play hint, an amber badge, a grey bar; a long track widens the time columns; nothing playing is one message", () => {
+    const v = checkView(render({ player: { ...p, state: "paused" }, position: 100, canOpen: true }));
+    expect(v.actions[0]).toEqual({ id: "play_pause", title: "Play", shortcut: "space" });
+    expect(nodes(v.tree).filter((n) => n.type === "badge").map((n) => (n as { text: string }).text)).toEqual(["Spotify", "paused"]);
+    expect((nodes(v.tree).find((n) => n.type === "progress") as { color?: string }).color).toBe("grey");
+    const long = checkView(render({ player: { ...p, duration: 4000 }, position: 3700, canOpen: false }));
+    expect(nodes(long.tree).filter((n) => n.type === "text" && n.width === 56).length).toBe(2);
+    expect(long.actions.map((a) => a.id)).toEqual(["play_pause", "next", "previous", "copy"]);
+    const none = checkView(render({ canOpen: false }));
+    expect(texts(none)[0]).toBe("Nothing playing");
+    expect(none.actions.map((a) => a.id)).toEqual(["refresh"]);
+  });
+  test("positionAt: moved along by the clock while playing, held at the duration, still while paused, none without one", () => {
+    expect(positionAt(p, 1000, 3500)).toBe(102.5);
+    expect(positionAt({ ...p, position: 447 }, 1000, 3500)).toBe(448);
+    expect(positionAt({ ...p, state: "paused" }, 1000, 3500)).toBe(100);
+    expect(positionAt({ ...p, position: null }, 1000, 3500)).toBeUndefined();
+  });
+});
 
 describe("media", () => {
   test("meta: live", () => {
@@ -48,7 +84,7 @@ describe("media", () => {
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["spotify", "music", "firefox.instance1"]);
     expect(items[0]).toMatchObject({
-      name: "Blue Monday", subtitle: "New Order · Power, Corruption & Lies", icon: { image: "https://i.scdn.co/image/ab67" },
+      name: "Blue Monday", subtitle: "New Order · Power, Corruption & Lies", icon: { image: "http://127.0.0.1:1/image/ab67" },
       accessories: [{ text: "0:12 / 7:28" }, { text: "Spotify" }, { tag: "playing", color: "green" }],
     });
     expect(items[0].actions!.map((a) => [a.id, a.title])).toEqual([["play_pause", "Pause"], ["next", "Next track"], ["previous", "Previous track"], ["copy", "Copy track"], ["open", "Open in Spotify"]]);
@@ -106,24 +142,34 @@ describe("media", () => {
   });
 
   describe("bar: now-playing", () => {
-    test("meta and render: the playing track as the title, the track row then the transport and copy/open as the menu; the core's media trigger declared", async () => {
+    test("meta and render: the playing track as the title, the popover a view with the titles, the progress row, the transport and copy/open as keycaps; the core's media trigger declared", async () => {
       // `as unknown`: `BarRefresh.on` in sdk/src/protocol.ts does not list the core's `media` trigger yet; the host passes any name through.
-      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "media"] }, source: true }]);
+      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "media"] }, keys: expect.any(Array), source: true }]);
       const item = await host.render("media", "now-playing");
       expect(item).toMatchObject({ icon: "\uf001", title: "Blue Monday · New Order", tooltip: "New Order - Blue Monday (Spotify)" });
-      expect((item.menu as any[]).map((n) => n.id ?? n.type)).toEqual(["track", "separator", "play_pause", "next", "previous", "separator", "copy", "open"]);
-      // The track row: the cover (Spotify's url here) at row size, opening the track.
-      expect((item.menu as any[])[0]).toEqual({ type: "item", id: "track", title: "Blue Monday", subtitle: "New Order · Power, Corruption & Lies", icon: { image: "https://i.scdn.co/image/ab67" }, action: "open" });
-      // Every row draws a glyph, never the title's initial.
-      for (const n of item.menu as any[]) if (n.type === "item") expect(n.icon).toBeTruthy();
+      const v = viewOf(item);
+      expect(v).toMatchObject({ id: "now", keys: "actions", title: "Blue Monday · New Order" });
+      expect(v.actions.map((a) => a.id)).toEqual(["play_pause", "next", "previous", "copy", "open"]);
+      expect(v.actions[0]).toEqual({ id: "play_pause", title: "Pause", shortcut: "space" });
+      expect(texts(v)).toEqual(["Blue Monday", "New Order", "Power, Corruption & Lies", "0:12", "7:28", "pause", "previous", "next", "copy track", "open in Spotify"]);
+      expect(keycaps(v)).toEqual(["space:play_pause", "left:previous", "right:next", "c:copy", "o:open"]);
+      // The cover url cannot be fetched (a closed port): the app's own icon through the scheme stands in, opening the track on a click like the titles.
+      const cover = nodes(v.tree).find((n) => n.type === "tile" || n.type === "image")!;
+      expect(cover).toMatchObject({ type: "image", src: `icon://localhost/app?path=${encodeURIComponent("/Applications/Spotify.app")}&size=192`, width: 96, height: 96, mask: "rounded", action: "open" });
+      const bar = nodes(v.tree).find((n) => n.type === "progress") as Extract<ViewNode, { type: "progress" }>;
+      expect(bar.value).toBeCloseTo(12.5 / 448, 3);
+      expect(bar.color).toBe("green");
+      expect(nodes(v.tree).filter((n) => n.type === "badge").map((n) => (n as { text: string }).text)).toEqual(["Spotify"]);
     });
 
-    test("the stream's cover in the popover's track row; the strip keeps the glyph unless bar_artwork is on and the cover is square", async () => {
+    test("the stream's cover in the popover as the picture; the strip keeps the glyph unless bar_artwork is on and the cover is square", async () => {
       np = { players: [chromeTitled], system_wide: true, stream: true };
       const item = await host.render("media", "now-playing");
       // The strip's title is cut at 40 characters, as before.
       expect(item).toMatchObject({ icon: "\uf001", title: "Taylor Tomlinson (Full Episode) · Team C" });
-      expect((item.menu as any[])[0]).toEqual({ type: "item", id: "track", title: "Taylor Tomlinson (Full Episode)", subtitle: "Team Coco", icon: { image: PNG }, action: MAC ? "open" : "copy" });
+      const v = viewOf(item);
+      expect(nodes(v.tree).find((n) => n.type === "image")).toMatchObject({ type: "image", src: PNG, width: 96, height: 96, mask: "rounded", ...(MAC ? { action: "open" } : {}) });
+      expect(texts(v).slice(0, 2)).toEqual(["Taylor Tomlinson (Full Episode)", "Team Coco"]);
       // The setting on: the square cover is the strip's icon, a wide one is not.
       // The notification lands before the next request: the host reads its stdin in order.
       host.changeSettings("media", { settings: { bar_artwork: true } });
@@ -161,11 +207,59 @@ describe("media", () => {
       np = { players: [chrome], system_wide: true };
       const item = await host.render("media", "now-playing");
       expect(item).toMatchObject({ icon: "\uf001", title: "Google Chrome", tooltip: "Playing in Google Chrome" });
-      expect((item.menu as any[]).map((n) => n.id ?? n.type)).toEqual(MAC ? ["track", "separator", "play_pause", "next", "previous", "separator", "open"] : ["track", "separator", "play_pause", "next", "previous", "separator"]);
-      // The track row without a track: the app, the position, the app's icon; nothing to copy so it opens the app on macOS and is inert elsewhere.
-      expect((item.menu as any[])[0]).toEqual({ type: "item", id: "track", title: "Google Chrome", subtitle: "42:12 / 1:06:03", icon: { app: "/Applications/Google Chrome.app" }, ...(MAC ? { action: "open" } : { disabled: true }) });
+      const v = viewOf(item);
+      // Without a track: the app as the title, no copy, the app's own icon through the scheme in place of a cover (the popover runs in the app), open on macOS only.
+      expect(v.actions.map((a) => a.id)).toEqual(MAC ? ["play_pause", "next", "previous", "open"] : ["play_pause", "next", "previous"]);
+      expect(texts(v).slice(0, 4)).toEqual(["Google Chrome", "Playing, no track named", "42:12", "1:06:03"]);
+      expect(nodes(v.tree).find((n) => n.type === "image")).toMatchObject({ src: `icon://localhost/app?path=${encodeURIComponent("/Applications/Google Chrome.app")}&size=192` });
+      expect(nodes(v.tree).filter((n) => n.type === "badge")).toEqual([]);
       expect(await host.barAction("media", "now-playing", "copy")).toEqual({ keep: true, hud: "No track title" });
       np = { players: [spotify, music, idle], system_wide: true };
+    });
+
+    test("a cover the player names as a file is read into the picture once; a url that is no image, or too large, leaves the app's icon", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "pal-media-"));
+      const png = join(dir, "cover.png");
+      writeFileSync(png, Buffer.from(PNG.split(",")[1], "base64"));
+      np = { players: [{ ...spotify, artwork: `file://${png}` }], system_wide: true };
+      const v = viewOf(await host.render("media", "now-playing"));
+      expect(nodes(v.tree).find((n) => n.type === "image")).toMatchObject({ src: PNG });
+      const txt = join(dir, "cover.txt");
+      writeFileSync(txt, "not a picture");
+      np = { players: [{ ...spotify, artwork: `file://${txt}`, app: null }], system_wide: true };
+      const v2 = viewOf(await host.render("media", "now-playing"));
+      // A .txt is read as a jpeg by name: the bytes are what they are, the picture simply fails to decode; the size cap is what refuses a huge one.
+      const big = join(dir, "big.png");
+      writeFileSync(big, Buffer.alloc(2 * 1024 * 1024 + 1));
+      np = { players: [{ ...spotify, artwork: `file://${big}`, app: null }], system_wide: true };
+      const v3 = viewOf(await host.render("media", "now-playing"));
+      expect(nodes(v3.tree).find((n) => n.type === "image")).toBeUndefined();
+      expect(nodes(v3.tree).find((n) => n.type === "tile")).toMatchObject({ width: 96, height: 96 });
+      expect(v2).toBeTruthy();
+      rmSync(dir, { recursive: true, force: true });
+      np = { players: [spotify, music, idle], system_wide: true };
+    });
+
+    test("the popover's tick: while its level shows, the tree is pushed every tick with the position moved along by the clock, no player asked; hidden stops it", async () => {
+      np = { players: [spotify, music, idle], system_wide: true };
+      await host.render("media", "now-playing");
+      const before = host.viewUpdates("media", { bar: "now-playing" }).length;
+      host.viewShown("media", { bar: "now-playing" }, "now", true);
+      const u = await host.nextViewUpdate("media", { bar: "now-playing" }, (x) => "actions" in x.spec);
+      expect(u).toMatchObject({ extension: "media", bar: "now-playing", spec: { id: "now", keys: "actions" } });
+      const pos = texts(u.spec as View)[3];
+      expect(pos).toMatch(/^0:1\d$/);
+      await Bun.sleep(1100);
+      const later = host.viewUpdates("media", { bar: "now-playing" });
+      expect(later.length).toBeGreaterThan(before + 5);
+      // The position moved on by about a second of clock.
+      const last = texts(later[later.length - 1].spec as View)[3];
+      expect(last >= pos).toBe(true);
+      host.viewHidden("media", { bar: "now-playing" }, "now", true);
+      await Bun.sleep(150);
+      const n = host.viewUpdates("media", { bar: "now-playing" }).length;
+      await Bun.sleep(300);
+      expect(host.viewUpdates("media", { bar: "now-playing" }).length).toBe(n);
     });
 
     test("only a playing player shows: paused or nothing is hidden; an action then says so", async () => {

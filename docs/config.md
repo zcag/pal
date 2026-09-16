@@ -133,10 +133,38 @@ listed by `pal bar list`, but nothing is drawn and no item renders
 | `hover_delay` | integer, ms | `250` | How long the pointer rests on an item before its popover peeks. |
 | `hover_grace` | integer, ms | `400` | How long after the pointer has left both the item and the popover a peek stays. |
 | `menubar.open_on_hover` | bool | `false` | A hover peeks on the menu bar (Apple's bar has no hover convention, so off). |
-| `menubar.max_chars` | int | `32` | The longest title an item draws on the menu bar; longer text ends in an ellipsis, since Apple's bar hides whatever runs under the notch or off the left edge. |
 | `sketchybar.open_on_hover` | bool | `true` | A hover peeks on sketchybar. |
 | `sketchybar.position` | string | `"right"` | Where pal's items go: `left`, `right`, `center`, `q`, `e`, or `before:<item>` / `after:<item>` next to one of the bar's own items. |
 | `sketchybar.colors` | table of strings | `{}` | Overrides of the colour names the model uses (`red`, `amber`, `muted`, `text`, ...) as `0xAARRGGBB` or `#rrggbb`, so a themed bar keeps its own palette. |
+
+**Appearance.** `[bar.menubar]` and `[bar.sketchybar]` both take these
+keys, how that target draws every item; each is overridable per item
+below. The same key means the same thing on both targets where the target
+can (Settings > Bar > Defaults shows each with its description and the
+target's caveat).
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `dim` | int, percent | `50` | A muted item's strength: a stale item, or one the extension colours `muted` (a paused timer), draws at this opacity. Menu bar: the template image's alpha (the title text keeps the bar's colour unless prerendered, below). sketchybar: the alpha of the `muted` colour. |
+| `size` | number, points | `0` | Point size of the glyph and the text; `0` is the target's own (the menu bar's 13 pt text and 14 pt glyph; sketchybar's icon and label font size). On the menu bar a size prerenders the text into the icon image. |
+| `spacing` | int, points | `4` | Between the icon, the title and the segments. sketchybar: the paddings. Menu bar: only a prerendered strip takes it; Apple sets the gap otherwise. |
+| `show_icon` | bool | `true` | Draw the icon. |
+| `show_title` | bool | `true` | Draw the title and the segments; off is a glyph-only item. An item with nothing left to draw takes no slot. |
+| `color` | string | unset | The tint: a colour name (`grey`, `blue`, `green`, `amber`, `red`, `violet`, `pink`, `teal`, `accent`, `text`, `muted`) or `#rrggbb`, drawn in place of the colour the extension answers (`muted` from the extension stays: it is a state). Unset keeps the extension's: a coloured item its own, the rest the bar's text colour. Menu bar: the glyph's ink; the title text keeps the bar's colour unless prerendered. |
+| `urgent_color` | string | `"destructive"` | The colour of an urgent item, a name or `#rrggbb`. |
+| `badge_style` | `"count"`, `"dot"`, `"none"` | `"count"` | How a count badge is drawn: the number (` ·3` on the menu bar, in red on sketchybar's label), a dot whatever the number, or nothing (the count stays in the tooltip). |
+| `width` | int, points | `0` | A fixed width, so a ticking timer does not move its neighbours; `0` is the natural width. Text past it is cut. Menu bar: the prerendered image's width. sketchybar: `label.width`. |
+| `font` | `"system"`, `"mono"` | `"system"` | The text's face; `mono` for codes and times (SF Mono on the menu bar, prerendered; Menlo on sketchybar). |
+| `max_chars` | int | `32` | The longest title an item draws; longer text ends in an ellipsis, since Apple's bar hides whatever runs under the notch or off the left edge (sketchybar: `label.max_chars`). |
+
+The menu bar's title is a plain system-font string (tray-icon sets no
+attributes), so `size`, `font` and `width` make the renderer prerender the
+title into the icon image next to the glyph (`bar/glyph.rs`, the system's
+own SF Pro or SF Mono read from `/System/Library/Fonts`); an emoji icon
+stays title text, an image icon keeps its picture and its title text.
+sketchybar has no way to unset a property, so an item whose `size` or
+`font` goes back to the bar's own is removed and added afresh, which gives
+it the bar's `--default`s again.
 
 Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
 
@@ -147,8 +175,8 @@ Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
 | `position` | string | unset | This item's sketchybar position; `sketchybar.position` when unset. |
 | `hotkey` | string | unset | A global hotkey that opens the item's popover (or runs its open action). Same syntax as `general.hotkey`; the root and palette hotkeys win a clash. |
 | `open_on_hover` | bool | unset | This item's say on hovering; the target's default when unset. |
-| `max_chars` | int | unset | This item's longest menu bar title; `menubar.max_chars` when unset. |
 | `order` | integer | `0` | Order among pal's own items, ascending left to right (on the menu bar, and within one sketchybar position). |
+| `dim`, `size`, `spacing`, `show_icon`, `show_title`, `color`, `urgent_color`, `badge_style`, `width`, `font`, `max_chars` | as above | unset | This item's say on each appearance key; the target's default when unset (the menu bar's for an item drawn there, sketchybar's for one drawn there). Settings > Bar marks each inherited field "from the menu bar default" and offers Reset on an overridden one. |
 
 A change re-targets, moves or removes items live. pal only ever touches
 sketchybar items named `pal.<extension>.<id>` (a segment is

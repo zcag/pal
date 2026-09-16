@@ -465,7 +465,7 @@ fn run_bar(app: &AppHandle, cmd: BarCmd) {
         BarCmd::Action { key, action } => {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = crate::bar::action(&app, &key, &action, "cli", popover::WINDOW).await {
+                if let Err(e) = crate::bar::action(&app, &key, &action, "cli", popover::WINDOW, None).await {
                     eprintln!("bar\taction\t{key}\t{action}\tfailed\t{e}");
                 }
             });

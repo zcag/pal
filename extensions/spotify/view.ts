@@ -14,7 +14,9 @@
 // line and a "Search on lrclib" action. The cover's dominant colour paints
 // a band under the cover in the wide layout (a `gradient` node, alpha
 // allowed) and picks the tag colour of the progress bar in both; the
-// badges stay grey so a red cover never reads as an alarm.
+// badges stay grey so a red cover never reads as an alarm. The compact
+// layout ends with the queue's next two tracks as small rows (`queue`,
+// left out while unknown), a click on one skipping to it.
 import type { Action, TagColor, View, ViewNode } from "@zcag/pal";
 import type { Track } from "./api.ts";
 import { withAlpha, type Tint } from "./color.ts";
@@ -38,7 +40,13 @@ export type NowState = {
   cover?: string;
   tint?: Tint;
   status?: Status;
+  /** The queue's next tracks (compact: the first two are drawn); `cover` a data url; undefined while unknown, so nothing is drawn. */
+  queue?: QueueTrack[];
 };
+export type QueueTrack = { id: string; name: string; artist: string; cover?: string };
+/** Queue rows in the compact layout: next and then. */
+export const QUEUE_ROWS = 2;
+const QUEUE_LABELS = ["next", "then"];
 
 /** The cover's side and the left column's width (wide); the header cover (compact). */
 export const COVER = 208, COVER_SM = 64;
@@ -176,6 +184,20 @@ function stateRow(st: NowState): ViewNode {
   return row(kids, { key: "state", gap: 1, minHeight: 22 });
 }
 
+/** Compact: the next two of the queue as small rows (a thumb, the name and the artist), each a click away from being skipped to; nothing while the queue is unknown. */
+function queueRows(st: NowState): ViewNode[] {
+  if (!st.queue?.length) return [];
+  const w = COMPACT_W - 36 - 28 - 2 * 8;
+  return [{ type: "divider", key: "queue-line", transition: { enter: "fade" } }, ...st.queue.slice(0, QUEUE_ROWS).map((q, i): ViewNode => row(
+    [
+      text(QUEUE_LABELS[i] ?? "", { style: "muted", size: "xs", width: 36 }),
+      q.cover ? { type: "image", key: `qc-${q.id}`, src: q.cover, width: 28, height: 28, mask: "rounded", alt: q.name } : { type: "tile", key: `qt-${q.id}`, width: 28, height: 28, text: "♪", color: "neutral", fill: "soft" },
+      column([text(q.name, { size: "sm", weight: "medium", width: w }), text(q.artist, { style: "muted", size: "xs", width: w })], { gap: 0 }),
+    ],
+    { key: `queue-${i}-${q.id}`, gap: 2, minHeight: 30, action: `skip:${i}`, transition: { enter: "fade" } },
+  ))];
+}
+
 /** What the view says instead of a track: how to sign in, that nothing plays, that Spotify is away. */
 const STATUS_TEXT: Record<Status["kind"], [string, string]> = {
   client_id: ["Set a Spotify client id", "Settings, Extensions, Spotify: the README tells how to create the app at developer.spotify.com"],
@@ -225,6 +247,8 @@ export function actions(st: NowState): Action[] {
     { id: "open", title: "Open in Spotify", shortcut: "cmd+o" },
   ];
   if (st.lyrics === null) acts.push({ id: "lrclib", title: "Search on lrclib", shortcut: "f" });
+  // Compact: the queue rows skip on a click; hidden, since the rows themselves are the control.
+  if (st.layout === "compact") st.queue?.slice(0, QUEUE_ROWS).forEach((q, i) => acts.push({ id: `skip:${i}`, title: `Skip to ${q.name}`, hidden: true }));
   return acts;
 }
 
@@ -242,6 +266,7 @@ export function render(st: NowState): View {
         lyricsColumn(st),
         transport(st),
         stateRow(st),
+        ...queueRows(st),
       ],
       { key: "compact", padding: 3, gap: 2 },
     );

@@ -5,9 +5,10 @@
 // `bun run extensions/hue/fixture.ts`, then `node app/scripts/shots.mjs hue`
 // and `node app/scripts/shots.mjs bar hue`.
 import { writeFileSync } from "node:fs";
-import { Home, aggregate, lightsOf, roomsOf, scenesOf, sensorsOf } from "./model.ts";
+import { Home, lightsOf, roomsOf, scenesOf, sensorsOf } from "./model.ts";
+import { freshPopover, renderPopover, type PopoverData } from "./popover.ts";
 import { fresh, render, renderSetup } from "./render.ts";
-import { G, ICON, automationRow, lightRow, roomRow, roomTile, sceneRow, sensorRows } from "./rows.ts";
+import { G, ICON, automationRow, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
 import { automationsOf } from "./model.ts";
 import { SAMPLE_BRIDGE_ID, SAMPLE_RESOURCES } from "./sample.ts";
 
@@ -59,28 +60,27 @@ const fixture = {
 };
 writeFileSync(new URL("../../app/src/gallery/shots/hue.json", import.meta.url), JSON.stringify(fixture) + "\n");
 
-// The bar item: the sample home with the living room as the main room.
+// The bar item: the sample home with the living room as the main room; the popover from the same tree the extension draws (popover.ts).
 const on = lights.filter((l) => l.on).length;
-const menu = [
-  { type: "section", title: "Rooms", children: rooms.map((r) => { const ag = aggregate(r); return { type: "item", id: `toggle:${r.id}`, title: r.name, subtitle: ag.on ? `${ag.on} of ${ag.total} on${ag.brightness !== undefined ? ` · ${Math.round(ag.brightness)}%` : ""}` : "off", icon: ag.anyOn ? { image: roomTile(ag.colors, (ag.brightness ?? 100) / 100) } : G.bulbOff, checked: ag.anyOn }; }) },
-  { type: "section", title: "Scenes", children: livingScenes.map((sc) => ({ type: "item", id: `scene:${sc.id}`, title: sc.name, subtitle: sc.room?.name, icon: sc.swatches[0] ?? G.palette, checked: sc.active !== "inactive" })) },
-  { type: "separator" },
-  { type: "item", id: "open", title: "Open in pal", subtitle: "Rooms, lights, scenes", icon: G.home },
-  { type: "item", id: "all_off", title: "All off", icon: G.power, style: "destructive", shortcut: "cmd+shift+o" },
-];
+const data: PopoverData = { rooms, scenes: livingScenes, scenesOf: living.name, sensors, lightsOn: on, lightsTotal: lights.length, away: [], paired: true, bridge: "Hue Bridge" };
+const popover = renderPopover(data, { ...freshPopover(), cursor: 2 });
+const opened = renderPopover({ ...data, scenes: livingScenes, scenesOf: living.name }, { focus: "lights", cursor: 2, open: living.id, light: 1 });
 const bar = {
   key: "hue/home",
   title: "Home",
   // The real strip carries the room's colour as a PNG dot (`dotPng`); the gallery's bar page draws glyphs only, so the shot shows the bulb in amber.
-  item: { icon: G.bulb, color: "amber", title: `${on} on`, tooltip: `${on} of ${lights.length} lights on · Living room 72%`, menu },
+  item: { icon: G.bulb, color: "amber", title: `${on} on`, tooltip: `${on} of ${lights.length} lights on · Living room 72%`, menu: { view: popover } },
   states: [
     { id: "off", item: { icon: G.bulbOff, title: null, color: "muted", tooltip: "All lights off" } },
     { id: "stale", item: { stale: true, tooltip: `${on} of ${lights.length} lights on (stale)` } },
+    { id: "opened", item: { menu: { view: opened } } },
   ],
   shots: {
     "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: how many lights are on (the live strip carries the main room's colour as a dot; the gallery draws the bulb)" },
     "bar-menubar-light": { target: "menubar", theme: "light", caption: "The same item on a light menu bar" },
-    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, caption: "A click opens the popover: every room as a toggle, the scenes, All off" },
+    "bar-menubar-popover": { target: "menubar", theme: "light", popover: true, raw: true, caption: "A click opens the popover: the rooms as colour tiles (a tap toggles, the chevron opens), the sensors, the scenes, the keys" },
+    "bar-menubar-popover-dark": { target: "menubar", theme: "dark", popover: true, raw: true, caption: "The popover in the dark theme" },
+    "bar-menubar-popover-room": { target: "menubar", theme: "light", popover: true, raw: true, state: "opened", caption: "A room opened: its lights inline, each with a brightness slider and a switch; the arrows walk them" },
     "bar-sketchybar": { target: "sketchybar", theme: "dark", caption: "On sketchybar: the glyph and the count on the label" },
   },
 };

@@ -28,6 +28,8 @@ export { isMarked, mark, markable, multiActions, pickIds, toggle, type Selection
 export { useKeys, useCmdHeld, keepFocus, grammar, shortcutsOf, hasShortcut, shiftedArrow, type Command, type Handlers } from "./keys";
 export { groupBySection, domId } from "./virtual";
 export { relativeDate, shortcutKeys, graphemePositions } from "./format";
+import "./bar-strip.css";
+export { BarStrip, MenuBar, Sketchybar, shapeItem, clipText, defaultLook, type BarStripItem, type BarStripTarget, type BarStripTheme, type BarLook } from "./BarStrip";
 import "./settings.css";
 export { SettingsWindow, settingsPages, pageTitle, flashAnchor } from "./SettingsWindow";
 export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type OverviewInput, type OverviewItem } from "./SettingsOverview";
@@ -43,5 +45,6 @@ export { describeDefault, hotkeyList, isModified, needsSetup, permissionRows } f
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
   GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, PromptPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
-  BarTarget, BarConfig, BarItemConfig, BarItem,
+  BarTarget, BarConfig, BarItemConfig, BarItem, BarLookConfig, BarLookOverride, BarBadgeStyle, BarFont,
 } from "./SettingsTypes";
+export { resolveLook, lookDefaults, lookOf, lookWrites } from "./SettingsTypes";

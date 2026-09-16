@@ -9,7 +9,10 @@ import { chmodSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tinted } from "../../../sdk/src/icon.ts";
-import type { Form } from "../../../sdk/src/protocol.ts";
+import type { Form, View } from "../../../sdk/src/protocol.ts";
+import { checkView } from "../../../sdk/src/view.ts";
+import { REASONS, ago, render, shown } from "../../../extensions/github/view.ts";
+import type { Notification } from "../../../extensions/github/data.ts";
 import { Host, stored } from "../harness.ts";
 
 // ---- fixtures ---------------------------------------------------------------
@@ -468,18 +471,50 @@ describe("github", () => {
 
   describe("bar: notifications", () => {
     test("meta: the manifest entry with its refresh, backed by the code", () => {
-      expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual([{ id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, source: true }]);
+      expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual([{ id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true }]);
     });
 
-    test("render: the unread count as the badge, the newest five as a menu section, Open all and Mark all read under them", async () => {
+    test("render: the unread count as the badge, the popover a view of the threads by repository with a reason badge, the age and the key hints", async () => {
       const item = await host.render("github", "notifications", { reason: "load" });
       expect(item).toMatchObject({ icon: "\u{f09b}", badge: 3, tooltip: "3 unread notifications" });
       expect(item.hidden).toBeUndefined();
-      const menu = item.menu as any[];
-      expect(menu[0]).toMatchObject({ type: "section", title: "Unread" });
-      expect(menu[0].children.map((n: any) => n.id)).toEqual(["thread:1002", "thread:1001", "thread:1003"]);
-      expect(menu[0].children[0]).toEqual({ type: "item", id: "thread:1002", title: "Fix the parser", subtitle: "acme/api", icon: "" });
-      expect(menu.slice(1)).toEqual([{ type: "separator" }, { type: "item", id: "open", title: "Open all", subtitle: "3 in pal", icon: "\uf48d" }, { type: "item", id: "read-all", title: "Mark all read", icon: "\uf49e", shortcut: "cmd+shift+a", style: "destructive" }]);
+      const view = (item.menu as { view: View }).view;
+      expect(checkView(view)).toBe(view);
+      expect(view).toMatchObject({ title: "3 unread", id: "notifications", keys: "actions" });
+      expect(view.actions.map((a) => a.id)).toEqual(["open", "read", "read-all", "pal", "copy", "down", "up", "focus:thread:1002", "focus:thread:1001", "focus:thread:1003"]);
+      const s = JSON.stringify(view.tree);
+      // Newest first, grouped by repository: acme/api (the PR at 09:00, the release at 08:00), then acme/widgets.
+      expect(s.indexOf('"repo:acme/api"')).toBeLessThan(s.indexOf('"thread:1002"'));
+      expect(s.indexOf('"thread:1002"')).toBeLessThan(s.indexOf('"thread:1001"'));
+      expect(s.indexOf('"thread:1001"')).toBeLessThan(s.indexOf('"repo:acme/widgets"'));
+      expect(s).toContain('"text":"review","color":"violet"');
+      expect(s).toContain('"text":"mention","color":"red"');
+      expect(s).toContain('"text":"subscribed","color":"grey"');
+      // The cursor on the first row, a click on any row moves it; the hints name the keys.
+      expect(s).toContain('"key":"thread:1002","padding":1,"radius":true,"action":"focus:thread:1002","selected":true');
+      expect(s).toContain('"action":"focus:thread:1003"');
+      expect(s).not.toContain('"action":"focus:thread:1003","selected"');
+      for (const k of ["enter", "m", "a", "p", "up", "down"]) expect(s).toContain(`"type":"keycap","keys":"${k}"`);
+    });
+
+    test("the view over a made-up inbox: the height budget cuts the rows with their headers, the ages read, every reason has a badge, nothing unread is All caught up", () => {
+      const now = Date.parse("2026-09-16T14:32:00Z");
+      const n = (id: string, repo: string, minutes: number, reason = "subscribed"): Notification => ({ kind: "notification", id: `thread:${id}`, thread: id, title: `T${id}`, repo, reason, type: "Issue", url: `https://github.com/${repo}/issues/${id}`, updatedAt: new Date(now - minutes * 60_000).toISOString() });
+      // One repository: six rows fit; five repositories: five.
+      expect(shown(Array.from({ length: 9 }, (_, i) => n(String(i), "a/one", i))).map((x) => x.id)).toEqual(["thread:0", "thread:1", "thread:2", "thread:3", "thread:4", "thread:5"]);
+      expect(shown(Array.from({ length: 7 }, (_, i) => n(String(i), `a/r${i % 5}`, i))).map((x) => x.repo)).toEqual(["a/r0", "a/r0", "a/r1", "a/r1", "a/r2"]);
+      const many = Array.from({ length: 9 }, (_, i) => n(String(i), "a/one", i));
+      const v = render({ list: many, cursor: 2, now, account: "Work" });
+      expect(checkView(v)).toBe(v);
+      expect(v.title).toBe("9 unread (Work)");
+      expect(JSON.stringify(v.tree)).toContain('"value":"and 3 more in pal"');
+      expect(JSON.stringify(v.tree)).toContain('"action":"focus:thread:2","selected":true');
+      expect([ago(new Date(now - 20_000).toISOString(), now), ago(new Date(now - 5 * 60_000).toISOString(), now), ago(new Date(now - 3 * 3600_000).toISOString(), now), ago(new Date(now - 2 * 86400_000).toISOString(), now), ago(new Date(now - 10 * 86400_000).toISOString(), now), ago(new Date(now - 90 * 86400_000).toISOString(), now)]).toEqual(["now", "5m", "3h", "2d", "1w", "3mo"]);
+      for (const r of ["mention", "team_mention", "review_requested", "assign", "author", "comment", "subscribed", "state_change", "ci_activity", "security_alert", "manual", "invitation", "member_feature_requested", "security_advisory_credit", "approval_requested"]) expect(REASONS[r]).toBeDefined();
+      const empty = render({ list: [], cursor: 0, now });
+      expect(checkView(empty)).toBe(empty);
+      expect(JSON.stringify(empty.tree)).toContain('"value":"All caught up"');
+      expect(empty.actions.map((a) => a.id)).toEqual(["pal", "site"]);
     });
 
     test("a show/wake/network render asks GitHub (a 304 with the ETag); a timer render takes the cache", async () => {
@@ -491,13 +526,34 @@ describe("github", () => {
       expect(gets("/notifications").at(-1)!.etag).toBe(NOTIF_ETAG);
     });
 
-    test("actions: a row marks the thread read and opens it, Open all pushes the palette, Mark all read PUTs and re-renders with a HUD line", async () => {
-      expect(await host.barAction("github", "notifications", "thread:1001")).toEqual({ open: "https://github.com/acme/api/releases" });
-      expect(seen.find((s) => s.method === "PATCH" && s.path === "/notifications/threads/1001")).toBeDefined();
-      expect(await host.barAction("github", "notifications", "open")).toEqual({ push: { extension: "github", palette: "notifications" } });
+    test("actions: arrows and a click move the cursor and answer the tree; Enter marks the focused thread read and opens it; m marks it read and redraws with keep; p pushes the palette; a PUTs and answers All caught up", async () => {
+      const ctx = { reason: "open" as const, compact: true as const };
+      const tree = (r: Record<string, unknown>) => JSON.stringify((r.view as View).tree);
+      // Down from the first row (thread:1002) lands on the second (thread:1001); a click on the third focuses it; up wraps from the first to the last.
+      expect(tree(await host.barAction("github", "notifications", "down", ctx))).toContain('"action":"focus:thread:1001","selected":true');
+      expect(tree(await host.barAction("github", "notifications", "focus:thread:1003", ctx))).toContain('"action":"focus:thread:1003","selected":true');
+      expect(tree(await host.barAction("github", "notifications", "focus:thread:1002", ctx))).toContain('"action":"focus:thread:1002","selected":true');
+      expect(tree(await host.barAction("github", "notifications", "up", ctx))).toContain('"action":"focus:thread:1003","selected":true');
+      expect(await host.barAction("github", "notifications", "copy", ctx)).toEqual({ copy: "https://github.com/acme/widgets/issues/5" });
+      // Enter on the focused thread (1003): marked read on the way to the browser.
+      expect(await host.barAction("github", "notifications", "open", ctx)).toEqual({ open: "https://github.com/acme/widgets/issues/5" });
+      expect(seen.find((s) => s.method === "PATCH" && s.path === "/notifications/threads/1003")).toBeDefined();
+      // m on the first row: the PATCH, then (the mock's thread read meanwhile, a fresh list) the tree without it and the cursor on the row that slid under it, with keep so the strip's count follows.
+      await host.barAction("github", "notifications", "focus:thread:1002", ctx);
+      NOTIFICATIONS[1].unread = false;
+      let read: Awaited<ReturnType<typeof host.barAction>>;
+      try { read = await host.barAction("github", "notifications", "read", ctx); } finally { NOTIFICATIONS[1].unread = true; }
+      expect(seen.find((s) => s.method === "PATCH" && s.path === "/notifications/threads/1002")).toBeDefined();
+      expect(read.keep).toBe(true);
+      expect(checkView(read.view)).toBeTruthy();
+      expect(tree(read)).not.toContain('"key":"thread:1002"');
+      expect(tree(read)).toContain('"action":"focus:thread:1001","selected":true');
+      expect(await host.barAction("github", "notifications", "pal", ctx)).toEqual({ push: { extension: "github", palette: "notifications" } });
       const puts = seen.filter((s) => s.method === "PUT" && s.path === "/notifications").length;
-      expect(await host.barAction("github", "notifications", "read-all")).toEqual({ keep: true, hud: "Marked read" });
+      const all = await host.barAction("github", "notifications", "read-all", ctx);
       expect(seen.filter((s) => s.method === "PUT" && s.path === "/notifications")).toHaveLength(puts + 1);
+      expect(all.keep).toBe(true);
+      expect(tree(all)).toContain('"value":"All caught up"');
     });
 
     test("nothing unread is hidden", async () => {

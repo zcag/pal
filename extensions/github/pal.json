@@ -4,7 +4,12 @@
   "description": "Your pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.",
   "version": "0.1.0",
   "multi": true,
-  "icon": { "tile": { "glyph": "", "bg": "ink" } },
+  "icon": {
+    "tile": {
+      "glyph": "",
+      "bg": "ink"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -234,7 +239,7 @@
   "bar": {
     "notifications": {
       "title": "Notifications",
-      "description": "The unread count as a badge, hidden at zero; the newest five, Open all and Mark all read in the popover.",
+      "description": "The unread count as a badge, hidden at zero; the popover lists the unread threads by repository with their reason, opens or marks them read, marks all read.",
       "refresh": {
         "every": 300,
         "on": [
@@ -242,7 +247,33 @@
           "wake",
           "network"
         ]
-      }
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Mark the thread read and open it on GitHub"
+        },
+        {
+          "keys": "m",
+          "title": "Mark the thread read"
+        },
+        {
+          "keys": "a",
+          "title": "Mark all read"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Notifications palette"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the thread's URL"
+        },
+        {
+          "keys": "up",
+          "title": "Move between threads (or j and k)"
+        }
+      ]
     }
   },
   "license": "MIT",
@@ -294,12 +325,17 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "A click opens the popover: the newest five unread, Open all, Mark all read",
+        "caption": "A click opens the popover: the unread threads by repository with their reason and age; Enter opens one, m marks it read, a marks all read",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar: the glyph and the count in red on the label",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The same popover in the dark theme, on a second account named Work, the cursor on a thread",
         "kind": "bar"
       }
     ],

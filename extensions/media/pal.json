@@ -60,7 +60,7 @@
   "bar": {
     "now-playing": {
       "title": "Now Playing",
-      "description": "The playing track on the strip, hidden while nothing plays; the cover, pause and skip in the popover. Re-rendered the moment the track changes (macOS).",
+      "description": "The playing track on the strip, hidden while nothing plays; the popover shows the cover, the track, a progress bar that ticks and the transport as keys. Re-rendered the moment the track changes (macOS).",
       "refresh": {
         "every": 30,
         "on": [
@@ -68,7 +68,29 @@
           "wake",
           "media"
         ]
-      }
+      },
+      "keys": [
+        {
+          "keys": "space",
+          "title": "Pause or play"
+        },
+        {
+          "keys": "right",
+          "title": "Next track (cmd+right too)"
+        },
+        {
+          "keys": "left",
+          "title": "Previous track (cmd+left too)"
+        },
+        {
+          "keys": "c",
+          "title": "Copy artist - title (cmd+c too)"
+        },
+        {
+          "keys": "o",
+          "title": "Open the track in its player (cmd+o too)"
+        }
+      ]
     }
   },
   "license": "MIT",
@@ -81,7 +103,7 @@
       "`enter` plays or pauses and the tag follows; `cmd+right` and `cmd+left` skip",
       "`cmd+c` copies `artist - title`; `cmd+o` opens the track (Spotify's `spotify:track:` link) or the app",
       "Live: the current track is a root result, so its title or artist finds it without opening the palette",
-      "A bar item with the playing track, the cover and the transport in its popover, refreshed the moment a track changes (macOS) or within seconds (Linux)"
+      "A bar item with the playing track; its popover shows the cover large, the track, a progress bar ticking every second and the transport as keys, refreshed the moment a track changes (macOS) or within seconds (Linux)"
     ],
     "permissions": [
       "automation"
@@ -115,12 +137,22 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "A click opens the transport: pause, skip, copy the track, open it in Spotify",
+        "caption": "A click opens the popover: the cover, the track, a progress bar that ticks, the transport as keys",
         "kind": "bar"
       },
       {
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar: the note in the icon font, the track as the label",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The same popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-untitled.png",
+        "caption": "A player that names no track (a browser): the app, the position, the app's icon in place of a cover",
         "kind": "bar"
       }
     ],

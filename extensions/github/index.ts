@@ -8,19 +8,18 @@
 // item, `notifications`: the unread count as a badge over the same cache.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { home, tinted, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { home, tinted, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit, run } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type Notification, type PR, type PRDetail, type Repo, type SearchKind, type User,
 } from "./data.ts";
+import { render as renderNotifs, shown as shownNotifs, type NotifState } from "./view.ts";
 
 /** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, info, plus. */
 const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", info: "\uf449", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
 /** The bar's glyph (nf-fa-github). */
 const BAR_GLYPH = "\u{f09b}";
-/** Rows of the bar item's menu; the palette has the rest. */
-const BAR_ROWS = 5;
 /** A PR or issue row's mark: the state's octicon in the state's colour (GitHub's own: open green, merged violet, closed red, draft slate). */
 const STATE = {
   open: tinted(ICON.prs, "green"), draft: tinted(ICON.draft, "slate"), merged: tinted(ICON.merged, "violet"), closed: tinted(ICON.prClosed, "red"),
@@ -560,7 +559,7 @@ async function findNotif(id: string): Promise<Notification> {
 async function pickNotif(id: string, action?: string): Promise<Effect> {
   if (action === "read-all") {
     try { await markAllRead(); } catch (e) { return failToast("Could not mark all read", e); }
-    forget("notifications");
+    await forget("notifications");
     return { keep: true, toast: { title: "All notifications read" } };
   }
   if (id === SUMMARY) return { open: "https://github.com/notifications" };
@@ -569,54 +568,93 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
     case "copy": return { copy: n.url };
     case "read":
       try { await markRead(n.thread); } catch (e) { return failToast("Could not mark read", e); }
-      forget("notifications");
+      await forget("notifications");
       return { keep: true, toast: { title: "Marked read", message: short(n.title, 60) } };
     default:
       // Opening reads it, as the page would: the count is honest by the time you are back.
-      try { await markRead(n.thread); forget("notifications"); } catch (e) { log(`mark read ${n.thread}: ${e instanceof Error ? e.message : e}`); }
+      try { await markRead(n.thread); await forget("notifications"); } catch (e) { log(`mark read ${n.thread}: ${e instanceof Error ? e.message : e}`); }
       return { open: n.url };
   }
 }
 
 /**
- * The bar item: the unread count as a badge, hidden at zero, the newest
- * five as a menu level with the palette and Mark all read under them. The
- * cache is the palette's (`notifications`, ETag): a trigger from the bar
- * (the panel shown, a wake, the network back, the CLI) asks GitHub, which
- * answers 304 for free when nothing changed; the timer and a first render
- * take what is cached. Signed out is hidden, not an error: the strip has
- * no room for a hint.
+ * The bar item: the unread count as a badge, hidden at zero, the popover
+ * a view of the unread threads grouped by repository (view.ts) with the
+ * keys' cursor kept here by thread id. The cache is the palette's
+ * (`notifications`, ETag): a trigger from the bar (the panel shown, a
+ * wake, the network back, the CLI) asks GitHub, which answers 304 for
+ * free when nothing changed; the timer and a first render take what is
+ * cached. Signed out is hidden, not an error: the strip has no room for a
+ * hint.
  */
+let barFocus: string | undefined;
+let barAccount: string | undefined;
+
+/** The popover's state over `list`: the cursor on the focused thread, else the first row. */
+function notifState(list: Notification[]): NotifState {
+  for (const n of list) notifTable.set(n.id, n);
+  const rows = shownNotifs(list);
+  const cursor = Math.max(0, rows.findIndex((n) => n.id === barFocus));
+  barFocus = rows[cursor]?.id;
+  return { list, cursor, now: Date.now(), account: barAccount };
+}
+
 async function notifItem(ctx: BarCtx): Promise<BarItem> {
   let list: Notification[];
+  barAccount = ctx.instance?.title;
   try { list = await notifications(ctx.reason === "show" || ctx.reason === "wake" || ctx.reason === "network" || ctx.reason === "cli"); } catch (e) {
     if (e instanceof AuthError) return { hidden: true };
     throw e;
   }
   if (list.length === 0) return { hidden: true };
-  const newest = list.slice().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, BAR_ROWS);
-  const rows: BarMenuNode[] = newest.map((n) => { notifTable.set(n.id, n); return { type: "item", id: n.id, title: short(n.title, 60), subtitle: n.repo, icon: TYPE_GLYPH[n.type] ?? ICON.notifications }; });
   return {
     icon: BAR_GLYPH,
     badge: list.length,
     tooltip: `${list.length} unread notification${list.length === 1 ? "" : "s"}`,
-    menu: [
-      { type: "section", title: "Unread", children: rows },
-      { type: "separator" },
-      { type: "item", id: "open", title: "Open all", subtitle: `${list.length} in pal`, icon: ICON.inbox },
-      { type: "item", id: "read-all", title: "Mark all read", icon: ICON.check, shortcut: "cmd+shift+a", style: "destructive" },
-    ],
+    menu: { view: renderNotifs(notifState(list)) },
   };
 }
 
-/** A row opens the thread (and marks it read, as the palette does); the two commands are the palette's own picks. */
+/**
+ * A key or a click in the popover: Enter/`o` marks the focused thread
+ * read and opens it (as the palette's row does), `m` marks it read and
+ * redraws, `a` marks all read, `p` pushes the palette, arrows and a
+ * click move the cursor. A redraw after a mark read answers the fresh
+ * list with `keep`, so the strip's count follows too.
+ */
 async function notifAction(action: string): Promise<Effect> {
-  if (action === "open") return { push: { extension: "github", palette: "notifications" } };
+  if (action === "pal") return { push: { extension: "github", palette: "notifications" } };
+  if (action === "site") return { open: "https://github.com/notifications" };
   if (action === "read-all") {
     const r = await pickNotif(SUMMARY, "read-all");
-    return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };
+    // The popover reads "All caught up" while the strip's re-render hides the item.
+    return r.toast?.style === "failure" ? r : { keep: true, view: renderNotifs(notifState([])) };
   }
-  return pickNotif(action);
+  const list = await notifications();
+  const st = notifState(list);
+  const rows = shownNotifs(list);
+  const focused = rows[st.cursor];
+  const redraw = (next: NotifState): Effect => ({ view: renderNotifs(next) });
+  if (action.startsWith("focus:")) { barFocus = action.slice(6); return redraw(notifState(list)); }
+  if (action === "down" || action === "up") {
+    if (!rows.length) return { keep: true };
+    barFocus = rows[(st.cursor + (action === "down" ? 1 : rows.length - 1)) % rows.length].id;
+    return redraw(notifState(list));
+  }
+  if (!focused) return { keep: true };
+  switch (action) {
+    case "copy": return { copy: focused.url };
+    case "read": {
+      const r = await pickNotif(focused.id, "read");
+      if (r.toast?.style === "failure") return r;
+      // The cursor stays at its index: the next thread slides under it.
+      const next = notifState(await notifications());
+      const at = Math.min(st.cursor, Math.max(0, shownNotifs(next.list).length - 1));
+      barFocus = shownNotifs(next.list)[at]?.id;
+      return { keep: true, view: renderNotifs({ ...next, cursor: at }) };
+    }
+    default: return pickNotif(focused.id);
+  }
 }
 
 // ---- search -----------------------------------------------------------------

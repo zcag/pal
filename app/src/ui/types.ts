@@ -131,21 +131,24 @@ export type GradientLayer = { stops: HexColor[]; direction?: "right" | "down" | 
 /** `enter` on a new key, `exit` on a gone one, `delay` in steps of `--pal-dur-fast`, `move` slides a key found at another box in the previous tree. */
 export type Transition = { enter?: "fade" | "slide-up" | "slide-down" | "slide-left" | "slide-right" | "flip" | "pop"; exit?: "fade" | "none"; delay?: number; move?: true };
 
-type NodeBase = { key?: string; transition?: Transition };
+/** `action`: a click runs that view action; `selected`: the accent ring of the keys' cursor. */
+type NodeBase = { key?: string; transition?: Transition; action?: string; selected?: true };
 
 /** Steps of the 4 px grid, `--pal-space-N`. */
 export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export type ViewNode =
-  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated"; radius?: boolean; children: ViewNode[] })
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; surface?: "sunken" | "elevated" | HexColor; radius?: boolean; children: ViewNode[] })
   | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
-  | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: IconMask; alt?: string })
+  | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: IconMask; alt?: string; dot?: TagColor })
   | (NodeBase & { type: "tile"; width: number; height: number; text?: string; sub?: string; color?: TagColor | "neutral" | "accent" | HexColor; fill?: "solid" | "soft" | "outline" })
   | (NodeBase & { type: "gradient"; width: number; height: number; layers: GradientLayer[]; fill?: HexColor; marker?: { x: number; y: number } })
   | (NodeBase & { type: "badge"; text: string; color?: TagColor })
   | (NodeBase & { type: "divider" })
   | (NodeBase & { type: "spacer"; size?: number })
-  | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor })
+  | (NodeBase & { type: "progress"; value: number; width?: number; color?: TagColor | HexColor })
+  | (NodeBase & { type: "slider"; value: number; width?: number; color?: TagColor | HexColor; label?: string })
+  | (NodeBase & { type: "switch"; on: boolean; color?: TagColor; label?: string })
   | (NodeBase & { type: "keycap"; keys: string });
 
 /** `View.input`: the search row as a text field the view reads on Enter (`submit`) and drops on Escape (`cancel`, else the level pops). */

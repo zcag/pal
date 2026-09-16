@@ -202,7 +202,14 @@ describe("google source", () => {
 
   test("the bar item: the sync in 12 minutes, amber with a dot; a minute tick reads the cache", async () => {
     const item = await host.render(E, "upcoming", { reason: "load" });
-    expect(item).toMatchObject({ title: "Weekly sync in 12m", color: "amber", badge: "dot", tooltip: expect.stringContaining("Weekly sync, "), menu: { palette: "today", extension: "calendar", args: { rest: true } } });
+    expect(item).toMatchObject({ title: "Weekly sync in 12m", color: "amber", badge: "dot", tooltip: expect.stringContaining("Weekly sync, "), menu: { view: { id: "upcoming", keys: "actions" } } });
+    // The popover over Google's events: Enter joins the sync, `o` is the day's page on calendar.google.com, the primary of a row without a call opens it in the browser.
+    const view = (item.menu as { view: { actions: { id: string; title: string }[] } }).view;
+    expect(view.actions[0]).toEqual({ id: "primary", title: "Join call" });
+    expect(view.actions.find((a) => a.id === "open-calendar")?.title).toBe("Open Google Calendar");
+    expect(JSON.stringify(view)).toContain("in 12 min");
+    const ctx = { reason: "open" as const, compact: true as const };
+    expect(await host.barAction(E, "upcoming", "open-calendar", ctx)).toEqual({ open: expect.stringMatching(/^https:\/\/calendar\.google\.com\/calendar\/r\/day\/\d{4}\/\d{1,2}\/\d{1,2}$/) });
     const n = seen.length;
     expect(await host.render(E, "upcoming", { reason: "minute" })).toEqual(item);
     expect(seen.length).toBe(n);

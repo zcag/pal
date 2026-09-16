@@ -1,5 +1,25 @@
 {
   "$defs": {
+    "BadgeStyle": {
+      "description": "`badge_style`: how a count badge is drawn.",
+      "oneOf": [
+        {
+          "const": "count",
+          "description": "The number (` ·3` on the menu bar, in red on sketchybar's label).",
+          "type": "string"
+        },
+        {
+          "const": "dot",
+          "description": "A dot, whatever the number.",
+          "type": "string"
+        },
+        {
+          "const": "none",
+          "description": "Nothing; the count stays in the tooltip.",
+          "type": "string"
+        }
+      ]
+    },
     "Bar": {
       "additionalProperties": false,
       "description": "`[bar]`: the strips extensions draw on (`docs/design/bar.md`), the\nhover timings, one table per target and one per item.",
@@ -29,15 +49,34 @@
         "menubar": {
           "$ref": "#/$defs/BarMenubar",
           "default": {
+            "badge_style": "count",
+            "dim": 50,
+            "font": "system",
             "max_chars": 32,
-            "open_on_hover": false
+            "open_on_hover": false,
+            "show_icon": true,
+            "show_title": true,
+            "size": 0.0,
+            "spacing": 4,
+            "urgent_color": "destructive",
+            "width": 0
           }
         },
         "sketchybar": {
           "$ref": "#/$defs/BarSketchybar",
           "default": {
+            "badge_style": "count",
+            "dim": 50,
+            "font": "system",
+            "max_chars": 32,
             "open_on_hover": true,
-            "position": "right"
+            "position": "right",
+            "show_icon": true,
+            "show_title": true,
+            "size": 0.0,
+            "spacing": 4,
+            "urgent_color": "destructive",
+            "width": 0
           }
         },
         "target": {
@@ -48,21 +87,68 @@
       },
       "type": "object"
     },
+    "BarFont": {
+      "description": "`font`: the text's face.",
+      "oneOf": [
+        {
+          "const": "system",
+          "description": "The bar's own face.",
+          "type": "string"
+        },
+        {
+          "const": "mono",
+          "description": "Monospace, for codes and times that must not jitter (SF Mono on the menu bar, Menlo on sketchybar).",
+          "type": "string"
+        }
+      ]
+    },
     "BarItemConfig": {
       "additionalProperties": false,
       "description": "`[bar.items.\"<extension>/<id>\"]`: one item's settings; absent keys mean\nthe target's defaults.",
       "properties": {
+        "badge_style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BadgeStyle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How this item's count badge is drawn. The target's when unset."
+        },
+        "color": {
+          "description": "This item's tint, a colour name or `#rrggbb`. The target's when unset.",
+          "type": "string"
+        },
+        "dim": {
+          "description": "A muted item's strength here, percent. The target's when unset.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
         "enabled": {
           "default": true,
           "description": "`false`: no slot on any target and no refresh timer.",
           "type": "boolean"
+        },
+        "font": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BarFont"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`system` or `mono` for this item. The target's when unset."
         },
         "hotkey": {
           "description": "Global hotkey that opens the item's popover engaged (or runs its open action).",
           "type": "string"
         },
         "max_chars": {
-          "description": "This item's longest menu bar title; `[bar.menubar] max_chars` when unset.",
+          "description": "This item's longest title, in characters. The target's when unset.",
           "format": "uint",
           "minimum": 0,
           "type": "integer"
@@ -80,6 +166,25 @@
           "description": "sketchybar position for this item (as `[bar.sketchybar] position`).",
           "type": "string"
         },
+        "show_icon": {
+          "description": "Draw this item's icon. The target's when unset.",
+          "type": "boolean"
+        },
+        "show_title": {
+          "description": "Draw this item's title and segments. The target's when unset.",
+          "type": "boolean"
+        },
+        "size": {
+          "description": "Point size of the glyph and the text here. The target's when unset.",
+          "format": "double",
+          "type": "number"
+        },
+        "spacing": {
+          "description": "Points between the icon, the title and the segments here. The target's when unset.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
         "target": {
           "anyOf": [
             {
@@ -90,17 +195,48 @@
             }
           ],
           "description": "This item's target; the global `[bar] target` when unset."
+        },
+        "urgent_color": {
+          "description": "This item's colour when urgent. The target's when unset.",
+          "type": "string"
+        },
+        "width": {
+          "description": "A fixed width in points for this item; `0` is natural. The target's when unset.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "type": "object"
     },
     "BarMenubar": {
       "additionalProperties": false,
-      "description": "`[bar.menubar]`: the macOS menu bar target.",
+      "description": "`[bar.menubar]`: the macOS menu bar target. Hover off: Apple's bar has no hover convention.",
       "properties": {
+        "badge_style": {
+          "$ref": "#/$defs/BadgeStyle",
+          "default": "count",
+          "description": "How a count badge is drawn: `count`, `dot` or `none`."
+        },
+        "color": {
+          "description": "The tint: a colour name (`grey`, `blue`, `green`, `amber`, `red`,\n`violet`, `pink`, `teal`, `accent`, `text`, `muted`) or `#rrggbb`,\ndrawn in place of the colour the extension answers. Unset keeps the\nextension's: a coloured item its own, the rest the bar's text colour.",
+          "type": "string"
+        },
+        "dim": {
+          "default": 50,
+          "description": "A muted item's strength, in percent: a stale item and an item the\nextension colours `muted` draw at this opacity.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "font": {
+          "$ref": "#/$defs/BarFont",
+          "default": "system",
+          "description": "`system` or `mono`."
+        },
         "max_chars": {
           "default": 32,
-          "description": "Longest title an item draws on the menu bar, in characters; longer\ntext ends in an ellipsis. Apple's bar hides whatever runs into the\nnotch or past the left edge, so a lyric line or a track title must\nstop short. Per item: `[bar.items.\"<key>\"] max_chars`.",
+          "description": "Longest title an item draws, in characters; longer text ends in an\nellipsis. Apple's bar hides whatever runs into the notch or past the\nleft edge, so a lyric line or a track title must stop short.",
           "format": "uint",
           "minimum": 0,
           "type": "integer"
@@ -109,6 +245,41 @@
           "default": false,
           "description": "A hover peeks the item's popover. Off: Apple's bar has no hover convention.",
           "type": "boolean"
+        },
+        "show_icon": {
+          "default": true,
+          "description": "Draw the icon.",
+          "type": "boolean"
+        },
+        "show_title": {
+          "default": true,
+          "description": "Draw the title and the segments; off is a glyph-only item.",
+          "type": "boolean"
+        },
+        "size": {
+          "default": 0.0,
+          "description": "Point size of the glyph and the text; `0` is the target's own (the\nmenu bar's 13 pt text and 14 pt glyph, sketchybar's font).",
+          "format": "double",
+          "type": "number"
+        },
+        "spacing": {
+          "default": 4,
+          "description": "Points between the icon, the title and the segments.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "urgent_color": {
+          "default": "destructive",
+          "description": "The colour of an urgent item, a name or `#rrggbb`.",
+          "type": "string"
+        },
+        "width": {
+          "default": 0,
+          "description": "A fixed width in points, so a ticking timer does not jitter; `0`\nis the natural width. Text past it is clipped.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "type": "object"
@@ -117,12 +288,40 @@
       "additionalProperties": false,
       "description": "`[bar.sketchybar]`: the sketchybar target.",
       "properties": {
+        "badge_style": {
+          "$ref": "#/$defs/BadgeStyle",
+          "default": "count",
+          "description": "How a count badge is drawn: `count`, `dot` or `none`."
+        },
+        "color": {
+          "description": "The tint: a colour name (`grey`, `blue`, `green`, `amber`, `red`,\n`violet`, `pink`, `teal`, `accent`, `text`, `muted`) or `#rrggbb`,\ndrawn in place of the colour the extension answers. Unset keeps the\nextension's: a coloured item its own, the rest the bar's text colour.",
+          "type": "string"
+        },
         "colors": {
           "additionalProperties": {
             "type": "string"
           },
           "description": "Overrides of the colour map, `0xAARRGGBB` per name (`red`,\n`muted`, `text`, ...), so a themed bar keeps its own palette.",
           "type": "object"
+        },
+        "dim": {
+          "default": 50,
+          "description": "A muted item's strength, in percent: a stale item and an item the\nextension colours `muted` draw at this opacity.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "font": {
+          "$ref": "#/$defs/BarFont",
+          "default": "system",
+          "description": "`system` or `mono`."
+        },
+        "max_chars": {
+          "default": 32,
+          "description": "Longest title an item draws, in characters; longer text ends in an\nellipsis. Apple's bar hides whatever runs into the notch or past the\nleft edge, so a lyric line or a track title must stop short.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
         },
         "open_on_hover": {
           "default": true,
@@ -133,6 +332,41 @@
           "default": "right",
           "description": "Default position of pal's items: `left`, `right`, `center`, `q`,\n`e`, `before:<item>` or `after:<item>`.",
           "type": "string"
+        },
+        "show_icon": {
+          "default": true,
+          "description": "Draw the icon.",
+          "type": "boolean"
+        },
+        "show_title": {
+          "default": true,
+          "description": "Draw the title and the segments; off is a glyph-only item.",
+          "type": "boolean"
+        },
+        "size": {
+          "default": 0.0,
+          "description": "Point size of the glyph and the text; `0` is the target's own (the\nmenu bar's 13 pt text and 14 pt glyph, sketchybar's font).",
+          "format": "double",
+          "type": "number"
+        },
+        "spacing": {
+          "default": 4,
+          "description": "Points between the icon, the title and the segments.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "urgent_color": {
+          "default": "destructive",
+          "description": "The colour of an urgent item, a name or `#rrggbb`.",
+          "type": "string"
+        },
+        "width": {
+          "default": 0,
+          "description": "A fixed width in points, so a ticking timer does not jitter; `0`\nis the natural width. Text past it is clipped.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "type": "object"
@@ -434,12 +668,31 @@
         "hover_grace": 400,
         "items": {},
         "menubar": {
+          "badge_style": "count",
+          "dim": 50,
+          "font": "system",
           "max_chars": 32,
-          "open_on_hover": false
+          "open_on_hover": false,
+          "show_icon": true,
+          "show_title": true,
+          "size": 0.0,
+          "spacing": 4,
+          "urgent_color": "destructive",
+          "width": 0
         },
         "sketchybar": {
+          "badge_style": "count",
+          "dim": 50,
+          "font": "system",
+          "max_chars": 32,
           "open_on_hover": true,
-          "position": "right"
+          "position": "right",
+          "show_icon": true,
+          "show_title": true,
+          "size": 0.0,
+          "spacing": 4,
+          "urgent_color": "destructive",
+          "width": 0
         },
         "target": "auto"
       },

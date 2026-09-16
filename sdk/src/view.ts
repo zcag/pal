@@ -46,7 +46,6 @@ export function checkView(v: unknown, where = "view"): View {
     ids.add(a.id);
     if (a.shortcut !== undefined && (!shortcutsOf(a).length || !shortcutsOf(a).every((k) => typeof k === "string" && k))) throw new Error(`${where}: action "${a.id}" shortcut must be a key or a list of keys`);
     if (a.hidden !== undefined && a.hidden !== true) throw new Error(`${where}: action "${a.id}" hidden must be true`);
-    if (a.hidden && !shortcutsOf(a).length) throw new Error(`${where}: action "${a.id}" is hidden and has no shortcut, so nothing could run it`);
   }
   if (view.keys !== undefined && view.keys !== "actions") throw new Error(`${where}: keys must be "actions"`);
   if (view.input !== undefined) {
@@ -59,10 +58,17 @@ export function checkView(v: unknown, where = "view"): View {
   }
   let count = 0;
   const moving = new Set<string>();
+  /** Action ids some node runs on a click: a hidden action reached this way needs no shortcut. */
+  const clicked = new Set<string>();
   const walk = (n: ViewNode, depth: number, path: string) => {
     if (!n || typeof n !== "object" || typeof (n as { type?: unknown }).type !== "string") throw new Error(`${where}: ${path} is not a node`);
     if (++count > MAX_NODES) throw new Error(`${where}: more than ${MAX_NODES} nodes`);
     if (depth > MAX_DEPTH) throw new Error(`${where}: ${path} is nested deeper than ${MAX_DEPTH}`);
+    if (n.action !== undefined) {
+      if (typeof n.action !== "string" || !ids.has(n.action)) throw new Error(`${where}: ${path} action "${String(n.action)}" is none of the view's actions`);
+      clicked.add(n.action);
+    }
+    if (n.selected !== undefined && n.selected !== true) throw new Error(`${where}: ${path} selected must be true`);
     const t = n.transition;
     if (t !== undefined) {
       if (!t || typeof t !== "object") throw new Error(`${where}: ${path} transition must be an object`);
@@ -102,10 +108,16 @@ export function checkView(v: unknown, where = "view"): View {
       if (n.minWidth !== undefined && !isPx(n.minWidth)) throw new Error(`${where}: ${path} text minWidth must be px`);
       if (n.align !== undefined && !ALIGNS.has(n.align)) throw new Error(`${where}: ${path} text has an unknown align "${n.align}"`);
     }
-    if (n.type === "progress" && n.color !== undefined && !TAG_COLORS.has(n.color)) throw new Error(`${where}: ${path} progress has an unknown color "${n.color}"`);
+    if ((n.type === "progress" || n.type === "slider") && n.color !== undefined && !TAG_COLORS.has(n.color) && !(typeof n.color === "string" && HEX_COLOR.test(n.color))) throw new Error(`${where}: ${path} ${n.type} has an unknown color "${n.color}" (a tag colour or #hex)`);
+    if (n.type === "slider" && !(typeof n.value === "number" && n.value >= 0 && n.value <= 1)) throw new Error(`${where}: ${path} slider value must be 0..1`);
+    if (n.type === "switch") {
+      if (typeof n.on !== "boolean") throw new Error(`${where}: ${path} switch needs on (a boolean)`);
+      if (n.color !== undefined && !TAG_COLORS.has(n.color)) throw new Error(`${where}: ${path} switch has an unknown color "${n.color}"`);
+    }
+    if (n.type === "image" && n.dot !== undefined && !TAG_COLORS.has(n.dot)) throw new Error(`${where}: ${path} image has an unknown dot colour "${n.dot}"`);
     if (n.type === "stack") {
       if (!Array.isArray(n.children)) throw new Error(`${where}: ${path} stack has no children`);
-      if (n.surface !== undefined && !SURFACES.has(n.surface)) throw new Error(`${where}: ${path} stack has an unknown surface "${n.surface}"`);
+      if (n.surface !== undefined && !SURFACES.has(n.surface) && !(typeof n.surface === "string" && HEX_COLOR.test(n.surface))) throw new Error(`${where}: ${path} stack has an unknown surface "${n.surface}" (sunken, elevated or #hex)`);
       if (n.radius !== undefined && typeof n.radius !== "boolean") throw new Error(`${where}: ${path} stack radius must be a boolean`);
       const keys = new Set<string>();
       n.children.forEach((c, i) => {
@@ -119,6 +131,7 @@ export function checkView(v: unknown, where = "view"): View {
     }
   };
   walk(view.tree, 0, "tree");
+  for (const a of view.actions) if (a.hidden && !shortcutsOf(a).length && !clicked.has(a.id)) throw new Error(`${where}: action "${a.id}" is hidden and has no shortcut, and no node runs it on a click, so nothing could`);
   return view;
 }
 

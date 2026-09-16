@@ -180,8 +180,8 @@ export async function cached<T>(key: string, ttlMs: number, refresh: boolean, lo
   return p;
 }
 
-/** Drops the memory copy so the next `cached` reads the file (a mutation changed what the server would answer). */
-export const forget = (...keys: string[]) => { for (const k of keys) { mem.delete(k); storage.remove(`cache:${k}`, EXTENSION).catch(() => {}); } };
+/** Drops the memory copy and the file so the next `cached` fetches (a mutation changed what the server would answer); resolves once the file is gone, for a caller that lists again at once. */
+export const forget = (...keys: string[]): Promise<void> => { for (const k of keys) mem.delete(k); return Promise.all(keys.map((k) => storage.remove(`cache:${k}`, EXTENSION).catch(() => {}))).then(() => undefined); };
 
 /** A REST list as a `cached` loader: sends the ETag, answers `unchanged` on a 304, else the rows through `map`. */
 export const restLoader = <R, T>(path: string, map: (raw: R) => T) => async (etag?: string): Promise<Loaded<T>> => {

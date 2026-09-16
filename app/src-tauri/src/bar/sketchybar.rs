@@ -17,7 +17,16 @@
 //! The builder ([`props`], [`diff`]) is pure, item to argv, and tested on
 //! strings; [`Sketchybar`] runs what it builds and remembers what each
 //! name was last set to, so an unchanged push costs nothing and `--add`
-//! happens once per appearance.
+//! happens once per appearance. The look (`[bar.sketchybar]`,
+//! `Draw::look`) maps onto item properties: `size` is `icon.font.size` /
+//! `label.font.size`, `font = "mono"` is `label.font.family=Menlo`,
+//! `width` is `label.width` (points), `max_chars` is `label.max_chars`,
+//! `spacing` the paddings between icon, label and segments, `dim` the
+//! alpha of a muted item's colour, `color` / `urgent_color` the
+//! `icon.color` / `label.color`. A property the bar has and the look no
+//! longer sets (a size back to the bar's own) has no "unset" in
+//! sketchybar, so the item is removed and added afresh, which gives it
+//! the bar's `--default`s again.
 
 use std::collections::BTreeMap;
 use std::process::Command;
@@ -25,6 +34,8 @@ use std::sync::atomic::Ordering;
 use std::sync::{LazyLock, Mutex};
 
 use tauri::{AppHandle, Manager};
+
+use pal_core::config::BarFont;
 
 use super::colors::Palette;
 use super::{glyph, Bar, Draw, IconKind, Rect, Target};
@@ -69,10 +80,17 @@ fn set(p: &mut Props, k: &str, v: impl Into<String>) {
 /// path the click and hover scripts run.
 pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Rendered {
     let item = &draw.item;
+    let look = &draw.look;
     let main = name_of(key);
     let mut out = Rendered { position: draw.position.clone(), order: vec![main.clone()], props: BTreeMap::new() };
-    let color = |name: Option<&str>| name.and_then(|n| palette.hex(n)).or_else(|| palette.hex("text")).unwrap_or_default();
-    let item_color = color(item.color_name());
+    let text = palette.hex("text").unwrap_or_default();
+    let color = |spec: Option<&str>| match spec {
+        Some("muted") => palette.muted_hex(look.dim),
+        Some(spec) => palette.hex_of(spec).unwrap_or_else(|| text.clone()),
+        None => text.clone(),
+    };
+    let item_color = color(draw.tint());
+    let spacing = look.spacing.to_string();
     let mut p = Props::new();
     set(&mut p, "drawing", if item.hidden { "off" } else { "on" });
     set(&mut p, "updates", "on");
@@ -108,19 +126,31 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     set(&mut p, "label", title.clone());
     set(&mut p, "label.drawing", if title.is_empty() { "off" } else { "on" });
     set(&mut p, "label.color", item_color.clone());
+    set(&mut p, "label.max_chars", look.max_chars.to_string());
     let trailing = item.segments.is_empty() && item.count().is_none();
-    // Icon only: the icon takes the label's right padding (the owner's `icon_only`).
+    // Icon only: the icon takes the label's right padding (the owner's `icon_only`); the look's spacing before whatever follows it.
     set(&mut p, "icon.padding_left", "8");
-    set(&mut p, "icon.padding_right", if title.is_empty() && trailing { "8" } else { "4" });
+    set(&mut p, "icon.padding_right", if title.is_empty() && trailing { "8".to_string() } else { spacing.clone() });
     set(&mut p, "label.padding_left", "0");
     set(&mut p, "label.padding_right", if trailing { "8" } else { "2" });
+    if look.size > 0.0 {
+        set(&mut p, "icon.font.size", format!("{}", look.size));
+        set(&mut p, "label.font.size", format!("{}", look.size));
+    }
+    if look.font == BarFont::Mono {
+        set(&mut p, "label.font.family", "Menlo");
+    }
+    if look.width > 0 && !title.is_empty() {
+        set(&mut p, "label.width", look.width.to_string());
+        set(&mut p, "label.align", "left");
+    }
     set(&mut p, "click_script", format!("{pal_bin} bar click {key} --anchor sketchybar"));
     set(&mut p, "script", if draw.hover { format!("{pal_bin} bar hover {key} --anchor sketchybar --state $SENDER") } else { String::new() });
     out.props.insert(main.clone(), p);
     let extras: Vec<(String, Option<String>, Option<String>, String)> = item
         .segments
         .iter()
-        .map(|s| (format!("{main}.{}", s.id), s.icon.clone(), s.text.clone(), if item.stale { palette.hex("muted").unwrap_or_default() } else { color(s.color.as_deref().or(item.color_name())) }))
+        .map(|s| (format!("{main}.{}", s.id), s.icon.clone(), s.text.clone(), if item.stale && !item.urgent { color(Some("muted")) } else { color(s.color.as_deref().or(draw.tint())) }))
         .chain(item.count().map(|n| (format!("{main}.badge"), None, Some(n.to_string()), palette.hex("red").unwrap_or_default())))
         .collect();
     let last = extras.len().saturating_sub(1);
@@ -132,14 +162,21 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         set(&mut p, "icon", icon.clone());
         set(&mut p, "icon.drawing", if icon.is_empty() { "off" } else { "on" });
         set(&mut p, "icon.color", col.clone());
-        set(&mut p, "icon.padding_left", "4");
+        set(&mut p, "icon.padding_left", spacing.clone());
         set(&mut p, "icon.padding_right", "2");
         let text = text.unwrap_or_default();
         set(&mut p, "label", text.clone());
         set(&mut p, "label.drawing", if text.is_empty() { "off" } else { "on" });
         set(&mut p, "label.color", col);
-        set(&mut p, "label.padding_left", "0");
+        set(&mut p, "label.padding_left", if icon.is_empty() { spacing.clone() } else { "0".to_string() });
         set(&mut p, "label.padding_right", if i == last { "8" } else { "2" });
+        if look.size > 0.0 {
+            set(&mut p, "icon.font.size", format!("{}", look.size));
+            set(&mut p, "label.font.size", format!("{}", look.size));
+        }
+        if look.font == BarFont::Mono {
+            set(&mut p, "label.font.family", "Menlo");
+        }
         set(&mut p, "click_script", format!("{pal_bin} bar action {key} segment:{}", name.rsplit('.').next().unwrap_or_default()));
         out.order.push(name.clone());
         out.props.insert(name, p);
@@ -168,7 +205,9 @@ fn along(rtl: bool) -> &'static str {
 
 /// One batched argv from `prev` (what the bar has for this key) to
 /// `next`: `--add` and `--subscribe` for a new name, `--set` with only
-/// the changed properties for a known one, `--remove` for a gone one,
+/// the changed properties for a known one (a known one that lost a
+/// property is removed and added afresh: sketchybar has no unset, and a
+/// new item takes the bar's defaults), `--remove` for a gone one,
 /// then `placed` (the `--move` that puts the main item among pal's others,
 /// [`order_move`]) and the chain of `--move`s that keeps the extras behind
 /// it (`rtl`: see [`along`]). Empty when nothing changed.
@@ -191,7 +230,11 @@ pub fn diff(prev: Option<&Rendered>, next: Option<&Rendered>, rtl: bool, placed:
     let mut added = Vec::new();
     for name in &next.order {
         let Some(p) = next.props.get(name) else { continue };
-        match prev.props.get(name) {
+        let known = prev.props.get(name).filter(|old| old.keys().all(|k| p.contains_key(k)));
+        if prev.props.contains_key(name) && known.is_none() {
+            argv.extend(["--remove".into(), name.clone()]);
+        }
+        match known {
             None => {
                 argv.extend(["--add".into(), "item".into(), name.clone(), side.clone()]);
                 argv.push("--set".into());
@@ -452,10 +495,16 @@ impl Target for Sketchybar {
 mod tests {
     use super::*;
     use super::super::BarItem;
+    use pal_core::config::{BadgeStyle, BarLook};
     use serde_json::json;
 
     fn draw(item: serde_json::Value, position: &str, hover: bool) -> Draw {
-        Draw { item: serde_json::from_value::<BarItem>(item).unwrap(), order: 0, position: position.into(), hover, max_chars: 32 }
+        Draw { item: serde_json::from_value::<BarItem>(item).unwrap(), order: 0, position: position.into(), hover, look: BarLook::default() }
+    }
+
+    fn with(item: serde_json::Value, look: BarLook) -> Draw {
+        let d = draw(item, "right", false);
+        Draw { item: d.item.shaped(&look), look, ..d }
     }
 
     fn pal() -> Palette {
@@ -496,12 +545,15 @@ mod tests {
         let s = props("x/y", &draw(json!({ "icon": "\u{f062c}", "color": "muted", "segments": [{ "id": "block", "icon": "\u{f0159}", "text": "2", "color": "red" }, { "id": "sep", "text": "│", "color": "muted" }, { "id": "oss", "text": "1" }] }), "right", false), &pal(), "pal");
         assert_eq!(s.order, ["pal.x.y", "pal.x.y.block", "pal.x.y.sep", "pal.x.y.oss"]);
         assert_eq!(s.props["pal.x.y.block"]["icon.color"], "0xffff8a82");
-        assert_eq!(s.props["pal.x.y.oss"]["label.color"], "0xffa3a4ae", "a segment without a colour takes the item's");
+        assert_eq!(s.props["pal.x.y.oss"]["label.color"], "0x80a3a4ae", "a segment without a colour takes the item's (muted, at dim)");
         assert_eq!(s.props["pal.x.y.oss"]["label.padding_right"], "8", "the last one carries the trailing padding");
         assert_eq!(s.props["pal.x.y.block"]["click_script"], "pal bar action x/y segment:block");
         let st = props("x/y", &draw(json!({ "stale": true, "segments": [{ "id": "a", "text": "1", "color": "red" }] }), "right", false), &pal(), "pal");
-        assert_eq!(st.props["pal.x.y.a"]["label.color"], "0xffa3a4ae", "stale mutes the segments too");
-        assert_eq!(st.props["pal.x.y"]["label.color"], "0xffa3a4ae");
+        assert_eq!(st.props["pal.x.y.a"]["label.color"], "0x80a3a4ae", "stale mutes the segments too, at dim");
+        assert_eq!(st.props["pal.x.y"]["label.color"], "0x80a3a4ae");
+        assert_eq!(s.props["pal.x.y"]["icon.color"], "0x80a3a4ae", "the extension's muted is the same dim");
+        assert_eq!(m["label.max_chars"], "32");
+        assert!(!m.contains_key("icon.font.size") && !m.contains_key("label.font.family") && !m.contains_key("label.width"), "the defaults leave the bar's own font and width alone");
         // Urgent, dot, emoji, title only.
         let u = props("x/y", &draw(json!({ "icon": "🔔", "title": "Ring", "urgent": true, "badge": "dot" }), "right", false), &pal(), "pal");
         let m = &u.props["pal.x.y"];
@@ -509,6 +561,41 @@ mod tests {
         assert_eq!((m["label"].as_str(), m["label.padding_right"].as_str()), ("Ring", "8"));
         let t = props("x/y", &draw(json!({ "title": "12:00" }), "right", false), &pal(), "pal");
         assert_eq!(t.props["pal.x.y"]["icon.drawing"], "off");
+    }
+
+    #[test]
+    fn props_follow_the_look() {
+        let item = json!({ "icon": "\u{f09b}", "title": "3:12", "badge": 3, "color": "green", "segments": [{ "id": "a", "text": "1" }], "menu": [] });
+        let r = props("x/y", &with(item.clone(), BarLook { size: 11.5, font: BarFont::Mono, width: 60, spacing: 7, max_chars: 12, ..Default::default() }), &pal(), "pal");
+        let m = &r.props["pal.x.y"];
+        assert_eq!((m["icon.font.size"].as_str(), m["label.font.size"].as_str()), ("11.5", "11.5"));
+        assert_eq!(m["label.font.family"], "Menlo");
+        assert_eq!((m["label.width"].as_str(), m["label.align"].as_str()), ("60", "left"));
+        assert_eq!(m["label.max_chars"], "12");
+        assert_eq!(m["icon.padding_right"], "7", "spacing between the icon and the label");
+        let a = &r.props["pal.x.y.a"];
+        assert_eq!((a["icon.padding_left"].as_str(), a["label.padding_left"].as_str()), ("7", "7"), "and before a segment (its label when it has no icon)");
+        assert_eq!((a["label.font.size"].as_str(), a["label.font.family"].as_str()), ("11.5", "Menlo"), "segments follow");
+        let glyph_only = props("x/y", &with(item.clone(), BarLook { show_title: false, ..Default::default() }), &pal(), "pal");
+        assert_eq!(glyph_only.order, ["pal.x.y", "pal.x.y.badge"], "no segments, the badge stays");
+        assert_eq!(glyph_only.props["pal.x.y"]["label.drawing"], "off");
+        assert!(!glyph_only.props["pal.x.y"].contains_key("label.width"), "no label, no width");
+        let no_icon = props("x/y", &with(item.clone(), BarLook { show_icon: false, ..Default::default() }), &pal(), "pal");
+        assert_eq!(no_icon.props["pal.x.y"]["icon.drawing"], "off");
+        let dot = props("x/y", &with(item.clone(), BarLook { badge_style: BadgeStyle::Dot, ..Default::default() }), &pal(), "pal");
+        assert_eq!(dot.order, ["pal.x.y", "pal.x.y.a"], "a count drawn as a dot has no badge item");
+        assert_eq!(dot.props["pal.x.y"]["icon.color"], "0xffff8a82", "the dot is the red icon");
+        let none = props("x/y", &with(item.clone(), BarLook { badge_style: BadgeStyle::None, ..Default::default() }), &pal(), "pal");
+        assert_eq!(none.order, ["pal.x.y", "pal.x.y.a"]);
+        assert_eq!(none.props["pal.x.y"]["icon.color"], "0xff5ccb8e", "and no dot either");
+        let tinted = props("x/y", &with(item.clone(), BarLook { color: Some("#ff8800".into()), ..Default::default() }), &pal(), "pal");
+        assert_eq!((tinted.props["pal.x.y"]["icon.color"].as_str(), tinted.props["pal.x.y.a"]["label.color"].as_str()), ("0xffff8800", "0xffff8800"), "the tint over the extension's green, segments included");
+        let urgent = props("x/y", &with(json!({ "icon": "\u{f09b}", "urgent": true }), BarLook { urgent_color: "amber".into(), ..Default::default() }), &pal(), "pal");
+        assert_eq!(urgent.props["pal.x.y"]["icon.color"], "0xfff0b25a");
+        let dim = props("x/y", &with(json!({ "icon": "\u{f09b}", "stale": true }), BarLook { dim: 25, ..Default::default() }), &pal(), "pal");
+        assert_eq!(dim.props["pal.x.y"]["icon.color"], "0x40a3a4ae", "dim is the muted colour's alpha");
+        let gone = props("x/y", &with(item, BarLook { show_icon: false, show_title: false, badge_style: BadgeStyle::None, ..Default::default() }), &pal(), "pal");
+        assert!(gone.props.values().all(|p| p["drawing"] == "off"), "nothing left to draw: hidden");
     }
 
     #[test]
@@ -540,6 +627,13 @@ mod tests {
         let left = props("x/y", &draw(json!({ "icon": "\u{f09b}", "title": "2" }), "left", false), &pal(), "pal");
         let dm = diff(Some(&c), Some(&left), false, None).join(" ");
         assert!(dm.starts_with("--remove pal.x.y --add item pal.x.y left "), "another position: removed and added there: {dm}");
+        let mut sized_draw = draw(json!({ "icon": "\u{f09b}", "title": "2" }), "before:clock", false);
+        sized_draw.look.size = 11.0;
+        let sized = props("x/y", &sized_draw, &pal(), "pal");
+        assert_eq!(diff(Some(&c), Some(&sized), false, None), ["--set", "pal.x.y", "icon.font.size=11", "label.font.size=11"], "a size is set like any property");
+        let back = diff(Some(&sized), Some(&c), false, None).join(" ");
+        assert!(back.starts_with("--remove pal.x.y --add item pal.x.y right --set pal.x.y "), "back to the bar's own size: no unset, so removed and added afresh: {back}");
+        assert!(back.contains("--subscribe pal.x.y mouse.entered mouse.exited") && back.ends_with("--move pal.x.y before clock"), "{back}");
     }
 
     #[test]

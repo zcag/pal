@@ -101,8 +101,21 @@ Settings, `[extensions.github]`:
 | `merge_method` | `merge` / `squash` / `rebase` | `merge` | How the Merge action merges. |
 
 The bar item **Notifications** shows the unread count as a badge (hidden at
-zero) with the newest five and Mark all read in its popover, refreshed
-every five minutes and on show, wake and a network change.
+zero), refreshed every five minutes and on show, wake and a network
+change. Its popover is the inbox at a glance: the unread threads grouped
+by repository (newest repository first, a count per repository), each
+with a colour rail for the subject's type (pull request and issue green,
+release blue, discussion violet, commit grey, checks amber, security red),
+its title, a badge for the reason GitHub gives (`mention` red, `review`
+violet, `assigned` blue, `CI` and `state` amber, `security` red, `yours`
+and `subscribed` grey, and the rest) and its age. Six threads fit (five
+over five repositories); the rest is "and N more in pal". The ring is the
+cursor: `↑`/`↓` (or `k`/`j`) move it, a click on a thread puts it there.
+Keys: `Enter` (or `o`) marks the thread read and opens it on GitHub, `m`
+marks it read and the list redraws with the count, `a` (or `⌘⇧A`) marks
+everything read and the popover reads "All caught up", `p` opens the
+Notifications palette, `⌘C` copies the thread's URL. On a second account
+the title carries its name ("4 unread (Work)").
 
 ## What it does not do
 

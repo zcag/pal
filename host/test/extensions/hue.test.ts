@@ -16,7 +16,7 @@ import { PRESETS, fresh, render, renderSetup, shown } from "../../../extensions/
 import { lightRow, roomRow, sceneRow } from "../../../extensions/hue/rows.ts";
 import { SAMPLE_BRIDGE_ID, SAMPLE_KEY, SAMPLE_RESOURCES } from "../../../extensions/hue/sample.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import type { BarMenuNode, Effect, View } from "../../../sdk/src/protocol.ts";
+import type { Effect, View } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 import { MockBridge, discoveryServer } from "./hue-mock.ts";
 
@@ -261,7 +261,7 @@ describe("over the wire against the mock bridge", () => {
     expect(l.palettes.map((p) => p.name)).toEqual(["rooms", "lights", "scenes", "light", "setup", "sensors", "automations", "entertainment"]);
     expect(l.palettes.find((p) => p.name === "rooms")).toMatchObject({ live: true, tier: "primary", icon: { tile: { bg: "amber" } } });
     expect(l.palettes.find((p) => p.name === "light")).toMatchObject({ view: "view", input: true });
-    expect(l.bar).toEqual([{ id: "home", title: "Home", description: expect.any(String), refresh: { every: 60, on: ["show", "wake", "network"] }, source: true }]);
+    expect(l.bar).toEqual([{ id: "home", title: "Home", description: expect.any(String), refresh: { every: 60, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "x", title: "All off" }]), source: true }]);
     expect(Object.keys(l.manifest.links!)).toEqual(["toggle", "scene", "off"]);
   });
 
@@ -542,36 +542,90 @@ describe("over the wire against the mock bridge", () => {
     expect(await host.pick(E, "entertainment", "ent:tv-area", "stop")).toMatchObject({ hud: "TV area: stopped" });
   });
 
-  test("the bar item: the count, the main room's dot as a PNG, the popover's rooms and scenes; All off sends to every lit room", async () => {
+  test("the bar item: the count, the main room's dot as a PNG, the popover as a view: the rooms as tiles with switches, the sensors, the scenes, the keys; a toggle, the arrows, a room opened, a slider tap, All off", async () => {
     const item = await host.render(E, "home");
     expect(item.title).toMatch(/^\d+ on$/);
     expect((item.icon as { image: string }).image).toMatch(/^data:image\/png;base64,/);
-    const menu = item.menu as BarMenuNode[];
-    const rooms = menu[0] as Extract<BarMenuNode, { type: "section" }>;
-    expect(rooms.title).toBe("Rooms");
-    expect(rooms.children.map((c) => (c as { title: string }).title)).toEqual(["Bedroom", "Hallway", "Living room", "Evening"]);
-    const scenes = menu[1] as Extract<BarMenuNode, { type: "section" }>;
-    expect(scenes.title).toBe("Scenes");
-    expect(scenes.children.length).toBeGreaterThan(0);
-    expect(menu.map((m) => (m as { id?: string }).id).filter(Boolean)).toEqual(["open", "all_off"]);
-    // A room toggle from the popover, and All off.
-    expect(await host.barAction(E, "home", "toggle:room:hallway")).toMatchObject({ keep: true, hud: expect.stringMatching(/^Hallway: (on|off)$/) });
+    const view = (item.menu as { view: View }).view;
+    expect(checkView(view)).toBe(view);
+    expect(view).toMatchObject({ id: "home", keys: "actions", title: "Hue Bridge" });
+    const json = JSON.stringify(view.tree);
+    // The rooms as tiles: a lit one in its colour with a switch that toggles it, an off one a plain card; the status row's sensors; the main room's scenes with their digits.
+    for (const r of ["bedroom", "hallway", "living-room", "evening"]) expect(json).toContain(`"key":"room-${r}"`);
+    // A room's tile carries a switch with its state and toggles it; a lit room is in its colour, one with no light on a plain card (the tests before left the hallway's light off).
+    const hallOn = /"type":"switch","key":"sw","on":(true|false),"action":"toggle:room:hallway"/.exec(json)![1] === "true";
+    expect(json).toMatch(/"key":"room-hallway","surface":"elevated"/);
+    expect(json).toMatch(/"key":"room-bedroom","surface":"#[0-9a-f]{6}"/);
+    expect(json).toContain('"type":"switch","key":"sw","on":true,"action":"toggle:room:bedroom"');
+    expect(json).toMatch(/"text":"Hallway: (motion|clear)","color":"(green|grey)"/);
+    expect(json).toContain('"text":"22.4°"');
+    expect(json).toContain('"key":"scene-living-room/relax"');
+    expect(view.actions.find((a) => a.id === "scene:scene:living-room/relax")).toMatchObject({ shortcut: "2", hidden: true });
+    expect(view.actions[0]).toMatchObject({ id: "enter", title: "Open Bedroom" });
+    expect(view.actions.find((a) => a.id === "all_off")).toMatchObject({ shortcut: ["x", "cmd+shift+o"], style: "destructive" });
+    // A tap on a room's tile: one PUT on its grouped light, the tree answered with the cursor on it.
+    const ctx = { reason: "open" as const, compact: true as const };
+    let r = await host.barAction(E, "home", "toggle:room:hallway", ctx);
+    expect(lastPut()).toEqual({ type: "grouped_light", id: "gl-hall", body: { on: { on: !hallOn }, dynamics: { duration: 400 } } });
+    expect(JSON.stringify(r.view!.tree)).toContain(`"type":"switch","key":"sw","on":${!hallOn},"action":"toggle:room:hallway"`);
+    expect(r.view!.actions[0].title).toBe("Open Hallway");
+    // The arrows walk the grid two a row; Enter opens the room: its lights inline with a slider each, the keys on the first light.
+    await Bun.sleep(1100);
+    r = await host.barAction(E, "home", "move:down", ctx);
+    expect(r.view!.actions[0].title).toBe("Open Evening");
+    r = await host.barAction(E, "home", "move:left", ctx);
+    expect(r.view!.actions[0].title).toBe("Open Living room");
+    r = await host.barAction(E, "home", "enter", ctx);
+    let tree = JSON.stringify(r.view!.tree);
+    expect(tree).toContain('"key":"open-living-room"');
+    expect(tree).toMatch(/"type":"slider","key":"level","value":[0-9.]+,"width":132,"color":"(#[0-9a-f]{6}|grey)","action":"level:light:sofa-lamp"/);
+    expect(tree).toContain('"key":"light-sofa-lamp"');
+    expect(r.view!.actions[0]).toMatchObject({ id: "enter", title: expect.stringMatching(/^Turn (on|off) Ceiling$/), shortcut: ["enter", "space"] });
+    // The right arrow brightens the focused light by five; a tap on a slider sets the level the fraction says; Enter toggles it.
+    r = await host.barAction(E, "home", "bri+", ctx);
+    expect(lastPut()).toEqual({ type: "light", id: "light-2", body: { on: { on: true }, dimming: { brightness: expect.any(Number) }, dynamics: { duration: 400 } } });
+    r = await host.barAction(E, "home", "level:light:sofa-lamp", { ...ctx, values: { value: "0.500" } });
+    expect(lastPut()).toEqual({ type: "light", id: "light-1", body: { on: { on: true }, dimming: { brightness: 50 }, dynamics: { duration: 400 } } });
+    expect(JSON.stringify(r.view!.tree)).toContain('"key":"level","value":0.5');
+    expect(r.view!.actions[0].title).toBe("Turn off Sofa lamp");
+    // Past the light's gap, so the toggle is its own PUT rather than folded into the one in flight.
+    await Bun.sleep(250);
+    r = await host.barAction(E, "home", "enter", ctx);
+    expect(lastPut()).toEqual({ type: "light", id: "light-1", body: { on: { on: false }, dynamics: { duration: 400 } } });
+    expect(JSON.stringify(r.view!.tree)).toContain('"type":"switch","key":"on","on":false,"action":"toggle:light:sofa-lamp"');
+    // Backspace closes the room; a scene digit plays it.
+    r = await host.barAction(E, "home", "back", ctx);
+    expect(JSON.stringify(r.view!.tree)).not.toContain('"key":"open-living-room"');
+    r = await host.barAction(E, "home", "scene:scene:living-room/read", ctx);
+    expect(lastPut()).toMatchObject({ type: "scene", body: { recall: { action: "active" } } });
+    expect(r.view).toBeTruthy();
+    // All off sends to every lit room; the strip follows.
+    await Bun.sleep(1100);
     const n = mock.puts.length;
-    expect(await host.barAction(E, "home", "all_off")).toMatchObject({ keep: true, hud: "All lights off" });
+    r = await host.barAction(E, "home", "all_off", ctx);
+    expect(r.view!.actions[0].title).toBe("Open Living room");
     const offs = mock.puts.slice(n);
     expect(offs.every((p) => (p.body as any).on?.on === false)).toBe(true);
     expect(offs.map((p) => p.id).sort()).toEqual(expect.arrayContaining(["gl-living"]));
+    expect(JSON.stringify(r.view!.tree)).toContain('"value":"All lights off"');
     await Bun.sleep(1200);
     expect((await host.render(E, "home")).title).toBeUndefined();
-    expect(await host.barAction(E, "home", "open")).toEqual({ push: { extension: E, palette: "rooms" } });
-    // The main room setting picks the dot and the scenes.
+    // Everything on brings every room back; Open in pal pushes the rooms palette.
+    r = await host.barAction(E, "home", "all_on", ctx);
+    expect(mock.puts.slice(-1)[0].body).toMatchObject({ on: { on: true } });
+    await Bun.sleep(1200);
+    expect((await host.render(E, "home")).title).toMatch(/^\d+ on$/);
+    expect(await host.barAction(E, "home", "open", ctx)).toEqual({ push: { extension: E, palette: "rooms" } });
+    // Off again, so the links test finds the living room off.
+    await host.barAction(E, "home", "all_off", ctx);
+    await Bun.sleep(1200);
+    // The main room setting picks the dot and the scenes the popover offers.
     host.changeSettings(E, { settings: { timeout: 2, transition: 400, main_room: "Bedroom", bar_scenes: ["Relax", "scene:bedroom/bright"] } });
     await host.until(() => host.updates(E, "home").length > 0 && true, 3000, "a render after the change");
     await Bun.sleep(400);
-    const again = await host.render(E, "home");
-    const sc = (again.menu as BarMenuNode[])[1] as Extract<BarMenuNode, { type: "section" }>;
-    expect(sc.children.map((c) => (c as { title: string }).title)).toEqual(["Bright", "Relax"]);
-  });
+    const again = (await host.render(E, "home")).menu as { view: View };
+    expect(again.view.actions.filter((a) => a.id.startsWith("scene:")).map((a) => a.title)).toEqual(["Play Bright", "Play Relax"]);
+  }, 15000);
 
   test("links: toggle a room by name, play a scene, everything off; unknown names throw", async () => {
     const n = mock.puts.length;

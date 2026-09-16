@@ -11,18 +11,23 @@
 // The bar item `timer`: the soonest timer's remaining time as the title, a
 // fill for how far along it is, blue then amber then red, muted while
 // paused, and an alarm (`urgent`) once it lands; hidden with no timer at
-// all. A click opens the `timers` palette. The core asks every 10 s; the
+// all. A click opens the popover (view.ts): a card per timer with the
+// time left large and a bar, the keys on the card with the ring (space
+// pauses, `+` adds five minutes, backspace stops, arrows or a click move
+// the ring), `n` opens the search row as a field (`25m tea`) that starts
+// one, `o` opens the `timers` palette. The core asks every 10 s; the
 // second-level ticks are the extension's own: an `fs.watch` on the
 // directory pushes on every change the CLI makes, and a 1 Hz interval
-// pushes the countdown, running only while a timer runs.
+// pushes the countdown, running while a timer runs or the popover is up
+// (`bar.update` carries the popover's tree with the item, so both move).
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { bar, home, settings, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { bar, home, settings, storage, view as liveView, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { DEFAULT_RECENT, MAX_RECENT, current, fmt, render, secsLeft as leftAt, type PopoverState, type State, type Timer } from "./view.ts";
 
+export { fmt };
 type Settings = { command: string; dir: string };
-type State = "running" | "paused" | "done";
-type Timer = { id: string; name: string; total: number; deadline: number; left: number; state: State; fired: number; auto: boolean };
 
 const EXTENSION = "timer", ITEM = "timer", PALETTE = "timers";
 /** nf-md-timer, drawn from the bundled Nerd Font; nf-md-plus for the New row, nf-md-alert for a missing CLI. */
@@ -49,7 +54,7 @@ export function unquote(v: string): string {
 }
 
 /** Seconds left as the CLI counts them: to the deadline, the frozen `left`, or none. */
-const secsLeft = (t: Timer) => (t.state === "running" ? Math.max(0, t.deadline - now()) : t.state === "paused" ? t.left : 0);
+const secsLeft = (t: Timer) => leftAt(t, now());
 /** The CLI's rank: landed ones first (newest), then running (soonest), then paused. */
 const rank = (t: Timer) => (t.state === "done" ? [0, now() - t.fired] : t.state === "running" ? [1, secsLeft(t)] : [2, secsLeft(t)]);
 
@@ -79,13 +84,6 @@ export async function readTimers(dir: string): Promise<Timer[]> {
   return out.sort((a, b) => { const [x, y] = [rank(a), rank(b)]; return x[0] - y[0] || x[1] - y[1]; });
 }
 
-/** 754 -> 12:34, 3754 -> 1:02:34, as the CLI prints it. */
-export const fmt = (s: number): string => {
-  s = Math.max(0, s);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  return h ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}` : `${m}:${String(sec).padStart(2, "0")}`;
-};
-
 // ---- the CLI ----------------------------------------------------------------
 
 /** `timer <args>` against the configured directory; the CLI's complaint is the error. */
@@ -105,11 +103,33 @@ async function timer(...args: string[]): Promise<string> {
 
 // ---- the bar item -------------------------------------------------------------
 
+// The popover's own state, in process: the card the keys act on, whether
+// the field is open (closed again when the popover leaves), and the last
+// durations started from here (storage `recent`, for the tiles).
+const pop: { cursor?: string; field: boolean; recent: string[]; open: boolean } = { field: false, recent: [], open: false };
+const RECENT_KEY = "recent";
+let recentLoaded = false;
+async function loadRecent() {
+  if (recentLoaded) return;
+  recentLoaded = true;
+  const v = await storage.get<unknown>(RECENT_KEY, EXTENSION).catch(() => null);
+  if (Array.isArray(v)) pop.recent = v.filter((x): x is string => typeof x === "string").slice(0, MAX_RECENT);
+}
+async function remember(duration: string) {
+  pop.recent = [duration, ...pop.recent.filter((d) => d !== duration)].slice(0, MAX_RECENT);
+  await storage.set(RECENT_KEY, pop.recent, EXTENSION).catch(() => {});
+}
+
+/** The popover's tree for these timers: no timer and no field opens the field at once, so typing a duration is the first thing to do. */
+export function popoverState(ts: Timer[]): PopoverState {
+  return { timers: ts, cursor: pop.cursor, field: pop.field || ts.length === 0, recent: pop.recent.length ? pop.recent : DEFAULT_RECENT, now: now() };
+}
+
 export function barItem(ts: Timer[]): BarItem {
   const t = ts[0];
   if (!t) return { hidden: true };
   const more = ts.length > 1 ? ` (+${ts.length - 1} more)` : "";
-  const menu = { palette: PALETTE, extension: EXTENSION };
+  const menu = { view: render(popoverState(ts)) };
   if (t.state === "done") return { icon: GLYPH, title: (t.auto ? "Done" : t.name).slice(0, 24), urgent: true, progress: 1, tooltip: `${t.name} landed ${fmt(now() - t.fired)} ago${more}`, menu };
   const left = secsLeft(t);
   const pct = t.total > 0 ? Math.min(1, Math.max(0, (t.total - left) / t.total)) : 0;
@@ -121,16 +141,72 @@ let tick: ReturnType<typeof setInterval> | undefined;
 let watcher: { dir: string; w: FSWatcher } | undefined;
 let pending: ReturnType<typeof setTimeout> | undefined;
 
-/** Reads and pushes; the 1 Hz tick runs only while a timer runs (a paused or landed one does not change by itself). */
+/** Reads and pushes the item, popover tree included (the page replaces the level in place, the field's text kept). */
 async function push() {
   const ts = await readTimers(dirOf());
   follow(ts);
   await bar.update(ITEM, barItem(ts), EXTENSION).catch(() => {});
 }
 
+/** The 1 Hz tick runs while a timer runs, or while the popover is up (a landed card's "ago" and a paused one's ring still want the clock); off otherwise. */
 function follow(ts: Timer[]) {
-  if (ts.some((t) => t.state === "running")) tick ??= setInterval(() => { push().catch(() => {}); }, 1000);
+  if (ts.some((t) => t.state === "running") || (pop.open && ts.length)) tick ??= setInterval(() => { push().catch(() => {}); }, 1000);
   else { clearInterval(tick); tick = undefined; }
+}
+
+// The shell says when the popover's level is on top and when it left: the field closes with it, the tick follows. Hooked on the first render (the module is also imported by tests outside the host).
+let hooked = false;
+function hookViews() {
+  if (hooked) return;
+  hooked = true;
+  liveView.onShown((ev) => { if (ev.bar === ITEM) { pop.open = true; push().catch(() => {}); } }, EXTENSION);
+  liveView.onHidden((ev) => { if (ev.bar === ITEM) { pop.open = false; pop.field = false; readTimers(dirOf()).then(follow).catch(() => {}); } }, EXTENSION);
+}
+
+/** `25m tea`: the first word is the duration, the rest the name; `ring` at the end asks the phone. */
+export function parseNew(input: string): { duration: string; name: string; ring: boolean } {
+  const words = input.trim().split(/\s+/).filter(Boolean);
+  const duration = words.shift() ?? "";
+  const ring = words[words.length - 1]?.toLowerCase() === "ring";
+  if (ring) words.pop();
+  return { duration, name: words.join(" "), ring };
+}
+
+/** A key or a click in the popover: the CLI is asked, the popover state patched, and the item re-rendered (`keep`), which carries the new tree. */
+async function popoverAction(action: string, ctx: { values?: Record<string, string> }): Promise<Effect> {
+  await loadRecent();
+  const ts = await readTimers(dirOf());
+  const st = popoverState(ts);
+  const t = current(st);
+  const fail = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: (e as Error).message, style: "failure" } });
+  const start = async (input: string): Promise<Effect> => {
+    const { duration, name, ring } = parseNew(input);
+    if (!duration) return { keep: true, toast: { title: "A duration is needed", message: "25m tea, 90s, 1h30m, 2:30, or minutes as a number", style: "failure" } };
+    let out: string;
+    try { out = await timer(duration, ...(name ? [name] : []), ...(ring ? ["--ring"] : [])); } catch (e) { return fail("start the timer", e); }
+    await remember(duration);
+    pop.field = false;
+    pop.cursor = out.replace(/ started$/, "") || undefined;
+    return { keep: true, hud: `Started ${out || duration}` };
+  };
+  if (action === "start") return start(ctx.values?.input ?? "");
+  if (action.startsWith("recent:")) return start(action.slice(7));
+  if (action === "new") { pop.field = true; return { keep: true }; }
+  if (action === "cancel") { pop.field = false; return { keep: true }; }
+  if (action === "open") return { push: { extension: EXTENSION, palette: PALETTE } };
+  if (action.startsWith("focus:")) { pop.cursor = action.slice(6); return { keep: true }; }
+  if (action === "up" || action === "down") {
+    const i = t ? ts.findIndex((x) => x.id === t.id) : -1;
+    const n = ts.length ? (i + (action === "down" ? 1 : -1) + ts.length) % ts.length : -1;
+    pop.cursor = ts[n]?.id;
+    return { keep: true };
+  }
+  if (!t) return { keep: true };
+  const args = action === "toggle" ? (t.state === "done" ? ["done"] : t.state === "paused" ? ["resume", t.id] : ["pause", t.id]) : action === "add" ? ["add", ADD, t.id] : action === "stop" ? ["stop", t.id] : undefined;
+  if (!args) return { keep: true };
+  try { await timer(...args); } catch (e) { return fail(`${args[0]} the timer`, e); }
+  if (action === "stop" || (action === "toggle" && t.state === "done")) pop.cursor = ts.find((x) => x.id !== t.id)?.id;
+  return { keep: true };
 }
 
 /** One watcher on the directory (made if missing, as the CLI does), replaced when the setting moves it; a burst of writes is one push. */
@@ -148,7 +224,9 @@ async function watchDir() {
 }
 
 async function renderBar(): Promise<BarItem> {
+  hookViews();
   await watchDir();
+  await loadRecent();
   const ts = await readTimers(dirOf());
   follow(ts);
   return barItem(ts);
@@ -224,7 +302,7 @@ export default {
     },
   },
   bar: {
-    [ITEM]: { render: renderBar },
+    [ITEM]: { render: renderBar, onAction: popoverAction },
   },
   dispose: () => { clearInterval(tick); clearTimeout(pending); watcher?.w.close(); },
 } satisfies Extension;

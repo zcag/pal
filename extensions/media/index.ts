@@ -12,38 +12,43 @@
 // Linux how to see players.
 //
 // The bar item `now-playing` is the playing track on the strip (hidden
-// while nothing plays) with the cover and the transport in its popover.
-// The strip keeps its glyph (a 24 pt cover is a smudge) unless the
-// `bar_artwork` setting is on and the cover is square. The core asks for
-// it every 30 s and on its `media` trigger, which the core's MediaRemote
-// stream fires on every track, state or cover change (`stream: true` on
-// the reply); without that stream (Linux, the adapter down) the extension
-// polls the players itself every `POLL_MS` while one was playing at the
-// last look and pushes (`bar.update`) when the track or the state changed.
+// while nothing plays) with the cover, the titles, a ticking progress
+// bar and the transport as keycap hints in its popover (view.ts, a
+// `{ view }` menu). The strip keeps its glyph (a 24 pt cover is a smudge)
+// unless the `bar_artwork` setting is on and the cover is square. The
+// core asks for it every 30 s and on its `media` trigger, which the
+// core's MediaRemote stream fires on every track, state or cover change
+// (`stream: true` on the reply); without that stream (Linux, the adapter
+// down) the extension polls the players itself every `POLL_MS` while one
+// was playing at the last look and pushes (`bar.update`) when the track
+// or the state changed. While the popover shows (`view/shown` with
+// `{ bar }`) a 1 Hz tick pushes the tree with the position moved along
+// by the clock from the last look (`view.update`), no player asked.
 //
 // The cover comes by id (`artwork_id` on the player: the same picture is
 // the same id) through `media.artwork`, once per picture, as a 128 px PNG
-// data url; one is kept, since one thing plays at a time.
-import { bar, core, media, settings, xdg, type Accessory, type Action, type BarItem, type BarMenuNode, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
+// data url; one is kept, since one thing plays at a time. A player that
+// names its artwork by url instead (Spotify's `https://i.scdn.co/...`, a
+// `file://` from MPRIS) has it fetched once into a data url for the
+// popover (`ARTWORK_MAX` bytes at most), since a view's image draws
+// `data:` and `icon://` only; the app's own icon stands in without one.
+import { readFile } from "node:fs/promises";
+import { bar, core, media, settings, view as liveView, xdg, type Accessory, type Action, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
+import { render, type MediaState } from "./view.ts";
 
 const MAC = process.platform === "darwin";
 const MUSIC = xdg("multimedia-player")!;
-/** The transport's glyphs (Material Design in the bundled Nerd Font), for the popover rows. */
-const GLYPH = {
-  pause: xdg("media-playback-pause")!,
-  next: xdg("media-skip-forward")!,
-  previous: xdg("media-skip-backward")!,
-  copy: xdg("edit-copy")!,
-  open: "\u{f03cc}", // md-open_in_new
-};
 const EXTENSION = "media";
 const ITEM = "now-playing";
-/** The bar's popover row for the track itself. */
-const TRACK_ROW = "track";
 /** The bar's glyph (nf-fa-music), drawn from the bundled Nerd Font. */
 const BAR_GLYPH = "\uf001";
 /** Between the extension's own looks at the players while one plays; env for the tests. */
 const POLL_MS = Number(process.env.PAL_MEDIA_POLL_MS) || 5000;
+/** The popover's tick while it shows; env for the tests. */
+const TICK_MS = Number(process.env.PAL_MEDIA_TICK_MS) || 1000;
+/** A cover fetched by url for the popover: skipped past this many bytes. */
+const ARTWORK_MAX = 2 * 1024 * 1024;
+const ARTWORK_TIMEOUT_MS = 3000;
 
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
 type Player = MediaPlayer & { artwork_id?: string | null };
@@ -62,12 +67,8 @@ const STATE: Record<MediaPlayer["state"], { color: string; tag: string }> = {
 /** `artist - title`, or whichever there is. */
 export const trackText = (p: MediaPlayer): string => [p.artist, p.title].filter(Boolean).join(" - ");
 
-/** `4:05`, `1:06:03`. */
-export const clock = (s: number): string => {
-  const t = Math.max(0, Math.floor(s));
-  const [h, m, sec] = [Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60];
-  return (h ? [h, String(m).padStart(2, "0")] : [m]).concat(String(sec).padStart(2, "0")).join(":");
-};
+export { clock } from "./view.ts";
+import { clock } from "./view.ts";
 
 /** `12:34 / 1:06:03`, `12:34`, or nothing when the player gives no position. */
 export const progress = (p: MediaPlayer): string | undefined =>
@@ -157,36 +158,65 @@ const excluded = (p: Player) => {
 /** The playing player the bar and the Now row show: the first playing one that is not excluded. */
 const playingForBar = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing" && !excluded(p));
 
+/** The cover a player names by url, as a data url for the popover: fetched or read once per url, the last one kept. Nothing for a picture too large, unreachable or not an image. */
+let fetched: { url: string; data?: string } | undefined;
+async function coverByUrl(url: string): Promise<string | undefined> {
+  if (fetched?.url === url) return fetched.data;
+  fetched = { url };
+  try {
+    let bytes: Uint8Array, type: string;
+    if (url.startsWith("file://")) {
+      bytes = new Uint8Array(await readFile(new URL(url)));
+      type = /\.png$/i.test(url) ? "image/png" : /\.(jpe?g)$/i.test(url) ? "image/jpeg" : "image/jpeg";
+    } else if (/^https?:\/\//.test(url)) {
+      const r = await fetch(url, { signal: AbortSignal.timeout(ARTWORK_TIMEOUT_MS) });
+      if (!r.ok) return undefined;
+      type = r.headers.get("content-type")?.split(";")[0].trim() || "image/jpeg";
+      bytes = new Uint8Array(await r.arrayBuffer());
+    } else return undefined;
+    if (!type.startsWith("image/") || bytes.byteLength > ARTWORK_MAX || !bytes.byteLength) return undefined;
+    fetched.data = `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+  return fetched.data;
+}
+
+/** The popover's cover: the stream's picture, a url the player names fetched, `data:`/`icon://` urls as they are, the app's icon through the scheme, else nothing (the note tile). */
+async function popoverCover(p: Player, c: Cover | undefined): Promise<string | undefined> {
+  if (c) return c.image;
+  if (p.artwork) {
+    if (/^(data:image\/|icon:\/\/)/.test(p.artwork)) return p.artwork;
+    const d = await coverByUrl(p.artwork);
+    if (d) return d;
+  }
+  return p.app ? `icon://localhost/app?path=${encodeURIComponent(p.app)}&size=192` : undefined;
+}
+
+/** The last look at the players and when, so the popover's position can move along by the clock between looks. */
+let snap: { p: Player | undefined; cover?: string; at: number } = { p: undefined, at: 0 };
+
+/** The position at `now`: the player's, moved along by the time since the look while playing, held at the duration. */
+export const positionAt = (p: Player, at: number, now: number): number | undefined => {
+  if (p.position == null) return undefined;
+  const moved = p.state === "playing" ? p.position + Math.max(0, now - at) / 1000 : p.position;
+  return p.duration != null && p.duration > 0 ? Math.min(p.duration, moved) : moved;
+};
+
+const stateOf = (p: Player, cover: string | undefined, at: number, now = Date.now()): MediaState => ({ player: p, cover, position: positionAt(p, at, now), canOpen: !!openTarget(p) });
+
 /**
  * What the strip shows for a playing player: the track (else the app) as
  * the title and the glyph (the cover instead when `bar_artwork` is on and
- * it is square), the track row with the cover and the transport as the menu.
+ * it is square), the popover's tree (view.ts) as the menu.
  */
-export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean): BarItem {
+export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = Date.now()): BarItem {
   if (!p) return { hidden: true };
-  const target = openTarget(p);
-  const track: BarMenuNode = {
-    type: "item",
-    id: TRACK_ROW,
-    title: (p.title ?? p.name).slice(0, 64),
-    subtitle: p.title ? [p.artist, p.album].filter(Boolean).join(" · ") || p.name : progress(p) ?? "Playing",
-    icon: picture(p, c),
-    ...(target ? { action: "open" } : p.title ? { action: "copy" } : { disabled: true }),
-  };
   return {
     icon: barArtwork && c?.square ? { image: c.image } : BAR_GLYPH,
     title: (p.title ? [p.title, p.artist].filter(Boolean).join(" · ") : p.name).slice(0, 40),
     tooltip: p.title ? `${trackText(p)} (${p.name})` : `Playing in ${p.name}`,
-    menu: [
-      track,
-      { type: "separator" },
-      { type: "item", id: "play_pause", title: "Pause", icon: GLYPH.pause, shortcut: "space" },
-      { type: "item", id: "next", title: "Next track", icon: GLYPH.next, shortcut: "right" },
-      { type: "item", id: "previous", title: "Previous track", icon: GLYPH.previous, shortcut: "left" },
-      { type: "separator" },
-      ...(p.title ? [{ type: "item" as const, id: "copy", title: "Copy track", icon: GLYPH.copy, shortcut: "cmd+c" }] : []),
-      ...(target ? [{ type: "item" as const, id: "open", title: `Open in ${p.name}`, icon: p.app && MAC ? { app: p.app } : GLYPH.open, shortcut: "cmd+o" }] : []),
-    ],
+    menu: { view: render(stateOf(p, cover, at)) },
   };
 }
 
@@ -197,10 +227,34 @@ let poll: ReturnType<typeof setInterval> | undefined;
 
 const barArtwork = () => settings.get<Settings>(EXTENSION).bar_artwork === true;
 
-/** The item for the playing player, its cover fetched. */
+/** The item for the playing player, its cover fetched; the look remembered for the popover's tick. */
 async function playingItem(np: Playing): Promise<BarItem> {
   const p = playingForBar(np);
-  return barItem(p, p ? await coverOf(p) : undefined, barArtwork());
+  const c = p ? await coverOf(p) : undefined;
+  const cover = p ? await popoverCover(p, c) : undefined;
+  snap = { p, cover, at: Date.now() };
+  return barItem(p, c, barArtwork(), cover, snap.at);
+}
+
+// ---- the popover's tick -----------------------------------------------------------
+
+let tick: ReturnType<typeof setInterval> | undefined;
+/** The popover is up: every second the tree with the position moved along, from the last look, no player asked; ends with the popover or once nothing plays. */
+function startTick() {
+  tick ??= setInterval(() => {
+    const { p, cover, at } = snap;
+    if (!p || p.state !== "playing" || p.position == null) return;
+    liveView.update(render(stateOf(p, cover, at)), { extension: EXTENSION, bar: ITEM }).catch(() => {});
+  }, TICK_MS);
+}
+function stopTick() { clearInterval(tick); tick = undefined; }
+/** The shell says when the popover's level is up and when it left; listened for from the first render (the module is imported by tests outside the host too). */
+let listening = false;
+function listen() {
+  if (listening) return;
+  listening = true;
+  liveView.onShown((ev) => { if (ev.bar === ITEM) startTick(); }, EXTENSION);
+  liveView.onHidden((ev) => { if (ev.bar === ITEM) stopTick(); }, EXTENSION);
 }
 
 /**
@@ -222,6 +276,7 @@ function follow(np: Playing | undefined) {
 }
 
 async function renderBar(): Promise<BarItem> {
+  listen();
   let np: Playing | undefined;
   try { np = await media.nowPlaying(); } catch { np = undefined; }
   follow(np);
@@ -231,6 +286,7 @@ async function renderBar(): Promise<BarItem> {
 async function barAction(action: string): Promise<Effect> {
   const p = playingForBar(await media.nowPlaying());
   if (!p) return { keep: true, hud: "Nothing playing" };
+  if (action === "refresh") return { keep: true };
   if (action === "copy") return p.title ? { copy: trackText(p) } : { keep: true, hud: "No track title" };
   if (action === "open") { const target = openTarget(p); return target ? { open: target } : { keep: true }; }
   return control(p.id, action);
@@ -270,5 +326,5 @@ export default {
   bar: {
     [ITEM]: { render: renderBar, onAction: barAction },
   },
-  dispose: () => clearInterval(poll),
+  dispose: () => { clearInterval(poll); stopTick(); },
 } satisfies Extension;

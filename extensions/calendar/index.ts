@@ -13,11 +13,15 @@
 // inside `warn_minutes`, red inside `urgent_minutes`, a dot when there is
 // a call to join. The core asks every five minutes and on wake, the
 // network and the minute tick; a tick renders from the cache, the rest
-// fetch. A click opens Today in the popover; Enter on a row joins.
-import { calendar, settings, tinted, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+// fetch. A click opens the popover (view.ts): today's rows with the one
+// running on a card, Join buttons, tomorrow folded; the keys walk the
+// rows and Enter joins or opens; while it shows, a 30 s tick redraws it
+// from the cache so `in 12 min` keeps counting.
+import { calendar, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
 import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, permission, type Loaded, type Settings } from "./source.ts";
 import { duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
+import { focusable, freshPopover, listed, popover, rowId as viewRowId, words, type PopoverState } from "./view.ts";
 
 /** nf-md-calendar_check for a Today row, tinted with the calendar's colour; nf-md-calendar_blank for a clear day. */
 const ROW = "\u{f00ee}";
@@ -372,9 +376,73 @@ async function renderUpcoming(ctx: BarCtx): Promise<BarItem> {
   try { l = await load(from, to, await chosenIds(s, false), maxAge); } catch (e) {
     const c = cached();
     if (!c) throw e;
-    l = { ...c, stale: true };
+    l = { ...c, stale: true, error: e instanceof Error ? e.message : String(e) };
   }
-  return upcomingItem(l.events, now, s, l.stale);
+  // A click that opened the popover starts it fresh: the ring on the first row, tomorrow folded (open when the day is clear).
+  if (ctx.reason === "open") pop = freshPopover(isGoogle());
+  pop.google = isGoogle();
+  if (!listed(l.events, now, s.hide_declined !== false).today.length) pop.expanded = true;
+  return upcomingItem(l.events, now, s, l.stale ? l.error ?? "The source did not answer" : undefined, pop);
+}
+
+// ---- the popover ---------------------------------------------------------------------
+
+/** The popover's keys' state, kept across trees while it shows; `google` follows the source. */
+let pop: PopoverState = freshPopover(active() === "google");
+let tick: ReturnType<typeof setInterval> | undefined;
+/** How often the open popover is redrawn from the cache: the `in N min` texts move by the minute, so half of one keeps them honest (the tests shorten it). */
+const POPOVER_TICK_MS = Number(process.env.PAL_CALENDAR_POPOVER_TICK_MS) || 30_000;
+
+/** The popover's tree from the cache, no fetch: what the tick and every key answer with. */
+function popoverView(now = Date.now()): ReturnType<typeof popover> | undefined {
+  const c = cached();
+  if (!c) return;
+  const s = conf();
+  return popover(c.events, now, s.hide_declined !== false, pop, c.stale ? c.error ?? "The source did not answer" : undefined);
+}
+
+function pushPopover() {
+  const v = popoverView();
+  if (v) liveView.update(v, { extension: EXTENSION, bar: ITEM }).catch((e) => console.error(`calendar: popover push: ${e instanceof Error ? e.message : e}`));
+}
+
+liveView.onShown((ev) => { if (ev.bar !== ITEM) return; if (tick) clearInterval(tick); tick = setInterval(pushPopover, POPOVER_TICK_MS); }, EXTENSION);
+liveView.onHidden((ev) => { if (ev.bar !== ITEM || !tick) return; clearInterval(tick); tick = undefined; }, EXTENSION);
+
+/** Where "Open Calendar" goes: the app on macOS, the day's page for a Google source. */
+const calendarHome = (now: number): Effect => {
+  if (isGoogle()) { const d = new Date(now); return { open: `https://calendar.google.com/calendar/r/day/${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}` }; }
+  return MAC ? { open: "/System/Applications/Calendar.app" } : { hide: true };
+};
+
+/**
+ * A key or a click in the popover. The rows are the cache's (a tree
+ * always follows a cache), so nothing here fetches but `refresh`; a row
+ * action goes through `pickEvent`, as from the palette.
+ */
+async function popoverAction(action: string, ctx: BarCtx): Promise<Effect | void> {
+  const now = Date.now();
+  const s = conf();
+  const c = cached();
+  const l = c ? listed(c.events, now, s.hide_declined !== false) : undefined;
+  const rows = l ? focusable(l, pop) : [];
+  const cur = rows[Math.max(0, Math.min(pop.cursor, rows.length - 1))];
+  const redraw = (): Effect => { const v = popoverView(now); return v ? { view: v } : { keep: true }; };
+  const byId = (id: string) => rows.find((e) => viewRowId(e) === id) ?? (l ? [...l.today, ...l.tomorrow].find((e) => viewRowId(e) === id) : undefined);
+  switch (action) {
+    case "refresh": forget(); return { keep: true, hud: "Refreshing" };
+    case "open-calendar": return calendarHome(now);
+    case "tomorrow": pop.expanded = !pop.expanded; if (!pop.expanded && l) pop.cursor = Math.min(pop.cursor, Math.max(0, l.today.length - 1)); return redraw();
+    case "down": pop.cursor = Math.min(rows.length - 1, pop.cursor + 1); return redraw();
+    case "up": pop.cursor = Math.max(0, pop.cursor - 1); return redraw();
+    case "join-next": { const e = rows.find((e) => e.conference_url); return e ? { open: e.conference_url!, hud: words(e) } : { keep: true }; }
+    case "primary": return cur ? pickEvent(cur, cur.conference_url ? "join" : isGoogle() || MAC ? "open" : "copy_details") : calendarHome(now);
+    case "copy": return cur ? { copy: details(cur) } : { keep: true };
+    case "copy-link": return cur?.conference_url ? { copy: cur.conference_url } : { keep: true };
+  }
+  if (action.startsWith("focus:")) { const i = rows.findIndex((e) => viewRowId(e) === action.slice(6)); if (i >= 0) pop.cursor = i; return redraw(); }
+  if (action.startsWith("join:")) { const e = byId(action.slice(5)); return e?.conference_url ? { open: e.conference_url, hud: words(e) } : { keep: true }; }
+  void ctx;
 }
 
 /**
@@ -413,6 +481,7 @@ export default {
     },
   },
   bar: {
-    [ITEM]: { render: renderUpcoming },
+    [ITEM]: { render: renderUpcoming, onAction: popoverAction },
   },
+  dispose: () => { if (tick) clearInterval(tick); tick = undefined; },
 } satisfies Extension;

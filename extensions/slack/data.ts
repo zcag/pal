@@ -331,6 +331,30 @@ export const post = async (team: string, cid: string, text: string, threadTs?: s
 // ---- links -----------------------------------------------------------------------
 
 /** The desktop app's own scheme: the conversation, at a message when `ts` is known. */
+// ---- avatars --------------------------------------------------------------------------
+// A view node loads `data:` pictures only (a row's icon may load a url): the
+// bar popover's avatars are fetched once each (Slack's avatar host needs no
+// session) and kept as data urls; a miss is remembered for a while so an
+// offline render does not wait on every picture again.
+
+const avatars = new Map<string, { at: number; data?: string; pending?: Promise<string | undefined> }>();
+export const AVATAR_MS = 2000, AVATAR_MISS_TTL = 15 * 60_000, MAX_AVATAR = 96 * 1024;
+
+export function avatarData(url: string): Promise<string | undefined> {
+  const have = avatars.get(url);
+  if (have?.data) return Promise.resolve(have.data);
+  if (have?.pending) return have.pending;
+  if (have && Date.now() - have.at < AVATAR_MISS_TTL) return Promise.resolve(undefined);
+  const pending = fetch(url, { signal: AbortSignal.timeout(AVATAR_MS) }).then(async (r) => {
+    const type = r.headers.get("content-type")?.split(";")[0] ?? "";
+    if (!r.ok || !type.startsWith("image/")) return undefined;
+    const buf = Buffer.from(await r.arrayBuffer());
+    return buf.length && buf.length <= MAX_AVATAR ? `data:${type};base64,${buf.toString("base64")}` : undefined;
+  }).catch(() => undefined).then((data) => { avatars.set(url, { at: Date.now(), data }); return data; });
+  avatars.set(url, { at: Date.now(), pending });
+  return pending;
+}
+
 export const deepLink = (team: string, cid: string, ts?: string) => `slack://channel?team=${team}&id=${cid}${ts ? `&message=${ts}` : ""}`;
 /** The web client's archive url for the same place. */
 export const webLink = (domain: string, cid: string, ts?: string) => `https://${domain}.slack.com/archives/${cid}${ts ? `/p${ts.replace(".", "")}` : ""}`;
