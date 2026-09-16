@@ -72,3 +72,14 @@ Inside the bundle, `bun` sits next to the `pal` binary (`Contents/MacOS/`,
 (`Contents/Resources/`, `usr/lib/pal/`). User extensions go in
 `~/.config/pal/extensions/<name>/index.ts`; the host loads the bundled root
 first and that one last, so a user extension with the same name wins.
+
+## Docs
+
+- [Getting started](docs/getting-started.md): install, the hotkey, a ten-second tour
+- [Config](docs/config.md): the config file key by key
+- [Palettes](docs/palettes.md): the default palettes, their actions and settings
+- [Scripts and data files](docs/scripts.md): the zero-code tier
+- [Keyboard](docs/keyboard.md): the keyboard grammar
+- [CLI](docs/cli.md): `pal` and its subcommands
+- [Extensions](docs/extensions.md): writing a palette in TypeScript
+- [Releasing](docs/releasing.md): cutting a release, the updater

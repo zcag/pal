@@ -1,0 +1,4 @@
+{
+  // Tables and code blocks run long by nature; prose wraps at 80.
+  "config": { "MD013": { "tables": false, "code_blocks": false } }
+}
