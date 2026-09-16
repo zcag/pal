@@ -19,7 +19,7 @@ type OpAccount = { url?: string; email?: string; user_uuid?: string; account_uui
 /** md-shield_key, the palette's own row and the fallback for a category not in the table. */
 const ICON = "\u{f0bc4}";
 const INSTALL_URL = "https://developer.1password.com/docs/cli/get-started/";
-const SIGNIN_URL = "https://developer.1password.com/docs/cli/sign-in-manually/";
+const SIGNIN_URL = "https://developer.1password.com/docs/cli/app-integration/";
 /** The app under launchd has a bare PATH; where the CLI's installers put it. */
 const OP_FALLBACKS = ["/opt/homebrew/bin/op", "/usr/local/bin/op", "/usr/bin/op"];
 /** One CLI call at most; a biometric prompt left unanswered stops here. */
@@ -49,9 +49,12 @@ async function op(args: string[]): Promise<string> {
   if (!bin) throw new Error("op is not installed");
   const { account } = settings.get<Settings>();
   const proc = Bun.spawn([bin, ...args, ...(account ? ["--account", account] : [])], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-  const timer = setTimeout(() => proc.kill(), OP_MS);
+  // `op` blocks while 1Password waits for an unlock or for the "allow pal" prompt; past the limit it is killed and the row says what to do.
+  let late = false;
+  const timer = setTimeout(() => { late = true; proc.kill(); }, OP_MS);
   const [code, out, err] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
   clearTimeout(timer);
+  if (late) throw new Error(`1Password did not answer within ${OP_MS / 1000} s: unlock it, allow pal when it asks, then refresh with cmd+r`);
   if (code !== 0) throw new Error(err.replace(/^\[ERROR\]\s*[\d/]+\s+[\d:]+\s*/gm, "").trim() || `op exited ${code}`);
   return out;
 }
@@ -124,7 +127,8 @@ async function list(filter = "all", refresh = false): Promise<Item[]> {
   let all: OpItem[];
   try { all = await items(refresh); } catch (e) {
     const msg = String((e as Error)?.message ?? e);
-    if (signedOut(msg)) return [hint("signin", "Sign in to 1Password", "Run `eval $(op signin)` in a terminal, or turn on the desktop app integration (1Password, Settings, Developer), then refresh with cmd+r", [{ id: "help", title: "Open sign-in help" }], HINT_ICON.signin)];
+    // A terminal's `op signin` session never reaches pal; the desktop app integration is the way.
+    if (signedOut(msg)) return [hint("signin", "Connect the 1Password CLI to the app", "In 1Password: Settings, Developer, turn on \"Integrate with 1Password CLI\"; then refresh with cmd+r and allow pal when 1Password asks", [{ id: "help", title: "Open the setup guide" }], HINT_ICON.signin)];
     return [hint("error", "op failed", msg, [], HINT_ICON.error)];
   }
   const wanted = new Set(vaults.map((v) => v.toLowerCase()));

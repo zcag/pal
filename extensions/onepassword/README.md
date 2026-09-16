@@ -40,11 +40,13 @@ carrying the CLI's message.
 ## Setup
 
 Install the [1Password CLI](https://developer.1password.com/docs/cli/get-started/)
-(`brew install 1password-cli` on macOS) and sign in, either with
-`eval $(op signin)` in a terminal or by turning on the desktop app
-integration (1Password, Settings, Developer), which makes every CLI
-call that needs the vault show 1Password's own unlock prompt (Touch ID
-on a Mac); pal waits up to a minute for it. `op` is looked up on PATH,
+(`brew install 1password-cli` on macOS) and turn on the desktop app
+integration (1Password, Settings, Developer, "Integrate with 1Password
+CLI"). The first call from pal makes 1Password ask whether to allow it;
+after that every call that needs the vault shows 1Password's own unlock
+prompt (Touch ID on a Mac), and pal waits up to a minute for it. A
+terminal's `eval $(op signin)` session is that shell's only and never
+reaches pal. `op` is looked up on PATH,
 then in `/opt/homebrew/bin`, `/usr/local/bin` and `/usr/bin`, since the
 app under launchd has a bare PATH.
 
@@ -82,5 +84,6 @@ clipboard is the core's.
 ## Platforms
 
 macOS and Linux, wherever the `op` CLI runs. The desktop app integration
-(the biometric prompt) is the app's feature on both; without the app,
-`op signin` in a terminal signs the CLI in.
+(the biometric prompt) is the app's feature on both and is what pal
+needs; a service account token in `OP_SERVICE_ACCOUNT_TOKEN` works
+without the app.

@@ -288,6 +288,7 @@ impl Diag {
             format!("os: {} {}", self.os, self.arch),
             format!("config: {} (profile {})", self.config.display(), self.profile),
             format!("data: {}", self.data.display()),
+            format!("log: {}", pal_core::log::path().display()),
             format!("extensions: {exts}"),
             format!("hotkey: {hotkey}"),
             format!("accessibility: {}", if self.accessibility { "granted" } else { "not granted" }),
@@ -556,7 +557,9 @@ mod tests {
     fn diagnostics_text_is_one_fact_per_line() {
         let d = diag();
         let text = d.text();
-        let lines: Vec<&str> = text.lines().collect();
+        // The log line names this machine's path; the rest is the fixture's.
+        let lines: Vec<&str> = text.lines().filter(|l| !l.starts_with("log: ")).collect();
+        assert!(text.contains("\nlog: ") && text.contains("pal.log"));
         assert_eq!(
             lines,
             [

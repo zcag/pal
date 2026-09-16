@@ -67,9 +67,9 @@ describe("onepassword", () => {
   test("signed out: one hint row with a help link, nothing cached", async () => {
     const rows = await list();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: "signin", name: "Sign in to 1Password", icon: "\u{f0342}", actions: [{ id: "help", title: "Open sign-in help" }] });
+    expect(rows[0]).toMatchObject({ id: "signin", name: "Connect the 1Password CLI to the app", icon: "\u{f0342}", actions: [{ id: "help", title: "Open the setup guide" }] });
     expect(rows[0].subtitle).not.toMatch(/\.$/);
-    expect(rows[0].subtitle).toContain("op signin");
+    expect(rows[0].subtitle).toContain("Integrate with 1Password CLI");
     expect(await pick("signin", "help")).toEqual({ open: expect.stringContaining("1password.com") });
     expect(await pick("signin")).toEqual({ keep: true });
     expect(calls()).toEqual(["item list --format json"]);

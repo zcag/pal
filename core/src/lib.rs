@@ -13,6 +13,7 @@ pub mod frecency;
 pub mod fs;
 pub mod icons;
 pub mod index;
+pub mod log;
 pub mod media;
 pub mod spotlight;
 pub mod storage;

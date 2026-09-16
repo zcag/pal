@@ -202,3 +202,7 @@ Every key, with its default, is in [Config](config.md).
 - Installed extensions: `extensions/<name>/`, next to `clipboard.db`. Your
   own can also live anywhere `general.extension_dirs` names, see
   [Extensions](extensions.md).
+- The log: every line pal and its extension host print, when pal was not
+  started from a terminal: `~/Library/Logs/pal/pal.log` on macOS,
+  `~/.local/state/pal/pal.log` on Linux (`$XDG_STATE_HOME/pal/` when set).
+  Rotated to `pal.log.1` past 5 MB. Copy Diagnostics names it.

@@ -12,6 +12,7 @@ mod bridge;
 mod cache;
 mod cli;
 mod clipboard;
+mod color;
 mod commands;
 mod compat;
 mod crash;
@@ -54,6 +55,11 @@ const WINDOW: &str = "main";
 
 /// When `run` began: the origin of the startup timing lines.
 static START: OnceLock<Instant> = OnceLock::new();
+
+/// Seconds since the epoch, for the log's session marker (no chrono dependency here).
+fn chrono_free_now() -> String {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| format!("start at unix {}", d.as_secs())).unwrap_or_default()
+}
 
 pub(crate) fn since_start_ms() -> f64 {
     START.get().map_or(0.0, |t| t.elapsed().as_secs_f64() * 1000.0)
@@ -175,11 +181,17 @@ pub(crate) fn quit(app: &AppHandle) {
 
 pub fn run() {
     START.get_or_init(Instant::now);
+    // A `pal://` link as the only argument (Linux: what the desktop entry runs) is not a subcommand: the plugins carry it (deeplink.rs).
+    let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None } } else { cli::Cli::parse() };
+    // Only the instance logs to the file (a link argv starts one too); a `pal <cmd>` keeps its stderr.
+    if cli.cmd.is_none() {
+        if let Some(p) = pal_core::log::capture() {
+            eprintln!("\nlog\t{}\t{}", p.display(), chrono_free_now());
+        }
+    }
     // Before anything spawns: the user's PATH, not launchd's (core env.rs).
     let (_, from_shell) = pal_core::env::adopt();
     eprintln!("env\tpath {}\t{:.1}ms since start", if from_shell { "from the login shell" } else { "inherited" }, since_start_ms());
-    // A `pal://` link as the only argument (Linux: what the desktop entry runs) is not a subcommand: the plugins carry it (deeplink.rs).
-    let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None } } else { cli::Cli::parse() };
     // The v1 compatibility commands never touch an instance.
     if let Some(status) = cli.cmd.as_ref().and_then(cli::Cmd::run_compat) {
         std::process::exit(status);
@@ -296,6 +308,7 @@ pub fn run() {
             //   9. updater: the daily check (release builds)
             //  10. cache restore: last run's listings, so the root answers now
             //      bar: the popover window, the strip targets and their probes
+            //      media: where the bundled MediaRemote adapter is (macOS)
             //  11. host: spawned last, its notifications need everything above
             // Every step logs its own failure and the next one still runs:
             // no state is half-managed, a step that cannot start just leaves
@@ -327,6 +340,7 @@ pub fn run() {
             updater::install(app.handle());
             index::restore_cache(app.handle());
             bar::install(app.handle());
+            media::install(app.handle());
             host::Host::start(app.handle());
             // Icons and favicons are cached forever otherwise; a month is
             // long enough that a daily app never refetches.
