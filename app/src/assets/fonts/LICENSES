@@ -1,0 +1,53 @@
+Fonts bundled with pal
+======================
+
+SymbolsNerdFontMono-Regular.woff2
+---------------------------------
+
+"Symbols Nerd Font Mono", the symbols-only font from Nerd Fonts v3.5.1
+(https://github.com/ryanoasis/nerd-fonts, release asset
+NerdFontsSymbolsOnly.tar.xz, SymbolsNerdFontMono-Regular.ttf), converted
+to WOFF2 with fontTools 4.65 and otherwise unmodified: every glyph, the
+full private-use range (U+E000-F8FF, U+F0000-F1AF0) is kept so an
+extension can use any Nerd Font codepoint.
+
+The Nerd Fonts patching and the font file itself are MIT (below). The
+icon sets inside carry their own licences, as listed in the release's
+README:
+
+  Codicons               https://github.com/microsoft/vscode-codicons          CC BY 4.0
+  Devicons               https://github.com/devicons/devicon                   MIT
+  extraglyphs            https://github.com/source-foundry/Hack                MIT
+  Font Awesome           https://github.com/FortAwesome/Font-Awesome           CC BY 4.0
+  Font Awesome Extension https://github.com/AndreLZGava/font-awesome-extension MIT
+  Font Logos             https://github.com/lukas-w/font-logos                 unlicensed
+  MaterialDesign         https://github.com/Templarian/MaterialDesign-Font     Apache 2.0
+  Octicons               https://github.com/primer/octicons                    MIT
+  Seti and original      https://github.com/jesseweed/seti-ui                  MIT
+  Pomicons               https://github.com/gabrielelana/pomicons              OFL 1.1 RFN
+  Powerline Extra        https://github.com/ryanoasis/powerline-extra-symbols  MIT
+  Powerline Symbols      https://github.com/powerline/powerline                MIT
+  Power Symbols IEC      https://github.com/jloughry/Unicode                   MIT
+  Weather Icons          https://github.com/erikflowers/weather-icons          OFL 1.1
+
+The MIT License (MIT)
+
+Copyright (c) 2014 Ryan L McIntyre
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

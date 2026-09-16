@@ -11,6 +11,8 @@
   /* type */
   --pal-font-ui: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --pal-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --pal-font-symbols: "Symbols Nerd Font Mono";
+  --pal-font-emoji: "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "Twemoji Mozilla", sans-serif;
   --pal-text-xs: 11px;     /* section headers, tags, kbd, footer */
   --pal-text-sm: 12px;     /* subtitles, accessories, metadata, code */
   --pal-text-md: 13px;     /* row titles, detail prose, form fields */

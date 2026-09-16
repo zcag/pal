@@ -11,13 +11,14 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import type { Accessory, Action, Ctx, Detail, Effect, Extension, Item, Palette } from "../../host/src/protocol.ts";
 import { settings } from "../../host/src/api.ts";
+import { xdg } from "../../host/src/icons.ts";
 
 type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number };
 type Raw = Record<string, any>;
 type V1Action = { id?: string; title?: string; action?: string; value?: string; key?: string; shortcut?: string; style?: string; confirm?: string; reload?: boolean; primary?: boolean };
 type V1Palette = Raw & {
   base?: string; data?: string; command?: string | string[];
-  icon?: string; icon_utf?: string; input?: boolean; input_prompt?: string; live?: boolean;
+  icon?: string; icon_utf?: string; icon_xdg?: string; input?: boolean; input_prompt?: string; live?: boolean;
   auto_list?: boolean; auto_pick?: boolean; default_action?: string; action_key?: string; actions?: V1Action[];
   view?: string; display?: { detail?: boolean; columns?: number }; filter?: { id: string; name?: string }[];
   requires?: string[]; os?: string; ttl?: number;
@@ -153,7 +154,7 @@ function effect(env?: Raw): Effect {
 
 // ---- v1 item -> Item ---------------------------------------------------------
 
-/** A glyph, emoji or hex colour is an icon here; an xdg/Raycast icon name is not. */
+/** A glyph, emoji or hex colour is an icon here; an xdg name goes through the host's table, a Raycast name is dropped. */
 const glyph = (s: unknown): string | undefined => {
   if (typeof s !== "string") return;
   const t = s.trim();
@@ -198,7 +199,7 @@ function toItem(raw: Raw, p: Loaded): Item {
     ...rest,
     id,
     name: String(raw.name ?? id),
-    icon: glyph(icon_utf) ?? glyph(icon) ?? p.icon,
+    icon: glyph(icon_utf) ?? glyph(icon) ?? xdg(icon_xdg) ?? p.icon,
     accessories: Array.isArray(accessories) ? accessories.map(accessory).filter((a): a is Accessory => !!a) : undefined,
     detail: detail(d),
     actions: own ?? (p.defaultTitle ? [{ id: "_default", title: p.defaultTitle }] : undefined),
@@ -231,7 +232,7 @@ async function listItems(p: Loaded, query?: string, ctx?: Ctx): Promise<Item[]> 
   const filter = ctx?.filter;
   const key = `${query ?? ""}\0${filter ?? ""}\0${argsKey(ctx)}`;
   const ttl = Number(p.cfg.ttl ?? 0) * 1000;
-  if (p.cache && p.cache.key === key && Date.now() - p.cache.at < ttl) return p.cache.items;
+  if (p.cache && p.cache.key === key && Date.now() - p.cache.at < ttl && !ctx?.refresh) return p.cache.items;
   const env: Env = { ...p.env, ...argsEnv(ctx), ...(filter !== undefined && { PAL_FILTER: filter }), ...(query !== undefined && { PAL_QUERY: query }) };
   let rows: Raw[] = [];
   if (p.cfg.auto_list && p.data) rows = readData(p.data);
@@ -351,7 +352,7 @@ function discover(): Record<string, Palette> {
     }
     const p: Loaded = {
       name, cfg, dir, exec, data,
-      icon: glyph(cfg.icon_utf) ?? glyph(cfg.icon),
+      icon: glyph(cfg.icon_utf) ?? glyph(cfg.icon) ?? xdg(cfg.icon_xdg),
       env: { ...baseEnv, _PAL_PALETTE: name, _PAL_PLUGIN_CONFIG: JSON.stringify(cfg) },
       actions: cfg.actions?.length ? toActions(cfg.actions) : undefined,
       defaultTitle: cfg.auto_pick ? DEFAULT_TITLE[cfg.default_action ?? "cmd"] : exec ? "Select" : undefined,
@@ -363,6 +364,8 @@ function discover(): Record<string, Palette> {
       input: !!cfg.input,
       placeholder: cfg.input_prompt,
       live: !!cfg.live,
+      // v1's ttl: the core keeps the last listing across restarts for this long; the in-process cache above covers show relists and drill-ins.
+      ttl: cfg.ttl,
       view: cfg.view === "grid" ? "grid" : undefined,
       columns: cfg.display?.columns,
       showDetail: cfg.display?.detail || undefined,

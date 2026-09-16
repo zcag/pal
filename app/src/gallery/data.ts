@@ -260,3 +260,24 @@ export const settingsFieldSpecs: { spec: SettingSpec; value: string | number | b
   { spec: { kind: "path", id: "p", label: "Path", pick: "file", default: "~/Library/Application Support/Google/Chrome/Default/Bookmarks" }, value: "~/Library/Application Support/Google/Chrome/Profile 2/Bookmarks" },
   { spec: { kind: "list", id: "l", label: "List", description: "Enter or a comma adds one.", placeholder: "App name", default: ["1Password"] }, value: ["1Password", "Keychain Access"] },
 ];
+
+/**
+ * Glyph icons as extensions send them: one Nerd Font private-use codepoint
+ * each, from the sets the bundled symbols font carries (fonts.css). They
+ * must draw as icons on a machine with no Nerd Font installed; the last two
+ * are what the same string kinds look like next to them.
+ */
+export const nerdGlyphs: Item[] = [
+  { id: "nf-md", name: "Terminal", subtitle: "Material Design, U+F018D", icon: { kind: "glyph", value: "\u{f018d}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-md-pr", name: "Pull requests", subtitle: "Material Design, U+F062C", icon: { kind: "glyph", value: "\u{f062c}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-fa", name: "Bookmark", subtitle: "Font Awesome, U+F02E", icon: { kind: "glyph", value: "\u{f02e}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-cod", name: "Review", subtitle: "Codicons, U+EA84", icon: { kind: "glyph", value: "\u{ea84}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-seti", name: "GitLab", subtitle: "Seti, U+E65C", icon: { kind: "glyph", value: "\u{e65c}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-dev", name: "Rust", subtitle: "Devicons, U+E7A8", icon: { kind: "glyph", value: "\u{e7a8}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-weather", name: "Sunny", subtitle: "Weather Icons, U+E30D", icon: { kind: "glyph", value: "\u{e30d}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-pl", name: "Branch", subtitle: "Powerline, U+E0A0", icon: { kind: "glyph", value: "\u{e0a0}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-tinted", name: "Deploy", subtitle: "Tinted, U+F06B0", icon: { kind: "glyph", value: "\u{f06b0}", color: "#8b7cf6" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-xdg", name: "No calculator found", subtitle: "xdg dialog-error, mapped by host/src/icons.ts", icon: { kind: "glyph", value: "\u{f0029}" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-text", name: "Search", subtitle: "Text glyph, stays in the mono font", icon: { kind: "glyph", value: "⌕" }, palette: "glyphs", section: "Nerd Font glyphs" },
+  { id: "nf-emoji", name: "Sparkles", subtitle: "Emoji, the platform colour font", icon: { kind: "emoji", value: "✨" }, palette: "glyphs", section: "Nerd Font glyphs" },
+];

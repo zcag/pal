@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { appIconUrl, faviconUrl } from "./icons";
+import { appIconUrl, faviconUrl, isSymbol } from "./icons";
 import type { Icon as IconSpec } from "./types";
 
 const APP_PX = 24;
@@ -24,8 +24,10 @@ export function Icon({ icon, size = "md" }: { icon?: IconSpec; size?: Size }) {
   }
   if (icon.kind === "app") return <Served size={size} kind="app" src={(s) => appIconUrl(icon.path, s)} px={APP_PX} fallback={<Icon icon={{ kind: "glyph", value: icon.letter }} size={size} />} />;
   if (icon.kind === "favicon") return <Served size={size} kind="favicon" src={(s) => faviconUrl(icon.url, s)} px={FAVICON_PX} fallback={<Globe size={size} />} />;
+  // A Nerd Font codepoint is a glyph whatever the caller said: the emoji font has nothing for it.
+  const kind = icon.kind === "emoji" && isSymbol(icon.value) ? "glyph" : icon.kind;
   return (
-    <span className="pal-icon" data-size={size} data-kind={icon.kind} style={icon.kind === "glyph" && icon.color ? { color: icon.color } : undefined} aria-hidden>
+    <span className="pal-icon" data-size={size} data-kind={kind} style={icon.kind === "glyph" && icon.color ? { color: icon.color } : undefined} aria-hidden>
       {icon.value}
     </span>
   );

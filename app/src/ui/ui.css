@@ -190,8 +190,10 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   line-height: 1;
   overflow: hidden;
 }
-.pal-icon[data-kind="emoji"] { font-size: var(--pal-icon-emoji, 17px); }
-.pal-icon[data-kind="glyph"] { font-family: var(--pal-font-mono, ui-monospace, monospace); }
+.pal-icon[data-kind="emoji"] { font-family: var(--pal-font-emoji, sans-serif); font-size: var(--pal-icon-emoji, 17px); }
+/* The bundled symbols font covers the private-use range only (fonts.css), so a
+   Nerd Font codepoint draws from it and every other glyph from the mono font. */
+.pal-icon[data-kind="glyph"] { font-family: var(--pal-font-symbols, "Symbols Nerd Font Mono"), var(--pal-font-mono, ui-monospace, monospace); }
 .pal-icon[data-size="sm"] { width: var(--pal-icon-glyph, 16px); height: var(--pal-icon-glyph, 16px); font-size: var(--pal-text-sm, 12px); }
 .pal-icon[data-size="lg"] { width: var(--pal-grid-tile, 56px); height: var(--pal-grid-tile, 56px); font-size: calc(var(--pal-grid-tile, 56px) * 0.55); }
 .pal-icon__img { width: var(--pal-icon-favicon, 16px); height: var(--pal-icon-favicon, 16px); object-fit: cover; }

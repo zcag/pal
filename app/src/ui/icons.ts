@@ -20,3 +20,10 @@ const base: string = (() => {
 
 export const appIconUrl = (path: string, size: number) => `${base}app?path=${encodeURIComponent(path)}&size=${size}`;
 export const faviconUrl = (url: string, size: number) => `${base}favicon?url=${encodeURIComponent(url)}&size=${size}`;
+
+/**
+ * One private-use codepoint (U+E000-F8FF, U+F0000-FFFFD): a Nerd Font glyph,
+ * drawn from the bundled symbols font (fonts.css). Anything longer, or with a
+ * variation selector, is text or emoji.
+ */
+export const isSymbol = (s: string) => /^[\p{Co}]$/u.test(s);

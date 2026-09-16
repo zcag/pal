@@ -1,0 +1,19 @@
+/*
+ * Fonts bundled with the app (src/assets/fonts, licences in LICENSES there).
+ *
+ * Symbols Nerd Font Mono: the Nerd Font icon set alone, for icons given as a
+ * private-use codepoint (an extension's `icon: "󰘬"`). The webview has no
+ * font for PUA codepoints unless the user installed a Nerd Font, so without
+ * this a glyph icon is tofu on Linux and on any Mac without one. Restricted
+ * to the private-use ranges, so it never draws a letter or a symbol that a
+ * text font has, and is only fetched once a PUA glyph is on screen. UI text
+ * fonts are not bundled (open question in the brief).
+ */
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  src: url("../assets/fonts/SymbolsNerdFontMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+E000-F8FF, U+F0000-FFFFD;
+}

@@ -2,6 +2,7 @@
  * Adapts what the core sends per hit (a host item, fields pass through) to
  * the UI item model. Provisional, like the wire shape it reads.
  */
+import { isSymbol } from "./ui/icons";
 import type { Accessory, Action, Detail, FilterOption, Icon, Item } from "./ui/types";
 
 /** `pal_core::index::Source`. */
@@ -42,7 +43,13 @@ export type SourceInfo = Source & {
   detail?: "lazy";
   /** A scope dropdown inside the palette; first is the default. */
   filters?: FilterOption[];
+  /** Seconds the core keeps a listing before listing again on load. */
+  ttl?: number;
   count: number;
+  /** The rows are a restored (or expired) listing and a fresh one is pending: "updating" in the footer. */
+  stale: boolean;
+  /** Unix seconds of the listing the rows came from. */
+  listed_at?: number;
 };
 
 /** How a level was opened (`Ctx` in host/protocol.ts): the filter picked, the args of the `push` that opened it. */
@@ -76,8 +83,10 @@ const pictographic = /\p{Extended_Pictographic}/u;
 /**
  * `{ app: path }` (or a bare path, as v1 rows carry) is the app's artwork;
  * `{ image: url }` a picture to load as is; a hex colour is a tinted dot; a
- * pictograph is an emoji; any other string is a glyph. No icon: the favicon
- * when there is a url, else the name's initial.
+ * private-use codepoint is a Nerd Font glyph (the bundled symbols font); a
+ * pictograph is an emoji (the platform's colour font); any other string is
+ * a glyph in the mono font. No icon: the favicon when there is a url, else
+ * the name's initial.
  */
 export function iconOf(icon: unknown, name: string, url?: string): Icon | undefined {
   const letter = name ? name[0].toUpperCase() : "";
@@ -88,6 +97,7 @@ export function iconOf(icon: unknown, name: string, url?: string): Icon | undefi
   if (s.startsWith("/")) return { kind: "app", path: s, letter };
   if (s) {
     if (/^#[0-9a-f]{3,8}$/i.test(s)) return { kind: "glyph", value: "●", color: s };
+    if (isSymbol(s)) return { kind: "glyph", value: s };
     return pictographic.test(s) ? { kind: "emoji", value: s } : { kind: "glyph", value: s };
   }
   if (url) return { kind: "favicon", url };

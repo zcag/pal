@@ -165,10 +165,10 @@ Nothing. Tauri v2 Linux prerequisites were all present on marko
 - bun is on PATH inside the Hyprland session (`~/.bun/bin` first).
   `WAYLAND_DISPLAY`/`DISPLAY` are not in Hyprland's own environ; take them
   from `systemctl --user show-environment` when launching by hand.
-- Nerd Font glyph icons render as tofu: `.pal-icon[data-kind="glyph"]` uses
-  `--pal-font-mono`, which resolves to Noto Sans Mono there and WebKitGTK does
-  no PUA fallback. Needs a Nerd Font in the stack on Linux, or glyphs mapped
-  to something the webview can draw.
+- Nerd Font glyph icons rendered as tofu (WebKitGTK does no PUA fallback).
+  Fixed: the app bundles Symbols Nerd Font Mono (woff2, 1.2 MB) scoped to the
+  private-use range, used only for glyph icons; verified on marko with a
+  fontconfig that rejects every Nerd Font.
 - Seen once after a `tauri dev` restart: two rows showed the letter fallback
   although Rust answered 200 with the PNG. Not reproduced in 6 fresh starts.
 

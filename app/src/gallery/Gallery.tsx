@@ -10,7 +10,7 @@ import {
 import type { FormValues, Item } from "../ui/types";
 import { Launcher } from "../Launcher";
 import { toItem, type Raw } from "../fixtures";
-import { actions, deploy, formFields, handWritten, markdownOnly, person, raycastDocs, sample } from "./data";
+import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample } from "./data";
 import {
   SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
   extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
@@ -241,6 +241,12 @@ export default function Gallery() {
           ["Long title and subtitle", <Row item={handWritten[3]} />],
           ["Ordinal hint (cmd held)", <Row item={raycastDocs} ordinal={3} />],
         ].map(([label, el]) => <State key={label as string} label={label as string}><Pair surface>{el}</Pair></State>)}
+        <State label="Nerd Font glyphs: private-use codepoints from the bundled symbols font, so they draw without a Nerd Font installed">
+          <Pair surface>
+            {nerdGlyphs.map((item, i) => <Row key={item.id} item={item} active={i === 1} />)}
+            <Footer icon={nerdGlyphs[1].icon} title="Pull requests" primary={{ title: "Open" }} actions />
+          </Pair>
+        </State>
       </Section>
 
       <Section id="list" title="List">

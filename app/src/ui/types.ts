@@ -6,7 +6,9 @@
 export type IconMask = "circle" | "rounded";
 
 export type Icon =
+  /** Drawn in the platform's colour emoji font. */
   | { kind: "emoji"; value: string }
+  /** Text in the mono font, or a Nerd Font codepoint in the bundled symbols font; `color` tints it. */
   | { kind: "glyph"; value: string; color?: string }
   | { kind: "image"; src: string; mask?: IconMask }
   /** An application's own artwork via the `icon://` scheme; `letter` when it has none. */
