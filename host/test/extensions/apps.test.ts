@@ -28,7 +28,8 @@ describe.skipIf(!mac)("apps", () => {
     expect(chrome.subtitle).toBe("Applications");
     for (const i of items) expect(existsSync((i.icon as { app: string }).app), i.name).toBe(true);
     expect(items.map((i) => i.name)).toEqual([...items.map((i) => i.name)].sort((a, b) => a.localeCompare(b)));
-    expect(new Set(items.map((i) => i.name.toLowerCase())).size).toBe(items.length);
+    // Names repeat across roots (GitHub runners ship several); ids are paths and must not.
+    expect(new Set(items.map((i) => i.id)).size).toBe(items.length);
   });
 
   test("the scan is cached: a second list is the same and asks nothing of the core", async () => {
