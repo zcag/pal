@@ -5,7 +5,7 @@ import { Kbd } from "./Kbd";
 import { Highlight } from "./Row";
 import { graphemePositions } from "./format";
 import { useCursor } from "./cursor";
-import { keepFocus, useKeys } from "./keys";
+import { hasShortcut, keepFocus, shortcutsOf, useKeys } from "./keys";
 import { flatten, useHover } from "./virtual";
 import type { Action } from "./types";
 
@@ -16,19 +16,21 @@ export type ActionPanelProps = {
   title?: string;
 };
 
-/** Implied shortcut for the first two actions, unless one is declared. */
-export const actionShortcut = (a: Action, index: number) => a.shortcut ?? (index === 0 ? "enter" : index === 1 ? "cmd+enter" : undefined);
+/** The listed action's first key, or the implied one for the first two listed (Enter, ⌘Enter), unless declared. */
+export const actionShortcut = (a: Action, index: number) => shortcutsOf(a)[0] ?? (index === 0 ? "enter" : index === 1 ? "cmd+enter" : undefined);
 
 /**
  * Overlay anchored bottom-right. Owns its own search and cursor and swallows
  * every command, so the launcher behind it stays put; only what its field
- * needs natively (caret keys, cmd+backspace) is left to the field.
+ * needs natively (caret keys, cmd+backspace) is left to the field. A
+ * `hidden` action is not listed (its key still runs it from here).
  */
-export function ActionPanel({ actions, onRun, onClose, title }: ActionPanelProps) {
+export function ActionPanel({ actions: all, onRun, onClose, title }: ActionPanelProps) {
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const uid = useId();
   const [query, setQuery] = useState("");
+  const actions = useMemo(() => all.filter((a) => !a.hidden), [all]);
   const fzf = useMemo(() => new Fzf(actions, { selector: (a) => a.title }), [actions]);
   const hits = useMemo(
     () => (query ? fzf.find(query).map((r) => ({ action: r.item, positions: graphemePositions(r.item.title, r.positions) })) : actions.map((action) => ({ action, positions: undefined }))),
@@ -66,7 +68,7 @@ export function ActionPanel({ actions, onRun, onClose, title }: ActionPanelProps
       back: () => (query ? "native" : onClose()),
       filter: swallow,
       detail: swallow,
-      shortcut: ({ combo }) => { const a = actions.find((x) => x.shortcut === combo); if (a) run(a); },
+      shortcut: ({ combo }) => { const a = all.find((x) => hasShortcut(x, combo)); if (a) run(a); },
       // Typing into the panel's own field; never a bare-key action of the level behind.
       key: () => "native",
     },
@@ -84,10 +86,12 @@ export function ActionPanel({ actions, onRun, onClose, title }: ActionPanelProps
             const i = row.index;
             const { action, positions } = row.items[0];
             const shortcut = actionShortcut(action, actions.indexOf(action));
+            const alternatives = shortcutsOf(action).slice(1);
             return (
               <div key={action.id} id={optionId(i)} role="option" aria-selected={i === cur.cursor} className="pal-action" data-active={i === cur.cursor || undefined} data-style={action.style} onMouseMove={hover(i)} onClick={() => run(action)}>
                 <Icon icon={action.icon} size="sm" />
                 <span className="pal-action__title"><Highlight text={action.title} positions={positions} /></span>
+                {alternatives.map((k) => <Kbd key={k} shortcut={k} className="pal-action__alt" />)}
                 {shortcut && <Kbd shortcut={shortcut} />}
               </div>
             );

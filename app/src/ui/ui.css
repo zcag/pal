@@ -115,15 +115,22 @@
   padding: 0 var(--pal-row-px, 8px);
   border-radius: var(--pal-radius-row, 8px);
   white-space: nowrap;
+  overflow: hidden;
   cursor: default;
 }
 .pal-row[data-active] { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
+.pal-row[data-disabled] { opacity: 0.45; }
+.pal-row[data-muted] .pal-row__title { color: var(--pal-fg-muted, #a3a4ae); font-size: 0.92em; }
 .pal-row .pal-icon[data-kind="glyph"], .pal-row .pal-icon__globe, .pal-action .pal-icon[data-kind="glyph"] { color: var(--pal-fg-muted, #a3a4ae); }
 .pal-row[data-active] .pal-icon, .pal-action[data-active] .pal-icon { color: var(--pal-fg, #ececf0); }
 /* A long title leaves the subtitle a third of the row; alone it may take it all. */
 .pal-row__title { flex: 0 1 auto; max-width: 65%; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .pal-row__title[data-solo] { max-width: none; }
 .pal-row__sub { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
+/* Beside a detail pane the list is --pal-list-w-split wide: the subtitle hides (brief) and the title may take the row.
+   Accessories never shrink or wrap; the ones that would squeeze the title under a readable width are dropped by Row (accessoryDropOrder). */
+.pal-panel__body[data-split] .pal-row__sub { display: none; }
+.pal-panel__body[data-split] .pal-row__title { max-width: none; }
 /* Accessories, tags and metadata values carry the numbers that stack across rows (dates, sizes, codes): tabular figures so they line up in the system font. */
 .pal-row__accs { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: var(--pal-row-gap, 12px); font-variant-numeric: tabular-nums; }
 .pal-acc { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); font-variant-numeric: tabular-nums; }
@@ -275,6 +282,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-action[data-active] { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
 .pal-action[data-style="destructive"] { color: var(--pal-destructive, #ff6e66); }
 .pal-action__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* An action's other keys (`shortcut: ["up", "k"]`): listed before the first, faint, so the first reads as the key. */
+.pal-action__alt { opacity: 0.45; }
 .pal-actions__none { padding: var(--pal-space-3, 12px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
 .pal-actions__search {
   flex: none;
@@ -321,9 +330,11 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   color: var(--pal-fg-faint, #868794);
   font-size: var(--pal-text-xs, 11px);
   white-space: nowrap;
+  /* the context ellipsizes first; the hints keep their width down to the 420 px popover */
+  overflow: hidden;
 }
 .pal-footer__context { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.pal-footer__hints { display: inline-flex; align-items: center; }
+.pal-footer__hints { display: inline-flex; align-items: center; flex: none; }
 .pal-footer__hint {
   display: inline-flex;
   align-items: center;
@@ -417,6 +428,7 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   animation: pal-pop-centred var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-confirm__title { font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-medium, 500); }
+.pal-confirm__message { margin-top: calc(var(--pal-space-4, 16px) * -1 + var(--pal-space-1, 4px)); font-size: var(--pal-text-sm, 12px); color: var(--pal-fg-muted, #a3a4ae); overflow-wrap: anywhere; }
 /* Scoped: settings.css has a text-coloured destructive button. */
 .pal-confirm .pal-button[data-destructive] { background: var(--pal-destructive, #ff6e66); color: var(--pal-accent-fg, #14141a); }
 
@@ -454,7 +466,7 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 @keyframes pal-spin { to { transform: rotate(360deg); } }
 /* Entrances from the brief's motion table. */
 @keyframes pal-fade { from { opacity: 0; } }
-@keyframes pal-rise { from { opacity: 0; transform: translateY(6px); } }
+@keyframes pal-rise { from { opacity: 0; transform: translateY(var(--pal-motion-slide, 6px)); } }
 @keyframes pal-pop { from { opacity: 0; transform: scale(0.98); } }
 @keyframes pal-pop-centred { from { opacity: 0; transform: translate(-50%, -50%) scale(0.98); } }
 /* Exits, same table: Presence (ui/presence.tsx) keeps the element mounted under data-exiting until the transition ends. Small things leave fast and accelerate away; the toast drops back the 6px it rose; the pane fades as the list widens. */
@@ -477,7 +489,15 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view__stack[data-justify="end"] { justify-content: flex-end; }
 .pal-view__stack[data-justify="between"] { justify-content: space-between; }
 .pal-view__stack[data-grow] { flex: 1 1 0; }
+/* Surfaces: a well behind a board, a card behind stats. A surface wants its own padding; without one it hugs its children. */
+.pal-view__stack[data-surface="sunken"] { background: var(--pal-bg-sunken, #141417); }
+.pal-view__stack[data-surface="elevated"] { background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)), var(--pal-bevel, inset 0 1px 0 rgba(255, 255, 255, 0.07)); }
+.pal-view__stack[data-radius] { border-radius: var(--pal-radius-tile, 10px); }
 .pal-view__text { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A text with a width is a column: it clips instead of wrapping, and `align` places the run inside it. */
+.pal-view__text[style*="width"] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pal-view__text[data-align="center"] { text-align: center; }
+.pal-view__text[data-align="end"] { text-align: end; }
 .pal-view__text[data-style="title"] { font-size: var(--pal-text-lg, 15px); font-weight: var(--pal-weight-semibold, 600); }
 .pal-view__text[data-style="muted"] { color: var(--pal-fg-muted, #a3a4ae); }
 .pal-view__text[data-style="mono"] { font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); }
@@ -506,20 +526,81 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view__image { display: block; flex: none; object-fit: contain; }
 .pal-view__image[data-mask="rounded"] { border-radius: var(--pal-radius-icon, 6px); }
 .pal-view__image[data-mask="circle"] { border-radius: 50%; }
+/* A tile: a rounded box in a tag colour (or the panel's neutrals, or the accent), `fill` solid (the colour, the panel's background as ink), soft (the tint, the colour as ink) or outline. The type is set inline by size (View.tsx tileType). */
+.pal-view__tile {
+  --tile: var(--pal-fg, #ececf0);
+  --tile-bg: var(--pal-tag-grey-bg, rgba(255, 255, 255, 0.1));
+  --tile-ink: var(--pal-bg, #1c1c21);
+  --tile-line: var(--pal-line-strong, rgba(255, 255, 255, 0.16));
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: var(--pal-radius-tile, 10px);
+  font-family: var(--pal-font-ui, -apple-system, system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  user-select: none;
+}
+/* Under 44 px a tile is a keycap, and takes the control radius so it does not read as a pebble. */
+.pal-view__tile[data-small] { border-radius: var(--pal-radius-control, 6px); }
+.pal-view__tile-text { white-space: nowrap; }
+.pal-view__tile-sub { font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-medium, 500); letter-spacing: 0.02em; opacity: 0.75; white-space: nowrap; }
+.pal-view__tile[data-color="grey"] { --tile: var(--pal-tag-grey); --tile-bg: var(--pal-tag-grey-bg); }
+.pal-view__tile[data-color="blue"] { --tile: var(--pal-tag-blue); --tile-bg: var(--pal-tag-blue-bg); }
+.pal-view__tile[data-color="green"] { --tile: var(--pal-tag-green); --tile-bg: var(--pal-tag-green-bg); }
+.pal-view__tile[data-color="amber"] { --tile: var(--pal-tag-amber); --tile-bg: var(--pal-tag-amber-bg); }
+.pal-view__tile[data-color="red"] { --tile: var(--pal-tag-red); --tile-bg: var(--pal-tag-red-bg); }
+.pal-view__tile[data-color="violet"] { --tile: var(--pal-tag-violet); --tile-bg: var(--pal-tag-violet-bg); }
+.pal-view__tile[data-color="pink"] { --tile: var(--pal-tag-pink); --tile-bg: var(--pal-tag-pink-bg); }
+.pal-view__tile[data-color="teal"] { --tile: var(--pal-tag-teal); --tile-bg: var(--pal-tag-teal-bg); }
+.pal-view__tile[data-color="accent"] { --tile: var(--pal-accent); --tile-bg: var(--pal-accent-soft); --tile-ink: var(--pal-accent-fg, #fff); }
+.pal-view__tile:not([data-color="neutral"]) { --tile-line: color-mix(in srgb, var(--tile) 55%, transparent); }
+.pal-view__tile[data-fill="soft"] { background: var(--tile-bg); color: var(--tile); }
+.pal-view__tile[data-fill="solid"] { background: var(--tile); color: var(--tile-ink); }
+/* Solid neutral is paper: the elevated surface with a hairline, the way a card sits on a table. */
+.pal-view__tile[data-color="neutral"][data-fill="solid"] { background: var(--pal-bg-elevated, #26262d); color: var(--pal-fg, #ececf0); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)), var(--pal-bevel, inset 0 1px 0 rgba(255, 255, 255, 0.07)); }
+.pal-view__tile[data-fill="outline"] { background: transparent; color: var(--tile); box-shadow: inset 0 0 0 1.5px var(--tile-line); }
 .pal-view__divider { flex: none; align-self: stretch; margin: 0; border: 0; height: 1px; background: var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-view__stack[data-direction="row"] > .pal-view__divider, .pal-view__stack[data-direction="row"] > [data-exiting] > .pal-view__divider { width: 1px; height: auto; }
 .pal-view__spacer { flex: 1 1 0; min-width: 0; min-height: 0; }
 .pal-view__progress { flex: 1 1 auto; min-width: 48px; height: 4px; border-radius: 2px; background: var(--pal-line-strong, rgba(255, 255, 255, 0.16)); overflow: hidden; }
+/* In a column the bar keeps its 4px; it only grows along a row. */
+.pal-view__stack:not([data-direction="row"]) > .pal-view__progress, .pal-view__stack:not([data-direction="row"]) > [data-exiting] > .pal-view__progress { flex: 0 0 auto; }
 .pal-view__progress > span { display: block; height: 100%; border-radius: inherit; background: var(--pal-accent, #9f97ff); transition: width var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
+.pal-view__progress[data-color="grey"] > span { background: var(--pal-tag-grey); }
+.pal-view__progress[data-color="blue"] > span { background: var(--pal-tag-blue); }
+.pal-view__progress[data-color="green"] > span { background: var(--pal-tag-green); }
+.pal-view__progress[data-color="amber"] > span { background: var(--pal-tag-amber); }
+.pal-view__progress[data-color="red"] > span { background: var(--pal-tag-red); }
+.pal-view__progress[data-color="violet"] > span { background: var(--pal-tag-violet); }
+.pal-view__progress[data-color="pink"] > span { background: var(--pal-tag-pink); }
+.pal-view__progress[data-color="teal"] > span { background: var(--pal-tag-teal); }
 .pal-view .pal-kbd, .pal-view .pal-tag { flex: none; }
-/* Entrances (brief's motion table): fade, the toast's 6px rise, and a horizontal unfold for a card turning over. `both` keeps a delayed node hidden until its turn. */
+/* Entrances (brief's motion table): fade, the toast's rise and its three siblings (--pal-motion-slide), a horizontal unfold for a card turning over, a pop from 0.8 for a merged tile. `both` keeps a delayed node hidden until its turn. A `move` (View.tsx useMove) is a transform played by script over --pal-motion-move; a re-mounted mover has its entrance switched off inline. */
 .pal-view [data-enter="fade"] { animation: pal-fade var(--pal-dur-base, 120ms) var(--pal-ease, ease) both; }
 .pal-view [data-enter="slide-up"] { animation: pal-rise var(--pal-dur-slow, 180ms) var(--pal-ease, ease) both; }
+.pal-view [data-enter="slide-down"] { animation: pal-drop var(--pal-dur-slow, 180ms) var(--pal-ease, ease) both; }
+.pal-view [data-enter="slide-left"] { animation: pal-slide-left var(--pal-dur-slow, 180ms) var(--pal-ease, ease) both; }
+.pal-view [data-enter="slide-right"] { animation: pal-slide-right var(--pal-dur-slow, 180ms) var(--pal-ease, ease) both; }
 .pal-view [data-enter="flip"] { animation: pal-flip var(--pal-dur-slow, 180ms) var(--pal-ease, ease) both; }
+.pal-view [data-enter="pop"] { animation: pal-pop-tile var(--pal-motion-pop, 180ms) var(--pal-ease, ease) both; }
 @keyframes pal-flip { from { transform: scaleX(0); opacity: 0.4; } }
-/* Exits: a gone key fades fast; one that rose drops back the 6px. */
+@keyframes pal-drop { from { opacity: 0; transform: translateY(calc(-1 * var(--pal-motion-slide, 6px))); } }
+@keyframes pal-slide-left { from { opacity: 0; transform: translateX(var(--pal-motion-slide, 6px)); } }
+@keyframes pal-slide-right { from { opacity: 0; transform: translateX(calc(-1 * var(--pal-motion-slide, 6px))); } }
+@keyframes pal-pop-tile { from { opacity: 0; transform: scale(0.8); } 60% { transform: scale(1.06); } }
+/* Exits: a gone key fades fast; one that slid in goes back the way it came, a popped one shrinks. */
 .pal-view [data-exiting] > .pal-view__node { animation: none; opacity: 0; transition: opacity var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in); }
-.pal-view [data-exiting] > .pal-view__node[data-enter="slide-up"] { transform: translateY(6px); }
+.pal-view [data-exiting] > .pal-view__node[data-enter="slide-up"] { transform: translateY(var(--pal-motion-slide, 6px)); }
+.pal-view [data-exiting] > .pal-view__node[data-enter="slide-down"] { transform: translateY(calc(-1 * var(--pal-motion-slide, 6px))); }
+.pal-view [data-exiting] > .pal-view__node[data-enter="slide-left"] { transform: translateX(var(--pal-motion-slide, 6px)); }
+.pal-view [data-exiting] > .pal-view__node[data-enter="slide-right"] { transform: translateX(calc(-1 * var(--pal-motion-slide, 6px))); }
+.pal-view [data-exiting] > .pal-view__node[data-enter="pop"] { transform: scale(0.8); }
 /* The search row of a view level: the crumb, then the view's title where the input would be. */
 .pal-search__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg, #ececf0); font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-medium, 500); }
 
@@ -541,6 +622,14 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 }
 .pal-hud .pal-icon { color: var(--pal-success, #4fc98a); }
 /* The HUD window's page (HudPage.tsx): the capsule at the bottom centre, 24px in so the shadow (20px below) stays inside the window; the text clips before the window does. Out: slower than the in, so it is not read as a flicker. */
+/* The bar popover's page (BarPage.tsx): the panel fills the window; `urgent` paints the title bar red. */
+.pal-bar-page { position: fixed; inset: 0; }
+.pal-bar-page[data-urgent] .pal-panel__search { background: var(--pal-destructive, #c02b27); }
+.pal-bar-page[data-urgent] .pal-search__input, .pal-bar-page[data-urgent] .pal-search__title { color: #fff; caret-color: #fff; }
+.pal-bar-page[data-urgent] .pal-search__input::placeholder { color: rgba(255, 255, 255, 0.7); }
+.pal-bar-page[data-urgent] .pal-search__back { background: rgba(0, 0, 0, 0.28); color: #fff; }
+/* The popover is as tall as its content: a view level takes its natural height instead of filling the window. */
+.pal-bar-page .pal-view > .pal-view__stack { flex: 0 0 auto; }
 .pal-hud-page { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0 var(--pal-space-4, 16px) var(--pal-space-6, 24px); pointer-events: none; }
 .pal-hud-page .pal-hud { max-width: 100%; }
 .pal-hud-page .pal-hud > span { overflow: hidden; text-overflow: ellipsis; }

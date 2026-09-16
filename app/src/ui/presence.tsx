@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 type Dur = "fast" | "base" | "slow" | "hud-out";
 
-const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+/** The OS asks for reduced motion: exits and moves happen at once. */
+export const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const ms = (v: string) => (v.trim().endsWith("ms") ? parseFloat(v) : parseFloat(v) * 1000) || 0;
 
 /**

@@ -49,7 +49,7 @@ whose code fails to load.
     { "kind": "text", "id": "greeting", "label": "Greeting", "default": "Hello" }
   ],
   "palettes": {
-    "hello": { "description": "What the palette is for." }
+    "hello": { "kind": "list", "description": "What the palette is for." }
   }
 }
 ```
@@ -63,11 +63,92 @@ whose code fails to load.
   file. Kinds: `text`, `secret`, `number`, `boolean`, `select`, `hotkey`,
   `path`, `list`; each with `id`, `label`, optional `description` and a
   `default`.
-- `palettes.<key>`: per-palette `title` (a fallback while the code fails),
-  `description`, `settings` (`[palettes.<id>].settings` in the file) and
-  `ttl`. The key is the palette's key in the code's `palettes` object.
+- `palettes.<key>`: the palette's static description: `title`,
+  `description`, `kind`, `ttl`, `tier`, `keys`, `rank`, `settings`
+  (`[palettes.<id>].settings` in the file). The key is the palette's key
+  in the code's `palettes` object; what goes here and what goes in the
+  code is the next section.
 - `bar.<id>`: a bar item's `title`, `description` and `refresh` schedule
   (below, "Bar items"). The id is the key in the code's `bar` object.
+
+## Where a palette is described
+
+A palette is described in two files, and each fact has one home:
+
+- **`pal.json` holds what is static and author-facing**: `title`,
+  `description`, `kind`, `ttl`, `tier` (below), `keys` (what each key
+  does, as `[{ "keys": "cmd+c", "title": "Copy the link" }]`), `rank`,
+  `settings`, and the extension's `icon`. The store and the settings
+  window read these without running the code.
+- **The code holds the behaviour and what only it can know**: `list`,
+  `pick`, `detail`, `view`, `filters`, `placeholder`, `showDetail`,
+  `columns`, and the flags `live` and `input`.
+
+`kind` is the one fact both sides state, since the manifest names it and
+the code implies it, and they must agree:
+
+| `kind` | the code |
+| --- | --- |
+| `view` | a `view()` palette |
+| `grid` | `view: "grid"` |
+| `input` | `input: true` (a live input palette is `input`: nothing of it is indexed) |
+| `live` | `live: true`, without `input` |
+| `list` | none of those |
+
+Read top down: the first row that fits is the kind. `title`, `ttl` and
+`tier` may appear on both sides for now; the manifest's value is the one
+served, and a code value that differs is a warning. A code value with no manifest
+counterpart serves silently (the key stands in for a missing title).
+
+The host runs this check on every load (`checkPalettes` in `@zcag/pal`,
+so an extension's tests can run it too). Nothing fails: each disagreement
+is a `[<ext>] manifest: palettes.<key>: ...` line on stderr and an entry
+in the `warnings` the settings window shows for the extension. A palette
+the code has but the manifest lacks is served from the code alone; one
+the manifest has but the code lacks is not served at all. A manifest with
+no `palettes` key declares nothing static and gets no warnings (the
+bundled `scripts` discovers its palettes from a config file); one that has
+the key, even empty, must name every palette.
+
+**The palette id.** Wherever a palette is addressed outside its extension
+it is one word: the extension's name when the palette is named like the
+extension, else `<extension>-<palette>`. So `emoji`'s `emoji` palette is
+`emoji`, `clipboard`'s `history` is `clipboard-history`, `github`'s `prs`
+is `github-prs`. That id is the config table `[palettes.<id>]` (`enabled`,
+`alias`, `hotkey`, `item_hotkeys`, `icon`, `settings`; see
+[Config](config.md)) and the heading in [Palettes](palettes.md). A
+`pal://open/<extension>/<palette>` link names the two parts separately
+instead.
+
+## `tier`: what the rows are at the root
+
+Every palette's rows compete in one root search, and a big static list
+would drown the rest: `chr` matches four hundred icon glyphs. `tier` says
+what a palette's rows are next to everyone else's:
+
+| `tier` | for | at the root |
+| --- | --- | --- |
+| `primary` | what is reached by name: apps, windows, bookmarks, quicklinks, snippets, recent files, browser tabs, system commands, SSH hosts | ranked up (+150), at most 8 rows per palette |
+| `normal` | what is browsed: containers, pull requests, devices, services, timers; the default | as matched, at most 6 rows |
+| `catalog` | a big static list where any query matches dozens of rows: emoji, unicode, icons, colours, a v1 data file of 100 rows or more | ranked down (-150), at most 3 rows; an exact name (`git` the glyph) sits under the primary rows that have the word and above the normal ones |
+
+A row whose name or keyword has the typed word (every query word starts a
+word of it) is ranked above one that only collects the letters (`chr`
+across `Clipboard History`), by two tiers' worth; a row named what was
+typed leads outright, whatever the tier (a catalog's only above the
+normal tier); what the user picks a lot climbs (`docs/config.md`, "Search
+history") by up to a tier and a half, so a much-used glyph passes the
+normal rows but never a primary one that has the word. The rows a cap
+leaves out are behind a muted "12 more in Emoji" row at the end of the
+section; `Enter` on it opens the palette, where nothing is capped. The
+constants and the measurements are in `core/src/index.rs` under
+`EXACT_BONUS` and in `notes/decisions.md` ("Root ordering").
+
+The manifest declares it (`"tier": "catalog"` under `palettes.<key>`);
+the code may say `tier` too. The user overrides it with `[palettes.<id>]
+tier = "primary"` and the caps with `[general] root_caps`
+([Config](config.md#palettesid)). The empty query is untouched: use, then
+the listing order, no caps.
 
 ## The code, `index.ts`
 
@@ -93,7 +174,14 @@ export default defineExtension({
 
 `defineExtension` only type-checks the object where it is written (it is
 `satisfies Extension` under a name an editor completes); the bundled
-extensions use `satisfies` directly.
+extensions use `satisfies` directly. With the manifest first,
+`defineExtension(manifest, { palettes: { ... } })` (`import manifest from
+"./pal.json" with { type: "json" }`), the palettes are checked against
+what `pal.json` declares: a declared key left out or an undeclared one
+written is a type error. A manifest written inline (`as const`) also pins
+each palette's shape to its `kind` (a `view` must have `view()`, a `live`
+one `live: true`); a JSON import widens `kind` to `string`, so that part
+is left to the load-time check.
 
 - `list(query?, ctx?)` returns `Item[]`, sync or async. Without `input:
   true` the host lists once, the core indexes the rows, and the root search
@@ -112,10 +200,11 @@ extensions use `satisfies` directly.
 - `detail(id, ctx?)`: the detail pane's content for a row, asked lazily.
 - Palette flags: `live` (arrival order, re-listed on every show, not twice
   within 2 s; with a `ttl`, only once the last listing is older than that),
-  `view: "grid"` + `columns`, `placeholder`, `showDetail`, `filters`, `ttl`.
-  Without a `ttl` a palette is listed on every load: the bundled TypeScript
-  extensions have none, they are cheap; `scripts` defaults its tables to an
-  hour ([Scripts](scripts.md)).
+  `view: "grid"` + `columns`, `placeholder`, `showDetail`, `filters`. `ttl`
+  and `tier` belong in the manifest ("Where a palette is described",
+  above); the code's is a fallback. Without a `ttl` a palette is listed on
+  every load: most bundled TypeScript extensions have none, they are cheap;
+  `scripts` defaults its tables to an hour ([Scripts](scripts.md)).
 - An `Item` has `id` (stable), `name`, `subtitle`, `icon`, `keywords`,
   `url`, `accessories`, `detail`, `actions` (first is Enter, second
   cmd+Enter; an empty list is an inert hint row).
@@ -128,9 +217,10 @@ values changed is listed again).
 
 A palette can draw instead of list: give it `view(ctx)` in place of
 `list`, returning a `View`, and pal opens it as a **view level**. The
-bundled Blackjack is one (`extensions/blackjack/`). The tree is built from
-a fixed vocabulary the app draws with its own tokens, never HTML, so a view
-looks like the rest of the panel in both themes.
+bundled Blackjack, 2048 and Wordle are (`extensions/{blackjack,2048,wordle}/`).
+The tree is built from a fixed vocabulary the app draws with its own
+tokens, never HTML, so a view looks like the rest of the panel in both
+themes.
 
 ```ts
 export default {
@@ -158,11 +248,19 @@ export default {
 - In a view level the search input is gone: the view's `title` stands in
   its place, the footer shows the first action and "Actions ⌘K", ⌘K lists
   `actions` with their keys, Escape (and ⌘⌫) leaves. Enter runs the first
-  action, ⌘Enter the second, a modifier combo the action carrying it as
-  `shortcut`. With `keys: "actions"` a **bare key** does too: `h`, `space`,
-  `+`, `-`, `up`, `down`, `left`, `right` as `shortcut`. One pick at a
-  time: a key pressed while the reply is on its way is dropped, not
-  queued, and the search row sweeps meanwhile.
+  listed action, ⌘Enter the second, a modifier combo the action carrying
+  it as `shortcut`. With `keys: "actions"` a **bare key** does too: a
+  letter or digit, `space`, `backspace`, `delete`, `+`, `-`, `up`, `down`,
+  `left`, `right` as `shortcut`. `shortcut` may be a list of alternatives
+  (`["up", "k"]`): any of them runs the action, ⌘K draws the first and the
+  rest faintly. `hidden: true` keeps an action out of ⌘K, the footer and
+  the Enter / ⌘Enter pair; its key still runs it (Wordle's 26 letters), so
+  it must have one.
+- One pick at a time, and the search row sweeps meanwhile; a key pressed
+  while the reply is on its way **queues** (four at most, the rest dropped)
+  and runs against the tree the reply brings, so fast typing loses
+  nothing and a key meant for a board that is gone lands on nothing. The
+  queue is dropped when the level changes.
 - A pick from the view is `pick(id, action, ctx)` with the view's `id`
   (`view` unless the view sets one) and the action's id. Answer `{ view }`
   and the level's tree is replaced in place; any other effect works as from
@@ -170,8 +268,11 @@ export default {
   `{ view }` pushes a new view level. `ctx.args` are the `push` that opened
   the level, `ctx.filter` its filter.
 - Action ids may not start with `pal:` (the shell's own); the host refuses
-  such a view. A tree is refused past 2000 nodes or 24 levels deep, and when
-  two siblings share a `key`.
+  such a view (`checkView`, also exported for an extension's own tests). A
+  tree is refused past 2000 nodes or 24 levels deep, when two siblings
+  share a `key`, when two `move` nodes share one anywhere, and when a
+  node names a colour, fill, surface, entrance or exit the app does not
+  draw.
 - The palette is reported `input: true` (nothing of it is indexed; the root
   has only its own row) with `view: "view"`. It still declares `icon`,
   `title` and settings like any other; `detail` and `filters` have no
@@ -182,23 +283,33 @@ The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key` and
 
 | node | fields | draws |
 | --- | --- | --- |
-| `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `children` | a flex box |
-| `text` | `value`, `style` title/body/muted/mono/number, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`) | one run of text |
+| `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `surface` sunken/elevated (a well behind a board, a card behind stats; give it `padding`), `radius`, `children` | a flex box |
+| `text` | `value`, `style` title/body/muted/mono/number, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`), `width` / `minWidth` px (a column that lines up; a run with a `width` clips instead of wrapping), `align` start/center/end inside it | one run of text |
 | `image` | `src` (`icon://…` or `data:image/…`, anything else is not shown), `width`/`height` px, `mask` rounded/circle, `alt` | a picture the extension made or the app's icon scheme serves |
+| `tile` | `width`/`height` px, `text`, `sub` (small, under the text), `color` (tag palette, `neutral` (default), `accent`), `fill` `solid` (the colour, the panel's background as ink; solid neutral is paper, the elevated surface), `soft` (the tint, the colour as ink; default), `outline` | a rounded box with the tokens' colours, so it follows the theme: a game tile, a keycap of an on-screen keyboard, a stat. The type is tabular, scales with the box, gets heavier as it grows and shrinks to fit the text; under 44 px the box takes the control radius |
 | `badge` | `text`, `color` (grey, blue, green, amber, red, violet, pink, teal) | a tag, as on a row |
 | `divider` | | a hairline (vertical in a row) |
 | `spacer` | `size` px, else the free space | space |
-| `progress` | `value` 0..1, `width` px | a bar |
+| `progress` | `value` 0..1, `width` px, `color` (tag palette; else the accent) | a bar |
 | `keycap` | `keys` in the shortcut spelling (`h`, `cmd+k`, `up`) | key caps, as in the footer |
 
 Unknown node types are skipped, not errors, so a newer extension still
 draws on an older app. `key` makes a node the same node across trees: the
 app keeps its DOM, and animates one whose key is new or gone per
-`transition`: `enter` `fade`, `slide-up` (6 px rise) or `flip` (a
-horizontal unfold); `exit` `fade` (default) or `none`; `delay` staggers the
-entrance in steps of 80 ms (0..8). Durations and easings are the tokens';
-reduced motion turns them off. A row whose keyed children come and go wants
-a `minHeight` so the layout holds still.
+`transition`: `enter` `fade`, `slide-up` (a 6 px rise, `--pal-motion-slide`)
+or `slide-down` / `slide-left` / `slide-right` (the node arrives from that
+side), `flip` (a horizontal unfold), `pop` (a scale from 0.8, for a merged
+tile or a typed letter); `exit` `fade` (default) or `none`; `delay`
+staggers the entrance in steps of 80 ms (0..8). `move: true` animates
+layout: when the key was in the previous tree at another box, in another
+cell or another parent, the node slides from that box to its new one
+(`--pal-motion-move`, a FLIP over the DOM the app keeps) instead of
+entering, and the stack it left draws no exit for it; a 2048 tile keyed by
+its id slides across the board, a split's card glides to its new hand. A
+`move` key must be unique in the whole tree. Durations and easings are the
+tokens'; reduced motion turns them all off. A row whose keyed children come
+and go wants a `minHeight` so the layout holds still; a cell whose tile
+moves out wants a stack of its own holding an `outline` tile meanwhile.
 
 ## Forms: asking for values
 
@@ -424,7 +535,11 @@ to the core.
   `bar.refresh(id)`: ask for a render.
 - `checkView(view)`, `checkForm(form)`, `checkBarItem(item)`: what the
   host runs on every answer (the limits above), for an extension's own
-  tests. `defineExtension(ext)`: the typed default export.
+  tests; `shortcutsOf(action)`: an action's keys as a list.
+  `checkPalettes(manifest, ext)`: the manifest against the code
+  ("Where a palette is described"), `{ metas, warnings }`; `kindOf(p)`:
+  the kind a palette implies. `defineExtension(ext)` and
+  `defineExtension(manifest, ext)`: the typed default export.
 - `audio.devices()` (every output and input, `AudioDevice[]`: `id`,
   `name`, `kind`, `default`, `volume`, `muted`, `transport`),
   `setDefault(id, kind)`, `setVolume(id, kind, percent)`,

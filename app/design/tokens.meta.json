@@ -58,6 +58,9 @@
   ["--pal-dur-hud-out", "The HUD fading out after the hold."],
   ["--pal-ease", "Entrances and layout changes: fast start, long settle."],
   ["--pal-ease-in", "Exits: accelerate away."],
+  ["--pal-motion-slide", "How far a view node's slide-up/down/left/right entrance travels (the toast's rise too)."],
+  ["--pal-motion-move", "A keyed view node sliding to its new box (a 2048 tile, a split card); zero under reduced motion."],
+  ["--pal-motion-pop", "A view node's pop entrance, a scale from 0.8 (a merged tile, a typed letter)."],
   ["--pal-bg", "Panel surface; the opaque fallback when the compositor cannot blur."],
   ["--pal-bg-glass", "Panel surface over a wallpaper, paired with --pal-backdrop."],
   ["--pal-bg-elevated", "Things over the panel: action panel, prompt, HUD, focused field."],
@@ -107,7 +110,9 @@
   ["--pal-settings-measure", "Widest a settings form gets; centred in the window."],
   ["--pal-settings-label-w", "The right-aligned label column of a settings form."],
   ["--pal-settings-list-w", "The list on the left of a two-pane settings page."],
+  ["--pal-settings-pane-w", "The selected palette's pane on the Palettes page."],
   ["--pal-settings-control-h", "Buttons, popups, fields and the recorder in settings: the OS's size, under the panel's 32px."],
   ["--pal-switch-w", "Switch track width."],
-  ["--pal-switch-h", "Switch track height; the knob is 2px shorter."]
+  ["--pal-switch-h", "Switch track height; the knob is 2px shorter."],
+  ["--pal-dur-flash", "How long a settings search hit's row stays lit."]
 ]

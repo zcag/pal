@@ -76,6 +76,10 @@
   --pal-dur-hud-out: 240ms;
   --pal-ease: cubic-bezier(0.2, 0, 0, 1);
   --pal-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  /* view transitions (ui/View.tsx): how far a slide-* entrance travels, how long a keyed node takes to move to its new box, how long a pop takes */
+  --pal-motion-slide: 6px;
+  --pal-motion-move: var(--pal-dur-slow);
+  --pal-motion-pop: var(--pal-dur-slow);
 
   /* light-begin */
   --pal-bg: #F4F4F6;
@@ -274,6 +278,8 @@
     --pal-dur-base: 0ms;
     --pal-dur-slow: 0ms;
     --pal-dur-hud-out: 0ms;
+    --pal-motion-move: 0ms;
+    --pal-motion-pop: 0ms;
   }
 }
 
@@ -289,7 +295,9 @@
   --pal-settings-measure: 560px;
   --pal-settings-label-w: 160px;
   --pal-settings-list-w: 220px;
+  --pal-settings-pane-w: 268px;  /* the selected palette's pane on Palettes */
   --pal-settings-control-h: 30px;
+  --pal-dur-flash: 1600ms;       /* how long a search hit's row stays lit */
   --pal-switch-w: 26px;
   --pal-switch-h: 16px;
 }

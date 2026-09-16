@@ -9,6 +9,11 @@ import type { Shortcut } from "./types";
 
 export const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
 
+/** An action's keys as a list: `shortcut` is one, several, or none. */
+export const shortcutsOf = (a: { shortcut?: Shortcut | Shortcut[] }): Shortcut[] => (a.shortcut === undefined ? [] : Array.isArray(a.shortcut) ? a.shortcut : [a.shortcut]);
+/** Whether `combo` (a key or a combo in the shortcut spelling) is one of the action's. */
+export const hasShortcut = (a: { shortcut?: Shortcut | Shortcut[] }, combo: Shortcut) => shortcutsOf(a).includes(combo);
+
 export type Command =
   | { type: "move"; dir: "up" | "down" | "left" | "right" }
   | { type: "jump"; to: "home" | "end" | "pageUp" | "pageDown" }
@@ -21,7 +26,7 @@ export type Command =
   | { type: "filter"; dir: 1 | -1 }
   | { type: "detail" }
   | { type: "shortcut"; combo: Shortcut }
-  /** A bare printable key (`h`, `+`, `space`), no modifier but shift. Declined, it is typing and goes to the search input. */
+  /** A bare printable key (`h`, `+`, `space`) or `backspace` / `delete`, no modifier but shift. Declined, it is typing and goes to the search input. */
   | { type: "key"; key: string };
 
 /**
@@ -46,7 +51,7 @@ export const grammar: { keys: string[]; does: string }[] = [
   { keys: ["cmd+1"], does: "Jump to row 1..9 (cmd+1 to cmd+9)" },
   { keys: ["home", "end", "pageup", "pagedown"], does: "Scroll the list" },
   { keys: ["cmd+c"], does: "Any other modifier combo runs the action carrying that shortcut" },
-  { keys: ["h", "space"], does: "In a view level with bare-key actions, a bare key runs the action carrying it" },
+  { keys: ["h", "space", "backspace"], does: "In a view level with bare-key actions, a bare key runs the action carrying it" },
 ];
 
 const keyName = (e: KeyboardEvent) => {
@@ -92,7 +97,7 @@ export function resolve(e: KeyboardEvent): Command | null {
     if (/^[1-9]$/.test(k)) return { type: "jumpTo", index: Number(k) - 1 };
   }
   if ((cmd || e.altKey || (isMac && e.ctrlKey)) && k.length === 1) return { type: "shortcut", combo: comboOf(e) };
-  if (!cmd && !e.altKey && !e.ctrlKey && (e.key.length === 1 || e.key === " ")) return { type: "key", key: k };
+  if (!cmd && !e.altKey && !e.ctrlKey && (e.key.length === 1 || e.key === " " || e.key === "Backspace" || e.key === "Delete")) return { type: "key", key: k };
   return null;
 }
 
@@ -129,7 +134,8 @@ export function useKeys(handlers: Handlers, { scope, input }: Options = {}) {
       // Mid-composition (Turkish dead keys, CJK) the keys belong to the IME: Enter commits, arrows pick a candidate.
       if (e.isComposing || e.keyCode === 229) return;
       const cmd = resolve(e);
-      if (cmd && e.repeat && !repeats(cmd)) { e.preventDefault(); if (local) e.stopPropagation(); return; }
+      // A held key fires an action once; held in a field it is typing and keeps its native repeat (Backspace clearing a query).
+      if (cmd && e.repeat && !repeats(cmd)) { if (cmd.type === "key" && isEditable(e.target)) return; e.preventDefault(); if (local) e.stopPropagation(); return; }
       const handler = cmd && ref.current[cmd.type];
       const result = handler ? handler(cmd as never) : false;
       if (result !== false) {

@@ -68,6 +68,59 @@ describe("View", () => {
     expect(html.match(/display:contents/g)).toHaveLength(2);
   });
 
+  it("draws a tile from the tokens: size, colour and fill as data, the type scaled to the box and the text, a sub line", () => {
+    const html = render({
+      type: "stack",
+      children: [
+        { type: "tile", width: 64, height: 64, text: "2048", color: "accent", fill: "solid" },
+        { type: "tile", width: 64, height: 64, text: "2" },
+        { type: "tile", width: 32, height: 40, text: "Q", color: "grey", fill: "soft" },
+        { type: "tile", width: 56, height: 44, text: "42", sub: "played", color: "neutral", fill: "outline" },
+        { type: "tile", width: 48, height: 48, color: "neutral", fill: "outline" },
+      ],
+    });
+    expect(html).toContain('class="pal-view__node pal-view__tile" data-color="accent" data-fill="solid" style="width:64px;height:64px"><span class="pal-view__tile-text" style="font-size:21px;font-weight:800;letter-spacing:-0.02em">2048</span>');
+    // The defaults: neutral, soft. A one-character text takes the tall size.
+    expect(html).toContain('data-color="neutral" data-fill="soft" style="width:64px;height:64px"><span class="pal-view__tile-text" style="font-size:28px;font-weight:800;letter-spacing:-0.02em">2</span>');
+    // A keycap-sized tile is marked small (the control radius) and its type is lighter.
+    expect(html).toContain('data-color="grey" data-fill="soft" data-small="true" style="width:32px;height:40px"><span class="pal-view__tile-text" style="font-size:18px;font-weight:700">Q</span>');
+    expect(html).toContain('<span class="pal-view__tile-sub">played</span>');
+    // An empty tile is a box and nothing else.
+    expect(html).toContain('data-color="neutral" data-fill="outline" style="width:48px;height:48px"></div>');
+  });
+
+  it("paints a stack's surface and radius, sizes a text, colours a progress bar", () => {
+    const html = render({
+      type: "stack", surface: "sunken", radius: true, padding: 2,
+      children: [
+        { type: "stack", surface: "elevated", children: [] },
+        { type: "text", value: "6", width: 8, align: "end" },
+        { type: "text", value: "label", minWidth: 40 },
+        { type: "progress", value: 0.5, color: "grey", width: 96 },
+      ],
+    });
+    expect(html).toContain('data-surface="sunken" data-radius="true" style="padding:var(--pal-space-2)"');
+    expect(html).toContain('data-surface="elevated"');
+    expect(html).toContain('class="pal-view__node pal-view__text" data-align="end" style="flex:none;width:8px">6<');
+    expect(html).toContain('style="min-width:40px">label<');
+    expect(html).toContain('role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" data-color="grey" style="flex:none;width:96px"');
+  });
+
+  it("carries the new entrances (the slides, pop) as data-enter; a move node needs no data of its own", () => {
+    const html = render({
+      type: "stack",
+      children: [
+        { type: "text", key: "a", value: "a", transition: { enter: "slide-left" } },
+        { type: "text", key: "b", value: "b", transition: { enter: "pop", move: true } },
+        { type: "text", key: "c", value: "c", transition: { enter: "slide-down" } },
+      ],
+    });
+    expect(html).toContain('data-enter="slide-left"');
+    expect(html).toContain('data-enter="pop"');
+    expect(html).toContain('data-enter="slide-down"');
+    expect(html).not.toContain("move");
+  });
+
   it("stringifies loosely typed values instead of throwing", () => {
     const html = render({ type: "stack", children: [{ type: "text", value: 12 as unknown as string }, { type: "badge", text: undefined as unknown as string }, { type: "stack", children: "no" as unknown as ViewNode[] }] });
     expect(html).toContain(">12<");

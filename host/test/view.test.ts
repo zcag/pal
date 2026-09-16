@@ -32,6 +32,52 @@ describe("checkView", () => {
     expect(() => checkView({ ...ok, tree: { type: "stack", children: [null as unknown as ViewNode] } })).toThrow("not a node");
     expect(() => checkView({ ...ok, tree: { type: "stack" } as ViewNode })).toThrow("no children");
   });
+  test("a shortcut is a key or a list of keys; a hidden action needs one", () => {
+    expect(checkView({ ...ok, actions: [{ id: "up", title: "Up", shortcut: ["up", "k"] }] })).toBeTruthy();
+    expect(() => checkView({ ...ok, actions: [{ id: "up", title: "Up", shortcut: [] }] })).toThrow("shortcut must be a key or a list of keys");
+    expect(() => checkView({ ...ok, actions: [{ id: "up", title: "Up", shortcut: ["up", 3] }] })).toThrow("shortcut must be a key or a list of keys");
+    expect(() => checkView({ ...ok, actions: [{ id: "up", title: "Up", shortcut: 7 }] })).toThrow("shortcut must be a key or a list of keys");
+    expect(checkView({ ...ok, actions: [{ id: "a", title: "Type A", shortcut: "a", hidden: true }] })).toBeTruthy();
+    expect(() => checkView({ ...ok, actions: [{ id: "a", title: "Type A", hidden: true }] })).toThrow("hidden and has no shortcut");
+    expect(() => checkView({ ...ok, actions: [{ id: "a", title: "Type A", shortcut: "a", hidden: "yes" }] })).toThrow("hidden must be true");
+  });
+  test("a transition names a known entrance and exit; move wants a key that is unique in the whole tree", () => {
+    const t = (transition: unknown, key?: string): View => ({ ...ok, tree: { type: "stack", children: [{ type: "text", key, value: "x", transition } as ViewNode] } });
+    for (const enter of ["fade", "slide-up", "slide-down", "slide-left", "slide-right", "flip", "pop"]) expect(checkView(t({ enter }))).toBeTruthy();
+    expect(() => checkView(t({ enter: "explode" }))).toThrow('unknown enter "explode"');
+    expect(() => checkView(t({ exit: "explode" }))).toThrow('unknown exit "explode"');
+    expect(() => checkView(t({ delay: "2" }))).toThrow("delay must be a number");
+    expect(() => checkView(t("fade"))).toThrow("transition must be an object");
+    expect(checkView(t({ move: true }, "a"))).toBeTruthy();
+    expect(() => checkView(t({ move: true }))).toThrow("moves but has no key");
+    expect(() => checkView(t({ move: "yes" }, "a"))).toThrow("move must be true");
+    // The same key in two stacks is fine for a plain node, not for one that moves: the app tracks a mover by key across the tree.
+    const twice = (transition?: unknown): View => ({ ...ok, tree: { type: "stack", children: [
+      { type: "stack", key: "c0", children: [{ type: "text", key: "t1", value: "1", transition } as ViewNode] },
+      { type: "stack", key: "c1", children: [{ type: "text", key: "t1", value: "1", transition } as ViewNode] },
+    ] } });
+    expect(checkView(twice())).toBeTruthy();
+    expect(() => checkView(twice({ move: true }))).toThrow('key "t1" is used elsewhere in the tree');
+  });
+  test("a tile needs its size and known looks; a text's width and a progress colour are checked; a stack's surface too", () => {
+    const one = (node: unknown): View => ({ ...ok, tree: { type: "stack", children: [node as ViewNode] } });
+    expect(checkView(one({ type: "tile", width: 64, height: 64, text: "2", color: "amber", fill: "soft" }))).toBeTruthy();
+    expect(checkView(one({ type: "tile", width: 32, height: 40 }))).toBeTruthy();
+    expect(() => checkView(one({ type: "tile", width: 64 }))).toThrow("tile needs width and height");
+    expect(() => checkView(one({ type: "tile", width: -1, height: 64 }))).toThrow("tile needs width and height");
+    expect(() => checkView(one({ type: "tile", width: 64, height: 64, color: "gold" }))).toThrow('unknown color "gold"');
+    expect(() => checkView(one({ type: "tile", width: 64, height: 64, fill: "striped" }))).toThrow('unknown fill "striped"');
+    expect(checkView(one({ type: "text", value: "6", width: 8, minWidth: 4, align: "end" }))).toBeTruthy();
+    expect(() => checkView(one({ type: "text", value: "6", width: "8px" }))).toThrow("text width must be px");
+    expect(() => checkView(one({ type: "text", value: "6", minWidth: -2 }))).toThrow("text minWidth must be px");
+    expect(() => checkView(one({ type: "text", value: "6", align: "justify" }))).toThrow('unknown align "justify"');
+    expect(checkView(one({ type: "progress", value: 0.5, color: "grey" }))).toBeTruthy();
+    expect(() => checkView(one({ type: "progress", value: 0.5, color: "accent" }))).toThrow('unknown color "accent"');
+    expect(checkView(one({ type: "stack", surface: "sunken", radius: true, children: [] }))).toBeTruthy();
+    expect(checkView(one({ type: "stack", surface: "elevated", children: [] }))).toBeTruthy();
+    expect(() => checkView(one({ type: "stack", surface: "glass", children: [] }))).toThrow('unknown surface "glass"');
+    expect(() => checkView(one({ type: "stack", radius: 10, children: [] }))).toThrow("radius must be a boolean");
+  });
   test("too many nodes, or too deep, is an error naming the limit", () => {
     const wide: ViewNode = { type: "stack", children: Array.from({ length: MAX_NODES }, () => ({ type: "divider" }) as ViewNode) };
     expect(() => checkView({ ...ok, tree: wide })).toThrow(`${MAX_NODES}`);

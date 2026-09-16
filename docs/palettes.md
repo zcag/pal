@@ -14,6 +14,15 @@ palette that is neither is indexed: listed once, searched from the index,
 refreshed with `⌘R`; a `scripts` palette keeps its listing across restarts
 for the extension's `ttl` (an hour by default) unless it sets its own.
 
+At the root every palette also has a **tier** ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)):
+`primary` for what is reached by name (Applications, Windows, Bookmarks,
+Quicklinks, Snippets, Recent Files, Browser Tabs, System, SSH Hosts),
+ranked up and capped at 8 rows per palette; `catalog` for the big static
+lists (Emoji, Unicode characters, Colors, both Icons palettes, a v1 data
+file of 100 rows or more), ranked down and capped at 3, the rest behind a
+"12 more in Emoji" row; `normal` for everything else, capped at 6.
+`[palettes.<id>] tier` overrides it.
+
 | palette | id | kind | what `Enter` does |
 | --- | --- | --- | --- |
 | Applications | `apps` | indexed | launches the app |
@@ -85,8 +94,9 @@ line's bar). Insurance is offered on an ace only with `insurance = true`,
 costs half the bet and pays 2:1.
 
 Cards are drawn by the extension as SVG (rank and suit indices, pips laid
-out as on a real deck) so nothing is loaded from disk; the view vocabulary
-they ride on is in [Extensions](extensions.md).
+out as on a real deck) so nothing is loaded from disk; they sit on a
+sunken well the app draws, and a split's card glides across to its new
+hand; the view vocabulary they ride on is in [Extensions](extensions.md).
 
 ```toml
 [extensions.blackjack]
@@ -289,7 +299,10 @@ Wayland data-control protocol says who owns the selection), so
 ## Emoji (`emoji`)
 
 A grid of every emoji in the bundled list, searched by name and keyword.
-The tile is the glyph; the name is the shortcode with spaces.
+The tile is the glyph; the name is the shortcode with spaces. A `catalog`
+at the root: 1906 rows, so a typed query shows at most three of them there
+and the rest behind the "more" row, ranked under the primary and normal
+rows that have the word.
 
 Actions:
 
@@ -684,7 +697,9 @@ The zero-code tier: every `[palette.<name>]` table of a pal v1 config
 becomes a palette, backed by a shell script speaking JSON lines or by a
 json / jsonl / toml data file. Each such palette has the id
 `scripts-<name>`. Its settings and the whole format are in
-[Scripts and data files](scripts.md).
+[Scripts and data files](scripts.md). A data-file table of 100 rows or
+more (the nerd and kde icon lists, `chars`) is a `catalog` at the root
+unless the table sets `tier` itself.
 
 ## Home Assistant (`home-assistant-entities`, `home-assistant-services`, `home-assistant-areas`)
 
@@ -1358,7 +1373,8 @@ No settings.
 
 ## Unicode characters (`unicode`)
 
-A grid of 1795 characters one pastes rather than types, from
+A grid of 1795 characters one pastes rather than types (a `catalog` at
+the root: three rows there, the rest behind the "more" row), from
 `extensions/unicode/data.json`: arrows, math, Greek, currency, quotes and
 dashes, punctuation, typographic and zero-width spaces, superscripts and
 fractions, accented Latin letters (the Turkish, German, French, Nordic and
@@ -1406,7 +1422,8 @@ Settings, per palette, `[palettes.unicode.settings]`:
 ## Colors (`colors`, `convert`)
 
 Two palettes. **Colors** is a grid of 700 named colours as swatch tiles
-(the tile is an SVG of the colour, so it fills the box): the 148 CSS
+(the tile is an SVG of the colour, so it fills the box; a `catalog` at
+the root, three rows there and the rest behind the "more" row): the 148 CSS
 names, pal's own tokens from `app/src/ui/tokens.css` (the light and the
 dark value of each, `accent (light)`, `tag blue (dark)`), Tailwind 3.4's
 palette (`slate 500`) and Material's 2014 palette (`red a200`); one
@@ -1455,6 +1472,9 @@ Settings, per palette, `[palettes.colors.settings]`:
 
 ## Icons (`icons`, `freedesktop`)
 
+Both palettes are `catalog`s at the root: three rows each there, the rest
+behind the "more" row, and a glyph named exactly what was typed (`git`)
+sits under the primary rows that have the word, not above Google Chrome.
 **Nerd Font icons** is a grid of every glyph in the Symbols Nerd Font the
 app bundles (`app/src/assets/fonts`, Nerd Fonts 3.5.1): 10995 glyphs, one
 section per set in a fixed order (Material Design, Font Awesome, Codicons,
@@ -1863,3 +1883,68 @@ Not built: accept and decline (EventKit has no public API to change a
 participant's status; Raycast does it through the private
 `EKParticipant` setter), a second `calendars` palette toggling visibility
 (an extension cannot write its own settings), reminders.
+
+## 2048 (`2048`)
+
+The sliding-tile game in the panel, keyboard only. Enter on the palette's
+row (or its hotkey) opens the board as a view level: the search input
+gives way to the score, the footer shows the primary key, ⌘K lists every
+move with its key.
+
+- Moving: the arrows or `hjkl` slide every tile that way; equal neighbours
+  merge once per move, a 2 (or a 4, one in ten) lands on a free cell. A
+  move that changes nothing spawns nothing and is not counted.
+- `U` takes the last move back (one move, `undo` setting), game over too.
+- The first 2048 shows a banner: Enter keeps going, `N` starts over. Game
+  over shows the score, Enter for a new game. `N` mid-game asks first.
+- Escape leaves at any point; the board, the score, the move count and
+  the best score persist (in the extension's storage).
+
+Tiles are the view vocabulary's `tile` nodes on a sunken well, drawn by
+the app with its tokens (paper for 2, the neutral tint for 4, then solid
+tiles walking the tag palette's hues warm to cool, grey at 1024, the
+accent at 2048), so the board follows the theme; a slid tile
+glides to its new cell, a merge pops in place, the spawned tile pops a
+beat later. The arrows and `hjkl` are one action each with two keys.
+
+```toml
+[extensions.2048]
+undo = true
+```
+
+## Wordle (`wordle`)
+
+The five-letter word game in the panel, keyboard only. Enter on the
+palette's row (or its hotkey) opens the board as a view level: the search
+input gives way to the puzzle's name ("Daily #259", "Practice"), the
+footer shows the primary key, ⌘K lists the moves with their keys (the
+letters route without being listed).
+
+- Typing: the letter keys fill the row, Backspace takes one back, Enter
+  submits; a word not in the list is a red badge over the board. A typed
+  letter pops in; a submitted row flips tile by tile: green in place,
+  amber elsewhere in the answer (a repeated letter only as often as the
+  answer has it), grey otherwise. The on-screen keyboard keeps each
+  letter's best mark. Tiles and keys are `tile` nodes drawn by the app
+  with its tokens, on a sunken well, so the board follows the theme.
+- Daily (`daily`, on by default): one puzzle a day seeded from the local
+  date, started when the palette opens on a new day. Once it is over, `N`
+  starts a practice game on a random word; with `daily` off every game is
+  one and `cmd+n` starts another mid-game.
+- Hard mode (`hard_mode`): greens stay in place, ambers must be used; a
+  slip is named in the badge. A game keeps the mode it started with.
+- The result view: the praise or the answer, played, win %, streak and
+  best, the guess distribution as bars; `C` (or Enter) copies the emoji
+  grid with the puzzle number and the score.
+- Escape leaves at any point; the game and the stats persist (in the
+  extension's storage).
+
+The word lists ship with the extension, built from public domain sources
+(12dicts and ENABLE; the README says how): 2551 answers, 8878 allowed
+guesses, 69 KB in all. Nothing is fetched.
+
+```toml
+[extensions.wordle]
+daily = true
+hard_mode = false
+```

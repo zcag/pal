@@ -17,6 +17,18 @@ export const SHELL_PREFIX = "pal:";
 /** What an `image` node may load: the app's icon scheme, or a picture the extension made itself. */
 export const IMAGE_SRC = /^(icon:\/\/|data:image\/)/;
 
+const TAG_COLORS = new Set(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal"]);
+const TILE_COLORS = new Set([...TAG_COLORS, "neutral", "accent"]);
+const TILE_FILLS = new Set(["solid", "soft", "outline"]);
+const SURFACES = new Set(["sunken", "elevated"]);
+const ENTERS = new Set(["fade", "slide-up", "slide-down", "slide-left", "slide-right", "flip", "pop"]);
+const EXITS = new Set(["fade", "none"]);
+const ALIGNS = new Set(["start", "center", "end"]);
+
+const isPx = (x: unknown) => typeof x === "number" && Number.isFinite(x) && x >= 0;
+/** `Action.shortcut` as a list: one string, an array of them, or none. */
+export const shortcutsOf = (a: { shortcut?: string | string[] }): string[] => (a.shortcut === undefined ? [] : Array.isArray(a.shortcut) ? a.shortcut : [a.shortcut]);
+
 /** Throws with the place and the reason; returns the view untouched. */
 export function checkView(v: unknown, where = "view"): View {
   if (!v || typeof v !== "object") throw new Error(`${where}: not an object`);
@@ -29,16 +41,46 @@ export function checkView(v: unknown, where = "view"): View {
     if (a.id.startsWith(SHELL_PREFIX)) throw new Error(`${where}: action id "${a.id}" is the shell's (${SHELL_PREFIX} is reserved)`);
     if (ids.has(a.id)) throw new Error(`${where}: action id "${a.id}" twice`);
     ids.add(a.id);
+    if (a.shortcut !== undefined && (!shortcutsOf(a).length || !shortcutsOf(a).every((k) => typeof k === "string" && k))) throw new Error(`${where}: action "${a.id}" shortcut must be a key or a list of keys`);
+    if (a.hidden !== undefined && a.hidden !== true) throw new Error(`${where}: action "${a.id}" hidden must be true`);
+    if (a.hidden && !shortcutsOf(a).length) throw new Error(`${where}: action "${a.id}" is hidden and has no shortcut, so nothing could run it`);
   }
   if (view.keys !== undefined && view.keys !== "actions") throw new Error(`${where}: keys must be "actions"`);
   let count = 0;
+  const moving = new Set<string>();
   const walk = (n: ViewNode, depth: number, path: string) => {
     if (!n || typeof n !== "object" || typeof (n as { type?: unknown }).type !== "string") throw new Error(`${where}: ${path} is not a node`);
     if (++count > MAX_NODES) throw new Error(`${where}: more than ${MAX_NODES} nodes`);
     if (depth > MAX_DEPTH) throw new Error(`${where}: ${path} is nested deeper than ${MAX_DEPTH}`);
+    const t = n.transition;
+    if (t !== undefined) {
+      if (!t || typeof t !== "object") throw new Error(`${where}: ${path} transition must be an object`);
+      if (t.enter !== undefined && !ENTERS.has(t.enter)) throw new Error(`${where}: ${path} has an unknown enter "${t.enter}"`);
+      if (t.exit !== undefined && !EXITS.has(t.exit)) throw new Error(`${where}: ${path} has an unknown exit "${t.exit}"`);
+      if (t.delay !== undefined && !isPx(t.delay)) throw new Error(`${where}: ${path} delay must be a number of steps`);
+      if (t.move !== undefined && t.move !== true) throw new Error(`${where}: ${path} move must be true`);
+      if (t.move) {
+        if (typeof n.key !== "string") throw new Error(`${where}: ${path} moves but has no key`);
+        if (moving.has(n.key)) throw new Error(`${where}: ${path} moves but its key "${n.key}" is used elsewhere in the tree (a move key must be unique in the whole tree)`);
+        moving.add(n.key);
+      }
+    }
     if (n.type === "image" && !IMAGE_SRC.test(n.src)) throw new Error(`${where}: ${path} image src must be icon:// or data:image/`);
+    if (n.type === "tile") {
+      if (!isPx(n.width) || !isPx(n.height)) throw new Error(`${where}: ${path} tile needs width and height in px`);
+      if (n.color !== undefined && !TILE_COLORS.has(n.color)) throw new Error(`${where}: ${path} tile has an unknown color "${n.color}"`);
+      if (n.fill !== undefined && !TILE_FILLS.has(n.fill)) throw new Error(`${where}: ${path} tile has an unknown fill "${n.fill}"`);
+    }
+    if (n.type === "text") {
+      if (n.width !== undefined && !isPx(n.width)) throw new Error(`${where}: ${path} text width must be px`);
+      if (n.minWidth !== undefined && !isPx(n.minWidth)) throw new Error(`${where}: ${path} text minWidth must be px`);
+      if (n.align !== undefined && !ALIGNS.has(n.align)) throw new Error(`${where}: ${path} text has an unknown align "${n.align}"`);
+    }
+    if (n.type === "progress" && n.color !== undefined && !TAG_COLORS.has(n.color)) throw new Error(`${where}: ${path} progress has an unknown color "${n.color}"`);
     if (n.type === "stack") {
       if (!Array.isArray(n.children)) throw new Error(`${where}: ${path} stack has no children`);
+      if (n.surface !== undefined && !SURFACES.has(n.surface)) throw new Error(`${where}: ${path} stack has an unknown surface "${n.surface}"`);
+      if (n.radius !== undefined && typeof n.radius !== "boolean") throw new Error(`${where}: ${path} stack radius must be a boolean`);
       const keys = new Set<string>();
       n.children.forEach((c, i) => {
         const k = (c as { key?: unknown })?.key;
