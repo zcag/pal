@@ -71,7 +71,24 @@ pub fn is_visible(app: &AppHandle) -> bool {
     app.get_webview_panel(WINDOW).is_ok_and(|p| p.as_panel().alphaValue() > 0.0)
 }
 
+/// tauri-nspanel talks to AppKit on the calling thread, and AppKit aborts a
+/// window change made off the main one ("Must only be used from the main
+/// thread"). Every show/hide here goes through this, so a pick (a tokio
+/// worker) can hide the panel like the hotkey handler (main) does.
+fn on_main(app: &AppHandle, f: impl FnOnce(&AppHandle) + Send + 'static) {
+    if tauri_nspanel::objc2_foundation::MainThreadMarker::new().is_some() {
+        f(app);
+    } else {
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || f(&handle));
+    }
+}
+
 pub fn show(app: &AppHandle) {
+    on_main(app, show_now);
+}
+
+fn show_now(app: &AppHandle) {
     let Ok(p) = app.get_webview_panel(WINDOW) else { return };
     p.set_ignores_mouse_events(false);
     p.set_alpha_value(1.0);
@@ -85,6 +102,10 @@ pub fn show(app: &AppHandle) {
 }
 
 pub fn hide(app: &AppHandle) {
+    on_main(app, hide_now);
+}
+
+fn hide_now(app: &AppHandle) {
     let Ok(p) = app.get_webview_panel(WINDOW) else { return };
     if !is_visible(app) {
         // Also cuts the re-entry: orderOut below fires window_did_resign_key,
@@ -144,16 +165,20 @@ mod hud {
     }
 
     pub fn show(app: &AppHandle) {
-        if let Ok(p) = app.get_webview_panel(super::super::hud::WINDOW) {
-            p.set_alpha_value(1.0);
-            p.order_front_regardless();
-        }
+        super::on_main(app, |app| {
+            if let Ok(p) = app.get_webview_panel(super::super::hud::WINDOW) {
+                p.set_alpha_value(1.0);
+                p.order_front_regardless();
+            }
+        });
     }
 
     pub fn hide(app: &AppHandle) {
-        if let Ok(p) = app.get_webview_panel(super::super::hud::WINDOW) {
-            p.set_alpha_value(0.0);
-        }
+        super::on_main(app, |app| {
+            if let Ok(p) = app.get_webview_panel(super::super::hud::WINDOW) {
+                p.set_alpha_value(0.0);
+            }
+        });
     }
 }
 
