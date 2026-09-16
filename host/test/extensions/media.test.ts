@@ -142,7 +142,7 @@ describe("media", () => {
       expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
       expect((await host.list("media", "media")).map((r) => r.id)).toContain("spotify");
       host.changeSettings("media", { settings: { exclude: ["Spotify"] } });
-      expect(await host.request("suggest", { extension: "media", palette: "media" })).toEqual([]);
+      expect(await host.request<unknown>("suggest", { extension: "media", palette: "media" })).toEqual([]);
       host.changeSettings("media", { settings: { exclude: ["Music"] } });
       expect((await host.render("media", "now-playing")).title).toContain("Blue Monday");
       host.changeSettings("media", { settings: { exclude: [] } });
