@@ -1,0 +1,476 @@
+{
+  "name": "hue",
+  "title": "Hue",
+  "description": "Philips Hue over the bridge's CLIP v2 API: rooms, lights and scenes at the root, a light or a room under the keys with its colour, brightness and temperature, sensors, automations and entertainment areas, a bar item for the home, and a guided pairing that finds the bridge and waits for its button.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰌵",
+      "bg": "amber"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "text",
+      "id": "bridge",
+      "label": "Bridge",
+      "placeholder": "192.168.1.25",
+      "description": "The bridge's address, for a key kept in the keychain (below). Pairing from Set up Hue needs neither: it finds the bridge and keeps the key in pal's storage.",
+      "default": ""
+    },
+    {
+      "kind": "secret",
+      "id": "application_key",
+      "label": "Application key",
+      "placeholder": "keychain:pal/hue-application_key",
+      "description": "The hue-application-key for the bridge above, as a keychain: or env: reference. Set up Hue shows the key it made (c copies it); pasting it here moves it into the keychain.",
+      "default": ""
+    },
+    {
+      "kind": "boolean",
+      "id": "insecure",
+      "label": "Certificate",
+      "text": "Skip the bridge's certificate check",
+      "description": "Off, every request is verified against Signify's root CA plus the certificate pinned at pairing. On for a bridge behind a proxy or a very old firmware whose certificate fails that.",
+      "default": false
+    },
+    {
+      "kind": "number",
+      "id": "transition",
+      "label": "Transition",
+      "description": "How long a change from a row or a link takes on the lights; the view has its own, cycled with d.",
+      "min": 0,
+      "max": 10000,
+      "step": 100,
+      "unit": "ms",
+      "default": 400
+    },
+    {
+      "kind": "text",
+      "id": "main_room",
+      "label": "Main room",
+      "placeholder": "Living room",
+      "description": "The room whose colour the bar item's dot shows and whose scenes its popover lists. Empty: the room with most lights on.",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "bar_scenes",
+      "label": "Bar scenes",
+      "placeholder": "Relax",
+      "description": "Scene names (or ids like scene:living-room/relax) listed in the bar item's popover, in this order. Empty: the main room's scenes.",
+      "default": []
+    },
+    {
+      "kind": "number",
+      "id": "timeout",
+      "label": "Timeout",
+      "description": "How long one request to the bridge may take before the row says it did not answer.",
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "unit": "s",
+      "default": 5
+    }
+  ],
+  "store": {
+    "tagline": "Every Hue light, room and scene, live, under the keys",
+    "category": "integration",
+    "features": [
+      "Rooms and scenes at the root: `living room` and Enter toggles the room, `relax` and Enter plays the scene; the rows carry the room's colour as a tile and a scene's palette as a five-swatch strip",
+      "A light or a room under the keys: the big tile in its colour, brightness on the arrows and the digits, colour temperature along a warm-to-cool strip, hue and saturation on a colour plane, the presets, the room's scenes, the effects, apply to this light or the whole room, the transition length",
+      "Live: one event stream per bridge keeps the model current, so the rows and the bar follow a change made in the Hue app or on a switch without a request",
+      "Sensors: motion, temperature, light level, buttons and dials with their last event, batteries; automations enabled or disabled; entertainment areas started and stopped",
+      "The bar item: how many lights are on and the main room's colour as a dot; the popover toggles rooms, plays the scenes, turns everything off",
+      "Set up Hue finds the bridge (the cloud endpoint and mDNS), waits for its button with a countdown, pins its certificate and keeps the key; several bridges make one home",
+      "Deep links: `pal://hue/toggle?room=kitchen`, `pal://hue/scene?name=relax&room=living-room`, `pal://hue/off`"
+    ],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-rooms.png",
+        "caption": "Rooms and zones with their colour, how many lights are on and the brightness; Enter toggles, cmd+Enter opens the room"
+      },
+      {
+        "file": "2-light.png",
+        "caption": "A light under the keys: the tile in its colour, brightness, the temperature strip, the colour plane, presets, scenes and effects"
+      },
+      {
+        "file": "3-room.png",
+        "caption": "A room under the keys, its scenes row focused: the arrows choose, Enter plays"
+      },
+      {
+        "file": "4-scenes.png",
+        "caption": "Scenes by room as five-swatch strips, the active and dynamic ones tagged"
+      },
+      {
+        "file": "5-sensors.png",
+        "caption": "Sensors and switches by device: motion, temperature, light level, the last button press, batteries"
+      },
+      {
+        "file": "6-setup.png",
+        "caption": "Set up Hue waiting for the button, with the countdown"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: how many lights are on (the live strip carries the main room's colour as a dot; the gallery draws the bulb)",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: every room as a toggle, the scenes, All off",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the glyph and the count on the label",
+        "kind": "bar"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Toggle",
+        "description": "A room, zone or light.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open room / Open light",
+        "description": "The view under the keys.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Turn on / Turn off"
+      },
+      {
+        "title": "Scenes of the room",
+        "keys": "cmd+s"
+      },
+      {
+        "title": "Lights in the room",
+        "keys": "cmd+l"
+      },
+      {
+        "title": "Blink to find it",
+        "description": "A light breathes once.",
+        "keys": "cmd+b"
+      },
+      {
+        "title": "Copy colour",
+        "description": "The light's colour as hex.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy id",
+        "description": "For item_hotkeys and links.",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Activate",
+        "description": "A scene.",
+        "keys": "enter"
+      },
+      {
+        "title": "Play dynamically",
+        "description": "A scene with a palette.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Copy value",
+        "description": "A sensor's reading.",
+        "keys": "enter"
+      },
+      {
+        "title": "Enable or disable",
+        "description": "A sensor or an automation.",
+        "keys": "cmd+e"
+      },
+      {
+        "title": "Start streaming / Stop streaming",
+        "description": "An entertainment area.",
+        "keys": "enter"
+      },
+      {
+        "title": "Set up Hue",
+        "description": "Find a bridge, press its button, pair."
+      }
+    ]
+  },
+  "palettes": {
+    "rooms": {
+      "kind": "live",
+      "tier": "primary",
+      "description": "Every room and zone with its colour as a tile, how many of its lights are on and the brightness. Enter toggles it, cmd+Enter opens it under the keys.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Toggle the room"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Open the room under the keys"
+        },
+        {
+          "keys": "cmd+s",
+          "title": "The room's scenes"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "The room's lights"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the id"
+        }
+      ]
+    },
+    "lights": {
+      "kind": "live",
+      "description": "Every light by room with its colour as a swatch, its brightness and temperature, and whether the bridge can reach it. Enter toggles, cmd+Enter opens it under the keys.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Toggle the light"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Open the light under the keys"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "Blink it"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy its colour"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the id"
+        }
+      ]
+    },
+    "scenes": {
+      "kind": "live",
+      "tier": "primary",
+      "description": "Every scene by room as a five-swatch strip of its palette, the active one tagged; smart scenes too. Enter plays it, cmd+Enter plays it dynamically.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Play the scene"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Play it dynamically"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open the room under the keys"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the id"
+        }
+      ]
+    },
+    "light": {
+      "kind": "view",
+      "description": "A light or a room under the keys: the tile in its colour, brightness on the arrows and digits, colour temperature and colour on strips, presets, the room's scenes, effects, the scope and the transition.",
+      "keys": [
+        {
+          "keys": "left, right",
+          "title": "Brightness (shift: big steps); hue on the colour row; choose on the other rows"
+        },
+        {
+          "keys": "up, down",
+          "title": "Cooler or warmer; saturation on the colour row; the row above or below elsewhere"
+        },
+        {
+          "keys": "1-9, 0",
+          "title": "10% to 90%, off"
+        },
+        {
+          "keys": "tab, shift+tab",
+          "title": "Light, colour, presets, scenes, effects"
+        },
+        {
+          "keys": "enter",
+          "title": "Toggle, or apply the chosen preset, scene or effect"
+        },
+        {
+          "keys": "t, space",
+          "title": "Toggle"
+        },
+        {
+          "keys": "a",
+          "title": "Apply to this light or the whole room"
+        },
+        {
+          "keys": "d",
+          "title": "Transition: instant, 400 ms, 1 s, 4 s"
+        },
+        {
+          "keys": "s",
+          "title": "The room's scenes as a list"
+        },
+        {
+          "keys": "o",
+          "title": "Open the room"
+        },
+        {
+          "keys": "i",
+          "title": "Blink the light"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the colour"
+        },
+        {
+          "keys": "r",
+          "title": "Read the bridge again"
+        }
+      ]
+    },
+    "setup": {
+      "kind": "view",
+      "description": "Pairing: the bridges found on the network, press-link with a countdown, the key kept and the certificate pinned.",
+      "keys": [
+        {
+          "keys": "1-9, enter",
+          "title": "Pair with a bridge"
+        },
+        {
+          "keys": "i",
+          "title": "Type an address"
+        },
+        {
+          "keys": "r",
+          "title": "Scan again"
+        },
+        {
+          "keys": "x",
+          "title": "Forget a bridge, or stop a pairing"
+        },
+        {
+          "keys": "b",
+          "title": "Back to the bridges"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the key once paired"
+        }
+      ]
+    },
+    "sensors": {
+      "kind": "live",
+      "description": "Motion, temperature, light level, buttons and dials with their last event, contact sensors, and each device's battery. Enter copies the reading, cmd+e enables or disables the sensor.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Copy the reading"
+        },
+        {
+          "keys": "cmd+e",
+          "title": "Enable or disable"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the id"
+        }
+      ]
+    },
+    "automations": {
+      "kind": "live",
+      "description": "The bridge's automations (wake up, go to sleep, timers, motion) with their status. Enter enables or disables one.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Enable or disable"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the id"
+        }
+      ]
+    },
+    "entertainment": {
+      "kind": "live",
+      "description": "Entertainment areas with their type and lights; Enter starts streaming, cmd+Enter stops it.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Start streaming"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Stop streaming"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the id"
+        }
+      ]
+    }
+  },
+  "bar": {
+    "home": {
+      "title": "Home",
+      "description": "How many lights are on, the main room's colour as a dot; the popover toggles rooms, plays scenes, turns everything off. Hidden until a bridge is paired.",
+      "refresh": {
+        "every": 60,
+        "on": [
+          "show",
+          "wake",
+          "network"
+        ]
+      }
+    }
+  },
+  "links": {
+    "toggle": {
+      "description": "Toggle a room, or set it",
+      "params": {
+        "room": {
+          "description": "The room's name, slug or id (living-room, room:living-room)",
+          "required": true
+        },
+        "on": {
+          "description": "Set rather than toggle",
+          "type": "boolean"
+        }
+      }
+    },
+    "scene": {
+      "description": "Play a scene",
+      "params": {
+        "name": {
+          "description": "The scene's name or id (relax, scene:living-room/relax)",
+          "required": true
+        },
+        "room": {
+          "description": "The room, when the name is in several"
+        },
+        "dynamic": {
+          "description": "Play its palette dynamically",
+          "type": "boolean"
+        }
+      }
+    },
+    "off": {
+      "description": "Every light off"
+    }
+  }
+}
