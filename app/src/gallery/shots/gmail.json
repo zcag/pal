@@ -1,0 +1,1507 @@
+{
+  "palettes": {
+    "inbox": {
+      "title": "Inbox (Personal)",
+      "icon": {
+        "tile": {
+          "glyph": "󰇮",
+          "bg": "red"
+        }
+      },
+      "live": true,
+      "items": [
+        {
+          "id": "m1",
+          "name": "Parser review before standup?",
+          "subtitle": "Mara Lind · Can you look at the parser before standup? The tests are green now & the diff is small.",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23ec4899%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Mara Lind",
+            "mara@example.com",
+            "Personal"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "date": 1789549920000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "archive",
+              "title": "Archive",
+              "shortcut": "cmd+e",
+              "multi": true
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "m2",
+          "name": "[zcag/pal] Instances phase 2 (PR #81)",
+          "subtitle": "GitHub · tomas-r requested your review on #81.",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23ec4899%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EG%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "GitHub",
+            "notifications@github.com",
+            "GitHub",
+            "Personal"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "GitHub",
+              "color": "grey"
+            },
+            {
+              "date": 1789548000000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "archive",
+              "title": "Archive",
+              "shortcut": "cmd+e",
+              "multi": true
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "m3",
+          "name": "Your September invoice",
+          "subtitle": "Acme Billing · Invoice 2026-09 is attached.",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Acme Billing",
+            "billing@acme.example",
+            "Receipts",
+            "Personal"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "Receipts",
+              "color": "grey"
+            },
+            {
+              "text": "📎"
+            },
+            {
+              "date": 1789509900000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "archive",
+              "title": "Archive",
+              "shortcut": "cmd+e",
+              "multi": true
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "m4",
+          "name": "Trip: cabin booked for October",
+          "subtitle": "Ola Berg · Booked the cabin for the 10th to the 12th, details below.",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2314b8a6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EO%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Ola Berg",
+            "ola@example.com",
+            "Family/Trips",
+            "Personal"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "Family/Trips",
+              "color": "grey"
+            },
+            {
+              "tag": "★",
+              "color": "amber"
+            },
+            {
+              "text": "📎"
+            },
+            {
+              "date": 1789497000000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "archive",
+              "title": "Archive",
+              "shortcut": "cmd+e",
+              "multi": true
+            },
+            {
+              "id": "unstar",
+              "title": "Unstar",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "m5",
+          "name": "[zcag/pal] Release v0.1.0 published",
+          "subtitle": "GitHub · Release v0.1.0 is out.",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23ec4899%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EG%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "GitHub",
+            "notifications@github.com",
+            "GitHub",
+            "Personal"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "tag": "GitHub",
+              "color": "grey"
+            },
+            {
+              "date": 1789473600000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "archive",
+              "title": "Archive",
+              "shortcut": "cmd+e",
+              "multi": true
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "m6",
+          "name": "Re: Dinner on Friday",
+          "subtitle": "Lina Kova · Friday works, 19:30 at the usual place?",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2314b8a6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EL%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Lina Kova",
+            "lina@example.com",
+            "Personal"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "date": 1789416900000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "archive",
+              "title": "Archive",
+              "shortcut": "cmd+e",
+              "multi": true
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "m7",
+          "name": "Autumn sale starts now",
+          "subtitle": "Newsletter · Up to 40% off this week.",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EN%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Newsletter",
+            "news@shop.example",
+            "Personal"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "date": 1789372800000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "archive",
+              "title": "Archive",
+              "shortcut": "cmd+e",
+              "multi": true
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "m8",
+          "name": "Your August invoice",
+          "subtitle": "Acme Billing · Invoice 2026-08 is attached.",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "Acme Billing",
+            "billing@acme.example",
+            "Receipts",
+            "Personal"
+          ],
+          "section": "Receipts",
+          "accessories": [
+            {
+              "tag": "Receipts",
+              "color": "grey"
+            },
+            {
+              "text": "📎"
+            },
+            {
+              "date": 1786831500000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "star",
+              "title": "Star",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "reply",
+              "title": "Reply",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "m1": {
+          "markdown": "Can you look at the parser before standup? The tests are green now & the diff is small.\n\n_quoted text folded_",
+          "metadata": [
+            {
+              "label": "From",
+              "value": "Mara Lind <mara@example.com>"
+            },
+            {
+              "label": "To",
+              "value": "someone@gmail.com"
+            },
+            {
+              "label": "Date",
+              "value": "Sep 16, 2026 at 12:12 PM"
+            },
+            {
+              "label": "Thread",
+              "link": {
+                "text": "Open in Gmail",
+                "href": "https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t1"
+              }
+            }
+          ]
+        },
+        "m2": {
+          "markdown": "tomas-r requested your review on \\#81 (https://github.com/zcag/pal/pull/81).\n\\- Settings page\n\\- Bar rows\n\n_quoted text folded_\n\n© GitHub",
+          "metadata": [
+            {
+              "label": "From",
+              "value": "GitHub <notifications@github.com>"
+            },
+            {
+              "label": "To",
+              "value": "someone@gmail.com"
+            },
+            {
+              "label": "Date",
+              "value": "Sep 16, 2026 at 11:40 AM"
+            },
+            {
+              "label": "Labels",
+              "tags": [
+                {
+                  "text": "GitHub"
+                }
+              ]
+            },
+            {
+              "label": "Thread",
+              "link": {
+                "text": "Open in Gmail",
+                "href": "https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t2"
+              }
+            }
+          ]
+        },
+        "m3": {
+          "markdown": "Invoice 2026-09 is attached.\n\nThanks,\nAcme",
+          "metadata": [
+            {
+              "label": "From",
+              "value": "Acme Billing <billing@acme.example>"
+            },
+            {
+              "label": "To",
+              "value": "someone@gmail.com"
+            },
+            {
+              "label": "Date",
+              "value": "Sep 16, 2026 at 1:05 AM"
+            },
+            {
+              "label": "Labels",
+              "tags": [
+                {
+                  "text": "Receipts"
+                }
+              ]
+            },
+            {
+              "label": "1 Attachment",
+              "value": "invoice-2026-09.pdf (47 KB)"
+            },
+            {
+              "label": "Thread",
+              "link": {
+                "text": "Open in Gmail",
+                "href": "https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t3"
+              }
+            }
+          ]
+        },
+        "m4": {
+          "markdown": "Booked the cabin for the 10th to the 12th, details below.\n\nCheck-in 15:00, key box code 4471.",
+          "metadata": [
+            {
+              "label": "From",
+              "value": "Ola Berg <ola@example.com>"
+            },
+            {
+              "label": "To",
+              "value": "someone@gmail.com"
+            },
+            {
+              "label": "Cc",
+              "value": "Tomas Ruiz <tomas@example.com>"
+            },
+            {
+              "label": "Date",
+              "value": "Sep 15, 2026 at 9:30 PM"
+            },
+            {
+              "label": "Labels",
+              "tags": [
+                {
+                  "text": "Family/Trips"
+                },
+                {
+                  "text": "starred",
+                  "color": "amber"
+                }
+              ]
+            },
+            {
+              "label": "2 Attachments",
+              "value": "booking.pdf (118 KB), map.png (86 KB)"
+            },
+            {
+              "label": "Thread",
+              "link": {
+                "text": "Open in Gmail",
+                "href": "https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t4"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "search": {
+      "title": "Search Mail (Personal)",
+      "icon": {
+        "tile": {
+          "glyph": "󰇮",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "Text, from:name, subject:word, has:attachment, newer_than:7d",
+      "byQuery": {
+        "from:acme": [
+          {
+            "id": "m3",
+            "name": "Your September invoice",
+            "subtitle": "Acme Billing · Invoice 2026-09 is attached.",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Acme Billing",
+              "billing@acme.example",
+              "Receipts",
+              "Personal"
+            ],
+            "section": "Receipts",
+            "accessories": [
+              {
+                "tag": "Receipts",
+                "color": "grey"
+              },
+              {
+                "text": "📎"
+              },
+              {
+                "date": 1789509900000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Gmail"
+              },
+              {
+                "id": "read",
+                "title": "Mark as read",
+                "shortcut": "cmd+enter",
+                "multi": true
+              },
+              {
+                "id": "archive",
+                "title": "Archive",
+                "shortcut": "cmd+e",
+                "multi": true
+              },
+              {
+                "id": "star",
+                "title": "Star",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "reply",
+                "title": "Reply",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "m8",
+            "name": "Your August invoice",
+            "subtitle": "Acme Billing · Invoice 2026-08 is attached.",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Acme Billing",
+              "billing@acme.example",
+              "Receipts",
+              "Personal"
+            ],
+            "section": "Receipts",
+            "accessories": [
+              {
+                "tag": "Receipts",
+                "color": "grey"
+              },
+              {
+                "text": "📎"
+              },
+              {
+                "date": 1786831500000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Gmail"
+              },
+              {
+                "id": "read",
+                "title": "Mark as read",
+                "shortcut": "cmd+enter",
+                "multi": true
+              },
+              {
+                "id": "star",
+                "title": "Star",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "reply",
+                "title": "Reply",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "has:attachment": [
+          {
+            "id": "m3",
+            "name": "Your September invoice",
+            "subtitle": "Acme Billing · Invoice 2026-09 is attached.",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Acme Billing",
+              "billing@acme.example",
+              "Receipts",
+              "Personal"
+            ],
+            "section": "Receipts",
+            "accessories": [
+              {
+                "tag": "Receipts",
+                "color": "grey"
+              },
+              {
+                "text": "📎"
+              },
+              {
+                "date": 1789509900000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Gmail"
+              },
+              {
+                "id": "read",
+                "title": "Mark as read",
+                "shortcut": "cmd+enter",
+                "multi": true
+              },
+              {
+                "id": "archive",
+                "title": "Archive",
+                "shortcut": "cmd+e",
+                "multi": true
+              },
+              {
+                "id": "star",
+                "title": "Star",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "reply",
+                "title": "Reply",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "m4",
+            "name": "Trip: cabin booked for October",
+            "subtitle": "Ola Berg · Booked the cabin for the 10th to the 12th, details below.",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2314b8a6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EO%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Ola Berg",
+              "ola@example.com",
+              "Family/Trips",
+              "Personal"
+            ],
+            "section": "Family/Trips",
+            "accessories": [
+              {
+                "tag": "Family/Trips",
+                "color": "grey"
+              },
+              {
+                "tag": "★",
+                "color": "amber"
+              },
+              {
+                "text": "📎"
+              },
+              {
+                "date": 1789497000000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Gmail"
+              },
+              {
+                "id": "read",
+                "title": "Mark as read",
+                "shortcut": "cmd+enter",
+                "multi": true
+              },
+              {
+                "id": "archive",
+                "title": "Archive",
+                "shortcut": "cmd+e",
+                "multi": true
+              },
+              {
+                "id": "unstar",
+                "title": "Unstar",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "reply",
+                "title": "Reply",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "m8",
+            "name": "Your August invoice",
+            "subtitle": "Acme Billing · Invoice 2026-08 is attached.",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%238b5cf6%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Acme Billing",
+              "billing@acme.example",
+              "Receipts",
+              "Personal"
+            ],
+            "section": "Receipts",
+            "accessories": [
+              {
+                "tag": "Receipts",
+                "color": "grey"
+              },
+              {
+                "text": "📎"
+              },
+              {
+                "date": 1786831500000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Gmail"
+              },
+              {
+                "id": "read",
+                "title": "Mark as read",
+                "shortcut": "cmd+enter",
+                "multi": true
+              },
+              {
+                "id": "star",
+                "title": "Star",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "reply",
+                "title": "Reply",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "": [
+          {
+            "id": "hint:search",
+            "name": "Search Mail",
+            "subtitle": "Text, from:name, subject:word, has:attachment, newer_than:7d, label:name",
+            "icon": "󰍉",
+            "actions": []
+          }
+        ]
+      }
+    },
+    "labels": {
+      "title": "Labels (Personal)",
+      "icon": {
+        "tile": {
+          "glyph": "󰇮",
+          "bg": "red"
+        }
+      },
+      "tier": "catalog",
+      "items": [
+        {
+          "id": "label:Label_3",
+          "name": "Family/Trips",
+          "icon": "󰌖",
+          "keywords": [
+            "Family/Trips",
+            "label"
+          ],
+          "section": "Labels",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:Label_1",
+          "name": "GitHub",
+          "icon": "󰌖",
+          "keywords": [
+            "GitHub",
+            "label"
+          ],
+          "section": "Labels",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:Label_2",
+          "name": "Receipts",
+          "icon": "󰌖",
+          "keywords": [
+            "Receipts",
+            "label"
+          ],
+          "section": "Labels",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:INBOX",
+          "name": "Inbox",
+          "icon": "󰚇",
+          "keywords": [
+            "INBOX",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:STARRED",
+          "name": "Starred",
+          "icon": "󰓎",
+          "keywords": [
+            "STARRED",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:IMPORTANT",
+          "name": "Important",
+          "icon": "󰈻",
+          "keywords": [
+            "IMPORTANT",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:SENT",
+          "name": "Sent",
+          "icon": "󰒊",
+          "keywords": [
+            "SENT",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:DRAFT",
+          "name": "Drafts",
+          "icon": "󱀹",
+          "keywords": [
+            "DRAFT",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:SPAM",
+          "name": "Spam",
+          "icon": "󰗖",
+          "keywords": [
+            "SPAM",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:TRASH",
+          "name": "Trash",
+          "icon": "󰩺",
+          "keywords": [
+            "TRASH",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:CATEGORY_PERSONAL",
+          "name": "Personal",
+          "subtitle": "Category",
+          "icon": "󱋷",
+          "keywords": [
+            "CATEGORY_PERSONAL",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:CATEGORY_PROMOTIONS",
+          "name": "Promotions",
+          "subtitle": "Category",
+          "icon": "󱋷",
+          "keywords": [
+            "CATEGORY_PROMOTIONS",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "label:CATEGORY_UPDATES",
+          "name": "Updates",
+          "subtitle": "Category",
+          "icon": "󱋷",
+          "keywords": [
+            "CATEGORY_UPDATES",
+            "label"
+          ],
+          "section": "Gmail",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "search",
+              "title": "Search label",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "compose": {
+      "title": "Compose (Personal)",
+      "icon": {
+        "tile": {
+          "glyph": "󰇮",
+          "bg": "red"
+        }
+      },
+      "items": [
+        {
+          "id": "compose",
+          "name": "Compose",
+          "subtitle": "New message from someone@gmail.com",
+          "icon": "󰻣",
+          "keywords": [
+            "new",
+            "mail",
+            "email",
+            "write",
+            "Personal"
+          ],
+          "actions": [
+            {
+              "id": "new",
+              "title": "Compose"
+            }
+          ]
+        }
+      ]
+    },
+    "drafts": {
+      "title": "Drafts (Personal)",
+      "icon": {
+        "tile": {
+          "glyph": "󰇮",
+          "bg": "red"
+        }
+      },
+      "live": true,
+      "items": [
+        {
+          "id": "r1",
+          "name": "Packing list",
+          "subtitle": "To Ola Berg · Boots, the good torch, cards.",
+          "icon": "󱀹",
+          "keywords": [
+            "ola@example.com",
+            "draft"
+          ],
+          "accessories": [
+            {
+              "date": 1789542000000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "send",
+              "title": "Send draft",
+              "shortcut": "cmd+enter",
+              "confirm": "Send \"Packing list\" to Ola Berg?"
+            },
+            {
+              "id": "discard",
+              "title": "Discard draft",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Discard \"Packing list\"?"
+            }
+          ]
+        },
+        {
+          "id": "r2",
+          "name": "(no subject)",
+          "subtitle": "No recipient",
+          "icon": "󱀹",
+          "keywords": [
+            "draft"
+          ],
+          "accessories": [
+            {
+              "date": 1789513200000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Gmail"
+            },
+            {
+              "id": "send",
+              "title": "Send draft",
+              "shortcut": "cmd+enter",
+              "confirm": "Send \"(no subject)\" to no one?"
+            },
+            {
+              "id": "discard",
+              "title": "Discard draft",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Discard \"(no subject)\"?"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "compose/compose": {
+      "form": {
+        "id": "compose",
+        "title": "New message from someone@gmail.com",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "to",
+            "label": "To",
+            "required": true,
+            "default": "",
+            "placeholder": "name@example.com, another@example.com"
+          },
+          {
+            "kind": "text",
+            "id": "cc",
+            "label": "Cc",
+            "default": "",
+            "placeholder": "Comma-separated"
+          },
+          {
+            "kind": "text",
+            "id": "subject",
+            "label": "Subject",
+            "required": true,
+            "default": ""
+          },
+          {
+            "kind": "textarea",
+            "id": "body",
+            "label": "Message",
+            "required": true,
+            "default": "\n\nCagdas"
+          }
+        ],
+        "submit": {
+          "id": "send",
+          "title": "Send"
+        }
+      }
+    },
+    "inbox/m1:reply": {
+      "form": {
+        "id": "m1",
+        "title": "Reply to Mara Lind",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "to",
+            "label": "To",
+            "required": true,
+            "default": "Mara Lind <mara@example.com>"
+          },
+          {
+            "kind": "text",
+            "id": "cc",
+            "label": "Cc",
+            "default": "",
+            "placeholder": "Comma-separated"
+          },
+          {
+            "kind": "text",
+            "id": "subject",
+            "label": "Subject",
+            "required": true,
+            "default": "Re: Parser review before standup?"
+          },
+          {
+            "kind": "textarea",
+            "id": "body",
+            "label": "Message",
+            "required": true,
+            "default": "",
+            "placeholder": "The original is quoted under your reply",
+            "description": "Your signature goes under it"
+          }
+        ],
+        "submit": {
+          "id": "send",
+          "title": "Send"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-inbox": {
+      "palette": "inbox",
+      "keys": [
+        "down*3"
+      ]
+    },
+    "2-detail": {
+      "palette": "inbox",
+      "keys": [
+        "down*3",
+        "cmd+i",
+        "wait:400"
+      ]
+    },
+    "3-search": {
+      "palette": "search",
+      "keys": [
+        "type:has:attachment",
+        "wait:400"
+      ]
+    },
+    "4-labels": {
+      "palette": "labels",
+      "keys": [
+        "down"
+      ]
+    },
+    "5-compose": {
+      "palette": "compose",
+      "keys": [
+        "enter",
+        "wait:300"
+      ]
+    },
+    "6-drafts": {
+      "palette": "drafts",
+      "keys": []
+    }
+  }
+}

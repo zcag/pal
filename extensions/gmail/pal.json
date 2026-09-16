@@ -1,0 +1,167 @@
+{
+  "name": "gmail",
+  "title": "Gmail",
+  "description": "Your inbox as rows with the sender, the subject and the snippet; open a message in Gmail, mark it read, search with Gmail's own syntax, browse the labels; an unread count on the bar. One instance per account, each with its own token command; sending only where you turn it on.",
+  "version": "0.1.0",
+  "multi": true,
+  "icon": { "tile": { "glyph": "󰇮", "bg": "red" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "text",
+      "id": "token_command",
+      "scope": "instance",
+      "label": "Token command",
+      "description": "A shell command that prints an access token for the Gmail API: a bare token, or the JSON an OAuth endpoint answers (access_token, expires_in). The command owns the secret; pal keeps the token in memory until it expires and never writes it anywhere. gcloud auth application-default print-access-token, a helper, a broker behind ssh.",
+      "placeholder": "gcloud auth application-default print-access-token",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "address",
+      "scope": "instance",
+      "label": "Address",
+      "description": "The account's address, for the links into Gmail and the bar tooltip; read from the API when empty.",
+      "placeholder": "you@gmail.com",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "labels",
+      "label": "Labels",
+      "description": "Labels whose unread mail the Inbox palette lists besides the inbox, one per line by name (a filter that skips the inbox, a list you follow).",
+      "placeholder": "GitHub",
+      "default": []
+    },
+    {
+      "kind": "boolean",
+      "id": "send",
+      "scope": "instance",
+      "label": "Send and change mail",
+      "text": "Compose, reply, drafts, archive and star for this account",
+      "description": "Off (the default) leaves the account read and mark-read only: no compose, no reply, no drafts, no archive, no star, whatever the token could do. Never inherited by another instance.",
+      "default": false
+    },
+    {
+      "kind": "text",
+      "id": "signature",
+      "label": "Signature",
+      "description": "Appended under the body of a message composed or replied here, after a blank line.",
+      "placeholder": "Cagdas",
+      "default": ""
+    }
+  ],
+  "palettes": {
+    "inbox": {
+      "title": "Inbox ({instance})",
+      "description": "The inbox, unread first then recent, with the sender's avatar, the subject, the snippet, the labels, an attachment mark and the date; the pane is the message as text with the quoted replies folded.",
+      "kind": "live",
+      "lazy": true,
+      "rank": 10,
+      "keys": [
+        { "keys": "enter", "title": "Open the message in Gmail" },
+        { "keys": "cmd+enter", "title": "Mark as read (Mark as unread on a read row)" },
+        { "keys": "cmd+e", "title": "Archive (send on)" },
+        { "keys": "cmd+s", "title": "Star or unstar (send on)" },
+        { "keys": "cmd+shift+r", "title": "Reply (send on)" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "search": {
+      "title": "Search Mail ({instance})",
+      "description": "Gmail's search as you type, its syntax passed through (from:, to:, subject:, has:attachment, newer_than:7d, label:), sectioned by label.",
+      "kind": "input",
+      "keys": [
+        { "keys": "enter", "title": "Open the message in Gmail" },
+        { "keys": "cmd+enter", "title": "Mark as read (Mark as unread on a read row)" },
+        { "keys": "cmd+e", "title": "Archive (send on)" },
+        { "keys": "cmd+s", "title": "Star or unstar (send on)" },
+        { "keys": "cmd+shift+r", "title": "Reply (send on)" },
+        { "keys": "cmd+c", "title": "Copy the link" }
+      ]
+    },
+    "labels": {
+      "title": "Labels ({instance})",
+      "description": "Every label of the account, yours and Gmail's; a row opens the label in Gmail or searches it here.",
+      "kind": "list",
+      "lazy": true,
+      "ttl": 3600,
+      "tier": "catalog",
+      "keys": [
+        { "keys": "enter", "title": "Open the label in Gmail" },
+        { "keys": "cmd+enter", "title": "Search the label here" },
+        { "keys": "cmd+c", "title": "Copy the label name" }
+      ]
+    },
+    "compose": {
+      "title": "Compose ({instance})",
+      "description": "A new message as a form: to, cc, subject, body; the signature under it. Only with send on for the account.",
+      "kind": "list",
+      "keys": [
+        { "keys": "enter", "title": "Open the form; on the form, send" }
+      ]
+    },
+    "drafts": {
+      "title": "Drafts ({instance})",
+      "description": "The drafts of the account with the recipient and the subject; open one in Gmail, send it, or discard it. Only with send on for the account.",
+      "kind": "live",
+      "lazy": true,
+      "keys": [
+        { "keys": "enter", "title": "Open the draft in Gmail" },
+        { "keys": "cmd+enter", "title": "Send the draft, after a confirmation" },
+        { "keys": "cmd+d", "title": "Discard the draft, after a confirmation" }
+      ]
+    }
+  },
+  "bar": {
+    "unread": {
+      "title": "Unread",
+      "description": "The unread count of the inbox as a badge, hidden at zero, the account's title beside the glyph when it has one; the popover lists the newest five with Open and Mark as read, then Open in pal and Open Gmail.",
+      "refresh": { "every": 120, "on": ["show", "wake", "network"] }
+    }
+  },
+  "store": {
+    "tagline": "Your inbox in the panel, its count on the bar, per account",
+    "category": "integration",
+    "features": [
+      "Inbox: unread first then recent, each row with the sender's avatar (Gravatar, else the initial on a tinted tile), the subject, the snippet, the labels as chips, a paperclip when there is an attachment, the date",
+      "Enter opens the message in Gmail at the thread; cmd+Enter marks it read; the pane shows the message as text with the quoted replies folded, the headers and the attachments listed",
+      "Search Mail as you type with Gmail's own syntax (from:, subject:, has:attachment, newer_than:7d), the results sectioned by label",
+      "Labels: every label, yours and Gmail's; open it in Gmail or search it here",
+      "The bar item: the unread count, hidden at zero, refreshed every two minutes and on wake; the popover lists the newest five with Open and Mark as read",
+      "Two accounts are two instances, each with its own token command, address, palettes and bar item, told apart by the title and the badge on the tile",
+      "Sending is off per account until you turn it on: with it, Compose and Reply as forms, Drafts to send or discard, Archive and Star on a row. A work account stays read and mark-read only",
+      "No secret in pal: a command of yours prints the token (gcloud, a helper, a broker), pal keeps it in memory until it expires"
+    ],
+    "permissions": ["network", "token"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-inbox.png", "caption": "Inbox: unread first, the sender's avatar, the subject and the snippet, the labels, a paperclip, the date" },
+      { "file": "2-detail.png", "caption": "The pane: the message as text, who and when, the labels, the attachments with their sizes" },
+      { "file": "3-search.png", "caption": "Search Mail: Gmail's syntax typed into the panel, the hits sectioned by label" },
+      { "file": "4-labels.png", "caption": "Labels: yours and Gmail's, Enter opens one in Gmail, cmd+Enter searches it here" },
+      { "file": "5-compose.png", "caption": "Compose: to, cc, subject, body, the signature already under it; only with send on" },
+      { "file": "6-drafts.png", "caption": "Drafts: the recipient and the subject, send or discard after a confirmation" },
+      { "file": "bar-menubar-dark.png", "caption": "On the menu bar: the envelope with the unread count, the account's title beside it", "kind": "bar" },
+      { "file": "bar-menubar-light.png", "caption": "The same item on a light menu bar", "kind": "bar" },
+      { "file": "bar-menubar-popover.png", "caption": "A click opens the popover: the newest five unread, each with Open and Mark as read, then Open in pal and Open Gmail", "kind": "bar" },
+      { "file": "bar-sketchybar.png", "caption": "On sketchybar: the glyph, the title and the count", "kind": "bar" }
+    ],
+    "actions": [
+      { "title": "Open in Gmail", "description": "The thread in the browser, in the account's own Gmail.", "keys": "enter" },
+      { "title": "Mark as read", "description": "On an unread row; Mark as unread on a read one.", "keys": "cmd+enter" },
+      { "title": "Archive", "description": "Out of the inbox; send on only.", "keys": "cmd+e" },
+      { "title": "Star", "description": "Star or unstar; send on only.", "keys": "cmd+s" },
+      { "title": "Reply", "description": "A form with the body; the original quoted under it; send on only.", "keys": "cmd+shift+r" },
+      { "title": "Copy link", "keys": "cmd+c" },
+      { "title": "Search label", "description": "On a label row: the search palette with label:<name> typed.", "keys": "cmd+enter" },
+      { "title": "Copy name", "description": "On a label row.", "keys": "cmd+c" },
+      { "title": "Compose", "description": "The form, then the message from the account.", "keys": "enter" },
+      { "title": "Send draft", "description": "Asks first.", "keys": "cmd+enter" },
+      { "title": "Discard draft", "description": "Asks first.", "keys": "cmd+d" },
+      { "title": "Open Gmail settings", "description": "On a hint row: the extension's settings." }
+    ]
+  }
+}

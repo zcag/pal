@@ -2793,3 +2793,105 @@ Settings, `[extensions.obsidian]`:
 
 Not there: editing a note's body, Obsidian's search operators (`tag:`,
 `path:`), weekly and monthly notes, canvases and attachments.
+
+## Gmail (`gmail-inbox`, `gmail-search`, `gmail-labels`, `gmail-compose`, `gmail-drafts`, `gmail/unread`)
+
+One extension, five palettes and a bar item over the Gmail API, `multi`:
+one instance per account (`[extensions.gmail]` and
+`[extensions."gmail@work"]` next to `[instances."gmail@work"]`), each
+with its own token command, address, palettes, bar item and storage; the
+titles read "Inbox (Work)", the tile takes the instance's tint and badge.
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Inbox | `gmail-inbox` | live, lazy | opens the thread in the account's Gmail |
+| Search Mail | `gmail-search` | input | opens the thread |
+| Labels | `gmail-labels` | indexed, 1 h, catalog | opens the label in Gmail |
+| Compose | `gmail-compose` | list (one row, send on) | the form, then sends |
+| Drafts | `gmail-drafts` | live, lazy (send on) | opens the draft in Gmail |
+
+**The token.** `token_command` (per instance) is a shell command whose
+stdout is an access token, bare or as an OAuth endpoint's JSON
+(`access_token`, `expires_in`): the calendar extension's pattern. Kept
+in memory until its expiry (30 min for a bare one), minted again once on
+a 401, never written. `gcloud auth application-default
+print-access-token` after a login with `gmail.modify`; the owner's two
+identities through his broker (`aud=gmail`, `aud=gmail-work`). A failing
+command is one hint row with its last stderr line and Open Gmail
+settings; an empty one names the fix; a rejected token says to check the
+scopes. The bar item hides without a token, goes stale on anything else.
+
+**Inbox.** `messages.list` with `maxResults` 50 for the inbox's unread,
+then the inbox, then each `labels` entry's unread; `messages.get` with
+`format=metadata` (From, To, Cc, Subject, Date, Message-ID, Reply-To,
+References) eight at a time, cached by id for the process, the labels
+patched on every write. Sections Unread, Recent, then one per `labels`
+entry. The row: the sender's Gravatar (a HEAD per address, remembered)
+or the initial on a tile tinted from the address, the subject, the
+sender and the snippet, the user labels as chips (two), a star tag, a
+paperclip when the top-level MIME type is `multipart/mixed` (a guess:
+`metadata` sends no parts; the pane confirms), the date. The pane
+(`format=full`, the last twenty kept): the text body with the quoted
+replies folded (`On ... wrote:` and `>` runs; Gmail's `gmail_quote`,
+`blockquote`, Outlook's `divRplyFwdMsg` in HTML), else the HTML as text
+(lists as `- `, links as `text (url)`), markdown-escaped so a `<a@b>`
+survives; From, To, Cc, Date, Labels, Attachments (name and size),
+Open in Gmail. The unread count is the list's length under a page,
+`labels.get INBOX` past it. The inbox is shared with the bar item for
+30 s.
+
+| action | shortcut | when |
+| --- | --- | --- |
+| Open in Gmail | `Enter` | `https://mail.google.com/mail/u/<address>/#inbox/<threadId>`; `#all/` off the inbox |
+| Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify` over the row or the marked rows |
+| Archive | `⌘E` | send on; `INBOX` removed |
+| Star / Unstar | `⌘S` | send on |
+| Reply | `⌘⇧R` | send on; a form (to, cc, subject, body), the original quoted under the answer and the signature between, `messages.send` in the thread with `In-Reply-To` |
+| Copy link | `⌘C` | |
+
+The bare `e` and `s` the design asked for would type into the search
+box in a list palette, so they are `⌘E` and `⌘S`.
+
+**Search Mail.** `messages.list` with the query as typed (`from:`,
+`subject:`, `has:attachment`, `newer_than:7d`, `label:`), 50 at most, a
+keystroke waiting 300 ms for the next; the rows as Inbox's, sectioned by
+the first user label, else Inbox / Sent / Drafts / Spam / Trash /
+Archive.
+
+**Labels.** `labels.list` once an hour, persisted in storage so a restart
+lists with no call; yours by name, then Inbox, Starred, Important, Sent,
+Drafts, Spam, Trash and the categories. Enter opens `#label/<name>` (or
+Gmail's own anchor); `⌘Enter` pushes Search Mail with `label:<name>`
+typed; `⌘C` copies the name.
+
+**`send`, per instance, off by default.** Off is read and mark-read
+only: no compose, no reply, no drafts, no archive, no star; Compose and
+Drafts list nothing and the row keeps Open, Mark as read, Copy link.
+That is the rule for the owner's work account (the token can send, the
+extension does not; README). On: Compose is one row opening a form (to,
+cc, subject, body with the `signature` under it) that sends
+`messages.send`; Drafts lists `drafts.list` with the recipient and the
+subject, `⌘Enter` sends after a confirmation (`drafts.send`), `⌘D`
+discards after one.
+
+**The bar item** `gmail/unread`: the inbox's unread count as the badge,
+hidden at zero, the instance's title as the strip text when it has one
+("Personal", "Work"), the address in the tooltip; every 120 s and on
+show, wake, network. The popover: the newest five unread, each a
+submenu (Open in Gmail, Mark as read), then Open in pal (the Inbox
+palette) and Open Gmail.
+
+Settings, `[extensions.gmail]` (and `[extensions."gmail@work"]`):
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `token_command` | text, `scope: instance` | (none) | The command that prints the access token. |
+| `address` | text, `scope: instance` | (none) | For the links and the tooltip; the profile's when empty. |
+| `labels` | list | `[]` | Labels whose unread mail Inbox lists besides the inbox, by name. |
+| `send` | boolean, `scope: instance` | `false` | Compose, reply, drafts, archive, star. |
+| `signature` | text | (none) | Under a composed or replied body. |
+
+A 429 (or a 403 naming the quota) is remembered for `Retry-After` (60 s
+without one) and every call until then refused locally, one hint row.
+For the tests, `PAL_GMAIL_API` replaces the API host and
+`PAL_GMAIL_AVATARS` the Gravatar host.
