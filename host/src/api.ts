@@ -2,11 +2,15 @@
 // relative import (`../../host/src/api.ts`); it becomes the `pal` package
 // (`import { clipboard } from "pal"`) once extensions are packaged. Every
 // function is one `core/<capability>.<fn>` request over the bridge.
+import { homedir } from "node:os";
 import { call } from "./bridge.ts";
 import { caller, resolved, subscribe } from "./settings.ts";
 import type { ResolvedSettings } from "./protocol.ts";
 
 export const core = { call };
+
+/** A leading `~` (bare, or `~/...`) replaced by the home directory, as paths from settings and data files carry it. */
+export const home = (path: string): string => path.replace(/^~(?=\/|$)/, homedir());
 
 /**
  * The extension's settings as the user set them: the manifest's defaults

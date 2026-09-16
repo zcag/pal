@@ -1,10 +1,9 @@
 // PROVISIONAL. Wire shapes for the Rust core <-> extension host stdio link,
-// written down only so both sides compile against one file. Nothing here is
-// the contract: item fields mirror the v1 fixture rows, the pick envelope is
-// a placeholder, and the extension surface is a plain object with two
-// functions so it stays trivial to replace once the render tree is designed.
-// One JSON object per line, both directions. Requests carry an id, responses
-// echo it, notifications have none. Change freely.
+// and the surface an extension implements (`Extension`, `Palette`). Written
+// down so both sides compile against one file; the contract is still being
+// settled in notes/decisions.md, so change freely. One JSON object per line,
+// both directions. Requests carry an id, responses echo it, notifications
+// have none.
 //
 // Both sides send requests: the core asks the host to `list`/`pick`/`detail`, the host
 // asks the core for a capability with a `core/<capability>.<fn>` method
@@ -29,16 +28,19 @@ export type Metadata = {
 /** Side pane: markdown (no raw HTML; `icon://` images work) over a metadata list. */
 export type Detail = { markdown?: string; metadata?: Metadata[] };
 
+/**
+ * A glyph/emoji/hex string, `{ app }` for an application's own artwork (the
+ * `.app` bundle or `.desktop` file), or `{ image }` for a url the webview can
+ * load (an `icon://` one from `api.ts`, or any http(s) url).
+ */
+export type Icon = string | { app: string } | { image: string };
+
 export type Item = {
+  /** Stable across listings: frecency and the cursor are keyed by it. Unique within the palette. */
   id: string;
   name: string;
   subtitle?: string;
-  /**
-   * A glyph/emoji/hex string, `{ app }` for an application's own artwork,
-   * or `{ image }` for a url the webview can load (an `icon://` one from
-   * `api.ts`, or any http(s) url).
-   */
-  icon?: string | { app: string } | { image: string };
+  icon?: Icon;
   keywords?: string[];
   /** An item with a url and no icon gets the site's favicon. */
   url?: string;
@@ -114,7 +116,7 @@ export type Ctx = { filter?: string; args?: unknown; refresh?: boolean };
 export type Palette = {
   /** Section label at the root; the palette key otherwise. */
   title?: string;
-  /** The palette's own row at the root; same forms as `Item.icon`. */
+  /** The palette's own row at the root: a glyph, emoji or hex colour (the string forms of `Icon`). */
   icon?: string;
   /**
    * Arrival order is the order (OTP codes, tabs, windows): never ranked by
@@ -194,7 +196,7 @@ export type Manifest = {
   title: string;
   description?: string;
   version?: string;
-  /** Same forms as `Item.icon`. */
+  /** A glyph, emoji or hex colour; the settings window's row for the extension. */
   icon?: string;
   author?: string;
   /** `bundled` for the ones that ship with pal, else a repo like `github.com/zcag/pal-github`. */

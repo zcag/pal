@@ -25,7 +25,7 @@ export default {
       input: true,
       placeholder: "Sleep, lock, volume, dark mode...",
       list: async (query = "") => {
-        const confirm = settings.get<Partial<Settings>>().confirm_destructive ?? true;
+        const confirm = settings.get<Settings>().confirm_destructive;
         const q = query.toLowerCase().split(/\s+/).filter(Boolean);
         return (await system.commands())
           .filter((c) => c.available)

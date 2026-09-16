@@ -7,7 +7,7 @@
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "path", "id": "file", "label": "Bookmarks file", "pick": "file", "description": "A JSON list of {name, url, keywords?}.", "default": "~/.config/pal/data/bookmarks.json" }
+    { "kind": "path", "id": "file", "label": "Bookmarks file", "pick": "file", "description": "A JSON array of {name, url, subtitle?, icon?, keywords?}; the url is opened or copied.", "default": "~/.config/pal/data/bookmarks.json" }
   ],
   "palettes": {
     "bookmarks": { "description": "The links in the file, by name and keyword." }

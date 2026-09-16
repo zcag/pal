@@ -8,7 +8,6 @@ import { clipboard, settings, type ClipboardEntry } from "../../host/src/api.ts"
 /** `[extensions.clipboard]`, defaults in pal.json. */
 type Settings = { exclude_apps: string[]; max_entries: number; max_age_days: number; primary_action: "paste" | "copy" };
 
-settings.onChange((s) => console.error("[clipboard] settings changed:", JSON.stringify(s.settings)));
 const PREVIEW = 100;
 const DETAIL_MAX = 20_000;
 const THUMB = 48;

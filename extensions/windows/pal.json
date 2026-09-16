@@ -7,7 +7,7 @@
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "boolean", "id": "include_minimized", "label": "Minimised windows", "text": "List minimised windows too (focusing one restores it)", "default": true }
+    { "kind": "boolean", "id": "include_minimized", "label": "Minimised windows", "text": "List minimised windows too", "description": "Focusing a minimised window restores it.", "default": true }
   ],
   "palettes": {
     "windows": { "description": "What is open right now, front to back." }

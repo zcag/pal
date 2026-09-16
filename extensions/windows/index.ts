@@ -19,7 +19,7 @@ const ACTIONS: Action[] = [
 
 function item(w: Window): Item {
   const accessories: Accessory[] = [];
-  if (w.minimized) accessories.push({ tag: "minimized", color: "secondary" });
+  if (w.minimized) accessories.push({ tag: "minimized" });
   else if (!w.on_screen) accessories.push({ text: w.workspace ? `ws ${w.workspace}` : "other space" });
   if (w.monitor) accessories.push({ text: w.monitor });
   return {
@@ -43,8 +43,8 @@ export default {
       live: true,
       placeholder: "Switch to a window",
       list: async () => {
-        const minimized = settings.get<Partial<Settings>>().include_minimized ?? true;
-        return (await windows.list()).filter((w) => minimized || !w.minimized).map(item);
+        const { include_minimized } = settings.get<Settings>();
+        return (await windows.list()).filter((w) => include_minimized || !w.minimized).map(item);
       },
       pick: async (id, action) => {
         switch (action) {

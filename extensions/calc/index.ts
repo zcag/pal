@@ -5,9 +5,14 @@
 import type { Extension, Item } from "../../host/src/protocol.ts";
 import { settings } from "../../host/src/api.ts";
 
+/** `[extensions.calc]`, default in pal.json. */
+type Settings = { precision: number };
+
 // mathjs takes ~130 ms to import; started here, awaited by the first list,
-// so the host reports the palette loaded right away.
+// so the host reports the palette loaded right away. A failed import
+// surfaces from that list, not as an unhandled rejection (which exits Bun).
 const math = import("mathjs").then(({ create, all }) => create(all));
+math.catch(() => {});
 const ICON = "=";
 
 const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: ICON, actions: [] });
@@ -28,7 +33,7 @@ async function evaluate(q: string): Promise<string | undefined> {
   try {
     const r = m.evaluate(rewrite(q));
     if (r === undefined || typeof r === "function") return;
-    return m.format(r, { precision: Number(settings.get<{ precision?: number }>("calc").precision ?? 14) });
+    return m.format(r, { precision: settings.get<Settings>().precision });
   } catch {
     return;
   }

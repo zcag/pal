@@ -4,9 +4,12 @@
 // way; the platform picks the scan and the launch.
 import { readdir } from "node:fs/promises";
 import type { Extension, Item } from "../../host/src/protocol.ts";
-import { settings } from "../../host/src/api.ts";
+import { home, settings } from "../../host/src/api.ts";
 
-const HOME = process.env.HOME ?? "";
+/** `[extensions.apps]`, defaults in pal.json. */
+type Settings = { folders: string[] };
+
+const HOME = home("~");
 const LINUX = process.platform === "linux";
 
 // ---- macOS ---------------------------------------------------------------
@@ -35,14 +38,10 @@ async function bundleId(app: string): Promise<string | undefined> {
   return plist.match(/<key>CFBundleIdentifier<\/key>\s*<string>([^<]*)<\/string>/)?.[1]?.trim();
 }
 
-/** `[extensions.apps] folders`, on top of the platform roots; `~` expanded. */
-const extraFolders = (): string[] =>
-  ((settings.get<{ folders?: string[] }>().folders ?? []) as string[]).map((f) => String(f).replace(/^~(?=\/|$)/, HOME));
-
-async function scanMac(): Promise<Item[]> {
+async function scanMac(extra: string[]): Promise<Item[]> {
   const seen = new Set<string>();
   const items: Item[] = [];
-  for (const [root, source] of [...MAC_ROOTS, ...extraFolders().map((f): [string, string] => [f, f])]) {
+  for (const [root, source] of [...MAC_ROOTS, ...extra.map((f): [string, string] => [f, f])]) {
     for (const path of await bundles(root)) {
       const name = path.slice(path.lastIndexOf("/") + 1, -4);
       if (!seen.add(name.toLowerCase())) continue;
@@ -58,9 +57,9 @@ async function scanMac(): Promise<Item[]> {
 // `applications/` under every XDG data dir, in precedence order (the spec:
 // the first dir that has a desktop id wins), then the flatpak exports.
 function desktopDirs(): string[] {
-  const home = process.env.XDG_DATA_HOME || `${HOME}/.local/share`;
+  const user = process.env.XDG_DATA_HOME || `${HOME}/.local/share`;
   const sys = (process.env.XDG_DATA_DIRS || "/usr/local/share:/usr/share").split(":").filter(Boolean);
-  const all = [home, ...sys, "/var/lib/flatpak/exports/share", `${HOME}/.local/share/flatpak/exports/share`];
+  const all = [user, ...sys, "/var/lib/flatpak/exports/share", `${HOME}/.local/share/flatpak/exports/share`];
   return [...new Set(all.map((d) => `${d.replace(/\/+$/, "")}/applications`))];
 }
 
@@ -105,7 +104,7 @@ async function installed(prog?: string): Promise<boolean> {
  * Exec= to argv: double-quoted words with the spec's four escapes, field
  * codes (`%u`, `%F`, ...) dropped, `%%` kept as a literal percent.
  */
-export function execArgv(exec: string): string[] {
+function execArgv(exec: string): string[] {
   const args: string[] = [];
   for (const m of exec.matchAll(/"((?:\\.|[^"\\])*)"|(\S+)/g)) {
     const word = m[1] !== undefined ? m[1].replace(/\\(["`$\\])/g, "$1") : m[2];
@@ -118,11 +117,11 @@ export function execArgv(exec: string): string[] {
 type Entry = { file: string; id: string; exec: string[]; terminal: boolean };
 const entries = new Map<string, Entry>();
 
-async function scanLinux(): Promise<Item[]> {
+async function scanLinux(extra: string[]): Promise<Item[]> {
   const seen = new Set<string>();
   const items: Item[] = [];
   entries.clear();
-  for (const dir of [...desktopDirs(), ...extraFolders()]) {
+  for (const dir of [...desktopDirs(), ...extra]) {
     const files = await readdir(dir, { recursive: true }).catch(() => [] as string[]);
     for (const rel of files.filter((f) => f.endsWith(".desktop")).sort()) {
       const id = rel.replaceAll("/", "-"); // spec: subdirs join the id with "-"
@@ -171,23 +170,34 @@ function launchLinux(file: string) {
 
 // ---- palette -------------------------------------------------------------
 
-let cache: Item[] | undefined;
-// A folders change: the core lists again, and that list must rescan.
-settings.onChange(() => { cache = undefined; });
+/** `[extensions.apps] folders` on top of the platform roots, `~` expanded. */
+const extraFolders = (): string[] => settings.get<Settings>().folders.map(home);
 
-async function scan(): Promise<Item[]> {
-  const items = await (LINUX ? scanLinux() : scanMac());
+async function scan(extra: string[]): Promise<Item[]> {
+  const items = await (LINUX ? scanLinux(extra) : scanMac(extra));
   return items.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// One scan per folders setting: a change makes the core list again, and
+// that list rescans; `refresh` (the shell's Refresh action) rescans too.
+let cache: { key: string; items: Promise<Item[]> } | undefined;
+function apps(refresh = false): Promise<Item[]> {
+  const extra = extraFolders();
+  const key = JSON.stringify(extra);
+  if (refresh || cache?.key !== key) cache = { key, items: scan(extra) };
+  return cache.items;
 }
 
 export default {
   palettes: {
     apps: {
       title: "Applications",
-      list: async () => (cache ??= await scan()),
+      list: (_query, ctx) => apps(ctx?.refresh),
       // macOS: the shell's opener takes the bundle path.
-      pick: (id) => {
+      pick: async (id) => {
         if (!LINUX) return { open: id };
+        // A pick on a row restored from the persisted index, before this run has listed.
+        if (!entries.has(id)) await apps();
         launchLinux(id);
       },
     },

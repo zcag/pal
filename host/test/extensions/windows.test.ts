@@ -29,7 +29,7 @@ describe("windows", () => {
       id: "w1", name: "~/proj/pal", subtitle: "kitty", keywords: ["net.kovidgoyal.kitty"], icon: { app: "/Applications/kitty.app" }, accessories: [],
       actions: [{ id: "focus", title: "Focus" }, { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive" }, { id: "minimize", title: "Minimize", shortcut: "cmd+m" }],
     });
-    expect(items[1]).toMatchObject({ icon: "▢", accessories: [{ tag: "minimized", color: "secondary" }, { text: "Display 2" }] });
+    expect(items[1]).toMatchObject({ icon: "▢", accessories: [{ tag: "minimized" }, { text: "Display 2" }] });
     expect(items[1].actions!.map((a) => a.id)).toEqual(["focus", "close"]);
     expect(items[2].accessories).toEqual([{ text: "ws 3" }]);
   });

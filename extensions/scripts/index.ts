@@ -6,14 +6,15 @@
 // Discovery happens once at import; a changed config path needs a host
 // restart.
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import type { Accessory, Action, Ctx, Detail, Effect, Extension, Item, Palette } from "../../host/src/protocol.ts";
-import { settings } from "../../host/src/api.ts";
+import { home, settings } from "../../host/src/api.ts";
 import { xdg } from "../../host/src/icons.ts";
 
+/** `[extensions.scripts]`, defaults in pal.json. */
 type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number; ttl: number };
+/** A v1 row, action or envelope: untyped JSON from a script, mapped field by field below. */
 type Raw = Record<string, any>;
 type V1Action = { id?: string; title?: string; action?: string; value?: string; key?: string; shortcut?: string; style?: string; confirm?: string; reload?: boolean; primary?: boolean };
 type V1Palette = Raw & {
@@ -24,11 +25,11 @@ type V1Palette = Raw & {
   requires?: string[]; os?: string; ttl?: number;
 };
 
-const HOME = homedir();
+const HOME = home("~");
 const log = (...a: unknown[]) => console.error("[scripts]", ...a);
-const tilde = (p: string) => (p.startsWith("~/") ? HOME + p.slice(1) : p);
-const DEFAULTS: Settings = { config: "~/.config/pal/config.toml", skip: ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"], v1_repo: "~/proj/pal-v1", timeout: 30, preview_max: 4, ttl: 0 };
-const S: Settings = { ...DEFAULTS, ...settings.get<Partial<Settings>>("scripts") };
+// Read live (timeout, preview_max apply to the next run); config, skip,
+// v1_repo and ttl are used at discovery, which runs once at import.
+const S = () => settings.get<Settings>("scripts");
 settings.onChange(() => log("settings changed; restart the host to rediscover palettes"), "scripts");
 
 // Scripts call jq, pal, bt, gh...; the app's PATH under launchd has none of them.
@@ -43,10 +44,10 @@ function expand(p: string, cfgDir: string): string {
     const [, user, repo, path, ref = "main"] = gh;
     const cache = `${process.env.XDG_DATA_HOME || `${HOME}/.local/share`}/pal/plugins/github.com/${user}/${repo}/${ref}/${path}`;
     if (existsSync(cache)) return cache;
-    if (user === "zcag" && repo === "pal") return `${tilde(S.v1_repo)}/${path}`;
+    if (user === "zcag" && repo === "pal") return `${home(S().v1_repo)}/${path}`;
     return cache;
   }
-  p = tilde(p);
+  p = home(p);
   return isAbsolute(p) ? p : resolve(cfgDir, p);
 }
 
@@ -73,8 +74,9 @@ function readData(file: string): Raw[] {
   let text: string;
   try { text = readFileSync(file, "utf8"); } catch { log(`no data file ${file}`); return []; }
   if (file.endsWith(".toml")) {
-    const arr = Object.values(readToml(file) ?? {}).find(Array.isArray) as Raw[] | undefined;
-    return arr ?? [];
+    let table: Raw = {};
+    try { table = parseToml(text) as Raw; } catch (e) { log(`bad toml ${file}: ${e}`); }
+    return (Object.values(table).find(Array.isArray) as Raw[] | undefined) ?? [];
   }
   if (text.trim().startsWith("[")) { try { return JSON.parse(text); } catch { return []; } }
   return parseLines(text);
@@ -88,22 +90,39 @@ const parseLines = (text: string): Raw[] =>
 type Env = Record<string, string>;
 type Run = { out: string; ok: boolean; timedOut: boolean };
 
+/** After the exit, how long stdout is still read for: a child the script left behind may hold the pipe. */
+const DRAIN_MS = 500;
+/** A script that ignores SIGTERM gets SIGKILL this much later. */
+const KILL_MS = 2000;
+
+/**
+ * Runs the script in its own process group, so a timeout kills its whole
+ * pipeline: killing bash alone leaves `sleep | jq` holding stdout, and a
+ * read to EOF would then wait on the orphan, not on the timeout.
+ */
 async function run(cmd: string[], opts: { stdin?: string; env: Env; cwd?: string; timeout?: number }): Promise<Run> {
-  const ms = (opts.timeout ?? S.timeout) * 1000;
+  const ms = (opts.timeout ?? S().timeout) * 1000;
   let proc: ReturnType<typeof Bun.spawn>;
   try {
-    proc = Bun.spawn(cmd, { stdin: opts.stdin === undefined ? "ignore" : new Blob([opts.stdin]), stdout: "pipe", stderr: "inherit", cwd: opts.cwd, env: { ...process.env, PATH, ...opts.env } });
+    proc = Bun.spawn(cmd, { stdin: opts.stdin === undefined ? "ignore" : new Blob([opts.stdin]), stdout: "pipe", stderr: "inherit", cwd: opts.cwd, env: { ...process.env, PATH, ...opts.env }, detached: true });
   } catch (e) {
     log(`cannot run ${cmd[0]}: ${e}`);
     return { out: "", ok: false, timedOut: false };
   }
+  const chunks: Uint8Array[] = [];
+  // Kept reading past the race below, so it must never reject (an unhandled rejection exits Bun).
+  const reading = (async () => { try { for await (const c of proc.stdout as ReadableStream<Uint8Array>) chunks.push(c); } catch {} })();
+  const kill = (sig: NodeJS.Signals) => { try { process.kill(-proc.pid, sig); } catch {} };
   let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; proc.kill(); }, ms);
-  const out = await new Response(proc.stdout as ReadableStream).text();
+  const timers = [
+    setTimeout(() => { timedOut = true; kill("SIGTERM"); }, ms),
+    setTimeout(() => kill("SIGKILL"), ms + KILL_MS),
+  ];
   const code = await proc.exited;
-  clearTimeout(timer);
+  timers.forEach(clearTimeout);
+  await Promise.race([reading, Bun.sleep(DRAIN_MS)]);
   if (timedOut) log(`${cmd.join(" ")} killed after ${ms} ms`);
-  return { out, ok: code === 0 && !timedOut, timedOut };
+  return { out: Buffer.concat(chunks).toString(), ok: code === 0 && !timedOut, timedOut };
 }
 
 /**
@@ -248,8 +267,10 @@ async function listItems(p: Loaded, query?: string, ctx?: Ctx): Promise<Item[]> 
 /** At most `preview_max` preview commands run at once; the rest wait their turn. */
 let previewsRunning = 0;
 const previewQueue: (() => void)[] = [];
-const previewSlot = () => (previewsRunning < S.preview_max ? (previewsRunning++, Promise.resolve()) : new Promise<void>((r) => previewQueue.push(() => (previewsRunning++, r()))));
+const previewSlot = () => (previewsRunning < S().preview_max ? (previewsRunning++, Promise.resolve()) : new Promise<void>((r) => previewQueue.push(() => (previewsRunning++, r()))));
 const previewDone = () => { previewsRunning--; previewQueue.shift()?.(); };
+/** A preview is one pane's worth of markdown, not a listing. */
+const PREVIEW_TIMEOUT_S = 10;
 
 /**
  * v1 `preview`: a shell command whose stdout is the detail markdown, run
@@ -258,10 +279,10 @@ const previewDone = () => { previewsRunning--; previewQueue.shift()?.(); };
  */
 async function detailItem(p: Loaded, id: string, ctx?: Ctx): Promise<Detail | void> {
   const raw = p.items.get(argsKey(ctx))?.get(id);
-  if (!raw || typeof raw.preview !== "string" || S.preview_max <= 0) return;
+  if (!raw || typeof raw.preview !== "string" || S().preview_max <= 0) return;
   await previewSlot();
   try {
-    const r = await run(["bash", "-c", raw.preview], { env: { ...p.env, ...argsEnv(ctx), ...itemEnv(raw) }, timeout: 10 });
+    const r = await run(["bash", "-c", raw.preview], { env: { ...p.env, ...argsEnv(ctx), ...itemEnv(raw) }, timeout: PREVIEW_TIMEOUT_S });
     if (r.ok) return { markdown: r.out };
   } finally {
     previewDone();
@@ -295,7 +316,7 @@ async function builtin(p: Loaded, name: string, value: string, env: Env): Promis
     case "cmd": return shell(value, env);
     case "type": return { paste: { text: value } };
   }
-  const dir = [`${dirname(tilde(S.config))}/plugins/actions/${name}`, `${tilde(S.v1_repo)}/plugins/actions/${name}`].find((d) => existsSync(`${d}/plugin.toml`));
+  const dir = [`${dirname(home(S().config))}/plugins/actions/${name}`, `${home(S().v1_repo)}/plugins/actions/${name}`].find((d) => existsSync(`${d}/plugin.toml`));
   const exec = dir && command(dir, readToml(`${dir}/plugin.toml`) ?? {});
   if (!exec) return { toast: { title: `No action ${name}`, message: `${p.name}: not a builtin, and no plugins/actions/${name}`, style: "failure" } };
   return effect(envelope((await run(exec.concat("run"), { stdin: value, env, cwd: dir })).out));
@@ -317,13 +338,15 @@ function unavailable(cfg: V1Palette): string | undefined {
 }
 
 function discover(): Record<string, Palette> {
-  const file = tilde(S.config);
+  const { config, skip: skipped, v1_repo, ttl: defaultTtl } = S();
+  const file = home(config);
   const root = readToml(file);
   if (!root) { log(`no v1 config at ${file}`); return {}; }
   const cfgDir = dirname(file);
+  const v1 = home(v1_repo);
   const general = (root.general ?? {}) as Raw;
   const baseEnv: Env = { ...(general.env_file ? readEnvFile(expand(general.env_file, cfgDir)) : {}), _PAL_CONFIG: file, _PAL_CONFIG_DIR: cfgDir };
-  const skip = new Set(S.skip);
+  const skip = new Set(skipped);
   const palettes: Record<string, Palette> = {};
   const report: string[] = [];
 
@@ -337,7 +360,7 @@ function discover(): Record<string, Palette> {
     let dir = user.base ? expand(user.base, cfgDir) : undefined;
     // v1 lived at ~/proj/pal before this rewrite took the path; its plugins are still in the v1 checkout.
     const moved = dir && !existsSync(dir) && dir.match(/\/pal\/(plugins\/.+)$/);
-    if (moved && existsSync(`${tilde(S.v1_repo)}/${moved[1]}`)) { log(`${name}: ${dir} is gone, using ${tilde(S.v1_repo)}/${moved[1]}`); dir = `${tilde(S.v1_repo)}/${moved[1]}`; }
+    if (moved && existsSync(`${v1}/${moved[1]}`)) { log(`${name}: ${dir} is gone, using ${v1}/${moved[1]}`); dir = `${v1}/${moved[1]}`; }
     const plugin = dir ? readToml(`${dir}/plugin.toml`) ?? {} : {};
     // v1 fills config gaps from plugin.toml field by field; the config wins where set.
     const cfg = { ...plugin, ...Object.fromEntries(Object.entries(user).filter(([, v]) => v !== undefined)) } as V1Palette;
@@ -365,7 +388,7 @@ function discover(): Record<string, Palette> {
       placeholder: cfg.input_prompt,
       live: !!cfg.live,
       // v1's ttl (else the extension's `ttl` setting): the core keeps the last listing across restarts for this long; the in-process cache above covers show relists and drill-ins.
-      ttl: cfg.ttl ?? (S.ttl > 0 ? S.ttl : undefined),
+      ttl: cfg.ttl ?? (defaultTtl > 0 ? defaultTtl : undefined),
       view: cfg.view === "grid" ? "grid" : undefined,
       columns: cfg.display?.columns,
       showDetail: cfg.display?.detail || undefined,
