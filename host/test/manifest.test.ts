@@ -126,6 +126,18 @@ describe("checkPalettes", () => {
     expect(checkPalettes(man({ p: {} }), ext({ p: list })).metas[0].tier).toBeUndefined();
   });
 
+  test("lazy on either side reaches the meta; the manifest's wins, a difference is a warning; never on the wire when unset", () => {
+    expect(checkPalettes(man({ p: { lazy: true } }), ext({ p: list })).metas[0].lazy).toBe(true);
+    expect(checkPalettes(man({ p: {} }), ext({ p: { ...list, lazy: true } })).metas[0].lazy).toBe(true);
+    expect(checkPalettes(man({ p: { lazy: true } }), ext({ p: { ...list, lazy: true } })).warnings).toEqual([]);
+    const differ = checkPalettes(man({ p: { lazy: false } }), ext({ p: { ...list, lazy: true } }));
+    expect(differ.warnings).toEqual(["palettes.p: lazy true in the code, false in pal.json; the manifest's is used, drop the code's"]);
+    expect(differ.metas[0].lazy).toBeUndefined();
+    expect("lazy" in checkPalettes(man({ p: {} }), ext({ p: list })).metas[0]).toBe(false);
+    // A lazy live palette is still live: it relists on show once its first listing has run.
+    expect(checkPalettes(man({ p: { lazy: true } }), ext({ p: live })).metas[0]).toMatchObject({ live: true, lazy: true });
+  });
+
   test("several disagreements on one palette are several warnings", () => {
     const r = checkPalettes(man({ p: { kind: "list", title: "T", ttl: 1 } }), ext({ p: { ...live, ttl: 2 } }));
     expect(r.warnings.map((w) => w.split(":")[1].trim().split(" ")[0])).toEqual(["kind", "title", "ttl"]);
@@ -187,7 +199,7 @@ describe("the host carries the warnings", () => {
     root = new Root({
       drift: {
         "index.ts": simpleExt("rows", { extra: "live: true, ttl: 10," }),
-        "pal.json": manifest("drift", { palettes: { rows: { kind: "list", ttl: 60 }, ghost: { kind: "list", title: "Ghost" } } }),
+        "pal.json": manifest("drift", { palettes: { rows: { kind: "list", ttl: 60, lazy: true }, ghost: { kind: "list", title: "Ghost" } } }),
       },
       clean: {
         "index.ts": simpleExt("clean", { extra: "input: true," }),
@@ -207,7 +219,11 @@ describe("the host carries the warnings", () => {
     ]);
     expect(l.palettes.map((p) => p.name)).toEqual(["rows"]);
     expect(l.palettes[0].ttl).toBe(60);
-    expect(host.loaded().find((l) => l.extension === "clean")!.warnings).toEqual([]);
+    // `lazy` rides along for the core, which holds the listing until the first show (index.rs `load_plan`); the host itself lists nothing at load.
+    expect(l.palettes[0].lazy).toBe(true);
+    const clean = host.loaded().find((l) => l.extension === "clean")!;
+    expect(clean.warnings).toEqual([]);
+    expect("lazy" in clean.palettes[0]).toBe(false);
   });
 
   test("each warning is a `[<ext>] manifest:` line on stderr", () => {

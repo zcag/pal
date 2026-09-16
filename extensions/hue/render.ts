@@ -239,7 +239,7 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
     kids.push(
       text(`Paired with ${st.name}`, { style: "title", size: "xl", color: "success" }),
       text(`${st.ip} · bridge ${st.id}`, { style: "muted" }),
-      text("The key is kept in pal's storage, and the bridge's certificate is pinned. To keep the key in the keychain instead: copy it, then paste it under Settings › Extensions › Hue › Application key with the bridge's address.", { style: "body", size: "sm" }),
+      text("The address and the key are in the settings (Settings › Extensions › Hue; the key in the keychain), the bridge's certificate is pinned.", { style: "body", size: "sm" }),
       row([keycap("enter"), text("open Rooms", { style: "muted", size: "xs" }), keycap("c"), text("copy the key", { style: "muted", size: "xs" }), keycap("b"), text("back to the bridges", { style: "muted", size: "xs" })], { key: "keys", gap: 1 }),
     );
     acts.push({ id: "rooms", title: "Open Rooms", shortcut: "enter" }, { id: "copy_key", title: "Copy the application key", shortcut: "c" }, { id: "back", title: "Back to the bridges", shortcut: "b" });

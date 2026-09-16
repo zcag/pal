@@ -21,6 +21,7 @@ mod edit;
 pub mod migrate;
 pub mod schema;
 pub mod secrets;
+pub mod specs;
 mod watch;
 use crate::fs;
 

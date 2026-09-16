@@ -315,8 +315,8 @@ const details = new Map<string, Map<string, Promise<unknown>>>();
 const paletteKey = (p: any) => `${p?.extension}/${p?.palette}`;
 // The core sends `args: null` and `values: null` for a level without them: absent, as far as the extension is told.
 const ctxOf = (p: any): Ctx | undefined =>
-  p?.filter !== undefined || p?.args != null || p?.refresh || p?.values != null || p?.inline
-    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }), ...(p.inline && { inline: true }) }
+  p?.filter !== undefined || p?.args != null || p?.refresh || p?.values != null || p?.inline || Array.isArray(p?.ids)
+    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }), ...(p.inline && { inline: true }), ...(Array.isArray(p.ids) && { ids: p.ids.map(String) }) }
     : undefined;
 
 /** The loaded extension, or the reason it is not: its load error, or that there is none. */

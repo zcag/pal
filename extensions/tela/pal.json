@@ -132,6 +132,7 @@
       "title": "Pages",
       "description": "Favourites, then what changed lately across spaces; New tela page, Search tela, Ask tela and Quick Notes at the top. From Spaces, one space's pages.",
       "kind": "list",
+      "lazy": true,
       "ttl": 300,
       "keys": [
         {
@@ -172,6 +173,7 @@
       "title": "Spaces",
       "description": "Every space the token sees, with its page count; Enter lists its pages.",
       "kind": "list",
+      "lazy": true,
       "ttl": 3600,
       "keys": [
         {
@@ -196,6 +198,7 @@
       "title": "New Page",
       "description": "A page in a space of your choice: title, space, body prefilled from your selection or the clipboard.",
       "kind": "list",
+      "lazy": true,
       "ttl": 3600,
       "keys": [
         {
@@ -208,6 +211,7 @@
       "title": "Append to Page",
       "description": "Markdown added at the end of Quick Notes, the page you opened last, a favourite or a recent page.",
       "kind": "list",
+      "lazy": true,
       "ttl": 300,
       "keys": [
         {
@@ -228,6 +232,7 @@
       "title": "Decks",
       "description": "Slide decks across spaces, newest first; the pane shows the first slide.",
       "kind": "list",
+      "lazy": true,
       "ttl": 3600,
       "keys": [
         {
@@ -268,6 +273,7 @@
       "title": "Sheets",
       "description": "Spreadsheet pages across spaces, newest first.",
       "kind": "list",
+      "lazy": true,
       "ttl": 3600,
       "keys": [
         {
@@ -308,6 +314,7 @@
       "title": "Comments",
       "description": "Mentions of you and replies to your comments, unread first; opening one marks it read.",
       "kind": "live",
+      "lazy": true,
       "ttl": 60,
       "keys": [
         {
@@ -336,6 +343,7 @@
       "title": "Backlinks",
       "description": "What links to the page you opened last, or to the page a row's cmd+b came from.",
       "kind": "list",
+      "lazy": true,
       "ttl": 300,
       "keys": [
         {

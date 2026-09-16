@@ -75,6 +75,15 @@ pub struct PaletteMeta {
     /// Answers `suggest()` for the empty root's "Now" section (the UI asks the host).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub suggest: bool,
+    /// Tab (and a bare `x` with nothing typed) marks rows in it (`Palette.multi`); opaque here, the UI's.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub multi: bool,
+    /// The first listing of a run waits for the first panel show: the
+    /// cached rows restore at startup as for any palette, the refresh is
+    /// deferred from process start to that show, and from then on `ttl`
+    /// and `live` apply as usual (`index::load_plan`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub lazy: bool,
 }
 
 impl PaletteMeta {
@@ -113,6 +122,9 @@ pub struct Registered {
     pub filtered: HashMap<String, Vec<Item>>,
     /// Its cached listing is past its `ttl`: waiting for `refresh_expired`.
     pub deferred: bool,
+    /// A `lazy` palette not listed this run yet: waiting for the first
+    /// panel show (`index::on_shown`).
+    pub awaits_show: bool,
     /// The tier the root ranks it by: the config's `tier` over the meta's,
     /// `normal` when neither says. Kept current by `apply_config`.
     pub tier: Tier,
@@ -122,7 +134,7 @@ impl Registered {
     pub fn new(source: Source, meta: PaletteMeta, ext_title: String, config: &Config) -> Self {
         let p = config.palette(&palette_id(&source));
         let tier = p.tier.or(meta.tier).unwrap_or_default();
-        Self { source, meta, ext_title, enabled: p.enabled, filter: None, filtered: HashMap::new(), deferred: false, tier }
+        Self { source, meta, ext_title, enabled: p.enabled, filter: None, filtered: HashMap::new(), deferred: false, awaits_show: false, tier }
     }
 }
 

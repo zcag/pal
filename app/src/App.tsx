@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { Launcher, type LauncherHandle } from "./Launcher";
+import { Launcher, pickLevel, type LauncherHandle, type PickRow } from "./Launcher";
 import { mark, useCore, usePrefs } from "./core";
 import { Confirm, Presence, type ToastSpec } from "./ui";
 import { SHOWN_EVENT } from "./ui/virtual";
@@ -15,7 +15,7 @@ const hide = () => invoke("hide");
 type Ask = { title: string; message?: string; ok: string; cancel: string; token: number };
 
 export default function App() {
-  const { sources, version, bump, showing, search, inline, fallback, suggest, history, forget, detail, view, pick, refresh } = useCore(hide);
+  const { sources, version, bump, showing, search, inline, fallback, suggest, history, dialog, forget, detail, view, pick, refresh } = useCore(hide);
   const prefs = usePrefs();
   const launcher = useRef<LauncherHandle>(null);
 
@@ -58,6 +58,21 @@ export default function App() {
     };
   }, []);
 
+  // `pal pick` (pick.rs): the rows as a picker level, the query typed; the answer goes back by token and the panel hides (the core cancels a pending pick on any hide).
+  useEffect(() => {
+    const un = listen<{ token: number; title: string; multi: boolean; query?: string; rows: PickRow[] }>("pal://pick", (e) => {
+      const p = e.payload;
+      launcher.current?.start(pickLevel(p.token, p.title, p.rows, p.multi));
+      if (p.query) launcher.current?.type(p.query);
+    });
+    const unCancel = listen<{ token: number }>("pal://pick/cancel", () => launcher.current?.reset());
+    return () => {
+      un.then((f) => f());
+      unCancel.then((f) => f());
+    };
+  }, []);
+  const pickReply = useCallback((token: number, ids: string[] | null) => { invoke("pick_reply", { token, ids }).finally(() => { launcher.current?.reset(); hide(); }); }, []);
+
   // The core's confirm card (a `pal://run` or `pal://install` link): the answer goes back by token.
   const [ask, setAsk] = useState<Ask | null>(null);
   useEffect(() => {
@@ -81,7 +96,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

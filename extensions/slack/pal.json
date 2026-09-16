@@ -72,6 +72,7 @@
       "title": "Unreads",
       "description": "Direct messages, mentions and threads addressed to you, then the channels that are only unread; each row with who said what and how long ago.",
       "kind": "live",
+      "lazy": true,
       "keys": [
         { "keys": "enter", "title": "Open the conversation in Slack" },
         { "keys": "cmd+shift+r", "title": "Mark as read" },
@@ -83,6 +84,7 @@
       "title": "Channels",
       "description": "Every channel, group and direct message you are in, with the topic and the member count.",
       "kind": "list",
+      "lazy": true,
       "ttl": 3600,
       "tier": "catalog",
       "keys": [
@@ -105,6 +107,7 @@
       "title": "Status",
       "description": "Your status, presence and Do Not Disturb as the first rows; set a status from the presets, clear it, snooze notifications for 30 minutes, an hour or until tomorrow, go away or active.",
       "kind": "live",
+      "lazy": true,
       "keys": [
         { "keys": "enter", "title": "Set it" }
       ]

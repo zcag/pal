@@ -67,7 +67,7 @@ whose code fails to load.
   `path`, `list`; each with `id`, `label`, optional `description` and a
   `default`.
 - `palettes.<key>`: the palette's static description: `title`,
-  `description`, `kind`, `ttl`, `tier`, `keys`, `rank`, `settings`,
+  `description`, `kind`, `ttl`, `lazy`, `tier`, `keys`, `rank`, `settings`,
   `match`, `inline`, `fallback`
   (`[palettes.<id>].settings` in the file). The key is the palette's key
   in the code's `palettes` object; what goes here and what goes in the
@@ -80,7 +80,7 @@ whose code fails to load.
 A palette is described in two files, and each fact has one home:
 
 - **`pal.json` holds what is static and author-facing**: `title`,
-  `description`, `kind`, `ttl`, `tier` (below), `keys` (what each key
+  `description`, `kind`, `ttl`, `lazy`, `tier` (below), `keys` (what each key
   does, as `[{ "keys": "cmd+c", "title": "Copy the link" }]`), `rank`,
   `settings`, and the extension's `icon`. The store and the settings
   window read these without running the code.
@@ -99,10 +99,13 @@ the code implies it, and they must agree:
 | `live` | `live: true`, without `input` |
 | `list` | none of those |
 
-Read top down: the first row that fits is the kind. `title`, `ttl` and
-`tier` may appear on both sides for now; the manifest's value is the one
-served, and a code value that differs is a warning. A code value with no manifest
-counterpart serves silently (the key stands in for a missing title).
+Read top down: the first row that fits is the kind. `title`, `ttl`, `lazy`
+and `tier` may appear on both sides for now; the manifest's value is the
+one served, and a code value that differs is a warning. A code value with
+no manifest counterpart serves silently (the key stands in for a missing
+title). `lazy` is the one of these a code side may want on purpose: the
+bundled calendar sets it from its `source` setting at load (Google is a
+token command and a network read, EventKit is local).
 
 The host runs this check on every load (`checkPalettes` in `@zcag/pal`,
 so an extension's tests can run it too). Nothing fails: each disagreement
@@ -197,11 +200,31 @@ is left to the load-time check.
   list of paths: the files themselves, see the note below), `open` (url or
   path), `paste`, `focus` (a window id), `hide`, `toast`, `hud` (a line in
   the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
-  `large_type` (the text across the screen, below),
+  `large_type` (the text across the screen, below), `dialog` (a path typed
+  into the open or save panel in front, below),
   `keep` (stay open and list again), `push` (drill into a palette with
   `args`), `show` (a detail-only level), `view` (a render tree, below),
   `form` (a prompt with fields, below). `ctx` carries `filter`, the `args`
-  of the `push` that opened the level, and on a form's submit its `values`.
+  of the `push` that opened the level, on a form's submit its `values`,
+  and on a multi pick `ids` (below).
+- Several rows at once: an action with `multi: true` is offered while
+  rows are marked (`⇧↓`, `⌘`-click, and `Tab` or, with nothing typed, a
+  bare `x` in a palette that declares `multi: true` itself), and `Enter` runs it as one
+  `pick(id, action, ctx)` where `id` is the first marked row and
+  `ctx.ids` every marked one, in order. An action without `multi` is
+  single-row only and is not listed while rows are marked. Frecency
+  records nothing for a multi pick. The bundled Files (open, reveal, the
+  copies, trash), Windows (close, minimize), Clipboard (copy joined,
+  delete) and Bookmarks (open) do this; the pattern is
+  `const ids = ctx?.ids ?? [id]` and a loop.
+- `dialog`: the path is typed into the open or save panel the app in
+  front has up (macOS: its Go to Folder sheet, `cmd+shift+g`, the path
+  pasted, Return; GTK: `ctrl+l`), the panel hidden first; the HUD says
+  which panel took it or that none was up. `dialog.current()` from
+  `@zcag/pal` answers `{ app, pid, kind: "open" | "save", title? }` or
+  `null`, read once per panel show and cached (a `list` may ask it on
+  every keystroke), so a row can lead with the action only while a panel
+  is up, as Files does.
 - A secret is a concealed copy: `{ copy: conceal(password) }`, that is
   `{ copy: { text, concealed: true, clear_after: 30 } }`. The text goes on
   the clipboard marked for clipboard managers to skip
@@ -224,6 +247,18 @@ is left to the load-time check.
   above); the code's is a fallback. Without a `ttl` a palette is listed on
   every load: most bundled TypeScript extensions have none, they are cheap;
   `scripts` defaults its tables to an hour ([Scripts](scripts.md)).
+- `lazy: true` (manifest or code, the manifest wins): the palette's first
+  listing of a run waits for the first time the panel shows instead of
+  running at process start. Its cached rows still restore into the root at
+  startup, so nothing is missing from the search; only the refresh moves.
+  From that first show on, `ttl` and `live` apply as for any palette, and
+  an extension reloaded later lists at once. The only moment such a
+  palette has no rows is a first run before the panel was ever shown. For
+  a listing that prompts (1Password authorises `op` per app, so every
+  start was a prompt), reaches the network (Slack, GitHub, Home Assistant,
+  tela, Hue) or reads something private (Messages for OTP). The core logs
+  `index <ext>/<palette> lazy, waits for a show` at load and lists it on
+  the show with `why` = `show`.
 - The root's sections a palette may take part in, all optional:
   - **Inline results**: `inline: true` with a `match` (a regex, a regex
     source, or a predicate `(query) => boolean`; the manifest may carry
@@ -686,6 +721,22 @@ to the core.
 - `settings.get<T>()`: the extension's values, `[extensions.<name>]`.
   `settings.palette<T>()`: the current palette's declared values.
   `settings.onChange(cb)`: called with new values.
+  `settings.set(id, value)` / `settings.set({ id: value, ... })` writes
+  declared extension-level settings to the config file the way the
+  settings window does (a surgical edit through the core: comments and
+  the rest of the file stay); `settings.setPalette(id, value)` (or the
+  object form) the current palette's. The core checks each value against
+  the setting's `kind` (a `select` against its options, a `number`
+  against `min`/`max`, a `list` as strings), puts a `secret` in the OS
+  keychain and writes the `keychain:pal/<name>-<id>` reference so the
+  value never sits in the file, unsets the key for `null` or the
+  manifest's default, and writes the ids of one object in one edit so no
+  reader sees half of them. The promise resolves once the file is
+  written, with `settings.get()` already answering the new values;
+  `onChange` fires once per change. An id the manifest does not declare,
+  or a value of the wrong kind, rejects and nothing is written. What Hue
+  does with the application key after pairing, so it lands in the
+  keychain and under Settings › Extensions › Hue like a typed one.
 - `clipboard.list({ query, kind, limit, offset })`, `get(id)`, `pin(id)`,
   `delete(id)`, `clear()`, `copy(id)` (back onto the clipboard),
   `imageUrl(id, size)` for an image entry.
@@ -717,6 +768,8 @@ to the core.
   `keep`, `view`, `form` and `show` need the level a pick came from and
   are refused.
 - `selection.text()`: the text selected in the app in front, or null.
+- `dialog.current()`: the open or save panel in front, or null (the
+  `dialog` effect types a path into it).
   The accessibility API first (`AXSelectedText` of the focused element on
   macOS, the primary selection on Linux); when that answers nothing and
   `general.selection_snapshot` allows (the default), the copy shortcut is

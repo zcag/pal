@@ -21,7 +21,8 @@ const MAC = process.platform === "darwin";
 const HOME = process.env.PAL_BOOKMARKS_HOME || home("~");
 const APP_SUPPORT = `${HOME}/Library/Application Support`;
 
-const OPEN: Action = { id: "open", title: "Open in browser" };
+// Open works on marked rows too (`multi`): every one in a tab of the default browser.
+const OPEN: Action = { id: "open", title: "Open in browser", multi: true };
 const COPY: Action = { id: "copy", title: "Copy link", shortcut: "cmd+c" };
 const COPY_MD: Action = { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c" };
 
@@ -195,9 +196,13 @@ export default {
       title: "Bookmarks",
       placeholder: "A name, a folder or a keyword",
       list,
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         // A pick on a row restored from the persisted index, before this run has listed.
         if (!known.has(id) && (action === "copy-markdown" || action === "open-in")) await list();
+        // A multi pick's marked urls: all but the first through the opener here, the first as the effect (one url each).
+        if (ctx?.ids && ctx.ids.length > 1 && (action === "open" || action === undefined)) {
+          for (const url of ctx.ids.slice(1)) spawnDetached([MAC ? "open" : "xdg-open", url]);
+        }
         switch (action) {
           case "copy": return { copy: id };
           case "copy-markdown": return { copy: markdownLink(known.get(id)?.name ?? id, id) };

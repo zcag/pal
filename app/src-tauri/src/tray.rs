@@ -49,7 +49,7 @@ pub fn apply(app: &AppHandle, config: &Config) {
         let have = current_id().and_then(|id| handle.tray_by_id(&id));
         match (want, have) {
             (true, None) => match build(&handle, &hotkey) {
-                Ok(_) => eprintln!("tray\tcreated\tOpen pal, Settings, Restart extension host, Check for updates (off), Quit"),
+                Ok(_) => eprintln!("tray\tcreated\tOpen pal, Settings, Restart extension host, Check for updates, Quit"),
                 Err(e) => eprintln!("tray\tcreate failed\t{e}"),
             },
             (true, Some(tray)) => match menu_for(&handle, &hotkey).and_then(|m| tray.set_menu(Some(m))) {
@@ -97,10 +97,9 @@ fn menu(app: &AppHandle, accelerator: Option<&str>) -> tauri::Result<Menu<tauri:
     let open = MenuItem::with_id(app, "open", "Open pal", true, accelerator)?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, Some("CmdOrCtrl+,"))?;
     let restart = MenuItem::with_id(app, "restart-host", "Restart extension host", true, None::<&str>)?;
-    // Placeholder: `crate::updater::check` exists (updater.rs), but the
-    // download-and-relaunch flow and its UI do not yet; the row is here so
-    // the menu's shape is settled and is enabled with that work.
-    let updates = MenuItem::with_id(app, "updates", "Check for updates…", false, None::<&str>)?;
+    // The check, with its answer on the HUD; an installable release is
+    // installed from Settings > About or the "Install Update" row.
+    let updates = MenuItem::with_id(app, "updates", "Check for updates…", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit pal", true, None::<&str>)?;
     Menu::with_items(app, &[&open, &settings, &PredefinedMenuItem::separator(app)?, &restart, &updates, &PredefinedMenuItem::separator(app)?, &quit])
 }
@@ -114,6 +113,18 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
                 let host = host.inner().clone();
                 tauri::async_runtime::spawn(async move { host.restart().await });
             }
+        }
+        "updates" => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let line = match crate::updater::check(&app).await {
+                    Ok(crate::updater::UpdateInfo { available: true, version, installable, .. }) => format!("pal {} is available: {}", version.as_deref().unwrap_or("?"), if installable == Some(true) { "Settings > About installs it" } else { "see the releases page" }),
+                    Ok(crate::updater::UpdateInfo { status: Some(s), .. }) => format!("Nothing to update to: {s}"),
+                    Ok(_) => "pal is up to date".into(),
+                    Err(e) => format!("Update check failed: {e}"),
+                };
+                crate::hud::show(&app, &line);
+            });
         }
         "quit" => crate::quit(app),
         _ => {}

@@ -135,7 +135,7 @@ Actions:
 
 | action | shortcut | what |
 | --- | --- | --- |
-| Open in browser | `Enter` | opens the url |
+| Open in browser | `Enter` | opens the url; over marked rows (`⇧↓`, `⌘`-click), every one in a tab |
 | Copy link | `⌘C` | copies the url |
 
 Settings, `[extensions.bookmarks]`:
@@ -279,7 +279,9 @@ Actions:
 | Clear history | `⌘⇧D` | removes every entry, pinned ones included; asks first |
 
 `primary_action = "copy"` swaps the first two, so `Enter` copies and
-`⌘Enter` pastes.
+`⌘Enter` pastes. Marked rows (`⇧↓`, `⌘`-click): Copy puts their texts
+on the clipboard joined one per line (a file list its paths, an image its
+title) as one copy, Delete removes each.
 
 **Paste needs the Accessibility permission on macOS**: the paste is a
 synthesised Cmd+V, which the system only delivers from a process on the
@@ -606,6 +608,11 @@ Actions:
 | Copy file | `⌘⇧C` | the file itself onto the clipboard: a paste in Finder or a file manager copies it, a paste in a text field gets its path |
 | Copy text (OCR) | `⌘⇧T` | on an image or a PDF: the text in it (the PDF's first page) read by OCR onto the clipboard, "Copied text" in the HUD; the Vision framework on macOS, `tesseract` on Linux when installed (a toast otherwise). A PDF page is rendered by `pdftoppm` when installed, else `sips` on macOS |
 | Move to Trash | `⌘D` | asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
+| Use in TextEdit's open panel | `⌘G` | only while the app in front has an Open or Save panel up: pal hides and types the path into it through its Go to Folder sheet (`ctrl+L` on a GTK chooser); listed first then, and the empty root leads with a "Dialog" hint into Files |
+
+Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Open, Reveal, Copy path (the
+paths one per line), Copy file and Move to Trash run over all of them as
+one pick; Quick Look and Open with… stay one file's.
 
 **Open with…** drills into a level of the applications the OS registers
 for the file, each with its own icon: the default (what `Enter` would use)
@@ -689,6 +696,9 @@ Actions:
 | Focus | `Enter` | hides the panel, then raises the window, restoring it if minimised |
 | Close | `⌘W` | closes the window; the palette stays open and lists again |
 | Minimize | `⌘M` | minimises; not offered on a window that already is |
+
+Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Close and Minimize run over all
+of them; Focus is one window.
 
 - **macOS**: the list comes from CoreGraphics merged with the Accessibility
   API for the parts CoreGraphics does not give (another app's window title,

@@ -191,6 +191,7 @@
   "palettes": {
     "entities": {
       "kind": "live",
+      "lazy": true,
       "description": "Every entity of the chosen domains with its state, favourites first; the domain filters scope it. Actions per domain: toggle, on, off, brightness, temperature, open, close, lock, play, activate, run, trigger, copy value; every row copies its id, shows its attributes, opens in HA.",
       "keys": [
         {
@@ -229,6 +230,7 @@
     },
     "services": {
       "kind": "list",
+      "lazy": true,
       "ttl": 3600,
       "description": "Every service Home Assistant offers, by domain; Enter opens a form with the target entity and the service's fields, submit calls it.",
       "keys": [
@@ -244,6 +246,7 @@
     },
     "areas": {
       "kind": "list",
+      "lazy": true,
       "ttl": 3600,
       "description": "Every area with an entity in it; Enter lists those entities.",
       "keys": [

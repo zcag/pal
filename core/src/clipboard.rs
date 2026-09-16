@@ -716,6 +716,67 @@ fn send_paste() -> Result<()> {
     platform::paste_key()
 }
 
+/// A keystroke in the `Action.shortcut` spelling (`cmd+shift+g`, `ctrl+l`,
+/// `enter`), sent to the app in front as if typed: what the dialog jump
+/// uses for the Go to Folder sheet. Needs Accessibility on macOS like
+/// paste; `wtype` or `ydotool` on Linux.
+pub fn send_key(shortcut: &str) -> Result<()> {
+    if !crate::ax::trusted() {
+        return Err(Error::NeedsAccessibility);
+    }
+    let k = Keystroke::parse(shortcut).ok_or_else(|| Error::Unavailable(format!("no key {shortcut:?}")))?;
+    platform::send_key(&k)
+}
+
+/// A key with modifiers, parsed from the shortcut spelling. The keys pal
+/// sends: letters, `enter`, `escape`, `tab`, `space`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Keystroke {
+    pub key: String,
+    pub cmd: bool,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub shift: bool,
+}
+
+impl Keystroke {
+    pub fn parse(s: &str) -> Option<Self> {
+        let mut k = Keystroke { key: String::new(), cmd: false, ctrl: false, alt: false, shift: false };
+        for part in s.split('+') {
+            match part.trim().to_ascii_lowercase().as_str() {
+                "cmd" | "meta" | "super" => k.cmd = true,
+                "ctrl" | "control" => k.ctrl = true,
+                "alt" | "option" => k.alt = true,
+                "shift" => k.shift = true,
+                key if !key.is_empty() && k.key.is_empty() => k.key = key.to_string(),
+                _ => return None,
+            }
+        }
+        (!k.key.is_empty()).then_some(k)
+    }
+
+    /// The macOS virtual key code (`kVK_*`, US layout for letters).
+    pub fn mac_code(&self) -> Option<u16> {
+        Some(match self.key.as_str() {
+            "a" => 0, "s" => 1, "d" => 2, "f" => 3, "h" => 4, "g" => 5, "z" => 6, "x" => 7, "c" => 8, "v" => 9, "b" => 11, "q" => 12, "w" => 13, "e" => 14, "r" => 15, "y" => 16, "t" => 17,
+            "o" => 31, "u" => 32, "i" => 34, "p" => 35, "l" => 37, "j" => 38, "k" => 40, "n" => 45, "m" => 46,
+            "enter" | "return" => 36, "tab" => 48, "space" => 49, "escape" | "esc" => 53, "backspace" => 51,
+            _ => return None,
+        })
+    }
+
+    /// The evdev key code, for ydotool.
+    pub fn evdev_code(&self) -> Option<u16> {
+        Some(match self.key.as_str() {
+            "q" => 16, "w" => 17, "e" => 18, "r" => 19, "t" => 20, "y" => 21, "u" => 22, "i" => 23, "o" => 24, "p" => 25,
+            "a" => 30, "s" => 31, "d" => 32, "f" => 33, "g" => 34, "h" => 35, "j" => 36, "k" => 37, "l" => 38,
+            "z" => 44, "x" => 45, "c" => 46, "v" => 47, "b" => 48, "n" => 49, "m" => 50,
+            "enter" | "return" => 28, "tab" => 15, "space" => 57, "escape" | "esc" => 1, "backspace" => 14,
+            _ => return None,
+        })
+    }
+}
+
 #[cfg(target_os = "macos")]
 mod platform {
     use super::*;
@@ -890,11 +951,26 @@ mod platform {
     }
 
     fn command_key(key: u16) -> Result<()> {
+        post_key(key, CGEventFlags::MaskCommand)
+    }
+
+    /// Any key with its modifiers, the same way (`Keystroke::parse`).
+    pub fn send_key(k: &Keystroke) -> Result<()> {
+        let code = k.mac_code().ok_or_else(|| Error::Unavailable(format!("no key code for {:?}", k.key)))?;
+        let mut flags = CGEventFlags::empty();
+        if k.cmd { flags |= CGEventFlags::MaskCommand; }
+        if k.ctrl { flags |= CGEventFlags::MaskControl; }
+        if k.alt { flags |= CGEventFlags::MaskAlternate; }
+        if k.shift { flags |= CGEventFlags::MaskShift; }
+        post_key(code, flags)
+    }
+
+    fn post_key(key: u16, flags: CGEventFlags) -> Result<()> {
         let src = CGEventSource::new(CGEventSourceStateID::CombinedSessionState);
         for down in [true, false] {
             let ev = CGEvent::new_keyboard_event(src.as_deref(), key, down)
                 .ok_or_else(|| Error::Unavailable("CGEvent creation failed".into()))?;
-            CGEvent::set_flags(Some(&ev), CGEventFlags::MaskCommand);
+            CGEvent::set_flags(Some(&ev), flags);
             CGEvent::post(CGEventTapLocation::HIDEventTap, Some(&ev));
         }
         Ok(())
@@ -1048,6 +1124,29 @@ mod platform {
         control_key("c", "46")
     }
 
+    /// Any key with its modifiers, the same way.
+    pub fn send_key(k: &Keystroke) -> Result<()> {
+        let code = k.evdev_code().ok_or_else(|| Error::Unavailable(format!("no key code for {:?}", k.key)))?;
+        // wtype names: (modifier, evdev code) pairs held around the key.
+        let mods: Vec<(&str, u16)> = [(k.ctrl, ("ctrl", 29)), (k.alt, ("alt", 56)), (k.shift, ("shift", 42)), (k.cmd, ("logo", 125))].into_iter().filter(|(on, _)| *on).map(|(_, m)| m).collect();
+        let wkey = match k.key.as_str() { "enter" | "return" => "Return", "tab" => "Tab", "space" => "space", "escape" | "esc" => "Escape", "backspace" => "BackSpace", key => key };
+        let mut wtype: Vec<String> = mods.iter().flat_map(|(m, _)| ["-M".to_string(), m.to_string()]).collect();
+        wtype.extend(["-k".to_string(), wkey.to_string()]);
+        wtype.extend(mods.iter().flat_map(|(m, _)| ["-m".to_string(), m.to_string()]));
+        let mut ydo: Vec<String> = vec!["key".into()];
+        ydo.extend(mods.iter().map(|(_, c)| format!("{c}:1")));
+        ydo.extend([format!("{code}:1"), format!("{code}:0")]);
+        ydo.extend(mods.iter().rev().map(|(_, c)| format!("{c}:0")));
+        for (bin, args) in [("wtype", wtype), ("ydotool", ydo)] {
+            if let Ok(s) = Command::new(bin).args(&args).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status() {
+                if s.success() {
+                    return Ok(());
+                }
+            }
+        }
+        Err(Error::Unavailable(format!("no wtype or ydotool to send {}", k.key)))
+    }
+
     /// `key` is the letter for wtype, `code` its evdev keycode for ydotool.
     fn control_key(key: &str, code: &str) -> Result<()> {
         let down = format!("{code}:1");
@@ -1104,6 +1203,9 @@ mod platform {
         Err(Error::Unavailable("unsupported platform".into()))
     }
     pub fn copy_key() -> Result<()> {
+        Err(Error::Unavailable("unsupported platform".into()))
+    }
+    pub fn send_key(_: &Keystroke) -> Result<()> {
         Err(Error::Unavailable("unsupported platform".into()))
     }
 }

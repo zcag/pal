@@ -101,7 +101,9 @@ describe("clipboard", () => {
     expect(image.actions![3]).toEqual({ id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" });
     expect(files.actions!.map((a) => a.id)).toEqual(["paste", "copy", "pin", "delete", "delete-unpinned", "clear"]);
     const del = text.actions!.find((a) => a.id === "delete")!;
-    expect(del).toEqual({ id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?" });
+    expect(del).toEqual({ id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?", multi: true });
+    // Copy and Delete take marked rows; a paste is one entry.
+    expect(text.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["copy", "delete"]);
     expect(text.actions!.find((a) => a.id === "delete-unpinned")).toEqual({ id: "delete-unpinned", title: "Delete all unpinned", style: "destructive", confirm: "Delete every unpinned entry? Pinned ones stay." });
     expect(text.actions!.find((a) => a.id === "clear")!.confirm).toMatch(/pinned ones included/);
   });
@@ -168,5 +170,13 @@ describe("clipboard", () => {
     expect(items[0].actions!.map((a) => a.id).slice(0, 2)).toEqual(["copy", "paste"]);
     host.changeSettings("clipboard", {});
     expect(await list()).toHaveLength(ENTRIES.length);
+  });
+
+  test("pick with marked rows (ctx.ids): copy joins their text one per line (a file list its paths, an image its title) as one copy; delete removes each", async () => {
+    entries = ENTRIES;
+    calls.del.length = 0;
+    expect(await host.pick("clipboard", "history", "1", "copy", { ids: ["1", "4", "3"] })).toEqual({ copy: "hello world\n/Users/x/a.txt\n/Users/x/b.txt\nImage 640 x 480", hud: "Copied 3 entries" });
+    expect(await host.pick("clipboard", "history", "1", "delete", { ids: ["1", "5"] })).toEqual({ keep: true });
+    expect(calls.del).toEqual([{ id: 1 }, { id: 5 }]);
   });
 });

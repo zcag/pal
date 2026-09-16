@@ -17,6 +17,7 @@ mod commands;
 mod compat;
 mod crash;
 mod deeplink;
+mod dialog;
 mod effects;
 mod events;
 mod fallback;
@@ -43,6 +44,7 @@ mod windows;
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
 mod panel;
 mod permissions;
+mod pick;
 mod pop;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -149,7 +151,8 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
         return;
     }
     events::emit(app, events::SHOWN, Shown { t0, palette, keep });
-    // After the event: the live palettes list again off this thread.
+    // After the event: the live palettes list again off this thread; a file dialog in front is looked for once per show.
+    dialog::on_shown();
     index::on_shown(app);
     bar::on_shown(app);
     // A fresh profile's first show asks for Accessibility (once per run);
@@ -214,6 +217,10 @@ pub fn run() {
             eprintln!("pal	not running; the extension loads at the next start");
         }
         return;
+    }
+    // `pal pick`: this process reads the rows, hands the picker to the instance and waits for the answer (pick.rs).
+    if let Some(cli::Cmd::Pick { reply: None, title, multi, query, select }) = &cli.cmd {
+        std::process::exit(pick::client(pick::Options { title: title.clone(), multi: *multi, query: query.clone(), select: select.clone() }, &context.config().identifier));
     }
     // A subcommand or a link for a running instance: handed over here, before tauri is built (cli.rs).
     if (cli.cmd.is_some() || deeplink::argv_link().is_some()) && cli::handover(&context.config().identifier) {
@@ -288,6 +295,8 @@ pub fn run() {
             settings::settings_open,
             settings::settings_close,
             updater::check_updates,
+            updater::update_install,
+            updater::update_progress,
             welcome::welcome_reset,
             hotkey::hotkey_status,
             permissions::permissions_status,
@@ -298,6 +307,8 @@ pub fn run() {
             bar::popover::bar_action,
             bar::popover::bar_refresh,
             deeplink::link_copy,
+            pick::pick_reply,
+            dialog::dialog_detect,
             large::large_hide,
             large::large_show,
         ])
@@ -358,7 +369,7 @@ pub fn run() {
             permissions::install(app.handle());
             clipboard::install(app.handle());
             storage::install(app.handle());
-            updater::install(app.handle());
+            updater::install_checks(app.handle());
             index::restore_cache(app.handle());
             bar::install(app.handle());
             media::install(app.handle());

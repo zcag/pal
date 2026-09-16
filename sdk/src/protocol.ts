@@ -114,6 +114,14 @@ export type Action = {
   /** Ask first; the question shown, with the action's title as the go-ahead. */
   confirm?: string;
   /**
+   * Works on several rows at once: with rows marked (cmd+click, shift+↑↓,
+   * Tab or `x` in a `multi` palette) the action panel lists only the actions that
+   * say so, and Enter runs the first over the marked rows as one `pick`
+   * whose `ctx.ids` is every marked id (`id` is the first). An action
+   * without it is single-row only.
+   */
+  multi?: true;
+  /**
    * Routes its key, is never listed: not in ⌘K, not in the footer, and not
    * one of the Enter / ⌘Enter pair (those are the first two listed). Needs
    * a `shortcut`, else nothing could reach it (`checkView` refuses one
@@ -384,6 +392,15 @@ export type Effect = {
    * characters; blank text shows nothing.
    */
   large_type?: string;
+  /**
+   * Dialog jump: hide, then type this path into the open or save panel
+   * the app in front has up (its Go to Folder sheet: cmd+shift+g, the
+   * path pasted, Return; ctrl+l on a GTK chooser). The HUD says which
+   * panel took it, or that none was up. `dialog.current()` (api.ts) says
+   * whether one is, so a row can lead with the action only then. Needs
+   * Accessibility on macOS like `paste`, with the same toast when missing.
+   */
+  dialog?: string;
   /** Stay open and list again. */
   keep?: true;
   /**
@@ -409,7 +426,16 @@ export type Effect = {
  * Refresh action), so a cache the palette keeps should step aside.
  * `values` on a `pick`: the submitted fields of an `Effect.form`.
  */
-export type Ctx = { filter?: string; args?: unknown; refresh?: boolean; values?: FormValues; /** On a `list`: the root's inline section asks (`Palette.inline`), so a palette that lists hints for an empty query can answer only what matched. */ inline?: true };
+export type Ctx = {
+  filter?: string;
+  args?: unknown;
+  refresh?: boolean;
+  values?: FormValues;
+  /** On a `list`: the root's inline section asks (`Palette.inline`), so a palette that lists hints for an empty query can answer only what matched. */
+  inline?: true;
+  /** On a `pick` of an `Action.multi` action: every marked id, the pick's `id` first. Absent on a single pick. */
+  ids?: string[];
+};
 
 /**
  * What a palette's rows are at the root next to everyone else's. `primary`:
@@ -459,6 +485,15 @@ type PaletteBase = {
    * (`checkPalettes`); this one is a fallback while the manifest has none.
    */
   ttl?: number;
+  /**
+   * The palette's first listing of a run waits for the first panel show
+   * rather than running at process start: its cached rows still restore
+   * into the root at startup, and from that show on `ttl` and `live`
+   * apply as usual. For a palette whose listing prompts (1Password asks
+   * per app) or reaches the network. The manifest's `lazy` wins over this
+   * one (`checkPalettes`).
+   */
+  lazy?: boolean;
   /** The palette's tier at the root; the manifest may declare it instead. */
   tier?: Tier;
   /**
@@ -497,6 +532,14 @@ type PaletteBase = {
    * A row's `section` names its own section ("Clipboard"), else "Now".
    */
   suggest?: () => Item[] | Promise<Item[]>;
+  /**
+   * Rows are marked with Tab, and with a bare `x` while nothing is typed,
+   * too (cmd+click and shift+↑↓ mark in every palette): for a palette
+   * whose rows are gathered (files to trash, windows to close). Not next
+   * to `filters`: Tab cycles those.
+   */
+  multi?: boolean;
+  /** `id` is the picked row, or the first marked one with `ctx.ids` carrying them all (`Action.multi`). */
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
   /**
    * The detail pane's content for one item, asked when the pane is open and
@@ -706,6 +749,8 @@ export type ManifestPalette = {
   settings?: SettingSpec[];
   /** See `Palette.ttl`; this value wins over the code's. */
   ttl?: number;
+  /** See `Palette.lazy`: the first listing waits for the first panel show; this value wins over the code's. */
+  lazy?: boolean;
   /** See `Palette.tier`; this value wins over the code's. */
   tier?: Tier;
   /** See `Palette.match`: the regex source, for the store; the code's wins when both are set. */
@@ -773,4 +818,8 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   fallbackTitle?: string;
   /** The palette answers `suggest()` for the root's "Now" section. */
   suggest?: true;
+  /** Tab (and a bare `x` with nothing typed) marks rows (`Palette.multi`). */
+  multi?: true;
+  /** The first listing of a run waits for the first panel show (`Palette.lazy`); the cached rows restore either way. */
+  lazy?: true;
 };

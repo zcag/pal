@@ -1,10 +1,11 @@
 import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Icon } from "./Icon";
-import { Highlight } from "./Row";
+import { CHECK, Highlight } from "./Row";
 import { keepFocus, useCmdHeld } from "./keys";
-import { domId, flatten, useGridColumns, useHover, useMetrics, observeRect } from "./virtual";
-import type { Hit, ListHandle } from "./List";
+import { domId, flatten, useGridColumns, useHover, useMetrics, observeRect, ensureVisible } from "./virtual";
+import { clickWithModifier, type Hit, type ListHandle } from "./List";
+import type { Item } from "./types";
 
 export type GridProps = {
   id: string;
@@ -12,6 +13,10 @@ export type GridProps = {
   cursor: number;
   onCursor: (index: number) => void;
   onPick?: (index: number) => void;
+  /** Whether the tile is marked (`selection.ts`). */
+  marked?: (item: Item) => boolean;
+  /** A cmd+click (ctrl on Linux): mark or unmark the tile instead of picking it. */
+  onToggle?: (index: number) => void;
   columns?: number;
   /** Tile width / height. */
   aspect?: number;
@@ -26,7 +31,7 @@ export type GridProps = {
  * be close; a change of column count renews the item keys, which drops the
  * virtualiser's size cache so every row measures again.
  */
-export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, columns = 6, aspect = 1, label }, ref) {
+export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, marked, onToggle, columns = 6, aspect = 1, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const cols = useGridColumns(scroller, metrics, columns);
@@ -66,7 +71,9 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
     if (row === undefined) return;
     virt.scrollToIndex(row, { align: "auto" });
     if (rows[row - 1]?.kind === "header") virt.scrollToIndex(row - 1, { align: "auto" });
-  }, [cursor, rows, rowOf, virt, hovered]);
+    // The virtualiser's rect can be stale (a footer that appeared, a hidden spell): the DOM has the last word.
+    requestAnimationFrame(() => ensureVisible(scroller.current, [domId(id, cursor)]));
+  }, [cursor, rows, rowOf, virt, hovered, id]);
 
   return (
     <div ref={scroller} className="pal-grid" role="grid" id={id} aria-label={label} aria-activedescendant={hits.length ? domId(id, cursor) : undefined} style={{ "--cols": cols } as CSSProperties}>
@@ -86,11 +93,13 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
             <div key={v.key} ref={virt.measureElement} data-index={v.index} className="pal-grid__row" role="row" style={style}>
               {row.items.map((item, k) => {
                 const i = row.index + k;
+                const isMarked = marked?.(item);
                 return (
-                  <div key={i} id={domId(id, i)} role="gridcell" aria-selected={i === cursor} className="pal-tile" data-active={i === cursor || undefined} onMouseMove={hover(i)} onMouseDown={keepFocus} onClick={() => onPick?.(i)}>
+                  <div key={i} id={domId(id, i)} role="gridcell" aria-selected={i === cursor} aria-checked={isMarked || undefined} className="pal-tile" data-active={i === cursor || undefined} data-marked={isMarked || undefined} onMouseMove={hover(i)} onMouseDown={keepFocus} onClick={(e) => (onToggle && clickWithModifier(e) ? onToggle(i) : onPick?.(i))}>
                     <div className="pal-tile__box" style={{ aspectRatio: aspect }}>
                       <Icon icon={item.icon} size="lg" />
                       {cmdHeld && i < 9 && <kbd className="pal-row__ordinal pal-tile__ordinal" aria-hidden>{i + 1}</kbd>}
+                      {isMarked && <span className="pal-tile__check" aria-hidden>{CHECK}</span>}
                     </div>
                     <span className="pal-tile__label"><Highlight text={item.name} positions={hits[i].match?.name} /></span>
                   </div>

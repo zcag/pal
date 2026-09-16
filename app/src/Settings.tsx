@@ -13,7 +13,7 @@ import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsWindow,
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages,
   type BarConfig, type BarItem, type BarItemConfig, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
-  type CrashReport, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo,
+  type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
 import { screenshotUrl } from "./ui/icons";
@@ -271,6 +271,14 @@ export default function Settings() {
   }, []);
   useEffect(() => { if (page === "overview" || page === "extensions") check(false); }, [page, check]);
   const update = view?.checks.app?.value;
+  // An install's steps (updater.rs `Progress`): the row and the Overview draw them; a window opened mid-way reads the state first.
+  const [progress, setProgress] = useState<UpdateProgress | undefined>(undefined);
+  useEffect(() => {
+    invoke<UpdateProgress>("update_progress").then(setProgress).catch(() => {});
+    const u = listen<UpdateProgress>("pal://update", (e) => setProgress(e.payload));
+    return () => { u.then((f) => f()); };
+  }, []);
+  const installUpdate = useCallback(() => invoke<void>("update_install"), []);
   const latest = useMemo(() => Object.fromEntries((view?.checks.extensions?.value ?? []).map((u) => [u.name, u.latest.slice(0, 7)])), [view]);
 
   /** The user's store (`Store::locate`, under the data dir): the root whose extensions Update and Remove apply to. */
@@ -309,6 +317,15 @@ export default function Settings() {
     write(key, clear ? undefined : value);
   }, [write]);
 
+  /** The palette's indexed rows (index.rs `query` scoped to its source: the cached listing, every row, no cap), for the item hotkeys' picker. */
+  const paletteItems = useCallback(async (p: SettingsPalette): Promise<PaletteItem[]> => {
+    const e = view?.extensions.find((x) => x.palettes.some((m) => paletteId(x.name, m.name) === p.id));
+    const m = e?.palettes.find((m) => paletteId(e.name, m.name) === p.id);
+    if (!e || !m) return [];
+    const hits = await invoke<{ id: string; item: { name: string } }[]>("query", { q: "", limit: 5000, sources: [{ extension: e.name, palette: m.name }] });
+    return hits.map((h) => ({ id: h.id, name: h.item.name }));
+  }, [view]);
+
   if (error && !view) return <div className="pal-settings" style={{ padding: 16 }}>{error}</div>;
   if (!view) return null;
   const { config } = view;
@@ -332,6 +349,13 @@ export default function Settings() {
     if (next.enabled !== cur.enabled) write(["palettes", id, "enabled"], next.enabled ? undefined : false);
     for (const k of ["alias", "hotkey", "icon", "tier"] as const) {
       if ((next[k] ?? "") !== (cur[k] ?? "")) write(["palettes", id, k], next[k]?.trim() ? next[k] : undefined);
+    }
+    // `item_hotkeys`: one key per item, so a hand-written table keeps its
+    // other lines; the whole table goes when the last one does.
+    const wasKeys = cur.itemHotkeys ?? {}, nowKeys = next.itemHotkeys ?? {};
+    if (JSON.stringify(wasKeys) !== JSON.stringify(nowKeys)) {
+      if (!Object.keys(nowKeys).length) write(["palettes", id, "item_hotkeys"], undefined);
+      else for (const k of new Set([...Object.keys(wasKeys), ...Object.keys(nowKeys)])) if (wasKeys[k] !== nowKeys[k]) write(["palettes", id, "item_hotkeys", k], nowKeys[k]);
     }
     for (const k of new Set([...Object.keys(next.settings), ...Object.keys(cur.settings)])) {
       if (!sameValue(next.settings[k], cur.settings[k])) writeDeclared(["palettes", id, "settings", k], p.settings.find((s) => s.id === k), next.settings[k]);
@@ -399,8 +423,10 @@ export default function Settings() {
           barSupported={barSupported}
           diagnostics={view.diagnostics}
           update={update}
+          progress={progress}
           checks={{ enabled: config.general.check_updates, checkedAt: checkedAt(view.checks), error: view.checks.app?.error ?? view.checks.extensions?.error, status: view.checks.app?.value?.status, busy: checking }}
           onCheckUpdates={() => check(true)}
+          onInstallUpdate={() => installUpdate().catch(fail)}
           onGo={go}
           onRequestPermission={requestPermission}
           onOpenKeyboardShortcuts={openKeyboardShortcuts}
@@ -424,7 +450,7 @@ export default function Settings() {
           onOpenOverview={() => go("overview", "overview:attention")}
         />
       )}
-      {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} />}
+      {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}
       {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} />}
       {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} />}
       {page === "about" && (
@@ -433,6 +459,9 @@ export default function Settings() {
           file={view.path}
           links={about}
           onCheckUpdates={() => invoke<UpdateInfo>("check_updates").then((u) => { refresh(); return u; })}
+          update={update}
+          onInstallUpdate={installUpdate}
+          progress={progress}
           onOpenLink={openLink}
           onRevealFile={() => invoke("settings_reveal_file").catch(fail)}
           crash={about.report}

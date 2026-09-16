@@ -44,7 +44,7 @@ export const grammar: { keys: string[]; does: string }[] = [
   { keys: ["enter"], does: "Run the primary action" },
   { keys: ["cmd+enter"], does: "Run the secondary action" },
   { keys: ["cmd+k"], does: "Toggle the action panel" },
-  { keys: ["escape"], does: "Close action panel, else clear query, else pop a level, else hide" },
+  { keys: ["escape"], does: "Close action panel, else clear the marks, else clear query, else pop a level, else hide" },
   { keys: ["cmd+backspace"], does: "Pop a level when the query is empty" },
   { keys: ["tab", "shift+tab"], does: "Cycle the filter dropdown, when there is one" },
   { keys: ["cmd+i"], does: "Toggle the detail pane" },
@@ -53,6 +53,8 @@ export const grammar: { keys: string[]; does: string }[] = [
   { keys: ["cmd+c"], does: "Any other modifier combo runs the action carrying that shortcut" },
   { keys: ["h", "space", "backspace"], does: "In a view level with bare-key actions, a bare key runs the action carrying it" },
   { keys: ["shift+↑"], does: "A shifted arrow runs the action carrying it (a view's big step), else moves" },
+  { keys: ["shift+↓", "cmd+click"], does: "In a list, mark the row (and move); cmd+click marks or unmarks one; Escape clears the marks" },
+  { keys: ["tab", "x"], does: "In a palette that opts in (multi, no filters), mark the row and step down; x only while nothing is typed" },
 ];
 
 const keyName = (e: KeyboardEvent) => {

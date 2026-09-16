@@ -15,7 +15,7 @@
 //! - `core/selection.text` (selection.rs)
 //! - `core/menubar.{items, press {pid, id}}` (menubar.rs)
 //! - `core/permissions.{status, request {which}}` (permissions.rs)
-//! - `core/settings.get {extension, manifest}` (settings.rs)
+//! - `core/settings.{get {extension, manifest}, set {extension, palette?, values}}` (settings.rs)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
 //! - `core/system.{commands, run}` (system.rs)
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
@@ -41,6 +41,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "bluetooth" => crate::bluetooth::call(app, func, params),
         "clipboard" => crate::clipboard::call(app, func, params),
         "color" => crate::color::call(app, func, params),
+        "dialog" => crate::dialog::call(app, func, params),
         "effects" => crate::effects::call(app, func, params),
         "media" => crate::media::call(app, func, params),
         "menubar" => menubar::call(app, func, params),
@@ -66,10 +67,12 @@ mod tests {
         assert_eq!(route("core/clipboard.list"), Ok(("clipboard", "list")));
         assert_eq!(route("core/apps.for_file"), Ok(("apps", "for_file")));
         assert_eq!(route("core/settings.get"), Ok(("settings", "get")));
+        assert_eq!(route("core/settings.set"), Ok(("settings", "set")));
         assert_eq!(route("core/bar.update"), Ok(("bar", "update")));
         assert_eq!(route("core/wifi.set_power"), Ok(("wifi", "set_power")));
         assert_eq!(route("core/calendar.events"), Ok(("calendar", "events")));
         assert_eq!(route("core/ocr.image"), Ok(("ocr", "image")));
+        assert_eq!(route("core/dialog.current"), Ok(("dialog", "current")));
         assert_eq!(route("core/selection.text"), Ok(("selection", "text")));
         assert_eq!(route("core/menubar.press"), Ok(("menubar", "press")));
         assert_eq!(route("core/color.sample"), Ok(("color", "sample")));

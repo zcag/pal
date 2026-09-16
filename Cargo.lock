@@ -3250,6 +3250,7 @@ dependencies = [
  "clap",
  "gtk",
  "image",
+ "libc",
  "objc2",
  "objc2-app-kit",
  "objc2-core-location",

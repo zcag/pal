@@ -128,3 +128,23 @@ export function groupBySection<T extends { item: Item }>(hits: T[]): T[] {
 }
 
 export const domId = (listId: string, index: number) => `${listId}-${index}`;
+
+/**
+ * After the virtualiser scrolled the cursor's row into view, check the DOM:
+ * the virtualiser trusts its last rect of the scroller, and a rect read
+ * while the footer was absent or the panel hidden leaves the last rows
+ * under the footer. A row (or its header) whose box crosses the scroller's
+ * edge is nudged in by the difference.
+ */
+export function ensureVisible(scroller: HTMLElement | null, ids: string[]) {
+  if (!scroller) return;
+  const box = scroller.getBoundingClientRect();
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.bottom > box.bottom) scroller.scrollTop += r.bottom - box.bottom;
+    else if (r.top < box.top) scroller.scrollTop -= box.top - r.top;
+  }
+}
+

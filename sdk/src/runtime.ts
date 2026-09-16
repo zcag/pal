@@ -21,6 +21,8 @@ export type Runtime = {
   resolved(extension: string): ResolvedSettings;
   /** Called with the new values on every change; returns the unsubscribe. */
   subscribe(extension: string, cb: (s: ResolvedSettings) => void): () => void;
+  /** The extension's values as the core answered a write (`settings.set`): into the table now, ahead of the config watcher's own `settings/changed`. */
+  update(extension: string, s: ResolvedSettings): void;
 };
 
 const KEY = Symbol.for("@zcag/pal/runtime");

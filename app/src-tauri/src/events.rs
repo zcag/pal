@@ -30,6 +30,9 @@ pub const PERMISSIONS: &str = "pal://permissions";
 /// The root hotkey's registration outcome changed: `hotkey::Outcome`
 /// (registered, failed and why, Spotlight holding it).
 pub const HOTKEY: &str = "pal://hotkey";
+/// An update install moved a step: `updater::Progress` (`{ phase, version,
+/// downloaded?, total?, error? }`); the About row and the Overview draw it.
+pub const UPDATE: &str = "pal://update";
 /// To the settings window: `{ page }` to show (`settings::open_page`).
 pub const SETTINGS: &str = "pal://settings";
 /// The bar popover's page: the item to show on one level (`{ key, title,

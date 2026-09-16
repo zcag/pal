@@ -47,13 +47,18 @@ export function caller(extension?: string): Context {
 }
 
 /**
- * The core's `settings/changed`: replaces each named extension's values and
- * tells its listeners. One extension's listener throwing is its own problem
- * (logged), never the other extensions' values.
+ * The core's `settings/changed` (and the answer to an extension's own
+ * `settings.set`): replaces each named extension's values and tells its
+ * listeners, unless the values are the ones it already has (a write is
+ * answered, then pushed, then reloaded by the watcher: one change, one
+ * call). One extension's listener throwing is its own problem (logged),
+ * never the other extensions' values.
  */
 export function update(extensions: Record<string, ResolvedSettings>) {
   for (const [name, s] of Object.entries(extensions)) {
+    const same = table.has(name) && JSON.stringify(table.get(name)) === JSON.stringify(s);
     table.set(name, s);
+    if (same) continue;
     for (const cb of listeners.get(name) ?? []) {
       try {
         cb(s);

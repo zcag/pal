@@ -24,12 +24,36 @@ declare const process: { env: Record<string, string | undefined> } | undefined;
 const homeDir = (): string => (typeof process === "undefined" ? "" : process.env.HOME || process.env.USERPROFILE || "");
 export const home = (path: string): string => path.replace(/^~(?=\/|$)/, homeDir());
 
+/** A setting's value as an extension writes it: what the kind stores, or `null` to unset the key (back to the manifest's default). */
+export type SettingWrite = string | number | boolean | string[] | null;
+/** Several settings at once, by id: one file edit, one change for every reader. */
+export type SettingWrites = Record<string, SettingWrite>;
+
+/** `core/settings.set`: the writes (one file edit), then the table takes the values the core answers with. */
+async function setSettings(extension: string, palette: string | undefined, values: SettingWrites): Promise<void> {
+  const r = await call<ResolvedSettings>("settings.set", { extension, ...(palette !== undefined && { palette }), values });
+  runtime().update(extension, r);
+}
+
+/** `(id, value)` or `({ id: value, ... })` into the map one call writes. */
+const writes = (id: string | SettingWrites, value?: SettingWrite): SettingWrites => (typeof id === "string" ? { [id]: value ?? null } : id);
+
 /**
  * The extension's settings as the user set them: the manifest's defaults
  * (pal.json) with the config file's `[extensions.<name>]` on top, kept
  * current by the core on every config change. Which extension is asking is
  * known inside `list`/`pick`/`view` and at import time; elsewhere pass the
  * name.
+ *
+ * `set` writes declared settings to the config file the way the settings
+ * window does (a surgical edit; comments and the rest of the file stay):
+ * the core checks each value against the setting's `kind`, puts a `secret`
+ * in the OS keychain and writes the `keychain:` reference, unsets the key
+ * for `null` or the manifest's default, writes several ids given as one
+ * object in one edit (so no reader sees half of them), and answers with
+ * the extension's values, which `get` sees at once and `onChange` hears
+ * once. An id the manifest does not declare, or a value of the wrong
+ * kind, rejects and nothing is written.
  */
 export const settings = {
   /** Extension-level values, `[extensions.<name>]`. */
@@ -40,6 +64,23 @@ export const settings = {
     const name = palette ?? c.palette;
     if (!name) throw new Error("settings.palette: no palette in context; pass its name");
     return (runtime().resolved(c.extension).palettes[name] ?? {}) as T;
+  },
+  /** Write extension-level settings, `[extensions.<name>]`: `set(id, value)` or `set({ id: value, ... })`; `null` unsets. */
+  set: ((id: string | SettingWrites, value?: SettingWrite | string, extension?: string): Promise<void> =>
+    typeof id === "string" ? setSettings(who(extension), undefined, writes(id, value as SettingWrite)) : setSettings(who(value as string | undefined), undefined, id)) as {
+    (id: string, value: SettingWrite, extension?: string): Promise<void>;
+    (values: SettingWrites, extension?: string): Promise<void>;
+  },
+  /** Write a palette's declared settings, `[palettes.<id>.settings]`, the same two shapes; the current palette inside `list`/`pick`. */
+  setPalette: ((id: string | SettingWrites, value?: SettingWrite | string, palette?: string, extension?: string): Promise<void> => {
+    const [vals, pal, ext] = typeof id === "string" ? [writes(id, value as SettingWrite), palette, extension] : [id, value as string | undefined, palette];
+    const c = runtime().caller(ext);
+    const name = pal ?? c.palette;
+    if (!name) return Promise.reject(new Error("settings.setPalette: no palette in context; pass its name"));
+    return setSettings(c.extension, name, vals);
+  }) as {
+    (id: string, value: SettingWrite, palette?: string, extension?: string): Promise<void>;
+    (values: SettingWrites, palette?: string, extension?: string): Promise<void>;
   },
   /** Called with the new values whenever they change; returns the unsubscribe. */
   onChange: (cb: (s: ResolvedSettings) => void, extension?: string): (() => void) => runtime().subscribe(who(extension), cb),
@@ -477,6 +518,19 @@ export const conceal = (text: string, clearAfter = CONCEAL_SECONDS): CopyText =>
  */
 export const selection = {
   text: () => call<string | null>("selection.text"),
+};
+
+/** The open or save panel the app in front has up (`pal_core::dialog`): which app, which kind, its title when it has one. */
+export type Dialog = { app: string; pid: number; kind: "open" | "save"; title?: string | null };
+
+/**
+ * The file dialog in front, if any: `null` when none is up, off macOS, or
+ * without Accessibility. Detected once per panel show and cached, so a
+ * list may ask on every keystroke; the `dialog` effect types a path into
+ * it.
+ */
+export const dialog = {
+  current: () => call<Dialog | null>("dialog.current"),
 };
 
 /**

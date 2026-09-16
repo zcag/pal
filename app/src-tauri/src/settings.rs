@@ -273,15 +273,104 @@ fn resolved(config: &Config, name: &str, manifest: &Value) -> Value {
 /// `core/settings.get {extension, manifest}`: the host asks before it
 /// imports an extension, so `settings.get()` at the module's top level
 /// already has the values (the registry only learns of the extension once
-/// the import is done).
+/// the import is done). `core/settings.set {extension, palette?, values:
+/// {id: value}}`: an extension writes one or more of its declared settings
+/// in one file edit (`plan_write` per id, then `write_settings`).
 pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     match func {
         "get" => {
             let name = params["extension"].as_str().ok_or("settings.get: no extension")?;
             Ok(resolved(&config(app), name, &params["manifest"]))
         }
+        "set" => {
+            let name = params["extension"].as_str().ok_or("settings.set: no extension")?;
+            let values = params["values"].as_object().filter(|v| !v.is_empty()).ok_or("settings.set: no values")?;
+            let manifest = manifest_of(app, name).ok_or_else(|| format!("settings.set: no extension {name}"))?;
+            let writes = values.iter().map(|(id, v)| plan_write(&manifest, name, params["palette"].as_str(), id, v.clone())).collect::<Result<Vec<_>, _>>().map_err(|e| format!("settings.set: {e}"))?;
+            write_settings(app, name, &manifest, writes)
+        }
         _ => Err(format!("unknown settings function {func}")),
     }
+}
+
+/// One declared setting's write, as `plan_write` decides it from the
+/// manifest: the file key, and the value to set or `None` to unset.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SettingWrite {
+    /// The dotted config key (`extensions.hue.bridge`, `palettes.emoji.settings.columns`).
+    pub key: String,
+    /// `None`: unset (a `null`, or the manifest's default).
+    pub value: Option<Value>,
+    /// A `secret` whose plain value goes to the OS store under this key first; the file gets `keychain:<key>`.
+    pub secret_key: Option<String>,
+}
+
+/// The write for `id` of `extension` (or of its palette `palette`),
+/// checked against the manifest: the setting must be declared there and
+/// `value` must fit its kind (`pal_core::config::specs::check`). A value
+/// equal to the declared default unsets the key, as the settings window
+/// does; a `secret` that is not already a `keychain:`/`env:` reference is
+/// planned into the store. Pure, so the tests cover it.
+pub fn plan_write(manifest: &Value, extension: &str, palette: Option<&str>, id: &str, value: Value) -> Result<SettingWrite, String> {
+    let (specs, key, secret_key) = match palette {
+        Some(p) => {
+            let m = &manifest["palettes"][p];
+            if m.is_null() {
+                return Err(format!("{extension} declares no palette {p}"));
+            }
+            let pid = palette_id(&pal_core::index::Source::new(extension, p));
+            (&m["settings"], format!("palettes.{}.settings.{}", quote(&pid), quote(id)), format!("pal/{pid}-settings-{id}"))
+        }
+        None => (&manifest["settings"], format!("extensions.{}.{}", quote(extension), quote(id)), format!("pal/{extension}-{id}")),
+    };
+    let spec = pal_core::config::specs::find(specs, id).ok_or_else(|| match palette {
+        Some(p) => format!("{extension}/{p} declares no setting {id}"),
+        None => format!("{extension} declares no setting {id}"),
+    })?;
+    pal_core::config::specs::check(spec, &value).map_err(|e| format!("{id}: {e}"))?;
+    let default = spec.get("default").cloned().unwrap_or(Value::Null);
+    let secret = spec["kind"] == "secret" && value.as_str().is_some_and(|v| !v.is_empty() && SecretRef::parse(v).is_none());
+    let value = if value.is_null() || (!secret && value == default) { None } else { Some(value) };
+    Ok(SettingWrite { key, value, secret_key: secret.then_some(secret_key) })
+}
+
+/// A dotted-key segment, quoted when TOML needs it.
+fn quote(seg: &str) -> String {
+    if !seg.is_empty() && seg.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-') { seg.to_string() } else { format!("{seg:?}") }
+}
+
+/// Runs the planned writes: each secret to the store, then every key to
+/// the file in one edit (`set_many`, one retry on a contended file), then
+/// the extension's values as the file now has them, pushed to the host
+/// ahead of the watcher's own reload and answered to the caller.
+fn write_settings(app: &AppHandle, name: &str, manifest: &Value, writes: Vec<SettingWrite>) -> Result<Value, String> {
+    let st = app.state::<Settings>();
+    let mut changes = Vec::with_capacity(writes.len());
+    let mut said = Vec::with_capacity(writes.len());
+    for w in writes {
+        let value = match (&w.secret_key, w.value) {
+            (Some(k), Some(v)) => {
+                platform_store().set(k, v.as_str().unwrap_or_default()).map_err(|e| format!("{k}: could not store in the keychain: {e}"))?;
+                Some(json!(format!("keychain:{k}")))
+            }
+            (_, v) => v,
+        };
+        said.push(format!("{}={}", w.key, if w.secret_key.is_some() { "<secret>" } else if value.is_some() { "value" } else { "unset" }));
+        changes.push((w.key, value));
+    }
+    retrying(|| st.file.set_many(changes.clone())).map_err(|e| format!("{}: {e}", changes.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>().join(", ")))?;
+    eprintln!("settings\tset\t{name}\t{}", said.join(" "));
+    let fresh = st.file.load().config;
+    let r = resolved(&fresh, name, manifest);
+    if let Some(host) = app.try_state::<Arc<Host>>() {
+        let (host, payload) = (host.inner().clone(), json!({ "extensions": { name: r.clone() } }));
+        tauri::async_runtime::spawn(async move {
+            if let Err(e) = host.notify("settings/changed", payload).await {
+                eprintln!("settings	push failed	{e}");
+            }
+        });
+    }
+    Ok(r)
 }
 
 /// `(name, manifest)` of every registered extension: what `resolved` needs,
@@ -810,6 +899,47 @@ mod tests {
     use super::*;
 
     const DAY: u64 = 24 * 60 * 60 * 1000;
+
+    /// `core/settings.set` from an extension: the key it lands on, what a
+    /// secret does, what a default or null does, and what is refused.
+    #[test]
+    fn plan_write_checks_the_manifest_and_names_the_key() {
+        let manifest = json!({
+            "name": "hue",
+            "settings": [
+                { "id": "bridge", "kind": "text" },
+                { "id": "application_key", "kind": "secret" },
+                { "id": "insecure", "kind": "boolean", "default": false },
+                { "id": "timeout", "kind": "number", "min": 1, "max": 60, "default": 5 },
+                { "id": "bar_scenes", "kind": "list", "default": [] },
+            ],
+            "palettes": { "rooms": { "settings": [{ "id": "columns", "kind": "number", "default": 4 }] }, "hue": { "settings": [{ "id": "x", "kind": "text" }] } },
+        });
+        let plan = |palette: Option<&str>, id: &str, v: Value| plan_write(&manifest, "hue", palette, id, v);
+        assert_eq!(plan(None, "bridge", json!("192.168.1.25")).unwrap(), SettingWrite { key: "extensions.hue.bridge".into(), value: Some(json!("192.168.1.25")), secret_key: None });
+        // A secret: the store first, the file gets the reference (write_setting); a reference as given is written as is.
+        assert_eq!(plan(None, "application_key", json!("abc")).unwrap(), SettingWrite { key: "extensions.hue.application_key".into(), value: Some(json!("abc")), secret_key: Some("pal/hue-application_key".into()) });
+        assert_eq!(plan(None, "application_key", json!("env:HUE_KEY")).unwrap().secret_key, None);
+        assert_eq!(plan(None, "application_key", json!("")).unwrap(), SettingWrite { key: "extensions.hue.application_key".into(), value: Some(json!("")), secret_key: None }, "an empty secret is a plain (empty) value");
+        // The default and null unset the key, as the settings window does.
+        assert_eq!(plan(None, "insecure", json!(false)).unwrap().value, None);
+        assert_eq!(plan(None, "insecure", json!(true)).unwrap().value, Some(json!(true)));
+        assert_eq!(plan(None, "timeout", Value::Null).unwrap().value, None);
+        assert_eq!(plan(None, "bar_scenes", json!([])).unwrap().value, None);
+        assert_eq!(plan(None, "bar_scenes", json!(["relax"])).unwrap().value, Some(json!(["relax"])));
+        // A palette's setting: under `[palettes.<id>.settings]`, the id as `palette_id` spells it.
+        assert_eq!(plan(Some("rooms"), "columns", json!(6)).unwrap(), SettingWrite { key: "palettes.hue-rooms.settings.columns".into(), value: Some(json!(6)), secret_key: None });
+        assert_eq!(plan(Some("hue"), "x", json!("y")).unwrap().key, "palettes.hue.settings.x", "the palette named like its extension");
+        // Refused: undeclared, the wrong kind, out of range, no such palette.
+        assert_eq!(plan(None, "colour", json!("red")).unwrap_err(), "hue declares no setting colour");
+        assert_eq!(plan(Some("rooms"), "bridge", json!("x")).unwrap_err(), "hue/rooms declares no setting bridge");
+        assert_eq!(plan(Some("nope"), "x", json!("x")).unwrap_err(), "hue declares no palette nope");
+        assert!(plan(None, "timeout", json!("5")).unwrap_err().starts_with("timeout: a number setting takes a number"));
+        assert!(plan(None, "timeout", json!(90)).unwrap_err().contains("over the setting's maximum 60"));
+        assert!(plan(None, "insecure", json!("yes")).unwrap_err().contains("true or false"));
+        // Odd names are quoted for the dotted key.
+        assert_eq!(plan_write(&json!({ "settings": [{ "id": "a.b", "kind": "text" }] }), "my.ext", None, "a.b", json!("v")).unwrap().key, "extensions.\"my.ext\".\"a.b\"");
+    }
 
     #[test]
     fn a_check_is_due_once_a_day_while_on_and_always_on_demand() {

@@ -230,6 +230,76 @@ export default { palettes: {
   });
 });
 
+describe("settings.set", () => {
+  let root: Root;
+  let host: Host;
+  beforeAll(async () => {
+    root = new Root({
+      writer: {
+        "index.ts": `
+import { settings } from "${API}";
+const heard = [];
+settings.onChange((s) => heard.push(s.settings.name + "/" + (s.settings.token ?? "")), "writer");
+export default { palettes: {
+  main: {
+    list: () => [{ id: "a", name: String(settings.get().name) }],
+    pick: async (id, action) => {
+      if (action === "name") { await settings.set("name", "paired"); return { after: settings.get().name }; }
+      if (action === "secret") { await settings.set("token", "s3cret"); return { after: settings.get().token }; }
+      if (action === "default") { await settings.set("name", "default name"); return { after: settings.get().name }; }
+      if (action === "unset") { await settings.set("name", null); return { after: settings.get().name }; }
+      if (action === "undeclared") { try { await settings.set({ name: "half", nope: 1 }); return { ok: true }; } catch (e) { return { error: e.message, name: settings.get().name }; } }
+      if (action === "both") { await settings.set({ name: "both", token: "t0k" }); return { after: settings.get() }; }
+      if (action === "palette") { await settings.setPalette("columns", 6); return { after: settings.palette().columns }; }
+      if (action === "heard") { await Bun.sleep(20); return { heard }; }
+      return {};
+    },
+  },
+} };`,
+        "pal.json": manifest("writer", {
+          settings: [{ id: "name", kind: "text", label: "Name", default: "default name" }, { id: "token", kind: "secret", label: "Token" }],
+          palettes: { main: { kind: "list", settings: [{ id: "columns", kind: "number", label: "Columns", default: 4 }] } },
+        }),
+      },
+    });
+    host = await Host.start({ roots: [root.dir] });
+  });
+  afterAll(() => { host.kill(); root.rm(); });
+
+  test("a write is one core/settings.set with the extension, id and value; the table has the value when the call resolves", async () => {
+    expect(await host.list("writer", "main")).toEqual([{ id: "a", name: "default name" }]);
+    expect(await host.pick("writer", "main", "a", "name")).toEqual({ after: "paired" });
+    expect(host.coreCalls.find((c) => c.method === "settings.set")).toEqual({ method: "settings.set", params: { extension: "writer", values: { name: "paired" } } });
+    expect(host.written.get("writer")).toEqual({ name: "paired" });
+    expect(await host.list("writer", "main")).toEqual([{ id: "a", name: "paired" }]);
+  });
+
+  test("a secret reaches the store, the file gets the reference, the extension sees the value", async () => {
+    expect(await host.pick("writer", "main", "a", "secret")).toEqual({ after: "s3cret" });
+    expect(host.written.get("writer")!.token).toBe("keychain:pal/writer-token");
+    expect(host.secrets.get("pal/writer-token")).toBe("s3cret");
+  });
+
+  test("the default and null unset the key; onChange hears each change once (the answer, the push and the watcher's reload carry the same values)", async () => {
+    expect(await host.pick("writer", "main", "a", "default")).toEqual({ after: "default name" });
+    expect(host.written.get("writer")!.name).toBeUndefined();
+    await host.pick("writer", "main", "a", "name");
+    expect(await host.pick("writer", "main", "a", "unset")).toEqual({ after: "default name" });
+    const { heard } = (await host.pick("writer", "main", "a", "heard")) as unknown as { heard: string[] };
+    expect(heard).toEqual(["paired/", "paired/s3cret", "default name/s3cret", "paired/s3cret", "default name/s3cret"]);
+  });
+
+  test("a palette's setting goes under its palette; an undeclared id is refused by the core", async () => {
+    expect(await host.pick("writer", "main", "a", "palette")).toEqual({ after: 6 });
+    expect(host.coreCalls.at(-1)).toEqual({ method: "settings.set", params: { extension: "writer", palette: "main", values: { columns: 6 } } });
+    expect(host.written.get("writer/main")).toEqual({ columns: 6 });
+    // One object is one call and one edit; an undeclared id in it refuses the whole write.
+    expect(await host.pick("writer", "main", "a", "both")).toEqual({ after: { name: "both", token: "t0k" } });
+    expect(host.coreCalls.at(-1)).toEqual({ method: "settings.set", params: { extension: "writer", values: { name: "both", token: "t0k" } } });
+    expect(await host.pick("writer", "main", "a", "undeclared")).toEqual({ error: "settings.set: writer declares no setting nope", name: "both" });
+  });
+});
+
 describe("bar", () => {
   let root: Root;
   let host: Host;

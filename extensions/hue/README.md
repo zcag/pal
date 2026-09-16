@@ -23,16 +23,22 @@ Hue" row until a bridge is paired):
    the panel; the task keeps going and brings pal back inside the setup
    once the key is in (`effects.run({ push })`), or says in the HUD that
    the button was not pressed. Enter checks at once.
-3. Paired: the application key (and the entertainment client key) go to
-   pal's storage (`<data dir>/pal/storage/hue.json`, `bridges`), the
-   bridge's TLS certificate is pinned beside them, the home is read and
-   the event stream opened. `c` copies the key for those who want it in the
-   keychain instead: paste it under Settings › Extensions › Hue ›
-   Application key with the bridge's address, and the settings' pair wins
-   over the stored one for that address. `x` forgets a bridge.
+3. Paired: the bridge's address and application key are written to the
+   settings (`settings.set`: `bridge` and `application_key` under
+   `[extensions.hue]`, the key itself in the OS keychain and the file
+   holding the `keychain:` reference, exactly as if pasted under
+   Settings › Extensions › Hue), and the rest of the record (the
+   entertainment client key, the pinned TLS certificate) goes to pal's
+   storage (`<data dir>/pal/storage/hue.json`, `bridges`); then the home
+   is read and the event stream opened. `c` copies the key. `x` forgets
+   the bridge: its record leaves storage and, when the settings hold it,
+   the two keys leave the file.
 
-Several bridges make one home: pair each, the rows say which bridge a
-thing is on when there is more than one.
+Several bridges make one home: the settings hold one (the first paired,
+or the one typed there), and any further bridge paired keeps its key in
+its storage record; the rows say which bridge a thing is on when there is
+more than one. A key typed into the settings for an address wins over a
+stored one for that address.
 
 ## TLS
 
@@ -151,8 +157,8 @@ palette), `pal://hue/off`. Rooms and scenes go by name, slug or id.
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `bridge` | text | unset | The bridge's address, for a key kept in the keychain; pairing needs neither. |
-| `application_key` | secret | unset | The key for `bridge`, as a `keychain:` or `env:` reference. |
+| `bridge` | text | unset | The bridge's address; pairing writes it, or type it with a key of your own. |
+| `application_key` | secret | unset | The key for `bridge`: pairing puts it in the keychain (`keychain:pal/hue-application_key`); an `env:` reference works too. |
 | `insecure` | boolean | `false` | Skip the certificate check. |
 | `transition` | number (ms) | `400` | How long a change from a row or a link takes. |
 | `main_room` | text | unset | The bar dot's room. |

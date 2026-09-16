@@ -202,7 +202,7 @@ export const settingsExtensions: SettingsExtension[] = [
     palettes: [
       { id: "bookmarks", title: "Bookmarks", settings: [
         { kind: "select", id: "folder", label: "Folder", options: [{ id: "all", title: "All folders" }, { id: "bar", title: "Bookmarks bar only" }], default: "all" },
-      ], config: { enabled: true, alias: "bm", hotkey: "cmd+shift+b", settings: {} } },
+      ], config: { enabled: true, alias: "bm", hotkey: "cmd+shift+b", itemHotkeys: { "bm:docs": "ctrl+alt+d", "bm:mail": "ctrl+alt+m" }, settings: {} } },
       { id: "tabs", title: "Open tabs", settings: [], config: { enabled: false, alias: undefined, hotkey: undefined, settings: {} } },
     ],
   },

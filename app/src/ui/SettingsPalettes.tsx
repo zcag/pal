@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Empty } from "./Empty";
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
@@ -6,6 +6,9 @@ import { Tag } from "./Row";
 import { SettingsField, SettingsHotkey, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import type { PaletteConfig, PaletteTier, SettingsExtension, SettingsIndexEntry, SettingsPalette, SettingValue } from "./SettingsTypes";
 import type { Icon as IconSpec } from "./types";
+
+/** One indexed row of a palette, for the item hotkeys' picker. */
+export type PaletteItem = { id: string; name: string };
 
 export type SettingsPalettesProps = {
   extensions: SettingsExtension[];
@@ -15,6 +18,8 @@ export type SettingsPalettesProps = {
   onChange: (id: string, config: PaletteConfig) => void;
   /** The Extensions page for the palette's extension. */
   onOpenExtension?: (name: string) => void;
+  /** The palette's rows as indexed now (its cached listing), for the item hotkeys' picker; absent, the id is typed. */
+  items?: (palette: SettingsPalette) => Promise<PaletteItem[]>;
 };
 
 /** The icon a palette shows: its override, else the extension's. */
@@ -48,7 +53,7 @@ const count = (n: number) => (n === 1 ? "1 palette" : `${n} palettes`);
  * item hotkeys and the settings it declared. Arrows move the selection;
  * Tab walks the row's controls.
  */
-export function SettingsPalettes({ extensions, selected, onSelect, onChange, onOpenExtension }: SettingsPalettesProps) {
+export function SettingsPalettes({ extensions, selected, onSelect, onChange, onOpenExtension, items }: SettingsPalettesProps) {
   const [filter, setFilter] = useState("");
   const table = useRef<HTMLDivElement>(null);
   const q = filter.trim().toLowerCase();
@@ -155,15 +160,14 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, onO
       </div>
 
       <aside className="pal-palettes__pane" aria-label="Selected palette">
-        {current ? <PalettePane key={current.p.id} p={current.p} ext={current.ext} onChange={(patch) => set(current.p, patch)} onSetting={(id, v) => setSetting(current.p, id, v)} onOpenExtension={onOpenExtension} /> : <Empty title="No palette selected" />}
+        {current ? <PalettePane key={current.p.id} p={current.p} ext={current.ext} onChange={(patch) => set(current.p, patch)} onSetting={(id, v) => setSetting(current.p, id, v)} onOpenExtension={onOpenExtension} items={items} /> : <Empty title="No palette selected" />}
       </aside>
     </div>
   );
 }
 
-function PalettePane({ p, ext, onChange, onSetting, onOpenExtension }: { p: SettingsPalette; ext: SettingsExtension; onChange: (patch: Partial<PaletteConfig>) => void; onSetting: (id: string, v: SettingValue) => void; onOpenExtension?: (name: string) => void }) {
+function PalettePane({ p, ext, onChange, onSetting, onOpenExtension, items }: { p: SettingsPalette; ext: SettingsExtension; onChange: (patch: Partial<PaletteConfig>) => void; onSetting: (id: string, v: SettingValue) => void; onOpenExtension?: (name: string) => void; items?: SettingsPalettesProps["items"] }) {
   const tier = p.config.tier ?? p.tier ?? "normal";
-  const itemHotkeys = Object.entries(p.config.itemHotkeys ?? {});
   return (
     <div className="pal-ppane">
       <header className="pal-ppane__head">
@@ -197,14 +201,7 @@ function PalettePane({ p, ext, onChange, onSetting, onOpenExtension }: { p: Sett
         </section>
       )}
 
-      {itemHotkeys.length > 0 && (
-        <section className="pal-ppane__section" aria-label="Item hotkeys">
-          <h4 className="pal-ppane__h">Item hotkeys <span className="pal-ppane__h-note">palettes.{p.id}.item_hotkeys</span></h4>
-          <ul className="pal-ppane__keys">
-            {itemHotkeys.map(([item, keys]) => <li key={item}><Kbd shortcut={keys} /><span><code>{item}</code> runs without the panel</span></li>)}
-          </ul>
-        </section>
-      )}
+      {p.kind !== "view" && <ItemHotkeys p={p} onChange={(itemHotkeys) => onChange({ itemHotkeys })} items={items} />}
 
       <section className="pal-ppane__section" aria-label="Settings">
         <h4 className="pal-ppane__h">Settings <span className="pal-ppane__h-note">palettes.{p.id}.settings</span></h4>
@@ -221,6 +218,105 @@ function PalettePane({ p, ext, onChange, onSetting, onOpenExtension }: { p: Sett
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * `palettes.<id>.item_hotkeys` as a table: one row per item, its id (typed,
+ * or picked from the palette's indexed rows through the datalist, which
+ * filters as you type and shows each row's name), the recorder, Remove.
+ * "Add hotkey" opens an unsaved row that is written once it has both an
+ * id and a combination; a saved row whose id is retyped moves the
+ * combination to the new id. An id the palette does not list now is kept
+ * and marked (a row that comes and goes, or a typo).
+ */
+function ItemHotkeys({ p, onChange, items }: { p: SettingsPalette; onChange: (itemHotkeys: Record<string, string> | undefined) => void; items?: SettingsPalettesProps["items"] }) {
+  const saved = p.config.itemHotkeys ?? {};
+  const rows = Object.entries(saved);
+  const [draft, setDraft] = useState<{ id: string; hotkey?: string } | undefined>(undefined);
+  const [known, setKnown] = useState<PaletteItem[] | undefined>(undefined);
+  const listId = `item-hotkeys-${p.id}`;
+  useEffect(() => {
+    if (!items) return;
+    let live = true;
+    items(p).then((r) => { if (live) setKnown(r); }, () => { if (live) setKnown([]); });
+    return () => { live = false; };
+  }, [items, p]);
+  const nameOf = (id: string) => known?.find((k) => k.id === id)?.name;
+  const write = (next: Record<string, string>) => onChange(Object.keys(next).length ? next : undefined);
+  const rename = (from: string, to: string) => {
+    const id = to.trim();
+    if (id === from) return;
+    const next: Record<string, string> = {};
+    for (const [k, v] of rows) next[k === from ? id : k] = v;
+    if (!id) delete next[""];
+    write(next);
+  };
+  const record = (id: string, hotkey: string | undefined) => {
+    const next = { ...saved };
+    if (hotkey) next[id] = hotkey;
+    else delete next[id];
+    write(next);
+  };
+  const remove = (id: string) => { const next = { ...saved }; delete next[id]; write(next); };
+  const commitDraft = (d: { id: string; hotkey?: string }) => {
+    const id = d.id.trim();
+    if (id && d.hotkey) { write({ ...saved, [id]: d.hotkey }); setDraft(undefined); } else setDraft(d);
+  };
+  const idField = (value: string, label: string, onCommit: (v: string) => void, autoFocus = false) => (
+    <input
+      className="pal-inline pal-itemkeys__id"
+      type="text"
+      list={known?.length ? listId : undefined}
+      defaultValue={value}
+      key={value}
+      placeholder="item id"
+      aria-label={label}
+      spellCheck={false}
+      autoFocus={autoFocus}
+      onBlur={(e) => onCommit(e.target.value)}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } else if (e.key === "Escape") { e.currentTarget.value = value; e.currentTarget.blur(); } }}
+    />
+  );
+  return (
+    <section className="pal-ppane__section" aria-label="Item hotkeys" data-anchor={`palettes:${p.id}:item_hotkeys`}>
+      <h4 className="pal-ppane__h">Item hotkeys <span className="pal-ppane__h-note">palettes.{p.id}.item_hotkeys</span></h4>
+      {known && known.length > 0 && (
+        <datalist id={listId}>
+          {known.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+        </datalist>
+      )}
+      {rows.length === 0 && !draft && <p className="pal-ppane__none">None. A hotkey here runs one row of {p.title} from any app, without the panel.</p>}
+      {(rows.length > 0 || draft) && (
+        <ul className="pal-itemkeys" aria-label={`Item hotkeys of ${p.title}`}>
+          {rows.map(([id, hotkey]) => {
+            const name = nameOf(id);
+            return (
+              <li key={id} className="pal-itemkeys__row" data-unknown={known && !name ? "" : undefined}>
+                <span className="pal-itemkeys__item">
+                  {idField(id, `Item id for ${hotkey}`, (v) => rename(id, v))}
+                  <span className="pal-itemkeys__name" title={known && !name ? "Not among the palette's rows right now" : undefined}>{name ?? (known ? "not listed now" : "")}</span>
+                </span>
+                <SettingsHotkey compact value={hotkey} onChange={(v) => record(id, v)} label={`Hotkey for ${id}`} />
+                <button type="button" className="pal-button" data-small aria-label={`Remove hotkey for ${id}`} onClick={() => remove(id)}>Remove</button>
+              </li>
+            );
+          })}
+          {draft && (
+            <li className="pal-itemkeys__row" data-draft="">
+              <span className="pal-itemkeys__item">
+                {idField(draft.id, "New item id", (v) => commitDraft({ ...draft, id: v }), true)}
+                <span className="pal-itemkeys__name">{nameOf(draft.id.trim()) ?? ""}</span>
+              </span>
+              <SettingsHotkey compact value={draft.hotkey} onChange={(v) => commitDraft({ ...draft, hotkey: v })} label="Hotkey for the new item" />
+              <button type="button" className="pal-button" data-small aria-label="Cancel the new item hotkey" onClick={() => setDraft(undefined)}>Cancel</button>
+            </li>
+          )}
+        </ul>
+      )}
+      {!draft && <div className="pal-button-row"><button type="button" className="pal-button" data-small onClick={() => setDraft({ id: "" })}>Add hotkey</button></div>}
+      <p className="pal-ppane__hint pal-itemkeys__hint">The row's primary action runs as if picked. A root hotkey wins over a palette's, a palette's over an item's.</p>
+    </section>
   );
 }
 

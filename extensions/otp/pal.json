@@ -46,6 +46,7 @@
     "otp": {
       "description": "Codes from the last day of messages, Today and Earlier.",
       "kind": "live",
+      "lazy": true,
       "keys": [
         {
           "keys": "enter",

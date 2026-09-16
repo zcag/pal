@@ -4,9 +4,12 @@
 // holds every paired bridge's resources, filled by one `GET /clip/v2/
 // resource` per bridge and kept current by each bridge's event stream, so
 // a listing or a view never waits on the bridge; a change is one PUT
-// (api.ts), applied to the model at once and confirmed by the stream. The
-// bridges live in storage (`bridges`), paired here, or come from the
-// settings (`bridge` + `application_key`) for a key kept in the keychain.
+// (api.ts), applied to the model at once and confirmed by the stream.
+// Pairing writes the bridge's address and application key to the settings
+// (`bridge`, `application_key`: the key lands in the OS keychain, the file
+// holds the reference) and keeps the rest of the record (the pinned
+// certificate, the entertainment client key) in storage (`bridges`); a
+// second bridge, while the settings hold one, keeps its key in storage.
 import { hostname } from "node:os";
 import { bar, effects, settings, storage, type BarItem, type BarMenuNode, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
 import { Client, GROUP_GAP_MS, HueError, LIGHT_GAP_MS, PAIR_WINDOW_MS, SETTINGS_HINT, config, devicetype, discoverCloud, discoverMdns, peekCertificate, pressLink, type Bridge, type Found, type HueEvent } from "./api.ts";
@@ -36,14 +39,24 @@ const down = new Map<string, HueError>();
 let loading: Promise<void> | undefined;
 let loadedFor = "";
 
-const settingsBridge = (s: Settings): Bridge | undefined => (s.bridge?.trim() && s.application_key?.trim() && !/^(keychain|env):/.test(s.application_key) ? { id: `settings:${s.bridge.trim()}`, ip: s.bridge.trim(), name: "Hue Bridge", key: s.application_key.trim(), from_settings: true } : undefined);
+/** A stored record: a bridge whose key may live in the settings instead (then `key` is absent). */
+type Stored = Omit<Bridge, "key"> & { key?: string };
+
+/** The bridge the settings name, with the stored record's certificate, client key, id and name for that address when there is one. */
+const settingsBridge = (s: Settings, stored: Stored[]): Bridge | undefined => {
+  const ip = s.bridge?.trim();
+  const key = s.application_key?.trim();
+  if (!ip || !key || /^(keychain|env):/.test(key)) return undefined;
+  const rec = stored.find((b) => b.ip === ip);
+  return { id: rec?.id ?? `settings:${ip}`, ip, name: rec?.name ?? "Hue Bridge", key, clientkey: rec?.clientkey, cert: rec?.cert, paired_at: rec?.paired_at, from_settings: true };
+};
 const clientFor = (b: Bridge) => new Client(b, { timeoutMs: Math.max(1, Number(current().timeout) || 5) * 1000, insecure: !!current().insecure });
 const bridgeName = (id: string) => home.bridges.get(id)?.name ?? bridges.find((b) => b.id === id)?.name ?? "Hue";
 const several = () => home.bridges.size > 1;
 
-async function readStored(): Promise<Bridge[]> {
+async function readStored(): Promise<Stored[]> {
   const v = await storage.get<unknown>(STORAGE_KEY, NAME);
-  return Array.isArray(v) ? v.filter((b): b is Bridge => !!b && typeof b === "object" && typeof (b as Bridge).ip === "string" && typeof (b as Bridge).key === "string") : [];
+  return Array.isArray(v) ? v.filter((b): b is Stored => !!b && typeof b === "object" && typeof (b as Stored).ip === "string" && (typeof (b as Stored).key === "string" || (b as Stored).key === undefined)) : [];
 }
 
 /** Reads one bridge whole into the home and (re)starts its stream; a failure is remembered for the rows and the bar. */
@@ -67,17 +80,24 @@ async function connect(b: Bridge): Promise<void> {
   }
 }
 
-/** The bridges from storage and the settings, connected once; again when `force` (cmd+r) or the settings changed. */
+/** The bridges from the settings and storage, connected once; again when `force` (cmd+r) or a setting that decides the connection changed. */
+/** What `load` keys on: the settings that decide the connection (the key itself, in memory only, never logged). */
+const loadKey = (s: Settings) => `${s.bridge}|${s.application_key ?? ""}|${s.insecure}|${s.timeout}`;
+
 async function load(force = false): Promise<void> {
   const s = current();
-  const key = `${s.bridge}|${s.application_key ? "k" : ""}|${s.insecure}|${s.timeout}`;
+  const key = loadKey(s);
   if (loading && !force && key === loadedFor) return loading;
   loadedFor = key;
   loading = (async () => {
     const stored = await readStored();
-    const fromSettings = settingsBridge(s);
-    // The settings' key wins over a stored one for the same address.
-    bridges = [...(fromSettings ? [fromSettings] : []), ...stored.filter((b) => !fromSettings || b.ip !== fromSettings.ip)];
+    const fromSettings = settingsBridge(s, stored);
+    // The settings' key wins over a stored one for the same address; a stored
+    // record without a key is that address's certificate and client key, not
+    // a bridge of its own (its key went to the settings, since replaced).
+    const rest = stored.filter((b): b is Bridge => (!fromSettings || b.ip !== fromSettings.ip) && typeof b.key === "string");
+    for (const b of stored) if (b.key === undefined && b.ip !== fromSettings?.ip) console.error(`hue: ${b.ip} has no key any more (the settings name ${s.bridge || "no bridge"}); pair it again`);
+    bridges = [...(fromSettings ? [fromSettings] : []), ...rest];
     for (const id of [...clients.keys()]) if (!bridges.some((b) => b.id === id)) { stopStream(id); clients.delete(id); home.forget(id); }
     await Promise.all(bridges.map(connect));
     scheduleBar();
@@ -85,8 +105,37 @@ async function load(force = false): Promise<void> {
   return loading;
 }
 
+/** The storage's side of every bridge: the whole record for one whose key lives there, the record without the key for the settings' one. */
 async function saveBridges(list: Bridge[]) {
-  await storage.set(STORAGE_KEY, list.filter((b) => !b.from_settings).map(({ from_settings, ...b }) => b), NAME);
+  await storage.set(STORAGE_KEY, list.map(({ from_settings, key, ...b }) => (from_settings ? b : { ...b, key })), NAME);
+}
+
+/**
+ * A freshly paired bridge, kept: the record to storage, then the address
+ * and key to the settings (`bridge` + `application_key`, one write: the
+ * key lands in the OS keychain, the file holds the reference; `onChange`
+ * then loads and connects it) when they hold no other bridge; else, or
+ * when the settings refuse the write (a keychain that will not; logged),
+ * the key stays in the record and the bridge is connected here.
+ */
+async function adopt(b: Bridge): Promise<void> {
+  const s = current();
+  const other = !!(s.bridge?.trim() && s.bridge.trim() !== b.ip && s.application_key?.trim());
+  const keep = (x: Bridge) => { bridges = [...bridges.filter((y) => y.id !== x.id && y.ip !== x.ip), x]; };
+  if (!other) {
+    keep({ ...b, from_settings: true });
+    await saveBridges(bridges);
+    try {
+      await settings.set({ bridge: b.ip, application_key: b.key }, NAME);
+      await load();
+      return;
+    } catch (e) {
+      console.error(`hue: the key stays in storage, the settings refused it: ${(e as Error).message}`);
+    }
+  }
+  keep(b);
+  await saveBridges(bridges);
+  await connect(b);
 }
 
 // ---- the event stream -----------------------------------------------------------------
@@ -324,10 +373,7 @@ function startPairing(ip: string, name: string, id?: string): void {
         if (setup.phase === "press") setup.attempts++;
         if (r) {
           const conf = await config(ip, tls).catch(() => ({ name, bridgeid: id ?? cert?.cn ?? ip }));
-          const b: Bridge = { id: conf.bridgeid, ip, name: conf.name, key: r.username, clientkey: r.clientkey, cert: cert?.selfSigned ? cert.pem : undefined, paired_at: Date.now() };
-          bridges = [...bridges.filter((x) => x.id !== b.id && x.ip !== b.ip), b];
-          await saveBridges(bridges);
-          await connect(b);
+          await adopt({ id: conf.bridgeid, ip, name: conf.name, key: r.username, clientkey: r.clientkey, cert: cert?.selfSigned ? cert.pem : undefined, paired_at: Date.now() });
           setup = { phase: "paired", ip, name: conf.name, id: conf.bridgeid, key: r.username };
           scheduleBar();
           await effects.run({ push: { extension: NAME, palette: "setup" } }).catch(() => {});
@@ -371,11 +417,18 @@ async function setupPick(action: string | undefined, ctx?: Ctx): Promise<Effect>
     case "rooms": return { push: { extension: NAME, palette: "rooms" } };
     case "copy_key": return setup.phase === "paired" ? { copy: setup.key, hud: "Copied the application key" } : { keep: true };
     case "forget": {
-      const b = bridges.find((x) => !x.from_settings);
+      // The bridge paired here last (its record in storage); one whose key
+      // lives in the settings leaves them too. A settings-only bridge (no
+      // record: the user typed the key) is removed where it was set.
+      const stored = await readStored();
+      const b = [...bridges].reverse().find((x) => stored.some((r) => r.ip === x.ip));
       if (!b) return toast("Nothing to forget", "The bridge in the settings is removed there", "failure");
       pairing?.abort(); stopStream(b.id); clients.delete(b.id); home.forget(b.id);
       bridges = bridges.filter((x) => x !== b);
       await saveBridges(bridges);
+      if (b.from_settings) {
+        try { await settings.set({ application_key: null, bridge: null }, NAME); } catch (e) { console.error(`hue: could not clear the settings: ${(e as Error).message}`); }
+      }
       discovered = undefined;
       scheduleBar();
       break;
@@ -656,5 +709,8 @@ export default {
   },
 } satisfies Extension;
 
-// The settings decide which bridges there are: a change reads them again and re-renders the bar.
-settings.onChange(() => { load(true).catch((e) => console.error(`hue: ${(e as Error).message}`)); }, NAME);
+// The settings decide which bridges there are: a change to what `load` keys
+// on (the bridge, its key, insecure, timeout) reads them again and
+// reconnects; any other change (the bar's scenes, the main room) keeps the
+// streams and re-renders the bar.
+settings.onChange(() => { load().then(scheduleBar).catch((e) => console.error(`hue: ${(e as Error).message}`)); }, NAME);

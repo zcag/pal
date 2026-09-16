@@ -17,6 +17,10 @@
 //! by frecency like any other row's (Settings is a daily row), except the
 //! inert version row's (`inert`).
 //!
+//! One row comes and goes: "Install Update" is in the index only while
+//! the last check found a newer release (`sync_update_row`, called by
+//! `updater::check`); its pick is `updater::install`.
+//!
 //! `plan` is the pure half (a row id and action to what should happen),
 //! `pick` the half that touches the app; the tests cover the rows, the
 //! plan and the text the diagnostics and the bug report carry.
@@ -34,6 +38,7 @@ use crate::{autostart, effects, hotkey, index, permissions, settings, updater, w
 pub const STORE: &str = "https://pal.cagdas.io/extensions";
 pub const DOCS: &str = "https://pal.cagdas.io/docs";
 pub const ISSUES: &str = "https://github.com/zcag/pal/issues/new";
+pub const RELEASES: &str = "https://github.com/zcag/pal/releases/latest";
 
 pub const SETTINGS: &str = "settings";
 pub const SETTINGS_EXTENSIONS: &str = "settings-extensions";
@@ -44,6 +49,7 @@ pub const INSTALL: &str = "install";
 pub const RELOAD: &str = "reload";
 pub const REFRESH: &str = "refresh";
 pub const UPDATES: &str = "updates";
+pub const INSTALL_UPDATE: &str = "install-update";
 pub const CONFIG_OPEN: &str = "config-open";
 pub const CONFIG_REVEAL: &str = "config-reveal";
 pub const TIPS: &str = "tips";
@@ -95,11 +101,24 @@ fn row(id: &str, name: &str, subtitle: &str, keywords: &[&str], icon: &Value) ->
 
 /// The rows, top to bottom. Quit asks first (`confirm` on its one action);
 /// the version row's one action is a copy, and it is the only row the
-/// frecency store skips.
-pub fn rows(version: &str) -> Vec<Item> {
+/// frecency store skips. With `update` (a newer release the last check
+/// found), "Install Update" leads: installable here, it installs and
+/// relaunches; not installable (a deb, a development build), it opens the
+/// releases page and the subtitle says why.
+pub fn rows(version: &str, update: Option<&updater::UpdateInfo>) -> Vec<Item> {
     let icon = mark();
     let reveal = if cfg!(target_os = "macos") { "Show config.toml in Finder" } else { "Show config.toml in the file manager" };
-    let mut rows = vec![
+    let mut rows = Vec::new();
+    if let Some(u) = update.filter(|u| u.available) {
+        let v = u.version.as_deref().unwrap_or("?");
+        let subtitle = match (u.installable, &u.install_note) {
+            (Some(true), _) => format!("pal {v} is available; downloads, installs and relaunches"),
+            (_, Some(why)) => format!("pal {v} is available; {why}"),
+            _ => format!("pal {v} is available on the releases page"),
+        };
+        rows.push(row(INSTALL_UPDATE, "Install Update", &subtitle, &["update", "upgrade", "release", "version", "install"], &icon));
+    }
+    rows.extend([
         row(SETTINGS, "Settings", "Hotkey, theme, palettes, extensions", &["preferences", "options", "config"], &icon),
         row(SETTINGS_EXTENSIONS, "Settings › Extensions", "Installed extensions, updates, the store", &["settings", "preferences", "extensions"], &icon),
         row(SETTINGS_PALETTES, "Settings › Palettes", "Enable, alias and hotkey per palette", &["settings", "preferences", "palettes"], &icon),
@@ -120,7 +139,7 @@ pub fn rows(version: &str) -> Vec<Item> {
         row(QUIT, "Quit pal", "Stops the extension host and exits", &["exit", "close"], &icon),
         row(RESTART, "Restart pal", "Quit and launch again", &["relaunch", "reboot", "reopen"], &icon),
         row(VERSION, "pal Version", version, &["version", "about", "build"], &icon),
-    ];
+    ]);
     let actions = |rows: &mut [Item], id: &str, a: Value| rows.iter_mut().find(|r| r.id == id).expect("a listed row").extra.insert("actions".into(), a);
     actions(&mut rows, QUIT, json!([{ "id": QUIT, "title": "Quit pal", "style": "destructive", "confirm": "Quit pal? The extension host stops with it." }]));
     actions(&mut rows, VERSION, json!([{ "id": "copy", "title": "Copy Version" }]));
@@ -129,10 +148,24 @@ pub fn rows(version: &str) -> Vec<Item> {
 
 /// Put the rows in the index; once, at startup, after the cached palettes.
 pub fn install(app: &AppHandle) {
-    let rows = rows(&app.package_info().version.to_string());
+    let rows = rows(&app.package_info().version.to_string(), None);
     let n = rows.len();
     index::with_index(app, |ix| ix.replace(source(), rows));
     eprintln!("commands\t{n} rows");
+}
+
+/// The rows again with or without "Install Update", after a check
+/// (`updater::check`): the page re-queries on the index event.
+pub fn sync_update_row(app: &AppHandle, update: Option<&updater::UpdateInfo>) {
+    let rows = rows(&app.package_info().version.to_string(), update);
+    let had = index::with_index(app, |ix| ix.get(&source(), INSTALL_UPDATE).is_some());
+    let has = rows.iter().any(|r| r.id == INSTALL_UPDATE);
+    if had == has {
+        return;
+    }
+    index::with_index(app, |ix| ix.replace(source(), rows));
+    eprintln!("commands\tinstall update row\t{}", if has { "listed" } else { "gone" });
+    crate::events::emit(app, crate::events::INDEX, ());
 }
 
 // ---- the plan ----------------------------------------------------------------
@@ -151,6 +184,8 @@ pub enum Plan {
     RestartHost,
     RefreshIndex,
     CheckUpdates,
+    /// Download, install and relaunch (the row is listed only while a check found a release).
+    InstallUpdate,
     OpenConfig,
     RevealConfig,
     ShowTips,
@@ -179,6 +214,7 @@ pub fn plan(id: &str, action: Option<&str>, values: Option<&Value>) -> Plan {
         RELOAD => Plan::RestartHost,
         REFRESH => Plan::RefreshIndex,
         UPDATES => Plan::CheckUpdates,
+        INSTALL_UPDATE => Plan::InstallUpdate,
         CONFIG_OPEN => Plan::OpenConfig,
         CONFIG_REVEAL => Plan::RevealConfig,
         TIPS => Plan::ShowTips,
@@ -228,10 +264,17 @@ fn theme_name(t: Theme) -> &'static str {
     }
 }
 
-/// What the update check says, as a toast.
+/// What the update check says, as a toast; an installable release points at the row that installs it.
 pub fn updates_toast(r: &Result<updater::UpdateInfo, String>) -> Value {
     match r {
-        Ok(updater::UpdateInfo { available: true, version, .. }) => toast(&format!("pal {} is available", version.as_deref().unwrap_or("?")), "Download it from the Releases page on GitHub", "success"),
+        Ok(updater::UpdateInfo { available: true, version, installable, install_note, .. }) => {
+            let v = version.as_deref().unwrap_or("?");
+            match (installable, install_note) {
+                (Some(true), _) => toast(&format!("pal {v} is available"), "Install Update (a row here, or Settings > About) installs it and relaunches", "success"),
+                (_, Some(why)) => toast(&format!("pal {v} is available"), &format!("{}{}. It is on the Releases page on GitHub", why[..1].to_uppercase(), &why[1..]), "success"),
+                _ => toast(&format!("pal {v} is available"), "Download it from the Releases page on GitHub", "success"),
+            }
+        }
         Ok(updater::UpdateInfo { status: Some(s), .. }) => toast("Nothing to update to", s, "success"),
         Ok(_) => toast("pal is up to date", "", "success"),
         Err(e) => toast("Could not check for updates", e, "failure"),
@@ -352,9 +395,12 @@ fn relaunch_script(pid: u32, exe: &Path, bundle: Option<&Path>, env: &[(String, 
 /// Quit as the tray's Quit does, with a shell waiting to launch pal again
 /// once this process is gone (a new instance started before that would
 /// only hand over to this one and exit). The shell keeps our stdout and
-/// stderr, so an `exec`ed pal logs where this one did.
-fn restart(app: &AppHandle) -> Result<(), String> {
-    let exe = autostart::program().ok_or("no path to this binary")?;
+/// stderr, so an `exec`ed pal logs where this one did. From an AppImage
+/// the AppImage itself is launched (`APPIMAGE`), not the binary inside
+/// its mount, which is gone with the process; that is also where an
+/// update has just been written (updater.rs).
+pub fn restart(app: &AppHandle) -> Result<(), String> {
+    let exe = std::env::var_os("APPIMAGE").map(PathBuf::from).or_else(autostart::program).ok_or("no path to this binary")?;
     let script = relaunch_script(std::process::id(), &exe, bundle_of(&exe).as_deref(), &autostart::carried_env());
     eprintln!("restart\t{}", script.lines().last().unwrap_or_default());
     std::process::Command::new("sh")
@@ -404,6 +450,15 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             Ok(toast("Refreshing", "Every palette lists again", "success"))
         }
         Plan::CheckUpdates => Ok(updates_toast(&updater::check_updates(app.clone()).await)),
+        Plan::InstallUpdate => match updater::install(app).await {
+            Ok(()) => Ok(json!({ "hide": true })),
+            // Not installable here: the releases page, where the build for this platform is.
+            Err(e) if updater::support().is_err() => {
+                eprintln!("updater\tinstall refused\t{e}");
+                effects::apply(app, json!({ "open": RELEASES })).await
+            }
+            Err(e) => Ok(toast("Could not install the update", &e, "failure")),
+        },
         Plan::OpenConfig => {
             settings::settings_open_file(app.clone(), app.state(), Some(settings::Which::Config))?;
             hide()
@@ -447,7 +502,7 @@ mod tests {
 
     #[test]
     fn rows_are_unique_named_and_all_find_pal() {
-        let rows = rows("1.2.3");
+        let rows = rows("1.2.3", None);
         let ids: Vec<&str> = rows.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids.len(), ids.iter().collect::<HashSet<_>>().len(), "no duplicate ids: {ids:?}");
         assert_eq!(ids[0], SETTINGS, "Settings leads");
@@ -471,6 +526,7 @@ mod tests {
         assert_eq!(quit.extra["actions"][0]["style"], "destructive");
         assert!(quit.extra["actions"][0]["confirm"].as_str().is_some_and(|c| c.starts_with("Quit pal?")), "quit asks first");
         assert!(rows.iter().filter(|r| r.id != QUIT && r.id != VERSION).all(|r| r.extra.get("actions").is_none()), "the rest take Enter as is");
+        assert!(!ids.contains(&INSTALL_UPDATE), "no update known: no row");
     }
 
     #[test]
@@ -482,8 +538,25 @@ mod tests {
     }
 
     #[test]
+    fn install_update_leads_the_rows_only_while_a_release_is_known() {
+        let up = |installable: Option<bool>, note: Option<&str>| updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable, install_note: note.map(str::to_string) };
+        let with = rows("0.1.0", Some(&up(Some(true), None)));
+        assert_eq!(with[0].id, INSTALL_UPDATE);
+        assert_eq!(with[0].name, "Install Update");
+        assert_eq!(with[0].subtitle.as_deref(), Some("pal 0.2.0 is available; downloads, installs and relaunches"));
+        assert_eq!(with.len(), rows("0.1.0", None).len() + 1);
+        assert_eq!(with[1].id, SETTINGS, "Settings is next");
+        let deb = rows("0.1.0", Some(&up(Some(false), Some("installed from the .deb: download the new package from the releases page and install it with dpkg"))));
+        assert_eq!(deb[0].subtitle.as_deref(), Some("pal 0.2.0 is available; installed from the .deb: download the new package from the releases page and install it with dpkg"));
+        let none = updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None };
+        assert_eq!(rows("0.1.0", Some(&none))[0].id, SETTINGS, "a check that found nothing lists no row");
+        assert_eq!(plan(INSTALL_UPDATE, None, None), Plan::InstallUpdate);
+        assert!(!inert(&source(), INSTALL_UPDATE), "a remembered pick, like any row");
+    }
+
+    #[test]
     fn every_row_has_a_plan_and_a_stale_id_none() {
-        for r in rows("0") {
+        for r in rows("0", None) {
             assert_ne!(plan(&r.id, None, None), Plan::Nothing, "{}", r.id);
         }
         assert_eq!(plan("gone", None, None), Plan::Nothing);
@@ -530,12 +603,15 @@ mod tests {
         assert_eq!(next_theme(Theme::Dark), Theme::System);
         assert_eq!(theme_name(Theme::System), "system", "the config's spelling (serde lowercase)");
         assert_eq!(serde_json::to_value(Theme::Dark).unwrap(), json!(theme_name(Theme::Dark)));
-        let up = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None }));
+        let up = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable: Some(true), install_note: None }));
         assert_eq!(up["toast"]["title"], "pal 0.2.0 is available");
         assert_eq!(up["toast"]["style"], "success");
-        let same = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: None }));
+        assert!(up["toast"]["message"].as_str().unwrap().starts_with("Install Update"), "names the row that installs it");
+        let deb = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable: Some(false), install_note: Some("installed from the .deb: use dpkg".into()) }));
+        assert_eq!(deb["toast"]["message"], "Installed from the .deb: use dpkg. It is on the Releases page on GitHub");
+        let same = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None }));
         assert_eq!(same["toast"]["title"], "pal is up to date");
-        let none = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: Some("no release published yet".into()) }));
+        let none = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: Some("no release published yet".into()), installable: None, install_note: None }));
         assert_eq!(none["toast"]["message"], "no release published yet", "a missing manifest is a fact, not a failure");
         assert_eq!(none["toast"]["style"], "success");
         let err = updates_toast(&Err("no network".into()));

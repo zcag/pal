@@ -212,6 +212,7 @@
   "palettes": {
     "rooms": {
       "kind": "live",
+      "lazy": true,
       "tier": "primary",
       "description": "Every room and zone with its colour as a tile, how many of its lights are on and the brightness. Enter toggles it, cmd+Enter opens it under the keys.",
       "keys": [
@@ -239,6 +240,7 @@
     },
     "lights": {
       "kind": "live",
+      "lazy": true,
       "description": "Every light by room with its colour as a swatch, its brightness and temperature, and whether the bridge can reach it. Enter toggles, cmd+Enter opens it under the keys.",
       "keys": [
         {
@@ -265,6 +267,7 @@
     },
     "scenes": {
       "kind": "live",
+      "lazy": true,
       "tier": "primary",
       "description": "Every scene by room as a five-swatch strip of its palette, the active one tagged; smart scenes too. Enter plays it, cmd+Enter plays it dynamically.",
       "keys": [
@@ -376,6 +379,7 @@
     },
     "sensors": {
       "kind": "live",
+      "lazy": true,
       "description": "Motion, temperature, light level, buttons and dials with their last event, contact sensors, and each device's battery. Enter copies the reading, cmd+e enables or disables the sensor.",
       "keys": [
         {
@@ -394,6 +398,7 @@
     },
     "automations": {
       "kind": "live",
+      "lazy": true,
       "description": "The bridge's automations (wake up, go to sleep, timers, motion) with their status. Enter enables or disables one.",
       "keys": [
         {
@@ -408,6 +413,7 @@
     },
     "entertainment": {
       "kind": "live",
+      "lazy": true,
       "description": "Entertainment areas with their type and lights; Enter starts streaming, cmd+Enter stops it.",
       "keys": [
         {

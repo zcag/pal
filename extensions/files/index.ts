@@ -17,7 +17,7 @@
 // `grep` on their temp folder).
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
-import { apps as appsApi, conceal, home, ocr, settings, type Action, type App, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, conceal, dialog, home, ocr, settings, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
 import { parseMdfindRecent, parseXbel, type Recent } from "./recent.ts";
 
@@ -186,19 +186,34 @@ function kind(p: string, dir: boolean): Kind {
 
 const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(2)} GB`);
 
+// Open, reveal, the two copies and the trash work on marked rows too (`multi`: one pick with `ctx.ids`).
 const ACTIONS: Action[] = [
-  { id: "open", title: "Open" },
-  { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager" },
+  { id: "open", title: "Open", multi: true },
+  { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager", multi: true },
   ...(MAC ? [{ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" }] : []),
   { id: "open-with", title: "Open with…", shortcut: "cmd+o" },
-  { id: "copy", title: "Copy path", shortcut: "cmd+c" },
-  { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c" },
-  { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?" },
+  { id: "copy", title: "Copy path", shortcut: "cmd+c", multi: true },
+  { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true },
+  { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?", multi: true },
 ];
 /** An image or a PDF gets OCR after Copy file: its text onto the clipboard. */
 const OCR_ACTION: Action = { id: "copy-text", title: "Copy text (OCR)", shortcut: "cmd+shift+t" };
 const ocrable = (p: string, k: Kind) => k === "image" || extname(p).toLowerCase() === ".pdf";
-const actionsFor = (p: string, k: Kind): Action[] => (ocrable(p, k) ? [...ACTIONS.slice(0, 6), OCR_ACTION, ACTIONS[6]] : ACTIONS);
+/**
+ * The open or save panel in front while the panel is up (`dialog.current`,
+ * asked at the start of every listing: one cached read per show), so a
+ * row leads with "Use in dialog" (the `dialog` effect: the path typed into
+ * that panel) only while there is one to type into.
+ */
+let dialogUp: Dialog | null = null;
+async function refreshDialog(): Promise<void> {
+  dialogUp = await dialog.current().catch(() => null);
+}
+const DIALOG_ACTION = (d: Dialog): Action => ({ id: "dialog", title: `Use in ${d.app}'s ${d.kind} panel`, shortcut: "cmd+g" });
+const actionsFor = (p: string, k: Kind): Action[] => {
+  const base = ocrable(p, k) ? [...ACTIONS.slice(0, 6), OCR_ACTION, ACTIONS[6]] : ACTIONS;
+  return dialogUp ? [DIALOG_ACTION(dialogUp), ...base] : base;
+};
 
 /** A row for a path that still exists; `usedAt` (a recent file) replaces the modified date on the right. */
 async function item(p: string, usedAt?: number, section?: string): Promise<Item | undefined> {
@@ -351,14 +366,19 @@ async function run(argv: string[], ms: number): Promise<void> {
 
 const trash = (p: string) => run(MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p], TRASH_MS);
 
-/** The shared actions of a file row; `open-with` needs the palette to push on, the rest are the same everywhere. */
-async function fileAction(id: string, action: string | undefined, palette: string): Promise<Effect> {
+/**
+ * The shared actions of a file row; `open-with` needs the palette to push
+ * on, the rest are the same everywhere. `ids` is every marked row of a
+ * multi pick (the actions marked `multi` in `ACTIONS`), else the one.
+ */
+async function fileAction(id: string, action: string | undefined, palette: string, ids: string[] = [id]): Promise<Effect> {
   switch (action) {
-    case "reveal": spawnDetached(MAC ? ["open", "-R", id] : ["xdg-open", dirname(id)]); return { hide: true };
+    case "dialog": return { dialog: id };
+    case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
     case "quick-look": spawnDetached(["qlmanage", "-p", id]); return { hide: true };
     case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith } };
-    case "copy": return { copy: id };
-    case "copy-file": return { copy_files: [id] };
+    case "copy": return { copy: ids.join("\n") };
+    case "copy-file": return { copy_files: ids };
     case "copy-text": {
       let text: string;
       try { text = await ocr.image({ path: id }); } catch (e) { return { keep: true, toast: { title: "Could not read the text", message: String((e as Error)?.message ?? e), style: "failure" } }; }
@@ -366,9 +386,12 @@ async function fileAction(id: string, action: string | undefined, palette: strin
       return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
     }
     case "trash":
-      try { await trash(id); } catch (e) { return { keep: true, toast: { title: "Could not move to Trash", message: String((e as Error)?.message ?? e), style: "failure" } }; }
-      return { keep: true, toast: { title: "Moved to Trash", message: basename(id) } };
-    default: return { open: id };
+      try { for (const p of ids) await trash(p); } catch (e) { return { keep: true, toast: { title: "Could not move to Trash", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+      return { keep: true, toast: { title: "Moved to Trash", message: ids.length === 1 ? basename(id) : `${ids.length} items` } };
+    default:
+      // Several: every one through the opener; the effect carries one, so the rest go here.
+      for (const p of ids.slice(1)) spawnDetached([MAC ? "open" : "xdg-open", p]);
+      return { open: id };
   }
 }
 
@@ -394,6 +417,8 @@ export default {
     files: {
       title: "Files",
       input: true,
+      // Tab (and `x` with nothing typed) marks rows: files are gathered (to trash, to copy).
+      multi: true,
       // At the root a typed path (`~/Down`, `/usr/local/bin`) lists the file or its completions inline; any other query gets a Search Files fallback row.
       match: PATH_RE,
       inline: true,
@@ -405,6 +430,7 @@ export default {
         if (file) return appRows(file, query);
         const s = settings.get<Settings>();
         const folders = s.folders.map(home);
+        await refreshDialog();
         // A path completes rather than searches, inside the palette too: the backends match names, not paths.
         if (ctx?.inline) return pathRows(query, s.show_hidden);
         if (PATH_RE.test(query.trim())) return pathRows(query, s.show_hidden, s.limit);
@@ -428,7 +454,7 @@ export default {
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "files");
+        return file ? openWithPick(file, id) : fileAction(id, action, "files", ctx?.ids);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);
@@ -439,16 +465,18 @@ export default {
       title: "Recent Files",
       // Newest first is the order; listed again on a show once the listing is a minute old.
       live: true,
+      multi: true,
       placeholder: "Search recent files",
       list: async (query = "", ctx) => {
         const file = openWithOf(ctx);
         if (file) return appRows(file, query);
         const s = settings.get<Settings>();
+        await refreshDialog();
         return recentRows(s, s.folders.map(home));
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "recent");
+        return file ? openWithPick(file, id) : fileAction(id, action, "recent", ctx?.ids);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);

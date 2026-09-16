@@ -80,6 +80,28 @@ describe("overviewItems", () => {
     expect(items[2].detail).toContain("line 14");
     expect(items[4].title).toBe("pal 0.2.0 is available");
   });
+  it("the app update row installs when the build can be installed over, else points at About with the reason", () => {
+    const can = overviewItems({ ...ok, update: { available: true, version: "0.2.0", installable: true } });
+    expect(can[0]).toMatchObject({ id: "update", title: "pal 0.2.0 is available", action: { label: "Install", installUpdate: true, disabled: false } });
+    expect(can[0].detail).toContain("You have 0.1.0");
+    const going = overviewItems({ ...ok, update: { available: true, version: "0.2.0", installable: true }, progress: { phase: "downloading", version: "0.2.0", downloaded: 3_000_000, total: 12_000_000 } });
+    expect(going[0].detail).toBe("Downloading 0.2.0: 25% of 12.0 MB…");
+    expect(going[0].action).toMatchObject({ label: "Installing…", disabled: true });
+    const failed = overviewItems({ ...ok, update: { available: true, version: "0.2.0", installable: true }, progress: { phase: "failed", version: "0.2.0", error: "signature mismatch" } });
+    expect(failed[0].detail).toBe("Installing 0.2.0 failed: signature mismatch");
+    expect(failed[0].action).toMatchObject({ label: "Install", disabled: false });
+    const deb = overviewItems({ ...ok, update: { available: true, version: "0.2.0", installable: false, install_note: "installed from the .deb: download the new package from the releases page and install it with dpkg" } });
+    expect(deb[0].detail).toBe("You have 0.1.0. Installed from the .deb: download the new package from the releases page and install it with dpkg.");
+    expect(deb[0].action).toEqual({ label: "About", go: { page: "about", anchor: "about:updates" } });
+    // The button: primary, and disabled while installing.
+    const onInstallUpdate = vi.fn();
+    const html = renderToStaticMarkup(<SettingsOverview {...ok} update={{ available: true, version: "0.2.0", installable: true }} onGo={noop} onInstallUpdate={onInstallUpdate} />);
+    expect(html).toContain('data-primary=""');
+    expect(html).toContain(">Install</button>");
+    const busy = renderToStaticMarkup(<SettingsOverview {...ok} update={{ available: true, version: "0.2.0", installable: true }} progress={{ phase: "installing", version: "0.2.0" }} onGo={noop} onInstallUpdate={onInstallUpdate} />);
+    expect(busy).toMatch(/disabled=""[^>]*>Installing…<\/button>/);
+  });
+
   it("offers an extension update inline", () => {
     const items = overviewItems({ ...ok, extensions: settingsExtensions });
     expect(items).toHaveLength(1);
@@ -103,7 +125,11 @@ describe("SettingsOverview", () => {
     expect(value.match(/<kbd/g)?.length).toBe(4);
     expect(overviewFacts({ ...ok, hotkey: { hotkeys: [], registered: true } })[0].value).toBe("none");
     expect(facts[1].value).toBe("4 extensions loaded");
-    expect(facts[2].value).toBe("6 of 7 on, 3 with a hotkey");
+    expect(facts[2].value).toBe("6 of 7 on, 3 with a hotkey, 2 item hotkeys");
+    const bare = quiet.map((e) => ({ ...e, palettes: e.palettes.map((p) => ({ ...p, config: { ...p.config, hotkey: undefined, itemHotkeys: undefined } })) }));
+    expect(overviewFacts({ ...ok, extensions: bare })[2].value).toBe("6 of 7 on");
+    const oneItem = bare.map((e, i) => (i ? e : { ...e, palettes: e.palettes.map((p, j) => (j ? p : { ...p, config: { ...p.config, itemHotkeys: { a: "ctrl+alt+a" } } })) }));
+    expect(overviewFacts({ ...ok, extensions: oneItem })[2].value).toBe("6 of 7 on, 1 item hotkey");
     expect(facts[3].value).toBe("no items declared");
     expect(overviewFacts({ ...ok, barSupported: false }).map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes"]);
   });

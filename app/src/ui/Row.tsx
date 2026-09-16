@@ -101,24 +101,30 @@ export type RowProps = {
   id?: string;
   style?: CSSProperties;
   onHover?: (e: MouseEvent) => void;
-  onClick?: () => void;
+  onClick?: (e: MouseEvent) => void;
   /** 1-based, shown as the cmd+N hint on the first nine rows. */
   ordinal?: number;
+  /** One of the marked rows (`selection.ts`): tinted, with a check at the end. */
+  marked?: boolean;
 };
 
-export function Row({ item, active, match, id, style, onHover, onClick, ordinal }: RowProps) {
+/** The check a marked row or tile ends in (md-check_circle in the bundled Nerd Font). */
+export const CHECK = "\u{f05e0}";
+
+export function Row({ item, active, match, id, style, onHover, onClick, ordinal, marked }: RowProps) {
   const row = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLSpanElement>(null);
   const showOrdinal = ordinal !== undefined && ordinal <= 9;
   const hidden = useFitAccessories(item, showOrdinal, row, title);
   return (
-    <div ref={row} id={id} role="option" aria-selected={!!active} aria-disabled={item.disabled || undefined} className="pal-row" data-active={active || undefined} data-disabled={item.disabled || undefined} data-muted={item.muted || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
+    <div ref={row} id={id} role="option" aria-selected={!!active} aria-checked={marked || undefined} aria-disabled={item.disabled || undefined} className="pal-row" data-active={active || undefined} data-marked={marked || undefined} data-disabled={item.disabled || undefined} data-muted={item.muted || undefined} style={style} onMouseMove={onHover} onMouseDown={keepFocus} onClick={onClick}>
       <Icon icon={item.icon} />
       <span ref={title} className="pal-row__title" data-solo={item.subtitle ? undefined : ""}><Highlight text={item.name} positions={match?.name} /></span>
       {item.subtitle && <span className="pal-row__sub"><Highlight text={item.subtitle} positions={match?.subtitle} /></span>}
       <span className="pal-row__accs">
         {item.accessories?.map((a, i) => (hidden.has(i) ? null : <Accessory key={i} acc={a} />))}
         {showOrdinal && <kbd className="pal-row__ordinal" aria-hidden>{ordinal}</kbd>}
+        {marked && <span className="pal-row__check" aria-hidden>{CHECK}</span>}
       </span>
     </div>
   );

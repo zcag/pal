@@ -8,6 +8,8 @@ export type FooterProps = {
   title?: string;
   /** A quiet status after the title ("updating…"). */
   note?: string;
+  /** Marked rows: "3 selected" as a badge after the title. */
+  count?: number;
   /** Primary action hint, right side: "Open ↵"; `shortcut` when Enter is not the key (a form's textarea: ⌘↵). */
   primary?: { title: string; shortcut?: Shortcut };
   /** Show the "Actions ⌘K" affordance. */
@@ -16,12 +18,13 @@ export type FooterProps = {
   onPrimary?: () => void;
 };
 
-export function Footer({ icon, title, note, primary, actions, onActions, onPrimary }: FooterProps) {
+export function Footer({ icon, title, note, count, primary, actions, onActions, onPrimary }: FooterProps) {
   return (
     <div className="pal-footer" onMouseDown={keepFocus}>
       <div className="pal-footer__context">
         {icon && <Icon icon={icon} size="sm" />}
         {title && <span className="pal-footer__title">{title}</span>}
+        {!!count && <span className="pal-footer__count" aria-live="polite">{count} selected</span>}
         {note && <span className="pal-footer__note" aria-live="polite">{note}</span>}
       </div>
       <div className="pal-footer__hints">

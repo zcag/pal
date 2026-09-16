@@ -275,7 +275,7 @@ describe("over the wire against the mock bridge", () => {
     await expect(view("light", { light: "light:sofa-lamp" })).rejects.toThrow(/No bridge paired/);
   });
 
-  test("setup: discovery finds the mock (cloud), its name and id asked without a key; press-link waits, pins the certificate, keeps the key", async () => {
+  test("setup: discovery finds the mock (cloud), its name and id asked without a key; press-link waits, pins the certificate, keeps the key in the settings", async () => {
     const v = await view("setup");
     expect(v.title).toBe("Set up Hue");
     expect(JSON.stringify(v.tree)).toContain(mock.ip);
@@ -287,12 +287,18 @@ describe("over the wire against the mock bridge", () => {
     expect(JSON.stringify(pressing.view!.tree)).toContain("Press the round button");
     await host.until(() => mock.pairAttempts >= 2, 4000, "two press-link attempts");
     expect(stored.get(`${E}\0bridges`)).toBeUndefined();
+    expect(host.written.get(E)).toBeUndefined();
     // The button.
     mock.press();
-    await host.until(() => Array.isArray(stored.get(`${E}\0bridges`)), 4000, "the key stored");
-    const bridges = stored.get(`${E}\0bridges`) as { id: string; ip: string; key: string; cert?: string; clientkey?: string }[];
+    await host.until(() => Array.isArray(stored.get(`${E}\0bridges`)), 4000, "the record stored");
+    // The address and the key went to the settings through `settings.set`: the key to the keychain, the file gets the reference.
+    expect(host.written.get(E)).toEqual({ bridge: mock.ip, application_key: `keychain:pal/${E}-application_key` });
+    expect(host.secrets.get(`pal/${E}-application_key`)).toBe(SAMPLE_KEY);
+    // Storage keeps the rest of the record (the pinned certificate, the entertainment client key), never the key.
+    const bridges = stored.get(`${E}\0bridges`) as { id: string; ip: string; key?: string; cert?: string; clientkey?: string }[];
     expect(bridges).toHaveLength(1);
-    expect(bridges[0]).toMatchObject({ id: SAMPLE_BRIDGE_ID, ip: mock.ip, key: SAMPLE_KEY, clientkey: expect.any(String) });
+    expect(bridges[0]).toMatchObject({ id: SAMPLE_BRIDGE_ID, ip: mock.ip, clientkey: expect.any(String) });
+    expect(bridges[0].key).toBeUndefined();
     expect(bridges[0].cert).toContain("BEGIN CERTIFICATE");
     expect(bridges[0].cert!.replace(/\s/g, "")).toBe(mock.tls!.cert.replace(/\s/g, ""));
     // The panel is brought back inside the setup, which now says paired.
@@ -567,11 +573,12 @@ describe("over the wire against the mock bridge", () => {
     await expect(host.request<Effect>("link", { extension: E, route: "scene", params: { name: "disco" } })).rejects.toThrow(/no scene "disco"/);
   });
 
-  test("forget: the bridge leaves storage, the streams close, the rows are the setup row again", async () => {
+  test("forget: the bridge leaves storage and the settings, the streams close, the rows are the setup row again", async () => {
     const v = await host.pick(E, "setup", "setup", "back");
     expect(v.view).toBeDefined();
     await host.pick(E, "setup", "setup", "forget");
     expect(stored.get(`${E}\0bridges`)).toEqual([]);
+    expect(host.written.get(E)).toEqual({});
     expect((await list("rooms")).map((i) => i.id)).toEqual(["setup"]);
     await host.until(() => mock.streamClients === 0, 4000, "the stream closed");
   });

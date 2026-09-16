@@ -63,6 +63,8 @@ export type SourceInfo = Source & {
   suggest?: true;
   /** `[palettes.<id>] alias`, for the alias-and-space jump. */
   alias?: string;
+  /** Tab (and a bare `x` with nothing typed) marks rows inside it (`Palette.multi`). */
+  multi?: true;
   count: number;
   /** The rows are a restored (or expired) listing and a fresh one is pending: "updating" in the footer. */
   stale: boolean;
@@ -71,7 +73,7 @@ export type SourceInfo = Source & {
 };
 
 /** How a level was opened (`Ctx` in sdk/src/protocol.ts): the filter picked, the args of the `push` that opened it, a form's values on its submit. */
-export type Ctx = { filter?: string; args?: unknown; values?: FormValues };
+export type Ctx = { filter?: string; args?: unknown; values?: FormValues; /** A multi pick: every marked id, the addressed row's first. */ ids?: string[] };
 
 /** What a pick returns (`Effect` in sdk/src/protocol.ts); `copy` and `open` already ran in the core. */
 export type Effect = {
@@ -101,7 +103,7 @@ export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "objec
  * on the `pal:` prefix, and the host refuses those ids in a view, so an
  * extension's actions can never run the shell's code.
  */
-const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined });
+const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm, hidden: a.hidden === true || undefined, multi: a.multi === true || undefined });
 
 /** A `View` off the wire as the UI keeps it; the host has checked the tree. */
 export const toView = (v: ViewSpec): ViewSpec => ({

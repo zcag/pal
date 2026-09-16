@@ -106,9 +106,12 @@ beforeAll(async () => {
     core: {
       "apps.for_file": (p: { path: string }) => (p.path.endsWith(".png") ? [] : APPS),
       "apps.open_with": (p: { path: string; app: string }) => { if (p.app.endsWith("Notes.app")) throw new Error("Notes refused"); opened.push(p); return null; },
+      "dialog.current": () => dialogUp,
     },
   });
 });
+/** What the canned `core/dialog.current` answers: the open panel in front, or none. */
+let dialogUp: { app: string; pid: number; kind: "open" | "save"; title?: string } | null = null;
 afterAll(() => { host?.kill(); if (dir) rmSync(dir, { recursive: true, force: true }); });
 
 const list = (q?: string) => host.list("files", "files", q);
@@ -135,8 +138,8 @@ describe.skipIf(!HAS_FIND)("files at the root", () => {
 describe.skipIf(!HAS_FIND)("files", () => {
   test("meta: an input palette with lazy detail, and the live Recent Files palette with a ttl", () => {
     expect(host.loaded().find((l) => l.extension === "files")!.palettes).toEqual([
-      { name: "files", title: "Files", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Search files by name", detail: "lazy", inline: true, match: "^\\s*(~|\\/)", fallback: "ask", fallbackTitle: "Search Files for “{query}”" },
-      { name: "recent", title: "Recent Files", live: true, input: false, icon: tile("slate", "\u{f024b}"), placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary" },
+      { name: "files", title: "Files", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Search files by name", detail: "lazy", inline: true, match: "^\\s*(~|\\/)", fallback: "ask", fallbackTitle: "Search Files for “{query}”", multi: true },
+      { name: "recent", title: "Recent Files", live: true, input: false, icon: tile("slate", "\u{f024b}"), placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary", multi: true },
     ]);
   });
 
@@ -180,7 +183,9 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(alpha.accessories).toEqual([{ text: "29 B" }, { date: expect.any(Number) }]);
     expect(alpha.actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
     expect(alpha.actions!.at(-1)).toMatchObject({ id: "trash", style: "destructive", confirm: expect.any(String) });
-    expect(alpha.actions!.find((a) => a.id === "copy-file")).toEqual({ id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c" });
+    expect(alpha.actions!.find((a) => a.id === "copy-file")).toEqual({ id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true });
+    // Open, reveal, both copies and the trash take marked rows; Quick Look and Open with are one file's.
+    expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy", "copy-file", "trash"]);
     if (MAC) expect(alpha.actions!.find((a) => a.id === "quick-look")).toEqual({ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" });
     expect(items.find((i) => i.name === "report-gamma.txt")!.subtitle).toBe(join(dir, "reports"));
     expect(items.find((i) => i.name === "reports")).toMatchObject({ icon: "󰉖", accessories: [{ date: expect.any(Number) }] });
@@ -268,6 +273,28 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(await pick(p, "open")).toEqual({ open: p });
     expect(await pick(p, "copy")).toEqual({ copy: p });
     expect(await pick(p, "copy-file")).toEqual({ copy_files: [p] });
+  });
+
+  test("pick with marked rows (ctx.ids): paths joined for copy, every file for copy file, the first as the open effect, the trash counts", async () => {
+    const a = join(dir, "report-alpha.txt"), b = join(dir, "Report-Beta.md");
+    expect(await host.pick("files", "files", a, "copy", { ids: [a, b] })).toEqual({ copy: `${a}\n${b}` });
+    expect(await host.pick("files", "recent", a, "copy-file", { ids: [a, b] })).toEqual({ copy_files: [a, b] });
+    // The second file goes through the opener here (not exercised: it would open it); the effect carries the first.
+    expect(await host.pick("files", "files", a, "copy", { ids: [a] })).toEqual({ copy: a });
+    if (!(MAC ? Bun.which("osascript") : Bun.which("gio"))) return;
+    expect(await host.pick("files", "files", join(dir, "nope-1"), "trash", { ids: [join(dir, "nope-1"), join(dir, "nope-2")] })).toMatchObject({ keep: true, toast: { title: "Could not move to Trash", style: "failure" } });
+  });
+
+  test("dialog jump: with an open or save panel in front (core/dialog.current, asked per listing) every row leads with Use in dialog, whose pick is the dialog effect", async () => {
+    dialogUp = { app: "TextEdit", pid: 7, kind: "open" };
+    const p = join(dir, "report-alpha.txt");
+    const row = (await list("report-alpha"))[0];
+    expect(row.actions![0]).toEqual({ id: "dialog", title: "Use in TextEdit's open panel", shortcut: "cmd+g" });
+    expect(row.actions!.slice(1).map((a) => a.id)).toEqual(FILE_ACTIONS);
+    expect(await pick(p, "dialog")).toEqual({ dialog: p });
+    expect((await host.list("files", "recent"))[0]?.actions?.[0]?.id ?? "dialog").toBe("dialog");
+    dialogUp = null;
+    expect((await list("report-alpha"))[0].actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
   });
 
   test("open with: pushes a level on the same palette with the file as args", async () => {

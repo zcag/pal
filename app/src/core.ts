@@ -12,7 +12,7 @@ import { FALLBACK, NOW, mergeDetail, sourceKey, staysOpen, toItem, toLiveHits, t
 import type { Hit } from "./ui";
 import type { Detail, Item, ViewSpec } from "./ui/types";
 
-import { LIMIT, type Prefs } from "./Launcher";
+import { LIMIT, type DialogInfo, type Prefs } from "./Launcher";
 
 export const mark = (name: string, t: number) => invoke("mark", { name, t });
 
@@ -115,6 +115,8 @@ export function useCore(hide: () => void) {
 
   // The last root queries that led to a pick, newest first (`general.search_history`).
   const history = useCallback(() => invoke<string[]>("search_history"), []);
+  // The open or save panel in front (`pal_core::dialog`, one read per show): the root's Dialog hint.
+  const dialog = useCallback(() => invoke<DialogInfo | null>("dialog_detect"), []);
   // "Reset ranking for this item": the row's frecency forgotten; whether there was any.
   const forget = useCallback((item: Item) => (item.source ? invoke<boolean>("frecency_forget", { source: item.source, id: item.id }) : Promise.resolve(false)), []);
 
@@ -137,8 +139,8 @@ export function useCore(hide: () => void) {
   // The core ran the envelope's copy/open; whether the window stays is decided here, the toast is the Launcher's.
   const pick = useCallback(async (item: Item, query: string, action?: string, ctx?: Ctx) => {
     const t0 = performance.now();
-    const r = await invoke<Effect>("pick", { req: { source: item.source, id: item.id, action, query, args: ctx?.args, values: ctx?.values } });
-    mark(`pick ${item.id}${action ? ` (${action})` : ""} ms`, performance.now() - t0);
+    const r = await invoke<Effect>("pick", { req: { source: item.source, id: item.id, action, query, args: ctx?.args, values: ctx?.values, ids: ctx?.ids } });
+    mark(`pick ${item.id}${action ? ` (${action})` : ""}${ctx?.ids ? ` x${ctx.ids.length}` : ""} ms`, performance.now() - t0);
     if (!staysOpen(r)) hide();
     bump(); // the pick changed frecency; the next list has it
     return r;
@@ -147,5 +149,5 @@ export function useCore(hide: () => void) {
   // Past any ttl; the core flags the targets stale (the footer says "updating") and each landing bumps the index.
   const refresh = useCallback((scope?: SourceInfo) => invoke("index_refresh", { source: scope && { extension: scope.extension, palette: scope.palette } }), []);
 
-  return { sources, version, bump, showing, search, inline, fallback, suggest, history, forget, detail, view, pick, refresh };
+  return { sources, version, bump, showing, search, inline, fallback, suggest, history, dialog, forget, detail, view, pick, refresh };
 }

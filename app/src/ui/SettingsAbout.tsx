@@ -5,7 +5,40 @@ import { SettingsGroup, SettingsRow } from "./SettingsField";
 import type { SettingsIndexEntry } from "./SettingsTypes";
 
 /** updater.rs `UpdateInfo`. */
-export type UpdateInfo = { available: boolean; version?: string; notes?: string; /** Why there was nothing to compare against ("no release published yet"), a fact. */ status?: string };
+export type UpdateInfo = {
+  available: boolean;
+  version?: string;
+  notes?: string;
+  /** Why there was nothing to compare against ("no release published yet"), a fact. */
+  status?: string;
+  /** With `available`: whether "Install update" can do it on this build, and why not. */
+  installable?: boolean;
+  install_note?: string;
+};
+
+/** updater.rs `Progress`: where an install is, on `pal://update`. */
+export type UpdateProgress =
+  | { phase: "idle" }
+  | { phase: "downloading"; version: string; downloaded: number; total?: number }
+  | { phase: "installing"; version: string }
+  | { phase: "restarting"; version: string }
+  | { phase: "failed"; version: string; error: string };
+
+const mb = (n: number) => `${(n / 1e6).toFixed(1)} MB`;
+
+/** One line for an install in progress, or nothing while idle. */
+export function progressLine(p: UpdateProgress | undefined): string {
+  if (!p || p.phase === "idle") return "";
+  switch (p.phase) {
+    case "downloading": return p.total ? `Downloading ${p.version}: ${Math.floor((p.downloaded * 100) / p.total)}% of ${mb(p.total)}…` : `Downloading ${p.version}: ${mb(p.downloaded)}…`;
+    case "installing": return `Installing ${p.version}…`;
+    case "restarting": return `${p.version} is installed; pal is restarting.`;
+    case "failed": return `Installing ${p.version} failed: ${p.error}`;
+  }
+}
+
+/** Whether an install is running (a second click is refused meanwhile). */
+export const installing = (p: UpdateProgress | undefined) => !!p && (p.phase === "downloading" || p.phase === "installing" || p.phase === "restarting");
 
 /** crash.rs `Report`: the OS's report of the last crash. `path` is the `.ips` on macOS; Linux has `coredumpctl` and no file. */
 export type CrashReport = { at: number; kind: string; path?: string };
@@ -21,6 +54,11 @@ export type SettingsAboutProps = {
   links: { docs: string; repo: string };
   /** One check against the release manifest; rejects with the reason (network, signature). */
   onCheckUpdates?: () => Promise<UpdateInfo>;
+  /** The last check's answer, when one ran (the Overview's, the daily one); the row starts from it. */
+  update?: UpdateInfo;
+  /** "Install update": download, verify, install, relaunch; the progress arrives in `progress`. */
+  onInstallUpdate?: () => Promise<void>;
+  progress?: UpdateProgress;
   onOpenLink?: (url: string) => void;
   onRevealFile?: () => void;
   /** What the last run left behind, when anything. */
@@ -79,8 +117,25 @@ function ReportRow({ label, which, at, what, path, onOpen, onReveal }: { label: 
 }
 
 /** The app, its version, the update check, the last crash, and where the rest lives. */
-export function SettingsAbout({ version, file, links, onCheckUpdates, onOpenLink, onRevealFile, crash, panic, onOpenReport, onRevealReport, diagnosticsText }: SettingsAboutProps) {
-  const [check, setCheck] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "done"; info: UpdateInfo } | { kind: "error"; message: string }>({ kind: "idle" });
+export function SettingsAbout({ version, file, links, onCheckUpdates, update, onInstallUpdate, progress, onOpenLink, onRevealFile, crash, panic, onOpenReport, onRevealReport, diagnosticsText }: SettingsAboutProps) {
+  const [check, setCheck] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "done"; info: UpdateInfo } | { kind: "error"; message: string }>(update ? { kind: "done", info: update } : { kind: "idle" });
+  const [installError, setInstallError] = useState<string | null>(null);
+  const info = check.kind === "done" ? check.info : undefined;
+  const busy = installing(progress);
+  const install = async () => {
+    if (!onInstallUpdate || busy) return;
+    setInstallError(null);
+    try { await onInstallUpdate(); } catch (e) { setInstallError(String(e)); }
+  };
+  const updateLine = () => {
+    const p = progressLine(progress);
+    if (installError) return <span data-error>{installError}</span>;
+    if (p) return progress?.phase === "failed" ? <span data-error>{p}</span> : p;
+    if (check.kind === "error") return <span data-error>{check.message}</span>;
+    if (!info) return "Checked once a day against the latest release.";
+    if (!info.available) return info.status ? `${info.status[0].toUpperCase()}${info.status.slice(1)}.` : "You have the latest version.";
+    return info.installable ? `${info.version} is available. Install downloads it, verifies the signature and relaunches pal.` : `${info.version} is available${info.install_note ? `: ${info.install_note}` : " on the releases page"}.`;
+  };
   const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
   const copyDiagnostics = async () => {
     if (!diagnosticsText) return;
@@ -112,14 +167,13 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, onOpenLink
       </div>
 
       <SettingsGroup title="Updates">
-        <SettingsRow anchor="about:updates" label="Version" description={
-          check.kind === "done" ? (check.info.available ? `${check.info.version} is available.` : check.info.status ? `${check.info.status[0].toUpperCase()}${check.info.status.slice(1)}.` : "You have the latest version.")
-          : check.kind === "error" ? <span data-error>{check.message}</span>
-          : "Checked once a day against the latest release."
-        }>
+        <SettingsRow anchor="about:updates" label="Version" description={updateLine()}>
           <span className="pal-about__row">
             <span>{version}</span>
-            {onCheckUpdates && <button type="button" className="pal-button" data-small disabled={check.kind === "busy"} onClick={run}>{check.kind === "busy" ? "Checking…" : "Check for Updates"}</button>}
+            {info?.available && info.installable && onInstallUpdate && (
+              <button type="button" className="pal-button" data-small data-primary="" disabled={busy} onClick={install}>{busy ? progress?.phase === "downloading" ? "Downloading…" : progress?.phase === "installing" ? "Installing…" : "Restarting…" : `Install ${info.version}`}</button>
+            )}
+            {onCheckUpdates && <button type="button" className="pal-button" data-small disabled={check.kind === "busy" || busy} onClick={run}>{check.kind === "busy" ? "Checking…" : "Check for Updates"}</button>}
           </span>
         </SettingsRow>
       </SettingsGroup>

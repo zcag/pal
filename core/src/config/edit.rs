@@ -26,6 +26,22 @@ impl ConfigFile {
         self.edit(|doc| set(doc, key, value))
     }
 
+    /// Several keys in one read-edit-write: each `Some` is a [`Self::set_json`],
+    /// each `None` a [`Self::unset`], so they land under one file event and
+    /// no reader sees half of them. Nothing is written when any key fails.
+    pub fn set_many(&self, changes: impl IntoIterator<Item = (String, Option<serde_json::Value>)>) -> Result<(), Error> {
+        let changes: Vec<_> = changes.into_iter().collect();
+        self.edit(|doc| {
+            for (key, value) in changes {
+                match value {
+                    Some(v) => set(doc, &key, json_to_toml(v))?,
+                    None => unset(doc, &key)?,
+                }
+            }
+            Ok(())
+        })
+    }
+
     /// Remove `key` (a whole table when it names one) and its own comments;
     /// the tables above it stay, even when that leaves an empty `[header]`.
     /// A key that is not there is not an error.
@@ -302,6 +318,38 @@ token = "keychain:pal/github-token"
         assert!(cfg.palettes["ffbookmarks"].enabled);
         assert_eq!(cfg.palettes["ffbookmarks"].alias.as_deref(), Some("fb"));
         assert_eq!(cfg.palettes["clipboard"].alias.as_deref(), Some("cb"), "siblings untouched");
+    }
+
+    /// What `settings.set` from an extension does (app settings.rs
+    /// `settings::call("set")`): a secret's reference and a plain value
+    /// under `[extensions.<name>]`, the comment on the touched line and
+    /// everything else kept; read back resolved through a store.
+    #[test]
+    fn extension_setting_round_trip_keeps_the_file_and_resolves_the_secret() {
+        const HUE: &str = "[general]\ntheme = \"dark\"\n\n[extensions.hue]\nbridge = \"10.0.0.2\"  # the old bridge\ninsecure = true\n";
+        let (_d, f) = file(HUE);
+        let before = std::fs::metadata(f.path()).unwrap().modified().unwrap();
+        f.set_many([("extensions.hue.bridge".to_string(), Some(serde_json::json!("192.168.1.25"))), ("extensions.hue.application_key".to_string(), Some(serde_json::json!("keychain:pal/hue-application_key")))]).unwrap();
+        let after = read(&f);
+        assert_eq!(after, "[general]\ntheme = \"dark\"\n\n[extensions.hue]\nbridge = \"192.168.1.25\"  # the old bridge\ninsecure = true\napplication_key = \"keychain:pal/hue-application_key\"\n");
+        let cfg = super::super::parse(&after).unwrap().0;
+        let store = super::super::secrets::MemStore::from([("pal/hue-application_key".to_string(), "abc123".to_string())].into());
+        let specs = serde_json::json!([{ "id": "bridge", "kind": "text" }, { "id": "application_key", "kind": "secret" }, { "id": "insecure", "kind": "boolean", "default": false }]);
+        let resolved = cfg.extension_settings_resolved("hue", &specs, &store);
+        assert_eq!(resolved["bridge"].as_str(), Some("192.168.1.25"));
+        assert_eq!(resolved["application_key"].as_str(), Some("abc123"), "the file holds the reference, the extension sees the secret");
+        assert_eq!(resolved["insecure"].as_bool(), Some(true));
+        // Back to the default is an unset, not a written default; a set and an unset go in one write.
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        f.set_many([("extensions.hue.insecure".to_string(), None), ("extensions.hue.bridge".to_string(), Some(serde_json::json!("10.0.0.9")))]).unwrap();
+        let cfg = super::super::parse(&read(&f)).unwrap().0;
+        assert_eq!(cfg.extension_settings_resolved("hue", &specs, &store)["insecure"].as_bool(), Some(false));
+        assert_eq!(cfg.extensions["hue"]["bridge"].as_str(), Some("10.0.0.9"));
+        assert_ne!(std::fs::metadata(f.path()).unwrap().modified().unwrap(), before);
+        // One key failing writes nothing.
+        let text = read(&f);
+        assert!(f.set_many([("extensions.hue.bridge".to_string(), Some(serde_json::json!("x"))), ("general".to_string(), Some(serde_json::json!(1)))]).is_err());
+        assert_eq!(read(&f), text);
     }
 
     #[test]

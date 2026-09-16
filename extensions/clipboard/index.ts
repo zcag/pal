@@ -97,13 +97,16 @@ function detail(e: ClipboardEntry, color?: string): Detail {
   };
 }
 
+// Copy joins the marked entries' text (one per line) and Delete removes each (`multi`); Paste is one entry.
+const COPY: Action = { id: "copy", title: "Copy", multi: true };
+const PASTE: Action = { id: "paste", title: "Paste" };
 const actions = (e: ClipboardEntry, primary: Settings["primary_action"], url?: string): Action[] => [
-  ...(primary === "copy" ? [{ id: "copy", title: "Copy" }, { id: "paste", title: "Paste" }] : [{ id: "paste", title: "Paste" }, { id: "copy", title: "Copy" }]),
+  ...(primary === "copy" ? [COPY, PASTE] : [PASTE, COPY]),
   ...(url ? [{ id: "open", title: "Open link", shortcut: "cmd+o" }] : []),
   ...(e.kind === "text" ? [{ id: "paste-plain", title: "Paste as plain text", shortcut: "cmd+shift+v" }] : []),
   ...(e.kind === "image" ? [{ id: "copy-file", title: "Copy image file", shortcut: "cmd+shift+c" }, { id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" }] : []),
   { id: "pin", title: e.pinned ? "Unpin" : "Pin", shortcut: "cmd+p" },
-  { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?" },
+  { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?", multi: true },
   { id: "delete-unpinned", title: "Delete all unpinned", style: "destructive", confirm: "Delete every unpinned entry? Pinned ones stay." },
   { id: "clear", title: "Clear history", shortcut: "cmd+shift+d", style: "destructive", confirm: "Delete every entry, pinned ones included?" },
 ];
@@ -174,10 +177,17 @@ export default {
         const kind = kindOf(ctx?.filter);
         return (await clipboard.list({ query, limit: PAGE, ...(kind && { kind }) })).filter((e) => shown(e, s) && passes(e, ctx?.filter)).map((e) => item(e, s.primary_action));
       },
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         const entry = Number(id);
+        // A multi pick's marked entries (`ctx.ids`), else the one.
+        const ids = (ctx?.ids ?? [id]).map(Number);
         switch (action) {
-          case "copy": await clipboard.copy(entry); return {};
+          case "copy": {
+            if (ids.length === 1) { await clipboard.copy(entry); return {}; }
+            // Several: their text joined, one per line, onto the clipboard as one copy; an image or a file list contributes its name.
+            const entries = await Promise.all(ids.map((i) => clipboard.get(i)));
+            return { copy: entries.map((e) => (e.kind === "text" ? e.text! : e.kind === "files" ? e.files!.join("\n") : title(e))).join("\n"), hud: `Copied ${ids.length} entries` };
+          }
           case "open": { const url = urlOf(await clipboard.get(entry)); return url ? { open: url } : { paste: { entry } }; }
           case "paste-plain": { const e = await clipboard.get(entry); return e.kind === "text" ? { paste: { text: e.text! } } : { paste: { entry } }; }
           case "copy-file": { const e = await clipboard.get(entry); return e.image ? { copy_files: [e.image] } : { paste: { entry } }; }
@@ -191,7 +201,7 @@ export default {
             return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
           }
           case "pin": { const e = await clipboard.get(entry); await clipboard.pin(entry, !e.pinned); return { keep: true }; }
-          case "delete": await clipboard.delete(entry); return { keep: true };
+          case "delete": for (const i of ids) await clipboard.delete(i); return { keep: true };
           case "delete-unpinned": { const n = await deleteUnpinned(); return { keep: true, toast: { title: `Deleted ${n} unpinned ${n === 1 ? "entry" : "entries"}` } }; }
           case "clear": await clipboard.clear(); return { keep: true, toast: { title: "History cleared" } };
           default: return { paste: { entry } };

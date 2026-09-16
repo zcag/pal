@@ -31,7 +31,7 @@ const perApp = MAC ? ["hide-app", "minimize-all", "close-all"] : ["minimize-all"
 
 describe("windows", () => {
   test("meta: live, not input, so titles are root results", () => {
-    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: tile("slate", "\u{f10ac}"), placeholder: "Switch to a window", tier: "primary" }]);
+    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: tile("slate", "\u{f10ac}"), placeholder: "Switch to a window", tier: "primary", multi: true }]);
   });
 
   test("rows in the core's order: title, app as subtitle, section and keyword, app icon or a glyph, state accessories", async () => {
@@ -40,7 +40,7 @@ describe("windows", () => {
     expect(items[0]).toEqual({
       id: "w1", name: "~/proj/pal", subtitle: "kitty", keywords: ["net.kovidgoyal.kitty", "kitty"], icon: { app: "/Applications/kitty.app" }, accessories: [], section: "kitty",
       actions: [
-        { id: "focus", title: "Focus" }, { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive" }, { id: "minimize", title: "Minimize", shortcut: "cmd+m" },
+        { id: "focus", title: "Focus" }, { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive", multi: true }, { id: "minimize", title: "Minimize", shortcut: "cmd+m", multi: true },
         ...(MAC ? [{ id: "hide-app", title: "Hide app", shortcut: "cmd+h" }] : []),
         { id: "minimize-all", title: "Minimize all of this app", shortcut: "cmd+shift+m" },
         { id: "close-all", title: "Close all of this app", shortcut: "cmd+shift+w", style: "destructive", confirm: "Close every window of this app?" },
@@ -69,6 +69,17 @@ describe("windows", () => {
     expect(await pick("w1", "minimize-all")).toEqual({ keep: true });
     expect(minimized).toEqual([{ id: "w1" }]);
     expect(await pick("gone", "close-all")).toEqual({ keep: true });
+  });
+
+  test("pick with marked rows (ctx.ids): close and minimize go through each id; focus stays one window", async () => {
+    closed.length = 0; minimized.length = 0;
+    expect(await host.pick("windows", "windows", "w1", "close", { ids: ["w1", "w4"] })).toEqual({ keep: true });
+    expect(closed).toEqual([{ id: "w1" }, { id: "w4" }]);
+    expect(await host.pick("windows", "windows", "w4", "minimize", { ids: ["w4", "w1"] })).toEqual({ keep: true });
+    expect(minimized).toEqual([{ id: "w4" }, { id: "w1" }]);
+    expect(await host.pick("windows", "windows", "w1", "close", { ids: ["w1", "w3"] })).toEqual({ keep: true, toast: { title: "Could not close every marked window", message: "Finder refused", style: "failure" } });
+    expect(host.loaded().find((l) => l.extension === "windows")!.palettes[0].actions).toBeUndefined();
+    expect((await list())[0].actions!.find((a) => a.id === "focus")!.multi).toBeUndefined();
   });
 
   test("a core failure becomes a failure toast, palette kept", async () => {

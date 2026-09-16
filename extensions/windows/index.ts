@@ -17,8 +17,9 @@ const MAC = process.platform === "darwin";
 const WINDOW_GLYPH = xdg("window-new")!;
 
 const FOCUS: Action = { id: "focus", title: "Focus" };
-const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive" };
-const MINIMIZE: Action = { id: "minimize", title: "Minimize", shortcut: "cmd+m" };
+// Close and minimize work on marked rows too (`multi`); focus is one window by nature.
+const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive", multi: true };
+const MINIMIZE: Action = { id: "minimize", title: "Minimize", shortcut: "cmd+m", multi: true };
 const HIDE_APP: Action = { id: "hide-app", title: "Hide app", shortcut: "cmd+h" };
 const MINIMIZE_ALL: Action = { id: "minimize-all", title: "Minimize all of this app", shortcut: "cmd+shift+m" };
 const CLOSE_ALL: Action = { id: "close-all", title: "Close all of this app", shortcut: "cmd+shift+w", style: "destructive", confirm: "Close every window of this app?" };
@@ -59,22 +60,26 @@ export default {
     windows: {
       title: "Windows",
       live: true,
+      // Tab (and `x` with nothing typed) marks rows: windows are closed in batches.
+      multi: true,
       placeholder: "Switch to a window",
       list: async () => {
         const { include_minimized } = settings.get<Settings>();
         const all = (await windows.list()).filter((w) => include_minimized || !w.minimized);
         return all.map((w) => item(w, sameApp(w, all).length));
       },
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         const many = action === "close-all" || action === "minimize-all";
         const all = many || action === "hide-app" ? await windows.list() : [];
         const w = all.find((x) => x.id === id);
+        // The marked rows of a multi pick, else the one.
+        const ids = ctx?.ids ?? [id];
         switch (action) {
           case "close":
-            try { await windows.close(id); } catch (e) { return failed("close the window", e); }
+            try { for (const i of ids) await windows.close(i); } catch (e) { return failed(ids.length === 1 ? "close the window" : "close every marked window", e); }
             return { keep: true };
           case "minimize":
-            try { await windows.minimize(id); } catch (e) { return failed("minimize the window", e); }
+            try { for (const i of ids) await windows.minimize(i); } catch (e) { return failed(ids.length === 1 ? "minimize the window" : "minimize every marked window", e); }
             return { keep: true };
           case "close-all":
           case "minimize-all": {

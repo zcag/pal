@@ -38,6 +38,7 @@ pal toast TITLE [MESSAGE]   a toast in the panel, else the HUD
 pal confetti [TEXT] a celebration in the HUD
 pal command ID      one of pal's own rows (refresh, updates, theme, ...)
 pal call EXT/ROUTE [KEY=VALUE ...]   a route an extension declares
+pal pick            the panel as a picker over the lines on stdin; the choice on stdout (see below)
 open pal://...      deep links: the same, from a URL (see Links)
 pal --version
 pal --help
@@ -116,6 +117,43 @@ pal bar sync                                  probe sketchybar and re-apply ever
 `bounding_rects`, `menubar` and nothing use the panel's usual place, and
 `x,y,w,h` in screen points is a rect of your own. `--state` also takes
 sketchybar's `$SENDER` as it is, so an item's `script` is one line.
+
+## `pal pick`
+
+The panel as a picker for a script: rows in on stdin, the choice out on
+stdout, like `fzf` or rofi's `-dmenu`, with pal's search, look and
+hotkey-free reach (a keybind can run it too). Every non-empty line is a
+row; a line that is a JSON object `{ "id", "name", "subtitle"?, "icon"? }`
+is a row with those parts (the icon as an item's: a glyph, an emoji, a hex
+colour, an app path). The panel shows them under `--title`, fuzzy-filtered
+as you type; `Enter` prints the row's id (the line itself, for line input)
+and exits 0. `Escape` prints nothing and exits 1; no running instance is
+exit 2; `Ctrl+C` in the terminal is 130. `--query` types a query first.
+
+`--multi` picks several: `Tab`, `⇧↓`/`⇧↑` and (while nothing is typed)
+`x` mark rows (a check on the row, a count in the footer), `⌘`-click
+marks or unmarks one, `Escape` clears the marks, `Enter` prints every
+marked id, one per line, the cursor's first.
+
+```sh
+# fzf-style file pick: open what you choose
+f=$(fd -t f . ~/proj | pal pick -t "Open") && open "$f"
+
+# a kill menu: rows are JSON so the pid is the id and the name is readable
+ps -eo pid=,pcpu=,comm= | sort -k2 -rn | head -30 |
+  awk '{ printf "{\"id\":\"%s\",\"name\":\"%s\",\"subtitle\":\"%s%% cpu\"}\n", $1, $3, $2 }' |
+  pal pick -t "Kill" --multi | xargs -r kill
+
+# a git branch switcher, the current branch typed as the query
+git branch --format='%(refname:short)' | pal pick -t "Switch to" -q "$(git branch --show-current)" | xargs -r git switch
+```
+
+The rows travel to the running instance over a socket the CLI opens for
+the answer (`$TMPDIR/pal-pick-<pid>.sock`, gone when the CLI exits), the
+one subcommand with a reply channel; the picker level is the panel's own
+list, so the keyboard grammar is the usual one. Only one picker is up at
+a time: a second `pal pick` cancels the first (exit 1). The panel hiding
+for any other reason (a click elsewhere, `pal hide`) cancels too.
 
 ## Deep links
 

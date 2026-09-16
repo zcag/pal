@@ -87,6 +87,7 @@
       "description": "Yours, the ones waiting on your review, and what merged lately.",
       "ttl": 300,
       "kind": "list",
+      "lazy": true,
       "keys": [
         {
           "keys": "enter",
@@ -131,6 +132,7 @@
       "description": "Assigned to you, mentioning you, opened by you; Create issue.",
       "ttl": 300,
       "kind": "list",
+      "lazy": true,
       "keys": [
         {
           "keys": "enter",
@@ -155,6 +157,7 @@
       "description": "Yours, starred, and your organisation's recently pushed.",
       "ttl": 300,
       "kind": "list",
+      "lazy": true,
       "keys": [
         {
           "keys": "enter",
@@ -187,6 +190,7 @@
       "description": "Unread, by reason; opening one marks it read.",
       "ttl": 60,
       "kind": "live",
+      "lazy": true,
       "keys": [
         {
           "keys": "enter",

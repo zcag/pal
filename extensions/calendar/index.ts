@@ -377,11 +377,23 @@ async function renderUpcoming(ctx: BarCtx): Promise<BarItem> {
   return upcomingItem(l.events, now, s, l.stale);
 }
 
+/**
+ * Google is a token command per account (his is an ssh hop) and a network
+ * read: with that source the first listing of a run waits for the first
+ * panel show. The system source (EventKit, khal) is local and lists at
+ * start as before. Read once at load; a source switched in the settings
+ * takes effect at the next load of the extension. (`loadFilters` still
+ * asks Google for the calendar names at load: the filters are static
+ * meta.)
+ */
+const lazy = active() === "google";
+
 export default {
   palettes: {
     schedule: {
       title: "My Schedule",
       live: true,
+      lazy,
       placeholder: "Search your events",
       filters: await loadFilters(),
       list: scheduleRows,
@@ -391,6 +403,7 @@ export default {
     [TODAY]: {
       title: "Today",
       live: true,
+      lazy,
       placeholder: "Search today's events",
       list: todayRows,
       // The empty root's Now section: the current or next event, Join on Enter.

@@ -3,7 +3,7 @@ import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { comboLabel, combosLabel } from "./SettingsGeneral";
-import type { UpdateInfo } from "./SettingsAbout";
+import { installing, progressLine, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 import { needsSetup, permissionRows, type BarItem, type Diagnostic, type HotkeyStatus, type PermissionId, type PermissionsStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage } from "./SettingsTypes";
 import { relativeDate } from "./format";
 import type { Icon as IconSpec } from "./types";
@@ -38,6 +38,8 @@ export type OverviewInput = {
   diagnostics?: Diagnostic[];
   /** The last app update check; `undefined` while none ran. */
   update?: UpdateInfo;
+  /** An install under way (`pal://update`), for the update row's text. */
+  progress?: UpdateProgress;
   checks?: OverviewChecks;
 };
 
@@ -51,7 +53,7 @@ export type OverviewItem = {
   /** What is wrong and what fixes it, one line. */
   detail: string;
   /** The inline action. */
-  action?: { label: string; go?: { page: SettingsPage; anchor?: string }; permission?: PermissionId; keyboardShortcuts?: boolean; updateExtension?: string };
+  action?: { label: string; go?: { page: SettingsPage; anchor?: string }; permission?: PermissionId; keyboardShortcuts?: boolean; updateExtension?: string; installUpdate?: boolean; disabled?: boolean };
 };
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -125,7 +127,12 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
   }
 
   if (v.update?.available) {
-    items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. Download and install are not wired yet; get it from the releases page.`, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
+    const p = progressLine(v.progress);
+    if (v.update.installable) {
+      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: p || `You have ${v.version}. Install downloads it, verifies the signature and relaunches pal.`, action: { label: installing(v.progress) ? "Installing…" : "Install", installUpdate: true, disabled: installing(v.progress) } });
+    } else {
+      items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. ${v.update.install_note ? `${v.update.install_note[0].toUpperCase()}${v.update.install_note.slice(1)}.` : "Get it from the releases page."}`, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
+    }
   }
   for (const e of v.extensions) {
     if (e.latest) items.push({ id: `update:${e.name}`, level: "attention", icon: e.icon, title: `${e.title} ${e.latest} is available`, detail: `Installed: ${e.version || "unversioned"}.`, action: { label: "Update", updateExtension: e.name } });
@@ -154,11 +161,13 @@ export function overviewFacts(v: OverviewInput): { label: string; value: ReactNo
   const palettes = v.extensions.flatMap((e) => e.palettes);
   const on = palettes.filter((p) => p.config.enabled).length;
   const withHotkey = palettes.filter((p) => p.config.hotkey).length;
+  const itemHotkeys = palettes.reduce((n, p) => n + Object.keys(p.config.itemHotkeys ?? {}).length, 0);
   const barOn = (v.bar ?? []).filter((b) => b.config.enabled && b.source).length;
+  const hotkeys = [withHotkey ? `${withHotkey} with a hotkey` : "", itemHotkeys ? `${plural(itemHotkeys, "item hotkey")}` : ""].filter(Boolean).join(", ");
   return [
     { label: "Hotkey", value: v.hotkey?.hotkeys.length ? <span className="pal-overview__hotkeys" aria-label={combosLabel(v.hotkey.hotkeys.map((h) => h.wanted))}>{v.hotkey.hotkeys.map((h, i) => <span key={i}>{i ? ", " : ""}<Kbd shortcut={h.wanted} /></span>)}</span> : "none", go: { page: "general", anchor: "general:hotkey" } },
     { label: "Extensions", value: `${plural(loaded.length, "extension")} loaded${loaded.length !== v.extensions.length ? `, ${v.extensions.length - loaded.length} failed` : ""}`, go: { page: "extensions" } },
-    { label: "Palettes", value: `${on} of ${palettes.length} on${withHotkey ? `, ${withHotkey} with a hotkey` : ""}`, go: { page: "palettes" } },
+    { label: "Palettes", value: `${on} of ${palettes.length} on${hotkeys ? `, ${hotkeys}` : ""}`, go: { page: "palettes" } },
     ...(v.barSupported === false ? [] : [{ label: "Bar", value: v.bar?.length ? `${barOn} of ${plural(v.bar.length, "item")} on` : "no items declared", go: { page: "bar" as const } }]),
   ];
 }
@@ -175,6 +184,8 @@ export type SettingsOverviewProps = OverviewInput & {
   onUpdateExtension?: (name: string) => void;
   /** "Check now": both checks, whatever the setting says. */
   onCheckUpdates?: () => void;
+  /** The update row's Install. */
+  onInstallUpdate?: () => void;
 };
 
 /**
@@ -182,7 +193,7 @@ export type SettingsOverviewProps = OverviewInput & {
  * inline, and under it the facts (hotkey, what is loaded, what is on).
  * Nothing to do reads "Everything is set" with the version.
  */
-export function SettingsOverview({ onGo, onRequestPermission, onOpenKeyboardShortcuts, onUpdateExtension, onCheckUpdates, ...v }: SettingsOverviewProps) {
+export function SettingsOverview({ onGo, onRequestPermission, onOpenKeyboardShortcuts, onUpdateExtension, onCheckUpdates, onInstallUpdate, ...v }: SettingsOverviewProps) {
   const items = overviewItems(v);
   const facts = overviewFacts(v);
   const act = (a: NonNullable<OverviewItem["action"]>) => {
@@ -190,6 +201,7 @@ export function SettingsOverview({ onGo, onRequestPermission, onOpenKeyboardShor
     else if (a.permission) onRequestPermission?.(a.permission);
     else if (a.keyboardShortcuts) onOpenKeyboardShortcuts?.();
     else if (a.updateExtension) onUpdateExtension?.(a.updateExtension);
+    else if (a.installUpdate) onInstallUpdate?.();
   };
   return (
     <div className="pal-settings-page pal-overview">
@@ -213,7 +225,7 @@ export function SettingsOverview({ onGo, onRequestPermission, onOpenKeyboardShor
                 <span className="pal-overview__item-title">{it.title}</span>
                 <span className="pal-overview__item-detail">{it.detail}</span>
               </span>
-              {it.action && <button type="button" className="pal-button" data-small data-primary={it.action.permission || it.action.updateExtension || it.action.keyboardShortcuts ? "" : undefined} onClick={() => act(it.action!)}>{it.action.label}</button>}
+              {it.action && <button type="button" className="pal-button" data-small data-primary={it.action.permission || it.action.updateExtension || it.action.keyboardShortcuts || it.action.installUpdate ? "" : undefined} disabled={it.action.disabled} onClick={() => act(it.action!)}>{it.action.label}</button>}
             </li>
           ))}
         </ul>

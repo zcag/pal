@@ -3,7 +3,7 @@
 // description, kind, ttl, keys, rank, settings), the code the behaviour
 // (`list`/`pick`/`detail`/`view`, the flags). The two overlap on purpose in
 // one place, `kind`, which the manifest states and the code implies, and
-// by tolerance in three more, `title`, `ttl` and `tier`, where the manifest wins.
+// by tolerance in four more, `title`, `ttl`, `tier` and `lazy`, where the manifest wins.
 // `checkPalettes` is what the host runs on every load to merge the two into
 // the palette metas it sends the core and to say where they disagree; an
 // extension's own tests can run it too (`checkPalettes(manifest, ext)`).
@@ -66,10 +66,12 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     detail: typeof p.detail === "function" ? "lazy" : undefined,
     ttl: m?.ttl ?? p.ttl,
     tier: m?.tier ?? p.tier,
+    ...((m?.lazy ?? p.lazy) && { lazy: true as const }),
     ...(inlineOf(p, m) && { inline: true as const }),
     ...(matchSource(p, m) !== undefined && { match: matchSource(p, m) }),
     ...(fallbackOf(p, m)),
     ...(typeof p.suggest === "function" && { suggest: true as const }),
+    ...(p.multi === true && { multi: true as const }),
   };
 }
 
@@ -131,8 +133,8 @@ export type PaletteCheck = { metas: PaletteMeta[]; warnings: string[] };
  * - `kind` stated in the manifest must be the kind the code implies
  *   (`kindOf`); the warning says how the code spells the manifest's kind
  *   and what to set;
- * - `title` and `ttl` set on both sides must agree; the manifest's is
- *   served either way;
+ * - `title`, `ttl`, `tier` and `lazy` set on both sides must agree; the
+ *   manifest's is served either way;
  * - the manifest's `icon` and every palette's `icon` are well formed
  *   (`checkIcon`, icon.ts): a tile names a brand colour and carries one
  *   glyph or a short SVG path. A bad palette icon is dropped from its meta;
@@ -170,6 +172,9 @@ export function checkPalettes(manifest: Manifest, ext: Extension): PaletteCheck 
       }
       if (m.tier !== undefined && p.tier !== undefined && m.tier !== p.tier) {
         warnings.push(`palettes.${name}: tier "${p.tier}" in the code, "${m.tier}" in pal.json; the manifest's is used, drop the code's`);
+      }
+      if (m.lazy !== undefined && p.lazy !== undefined && m.lazy !== p.lazy) {
+        warnings.push(`palettes.${name}: lazy ${p.lazy} in the code, ${m.lazy} in pal.json; the manifest's is used, drop the code's`);
       }
     }
     metas.push(paletteMeta(name, badIcon ? { ...p, icon: undefined } : p, m, manifestIcon ? undefined : manifest.icon));

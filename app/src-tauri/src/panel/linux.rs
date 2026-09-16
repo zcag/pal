@@ -46,6 +46,7 @@ pub fn hide(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(WINDOW) {
         if is_visible(app) {
             crate::pop::note_hidden();
+            crate::pick::on_hidden(app);
         }
         let _ = w.hide();
     }

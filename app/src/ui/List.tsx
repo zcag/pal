@@ -1,8 +1,8 @@
 import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Row } from "./Row";
-import { useCmdHeld } from "./keys";
-import { domId, flatten, useHover, useMetrics, observeRect } from "./virtual";
+import { isMac, useCmdHeld } from "./keys";
+import { domId, flatten, useHover, useMetrics, observeRect, ensureVisible } from "./virtual";
 import type { Item, Match } from "./types";
 
 export type Hit = { item: Item; match?: Match };
@@ -16,8 +16,15 @@ export type ListProps = {
   cursor: number;
   onCursor: (index: number) => void;
   onPick?: (index: number) => void;
+  /** Whether the row is marked (`selection.ts`). */
+  marked?: (item: Item) => boolean;
+  /** A cmd+click (ctrl on Linux): mark or unmark the row instead of picking it. */
+  onToggle?: (index: number) => void;
   label?: string;
 };
+
+/** A click with the platform's primary modifier toggles a mark; any other picks. */
+export const clickWithModifier = (e: { metaKey: boolean; ctrlKey: boolean }) => (isMac ? e.metaKey : e.ctrlKey);
 
 /**
  * Virtualised list with section headers. Items are shown in the order given;
@@ -25,7 +32,7 @@ export type ListProps = {
  * scroll with the rows, as in Raycast: a sticky one would sit over the
  * cursor row whenever the cursor is the first in its section.
  */
-export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, label }, ref) {
+export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item)), [hits]);
@@ -56,7 +63,9 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
     if (row === undefined) return;
     virt.scrollToIndex(row, { align: "auto" });
     if (rows[row - 1]?.kind === "header") virt.scrollToIndex(row - 1, { align: "auto" });
-  }, [cursor, rows, rowOf, virt, hovered]);
+    // The virtualiser's rect can be stale (a footer that appeared, a hidden spell): the DOM has the last word.
+    requestAnimationFrame(() => ensureVisible(scroller.current, [domId(id, cursor)]));
+  }, [cursor, rows, rowOf, virt, hovered, id]);
 
   return (
     <div ref={scroller} className="pal-list" role="listbox" id={id} aria-label={label} aria-activedescendant={hits.length ? domId(id, cursor) : undefined}>
@@ -82,8 +91,9 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
               active={i === cursor}
               style={style}
               ordinal={cmdHeld ? i + 1 : undefined}
+              marked={marked?.(row.items[0])}
               onHover={hover(i)}
-              onClick={() => onPick?.(i)}
+              onClick={(e) => (onToggle && clickWithModifier(e) ? onToggle(i) : onPick?.(i))}
             />
           );
         })}

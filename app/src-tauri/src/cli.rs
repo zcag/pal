@@ -27,6 +27,10 @@
 //! instance writes, in this process; `click`, `hover`, `action`, `render`
 //! and `sync` reach the instance (sketchybar's click and hover scripts
 //! run them).
+//!
+//! `pal pick` (pick.rs): the rows on stdin, the panel as the picker, the
+//! choice on stdout; the one subcommand with an answer, over a socket of
+//! its own that the handed-over argv names (`--reply`).
 
 use clap::{Parser, Subcommand};
 use pal_core::extensions::Store;
@@ -135,6 +139,24 @@ pub enum Cmd {
     Confetti { text: Option<String> },
     /// One of pal's own rows: settings, store, refresh, updates, theme, ... (pal://commands/ID).
     Command { id: String },
+    /// Pick from the lines on stdin (or JSON rows {id,name,subtitle,icon}) in the panel; the chosen ids on stdout, exit 1 on Escape.
+    Pick {
+        /// The picker's title (the crumb).
+        #[arg(short, long)]
+        title: Option<String>,
+        /// Several rows: x, shift+arrows or cmd+click mark them, Enter picks all.
+        #[arg(short, long)]
+        multi: bool,
+        /// Typed into the search box first.
+        #[arg(short, long)]
+        query: Option<String>,
+        /// Answer with this id at once, the panel never shown: checks the plumbing.
+        #[arg(long, hide = true)]
+        select: Option<String>,
+        /// Internal: the socket the instance answers on (the CLI sets it in the handover).
+        #[arg(long, hide = true)]
+        reply: Option<String>,
+    },
     /// A route an extension declares (pal://EXT/ROUTE?key=value).
     Call {
         /// `timer/start`: the extension and the route from its pal.json.
@@ -403,6 +425,9 @@ impl Cmd {
             // Reaches the instance only when a second process skipped
             // `run_store` (it never does); the store is that process's job.
             Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } => {}
+            // The instance's side of a picker: connect back to the CLI's socket (pick.rs). Without one the CLI process handled it.
+            Cmd::Pick { reply: Some(socket), title, multi, query, select } => crate::pick::serve(&handle, socket.into(), crate::pick::Options { title, multi, query, select }),
+            Cmd::Pick { reply: None, .. } => {}
             // A link twin: the instance runs the link it spells, trusted (module docs).
             ref cmd => {
                 if let Some(link) = cmd.link() {
@@ -541,6 +566,13 @@ mod tests {
         assert_eq!(parse(&cmd(&["run", "a/b/with/slash"]).link().unwrap()), Ok(Route::Run { source: pal_core::index::Source::new("a", "b"), id: "with/slash".into(), action: None, args: None, fill: None }), "a slash inside the id survives the round trip");
         assert!(cmd(&["toggle"]).link().is_none(), "the plain subcommands are not links");
         assert!(cmd(&["bar", "list"]).link().is_none());
+        assert!(cmd(&["pick", "-m", "-t", "Branch"]).link().is_none());
+    }
+
+    #[test]
+    fn pick_parses_its_flags_and_the_hidden_reply_socket() {
+        assert_eq!(cmd(&["pick"]), Cmd::Pick { title: None, multi: false, query: None, select: None, reply: None });
+        assert_eq!(cmd(&["pick", "--reply", "/tmp/x.sock", "--title", "T", "--multi", "--query", "q", "--select", "id"]), Cmd::Pick { title: Some("T".into()), multi: true, query: Some("q".into()), select: Some("id".into()), reply: Some("/tmp/x.sock".into()) });
     }
 
     #[test]

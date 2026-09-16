@@ -44,6 +44,8 @@ export type Action = {
   section?: string;
   /** Routes its key, is never listed (not in the panel, the footer, nor the Enter / ⌘Enter pair). */
   hidden?: true;
+  /** Runs over the marked rows as one pick (`ctx.ids`); the only actions listed while rows are marked. */
+  multi?: true;
 };
 
 export type Metadata = {

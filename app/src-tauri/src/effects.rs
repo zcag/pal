@@ -9,8 +9,11 @@
 //! hides is the HUD's (hud.rs): "Copied" after a `copy` or `copy_files` that hides
 //! ("Copied, clears in N s" for a concealed copy with `clear_after`), an
 //! extension's own `hud` text, the once-per-run note when a `focus`
-//! could only bring the app forward, and the layout's name (or why it
-//! failed) after a `layout`.
+//! could only bring the app forward, the layout's name (or why it
+//! failed) after a `layout`, and which panel took the path after a
+//! `dialog` (the Files row's "Use in dialog": the panel hides, the path is
+//! typed into the front app's open or save panel through its Go to Folder
+//! sheet, `pal_core::dialog::go`).
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -100,6 +103,15 @@ fn layout_feedback(name: &str, result: &Result<pal_core::windows::Applied, Strin
     }
 }
 
+/// What the HUD says after a `dialog`: which app's panel took the path,
+/// or why it did not happen (no panel in front, the keystrokes refused).
+fn dialog_feedback(r: &Result<pal_core::dialog::Dialog, String>) -> String {
+    match r {
+        Ok(d) => format!("Typed into the {} panel of {}", d.kind.name(), d.app),
+        Err(e) => format!("Use in dialog: {e}"),
+    }
+}
+
 /// The OS calls run on blocking threads: a pasteboard write or a paste
 /// keystroke must not sit on the async runtime that answers keystrokes.
 async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + 'static) -> Result<T, String> {
@@ -176,6 +188,16 @@ pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Resul
         let r = blocking(move || windows::apply_layout(&p)).await;
         hud::show(app, &layout_feedback(&name, &r));
     }
+    if let Some(path) = envelope.get("dialog").and_then(Value::as_str) {
+        if let Some(toast) = accessibility_blocked(app, "Use in dialog") {
+            return Ok(toast);
+        }
+        // Hidden first: the keystrokes go to the panel, which is key again once pal is down.
+        hide_first(app, window).await?;
+        let path = path.to_string();
+        let r = blocking(move || pal_core::dialog::go(&path).map_err(|e| e.to_string())).await;
+        hud::show(app, &dialog_feedback(&r));
+    }
     if let Some(text) = envelope.get("large_type").and_then(Value::as_str) {
         // The panel goes first: the overlay takes the keyboard for its dismissal.
         hide_first(app, window).await?;
@@ -250,6 +272,14 @@ mod tests {
         assert_eq!(layout_feedback("left_half", &ok), "Left Half");
         assert_eq!(layout_feedback("restore", &Err("nothing to restore".into())), "Restore: nothing to restore");
         assert_eq!(layout_feedback("bogus", &Err("no layout \"bogus\"".into())), "bogus: no layout \"bogus\"", "an unknown name is shown as given");
+    }
+
+    #[test]
+    fn dialog_feedback_names_the_panel_or_the_reason() {
+        use pal_core::dialog::{Dialog, Kind};
+        let ok = Ok(Dialog { app: "TextEdit".into(), pid: 1, kind: Kind::Open, title: None });
+        assert_eq!(dialog_feedback(&ok), "Typed into the open panel of TextEdit");
+        assert_eq!(dialog_feedback(&Err("no open or save panel in front".into())), "Use in dialog: no open or save panel in front");
     }
 
     #[test]

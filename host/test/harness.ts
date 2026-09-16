@@ -62,6 +62,10 @@ export class Host {
   /** Lines on stdout that were not JSON: a corrupted protocol. */
   readonly garbage: string[] = [];
   readonly manifests = new Map<string, Manifest>();
+  /** What extensions wrote through `settings.set`, as the file would hold it (`keychain:` for a secret), keyed `<extension>` / `<extension>/<palette>`, then id; an unset id is absent. */
+  readonly written = new Map<string, Record<string, unknown>>();
+  /** The secrets `settings.set` put in the "keychain", by key. */
+  readonly secrets = new Map<string, string>();
   stderr = "";
   readonly exited: Promise<number>;
   private proc: Bun.Subprocess<"pipe", "pipe", "pipe">;
@@ -157,10 +161,11 @@ export class Host {
   }
 
   /** `settings/changed` for one extension: manifest defaults with `overlay` on top. */
+  /** The file changed under the extension: `overlay` is what it sets now, on top of what the extension itself wrote through `settings.set`. */
   changeSettings(extension: string, overlay: Overlay[string]) {
     const manifest = this.manifests.get(extension);
     if (!manifest) throw new Error(`no manifest seen for ${extension}`);
-    this.notify("settings/changed", { extensions: { [extension]: resolveSettings(manifest, overlay) } });
+    this.notify("settings/changed", { extensions: { [extension]: this.resolvedOf(extension, manifest, overlay) } });
   }
 
   /** The next matching notification to arrive after this call. */
@@ -243,7 +248,15 @@ export class Host {
     if (method === "settings.get") {
       const { extension, manifest } = req.params as { extension: string; manifest: Manifest };
       this.manifests.set(extension, manifest);
-      fn ??= () => resolveSettings(manifest, this.opts.settings?.[extension]);
+      fn ??= () => this.resolvedOf(extension, manifest);
+    }
+    let changed: { extension: string; resolved: ResolvedSettings } | undefined;
+    if (method === "settings.set") {
+      fn ??= (p) => {
+        const r = this.setSettings(p as { extension: string; palette?: string; values: Record<string, unknown> });
+        changed = { extension: (p as { extension: string }).extension, resolved: r };
+        return r;
+      };
     }
     try {
       const result = fn ? await fn(req.params) : null;
@@ -251,6 +264,48 @@ export class Host {
     } catch (e) {
       this.write({ id: req.id, error: e instanceof Error ? e.message : String(e) });
     }
+    // The core's config watcher would push the reload after the write; here at once.
+    if (changed) this.notify("settings/changed", { extensions: { [changed.extension]: changed.resolved } });
+  }
+
+  /** The manifest's defaults, the overlay the test gave (or `given`), and what `settings.set` wrote since (secrets resolved to their values). */
+  private resolvedOf(extension: string, manifest: Manifest, given = this.opts.settings?.[extension]): ResolvedSettings {
+    const resolveSecrets = (t: Record<string, unknown> | undefined) => Object.fromEntries(Object.entries(t ?? {}).map(([k, v]) => [k, typeof v === "string" && v.startsWith("keychain:") && this.secrets.has(v.slice(9)) ? this.secrets.get(v.slice(9)) : v]));
+    const palettes = Object.fromEntries(Object.keys(manifest.palettes ?? {}).map((k) => [k, { ...given?.palettes?.[k], ...resolveSecrets(this.written.get(`${extension}/${k}`)) }]));
+    return resolveSettings(manifest, { settings: { ...given?.settings, ...resolveSecrets(this.written.get(extension)) }, palettes });
+  }
+
+  /**
+   * What the core does for `core/settings.set` (app settings.rs
+   * `plan_write` + `write_settings`), in memory: every id must be
+   * declared (else nothing is written), a secret goes to `secrets` and the
+   * file gets the reference, `null` and the declared default unset the
+   * key; the extension's resolved values are the answer.
+   */
+  private setSettings({ extension, palette, values }: { extension: string; palette?: string; values: Record<string, unknown> }): ResolvedSettings {
+    const manifest = this.manifests.get(extension);
+    if (!manifest) throw new Error(`settings.set: no extension ${extension}`);
+    if (!values || typeof values !== "object" || !Object.keys(values).length) throw new Error("settings.set: no values");
+    const specs = palette !== undefined ? manifest.palettes?.[palette]?.settings : manifest.settings;
+    if (palette !== undefined && !manifest.palettes?.[palette]) throw new Error(`settings.set: ${extension} declares no palette ${palette}`);
+    const planned = Object.entries(values).map(([id, value]) => {
+      const spec = (specs ?? []).find((s) => s.id === id);
+      if (!spec) throw new Error(`settings.set: ${extension}${palette !== undefined ? `/${palette}` : ""} declares no setting ${id}`);
+      return { id, value, spec };
+    });
+    const key = palette !== undefined ? `${extension}/${palette}` : extension;
+    const table = this.written.get(key) ?? {};
+    this.written.set(key, table);
+    for (const { id, value, spec } of planned) {
+      const secret = spec.kind === "secret" && typeof value === "string" && value !== "" && !/^(keychain|env):/.test(value);
+      if (value === null || (!secret && JSON.stringify(value) === JSON.stringify(spec.default))) delete table[id];
+      else if (secret) {
+        const k = palette !== undefined ? `pal/${extension === palette ? extension : `${extension}-${palette}`}-settings-${id}` : `pal/${extension}-${id}`;
+        this.secrets.set(k, value as string);
+        table[id] = `keychain:${k}`;
+      } else table[id] = value;
+    }
+    return this.resolvedOf(extension, manifest);
   }
 }
 
