@@ -6,11 +6,13 @@
 use std::path::PathBuf;
 
 use pal_core::clipboard::{self as cb, Clipboard, Kind, Retention, WatchHandle};
-use pal_core::config::{spec_defaults, ConfigFile};
+use pal_core::config::spec_defaults;
 use pal_core::icons;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
+
+use crate::{events, settings};
 
 /// The extension's manifest, compiled in: its `settings` defaults are the
 /// recorder's too, so a key absent from the file means what the settings
@@ -32,20 +34,21 @@ struct Settings {
     max_age_days: u64,
 }
 
-/// A value of the wrong type in the file (`max_entries = "many"`) is logged
-/// and the manifest's defaults stand in.
-fn settings() -> Settings {
+/// From the loaded config (`settings::install` ran first). A value of the
+/// wrong type in the file (`max_entries = "many"`) is logged and the
+/// manifest's defaults stand in.
+fn settings(app: &AppHandle) -> Settings {
     let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
     let defaults = spec_defaults(&manifest["settings"]);
-    let table = ConfigFile::locate().load().config.extension_settings("clipboard", &defaults);
+    let table = settings::config(app).extension_settings("clipboard", &defaults);
     table.try_into().unwrap_or_else(|e| {
-        eprintln!("clipboard\tsettings\t{e}");
+        eprintln!("clipboard\tbad settings\t{e}; using the defaults");
         defaults.try_into().expect("manifest defaults fit Settings")
     })
 }
 
 pub fn install(app: &AppHandle) {
-    let settings = settings();
+    let settings = settings(app);
     // The manifest says `min: 1`; a hand-written 0 would empty the history on the next copy.
     let store = match Clipboard::open_at(&cb::default_dir(), Retention::days(settings.max_entries.max(1), settings.max_age_days)) {
         Ok(s) => s,
@@ -53,7 +56,7 @@ pub fn install(app: &AppHandle) {
     };
     let handle = app.clone();
     let watch = store.start_watching(settings.exclude_apps, move |e| {
-        let _ = handle.emit("pal://clipboard", json!({ "id": e.id, "kind": e.kind }));
+        events::emit(&handle, events::CLIPBOARD, json!({ "id": e.id, "kind": e.kind }));
     });
     app.manage(State { store, _watch: watch });
 }
@@ -82,21 +85,23 @@ struct IdParams {
     pinned: bool,
 }
 
-/// `clipboard.<func>` over the bridge; results are the core's `Entry` as is.
+fn arg<T: serde::de::DeserializeOwned>(v: Value) -> Result<T, String> {
+    serde_json::from_value(v).map_err(|e| format!("bad params: {e}"))
+}
+
+/// `clipboard.<func>` over the bridge (on a blocking thread, `host::serve`);
+/// results are the core's `Entry` as is.
 pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     let store = store(app)?;
-    fn arg<T: serde::de::DeserializeOwned>(v: Value) -> Result<T, String> {
-        serde_json::from_value(v).map_err(|e| format!("bad params: {e}"))
-    }
     match func {
         "list" => {
             let p: ListParams = arg(params)?;
             let rows = store.list(&p.query, p.kind, p.limit.unwrap_or(100), p.offset.unwrap_or(0)).map_err(err)?;
-            Ok(serde_json::to_value(rows).unwrap())
+            serde_json::to_value(rows).map_err(|e| e.to_string())
         }
         "get" => {
             let p: IdParams = arg(params)?;
-            Ok(serde_json::to_value(store.get(p.id).map_err(err)?).unwrap())
+            serde_json::to_value(store.get(p.id).map_err(err)?).map_err(|e| e.to_string())
         }
         "pin" => {
             let p: IdParams = arg(params)?;
@@ -143,10 +148,31 @@ pub fn paste(app: &AppHandle, what: Paste) -> Result<(), String> {
 
 /// The entry's PNG: the file itself for `size` 0, else a fitted thumbnail.
 pub fn image(app: &AppHandle, id: i64, size: u32) -> Option<PathBuf> {
-    let store = store(app).map_err(|e| eprintln!("clipboard\timage {id}\t{e}")).ok()?;
-    let path = store.get(id).map_err(|e| eprintln!("clipboard\timage {id}\t{e}")).ok()?.image?;
+    let store = store(app).map_err(|e| eprintln!("clipboard\timage failed\t{id}: {e}")).ok()?;
+    let path = store.get(id).map_err(|e| eprintln!("clipboard\timage failed\t{id}: {e}")).ok()?.image?;
     if size == 0 {
         return Some(path);
     }
-    icons::thumbnail(&path, size).map_err(|e| eprintln!("clipboard\tthumbnail {id}\t{e}")).ok()
+    icons::thumbnail(&path, size).map_err(|e| eprintln!("clipboard\tthumbnail failed\t{id}: {e}")).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn paste_envelope_shapes() {
+        assert!(matches!(serde_json::from_value::<Paste>(json!({ "entry": 7 })), Ok(Paste::Entry { entry: 7 })));
+        assert!(matches!(serde_json::from_value::<Paste>(json!({ "text": "hi" })), Ok(Paste::Text { text }) if text == "hi"));
+        assert!(serde_json::from_value::<Paste>(json!(true)).is_err());
+        assert!(serde_json::from_value::<Paste>(json!({ "entry": "7" })).is_err(), "an id is a number");
+    }
+
+    #[test]
+    fn manifest_defaults_fit_the_recorder() {
+        let manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+        let s: Settings = spec_defaults(&manifest["settings"]).try_into().unwrap();
+        assert!(s.max_entries >= 1 && s.max_age_days >= 1);
+        assert!(!s.exclude_apps.is_empty(), "password managers are excluded by default");
+    }
 }

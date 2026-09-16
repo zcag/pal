@@ -31,7 +31,7 @@ pub fn plugin() -> TauriPlugin<tauri::Wry> {
 pub fn apply(app: &AppHandle, config: &Config) {
     let want = config.general.launch_at_login;
     if cfg!(debug_assertions) {
-        eprintln!("autostart\tlaunch_at_login = {want}\tskipped in a debug build (would register target/debug/pal)");
+        eprintln!("autostart\tskipped\tlaunch_at_login = {want}; a debug build would register target/debug/pal");
         return;
     }
     let m = app.autolaunch();

@@ -22,7 +22,8 @@ use std::time::Duration;
 use pal_core::index::{Item, Source};
 use serde::{Deserialize, Serialize};
 
-use crate::index::PaletteMeta;
+use crate::registry::PaletteMeta;
+use crate::lock;
 
 /// Listings larger than this are not written: the file would be tens of
 /// MB and its read would cost more at startup than the list it replaces.
@@ -92,18 +93,18 @@ pub fn read_all(dir: &Path) -> Vec<(Source, Entry)> {
             let bytes = match std::fs::read(&path) {
                 Ok(b) => b,
                 Err(e) => {
-                    eprintln!("cache\t{}\tunreadable\t{e}", path.display());
+                    eprintln!("cache\tunreadable\t{}: {e}", path.display());
                     continue;
                 }
             };
             match serde_json::from_slice::<Entry>(&bytes) {
                 Ok(e) if e.version == FILE_VERSION => out.push((source, e)),
                 Ok(e) => {
-                    eprintln!("cache\t{}\tfile version {} (this pal writes {FILE_VERSION}); dropped", path.display(), e.version);
+                    eprintln!("cache\tdropped\t{}: file version {} (this pal writes {FILE_VERSION})", path.display(), e.version);
                     let _ = std::fs::remove_file(&path);
                 }
                 Err(e) => {
-                    eprintln!("cache\t{}\tbad file\t{e}; dropped", path.display());
+                    eprintln!("cache\tdropped\t{}: {e}", path.display());
                     let _ = std::fs::remove_file(&path);
                 }
             }
@@ -147,7 +148,7 @@ impl Saver {
 
     pub fn save(self: &Arc<Self>, source: Source, entry: Entry) {
         let generation = {
-            let mut p = self.pending.lock().unwrap();
+            let mut p = lock(&self.pending);
             let g = p.get(&source).map_or(1, |(g, _)| g + 1);
             p.insert(source.clone(), (g, entry));
             g
@@ -156,7 +157,7 @@ impl Saver {
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(SAVE_DEBOUNCE).await;
             let take = {
-                let mut p = saver.pending.lock().unwrap();
+                let mut p = lock(&saver.pending);
                 match p.get(&source) {
                     Some((g, _)) if *g == generation => p.remove(&source).map(|(_, e)| e),
                     _ => None,
@@ -174,9 +175,11 @@ impl Saver {
         }
     }
 
-    /// Write everything still pending, now.
+    /// Write everything still pending, now (exit). A write already handed
+    /// to a blocking thread is not waited for: it is atomic, so at worst
+    /// the previous file stays.
     pub fn flush(&self) {
-        let pending: Vec<_> = self.pending.lock().unwrap().drain().collect();
+        let pending: Vec<_> = lock(&self.pending).drain().collect();
         for (source, (_, entry)) in pending {
             self.write(&source, &entry);
         }

@@ -1,7 +1,8 @@
 //! `icon://` URI scheme: `icon://localhost/app?path=<app>&size=24` and
 //! `icon://localhost/favicon?url=<url>&size=16` answer with the PNG from
-//! `pal_core::icons`, off the webview thread since a favicon may block for
-//! seconds; `icon://localhost/clip?id=<entry>&size=48` is a clipboard
+//! `pal_core::icons`, on the blocking pool since a favicon fetch may take
+//! seconds (its timeouts are the core's) and a list paints hundreds at
+//! once; `icon://localhost/clip?id=<entry>&size=48` is a clipboard
 //! image's thumbnail, `size=0` the image itself. Any failure is a 404 so
 //! the `<img>` falls back to its glyph.
 //! On Windows the same handler sits at `http://icon.localhost/...`; the
@@ -19,19 +20,16 @@ const MAX_SIZE: u32 = 256;
 pub fn register(b: Builder<Wry>) -> Builder<Wry> {
     b.register_asynchronous_uri_scheme_protocol(SCHEME, |ctx, req, responder: UriSchemeResponder| {
         let app = ctx.app_handle().clone();
-        std::thread::spawn(move || responder.respond(respond(&app, &req)));
+        tauri::async_runtime::spawn_blocking(move || responder.respond(respond(&app, &req)));
     })
 }
 
 fn respond(app: &AppHandle, req: &Request<Vec<u8>>) -> Response<Vec<u8>> {
-    match png(app, req) {
-        Some(bytes) => Response::builder()
-            .header(header::CONTENT_TYPE, "image/png")
-            .header(header::CACHE_CONTROL, "max-age=3600")
-            .body(bytes)
-            .unwrap(),
-        None => Response::builder().status(StatusCode::NOT_FOUND).body(Vec::new()).unwrap(),
-    }
+    let r = match png(app, req) {
+        Some(bytes) => Response::builder().header(header::CONTENT_TYPE, "image/png").header(header::CACHE_CONTROL, "max-age=3600").body(bytes),
+        None => Response::builder().status(StatusCode::NOT_FOUND).body(Vec::new()),
+    };
+    r.expect("static headers build")
 }
 
 fn png(app: &AppHandle, req: &Request<Vec<u8>>) -> Option<Vec<u8>> {
@@ -48,7 +46,7 @@ fn png(app: &AppHandle, req: &Request<Vec<u8>>) -> Option<Vec<u8>> {
     match file {
         Ok(p) => std::fs::read(p).ok(),
         Err(e) => {
-            eprintln!("icon\t{}\t{e}", url.path());
+            eprintln!("icon\tfailed\t{}: {e}", url.path().trim_start_matches('/'));
             None
         }
     }

@@ -4,8 +4,12 @@
 //! arrives (`index::sync_extension`). An empty `general.hotkey` means none
 //! (a compositor keybind runs `pal-app toggle` instead). On Linux this only
 //! reaches X11 clients (the global-hotkey crate is X11-only); Wayland goes
-//! through `pal-app toggle`. The plugin hops to the main thread itself, so
-//! `apply` may run on the watcher's thread.
+//! through `pal-app toggle`. The plugin hops to the main thread itself and
+//! waits for it, so `apply` may run on the watcher's thread, but must not
+//! hold the map `pressed` reads while it does: a press being handled on
+//! the main thread would wait for the map, and the plugin's hop for the
+//! main thread. Hence two locks: `map` for the lookup, `applying` to
+//! serialise the applies.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -13,6 +17,8 @@ use std::sync::Mutex;
 use pal_core::config::Config;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+
+use crate::lock;
 
 const FALLBACK: &str = "ctrl+space";
 
@@ -24,15 +30,19 @@ enum Target {
     Palette(String),
 }
 
-struct Registered(Mutex<HashMap<Shortcut, Target>>);
-
-pub fn install(app: &AppHandle) {
-    app.manage(Registered(Mutex::new(HashMap::new())));
+#[derive(Default)]
+struct Registered {
+    map: Mutex<HashMap<Shortcut, Target>>,
+    applying: Mutex<()>,
 }
 
-/// The plugin's handler: look the shortcut up and act.
+pub fn install(app: &AppHandle) {
+    app.manage(Registered::default());
+}
+
+/// The plugin's handler, on the main thread: look the shortcut up and act.
 pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
-    let target = app.state::<Registered>().0.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(shortcut).cloned();
+    let target = lock(&app.state::<Registered>().map).get(shortcut).cloned();
     match target {
         Some(Target::Root) => crate::toggle(app),
         Some(Target::Palette(key)) => crate::show_in(app, Some(key)),
@@ -48,7 +58,7 @@ fn parse_root(s: &str) -> Option<Shortcut> {
         return None;
     }
     Some(s.parse().unwrap_or_else(|e| {
-        eprintln!("hotkey\t{s:?}: {e}; using {FALLBACK}");
+        eprintln!("hotkey\tbad general.hotkey\t{s:?}: {e}; using {FALLBACK}");
         FALLBACK.parse().expect("FALLBACK parses")
     }))
 }
@@ -59,13 +69,13 @@ fn parse_root(s: &str) -> Option<Shortcut> {
 /// reported and skipped, the rest still apply.
 pub fn apply(app: &AppHandle, config: &Config) {
     let mut wanted: HashMap<Shortcut, Target> = HashMap::new();
-    for (id, source) in crate::index::registered_palettes(app) {
+    for (id, source) in crate::registry::registered_palettes(app) {
         if let Some(h) = config.palette(&id).hotkey.as_deref().map(str::trim).filter(|h| !h.is_empty()) {
             match h.parse::<Shortcut>() {
                 Ok(s) => {
                     wanted.insert(s, Target::Palette(format!("{}/{}", source.extension, source.palette)));
                 }
-                Err(e) => eprintln!("hotkey\tpalettes.{id}.hotkey {h:?}: {e}; ignored"),
+                Err(e) => eprintln!("hotkey\tbad palettes.{id}.hotkey\t{h:?}: {e}; ignored"),
             }
         }
     }
@@ -73,8 +83,9 @@ pub fn apply(app: &AppHandle, config: &Config) {
         wanted.insert(root, Target::Root);
     }
     let registered = app.state::<Registered>();
-    let mut current = registered.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-    if *current == wanted {
+    let _applying = lock(&registered.applying);
+    let current = lock(&registered.map).clone();
+    if current == wanted {
         return;
     }
     let shortcuts = app.global_shortcut();
@@ -98,7 +109,7 @@ pub fn apply(app: &AppHandle, config: &Config) {
                 next.insert(*s, target.clone());
             }
             Err(e) => {
-                eprintln!("hotkey\tregister {s} failed\t{e}");
+                eprintln!("hotkey\tregister failed\t{s}\t{e}");
                 // A root hotkey that cannot be had: keep the previous one.
                 if *target == Target::Root {
                     if let Some((old, _)) = current.iter().find(|(_, t)| **t == Target::Root) {
@@ -112,9 +123,23 @@ pub fn apply(app: &AppHandle, config: &Config) {
         if !next.contains_key(s) {
             match shortcuts.unregister(*s) {
                 Ok(()) => eprintln!("hotkey\tunregistered\t{s}"),
-                Err(e) => eprintln!("hotkey\tunregister {s} failed\t{e}"),
+                Err(e) => eprintln!("hotkey\tunregister failed\t{s}\t{e}"),
             }
         }
     }
-    *current = next;
+    *lock(&registered.map) = next;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn root_hotkey_parses_or_falls_back() {
+        assert_eq!(parse_root(""), None, "empty is off");
+        assert_eq!(parse_root("  "), None);
+        assert_eq!(parse_root("ctrl+space"), Some("ctrl+space".parse().unwrap()));
+        assert_eq!(parse_root(" alt+p "), Some("alt+p".parse().unwrap()), "trimmed");
+        assert_eq!(parse_root("not a key"), Some(FALLBACK.parse().unwrap()), "junk keeps pal reachable");
+    }
 }

@@ -13,19 +13,27 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{ChildStdin, Command};
 use tokio::sync::{oneshot, watch, Mutex as AsyncMutex};
+
+use crate::{events, lock};
 
 const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 /// The sidecar's file name next to our executable (`bundle.externalBin`): not
 /// `bun`, which the .deb would install as /usr/bin/bun over the user's own.
 const SIDECAR: &str = "pal-bun";
+/// Between a host exit and the respawn: a crash loop stays readable in
+/// the log and never pegs a core.
 const RESTART_DELAY: Duration = Duration::from_millis(500);
-/// A hung extension must not hang a keystroke or a pick for good.
+/// A hung extension must not hang a keystroke or a pick for good; long
+/// enough for a `list` that shells out (`scripts` runs `gh`), and the
+/// write of the request counts too, since a host that stopped reading
+/// fills its pipe.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
-/// How long `stop` waits for the host to exit on EOF before quitting anyway.
+/// How long `stop` waits for the host to exit on EOF before quitting
+/// anyway: an extension's own shutdown (a file flush) gets this long.
 const STOP_TIMEOUT: Duration = Duration::from_secs(2);
 
 type Reply = oneshot::Sender<Result<Value, String>>;
@@ -57,10 +65,7 @@ impl Layout {
             .filter(|p| p.is_file());
         let on_path = std::env::var_os("PATH")
             .and_then(|p| std::env::split_paths(&p).map(|d| d.join("bun")).find(|b| b.is_file()));
-        let bun = match (cfg!(debug_assertions), sidecar, on_path) {
-            (true, _, Some(p)) | (_, Some(p), _) | (_, None, Some(p)) => p,
-            (_, None, None) => PathBuf::from("bun"),
-        };
+        let bun = if cfg!(debug_assertions) { on_path.or(sidecar) } else { sidecar.or(on_path) }.unwrap_or_else(|| PathBuf::from("bun"));
         let staged = app.path().resource_dir().ok().filter(|d| d.join("host/src/host.ts").is_file());
         let base = match (cfg!(debug_assertions), staged) {
             (false, Some(dir)) => dir,
@@ -104,8 +109,8 @@ impl Host {
                     Err(e) => eprintln!("host\tspawn failed\t{e}"),
                 }
                 host.fail_pending("host exited");
-                let _ = host.app.emit("pal://host", json!({ "method": "host/exit" }));
-                if host.stopping.load(Ordering::Relaxed) {
+                events::emit(&host.app, events::HOST, json!({ "method": "host/exit" }));
+                if host.stopping.load(Ordering::SeqCst) {
                     return;
                 }
                 tokio::time::sleep(RESTART_DELAY).await;
@@ -114,13 +119,13 @@ impl Host {
     }
 
     pub fn uptime_ms(&self) -> f64 {
-        self.started.lock().unwrap().elapsed().as_secs_f64() * 1000.0
+        lock(&self.started).elapsed().as_secs_f64() * 1000.0
     }
 
     /// Spawns the host and pumps its stdout until it exits.
     async fn run_once(self: &Arc<Self>) -> std::io::Result<std::process::ExitStatus> {
         let t0 = Instant::now();
-        *self.started.lock().unwrap() = t0;
+        *lock(&self.started) = t0;
         let layout = Layout::resolve(&self.app);
         eprintln!("host\tspawn\t{} {} {}", layout.bun.display(), layout.host.display(), layout.roots.iter().map(|r| r.display().to_string()).collect::<Vec<_>>().join(" "));
         let mut child = Command::new(&layout.bun)
@@ -132,10 +137,13 @@ impl Host {
             .stdout(Stdio::piped())
             .kill_on_drop(true)
             .spawn()?;
-        *self.stdin.lock().await = child.stdin.take();
+        // A `stop` that landed while spawning: drop the stdin now (EOF at
+        // once) instead of installing it after `stop` cleared the slot, or
+        // `stop` waits its whole timeout for an EOF that never comes.
+        let stdin = child.stdin.take().filter(|_| !self.stopping.load(Ordering::SeqCst));
+        *self.stdin.lock().await = stdin;
         self.alive.send_replace(true);
-        let mut lines = BufReader::new(child.stdout.take().unwrap()).lines();
-        let mut hello_timed = false;
+        let mut lines = BufReader::new(child.stdout.take().expect("stdout is piped")).lines();
         while let Ok(Some(line)) = lines.next_line().await {
             let Ok(msg) = serde_json::from_str::<Value>(&line) else { continue };
             // With a method it is the host speaking (a request when it has an
@@ -143,7 +151,7 @@ impl Host {
             match (msg.get("id").and_then(Value::as_u64), msg.get("method").and_then(Value::as_str)) {
                 (Some(id), Some(method)) => self.serve(id, method.to_string(), msg["params"].clone()),
                 (Some(id), None) => {
-                    let reply = self.pending.lock().unwrap().remove(&id);
+                    let reply = lock(&self.pending).remove(&id);
                     if let Some(tx) = reply {
                         let _ = tx.send(match msg.get("error") {
                             Some(e) => Err(e.as_str().unwrap_or("error").to_string()),
@@ -152,12 +160,11 @@ impl Host {
                     }
                 }
                 (None, Some(method)) => {
-                    if !hello_timed && method == "host/ready" {
-                        hello_timed = true;
+                    if method == "host/ready" {
                         eprintln!("host\tready\t{:.1}ms", t0.elapsed().as_secs_f64() * 1000.0);
                     }
                     crate::index::on_notification(&self.app, self, method, &msg["params"]);
-                    let _ = self.app.emit("pal://host", msg);
+                    events::emit(&self.app, events::HOST, msg);
                 }
                 (None, None) => {}
             }
@@ -184,7 +191,9 @@ impl Host {
                 Ok(result) => json!({ "id": id, "result": result }),
                 Err(error) => json!({ "id": id, "error": error }),
             };
-            let _ = host.write_line(&reply).await;
+            if let Err(e) = host.write_line(&reply).await {
+                eprintln!("core\t{method}\treply failed\t{e}");
+            }
         });
     }
 
@@ -196,7 +205,7 @@ impl Host {
     }
 
     fn fail_pending(&self, why: &str) {
-        for (_, tx) in self.pending.lock().unwrap().drain() {
+        for (_, tx) in lock(&self.pending).drain() {
             let _ = tx.send(Err(why.to_string()));
         }
     }
@@ -216,7 +225,7 @@ impl Host {
     /// waits up to [`STOP_TIMEOUT`] for it to exit so its own shutdown (an
     /// extension flushing a file) is not cut short by ours.
     pub async fn stop(&self) {
-        self.stopping.store(true, Ordering::Relaxed);
+        self.stopping.store(true, Ordering::SeqCst);
         *self.stdin.lock().await = None;
         let mut alive = self.alive.subscribe();
         let t0 = Instant::now();
@@ -224,25 +233,25 @@ impl Host {
         if down {
             eprintln!("host\tstopped\t{:.1}ms", t0.elapsed().as_secs_f64() * 1000.0);
         } else {
-            eprintln!("host\tstop timed out after {STOP_TIMEOUT:?}; exiting anyway");
+            eprintln!("host\tstop timed out\tafter {STOP_TIMEOUT:?}; exiting anyway");
         }
     }
 
+    /// One request, its reply or the first of: a write that fails (host
+    /// down), the host exiting (`fail_pending`), [`REQUEST_TIMEOUT`].
     pub async fn request(&self, method: &str, params: Value) -> Result<Value, String> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = oneshot::channel();
-        self.pending.lock().unwrap().insert(id, tx);
-        if let Err(e) = self.write_line(&json!({ "id": id, "method": method, "params": params })).await {
-            self.pending.lock().unwrap().remove(&id);
-            return Err(e);
+        lock(&self.pending).insert(id, tx);
+        let exchange = async {
+            self.write_line(&json!({ "id": id, "method": method, "params": params })).await?;
+            rx.await.unwrap_or_else(|_| Err("host dropped request".into()))
+        };
+        let r = tokio::time::timeout(REQUEST_TIMEOUT, exchange).await.unwrap_or_else(|_| Err(format!("host timed out on {method}")));
+        if r.is_err() {
+            lock(&self.pending).remove(&id);
         }
-        match tokio::time::timeout(REQUEST_TIMEOUT, rx).await {
-            Ok(r) => r.unwrap_or_else(|_| Err("host dropped request".into())),
-            Err(_) => {
-                self.pending.lock().unwrap().remove(&id);
-                Err(format!("host timed out on {method}"))
-            }
-        }
+        r
     }
 }
 
@@ -254,7 +263,7 @@ pub async fn host_request(
 ) -> Result<Value, String> {
     let t0 = Instant::now();
     let r = host.request(&method, params.unwrap_or(Value::Null)).await;
-    eprintln!("host\t{method}\t{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+    eprintln!("host\t{method}\t{:.2}ms{}", t0.elapsed().as_secs_f64() * 1000.0, r.as_ref().err().map(|e| format!("\t{e}")).unwrap_or_default());
     r
 }
 

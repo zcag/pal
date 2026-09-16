@@ -33,10 +33,8 @@ pub fn apply(app: &AppHandle, config: &Config) {
                 Ok(_) => eprintln!("tray\tcreated\tOpen pal, Settings, Restart extension host, Check for updates (off), Quit"),
                 Err(e) => eprintln!("tray\tcreate failed\t{e}"),
             },
-            (true, Some(tray)) => match menu_for(&handle, &hotkey) {
-                Ok(m) => {
-                    let _ = tray.set_menu(Some(m));
-                }
+            (true, Some(tray)) => match menu_for(&handle, &hotkey).and_then(|m| tray.set_menu(Some(m))) {
+                Ok(()) => {}
                 Err(e) => eprintln!("tray\tmenu rebuild failed\t{e}"),
             },
             (false, Some(_)) => {

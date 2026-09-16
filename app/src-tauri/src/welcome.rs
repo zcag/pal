@@ -15,9 +15,9 @@ use std::path::{Path, PathBuf};
 
 use pal_core::index::{Item, Source};
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
-use crate::{effects, index, settings};
+use crate::{effects, events, index, settings};
 
 pub const REPO: &str = "https://github.com/zcag/pal";
 pub const EXTENSIONS_GUIDE: &str = "https://github.com/zcag/pal/blob/main/docs/extensions.md";
@@ -203,7 +203,7 @@ pub fn sync(app: &AppHandle) {
     });
     if changed {
         eprintln!("welcome\t{}", if n == 0 { "removed".to_string() } else { format!("{n} rows") });
-        let _ = app.emit("pal://index", ());
+        events::emit(app, events::INDEX, ());
     }
 }
 

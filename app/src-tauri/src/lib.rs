@@ -9,11 +9,13 @@ mod cache;
 mod cli;
 mod clipboard;
 mod effects;
+mod events;
 mod firstrun;
 mod host;
 mod hotkey;
 mod icon;
 mod index;
+mod registry;
 mod settings;
 mod system;
 mod tray;
@@ -25,13 +27,13 @@ mod windows;
 mod panel;
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use pal_core::config::{ConfigFile, Position};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, RunEvent, WebviewWindow};
+use tauri::{AppHandle, Manager, PhysicalPosition, RunEvent, WebviewWindow};
 use tauri::webview::PageLoadEvent;
 use tauri_plugin_global_shortcut::ShortcutState;
 
@@ -45,8 +47,14 @@ pub(crate) fn since_start_ms() -> f64 {
 }
 
 fn now_ms() -> f64 {
-    let d = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-    d.as_secs_f64() * 1000.0
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
+}
+
+/// Lock a `std` mutex, poisoned or not: a panic in one command (the
+/// runtime catches it) must not take every later lock of that state down
+/// with it. All the shell's state is plain data, valid after any panic.
+pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 /// Prints a timing mark from either side, on one clock (wall time, ms).
@@ -111,7 +119,7 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     } else if palette.is_none() {
         return;
     }
-    let _ = app.emit("pal://shown", Shown { t0, palette });
+    events::emit(app, events::SHOWN, Shown { t0, palette });
     // After the event: the live palettes list again off this thread.
     index::on_shown(app);
 }
@@ -207,16 +215,31 @@ pub fn run() {
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
             if payload.event() == PageLoadEvent::Finished && webview.label() == WINDOW {
-                if let Some(cmd) = startup.lock().unwrap().take() {
+                if let Some(cmd) = lock(&startup).take() {
                     cmd.run(webview.app_handle());
                 }
             }
         })
         .setup(|app| {
+            // Startup order, each step needing the ones before it:
+            //   1. activation policy: no Dock icon, before any window shows
+            //   2. firstrun: the config file and schema exist for the watcher
+            //   3. panel: the pre-warmed window, so the first show paints
+            //   4. profile: the config file keys the data dir
+            //   5. index: the index, frecency, registry, cache saver, welcome
+            //   6. hotkey: the registered map, before settings applies it
+            //   7. settings: load the file, apply hotkeys/tray/autostart, watch
+            //   8. clipboard: the recorder, retention from the loaded settings
+            //   9. updater: the daily check (release builds)
+            //  10. cache restore: last run's listings, so the root answers now
+            //  11. host: spawned last, its notifications need everything above
+            // Every step logs its own failure and the next one still runs:
+            // no state is half-managed, a step that cannot start just leaves
+            // its feature off (no clipboard, no tray, no watcher).
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-            let window = app.get_webview_window(WINDOW).expect("main window");
             firstrun::install();
+            let window = app.get_webview_window(WINDOW).ok_or("tauri.conf.json has no `main` window")?;
             panel::install(&window);
             // The index cache and frecency are keyed by config file, so two
             // configs (`pali.toml` in dev, `config.toml`) never share one.
@@ -224,13 +247,10 @@ pub fn run() {
             let data = config.data_dir();
             eprintln!("profile\t{}\t{}\t{}", config.profile(), config.path().display(), data.display());
             index::install(app.handle(), &data);
-            clipboard::install(app.handle());
-            // Hotkeys and settings before the host: its first notifications
-            // read the config and register palettes' hotkeys.
             hotkey::install(app.handle());
             settings::install(app.handle(), config);
+            clipboard::install(app.handle());
             updater::install(app.handle());
-            // The last run's listings, so the root answers before the host is up.
             index::restore_cache(app.handle());
             host::Host::start(app.handle());
             Ok(())
@@ -238,6 +258,8 @@ pub fn run() {
         .build(context)
         .expect("error while building tauri application")
         .run(|app, event| {
+            // The host is already down (`quit`), or the OS is ending us and
+            // its stdin closes with the process: flush what is ours.
             if let RunEvent::Exit = event {
                 index::flush(app);
                 eprintln!("quit\tflushed\t{:.1}ms since start", since_start_ms());
