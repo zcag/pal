@@ -65,6 +65,7 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 - `keep` relists an indexed palette (`index::pick`): "stay open and list again" holds for every palette; a closed window is gone next query.
 - Live at the root: a `live` non-`input` palette (windows, otp) is indexed and relisted on every `pal://shown` (`index::on_shown`), all at once, 2 s each, one `pal://index`, spawned after the event: paint stayed 1-4 ms; relist ~15-20 ms windows, ~300 ms otp (reads the Messages db); a timeout keeps old rows. `windows` is plain `live` so titles are root results; `system` stays `input: true` (keep-awake row flips), so its rows are not at the root.
 - Picks from live and input palettes are not remembered (edc1670).
+- `ssh` and `processes` (v1's builtins `ssh`/`psg`) and `files` (mdfind / fd / locate / find) are real extensions (708abf7, c8f478f); the v1 rows under `scripts` for them are gone.
 - Palette rows carry the extension title as subtitle (Raycast does), omitted when equal to the palette title (Windows / Windows). Root sections ordered by best hit.
 - 9332904: process-group timeouts in scripts, stable bookmark ids, apps honour refresh, calc import guard, `home()`. 0b48368: extension `console.log` to stderr, non-array `list` is an error, symlinked roots. Linux `apps` (`.desktop`): `notes/linux.md`.
 
@@ -115,7 +116,6 @@ Things an agent could not decide alone; each waits for a call.
 - macOS `show-desktop`, `lock`, `dark-mode` system commands are the only unverified ones on hornet (window list/focus/minimize/restore were verified after the unlock at 08:10; see Findings). One-liner: `cargo run -q -p pal-core --example system -- run show-desktop` twice.
 - Focus without Accessibility: the core can still activate the app (not the window); today the effect shows the paste toast instead of half-doing it. Keep, or activate and toast? `effects.rs`.
 - v1 config lines to fix by hand once v1 stops reading the file: `[palette.ha-states]`/`[palette.ha-services]` still say `base = "~/proj/pal/plugins/..."`; `scripts` falls back to `~/proj/pal-v1` so they load, but the file should say where they live.
-- `ssh` and `psg` were v1 builtins, now inert rows under `scripts`. Reimplement as real extensions (small: `~/.ssh/config` parser; `ps` + kill)?
 - Secrets on Linux: `keychain:` get/set fail with a `Store` error until the Secret Service path exists (`core/src/config/secrets.rs:134`: `secret-tool` or the `secret-service` crate); `env:` works everywhere.
 - Cache adoption of the old profile: the old `pal/index` and `pal/frecency.json` were not migrated to `<data dir>/pal/<profile>/`; dead files to delete by hand, or adopt into `default`.
 - `show`'s metadata: the show level renders the Detail, so v1's `show.metadata` comes along; the brief said markdown only. Keep or drop?
