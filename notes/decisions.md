@@ -103,6 +103,8 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 
 ## Open for Cagdas
 
+- **Your `~/.config/pal` is a symlink into `~/dotty`**, so the dev run left three untracked things in the dotfiles repo: `pali.toml` (the dev config; track it or not, your call), `config.schema.json` (installed next to the config for the `#:schema` directive) and `extensions/` (the user store, with a `node_modules/pal` symlink the host makes for bare `import "pal"`). Decide: ignore them in dotty, or move the store and the schema out of the config dir (a dotfiles-managed `extensions/` is arguably a feature, the symlink and staging dir are not).
+
 Things an agent could not decide alone; each waits for a call.
 
 - Font, match highlight, selection shape from the brief (bundled Plex vs system stack; amber highlighter vs coloured glyphs; inset pill vs full-bleed row). Unchanged until you have used the panel. `app/design/brief.html`.
