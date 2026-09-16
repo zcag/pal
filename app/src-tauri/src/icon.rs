@@ -3,8 +3,11 @@
 //! `pal_core::icons`, on the blocking pool since a favicon fetch may take
 //! seconds (its timeouts are the core's) and a list paints hundreds at
 //! once; `icon://localhost/clip?id=<entry>&size=48` is a clipboard
-//! image's thumbnail, `size=0` the image itself. Any failure is a 404 so
-//! the `<img>` falls back to its glyph.
+//! image's thumbnail, `size=0` the image itself;
+//! `icon://localhost/shot?ext=<name>&file=<png>&size=0` is one of an
+//! installed extension's store screenshots (`<root>/<name>/screenshots/`),
+//! as is, for the Settings window's Extensions page. Any failure is a 404
+//! so the `<img>` falls back to its glyph.
 //! On Windows the same handler sits at `http://icon.localhost/...`; the
 //! UI derives the base the way Tauri's `convertFileSrc` does.
 
@@ -38,6 +41,7 @@ fn png(app: &AppHandle, req: &Request<Vec<u8>>) -> Option<Vec<u8>> {
     let size = param("size")?.parse::<u32>().ok().filter(|s| *s <= MAX_SIZE)?;
     let file = match (url.path().trim_start_matches('/'), size) {
         ("clip", _) => return std::fs::read(crate::clipboard::image(app, param("id")?.parse().ok()?, size)?).ok(),
+        ("shot", _) => return std::fs::read(screenshot(app, &param("ext")?, &param("file")?)?).ok(),
         (_, 0) => return None,
         ("app", _) => icons::app_icon(Path::new(&param("path")?), size),
         ("favicon", _) => icons::favicon(&param("url")?, size),
@@ -50,4 +54,14 @@ fn png(app: &AppHandle, req: &Request<Vec<u8>>) -> Option<Vec<u8>> {
             None
         }
     }
+}
+
+/// `<root>/<ext>/screenshots/<file>` for a registered extension; `file` is
+/// one name, never a path, and only a PNG (what the store ships).
+fn screenshot(app: &AppHandle, ext: &str, file: &str) -> Option<std::path::PathBuf> {
+    if file.contains(['/', '\\']) || file.starts_with('.') || !file.ends_with(".png") {
+        return None;
+    }
+    let root = crate::settings::extensions(app).into_iter().find(|e| e.name == ext)?.root;
+    Some(Path::new(&root).join(ext).join("screenshots").join(file))
 }

@@ -224,7 +224,7 @@ export function SettingsField({ spec, value, onChange, layout = "row" }: Setting
         {(spec.description || modified) && (
           <p className="pal-setting__desc">
             {spec.description}
-            {modified && <span className="pal-setting__default">Default: {describeDefault(spec)}</span>}
+            {modified && <>{spec.description ? " " : ""}<span className="pal-setting__default">Default: {describeDefault(spec)}</span></>}
           </p>
         )}
       </div>
@@ -232,10 +232,10 @@ export function SettingsField({ spec, value, onChange, layout = "row" }: Setting
   );
 }
 
-/** A labelled row with any control, for pal's own settings (not declared ones). */
-export function SettingsRow({ label, description, children, layout = "row", htmlFor }: { label: string; description?: ReactNode; children: ReactNode; layout?: "row" | "stack"; htmlFor?: string }) {
+/** A labelled row with any control, for pal's own settings (not declared ones). `anchor` is what the search jumps to. */
+export function SettingsRow({ label, description, children, layout = "row", htmlFor, anchor }: { label: string; description?: ReactNode; children: ReactNode; layout?: "row" | "stack"; htmlFor?: string; anchor?: string }) {
   return (
-    <div className="pal-setting" data-layout={layout}>
+    <div className="pal-setting" data-layout={layout} data-anchor={anchor}>
       {htmlFor ? <label className="pal-setting__label" htmlFor={htmlFor}>{label}</label> : <span className="pal-setting__label">{label}</span>}
       <div className="pal-setting__body">
         <div className="pal-setting__control">{children}</div>
@@ -245,7 +245,7 @@ export function SettingsRow({ label, description, children, layout = "row", html
   );
 }
 
-/** A small uppercase title over a card of rows, hairlines between them: the System Settings group. */
+/** A small title over a card of rows, hairlines between them: the System Settings group. */
 export function SettingsGroup({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
     <section className="pal-settings-group" aria-label={title}>
