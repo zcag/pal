@@ -1,4 +1,4 @@
-//! `pal [toggle|show|hide]`. No subcommand runs the app. With one, and
+//! `pal [toggle|show|hide|settings|quit]`. No subcommand runs the app. With one, and
 //! an instance already running, the argv reaches that instance through the
 //! single-instance plugin's channel and this process exits at once; with
 //! none running the app starts and applies the command once the page has
@@ -25,6 +25,8 @@ pub enum Cmd {
     Hide,
     /// Open the settings window.
     Settings,
+    /// Quit the running instance (flushes its state, stops the extension host).
+    Quit,
 }
 
 impl Cmd {
@@ -50,6 +52,7 @@ impl Cmd {
             Cmd::Show => crate::show(&handle),
             Cmd::Hide => crate::panel::hide(&handle),
             Cmd::Settings => crate::settings::open(&handle),
+            Cmd::Quit => crate::quit(&handle),
         });
     }
 }

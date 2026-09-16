@@ -29,6 +29,7 @@
 //! the footer says "updating" while it is.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Once};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -187,15 +188,22 @@ fn palette_row(r: &Registered, config: &Config) -> Item {
     }
 }
 
-pub fn install(app: &AppHandle) {
+/// `data` is the config's profile dir (`ConfigFile::data_dir`): the
+/// frecency file and the index cache live under it.
+pub fn install(app: &AppHandle, data: &Path) {
     app.manage(Mutex::new(Index::new()));
-    let frecency = Frecency::open();
+    let frecency = Frecency::open_in(data);
     if let Some(n) = frecency.notice() {
         eprintln!("frecency\t{n}");
     }
     app.manage(Mutex::new(frecency));
     app.manage(Palettes::default());
-    app.manage(cache::Saver::new(cache::dir()));
+    app.manage(cache::Saver::new(data.join(cache::DIR_NAME)));
+}
+
+/// The index cache directory of this run.
+fn cache_dir(app: &AppHandle) -> PathBuf {
+    app.state::<Arc<cache::Saver>>().dir().to_path_buf()
 }
 
 /// Put every cached palette back before the host is spawned: registry
@@ -205,7 +213,7 @@ pub fn install(app: &AppHandle) {
 /// rows first, then apps, then the rest by name.
 pub fn restore_cache(app: &AppHandle) {
     let t0 = Instant::now();
-    let mut cached = cache::read_all(&cache::dir());
+    let mut cached = cache::read_all(&cache_dir(app));
     let rank = |s: &Source| (s.extension != "apps", s.extension.clone(), s.palette.clone());
     cached.sort_by_key(|(s, _)| rank(s));
     let config = settings::config(app);
@@ -289,7 +297,7 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
                 remove_extension(app, &ext);
             }
             settings::retain(app, &live);
-            let gone = cache::prune(&cache::dir(), &known);
+            let gone = cache::prune(&cache_dir(app), &known);
             if !gone.is_empty() {
                 eprintln!("cache\tpruned\t{}", gone.join(","));
             }

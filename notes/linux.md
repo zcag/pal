@@ -208,3 +208,26 @@ and gstreamer plugin scripts, `linuxdeploy-plugin-appimage` and `AppRun` into
   invocation mounts the squashfs before the 50 ms bare-binary path from the
   section above runs. A Hyprland bind wants the deb's `/usr/bin/pal toggle`
   or the extracted AppDir's `usr/bin/pal`, not the AppImage file.
+
+## Tray icon and autostart (not yet run on marko)
+
+- The tray is tauri's `tray-icon` feature (`app/src-tauri/src/tray.rs`),
+  which on Linux is the `libappindicator` crate: it `dlopen`s
+  `libayatana-appindicator3.so.1`, falling back to `libappindicator3.so.1`,
+  at the first tray creation, so nothing links at build time and the
+  binary starts without either. With neither library the icon is simply
+  missing (a `tray  create failed` line in the log) and the hotkey, `pal
+  toggle` and `pal settings` still work. Arch: `libayatana-appindicator`;
+  Debian/Ubuntu: `libayatana-appindicator3-1`, which the deb should list
+  under `bundle.linux.deb.depends` once this is checked on marko. Hyprland
+  and Sway need a bar with an SNI tray (waybar `tray` module) to show it.
+- The image is `icons/tray/22x22.png`, white on transparent (the same mark
+  as macOS's template image, `app/design/tray.svg` with the fill swapped),
+  for the dark panels the bars above default to. `icon_as_template` is a
+  macOS-only property; it is set unconditionally and ignored here.
+- `general.launch_at_login` writes `~/.config/autostart/pal.desktop`
+  (`Exec=` the binary, or the AppImage when `APPIMAGE` is set) through
+  tauri-plugin-autostart / auto-launch; a debug build skips it. Hyprland
+  does not read XDG autostart on its own: users there add `exec-once = pal`
+  to hyprland.conf, which the settings description should say once the
+  Linux copy is written.

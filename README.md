@@ -52,7 +52,10 @@ cd app && npm run tauri build
 `beforeBuildCommand` builds the UI and stages the host and the extensions
 under `app/src-tauri/resources/` (`app/scripts/build-extensions.sh`: each
 extension bundled to one `index.js` with `bun build`, so no `node_modules`
-ships). Output under `target/release/bundle/`:
+ships). The bundle also signs the updater artifacts, so it wants
+`TAURI_SIGNING_PRIVATE_KEY` in the environment; without the key, add
+`-- --config '{"bundle":{"createUpdaterArtifacts":false}}'` (releases come
+from CI anyway: `docs/releasing.md`). Output under `target/release/bundle/`:
 
 - macOS: `macos/pal.app` and `dmg/pal_0.1.0_aarch64.dmg`, ad-hoc signed
   (`bundle.macOS.signingIdentity: "-"`). A Developer ID certificate plus

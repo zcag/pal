@@ -45,9 +45,11 @@
 //!
 //! # File
 //!
-//! One JSON file, `frecency.json` under [`fs::data_dir`]
-//! (`~/Library/Application Support/pal/` on macOS, `~/.local/share/pal/` on
-//! Linux, `$XDG_DATA_HOME` first on both). Loaded once; a file that does not
+//! One JSON file, `frecency.json` under the config's profile dir
+//! ([`ConfigFile::data_dir`](crate::config::ConfigFile::data_dir):
+//! `~/Library/Application Support/pal/<profile>/` on macOS,
+//! `~/.local/share/pal/<profile>/` on Linux, `$XDG_DATA_HOME` first on
+//! both). Loaded once; a file that does not
 //! parse is moved to `frecency.json.bak` and the store starts empty, with
 //! [`Frecency::notice`] saying so. Writes are debounced by [`SAVE_DEBOUNCE`]
 //! on a background thread and land via temp file + rename. Call
@@ -93,6 +95,8 @@ pub const MAX_KEYS: usize = 5000;
 /// Quiet time after the last change before the file is written.
 pub const SAVE_DEBOUNCE: Duration = Duration::from_millis(500);
 const FILE_VERSION: u32 = 1;
+/// The file's name under the profile's data dir.
+pub const FILE_NAME: &str = "frecency.json";
 
 /// What the index knows an item by: its source `(extension, palette)` and
 /// the item's own id.
@@ -254,14 +258,9 @@ impl Frecency {
         Self { entries: HashMap::new(), path: None, saver: None, notice: None }
     }
 
-    /// The default location, see the module docs.
-    pub fn open() -> Self {
-        Self::load(Self::default_path())
-    }
-
-    /// `frecency.json` under [`fs::data_dir`].
-    pub fn default_path() -> PathBuf {
-        fs::data_dir().join("frecency.json")
+    /// [`FILE_NAME`] under `dir`, see the module docs.
+    pub fn open_in(dir: &Path) -> Self {
+        Self::load(dir.join(FILE_NAME))
     }
 
     /// Load `path`, or start empty when it is missing. A file that does not

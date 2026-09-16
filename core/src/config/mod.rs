@@ -61,11 +61,19 @@ pub struct General {
     /// for a compositor keybind that runs `pal toggle` instead.
     pub hotkey: String,
     pub theme: Theme,
-    /// Start pal when you sign in. (The key is what the settings view
-    /// writes; registering the login item itself is not wired yet.)
+    /// Start pal when you sign in: a LaunchAgent on macOS, an XDG autostart
+    /// entry on Linux (the app registers it when this changes).
     pub launch_at_login: bool,
+    /// Show pal's icon in the menu bar (macOS) or system tray (Linux). The
+    /// app has no Dock icon, so this is the visible way to reach Settings
+    /// and Quit; the hotkey and `pal settings` work without it.
+    pub menu_bar_icon: bool,
     /// Where the panel appears on the screen with the pointer.
     pub position: Position,
+    /// Look for a newer release at startup and once a day (the GitHub
+    /// release manifest; nothing installs without asking). `false` leaves
+    /// the menu's "Check for updates" as the only check.
+    pub check_updates: bool,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -73,7 +81,7 @@ pub struct General {
 
 impl Default for General {
     fn default() -> Self {
-        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, position: Position::Top, extra: BTreeMap::new() }
+        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extra: BTreeMap::new() }
     }
 }
 
@@ -284,6 +292,37 @@ impl ConfigFile {
         &self.path
     }
 
+    /// Which config this is, as a directory name: `default` for the
+    /// default location, else the first 8 hex of the sha256 of the
+    /// canonical path (`$PAL_CONFIG=~/.config/pal/pali.toml` in dev). Two
+    /// config files must not share an index cache or a frecency file: a
+    /// palette enabled in one is not in the other.
+    pub fn profile(&self) -> String {
+        if self.path == fs::config_dir().join("config.toml") {
+            return "default".into();
+        }
+        use sha2::{Digest, Sha256};
+        // A file that does not exist yet keys on its canonical directory, so
+        // the key does not move once it is created (`/var` is `/private/var`
+        // on macOS).
+        let canon = std::fs::canonicalize(&self.path).unwrap_or_else(|_| {
+            let dir = self.path.parent().and_then(|d| std::fs::canonicalize(d).ok());
+            match (dir, self.path.file_name()) {
+                (Some(d), Some(f)) => d.join(f),
+                _ => self.path.clone(),
+            }
+        });
+        let hash = Sha256::digest(canon.to_string_lossy().as_bytes());
+        hash.iter().take(4).map(|b| format!("{b:02x}")).collect()
+    }
+
+    /// `<data dir>/<profile>`: where this config's index cache and frecency
+    /// file live (`clipboard.db` stays one level up, it is history, not a
+    /// view of one config).
+    pub fn data_dir(&self) -> PathBuf {
+        fs::data_dir().join(self.profile())
+    }
+
     /// The real file behind any symlink (dotfiles setups), or `path` while
     /// it does not exist yet. Edits and watches work on this one so a write
     /// never replaces a symlink with a plain file.
@@ -358,10 +397,14 @@ token = "keychain:pal/github-token"
     fn general_additions_have_defaults() {
         let (c, _) = parse("").unwrap();
         assert!(!c.general.launch_at_login);
+        assert!(c.general.menu_bar_icon, "the icon is on until turned off");
+        assert!(c.general.check_updates, "the daily check is on until turned off");
         assert_eq!(c.general.position, Position::Top);
-        let (c, d) = parse("[general]\nlaunch_at_login = true\nposition = \"centre\"\n").unwrap();
+        let (c, d) = parse("[general]\nlaunch_at_login = true\nmenu_bar_icon = false\nposition = \"centre\"\ncheck_updates = false\n").unwrap();
         assert!(d.is_empty());
         assert!(c.general.launch_at_login);
+        assert!(!c.general.menu_bar_icon);
+        assert!(!c.general.check_updates);
         assert_eq!(c.general.position, Position::Centre);
         assert!(parse("[general]\nposition = \"middle\"\n").is_err(), "an unknown position is a parse error, not a warning");
     }
@@ -456,5 +499,24 @@ enabld = false
         assert_eq!(ConfigFile::locate().path(), Path::new("/xdg/pal/config.toml"));
         std::env::remove_var("XDG_CONFIG_HOME");
         assert!(ConfigFile::locate().path().ends_with(".config/pal/config.toml"), "dotfile location on every platform");
+    }
+
+    #[test]
+    fn profile_keys_on_the_path() {
+        assert_eq!(ConfigFile::new(fs::config_dir().join("config.toml")).profile(), "default");
+        let dir = tempfile::tempdir().unwrap();
+        let a = ConfigFile::new(dir.path().join("pali.toml"));
+        let b = ConfigFile::new(dir.path().join("other.toml"));
+        let pa = a.profile();
+        assert_eq!(pa.len(), 8);
+        assert!(pa.chars().all(|c| c.is_ascii_hexdigit()));
+        assert_ne!(pa, b.profile());
+        assert_eq!(a.data_dir(), fs::data_dir().join(&pa));
+        std::fs::write(a.path(), "").unwrap();
+        assert_eq!(pa, a.profile(), "the same key once the file exists");
+        // A symlink to the file keys as the file it points at.
+        let link = dir.path().join("link.toml");
+        std::os::unix::fs::symlink(a.path(), &link).unwrap();
+        assert_eq!(ConfigFile::new(&link).profile(), pa);
     }
 }

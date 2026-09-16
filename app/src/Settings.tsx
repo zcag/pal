@@ -21,7 +21,7 @@ import { iconOf } from "./items";
 
 type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; icon?: string; settings?: Record<string, unknown> };
 type RawConfig = {
-  general: { hotkey: string; theme: GeneralConfig["theme"]; launch_at_login: boolean; position: GeneralConfig["position"] };
+  general: { hotkey: string; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"] };
   palettes: Record<string, RawPalette>;
   extensions: Record<string, Record<string, unknown>>;
 };
@@ -140,11 +140,12 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkey: config.general.hotkey, theme: config.general.theme, launchAtLogin: config.general.launch_at_login, position: config.general.position };
+  const general: GeneralConfig = { hotkey: config.general.hotkey, theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position };
   const onGeneral = (next: GeneralConfig) => {
     if (next.hotkey !== general.hotkey) write(["general", "hotkey"], next.hotkey);
     if (next.theme !== general.theme) write(["general", "theme"], next.theme);
     if (next.launchAtLogin !== general.launchAtLogin) write(["general", "launch_at_login"], next.launchAtLogin);
+    if (next.menuBarIcon !== general.menuBarIcon) write(["general", "menu_bar_icon"], next.menuBarIcon ? undefined : false);
     if (next.position !== general.position) write(["general", "position"], next.position);
   };
 

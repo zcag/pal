@@ -45,6 +45,7 @@
   "bundle": {
     "active": true,
     "targets": ["app", "dmg", "appimage", "deb"],
+    "createUpdaterArtifacts": true,
     "category": "Utility",
     "copyright": "Copyright 2026 Cagdas Salur",
     "homepage": "https://github.com/zcag/pal",
@@ -73,6 +74,14 @@
       "deb": {
         "section": "utils"
       }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENBQTJCNzM5OTg2MDlFQgpSV1RyQ1lhWmN5dXFERFFmUWM5UFZDUUlIdnBOKzhobVJ5bXUrOWhVRlhkeitobzF1ZG9kekFlMAo=",
+      "endpoints": [
+        "https://github.com/zcag/pal/releases/latest/download/latest.json"
+      ]
     }
   }
 }

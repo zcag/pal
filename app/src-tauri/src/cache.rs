@@ -1,9 +1,10 @@
 //! The persisted index: every palette's last listing on disk, so the root
 //! search answers from the previous run before the host is even spawned.
 //!
-//! One file per palette, `<data dir>/pal/index/<extension>/<palette>.json`
-//! (`~/Library/Application Support/pal/index/` on macOS,
-//! `~/.local/share/pal/index/` on Linux): the wire items as the extension
+//! One file per palette, `<data dir>/pal/<profile>/index/<extension>/<palette>.json`
+//! (`~/Library/Application Support/pal/<profile>/index/` on macOS,
+//! `~/.local/share/pal/<profile>/index/` on Linux; the profile is the
+//! config file's, `ConfigFile::profile`): the wire items as the extension
 //! sent them (not the index's matcher fields), when they were listed, and the
 //! palette's meta plus the extension title, so the palette row and the
 //! section label exist before the host says anything. Written through
@@ -48,10 +49,8 @@ impl Entry {
     }
 }
 
-/// `index/` under the data dir.
-pub fn dir() -> PathBuf {
-    pal_core::fs::data_dir().join("index")
-}
+/// The directory's name under the profile's data dir.
+pub const DIR_NAME: &str = "index";
 
 /// `<dir>/<extension>/<palette>.json`; `None` for a name that is no file
 /// name (a separator in it, or hidden).
@@ -140,6 +139,10 @@ pub struct Saver {
 impl Saver {
     pub fn new(dir: PathBuf) -> Arc<Self> {
         Arc::new(Self { dir, pending: Mutex::new(HashMap::new()) })
+    }
+
+    pub fn dir(&self) -> &Path {
+        &self.dir
     }
 
     pub fn save(self: &Arc<Self>, source: Source, entry: Entry) {

@@ -14,7 +14,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 pal-core = { path = "../../core" }
-tauri = { version = "2", features = ["macos-private-api"] }
+tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-global-shortcut = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -22,8 +22,12 @@ serde_json = "1"
 toml = "1"
 tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macros"] }
 tauri-plugin-single-instance = "2"
+# launch at login: a LaunchAgent on macOS, an XDG autostart entry on Linux
+tauri-plugin-autostart = "2"
 clap = { version = "4", features = ["derive"] }
 url = "2"
+# updates: the GitHub release manifest, checked on start and daily (updater.rs)
+tauri-plugin-updater = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }

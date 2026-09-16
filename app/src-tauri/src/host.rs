@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -16,7 +16,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{ChildStdin, Command};
-use tokio::sync::{oneshot, Mutex as AsyncMutex};
+use tokio::sync::{oneshot, watch, Mutex as AsyncMutex};
 
 const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 /// The sidecar's file name next to our executable (`bundle.externalBin`): not
@@ -25,6 +25,8 @@ const SIDECAR: &str = "pal-bun";
 const RESTART_DELAY: Duration = Duration::from_millis(500);
 /// A hung extension must not hang a keystroke or a pick for good.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+/// How long `stop` waits for the host to exit on EOF before quitting anyway.
+const STOP_TIMEOUT: Duration = Duration::from_secs(2);
 
 type Reply = oneshot::Sender<Result<Value, String>>;
 
@@ -77,6 +79,10 @@ pub struct Host {
     pending: Mutex<HashMap<u64, Reply>>,
     /// Last spawn, the origin of the timing lines.
     started: Mutex<Instant>,
+    /// Set by `stop`: the loop in `start` then ends instead of respawning.
+    stopping: AtomicBool,
+    /// Whether a host process is up; `stop` waits for it to go down.
+    alive: watch::Sender<bool>,
 }
 
 impl Host {
@@ -87,6 +93,8 @@ impl Host {
             stdin: AsyncMutex::new(None),
             pending: Mutex::new(HashMap::new()),
             started: Mutex::new(Instant::now()),
+            stopping: AtomicBool::new(false),
+            alive: watch::Sender::new(false),
         });
         app.manage(host.clone());
         tauri::async_runtime::spawn(async move {
@@ -97,6 +105,9 @@ impl Host {
                 }
                 host.fail_pending("host exited");
                 let _ = host.app.emit("pal://host", json!({ "method": "host/exit" }));
+                if host.stopping.load(Ordering::Relaxed) {
+                    return;
+                }
                 tokio::time::sleep(RESTART_DELAY).await;
             }
         });
@@ -122,6 +133,7 @@ impl Host {
             .kill_on_drop(true)
             .spawn()?;
         *self.stdin.lock().await = child.stdin.take();
+        self.alive.send_replace(true);
         let mut lines = BufReader::new(child.stdout.take().unwrap()).lines();
         let mut hello_timed = false;
         while let Ok(Some(line)) = lines.next_line().await {
@@ -151,7 +163,9 @@ impl Host {
             }
         }
         *self.stdin.lock().await = None;
-        child.wait().await
+        let status = child.wait().await;
+        self.alive.send_replace(false);
+        status
     }
 
     /// A host request for a core capability: runs off this task (the reader
@@ -196,6 +210,22 @@ impl Host {
     /// loop in `start` spawns a fresh one after `RESTART_DELAY`.
     pub async fn restart(&self) {
         *self.stdin.lock().await = None;
+    }
+
+    /// Ends the host for good (quit): EOF on its stdin, no respawn, and
+    /// waits up to [`STOP_TIMEOUT`] for it to exit so its own shutdown (an
+    /// extension flushing a file) is not cut short by ours.
+    pub async fn stop(&self) {
+        self.stopping.store(true, Ordering::Relaxed);
+        *self.stdin.lock().await = None;
+        let mut alive = self.alive.subscribe();
+        let t0 = Instant::now();
+        let down = tokio::time::timeout(STOP_TIMEOUT, alive.wait_for(|up| !up)).await.is_ok();
+        if down {
+            eprintln!("host\tstopped\t{:.1}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        } else {
+            eprintln!("host\tstop timed out after {STOP_TIMEOUT:?}; exiting anyway");
+        }
     }
 
     pub async fn request(&self, method: &str, params: Value) -> Result<Value, String> {

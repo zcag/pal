@@ -72,6 +72,8 @@ export type GeneralConfig = {
   hotkey: string;
   theme: "system" | "light" | "dark";
   launchAtLogin: boolean;
+  /** The menu bar (macOS) / tray (Linux) icon; the app has no Dock icon. */
+  menuBarIcon: boolean;
   position: "top" | "centre" | "last";
 };
 

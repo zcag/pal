@@ -155,7 +155,7 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 /* Settings: four extensions as installed, their palettes as configured in config.toml. */
 import type { Diagnostic, GeneralConfig, SettingSpec, SettingsExtension } from "../ui/SettingsTypes";
 
-export const settingsGeneral: GeneralConfig = { hotkey: "ctrl+space", theme: "system", launchAtLogin: true, position: "top" };
+export const settingsGeneral: GeneralConfig = { hotkey: "ctrl+space", theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top" };
 
 export const settingsFile = { path: "~/.config/pal/config.toml", changed: now - 2 * 60e3 };
 

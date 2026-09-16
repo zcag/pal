@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18">
+  <!-- pal's menu bar mark: icon.svg reduced to one colour. The slab becomes
+       a 1.5 px outline of the same rounded square (16 of 18, corner 4.5:
+       the icon's 824-of-1024 slab and its 186 radius), the caret and the
+       empty query stay as solid marks inside it at the icon's proportions.
+       Black on transparent: macOS renders it as a template (tinted for the
+       bar's light or dark appearance); Linux gets the same shape in white
+       (tray/22x22.png) for the usual dark panel. -->
+  <rect x="1.75" y="1.75" width="14.5" height="14.5" rx="4" fill="none" stroke="#000" stroke-width="1.5"/>
+  <!-- the caret: 88x352 of 1024 at x 340, y 336, snapped to whole pixels
+       at 18 so the 1x bar gets crisp marks -->
+  <rect x="6" y="6" width="2" height="6" rx="1" fill="#000"/>
+  <!-- the placeholder dash: 222x92 at x 490, y 466, on the caret's midline -->
+  <rect x="9" y="8" width="4" height="2" rx="1" fill="#000"/>
+</svg>

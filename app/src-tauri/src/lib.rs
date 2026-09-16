@@ -1,8 +1,9 @@
 //! The shell: a hidden, pre-warmed panel toggled by the global hotkey or by
 //! `pal toggle` from a second process, the extension host and the item
 //! index behind it, the core capabilities the host calls back for
-//! (`bridge`), the `icon://` scheme, and timing marks.
+//! (`bridge`), the `icon://` scheme, the menu bar icon, and timing marks.
 
+mod autostart;
 mod bridge;
 mod cache;
 mod cli;
@@ -15,6 +16,8 @@ mod icon;
 mod index;
 mod settings;
 mod system;
+mod tray;
+mod updater;
 mod windows;
 #[cfg_attr(target_os = "macos", path = "panel/macos.rs")]
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
@@ -25,7 +28,7 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
-use pal_core::config::Position;
+use pal_core::config::{ConfigFile, Position};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, RunEvent, WebviewWindow};
 use tauri::webview::PageLoadEvent;
@@ -125,6 +128,21 @@ fn hide(app: AppHandle) {
     panel::hide(&app);
 }
 
+/// Quit: the host gets EOF and up to its stop timeout to exit, then the
+/// event loop ends (`RunEvent::Exit` below flushes frecency and the cache
+/// saver) and the process exits 0. Off the caller's thread, so the tray
+/// menu and `pal quit` (both on the main thread) return at once.
+pub(crate) fn quit(app: &AppHandle) {
+    eprintln!("quit\trequested");
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Some(host) = app.try_state::<std::sync::Arc<host::Host>>() {
+            host.stop().await;
+        }
+        app.exit(0);
+    });
+}
+
 // ---- app -----------------------------------------------------------------
 
 pub fn run() {
@@ -132,6 +150,11 @@ pub fn run() {
     let cli = cli::Cli::parse();
     let context = tauri::generate_context!();
     if cli.cmd.is_some() && cli::handover(&context.config().identifier) {
+        return;
+    }
+    if cli.cmd == Some(cli::Cmd::Quit) {
+        // Nothing answered: starting an app to quit it is not what was asked.
+        eprintln!("pal\tnot running");
         return;
     }
     // Applied once the page has loaded, when started with a subcommand.
@@ -146,7 +169,7 @@ pub fn run() {
         }));
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
-    let builder = icon::register(builder);
+    let builder = icon::register(builder).plugin(tauri_plugin_updater::Builder::new().build()).plugin(autostart::plugin());
     builder
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -177,6 +200,7 @@ pub fn run() {
             settings::settings_restart_host,
             settings::settings_open,
             settings::settings_close,
+            updater::check_updates,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
@@ -192,12 +216,18 @@ pub fn run() {
             let window = app.get_webview_window(WINDOW).expect("main window");
             firstrun::install();
             panel::install(&window);
-            index::install(app.handle());
+            // The index cache and frecency are keyed by config file, so two
+            // configs (`pali.toml` in dev, `config.toml`) never share one.
+            let config = ConfigFile::locate();
+            let data = config.data_dir();
+            eprintln!("profile\t{}\t{}\t{}", config.profile(), config.path().display(), data.display());
+            index::install(app.handle(), &data);
             clipboard::install(app.handle());
             // Hotkeys and settings before the host: its first notifications
             // read the config and register palettes' hotkeys.
             hotkey::install(app.handle());
-            settings::install(app.handle());
+            settings::install(app.handle(), config);
+            updater::install(app.handle());
             // The last run's listings, so the root answers before the host is up.
             index::restore_cache(app.handle());
             host::Host::start(app.handle());
@@ -208,6 +238,7 @@ pub fn run() {
         .run(|app, event| {
             if let RunEvent::Exit = event {
                 index::flush(app);
+                eprintln!("quit\tflushed\t{:.1}ms since start", since_start_ms());
             }
         });
 }

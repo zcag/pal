@@ -30,6 +30,7 @@ export const generalIndex: SettingsIndexEntry[] = [
   { page: "general", label: "Show pal", hint: "Hotkey" },
   { page: "general", label: "Theme", hint: "Appearance" },
   { page: "general", label: "Launch at login", hint: "Startup" },
+  { page: "general", label: "Menu bar icon", hint: "Startup" },
   { page: "general", label: "Window position", hint: "Appearance" },
   { page: "general", label: "Config file", hint: "~/.config/pal/config.toml" },
   { page: "general", label: "Search history", hint: "Maintenance" },
@@ -61,6 +62,12 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
           <span className="pal-field__check">
             <SettingsSwitch checked={value.launchAtLogin} onChange={(v) => set("launchAtLogin", v)} label="Launch at login" />
             <span>{value.launchAtLogin ? "On" : "Off"}</span>
+          </span>
+        </SettingsRow>
+        <SettingsRow label="Menu bar icon" description="pal has no Dock icon. Without this, the hotkey and pal settings are the ways in.">
+          <span className="pal-field__check">
+            <SettingsSwitch checked={value.menuBarIcon} onChange={(v) => set("menuBarIcon", v)} label="Menu bar icon" />
+            <span>{value.menuBarIcon ? "On" : "Off"}</span>
           </span>
         </SettingsRow>
       </SettingsGroup>

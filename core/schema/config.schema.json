@@ -3,6 +3,11 @@
     "General": {
       "additionalProperties": false,
       "properties": {
+        "check_updates": {
+          "default": true,
+          "description": "Look for a newer release at startup and once a day (the GitHub\nrelease manifest; nothing installs without asking). `false` leaves\nthe menu's \"Check for updates\" as the only check.",
+          "type": "boolean"
+        },
         "hotkey": {
           "default": "ctrl+space",
           "description": "Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,\nfor a compositor keybind that runs `pal toggle` instead.",
@@ -10,7 +15,12 @@
         },
         "launch_at_login": {
           "default": false,
-          "description": "Start pal when you sign in. (The key is what the settings view\nwrites; registering the login item itself is not wired yet.)",
+          "description": "Start pal when you sign in: a LaunchAgent on macOS, an XDG autostart\nentry on Linux (the app registers it when this changes).",
+          "type": "boolean"
+        },
+        "menu_bar_icon": {
+          "default": true,
+          "description": "Show pal's icon in the menu bar (macOS) or system tray (Linux). The\napp has no Dock icon, so this is the visible way to reach Settings\nand Quit; the hotkey and `pal settings` work without it.",
           "type": "boolean"
         },
         "position": {
@@ -89,8 +99,10 @@
     "general": {
       "$ref": "#/$defs/General",
       "default": {
+        "check_updates": true,
         "hotkey": "ctrl+space",
         "launch_at_login": false,
+        "menu_bar_icon": true,
         "position": "top",
         "theme": "system"
       }

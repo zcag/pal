@@ -20,7 +20,7 @@ use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
 
 use crate::host::Host;
 use crate::index::{palette_id, PaletteMeta};
-use crate::{hotkey, index, panel};
+use crate::{autostart, hotkey, index, panel, tray};
 
 pub const WINDOW: &str = "settings";
 
@@ -54,14 +54,17 @@ fn unix_ms(t: SystemTime) -> u64 {
     t.duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
 }
 
-pub fn install(app: &AppHandle) {
-    let file = ConfigFile::locate();
+/// `file` is the located config (`ConfigFile::locate`), passed in so the
+/// caller keys the data dir on the same path.
+pub fn install(app: &AppHandle, file: ConfigFile) {
     let loaded = file.load();
     for d in &loaded.diagnostics {
         eprintln!("config\t{:?}\t{}\t{}", d.level, d.path, d.message);
     }
     app.manage(Settings { file: file.clone(), loaded: Mutex::new(loaded.clone()), changed: Mutex::new(None), extensions: Mutex::new(Vec::new()), _watch: Mutex::new(None) });
     hotkey::apply(app, &loaded.config);
+    tray::apply(app, &loaded.config);
+    autostart::apply(app, &loaded.config);
     let handle = app.clone();
     match file.watch(move |l| on_reload(&handle, l)) {
         Ok(w) => *app.state::<Settings>()._watch.lock().unwrap() = Some(w),
@@ -89,6 +92,12 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
         eprintln!("config\t{:?}\t{}\t{}", d.level, d.path, d.message);
     }
     hotkey::apply(app, &loaded.config);
+    if prev.general.menu_bar_icon != loaded.config.general.menu_bar_icon || prev.general.hotkey != loaded.config.general.hotkey {
+        tray::apply(app, &loaded.config);
+    }
+    if prev.general.launch_at_login != loaded.config.general.launch_at_login {
+        autostart::apply(app, &loaded.config);
+    }
     let _ = app.emit("pal://config", &loaded);
     if let Some(host) = app.try_state::<Arc<Host>>() {
         tauri::async_runtime::spawn(index::apply_config(app.clone(), host.inner().clone(), prev, loaded.config));

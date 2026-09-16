@@ -92,9 +92,36 @@ down as it stabilises.
 - **Diagnostics carry no line numbers for unknown keys**: serde does not
   report spans for ignored keys, so `line` stays `None` and the strip shows
   the dotted path; only parse errors have a line.
-- **`general.launch_at_login`** is a key the view writes; registering the
-  login item is not wired. **`general.position`** is: `top` (20%), `centre`,
-  `last` (leave it where it was after the first show).
+- **`general.launch_at_login`** is wired through tauri-plugin-autostart
+  (`autostart.rs`): a LaunchAgent `~/Library/LaunchAgents/io.cagdas.pal.plist`
+  on macOS (the plist is written, not `launchctl load`ed: it takes effect at
+  the next login), `~/.config/autostart/pal.desktop` on Linux. The watcher
+  applies it on every change of the key, so the Settings toggle and a hand
+  edit land the same way. A debug build never registers (it would point at
+  `target/debug/pal`) and says so in the log. **`general.position`** is:
+  `top` (20%), `centre`, `last` (leave it where it was after the first show).
+- **Menu bar icon** (`tray.rs`, tauri `tray-icon`): the app has no Dock icon,
+  so this is the visible way to Settings and Quit. Menu: Open pal (with the
+  root hotkey as its accelerator hint), Settings… (⌘,), Restart extension
+  host, Check for updates… (disabled until the updater's flow is in; the
+  check itself exists, `updater::check`), Quit pal. Left click opens the menu
+  (Raycast does the same). The image is `app/design/tray.svg`, the app icon
+  as one colour: the slab's outline with the caret and the empty query
+  inside, black on transparent as a macOS template image (`icons/tray/36x36`
+  for the 18 pt bar at 2x, `18x18` for 1x), white for Linux panels
+  (`22x22`). `general.menu_bar_icon = false` removes it live; `true` is the
+  default and the view unsets the key for it.
+- **Data is keyed by config file.** `<data dir>/pal/<profile>/{index,
+  frecency.json}` where `<profile>` is `default` for `~/.config/pal/config.toml`
+  and the first 8 hex of sha256 of the canonical path otherwise
+  (`ConfigFile::profile` / `data_dir`; `pali.toml` on hornet is `72afa3f9`).
+  Logged at startup as `profile`. `clipboard.db` stays one level up: it is
+  history, not a view of one config. Nothing was migrated; the old
+  `pal/index` and `pal/frecency.json` are dead files to delete by hand.
+- **Quit** (tray, `pal quit`): the host gets EOF and up to 2 s to exit on its
+  own (`Host::stop`, no respawn), then `app.exit(0)` runs the `RunEvent::Exit`
+  flush of frecency and the cache saver (`quit  flushed` in the log). `pal
+  quit` with no instance running prints `not running` and does not start one.
 - **Dev config on hornet**: `~/.config/pal/config.toml` is v1's file, so the
   `pali` dev instance runs with `PAL_CONFIG=~/.config/pal/pali.toml` until
   `pali` takes over `main`.
@@ -238,8 +265,7 @@ Things an agent could not decide alone; each waits for a call.
   `scripts` palette still runs on every start (in the background now, the
   root is already answered). Give palettes without a `ttl` a default (an
   hour?), or leave "no ttl = always fresh" and set `[extensions.scripts]
-  ttl` by hand? And should the cache be keyed per config file (`pali.toml`
-  vs `config.toml` share `~/Library/Application Support/pal/index` today)?
+  ttl` by hand? (The cache is keyed per config file now, see above.)
 - **`show`'s metadata.** The show level renders the Detail, so v1's
   `show.metadata` comes along; the brief said markdown only. Keep or drop?
 - **Focus without Accessibility.** The core can still activate the app
