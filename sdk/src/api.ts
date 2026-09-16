@@ -318,3 +318,73 @@ export const media = {
   /** A transport command to one player; the panel stays up. */
   control: (player: string, command: MediaCommand) => call<null>("media.control", { player, command }),
 };
+
+/** `pal_core::calendar::Status`: `not_determined` means `request` will prompt; `denied`/`restricted` are switched in System Settings; `unavailable` is a machine without a backend (Linux without `khal`). */
+export type CalendarStatus = "granted" | "denied" | "not_determined" | "restricted" | "unavailable";
+
+/** `pal_core::calendar::Calendar`: `id` is what `events` filters on and `create` takes. */
+export type Calendar = {
+  id: string;
+  title: string;
+  /** `#rrggbb` when the backend has one; usable as `icon`. */
+  color: string | null;
+  /** The account (`iCloud`, `Google`); null on khal. */
+  source: string | null;
+  /** Whether events can be added (a subscribed or holiday calendar cannot). */
+  writable: boolean;
+};
+
+/** `pal_core::calendar::Attendee`. */
+export type Attendee = { name: string; status: "accepted" | "declined" | "tentative" | "pending" | "unknown"; me: boolean };
+
+/** `pal_core::calendar::Event`: times are unix ms; `end` of an all-day event is the midnight after its last day. */
+export type CalendarEvent = {
+  /** Shared by every occurrence of a recurring event; with `occurrence` it names one. */
+  id: string;
+  /** This occurrence's start, ms, on recurring events only; pass it to `delete`/`open` beside the id. */
+  occurrence: number | null;
+  title: string;
+  start: number;
+  end: number;
+  all_day: boolean;
+  location: string | null;
+  notes: string | null;
+  url: string | null;
+  calendar: Calendar;
+  attendees: Attendee[];
+  organizer: string | null;
+  /** The Zoom / Meet / Teams / Webex link found in the url, location or notes. */
+  conference_url: string | null;
+  recurring: boolean;
+  /** The user's reply on an invitation; null on an event they own or without attendees. */
+  my_status: Attendee["status"] | null;
+};
+
+/** `calendar.create`'s params: `calendar` is a `Calendar.id` (the default calendar when absent); with `all_day` the times are read as days, `end` exclusive. */
+export type NewCalendarEvent = { title: string; start: number; end: number; all_day?: boolean; calendar?: string; location?: string; notes?: string };
+
+/**
+ * The calendar (`pal_core::calendar`): EventKit on macOS (every account
+ * Calendar.app has), `khal` on Linux. Gated by the Calendars permission on
+ * macOS: `permission()` first, `request()` once when `not_determined` (the
+ * system prompt; the panel loses focus and hides while it is up), and a
+ * `denied` state is only switched in System Settings (`openSettings`).
+ */
+export const calendar = {
+  /** The state, no prompt. */
+  permission: () => call<CalendarStatus>("calendar.permission"),
+  /** macOS: the system prompt when `not_determined`, waited on for a few seconds; the state after. Elsewhere the same as `permission`. */
+  request: () => call<CalendarStatus>("calendar.request"),
+  /** macOS: System Settings on Privacy & Security > Calendars. */
+  openSettings: () => call<null>("calendar.open_settings"),
+  /** Every event calendar, by account then title. */
+  calendars: () => call<Calendar[]>("calendar.calendars"),
+  /** Events overlapping `[from, to)` (unix ms), by start; `calendars` narrows to those ids. Occurrences of recurring events are expanded. */
+  events: (from: number, to: number, calendars?: string[]) => call<CalendarEvent[]>("calendar.events", { from, to, calendars }),
+  /** Save a new event; resolves with its id. Rejects with the backend's complaint (a read-only calendar, an end before the start). */
+  create: (event: NewCalendarEvent) => call<string>("calendar.create", event),
+  /** Remove an event, or with `occurrence` one occurrence of a recurring one. Not possible over khal. */
+  delete: (id: string, occurrence?: number | null) => call<null>("calendar.delete", { id, occurrence }),
+  /** Show the event in Calendar.app (`ical://ekevent/…`). Not possible over khal. */
+  open: (id: string, occurrence?: number | null) => call<null>("calendar.open", { id, occurrence }),
+};

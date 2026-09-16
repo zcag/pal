@@ -1786,3 +1786,80 @@ Settings, `[extensions.emoji]`:
 ### Window Management, Blackjack
 
 Reviewed, nothing changed: no bug found.
+
+## My Schedule (`calendar-schedule`)
+
+The next days of events over the core's calendar capability
+(`pal_core::calendar`): EventKit on macOS, so every account Calendar.app
+has (iCloud, Google, Exchange) is one store and one permission; `khal` on
+Linux, read through its `list --json`. Live with a 60 s ttl: the rows are
+current on every show and the store is read at most once a minute.
+
+Sections by day: **Today**, **Tomorrow**, **This week** (within seven days),
+**Later** (up to the `days` setting). Events that have ended are gone; an
+all-day one lasts until its midnight. The current event carries a `now`
+tag, else the next one `in 12 min` (`in 2 h` further out, nothing past a
+day). The row is the title, the time range and the location (`10:00 –
+10:30 · Room 4`, `All day`, `All day, until Fri 18 Sep`), the calendar's
+colour as its dot, the head count, a `Join` tag when the event has a
+call, `declined` or `maybe` for your reply. The last row is **New event**.
+
+A call is the first Zoom, Google Meet, Teams, Webex, Jitsi, Whereby or
+GoTo link in the event's url, then its location, then its notes; Outlook
+safelinks are unwrapped and `&amp;` unescaped. A Zoom marketing page or a
+docs link does not count.
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Join call | `Enter` | opens the call link; first only when there is one |
+| Open in Calendar | `Enter` (`⌘Enter` with a call) | `ical://ekevent/…` into Calendar.app, the occurrence for a repeating event; macOS only |
+| Copy conference link | `⌘⇧C` | |
+| Copy event details | `⌘C` | title, when, where and the link as text; the primary action on Linux without a call |
+| Delete event / Delete this occurrence | `⌃X` | asks first; on a repeating event only that occurrence goes; macOS only (khal has no delete) |
+| New event | `Enter` on the last row | the form below |
+| Grant access | `Enter` on the permission row | the system prompt, or System Settings when it was denied |
+
+The filter dropdown is one entry per calendar (read when the host loads,
+so a calendar added later shows at the next start). The detail pane is
+the notes as markdown (the title when there are none) over when, the
+calendar and its account, the location, the call or link, the organizer,
+every attendee with their reply as a coloured tag, your own reply, and
+whether it repeats.
+
+On Linux, `khal new` prints no id and reads dates in the formats of its
+own `[locale]` section; with none set (the C locale's `%c`), khal cannot
+parse a timed event back, so pal refuses one with the format to set
+(`datetimeformat = %Y-%m-%d %H:%M`) rather than saving it wrong. All-day
+events go through either way.
+
+**New event** is a form: a title; a day in words (`today`, `tomorrow`,
+`fri`, `next mon`, `next week`, `2026-09-20`, `20.9`, `20 sep`, `sep 20`);
+a start and an end time (`14:30`, `2pm`, `2:30 pm`, `1430`, `noon`; an end
+before the start is the next day); an all-day checkbox (then the end may be
+the last day, `22.9`); the calendar (the writable ones, or the backend's
+default); a location; notes. A field that does not parse shows its
+complaint and keeps what was typed; the backend's refusal (a read-only
+calendar) comes back under the title.
+
+**Permission.** macOS lists an app under Privacy & Security > Calendars
+only after it has asked once, so while the state is `not_determined` the
+palette is one row, **Grant calendar access**, whose Enter shows the
+system prompt (the panel hides while it is up; open the palette again
+after answering). `denied` and `restricted` are one row that opens that
+pane. The app carries `NSCalendarsFullAccessUsageDescription` (and the
+pre-14 `NSCalendarsUsageDescription`) in its Info.plist; without the
+string macOS ends the process instead of asking. On Linux without `khal`
+the one row says so.
+
+Settings, `[extensions.calendar]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `calendars` | list | `[]` | Calendar names (or ids) to list; empty is every calendar. Also narrows the filter dropdown. |
+| `days` | number | `7` | How many days from today. |
+| `hide_declined` | boolean | `true` | Leave out invitations you declined. |
+
+Not built: accept and decline (EventKit has no public API to change a
+participant's status; Raycast does it through the private
+`EKParticipant` setter), a second `calendars` palette toggling visibility
+(an extension cannot write its own settings), reminders.

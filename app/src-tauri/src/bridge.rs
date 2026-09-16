@@ -5,6 +5,7 @@
 //!
 //! - `core/apps.{for_file, open_with}` (apps.rs)
 //! - `core/audio.{devices, set_default, set_volume, set_mute}` (audio.rs)
+//! - `core/bar.{update, refresh}` (bar/mod.rs)
 //! - `core/bluetooth.{devices, connect, disconnect}` (bluetooth.rs)
 //! - `core/clipboard.{list, get, pin, delete, clear, copy}` (clipboard.rs)
 //! - `core/media.{now_playing, control}` (media.rs)
@@ -13,6 +14,7 @@
 //! - `core/system.{commands, run}` (system.rs)
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
 //! - `core/windows.{list, close, minimize, frame, set_frame, displays, focused, layout}` (windows.rs)
+//! - `core/calendar.{permission, request, open_settings, calendars, events, create, delete, open}` (calendar.rs)
 
 use serde_json::Value;
 use tauri::AppHandle;
@@ -29,6 +31,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
     match capability {
         "apps" => crate::apps::call(app, func, params),
         "audio" => crate::audio::call(app, func, params),
+        "bar" => crate::bar::call(app, func, params),
         "bluetooth" => crate::bluetooth::call(app, func, params),
         "clipboard" => crate::clipboard::call(app, func, params),
         "media" => crate::media::call(app, func, params),
@@ -37,6 +40,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "system" => crate::system::call(app, func, params),
         "wifi" => crate::wifi::call(app, func, params),
         "windows" => crate::windows::call(app, func, params),
+        "calendar" => calendar::call(app, func, params),
         _ => Err(format!("unknown capability {capability}")),
     }
 }
@@ -50,10 +54,17 @@ mod tests {
         assert_eq!(route("core/clipboard.list"), Ok(("clipboard", "list")));
         assert_eq!(route("core/apps.for_file"), Ok(("apps", "for_file")));
         assert_eq!(route("core/settings.get"), Ok(("settings", "get")));
+        assert_eq!(route("core/bar.update"), Ok(("bar", "update")));
         assert_eq!(route("core/wifi.set_power"), Ok(("wifi", "set_power")));
+        assert_eq!(route("core/calendar.events"), Ok(("calendar", "events")));
         assert!(route("list").is_err());
         assert!(route("core/list").is_err(), "no capability");
         assert!(route("core/.list").is_err());
         assert!(route("core/clipboard.").is_err());
     }
 }
+
+// Declared here rather than in lib.rs's module list (another agent's file
+// this round): the calendar capability is reached through this router only.
+#[path = "calendar.rs"]
+mod calendar;

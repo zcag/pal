@@ -41,16 +41,21 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 # NSScreen + NSGraphics: the displays (frame, visibleFrame, NSScreenNumber) for the window layouts
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSWorkspace", "NSImage", "NSImageRep", "NSBitmapImageRep", "NSGraphicsContext", "NSPasteboard", "NSPasteboardItem", "NSRunningApplication", "NSScreen", "NSGraphics", "objc2-core-graphics", "libc"] }
 # clipboard paste: synthesise Cmd+V; windows: the window list
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation", "CGWindow"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation", "CGWindow", "CGColor"] }
 # windows: the AXUIElement C API speaks CF types
 objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFArray", "CFString", "CFNumber", "CFCGTypes"] }
 # audio: the CoreAudio HAL (devices, defaults, volume, mute) without a tool to install
 objc2-core-audio = { version = "0.3", default-features = false, features = ["std", "AudioHardware"] }
 # bluetooth: IOBluetoothDevice for connect/disconnect (the list is system_profiler's)
 objc2-io-bluetooth = { version = "0.3", default-features = false, features = ["std", "objc2", "objc2-foundation", "IOBluetoothObject", "IOBluetoothDevice"] }
+# calendar: EventKit (the store, events, calendars, participants; block2 for the access prompt's completion, CGColor for a calendar's colour)
+objc2-event-kit = { version = "0.3", default-features = false, features = ["std", "block2", "objc2-core-graphics", "EKObject", "EKTypes", "EKEventStore", "EKEvent", "EKCalendar", "EKCalendarItem", "EKParticipant", "EKSource"] }
+block2 = "0.6"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 freedesktop-icons = "0.4"
+# calendar: localtime_r / mktime for khal's wall-clock dates
+libc = "0.2"
 # clipboard: X11 and Wayland (wlr-data-control) read/write without shelling out for every poll
 arboard = { version = "3", default-features = false, features = ["wayland-data-control", "image-data"] }
 

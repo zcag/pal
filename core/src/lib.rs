@@ -4,6 +4,7 @@ pub mod apps;
 pub mod audio;
 pub mod ax;
 pub mod bluetooth;
+pub mod calendar;
 pub mod clipboard;
 pub mod config;
 pub mod extensions;

@@ -7,5 +7,13 @@
        sets ActivationPolicy::Accessory at runtime). -->
   <key>LSUIElement</key>
   <true/>
+  <!-- The Calendars prompt (pal_core::calendar::request): TCC shows this
+       text in the dialog and, without the key, ends the process instead of
+       asking. Full access (macOS 14+); the older read/write prompt reads
+       NSCalendarsUsageDescription, kept for macOS 13. -->
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>pal lists your upcoming events in My Schedule and can add or remove one from the panel.</string>
+  <key>NSCalendarsUsageDescription</key>
+  <string>pal lists your upcoming events in My Schedule and can add or remove one from the panel.</string>
 </dict>
 </plist>
