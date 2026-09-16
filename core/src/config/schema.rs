@@ -61,6 +61,10 @@ mod tests {
         assert_eq!(general["additionalProperties"], false);
         assert!(general["properties"]["extra"].is_null(), "the catch-all map is not a key to complete");
         assert_eq!(s["$defs"]["Theme"]["enum"], serde_json::json!(["system", "light", "dark"]));
+        assert_eq!(general["properties"]["hotkey"]["default"], "ctrl+space");
+        let hotkeys = &s["$defs"]["Hotkeys"]["anyOf"];
+        assert_eq!(hotkeys[0]["type"], "string", "one root hotkey");
+        assert_eq!((hotkeys[1]["type"].as_str(), hotkeys[1]["items"]["type"].as_str()), (Some("array"), Some("string")), "or a list of them");
         let palette = &s["$defs"]["Palette"]["properties"];
         assert_eq!(palette["enabled"]["default"], true);
         assert_eq!(palette["alias"]["type"], "string", "no null type: TOML cannot write one");

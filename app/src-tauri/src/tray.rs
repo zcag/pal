@@ -42,7 +42,8 @@ fn fresh_id() -> String {
 /// thread itself: the watcher calls this from its own.
 pub fn apply(app: &AppHandle, config: &Config) {
     let want = config.general.menu_bar_icon;
-    let hotkey = config.general.hotkey.clone();
+    // Several root hotkeys: the menu shows the first as the hint.
+    let hotkey = config.general.hotkey.first().unwrap_or_default().to_string();
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         let have = current_id().and_then(|id| handle.tray_by_id(&id));

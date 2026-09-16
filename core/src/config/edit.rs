@@ -207,6 +207,23 @@ token = "keychain:pal/github-token"
     }
 
     #[test]
+    fn set_list_over_string_keeps_the_line() {
+        // Adding a second root hotkey in Settings: the string becomes a
+        // list on its line, comment and spacing kept; back to one entry
+        // it stays a list, the shape the file now has.
+        let (_d, f) = file(ODD);
+        f.set_json("general.hotkey", serde_json::json!(["alt+space", "ctrl+space"])).unwrap();
+        assert_only_line_changed(ODD, &read(&f), 4, r#"hotkey   =   ["alt+space", "ctrl+space"]    # taken on hornet, works on marko"#);
+        let cfg = super::super::parse(&read(&f)).unwrap().0;
+        assert_eq!(cfg.general.hotkey.list(), ["alt+space", "ctrl+space"]);
+        let before = read(&f);
+        f.set_json("general.hotkey", serde_json::json!(["ctrl+space"])).unwrap();
+        assert_only_line_changed(&before, &read(&f), 4, r#"hotkey   =   ["ctrl+space"]    # taken on hornet, works on marko"#);
+        f.set("general.hotkey", "ctrl+space").unwrap();
+        assert_only_line_changed(&before, &read(&f), 4, r#"hotkey   =   "ctrl+space"    # taken on hornet, works on marko"#);
+    }
+
+    #[test]
     fn set_inside_indented_subtable() {
         let (_d, f) = file(ODD);
         f.set("palettes.ffbookmarks.enabled", true).unwrap();

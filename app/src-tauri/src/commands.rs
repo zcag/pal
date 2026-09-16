@@ -282,14 +282,7 @@ impl Diag {
         if !failed.is_empty() {
             exts.push_str(&format!("; {} failed: {}", failed.len(), names(&failed)));
         }
-        let hk = &self.hotkey;
-        let hotkey = if hk.wanted.is_empty() {
-            "off".to_string()
-        } else if hk.registered {
-            format!("{} registered", hk.wanted)
-        } else {
-            format!("{} failed: {}", hk.wanted, hk.error.as_deref().unwrap_or("unknown"))
-        };
+        let hotkey = self.hotkey.summary();
         [
             format!("pal {}{}", self.version, if self.debug { " (debug)" } else { "" }),
             format!("os: {} {}", self.os, self.arch),
@@ -553,7 +546,7 @@ mod tests {
             profile: "default".into(),
             data: PathBuf::from("/Users/u/Library/Application Support/pal/default"),
             extensions: vec![("apps".into(), true), ("clipboard".into(), true), ("broken".into(), false)],
-            hotkey: hotkey::Outcome { wanted: "ctrl+space".into(), registered: true, error: None, spotlight: None },
+            hotkey: hotkey::Outcome { hotkeys: vec![hotkey::RootOutcome { wanted: "ctrl+space".into(), registered: true, error: None, spotlight: None }], registered: true },
             accessibility: false,
             theme: Theme::System,
         }
@@ -580,13 +573,19 @@ mod tests {
         let mut d = diag();
         d.debug = true;
         d.extensions.clear();
-        d.hotkey = hotkey::Outcome { wanted: "cmd+space".into(), registered: false, error: Some("Spotlight has it".into()), spotlight: Some("cmd+space".into()) };
+        d.hotkey = hotkey::Outcome {
+            hotkeys: vec![
+                hotkey::RootOutcome { wanted: "cmd+space".into(), registered: false, error: Some("Spotlight has it".into()), spotlight: Some("cmd+space".into()) },
+                hotkey::RootOutcome { wanted: "ctrl+space".into(), registered: true, error: None, spotlight: None },
+            ],
+            registered: true,
+        };
         d.accessibility = true;
         d.theme = Theme::Dark;
         let text = d.text();
         assert!(text.starts_with("pal 0.1.0 (debug)\n"), "{text}");
         assert!(text.contains("\nextensions: 0 loaded\n"), "{text}");
-        assert!(text.contains("\nhotkey: cmd+space failed: Spotlight has it\n"), "{text}");
+        assert!(text.contains("\nhotkey: cmd+space failed: Spotlight has it, ctrl+space registered\n"), "every entry, in order: {text}");
         assert!(text.contains("\naccessibility: granted\n"), "{text}");
         assert!(text.ends_with("theme: dark"), "{text}");
         d.hotkey = hotkey::Outcome::default();

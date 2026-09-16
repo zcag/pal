@@ -68,7 +68,7 @@ pub fn reset(data: &Path) -> std::io::Result<()> {
 /// What the rows depend on, taken once per `sync`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Env {
-    /// `general.hotkey` as configured (`ctrl+space`); empty when off.
+    /// The first of `general.hotkey` as configured (`ctrl+space`); empty when off.
     pub hotkey: String,
     /// Off macOS always true: the Accessibility row is for macOS only.
     pub ax_trusted: bool,
@@ -76,7 +76,7 @@ pub struct Env {
 
 impl Env {
     fn read(app: &AppHandle) -> Self {
-        Self { hotkey: settings::config(app).general.hotkey, ax_trusted: !cfg!(target_os = "macos") || pal_core::ax::trusted() }
+        Self { hotkey: settings::config(app).general.hotkey.first().unwrap_or_default().into(), ax_trusted: !cfg!(target_os = "macos") || pal_core::ax::trusted() }
     }
 }
 

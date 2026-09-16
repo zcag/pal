@@ -42,6 +42,7 @@ runtime, and in dev the app runs that same copy. In dev the host and the
 extensions load from the repo and reload when a file changes.
 
 Ctrl+Space toggles the panel (`general.hotkey` in `~/.config/pal/config.toml`,
+one combination or a list of them;
 written from a commented template on first launch; a v1 config there is
 migrated aside first). On
 Wayland there is no global hotkey API, so bind `pal toggle` in the

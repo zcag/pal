@@ -11,7 +11,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsWindow,
-  aboutIndex, barIndex, extensionsIndex, generalIndex, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages,
+  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages,
   type BarConfig, type BarItem, type BarItemConfig, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
   type CrashReport, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo,
 } from "./ui";
@@ -25,7 +25,7 @@ type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; icon?: s
 type RawBarItem = { enabled?: boolean; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: { open_on_hover: boolean }; sketchybar: { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
-  general: { hotkey: string; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean; check_updates: boolean };
+  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean; check_updates: boolean };
   palettes: Record<string, RawPalette>;
   bar: RawBar;
   extensions: Record<string, Record<string, unknown>>;
@@ -169,7 +169,7 @@ function diagnosticsText(view: View, extensions: SettingsExtension[], bar: BarIt
     `os: ${navigator.platform}`,
     `config: ${view.path}`,
     `extensions: ${loaded.length} loaded${loaded.length ? `: ${loaded.join(", ")}` : ""}${failed.length ? `; ${failed.length} failed: ${failed.join(", ")}` : ""}`,
-    `hotkey: ${!hk.wanted ? "off" : hk.registered ? `${hk.wanted} registered` : `${hk.wanted} failed: ${hk.error ?? "unknown"}`}`,
+    `hotkey: ${hk.hotkeys.length ? hk.hotkeys.map((h) => (h.registered ? `${h.wanted} registered` : `${h.wanted} failed: ${h.error ?? "unknown"}`)).join(", ") : "off"}`,
     `accessibility: ${perm(p.accessibility)}`,
     `calendar: ${p.calendar ?? "n/a"}`,
     `full disk access: ${perm(p.full_disk_access)}`,
@@ -312,9 +312,10 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkey: config.general.hotkey, theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, askPermissionsOnStart: config.general.ask_permissions_on_start };
+  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, askPermissionsOnStart: config.general.ask_permissions_on_start };
   const onGeneral = (next: GeneralConfig) => {
-    if (next.hotkey !== general.hotkey) write(["general", "hotkey"], next.hotkey);
+    // `general.hotkey` keeps the spelling the file has (a string stays a string) until a second entry needs the list.
+    if (next.hotkeys.join("\n") !== general.hotkeys.join("\n")) write(["general", "hotkey"], Array.isArray(config.general.hotkey) || next.hotkeys.length > 1 ? next.hotkeys : (next.hotkeys[0] ?? ""));
     if (next.theme !== general.theme) write(["general", "theme"], next.theme);
     if (next.launchAtLogin !== general.launchAtLogin) write(["general", "launch_at_login"], next.launchAtLogin);
     if (next.menuBarIcon !== general.menuBarIcon) write(["general", "menu_bar_icon"], next.menuBarIcon ? undefined : false);

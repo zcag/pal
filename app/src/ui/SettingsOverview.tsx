@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
-import { comboLabel } from "./SettingsGeneral";
+import { comboLabel, combosLabel } from "./SettingsGeneral";
 import type { UpdateInfo } from "./SettingsAbout";
 import { needsSetup, permissionRows, type BarItem, type Diagnostic, type HotkeyStatus, type PermissionId, type PermissionsStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage } from "./SettingsTypes";
 import { relativeDate } from "./format";
@@ -57,8 +57,9 @@ export type OverviewItem = {
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * The attention list, in the order the user should take it: the hotkey
- * (pal is unreachable without it), permissions (features silently do
+ * The attention list, in the order the user should take it: the hotkeys
+ * (pal is unreachable without one; a row per entry that failed, naming
+ * it, since the others may well work), permissions (features silently do
  * nothing), extensions that failed to load, extensions with nothing to
  * work with, manifest warnings, config file problems, updates. Pure, so
  * the page and its tests share it.
@@ -66,17 +67,23 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function overviewItems(v: OverviewInput): OverviewItem[] {
   const items: OverviewItem[] = [];
   const h = v.hotkey;
-  if (h && !h.wanted) {
+  if (h && !h.hotkeys.length) {
     items.push({ id: "hotkey", level: "ok", title: "Hotkey", detail: "None set; pal toggle from a compositor keybind opens the panel.", action: { label: "Set one", go: { page: "general", anchor: "general:hotkey" } } });
-  } else if (h && !h.registered) {
-    const combo = h.wanted ? comboLabel(h.wanted) : "";
-    const spotlight = h.spotlight ?? (isMac && /spotlight/i.test(h.error ?? "") ? h.wanted : undefined);
+  }
+  for (const [i, r] of (h?.hotkeys ?? []).entries()) {
+    if (r.registered) continue;
+    const id = i ? `hotkey:${i + 1}` : "hotkey";
+    const anchor = i ? `general:hotkey:${i + 1}` : "general:hotkey";
+    const combo = comboLabel(r.wanted);
+    const others = h!.hotkeys.filter((o) => o !== r && o.registered).map((o) => comboLabel(o.wanted));
+    const still = others.length ? ` ${others.join(", ")} still opens pal.` : "";
+    const spotlight = r.spotlight ?? (isMac && /spotlight/i.test(r.error ?? "") ? r.wanted : undefined);
     if (spotlight) {
-      items.push({ id: "hotkey", level: "attention", title: "Hotkey", detail: `${combo} is Spotlight's. Untick Show Spotlight search under Keyboard Shortcuts > Spotlight, then pal takes it.`, action: { label: "Open Keyboard Shortcuts", keyboardShortcuts: true } });
-    } else if (/already registered|in use/i.test(h.error ?? "")) {
-      items.push({ id: "hotkey", level: "attention", title: "Hotkey", detail: `${combo} is held by another app (Raycast, if it is running: its hotkey is under Raycast Settings > General). Change one of them.`, action: { label: "Change", go: { page: "general", anchor: "general:hotkey" } } });
+      items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} is Spotlight's. Untick Show Spotlight search under Keyboard Shortcuts > Spotlight, then pal takes it.${still}`, action: { label: "Open Keyboard Shortcuts", keyboardShortcuts: true } });
+    } else if (/already registered|in use/i.test(r.error ?? "")) {
+      items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} is held by another app (Raycast, if it is running: its hotkey is under Raycast Settings > General). Change one of them.${still}`, action: { label: "Change", go: { page: "general", anchor } } });
     } else {
-      items.push({ id: "hotkey", level: "attention", title: "Hotkey", detail: `${combo || "The hotkey"} did not register${h.error ? `: ${h.error}` : ""}.`, action: { label: "Change", go: { page: "general", anchor: "general:hotkey" } } });
+      items.push({ id, level: "attention", title: "Hotkey", detail: `${combo} did not register${r.error ? `: ${r.error}` : ""}.${still}`, action: { label: "Change", go: { page: "general", anchor } } });
     }
   }
 
@@ -148,7 +155,7 @@ export function overviewFacts(v: OverviewInput): { label: string; value: ReactNo
   const withHotkey = palettes.filter((p) => p.config.hotkey).length;
   const barOn = (v.bar ?? []).filter((b) => b.config.enabled && b.source).length;
   return [
-    { label: "Hotkey", value: v.hotkey?.wanted ? <Kbd shortcut={v.hotkey.wanted} /> : "none", go: { page: "general", anchor: "general:hotkey" } },
+    { label: "Hotkey", value: v.hotkey?.hotkeys.length ? <span className="pal-overview__hotkeys" aria-label={combosLabel(v.hotkey.hotkeys.map((h) => h.wanted))}>{v.hotkey.hotkeys.map((h, i) => <span key={i}>{i ? ", " : ""}<Kbd shortcut={h.wanted} /></span>)}</span> : "none", go: { page: "general", anchor: "general:hotkey" } },
     { label: "Extensions", value: `${plural(loaded.length, "extension")} loaded${loaded.length !== v.extensions.length ? `, ${v.extensions.length - loaded.length} failed` : ""}`, go: { page: "extensions" } },
     { label: "Palettes", value: `${on} of ${palettes.length} on${withHotkey ? `, ${withHotkey} with a hotkey` : ""}`, go: { page: "palettes" } },
     ...(v.barSupported === false ? [] : [{ label: "Bar", value: v.bar?.length ? `${barOn} of ${plural(v.bar.length, "item")} on` : "no items declared", go: { page: "bar" as const } }]),

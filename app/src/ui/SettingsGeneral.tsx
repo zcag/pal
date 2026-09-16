@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { SettingsGroup, SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
-import { permissionRows, type ConfigFileInfo, type GeneralConfig, type HotkeyStatus, type PermissionId, type PermissionsStatus, type SettingsIndexEntry } from "./SettingsTypes";
+import { MAX_ROOT_HOTKEYS, permissionRows, type ConfigFileInfo, type GeneralConfig, type HotkeyStatus, type PermissionId, type PermissionsStatus, type RootHotkeyStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
 
 export type SettingsGeneralProps = {
@@ -14,7 +15,7 @@ export type SettingsGeneralProps = {
   onResetFrecency?: () => void;
   onRestartHost?: () => void;
   onRefreshListings?: () => void;
-  /** How the root hotkey's last registration went; the status line under the recorder. */
+  /** How every root hotkey's last registration went; the status line under each recorder. */
   hotkey?: HotkeyStatus;
   /** Where Spotlight's binding is switched off (System Settings > Keyboard > Keyboard Shortcuts). */
   onOpenKeyboardShortcuts?: () => void;
@@ -34,10 +35,13 @@ export type SettingsGeneralProps = {
  */
 export const hotkeyPresets: string[] = isMac ? ["cmd+space", "alt+space", "ctrl+space", "cmd+shift+space"] : ["ctrl+space", "alt+space", "ctrl+shift+space"];
 
-const sameCombo = (a: string, b: string) => shortcutKeys(a.trim().toLowerCase()).join(" ") === shortcutKeys(b.trim().toLowerCase()).join(" ");
+export const sameCombo = (a: string, b: string) => shortcutKeys(a.trim().toLowerCase()).join(" ") === shortcutKeys(b.trim().toLowerCase()).join(" ");
 
 /** Written out for prose: "⌘Space", "Ctrl+Space". */
 export const comboLabel = (s: string) => shortcutKeys(s).map((k) => (k === "␣" ? "Space" : k)).join(isMac ? "" : "+");
+
+/** Every root hotkey for prose: "⌘Space, ⌃Space". */
+export const combosLabel = (list: string[]) => list.map(comboLabel).join(", ");
 
 const themes = [
   { id: "system", title: "System" },
@@ -53,7 +57,7 @@ const positions = [
 
 /** What the search field finds on this page. */
 export const generalIndex: SettingsIndexEntry[] = [
-  { page: "general", label: "Hotkey", hint: "Show pal from any app", anchor: "general:hotkey", keywords: "shortcut keys spotlight cmd space" },
+  { page: "general", label: "Hotkey", hint: "Show pal from any app", anchor: "general:hotkey", keywords: "shortcut keys spotlight cmd space several second another" },
   { page: "general", label: "Permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring", anchor: "general:permissions", keywords: "grant privacy" },
   { page: "general", label: "Ask on first launch", hint: "Permissions", anchor: "general:ask" },
   { page: "general", label: "Theme", hint: "Appearance", anchor: "general:theme", keywords: "dark light system" },
@@ -67,12 +71,11 @@ export const generalIndex: SettingsIndexEntry[] = [
 ];
 
 /**
- * Under the recorder: registered, or not and why. A wanted ⌘Space that
+ * Under a recorder: registered, or not and why. A wanted ⌘Space that
  * failed is Spotlight's whether or not the OS said so, hence the second
  * clause; the guidance names the exact switch and opens the pane.
  */
-function HotkeyStatusLine({ status, onOpenKeyboardShortcuts }: { status: HotkeyStatus; onOpenKeyboardShortcuts?: () => void }) {
-  if (!status.wanted) return <p className="pal-hotkey-status" data-state="off">No hotkey: bind <code>pal toggle</code> in your compositor or desktop.</p>;
+function HotkeyStatusLine({ status, onOpenKeyboardShortcuts }: { status: RootHotkeyStatus; onOpenKeyboardShortcuts?: () => void }) {
   const spotlight = status.spotlight ?? (isMac && !status.registered && sameCombo(status.wanted, "cmd+space") ? "cmd+space" : undefined);
   return (
     <>
@@ -92,6 +95,60 @@ function HotkeyStatusLine({ status, onOpenKeyboardShortcuts }: { status: HotkeyS
   );
 }
 
+/**
+ * The root hotkeys, one recorder per entry with its presets and its own
+ * status line, so a key another app holds is reported on its row while
+ * the others keep working. "Add another" opens an empty row that is
+ * written once a combination lands in it (nothing is written meanwhile);
+ * Remove drops a row. With no entry (`hotkey = ""`) the one row is empty
+ * and the line says how pal is reached instead.
+ */
+function HotkeyRows({ value, onChange, status, onOpenKeyboardShortcuts }: { value: string[]; onChange: (hotkeys: string[]) => void; status?: HotkeyStatus; onOpenKeyboardShortcuts?: () => void }) {
+  const [adding, setAdding] = useState(false);
+  const rows = value.length ? [...value, ...(adding ? [""] : [])] : [""];
+  const statusOf = (entry: string) => status?.hotkeys.find((h) => h.wanted === entry.trim());
+  const put = (i: number, v: string | undefined) => {
+    setAdding(false);
+    const next = i < value.length ? value.map((h, j) => (j === i ? v : h)) : [...value, v];
+    onChange(next.filter((h): h is string => Boolean(h && h.trim())));
+  };
+  const remove = (i: number) => {
+    if (i >= value.length) return setAdding(false);
+    onChange(value.filter((_, j) => j !== i));
+  };
+  return (
+    <div className="pal-hotkey-field">
+      {rows.map((entry, i) => {
+        const several = rows.length > 1;
+        const name = several ? `Show pal (${i + 1})` : "Show pal";
+        const st = entry ? statusOf(entry) : undefined;
+        return (
+          <div key={i} className="pal-hotkey-entry" data-anchor={i ? `general:hotkey:${i + 1}` : undefined}>
+            <div className="pal-hotkey-field__row">
+              <SettingsHotkey value={entry || undefined} onChange={(v) => (v === undefined && several ? remove(i) : put(i, v ?? "ctrl+space"))} label={name} />
+              <span className="pal-hotkey-presets" role="group" aria-label={several ? `Presets for hotkey ${i + 1}` : "Presets"}>
+                {hotkeyPresets.map((p) => (
+                  <button key={p} type="button" className="pal-button" data-small aria-pressed={Boolean(entry) && sameCombo(p, entry)} onClick={() => put(i, p)}>
+                    {comboLabel(p)}
+                  </button>
+                ))}
+              </span>
+              {several && <button type="button" className="pal-button" data-small aria-label={`Remove hotkey ${i + 1}`} onClick={() => remove(i)}>Remove</button>}
+            </div>
+            {st && <HotkeyStatusLine status={st} onOpenKeyboardShortcuts={onOpenKeyboardShortcuts} />}
+          </div>
+        );
+      })}
+      {status && !value.length && <p className="pal-hotkey-status" data-state="off">No hotkey: bind <code>pal toggle</code> in your compositor or desktop.</p>}
+      {value.length > 0 && !adding && value.length < MAX_ROOT_HOTKEYS && (
+        <span className="pal-button-row">
+          <button type="button" className="pal-button" data-small onClick={() => setAdding(true)}>Add another</button>
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** pal's own settings: the hotkey, how it looks, how it starts, what the OS lets it do, and the file behind all of it. */
 export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, hotkey, onOpenKeyboardShortcuts, permissions, onRequestPermission, onOpenOverview }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
@@ -105,23 +162,11 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
           label="Show pal"
           description={
             isMac
-              ? "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets. ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly."
-              : "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets. On Wayland the registration goes through X11 and fires only while an X11 window has focus: bind pal toggle in the compositor instead and set hotkey = \"\" in the config file."
+              ? "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly."
+              : "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. On Wayland the registration goes through X11 and fires only while an X11 window has focus: bind pal toggle in the compositor instead and set hotkey = \"\" in the config file."
           }
         >
-          <div className="pal-hotkey-field">
-            <div className="pal-hotkey-field__row">
-              <SettingsHotkey value={value.hotkey} onChange={(v) => set("hotkey", v ?? "ctrl+space")} label="Show pal" />
-              <span className="pal-hotkey-presets" role="group" aria-label="Presets">
-                {hotkeyPresets.map((p) => (
-                  <button key={p} type="button" className="pal-button" data-small aria-pressed={sameCombo(p, value.hotkey)} onClick={() => set("hotkey", p)}>
-                    {comboLabel(p)}
-                  </button>
-                ))}
-              </span>
-            </div>
-            {hotkey && <HotkeyStatusLine status={hotkey} onOpenKeyboardShortcuts={onOpenKeyboardShortcuts} />}
-          </div>
+          <HotkeyRows value={value.hotkeys} onChange={(v) => set("hotkeys", v)} status={hotkey} onOpenKeyboardShortcuts={onOpenKeyboardShortcuts} />
         </SettingsRow>
       </SettingsGroup>
 

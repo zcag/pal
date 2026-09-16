@@ -13,7 +13,7 @@ an empty or missing file is all defaults.
 # pal settings. The settings view writes this file; editing by hand is fine too.
 
 [general]
-hotkey = "ctrl+space"      # global hotkey; "" turns it off (bind `pal toggle` instead)
+hotkey = "ctrl+space"      # global hotkey, or several: ["cmd+space", "ctrl+space"]; "" turns it off (bind `pal toggle` instead)
 theme = "system"           # system | light | dark
 position = "top"           # top | centre | last
 launch_at_login = false
@@ -60,7 +60,7 @@ writes those two header lines and nothing else into the config directory.
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `hotkey` | string | `"ctrl+space"` | Global hotkey that shows pal. Empty turns it off, for a compositor keybind that runs `pal toggle` instead. |
+| `hotkey` | string, or list of strings | `"ctrl+space"` | Global hotkey that shows pal, or several that all do: `hotkey = ["cmd+space", "ctrl+space"]`. Every entry registers; one another app or Spotlight holds is reported on its own row in Settings and costs the others nothing. Empty (`""` or `[]`) turns it off, for a compositor keybind that runs `pal toggle` instead. Settings writes back whichever spelling the file has, and turns a string into a list only when Add another gives it a second entry (up to three there; the file may hold more). The menu bar hint and the Welcome tips show the first. |
 | `theme` | `system`, `light`, `dark` | `"system"` | Follow the OS, or force one. Applied live to the panel and the Settings window. |
 | `position` | `top`, `centre`, `last` | `"top"` | Where the panel appears on the screen with the pointer. `top`: a fifth of the way down, where Spotlight and Raycast sit. `centre`: centred. `last`: wherever it was last shown. On Wayland the compositor places the window and this key does nothing (see [Getting started](getting-started.md)). |
 | `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, a `pal.service` user unit (or, without systemd, an XDG autostart entry) on Linux. The same agent relaunches pal after a crash, on or off; see [Crash relaunch](#crash-relaunch). |
@@ -75,16 +75,19 @@ Hotkey syntax: modifiers first, `+` between, one main key, case does not
 matter. Modifiers: `ctrl` (or `control`), `alt` (or `option`), `cmd` (or
 `command`, `super`), `shift`, `cmdorctrl` (Cmd on macOS, Ctrl elsewhere).
 Keys: letters, digits, `space`, `enter`, `f1`..`f12`, punctuation and the
-rest of the usual key names. A `general.hotkey` that does not parse falls
-back to `ctrl+space` and is logged, so pal stays reachable. A hotkey another
-app already holds is reported and skipped: the previous root hotkey stays
-registered, and Settings > General says "Not registered" with the OS's
-reason under the field. On macOS `cmd+space` is Spotlight's until "Show
-Spotlight search" is unticked under System Settings > Keyboard > Keyboard
-Shortcuts > Spotlight; pal reads that binding, says so in Settings, and
-while the key is wanted and held polls it every 2 s so the registration
-lands as soon as it is freed. On Linux the hotkey reaches only X11
-clients; Wayland sessions bind `pal toggle` in the compositor.
+rest of the usual key names. A `general.hotkey` entry that does not parse
+is reported and skipped; when none parses the first falls back to
+`ctrl+space` and is logged, so pal stays reachable. A hotkey another app
+already holds is reported and skipped: the other entries still register,
+and when none of them could be had the previous root hotkeys stay
+registered. Settings > General says "Not registered" with the OS's reason
+under that entry's field, and the Overview names it. On macOS `cmd+space`
+is Spotlight's until "Show Spotlight search" is unticked under System
+Settings > Keyboard > Keyboard Shortcuts > Spotlight; pal reads that
+binding, says so in Settings, and while the key is wanted and held polls
+it every 2 s so the registration lands as soon as it is freed. On Linux
+the hotkey reaches only X11 clients; Wayland sessions bind `pal toggle`
+in the compositor.
 
 ## `[palettes.<id>]`
 

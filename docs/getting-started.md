@@ -116,6 +116,12 @@ empty value turns the hotkey off, for a compositor bind that runs
 `pal toggle`. The line under the field says whether the OS took the
 registration, and why not when it did not.
 
+Several combinations can open pal: "Add another" in Settings gives a
+second row (up to three), or write a list in the file,
+`hotkey = ["cmd+space", "ctrl+space"]`. Each row has its own status line,
+so one that another app holds is named there while the others keep
+working, and the Overview lists all of them (`⌘Space, ⌃Space`).
+
 On macOS, `⌘Space` is Spotlight's: the system takes the press before any
 app, so it cannot even be recorded (Spotlight opens instead; use the
 preset). Set it, and Settings says "Spotlight uses ⌘Space" with a button

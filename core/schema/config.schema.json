@@ -186,9 +186,9 @@
           "type": "array"
         },
         "hotkey": {
+          "$ref": "#/$defs/Hotkeys",
           "default": "ctrl+space",
-          "description": "Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,\nfor a compositor keybind that runs `pal toggle` instead. On macOS\n`cmd+space` is Spotlight's until its \"Show Spotlight search\"\nshortcut is unticked under System Settings > Keyboard > Keyboard\nShortcuts; pal says so in Settings and registers it once it is free.",
-          "type": "string"
+          "description": "Global hotkey that shows pal, e.g. `ctrl+space`, or several that\nall do (`[\"cmd+space\", \"ctrl+space\"]`). Empty turns it off, for a\ncompositor keybind that runs `pal toggle` instead. On macOS\n`cmd+space` is Spotlight's until its \"Show Spotlight search\"\nshortcut is unticked under System Settings > Keyboard > Keyboard\nShortcuts; pal says so in Settings and registers it once it is free."
         },
         "launch_at_login": {
           "default": false,
@@ -220,6 +220,22 @@
         }
       },
       "type": "object"
+    },
+    "Hotkeys": {
+      "anyOf": [
+        {
+          "description": "`hotkey = \"ctrl+space\"`; `\"\"` is off.",
+          "type": "string"
+        },
+        {
+          "description": "`hotkey = [\"cmd+space\", \"ctrl+space\"]`; `[]` is off.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      ],
+      "description": "`general.hotkey`: one combination, or a list that all show the panel.\nThe two spellings are one setting; each is written back as it was read\n(the file's shape is kept until an edit needs the other one)."
     },
     "Palette": {
       "additionalProperties": false,

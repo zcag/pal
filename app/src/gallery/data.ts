@@ -156,9 +156,13 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 /* Settings: four extensions as installed, their palettes as configured in config.toml. */
 import type { Diagnostic, GeneralConfig, HotkeyStatus, PermissionsStatus, SettingSpec, SettingsExtension } from "../ui/SettingsTypes";
 
-export const settingsGeneral: GeneralConfig = { hotkey: "ctrl+space", theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", askPermissionsOnStart: true };
+export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", askPermissionsOnStart: true };
 /** A stock Mac asking for ⌘Space: Spotlight holds it, the guidance shows. */
-export const settingsHotkeyBlocked: HotkeyStatus = { wanted: "cmd+space", registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" };
+/** Every entry's fate as the gallery's General page fakes it: ⌘Space is Spotlight's, anything else registers. */
+export const settingsHotkeyStatus = (hotkeys: string[]): HotkeyStatus => {
+  const each = hotkeys.map((wanted) => (wanted === "cmd+space" ? { wanted, registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" } : { wanted, registered: true }));
+  return { hotkeys: each, registered: !each.length || each.some((h) => h.registered) };
+};
 export const settingsPermissions: PermissionsStatus = { accessibility: false };
 
 export const settingsFile = { path: "~/.config/pal/config.toml", changed: now - 2 * 60e3 };

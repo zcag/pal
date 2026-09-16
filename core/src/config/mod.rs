@@ -63,12 +63,13 @@ pub struct Config {
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
 pub struct General {
-    /// Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,
-    /// for a compositor keybind that runs `pal toggle` instead. On macOS
+    /// Global hotkey that shows pal, e.g. `ctrl+space`, or several that
+    /// all do (`["cmd+space", "ctrl+space"]`). Empty turns it off, for a
+    /// compositor keybind that runs `pal toggle` instead. On macOS
     /// `cmd+space` is Spotlight's until its "Show Spotlight search"
     /// shortcut is unticked under System Settings > Keyboard > Keyboard
     /// Shortcuts; pal says so in Settings and registers it once it is free.
-    pub hotkey: String,
+    pub hotkey: Hotkeys,
     pub theme: Theme,
     /// Start pal when you sign in: a LaunchAgent on macOS, an XDG autostart
     /// entry on Linux (the app registers it when this changes).
@@ -113,7 +114,71 @@ pub struct General {
 
 impl Default for General {
     fn default() -> Self {
-        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), ask_permissions_on_start: true, deeplink_confirm: true, root_caps: Caps::default(), extra: BTreeMap::new() }
+        Self { hotkey: Hotkeys::default(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), ask_permissions_on_start: true, deeplink_confirm: true, root_caps: Caps::default(), extra: BTreeMap::new() }
+    }
+}
+
+/// `general.hotkey`: one combination, or a list that all show the panel.
+/// The two spellings are one setting; each is written back as it was read
+/// (the file's shape is kept until an edit needs the other one).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum Hotkeys {
+    /// `hotkey = "ctrl+space"`; `""` is off.
+    One(String),
+    /// `hotkey = ["cmd+space", "ctrl+space"]`; `[]` is off.
+    Many(Vec<String>),
+}
+
+impl Hotkeys {
+    /// What registers: every entry trimmed, blanks dropped, in the file's order.
+    pub fn list(&self) -> Vec<&str> {
+        let entries: &[String] = match self {
+            Self::One(s) => std::slice::from_ref(s),
+            Self::Many(v) => v,
+        };
+        entries.iter().map(|s| s.trim()).filter(|s| !s.is_empty()).collect()
+    }
+
+    /// No hotkey at all (`""` or `[]`, or only blanks).
+    pub fn is_empty(&self) -> bool {
+        self.list().is_empty()
+    }
+
+    /// The first entry: what one label (the menu bar hint, the Welcome tips) shows.
+    pub fn first(&self) -> Option<&str> {
+        self.list().first().copied()
+    }
+}
+
+impl Default for Hotkeys {
+    fn default() -> Self {
+        Self::One("ctrl+space".into())
+    }
+}
+
+impl From<&str> for Hotkeys {
+    fn from(s: &str) -> Self {
+        Self::One(s.into())
+    }
+}
+
+impl<const N: usize> From<[&str; N]> for Hotkeys {
+    fn from(v: [&str; N]) -> Self {
+        Self::Many(v.iter().map(|s| s.to_string()).collect())
+    }
+}
+
+impl PartialEq<str> for Hotkeys {
+    /// `hotkey == "ctrl+space"`: the one entry it is, whichever spelling.
+    fn eq(&self, other: &str) -> bool {
+        self.list() == [other]
+    }
+}
+
+impl PartialEq<&str> for Hotkeys {
+    fn eq(&self, other: &&str) -> bool {
+        self == *other
     }
 }
 
@@ -797,6 +862,30 @@ enabld = false
         assert_eq!(c.general.extra["hotkeys"].as_str(), Some("typo"));
         assert!(c.palettes["x"].enabled, "typo'd key does not reach the real one");
         assert_eq!(c.extra["palette"]["old"].as_bool(), Some(true));
+    }
+
+    #[test]
+    fn root_hotkey_is_a_string_or_a_list() {
+        let (c, _) = parse("[general]\nhotkey = \"alt+space\"\n").unwrap();
+        assert_eq!(c.general.hotkey, Hotkeys::One("alt+space".into()));
+        assert_eq!(c.general.hotkey, "alt+space");
+        assert_eq!(c.general.hotkey.list(), ["alt+space"]);
+        assert!(toml::to_string(&c).unwrap().contains("hotkey = \"alt+space\"\n"), "a string is written back as a string");
+        let (c, d) = parse("[general]\nhotkey = [\"cmd+space\", \" ctrl+space \", \"\"]\n").unwrap();
+        assert!(d.is_empty());
+        assert_eq!(c.general.hotkey, Hotkeys::from(["cmd+space", " ctrl+space ", ""]));
+        assert_eq!(c.general.hotkey.list(), ["cmd+space", "ctrl+space"], "trimmed, blanks dropped");
+        assert_eq!(c.general.hotkey.first(), Some("cmd+space"));
+        assert!(toml::to_string(&c).unwrap().contains("hotkey = [\"cmd+space\", \" ctrl+space \", \"\"]\n"), "a list is written back as a list, verbatim");
+        for off in ["\"\"", "[]", "[\"\", \" \"]"] {
+            let (c, _) = parse(&format!("[general]\nhotkey = {off}\n")).unwrap();
+            assert!(c.general.hotkey.is_empty(), "{off} is off");
+            assert_eq!(c.general.hotkey.first(), None);
+        }
+        assert_eq!(Hotkeys::from(["ctrl+space"]), "ctrl+space", "a one-entry list is that key");
+        assert!(Hotkeys::from(["a", "b"]) != "a");
+        assert!(parse("[general]\nhotkey = 3\n").is_err(), "a number is neither spelling");
+        assert!(parse("[general]\nhotkey = [1]\n").is_err());
     }
 
     #[test]

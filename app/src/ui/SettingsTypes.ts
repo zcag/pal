@@ -102,7 +102,8 @@ export type SettingsExtension = {
 };
 
 export type GeneralConfig = {
-  hotkey: string;
+  /** `general.hotkey` as a list, whichever spelling the file has: one entry per root hotkey, none when off. */
+  hotkeys: string[];
   theme: "system" | "light" | "dark";
   launchAtLogin: boolean;
   /** The menu bar (macOS) / tray (Linux) icon; the app has no Dock icon. */
@@ -112,16 +113,32 @@ export type GeneralConfig = {
   askPermissionsOnStart: boolean;
 };
 
-/** hotkey.rs `Outcome`: how the root hotkey's last registration went. */
-export type HotkeyStatus = {
-  /** `general.hotkey` as configured, trimmed; empty when off. */
+/** hotkey.rs `RootOutcome`: one entry of `general.hotkey` and how its registration went. */
+export type RootHotkeyStatus = {
+  /** The entry as configured, trimmed. */
   wanted: string;
   registered: boolean;
-  /** The OS's refusal, or the parse error a fallback covered. */
+  /** The OS's refusal, the parse error a fallback covered, or "Spotlight takes this key first". */
   error?: string;
   /** Spotlight's own binding, present only when it is the combination `wanted` names. */
   spotlight?: string;
 };
+
+/** hotkey.rs `Outcome`: every root hotkey's last registration. */
+export type HotkeyStatus = {
+  /** One per configured entry, in the file's order; empty when off. */
+  hotkeys: RootHotkeyStatus[];
+  /** At least one entry works; true with none configured. */
+  registered: boolean;
+};
+
+/** The largest `general.hotkey` list Settings offers to build; the file may hold more. */
+export const MAX_ROOT_HOTKEYS = 3;
+
+/** `general.hotkey` as the file has it, as the list it means: trimmed, blanks dropped. */
+export function hotkeyList(raw: string | string[] | undefined): string[] {
+  return (Array.isArray(raw) ? raw : [raw ?? ""]).map((s) => s.trim()).filter(Boolean);
+}
 
 /** core::calendar::Status. */
 export type CalendarPermission = "granted" | "denied" | "not_determined" | "restricted" | "unavailable";

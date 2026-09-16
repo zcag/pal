@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
 import { SettingsOverview, overviewFacts, overviewItems, updatesLine } from "../SettingsOverview";
+import { comboLabel } from "../SettingsGeneral";
 import { needsSetup } from "../SettingsTypes";
 import { settingsExtensions } from "../../gallery/data";
 import { allGranted, barItems, homeAssistant, nothingGranted, otp } from "./settings-fixtures";
@@ -10,27 +11,38 @@ import { allGranted, barItems, homeAssistant, nothingGranted, otp } from "./sett
 const noop = () => {};
 /** The gallery's GitHub carries `latest`; without it nothing is pending. */
 const quiet = settingsExtensions.map((e) => ({ ...e, latest: undefined }));
-const ok = { version: "0.1.0", hotkey: { wanted: "ctrl+space", registered: true }, permissions: allGranted, extensions: quiet, bar: [], diagnostics: [] };
+const one = { hotkeys: [{ wanted: "ctrl+space", registered: true }], registered: true };
+const ok = { version: "0.1.0", hotkey: one, permissions: allGranted, extensions: quiet, bar: [], diagnostics: [] };
 
 describe("overviewItems", () => {
   it("is empty when everything is set", () => {
     expect(overviewItems(ok)).toEqual([]);
   });
   it("names Spotlight's key and the switch that frees it", () => {
-    const [item] = overviewItems({ ...ok, hotkey: { wanted: "cmd+space", registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" } });
+    const [item] = overviewItems({ ...ok, hotkey: { hotkeys: [{ wanted: "cmd+space", registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" }], registered: false } });
     expect(item.title).toBe("Hotkey");
     expect(item.detail).toContain("Spotlight's");
+    expect(item.detail).not.toContain("still opens");
     expect(item.action?.keyboardShortcuts).toBe(true);
   });
   it("points at another app for a key the OS refused", () => {
-    const [item] = overviewItems({ ...ok, hotkey: { wanted: "alt+space", registered: false, error: "HotKey already registered" } });
+    const [item] = overviewItems({ ...ok, hotkey: { hotkeys: [{ wanted: "alt+space", registered: false, error: "HotKey already registered" }], registered: false } });
     expect(item.detail).toContain("Raycast");
     expect(item.action?.go).toEqual({ page: "general", anchor: "general:hotkey" });
   });
   it("says none set for an empty hotkey, which never registers", () => {
-    const [item] = overviewItems({ ...ok, hotkey: { wanted: "", registered: false } });
+    const [item] = overviewItems({ ...ok, hotkey: { hotkeys: [], registered: true } });
     expect(item.level).toBe("ok");
     expect(item.detail).toContain("None set");
+  });
+  it("names the one root hotkey that failed, and the one that still works, one row per failure", () => {
+    const items = overviewItems({ ...ok, hotkey: { hotkeys: [{ wanted: "cmd+space", registered: true }, { wanted: "ctrl+space", registered: false, error: "HotKey already registered" }], registered: true } });
+    expect(items.map((i) => i.id)).toEqual(["hotkey:2"]);
+    expect(items[0].detail).toBe(`${comboLabel("ctrl+space")} is held by another app (Raycast, if it is running: its hotkey is under Raycast Settings > General). Change one of them. ${comboLabel("cmd+space")} still opens pal.`);
+    expect(items[0].action?.go).toEqual({ page: "general", anchor: "general:hotkey:2" });
+    const both = overviewItems({ ...ok, hotkey: { hotkeys: [{ wanted: "cmd+space", registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" }, { wanted: "ctrl+space", registered: false, error: "HotKey already registered" }], registered: false } });
+    expect(both.map((i) => i.id)).toEqual(["hotkey", "hotkey:2"]);
+    expect(both.every((i) => !i.detail.includes("still opens"))).toBe(true);
   });
   it("lists a missing permission only when something installed needs it", () => {
     const none = overviewItems({ ...ok, permissions: nothingGranted });
@@ -77,6 +89,13 @@ describe("SettingsOverview", () => {
     expect(html).not.toContain("pal-overview__list");
     const facts = overviewFacts(ok);
     expect(facts.map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes", "Bar"]);
+    expect(renderToStaticMarkup(<>{facts[0].value}</>)).toContain(`aria-label="${comboLabel("ctrl+space")}"`);
+    const two = overviewFacts({ ...ok, hotkey: { hotkeys: [{ wanted: "cmd+space", registered: true }, { wanted: "ctrl+space", registered: false }], registered: true } });
+    const value = renderToStaticMarkup(<>{two[0].value}</>);
+    expect(value).toContain(`aria-label="${comboLabel("cmd+space")}, ${comboLabel("ctrl+space")}"`);
+    // Every entry as key caps, the failed one too.
+    expect(value.match(/<kbd/g)?.length).toBe(4);
+    expect(overviewFacts({ ...ok, hotkey: { hotkeys: [], registered: true } })[0].value).toBe("none");
     expect(facts[1].value).toBe("4 extensions loaded");
     expect(facts[2].value).toBe("6 of 7 on, 3 with a hotkey");
     expect(facts[3].value).toBe("no items declared");

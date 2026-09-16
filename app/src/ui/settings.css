@@ -310,8 +310,9 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-hotkey[data-compact]:hover { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
 .pal-hotkey[data-compact]:focus-visible, .pal-hotkey[data-compact][data-recording] { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
 
-/* The hotkey row: recorder and presets on one line, the outcome under them. */
-.pal-hotkey-field { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); min-width: 0; }
+/* The hotkey rows, one per root hotkey: recorder, presets and Remove on one line, the outcome under them. */
+.pal-hotkey-field { display: flex; flex-direction: column; gap: var(--pal-space-3, 12px); min-width: 0; }
+.pal-hotkey-entry { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); min-width: 0; }
 .pal-hotkey-field__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px); }
 .pal-hotkey-presets { display: inline-flex; flex-wrap: wrap; gap: var(--pal-space-1, 4px); }
 .pal-settings .pal-hotkey-presets .pal-button[aria-pressed="true"] { background: var(--pal-accent-soft, rgba(159, 151, 255, 0.16)); color: var(--pal-accent, #9f97ff); box-shadow: none; }
