@@ -219,3 +219,9 @@ Things an agent could not decide alone; each waits for a call.
 - **Do Not Disturb on macOS** runs a Shortcut named "Toggle Do Not Disturb"
   when one exists (Focus has no CLI); the row is hidden otherwise. Ship a
   first-run hint to create it?
+- **macOS window focus/minimize unverified**: AX returns zero windows while
+  the screen is locked, which it was for the whole overnight run. Check when
+  unlocked: `cargo run -q -p pal-core --example windows -- list`, then
+  `focus <kitty id>`, `minimize <id>`, `list` (shows `min`), `focus <id>`
+  (restores); `cargo run -q -p pal-core --example system -- run show-desktop`
+  twice.
