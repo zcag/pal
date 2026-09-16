@@ -4,7 +4,6 @@
 //! as the `paste` effect. Every recorded copy is a `pal://clipboard` event.
 
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use pal_core::clipboard::{self as cb, Clipboard, Kind, Retention, WatchHandle};
 use pal_core::config::ConfigFile;
@@ -116,7 +115,13 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
     }
 }
 
-// ---- paste effect --------------------------------------------------------
+// ---- copy and paste effects ----------------------------------------------
+
+/// The `copy` effect: through the core's writer, so the watcher records it
+/// like any other copy.
+pub fn copy_text(text: &str) -> Result<(), String> {
+    cb::write_text(text).map_err(err)
+}
 
 /// `{ entry: id }` from history, or `{ text }` straight from the extension.
 #[derive(Deserialize)]
@@ -124,19 +129,6 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
 pub enum Paste {
     Entry { entry: i64 },
     Text { text: String },
-}
-
-/// Whether a paste can be delivered; when not, the system prompt once per
-/// run, and the toast the pick should show instead.
-pub fn paste_blocked() -> Option<Value> {
-    static ASKED: AtomicBool = AtomicBool::new(false);
-    if cb::accessibility_trusted() {
-        return None;
-    }
-    if !ASKED.swap(true, Ordering::Relaxed) {
-        cb::request_accessibility();
-    }
-    Some(json!({ "toast": { "title": "Paste needs Accessibility", "message": "Grant pal in System Settings > Privacy & Security > Accessibility", "style": "failure" } }))
 }
 
 /// Into the frontmost app; the caller has hidden the panel.

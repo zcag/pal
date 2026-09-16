@@ -66,3 +66,52 @@ export const clipboard = {
    */
   imageUrl: (id: number, size: number) => `icon://localhost/clip?id=${id}&size=${size}`,
 };
+
+/** `pal_core::windows::Window`, plus the app's icon source. */
+export type Window = {
+  /** Backend-specific, stable while the window lives; what `focus`/`close`/`minimize` take. */
+  id: string;
+  /** The app's name (macOS) or window class (Linux). */
+  app: string;
+  title: string;
+  /** Bundle id on macOS; `app_id` / `WM_CLASS` on Linux. */
+  bundle_or_class: string;
+  pid: number;
+  minimized: boolean;
+  /** Visible right now: not minimised, hidden, or on another space. */
+  on_screen: boolean;
+  /** Only when there is more than one display. */
+  monitor: string | null;
+  workspace: string | null;
+  /** The `.app` bundle or `.desktop` file, for `Item.icon = { app }`; null when unknown. */
+  icon: string | null;
+};
+
+export const windows = {
+  /** Every window of every regular app, front to back; minimised ones included. */
+  list: () => call<Window[]>("windows.list"),
+  /** Focus is not here: return `{ focus: id }` from `pick`, so the panel hides first. */
+  close: (id: string) => call<null>("windows.close", { id }),
+  minimize: (id: string) => call<null>("windows.minimize", { id }),
+};
+
+/** `pal_core::system::SystemCommand`. */
+export type SystemCommand = {
+  id: string;
+  title: string;
+  subtitle: string;
+  /** A glyph. */
+  icon: string;
+  keywords: string[];
+  /** Ends the session or deletes: ask before running. */
+  destructive: boolean;
+  /** Whether this machine has what the command needs. */
+  available: boolean;
+};
+
+export const system = {
+  /** The whole catalogue; filter on `available`. */
+  commands: () => call<SystemCommand[]>("system.commands"),
+  /** Hides the panel, then runs. Rejects with the tool's complaint. */
+  run: (id: string) => call<null>("system.run", { id }),
+};

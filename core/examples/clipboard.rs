@@ -36,7 +36,7 @@ fn main() {
         Some("watch") => {
             let secs = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(10);
             let handle = cb.start_watching(vec![], show);
-            println!("watching {} for {secs}s (accessibility: {})", dir.display(), pal_core::clipboard::accessibility_trusted());
+            println!("watching {} for {secs}s (accessibility: {})", dir.display(), pal_core::ax::trusted());
             std::thread::sleep(Duration::from_secs(secs));
             drop(handle);
         }

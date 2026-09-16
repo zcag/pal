@@ -13,6 +13,8 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
     match capability {
         "clipboard" => crate::clipboard::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
+        "system" => crate::system::call(app, func, params),
+        "windows" => crate::windows::call(app, func, params),
         _ => Err(format!("unknown capability {capability}")),
     }
 }

@@ -27,9 +27,9 @@
 //!
 //! [`Clipboard::paste`] writes the entry to the clipboard and sends the paste
 //! shortcut to the frontmost app. On macOS that is a synthesised Cmd+V, which
-//! the system only delivers from a process with Accessibility permission:
-//! [`accessibility_trusted`] tells, [`request_accessibility`] asks, and `paste`
-//! fails with [`Error::NeedsAccessibility`] rather than silently doing nothing.
+//! the system only delivers from a process with Accessibility permission
+//! ([`crate::ax`]): `paste` fails with [`Error::NeedsAccessibility`] rather
+//! than silently doing nothing.
 //! The caller hides pal's window first so the target app is frontmost.
 
 use serde::{Deserialize, Serialize};
@@ -398,7 +398,7 @@ impl Clipboard {
     /// [`copy`](Self::copy), then the paste shortcut into the frontmost app.
     /// The caller has already hidden pal's window. See the module docs.
     pub fn paste(&self, id: i64) -> Result<()> {
-        if !accessibility_trusted() {
+        if !crate::ax::trusted() {
             return Err(Error::NeedsAccessibility);
         }
         self.copy(id)?;
@@ -516,14 +516,18 @@ fn write_atomic(target: &Path, bytes: &[u8]) -> std::io::Result<()> {
     })
 }
 
-/// Text that is not in history yet: to the clipboard, then the paste
-/// shortcut, as [`Clipboard::paste`]. A running watcher records it like any
-/// copy.
+/// Text that is not in history yet, onto the clipboard: the one writer pal
+/// uses, so a running watcher records it like any copy (the `copy` effect).
+pub fn write_text(text: &str) -> Result<()> {
+    platform::write(&Content::Text(text.into()))
+}
+
+/// [`write_text`], then the paste shortcut, as [`Clipboard::paste`].
 pub fn paste_text(text: &str) -> Result<()> {
-    if !accessibility_trusted() {
+    if !crate::ax::trusted() {
         return Err(Error::NeedsAccessibility);
     }
-    platform::write(&Content::Text(text.into()))?;
+    write_text(text)?;
     send_paste()
 }
 
@@ -531,18 +535,6 @@ pub fn paste_text(text: &str) -> Result<()> {
 fn send_paste() -> Result<()> {
     std::thread::sleep(Duration::from_millis(50));
     platform::paste_key()
-}
-
-/// Whether synthesised keystrokes will be delivered. Always true off macOS.
-pub fn accessibility_trusted() -> bool {
-    platform::accessibility_trusted()
-}
-
-/// macOS: show the system prompt that adds pal to the Accessibility list.
-/// Returns the current state; the user grants in System Settings, and a
-/// later [`accessibility_trusted`] sees it without a restart.
-pub fn request_accessibility() -> bool {
-    platform::request_accessibility()
 }
 
 #[cfg(target_os = "macos")]
@@ -555,19 +547,12 @@ mod platform {
         NSPasteboardTypeString, NSPasteboardTypeTIFF, NSPasteboardWriting, NSWorkspace,
     };
     use objc2_core_graphics::{CGEvent, CGEventFlags, CGEventSource, CGEventSourceStateID, CGEventTapLocation};
-    use objc2_foundation::{NSArray, NSData, NSDictionary, NSNumber, NSString, NSURL};
+    use objc2_foundation::{NSArray, NSData, NSDictionary, NSString, NSURL};
 
     /// Password managers mark their copies with these; the second is also
     /// what pal-like tools set on programmatic writes they want ignored.
     const SKIP_TYPES: [&str; 2] = ["org.nspasteboard.ConcealedType", "org.nspasteboard.TransientType"];
     const KEY_V: u16 = 9;
-
-    #[link(name = "ApplicationServices", kind = "framework")]
-    extern "C" {
-        fn AXIsProcessTrusted() -> bool;
-        fn AXIsProcessTrustedWithOptions(options: *const NSDictionary<NSString, NSNumber>) -> bool;
-        static kAXTrustedCheckOptionPrompt: &'static NSString;
-    }
 
     pub struct Watcher {
         count: isize,
@@ -675,19 +660,6 @@ mod platform {
             CGEvent::post(CGEventTapLocation::HIDEventTap, Some(&ev));
         }
         Ok(())
-    }
-
-    pub fn accessibility_trusted() -> bool {
-        // SAFETY: plain C call with no arguments.
-        unsafe { AXIsProcessTrusted() }
-    }
-
-    pub fn request_accessibility() -> bool {
-        // SAFETY: the dictionary outlives the call; the key is the framework's own constant.
-        unsafe {
-            let opts = NSDictionary::from_slices(&[kAXTrustedCheckOptionPrompt], &[&*NSNumber::numberWithBool(true)]);
-            AXIsProcessTrustedWithOptions(&*opts)
-        }
     }
 }
 
@@ -808,14 +780,6 @@ mod platform {
         }
         Err(Error::Unavailable("no wtype or ydotool to send Ctrl+V".into()))
     }
-
-    pub fn accessibility_trusted() -> bool {
-        true
-    }
-
-    pub fn request_accessibility() -> bool {
-        true
-    }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
@@ -845,12 +809,6 @@ mod platform {
     }
     pub fn paste_key() -> Result<()> {
         Err(Error::Unavailable("unsupported platform".into()))
-    }
-    pub fn accessibility_trusted() -> bool {
-        true
-    }
-    pub fn request_accessibility() -> bool {
-        true
     }
 }
 

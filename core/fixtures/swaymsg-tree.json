@@ -1,0 +1,20 @@
+{
+  "id": 1, "type": "root", "name": "root", "nodes": [
+    { "id": 2147483647, "type": "output", "name": "__i3", "nodes": [
+      { "id": 2147483646, "type": "workspace", "name": "__i3_scratch", "nodes": [], "floating_nodes": [
+        { "id": 21, "type": "floating_con", "name": "scratch term", "pid": 3001, "app_id": "kitty", "visible": false, "focused": false, "scratchpad_state": "fresh", "nodes": [], "floating_nodes": [] }
+      ] }
+    ], "floating_nodes": [] },
+    { "id": 3, "type": "output", "name": "eDP-1", "nodes": [
+      { "id": 4, "type": "workspace", "name": "1", "nodes": [
+        { "id": 5, "type": "con", "name": "nvim ~/notes.md", "pid": 1200, "app_id": "foot", "visible": true, "focused": true, "scratchpad_state": "none", "nodes": [], "floating_nodes": [] },
+        { "id": 6, "type": "con", "name": null, "pid": null, "app_id": null, "nodes": [
+          { "id": 7, "type": "con", "name": "GitHub - Firefox", "pid": 1300, "app_id": "firefox", "visible": true, "focused": false, "scratchpad_state": "none", "nodes": [], "floating_nodes": [] }
+        ], "floating_nodes": [] }
+      ], "floating_nodes": [] },
+      { "id": 8, "type": "workspace", "name": "2", "nodes": [
+        { "id": 9, "type": "con", "name": "Steam", "pid": 1400, "app_id": null, "visible": false, "focused": false, "scratchpad_state": "none", "window": 8388610, "window_properties": { "class": "steam", "instance": "steam", "title": "Steam" }, "nodes": [], "floating_nodes": [] }
+      ], "floating_nodes": [] }
+    ], "floating_nodes": [] }
+  ], "floating_nodes": []
+}

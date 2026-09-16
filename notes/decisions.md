@@ -99,6 +99,33 @@ down as it stabilises.
   `pali` dev instance runs with `PAL_CONFIG=~/.config/pal/pali.toml` until
   `pali` takes over `main`.
 
+- **Windows and system commands are core capabilities** (`pal_core::windows`,
+  `pal_core::system`), reached as `core/windows.{list,close,minimize}` and
+  `core/system.{commands,run}`; the extensions `windows` and `system` are
+  thin over them. Focusing a window is a pick **effect** (`{ focus: id }`,
+  effects.rs), not a bridge call, for the same reason `paste` is: the panel
+  has to hide first so its orderOut hands key focus back before the target
+  is activated. `system.run` hides the panel itself before running.
+- **Accessibility lives in `pal_core::ax`** (moved out of clipboard.rs):
+  `trusted` / `request`, plus the `AXUIElement` wrapper the window switcher
+  uses. The app's toast for a missing permission is one function in
+  effects.rs (`accessibility_blocked`), shared by paste and focus.
+- **Both new palettes are `input: true`** so `list` runs on open and per
+  keystroke (windows must be current; the keep-awake row flips), which also
+  means their rows are not at the root. See the open question below.
+- **macOS window list** is CoreGraphics (ids, order, bounds, on-screen)
+  matched to AX windows by frame and title; titles come from AX because
+  CoreGraphics only gives other apps' titles with Screen Recording. An app
+  that answers AX with no windows falls back to its CoreGraphics rows. AX is
+  asked per app in parallel: one read is a round trip to that app's main
+  thread, 10-30 ms when it naps.
+- **Linux backends** are detected, not configured: Hyprland when `hyprctl`
+  and an instance signature exist (the newest `$XDG_RUNTIME_DIR/hypr/*`
+  when the env var is missing, so a service-started pal works), Sway on
+  `SWAYSOCK`, X11 on `DISPLAY` + `wmctrl`. Hyprland has no minimise; pal
+  parks the window on `special:minimized` and `focus` brings it back to the
+  active workspace.
+
 ## Open for Cagdas
 
 Things an agent could not decide alone; each waits for a call.
@@ -122,3 +149,17 @@ Things an agent could not decide alone; each waits for a call.
   say where they really live.
 - **`ssh` and `psg`** were v1 builtins and show as inert rows under `scripts`.
   Reimplement as real extensions (small: `~/.ssh/config` parser; `ps` + kill)?
+- **Windows at the root?** Raycast lists open windows as root results;
+  here they are drill-in only (`input: true` is the only way to re-list on
+  open without touching the UI). A root section needs a "re-list this
+  palette when the panel shows" hook in the index; worth adding?
+- **Focus without Accessibility.** The core can still activate the app
+  (not the window) when the permission is missing; the effect shows the
+  same toast as paste instead of half-doing it. Keep that, or activate and
+  toast?
+- **`SACLockScreenImmediate`** (private login.framework) is what Lock Screen
+  uses, with the Cmd+Ctrl+Q keystroke as the fallback; fine for a downloaded
+  app, not for the App Store.
+- **Do Not Disturb on macOS** runs a Shortcut named "Toggle Do Not Disturb"
+  when one exists (Focus has no CLI); the row is hidden otherwise. Ship a
+  first-run hint to create it?

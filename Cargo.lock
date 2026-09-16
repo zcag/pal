@@ -2964,7 +2964,6 @@ dependencies = [
 name = "pal"
 version = "0.1.0"
 dependencies = [
- "arboard",
  "clap",
  "pal-core",
  "serde",
@@ -2990,10 +2989,12 @@ dependencies = [
  "icns",
  "ico",
  "image",
+ "libc",
  "notify",
  "nucleo-matcher",
  "objc2",
  "objc2-app-kit",
+ "objc2-core-foundation",
  "objc2-core-graphics",
  "objc2-foundation",
  "plist",

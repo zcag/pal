@@ -1,0 +1,15 @@
+{
+  "name": "system",
+  "title": "System",
+  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake.",
+  "version": "0.1.0",
+  "icon": "⏻",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "boolean", "id": "confirm_destructive", "label": "Ask first", "text": "Confirm before logging out, restarting, shutting down or emptying the trash", "default": true }
+  ],
+  "palettes": {
+    "system": { "description": "What this machine can do from here." }
+  }
+}

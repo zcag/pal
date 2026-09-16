@@ -13,6 +13,8 @@ mod hotkey;
 mod icon;
 mod index;
 mod settings;
+mod system;
+mod windows;
 #[cfg_attr(target_os = "macos", path = "panel/macos.rs")]
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
 mod panel;

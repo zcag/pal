@@ -81,6 +81,12 @@ export type Effect = {
    * macOS the core shows a toast instead and asks for the permission once.
    */
   paste?: { entry: number } | { text: string };
+  /**
+   * Hide, then bring this window (an id from `windows.list`) to the front,
+   * restoring it if minimised. Needs Accessibility on macOS like `paste`,
+   * with the same toast when missing.
+   */
+  focus?: string;
   hide?: true;
   toast?: { title: string; message?: string; style?: "success" | "failure" };
   /** Stay open and list again. */

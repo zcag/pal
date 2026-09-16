@@ -38,6 +38,12 @@ fn base(xdg: &str, platform: Option<PathBuf>) -> PathBuf {
         .join("pal")
 }
 
+/// Whether `bin` is on `$PATH`: the gate for every capability that shells
+/// out to a tool the user may not have.
+pub(crate) fn on_path(bin: &str) -> bool {
+    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(bin).is_file()))
+}
+
 /// Write `bytes` to `target` via a temp file in the same directory and a
 /// rename, creating the directory. A reader sees the old file or the new one,
 /// never a partial. The temp name carries the pid and a counter, so two

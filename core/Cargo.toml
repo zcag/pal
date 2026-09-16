@@ -2,7 +2,7 @@
 name = "pal-core"
 version = "0.1.0"
 edition = "2021"
-description = "pal core: config, index, frecency, icons, clipboard"
+description = "pal core: config, index, frecency, icons, clipboard, windows, system commands"
 
 [lib]
 name = "pal_core"
@@ -28,13 +28,17 @@ sha2 = "0.10"
 rusqlite = { version = "0.40", features = ["bundled"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+# system: dlopen the login framework's lock-screen call
+libc = "0.2"
 plist = "1"
 icns = { version = "0.5", default-features = false, features = ["pngio"] }
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSData", "NSDictionary", "NSGeometry", "NSArray", "NSEnumerator", "NSURL", "NSValue"] }
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSWorkspace", "NSImage", "NSImageRep", "NSBitmapImageRep", "NSGraphicsContext", "NSPasteboard", "NSPasteboardItem", "NSRunningApplication", "objc2-core-graphics"] }
-# clipboard paste: synthesise Cmd+V
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSWorkspace", "NSImage", "NSImageRep", "NSBitmapImageRep", "NSGraphicsContext", "NSPasteboard", "NSPasteboardItem", "NSRunningApplication", "objc2-core-graphics", "libc"] }
+# clipboard paste: synthesise Cmd+V; windows: the window list and the displays
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation", "CGWindow", "CGDirectDisplay", "CGError"] }
+# windows: the AXUIElement C API speaks CF types
+objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFArray", "CFString", "CFNumber", "CFCGTypes"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 freedesktop-icons = "0.4"
