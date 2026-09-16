@@ -134,6 +134,18 @@ describe("media", () => {
       np = { players: [spotify, music, idle], system_wide: true };
     });
 
+    test("bar_exclude: a listed player is left to another item, by name, id or app; the palette still lists it", async () => {
+      np = { players: [spotify, music, idle], system_wide: true };
+      host.changeSettings("media", { settings: { bar_exclude: ["Spotify"] } });
+      expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
+      host.changeSettings("media", { settings: { bar_exclude: ["spotify"] } });
+      expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
+      expect((await host.list("media", "media")).map((r) => r.id)).toContain("spotify");
+      host.changeSettings("media", { settings: { bar_exclude: ["Music"] } });
+      expect((await host.render("media", "now-playing")).title).toContain("Blue Monday");
+      host.changeSettings("media", { settings: { bar_exclude: [] } });
+    });
+
     test("actions go to the playing player and keep the popover; copy and open", async () => {
       calls.length = 0;
       expect(await host.barAction("media", "now-playing", "play_pause")).toEqual({ keep: true });

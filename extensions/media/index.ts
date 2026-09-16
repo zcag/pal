@@ -48,7 +48,7 @@ const POLL_MS = Number(process.env.PAL_MEDIA_POLL_MS) || 5000;
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
 type Player = MediaPlayer & { artwork_id?: string | null };
 type Playing = NowPlaying & { stream?: boolean };
-type Settings = { bar_artwork?: boolean };
+type Settings = { bar_artwork?: boolean; bar_exclude?: string[] };
 /** `core/media.artwork`: the cover as a data url, and its own size (square or not). */
 type Artwork = { data: string; width: number; height: number };
 type Cover = { id: string; image: string; square: boolean };
@@ -149,6 +149,14 @@ function empty(systemWide: boolean): Item {
 
 const playing = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing");
 
+/** The players the bar item leaves to others (`bar_exclude`, by app name or player id, case-insensitive). */
+const excluded = (p: Player) => {
+  const list = (settings.get<Settings>(EXTENSION).bar_exclude ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  return list.includes(p.id.toLowerCase()) || list.includes(p.name.toLowerCase()) || (p.app !== null && list.some((x) => p.app!.toLowerCase().includes(`/${x}.app`)));
+};
+/** The playing player the bar shows: the first playing one that is not excluded. */
+const playingForBar = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing" && !excluded(p));
+
 /**
  * What the strip shows for a playing player: the track (else the app) as
  * the title and the glyph (the cover instead when `bar_artwork` is on and
@@ -191,7 +199,7 @@ const barArtwork = () => settings.get<Settings>(EXTENSION).bar_artwork === true;
 
 /** The item for the playing player, its cover fetched. */
 async function playingItem(np: Playing): Promise<BarItem> {
-  const p = playing(np);
+  const p = playingForBar(np);
   return barItem(p, p ? await coverOf(p) : undefined, barArtwork());
 }
 
@@ -201,13 +209,13 @@ async function playingItem(np: Playing): Promise<BarItem> {
  * none is, and the core's own timer restarts it when one comes back.
  */
 function follow(np: Playing | undefined) {
-  const p = np && playing(np);
+  const p = np && playingForBar(np);
   last = signature(p);
   if (!p || np?.stream) { clearInterval(poll); poll = undefined; return; }
   poll ??= setInterval(async () => {
     let now: Playing;
     try { now = await media.nowPlaying(); } catch { return; }
-    if (signature(playing(now)) === last) return;
+    if (signature(playingForBar(now)) === last) return;
     follow(now);
     playingItem(now).then((item) => bar.update(ITEM, item, EXTENSION)).catch(() => {});
   }, POLL_MS);
@@ -221,7 +229,7 @@ async function renderBar(): Promise<BarItem> {
 }
 
 async function barAction(action: string): Promise<Effect> {
-  const p = playing(await media.nowPlaying());
+  const p = playingForBar(await media.nowPlaying());
   if (!p) return { keep: true, hud: "Nothing playing" };
   if (action === "copy") return p.title ? { copy: trackText(p) } : { keep: true, hud: "No track title" };
   if (action === "open") { const target = openTarget(p); return target ? { open: target } : { keep: true }; }

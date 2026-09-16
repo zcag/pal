@@ -3,7 +3,12 @@
   "title": "Now Playing",
   "description": "What is playing in Spotify, Music, a browser or any MPRIS player: play, pause, skip.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰝚", "bg": "green" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰝚",
+      "bg": "green"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -14,6 +19,14 @@
       "text": "Show the cover instead of the note on the menu bar strip",
       "description": "Only a square cover; a 24 pt picture of anything else is a smudge. The popover shows the cover either way.",
       "default": false
+    },
+    {
+      "kind": "list",
+      "id": "bar_exclude",
+      "label": "Hide on the bar for",
+      "placeholder": "Spotify",
+      "description": "Players the bar item ignores, by app name (Spotify, Music, Google Chrome) or player id (spotify, music, system); a player another extension's item already shows, say. The palette still lists them.",
+      "default": []
     }
   ],
   "palettes": {

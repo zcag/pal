@@ -1529,6 +1529,7 @@ itself.
 | setting | default | what |
 | --- | --- | --- |
 | Cover on the bar (`bar_artwork`) | off | the cover instead of the note on the menu bar strip, only when the cover is square (a 24 pt picture of anything else is a smudge); the popover shows the cover either way |
+| Hide on the bar for (`bar_exclude`) | empty | players the bar item ignores, by app name or player id (`Spotify`, `music`), for a player another item already shows; the palette still lists them |
 
 ## Unicode Characters (`unicode`)
 
@@ -2482,9 +2483,9 @@ examples are under `examples/commands/`.
 | `cmd+c` | Copy output: run it and copy what it printed |
 | `cmd+shift+c` | Copy the file's path |
 
-## tela (`tela-search`, `tela-research`, `tela-pages`, `tela-spaces`, `tela-new-page`, `tela-append`, `tela-decks`, `tela-sheets`, `tela-comments`, `tela-backlinks`)
+## tela (`tela-search`, `tela-research`, `tela-pages`, `tela-spaces`, `tela-new-page`, `tela-decks`, `tela-sheets`, `tela-comments`, `tela-backlinks`)
 
-One extension, ten palettes and a bar item over a [tela](https://telawiki.com)
+One extension, nine palettes and a bar item over a [tela](https://telawiki.com)
 instance, signed in with a personal access token. Everything goes to the
 instance's own API: the REST routes for lists, pages, search and writes,
 and `/api/mcp` (what tela's `tela-mcp` package proxies to) for `research`.
@@ -2496,7 +2497,6 @@ and `/api/mcp` (what tela's `tela-mcp` package proxies to) for `research`.
 | Pages | `tela-pages` | indexed, 5 min | opens the page in tela |
 | Spaces | `tela-spaces` | indexed, 1 h | lists the space's pages |
 | New Page | `tela-new-page` | indexed, 1 h | the form, the space chosen |
-| Append to Page | `tela-append` | indexed, 5 min | the form for that page |
 | Decks | `tela-decks` | indexed, 1 h | opens the deck in tela |
 | Sheets | `tela-sheets` | indexed, 1 h | opens the sheet in tela |
 | Comments | `tela-comments` | live | marks read and opens the page |
@@ -2504,8 +2504,8 @@ and `/api/mcp` (what tela's `tela-mcp` package proxies to) for `research`.
 
 **Signing in.** `base_url` is the instance, `token` a personal access
 token from Settings, API Keys on tela (`tela_pat_...`, kept in the
-keychain). A read token lists, searches and researches; a page, an
-append, a comment and marking read need write scope. Without either
+keychain). A read token lists, searches and researches; a page, a
+comment and marking read need write scope. Without either
 setting every palette is one hint row naming which; a 401 is one naming
 the renewal, Enter on tela's API Keys page.
 
@@ -2530,13 +2530,11 @@ markdown drawn as a view: headings, lists, callouts as tinted cards, code
 and quotes on sunken wells, tables as aligned columns, links under their
 paragraph; bold and code inside a paragraph are flattened, the view's
 text is one run), Copy link (`⌘C`), Outline (`⌘⇧O`), Backlinks (`⌘B`),
-Append (`⌘⇧A`), Comment (`⌘⇧M`, anchored on a run of the page's text).
+Comment (`⌘⇧M`, anchored on a run of the page's text).
 **Spaces**: every space with its page count, tags for public, personal and
-the default; `⌘Enter` opens it, `⌘N` starts a page in it. **New Page** and
-**Append to Page**: forms whose body starts as the front app's selection,
-else the clipboard's text; an append goes at the end of Quick Notes (tela's
-scratchpad, created on first use), the page opened last, a favourite or a
-recent page, with a `## <today>` heading on request. **Decks** and
+the default; `⌘Enter` opens it, `⌘N` starts a page in it. **New Page**: a
+form whose body starts as the front app's selection, else the clipboard's
+text. **Decks** and
 **Sheets**: the flagged pages across every space, newest first; a deck's
 pane leads with its first slide. **Comments**: mentions and replies to your
 comments, unread first; Enter marks read and opens, `⌘⇧R` marks read,
@@ -2547,9 +2545,10 @@ the row `⌘B` came from.
 hidden at zero; every 300 s and on show, wake, network. The popover: the
 newest five, Open in pal, Mark all read.
 
-Not there: a daily page (tela has none; Quick Notes stands in), a space
-filter on Search (the REST search takes none), an LLM answer (that is
-tela's Ask page, `⌘⇧O`).
+Not there: a daily page (tela has none; Quick Notes stands in), an append
+or any edit of a page's body (that is tela's MCP, not a launcher's job), a
+space filter on Search (the REST search takes none), an LLM answer (that
+is tela's Ask page, `⌘⇧O`).
 
 Settings, `[extensions.tela]`:
 
