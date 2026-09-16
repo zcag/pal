@@ -118,6 +118,29 @@ hand-started pal moves itself under the unit at startup. Without systemd
 the setting writes `~/.config/autostart/pal.desktop` and nothing relaunches
 a crashed pal. See [Config](config.md#crash-relaunch).
 
+## Updates
+
+pal looks for a newer release 20 s after it starts and once a day while
+`general.check_updates` is on (the check reads `latest.json` from the
+latest GitHub release; nothing is downloaded by it). A found release
+shows in three places, and installing is always your click: Settings ›
+About, where the Version row gets an "Install <version>" button; the
+Overview, where it is a row with Install inline; and the root, where an
+"Install Update" row appears under the `pal` section until it is
+installed (Check for Updates, on the About page, the menu bar icon or the
+root row, runs a check any time).
+
+Install downloads the signed bundle, verifies it against the key built
+into pal, puts it in place and relaunches pal: the HUD says where it is
+("Downloading pal 0.2.0: 40%", "Installing", "installed, restarting")
+and the About row says the same. macOS replaces `pal.app` where it is
+(the Accessibility grant is lost with the ad-hoc signature, as above).
+Linux replaces the AppImage where it is; the `.deb` and `.rpm` are the
+package manager's, so on those builds the row says so and points at the
+releases page (download the new package, `dpkg -i` or `rpm -U` it), and a
+bare binary you built yourself is not updated either. A development build
+never is.
+
 ## The hotkey
 
 `Ctrl+Space` by default, on both platforms. Change it in Settings under
@@ -163,6 +186,20 @@ within a couple of seconds of that, nothing to restart.
    (clipboard entries open with it showing).
 10. `⌘R` lists the current palette again, or everything at the root,
     ignoring any cache.
+11. Several rows at once: `⇧↓` and `⇧↑` mark the row under the cursor as
+    they move, `⌘`-click marks or unmarks one, and in a palette that opts
+    in (Files, Windows, `pal pick --multi`) `Tab` marks and steps down, as
+    does a bare `x` while nothing is typed. Marked rows carry a check and a tint, the footer counts them,
+    and `⌘K` lists only what works on several: Open, Reveal, Copy paths,
+    Copy files and Move to Trash for files; Close and Minimize for
+    windows; Delete and Copy (the texts joined) for clipboard entries;
+    Open in browser for bookmarks (every one in a tab). `Enter` runs the
+    first over all of them as one pick. `Esc` clears the marks first.
+12. Dialog jump: with an app's Open or Save panel up, the empty root leads
+    with a "Dialog" hint and every Files or Recent Files row leads with
+    "Use in TextEdit's open panel" (`⌘G`): pal hides and types the path
+    into the panel through its Go to Folder sheet (`ctrl+L` on a GTK
+    chooser), so a search in pal points the dialog anywhere.
 
 On Linux, `⌘` in the above is `Ctrl`. The whole grammar is in
 [Keyboard](keyboard.md).
@@ -191,10 +228,13 @@ The root list is more than the index's hits.
   orders them; `general.fallbacks_always` shows them under the hits too
   ([Config](config.md#general)).
 - **Alias and space.** A palette's alias (`[palettes.<id>] alias`), its
-  name, or its one-word title followed by a space jumps into it with the
-  rest typed there: `em cat`, `calc 2+2`, `files report`. The crumb shows
-  where you are; Escape twice is back at the root. `general.alias_space =
-  false` turns it off.
+  name, its one-word title, or a prefix of two letters or more that only
+  one palette answers to, followed by a space, jumps into it with the rest
+  typed there: `em cat`, `calc 2+2`, `files report`. An extension's name
+  (or its prefix) stands for its search palette, so `tela pal` is tela's
+  search with `pal` typed and the results live. The crumb shows where you
+  are; Escape twice is back at the root. `general.alias_space = false`
+  turns it off.
 - **The empty list.** Before you type: the Welcome tips on a fresh
   install, then **Now** (the current or next calendar event with Join on
   Enter, the running timer, what is playing), then **Clipboard** (what is
@@ -225,7 +265,8 @@ section, the way Raycast lists "Raycast Settings" or "Quit Raycast":
 Settings (and Settings › Extensions, › Palettes, › About), Extension Store,
 Install Extension (a form: `github:user/repo`, a GitHub URL or a local
 directory), Reload Extensions (restarts the extension host), Refresh Index,
-Check for Updates, Open Config File and Reveal Config File, Show Tips Again,
+Check for Updates (and Install Update, listed only while a newer release is
+known), Open Config File and Reveal Config File, Show Tips Again,
 Documentation, Report a Bug (a GitHub issue with your version and OS filled
 in), Copy Diagnostics (version, OS, config path, extensions, hotkey and
 permission status, onto the clipboard), Toggle Theme (light, dark, system),

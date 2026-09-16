@@ -71,6 +71,13 @@ describe("aliasTarget", () => {
     expect(aliasTarget(SOURCES, "picker")).toBeUndefined();
     expect(aliasTarget(SOURCES, "")).toBeUndefined();
   });
+  it("a unique prefix, or an extension's name reaching its search", () => {
+    const srcs = [...SOURCES, src("tela", "search", "Search tela", { input: true }), src("tela", "pages", "tela Pages"), src("tela", "spaces", "Spaces")];
+    expect(aliasTarget(srcs, "emo")!.palette).toBe("emoji");
+    expect(aliasTarget(srcs, "tela")!.palette).toBe("search");
+    expect(aliasTarget(srcs, "tel")!.palette).toBe("search");
+    expect(aliasTarget(srcs, "e")).toBeUndefined();
+  });
 });
 
 let root: Root, el: HTMLDivElement;
