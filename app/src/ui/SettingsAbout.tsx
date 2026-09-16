@@ -5,7 +5,7 @@ import { SettingsGroup, SettingsRow } from "./SettingsField";
 import type { SettingsIndexEntry } from "./SettingsTypes";
 
 /** updater.rs `UpdateInfo`. */
-export type UpdateInfo = { available: boolean; version?: string; notes?: string };
+export type UpdateInfo = { available: boolean; version?: string; notes?: string; /** Why there was nothing to compare against ("no release published yet"), a fact. */ status?: string };
 
 /** crash.rs `Report`: the OS's report of the last crash. `path` is the `.ips` on macOS; Linux has `coredumpctl` and no file. */
 export type CrashReport = { at: number; kind: string; path?: string };
@@ -113,7 +113,7 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, onOpenLink
 
       <SettingsGroup title="Updates">
         <SettingsRow anchor="about:updates" label="Version" description={
-          check.kind === "done" ? (check.info.available ? `${check.info.version} is available.` : "You have the latest version.")
+          check.kind === "done" ? (check.info.available ? `${check.info.version} is available.` : check.info.status ? `${check.info.status[0].toUpperCase()}${check.info.status.slice(1)}.` : "You have the latest version.")
           : check.kind === "error" ? <span data-error>{check.message}</span>
           : "Checked once a day against the latest release."
         }>

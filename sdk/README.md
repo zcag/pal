@@ -18,9 +18,10 @@ bun add -d @zcag/pal
 
 A dev dependency: pal's host provides the package at runtime (it links it
 into every extension root), so the copy in your `node_modules` is for the
-editor and your tests. Not published yet: link it from a checkout of pal
-with `(cd pal/sdk && bun run build && bun link)` then `bun link @zcag/pal`
-in your extension.
+editor and your tests. The types come from `dist/*.d.ts`, the code Bun runs
+from `src/*.ts`; nothing is compiled to JavaScript. To work against an
+unreleased checkout of pal instead: `(cd pal/sdk && bun run build && bun
+link)`, then `bun link @zcag/pal` in your extension.
 
 ## An extension
 

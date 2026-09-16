@@ -68,7 +68,7 @@ impl Rgba {
 
     /// Every alpha scaled by `f` (a stale icon at half strength).
     fn fade(&mut self, f: f32) {
-        for px in self.data.chunks_exact_mut(4) {
+        for px in self.data.as_chunks_mut::<4>().0 {
             px[3] = (px[3] as f32 * f).round() as u8;
         }
     }
@@ -84,7 +84,7 @@ impl Rgba {
     /// Whether any pixel is visible.
     #[cfg(test)]
     pub fn is_blank(&self) -> bool {
-        self.data.chunks_exact(4).all(|px| px[3] == 0)
+        self.data.as_chunks::<4>().0.iter().all(|px| px[3] == 0)
     }
 }
 
@@ -245,12 +245,12 @@ mod tests {
     #[test]
     fn template_is_black_ink_and_colour_dot_and_progress_are_drawn_in() {
         let plain = render('\u{f09b}', &Style::default()).unwrap();
-        assert!(plain.data.chunks_exact(4).filter(|p| p[3] > 0).all(|p| p[0] == 0 && p[1] == 0 && p[2] == 0), "a template image is black on transparent");
+        assert!(plain.data.as_chunks::<4>().0.iter().filter(|p| p[3] > 0).all(|p| p[0] == 0 && p[1] == 0 && p[2] == 0), "a template image is black on transparent");
         assert!(Style::default().template());
         let red = Style { color: Some([0xe7, 0x82, 0x84]), ..Default::default() };
         assert!(!red.template());
         let coloured = render('\u{f09b}', &red).unwrap();
-        assert!(coloured.data.chunks_exact(4).any(|p| p[3] > 200 && p[0] == 0xe7), "the colour is in the ink");
+        assert!(coloured.data.as_chunks::<4>().0.iter().any(|p| p[3] > 200 && p[0] == 0xe7), "the colour is in the ink");
         let dotted = render('\u{f09b}', &Style { dot: true, ..Default::default() }).unwrap();
         assert!(!Style { dot: true, ..Default::default() }.template(), "a red dot cannot ride a template image");
         let corner = |img: &Rgba| { let i = ((2 * SIZE + SIZE - 3) * 4) as usize; [img.data[i], img.data[i + 1], img.data[i + 3]] };
@@ -261,7 +261,7 @@ mod tests {
         assert_eq!(bottom(&half, 2), 255, "filled to the left of the mark");
         assert!(bottom(&half, SIZE - 2) < 100 && bottom(&half, SIZE - 2) > 0, "the track shows to its right");
         let stale = render('\u{f09b}', &Style { stale: true, ..Default::default() }).unwrap();
-        let max = |img: &Rgba| img.data.chunks_exact(4).map(|p| p[3]).max().unwrap();
+        let max = |img: &Rgba| img.data.as_chunks::<4>().0.iter().map(|p| p[3]).max().unwrap();
         assert!(max(&stale) <= max(&plain) / 2 + 1, "stale is half strength");
         assert!(Arc::ptr_eq(&render('\u{f09b}', &red).unwrap(), &coloured), "cached per glyph and style");
     }

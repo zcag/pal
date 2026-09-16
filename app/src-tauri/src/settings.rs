@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::secrets::{platform_store, SecretRef};
 use pal_core::config::{Config, ConfigFile, Diagnostic, Error, Loaded, Watcher};
@@ -19,11 +19,12 @@ use pal_core::extensions::{Installed, Store, Update};
 use pal_core::frecency::Frecency;
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, LogicalSize, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 use crate::host::Host;
 use crate::index::{palette_id, PaletteMeta};
+use crate::updater::UpdateInfo;
 use crate::{autostart, crash, events, hotkey, index, lock, panel, permissions, tray};
 
 pub const WINDOW: &str = "settings";
@@ -31,6 +32,10 @@ pub const WINDOW: &str = "settings";
 /// was and how big, restored on the next launch (lib.rs registers the
 /// plugin for this window only).
 pub const STATE: StateFlags = StateFlags::SIZE.union(StateFlags::POSITION);
+/// The window's default size, logical, and the least the pages lay out
+/// at (`tokens.css` says the same).
+const SIZE: (f64, f64) = (960.0, 640.0);
+const MIN_SIZE: (f64, f64) = (800.0, 560.0);
 
 /// One extension as the host reported it, loaded or not.
 #[derive(Debug, Clone, Serialize)]
@@ -62,6 +67,8 @@ pub struct Settings {
     /// When the watcher last picked a change up, unix ms.
     changed: Mutex<Option<u64>>,
     extensions: Mutex<Vec<Ext>>,
+    /// The update checks' last results, for the Overview.
+    checks: Mutex<Checks>,
     _watch: Mutex<Option<Watcher>>,
 }
 
@@ -70,13 +77,15 @@ fn unix_ms(t: SystemTime) -> u64 {
 }
 
 /// `file` is the located config (`ConfigFile::locate`), passed in so the
-/// caller keys the data dir on the same path.
+/// caller keys the data dir on the same path. The settings window is not
+/// built here: its page (a WebContent process, ~80 MB) is only paid for on
+/// the first `open`.
 pub fn install(app: &AppHandle, file: ConfigFile) {
     let loaded = file.load();
     for d in &loaded.diagnostics {
         eprintln!("config\t{:?}\t{}\t{}", d.level, d.path, d.message);
     }
-    app.manage(Settings { file: file.clone(), loaded: Mutex::new(loaded.clone()), changed: Mutex::new(None), extensions: Mutex::new(Vec::new()), _watch: Mutex::new(None) });
+    app.manage(Settings { file: file.clone(), loaded: Mutex::new(loaded.clone()), changed: Mutex::new(None), extensions: Mutex::new(Vec::new()), checks: Mutex::new(Checks::default()), _watch: Mutex::new(None) });
     hotkey::apply(app, &loaded.config);
     tray::apply(app, &loaded.config);
     // May exit: a release build not started by its agent hands over here.
@@ -86,24 +95,30 @@ pub fn install(app: &AppHandle, file: ConfigFile) {
         Ok(w) => *lock(&app.state::<Settings>()._watch) = Some(w),
         Err(e) => eprintln!("config\twatch failed\t{e}"),
     }
-    if let Err(e) = create(app) {
-        eprintln!("settings\twindow failed\t{e}");
-    }
 }
 
-/// The settings window, hidden until `open`. Shaped like a macOS
-/// preferences window: on macOS the title bar is ours (overlay style, no
-/// title, the traffic lights moved down into the page's 52px toolbar band)
-/// and the OS's sidebar vibrancy shows through the page's glass background;
-/// on Linux a plain decorated window with the same toolbar. 720 by 520 by
-/// default, resizable down to 640 by 480; the window-state plugin restores
-/// the last size and position on creation, so this only centres a window
-/// that has never been placed.
-fn create(app: &AppHandle) -> tauri::Result<()> {
-    let builder = WebviewWindowBuilder::new(app, WINDOW, WebviewUrl::App("index.html?settings".into()))
+/// The settings window, built on the first `open` and hidden after that
+/// (`close`), on `page` when one is named (the URL carries it: the page
+/// reads `?page=` at load, an event would land before its listener).
+/// Shaped like a macOS preferences window: on macOS the title bar is ours
+/// (overlay style, no title, the traffic lights moved down into the page's
+/// 52px toolbar band) and the OS's sidebar vibrancy shows through the
+/// page's glass background; on Linux a plain decorated window with the
+/// same toolbar. [`SIZE`] by default, resizable down to [`MIN_SIZE`]; the
+/// window-state plugin restores the last size and position while this
+/// builds, so `center` only places a window that has never been placed.
+/// A restored size under the minimum is the default from before the
+/// window grew (720 by 520 until 2026-09-16), not a choice: it gets the
+/// new default once, and the next hide saves that.
+fn create(app: &AppHandle, page: Option<&str>) -> tauri::Result<WebviewWindow> {
+    let url = match page {
+        Some(p) => format!("index.html?settings&page={p}"),
+        None => "index.html?settings".into(),
+    };
+    let builder = WebviewWindowBuilder::new(app, WINDOW, WebviewUrl::App(url.into()))
         .title("pal Settings")
-        .inner_size(720.0, 520.0)
-        .min_inner_size(640.0, 480.0)
+        .inner_size(SIZE.0, SIZE.1)
+        .min_inner_size(MIN_SIZE.0, MIN_SIZE.1)
         .center()
         .visible(false);
     #[cfg(target_os = "macos")]
@@ -114,6 +129,15 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
         .traffic_light_position(tauri::LogicalPosition::new(13.0, 20.0))
         .transparent(true);
     let w = builder.build()?;
+    if let (Some((pw, ph)), Ok(scale)) = (saved_size(app), w.scale_factor()) {
+        let (lw, lh) = (f64::from(pw) / scale, f64::from(ph) / scale);
+        if lw < MIN_SIZE.0 || lh < MIN_SIZE.1 {
+            eprintln!("settings\twindow\tsaved {lw:.0}x{lh:.0}, under the minimum: the default");
+            // Queued behind the plugin's own resize (tao applies both on the next run-loop turn), so this one lands.
+            let _ = w.set_size(LogicalSize::new(SIZE.0, SIZE.1));
+            let _ = w.center();
+        }
+    }
     #[cfg(target_os = "macos")]
     if let Err(e) = window_vibrancy::apply_vibrancy(&w, window_vibrancy::NSVisualEffectMaterial::Sidebar, None, None) {
         eprintln!("settings\tvibrancy failed\t{e}");
@@ -126,7 +150,18 @@ fn create(app: &AppHandle) -> tauri::Result<()> {
             close(&handle);
         }
     });
-    Ok(())
+    Ok(w)
+}
+
+/// The size the window-state plugin restores, physical, from its file
+/// (`AppHandleExt::filename` under the app config dir). Read rather than
+/// asked of the window: the restore's resize is applied by tao on the next
+/// run-loop turn, so `inner_size` right after `build` still says the
+/// builder's.
+fn saved_size(app: &AppHandle) -> Option<(u32, u32)> {
+    let path = app.path().app_config_dir().ok()?.join(app.filename());
+    let v: Value = serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
+    Some((v[WINDOW]["width"].as_u64()? as u32, v[WINDOW]["height"].as_u64()? as u32))
 }
 
 /// The watcher's callback, on its thread: store, re-apply, tell everyone.
@@ -276,18 +311,35 @@ pub fn open(app: &AppHandle) {
 }
 
 /// `open`, on `page` (`overview`, `general`, `palettes`, `extensions`,
-/// `bar`, `about`) when one is named: the page switches on
-/// [`events::SETTINGS`].
+/// `bar`, `about`) when one is named: a window already up switches on
+/// [`events::SETTINGS`], a fresh one loads on it (`create`). The window is
+/// built on the first open (AppKit wants the main thread: a caller off it
+/// is queued and returns at once) and shown before its page has painted,
+/// so the glass is up within a frame and the page follows; `settings
+/// open` in the log is the clock the page's `settings paint` mark reads
+/// against.
 pub fn open_page(app: &AppHandle, page: Option<&str>) {
-    let Some(w) = app.get_webview_window(WINDOW) else { return };
-    panel::hide(app);
-    if let Some(page) = page {
-        events::emit_to(app, WINDOW, events::SETTINGS, json!({ "page": page }));
-    }
-    let _ = w.show();
-    let _ = w.set_focus();
-    // The Permissions group shows a live dot: a grant made while the window is up is seen.
-    permissions::watch(app);
+    let handle = app.clone();
+    let page = page.map(str::to_string);
+    let _ = app.run_on_main_thread(move || {
+        let t0 = Instant::now();
+        let (w, fresh) = match handle.get_webview_window(WINDOW) {
+            Some(w) => (w, false),
+            None => match create(&handle, page.as_deref()) {
+                Ok(w) => (w, true),
+                Err(e) => return eprintln!("settings\twindow failed\t{e}"),
+            },
+        };
+        panel::hide(&handle);
+        if let (Some(page), false) = (page.as_deref(), fresh) {
+            events::emit_to(&handle, WINDOW, events::SETTINGS, json!({ "page": page }));
+        }
+        let _ = w.show();
+        let _ = w.set_focus();
+        eprintln!("settings\topen\t{}\t{:.1}ms\t{:.1}ms since start", if fresh { "built" } else { "shown" }, t0.elapsed().as_secs_f64() * 1000.0, crate::since_start_ms());
+        // The Permissions group shows a live dot: a grant made while the window is up is seen.
+        permissions::watch(&handle);
+    });
 }
 
 /// Hides, and writes the window's size and position down: the plugin only
@@ -298,6 +350,119 @@ pub fn close(app: &AppHandle) {
         let _ = w.hide();
         let _ = app.save_window_state(STATE);
     }
+}
+
+// ---- update checks ---------------------------------------------------------
+// Two network checks, the app's release manifest (updater.rs) and the
+// store's GitHub branches (`Store::check_updates`), each remembered here
+// with its time so the Overview can say when it last looked and so a
+// window opened twice a day asks GitHub once. By themselves they run only
+// while `general.check_updates` is on and the last result is older than
+// [`CHECK_EVERY`]; "Check now" and the About page's button always run.
+
+/// How old a result is before the Overview runs the check again by itself.
+pub const CHECK_EVERY: Duration = Duration::from_secs(24 * 60 * 60);
+
+/// One remembered check: when it ran and what it said. A failure is the
+/// message, for the page to show as a fact next to the time, never as
+/// something to fix.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Checked<T> {
+    /// Unix ms.
+    pub at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+impl<T> Checked<T> {
+    pub fn at(at: u64, result: Result<T, String>) -> Self {
+        let (value, error) = match result {
+            Ok(v) => (Some(v), None),
+            Err(e) => (None, Some(e)),
+        };
+        Self { at, value, error }
+    }
+
+    pub fn now(result: Result<T, String>) -> Self {
+        Self::at(unix_ms(SystemTime::now()), result)
+    }
+}
+
+/// What is known, `None` while a check never ran this process.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct Checks {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app: Option<Checked<UpdateInfo>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extensions: Option<Checked<Vec<Update>>>,
+}
+
+impl Checks {
+    /// Whether a check last run at `last` should run at `now`: asked for
+    /// (`force`), or by itself while `enabled` and the result is older
+    /// than [`CHECK_EVERY`] (or there is none).
+    pub fn due(last: Option<u64>, now: u64, enabled: bool, force: bool) -> bool {
+        force || (enabled && last.is_none_or(|t| now.abs_diff(t) >= CHECK_EVERY.as_millis() as u64))
+    }
+
+    /// `name` was updated or removed: it is no longer behind.
+    pub fn forget(&mut self, name: &str) {
+        if let Some(v) = self.extensions.as_mut().and_then(|c| c.value.as_mut()) {
+            v.retain(|u| u.name != name);
+        }
+    }
+}
+
+/// The app check's result, from wherever it ran (the daily loop, the tray,
+/// a page): remembered for the Overview.
+pub fn remember_app_check(app: &AppHandle, result: &Result<UpdateInfo, String>) {
+    if let Some(st) = app.try_state::<Settings>() {
+        lock(&st.checks).app = Some(Checked::now(result.clone()));
+    }
+}
+
+/// The store's check, remembered.
+async fn check_extensions(app: &AppHandle) -> Result<Vec<Update>, String> {
+    let r = in_store(|s| s.check_updates()).await;
+    match &r {
+        Ok(u) if u.is_empty() => eprintln!("extensions\tup to date"),
+        Ok(u) => eprintln!("extensions\tbehind\t{}", u.iter().map(|x| x.name.as_str()).collect::<Vec<_>>().join(", ")),
+        Err(e) => eprintln!("extensions\tcheck failed\t{e}"),
+    }
+    lock(&app.state::<Settings>().checks).extensions = Some(Checked::now(r.clone()));
+    r
+}
+
+/// Which of the two checks should run now (`Checks::due` on the setting
+/// and what is remembered): `(app, extensions)`. The app's never runs by
+/// itself in a debug build, which has nothing to update to.
+pub fn checks_due(app: &AppHandle, force: bool) -> (bool, bool) {
+    let enabled = config(app).general.check_updates;
+    let now = unix_ms(SystemTime::now());
+    let st = app.state::<Settings>();
+    let c = lock(&st.checks);
+    (Checks::due(c.app.as_ref().map(|c| c.at), now, enabled, force) && (force || !cfg!(debug_assertions)), Checks::due(c.extensions.as_ref().map(|c| c.at), now, enabled, force))
+}
+
+/// The Overview's checks: both when `force` (its "Check now"), else each
+/// when due. Returns what is known after.
+#[tauri::command]
+pub async fn settings_check_updates(app: AppHandle, force: bool) -> Checks {
+    let (app_due, ext_due) = checks_due(&app, force);
+    let a = async {
+        if app_due {
+            let _ = crate::updater::check(&app).await;
+        }
+    };
+    let b = async {
+        if ext_due {
+            let _ = check_extensions(&app).await;
+        }
+    };
+    tokio::join!(a, b);
+    lock(&app.state::<Settings>().checks).clone()
 }
 
 // ---- commands ------------------------------------------------------------
@@ -342,6 +507,8 @@ pub struct BarItemState {
 
 #[derive(Serialize)]
 pub struct BarView {
+    /// This platform draws bar items (`bar::SUPPORTED`); the page says "not on Linux yet" otherwise.
+    supported: bool,
     /// sketchybar answered its last probe: where `auto` draws.
     sketchybar: bool,
     items: Vec<BarItemView>,
@@ -350,6 +517,7 @@ pub struct BarView {
 fn bar_view(app: &AppHandle) -> BarView {
     let items = if app.try_state::<crate::bar::Bar>().is_some() { crate::bar::snapshot(app) } else { Vec::new() };
     BarView {
+        supported: crate::bar::SUPPORTED,
         sketchybar: app.try_state::<crate::bar::Bar>().is_some_and(|_| crate::bar::sketchybar_alive(app)),
         items: items
             .into_iter()
@@ -390,9 +558,13 @@ pub struct View {
     permissions: permissions::Status,
     /// The bar registry: every declared item and its live state (bar/mod.rs).
     bar: BarView,
+    /// The update checks as last run (`settings_check_updates`).
+    checks: Checks,
 }
 
-#[tauri::command]
+/// Off the main thread: `permissions::status` probes the OS (~85 ms on
+/// hornet), and the page re-reads every 5 s while the Overview is up.
+#[tauri::command(async)]
 pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
     let l = lock(&st.loaded);
     View {
@@ -406,7 +578,16 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         hotkey: hotkey::outcome(&app),
         permissions: permissions::status(),
         bar: bar_view(&app),
+        checks: lock(&st.checks).clone(),
     }
+}
+
+/// `general.theme` alone, for `theme.ts` in every window at load: the
+/// full `View` (120 KB and an OS permissions probe) was what each of
+/// the four pages fetched for this one key.
+#[tauri::command]
+pub fn settings_theme(st: State<'_, Settings>) -> pal_core::config::Theme {
+    lock(&st.loaded).config.general.theme
 }
 
 /// One retry on `Contended`: a hand save that landed while we held the
@@ -540,27 +721,32 @@ pub async fn extensions_install(host: State<'_, Arc<Host>>, spec: String) -> Res
 }
 
 #[tauri::command]
-pub async fn extensions_update(host: State<'_, Arc<Host>>, name: String) -> Result<Installed, String> {
+pub async fn extensions_update(app: AppHandle, host: State<'_, Arc<Host>>, name: String) -> Result<Installed, String> {
     let bun = crate::host::bun();
-    let r = in_store(move |s| s.update(&name, Some(&bun))).await?;
+    let n = name.clone();
+    let r = in_store(move |s| s.update(&n, Some(&bun))).await?;
     eprintln!("extensions	updated	{} {}", r.name, r.version);
+    lock(&app.state::<Settings>().checks).forget(&name);
     host.restart().await;
     Ok(r)
 }
 
 #[tauri::command]
-pub async fn extensions_remove(host: State<'_, Arc<Host>>, name: String) -> Result<(), String> {
-    in_store(move |s| s.remove(&name)).await?;
+pub async fn extensions_remove(app: AppHandle, host: State<'_, Arc<Host>>, name: String) -> Result<(), String> {
+    let n = name.clone();
+    in_store(move |s| s.remove(&n)).await?;
     eprintln!("extensions	removed");
+    lock(&app.state::<Settings>().checks).forget(&name);
     host.restart().await;
     Ok(())
 }
 
-/// GitHub-installed extensions whose branch moved; network, so up to 10 s
-/// per extension, and an extension whose check fails is simply not listed.
+/// GitHub-installed extensions whose branch moved, on demand; network, so
+/// up to 10 s per extension, and an extension whose check fails is simply
+/// not listed. The result is remembered (`Checks`).
 #[tauri::command]
-pub async fn extensions_check_updates() -> Result<Vec<Update>, String> {
-    in_store(|s| s.check_updates()).await
+pub async fn extensions_check_updates(app: AppHandle) -> Result<Vec<Update>, String> {
+    check_extensions(&app).await
 }
 
 // ---- about -----------------------------------------------------------------
@@ -604,4 +790,46 @@ pub fn settings_open(app: AppHandle) {
 #[tauri::command]
 pub fn settings_close(app: AppHandle) {
     close(&app);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const DAY: u64 = 24 * 60 * 60 * 1000;
+
+    #[test]
+    fn a_check_is_due_once_a_day_while_on_and_always_on_demand() {
+        assert!(Checks::due(None, DAY, true, false), "never ran");
+        assert!(!Checks::due(Some(DAY), DAY + 1000, true, false), "an hour-old result is kept");
+        assert!(Checks::due(Some(DAY), 2 * DAY, true, false), "a day-old one runs again");
+        assert!(!Checks::due(None, DAY, false, false), "off: never by itself");
+        assert!(Checks::due(None, DAY, false, true), "off: Check now still runs");
+        assert!(Checks::due(Some(DAY), DAY, true, true), "on: Check now runs a fresh one again");
+        assert!(Checks::due(Some(2 * DAY), DAY, true, false), "a clock that went back is not a reason to wait");
+    }
+
+    #[test]
+    fn a_result_keeps_its_time_and_either_the_value_or_the_message() {
+        let ok: Checked<Vec<Update>> = Checked::at(7, Ok(vec![]));
+        assert_eq!((ok.at, ok.value.as_deref(), ok.error.as_deref()), (7, Some(&[][..]), None));
+        let err: Checked<Vec<Update>> = Checked::at(8, Err("offline".into()));
+        assert_eq!((err.at, err.value.is_none(), err.error.as_deref()), (8, true, Some("offline")));
+        let json = serde_json::to_value(&err).unwrap();
+        assert_eq!(json, json!({ "at": 8, "error": "offline" }), "the page reads `at`, `value?`, `error?`");
+        assert_eq!(serde_json::to_value(Checks::default()).unwrap(), json!({}), "nothing ran: nothing to say");
+    }
+
+    #[test]
+    fn an_updated_or_removed_extension_is_no_longer_behind() {
+        let up = |name: &str| Update { name: name.into(), current: "a".into(), latest: "b".into() };
+        let mut c = Checks { app: None, extensions: Some(Checked::at(1, Ok(vec![up("one"), up("two")]))) };
+        c.forget("one");
+        assert_eq!(c.extensions.as_ref().unwrap().value.as_ref().unwrap(), &[up("two")]);
+        c.forget("nothing");
+        assert_eq!(c.extensions.as_ref().unwrap().at, 1, "the time stays: the check did run");
+        let mut none = Checks::default();
+        none.forget("one");
+        assert_eq!(none, Checks::default());
+    }
 }

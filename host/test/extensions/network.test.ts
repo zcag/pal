@@ -5,7 +5,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { Host } from "../harness.ts";
 
 const IFCONFIG = `lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
@@ -88,7 +88,7 @@ function fakeBin(tools: Record<string, string>): string {
   }
   return dir;
 }
-const heredoc = (text: string) => `cat <<'PAL_EOF'\n${text}PAL_EOF`;
+const heredoc = (text: string) => `/bin/cat <<'PAL_EOF'\n${text}PAL_EOF`;
 
 /** The public IP endpoint: counts hits; `/json` is ipinfo's shape, `/text` a bare address, `/fail` a 500, `/junk` a body that is neither. */
 let hits = 0;
@@ -110,7 +110,8 @@ afterAll(() => { server.stop(true); for (const d of dirs) rmSync(d, { recursive:
 
 const withPath = async (bin: string, os: string, extraEnv: Record<string, string>, settings: Record<string, unknown>): Promise<Host> => {
   const saved = { ...process.env };
-  process.env.PATH = `${bin}:${process.env.PATH}`;
+  // Only the fakes and bun itself: a real `tailscale` or `systemsettings` on the box would be found otherwise (marko has both).
+  process.env.PATH = `${bin}:${dirname(process.execPath)}`;
   process.env.PAL_NETWORK_OS = os;
   Object.assign(process.env, extraEnv);
   try { return await Host.bundled({ settings: { network: { settings } } }); }

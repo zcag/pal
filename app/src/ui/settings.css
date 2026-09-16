@@ -120,7 +120,7 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 
 /* A page: scrolls, its groups centred at the measure. */
 .pal-settings-page { flex: 1; min-height: 0; overflow-y: auto; padding: var(--pal-space-5, 20px) var(--pal-space-6, 24px) var(--pal-space-6, 24px); }
-.pal-settings-page > * { max-width: var(--pal-settings-measure, 560px); margin-left: auto; margin-right: auto; }
+.pal-settings-page > * { max-width: var(--pal-settings-measure, 640px); margin-left: auto; margin-right: auto; }
 
 /* Search hits, where the page was */
 .pal-settings__results { outline: none; }
@@ -718,6 +718,10 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-overview__fact:focus-visible { box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
 .pal-overview__fact-label { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 .pal-overview__fact-value { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The updates line: a fact with its button, under the facts, never in the list */
+.pal-overview__checks { display: flex; align-items: center; gap: var(--pal-space-3, 12px); margin: var(--pal-space-4, 16px) auto 0; padding: 0 var(--pal-space-3, 12px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-overview__checks-text { flex: 1; min-width: 0; }
+.pal-overview__checks .pal-button { flex: none; }
 
 /* Palettes: the grouped table left, the selected palette's pane right */
 .pal-palettes__left { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
@@ -725,7 +729,7 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-palettes__filter .pal-field__input { flex: 1; min-width: 0; }
 .pal-palettes__count { flex: none; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); font-variant-numeric: tabular-nums; }
 .pal-palettes__scroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--pal-space-2, 8px) var(--pal-space-2, 8px) var(--pal-space-4, 16px); outline: none; }
-.pal-palettes__pane { flex: 0 0 var(--pal-settings-pane-w, 268px); min-width: 0; min-height: 0; overflow-y: auto; --pal-settings-label-w: 96px; }
+.pal-palettes__pane { flex: 0 0 var(--pal-settings-pane-w, 40%); min-width: 0; min-height: 0; overflow-y: auto; --pal-settings-label-w: 96px; }
 .pal-ptable + .pal-ptable { margin-top: var(--pal-space-3, 12px); }
 .pal-ptable__head { display: flex; align-items: center; gap: var(--pal-row-gap, 12px); min-height: var(--pal-row-h, 40px); padding: var(--pal-space-1, 4px) var(--pal-space-2, 8px); }
 .pal-ptable__ext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -801,8 +805,9 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-xpane__latest { color: var(--pal-tag-amber, #f0b25a); }
 .pal-xpane__hero > .pal-button { flex: none; }
 .pal-xpane__shots { display: flex; gap: var(--pal-space-2, 8px); margin: var(--pal-space-3, 12px) calc(var(--pal-space-5, 20px) * -1) 0; padding: 0 var(--pal-space-5, 20px) var(--pal-space-1, 4px); overflow-x: auto; scroll-snap-type: x proximity; }
-.pal-xpane__shot { flex: none; width: 200px; margin: 0; scroll-snap-align: start; }
-.pal-xpane__shot img { display: block; width: 200px; height: 124px; object-fit: cover; object-position: top; border-radius: var(--pal-radius-control, 6px); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }
+/* A shot is 42% of the pane, 200 to 300px wide, at the panel's 50:31: a wider window shows more of each. */
+.pal-xpane__shot { flex: none; width: clamp(200px, 42%, 300px); margin: 0; scroll-snap-align: start; }
+.pal-xpane__shot img { display: block; width: 100%; aspect-ratio: 50 / 31; height: auto; object-fit: cover; object-position: top; border-radius: var(--pal-radius-control, 6px); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }
 .pal-xpane__shot figcaption { margin-top: var(--pal-space-1, 4px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 .pal-xpane__section { margin-top: var(--pal-space-4, 16px); }
 .pal-xpane__fields > [data-missing] { box-shadow: inset 3px 0 0 var(--pal-tag-amber, #f0b25a); }
@@ -822,7 +827,7 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-bar__peeks { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); }
 .pal-bar__hovers { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px) var(--pal-space-4, 16px); }
 /* The items table wants the room: the page runs wider than the forms' measure. */
-.pal-bar > * { max-width: calc(var(--pal-settings-measure, 560px) + var(--pal-space-6, 24px) * 4); }
+.pal-bar > * { max-width: calc(var(--pal-settings-measure, 640px) + var(--pal-space-6, 24px) * 4); }
 .pal-bar__hovers .pal-number .pal-field__input { width: 72px; }
 .pal-bar__hover { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); }
 .pal-bar__position { width: 140px; font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); }

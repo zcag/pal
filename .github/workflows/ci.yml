@@ -41,7 +41,10 @@ jobs:
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
             libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Pinned (release.yml too): a new stable brings new clippy lints that
+      # nobody ran locally (1.98 turned the tree red on chunks_exact_to_as_chunks
+      # while every box was on 1.97). Bump both workflows together.
+      - uses: dtolnay/rust-toolchain@1.97.1
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2

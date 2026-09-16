@@ -191,7 +191,8 @@ pub fn run() {
         }
         return;
     }
-    if cli.cmd.is_some() && cli::handover(&context.config().identifier) {
+    // A subcommand or a link for a running instance: handed over here, before tauri is built (cli.rs).
+    if (cli.cmd.is_some() || deeplink::argv_link().is_some()) && cli::handover(&context.config().identifier) {
         return;
     }
     if matches!(cli.cmd, Some(cli::Cmd::Quit | cli::Cmd::Reload)) {
@@ -205,6 +206,10 @@ pub fn run() {
         // First: a second process the handover above missed exits inside
         // this plugin's setup, before anything else is built.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            // A link's argv went to the deep-link plugin already (the `deep-link` feature); clap would only refuse it.
+            if deeplink::is_link_argv(&args) {
+                return;
+            }
             if let Some(cmd) = cli::Cmd::from_args(args) {
                 cmd.run(app);
             }
@@ -236,6 +241,7 @@ pub fn run() {
             index::filter,
             index::index_refresh,
             settings::settings_get,
+            settings::settings_theme,
             settings::settings_set,
             settings::settings_unset,
             settings::settings_set_secret,
@@ -247,6 +253,7 @@ pub fn run() {
             settings::extensions_update,
             settings::extensions_remove,
             settings::extensions_check_updates,
+            settings::settings_check_updates,
             settings::settings_about,
             settings::settings_open_link,
             settings::settings_open,
@@ -279,6 +286,7 @@ pub fn run() {
             //   5. index: the index, frecency, registry, cache saver, welcome
             //   6. hotkey: the registered map, before settings applies it
             //   7. settings: load the file, apply hotkeys/tray/autostart, watch
+            //      (the settings window itself is built on its first open)
             //      permissions: log what the OS lets pal do, watch for a grant
             //   8. clipboard: the recorder, retention from the loaded settings
             //      storage: the extensions' key-value files, nothing read yet

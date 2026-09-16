@@ -21,7 +21,7 @@ pal hide            hide the panel
 pal settings [page] open the settings window (overview, general, palettes, extensions, bar, about)
 pal reload          restart the extension host (reloads every extension from disk)
 pal quit            quit the running instance (flushes its state, stops the extension host)
-pal install SPEC    install an extension into the store (see Extensions)
+pal install NAME    install an extension: a name from pal.cagdas.io, or a source (see below)
 pal update [NAME]   fetch an installed extension's source again (every one with a source, without a name)
 pal remove NAME     remove an installed extension
 pal list            the installed extensions: name, version, source
@@ -50,14 +50,28 @@ sees the change. With no instance running the change is on disk and the
 extension loads at the next start. None of them starts the app.
 
 ```text
+pal install wordle                            a name from the store at pal.cagdas.io
 pal install github:user/repo                  the repo's root is the extension
 pal install github:user/repo/sub/dir@v1.2     a subdirectory, at a tag or branch
 pal install https://github.com/user/repo/tree/main/sub/dir
 pal install ~/src/my-extension                a local directory, copied
+pal install --from ./my-extension             a source, never a store name
 pal list
 pal update my-extension
 pal remove my-extension
 ```
+
+A bare name (letters, digits, `-`, `_`, `.`; no slash) is looked up at
+`https://pal.cagdas.io/api/extensions/<name>`, whose `spec` is then
+installed like the explicit forms (`pal list` shows that spec as the
+source, and `pal update` fetches it again from GitHub, not from the site).
+A name the site does not list fails with `<name>: not an extension the
+store at pal.cagdas.io knows; pass its source with --from`. Anything with
+a slash, a `:` scheme, or a leading `.` or `~` is a source and never
+looked up; `--from SPEC` says so for a bare word too, so `pal install
+--from my-extension` is the directory of that name, not the store's.
+The site unreachable is an error, not a fallback: an explicit source
+works offline the same as before.
 
 What each does and what an extension is: [Extensions](extensions.md).
 

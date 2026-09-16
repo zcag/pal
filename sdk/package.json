@@ -9,10 +9,12 @@
   "keywords": ["pal", "launcher", "extension", "palette"],
   "type": "module",
   "sideEffects": false,
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./src/index.ts", "default": "./src/index.ts" },
-    "./runtime": { "types": "./src/runtime.ts", "default": "./src/runtime.ts" }
+    ".": { "types": "./dist/index.d.ts", "default": "./src/index.ts" },
+    "./runtime": { "types": "./dist/runtime.d.ts", "default": "./src/runtime.ts" }
   },
+  "publishConfig": { "access": "public" },
   "files": ["dist", "src", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

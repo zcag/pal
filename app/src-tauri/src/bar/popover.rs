@@ -113,6 +113,7 @@ pub enum State {
 /// armed them; a stale one is ignored), the hotkey, a key during a peek,
 /// the ways out.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum Input {
     Enter(String),
     Exit(String),
@@ -334,6 +335,10 @@ enum Payload {
 pub fn install(app: &AppHandle) {
     app.manage(Popover::default());
     *lock(&app.state::<Popover>().height) = MAX_HEIGHT;
+    // The machine is managed everywhere (every caller feeds it); the window only where an item can be clicked.
+    if !super::SUPPORTED {
+        return;
+    }
     let builder = WebviewWindowBuilder::new(app, WINDOW, WebviewUrl::App("index.html?bar".into()))
         .title("pal Bar")
         .inner_size(WIDTH, MAX_HEIGHT)
@@ -572,6 +577,7 @@ pub fn open_effect(app: &AppHandle, key: &str, rect: Option<Rect>, effect: &Valu
 }
 
 /// The popover's own tracking area.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn on_pointer(app: &AppHandle, entered: bool) {
     feed(app, if entered { Input::PopoverEnter } else { Input::PopoverExit });
 }

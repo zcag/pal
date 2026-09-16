@@ -1,8 +1,11 @@
 # A `v*` tag: bundle pal for every platform and put the bundles on a draft
-# GitHub release named after the tag, notes generated from the commits.
+# GitHub release named after the tag, notes from the commit subjects since
+# the previous tag (there is no CHANGELOG; the draft is edited by hand).
 # Nothing is public until the draft is published by hand; docs/releasing.md
-# has the checklist. `make release VERSION=x.y.z` bumps the versions first;
-# the guard below refuses a tag that does not match tauri.conf.json.
+# has the checklist. `make release VERSION=x.y.z` bumps the versions, commits,
+# tags and pushes; the guard below refuses a tag that does not match
+# tauri.conf.json. The `manifest` job then checks that latest.json carries
+# all three platforms (the three jobs merge into one file in parallel).
 name: release
 
 on:
@@ -31,6 +34,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # every tag and the history: the notes step
 
       - name: Tag matches the app version
         env:
@@ -38,6 +43,26 @@ jobs:
         run: |
           v=$(jq -r .version app/src-tauri/tauri.conf.json)
           [ "v$v" = "$TAG" ] || { echo "tag $TAG but tauri.conf.json says $v (run make release VERSION=...)"; exit 1; }
+
+      # One bullet per commit since the previous v* tag reachable from this
+      # one (every commit when there is none: the pali branch shares no
+      # history with the v1 tags). GitHub's own generated notes list pull
+      # requests, and this repo has none.
+      - name: Release notes from the commits
+        id: notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          prev=$(git describe --tags --abbrev=0 --match 'v*' "$TAG^" 2>/dev/null || true)
+          {
+            echo "body<<PAL_NOTES_EOF"
+            git log --no-merges --format='- %s' "${prev:+$prev..}$TAG"
+            if [ -n "$prev" ]; then
+              echo
+              echo "Full changelog: https://github.com/${{ github.repository }}/compare/$prev...$TAG"
+            fi
+            echo "PAL_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       # ci.yml's list (https://tauri.app/start/prerequisites/#linux) plus
       # patchelf, which tauri-action's own example installs for the AppImage
@@ -51,7 +76,10 @@ jobs:
             libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
             libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Pinned to what ci.yml checks with (and what hornet's Homebrew rustc
+      # is): a release is built by the compiler CI tested. Bump both
+      # workflows together.
+      - uses: dtolnay/rust-toolchain@1.97.1
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
@@ -137,6 +165,41 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
           releaseDraft: true
-          generateReleaseNotes: true
+          releaseBody: ${{ steps.notes.outputs.body }}
           args: --target ${{ matrix.target }} ${{ steps.sign.outputs.args }}
           uploadUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}
+
+  # The three jobs each download latest.json from the draft, add their
+  # platform and upload it again (tauri-action's upload-version-json.ts),
+  # so two finishing at once can drop a platform. This reads the merged
+  # file back and fails when a platform is missing: re-run the missing
+  # platform's job, which merges its entry in again.
+  manifest:
+    needs: bundle
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.ref_name }}
+      KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+    steps:
+      - name: latest.json has every platform
+        run: |
+          if [ -z "$KEY" ]; then echo "no signing key: no latest.json to check"; exit 0; fi
+          # gh finds the draft by tag with the token (a draft has no /releases/tags entry).
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets > release.json
+          jq -r '.assets[].name' release.json | sort | tee assets.txt
+          for want in latest.json aarch64.app.tar.gz aarch64.app.tar.gz.sig x64.app.tar.gz x64.app.tar.gz.sig amd64.AppImage amd64.AppImage.sig aarch64.dmg x64.dmg amd64.deb; do
+            grep -q -- "$want"'$' assets.txt || { echo "::error::missing asset *$want"; fail=1; }
+          done
+          url=$(jq -r '.assets[] | select(.name == "latest.json") | .apiUrl' release.json)
+          [ -n "$url" ] || exit 1
+          gh api -H "Accept: application/octet-stream" "$url" > latest.json
+          jq . latest.json
+          for p in darwin-aarch64 darwin-x86_64 linux-x86_64; do
+            jq -e --arg p "$p" '.platforms[$p].signature' latest.json > /dev/null || { echo "::error::latest.json has no $p entry"; fail=1; }
+          done
+          v=$(jq -r .version latest.json)
+          [ "v$v" = "$TAG" ] || { echo "::error::latest.json says version $v, tag is $TAG"; fail=1; }
+          exit "${fail:-0}"

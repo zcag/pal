@@ -251,10 +251,12 @@ where a Linux tray wants the same PNG). Not probed; `Font::try_from_slice`,
 ### sketchybar renderer (`bar/sketchybar.rs`)
 
 Detection: `sketchybar --query bar` exits 0 (verified on hornet; the JSON
-carries the item list). Polled every 30 s while the target is on, so a bar
-restarted by its own `sketchybarrc` reload (which wipes every item) gets
-pal's items re-added; `pal bar sync` at the end of a `sketchybarrc` does it
-at once. Items are named `pal.<ext>.<id>` (segments `pal.<ext>.<id>.<seg>`,
+carries the item list). Probed while the target is on at start, on a
+`[bar]` config change, on wake and on a Space change (a fork per probe,
+no timer: the 30 s poll it replaced was a process every half minute at
+idle), the answer cached, so a bar restarted by its own `sketchybarrc`
+reload (which wipes every item) gets pal's items re-added at the next of
+those; `pal bar sync` at the end of a `sketchybarrc` does it at once. Items are named `pal.<ext>.<id>` (segments `pal.<ext>.<id>.<seg>`,
 grouped by `--add bracket pal.<ext>.<id>.group`); pal creates, sets, moves
 and removes only names under `pal.`, and `--remove /pal\..*/` on quit. Every
 change is one batched `sketchybar` invocation (the owner measured 3 ms per

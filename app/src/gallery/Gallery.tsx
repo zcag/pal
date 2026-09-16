@@ -547,7 +547,7 @@ function GalleryPage() {
       </Section>
 
       <Section id="settings" title="Settings">
-        <p className="g-note">A separate window, 720 by 520 by default (resizable): a 52px toolbar with the pages as icon tabs, the page under it at a 560px measure, forms as cards with a 160px right-aligned label column. Live: arrows move the tabs and the lists; Tab walks the palettes table; the hotkey recorder records. <code>?gallery=settings:palettes&amp;theme=dark</code> shows one window alone at the viewport size.</p>
+        <p className="g-note">A separate window, 960 by 640 by default (resizable, 800 by 560 at least): a 52px toolbar with the pages as icon tabs, the page under it at a 640px measure, forms as cards with a 160px right-aligned label column. Live: arrows move the tabs and the lists; Tab walks the palettes table; the hotkey recorder records. <code>?gallery=settings:palettes&amp;theme=dark</code> shows one window alone at the viewport size.</p>
         <State label="General, at rest">
           <WidePair>{(t) => <SettingsDemo key={t} page="general" />}</WidePair>
         </State>

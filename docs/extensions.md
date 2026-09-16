@@ -9,7 +9,7 @@ also put items on the bar ("Bar items", below).
 
 The shapes below are provisional: `sdk/src/protocol.ts` (the types of
 `@zcag/pal`, every one with a doc comment) is the contract and moves ahead
-of this page while `pali` is being built.
+of this page until the first release.
 
 ## Where they live
 

@@ -424,7 +424,7 @@ mod platform {
                     eprintln!("autostart\tunsupervised\thanded over less than {HANDOVER_GAP_SECS}s ago; staying");
                     return;
                 }
-                handover(&helper(me, enabled, &program), &dir.join("handover.log"));
+                handover(&helper(me, enabled, &program, &carried_env()), &dir.join("handover.log"));
             }
         }
     }
@@ -442,13 +442,15 @@ mod platform {
 
     /// The helper: the enabled unit, or a transient one of the same name
     /// for this session; that failing, the program itself, unsupervised.
-    pub fn helper(pid: u32, enabled: bool, program: &Path) -> String {
+    pub fn helper(pid: u32, enabled: bool, program: &Path, env: &[(String, String)]) -> String {
         let program = sh_quote(&program.to_string_lossy());
         let mut s = wait_for_exit(pid);
         if enabled {
             s.push_str(&format!("systemctl --user start {UNIT} && exit 0\n"));
         } else {
-            s.push_str(&format!("systemd-run --user --unit=pal --property=Restart=on-failure --property=RestartSec=5 {program} && exit 0\n"));
+            // `--collect`: a unit that gave up restarting is unloaded, so the name is free for the next hand-over.
+            let env: Vec<String> = env.iter().map(|(k, v)| format!(" --setenv={}", sh_quote(&format!("{k}={v}")))).collect();
+            s.push_str(&format!("systemd-run --user --unit=pal --collect --property=Restart=on-failure --property=RestartSec=5{} {program} && exit 0\n", env.concat()));
         }
         s.push_str("echo \"systemd would not start pal; running unsupervised\" >&2\n");
         s.push_str(&format!("exec {program}\n"));
@@ -507,6 +509,20 @@ mod tests {
         assert!(write_if_changed(&p, "y").unwrap());
         assert!(remove_if_present(&p));
         assert!(!remove_if_present(&p));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_helper_starts_the_unit_or_a_transient_one_with_the_env() {
+        use super::platform::helper;
+        let env = [("PAL_CONFIG".to_string(), "/tmp/a b.toml".to_string())];
+        let h = helper(7, true, Path::new("/usr/bin/pal"), &env);
+        let lines: Vec<&str> = h.lines().collect();
+        assert_eq!(lines[0], "while kill -0 7 2>/dev/null; do sleep 0.1; done");
+        assert_eq!(lines[1], "systemctl --user start pal.service && exit 0");
+        assert_eq!(lines[3], "exec '/usr/bin/pal'");
+        let h = helper(7, false, Path::new("/usr/bin/pal"), &env);
+        assert_eq!(h.lines().nth(1).unwrap(), "systemd-run --user --unit=pal --collect --property=Restart=on-failure --property=RestartSec=5 --setenv='PAL_CONFIG=/tmp/a b.toml' '/usr/bin/pal' && exit 0");
     }
 
     #[cfg(target_os = "macos")]

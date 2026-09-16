@@ -3,10 +3,12 @@
 //! `pal.<ext>.<id>.badge`), set through one batched `sketchybar` call
 //! per change. Only names under `pal.` are ever added, set, moved or
 //! removed; the owner's items are never touched. Detection is
-//! `sketchybar --query bar` exiting 0, probed every [`SKETCHYBAR_POLL`]
-//! while the target is wanted, so a bar restarted by its own rc (which
-//! wipes every item) gets pal's items back; `pal bar sync` does it at
-//! once. A click runs `<pal> bar click <key> --anchor sketchybar` and
+//! `sketchybar --query bar` exiting 0, probed while the target is wanted
+//! at start, on a `[bar]` config change, on wake and on a Space change
+//! (`reprobe`; a fork per probe, so no timer), the answer cached in
+//! `Bar::sketchybar`; a bar restarted by its own rc (which wipes every
+//! item) gets pal's items back at the next of those, and `pal bar sync`
+//! does it at once. A click runs `<pal> bar click <key> --anchor sketchybar` and
 //! `mouse.entered` / `mouse.exited` run `<pal> bar hover <key> --anchor
 //! sketchybar --state $SENDER` (absolute path: sketchybar's PATH is
 //! launchd's). No popups, no per-row scripts: the popover is the one rich
@@ -25,7 +27,7 @@ use std::sync::{LazyLock, Mutex};
 use tauri::{AppHandle, Manager};
 
 use super::colors::Palette;
-use super::{glyph, Bar, Draw, IconKind, Rect, Target, SKETCHYBAR_POLL};
+use super::{glyph, Bar, Draw, IconKind, Rect, Target};
 use crate::{lock, settings};
 
 /// Every name pal owns starts with this.
@@ -306,20 +308,22 @@ fn pal_bin() -> String {
     std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "pal".into())
 }
 
+/// The first probe; the rest come through [`reprobe`].
 pub fn install(app: &AppHandle) {
-    let handle = app.clone();
-    tauri::async_runtime::spawn(async move {
-        loop {
-            probe(&handle).await;
-            tokio::time::sleep(SKETCHYBAR_POLL).await;
-        }
-    });
+    reprobe(app, "start");
+}
+
+/// Probe again, off this thread: `why` is the trigger, for the log when
+/// the answer changed.
+pub fn reprobe(app: &AppHandle, why: &'static str) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move { probe(&app, why).await });
 }
 
 /// One detection; a change re-syncs every item. A wiped bar (the rc
 /// reloaded: our names gone from `--query bar`) is treated as gone then
 /// back, so everything is re-added.
-async fn probe(app: &AppHandle) {
+async fn probe(app: &AppHandle, why: &str) {
     let wanted = {
         let c = settings::config(app);
         !matches!(c.bar.target, pal_core::config::BarTarget::Off | pal_core::config::BarTarget::Menubar) || c.bar.items.values().any(|i| matches!(i.target, Some(pal_core::config::BarTarget::Sketchybar | pal_core::config::BarTarget::Both)))
@@ -332,7 +336,7 @@ async fn probe(app: &AppHandle) {
         lock(&STATE).drawn.values().any(|(r, _)| r.order.first().is_some_and(|n| !names.contains(n)))
     };
     if alive != was {
-        eprintln!("bar\tsketchybar\t{}", if alive { "up" } else { "gone" });
+        eprintln!("bar\tsketchybar\t{}\t{why}", if alive { "up" } else { "gone" });
     }
     if !alive {
         let mut st = lock(&STATE);
@@ -351,8 +355,7 @@ async fn probe(app: &AppHandle) {
 /// `pal bar sync`: probe now and re-apply.
 pub fn resync(app: &AppHandle) {
     lock(&STATE).drawn.clear();
-    let app = app.clone();
-    tauri::async_runtime::spawn(async move { probe(&app).await });
+    reprobe(app, "sync");
 }
 
 /// The bar's item names (`--query bar`).

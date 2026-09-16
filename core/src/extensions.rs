@@ -28,11 +28,19 @@ const BUN_TIMEOUT: Duration = Duration::from_secs(120);
 /// A tarball larger than this is not an extension.
 const MAX_TARBALL: u64 = 64 << 20;
 const USER_AGENT: &str = "pal/0.1 (+https://github.com/zcag/pal)";
+/// The site's store API: `GET <REGISTRY>/<name>` answers `{ "spec": "github:..." }`
+/// (200) for a listed extension and 404 for an unknown name. What a bare
+/// name in `pal install <name>` is resolved through.
+pub const REGISTRY: &str = "https://pal.cagdas.io/api/extensions";
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("bad spec {0:?}: expected a path, github:user/repo[/subdir][@ref] or a github.com URL")]
+    #[error("bad spec {0:?}: expected a store name, a path, github:user/repo[/subdir][@ref] or a github.com URL")]
     Spec(String),
+    #[error("{0}: not an extension the store at pal.cagdas.io knows; pass its source with --from (github:user/repo[/subdir][@ref], a github.com URL, or a directory)")]
+    Unknown(String),
+    #[error("could not look up {0} at pal.cagdas.io: {1}")]
+    Registry(String, String),
     #[error("{0}: no such extension")]
     NotFound(String),
     #[error("{0} is already installed; update it instead")]
@@ -106,6 +114,37 @@ impl Spec {
             return Err(bad());
         }
         Ok(Spec::Local(path))
+    }
+
+    /// `parse`, plus a bare name (`safe_name`, no `/`, `:` or `\\`, not
+    /// starting with `.` or `~`) looked up in the site's store
+    /// ([`REGISTRY`]) for its spec. An explicit spec never touches the
+    /// network; `Store::install_from` skips the lookup for a bare word too.
+    pub fn resolve(spec: &str) -> Result<Spec> {
+        Self::resolve_with(spec, registry_lookup)
+    }
+
+    /// `resolve` with the store lookup injected: `Ok(Some(spec))` for a
+    /// listed name, `Ok(None)` for an unknown one, `Err(why)` when the
+    /// registry cannot be reached or read.
+    pub fn resolve_with(spec: &str, lookup: impl FnOnce(&str) -> std::result::Result<Option<String>, String>) -> Result<Spec> {
+        let spec = spec.trim();
+        if !Self::is_bare_name(spec) {
+            return Self::parse(spec);
+        }
+        if !safe_name(spec) {
+            return Err(Error::Spec(spec.to_string()));
+        }
+        match lookup(spec) {
+            Ok(Some(source)) => Self::parse(&source).map_err(|e| Error::Registry(spec.to_string(), format!("it answered {source:?}: {e}"))),
+            Ok(None) => Err(Error::Unknown(spec.to_string())),
+            Err(why) => Err(Error::Registry(spec.to_string(), why)),
+        }
+    }
+
+    /// A word with no path or scheme shape: what the store lookup takes.
+    fn is_bare_name(spec: &str) -> bool {
+        !spec.is_empty() && !spec.starts_with(['.', '~']) && !spec.contains(['/', ':', '\\'])
     }
 
     fn github(owner: &str, repo: &str, subdir: String, reference: Option<String>) -> Option<Spec> {
@@ -249,8 +288,16 @@ impl Store {
         Ok(self.dir.join(name))
     }
 
-    /// Installs `spec`; refuses a name already in the store.
+    /// Installs `spec`, a store name resolved through the site
+    /// (`Spec::resolve`) or an explicit source; refuses a name already in
+    /// the store.
     pub fn install(&self, spec: &str, bun: Option<&Path>) -> Result<Installed> {
+        self.put(&Spec::resolve(spec)?, bun, false)
+    }
+
+    /// `install` from an explicit source only (`Spec::parse`): a bare word
+    /// is a directory here, never a store lookup. `pal install --from`.
+    pub fn install_from(&self, spec: &str, bun: Option<&Path>) -> Result<Installed> {
         self.put(&Spec::parse(spec)?, bun, false)
     }
 
@@ -416,6 +463,23 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
 
 fn agent(timeout: Duration) -> ureq::Agent {
     ureq::Agent::config_builder().user_agent(USER_AGENT).timeout_global(Some(timeout)).build().new_agent()
+}
+
+/// `GET REGISTRY/<name>`: the listed extension's spec, None on 404, the
+/// reason on anything else (offline, a 5xx, a body without `spec`).
+fn registry_lookup(name: &str) -> std::result::Result<Option<String>, String> {
+    let url = format!("{REGISTRY}/{name}");
+    let mut resp = match agent(API_TIMEOUT).get(&url).call() {
+        Ok(r) => r,
+        Err(ureq::Error::StatusCode(404)) => return Ok(None),
+        Err(e) => return Err(e.to_string()),
+    };
+    let text = resp.body_mut().read_to_string().map_err(|e| e.to_string())?;
+    let body: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    match body.get("spec").and_then(|v| v.as_str()) {
+        Some(s) if !s.is_empty() => Ok(Some(s.to_string())),
+        _ => Err("the answer has no spec".into()),
+    }
 }
 
 /// The commit `reference` (default branch when none) points at, or None
@@ -594,6 +658,38 @@ mod tests {
         }
         let tmp = tempfile::tempdir().unwrap();
         assert!(matches!(Spec::parse(tmp.path().to_str().unwrap()), Ok(Spec::Local(_))));
+    }
+
+    #[test]
+    fn bare_names_resolve_through_the_store() {
+        let gh = "github:zcag/pal/extensions/2048@pali";
+        let listed = |n: &str| if n == "2048" { Ok(Some(gh.to_string())) } else { Ok(None) };
+        assert_eq!(Spec::resolve_with("2048", listed).unwrap().to_spec_string(), gh);
+        assert_eq!(Spec::resolve_with("  2048 ", listed).unwrap().to_spec_string(), gh, "trimmed like parse");
+        assert!(matches!(Spec::resolve_with("nope", listed), Err(Error::Unknown(n)) if n == "nope"));
+        assert!(matches!(Spec::resolve_with("2048", |_| Err("offline".to_string())), Err(Error::Registry(n, why)) if n == "2048" && why == "offline"));
+        assert!(matches!(Spec::resolve_with("2048", |_| Ok(Some("https://gitlab.com/a/b".to_string()))), Err(Error::Registry(_, why)) if why.contains("gitlab")));
+        // Not a safe name and not a path: refused before any lookup.
+        for bad in ["Hello", "a b", "-x", ""] {
+            assert!(matches!(Spec::resolve_with(bad, |_| panic!("looked up {bad:?}")), Err(Error::Spec(_))), "{bad}");
+        }
+        // Explicit specs never reach the store.
+        let never = |n: &str| -> std::result::Result<Option<String>, String> { panic!("looked up {n:?}") };
+        assert_eq!(Spec::resolve_with("github:zcag/pal", never).unwrap().to_spec_string(), "github:zcag/pal");
+        assert_eq!(Spec::resolve_with("https://github.com/zcag/pal", never).unwrap().to_spec_string(), "github:zcag/pal");
+        assert!(matches!(Spec::resolve_with("https://gitlab.com/a/b", never), Err(Error::Spec(_))));
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("hello");
+        std::fs::create_dir_all(&dir).unwrap();
+        assert!(matches!(Spec::resolve_with(dir.to_str().unwrap(), never), Ok(Spec::Local(_))), "an absolute dir");
+        assert!(matches!(Spec::resolve_with("./nonexistent-xyz", never), Err(Error::Spec(_))), "a ./relative word is a path, not a name");
+        assert!(matches!(Spec::resolve_with("~/nonexistent/xyz", never), Err(Error::Spec(_))), "a tilde path is a path, not a name");
+        // A bare word is a store name even when a directory of that name
+        // exists; `install_from` is the way to mean the directory.
+        assert!(matches!(Spec::resolve_with("hello", |_| Ok(None)), Err(Error::Unknown(_))));
+        std::fs::write(dir.join("pal.json"), r#"{"name":"hello","version":"1"}"#).unwrap();
+        let store = Store::at(tmp.path().join("store"));
+        assert_eq!(store.install_from(dir.to_str().unwrap(), None).unwrap().name, "hello");
     }
 
     #[test]

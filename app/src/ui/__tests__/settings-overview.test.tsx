@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
-import { SettingsOverview, overviewFacts, overviewItems } from "../SettingsOverview";
+import { SettingsOverview, overviewFacts, overviewItems, updatesLine } from "../SettingsOverview";
 import { needsSetup } from "../SettingsTypes";
 import { settingsExtensions } from "../../gallery/data";
 import { allGranted, barItems, homeAssistant, nothingGranted, otp } from "./settings-fixtures";
@@ -26,6 +26,11 @@ describe("overviewItems", () => {
     const [item] = overviewItems({ ...ok, hotkey: { wanted: "alt+space", registered: false, error: "HotKey already registered" } });
     expect(item.detail).toContain("Raycast");
     expect(item.action?.go).toEqual({ page: "general", anchor: "general:hotkey" });
+  });
+  it("says none set for an empty hotkey, which never registers", () => {
+    const [item] = overviewItems({ ...ok, hotkey: { wanted: "", registered: false } });
+    expect(item.level).toBe("ok");
+    expect(item.detail).toContain("None set");
   });
   it("lists a missing permission only when something installed needs it", () => {
     const none = overviewItems({ ...ok, permissions: nothingGranted });
@@ -75,6 +80,7 @@ describe("SettingsOverview", () => {
     expect(facts[1].value).toBe("4 extensions loaded");
     expect(facts[2].value).toBe("6 of 7 on, 3 with a hotkey");
     expect(facts[3].value).toBe("no items declared");
+    expect(overviewFacts({ ...ok, barSupported: false }).map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes"]);
   });
   it("lists what needs attention with the action inline", () => {
     const html = renderToStaticMarkup(<SettingsOverview {...ok} permissions={nothingGranted} extensions={[homeAssistant]} onGo={noop} onRequestPermission={noop} />);
@@ -83,5 +89,42 @@ describe("SettingsOverview", () => {
     expect(html).toContain(">Grant…</button>");
     expect(html).toContain(">Set up</button>");
     expect(html).toContain("Home Assistant needs url and token");
+  });
+});
+
+describe("the update checks on the Overview", () => {
+  const now = Date.parse("2026-09-16T12:00:00Z");
+  const h = 3600_000;
+  it("says when the checks last ran, as a fact", () => {
+    expect(updatesLine({ enabled: true, checkedAt: now - 2 * h }, now)).toBe("Updates checked 2h ago.");
+    expect(updatesLine({ enabled: true, checkedAt: now - 10_000 }, now)).toBe("Updates checked just now.");
+    expect(updatesLine({ enabled: true }, now)).toBe("Updates are checked once a day.");
+    expect(updatesLine({ enabled: true, busy: true, checkedAt: now }, now)).toBe("Checking for updates…");
+    expect(updatesLine(undefined, now)).toBe("");
+  });
+  it("says the checks are off, and a manual one's result next to it", () => {
+    expect(updatesLine({ enabled: false }, now)).toBe("Updates are not checked automatically.");
+    expect(updatesLine({ enabled: false, checkedAt: now - h, error: "no network" }, now)).toBe("Updates checked 1h ago. The check failed: no network. Automatic checks are off.");
+    expect(updatesLine({ enabled: true, checkedAt: now - h, status: "no release published yet" }, now)).toBe("Updates checked 1h ago. No release published yet.");
+  });
+  it("never lists a failed or skipped check as something to look at", () => {
+    const off = { ...ok, checks: { enabled: false, checkedAt: now - h, error: "Could not fetch a valid release JSON from the remote" } };
+    expect(overviewItems(off)).toEqual([]);
+    expect(overviewItems({ ...ok, checks: { enabled: true, checkedAt: now, status: "no release published yet" }, update: { available: false, status: "no release published yet" } })).toEqual([]);
+    const html = renderToStaticMarkup(<SettingsOverview {...off} onGo={noop} onCheckUpdates={noop} />);
+    expect(html).toContain("Everything is set");
+    expect(html).toContain("The check failed: Could not fetch a valid release JSON from the remote. Automatic checks are off.");
+    expect(html).toContain(">Check now</button>");
+    expect(html).not.toContain("pal-overview__list");
+  });
+  it("offers Check now with the checks off, and reports a found update as before", () => {
+    const html = renderToStaticMarkup(<SettingsOverview {...ok} checks={{ enabled: false }} update={{ available: true, version: "0.2.0" }} onGo={noop} onCheckUpdates={noop} />);
+    expect(html).toContain("pal 0.2.0 is available");
+    expect(html).toContain("Updates are not checked automatically.");
+    expect(html).toContain(">Check now</button>");
+    const busy = renderToStaticMarkup(<SettingsOverview {...ok} checks={{ enabled: true, busy: true }} onGo={noop} onCheckUpdates={noop} />);
+    expect(busy).toContain(">Checking…</button>");
+    expect(busy).toContain("disabled");
+    expect(renderToStaticMarkup(<SettingsOverview {...ok} onGo={noop} />)).not.toContain("pal-overview__checks");
   });
 });

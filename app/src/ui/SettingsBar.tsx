@@ -12,6 +12,8 @@ export type SettingsBarProps = {
   onItem: (key: string, config: BarItemConfig) => void;
   /** sketchybar answered its last probe. */
   sketchybar: boolean;
+  /** This platform draws bar items (macOS); off it the page only says so. */
+  supported?: boolean;
   /** The Extensions page for an item's extension. */
   onOpenExtension?: (name: string) => void;
 };
@@ -27,12 +29,12 @@ const targetOptions = targets.map((t) => ({ id: t.id, title: t.title }));
 const itemTargets = [{ id: "", title: "Default" }, ...targetOptions];
 const hovers = [{ id: "", title: "Default" }, { id: "on", title: "On" }, { id: "off", title: "Off" }];
 
-export const barIndex = (items: BarItem[]): SettingsIndexEntry[] => [
+export const barIndex = (items: BarItem[], supported = true): SettingsIndexEntry[] => (supported ? [
   { page: "bar", label: "Where bar items are drawn", hint: "Bar", anchor: "bar:target", keywords: "target menu bar sketchybar auto off" },
   { page: "bar", label: "Hover delay", hint: "Bar", anchor: "bar:hover", keywords: "peek grace popover" },
   { page: "bar", label: "Open on hover", hint: "Bar", anchor: "bar:hover-targets", keywords: "peek menu bar sketchybar" },
   ...items.map((b) => ({ page: "bar" as const, label: `${b.extTitle} › ${b.title}`, hint: b.description ?? "Bar item", anchor: `bar:${b.key}`, keywords: `${b.key} bar item` })),
-];
+] : []);
 
 const every = (s: number) => (s >= 3600 ? `${Math.round(s / 3600)} h` : s >= 60 ? `${Math.round(s / 60)} min` : `${s} s`);
 
@@ -58,7 +60,16 @@ function itemState(b: BarItem): { text: string; level?: "warning" | "error" } {
  * popover, whether a hover peeks it, its order, and under the name what the
  * strip shows now. Arrows move between rows.
  */
-export function SettingsBar({ config, onChange, items, onItem, sketchybar, onOpenExtension }: SettingsBarProps) {
+export function SettingsBar({ config, onChange, items, onItem, sketchybar, supported = true, onOpenExtension }: SettingsBarProps) {
+  if (!supported) {
+    return (
+      <div className="pal-settings-page pal-bar">
+        <SettingsGroup title="Bar items">
+          <div className="pal-settings-group__rows"><Empty title="Not on Linux yet" hint="pal draws bar items on the macOS menu bar and on sketchybar. A [bar] table in the config file is read and kept; nothing is drawn here." note={items.length ? `${items.length} declared by extensions, none rendered.` : undefined} /></div>
+        </SettingsGroup>
+      </div>
+    );
+  }
   const set = <K extends keyof BarConfig>(k: K, v: BarConfig[K]) => onChange({ ...config, [k]: v });
   const target = targets.find((t) => t.id === config.target) ?? targets[0];
   // The probe runs only while a target wants sketchybar (sketchybar.rs `probe`), so the dot means nothing under `menubar` or `off`.

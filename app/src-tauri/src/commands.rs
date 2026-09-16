@@ -228,6 +228,7 @@ fn theme_name(t: Theme) -> &'static str {
 pub fn updates_toast(r: &Result<updater::UpdateInfo, String>) -> Value {
     match r {
         Ok(updater::UpdateInfo { available: true, version, .. }) => toast(&format!("pal {} is available", version.as_deref().unwrap_or("?")), "Download it from the Releases page on GitHub", "success"),
+        Ok(updater::UpdateInfo { status: Some(s), .. }) => toast("Nothing to update to", s, "success"),
         Ok(_) => toast("pal is up to date", "", "success"),
         Err(e) => toast("Could not check for updates", e, "failure"),
     }
@@ -526,11 +527,14 @@ mod tests {
         assert_eq!(next_theme(Theme::Dark), Theme::System);
         assert_eq!(theme_name(Theme::System), "system", "the config's spelling (serde lowercase)");
         assert_eq!(serde_json::to_value(Theme::Dark).unwrap(), json!(theme_name(Theme::Dark)));
-        let up = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None }));
+        let up = updates_toast(&Ok(updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None }));
         assert_eq!(up["toast"]["title"], "pal 0.2.0 is available");
         assert_eq!(up["toast"]["style"], "success");
-        let same = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None }));
+        let same = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: None }));
         assert_eq!(same["toast"]["title"], "pal is up to date");
+        let none = updates_toast(&Ok(updater::UpdateInfo { available: false, version: None, notes: None, status: Some("no release published yet".into()) }));
+        assert_eq!(none["toast"]["message"], "no release published yet", "a missing manifest is a fact, not a failure");
+        assert_eq!(none["toast"]["style"], "success");
         let err = updates_toast(&Err("no network".into()));
         assert_eq!(err["toast"]["style"], "failure");
         assert_eq!(err["toast"]["message"], "no network");

@@ -65,7 +65,7 @@ writes those two header lines and nothing else into the config directory.
 | `position` | `top`, `centre`, `last` | `"top"` | Where the panel appears on the screen with the pointer. `top`: a fifth of the way down, where Spotlight and Raycast sit. `centre`: centred. `last`: wherever it was last shown. On Wayland the compositor places the window and this key does nothing (see [Getting started](getting-started.md)). |
 | `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, a `pal.service` user unit (or, without systemd, an XDG autostart entry) on Linux. The same agent relaunches pal after a crash, on or off; see [Crash relaunch](#crash-relaunch). |
 | `menu_bar_icon` | bool | `true` | Show pal's icon in the menu bar (macOS) or system tray (Linux). The app has no Dock icon, so this is the visible way to reach Settings and Quit; the hotkey and `pal settings` work without it. |
-| `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day, in release builds (the GitHub release manifest; nothing is downloaded). Today a found update is a log line: download and install are not wired, and the menu's "Check for updates" is a disabled placeholder until they are, so `false` means no check at all. |
+| `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day, in release builds (the GitHub release manifest; nothing is downloaded). Today a found update is a log line: download and install are not wired, and the menu's "Check for updates" is a disabled placeholder until they are, so `false` means no automatic check at all: neither this one nor the settings Overview's (which otherwise checks the app and the store's extensions when it opens, at most once a day). The Overview's "Check now" and About's "Check for Updates" run regardless. |
 | `extension_dirs` | list of paths | `[]` | Extra directories of extensions, one subdirectory per extension like the store, for a dotfiles-managed set. Loaded after the bundled extensions and the store, in order, so a later directory's extension replaces an earlier one's by name. `~` is expanded. Read when the host starts: `pal reload` after a change. See [Extensions](extensions.md). |
 | `ask_permissions_on_start` | bool | `true` | macOS: ask for the Accessibility permission (the system prompt, and System Settings opened on that pane) the first time the panel shows on a profile that has not hidden the Welcome tips yet. Paste and window switching need it. `false` leaves the ask to the Welcome row and to Settings > General > Permissions. Nothing on Linux. |
 | `root_caps` | table | `{ primary = 8, normal = 6, catalog = 3 }` | How many rows one palette may show at the root for a typed query, by its tier ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)); the rest is a "12 more in Emoji" row that opens the palette. Inline, `root_caps = { catalog = 5 }` keeps the other two at their defaults. The empty query and a palette's own level are never capped. |
@@ -111,10 +111,13 @@ is `scripts-otp`). Bare keys, no quoting.
 Bar items: what extensions put on the macOS menu bar or on sketchybar
 (the design in `docs/design/bar.md`; what an extension declares in
 [Extensions](extensions.md)). Every item is keyed `<extension>/<id>`.
+Not on Linux yet: the table is read and kept there, declared items are
+listed by `pal bar list`, but nothing is drawn and no item renders
+(Settings > Bar says so).
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `target` | `"auto"`, `"menubar"`, `"sketchybar"`, `"both"`, `"off"` | `"auto"` | Where items are drawn. `auto` is sketchybar when `sketchybar --query bar` answers (probed every 30 s), else the menu bar. |
+| `target` | `"auto"`, `"menubar"`, `"sketchybar"`, `"both"`, `"off"` | `"auto"` | Where items are drawn. `auto` is sketchybar when `sketchybar --query bar` answers (probed at start, on a `[bar]` change, on wake and on a Space change), else the menu bar. |
 | `hover_delay` | integer, ms | `250` | How long the pointer rests on an item before its popover peeks. |
 | `hover_grace` | integer, ms | `400` | How long after the pointer has left both the item and the popover a peek stays. |
 | `menubar.open_on_hover` | bool | `false` | A hover peeks on the menu bar (Apple's bar has no hover convention, so off). |

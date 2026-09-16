@@ -51,4 +51,12 @@ describe("SettingsBar", () => {
     expect(idx.find((e) => e.anchor === "bar:target")).toBeTruthy();
     expect(idx.find((e) => e.label === "Timer › Running timers")?.anchor).toBe("bar:timer/running");
   });
+  it("says not on Linux yet where the platform draws nothing, with no table and no index", () => {
+    const html = page({ supported: false });
+    expect(html).toContain("Not on Linux yet");
+    expect(html).toContain("3 declared by extensions, none rendered.");
+    expect(html).not.toContain("data-bar-row=");
+    expect(html).not.toContain('id="pal-bar-target"');
+    expect(barIndex(barItems, false)).toEqual([]);
+  });
 });

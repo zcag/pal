@@ -8,7 +8,9 @@
 //! `pal install|update|remove|list` work the extension store in this process
 //! (`Cmd::run_store`: results on stdout, one `pal\t<reason>` line on stderr
 //! and exit 1 on failure), then `reload` reaches the running instance so
-//! its host picks the change up.
+//! its host picks the change up. `install` takes a store name (looked up
+//! at pal.cagdas.io, `pal_core::extensions::REGISTRY`) or an explicit
+//! source; `--from SPEC` is the source with no lookup.
 //!
 //! `pal action NAME` and the v1 subcommands (`pick`, `run`, `meta`, ...)
 //! are for the scripts written against pal v1: `compat.rs`, in this
@@ -47,8 +49,14 @@ pub enum Cmd {
     Reload,
     /// Quit the running instance (flushes its state, stops the extension host).
     Quit,
-    /// Install an extension: a directory, github:user/repo[/subdir][@ref], or a github.com URL.
-    Install { spec: String },
+    /// Install an extension: a name from the store at pal.cagdas.io, a directory, github:user/repo[/subdir][@ref], or a github.com URL.
+    Install {
+        /// A store name (`wordle`), or a source as with --from.
+        spec: Option<String>,
+        /// The source itself (a directory, github:user/repo[/subdir][@ref], or a github.com URL), never looked up as a store name.
+        #[arg(long, conflicts_with = "spec", required_unless_present = "spec")]
+        from: Option<String>,
+    },
     /// Fetch an installed extension's source again; every one with a source when no name is given.
     Update { name: Option<String> },
     /// Remove an installed extension (its settings stay in the config file).
@@ -136,7 +144,13 @@ impl Cmd {
         let bun = crate::host::bun();
         let text = |e: pal_core::extensions::Error| e.to_string();
         let r: Result<bool, String> = match self {
-            Cmd::Install { spec } => store.install(spec, Some(&bun)).map_err(text).map(|i| {
+            Cmd::Install { spec, from } => match (spec, from) {
+                (_, Some(from)) => store.install_from(from, Some(&bun)),
+                (Some(spec), None) => store.install(spec, Some(&bun)),
+                (None, None) => unreachable!("clap requires one of them"),
+            }
+            .map_err(text)
+            .map(|i| {
                 println!("installed {} {} at {}", i.name, i.version, i.dir.display());
                 true
             }),

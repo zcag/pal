@@ -284,18 +284,19 @@
 }
 
 /* Settings window: its own window, shaped like a macOS preferences window.
-   720 by 520 default (resizable, 640 by 480 minimum); a 52px toolbar band
-   holds the tabs; the page sits at a 560px measure with labels in a 160px
-   right-aligned column; two-pane pages put a 220px list on the left.
-   Controls are the OS's size, smaller than the panel's 32px. */
+   960 by 640 default (resizable, 800 by 560 minimum; settings.rs says the
+   same); a 52px toolbar band holds the tabs; a form page sits at a 640px
+   measure with labels in a 160px right-aligned column; two-pane pages put
+   a 220px list on the left and give a selected palette's pane 40% of the
+   width. Controls are the OS's size, smaller than the panel's 32px. */
 :root {
-  --pal-settings-w: 720px;
-  --pal-settings-h: 520px;
+  --pal-settings-w: 960px;
+  --pal-settings-h: 640px;
   --pal-settings-toolbar-h: 52px;
-  --pal-settings-measure: 560px;
+  --pal-settings-measure: 640px;
   --pal-settings-label-w: 160px;
   --pal-settings-list-w: 220px;
-  --pal-settings-pane-w: 268px;  /* the selected palette's pane on Palettes */
+  --pal-settings-pane-w: 40%;    /* the selected palette's pane on Palettes, of the window */
   --pal-settings-control-h: 30px;
   --pal-dur-flash: 1600ms;       /* how long a search hit's row stays lit */
   --pal-switch-w: 26px;

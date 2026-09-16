@@ -17,10 +17,30 @@ Download from the [Releases page](https://github.com/zcag/pal/releases):
 
 ### macOS
 
-Open the dmg and drag pal to Applications. The app is ad-hoc signed, not
-notarised, so the first launch needs a right-click on the app, then Open;
-Gatekeeper shows its "unidentified developer" dialog once per install.
-macOS 11 or newer.
+Open the dmg and drag pal to Applications. macOS 11 or newer.
+
+**The first launch is refused.** pal's releases are ad-hoc signed (no
+Apple Developer ID) and not notarised, and the browser marks the download
+as quarantined, so Gatekeeper blocks it. Which dialog you see depends on
+the macOS version: "Apple could not verify pal is free of malware" on
+macOS 15, "pal cannot be opened because the developer cannot be verified"
+before that, and on some systems "pal is damaged and can't be opened".
+None of them is pal's own doing and none of them can be answered from the
+dialog. Any one of these gets past it, once per download:
+
+- Remove the quarantine mark, which is what Gatekeeper keys on:
+  `xattr -dr com.apple.quarantine /Applications/pal.app`. This is the
+  one that also works when the dialog says "damaged".
+- After the refused launch, open System Settings > Privacy & Security,
+  scroll to the line about pal and click **Open Anyway**, then Open in the
+  dialog that comes back. This is Apple's documented route
+  (support.apple.com/102445).
+- On macOS 14 and earlier, right-click (or Control-click) pal.app in
+  Finder and choose Open: the dialog gains an Open button. macOS 15
+  removed this shortcut.
+
+A signed and notarised release would install without any of this; what
+that takes is in [Releasing](releasing.md#macos-signing-later).
 
 pal has no Dock icon. It lives in the menu bar, and the hotkey brings up the
 panel from anywhere.

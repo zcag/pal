@@ -174,6 +174,7 @@ fn scan(app: &AppHandle, data: &Path) -> Found {
 /// What a macOS `.ips` says in its first line (JSON) and, further down, its
 /// `"exception"` object.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub struct Ips {
     pub app_name: String,
     pub bundle_id: Option<String>,
@@ -187,6 +188,7 @@ pub struct Ips {
 /// on one line near the top and has no nested objects, so the first `}`
 /// after it closes it). No exception (a hang report, say) is still a
 /// report: the kind is then the header's `bug_type`.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn parse_ips(text: &str) -> Option<Ips> {
     let (first, body) = text.split_once('\n')?;
     let header: Value = serde_json::from_str(first).ok()?;
@@ -213,6 +215,7 @@ pub fn parse_ips(text: &str) -> Option<Ips> {
 /// Whether an `.ips` header is this build's: the process name, and for a
 /// bundled build the bundle id too (a report of a bare `target/release/pal`
 /// has none, and a bundled build's report is never a bare build's).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn is_ours(ips: &Ips, name: &str, identifier: &str, bundled: bool) -> bool {
     ips.app_name == name
         && match &ips.bundle_id {

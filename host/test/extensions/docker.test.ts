@@ -19,9 +19,10 @@ const IMAGES = [
   { ID: "379e574779b1", Repository: "127.0.0.1:5000/tela-backend", Tag: "latest", Size: "69.1MB", CreatedSince: "4 days ago", CreatedAt: "2026-09-12 15:06:57 +0300 +03" },
   { ID: "0123456789ab", Repository: "<none>", Tag: "<none>", Size: "5MB", CreatedSince: "2 weeks ago" },
 ];
+// Under a home no test machine has: the extension shortens `$HOME/...` to `~/...`, and the fixture must not.
 const COMPOSE = [
-  { Name: "theater", Status: "running(35)", ConfigFiles: "/home/cagdas/srv/theater/compose.yml" },
-  { Name: "lab", Status: "exited(2)", ConfigFiles: "/home/cagdas/proj/lab/compose.yml,/home/cagdas/proj/lab/compose.override.yml" },
+  { Name: "theater", Status: "running(35)", ConfigFiles: "/home/someone/srv/theater/compose.yml" },
+  { Name: "lab", Status: "exited(2)", ConfigFiles: "/home/someone/proj/lab/compose.yml,/home/someone/proj/lab/compose.override.yml" },
 ];
 writeFileSync(join(dir, "docker"), `#!/bin/sh
 printf '%s\\n' "$*" >> "${calls}"
@@ -132,16 +133,16 @@ describe("docker", () => {
   test("compose: projects with their folder, status text and tag; up, down, logs and restart pass every config file", async () => {
     const items = await list("compose");
     expect(items.map((i) => i.id)).toEqual(["theater", "lab"]);
-    expect(items[0]).toMatchObject({ subtitle: "/home/cagdas/srv/theater", keywords: ["theater"], accessories: [{ text: "running(35)" }, { tag: "running", color: "green" }] });
+    expect(items[0]).toMatchObject({ subtitle: "/home/someone/srv/theater", keywords: ["theater"], accessories: [{ text: "running(35)" }, { tag: "running", color: "green" }] });
     expect(items[1].accessories).toEqual([{ text: "exited(2)" }, { tag: "exited", color: "grey" }]);
     expect(items[0].actions!.map((a) => a.id)).toEqual(["up", "logs", "restart", "down", "open"]);
     expect(await pick("lab", "up", "compose")).toEqual({ keep: true, toast: { title: "Up: lab" } });
-    expect(called().at(-1)).toBe("compose -f /home/cagdas/proj/lab/compose.yml -f /home/cagdas/proj/lab/compose.override.yml up -d");
+    expect(called().at(-1)).toBe("compose -f /home/someone/proj/lab/compose.yml -f /home/someone/proj/lab/compose.override.yml up -d");
     expect(await pick("theater", "down", "compose")).toEqual({ keep: true, toast: { title: "Down: theater" } });
-    expect(called().at(-1)).toBe("compose -f /home/cagdas/srv/theater/compose.yml down");
+    expect(called().at(-1)).toBe("compose -f /home/someone/srv/theater/compose.yml down");
     expect((await pick("theater", "logs", "compose")).show!.title).toBe("Logs theater");
-    expect(called().at(-1)).toBe("compose -f /home/cagdas/srv/theater/compose.yml logs --no-color --tail 200");
-    expect(await pick("theater", "open", "compose")).toEqual({ open: "/home/cagdas/srv/theater" });
+    expect(called().at(-1)).toBe("compose -f /home/someone/srv/theater/compose.yml logs --no-color --tail 200");
+    expect(await pick("theater", "open", "compose")).toEqual({ open: "/home/someone/srv/theater" });
   });
 
   test("daemon down: one inert hint row naming it, in every palette", async () => {

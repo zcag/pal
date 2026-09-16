@@ -149,10 +149,21 @@ struct Links {
 /// the rest.
 pub fn argv_link() -> Option<String> {
     let args: Vec<String> = std::env::args().collect();
-    match args.as_slice() {
-        [_, one] if is_link(one) => Some(one.clone()),
+    link_in(&args).map(str::to_string)
+}
+
+/// The link in an argv of the shape [`argv_link`] takes.
+fn link_in(args: &[String]) -> Option<&str> {
+    match args {
+        [_, one] if is_link(one) => Some(one),
         _ => None,
     }
+}
+
+/// Whether a second process's argv is a link (the single-instance
+/// callback leaves those to the deep-link plugin).
+pub fn is_link_argv(args: &[String]) -> bool {
+    link_in(args).is_some()
 }
 
 fn is_link(s: &str) -> bool {
@@ -255,11 +266,14 @@ fn on_main(app: &AppHandle, f: impl FnOnce(&AppHandle) + Send + 'static) {
 
 /// How long a link's show waits for the activation to land: to the front
 /// within this, else it was not being activated (`open -g`, Linux).
+#[cfg(target_os = "macos")]
 const ACTIVATION_WAIT: Duration = Duration::from_millis(300);
 /// After the app is front, the beat AppKit takes to settle its key window.
+#[cfg(target_os = "macos")]
 const ACTIVATION_SETTLE: Duration = Duration::from_millis(60);
 /// After the show: if the panel is down again by then, the activation
 /// undid it, and the show runs once more.
+#[cfg(target_os = "macos")]
 const RESHOW_AFTER: Duration = Duration::from_millis(250);
 
 /// Run `f`, a show of the panel, on the main thread once the activation a
@@ -556,6 +570,10 @@ mod tests {
         assert!(!is_link("toggle"));
         assert!(!is_link("://x"));
         assert!(!is_link("a b://x"));
+        let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(is_link_argv(&a(&["pal", "pal://toggle"])));
+        assert!(!is_link_argv(&a(&["pal", "toggle"])));
+        assert!(!is_link_argv(&a(&["pal", "pal://toggle", "x"])), "a link is the sole argument");
     }
 
     #[test]

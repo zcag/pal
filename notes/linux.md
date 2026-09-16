@@ -1,8 +1,8 @@
 # Linux go/no-go (marko, 2026-09-16)
 
 Box: marko, Arch, Hyprland 0.56.0 on Wayland, WebKitGTK 2.52.5, Ryzen 5 2600X,
-amdgpu, one 1920x1080@60 monitor. Clone at `marko:~/proj/pali` (pushed `pali`
-branch, the probe shell: old `App.tsx`, not the Launcher). Corpus from
+amdgpu, one 1920x1080@60 monitor. Clone at `marko:~/proj/pali` (branch `main`
+since 2026-09-16 20:10, `pali` before that; the probe shell: old `App.tsx`, not the Launcher). Corpus from
 `scripts/fixtures.sh` with marko's v1 `pal`: 14767 rows (hornet: 14719).
 
 ## Numbers
@@ -472,3 +472,134 @@ everything removed afterwards.
   Toggle Mute further down.
 - `clip` and `history`: the Clipboard History palette row first.
 - Welcome row: "Show tips again" in Ctrl+K.
+
+## Today's work on Linux (marko, 2026-09-16 evening, scratch build of the tree at a84c75d plus the fixes below)
+
+Scratch instance, nothing of the daily one touched: `CARGO_TARGET_DIR=target/scratch`,
+`TAURI_CONFIG` with identifier `io.cagdas.pal.scratch`, scheme `palscratch`
+and the two windows retitled `pal scratch` / `pal scratch HUD` (the whole
+`app.windows` array has to be given: the merge replaces arrays), config
+`~/.config/pal/scratch.toml` (`hotkey = ""`, `menu_bar_icon = false`,
+`launch_at_login = false`, `[bar] target = "off"`), `XDG_DATA_HOME=/tmp/pal-scratch/data`,
+`date +%s > $XDG_DATA_HOME/pal/launchd/handover` before every hand start.
+Driven with ydotool, grim on the window found by title in `hyprctl clients -j`.
+No rule matches the scratch titles, so the panel floats at Hyprland's centre
+(580,300) and the settings window tiles. Removed afterwards: the config, the
+data dir, the `pal-scratch.desktop` handler and its `mimeapps.list` line.
+
+Two tooling notes. rsync from the Mac keeps the Mac mtimes, so a file edited
+on the Mac *during* a marko build comes over older than cargo's fingerprint
+and the next build silently keeps the stale object (seen: `install_from`
+missing); sync with `-c --no-t` (checksums, current mtime) or `touch` what
+changed. And the frontend is embedded at `cargo build` time: `npm run build`
+in `app/` before every release build, or the binary carries yesterday's
+`dist/` (seen: a settings window ignoring `?page=` until the rebuild).
+
+- Build: clean. `cargo clippy --workspace --all-targets -- -D warnings` on
+  marko's clippy 1.98 (hornet has 1.97) flagged `chunks_exact(4)` in
+  `bar/glyph.rs` tests (`chunks_exact_to_as_chunks`, new in 1.98), fixed on
+  the Mac side; the eight Linux dead-code warnings were macOS-only items
+  (`popover::Input` variants and `on_pointer`, `crash::{Ips, parse_ips,
+  is_ours}`, the three deeplink activation constants), now `cfg`-gated or
+  `allow(dead_code)` off macOS where the tests still run.
+- Bar: `bar::SUPPORTED` (`cfg!(target_os = "macos")`) gates it. `install`
+  logs `bar	not on Linux yet; [bar] is read, items are registered, none is
+  drawn` once and skips the menu bar, sketchybar, the triggers and the
+  fixture; `popover::install` manages the state machine (every caller feeds
+  it) but builds no window; `kinds()` is empty; a private `draws()` keeps
+  `on_extension_loaded`, `schedule`, `trigger` and `apply_config` from
+  rendering, so no host `bar/render` and no timer runs. Declared items still
+  register (`bar	github/notifications	registered	not drawn on Linux`, 4 of
+  them here) and the feed file is written. `[bar] target = "off"` in the
+  config parsed with no diagnostics. `settings.rs` `BarView.supported`
+  carries it to the page: Settings > Bar says "Not on Linux yet" with the
+  declared count and no target row or table (screenshot 10), `barIndex`
+  lists nothing, the Overview drops the Bar fact and the stale-item rows
+  (`barSupported`), the diagnostics text says `bar: not on this platform`.
+- Bar popover: never built here (above); `bar_hide`/`bar_size` commands are
+  registered and harmless.
+- Deep links: `pal 'palscratch://open/emoji/emoji?q=smile'` from a second
+  process reached the running instance in 48 ms end to end (`time`), the
+  panel opened in Emoji with `smile` typed (screenshot 07). Two fixes:
+  `lib.rs` hands a link argv over on the fast D-Bus path before tauri is
+  built (it only did that for subcommands; a link went through the plugin
+  after GTK came up, 150 ms), and the single-instance callback skips clap
+  for a link argv (`deeplink::is_link_argv`), which used to log a clap
+  error for every link. The `docs/cli.md` desktop-entry recipe works: a
+  `~/.local/share/applications/pal-scratch.desktop` with `Exec=... %u` and
+  `MimeType=x-scheme-handler/palscratch;`, `update-desktop-database`,
+  `xdg-mime default`, then `xdg-open 'palscratch://settings/bar'` opened the
+  settings window in 103 ms. Gotcha: `xdg-mime`/`xdg-open` read
+  `XDG_DATA_HOME` too, so with the scratch data home exported the handler
+  was invisible and xdg-open fell to `x-www-browser` and hung; run them
+  with the real data home. `palscratch://nope` gives the HUD "pal: unknown
+  link" (screenshot 16, 480x72). `register_all` in debug builds not
+  re-tested (release build).
+- Root commands: Restart is `exec '<binary>'` after this pid is gone
+  (log line `restart	exec ...`), the new process logged to the same file,
+  same profile, host back in 0.9 s. Reveal Config File runs `xdg-open
+  ~/.config/pal`; marko's `inode/directory` handler is `kitty-open.desktop`,
+  so a kitty opened there (closed by hand); a file manager where one is the
+  default. Open Config File is `xdg-open` of the file (not run: marko's
+  `text/plain` handler is LibreOffice Writer).
+- Crash resilience: the systemd path works. With no marker the hand-start
+  logged `autostart	handing over` and exited 0; the helper's
+  `systemd-run --user --unit=pal --collect ...` started the transient unit
+  (`Running as unit: pal.service` in `launchd/handover.log`), the process
+  inside logged `autostart	supervised	pal.service pid N` and had
+  `PAL_CONFIG` and `XDG_DATA_HOME` from `--setenv` (fix: the helper carried
+  no env before, so a relaunch would have landed on the default profile;
+  `--collect` added so a unit that gave up restarting does not keep the
+  name). `kill -TRAP`: `Main process exited, code=dumped, status=5/TRAP`,
+  `Scheduled restart job`, a new pid about 10 s later (the 16 MB core dump
+  plus `RestartSec=5`), then `crash	report	signal 5 ... coredumpctl` and
+  `crash	announced` with the HUD. `pal quit` ended the unit (`Consumed
+  5.8s CPU`) and it was gone from `systemctl --user`. stderr under the unit
+  is the journal (`journalctl --user -u pal.service -o cat`), not
+  `/tmp/pal-daily.log`: when the daily instance is restarted on this build
+  it will hand itself over at startup and log there. Side effect to know:
+  with systemd present the code removes `~/.config/autostart/pal.desktop`
+  unconditionally (the unit replaces it), so the scratch run deleted the
+  daily's entry (`autostart	xdg entry	removed`); put back by hand,
+  Hyprland never read it anyway (`exec-once = pal`). No LaunchAgent code
+  compiles here (`autostart.rs` `platform` is per target).
+- Permissions: `Status { accessibility: true, calendar: Granted,
+  full_disk_access: None, input_monitoring: true }` at 223 ms since start,
+  nothing spawned (`ax::trusted` is a constant, `calendar::permission` is a
+  PATH walk for khal, 0.10 ms; Granted because marko has khal). `watch`
+  returns at once off macOS. Fix: `request` and `open_system_settings` now
+  return without doing anything off macOS; before, "full_disk_access" and
+  "input_monitoring" ran `open x-apple.systempreferences:...`, which is not
+  a launcher on Linux. The Overview shows no permission rows (all granted).
+- Settings: all six pages render (Overview 09, Bar 10, About 13; General,
+  Palettes, Extensions unchanged from the 14:00 pass). Overview has no
+  macOS-only rows. Fix: with `hotkey = ""` the Overview said "The hotkey did
+  not register." (the `!registered` branch came before the `!wanted` one);
+  now "None set; pal toggle from a compositor keybind opens the panel", the
+  ok level.
+- Ranking tiers: `wordle` at the root lists the Wordle palette row first,
+  then 9 bookmarks (screenshot 15); `2048`, `blackjack` and `reveal config`
+  each put their row first and Enter opened it.
+- View tree: 2048 (02, 03), Wordle (04, 05) and Blackjack (06) render in
+  WebKitGTK; the four arrows and h j k l each moved the 2048 board (8 keys,
+  8 `pick 2048/2048 view` lines, "8 moves"); Backspace in Wordle routed to
+  `delete` (CRANE became CRAN), Enter submitted; Enter dealt and H hit in
+  Blackjack. Escape pops a level, then clears, as before.
+- Performance: first show 27 ms hotkey->paint (the pre-map), later toggles
+  0.4 to 3 ms; key->paint 3 to 11 ms per letter for `reveal config`; host
+  ready 1.6 s cold (calendar 1.2 s of it: khal), 0.87 s on the restart with
+  the cache (`cache loaded 46 sources 16669 items in 53.5ms`); deep link 48
+  ms, `pal toggle` unchanged from the morning.
+- Suites on marko: `cargo test --workspace` green after one fix
+  (`bar::tests::keys_and_targets` asserted the macOS targets; gated on
+  `SUPPORTED`). `bun test` (bun 1.3.14 here, 1.4.2 on hornet) had 10
+  failures, all environment: bun 1.3 drops a `process.env.TZ` assigned at
+  runtime from `{ ...process.env }` so the spawned host kept +03 while the
+  tests expected UTC (calc 1, calendar 5: the harness now passes `TZ`
+  explicitly); the docker compose fixture lived under `/home/cagdas`, which
+  is marko's real `$HOME`, so the extension shortened it to `~` (fixture
+  moved to `/home/someone`); the network Linux tests prepended their fake
+  bin to the real PATH, where marko has `tailscale` and `systemsettings`
+  (PATH is now the fakes plus bun's dir, the heredocs call `/bin/cat`); the
+  processes tests compared two listings taken seconds apart while a cargo
+  build churned pids (they key on `process.pid` now). vitest green.

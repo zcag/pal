@@ -69,9 +69,10 @@ so no `node_modules` ships). The bundle also signs the updater artifacts, so it 
 from CI anyway: `docs/releasing.md`). Output under `target/release/bundle/`:
 
 - macOS: `macos/pal.app` and `dmg/pal_0.1.0_aarch64.dmg`, ad-hoc signed
-  (`bundle.macOS.signingIdentity: "-"`). A Developer ID certificate plus
-  `APPLE_ID`/`APPLE_PASSWORD`/`APPLE_TEAM_ID` in the environment makes the
-  same command sign and notarise.
+  (`bundle.macOS.signingIdentity: "-"`), so a downloaded copy is refused by
+  Gatekeeper once (`docs/getting-started.md`). Signing and notarising takes
+  a Developer ID and a config change, not just the environment:
+  `docs/releasing.md`.
 - Linux: `appimage/pal_0.1.0_amd64.AppImage`, `deb/pal_0.1.0_amd64.deb` and
   an rpm. The first build downloads `linuxdeploy` and its plugins into
   `~/.cache/tauri/`. On a distro with current binutils (Arch) run it as

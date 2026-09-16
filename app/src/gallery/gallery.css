@@ -33,7 +33,7 @@
 
 /* Settings section: the window is wider than a pair column, so each theme takes a row. */
 .g-pair--wide .g-theme { flex: 0 1 auto; max-width: none; }
-.g-frame--settings { width: var(--pal-settings-w, 720px); height: var(--pal-settings-h, 520px); border-radius: 10px; overflow: hidden; box-shadow: var(--pal-shadow-panel); }
+.g-frame--settings { width: var(--pal-settings-w, 960px); height: var(--pal-settings-h, 640px); border-radius: 10px; overflow: hidden; box-shadow: var(--pal-shadow-panel); }
 .g-settings-fields { padding: 8px 12px; }
 
 /* Solo: one component at the viewport size, no chrome. */

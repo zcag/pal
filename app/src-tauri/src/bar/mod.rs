@@ -20,6 +20,11 @@
 //! `hidden: true` takes no space on any target and its timer keeps
 //! running. `enabled = false` in `[bar.items.<key>]` removes the item and
 //! its timer; the config is re-applied live (`apply_config`).
+//!
+//! Linux: no target yet ([`SUPPORTED`] is false). The registry still takes
+//! every declared item (`pal bar list` and the Settings window see them)
+//! and `[bar]` in the config is read as on macOS, but nothing renders, no
+//! timer runs, no popover window is built, and `install` says so once.
 
 pub mod colors;
 pub mod glyph;
@@ -46,8 +51,9 @@ pub const RENDER_TIMEOUT: Duration = Duration::from_secs(5);
 pub const PUSH_DEBOUNCE: Duration = Duration::from_millis(100);
 /// The poll floor, seconds: a push has none, a poll never runs faster.
 pub const MIN_EVERY: f64 = 10.0;
-/// `sketchybar --query bar` is tried this often while the target is wanted.
-pub const SKETCHYBAR_POLL: Duration = Duration::from_secs(30);
+/// Whether this platform draws bar items at all (macOS: the menu bar and
+/// sketchybar). Off it the registry runs, nothing else does.
+pub const SUPPORTED: bool = cfg!(target_os = "macos");
 
 // ---- model ---------------------------------------------------------------
 
@@ -349,6 +355,9 @@ pub fn sketchybar_alive(app: &AppHandle) -> bool {
 /// The kinds an item with `target` goes to: `auto` is sketchybar when it
 /// answers, else the menu bar.
 pub fn kinds(target: BarTarget, sketchybar_alive: bool) -> Vec<Kind> {
+    if !SUPPORTED {
+        return vec![];
+    }
     match target {
         BarTarget::Auto if sketchybar_alive => vec![Kind::Sketchybar],
         BarTarget::Auto | BarTarget::Menubar => vec![Kind::Menubar],
@@ -372,10 +381,19 @@ fn unix_secs() -> u64 {
 pub fn install(app: &AppHandle) {
     app.manage(Bar::default());
     popover::install(app);
+    if !SUPPORTED {
+        eprintln!("bar\tnot on Linux yet; [bar] is read, items are registered, none is drawn");
+        return;
+    }
     menubar::install(app);
     sketchybar::install(app);
     triggers::install(app);
     fixture::seed(app);
+}
+
+/// Whether `key` is drawn here: the config says so and the platform can.
+fn draws(config: &Config, key: &str) -> bool {
+    SUPPORTED && config.bar.draws(key)
 }
 
 /// The host loaded an extension: register its items (replacing what it
@@ -404,11 +422,11 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>) {
         let source = entry(app, k).is_some_and(|e| e.manifest.source);
         if !source {
             eprintln!("bar\t{k}\tregistered\tno render in the code; never rendered");
-        } else if config.bar.draws(k) {
+        } else if draws(&config, k) {
             eprintln!("bar\t{k}\tregistered");
             render(app, k, "load");
         } else {
-            eprintln!("bar\t{k}\tregistered\tnot drawn");
+            eprintln!("bar\t{k}\tregistered\tnot drawn{}", if SUPPORTED { "" } else { " on Linux" });
         }
     }
     write_feed(app);
@@ -633,7 +651,7 @@ fn schedule(app: &AppHandle, key: &str) {
     let next = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
         entry.timer_gen += 1;
-        if entry.fixture || !config.bar.draws(key) {
+        if entry.fixture || !draws(&config, key) {
             return None;
         }
         let every = entry.manifest.refresh.as_ref().and_then(|r| r.every);
@@ -677,7 +695,7 @@ pub fn update(app: &AppHandle, key: &str, item: BarItem) {
 /// Every enabled item that asked for `trigger` renders now.
 pub fn trigger(app: &AppHandle, trigger: &'static str) {
     let config = settings::config(app);
-    let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(k, en)| !en.fixture && en.manifest.wants(trigger) && config.bar.draws(k)).map(|(k, _)| k.clone()).collect());
+    let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(k, en)| !en.fixture && en.manifest.wants(trigger) && draws(&config, k)).map(|(k, _)| k.clone()).collect());
     for k in keys {
         render(app, &k, trigger);
     }
@@ -694,9 +712,13 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
     if prev.bar == next.bar {
         return;
     }
+    if SUPPORTED {
+        // A target that now wants sketchybar asks whether it is up; a change re-syncs everything again.
+        sketchybar::reprobe(app, "config");
+    }
     let keys: Vec<String> = Bar::with(app, |e| e.keys().cloned().collect());
     for key in &keys {
-        let (was, now) = (prev.bar.draws(key), next.bar.draws(key));
+        let (was, now) = (draws(prev, key), draws(next, key));
         if !was && now {
             render(app, key, "settings");
         } else if was && !now {
@@ -849,7 +871,8 @@ mod triggers {
     use super::*;
 
     /// The clock tick (`minute`), and on macOS the workspace's wake and
-    /// activate notifications (`wake`, `focus`).
+    /// activate notifications (`wake`, `focus`); wake and a Space change
+    /// also probe for sketchybar again (`sketchybar::reprobe`).
     pub fn install(app: &AppHandle) {
         let handle = app.clone();
         tauri::async_runtime::spawn(async move {
@@ -865,19 +888,26 @@ mod triggers {
     #[cfg(target_os = "macos")]
     mod macos {
         use super::*;
-        use objc2_app_kit::{NSWorkspace, NSWorkspaceDidActivateApplicationNotification, NSWorkspaceDidWakeNotification};
+        use objc2_app_kit::{NSWorkspace, NSWorkspaceActiveSpaceDidChangeNotification, NSWorkspaceDidActivateApplicationNotification, NSWorkspaceDidWakeNotification};
         use objc2_foundation::NSNotification;
 
         pub fn install(app: &AppHandle) {
             let handle = app.clone();
             let _ = app.run_on_main_thread(move || {
                 let center = NSWorkspace::sharedWorkspace().notificationCenter();
+                let observe = |name, f: Box<dyn Fn() + 'static>| {
+                    let block = block2::RcBlock::new(move |_: std::ptr::NonNull<NSNotification>| f());
+                    // The observer token is leaked on purpose: the observation lasts the process.
+                    let token = unsafe { center.addObserverForName_object_queue_usingBlock(Some(name), None, None, &block) };
+                    std::mem::forget(token);
+                };
                 for (name, trigger_name) in [(unsafe { NSWorkspaceDidWakeNotification }, "wake"), (unsafe { NSWorkspaceDidActivateApplicationNotification }, "focus")] {
                     let h = handle.clone();
-                    let block = block2::RcBlock::new(move |_: std::ptr::NonNull<NSNotification>| trigger(&h, trigger_name));
-                    // The observer token is leaked on purpose: the observation lasts the process.
-                    let _token = unsafe { center.addObserverForName_object_queue_usingBlock(Some(name), None, None, &block) };
-                    std::mem::forget(_token);
+                    observe(name, Box::new(move || trigger(&h, trigger_name)));
+                }
+                for (name, why) in [(unsafe { NSWorkspaceDidWakeNotification }, "wake"), (unsafe { NSWorkspaceActiveSpaceDidChangeNotification }, "space")] {
+                    let h = handle.clone();
+                    observe(name, Box::new(move || sketchybar::reprobe(&h, why)));
                 }
             });
         }
@@ -986,9 +1016,13 @@ mod tests {
         assert_eq!(split_key("github/prs"), Some(("github", "prs")));
         assert_eq!(split_key("github"), None);
         assert_eq!(split_key("a/b/c"), None);
-        assert_eq!(kinds(BarTarget::Auto, true), [Kind::Sketchybar]);
-        assert_eq!(kinds(BarTarget::Auto, false), [Kind::Menubar]);
-        assert_eq!(kinds(BarTarget::Both, false), [Kind::Menubar, Kind::Sketchybar]);
+        if SUPPORTED {
+            assert_eq!(kinds(BarTarget::Auto, true), [Kind::Sketchybar]);
+            assert_eq!(kinds(BarTarget::Auto, false), [Kind::Menubar]);
+            assert_eq!(kinds(BarTarget::Both, false), [Kind::Menubar, Kind::Sketchybar]);
+        } else {
+            assert!(kinds(BarTarget::Both, true).is_empty(), "no target draws off macOS");
+        }
         assert!(kinds(BarTarget::Off, true).is_empty());
         assert_eq!(Rect::parse("1,2,3.5,4"), Some(Rect { x: 1.0, y: 2.0, w: 3.5, h: 4.0 }));
         assert_eq!(Rect::parse("1,2"), None);

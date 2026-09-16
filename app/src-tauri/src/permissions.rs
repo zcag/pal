@@ -117,6 +117,11 @@ pub fn install(app: &AppHandle) {
 /// switch. Returns the state as of now, which a just-shown prompt never
 /// changes; `watch` reports the grant later.
 pub fn request(app: &AppHandle, which: &str) -> Result<Status, String> {
+    if !cfg!(target_os = "macos") {
+        // Nothing to grant and no pane to open (`open` is not a launcher here).
+        eprintln!("permissions\t{which}\trequested\tnothing to grant off macOS");
+        return Ok(status());
+    }
     let pane = |e: std::io::Error| format!("could not open System Settings: {e}");
     match which {
         "accessibility" => {
@@ -231,6 +236,9 @@ pub fn permissions_request(app: AppHandle, which: String) -> Result<Status, Stri
 /// (where Spotlight's binding is switched off).
 #[tauri::command(async)]
 pub fn open_system_settings(pane: String) -> Result<(), String> {
+    if !cfg!(target_os = "macos") {
+        return Err("no such pane off macOS".into());
+    }
     match pane.as_str() {
         "accessibility" => pal_core::ax::open_settings(),
         "keyboard-shortcuts" => pal_core::spotlight::open_keyboard_shortcuts(),
