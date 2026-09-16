@@ -24,3 +24,18 @@ release:
 	@echo
 	@echo "Now: review the diff, commit, then"
 	@echo "  git tag -a v$(VERSION) -m v$(VERSION) && git push origin v$(VERSION)"
+
+# Builds the macOS app and installs it to /Applications, signed with the
+# local self-signed "pal-dev" identity when the login keychain has one (a
+# stable signature keeps macOS's Accessibility grant across rebuilds; ad-hoc
+# otherwise, which loses it on every build). Quits the running instance,
+# swaps the bundle, relaunches through LaunchServices.
+.PHONY: app
+app:
+	@id=$$(security find-identity -v -p codesigning 2>/dev/null | grep -q '"pal-dev"' && echo pal-dev || echo -); \
+	echo "signing identity: $$id"; \
+	cd app && npm run tauri build -- --config "{\"bundle\":{\"createUpdaterArtifacts\":false,\"macOS\":{\"signingIdentity\":\"$$id\"}}}"
+	-pal quit 2>/dev/null; sleep 1
+	rm -rf /Applications/pal.app && cp -R target/release/bundle/macos/pal.app /Applications/pal.app
+	open -a /Applications/pal.app
+	@codesign -dv /Applications/pal.app 2>&1 | grep -E '^Authority|^Signature' | head -2
