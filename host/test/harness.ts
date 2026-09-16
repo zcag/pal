@@ -6,7 +6,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, Window } from "../../sdk/src/index.ts";
+import type { BarCtx, BarItem, BarMeta, ClipboardEntry, Ctx, Detail, Effect, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewUpdate, Window } from "../../sdk/src/index.ts";
 
 export const HOST = resolve(import.meta.dir, "../src/host.ts");
 /** The bundled extensions, for the integration tests. */
@@ -148,6 +148,20 @@ export class Host {
   }
   /** The `bar/shown` notification. */
   barShown(extension: string, id: string) { this.notify("bar/shown", { extension, id }); }
+  /** The `view/shown` / `view/hidden` notifications (views.rs): a view palette's level, or a bar item's own (`{ bar }`). */
+  viewShown(extension: string, target: { palette?: string; bar?: string }, id = "view", compact = false) { this.notify("view/shown", { extension, ...target, id, ...(compact && { compact: true }) }); }
+  viewHidden(extension: string, target: { palette?: string; bar?: string }, id = "view", compact = false) { this.notify("view/hidden", { extension, ...target, id, ...(compact && { compact: true }) }); }
+  /** The `view.update` pushes the host made for one target, in order (their params). */
+  viewUpdates(extension: string, target: { palette?: string; bar?: string }): ViewUpdate[] {
+    return this.coreCalls.filter((c) => c.method === "view.update" && (c.params as any)?.extension === extension && (c.params as any)?.palette === target.palette && (c.params as any)?.bar === target.bar).map((c) => c.params as ViewUpdate);
+  }
+  /** Polls until a `view.update` for the target satisfying `pred` has arrived; resolves with it. */
+  async nextViewUpdate(extension: string, target: { palette?: string; bar?: string }, pred: (u: ViewUpdate) => boolean = () => true, timeout = 3000): Promise<ViewUpdate> {
+    const from = this.viewUpdates(extension, target).length;
+    let hit: ViewUpdate | undefined;
+    await this.until(() => { hit = this.viewUpdates(extension, target).slice(from).find(pred); return !!hit; }, timeout, `view.update ${extension}/${target.palette ?? target.bar}`);
+    return hit!;
+  }
   /** The `bar.update` pushes the host made for one item, in order (the items themselves). */
   updates(extension: string, id: string): BarItem[] {
     return this.coreCalls.filter((c) => c.method === "bar.update" && (c.params as any)?.extension === extension && (c.params as any)?.id === id).map((c) => (c.params as any).item as BarItem);

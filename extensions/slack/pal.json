@@ -3,6 +3,7 @@
   "title": "Slack",
   "description": "What Slack is holding for you: direct messages, mentions and threads as rows with the message and who sent it, the channels you are in, Slack's search, and your status, presence and Do Not Disturb. Signs in through the desktop app's own session or a user token.",
   "version": "0.1.0",
+  "multi": true,
   "icon": { "tile": { "glyph": "󰒱", "bg": "violet" } },
   "author": "pal",
   "repo": "bundled",
@@ -30,6 +31,7 @@
     {
       "kind": "text",
       "id": "workspace",
+      "scope": "instance",
       "label": "Workspace",
       "description": "The workspace to use when the app is signed in to several, by id (T...) or domain (acme for acme.slack.com); empty lists every signed-in one, with status and search on the first.",
       "placeholder": "acme",

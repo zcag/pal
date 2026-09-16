@@ -37,6 +37,7 @@ mod storage;
 mod system;
 mod tray;
 mod updater;
+mod views;
 mod welcome;
 mod wifi;
 mod windows;
@@ -150,6 +151,8 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     } else if palette.is_none() {
         return;
     }
+    // The page keeps its level only with `keep` and no palette to open; otherwise it starts over and reports its view anew.
+    views::set_visible(app, WINDOW, true, !(keep && palette.is_none()));
     events::emit(app, events::SHOWN, Shown { t0, palette, keep });
     // After the event: the live palettes list again off this thread; a file dialog in front is looked for once per show.
     dialog::on_shown();
@@ -306,6 +309,7 @@ pub fn run() {
             bar::popover::bar_size,
             bar::popover::bar_action,
             bar::popover::bar_refresh,
+            views::view_open,
             deeplink::link_copy,
             pick::pick_reply,
             dialog::dialog_detect,
@@ -371,6 +375,7 @@ pub fn run() {
             storage::install(app.handle());
             updater::install_checks(app.handle());
             index::restore_cache(app.handle());
+            views::install(app.handle());
             bar::install(app.handle());
             media::install(app.handle());
             host::Host::start(app.handle());

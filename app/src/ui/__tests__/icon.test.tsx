@@ -30,6 +30,12 @@ describe("Icon: tile", () => {
     expect(html).toContain('<svg class="pal-icon__mark" viewBox="0 0 16 16"><path d="M2 2h5v5H2z"></path></svg>');
     expect(html).not.toContain("pal-icon__glyph");
   });
+  it("a badge is a pill in the corner, only when the tile has one", () => {
+    const html = render({ kind: "tile", bg: "amber", glyph: "\uf408", badge: "W" }, "md");
+    expect(html).toContain("data-badged");
+    expect(html).toContain('<span class="pal-icon__badge">W</span>');
+    expect(render(glyph)).not.toContain("pal-icon__badge");
+  });
   it("a tinted glyph carries the brand; a hex colour is inline and wins over a tint", () => {
     expect(render({ kind: "glyph", value: "", tint: "green" })).toContain('data-kind="glyph" data-brand="green"');
     const hex = render({ kind: "glyph", value: "●", color: "#ff0000", tint: "green" });
@@ -45,6 +51,11 @@ describe("iconOf: the wire forms", () => {
   it("{ tile } with a glyph or an svg in a brand colour", () => {
     expect(iconOf({ tile: { glyph: "", bg: "ink" } }, "GitHub")).toEqual({ kind: "tile", bg: "ink", glyph: "" });
     expect(iconOf({ tile: { svg: "M0 0h1v1z", bg: "amber" } }, "2048")).toEqual({ kind: "tile", bg: "amber", svg: "M0 0h1v1z" });
+  });
+  it("{ tile } with a badge keeps it, cut to two characters", () => {
+    expect(iconOf({ tile: { glyph: "\uf408", bg: "amber", badge: "W" } }, "GitHub")).toEqual({ kind: "tile", bg: "amber", glyph: "\uf408", badge: "W" });
+    expect(iconOf({ tile: { svg: "M0 0h1v1z", bg: "amber", badge: "Work" } }, "x")).toEqual({ kind: "tile", bg: "amber", svg: "M0 0h1v1z", badge: "Wo" });
+    expect(iconOf({ tile: { glyph: "\uf408", bg: "amber", badge: " " } }, "x")).toEqual({ kind: "tile", bg: "amber", glyph: "\uf408" });
   });
   it("a tile with a colour off the palette falls back to its glyph, else the initial", () => {
     expect(iconOf({ tile: { glyph: "", bg: "mauve" } }, "GitHub")).toEqual({ kind: "glyph", value: "" });

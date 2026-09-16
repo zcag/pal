@@ -11,8 +11,8 @@ import {
   isMarked, mark as markRow, markable, multiActions, pickIds, toggle, type Selection,
 } from "./ui";
 import { Fzf } from "fzf";
-import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewSpec } from "./ui/types";
-import { ASK_ID, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toForm, type Ctx, type Effect, type SourceInfo } from "./items";
+import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
+import { ASK_ID, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toForm, toView, type Ctx, type Effect, type SourceInfo } from "./items";
 import { linkFor } from "./links";
 import { SUBMENU, menuRows, type BarMenuNode } from "./bar";
 import { paletteTitle } from "./fixtures";
@@ -141,6 +141,16 @@ export const pickLevel = (token: number, title: string, rows: PickRow[], multi: 
 });
 /** The item a pick from a view level is addressed to: the view's `id`, else this. */
 const VIEW_ID = "view";
+/**
+ * The view level on top, as the shell is told (`onViewOpen`, `ViewShown`
+ * in the SDK): a view palette's by its source, a bar item's own `{ view }`
+ * level by the item's id; `id` is the tree's `View.id` (`view` unless set).
+ */
+export type ViewOpen = { extension: string; palette?: string; bar?: string; id: string };
+/** A push for an open view level (`ViewUpdate` in the SDK, `pal://view`): a whole `ViewSpec`, or `{ tree }` alone with the level's actions, title and input kept. */
+export type ViewUpdate = { extension: string; palette?: string | null; bar?: string | null; id?: string | null; spec: ViewSpec | { tree: ViewNode } };
+/** The bar item a level's `palette` key names when it is no source (`ext/item`, BarPage's `levelOf`). */
+const barOf = (key: string): { extension: string; bar: string } | undefined => { const i = key.indexOf("/"); return i > 0 ? { extension: key.slice(0, i), bar: key.slice(i + 1) } : undefined; };
 /** Keys a view level holds while a pick is on its way, at most; a fast typist's letters, not a held key. */
 const VIEW_QUEUE = 4;
 /** What a view level does with a key, queued while a pick is in flight and run against the tree the reply brings; `submit` and `cancel` are the `View.input` field's Enter and Escape. */
@@ -167,6 +177,10 @@ export type LauncherHandle = {
   start(level: Level, inPlace?: boolean): void;
   /** The panel was shown again where it was (pop to root kept the level): what depends on the moment is asked again (the Now section, the history). */
   shown(): void;
+  /** A push for a view level (`pal://view`): the level of that source (and `id`, when given) anywhere in the stack takes the spec in place; nothing when there is none. */
+  update(u: ViewUpdate): void;
+  /** A trigger fired (`pal://trigger`): a view level on top whose palette lists it under `on` asks for its tree again. */
+  trigger(name: string): void;
 };
 
 export type LauncherProps = {
@@ -190,8 +204,10 @@ export type LauncherProps = {
   prefs?: Prefs;
   /** The rest of a lazy item's detail (`Item.lazyDetail`), merged over the inline one. */
   detail?: (item: Item, ctx?: Ctx) => Promise<DetailSpec>;
-  /** The tree a view palette (`SourceInfo.view === "view"`) opens with. */
+  /** The tree a view palette (`SourceInfo.view === "view"`) opens with; asked again every `SourceInfo.refresh` seconds and on its `on` triggers while the level is on top. */
   view?: (scope: SourceInfo, ctx?: Ctx) => Promise<ViewSpec>;
+  /** The view level on top changed (pushed, popped, covered, its tree landed): what it is now, or null. The shell tells the extension (`view/shown`, `view/hidden`) and routes pushes by it. */
+  onViewOpen?: (open: ViewOpen | null) => void;
   /** Bumped when the index or the ranking changed underneath; re-runs the search. */
   version?: number;
   /** The bottom level: the root, or (the bar popover) an item's level with no root under it. */
@@ -413,6 +429,46 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (el) el.setSelectionRange(el.value.length, el.value.length);
   }, [query]);
 
+  // The pull half of a live view: while a view level with its tree is on
+  // top and its palette says `refresh`, the tree is asked again on that
+  // cadence and replaces the level's in place (the query kept, so the
+  // text field is untouched); a tick while a pick is in flight is skipped
+  // (the reply brings a newer tree), a reply for a level that is gone is
+  // dropped. `on` triggers (`trigger` in the handle) re-ask the same way.
+  const reask = useCallback((why: string) => {
+    const top = level.current;
+    if (top.kind !== "view" || !top.spec || !props.view) return;
+    const s = byKey.get(top.palette);
+    if (!s) return;
+    const t0 = performance.now();
+    props.view(s, ctx).then(
+      (spec) => { mark?.(`view ${top.palette} ${why} ms`, performance.now() - t0); if (level.current === top || (level.current.kind === "view" && level.current.palette === top.palette)) nav.replace({ ...(level.current as Extract<Level, { kind: "view" }>), spec }); },
+      () => {},
+    );
+  }, [byKey, ctx, mark]);
+  const refreshEvery = view.kind === "view" && view.spec ? scope?.refresh : undefined;
+  useEffect(() => {
+    if (!refreshEvery || !(refreshEvery > 0)) return;
+    const t = setInterval(() => { if (!busy) reask("refresh"); }, refreshEvery * 1000);
+    return () => clearInterval(t);
+  }, [refreshEvery, levelKey, busy, reask]);
+  // What the shell is told is on top: a view level with its tree, by its source (or the bar item whose `{ view }` it is).
+  const open = useMemo<ViewOpen | null>(() => {
+    if (view.kind !== "view" || !view.spec) return null;
+    const id = view.spec.id ?? VIEW_ID;
+    const s = byKey.get(view.palette);
+    if (s) return { extension: s.extension, palette: s.palette, id };
+    const b = barOf(view.palette);
+    return b ? { ...b, id } : null;
+  }, [view, byKey]);
+  const openKey = open ? `${open.extension}/${open.palette ?? `bar:${open.bar}`}/${open.id}` : null;
+  const onViewOpen = props.onViewOpen;
+  /** Bumped by `start`: the popover opening on an item forgets what the page reported (views.rs), so the same level again must be reported again. */
+  const [reportSeq, setReportSeq] = useState(0);
+  useEffect(() => { onViewOpen?.(open); }, [openKey, reportSeq, onViewOpen]);
+  useEffect(() => () => onViewOpen?.(null), [onViewOpen]);
+
+
   // At the root, palettes are the sections; inside one, the palette's own sections are.
   const hits = useMemo(() => {
     if (view.kind === "menu") return groupBySection(menuHits);
@@ -514,7 +570,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const closeConfirm = () => { setConfirming(null); focus(); };
   const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; }, []);
   const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setHistIdx(-1); shown(); input.current?.focus(); }, [nav.reset, cur.reset, shown]);
-  const open = useCallback((palette: string) => { reset(); enter(palette); }, [reset, enter]);
+  const openPalette = useCallback((palette: string) => { reset(); enter(palette); }, [reset, enter]);
   /**
    * Up at the top of an empty root walks the search history (the query
    * becomes the entry; Up again the one before, Down the one after, past
@@ -538,14 +594,31 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     props.history().then((list) => { hist.current = list; if (list.length) step(list); }, () => { hist.current = []; });
   };
   const start = useCallback((level: Level, inPlace = false) => {
-    if (inPlace) return nav.replaceRoot(level);
-    nav.restart(level); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); input.current?.focus();
-  }, [nav.restart, nav.replaceRoot, cur.reset]);
+    // A palette level naming a view palette (a bar item's `{ palette }` menu) opens as a view level, as `enter` would.
+    if (level.kind === "palette" && byKey.get(level.palette)?.view === "view") level = { kind: "view", palette: level.palette, args: level.args };
+    // In place, a view level of the same palette keeps the tree it has (the item rendered again must not blank it while a fresh tree is asked for).
+    if (inPlace) return nav.patch((v, depth) => (depth !== 1 ? v : level.kind === "view" && v.kind === "view" && v.palette === level.palette ? { ...level, spec: level.spec ?? v.spec } : level));
+    nav.restart(level); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setReportSeq((n) => n + 1); input.current?.focus();
+  }, [nav.restart, nav.patch, cur.reset, byKey]);
+  /** A push lands on the level it names: the spec whole, or its tree alone into the level's spec (actions, title and input kept). */
+  const update = useCallback((u: ViewUpdate) => {
+    nav.patch((v) => {
+      if (v.kind !== "view" || !v.spec) return v;
+      // The level's identity as `open` reports it: a source's palette, else a bar item's key; a palette and a bar item of one name never cross.
+      const s = byKey.get(v.palette), b = s ? undefined : barOf(v.palette);
+      const hit = s ? !u.bar && u.extension === s.extension && u.palette === s.palette : !!b && !u.palette && u.extension === b.extension && u.bar === b.bar;
+      if (!hit) return v;
+      if (u.id != null && (v.spec.id ?? VIEW_ID) !== u.id) return v;
+      if (!u.spec || typeof u.spec !== "object" || !u.spec.tree) return v;
+      return { ...v, spec: "actions" in u.spec && Array.isArray(u.spec.actions) ? toView(u.spec) : { ...v.spec, tree: u.spec.tree } };
+    });
+  }, [nav.patch, byKey]);
+  const trigger = useCallback((name: string) => { const top = level.current; if (top.kind === "view" && byKey.get(top.palette)?.on?.includes(name)) reask(name); }, [byKey, reask]);
   const type = useCallback((q: string) => { setQuery(q); focus(); }, [nav.setQuery, cur.reset]);
   const filter = (id: string) => { setPaletteFilter(id); cur.reset(); };
   // `applyEffect` closes over this render's stack, so the handle is rebuilt per render (cheap: an object).
   const apply = (item: Item, effect: Effect, args?: unknown) => applyEffect(item, effect, args !== undefined ? { args } : undefined);
-  useImperativeHandle(ref, () => ({ reset, open, start, type, focus, filter, apply, shown, toast: setToast }));
+  useImperativeHandle(ref, () => ({ reset, open: openPalette, start, type, focus, filter, apply, shown, toast: setToast, update, trigger }));
 
   // The item's own actions first (the default "Open" when it declares none;
   // a welcome tip declares `[]`, so Enter on it shows its detail), then the

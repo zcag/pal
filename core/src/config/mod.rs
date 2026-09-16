@@ -18,6 +18,7 @@
 //!   never sit in the file as plain text.
 
 mod edit;
+pub mod instance;
 pub mod migrate;
 pub mod schema;
 pub mod secrets;
@@ -51,8 +52,15 @@ pub struct Config {
     pub palettes: BTreeMap<String, Palette>,
     /// Bar items: the menu bar and sketchybar strips (`docs/design/bar.md`).
     pub bar: Bar,
-    /// Extension settings, keyed by extension name. Shape is whatever the
-    /// extension declared.
+    /// Instances of `multi` extensions, keyed `<name>@<suffix>`
+    /// (`[instances."gmail@work"]`; the table existing is what makes the
+    /// instance) or by the bare name to title the default one
+    /// (`docs/design/instances.md`).
+    pub instances: BTreeMap<String, Instance>,
+    /// Extension settings, keyed by extension name, or by instance key
+    /// (`[extensions."gmail@work"]`, which inherits `[extensions.gmail]`
+    /// except its secrets and `scope: "instance"` settings). Shape is
+    /// whatever the extension declared.
     #[schemars(with = "BTreeMap<String, BTreeMap<String, serde_json::Value>>")]
     pub extensions: BTreeMap<String, toml::Table>,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
@@ -416,6 +424,39 @@ impl Default for Palette {
     }
 }
 
+/// `[instances.<key>]`: one configured copy of a `multi` extension. The
+/// key is fixed at creation (`<name>@<suffix>`, `instance::is_key`); the
+/// bare name titles the default instance. Its settings live in
+/// `[extensions.<key>]`, its palettes' in `[palettes."<key>-<palette>"]`,
+/// its bar items' in `[bar.items."<key>/<id>"]`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct Instance {
+    /// The display name ("Work"): the suffix capitalised when unset. The
+    /// default instance has none until you name it.
+    pub title: Option<String>,
+    /// The tile's colour, one of the twelve brand names (`red`, `amber`,
+    /// `blue`, ...): picked from the suffix when unset. The default
+    /// instance keeps the extension's own tile.
+    pub tint: Option<String>,
+    /// One or two characters in the tile's corner: the title's first
+    /// letter when unset.
+    pub badge: Option<String>,
+    /// `false` parks the instance: not loaded, its rows and bar items gone,
+    /// its settings kept.
+    pub enabled: bool,
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(skip)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+impl Default for Instance {
+    fn default() -> Self {
+        Self { title: None, tint: None, badge: None, enabled: true, extra: BTreeMap::new() }
+    }
+}
+
 
 /// Where bar items are drawn. `auto`: sketchybar when it answers
 /// (`sketchybar --query bar`), else the macOS menu bar.
@@ -582,17 +623,52 @@ impl Config {
         self.palettes.get(id).map_or_else(|| std::borrow::Cow::Owned(Palette::default()), std::borrow::Cow::Borrowed)
     }
 
-    /// An extension's settings as it should see them: the defaults its
-    /// manifest declares, with every key the file sets under
-    /// `[extensions.<name>]` on top. Keys the manifest does not declare pass
-    /// through, so a setting written ahead of an upgrade is not lost.
-    pub fn extension_settings(&self, name: &str, manifest_defaults: &toml::Table) -> toml::Table {
-        overlay(manifest_defaults, self.extensions.get(name))
+    /// Every instance of `name` the file describes, the default first
+    /// (`[instances.<name>]` when the file titles it, else the defaults),
+    /// then each `[instances."<name>@<suffix>"]` in key order; disabled
+    /// ones included, so a list can show them parked. A table whose key is
+    /// not well formed (`instance::is_key`) is left out, as `unknown_keys`
+    /// warns about it.
+    pub fn instances_of(&self, name: &str) -> Vec<(String, std::borrow::Cow<'_, Instance>)> {
+        let mut out = vec![(name.to_string(), self.instances.get(name).map_or_else(|| std::borrow::Cow::Owned(Instance::default()), std::borrow::Cow::Borrowed))];
+        out.extend(self.instances.iter().filter(|(k, _)| instance::is_key(k) && instance::name_of(k) == name).map(|(k, i)| (k.clone(), std::borrow::Cow::Borrowed(i))));
+        out
     }
 
-    /// The same for one palette's declared settings, over `[palettes.<id>].settings`.
-    pub fn palette_settings(&self, id: &str, manifest_defaults: &toml::Table) -> toml::Table {
-        overlay(manifest_defaults, self.palettes.get(id).map(|p| &p.settings))
+    /// The keys to load for `name`: the enabled instances, default first,
+    /// when the extension declared `multi`; the bare name alone when it did
+    /// not (a non-`multi` extension has no instances, whatever the file
+    /// says; `[instances.<name>] enabled` still parks it).
+    pub fn instance_keys(&self, name: &str, multi: bool) -> Vec<String> {
+        self.instances_of(name).into_iter().filter(|(k, i)| i.enabled && (multi || k == name)).map(|(k, _)| k).collect()
+    }
+
+    /// An extension's settings as it should see them: the defaults its
+    /// manifest declares, with every key the file sets under
+    /// `[extensions.<key>]` on top. For a non-default instance
+    /// (`gmail@work`) the default's table (`[extensions.gmail]`) sits in
+    /// between, minus the settings `specs` declares `kind: "secret"` or
+    /// `scope: "instance"` (`instance::private_ids`): a token or a server
+    /// url identifies the account and is never inherited. Each layer is one
+    /// level deep, a set key replacing whole. Keys the manifest does not
+    /// declare pass through (and inherit), so a setting written ahead of an
+    /// upgrade is not lost.
+    pub fn extension_settings(&self, key: &str, manifest_defaults: &toml::Table, specs: &serde_json::Value) -> toml::Table {
+        let name = instance::name_of(key);
+        let base = if name == key { None } else { self.extensions.get(name).map(|t| inheritable(t, specs)) };
+        overlay(&overlay(manifest_defaults, base.as_ref()), self.extensions.get(key))
+    }
+
+    /// The same for one palette's declared settings, over
+    /// `[palettes.<id>].settings` with `id` from `instance::palette_id`; a
+    /// non-default instance's palette inherits the default's
+    /// (`[palettes.gmail-inbox]` under `[palettes."gmail@work-inbox"]`), the
+    /// same secrets and `scope: "instance"` ids skipped. The pal-provided
+    /// keys (`enabled`, `alias`, `hotkey`, `icon`, `tier`) never inherit.
+    pub fn palette_settings(&self, key: &str, palette: &str, manifest_defaults: &toml::Table, specs: &serde_json::Value) -> toml::Table {
+        let name = instance::name_of(key);
+        let base = if name == key { None } else { self.palettes.get(&instance::palette_id(name, palette)).map(|p| inheritable(&p.settings, specs)) };
+        overlay(&overlay(manifest_defaults, base.as_ref()), self.palettes.get(&instance::palette_id(key, palette)).map(|p| &p.settings))
     }
 
     /// [`extension_settings`](Self::extension_settings) from the manifest's
@@ -600,16 +676,18 @@ impl Config {
     /// `keychain:` / `env:` reference resolved through `store`. A reference
     /// that does not resolve stays as written and is logged, so a missing
     /// secret never keeps the extension from loading; values of any other
-    /// kind are passed through untouched, reference-shaped or not.
-    pub fn extension_settings_resolved(&self, name: &str, specs: &serde_json::Value, store: &dyn secrets::SecretStore) -> toml::Table {
-        let mut t = self.extension_settings(name, &spec_defaults(specs));
+    /// kind are passed through untouched, reference-shaped or not. Resolved
+    /// on the instance's final table, so `keychain:pal/gmail@work-token` is
+    /// looked up per instance.
+    pub fn extension_settings_resolved(&self, key: &str, specs: &serde_json::Value, store: &dyn secrets::SecretStore) -> toml::Table {
+        let mut t = self.extension_settings(key, &spec_defaults(specs), specs);
         secrets::resolve_declared(&mut t, specs, store);
         t
     }
 
     /// The same for one palette's declared settings.
-    pub fn palette_settings_resolved(&self, id: &str, specs: &serde_json::Value, store: &dyn secrets::SecretStore) -> toml::Table {
-        let mut t = self.palette_settings(id, &spec_defaults(specs));
+    pub fn palette_settings_resolved(&self, key: &str, palette: &str, specs: &serde_json::Value, store: &dyn secrets::SecretStore) -> toml::Table {
+        let mut t = self.palette_settings(key, palette, &spec_defaults(specs), specs);
         secrets::resolve_declared(&mut t, specs, store);
         t
     }
@@ -630,6 +708,12 @@ impl Config {
         out.extend(unknown("bar.sketchybar.", &self.bar.sketchybar.extra));
         for (key, i) in &self.bar.items {
             out.extend(unknown(&format!("bar.items.{key}."), &i.extra));
+        }
+        for (key, i) in &self.instances {
+            if !(instance::is_key(key) || instance::valid_name(key)) {
+                out.push(Diagnostic::warn(format!("instances.{key}"), "not an instance key: <name>@<suffix>, the suffix lowercase letters, digits, - and _ (not \"default\"), or a bare name for the default instance"));
+            }
+            out.extend(unknown(&format!("instances.{key}."), &i.extra));
         }
         out
     }
@@ -661,6 +745,12 @@ fn overlay(defaults: &toml::Table, set: Option<&toml::Table>) -> toml::Table {
     out
 }
 
+/// `set` without the keys a non-default instance never inherits (`instance::private_ids`).
+fn inheritable(set: &toml::Table, specs: &serde_json::Value) -> toml::Table {
+    let private = instance::private_ids(specs);
+    set.iter().filter(|(k, _)| !private.contains(k.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect()
+}
+
 /// How much a [`Diagnostic`] matters: a warning leaves the config usable
 /// as loaded, an error means the file did not load and the config shown is
 /// the defaults or the last good one.
@@ -683,7 +773,7 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
-    fn warn(path: String, message: &str) -> Self {
+    fn warn(path: String, message: impl Into<String>) -> Self {
         Self { level: Level::Warning, path, line: None, message: message.into() }
     }
 
@@ -973,17 +1063,126 @@ order = 20
     fn extension_settings_overlay_manifest_defaults() {
         let defaults: toml::Table = toml::from_str("max_entries = 200\nexclude_apps = [\"1Password\"]\nprimary_action = \"paste\"\n").unwrap();
         let (c, _) = parse("[extensions.clipboard]\nmax_entries = 500\nexclude_apps = []\nundeclared = 1\n\n[palettes.emoji.settings]\nskin = \"medium\"\n").unwrap();
-        let s = c.extension_settings("clipboard", &defaults);
+        let s = c.extension_settings("clipboard", &defaults, &serde_json::Value::Null);
         assert_eq!(s["max_entries"].as_integer(), Some(500));
         assert_eq!(s["exclude_apps"].as_array().map(Vec::len), Some(0), "a set list replaces the default, no append");
         assert_eq!(s["primary_action"].as_str(), Some("paste"), "untouched key keeps its default");
         assert_eq!(s["undeclared"].as_integer(), Some(1), "undeclared keys pass through");
-        assert_eq!(c.extension_settings("nope", &defaults), defaults, "no file entry: the defaults as given");
+        assert_eq!(c.extension_settings("nope", &defaults, &serde_json::Value::Null), defaults, "no file entry: the defaults as given");
         let pd: toml::Table = toml::from_str("skin = \"none\"\ncolumns = 8\n").unwrap();
-        let p = c.palette_settings("emoji", &pd);
+        let p = c.palette_settings("emoji", "emoji", &pd, &serde_json::Value::Null);
         assert_eq!(p["skin"].as_str(), Some("medium"));
         assert_eq!(p["columns"].as_integer(), Some(8));
-        assert_eq!(c.palette_settings("apps", &pd), pd);
+        assert_eq!(c.palette_settings("apps", "apps", &pd, &serde_json::Value::Null), pd);
+    }
+
+    #[test]
+    fn instance_keys_default_first_and_disabled_skipped() {
+        let (c, d) = parse(
+            r#"
+[instances."gmail@work"]
+title = "Work"
+tint = "amber"
+badge = "W"
+
+[instances."gmail@old"]
+enabled = false
+
+[instances.gmail]
+title = "Personal"
+
+[instances."gmail@home"]
+
+[instances."other@x"]
+"#,
+        )
+        .unwrap();
+        assert!(d.is_empty());
+        assert_eq!(c.instance_keys("gmail", true), ["gmail", "gmail@home", "gmail@work"], "the default first, then key order, the disabled one skipped");
+        assert_eq!(c.instance_keys("gmail", false), ["gmail"], "not multi: the bare name alone, whatever the file says");
+        assert_eq!(c.instance_keys("other", true), ["other", "other@x"]);
+        assert_eq!(c.instance_keys("none", true), ["none"], "no tables at all: the default");
+        let all = c.instances_of("gmail");
+        assert_eq!(all.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>(), ["gmail", "gmail@home", "gmail@old", "gmail@work"], "instances_of lists the parked one too");
+        assert_eq!(all[0].1.title.as_deref(), Some("Personal"));
+        let work = &all[3].1;
+        assert_eq!((work.title.as_deref(), work.tint.as_deref(), work.badge.as_deref(), work.enabled), (Some("Work"), Some("amber"), Some("W"), true));
+        let home = &all[1].1;
+        assert_eq!(**home, Instance::default(), "an empty table is an instance with every default");
+        assert!(!all[2].1.enabled);
+        let (c, _) = parse("[instances.gmail]
+enabled = false
+").unwrap();
+        assert_eq!(c.instance_keys("gmail", true), Vec::<String>::new(), "the default parks too");
+        assert_eq!(c.instance_keys("gmail", false), Vec::<String>::new());
+    }
+
+    #[test]
+    fn inheritance_skips_secrets_and_instance_scope() {
+        let specs = serde_json::json!([
+            { "kind": "secret", "id": "token", "default": "" },
+            { "kind": "text", "id": "url", "scope": "instance", "default": "" },
+            { "kind": "text", "id": "org", "default": "" },
+            { "kind": "number", "id": "days", "default": 7 },
+        ]);
+        let (c, _) = parse(
+            r#"
+[extensions.github]
+token = "keychain:pal/github-token"
+url = "https://a"
+org = "acme"
+days = 30
+undeclared = "yes"
+
+[extensions."github@work"]
+days = 3
+
+[palettes.github-prs.settings]
+columns = 2
+key = "keychain:x"
+
+[palettes."github@work-prs".settings]
+limit = 5
+"#,
+        )
+        .unwrap();
+        let d = spec_defaults(&specs);
+        let base = c.extension_settings("github", &d, &specs);
+        assert_eq!(base["token"].as_str(), Some("keychain:pal/github-token"), "the default instance is unaffected");
+        assert_eq!(base["days"].as_integer(), Some(30));
+        let work = c.extension_settings("github@work", &d, &specs);
+        assert_eq!(work["org"].as_str(), Some("acme"), "a plain setting inherits");
+        assert_eq!(work["undeclared"].as_str(), Some("yes"), "an undeclared key inherits too");
+        assert_eq!(work["days"].as_integer(), Some(3), "its own table wins");
+        assert_eq!(work["token"].as_str(), Some(""), "a secret falls to the manifest default, never the default instance's");
+        assert_eq!(work["url"].as_str(), Some(""), "scope: instance likewise");
+        assert_eq!(c.extension_settings("github@home", &d, &specs)["days"].as_integer(), Some(30), "no table of its own: the inherited layer stands");
+        let pspecs = serde_json::json!([{ "kind": "secret", "id": "key" }, { "kind": "number", "id": "columns", "default": 1 }]);
+        let pd = spec_defaults(&pspecs);
+        let p = c.palette_settings("github@work", "prs", &pd, &pspecs);
+        assert_eq!(p["columns"].as_integer(), Some(2), "a palette's declared setting inherits from the default instance's palette");
+        assert_eq!(p["limit"].as_integer(), Some(5));
+        assert!(!p.contains_key("key"), "a palette secret does not");
+        assert_eq!(c.palette_settings("github", "prs", &pd, &pspecs)["key"].as_str(), Some("keychain:x"));
+        // Resolution runs on the final table, so the reference is the instance's own.
+        use secrets::MemStore;
+        let store = MemStore::from(std::collections::HashMap::from([("pal/github@work-token".to_string(), "ghp_w".to_string()), ("pal/github-token".to_string(), "ghp_p".to_string())]));
+        let (c, _) = parse("[extensions.github]
+token = \"keychain:pal/github-token\"\n[extensions.\"github@work\"]\ntoken = \"keychain:pal/github@work-token\"\n").unwrap();
+        assert_eq!(c.extension_settings_resolved("github@work", &specs, &store)["token"].as_str(), Some("ghp_w"));
+        assert_eq!(c.extension_settings_resolved("github", &specs, &store)["token"].as_str(), Some("ghp_p"));
+    }
+
+    #[test]
+    fn unknown_keys_under_instances() {
+        let (c, d) = parse("[instances.\"gmail@work\"]\ntitel = \"x\"\n\n[instances.\"bad@@key\"]\n\n[instances.\"gmail@default\"]\n\n[instances.gmail]\ntitle = \"Personal\"\n").unwrap();
+        let paths: Vec<_> = d.iter().map(|d| (d.path.as_str(), d.message.as_str())).collect();
+        assert_eq!(paths.len(), 3, "{paths:?}");
+        assert!(paths[0].0 == "instances.bad@@key" && paths[0].1.starts_with("not an instance key"));
+        assert_eq!(paths[1], ("instances.gmail@default", paths[1].1), "default is not a suffix");
+        assert_eq!(paths[2], ("instances.gmail@work.titel", "unknown key"));
+        assert_eq!(c.instances["gmail@work"].extra["titel"].as_str(), Some("x"), "kept");
+        assert_eq!(c.instance_keys("gmail", true), ["gmail", "gmail@work"], "a malformed key is never loaded");
     }
 
     #[test]
@@ -1019,7 +1218,7 @@ order = 20
         assert_eq!(s["undeclared"].as_str(), Some("keychain:pal/github-token"), "an undeclared key is never resolved");
         assert_eq!(s["url"].as_str(), Some("https://x"));
         assert_eq!(c.extension_settings_resolved("github", &serde_json::Value::Null, &store)["token"].as_str(), Some("keychain:pal/github-token"), "no specs, no resolution");
-        assert_eq!(c.palette_settings_resolved("github", &specs, &store)["token"].as_str(), Some("ghp_x"));
+        assert_eq!(c.palette_settings_resolved("github", "github", &specs, &store)["token"].as_str(), Some("ghp_x"));
         std::env::set_var("PAL_TEST_RESOLVED", "from-env");
         let (c, _) = parse("[extensions.github]\ntoken = \"env:PAL_TEST_RESOLVED\"\n").unwrap();
         assert_eq!(c.extension_settings_resolved("github", &specs, &store)["token"].as_str(), Some("from-env"));

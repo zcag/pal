@@ -41,7 +41,7 @@ struct Settings {
 fn settings(app: &AppHandle) -> Settings {
     let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
     let defaults = spec_defaults(&manifest["settings"]);
-    let table = settings::config(app).extension_settings("clipboard", &defaults);
+    let table = settings::config(app).extension_settings("clipboard", &defaults, &serde_json::Value::Null);
     table.try_into().unwrap_or_else(|e| {
         eprintln!("clipboard\tbad settings\t{e}; using the defaults");
         defaults.try_into().expect("manifest defaults fit Settings")

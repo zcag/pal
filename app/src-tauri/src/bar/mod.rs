@@ -508,7 +508,7 @@ async fn render_now(app: AppHandle, key: String, reason: &'static str) {
         return;
     };
     let t0 = Instant::now();
-    let params = json!({ "extension": ext, "id": id, "ctx": { "reason": reason } });
+    let params = json!({ "extension": ext, "id": id, "ctx": { "reason": reason, "compact": true } });
     let r = tokio::time::timeout(RENDER_TIMEOUT, host.request("bar/render", params)).await;
     let item = match r {
         // A limit the host checks (`checkBarItem`) comes back as `{ id, error }`.
@@ -694,8 +694,11 @@ pub fn update(app: &AppHandle, key: &str, item: BarItem) {
     });
 }
 
-/// Every enabled item that asked for `trigger` renders now.
+/// Every enabled item that asked for `trigger` renders now; the pages
+/// hear it too (`pal://trigger`), for a view level whose palette lists it
+/// under `on` (views.rs).
 pub fn trigger(app: &AppHandle, trigger: &'static str) {
+    crate::events::emit(app, crate::events::TRIGGER, json!({ "name": trigger }));
     let config = settings::config(app);
     let keys: Vec<String> = Bar::with(app, |e| e.iter().filter(|(k, en)| !en.fixture && en.manifest.wants(trigger) && draws(&config, k)).map(|(k, _)| k.clone()).collect());
     for k in keys {
@@ -751,7 +754,7 @@ pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, wind
         json!({ "hud": format!("{key}: {action}") })
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
-        host.request("bar/action", json!({ "extension": ext, "id": id, "action": action, "ctx": { "reason": "open", "anchor": anchor } })).await?
+        host.request("bar/action", json!({ "extension": ext, "id": id, "action": action, "ctx": { "reason": "open", "anchor": anchor, "compact": true } })).await?
     };
     let r = effects::apply_from(app, r, window).await?;
     if r.get("keep").is_some() {
@@ -770,7 +773,7 @@ pub async fn open(app: &AppHandle, key: &str, anchor: &str, rect: Option<Rect>) 
         json!({ "hud": format!("{key}: open") })
     } else {
         let host = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()).ok_or("no host")?;
-        host.request("bar/open", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "anchor": anchor } })).await?
+        host.request("bar/open", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "anchor": anchor, "compact": true } })).await?
     };
     let r = effects::apply_from(app, r, popover::WINDOW).await?;
     if effects::stays_open(&r) {
@@ -790,7 +793,7 @@ pub fn shown(app: &AppHandle, key: &str) {
     }
     let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = host.notify("bar/shown", json!({ "extension": ext, "id": id })).await {
+        if let Err(e) = host.notify("bar/shown", json!({ "extension": ext, "id": id, "ctx": { "reason": "open", "compact": true } })).await {
             eprintln!("bar\t{ext}/{id}\tshown notify failed\t{e}");
         }
     });

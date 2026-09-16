@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Launcher, pickLevel, type LauncherHandle, type PickRow } from "./Launcher";
-import { mark, useCore, usePrefs } from "./core";
+import { mark, useCore, usePrefs, useLiveViews } from "./core";
 import { Confirm, Presence, type ToastSpec } from "./ui";
 import { SHOWN_EVENT } from "./ui/virtual";
 import type { Effect } from "./items";
@@ -73,6 +73,9 @@ export default function App() {
   }, []);
   const pickReply = useCallback((token: number, ids: string[] | null) => { invoke("pick_reply", { token, ids }).finally(() => { launcher.current?.reset(); hide(); }); }, []);
 
+  // Live views: a push for the level on top lands in place, a trigger re-asks it, and the shell hears which view is on top (views.rs).
+  const viewOpen = useLiveViews(launcher);
+
   // The core's confirm card (a `pal://run` or `pal://install` link): the answer goes back by token.
   const [ask, setAsk] = useState<Ask | null>(null);
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

@@ -25,7 +25,7 @@ export function Icon({ icon, size = "md" }: { icon?: IconSpec; size?: Size }) {
   }
   if (icon.kind === "app") return <Served size={size} kind="app" src={(s) => appIconUrl(icon.path, s)} px={APP_PX} fallback={<Icon icon={{ kind: "glyph", value: icon.letter }} size={size} />} />;
   if (icon.kind === "favicon") return <Served size={size} kind="favicon" src={(s) => faviconUrl(icon.url, s)} px={FAVICON_PX} fallback={<Globe size={size} tint={icon.tint} />} />;
-  if (icon.kind === "tile") return <Tile size={size} bg={icon.bg} glyph={icon.glyph} svg={icon.svg} />;
+  if (icon.kind === "tile") return <Tile size={size} bg={icon.bg} glyph={icon.glyph} svg={icon.svg} badge={icon.badge} />;
   // A Nerd Font codepoint is a glyph whatever the caller said: the emoji font has nothing for it.
   const kind = icon.kind === "emoji" && isSymbol(icon.value) ? "glyph" : icon.kind;
   const style: CSSProperties | undefined = icon.kind === "glyph" && icon.color ? { color: icon.color } : undefined;
@@ -40,12 +40,15 @@ export function Icon({ icon, size = "md" }: { icon?: IconSpec; size?: Size }) {
  * An icon tile (icons.css): a rounded square in a brand colour, the mark
  * white. The glyph is drawn from the symbols font at about two thirds of
  * the side; an SVG mark is path data in a 16 by 16 box, filled
- * `currentColor`, at the same share of the side.
+ * `currentColor`, at the same share of the side. A `badge` (an
+ * instance's letter) sits in the bottom-right corner as a small pill in
+ * the panel's colours, over the tile's edge, so the mark stays whole.
  */
-function Tile({ size, bg, glyph, svg }: { size: Size; bg: string; glyph?: string; svg?: string }) {
+function Tile({ size, bg, glyph, svg, badge }: { size: Size; bg: string; glyph?: string; svg?: string; badge?: string }) {
   return (
-    <span className="pal-icon" data-size={size} data-kind="tile" data-brand={bg} aria-hidden>
+    <span className="pal-icon" data-size={size} data-kind="tile" data-brand={bg} data-badged={badge ? "" : undefined} aria-hidden>
       {svg ? <svg className="pal-icon__mark" viewBox="0 0 16 16"><path d={svg} /></svg> : <span className="pal-icon__glyph">{glyph}</span>}
+      {badge ? <span className="pal-icon__badge">{badge}</span> : null}
     </span>
   );
 }

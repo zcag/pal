@@ -15,14 +15,20 @@
 // (`positionOf`), and an action patches it optimistically (`hold`) so the
 // tree answers at once. The bar item `playing` renders that state: the
 // track (or, with `bar_lyrics`, the lyric line playing) on the strip, the
-// compact lyrics view as the popover. The popover ticks: `onShown` starts a
-// 1 Hz `bar.update` for `TICK_WINDOW_MS` (there is no "popover closed"
-// signal; the window is renewed by every action), and outside it the item
-// asks to be rendered again at the next lyric line (`refresh`), so the
-// strip changes line on time without a poll. The panel's view has no push
-// channel (notes/decisions.md, "Decided: Spotify"): it is drawn on open and
-// on every key, from the same live position.
-import { bar, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+// compact lyrics view as the popover. One 1 Hz loop (`tick`) serves both
+// live surfaces while they are open: the popover gets a `bar.update` of
+// the whole item every second (the lines slide, the bar ticks; from
+// `view/shown` of the item's own popover level, or `onShown`, until
+// `view/hidden` or `TICK_WINDOW_MS` as the fallback), and the panel's
+// lyrics view gets a `view.update` of the wide tree whenever it differs
+// from the last one pushed (every second while playing, since the clock
+// moves; on a state change while paused), from `view/shown` of
+// `now-playing` until its `view/hidden`. The manifest's `refresh: 5` on
+// the view is the safety net: the panel re-asks `view()` on that cadence
+// too. Outside the popover's window the item asks to be rendered again at
+// the next lyric line (`refresh`), so the strip changes line on time
+// without a poll.
+import { bar, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { EXTENSION, ITEM, NotSignedIn, conf, log, signIn, signOut, signedIn, stopListener } from "./auth.ts";
 import { ApiError, Offline, RateLimited, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
 import { tintOf, type Tint } from "./color.ts";
@@ -259,7 +265,12 @@ async function act(action: string, layout: Layout): Promise<Effect> {
 // ---- the bar item ------------------------------------------------------------
 
 let tick: ReturnType<typeof setInterval> | undefined;
+/** Until when the popover is fed (`Date.now()` past it: not at all). */
 let tickUntil = 0;
+/** The panel's lyrics view is on top (`view/shown` of `now-playing`). */
+let viewOpen = false;
+/** The wide tree last pushed, serialised: the next tick pushes only a different one. */
+let lastPushed: string | undefined;
 
 /** The strip and the popover for the state: hidden unless something plays. */
 function barItem(l: Live, st: NowState): BarItem {
@@ -286,22 +297,45 @@ async function renderBar(ctx: BarCtx): Promise<BarItem> {
 
 function stopTick() { clearInterval(tick); tick = undefined; }
 
-/** The popover is up (or was, within the window): push the compact view every second so the lyrics and the bar move. */
+/** The 1 Hz loop while anything is open: the popover (`bar.update`) and the panel's view (`view.update`). Ends itself once neither is. */
 function startTick() {
-  tickUntil = Date.now() + TICK_WINDOW_MS;
   tick ??= setInterval(async () => {
-    if (Date.now() > tickUntil) { stopTick(); bar.refresh(ITEM, EXTENSION).catch(() => {}); return; }
+    const popover = Date.now() <= tickUntil;
+    if (!popover && tickUntil) { tickUntil = 0; bar.refresh(ITEM, EXTENSION).catch(() => {}); }
+    if (!popover && !viewOpen) { stopTick(); return; }
     try {
       const l = await readLive(SYNC_MS);
-      if (!l.player?.playing) { stopTick(); await bar.update(ITEM, { hidden: true }, EXTENSION); return; }
-      await bar.update(ITEM, barItem(l, await fullState(l, "compact", 200)), EXTENSION);
+      if (popover) {
+        if (!l.player?.playing) { tickUntil = 0; await bar.update(ITEM, { hidden: true }, EXTENSION); }
+        else await bar.update(ITEM, barItem(l, await fullState(l, "compact", 200)), EXTENSION);
+      }
+      if (viewOpen) {
+        const v = render(await fullState(l, "wide", 200));
+        const key = JSON.stringify(v);
+        if (key !== lastPushed) { lastPushed = key; await liveView.update(v, { extension: EXTENSION, palette: "now-playing" }); }
+      }
     } catch (e) { log(`tick: ${e instanceof Error ? e.message : e}`); }
   }, TICK_MS);
 }
 
+/** The popover is up (or was, within the window): feed it every second so the lyrics and the bar move. */
+function startPopover() { tickUntil = Date.now() + TICK_WINDOW_MS; startTick(); }
+
+// The shell says when a level of ours is on top and when it left: the
+// panel's lyrics view starts and stops the pushes, the item's own popover
+// level starts and ends its window (the window is the fallback).
+liveView.onShown((ev) => {
+  if (ev.palette === "now-playing") { viewOpen = true; lastPushed = undefined; startTick(); }
+  else if (ev.bar === ITEM) startPopover();
+}, EXTENSION);
+liveView.onHidden((ev) => {
+  if (ev.palette === "now-playing") viewOpen = false;
+  else if (ev.bar === ITEM) tickUntil = 0;
+}, EXTENSION);
+
 /** A view action from the popover: the same handler; a new tree is a `keep` (the item renders again from the patched state). */
 async function barAction(action: string): Promise<Effect> {
-  startTick();
+  startPopover();
   const r = await act(action, "compact");
   if (r.view) { const { view: _v, ...rest } = r; return { ...rest, keep: true }; }
   return r;
@@ -689,8 +723,8 @@ export default {
     [ITEM]: {
       render: renderBar,
       onAction: barAction,
-      onShown: async () => { startTick(); },
+      onShown: async () => { startPopover(); },
     },
   },
-  dispose: () => { stopTick(); stopListener(); },
+  dispose: () => { stopTick(); tickUntil = 0; viewOpen = false; stopListener(); },
 } satisfies Extension;

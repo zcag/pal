@@ -220,7 +220,8 @@ pub fn extensions(app: &AppHandle) -> Vec<Ext> {
 /// serialisation per extension at startup was the alternative).
 pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
     let root = params["root"].as_str().unwrap_or_default().to_string();
-    let dir = Path::new(&root).join(name);
+    // `name` is the instance key for an instance (`gmail@work`); the directory is the manifest name's (`params.name`).
+    let dir = Path::new(&root).join(params["name"].as_str().unwrap_or(name));
     let installed = std::fs::metadata(&dir).and_then(|m| m.created()).ok().map(unix_ms);
     let record = std::fs::read(dir.join(pal_core::extensions::RECORD)).ok().and_then(|b| serde_json::from_slice(&b).ok());
     let ext = Ext {
@@ -256,18 +257,36 @@ pub fn forget(app: &AppHandle, name: &str) {
 /// `{ settings, palettes: { <name>: {...} } }`. Settings declared `kind:
 /// "secret"` arrive as the secret itself, fetched from the OS store; an
 /// unresolvable reference stays as written (and is logged by the core).
-fn resolved(config: &Config, name: &str, manifest: &Value) -> Value {
+/// `key` is the extension's name or an instance key (`gmail@work`), whose
+/// tables inherit the default's (`Config::extension_settings`).
+fn resolved(config: &Config, key: &str, manifest: &Value) -> Value {
     let store = platform_store();
-    let settings = config.extension_settings_resolved(name, &manifest["settings"], &*store);
+    let settings = config.extension_settings_resolved(key, &manifest["settings"], &*store);
     let mut palettes = serde_json::Map::new();
     if let Some(declared) = manifest["palettes"].as_object() {
         for (palette, p) in declared {
-            let id = palette_id(&pal_core::index::Source::new(name, palette));
-            let table = config.palette_settings_resolved(&id, &p["settings"], &*store);
+            let table = config.palette_settings_resolved(key, palette, &p["settings"], &*store);
             palettes.insert(palette.clone(), serde_json::to_value(table).unwrap_or(Value::Null));
         }
     }
     json!({ "settings": serde_json::to_value(settings).unwrap_or(Value::Null), "palettes": palettes })
+}
+
+/// `core/instances.get { extension }`: every instance the file describes
+/// for the extension, `[{ key, title?, tint?, badge?, enabled }]`, the
+/// default first (`Config::instances_of`), disabled ones included so the
+/// host can log what it skips. The host resolves the defaults (a title
+/// from the suffix, a tint from it, a badge from the title) and announces
+/// them in `extension/loaded`.
+pub fn instances(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
+    match func {
+        "get" => {
+            let name = params["extension"].as_str().ok_or("instances.get: no extension")?;
+            let list: Vec<Value> = config(app).instances_of(name).into_iter().map(|(key, i)| json!({ "key": key, "title": i.title, "tint": i.tint, "badge": i.badge, "enabled": i.enabled })).collect();
+            Ok(Value::Array(list))
+        }
+        _ => Err(format!("unknown instances function {func}")),
+    }
 }
 
 /// `core/settings.get {extension, manifest}`: the host asks before it

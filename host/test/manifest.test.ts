@@ -138,6 +138,27 @@ describe("checkPalettes", () => {
     expect(checkPalettes(man({ p: { lazy: true } }), ext({ p: live })).metas[0]).toMatchObject({ live: true, lazy: true });
   });
 
+  test("refresh and on: a view palette's, from either side, the manifest's first; a difference is a warning; on a listing they are warned about and left off", () => {
+    expect(checkPalettes(man({ p: { refresh: 5, on: ["media", "show"] } }), ext({ p: view })).metas[0]).toMatchObject({ view: "view", refresh: 5, on: ["media", "show"] });
+    expect(checkPalettes(man({ p: {} }), ext({ p: { ...view, refresh: 2, on: ["wake"] } })).metas[0]).toMatchObject({ refresh: 2, on: ["wake"] });
+    expect(checkPalettes(man({ p: { refresh: 5, on: ["media"] } }), ext({ p: { ...view, refresh: 5, on: ["media"] } })).warnings).toEqual([]);
+    const differ = checkPalettes(man({ p: { refresh: 5, on: ["media"] } }), ext({ p: { ...view, refresh: 2, on: ["wake"] } }));
+    expect(differ.warnings).toEqual([
+      "palettes.p: refresh 2 in the code, 5 in pal.json; the manifest's is used, drop the code's",
+      'palettes.p: on ["wake"] in the code, ["media"] in pal.json; the manifest\'s is used, drop the code\'s',
+    ]);
+    expect(differ.metas[0]).toMatchObject({ refresh: 5, on: ["media"] });
+    const meta = checkPalettes(man({ p: {} }), ext({ p: view })).metas[0];
+    expect("refresh" in meta || "on" in meta).toBe(false);
+    const listed = checkPalettes(man({ p: { refresh: 5, on: ["media"] } }), ext({ p: list }));
+    expect(listed.warnings).toEqual([
+      "palettes.p: refresh is for a view palette (a re-ask of view(ctx) while it is open); a listing has ttl and live",
+      "palettes.p: on is for a view palette (the triggers that re-ask view(ctx) while it is open)",
+    ]);
+    expect("refresh" in listed.metas[0] || "on" in listed.metas[0]).toBe(false);
+    expect(checkPalettes(man({ p: { on: ["tuesday"] as never } }), ext({ p: view })).warnings).toEqual(["palettes.p: on must be a list of media, wake, network, show"]);
+  });
+
   test("several disagreements on one palette are several warnings", () => {
     const r = checkPalettes(man({ p: { kind: "list", title: "T", ttl: 1 } }), ext({ p: { ...live, ttl: 2 } }));
     expect(r.warnings.map((w) => w.split(":")[1].trim().split(" ")[0])).toEqual(["kind", "title", "ttl"]);

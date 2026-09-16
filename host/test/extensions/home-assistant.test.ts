@@ -90,6 +90,15 @@ const list = (ctx?: Parameters<Host["list"]>[3]) => host.list(E, "entities", "",
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick(E, "entities", id, action, ctx);
 const lastCall = () => calls[calls.length - 1];
 
+describe("manifest", () => {
+  test("multi: a home is an instance; `url` and the token never inherit from the default", () => {
+    const m = host.manifests.get(E)!;
+    expect(m.multi).toBe(true);
+    expect(m.settings!.filter((s) => s.kind === "secret" || s.scope === "instance").map((s) => s.id)).toEqual(["url", "token"]);
+    expect((host.loaded().find((l) => l.extension === E) as any).instance).toEqual({ key: E, isDefault: true });
+  });
+});
+
 describe("ha helpers", () => {
   const ok: Settings = { url: "http://ha", token: "t", domains: [], favorites: [], timeout: 5 };
   test("unconfigured: no url, a url without a scheme, no token, an unresolved reference", () => {

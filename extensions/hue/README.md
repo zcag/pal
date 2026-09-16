@@ -167,8 +167,6 @@ palette), `pal://hue/off`. Rooms and scenes go by name, slug or id.
 
 ## What it does not do
 
-- The view redraws on the next key, not on its own: the model is live,
-  the tree is not pushed (there is no channel for that yet).
 - No scene editing, no naming, no light setup: the Hue app's.
 - Entertainment streaming itself (DTLS to the bridge): only start/stop.
 - The mDNS browse is best effort: a box without `dns-sd`/`avahi-browse`

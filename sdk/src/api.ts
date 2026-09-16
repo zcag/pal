@@ -3,9 +3,9 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import type { BarItem, CopyText, Effect, ResolvedSettings, WindowLayoutRequest } from "./protocol.ts";
+import type { BarItem, CopyText, Effect, InstanceInfo, ResolvedSettings, View, ViewNode, ViewShown, ViewTarget, ViewUpdate, WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
-import { checkBarItem } from "./view.ts";
+import { checkBarItem, checkView } from "./view.ts";
 
 const call = <T = unknown>(method: string, params?: unknown, opts?: { timeout?: number }): Promise<T> => runtime().call<T>(method, params, opts);
 const who = (extension?: string): string => runtime().caller(extension).extension;
@@ -87,6 +87,20 @@ export const settings = {
 };
 
 /**
+ * Which instance of the extension this code runs as
+ * (docs/design/instances.md): `key` is what its tables, storage file and
+ * links are spelled with (`gmail@work`; the bare name for the default
+ * instance and for an extension without `"multi": true`), `name` the
+ * manifest's, `title` what the user called it ("Work"; the default has
+ * none until named), `isDefault` whether it is the default. Nothing else
+ * changes for an instance: `settings.get()`, `storage`, `bar.update` and
+ * `push` mean this instance already. Which extension is asking is known
+ * inside `list`/`pick`/`view`/`render` and at import time; elsewhere pass
+ * the name.
+ */
+export const instance = (extension?: string): InstanceInfo => runtime().instance(who(extension));
+
+/**
  * The extension's bar items (`Extension.bar`, `docs/design/bar.md`), pushed
  * from the extension's own side: a webhook, a file watcher, a poll it runs
  * itself. The core renders a pushed item to every target as it would a
@@ -99,6 +113,77 @@ export const bar = {
   update: (id: string, item: BarItem, extension?: string) => call<null>("bar.update", { extension: who(extension), id, item: checkBarItem(item, `bar.update ${id}`) }),
   /** Ask for a `render` with reason `update`. */
   refresh: (id: string, extension?: string) => call<null>("bar.refresh", { extension: who(extension), id }),
+};
+
+/** Pushes to one view level closer together than this are coalesced: the last one within the window goes, ~30 a second at most. */
+export const VIEW_UPDATE_MIN_MS = 33;
+
+/** Where a `view.update` goes: the caller's own palette unless `palette` or `bar` names another; `id` narrows it to the level whose `View.id` matches. */
+export type ViewUpdateOptions = { palette?: string; bar?: string; id?: string; extension?: string };
+
+type Coalesced = { last: number; timer?: ReturnType<typeof setTimeout>; next?: { params: ViewUpdate; settle: { resolve: (v: null) => void; reject: (e: unknown) => void }[] } };
+const coalesced = new Map<string, Coalesced>();
+
+/** The target of a push from the options and the caller: `bar` when given, else the palette given or the one in context. */
+function targetOf(o: ViewUpdateOptions): ViewTarget {
+  const c = runtime().caller(o.extension);
+  if (o.bar) return { extension: c.extension, bar: o.bar };
+  const palette = o.palette ?? c.palette;
+  if (!palette) throw new Error("view.update: which view? pass { palette } (or { bar }) outside view/pick, as for storage");
+  return { extension: c.extension, palette };
+}
+
+/**
+ * The push half of a live view (docs/extensions.md, "Live views"; the
+ * pull half is `Palette.refresh`). `view.update(spec)` replaces the tree
+ * of the open level in place, with the keyed transitions (`move`, enter,
+ * exit) and the text field kept, as a `{ view }` answer to a pick does;
+ * a `ViewNode` alone replaces the tree and keeps the level's actions,
+ * title and input, a whole `View` replaces those too. The core drops a
+ * push while no such level is open (one log line), so push freely;
+ * `view.onShown`/`view.onHidden` say when to start and stop a loop, and
+ * `view.open()` lists what is open now. Pushes closer than
+ * `VIEW_UPDATE_MIN_MS` to one level coalesce, the last winning. Inside
+ * `view`/`pick` the palette is known; from a timer or a stream pass
+ * `{ palette }` (or `{ bar }` for a bar item's own `{ view }` popover).
+ * Checked like a `view` answer (`checkView`) before it goes.
+ */
+export const view = {
+  update: (spec: View | ViewNode, opts: ViewUpdateOptions = {}): Promise<null> => {
+    let params: ViewUpdate, target: ViewTarget;
+    // A refusal (no target, a bad tree) rejects rather than throws, so a `.catch` on the call always sees it.
+    try {
+      target = targetOf(opts);
+      const where = `view.update ${target.palette ?? target.bar}`;
+      const checked: ViewUpdate["spec"] = "tree" in spec ? checkView(spec, where) : { tree: checkView({ tree: spec, actions: [] }, where).tree };
+      params = { ...target, ...(opts.id !== undefined && { id: opts.id }), spec: checked };
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    const key = `${target.extension}/${target.palette ?? `bar:${target.bar}`}/${opts.id ?? ""}`;
+    const c = coalesced.get(key) ?? { last: 0 };
+    coalesced.set(key, c);
+    const now = Date.now();
+    const send = (p: ViewUpdate) => { c.last = Date.now(); return call<null>("view.update", p); };
+    if (!c.timer && now - c.last >= VIEW_UPDATE_MIN_MS) return send(params);
+    // Inside the window: the newest waits for its end; everyone who pushed meanwhile settles with it.
+    return new Promise<null>((resolve, reject) => {
+      c.next = { params, settle: [...(c.next?.settle ?? []), { resolve, reject }] };
+      c.timer ??= setTimeout(() => {
+        c.timer = undefined;
+        const n = c.next;
+        c.next = undefined;
+        if (!n) return;
+        send(n.params).then((v) => n.settle.forEach((s) => s.resolve(v)), (e) => n.settle.forEach((s) => s.reject(e)));
+      }, Math.max(0, VIEW_UPDATE_MIN_MS - (now - c.last)));
+    });
+  },
+  /** A view level of the extension's came on top of the panel or the popover: start what keeps it live. Which extension: as for `storage`. */
+  onShown: (cb: (ev: ViewShown) => void, extension?: string): (() => void) => runtime().onView(who(extension), (ev, shown) => { if (shown) cb(ev); }),
+  /** The level left (popped, covered by another, the window hidden): stop the loop. */
+  onHidden: (cb: (ev: ViewShown) => void, extension?: string): (() => void) => runtime().onView(who(extension), (ev, shown) => { if (!shown) cb(ev); }),
+  /** The extension's view levels open right now. */
+  open: (extension?: string): ViewShown[] => runtime().views(who(extension)),
 };
 
 /**

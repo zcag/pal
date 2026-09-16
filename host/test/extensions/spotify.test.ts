@@ -485,7 +485,7 @@ describe("spotify, signed in", () => {
       const view = (item.menu as { view: any }).view;
       expect(view.title).toBe("Weird Fishes/ Arpeggi · Radiohead");
       expect(find(view.tree, (n: any) => n.type === "image")).toMatchObject({ width: 64, height: 64 });
-      expect(lyricLines(view.tree)).toEqual(["In the deepest ocean", "The bottom of the sea", "Your eyes", "They turn me", "Why should I stay here?"]);
+      expect(lyricLines(view.tree)).toEqual(["The bottom of the sea", "Your eyes", "They turn me", "Why should I stay here?"]);
       state.player = { ...state.player, is_playing: false };
       expect(await h.render("spotify", "playing", { reason: "media" as never })).toEqual({ hidden: true });
       state.player = { ...state.player, is_playing: true };
@@ -520,6 +520,39 @@ describe("spotify, signed in", () => {
       expect(h.updates("spotify", "playing").length).toBe(n);
       expect(refreshes.filter((x) => x === "playing").length).toBeGreaterThanOrEqual(1);
     }, 15_000);
+
+    test("the panel's lyrics view: view/shown starts a 1 Hz view.update of the wide tree while the position moves, a paused song pushes nothing new, view/hidden stops it; the item's own popover level ends the window", async () => {
+      const t0 = Date.now();
+      state.advanceFrom = t0;
+      h.viewShown("spotify", { palette: "now-playing" }, "now");
+      const pos = (u: any) => find(u.spec.tree, (n: any) => n.type === "progress").value as number;
+      const first = await h.nextViewUpdate("spotify", { palette: "now-playing" }, () => true, 2500);
+      expect(first).toMatchObject({ extension: "spotify", palette: "now-playing", spec: { id: "now", title: "Weird Fishes/ Arpeggi · Radiohead", keys: "actions" } });
+      expect(find(first.spec.tree, (n: any) => n.type === "image")).toMatchObject({ width: 208, height: 208 });
+      const second = await h.nextViewUpdate("spotify", { palette: "now-playing" }, (u) => pos(u) > pos(first), 2500);
+      expect(pos(second) - pos(first)).toBeGreaterThan(0.5 / 318);
+      // Paused, the clock stands still: the tree is the one already pushed, so nothing goes.
+      state.advanceFrom = undefined;
+      state.player = { ...state.player, is_playing: false };
+      await h.nextViewUpdate("spotify", { palette: "now-playing" }, (u) => !!find(u.spec.tree, (n: any) => n.type === "badge" && n.text === "paused"), 2500);
+      const n = h.viewUpdates("spotify", { palette: "now-playing" }).length;
+      await Bun.sleep(1500);
+      expect(h.viewUpdates("spotify", { palette: "now-playing" }).length).toBe(n);
+      state.player = { ...state.player, is_playing: true };
+      h.viewHidden("spotify", { palette: "now-playing" }, "now");
+      await Bun.sleep(1500);
+      expect(h.viewUpdates("spotify", { palette: "now-playing" }).length).toBe(n);
+      // The popover's own level: shown feeds it, hidden ends the window before TICK_WINDOW_MS.
+      const before = h.updates("spotify", "playing").length;
+      h.viewShown("spotify", { bar: "playing" }, "now", true);
+      await h.nextUpdate("spotify", "playing", (i) => !i.hidden, 2500);
+      h.viewHidden("spotify", { bar: "playing" }, "now", true);
+      await Bun.sleep(1200);
+      const after = h.updates("spotify", "playing").length;
+      await Bun.sleep(1200);
+      expect(h.updates("spotify", "playing").length).toBe(after);
+      expect(after - before).toBeLessThanOrEqual(2);
+    }, 20_000);
   });
 
   test("sign out forgets the tokens; listings ask to sign in again", async () => {

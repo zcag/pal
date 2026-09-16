@@ -166,6 +166,13 @@ describe("slack", () => {
     expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["dm_urgent", "boolean"], ["refresh", "number"]]);
   });
 
+  test("multi: a workspace is an instance; `workspace` and the token never inherit from the default", () => {
+    const m = host.manifests.get("slack")!;
+    expect(m.multi).toBe(true);
+    expect(m.settings!.filter((s) => s.kind === "secret" || s.scope === "instance").map((s) => s.id)).toEqual(["token", "workspace"]);
+    expect((host.loaded().find((l) => l.extension === "slack") as any).instance).toEqual({ key: "slack", isDefault: true });
+  });
+
   describe("unreads", () => {
     test("the app session is extracted (one keychain ask), one client.counts, the rows sectioned DMs, mentions, threads, channels", async () => {
       const items = await list("unreads");

@@ -16,11 +16,13 @@
 //! - `core/menubar.{items, press {pid, id}}` (menubar.rs)
 //! - `core/permissions.{status, request {which}}` (permissions.rs)
 //! - `core/settings.{get {extension, manifest}, set {extension, palette?, values}}` (settings.rs)
+//! - `core/instances.get {extension}` (settings.rs: the configured instances of a `multi` extension)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
 //! - `core/system.{commands, run}` (system.rs)
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
 //! - `core/windows.{list, close, minimize, unminimize, fullscreen, frame, set_frame, displays, focused, layout}` (windows.rs)
 //! - `core/calendar.{permission, request, open_settings, calendars, events, create, delete, open}` (calendar.rs)
+//! - `core/view.update {extension, palette | bar, id?, spec}` (views.rs)
 
 use serde_json::Value;
 use tauri::AppHandle;
@@ -47,6 +49,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "menubar" => menubar::call(app, func, params),
         "permissions" => crate::permissions::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
+        "instances" => crate::settings::instances(app, func, params),
         "storage" => crate::storage::call(app, func, params),
         "system" => crate::system::call(app, func, params),
         "wifi" => crate::wifi::call(app, func, params),
@@ -54,6 +57,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "selection" => crate::selection::call(app, func, params),
         "windows" => crate::windows::call(app, func, params),
         "calendar" => calendar::call(app, func, params),
+        "view" => crate::views::call(app, func, params),
         _ => Err(format!("unknown capability {capability}")),
     }
 }
@@ -68,7 +72,9 @@ mod tests {
         assert_eq!(route("core/apps.for_file"), Ok(("apps", "for_file")));
         assert_eq!(route("core/settings.get"), Ok(("settings", "get")));
         assert_eq!(route("core/settings.set"), Ok(("settings", "set")));
+        assert_eq!(route("core/instances.get"), Ok(("instances", "get")));
         assert_eq!(route("core/bar.update"), Ok(("bar", "update")));
+        assert_eq!(route("core/view.update"), Ok(("view", "update")));
         assert_eq!(route("core/wifi.set_power"), Ok(("wifi", "set_power")));
         assert_eq!(route("core/calendar.events"), Ok(("calendar", "events")));
         assert_eq!(route("core/ocr.image"), Ok(("ocr", "image")));

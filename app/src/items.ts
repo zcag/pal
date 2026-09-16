@@ -65,6 +65,10 @@ export type SourceInfo = Source & {
   alias?: string;
   /** Tab (and a bare `x` with nothing typed) marks rows inside it (`Palette.multi`). */
   multi?: true;
+  /** A view palette: seconds between re-asks of `view(ctx)` while its level is on top (the pull half of a live view). */
+  refresh?: number;
+  /** A view palette: the triggers (`pal://trigger` names) that re-ask it while on top. */
+  on?: string[];
   count: number;
   /** The rows are a restored (or expired) listing and a fresh one is pending: "updating" in the footer. */
   stale: boolean;
@@ -157,10 +161,12 @@ export function iconOf(icon: unknown, name: string, url?: string): Icon | undefi
   if (typeof obj?.app === "string") return { kind: "app", path: obj.app, letter };
   if (typeof obj?.image === "string") return { kind: "image", src: obj.image, mask: "rounded" };
   if (obj?.tile && typeof obj.tile === "object") {
-    const t = obj.tile as { glyph?: unknown; svg?: unknown; bg?: unknown };
+    const t = obj.tile as { glyph?: unknown; svg?: unknown; bg?: unknown; badge?: unknown };
     const glyph = typeof t.glyph === "string" && isSymbol(t.glyph) ? t.glyph : undefined;
     const svg = typeof t.svg === "string" && t.svg.trim() ? t.svg : undefined;
-    if (isBrand(t.bg) && (glyph || svg)) return glyph ? { kind: "tile", bg: t.bg, glyph } : { kind: "tile", bg: t.bg, svg };
+    // An instance's mark: one or two characters (code points) in the corner; anything longer is cut to fit.
+    const badge = typeof t.badge === "string" && t.badge.trim() ? { badge: [...t.badge.trim()].slice(0, 2).join("") } : {};
+    if (isBrand(t.bg) && (glyph || svg)) return glyph ? { kind: "tile", bg: t.bg, glyph, ...badge } : { kind: "tile", bg: t.bg, svg, ...badge };
     return glyph ? { kind: "glyph", value: glyph } : letter ? { kind: "glyph", value: letter } : undefined;
   }
   if (typeof obj?.glyph === "string" && obj.glyph.trim()) {

@@ -2615,8 +2615,9 @@ brightness (5 %, `⇧` 20 %), `↑`/`↓` cooler/warmer (20 mirek, `⇧` 80),
 become hue and saturation, clamped into the gamut), presets, scenes,
 effects (`←`/`→` choose, Enter applies), `a` this light or the whole room,
 `d` the transition (instant, 400 ms, 1 s, 4 s), `s` scenes, `o` the room,
-`i` blink, `c` copy, `r` re-read. The tree redraws on the next key: the
-model is live, the tree is not pushed.
+`i` blink, `c` copy, `r` re-read. The view follows the bridge: a change
+from a switch or the Hue app reaches it through the event stream while
+it is open (the tree pushed, `view.update`), no key needed.
 
 **Hue Sensors** (`hue-sensors`, live): motion, temperature, light level
 (lux), buttons and dials with their last event, contact sensors, by
@@ -2696,14 +2697,18 @@ colour. Keys: `space` play or pause, `left`/`right` seek 10 s,
 `up`/`down` volume, `l` like, `s` shuffle, `r` repeat, `q` queue, `d`
 devices, `cmd+right`/`cmd+left` skip, `cmd+c` copy the line, `cmd+o`
 open in Spotify. Every key answers with the next tree at once from a
-locally patched state. The panel's view does not tick by itself (pal has
-no channel to push a tree into an open level); the bar popover does.
+locally patched state, and the view follows the song while it is open:
+the tree is pushed every second while something plays (the lines slide
+up on time), with a re-ask every 5 s as the safety net.
 
 **The bar item** (`spotify/playing`): the track, or with `bar_lyrics`
 the lyric line playing; hidden while nothing plays. The popover is the
-lyrics view in a compact layout, pushed every second while it is up
-(five minutes after the last show or action; Spotify read every 5 s, the
-clock between reads), and outside that window the item asks to be
+lyrics view in a compact layout (the cover top-left, a slim progress
+bar, the line playing with one before and two after, the transport and
+the like/device/queue row as keycap hints), pushed every second while
+the popover is open (the shell says when it opens and closes; five
+minutes after the last action as the fallback; Spotify read every 5 s,
+the clock between reads), and outside that window the item asks to be
 rendered again when the next line starts. Rendered every 30 s, on show,
 wake, network and the `media` trigger.
 

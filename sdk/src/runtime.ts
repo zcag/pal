@@ -6,7 +6,7 @@
 // to the copy the host links) still finds the host's binding: the calls
 // are the wire's method names, which is what stays compatible, not the
 // module instance.
-import type { ResolvedSettings } from "./protocol.ts";
+import type { InstanceInfo, ResolvedSettings, ViewShown } from "./protocol.ts";
 
 /** Which extension (and palette) a call comes from, as the host resolves it. */
 export type Caller = { extension: string; palette?: string };
@@ -23,6 +23,12 @@ export type Runtime = {
   subscribe(extension: string, cb: (s: ResolvedSettings) => void): () => void;
   /** The extension's values as the core answered a write (`settings.set`): into the table now, ahead of the config watcher's own `settings/changed`. */
   update(extension: string, s: ResolvedSettings): void;
+  /** Which instance the calling extension runs as (`instance()` in api.ts): a host without instances answers the extension as its own default. */
+  instance(extension: string): InstanceInfo;
+  /** The extension's view levels open now: every `view/shown` without its `view/hidden` yet (host/src/views.ts). */
+  views(extension: string): ViewShown[];
+  /** Called on every `view/shown` (`shown` true) and `view/hidden` of the extension's; returns the unsubscribe. */
+  onView(extension: string, cb: (ev: ViewShown, shown: boolean) => void): () => void;
 };
 
 const KEY = Symbol.for("@zcag/pal/runtime");

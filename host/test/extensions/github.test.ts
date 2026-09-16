@@ -174,6 +174,18 @@ describe("github", () => {
     expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"]]);
   });
 
+  test("multi: two accounts are two instances; the token is per instance (a secret), the rest inherits; the lone default runs in a worker, unmarked", () => {
+    const m = host.manifests.get("github")!;
+    expect(m.multi).toBe(true);
+    expect(m.settings!.filter((s) => s.kind === "secret" || s.scope === "instance").map((s) => s.id)).toEqual(["token"]);
+    const loaded = host.loaded().find((l) => l.extension === "github")! as any;
+    expect(loaded.name).toBe("github");
+    expect(loaded.instance).toEqual({ key: "github", isDefault: true });
+    expect(loaded.palettes[0].title).toBe("Pull Requests");
+    expect(loaded.palettes[0].icon).toEqual(m.icon);
+    expect(host.stderr).toMatch(/loaded github \(.*\) in a worker/);
+  });
+
   describe("pull requests", () => {
     test("all: three sections in order, one GraphQL request, a PR in two lists listed once", async () => {
       const items = await list("prs");

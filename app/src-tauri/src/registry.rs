@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use pal_core::config::Config;
+use pal_core::config::{instance, Config};
 use pal_core::index::{Item, Source, Tier};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -84,6 +84,15 @@ pub struct PaletteMeta {
     /// and `live` apply as usual (`index::load_plan`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub lazy: bool,
+    /// A view palette: seconds between re-asks of `view(ctx)` while its
+    /// level is open; the page runs the timer (views.rs, Launcher.tsx).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh: Option<f64>,
+    /// A view palette: the triggers that re-ask it while open (`media`,
+    /// `wake`, `network`, `show`); opaque here, the page matches them
+    /// against `pal://trigger`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on: Option<Vec<String>>,
 }
 
 impl PaletteMeta {
@@ -165,16 +174,12 @@ impl Palettes {
 
 /// The palette's key in the config file, `palettes.<id>`: the extension's
 /// name when the palette is named like it (`emoji`, `apps`), else
-/// `<extension>-<palette>` (`clipboard-history`). Readable in the file and
-/// needs no quoting; the registry resolves it back, so a clash between a
-/// hyphenated extension name and a palette is the one case it cannot tell
-/// apart.
+/// `<extension>-<palette>` (`clipboard-history`); for an instance the key
+/// takes the name's place (`gmail@work`, `gmail@work-inbox`), the
+/// comparison being against the extension's *name*
+/// (`pal_core::config::instance::palette_id`).
 pub fn palette_id(source: &Source) -> String {
-    if source.extension == source.palette {
-        source.extension.clone()
-    } else {
-        format!("{}-{}", source.extension, source.palette)
-    }
+    instance::palette_id(&source.extension, &source.palette)
 }
 
 /// Every palette the host reported, enabled or not, with its config id.
@@ -208,6 +213,10 @@ pub fn palette_row(r: &Registered, config: &Config) -> Item {
     let mut keywords = vec![m.name.clone()];
     if r.source.extension != m.name {
         keywords.push(r.source.extension.clone());
+    }
+    // An instance's suffix (`work` for `gmail@work`), so `work inbox` finds it.
+    if let (_, Some(suffix)) = instance::split(&r.source.extension) {
+        keywords.push(suffix.to_string());
     }
     let p = config.palette(&palette_id(&r.source));
     if let Some(alias) = p.alias.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
@@ -293,6 +302,19 @@ mod tests {
     fn ids_read_back_from_the_file() {
         assert_eq!(palette_id(&Source::new("emoji", "emoji")), "emoji");
         assert_eq!(palette_id(&Source::new("clipboard", "history")), "clipboard-history");
+    }
+
+    #[test]
+    fn palette_id_of_an_instance() {
+        assert_eq!(palette_id(&Source::new("gmail@work", "gmail")), "gmail@work", "named like the extension's name: the key");
+        assert_eq!(palette_id(&Source::new("gmail@work", "inbox")), "gmail@work-inbox");
+        let c = config(&[("gmail@work-inbox", palette(false, Some("wi"), None))]);
+        let r = Registered::new(Source::new("gmail@work", "inbox"), meta("inbox", "Inbox (Work)"), "Gmail".into(), &c);
+        assert!(!r.enabled, "[palettes.\"gmail@work-inbox\"] is the instance's palette");
+        let row = palette_row(&r, &c);
+        assert_eq!(row.id, "gmail@work/inbox");
+        assert_eq!(row.keywords, ["inbox", "gmail@work", "work", "wi"], "name, key, the instance's suffix, alias");
+        assert_eq!(row.subtitle.as_deref(), Some("Gmail"), "the subtitle stays the extension's title");
     }
 
     #[test]

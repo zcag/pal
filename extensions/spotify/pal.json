@@ -44,8 +44,9 @@
   "palettes": {
     "now-playing": {
       "title": "Lyrics",
-      "description": "The track playing with its cover, a ticking progress bar, the state, and lrclib's synced lyrics around the line playing.",
+      "description": "The track playing with its cover, a ticking progress bar, the state, and lrclib's synced lyrics around the line playing; follows the song while open.",
       "kind": "view",
+      "refresh": 5,
       "keys": [
         { "keys": "space, enter", "title": "Play or pause" },
         { "keys": "left, right", "title": "Seek 10 s back or forward" },

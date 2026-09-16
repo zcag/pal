@@ -45,6 +45,34 @@
 .pal-icon__glyph { display: block; transform: translateY(-2%); }
 .pal-icon__mark { display: block; width: 66%; height: 66%; fill: currentColor; }
 
+/*
+ * An instance's badge (docs/design/instances.md): one or two characters
+ * in a pill on the tile's bottom-right corner, overhanging the edge by a
+ * hair so the mark stays whole. Panel colours (the surface behind the
+ * text, the text colour) rather than the brand's, so it reads on every
+ * tint; the pill scales with the tile.
+ */
+.pal-icon[data-kind="tile"][data-badged] { position: relative; }
+.pal-icon__badge {
+  position: absolute;
+  right: calc(var(--tile) * -0.12);
+  bottom: calc(var(--tile) * -0.12);
+  min-width: calc(var(--tile) * 0.5);
+  height: calc(var(--tile) * 0.5);
+  padding: 0 calc(var(--tile) * 0.08);
+  border-radius: calc(var(--tile) * 0.25);
+  background: var(--pal-bg-elevated, #26262d);
+  color: var(--pal-fg, #ececf0);
+  box-shadow: 0 0 0 1px var(--pal-tile-ring, rgba(0, 0, 0, 0.1));
+  font-family: var(--pal-font-ui, system-ui, sans-serif);
+  font-size: calc(var(--tile) * 0.36);
+  font-weight: 700;
+  line-height: calc(var(--tile) * 0.5);
+  letter-spacing: -0.02em;
+  text-align: center;
+  transform: none;
+}
+
 /* A tinted glyph (or a tinted globe, the missing-favicon mark) keeps its colour on the selected row: the tint is the extension's or a state's, which the selection does not change. */
 .pal-icon[data-kind="glyph"][data-brand], .pal-row[data-active] .pal-icon[data-kind="glyph"][data-brand], .pal-action[data-active] .pal-icon[data-kind="glyph"][data-brand],
 .pal-icon[data-brand] .pal-icon__globe, .pal-row .pal-icon[data-brand] .pal-icon__globe, .pal-row[data-active] .pal-icon[data-brand] .pal-icon__globe { color: var(--brand); }

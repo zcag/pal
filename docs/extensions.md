@@ -65,7 +65,8 @@ whose code fails to load.
 - `settings`: extension-level settings, `[extensions.<name>]` in the config
   file. Kinds: `text`, `secret`, `number`, `boolean`, `select`, `hotkey`,
   `path`, `list`; each with `id`, `label`, optional `description` and a
-  `default`.
+  `default`; `"scope": "instance"` on one that identifies the account
+  (below, "Instances").
 - `palettes.<key>`: the palette's static description: `title`,
   `description`, `kind`, `ttl`, `lazy`, `tier`, `keys`, `rank`, `settings`,
   `match`, `inline`, `fallback`
@@ -74,6 +75,60 @@ whose code fails to load.
   code is the next section.
 - `bar.<id>`: a bar item's `title`, `description` and `refresh` schedule
   (below, "Bar items"). The id is the key in the code's `bar` object.
+- `multi`: `true` when the extension can run as several configured
+  instances (two accounts, two homes; below, "Instances"). Without it a
+  `[instances."<name>@<suffix>"]` in the config file is not loaded.
+
+## Instances: one extension, several accounts
+
+An extension that declares `"multi": true` in `pal.json` can run as
+several *instances*: the user adds `[instances."gmail@work"]` to the
+config file ([config.md](config.md), "`[instances]`") and gets a second
+set of palettes and bar items with their own settings, storage, cache,
+frecency and links; the code and the manifest are shared. The default
+instance is the bare name and everything that exists today; the other
+is spelled by its *key*, `<name>@<suffix>`, everywhere a name is used
+(`[extensions."gmail@work"]`, `[palettes."gmail@work-inbox"]`,
+`[bar.items."gmail@work/unread"]`, `pal://open/gmail@work/inbox`,
+`storage/gmail@work.json`).
+
+The code never learns a new API to work: `settings.get()`, `storage`,
+`bar.update`, `push` and the rest keep meaning "me", where "me" is the
+instance. Every instance of a `multi` extension runs in its own worker of
+the host (the default too, even when it is alone), with its own copy of
+the module and everything it imports, so a token cached at module level
+in `api.ts` is one instance's alone. What changes for the author:
+
+- `settings`: mark a setting `"scope": "instance"` when it identifies the
+  account rather than configures it (Home Assistant's `url`, Slack's
+  `workspace`); it is then never inherited from the default instance,
+  like a `secret` never is. Everything else inherits: `[extensions.gmail]
+  signature` is `gmail@work`'s signature until set there.
+- Palette titles: with two or more instances every palette title gets
+  ` (<instance title>)` appended ("Inbox (Work)"), unless the manifest's
+  `title` contains `{instance}`, which is substituted instead (`"{instance}
+  Inbox"` gives "Work Inbox"). With one instance, or for a default the
+  user has not named, `{instance}` and one surrounding pair of parentheses
+  or a flanking space are stripped ("Inbox ({instance})" is "Inbox").
+  `{instance}` in a manifest without `multi` is a load warning.
+- Tile: the extension's tile wears the instance's `tint` and a `badge`
+  letter in the corner; a palette's own tile keeps its colour and gains
+  the badge. The default instance keeps the plain tile.
+- `instance()` in `@zcag/pal` answers `{ key, name, title, isDefault }`:
+  `key` is `gmail@work` (the bare name for the default and for a non-`multi`
+  extension), `name` the manifest's, `title` "Work" (none for an unnamed
+  default). A bar item gets the same as `ctx.instance` in `render`, so
+  it can name its account in `title`.
+- An effect's `push` (and a bar item's `menu: { palette }`) that names
+  the extension by its manifest name, or not at all, lands on the
+  instance it came from; another extension's name is left as written.
+- `dispose` runs when an instance is removed or reloaded, before its
+  worker is terminated. An instance whose event loop hangs is terminated
+  after a second without touching the others.
+
+Bundled: `github` (two accounts: `token` per instance, the rest inherits),
+`slack` (a workspace per instance: `workspace` is `scope: "instance"`),
+`home-assistant` (a home per instance: `url` is `scope: "instance"`).
 
 ## Where a palette is described
 
@@ -446,6 +501,69 @@ tokens'; reduced motion turns them all off. A row whose keyed children come
 and go wants a `minHeight` so the layout holds still; a cell whose tile
 moves out wants a stack of its own holding an `outline` tile meanwhile.
 
+## Live views: push and pull
+
+A view is drawn on open and on every key; a view that follows something
+outside the panel (a song's position, a light a switch just dimmed, a
+counter) needs to change while nobody presses anything. Two halves, and
+they compose:
+
+**Push: `view.update`.** From `@zcag/pal`, `view.update(spec)` replaces
+the open level's tree in place, exactly as a `{ view }` answer to a pick
+does: the keyed transitions run (`move`, enter, exit), the DOM of a kept
+key stays, the text field and its caret are untouched. `spec` is a
+`ViewNode` (the tree alone; the level keeps its actions, title, keys and
+input) or a whole `View` (those replaced too). Inside `view` or `pick`
+the palette is known; from a timer or a stream pass `{ palette }`, and
+`{ id }` when the palette's view answers to several things (Hue's light
+view is one level per light, its `View.id` the light's id; an update
+without `id` reaches whichever is open). Pushes to one level closer than
+`VIEW_UPDATE_MIN_MS` (33 ms) coalesce, the last winning, so a stream may
+push as it likes. The core drops a push while no such level is open (one
+log line per target until one lands), so a loop may run a beat past the
+level without harm; still, stop it:
+
+```ts
+import { view } from "@zcag/pal";
+
+let timer: ReturnType<typeof setInterval> | undefined;
+view.onShown((ev) => {                       // ev: { extension, palette, id } (or { bar } for a bar item's own popover level), compact: true in the popover
+  if (ev.palette !== "now-playing") return;
+  timer ??= setInterval(() => view.update(tree(position()), { palette: "now-playing" }), 1000);
+}, "spotify");
+view.onHidden((ev) => { if (ev.palette === "now-playing") { clearInterval(timer); timer = undefined; } }, "spotify");
+```
+
+`view.onShown` fires when a view level of yours comes on top of the
+panel or the bar popover with its tree in (pushed, or uncovered when a
+level over it pops, or the panel shown again with it kept), `view.onHidden`
+when it leaves (popped, covered by a palette you pushed, the window
+hidden). `view.open()` lists what is open right now, for a stream handler
+that pushes into every open level (`for (const ev of view.open()) ...`).
+A reload of the extension tells the new module about the levels already
+open. `dispose()` still clears the interval: the old module stays
+resident.
+
+**Pull: `refresh` and `on`.** On a view palette, `refresh: 5` (seconds,
+manifest or code; the manifest wins) makes the app ask `view(ctx)` again
+on that cadence while the level is on top, and `on: ["media", "wake",
+"network", "show"]` adds triggers (`media`: a track or player change from
+the MediaRemote stream, `wake` from sleep, `network` back, `show`: the
+panel shown with the level kept). Each answer replaces the tree in place
+the same way. A tick while a pick is in flight is skipped (the reply
+brings a newer tree). Nothing to write in the code: the palette's `view`
+already answers from live state.
+
+**Which to use.** Pull when the state lives elsewhere and a re-read is
+cheap and rare (a dashboard every 30 s, a device list on `wake`): no
+loop to own, nothing to stop. Push when you already have the change in
+hand (a bridge's event stream, a 1 Hz clock you run anyway for the bar
+item) or the cadence is faster than a request should be: the tree you
+push is the one you would have answered. Both together is the usual
+shape: push for the beat, `refresh` as the safety net (Spotify's lyrics
+view pushes every second while the song plays, and `refresh: 5` covers
+a missed push).
+
 ## Forms: asking for values
 
 A pick can answer `{ form }` instead of doing something, and pal pushes a
@@ -586,8 +704,14 @@ diffs it against the last one:
   disabled?, style?, action? }`), `section`s, `submenu`s (3 deep at most),
   `separator`s; 64 nodes at most. `{ palette: "name", extension?, args? }`
   opens that **palette level**, the panel machinery unchanged.
-  `{ view: View }` draws the tree as a **view level**. Without a `menu`
-  the click is `onOpen` and the extension answers an Effect.
+  `{ view: View }` draws the tree as a **view level**: the same level
+  as in the panel (`keys: "actions"`, the text field, the keyed `move`
+  transitions), 420 px wide, the popover as tall as its content up to
+  480 px and the tree scrolling inside past that. A `{ palette }` naming a
+  view palette opens as a view level too (`view(ctx)` asked with
+  `ctx.compact`). Without a `menu` the click is `onOpen` and the extension
+  answers an Effect; `{ view }`, `{ push }` or `{ show }` in it opens the
+  popover on that level.
 
 **The manifest.** `bar.<id>` next to `palettes`, so the settings window
 lists the item without running the code:
@@ -633,7 +757,11 @@ export default defineExtension({
 - `render(ctx)` returns a `BarItem`, sync or async. `ctx.reason` says why
   (the manifest's timer is `every`; a push asking for a render is
   `update`; a click that opened the popover is `open`), `ctx.anchor` where
-  a click came from (`menubar`, `sketchybar`, `hotkey`, `cli`). The host
+  a click came from (`menubar`, `sketchybar`, `hotkey`, `cli`),
+  `ctx.compact` that what the call answers is drawn in the popover (set
+  on every bar call today: 420 px wide, so a `{ view }` lays out for that
+  width; a `view(ctx)` or `pick` reached from the popover gets
+  `ctx.compact` on its `Ctx` the same way). The host
   checks every answer (`checkBarItem`, the limits above, no `pal:` action
   ids, a `{ view }` menu through `checkView`); over the limits is an
   error the core marks the item `stale` with.
@@ -647,6 +775,16 @@ export default defineExtension({
   asks for a `render` with reason `update`. From a timer or a watcher
   (outside `render`/`list`/`pick`) pass the extension's name as the last
   argument, as for `storage`. A push is checked like a render answer.
+- **A live popover.** A `{ view }` level in the popover is a view level
+  of the item's own: `view.update(tree, { bar: "<item id>" })` replaces
+  its tree in place (the strip untouched; `bar.update` re-renders the
+  whole item, popover included, and is the call when the strip changes
+  too), and `view.onShown`/`view.onHidden` fire for it with `{ bar }` and
+  `compact: true` when the popover opens on it (a peek counts) and when
+  it closes: the "popover closed" signal `onShown` never had. A
+  `{ palette }` level naming a view palette is that palette's level, with
+  `{ palette }` in the notifications and `compact: true`. See "Live
+  views" above.
 - An extension that runs an interval or a watcher for its pushes declares
   `dispose()` on the default export: the host calls it before the
   extension is reloaded or removed, since the old module stays resident
@@ -694,7 +832,8 @@ data, so the strip and the palette share one loader and one cache:
 
 `storage` in `@zcag/pal` is a small per-extension key-value store:
 `get(key)` (null when unset), `set(key, value)` (any JSON; null removes),
-`remove(key)`, `keys()`. The core keeps one file per extension,
+`remove(key)`, `keys()`. The core keeps one file per extension (per
+instance of a `multi` one: `gmail@work.json`),
 `<data dir>/pal/storage/<extension>.json` (`~/Library/Application
 Support/pal/storage/` on macOS, `~/.local/share/pal/storage/` on Linux),
 written whole and atomically on every change and shared by every config
@@ -718,8 +857,9 @@ through a process-wide slot, not a shared module, so the version in your
 `node_modules` only has to speak the same wire. Every call is one request
 to the core.
 
-- `settings.get<T>()`: the extension's values, `[extensions.<name>]`.
-  `settings.palette<T>()`: the current palette's declared values.
+- `settings.get<T>()`: the extension's values, `[extensions.<name>]`
+  (the instance's, for an instance of a `multi` extension: "Instances"
+  above). `settings.palette<T>()`: the current palette's declared values.
   `settings.onChange(cb)`: called with new values.
   `settings.set(id, value)` / `settings.set({ id: value, ... })` writes
   declared extension-level settings to the config file the way the
@@ -737,6 +877,9 @@ to the core.
   or a value of the wrong kind, rejects and nothing is written. What Hue
   does with the application key after pairing, so it lands in the
   keychain and under Settings › Extensions › Hue like a typed one.
+- `instance()`: which instance of the extension this code runs as,
+  `{ key, name, title, isDefault }` ("Instances" above); the bare name as
+  `key` and `isDefault: true` for an extension without `multi`.
 - `clipboard.list({ query, kind, limit, offset })`, `get(id)`, `pin(id)`,
   `delete(id)`, `clear()`, `copy(id)` (back onto the clipboard),
   `imageUrl(id, size)` for an image entry.
@@ -793,6 +936,10 @@ to the core.
   (`icon: xdg("dialog-error")`), undefined for a name it does not know.
 - `bar.update(id, item)`: push a bar item now (above, "Bar items");
   `bar.refresh(id)`: ask for a render.
+- `view.update(spec, { palette?, bar?, id? })`: push a tree into an open
+  view level (above, "Live views"); `view.onShown(cb)` / `view.onHidden(cb)`:
+  a level of yours came on top or left; `view.open()`: the levels open now;
+  `VIEW_UPDATE_MIN_MS` (33): the coalescing window.
 - `checkView(view)`, `checkForm(form)`, `checkBarItem(item)`: what the
   host runs on every answer (the limits above), for an extension's own
   tests; `shortcutsOf(action)`: an action's keys as a list.

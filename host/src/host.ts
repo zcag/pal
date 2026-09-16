@@ -1,6 +1,6 @@
 // The extension host: loads every extension under the given roots into this
-// one process, serves list/pick (and the bar items' render/action, bar.ts)
-// over stdio, re-imports an extension when its files change, and relays
+// one process, serves list/pick (and the bar items' render/action, bar.ts;
+// the view lifecycle notifications, views.ts) over stdio, re-imports an extension when its files change, and relays
 // extensions' capability calls to the core (bridge.ts). Logs go to stderr;
 // stdout is the protocol.
 //
@@ -14,13 +14,16 @@
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
-import { checkLinkEffect, checkLinkParams, checkLinks, checkPalettes, inlineMatches, isViewPalette as isView } from "../../sdk/src/manifest.ts";
-import { checkEffect, checkView } from "../../sdk/src/view.ts";
-import type { Ctx, Extension, Item, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "../../sdk/src/protocol.ts";
+import { isTileIcon } from "../../sdk/src/icon.ts";
+import { checkLinks, checkPalettes } from "../../sdk/src/manifest.ts";
+import type { BarMeta, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "../../sdk/src/protocol.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
+import { loadedInstance, nameOf, resolveInstances, WorkerInstance, type Instance } from "./instances.ts";
 import { bindSdk, SDK } from "./sdk.ts";
+import { describe, forgetDetails, log, paletteMethods, sections as sectionsOf, timeout, type Section, type SectionKind } from "./serve.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
+import { forget as forgetViews, viewMethods } from "./views.ts";
 
 const VERSION = "0.0.1";
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
@@ -30,8 +33,8 @@ setRoots(ROOTS);
 const LOAD_TIMEOUT_MS = Number(process.env.PAL_LOAD_TIMEOUT_MS) || 10_000;
 /** A root section's palette (inline, fallback, suggest) slower than this is left out of that answer: the root paints without it. Env for the tests. */
 const ROOT_TIMEOUT_MS = Number(process.env.PAL_ROOT_TIMEOUT_MS) || 1500;
-/** Rows one palette may put in the root's inline section; the palette's own level lists everything. */
-const INLINE_MAX = 5;
+/** What a worker's answer to a sections request gets on top of `ROOT_TIMEOUT_MS`, which its palettes are held to inside: only a dead worker runs it out. */
+const WORKER_SLACK_MS = 250;
 
 type Found = { root: string; entry: string };
 const exts = new Map<string, Extension>();
@@ -41,8 +44,9 @@ const errors = new Map<string, string>();
 const manifests = new Map<string, Manifest>();
 /** Per loaded extension, the manifest checked against the code (`checkPalettes`): the metas served, the disagreements found. */
 const checked = new Map<string, { metas: PaletteMeta[]; warnings: string[] }>();
+/** Every instance of a `multi` extension, by key, each in its own worker (docs/design/instances.md); `exts` holds the inline, non-`multi` ones by name. */
+const workers = new Map<string, WorkerInstance>();
 
-const log = (...a: unknown[]) => console.error("[host]", ...a);
 const send = (msg: Response | Notification) => process.stdout.write(JSON.stringify(msg) + "\n");
 // stdout is the protocol: an extension's console.log would land between the
 // frames, so everything console prints goes to stderr.
@@ -51,12 +55,6 @@ const notify = (method: string, params?: unknown) => send({ method, params });
 
 const exists = (p: string) => stat(p).then(() => true, () => false);
 const isDir = (p: string) => stat(p).then((s) => s.isDirectory(), () => false);
-
-function timeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
-  let t: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<never>((_, rej) => { t = setTimeout(() => rej(new Error(`${what} timed out after ${ms} ms`)), ms); });
-  return Promise.race([p, late]).finally(() => clearTimeout(t));
-}
 
 /** `<root>/<name>/index.{ts,js}`, or undefined when `name` is no extension there. */
 async function entry(root: string, name: string): Promise<Found | undefined> {
@@ -119,6 +117,15 @@ async function reload(name: string) {
   const t0 = performance.now();
   const manifest = await manifestOf(`${f.root}/${name}`, name);
   manifests.set(name, manifest);
+  // A `multi` extension runs every instance in a worker, the default too; the inline copy, if it was one before, goes.
+  if (manifest.multi) {
+    await dispose(name);
+    exts.delete(name);
+    checked.delete(name);
+    forgetDetails(name);
+    return reloadInstances(name, f, manifest);
+  }
+  await stopInstances(name);
   // The values before the code runs, so `settings.get()` at top level has
   // them; the core keeps them current from here on (`settings/changed`).
   try {
@@ -145,7 +152,7 @@ async function reload(name: string) {
     for (const w of check.warnings) log(`[${name}] manifest: ${w}`);
     const bar = barMetas(ext, manifest);
     log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}${bar.length ? `; bar ${bar.map((b) => b.id).join(",")}` : ""}) from ${f.root} in ${(performance.now() - t0).toFixed(1)}ms`);
-    notify("extension/loaded", { extension: name, root: f.root, palettes: check.metas, bar, manifest, warnings: check.warnings });
+    notify("extension/loaded", { extension: name, name, root: f.root, instance: { key: name, isDefault: true }, palettes: check.metas, bar, manifest, warnings: check.warnings });
   } catch (e) {
     const message = describe(e);
     exts.delete(name);
@@ -164,7 +171,9 @@ async function reload(name: string) {
  */
 async function drop(name: string) {
   if (!manifests.has(name)) return;
+  const multi = manifests.get(name)?.multi;
   await dispose(name);
+  await stopInstances(name);
   found.delete(name);
   exts.delete(name);
   checked.delete(name);
@@ -172,27 +181,93 @@ async function drop(name: string) {
   manifests.delete(name);
   forgetDetails(name);
   log(`removed ${name}`);
-  notify("extension/removed", { extension: name });
+  // A `multi` extension's instances each said their own `extension/removed` in `stopInstances`.
+  if (!multi) notify("extension/removed", { extension: name });
 }
-
-const forgetDetails = (name: string) => { for (const k of details.keys()) if (k.startsWith(`${name}/`)) details.delete(k); };
 
 /** The resident module's `dispose` before it is replaced or let go: its intervals and watchers would otherwise run on. Its failure is its own (logged). */
 async function dispose(name: string) {
   const ext = exts.get(name);
+  // The old module's `view.onShown` listeners would otherwise fire next to the new module's.
+  forgetViews(name);
   if (!ext?.dispose) return;
   exts.delete(name);
   try { await timeout(context.run({ extension: name }, () => Promise.resolve(ext.dispose!())), 1000, `dispose of ${name}`); } catch (e) { log(`dispose ${name} failed: ${describe(e)}`); }
 }
 
-// Bun raises BuildMessage (one) or AggregateError of them (many) for a file
-// that fails to compile; neither prints its position by itself.
-function describe(e: unknown): string {
-  const errs = e instanceof AggregateError ? e.errors : [e];
-  return errs
-    .map((x: any) => (x?.position ? `${x.position.file}:${x.position.line}: ${x.message}` : x?.message ?? String(x)))
-    .join("; ");
+// ---- instances (docs/design/instances.md) ----------------------------------
+// A `multi` extension runs one Bun Worker per configured instance
+// (`[instances."gmail@work"]`), the default included, so every instance
+// has its own SDK binding (its key as caller), its own module registry
+// (its own caches) and can be terminated when it hangs. The core says
+// which instances there are (`core/instances.get`); a change there is an
+// `instances/changed` notification, which reloads the extension's
+// instances as a file change would.
+
+const instancesOf = (name: string): WorkerInstance[] => [...workers.values()].filter((w) => w.name === name);
+
+/** The load of every enabled instance of `name`, each announced as its own `extension/loaded` or `extension/error`; the ones no longer configured are stopped. */
+async function reloadInstances(name: string, f: Found, manifest: Manifest) {
+  let answer: unknown;
+  try {
+    answer = await call("instances.get", { extension: name });
+  } catch (e) {
+    log(`instances of ${name} unavailable (${describe(e)}); the default alone`);
+  }
+  const own = isTileIcon(manifest.icon) ? manifest.icon.tile.bg : undefined;
+  const all = resolveInstances(name, answer, own);
+  const enabled = all.filter((i) => i.enabled);
+  for (const i of all.filter((i) => !i.enabled)) log(`instance ${i.key} is disabled`);
+  // Every instance restarts on a reload, as an inline extension is re-imported: the metas depend on how many there are.
+  await stopInstances(name, enabled.map((i) => i.key));
+  await Promise.all(enabled.map((inst) => startInstance(inst, f, manifest, enabled.length === 1)));
 }
+
+async function startInstance(inst: Instance, f: Found, manifest: Manifest, alone: boolean) {
+  const { key } = inst;
+  let settings: ResolvedSettings = { settings: {}, palettes: {} };
+  try {
+    settings = await call<ResolvedSettings>("settings.get", { extension: key, manifest });
+  } catch (e) {
+    log(`settings for ${key} unavailable: ${describe(e)}`);
+  }
+  updateSettings({ [key]: settings });
+  const t0 = performance.now();
+  const w = new WorkerInstance(inst, call, log);
+  workers.set(key, w);
+  try {
+    const loaded = await w.start({ alone, entry: f.entry, manifest, settings, loadTimeout: LOAD_TIMEOUT_MS, rootTimeout: ROOT_TIMEOUT_MS }, LOAD_TIMEOUT_MS + 500);
+    errors.delete(key);
+    for (const x of loaded.warnings) log(`[${key}] manifest: ${x}`);
+    // Two times: the import inside the worker, and the whole from spawn to loaded (the worker's own startup is the difference).
+    log(`loaded ${key} (${loaded.palettes.map((p) => p.name).join(",")}${loaded.bar.length ? `; bar ${loaded.bar.map((b) => b.id).join(",")}` : ""}) in a worker from ${f.root} in ${loaded.ms.toFixed(1)}ms (${(performance.now() - t0).toFixed(1)}ms with the worker's start)`);
+    notify("extension/loaded", { extension: key, name: inst.name, root: f.root, instance: loadedInstance(inst), palettes: loaded.palettes, bar: loaded.bar, manifest, warnings: loaded.warnings });
+  } catch (e) {
+    const message = describe(e);
+    errors.set(key, message);
+    log(`failed ${key}: ${message}`);
+    await w.stop(0);
+    workers.delete(key);
+    notify("extension/error", { extension: key, name: inst.name, root: f.root, instance: loadedInstance(inst), message, manifest });
+  }
+}
+
+/** Stops every worker of `name` (but the `keep` keys, which a reload is about to restart anyway and stops itself); each stopped one is `extension/removed`. */
+async function stopInstances(name: string, keep: string[] = []) {
+  for (const w of instancesOf(name)) {
+    await w.stop();
+    workers.delete(w.key);
+    errors.delete(w.key);
+    forgetViews(w.key);
+    if (!keep.includes(w.key)) notify("extension/removed", { extension: w.key, name });
+  }
+}
+
+/** The methods answered here whatever `params.extension` says: the host's own, and the root sections asked of every extension at once. */
+const HOST_LEVEL = new Set(["hello", "inline", "fallback", "suggest", "settings/changed", "instances/changed"]);
+
+/** The worker serving `params.extension` for a per-extension method, or undefined when the key is no instance (an inline extension, or nothing). */
+const workerFor = (method: string, params: any): WorkerInstance | undefined => (!HOST_LEVEL.has(method) && typeof params?.extension === "string" ? workers.get(params.extension) : undefined);
 
 const realOr = (p: string) => realpath(p).catch(() => resolve(p));
 
@@ -306,34 +381,12 @@ async function watchExtensions() {
   }
 }
 
-/**
- * `detail(id)` answers, per palette, keyed by item id and the ctx that listed
- * it; a `list` of that palette drops them (the items may be new), a reload of
- * the extension too.
- */
-const details = new Map<string, Map<string, Promise<unknown>>>();
-const paletteKey = (p: any) => `${p?.extension}/${p?.palette}`;
-// The core sends `args: null` and `values: null` for a level without them: absent, as far as the extension is told.
-const ctxOf = (p: any): Ctx | undefined =>
-  p?.filter !== undefined || p?.args != null || p?.refresh || p?.values != null || p?.inline || Array.isArray(p?.ids)
-    ? { filter: p.filter, ...(p.args != null && { args: p.args }), ...(p.refresh && { refresh: true }), ...(p.values != null && { values: p.values }), ...(p.inline && { inline: true }), ...(Array.isArray(p.ids) && { ids: p.ids.map(String) }) }
-    : undefined;
-
-/** The loaded extension, or the reason it is not: its load error, or that there is none. */
+/** The loaded inline extension, or the reason it is not: its load error, or that there is none (a worker's key never reaches here: `handle` routes it). */
 function extension(name: string): Extension {
   const ext = exts.get(name);
   if (!ext) throw new Error(errors.get(name) ?? `no extension ${name}`);
   return ext;
 }
-
-function palette(p: any) {
-  const pal = extension(p?.extension).palettes[p?.palette];
-  if (!pal) throw new Error(`no palette ${p?.extension}/${p?.palette}`);
-  return pal;
-}
-
-/** Runs `f` knowing which palette it serves, so `settings.get()` in there needs no argument. */
-const inContext = <T>(p: any, f: () => T): T => context.run({ extension: String(p?.extension), palette: String(p?.palette) }, f);
 
 /** Secrets arrive resolved (the value itself); the log gets their keys only. */
 function redacted(name: string, s: ResolvedSettings) {
@@ -348,34 +401,37 @@ function redacted(name: string, s: ResolvedSettings) {
   };
 }
 
-/** One root section's answer from one palette: `{ extension, palette, items }`, or nothing when it had none, failed or was too slow (logged). */
-type Section = { extension: string; palette: string; items: Item[] };
-
 /**
- * The root's sections that come from the extensions rather than the
- * index: every loaded palette that `pick`s (inline for a matching query,
- * fallback for a function fallback, suggest for the empty root) is asked
- * at once, each within `ROOT_TIMEOUT_MS`; a palette that fails or is late
- * is a log line and left out, so one slow extension never holds the root.
- * Palettes come in load order; the core and the UI order the sections.
+ * The root's sections of one kind (serve.ts `sections`): the inline
+ * extensions' palettes asked here, each worker asked once for its own,
+ * all within `ROOT_TIMEOUT_MS` (a worker gets `WORKER_SLACK_MS` on top,
+ * its palettes being held to the same inside); a late or failed one is a
+ * log line and left out.
  */
-async function sections(pick: (name: string, key: string, p: Palette) => (() => Item[] | Promise<Item[]>) | undefined, what: string, max = Infinity): Promise<Section[]> {
-  const asks: Promise<Section | undefined>[] = [];
-  for (const [name, ext] of exts) {
-    for (const [key, p] of Object.entries(ext.palettes ?? {})) {
-      const f = pick(name, key, p);
-      if (!f) continue;
-      const params = { extension: name, palette: key };
-      asks.push(
-        // A throw before the first await (a sync hook) is a rejection like any other, not the whole answer's.
-        timeout(Promise.resolve().then(() => inContext(params, f)), ROOT_TIMEOUT_MS, `${what} of ${name}/${key}`).then(
-          (items) => (Array.isArray(items) && items.length ? { extension: name, palette: key, items: items.slice(0, max) } : undefined),
-          (e) => { log(`${what} ${name}/${key} failed: ${describe(e)}`); return undefined; },
-        ),
-      );
-    }
+async function sections(kind: SectionKind, query: unknown): Promise<Section[]> {
+  const inline = sectionsOf(exts, (k) => manifests.get(k), kind, query, ROOT_TIMEOUT_MS);
+  const asks = [...workers.values()].map((w) => w.request(kind, { query }, ROOT_TIMEOUT_MS + WORKER_SLACK_MS).then(
+    (r) => (Array.isArray(r) ? (r as Section[]) : []),
+    (e) => { log(`${kind} of ${w.key} failed: ${describe(e)}`); return [] as Section[]; },
+  ));
+  return (await Promise.all([inline, ...asks])).flat();
+}
+
+/** What `hello` says about one loaded or failed extension (instance). */
+type Hello = { name: string; extension: string; root?: string; manifest: Manifest; loaded: boolean; instance: ReturnType<typeof loadedInstance>; palettes: PaletteMeta[]; warnings: string[]; bar: BarMeta[] };
+
+/** Every extension for `hello`: the inline ones by name, every worker by key; a `multi` extension without a running instance (every one failed) once, unloaded. */
+function helloExtensions(): Hello[] {
+  const out: Hello[] = [];
+  for (const [name, manifest] of manifests) {
+    if (manifest.multi && instancesOf(name).length) continue;
+    out.push({ name, extension: name, root: found.get(name)?.root, manifest, loaded: exts.has(name), instance: { key: name, isDefault: true }, palettes: checked.get(name)?.metas ?? [], warnings: checked.get(name)?.warnings ?? [], bar: exts.has(name) ? barMetas(exts.get(name), manifest) : [] });
   }
-  return (await Promise.all(asks)).filter((s): s is Section => s !== undefined);
+  for (const w of workers.values()) {
+    const manifest = manifests.get(w.name) ?? { name: w.name, title: w.name };
+    out.push({ name: w.name, extension: w.key, root: found.get(w.name)?.root, manifest, loaded: !!w.loaded, instance: loadedInstance(w.inst), palettes: w.loaded?.palettes ?? [], warnings: w.loaded?.warnings ?? [], bar: w.loaded?.bar ?? [] });
+  }
+  return out;
 }
 
 const methods: Record<string, (params: any) => unknown> = {
@@ -384,73 +440,30 @@ const methods: Record<string, (params: any) => unknown> = {
     bun: Bun.version,
     pid: process.pid,
     roots: ROOTS,
-    extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: checked.get(name)?.metas ?? [], warnings: checked.get(name)?.warnings ?? [], bar: exts.has(name) ? barMetas(exts.get(name), manifest) : [] })),
+    extensions: helloExtensions(),
     errors: Object.fromEntries(errors),
   }),
-  list: async (p) => {
-    details.delete(paletteKey(p));
-    const pal = palette(p);
-    if (isView(pal)) throw new Error(`${paletteKey(p)}: a view palette has no list`);
-    const items = await inContext(p, () => pal.list(p.query, ctxOf(p)));
-    if (!Array.isArray(items)) throw new Error(`${paletteKey(p)}: list returned ${items === null ? "null" : typeof items}, not an array`);
-    return { items };
-  },
-  // An effect carrying a view is checked like a `view` answer: the UI draws it the same way. A form likewise.
-  pick: async (p) => checkEffect((await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {}, `${paletteKey(p)}: pick ${p.action ?? ""}`),
-  // The tree a view palette opens with; `filter`/`args` reach it as ctx like a list.
-  view: async (p) => {
-    const pal = palette(p);
-    if (!isView(pal)) throw new Error(`${paletteKey(p)}: not a view palette`);
-    return checkView(await inContext(p, () => pal.view(ctxOf(p))), `${paletteKey(p)}: view`);
-  },
-  // `{}` when the palette has no `detail` or answers nothing: the UI keeps the inline one.
-  detail: (p) => {
-    const pal = palette(p);
-    if (!pal.detail) return {};
-    const key = paletteKey(p);
-    const cache = details.get(key) ?? new Map<string, Promise<unknown>>();
-    details.set(key, cache);
-    const k = `${JSON.stringify(ctxOf(p)?.args ?? null)}\0${p.id}`;
-    let r = cache.get(k);
-    if (!r) {
-      r = Promise.resolve(inContext(p, () => pal.detail!(p.id, ctxOf(p)))).then((d) => d ?? {});
-      cache.set(k, r);
-      r.catch(() => cache.delete(k));
-    }
-    return r;
-  },
-  // The root's inline section for `query`: every inline palette whose `match` accepts it lists it (`ctx.inline`), its first rows.
-  inline: async (p) => {
-    const q = String(p?.query ?? "");
-    return sections((name, _key, pal) => (!isView(pal) && inlineMatches(pal, manifests.get(name)?.palettes?.[_key], q) ? () => pal.list(q, { inline: true }) : undefined), "inline", INLINE_MAX);
-  },
-  // The root's fallback rows from the palettes that answer them in code (`fallback(query)`); the "Ask" rows are the core's.
-  fallback: async (p) => {
-    const q = String(p?.query ?? "");
-    return sections((_name, _key, pal) => (typeof pal.fallback === "function" ? () => (pal.fallback as (q: string) => Item[] | Promise<Item[]>)(q) : undefined), "fallback");
-  },
-  // The empty root's "Now" section: every palette's `suggest()`.
-  suggest: async () => sections((_name, _key, pal) => (typeof pal.suggest === "function" ? () => pal.suggest!() : undefined), "suggest"),
-  // `pal://<extension>/<route>?params` (deeplink.rs): the manifest's `links.<route>` gates it and types its params, the code's `link` answers; an effect is checked like a pick's, minus what needs a level.
-  link: async (p) => {
-    const name = String(p?.extension), route = String(p?.route);
-    const ext = extension(name);
-    const spec = manifests.get(name)?.links?.[route];
-    if (!spec || typeof spec !== "object") throw new Error(`no route ${name}/${route}`);
-    if (typeof ext.link !== "function") throw new Error(`${name}: no link handler for ${route}`);
-    const params = checkLinkParams(spec, p?.params && typeof p.params === "object" ? p.params : {}, `${name}/${route}`);
-    const r = await context.run({ extension: name }, () => ext.link!(route, params));
-    return checkEffect(checkLinkEffect(r ?? {}, `${name}/${route}`), `${name}/${route}: link`);
-  },
+  // list, pick, view, detail, link for the inline extensions; a worker's key is routed in `handle` before it gets here.
+  ...paletteMethods(extension, (k) => manifests.get(k)),
+  inline: (p) => sections("inline", p?.query),
+  fallback: (p) => sections("fallback", p?.query),
+  suggest: () => sections("suggest", ""),
   ...barMethods(extension),
-  // Notification from the core: the resolved values of the named extensions.
+  ...viewMethods,
+  // Notification from the core: the resolved values of the named extensions (instance keys route to their workers' own tables).
   "settings/changed": (p: SettingsChanged) => {
     const changed = p?.extensions ?? {};
     updateSettings(changed);
     for (const [name, s] of Object.entries(changed)) {
-      const r = redacted(name, s);
+      workers.get(name)?.settings(s);
+      const r = redacted(nameOf(name), s);
       log(`settings ${name} ${JSON.stringify(r.settings)} palettes ${JSON.stringify(r.palettes)}`);
     }
+  },
+  // Notification from the core: `[instances.*]` of the extension changed; its instances are reloaded, as a file change would.
+  "instances/changed": async (p) => {
+    const name = String(p?.extension ?? "");
+    if (manifests.has(name)) await load(name);
   },
 };
 
@@ -467,6 +480,13 @@ async function handle(line: string) {
     return;
   }
   try {
+    // An instance's key: its worker answers, inside its own context (worker.ts).
+    const w = workerFor(req.method, req.params);
+    if (w) {
+      const result = await w.request(req.method, req.params);
+      if (req.id !== undefined) send({ id: req.id, result });
+      return;
+    }
     const fn = methods[req.method];
     if (!fn) throw new Error(`unknown method ${req.method}`);
     const result = await fn(req.params);
@@ -489,5 +509,5 @@ async function handle(line: string) {
 bindSdk();
 await loadAll();
 await watchExtensions();
-// `known`: every extension found on disk, loaded or not (the core keeps a failed one's cache).
-notify("host/ready", { extensions: [...exts.keys()], known: [...manifests.keys()], roots: ROOTS });
+// `known`: every extension found on disk, loaded or not (the core keeps a failed one's cache), plus every instance key running.
+notify("host/ready", { extensions: [...exts.keys(), ...workers.keys()], known: [...new Set([...manifests.keys(), ...workers.keys()])], roots: ROOTS });

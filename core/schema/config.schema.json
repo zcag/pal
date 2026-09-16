@@ -324,6 +324,30 @@
       ],
       "description": "`general.hotkey`: one combination, or a list that all show the panel.\nThe two spellings are one setting; each is written back as it was read\n(the file's shape is kept until an edit needs the other one)."
     },
+    "Instance": {
+      "additionalProperties": false,
+      "description": "`[instances.<key>]`: one configured copy of a `multi` extension. The\nkey is fixed at creation (`<name>@<suffix>`, `instance::is_key`); the\nbare name titles the default instance. Its settings live in\n`[extensions.<key>]`, its palettes' in `[palettes.\"<key>-<palette>\"]`,\nits bar items' in `[bar.items.\"<key>/<id>\"]`.",
+      "properties": {
+        "badge": {
+          "description": "One or two characters in the tile's corner: the title's first\nletter when unset.",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "`false` parks the instance: not loaded, its rows and bar items gone,\nits settings kept.",
+          "type": "boolean"
+        },
+        "tint": {
+          "description": "The tile's colour, one of the twelve brand names (`red`, `amber`,\n`blue`, ...): picked from the suffix when unset. The default\ninstance keeps the extension's own tile.",
+          "type": "string"
+        },
+        "title": {
+          "description": "The display name (\"Work\"): the suffix capitalised when unset. The\ndefault instance has none until you name it.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "Palette": {
       "additionalProperties": false,
       "description": "Per-palette settings pal provides to every palette extension without it\ndeclaring them. A palette absent from the file gets the defaults.",
@@ -427,7 +451,7 @@
         "type": "object"
       },
       "default": {},
-      "description": "Extension settings, keyed by extension name. Shape is whatever the\nextension declared.",
+      "description": "Extension settings, keyed by extension name, or by instance key\n(`[extensions.\"gmail@work\"]`, which inherits `[extensions.gmail]`\nexcept its secrets and `scope: \"instance\"` settings). Shape is\nwhatever the extension declared.",
       "type": "object"
     },
     "general": {
@@ -467,6 +491,14 @@
         "selection_snapshot": true,
         "theme": "system"
       }
+    },
+    "instances": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Instance"
+      },
+      "default": {},
+      "description": "Instances of `multi` extensions, keyed `<name>@<suffix>`\n(`[instances.\"gmail@work\"]`; the table existing is what makes the\ninstance) or by the bare name to title the default one\n(`docs/design/instances.md`).",
+      "type": "object"
     },
     "palettes": {
       "additionalProperties": {

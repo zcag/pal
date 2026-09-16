@@ -269,11 +269,19 @@ impl Host {
 #[tauri::command]
 pub async fn host_request(
     host: tauri::State<'_, Arc<Host>>,
+    window: tauri::Window,
     method: String,
     params: Option<Value>,
 ) -> Result<Value, String> {
     let t0 = Instant::now();
-    let r = host.request(&method, params.unwrap_or(Value::Null)).await;
+    let mut params = params.unwrap_or(Value::Null);
+    // From the bar popover, a listing or a tree is drawn compact (`Ctx.compact`); the pick's flag is set in index.rs.
+    if window.label() == crate::bar::popover::WINDOW && matches!(method.as_str(), "list" | "view") {
+        if let Value::Object(o) = &mut params {
+            o.insert("compact".into(), Value::Bool(true));
+        }
+    }
+    let r = host.request(&method, params).await;
     eprintln!("host\t{method}\t{:.2}ms{}", t0.elapsed().as_secs_f64() * 1000.0, r.as_ref().err().map(|e| format!("\t{e}")).unwrap_or_default());
     r
 }

@@ -181,6 +181,71 @@ clipboard recorder, which runs in pal itself rather than in the host,
 reads `exclude_apps`, `max_entries` and `max_age_days` once at startup, so
 those want pal relaunched.
 
+## `[instances]`
+
+One extension, several configured copies: two GitHub accounts, two Slack
+workspaces, two Home Assistant homes. Only an extension whose `pal.json`
+declares `"multi": true` has instances (`github`, `slack` and
+`home-assistant` among the bundled ones). The default instance is the
+extension's bare name and the tables you already have; another one exists
+because its table does, keyed `<name>@<suffix>`:
+
+```toml
+[instances."github@work"]        # the instance exists because this table does (empty is fine)
+title = "Work"                   # the display name; default: the suffix capitalised
+tint = "amber"                   # one of the twelve brand colours; default: picked from the suffix
+badge = "W"                      # one or two characters on the tile's corner; default: the title's first letter
+enabled = true                   # false parks it: not loaded, rows gone, settings kept
+
+[instances.github]               # optional: name the default once a second exists
+title = "Personal"
+
+[extensions."github@work"]       # its settings; inherits [extensions.github], except secrets
+token = "keychain:pal/github@work-token"
+
+[palettes."github@work-prs"]     # per-palette keys, per instance (hotkey, alias, icon, enabled, tier)
+hotkey = "ctrl+alt+w"
+
+[bar.items."github@work/notifications"]   # bar items, per instance
+order = 30
+```
+
+The suffix is lowercase letters, digits, `-` and `_` (up to 32, starting
+with a letter or digit), and never `default`; the key needs quotes in
+TOML because of the `@`. It is fixed at creation: it sits in file paths
+(the storage file `storage/github@work.json`, the index cache), in the
+frecency record and in links (`pal://open/github@work/prs`), so renaming
+means removing and adding; the title is what you rename.
+
+**Inheritance.** `[extensions."github@work"]` layers over
+`[extensions.github]`, which layers over the manifest's defaults, each one
+level deep, a set key replacing whole. Two kinds of setting never inherit
+from the default instance: one declared `kind: "secret"` (a token
+identifies the account) and one declared `scope: "instance"` (Slack's
+`workspace`, Home Assistant's `url`); those fall to the manifest default
+until set for the instance. `[palettes."github@work-prs"].settings`
+inherits `[palettes.github-prs].settings` the same way; the pal-provided
+palette keys (`enabled`, `alias`, `hotkey`, `icon`, `tier`,
+`item_hotkeys`) never inherit, since a hotkey cannot be shared and an
+alias or icon is what tells the two apart. A secret reference is looked
+up per instance, so `keychain:pal/github@work-token` is its own keychain
+item.
+
+**What an instance gets.** Its own palettes at the root, titled with the
+instance's title ("Pull Requests (Work)", or where the manifest's title
+says `{instance}`), its tile in the instance's `tint` with the `badge` in
+the corner (the default instance keeps the plain tile), its own bar items
+(`github@work/notifications`), storage, cache, frecency and deep links.
+The extension's code is shared and runs once per instance, each in its
+own worker of the extension host, so nothing one instance caches leaks
+into another. Every instance of a `multi` extension runs in a worker, the
+default too, even when alone.
+
+A change under `[instances]` reloads the extension's instances (every
+one, like a file change to its code); a `[instances."x@y"]` for an
+extension without `"multi": true` is not loaded. Keys the schema does not
+know under an instance table are warnings, like everywhere else.
+
 ## Secrets
 
 A setting of kind `secret` never sits in the file as plain text. The file

@@ -14,6 +14,8 @@ type Base = { id: string; label: string; description?: string };
 export type SettingSpec = Base & {
   /** The extension does nothing useful without it: an empty value puts the extension on the Overview's "Needs setup" list. */
   required?: boolean;
+  /** `instance`: identifies the account (a server url, a workspace); never inherited by another instance of a `multi` extension, like a secret. */
+  scope?: "instance";
 } &
   (
     | { kind: "text"; placeholder?: string; default?: string }

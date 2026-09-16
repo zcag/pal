@@ -39,6 +39,14 @@ pub const SETTINGS: &str = "pal://settings";
 /// engaged, urgent, menu, item, effect? }`), `{ engage: true }` once a
 /// peek is made key, `{ hide: true }` when it goes (bar/popover.rs).
 pub const BAR: &str = "pal://bar";
+/// To one window's page: a push for the view level it has on top
+/// (`ViewUpdate` in sdk/src/protocol.ts: `{ extension, palette | bar, id?,
+/// spec }`), applied in place (views.rs).
+pub const VIEW: &str = "pal://view";
+/// To every page: a trigger fired (`{ name }`: `media`, `wake`, `network`,
+/// `show`, `focus`, `minute`); a view level whose palette lists it under
+/// `on` asks for its tree again (bar/mod.rs `trigger`).
+pub const TRIGGER: &str = "pal://trigger";
 /// To the panel's page: a confirm card to render with its `Confirm`
 /// component, `{ title, message, ok, cancel, token }`, or `null` to drop
 /// the one up (deeplink.rs); the page answers on [`CONFIRM_REPLY`].

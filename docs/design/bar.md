@@ -98,8 +98,8 @@ A click, the item's hotkey and a hover peek open the same thing on every target:
 | `menu` | the popover shows | use for |
 | --- | --- | --- |
 | `nodes` | a **menu level**: rows with shortcuts, ticks, sections, submenus | up to a screenful of commands and toggles: Now Playing controls, "Mark all read", the last five notifications with an "Open all" |
-| `{ palette }` | that **palette level**, the panel machinery unchanged | anything with search, a detail pane, filters, forms, more than a screenful: the notifications list, a PR queue, sessions |
-| `{ view }` | a **view level** drawing the tree | a dashboard or card: battery drain with a bar per process, a timer with a big countdown |
+| `{ palette }` | that **palette level**, the panel machinery unchanged; a view palette opens as its view level (`view(ctx)` with `ctx.compact`), live like any view (`view.update`, `refresh`) | anything with search, a detail pane, filters, forms, more than a screenful: the notifications list, a PR queue, sessions |
+| `{ view }` | a **view level** drawing the tree, the same level as the panel's (`keys: "actions"`, the text field, the keyed `move` transitions), sized to the popover's width (`compact: true` on every `BarCtx`; `ctx.compact` on a `view`/`list`/`pick` reached from the popover). Live: `view.update(tree, { bar: id })` replaces its tree in place, `view.onShown`/`onHidden` fire for it with `{ bar, compact: true }` on open (a peek counts) and close (`app/src-tauri/src/views.rs`) | a dashboard or card: battery drain with a bar per process, a timer with a big countdown, Spotify's lyrics |
 | none | nothing: `bar/open` to the extension, its `Effect` runs (`open` a url, `hud`, a `push`); hover does nothing | a single-purpose item: OTP copies its code, prs opens github.com/pulls |
 
 The popover is a fourth window, `bar` (`index.html?bar`): an NSPanel like

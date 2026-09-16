@@ -163,10 +163,15 @@ function tileType(width: number, height: number, text: string, sub: boolean): CS
   return { fontSize: size, fontWeight: size >= 20 ? 800 : size >= 14 ? 700 : 600, letterSpacing: size >= 20 ? "-0.02em" : undefined };
 }
 
+/** Fired on the node's element when a keyed node mounts (`detail` is the key): a kept key never fires again, which is what a tracer of an in-place update counts (core.ts). */
+export const MOUNT_EVENT = "pal:view-mount";
+
 function Node({ node }: { node: ViewNode }) {
   const t = node.transition;
   const delay = t?.delay ? Math.min(MAX_DELAY, Math.max(0, Math.floor(t.delay))) : 0;
   const ref = useMove(node.key, t?.move);
+  const key = typeof node.key === "string" ? node.key : undefined;
+  useEffect(() => { if (key !== undefined) (ref as { current: HTMLElement | null }).current?.dispatchEvent(new CustomEvent(MOUNT_EVENT, { bubbles: true, detail: key })); }, []);
   const motion: { ref: Ref<never>; "data-enter"?: string; style?: CSSProperties } = {
     ref: ref as Ref<never>,
     "data-enter": t?.enter,

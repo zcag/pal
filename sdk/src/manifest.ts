@@ -9,13 +9,15 @@
 // extension's own tests can run it too (`checkPalettes(manifest, ext)`).
 // The typed `defineExtension(manifest, ext)` (index.ts) is the same rule at
 // type level: `ExtensionFor<M>` names the palettes the manifest declares.
-import { checkIcon } from "./icon.ts";
-import type { Extension, LinkParams, ListPalette, Manifest, ManifestLink, ManifestPalette, OwnIcon, Palette, PaletteKind, PaletteMeta, ViewPalette } from "./protocol.ts";
+import { badged, checkIcon, TILE_COLORS, type TileColor } from "./icon.ts";
+import type { Extension, LinkParams, ListPalette, Manifest, ManifestLink, ManifestPalette, OwnIcon, Palette, PaletteKind, PaletteMeta, ViewPalette, ViewTrigger } from "./protocol.ts";
 
 /** A palette whose `view` is a function draws a tree instead of listing rows. */
 export const isViewPalette = (p: Palette): p is ViewPalette => typeof p.view === "function";
 
 export const PALETTE_KINDS: readonly PaletteKind[] = ["list", "live", "input", "grid", "view"];
+/** What may re-ask an open view (`Palette.on`). */
+export const VIEW_TRIGGERS: readonly ViewTrigger[] = ["media", "wake", "network", "show"];
 
 /**
  * The kind the code implies, first match wins: `view` for a `view()`
@@ -40,23 +42,62 @@ const SPELLING: Record<PaletteKind, string> = {
   list: "a plain list (neither live, input, grid nor view)",
 };
 
+// ---- instances (docs/design/instances.md) ----------------------------------
+
+/**
+ * What the metas of one instance of a `multi` extension need: the
+ * instance's `title` ("Work"; none for an unnamed default), whether it is
+ * `alone` (the only instance of its extension), and for a non-default one
+ * the `tint` and `badge` its tile wears.
+ */
+export type InstanceMeta = { title?: string; alone: boolean; tint?: TileColor; badge?: string };
+
+/** `{instance}` in a manifest title; `PLACEHOLDER_FRAMED` takes one surrounding pair of parentheses or one flanking space with it. */
+const PLACEHOLDER = /\{instance\}/;
+const PLACEHOLDER_FRAMED = /\s*\(\{instance\}\)|\s\{instance\}|\{instance\}\s|\{instance\}/;
+
+/**
+ * A palette's title as one instance shows it. With two or more instances
+ * of the extension and a title for this one: `{instance}` in the title is
+ * the instance's title (`"{instance} Inbox"` is "Work Inbox"), else it is
+ * appended in parentheses ("Inbox (Work)"). Alone, or for a default the
+ * user has not named: `{instance}` is stripped with one surrounding pair
+ * of parentheses or one flanking space ("Inbox ({instance})" is "Inbox"),
+ * and nothing is appended. So the root section, the crumb, the Settings
+ * rows and the bar popover title all read the same string.
+ */
+export function instanceTitle(title: string, inst?: InstanceMeta): string {
+  const t = inst?.title?.trim();
+  if (!inst || inst.alone || !t) return stripInstance(title);
+  if (PLACEHOLDER.test(title)) return title.replace(/\{instance\}/g, t);
+  return `${title} (${t})`;
+}
+
+/** `title` without its `{instance}` and the space or parentheses that framed it. */
+export const stripInstance = (title: string): string => title.replace(PLACEHOLDER_FRAMED, "").trim() || title;
+
 /**
  * One palette's meta, the manifest's entry merged over the code's: `title`
  * and `ttl` from the manifest when it has them (the code's as a fallback,
  * the key when neither has a title); everything else is the code's. The
  * icon is the code's own when it has one, else `fallbackIcon`, the
  * extension's icon from the manifest: an extension's palettes wear its
- * tile unless one says otherwise. A view palette is `input` on the wire:
- * the core indexes nothing of it and the root keeps only its own row,
- * which is what `input` already means.
+ * tile unless one says otherwise. For an instance (`inst`) the title
+ * follows `instanceTitle` and a tile icon is `badged` with the instance's
+ * mark (the extension's tile takes its tint too; a palette's own tile
+ * keeps its colour and gains the badge). A view palette is `input` on the
+ * wire: the core indexes nothing of it and the root keeps only its own
+ * row, which is what `input` already means.
  */
-export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallbackIcon?: OwnIcon): PaletteMeta {
+export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallbackIcon?: OwnIcon, inst?: InstanceMeta): PaletteMeta {
+  const own = p.icon !== undefined;
+  const icon = inst ? badged(own ? p.icon : fallbackIcon, own ? { badge: inst.badge } : inst) : (p.icon ?? fallbackIcon);
   return {
     name,
-    title: m?.title ?? p.title ?? name,
+    title: inst ? instanceTitle(m?.title ?? p.title ?? name, inst) : (m?.title ?? p.title ?? name),
     live: !!p.live,
     input: !!p.input || isViewPalette(p),
-    icon: p.icon ?? fallbackIcon,
+    icon,
     view: isViewPalette(p) ? "view" : p.view,
     columns: p.columns,
     placeholder: p.placeholder,
@@ -67,6 +108,8 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     ttl: m?.ttl ?? p.ttl,
     tier: m?.tier ?? p.tier,
     ...((m?.lazy ?? p.lazy) && { lazy: true as const }),
+    ...(isViewPalette(p) && (m?.refresh ?? p.refresh) !== undefined && { refresh: m?.refresh ?? p.refresh }),
+    ...(isViewPalette(p) && (m?.on ?? p.on)?.length && { on: m?.on ?? p.on }),
     ...(inlineOf(p, m) && { inline: true as const }),
     ...(matchSource(p, m) !== undefined && { match: matchSource(p, m) }),
     ...(fallbackOf(p, m)),
@@ -133,8 +176,9 @@ export type PaletteCheck = { metas: PaletteMeta[]; warnings: string[] };
  * - `kind` stated in the manifest must be the kind the code implies
  *   (`kindOf`); the warning says how the code spells the manifest's kind
  *   and what to set;
- * - `title`, `ttl`, `tier` and `lazy` set on both sides must agree; the
- *   manifest's is served either way;
+ * - `title`, `ttl`, `tier`, `lazy`, `refresh` and `on` set on both sides
+ *   must agree; the manifest's is served either way. `refresh` and `on`
+ *   mean nothing on a palette that lists, and are warned about there;
  * - the manifest's `icon` and every palette's `icon` are well formed
  *   (`checkIcon`, icon.ts): a tile names a brand colour and carries one
  *   glyph or a short SVG path. A bad palette icon is dropped from its meta;
@@ -144,13 +188,21 @@ export type PaletteCheck = { metas: PaletteMeta[]; warnings: string[] };
  * bundled `scripts` discovers its palettes from a config file), so every
  * code palette is served from the code without a word. One that has the
  * key, even empty, must name them all.
+ *
+ * `inst` (an instance of a `multi` extension) puts the instance's title
+ * and mark on every meta (`paletteMeta`); a tint that is not a brand
+ * colour is a warning and the extension's own colour stays. `{instance}`
+ * in a title of a manifest that does not declare `multi` is a warning,
+ * since nothing will ever fill it.
  */
-export function checkPalettes(manifest: Manifest, ext: Extension): PaletteCheck {
+export function checkPalettes(manifest: Manifest, ext: Extension, inst?: InstanceMeta): PaletteCheck {
   const warnings: string[] = [];
   const declared = manifest.palettes;
   const metas: PaletteMeta[] = [];
   const manifestIcon = checkIcon(manifest.icon, "icon");
   if (manifestIcon) warnings.push(manifestIcon);
+  if (inst?.tint !== undefined && !TILE_COLORS.includes(inst.tint)) warnings.push(`instance tint "${String(inst.tint)}" is not one of ${TILE_COLORS.join(", ")}; the extension's own colour is kept`);
+  const mark = inst && { ...inst, tint: inst.tint !== undefined && TILE_COLORS.includes(inst.tint) ? inst.tint : undefined };
   for (const [name, p] of Object.entries(ext.palettes ?? {})) {
     const m = declared?.[name];
     const kind = kindOf(p);
@@ -176,8 +228,19 @@ export function checkPalettes(manifest: Manifest, ext: Extension): PaletteCheck 
       if (m.lazy !== undefined && p.lazy !== undefined && m.lazy !== p.lazy) {
         warnings.push(`palettes.${name}: lazy ${p.lazy} in the code, ${m.lazy} in pal.json; the manifest's is used, drop the code's`);
       }
+      if (m.refresh !== undefined && p.refresh !== undefined && m.refresh !== p.refresh) {
+        warnings.push(`palettes.${name}: refresh ${p.refresh} in the code, ${m.refresh} in pal.json; the manifest's is used, drop the code's`);
+      }
+      if (m.on !== undefined && p.on !== undefined && JSON.stringify(m.on) !== JSON.stringify(p.on)) {
+        warnings.push(`palettes.${name}: on ${JSON.stringify(p.on)} in the code, ${JSON.stringify(m.on)} in pal.json; the manifest's is used, drop the code's`);
+      }
     }
-    metas.push(paletteMeta(name, badIcon ? { ...p, icon: undefined } : p, m, manifestIcon ? undefined : manifest.icon));
+    if (kind !== "view" && (m?.refresh ?? p.refresh) !== undefined) warnings.push(`palettes.${name}: refresh is for a view palette (a re-ask of view(ctx) while it is open); a listing has ttl and live`);
+    if (kind !== "view" && (m?.on ?? p.on) !== undefined) warnings.push(`palettes.${name}: on is for a view palette (the triggers that re-ask view(ctx) while it is open)`);
+    const on = m?.on ?? p.on;
+    if (on !== undefined && (!Array.isArray(on) || !on.every((t) => VIEW_TRIGGERS.includes(t)))) warnings.push(`palettes.${name}: on must be a list of ${VIEW_TRIGGERS.join(", ")}`);
+    if (!manifest.multi && PLACEHOLDER.test(m?.title ?? p.title ?? "")) warnings.push(`palettes.${name}: the title uses {instance} but pal.json does not declare "multi": true; nothing fills it`);
+    metas.push(paletteMeta(name, badIcon ? { ...p, icon: undefined } : p, m, manifestIcon ? undefined : manifest.icon, mark));
   }
   for (const name of Object.keys(declared ?? {})) {
     if (!(name in (ext.palettes ?? {}))) warnings.push(`palettes.${name}: in pal.json but not in the code; nothing serves it`);

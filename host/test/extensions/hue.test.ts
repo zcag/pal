@@ -504,6 +504,22 @@ describe("over the wire against the mock bridge", () => {
     expect(pushed[pushed.length - 1].title).toBe(`${on} on`);
   });
 
+  test("an open light view follows the stream: a change pushes its tree again by the target's id; a closed one gets nothing", async () => {
+    host.viewShown(E, { palette: "light" }, "light:hall-spot");
+    mock.change("light-6", { on: { on: true }, dimming: { brightness: 25 } });
+    const u = await host.nextViewUpdate(E, { palette: "light" }, (x) => x.id === "light:hall-spot" && JSON.stringify(x.spec).includes('"25%"'));
+    expect(u).toMatchObject({ extension: E, palette: "light", id: "light:hall-spot", spec: { id: "light:hall-spot", keys: "actions" } });
+    expect(JSON.stringify(u.spec.tree)).toContain('"text":"on","color":"green"');
+    // A change to another light pushes this view too (a room's aggregate may depend on it), from the model, with no GET.
+    const before = mock.calls.length;
+    host.viewHidden(E, { palette: "light" }, "light:hall-spot");
+    const n = host.viewUpdates(E, { palette: "light" }).length;
+    mock.change("light-6", { on: { on: false } });
+    await Bun.sleep(300);
+    expect(host.viewUpdates(E, { palette: "light" }).length).toBe(n);
+    expect(getsSince(before)).toEqual([]);
+  });
+
   test("sensors, automations, entertainment: the rows and what each Enter does", async () => {
     const sensors = await list("sensors");
     expect(sensors.map((i) => i.section)).toEqual(["Bedroom dimmer", "Bedroom dimmer", "Bedroom dimmer", "Bedroom dimmer", "Hallway sensor", "Hallway sensor", "Hallway sensor", "Kitchen dial"]);

@@ -420,6 +420,8 @@ fn show(app: &AppHandle, key: &str, engaged: bool, effect: Option<Value>) {
         *s = Some(Showing { key: key.to_string(), engaged, anchor, effect });
         first
     };
+    // A fresh item: the page starts its level over and reports its view anew; the same item again keeps what it reported.
+    crate::views::set_visible(app, WINDOW, true, first);
     events::emit_to(app, WINDOW, events::BAR, p);
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
@@ -453,6 +455,7 @@ fn engage(app: &AppHandle, key: &str) {
 
 fn hide_now(app: &AppHandle) {
     let was = lock(&app.state::<Popover>().showing).take();
+    crate::views::set_visible(app, WINDOW, false, false);
     events::emit_to(app, WINDOW, events::BAR, Payload::Hide { hide: true });
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {

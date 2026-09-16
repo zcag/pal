@@ -8,11 +8,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { FALLBACK, NOW, mergeDetail, sourceKey, staysOpen, toItem, toLiveHits, toView, type Ctx, type Effect, type Source, type SourceInfo, type WireHit, type WireItem } from "./items";
 import type { Hit } from "./ui";
+import { MOUNT_EVENT } from "./ui/View";
 import type { Detail, Item, ViewSpec } from "./ui/types";
 
-import { LIMIT, type DialogInfo, type Prefs } from "./Launcher";
+import { LIMIT, type DialogInfo, type LauncherHandle, type Prefs, type ViewOpen, type ViewUpdate } from "./Launcher";
 
 export const mark = (name: string, t: number) => invoke("mark", { name, t });
 
@@ -35,6 +37,39 @@ export function usePrefs(): Prefs {
 
 /** One palette's rows for a root section, as the host's `inline`/`fallback`/`suggest` answer them. */
 type Section = { extension: string; palette: string; items: WireItem[] };
+
+/**
+ * Live views, both halves, for the panel and the popover alike: a push
+ * for the level on top (`pal://view`, views.rs) lands in the Launcher in
+ * place, a trigger (`pal://trigger`) re-asks a view whose palette lists
+ * it, and the callback returned reports the view on top to the shell
+ * (`view_open`), which tells the extension and routes the pushes.
+ */
+export function useLiveViews(launcher: { current: LauncherHandle | null }): (open: ViewOpen | null) => void {
+  useEffect(() => {
+    // Sent to this window by label (views.rs `emit_to`); a listener on the default target (`Any`) would hear every window's, so it names its own.
+    const un = listen<ViewUpdate & { trace?: boolean }>("pal://view", (e) => {
+      // `PAL_VIEW_TRACE` in the shell's env: the update's cost in DOM terms, in the log. A kept key never mounts again, so the mounted count is the new keys only.
+      const trace = e.payload.trace ? traceMounts() : undefined;
+      launcher.current?.update(e.payload);
+      if (trace) requestAnimationFrame(() => requestAnimationFrame(() => { const { mounted, stop } = trace; stop(); mark(`view update ${e.payload.palette ?? e.payload.bar}: ${mounted().length} keyed mounted (${mounted().join(",") || "none"}), ${document.querySelectorAll(".pal-view [class*=pal-view__]").length} nodes in DOM`, performance.now()); }));
+    }, { target: getCurrentWindow().label });
+    const unTrigger = listen<{ name: string }>("pal://trigger", (e) => launcher.current?.trigger(e.payload.name));
+    return () => {
+      un.then((f) => f());
+      unTrigger.then((f) => f());
+    };
+  }, [launcher]);
+  return useCallback((open: ViewOpen | null) => { invoke("view_open", { open }).catch(() => {}); }, []);
+}
+
+/** Counts the keyed view nodes that mount from now until `stop` (`MOUNT_EVENT`, View.tsx). */
+function traceMounts(): { mounted: () => string[]; stop: () => void } {
+  const keys: string[] = [];
+  const on = (ev: Event) => keys.push(String((ev as CustomEvent).detail));
+  document.addEventListener(MOUNT_EVENT, on);
+  return { mounted: () => keys, stop: () => document.removeEventListener(MOUNT_EVENT, on) };
+}
 
 /** `sources()` from the core, refreshed on every `pal://index`. */
 export function useSources() {

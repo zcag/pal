@@ -4,14 +4,17 @@
 // holds every paired bridge's resources, filled by one `GET /clip/v2/
 // resource` per bridge and kept current by each bridge's event stream, so
 // a listing or a view never waits on the bridge; a change is one PUT
-// (api.ts), applied to the model at once and confirmed by the stream.
+// (api.ts), applied to the model at once and confirmed by the stream. An
+// open light or room view follows the stream too: every event that
+// touches a resource pushes the view's tree again (`view.update`, keyed by
+// the target's id), so a switch or the Hue app moves the panel's dial.
 // Pairing writes the bridge's address and application key to the settings
 // (`bridge`, `application_key`: the key lands in the OS keychain, the file
 // holds the reference) and keeps the rest of the record (the pinned
 // certificate, the entertainment client key) in storage (`bridges`); a
 // second bridge, while the settings hold one, keeps its key in storage.
 import { hostname } from "node:os";
-import { bar, effects, settings, storage, type BarItem, type BarMenuNode, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
+import { bar, effects, settings, storage, view as liveView, type BarItem, type BarMenuNode, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
 import { Client, GROUP_GAP_MS, HueError, LIGHT_GAP_MS, PAIR_WINDOW_MS, SETTINGS_HINT, config, devicetype, discoverCloud, discoverMdns, peekCertificate, pressLink, type Bridge, type Found, type HueEvent } from "./api.ts";
 import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, toHex, xyToHs, type RGB } from "./color.ts";
 import { Home, aggregate, automationsOf, entertainmentOf, lightColor, lightsOf, roomsOf, scenesOf, sensorsOf, type Room, type Scene } from "./model.ts";
@@ -168,7 +171,16 @@ function startStream(b: Bridge) {
 
 function onEvent(bridge: string, ev: HueEvent) {
   const touched = home.merge(bridge, ev);
-  if (touched.length) scheduleBar();
+  if (touched.length) { scheduleBar(); pushViews(); }
+}
+
+/** Every open light/room view (`view.open()`, one per target id) drawn again from the model; a target gone from the bridge is left as it is. */
+function pushViews() {
+  for (const ev of liveView.open(NAME)) {
+    if (ev.palette !== "light") continue;
+    const t = targetOf(ev.id.startsWith("light:") ? { light: ev.id } : { room: ev.id });
+    if (t) liveView.update(draw(t), { extension: NAME, palette: "light", id: ev.id }).catch((e) => console.error(`hue: view push: ${(e as Error).message}`));
+  }
 }
 
 // ---- writes -------------------------------------------------------------------------

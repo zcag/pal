@@ -80,11 +80,12 @@ locally (a pause shows `paused` before Spotify confirms), and the API is
 read again on the next key. Signed out, the view says how to sign in
 (Enter opens the browser); with nothing playing, Enter opens Spotify.
 
-**What it does not do**: tick by itself in the panel. A view level is
-redrawn on every key, and pal has no channel yet to push a tree into an
-open level, so the position and the line move when you press something.
-The bar popover is the live one: it is the same view, replaced in place
-every second while it is up.
+**It follows the song while it is open**: the extension pushes the tree
+every second while something plays (`view.update`, the lines sliding up
+as the song advances, the bar ticking), from the moment the level comes
+on top until it leaves, and the app re-asks it every 5 s besides
+(`refresh` in the manifest) as the safety net. The bar popover is the
+same view in a compact layout, fed the same way.
 
 ## The bar item
 

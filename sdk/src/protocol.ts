@@ -48,8 +48,8 @@ export type Detail = { markdown?: string; metadata?: Metadata[] };
  * load (an `icon://` one from `api.ts`, or any http(s) url). `template` is
  * for a bar item on the macOS menu bar: the image is a mask the system tints.
  */
-/** A brand tile (`tile()` in icon.ts): a rounded square in one of the twelve brand colours with a white mark. */
-export type TileIcon = { tile: ({ glyph: string; svg?: undefined } | { svg: string; glyph?: undefined }) & { bg: TileColorName } };
+/** A brand tile (`tile()` in icon.ts): a rounded square in one of the twelve brand colours with a white mark; `badge` is one or two characters in its corner (an instance's mark, docs/design/instances.md). */
+export type TileIcon = { tile: ({ glyph: string; svg?: undefined } | { svg: string; glyph?: undefined }) & { bg: TileColorName; badge?: string } };
 /** A glyph in a colour: a brand name, or a hex colour of the extension's own. */
 export type TintedIcon = { glyph: string; color: TileColorName | `#${string}` };
 export type TileColorName = "red" | "orange" | "amber" | "green" | "teal" | "cyan" | "blue" | "indigo" | "violet" | "pink" | "slate" | "ink";
@@ -285,6 +285,31 @@ export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: str
  */
 export type ViewInput = { value?: string; placeholder?: string; submit: string; cancel?: string };
 
+/** What re-asks an open view (`Palette.on`): a track or player change, wake from sleep, the network back, the panel shown with the level kept. */
+export type ViewTrigger = "media" | "wake" | "network" | "show";
+
+/**
+ * Which view a push or a lifecycle notification is about: a view
+ * palette's level (`palette`), or a bar item's own `{ view }` popover
+ * level (`bar`, the item's id); one of the two. `id` is the `View.id`
+ * the tree carries (`view` when it sets none): a palette whose view
+ * answers to several things (Hue's light view, one per light) tells
+ * them apart by it. `compact` on a notification: the level is in the
+ * bar popover.
+ */
+export type ViewTarget = { extension: string; palette?: string; bar?: string };
+/** `view/shown` and `view/hidden`, core to host: a view level came on top of a window, or left it (popped, covered, the window hidden). */
+export type ViewShown = ViewTarget & { id: string; compact?: true };
+/**
+ * `core/view.update` (host to core) and `pal://view` (core to page): a
+ * new tree for the open level. `spec` is a whole `View` (its actions,
+ * title, keys and input replace the level's) or `{ tree }` alone (the
+ * tree replaced, the rest kept). Dropped by the core, with one log line,
+ * while no such level is open; `id` narrows it to the level whose
+ * `View.id` matches.
+ */
+export type ViewUpdate = ViewTarget & { id?: string; spec: View | { tree: ViewNode } };
+
 // ---- form: a prompt with fields --------------------------------------------
 // An effect that asks: the UI pushes a form level drawn from these fields,
 // Enter submits it as a pick carrying the values, Escape leaves. The
@@ -435,6 +460,8 @@ export type Ctx = {
   inline?: true;
   /** On a `pick` of an `Action.multi` action: every marked id, the pick's `id` first. Absent on a single pick. */
   ids?: string[];
+  /** The level is in the bar popover (420 px wide, `docs/extensions.md`, bar items): a `view` lays out for it, a `list` may cut its rows. Absent in the panel. */
+  compact?: true;
 };
 
 /**
@@ -539,6 +566,17 @@ type PaletteBase = {
    * to `filters`: Tab cycles those.
    */
   multi?: boolean;
+  /**
+   * A view palette only: seconds between re-asks of `view(ctx)` while
+   * its level is open (on top of the panel or the popover), each answer
+   * replacing the tree in place with the keyed transitions; `on` adds
+   * triggers (`media`: a track or player change, `wake`, `network`,
+   * `show`: the panel shown with the level kept). The pull half of live
+   * views; `view.update` is the push half (docs/extensions.md, "Live
+   * views"). The manifest's win over these (`checkPalettes`).
+   */
+  refresh?: number;
+  on?: ViewTrigger[];
   /** `id` is the picked row, or the first marked one with `ctx.ids` carrying them all (`Action.multi`). */
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
   /**
@@ -641,8 +679,22 @@ export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "
 /** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
 export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh };
 
-/** Why `render` runs, and what a popover-opening click carried. */
-export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli" };
+/**
+ * Why `render` runs, and what a popover-opening click carried. `compact`:
+ * what the call answers is drawn in the bar popover (420 px wide, as tall
+ * as its content up to 480), so a `{ view }` menu or a `view` effect lays
+ * out for that width; the core sets it on every bar call today, since
+ * the popover is the only surface a bar item draws on.
+ */
+export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | "focus" | "minute" | "settings" | "update" | "cli" | "open"; anchor?: "menubar" | "sketchybar" | "hotkey" | "cli"; compact?: true; /** Which instance of a `multi` extension the item belongs to, so it can name its account in `title`; absent for a non-`multi` extension. */ instance?: InstanceInfo };
+
+/**
+ * Which instance of a `multi` extension the code runs as (`instance()` in
+ * api.ts, `BarCtx.instance`): the `key` is what every table, file and link
+ * is spelled with (`gmail@work`), `name` the manifest's, `title` what the
+ * user called it ("Work"; the default instance has none until named).
+ */
+export type InstanceInfo = { key: string; name: string; title?: string; isDefault: boolean };
 
 export type BarSource = {
   render(ctx: BarCtx): BarItem | Promise<BarItem>;
@@ -703,7 +755,8 @@ export type LinkHandler = (route: string, params: LinkParams) => Effect | void |
 /** One choice of a `select` setting: `id` is the stored value, `title` what the window shows. */
 export type SettingOption = { id: string; title: string };
 
-type SettingBase = { id: string; label: string; description?: string };
+/** `scope: "instance"`: the setting identifies the account (a server url, a workspace) and is never inherited by another instance of a `multi` extension; a `secret` never is either. */
+type SettingBase = { id: string; label: string; description?: string; scope?: "instance" };
 
 /** One setting an extension declares, with its default. */
 export type SettingSpec = SettingBase &
@@ -751,6 +804,10 @@ export type ManifestPalette = {
   ttl?: number;
   /** See `Palette.lazy`: the first listing waits for the first panel show; this value wins over the code's. */
   lazy?: boolean;
+  /** See `Palette.refresh` (a view palette): seconds between re-asks while open; this value wins over the code's. */
+  refresh?: number;
+  /** See `Palette.on`: the triggers that re-ask an open view; this value wins over the code's. */
+  on?: ViewTrigger[];
   /** See `Palette.tier`; this value wins over the code's. */
   tier?: Tier;
   /** See `Palette.match`: the regex source, for the store; the code's wins when both are set. */
@@ -785,6 +842,33 @@ export type Manifest = {
   bar?: Record<string, ManifestBar>;
   /** The routes `Extension.link` answers (`pal://<name>/<route>`), with their params, readable without the code. */
   links?: Record<string, ManifestLink>;
+  /**
+   * The extension can run as several configured instances (two accounts,
+   * two homes; docs/design/instances.md): each `[instances."<name>@<suffix>"]`
+   * in the config file is one, with its own settings, storage, palettes
+   * and bar items, run in its own worker. A palette title may carry
+   * `{instance}` for where the instance's title goes.
+   */
+  multi?: boolean;
+};
+
+/**
+ * `extension/loaded` (host to core): one per loaded instance. `extension`
+ * is the instance key (the bare name for the default and for a non-`multi`
+ * extension), `name` the manifest's; `instance` is what the config named
+ * it, defaults resolved (`tint` and `badge` absent for the default, which
+ * keeps the plain tile). `extension/error` and `extension/removed` carry
+ * `extension` the same way.
+ */
+export type ExtensionLoaded = {
+  extension: string;
+  name: string;
+  root: string;
+  instance: { key: string; title?: string; tint?: TileColorName; badge?: string; isDefault: boolean };
+  palettes: PaletteMeta[];
+  bar: BarMeta[];
+  manifest: Manifest;
+  warnings: string[];
 };
 
 /** Resolved values one extension sees: manifest defaults with the file's keys on top. */
@@ -822,4 +906,8 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   multi?: true;
   /** The first listing of a run waits for the first panel show (`Palette.lazy`); the cached rows restore either way. */
   lazy?: true;
+  /** A view palette: seconds between re-asks of `view(ctx)` while its level is open (`Palette.refresh`, the manifest's first). */
+  refresh?: number;
+  /** A view palette: the triggers that re-ask it while open (`Palette.on`, the manifest's first). */
+  on?: ViewTrigger[];
 };

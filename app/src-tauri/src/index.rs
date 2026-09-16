@@ -246,6 +246,8 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             settings::register(app, &ext, params, true);
             // Its bar items: the manifest's `bar` merged with the code's keys by the host.
             crate::bar::on_extension_loaded(app, &ext, crate::bar::manifest_bars(&params["bar"]));
+            // A reloaded module hears about its levels already open (a lyrics view up while its file was saved).
+            crate::views::resend(app, &ext);
             tauri::async_runtime::spawn(sync_extension(app.clone(), host.clone(), ext, title, metas));
         }
         "extension/error" => {
@@ -938,7 +940,10 @@ pub async fn run_pick(app: &AppHandle, host: &Arc<Host>, source: &Source, id: &s
 /// and the marked ids of a multi pick.
 #[allow(clippy::too_many_arguments)]
 pub async fn run_pick_from(app: &AppHandle, host: &Arc<Host>, source: &Source, id: &str, action: Option<&str>, args: Option<&Value>, values: Option<&Value>, ids: Option<&[String]>, window: &str) -> Result<Value, String> {
-    let params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action, "args": args, "values": values, "ids": ids });
+    let mut params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action, "args": args, "values": values, "ids": ids });
+    if window == crate::bar::popover::WINDOW {
+        params["compact"] = Value::Bool(true);
+    }
     let t0 = Instant::now();
     let r = host.request("pick", params).await?;
     eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, ms(t0));

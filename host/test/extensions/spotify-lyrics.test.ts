@@ -149,11 +149,25 @@ describe("view", () => {
     expect(after).toEqual(["l0", "l1", "l2", "l3", "l4", "l5", "post6"]);
   });
 
-  test("compact: the cover in the header row, five lines, the tint band across; no lyrics is a line and the lrclib action; unsynced lyrics scroll with the position; an intro shows the note", () => {
+  test("compact: the cover in the header row with the titles cut to the width, no glow band, four lines (one before, two after) with the current one taller, the transport and the state rows with their keycaps; no lyrics is a line and the lrclib action; unsynced lyrics scroll with the position; an intro shows the note", () => {
     const c = checkView(render({ ...base, layout: "compact" }));
     expect(find(c.tree, (n) => n.type === "image")).toMatchObject({ width: 64, height: 64 });
-    expect(find(c.tree, (n) => n.type === "gradient").layers[0].direction).toBe("right");
-    expect(find(c.tree, (n) => n.key === "lyrics-synced").children).toHaveLength(5);
+    expect(find(c.tree, (n) => n.type === "gradient")).toBeUndefined();
+    expect(find(c.tree, (n) => n.key === "titles").children.map((t: any) => t.width)).toEqual([320, 320, 320]);
+    expect(find(c.tree, (n) => n.type === "progress").width).toBe(396 - 72 - 16);
+    const lines = find(c.tree, (n) => n.key === "lyrics-synced");
+    expect(lines.children.map((x: any) => [x.key, x.minHeight])).toEqual([["l1", 24], ["l2", 32], ["l3", 24], ["l4", 24]]);
+    expect(lines.children[0].children[0]).toMatchObject({ value: "The bottom of the sea", size: "md", color: "muted" });
+    expect(lines.children[1].children[0]).toMatchObject({ value: "Your eyes", size: "xl", weight: "semibold" });
+    const keycaps = (n: any): string[] => (n?.type === "keycap" ? [n.keys] : (n?.children ?? []).flatMap(keycaps));
+    expect(keycaps(find(c.tree, (n) => n.key === "transport"))).toEqual(["space", "cmd+left", "cmd+right", "left", "right", "up", "down"]);
+    const state = find(c.tree, (n) => n.key === "state");
+    expect(keycaps(state)).toEqual(["l", "d", "q"]);
+    expect(texts(state)).toEqual(["♥ liked", "hornet 40%", "queue"]);
+    expect(state.children.filter((x: any) => x.type === "badge").map((x: any) => x.text)).toEqual(["shuffle", "repeat"]);
+    expect(find(c.tree, (n) => n.key === "badges")).toBeUndefined();
+    expect(texts(find(render({ ...base, layout: "compact", playing: false, liked: false }).tree, (n) => n.key === "state"))).toContain("♡ like");
+    expect(find(render({ ...base, layout: "compact", playing: false }).tree, (n) => n.key === "paused")).toBeTruthy();
     const none = checkView(render({ ...base, lyrics: null }));
     expect(texts(none.tree)).toContain("No lyrics on lrclib");
     expect(none.actions.find((a) => a.id === "lrclib")).toMatchObject({ shortcut: "f" });

@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Launcher, menuLevel, type LauncherHandle, type Level } from "./Launcher";
 import { menuKind, type BarPayload, type BarShow } from "./bar";
-import { mark, useCore } from "./core";
+import { mark, useCore, useLiveViews } from "./core";
 import { sourceKey, staysOpen, toView, type Ctx, type Effect } from "./items";
 import type { Item } from "./ui/types";
 
@@ -83,6 +83,9 @@ export default function BarPage() {
     return () => { mo.disconnect(); cancelAnimationFrame(raf); };
   }, []);
 
+  // Live views in the popover: the same push, trigger and on-top report as the panel's (views.rs marks them `compact`).
+  const viewOpen = useLiveViews(launcher);
+
   // A row of the item's own level (a menu row, a view action) is `bar/action`; a palette level's rows are the usual pick.
   const pick = useCallback(async (item: Item, query: string, action?: string, ctx?: Ctx) => {
     const key = showing.current?.key;
@@ -102,7 +105,7 @@ export default function BarPage() {
 
   return (
     <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} title={show?.tooltip}>
-      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} />
+      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} />
     </div>
   );
 }

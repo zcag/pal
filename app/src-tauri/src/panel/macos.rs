@@ -114,6 +114,7 @@ fn hide_now(app: &AppHandle) {
     }
     crate::pop::note_hidden();
     crate::pick::on_hidden(app);
+    crate::views::set_visible(app, WINDOW, false, false);
     p.set_ignores_mouse_events(true);
     p.set_alpha_value(0.0);
     // orderOut is what gives key focus back to the app in front; order

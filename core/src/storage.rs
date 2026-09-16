@@ -9,7 +9,8 @@
 //! extension that mistakes this for a cache finds out at once instead of
 //! slowing every pick. Keys are non-empty and at most [`MAX_KEY`] bytes; the
 //! extension name is validated like an install name (`[a-z0-9._-]`, no
-//! leading dot), since it becomes a file name.
+//! leading dot), or an instance key (`gmail@work`, one `@`), since it
+//! becomes a file name.
 //!
 //! Files are read on first touch and kept in memory after; the bridge runs
 //! handlers on blocking threads, so the map is behind one mutex.
@@ -61,8 +62,11 @@ pub struct Storage {
     files: Mutex<HashMap<String, Map>>,
 }
 
+/// An install name, or an instance key (`gmail@work`: one `@`, a name on
+/// each side, `config::instance`), since an instance has its own file.
 fn valid_name(name: &str) -> bool {
-    !name.is_empty() && !name.starts_with('.') && name.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_' || b == b'.')
+    let (name, suffix) = crate::config::instance::split(name);
+    crate::config::instance::valid_name(name) && suffix.is_none_or(crate::config::instance::valid_suffix)
 }
 
 fn valid_key(key: &str) -> bool {
@@ -221,6 +225,21 @@ mod tests {
         assert_eq!(s.get("a", "k").unwrap(), json!(1));
         assert_eq!(s.get("b", "k").unwrap(), json!(2));
         assert!(dir.join("a.json").is_file() && dir.join("b.json").is_file());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn storage_accepts_one_at_sign() {
+        let dir = temp();
+        let s = Storage::open_in(&dir);
+        s.set("gmail", "k", json!("personal")).unwrap();
+        s.set("gmail@work", "k", json!("work")).unwrap();
+        assert_eq!(s.get("gmail", "k").unwrap(), json!("personal"), "an instance's file is its own");
+        assert_eq!(s.get("gmail@work", "k").unwrap(), json!("work"));
+        assert!(dir.join("gmail.json").is_file() && dir.join("gmail@work.json").is_file());
+        for bad in ["@work", "gmail@", "gmail@w@x", "gmail@Work", "gmail@default", "../x@y"] {
+            assert_eq!(s.get(bad, "k"), Err(Error::BadName(bad.into())), "{bad}");
+        }
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

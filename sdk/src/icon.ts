@@ -22,13 +22,16 @@ export type TileColor = TileColorName;
 
 /** A tile's mark: one Nerd Font glyph (a private-use codepoint), or an SVG path set (`<path d>` data, drawn in a 16 by 16 box, filled white). */
 export type TileMark = { glyph: string; svg?: undefined } | { svg: string; glyph?: undefined };
-export type Tile = TileMark & { bg: TileColor };
+/** `badge`: one or two characters drawn in the tile's corner, an instance's mark ("W" for Work). */
+export type Tile = TileMark & { bg: TileColor; badge?: string };
 export type TileIcon = { tile: Tile };
 /** A glyph in a colour: a brand name, or a hex colour of the extension's own. */
 export type TintedIcon = { glyph: string; color: TileColor | `#${string}` };
 
 /** An SVG mark is `d` path data only, not markup, and short: it is inlined per row. */
 export const MAX_TILE_SVG = 400;
+/** A badge is one or two characters (code points): more would not fit the corner. */
+export const MAX_BADGE = 2;
 
 const PRIVATE_USE = /^[\p{Co}]$/u;
 const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -39,6 +42,18 @@ const PATH_DATA = /^[MmLlHhVvCcSsQqTtAaZz0-9.,\s-]+$/;
 export function tile(bg: TileColor, mark: string | { svg: string }): OwnIcon {
   const m: TileMark = typeof mark === "string" ? { glyph: mark } : { svg: mark.svg };
   return { tile: { ...m, bg } };
+}
+
+/**
+ * `icon` as an instance wears it: a tile takes `tint` as its colour (when
+ * given) and `badge` in its corner; any other icon form comes back as it
+ * is, since only a tile has a corner. What the host does to a `multi`
+ * extension's tile for a non-default instance.
+ */
+export function badged<I>(icon: I, mark: { tint?: TileColor; badge?: string }): I {
+  if (!isTileIcon(icon)) return icon;
+  const { badge, tint } = mark;
+  return { tile: { ...icon.tile, ...(tint && { bg: tint }), ...(badge && { badge }) } } as unknown as I;
 }
 
 /** A glyph in a colour, for a row: `tinted("", "green")`. */
@@ -70,6 +85,10 @@ export function checkIcon(icon: unknown, where: string): string | undefined {
       if (typeof t.svg !== "string" || !t.svg.trim()) return `${where}: tile svg is empty`;
       if (t.svg.length > MAX_TILE_SVG) return `${where}: tile svg is ${t.svg.length} bytes, at most ${MAX_TILE_SVG}`;
       if (!PATH_DATA.test(t.svg)) return `${where}: tile svg must be path data (the d attribute), not markup`;
+    }
+    if (t.badge !== undefined) {
+      const n = typeof t.badge === "string" ? [...t.badge.trim()].length : 0;
+      if (n < 1 || n > MAX_BADGE) return `${where}: tile badge must be one or two characters, not ${JSON.stringify(t.badge)}`;
     }
     return undefined;
   }
