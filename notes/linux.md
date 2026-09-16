@@ -90,11 +90,12 @@ Rule set that gave pinned, no border, no shadow, centred at 20% down, verified
 live with `hyprctl keyword` (Hyprland 0.56 syntax):
 
 ```
-windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal-app)$
-bind = CTRL, space, exec, pal-app toggle
+windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal)$
+bind = CTRL, space, exec, pal toggle
 ```
 
-(`^(pal)$` once the binary is renamed.) The same set is quoted in
+(The binary was `pal-app` when this was measured; it is `pal` since the
+bundling pass, and the class follows.) The same set is quoted in
 `app/src-tauri/src/panel/linux.rs` as what the app cannot do itself.
 
 `center on` also works but centres vertically. `move` with `monitor_w`/`window_w`
@@ -170,3 +171,40 @@ Nothing. Tauri v2 Linux prerequisites were all present on marko
   to something the webview can draw.
 - Seen once after a `tauri dev` restart: two rows showed the letter fallback
   although Rust answered 200 with the PNG. Not reproduced in 6 fresh starts.
+
+## Bundle (marko, 2026-09-16)
+
+`NO_STRIP=true npm run tauri build` in `app/` gives `target/release/bundle/`:
+`appimage/pal_0.1.0_amd64.AppImage` 137 MB, `deb/pal_0.1.0_amd64.deb` 44 MB,
+`rpm/pal-0.1.0-1.x86_64.rpm` 44 MB; the bare `pal` binary is 13.6 MB, the
+bun sidecar 79.5 MB. Tauri fetched `linuxdeploy-x86_64.AppImage`, its gtk
+and gstreamer plugin scripts, `linuxdeploy-plugin-appimage` and `AppRun` into
+`~/.cache/tauri/` (five downloads, once). Nothing else was installed.
+
+- `NO_STRIP=true` is load-bearing on Arch: linuxdeploy carries its own old
+  `strip`, which rejects every library here (`unknown type [0x13] section
+  .relr.dyn`, what current binutils emit) and the bundle fails with only
+  `failed to run linuxdeploy` unless run with `-v`.
+- The AppImage bundles the whole webkit2gtk stack (174 libraries, 274 MB
+  before squashfs; libwebkit2gtk 94 MB, libjavascriptcoregtk 38 MB, ICU data
+  33 MB), which is what the size is. The deb depends on the system's
+  `libwebkit2gtk-4.1-0` and `libgtk-3-0` instead.
+- Inside the AppImage `bun` is `usr/bin/bun` next to `usr/bin/pal` and the
+  host plus extensions are `usr/lib/pal/{host,extensions}`; the deb installs
+  the same at `/usr/bin/bun` (which shadows nothing on PATH before it, but
+  is a system-wide `bun` all the same) and `/usr/lib/pal/`.
+- linuxdeploy's gtk hook exports `GDK_BACKEND=x11` (tauri#8541), so the
+  AppImage as built ran under Xwayland: class `Pal`, `xwayland: 1`, mapped
+  at 0,0, the windowrule for `^(pal)$` never matching. Native Wayland works
+  fine with the bundled GTK on marko, so `main.rs` sets
+  `GDK_BACKEND=wayland,x11` when `APPDIR` and `WAYLAND_DISPLAY` are both set
+  (`PAL_GDK_BACKEND` overrides). Verified: class `pal`, `xwayland: 0`,
+  floating, at Hyprland's centre (580,300).
+- From the AppImage: host ready 510 ms on a cold squashfs mount (calc's
+  1.5 MB bundle is the slow import at 326 ms), 113 apps, first paint 19 to
+  23 ms, later 0.7 ms. calc (`15% of 240` = 36) and the emoji grid verified
+  by typing into it with ydotool.
+- `pal toggle` through the AppImage costs 226 to 234 ms end to end: each
+  invocation mounts the squashfs before the 50 ms bare-binary path from the
+  section above runs. A Hyprland bind wants the deb's `/usr/bin/pal toggle`
+  or the extracted AppDir's `usr/bin/pal`, not the AppImage file.

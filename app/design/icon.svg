@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- pal's mark: the launcher's first frame. A graphite slab (the panel), an
+       iris caret ready at the text edge, and the empty query beside it. The
+       slab sits on Apple's 824 px icon grid so it matches the Dock's other
+       icons; on Linux the transparent margin is simply margin. Flat fills:
+       a dark gradient bands at 512 and gains nothing at 16. -->
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000" flood-opacity="0.32"/>
+    </filter>
+    <filter id="glow" x="-60%" y="-40%" width="220%" height="180%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="slab"><rect x="100" y="100" width="824" height="824" rx="186"/></clipPath>
+  </defs>
+
+  <!-- the slab, graphite with a trace of blue (the brief's neutral) -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="#1F1F26" filter="url(#shadow)"/>
+  <g clip-path="url(#slab)">
+    <!-- the panel's own edge treatment: a light inner line along the top -->
+    <rect x="100" y="100" width="824" height="5" fill="#FFFFFF" fill-opacity="0.12"/>
+  </g>
+
+  <!-- the caret: iris, the one accent, with a soft halo -->
+  <rect x="318" y="318" width="132" height="388" rx="66" fill="#9F97FF" fill-opacity="0.5" filter="url(#glow)"/>
+  <rect x="340" y="336" width="88" height="352" rx="44" fill="#A29BFF"/>
+
+  <!-- the empty query: a placeholder dash on the caret's midline -->
+  <rect x="490" y="466" width="222" height="92" rx="46" fill="#ECECF0" fill-opacity="0.42"/>
+</svg>
