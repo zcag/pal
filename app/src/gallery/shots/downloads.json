@@ -1,0 +1,899 @@
+{
+  "palettes": {
+    "downloads": {
+      "title": "Downloads",
+      "icon": {
+        "tile": {
+          "glyph": "󰇚",
+          "bg": "cyan"
+        }
+      },
+      "live": true,
+      "tier": "primary",
+      "placeholder": "Search downloads",
+      "items": [
+        {
+          "id": "~/Downloads/ubuntu-26.04-desktop-arm64.iso.crdownload",
+          "name": "ubuntu-26.04-desktop-arm64.iso",
+          "subtitle": "Disk",
+          "icon": "󰇚",
+          "keywords": [
+            "ubuntu-26.04-desktop-arm64.iso.crdownload"
+          ],
+          "section": "Downloading",
+          "accessories": [
+            {
+              "tag": "downloading",
+              "color": "blue"
+            },
+            {
+              "text": "396.3 MB · 3.1 MB/s"
+            }
+          ],
+          "actions": [
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/pal-0.1.0-arm64.dmg",
+          "name": "pal-0.1.0-arm64.dmg",
+          "subtitle": "Disk",
+          "icon": "󰗮",
+          "keywords": [
+            "pal-0.1.0-arm64.dmg"
+          ],
+          "section": "Today",
+          "accessories": [
+            {
+              "text": "23.7 MB"
+            },
+            {
+              "date": 1789596358071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/Sunset over Kadıköy.jpg",
+          "name": "Sunset over Kadıköy.jpg",
+          "subtitle": "Image",
+          "icon": {
+            "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QBMRXhpZgAATU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAQKADAAQAAAABAAAAKgAAAAD/7QA4UGhvdG9zaG9wIDMuMAA4QklNBAQAAAAAAAA4QklNBCUAAAAAABDUHYzZjwCyBOmACZjs+EJ+/8AAEQgAKgBAAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAgICAgICBAICBAYEBAQGCAYGBgYICggICAgICgwKCgoKCgoMDAwMDAwMDA4ODg4ODhAQEBAQEhISEhISEhISEv/bAEMBAwMDBQQFCAQECBMNCw0TExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE//dAAQABP/aAAwDAQACEQMRAD8A9Tiu60YbuuGivBWhFeV8BUyHyP6Qq4o7mK7rSjvK4WK8rRivPeuKeQ+R59XFHdRXdaMV3XCxXlaMV5XFPIfI8+rijuYrutGK77Vw0V5WhFeVx1Mh8jz6uKP/0HRXfvWhFee9cNFeVoxXlfUVMh8j9tqYo7mK8960Y7wetcNFee9aEV5XHUyHyPPqYo7qO7rRivPeuFjvPetGK8riqZD5Hn1cUd1FeD1rQivPeuGivPetGK8964p5D5Hn1cUf/9Hy+K7960Yrz3rkoic1pQk8V/Q9TLaZ+m1azOriu/etGK8965SInPWtCImuKpl1M8+rWZ1kV371oxXee9cnGx9a0YyeOa4qmXUzz6lZnWRXnvWjFee9cnCTkVoxE561x1MupnnVazP/2Q=="
+          },
+          "keywords": [
+            "Sunset over Kadıköy.jpg"
+          ],
+          "section": "Yesterday",
+          "accessories": [
+            {
+              "text": "6.9 KB"
+            },
+            {
+              "date": 1789590358071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/Invoice 2026-09.pdf",
+          "name": "Invoice 2026-09.pdf",
+          "subtitle": "Document",
+          "icon": "󰧮",
+          "keywords": [
+            "Invoice 2026-09.pdf"
+          ],
+          "section": "Yesterday",
+          "accessories": [
+            {
+              "text": "180 KB"
+            },
+            {
+              "date": 1789579558071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/Q3 metrics.xlsx",
+          "name": "Q3 metrics.xlsx",
+          "subtitle": "Document",
+          "icon": "󰧮",
+          "keywords": [
+            "Q3 metrics.xlsx"
+          ],
+          "section": "This week",
+          "accessories": [
+            {
+              "text": "94 KB"
+            },
+            {
+              "date": 1789503958071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/node-v24.8.0.pkg",
+          "name": "node-v24.8.0.pkg",
+          "subtitle": "App",
+          "icon": "󰣆",
+          "keywords": [
+            "node-v24.8.0.pkg"
+          ],
+          "section": "This week",
+          "accessories": [
+            {
+              "text": "65.2 MB"
+            },
+            {
+              "date": 1789489558071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/latency-plot.png",
+          "name": "latency-plot.png",
+          "subtitle": "Image",
+          "icon": {
+            "image": "data:image/jpeg;base64,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"
+          },
+          "keywords": [
+            "latency-plot.png"
+          ],
+          "section": "This week",
+          "accessories": [
+            {
+              "text": "580 B"
+            },
+            {
+              "date": 1789338358071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/design-tokens.zip",
+          "name": "design-tokens.zip",
+          "subtitle": "Archive",
+          "icon": "󰞹",
+          "keywords": [
+            "design-tokens.zip"
+          ],
+          "section": "This week",
+          "accessories": [
+            {
+              "text": "1.2 MB"
+            },
+            {
+              "date": 1789251958071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/meeting-notes.md",
+          "name": "meeting-notes.md",
+          "subtitle": "Document",
+          "icon": "󰧮",
+          "keywords": [
+            "meeting-notes.md"
+          ],
+          "section": "This week",
+          "accessories": [
+            {
+              "text": "3.0 KB"
+            },
+            {
+              "date": 1789079158071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/bench.rb",
+          "name": "bench.rb",
+          "subtitle": "Code",
+          "icon": "󱀫",
+          "keywords": [
+            "bench.rb"
+          ],
+          "section": "Older",
+          "accessories": [
+            {
+              "text": "2.6 KB"
+            },
+            {
+              "date": 1788560758071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/2025 Transparency Report.pdf",
+          "name": "2025 Transparency Report.pdf",
+          "subtitle": "Document",
+          "icon": "󰧮",
+          "keywords": [
+            "2025 Transparency Report.pdf"
+          ],
+          "section": "Older",
+          "accessories": [
+            {
+              "text": "4.7 MB"
+            },
+            {
+              "date": 1786055158071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Downloads/IMG_4821.HEIC",
+          "name": "IMG_4821.HEIC",
+          "subtitle": "Image",
+          "icon": "󰈟",
+          "keywords": [
+            "IMG_4821.HEIC"
+          ],
+          "section": "Older",
+          "accessories": [
+            {
+              "text": "3.1 MB"
+            },
+            {
+              "date": 1784413558071
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "move",
+              "title": "Move to folder…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "clear-old",
+          "name": "Clear older than 30 days",
+          "subtitle": "2 items, 7.8 MB, to the Trash",
+          "icon": "󰃢",
+          "section": "Folder",
+          "actions": [
+            {
+              "id": "clear-old",
+              "title": "Move them to the Trash",
+              "style": "destructive",
+              "confirm": "Move 2 items older than 30 days to the Trash?"
+            }
+          ]
+        },
+        {
+          "id": "open-folder",
+          "name": "Open Downloads",
+          "subtitle": "~/Downloads",
+          "icon": "󰝰",
+          "section": "Folder",
+          "actions": [
+            {
+              "id": "open-folder",
+              "title": "Open the folder"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "~/Downloads/Invoice 2026-09.pdf": {
+          "metadata": [
+            {
+              "label": "Name",
+              "value": "Invoice 2026-09.pdf"
+            },
+            {
+              "label": "Folder",
+              "value": "~/Downloads"
+            },
+            {
+              "label": "Size",
+              "value": "180 KB"
+            },
+            {
+              "label": "Kind",
+              "value": "Document"
+            },
+            {
+              "label": "Modified",
+              "value": "9/16/2026, 8:25:58 PM"
+            },
+            {
+              "label": "From",
+              "link": {
+                "text": "billing.example.com/invoices/2026-09.pdf",
+                "href": "https://billing.example.com/invoices/2026-09.pdf"
+              }
+            },
+            {
+              "label": "Page",
+              "link": {
+                "text": "billing.example.com/account/invoices",
+                "href": "https://billing.example.com/account/invoices"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "effects": {
+    "downloads/~/Downloads/Invoice 2026-09.pdf:move": {
+      "form": {
+        "id": "~/Downloads/Invoice 2026-09.pdf",
+        "title": "Move Invoice 2026-09.pdf",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "folder",
+            "label": "Folder",
+            "placeholder": "~/Documents",
+            "default": "~/Documents",
+            "required": true,
+            "description": "Where it goes; ~ is expanded, a missing folder is created."
+          }
+        ],
+        "submit": {
+          "id": "move-submit",
+          "title": "Move"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-downloads": {
+      "palette": "downloads",
+      "keys": [
+        "down*2"
+      ]
+    },
+    "2-detail": {
+      "palette": "downloads",
+      "keys": [
+        "down*3",
+        "cmd+i"
+      ]
+    },
+    "3-actions": {
+      "palette": "downloads",
+      "keys": [
+        "down*3",
+        "cmd+k"
+      ]
+    },
+    "4-move": {
+      "palette": "downloads",
+      "keys": [
+        "down*3",
+        "cmd+m",
+        "wait:300"
+      ]
+    },
+    "5-marked": {
+      "palette": "downloads",
+      "keys": [
+        "down",
+        "shift+down",
+        "shift+down",
+        "shift+down"
+      ]
+    }
+  }
+}

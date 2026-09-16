@@ -1,0 +1,624 @@
+{
+  "palettes": {
+    "shell": {
+      "title": "Shell",
+      "icon": {
+        "tile": {
+          "glyph": "󰞷",
+          "bg": "slate"
+        }
+      },
+      "input": true,
+      "placeholder": "A command to run in your shell",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:type",
+            "name": "Type a command and press Enter to run it",
+            "subtitle": "/bin/sh -c in /var/folders/ls/33sktrzn1t99qfh750dd9vlc0000gn/T/pal-shell-fixture-ET6HLN, 5 s at most",
+            "icon": "󰋽",
+            "actions": []
+          },
+          {
+            "id": "hint:root",
+            "name": "At the root, $ or > before the command",
+            "subtitle": "$ ls -la · > git status",
+            "icon": "󰋽",
+            "actions": []
+          },
+          {
+            "id": "hint:history",
+            "name": "Past commands are in Shell History",
+            "subtitle": "With their exit codes; Enter runs one again",
+            "icon": "󰋚",
+            "actions": []
+          }
+        ],
+        "ls -la": [
+          {
+            "id": "run:ls -la",
+            "name": "Run: ls -la",
+            "subtitle": "/bin/sh -c in ~/proj/demo, 5 s at most",
+            "icon": "󰞷",
+            "keywords": [
+              "ls -la"
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "python3 -c 'import requests'": [
+          {
+            "id": "run:python3 -c 'import requests'",
+            "name": "Run: python3 -c 'import requests'",
+            "subtitle": "/bin/sh -c in ~/proj/demo, 5 s at most",
+            "icon": "󰞷",
+            "keywords": [
+              "python3 -c 'import requests'"
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "rm -rf dist": [
+          {
+            "id": "run:rm -rf dist",
+            "name": "Run: rm -rf dist",
+            "subtitle": "/bin/sh -c in ~/proj/demo, 5 s at most · asks first",
+            "icon": "󰞷",
+            "keywords": [
+              "rm -rf dist"
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run",
+                "confirm": "Run “rm -rf dist”? It looks like it removes, overwrites or escalates.",
+                "style": "destructive"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "history": {
+      "title": "Shell History",
+      "icon": {
+        "tile": {
+          "glyph": "󰞷",
+          "bg": "slate"
+        }
+      },
+      "input": true,
+      "placeholder": "Search past commands",
+      "byQuery": {
+        "": [
+          {
+            "id": "h:python3 -c 'import requests'",
+            "name": "python3 -c 'import requests'",
+            "subtitle": "26 ms in ~/proj/demo",
+            "icon": "󰞷",
+            "keywords": [
+              "python3 -c 'import requests'"
+            ],
+            "accessories": [
+              {
+                "tag": "exit 1",
+                "color": "red"
+              },
+              {
+                "date": 1789597447727
+              }
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run again"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "remove",
+                "title": "Remove from history",
+                "shortcut": "cmd+d",
+                "style": "destructive"
+              }
+            ]
+          },
+          {
+            "id": "h:ls -la",
+            "name": "ls -la",
+            "subtitle": "6 ms in ~/proj/demo",
+            "icon": "󰞷",
+            "keywords": [
+              "ls -la"
+            ],
+            "accessories": [
+              {
+                "tag": "exit 0",
+                "color": "green"
+              },
+              {
+                "date": 1789597447700
+              }
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run again"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "remove",
+                "title": "Remove from history",
+                "shortcut": "cmd+d",
+                "style": "destructive"
+              }
+            ]
+          },
+          {
+            "id": "h:git status --short",
+            "name": "git status --short",
+            "subtitle": "3 ms in ~/proj/demo",
+            "icon": "󰞷",
+            "keywords": [
+              "git status --short"
+            ],
+            "accessories": [
+              {
+                "tag": "exit 0",
+                "color": "green"
+              },
+              {
+                "date": 1789597147895
+              }
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run again"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "remove",
+                "title": "Remove from history",
+                "shortcut": "cmd+d",
+                "style": "destructive"
+              }
+            ]
+          },
+          {
+            "id": "h:make test",
+            "name": "make test",
+            "subtitle": "3 ms in ~/proj/demo",
+            "icon": "󰞷",
+            "keywords": [
+              "make test"
+            ],
+            "accessories": [
+              {
+                "tag": "exit 2",
+                "color": "red"
+              },
+              {
+                "date": 1789595047895
+              }
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run again"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "remove",
+                "title": "Remove from history",
+                "shortcut": "cmd+d",
+                "style": "destructive"
+              }
+            ]
+          },
+          {
+            "id": "h:docker ps",
+            "name": "docker ps",
+            "subtitle": "3 ms in ~/proj/demo",
+            "icon": "󰞷",
+            "keywords": [
+              "docker ps"
+            ],
+            "accessories": [
+              {
+                "tag": "exit 0",
+                "color": "green"
+              },
+              {
+                "date": 1789586647895
+              }
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run again"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "remove",
+                "title": "Remove from history",
+                "shortcut": "cmd+d",
+                "style": "destructive"
+              }
+            ]
+          },
+          {
+            "id": "h:brew outdated",
+            "name": "brew outdated",
+            "subtitle": "3 ms in ~/proj/demo",
+            "icon": "󰞷",
+            "keywords": [
+              "brew outdated"
+            ],
+            "accessories": [
+              {
+                "tag": "exit 0",
+                "color": "green"
+              },
+              {
+                "date": 1789503847895
+              }
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run again"
+              },
+              {
+                "id": "terminal",
+                "title": "Run in terminal"
+              },
+              {
+                "id": "copy_cmd",
+                "title": "Copy command",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "remove",
+                "title": "Remove from history",
+                "shortcut": "cmd+d",
+                "style": "destructive"
+              }
+            ]
+          },
+          {
+            "id": "clear",
+            "name": "Clear history",
+            "subtitle": "4 commands",
+            "icon": "󰃢",
+            "actions": [
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "style": "destructive",
+                "confirm": "Forget every command in the history?"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "effects": {
+    "shell/run:ls -la": {
+      "view": {
+        "id": "run",
+        "title": "$ ls -la",
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "align": "center",
+              "key": "head",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "$ ls -la",
+                  "style": "mono",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "badge",
+                  "text": "exit 0",
+                  "color": "green"
+                },
+                {
+                  "type": "text",
+                  "value": "6 ms",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "key": "where",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "~/proj/demo",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "padding": 3,
+              "surface": "sunken",
+              "radius": true,
+              "grow": true,
+              "key": "output",
+              "children": [
+                {
+                  "type": "text",
+                  "key": "out",
+                  "value": "total 48\ndrwx------     8 sam  staff    256 Sep 17 01:24 .\ndrwx------@ 2739 sam  staff  87648 Sep 17 01:24 ..\ndrwxr-xr-x     2 sam  staff     64 Sep 17 01:24 dist\n-rw-r--r--     1 sam  staff   9210 Sep 17 01:24 index.ts\n-rw-r--r--     1 sam  staff     88 Sep 17 01:24 notes.txt\n-rw-r--r--     1 sam  staff    612 Sep 17 01:24 package.json\n-rw-r--r--     1 sam  staff   1840 Sep 17 01:24 README.md\ndrwxr-xr-x     2 sam  staff     64 Sep 17 01:24 src",
+                  "style": "mono"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "copy",
+            "title": "Copy output"
+          },
+          {
+            "id": "terminal",
+            "title": "Open in terminal"
+          },
+          {
+            "id": "rerun",
+            "title": "Run again",
+            "shortcut": "cmd+r"
+          },
+          {
+            "id": "copy_cmd",
+            "title": "Copy command",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "copy_err",
+            "title": "Copy stderr",
+            "shortcut": "cmd+shift+e"
+          }
+        ]
+      }
+    },
+    "shell/run:python3 -c 'import requests'": {
+      "view": {
+        "id": "run",
+        "title": "$ python3 -c 'import requests'",
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "align": "center",
+              "key": "head",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "$ python3 -c 'import requests'",
+                  "style": "mono",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "badge",
+                  "text": "exit 1",
+                  "color": "red"
+                },
+                {
+                  "type": "text",
+                  "value": "26 ms",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "key": "where",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "~/proj/demo",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "padding": 3,
+              "surface": "sunken",
+              "radius": true,
+              "grow": true,
+              "key": "output",
+              "children": [
+                {
+                  "type": "text",
+                  "key": "err",
+                  "value": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'",
+                  "style": "mono",
+                  "color": "red"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "copy",
+            "title": "Copy output"
+          },
+          {
+            "id": "terminal",
+            "title": "Open in terminal"
+          },
+          {
+            "id": "rerun",
+            "title": "Run again",
+            "shortcut": "cmd+r"
+          },
+          {
+            "id": "copy_cmd",
+            "title": "Copy command",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "copy_err",
+            "title": "Copy stderr",
+            "shortcut": "cmd+shift+e"
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-run": {
+      "palette": "shell",
+      "keys": [
+        "type:ls -la"
+      ]
+    },
+    "2-output": {
+      "palette": "shell",
+      "keys": [
+        "type:ls -la",
+        "enter",
+        "wait:400"
+      ]
+    },
+    "3-stderr": {
+      "palette": "shell",
+      "keys": [
+        "type:python3 -c 'import requests'",
+        "enter",
+        "wait:400"
+      ]
+    },
+    "4-confirm": {
+      "palette": "shell",
+      "keys": [
+        "type:rm -rf dist",
+        "enter",
+        "wait:300"
+      ]
+    },
+    "5-history": {
+      "palette": "history",
+      "keys": [
+        "down"
+      ]
+    }
+  }
+}

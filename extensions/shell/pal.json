@@ -1,0 +1,75 @@
+{
+  "name": "shell",
+  "title": "Shell",
+  "description": "Run a command in your login shell and read what it printed in the panel: stdout in mono, stderr in red, the exit code and the duration. Typing never runs anything (Enter does), a command that looks destructive asks first, the output copies on Enter, opens in a terminal on cmd+Enter, runs again on cmd+r. A history of every command with its exit code.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰞷", "bg": "slate" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "text", "id": "shell", "label": "Shell", "description": "The shell and its flags; `$SHELL` is your login shell. `-l` loads the login profile (PATH), `-i` the interactive one (aliases); `-c` takes the command. A `zsh -lc` skips the aliases and the interactive noise.", "placeholder": "$SHELL -lic", "default": "$SHELL -lic" },
+    { "kind": "path", "id": "cwd", "label": "Working directory", "description": "Where commands run; `~` is expanded.", "pick": "folder", "placeholder": "~", "default": "~" },
+    { "kind": "number", "id": "timeout", "label": "Timeout", "description": "A command still running after this is killed (SIGTERM, then SIGKILL) and the view says so; what it printed until then is kept.", "min": 1, "max": 600, "unit": "seconds", "default": 10 },
+    { "kind": "list", "id": "env", "label": "Environment", "description": "`KEY=VALUE` lines set for every command, on top of the host's environment.", "placeholder": "PAGER=cat", "default": [] },
+    { "kind": "boolean", "id": "confirm", "label": "Confirm destructive commands", "text": "Ask before running a command that removes, overwrites or escalates (rm, sudo, mv, dd, git reset --hard, ...)", "default": true },
+    { "kind": "text", "id": "terminal", "label": "Terminal", "description": "What cmd+Enter opens: `Terminal` (default), `iTerm`, `kitty`, `Alacritty`, `WezTerm`, `Ghostty`, or any app name (`open -na <name> --args -e ...`); on Linux `$TERMINAL`, else `x-terminal-emulator`.", "placeholder": "Terminal", "default": "" }
+  ],
+  "store": {
+    "tagline": "Run a command, read its output in the panel, run it again",
+    "category": "developer",
+    "features": [
+      "One row until Enter: `Run: <command>`; typing runs nothing, and a command that looks destructive (`rm`, `sudo`, `mv`, `dd`, `git reset --hard`, ...) asks first",
+      "Runs in your login shell (`$SHELL -lic`), so PATH, aliases and functions from your rc files apply; `cwd`, `env` and `timeout` are settings",
+      "The output as a view: the command as the title, the exit code and the duration as badges, stdout in monospace on a sunken surface, stderr under it in red, scrolling past the panel",
+      "A command that outlasts the pick shows a running view with the elapsed time and the result lands in place when it ends; the timeout kills it and the view says so",
+      "Enter copies the output, cmd+Enter opens the command in a terminal (Terminal, iTerm, kitty, Alacritty, WezTerm, Ghostty), cmd+r runs it again, cmd+c copies the command",
+      "Shell History: every command with its exit code and duration, newest first; Enter runs it again",
+      "`$ ls` or `> git status` at the root lists the Run row inline"
+    ],
+    "permissions": [],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-run.png", "caption": "A command typed: one Run row, nothing has run yet" },
+      { "file": "2-output.png", "caption": "The output view: exit 0 and the duration as badges, stdout in mono on the sunken surface" },
+      { "file": "3-stderr.png", "caption": "A failing command: stderr in red, exit 1" },
+      { "file": "4-confirm.png", "caption": "rm -rf on the way: the confirm card before anything runs" },
+      { "file": "5-history.png", "caption": "Shell History: past commands with their exit codes, Enter runs one again" }
+    ],
+    "actions": [
+      { "title": "Run", "description": "The command in the login shell; the output as a view. Asks first when it looks destructive.", "keys": "enter" },
+      { "title": "Run in terminal", "description": "Opens a terminal window on the command in the working directory.", "keys": "cmd+enter" },
+      { "title": "Copy command", "keys": "cmd+c" },
+      { "title": "Copy output", "description": "In the output view: stdout (stderr when there is no stdout) onto the clipboard.", "keys": "enter" },
+      { "title": "Open in terminal", "description": "In the output view: the same command in a terminal window.", "keys": "cmd+enter" },
+      { "title": "Run again", "description": "In the output view: the command once more, the view replaced.", "keys": "cmd+r" },
+      { "title": "Copy stderr", "description": "In the output view.", "keys": "cmd+shift+e" },
+      { "title": "Remove from history", "keys": "cmd+d" }
+    ]
+  },
+  "palettes": {
+    "shell": {
+      "kind": "input",
+      "inline": true,
+      "match": "^[$>] \\S",
+      "description": "Type a command; the one row runs it on Enter and shows the output as a view. At the root `$ ls` or `> ls` lists the same row inline.",
+      "keys": [
+        { "keys": "enter", "title": "Run the command (in the view: copy the output)" },
+        { "keys": "cmd+enter", "title": "Run it in a terminal window instead (in the view: open one)" },
+        { "keys": "cmd+c", "title": "Copy the command" },
+        { "keys": "cmd+r", "title": "In the view: run it again" },
+        { "keys": "cmd+shift+e", "title": "In the view: copy stderr" }
+      ]
+    },
+    "history": {
+      "kind": "input",
+      "description": "Every command run here, newest first, with its exit code and duration; Enter runs it again.",
+      "keys": [
+        { "keys": "enter", "title": "Run the command again" },
+        { "keys": "cmd+enter", "title": "Run it in a terminal window" },
+        { "keys": "cmd+c", "title": "Copy the command" },
+        { "keys": "cmd+d", "title": "Remove the entry" }
+      ]
+    }
+  }
+}

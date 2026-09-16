@@ -1,0 +1,68 @@
+{
+  "name": "downloads",
+  "title": "Downloads",
+  "description": "Your Downloads folder newest first (and the browsers' own download folders when they differ): size, kind or a thumbnail, age, sections by day, a download still coming in with its rate. Open, reveal, copy the file or its path, move to the Trash, move to a folder, rename; several at once; clear what is older than 30 days. The newest download of the last ten minutes sits in the root's Now section.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰇚", "bg": "cyan" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "path", "id": "folder", "label": "Folder", "description": "The downloads folder; `~` is expanded.", "pick": "folder", "placeholder": "~/Downloads", "default": "~/Downloads" },
+    { "kind": "boolean", "id": "browser_folders", "label": "Browser folders", "text": "Also list the download folder each browser is set to, when it is another one (Chrome, Brave, Edge, Vivaldi, Arc, Firefox)", "default": true },
+    { "kind": "number", "id": "limit", "label": "Rows", "description": "At most this many files, the newest.", "min": 10, "max": 2000, "unit": "rows", "default": 200 },
+    { "kind": "boolean", "id": "thumbnails", "label": "Thumbnails", "text": "Show a 64 px preview of images and PDFs instead of the kind glyph (made once with sips or ImageMagick, cached)", "default": true },
+    { "kind": "number", "id": "clear_days", "label": "Clear older than", "description": "The age the Clear row moves to the Trash.", "min": 1, "max": 365, "unit": "days", "default": 30 }
+  ],
+  "store": {
+    "tagline": "Your downloads newest first: open, reveal, trash, tidy",
+    "category": "productivity",
+    "features": [
+      "~/Downloads and the browsers' own download folders when they differ, newest first, sections Today, Yesterday, This week, Older; listed again on every show",
+      "Each row with its size, a kind glyph or a 64 px thumbnail (images and PDFs, cached) and its age; the detail pane shows the page it came from (Spotlight's `kMDItemWhereFroms`)",
+      "A download still coming in (`.crdownload`, `.part`, `.download`) leads the list under Downloading with its size growing as a rate, or Safari's own percentage",
+      "Enter opens, cmd+Enter reveals, cmd+c copies the file, cmd+shift+c its path, cmd+d moves to the Trash (asks first); Tab marks several for open, reveal, copy and trash",
+      "cmd+m moves a file to a folder and cmd+shift+r renames it, each through a form",
+      "Clear older than 30 days (the count and size in the row, asks first) and Open Downloads as the last rows; the newest download of the last ten minutes in the root's Now section"
+    ],
+    "permissions": ["automation"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-downloads.png", "caption": "The folder newest first: a download coming in, then Today, Yesterday, This week, Older with sizes and ages" },
+      { "file": "2-detail.png", "caption": "The detail pane: name, folder, size, kind, modified, and the page the file came from" },
+      { "file": "3-actions.png", "caption": "What a download can do: open, reveal, copy, move, rename, trash" },
+      { "file": "4-move.png", "caption": "Move to folder: the form with the target" },
+      { "file": "5-marked.png", "caption": "Three rows marked with shift+down (Tab marks too): open, reveal, copy or trash them at once" }
+    ],
+    "actions": [
+      { "title": "Open", "description": "The system opener; on marked rows, every one.", "keys": "enter" },
+      { "title": "Reveal in Finder", "description": "Show in file manager on Linux.", "keys": "cmd+enter" },
+      { "title": "Quick Look", "description": "macOS only.", "keys": "cmd+y" },
+      { "title": "Copy file", "description": "The file itself onto the clipboard: a paste in Finder copies it.", "keys": "cmd+c" },
+      { "title": "Copy path", "keys": "cmd+shift+c" },
+      { "title": "Move to folder…", "description": "A form for the target folder; `~` is expanded, a missing folder is created.", "keys": "cmd+m" },
+      { "title": "Rename…", "description": "A form with the name.", "keys": "cmd+shift+r" },
+      { "title": "Move to Trash", "description": "Asks first; marked rows together.", "keys": "cmd+d" },
+      { "title": "Move them to the Trash", "description": "On the Clear row: every file older than the setting, asks first.", "keys": "enter" },
+      { "title": "Open the folder", "description": "On the Open Downloads row.", "keys": "enter" }
+    ]
+  },
+  "palettes": {
+    "downloads": {
+      "kind": "live",
+      "tier": "primary",
+      "description": "The downloads folder (and the browsers' when different) newest first with size, kind or thumbnail and age, a download in progress first; the last rows clear what is old and open the folder.",
+      "keys": [
+        { "keys": "enter", "title": "Open the file" },
+        { "keys": "cmd+enter", "title": "Reveal in Finder" },
+        { "keys": "cmd+y", "title": "Quick Look (macOS)" },
+        { "keys": "cmd+c", "title": "Copy the file" },
+        { "keys": "cmd+shift+c", "title": "Copy the path" },
+        { "keys": "cmd+m", "title": "Move to a folder" },
+        { "keys": "cmd+shift+r", "title": "Rename" },
+        { "keys": "cmd+d", "title": "Move to Trash" },
+        { "keys": "tab", "title": "Mark the row for a multi pick" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "name": "translate",
+  "title": "Translate",
+  "description": "Translate what you type, the selected text or the clipboard as you type, with the source detected: the translation as the first row (copy, paste, speak), the alternatives, a romanisation when the script is not Latin, dictionary entries for a word, and a Swap row. Google's web endpoint without a key, or DeepL with one; a history of what you copied.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰗊", "bg": "blue" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "text", "id": "from", "label": "From", "description": "The source language as a code or a name (`en`, `turkish`); `auto` detects it. A prefix in the query (`en>tr`) overrides it once.", "placeholder": "auto", "default": "auto" },
+    { "kind": "text", "id": "to", "label": "To", "description": "The target language as a code or a name; empty is the system language. Text already in it is translated the other way. A prefix (`tr:`, `>de`) overrides it once.", "placeholder": "the system language", "default": "" },
+    { "kind": "select", "id": "backend", "label": "Backend", "description": "Google is the web app's unofficial endpoint, no key, with alternatives and romanisation; DeepL needs a key (the free tier does) and answers the translation alone.", "options": [
+      { "id": "google", "title": "Google Translate (no key, unofficial)" },
+      { "id": "deepl", "title": "DeepL (needs a key)" }
+    ], "default": "google" },
+    { "kind": "secret", "id": "api_key", "label": "DeepL API key", "description": "From deepl.com/your-account/keys; a free key ends in `:fx`. Only read when the backend is DeepL.", "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx", "default": "" },
+    { "kind": "boolean", "id": "speak", "label": "Speak on copy", "text": "Also read the translation aloud when Enter copies it (cmd+shift+s speaks either way)", "default": false }
+  ],
+  "store": {
+    "tagline": "Translate typed, selected or copied text as you type",
+    "category": "productivity",
+    "features": [
+      "Translated as you type, 350 ms after the last key; the source language detected, the target from the `to` setting or the system language",
+      "A prefix names the target once: `tr: hello`, `>de hello`, `en>tr merhaba`, `german: hello`; at the root those answer inline under a Translate section",
+      "Nothing typed: the selected text in the app in front, else the newest clipboard text",
+      "Rows: the translation (Enter copies, cmd+Enter pastes, cmd+shift+s speaks it aloud), the detected language, the alternatives, a romanisation of either side when the script is not Latin, dictionary entries for a word, and Swap, which translates the result back",
+      "Google's web endpoint without a key (unofficial: it may refuse a network it takes for a bot, or change), or DeepL with a free key",
+      "Translation History: what was copied, pasted or spoken, newest first, with Translate again"
+    ],
+    "permissions": ["network", "accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-translate.png", "caption": "hello world typed with the system language Turkish: the translation first, the detected language, the alternatives, Swap" },
+      { "file": "2-prefix.png", "caption": "tr>en merhaba dünya. Nasılsın?: both ends named in the prefix; the detail pane shows both texts and the pair" },
+      { "file": "3-romanisation.png", "caption": ">ja hello: the Japanese with its romanisation and the dictionary entry" },
+      { "file": "4-actions.png", "caption": "What a translation can do: copy, paste, speak, the source, Google Translate" },
+      { "file": "5-history.png", "caption": "Translation History: what was copied or spoken, newest first" }
+    ],
+    "actions": [
+      { "title": "Copy", "description": "The translation onto the clipboard; with `speak` on, read aloud too.", "keys": "enter" },
+      { "title": "Paste", "description": "Hides, then pastes the translation into the app in front.", "keys": "cmd+enter" },
+      { "title": "Speak", "description": "Reads the row aloud in its language: `say` with a voice of that language on macOS, `spd-say` or `espeak` on Linux.", "keys": "cmd+shift+s" },
+      { "title": "Copy the source text", "keys": "cmd+shift+c" },
+      { "title": "Open in Google Translate", "description": "The pair and the text in the web app.", "keys": "cmd+o" },
+      { "title": "Swap and translate", "description": "On the Swap row: the result translated back the other way.", "keys": "enter" },
+      { "title": "Translate again", "description": "In the history: the entry's text translated afresh.", "keys": "cmd+t" },
+      { "title": "Remove from history", "keys": "cmd+d" }
+    ]
+  },
+  "palettes": {
+    "translate": {
+      "kind": "input",
+      "inline": true,
+      "match": "^\\s*(?:[a-z][a-z-]{1,24}\\s*>\\s*[a-z][a-z-]{1,24}|>[a-z][a-z-]{1,24}|[a-z][a-z-]{1,24}\\s*:)\\s+\\S",
+      "description": "Type text and it is translated to the `to` language (or the system's) with the source detected; `tr: text`, `>de text` or `en>tr text` name the ends once; nothing typed translates the selection, else the clipboard. At the root a prefixed query answers inline.",
+      "keys": [
+        { "keys": "enter", "title": "Copy the translation (on Swap: translate it back)" },
+        { "keys": "cmd+enter", "title": "Paste the translation into the app in front" },
+        { "keys": "cmd+shift+s", "title": "Speak the row aloud" },
+        { "keys": "cmd+shift+c", "title": "Copy the source text" },
+        { "keys": "cmd+o", "title": "Open in Google Translate" }
+      ]
+    },
+    "history": {
+      "kind": "live",
+      "description": "Translations you copied, pasted or spoke, newest first; Enter copies the translation again.",
+      "keys": [
+        { "keys": "enter", "title": "Copy the translation" },
+        { "keys": "cmd+enter", "title": "Paste the translation" },
+        { "keys": "cmd+shift+s", "title": "Speak it" },
+        { "keys": "cmd+t", "title": "Translate the entry again" },
+        { "keys": "cmd+shift+c", "title": "Copy the source text" },
+        { "keys": "cmd+d", "title": "Remove the entry" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,687 @@
+{
+  "palettes": {
+    "translate": {
+      "title": "Translate",
+      "icon": {
+        "tile": {
+          "glyph": "󰗊",
+          "bg": "blue"
+        }
+      },
+      "input": true,
+      "placeholder": "Text to translate, or tr: text, >de text, en>tr text",
+      "byQuery": {
+        "hello world": [
+          {
+            "id": "translation",
+            "name": "Selam Dünya",
+            "subtitle": "English → Turkish · Google Translate",
+            "icon": "󰗊",
+            "keywords": [
+              "hello world"
+            ],
+            "detail": {
+              "markdown": "Selam Dünya\n\n---\n\nhello world",
+              "metadata": [
+                {
+                  "label": "From",
+                  "value": "English (en)"
+                },
+                {
+                  "label": "To",
+                  "value": "Turkish (tr)"
+                },
+                {
+                  "label": "Backend",
+                  "value": "Google Translate"
+                },
+                {
+                  "label": "Detection",
+                  "value": "76% sure"
+                },
+                {
+                  "label": "Length",
+                  "value": "11 → 11 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "hint:detected",
+            "name": "English detected",
+            "subtitle": "76% sure · translated to Turkish",
+            "icon": "󰇧",
+            "actions": []
+          },
+          {
+            "id": "alt:0",
+            "name": "merhaba dünya",
+            "subtitle": "Alternative",
+            "icon": "󰹳",
+            "detail": {
+              "markdown": "merhaba dünya"
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "swap",
+            "name": "Swap: Turkish → English",
+            "subtitle": "Translate the result back",
+            "icon": "󰓡",
+            "actions": [
+              {
+                "id": "swap",
+                "title": "Swap and translate"
+              }
+            ]
+          }
+        ],
+        "tr>en merhaba dünya. Nasılsın?": [
+          {
+            "id": "translation",
+            "name": "hello world. How are you?",
+            "subtitle": "Turkish → English · Google Translate",
+            "icon": "󰗊",
+            "keywords": [
+              "merhaba dünya. Nasılsın?"
+            ],
+            "detail": {
+              "markdown": "hello world. How are you?\n\n---\n\nmerhaba dünya. Nasılsın?",
+              "metadata": [
+                {
+                  "label": "From",
+                  "value": "Turkish (tr)"
+                },
+                {
+                  "label": "To",
+                  "value": "English (en)"
+                },
+                {
+                  "label": "Backend",
+                  "value": "Google Translate"
+                },
+                {
+                  "label": "Length",
+                  "value": "24 → 25 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "hint:detected",
+            "name": "From Turkish",
+            "subtitle": "As the prefix says · translated to English",
+            "icon": "󰇧",
+            "actions": []
+          },
+          {
+            "id": "alt:0",
+            "name": "hi world. how are you",
+            "subtitle": "Alternative",
+            "icon": "󰹳",
+            "detail": {
+              "markdown": "hi world. how are you"
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "swap",
+            "name": "Swap: English → Turkish",
+            "subtitle": "Translate the result back",
+            "icon": "󰓡",
+            "actions": [
+              {
+                "id": "swap",
+                "title": "Swap and translate"
+              }
+            ]
+          }
+        ],
+        ">ja hello": [
+          {
+            "id": "translation",
+            "name": "こんにちは",
+            "subtitle": "English → Japanese · Google Translate",
+            "icon": "󰗊",
+            "keywords": [
+              "hello"
+            ],
+            "detail": {
+              "markdown": "こんにちは\n\n---\n\nhello",
+              "metadata": [
+                {
+                  "label": "From",
+                  "value": "English (en)"
+                },
+                {
+                  "label": "To",
+                  "value": "Japanese (ja)"
+                },
+                {
+                  "label": "Backend",
+                  "value": "Google Translate"
+                },
+                {
+                  "label": "Detection",
+                  "value": "100% sure"
+                },
+                {
+                  "label": "Length",
+                  "value": "5 → 5 characters"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "translit",
+            "name": "Kon'nichiwa",
+            "subtitle": "Japanese in Latin letters",
+            "icon": "󰀬",
+            "detail": {
+              "markdown": "Kon'nichiwa"
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "hint:detected",
+            "name": "English detected",
+            "subtitle": "Translated to Japanese",
+            "icon": "󰇧",
+            "actions": []
+          },
+          {
+            "id": "alt:0",
+            "name": "こんにちは。",
+            "subtitle": "Alternative",
+            "icon": "󰹳",
+            "detail": {
+              "markdown": "こんにちは。"
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "dict:0",
+            "name": "今日は",
+            "subtitle": "noun · hello, good day",
+            "icon": "󱓷",
+            "detail": {
+              "markdown": "**今日は** *(noun)*\n\nhello, good day"
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "speak",
+                "title": "Speak",
+                "shortcut": "cmd+shift+s"
+              },
+              {
+                "id": "copy_source",
+                "title": "Copy the source text",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in Google Translate",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "swap",
+            "name": "Swap: Japanese → English",
+            "subtitle": "Translate the result back",
+            "icon": "󰓡",
+            "actions": [
+              {
+                "id": "swap",
+                "title": "Swap and translate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "history": {
+      "title": "Translation History",
+      "icon": {
+        "tile": {
+          "glyph": "󰗊",
+          "bg": "blue"
+        }
+      },
+      "live": true,
+      "placeholder": "Search past translations",
+      "items": [
+        {
+          "id": "h:5f63a3ee7e816b4b",
+          "name": "Selam Dünya",
+          "subtitle": "hello world · English → Turkish",
+          "icon": "󰗊",
+          "keywords": [
+            "hello world"
+          ],
+          "accessories": [
+            {
+              "date": 1789597877813
+            }
+          ],
+          "detail": {
+            "markdown": "Selam Dünya\n\n---\n\nhello world",
+            "metadata": [
+              {
+                "label": "From",
+                "value": "English"
+              },
+              {
+                "label": "To",
+                "value": "Turkish"
+              },
+              {
+                "label": "Backend",
+                "value": "Google Translate"
+              },
+              {
+                "label": "When",
+                "value": "9/17/2026, 1:33:17 AM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "speak",
+              "title": "Speak",
+              "shortcut": "cmd+shift+s"
+            },
+            {
+              "id": "again",
+              "title": "Translate again",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "copy_source",
+              "title": "Copy the source text",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "remove",
+              "title": "Remove from history",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "h:064604f0f2fb5981",
+          "name": "hello world. How are you?",
+          "subtitle": "merhaba dünya. Nasılsın? · Turkish → English",
+          "icon": "󰗊",
+          "keywords": [
+            "merhaba dünya. Nasılsın?"
+          ],
+          "accessories": [
+            {
+              "date": 1789587197813
+            }
+          ],
+          "detail": {
+            "markdown": "hello world. How are you?\n\n---\n\nmerhaba dünya. Nasılsın?",
+            "metadata": [
+              {
+                "label": "From",
+                "value": "Turkish"
+              },
+              {
+                "label": "To",
+                "value": "English"
+              },
+              {
+                "label": "Backend",
+                "value": "Google Translate"
+              },
+              {
+                "label": "When",
+                "value": "9/17/2026, 1:33:17 AM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "speak",
+              "title": "Speak",
+              "shortcut": "cmd+shift+s"
+            },
+            {
+              "id": "again",
+              "title": "Translate again",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "copy_source",
+              "title": "Copy the source text",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "remove",
+              "title": "Remove from history",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "h:2ac208faf172a95d",
+          "name": "こんにちは",
+          "subtitle": "hello · English → Japanese",
+          "icon": "󰗊",
+          "keywords": [
+            "hello"
+          ],
+          "accessories": [
+            {
+              "date": 1789504397813
+            }
+          ],
+          "detail": {
+            "markdown": "こんにちは\n\n---\n\nhello",
+            "metadata": [
+              {
+                "label": "From",
+                "value": "English"
+              },
+              {
+                "label": "To",
+                "value": "Japanese"
+              },
+              {
+                "label": "Backend",
+                "value": "Google Translate"
+              },
+              {
+                "label": "When",
+                "value": "9/17/2026, 1:33:17 AM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "speak",
+              "title": "Speak",
+              "shortcut": "cmd+shift+s"
+            },
+            {
+              "id": "again",
+              "title": "Translate again",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "copy_source",
+              "title": "Copy the source text",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "remove",
+              "title": "Remove from history",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "clear",
+          "name": "Clear history",
+          "subtitle": "3 translations",
+          "icon": "󰃢",
+          "actions": [
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "style": "destructive",
+              "confirm": "Forget every translation in the history?"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-translate": {
+      "palette": "translate",
+      "keys": [
+        "type:hello world",
+        "wait:500"
+      ]
+    },
+    "2-prefix": {
+      "palette": "translate",
+      "keys": [
+        "type:tr>en merhaba dünya. Nasılsın?",
+        "wait:500",
+        "cmd+i"
+      ]
+    },
+    "3-romanisation": {
+      "palette": "translate",
+      "keys": [
+        "type:>ja hello",
+        "wait:500",
+        "down"
+      ]
+    },
+    "4-actions": {
+      "palette": "translate",
+      "keys": [
+        "type:hello world",
+        "wait:500",
+        "cmd+k"
+      ]
+    },
+    "5-history": {
+      "palette": "history",
+      "keys": [
+        "down"
+      ]
+    }
+  }
+}

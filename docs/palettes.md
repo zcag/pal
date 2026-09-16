@@ -2895,3 +2895,181 @@ A 429 (or a 403 naming the quota) is remembered for `Retry-After` (60 s
 without one) and every call until then refused locally, one hint row.
 For the tests, `PAL_GMAIL_API` replaces the API host and
 `PAL_GMAIL_AVATARS` the Gravatar host.
+
+## Translate (`translate`, `translate-history`)
+
+Text translated as it is typed, from `extensions/translate/`. An input
+palette: 350 ms after the last key the text goes to the backend and the
+rows come back: the translation first (`enter` copies, `cmd+enter`
+pastes, `cmd+shift+s` speaks it aloud, `cmd+shift+c` copies the source,
+`cmd+o` opens the pair in the Google Translate web app), then the
+translation in Latin letters when its script is not Latin, the detected
+language with the detector's confidence, the alternatives Google offers,
+the source romanised, dictionary entries for a word, and a Swap row that
+translates the result back the other way (a push with the pair
+reversed). The detail pane holds both texts, the pair, the backend and
+the confidence.
+
+The target is the `to` setting, else the system language; the source is
+detected unless `from` names one. A prefix names the ends once, at the
+root too (`inline`): `tr: hello`, `>de hello`, `german: hello` (the
+target), `en>tr merhaba`, `turkish>english merhaba` (both); a word only
+counts as a language when it is one (`todo: buy milk` is text), and
+`>de` takes no space (`> ` is the Shell palette's root prefix). Nothing
+typed: the selection in the app in front, else the newest clipboard
+text, the subtitle saying which; `tr:` alone does the same to Turkish. A
+text already in the target goes the other way: to `from` when it names a
+language, else to English, else to the system language; with nothing
+else to go to (an English text on an English system) the row says so.
+
+Backends: Google's web endpoint (`translate.googleapis.com/translate_a/single`,
+`client=dict-chrome-ex`), no key and unofficial (it may refuse a network
+it takes for a bot, as `gtx` did from one home network, or change; the
+refusal is one row naming the fix), 5000 characters per request; or
+DeepL's v2 API on the free host with `api_key` (the translation and the
+detected source only). Speech is `say` with a voice of the language on
+macOS (Yelda for Turkish), `spd-say` or `espeak` on Linux.
+
+Translation History (`translate-history`, live, its rows at the root):
+what was copied, pasted or spoken, newest first, once each, the last
+hundred in `storage`; `enter` copies again, `cmd+t` translates the entry
+afresh with the detected source pinned, `cmd+d` removes it, the last row
+clears the history after a confirm card.
+
+| keys | action |
+| --- | --- |
+| `enter` | Copy the translation; on Swap, translate it back |
+| `cmd+enter` | Paste the translation into the app in front |
+| `cmd+shift+s` | Speak the row aloud, in its language |
+| `cmd+shift+c` | Copy the source text |
+| `cmd+o` | Open in Google Translate |
+| `cmd+t` | History: translate the entry again |
+| `cmd+d` | History: remove the entry |
+
+Settings, `[extensions.translate]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `from` | code or name | `auto` | The source language; a prefix overrides it once. |
+| `to` | code or name | empty (the system language) | The target; text already in it goes the other way. |
+| `backend` | `google`, `deepl` | `google` | Which translator. |
+| `api_key` | secret | empty | The DeepL key (a free one ends in `:fx`). |
+| `speak` | boolean | `false` | Also read the translation aloud when `enter` copies it. |
+
+For the tests, `PAL_TRANSLATE_GOOGLE` and `PAL_TRANSLATE_DEEPL` replace
+the hosts and `PAL_TRANSLATE_SAY` the speaker.
+
+## Shell (`shell`, `shell-history`)
+
+One command run in the login shell, its output read in the panel, from
+`extensions/shell/`. An input palette: the typed command is one row,
+`Run: <command>`, and nothing runs until `enter`; `$ ls` or `> git
+status` at the root lists the same row inline. `cmd+enter` on the row
+opens the command in a terminal window instead, `cmd+c` copies it. A
+command that looks destructive (`rm`, `sudo`, `mv`, `dd`, `git reset
+--hard`, `kill -9`, a package manager's uninstall, a redirect onto a disk
+device, and so on, judged on the command word of every simple command
+of the line) asks first while `confirm` is on.
+
+The command runs through the `shell` setting (`$SHELL -lic`: the login
+shell with the profile and the interactive rc, so PATH, aliases and
+functions apply) in `cwd`, with the `env` lines set, for `timeout`
+seconds (10) at most, then SIGTERM and SIGKILL to the process group.
+The answer is a view level: the command as the title, the folder under
+it, `exit 0` (green) or `exit N` (red) and the duration as badges,
+`killed after N s` on a timeout and `output cut` past 256 KB per stream,
+stdout in monospace on a sunken surface with stderr under it in red,
+scrolling past the panel. A command still running 2.5 s after `enter`
+gets the view with a `running` badge and the elapsed time, and the
+result lands in place through `view.update` when it ends, so a command
+may outlast the panel's own wait for a pick. In the view `enter` copies
+the output (stderr when there was none), `cmd+enter` opens a terminal on
+the command, `cmd+r` runs it again (the view's own action: a view level
+takes the keys the shell's Refresh would), `cmd+c` copies the command,
+`cmd+shift+e` copies stderr.
+
+The terminal is the `terminal` setting: Terminal (default) and iTerm over
+AppleScript, kitty, Alacritty, WezTerm and Ghostty by their flags through
+`open -na`, any other name with `-e`; on Linux `$TERMINAL`, else
+`x-terminal-emulator`. The window opens on `cd <cwd> && <command>; exec
+<shell>`, so it stays up with the output.
+
+Shell History (`shell-history`): every command that ran, newest first,
+once each, the last hundred in `storage`, with its exit code as a tag
+(`killed` for a timeout), the duration and the folder; `enter` runs it
+again (the same confirm), `cmd+enter` opens it in a terminal, `cmd+c`
+copies it, `cmd+d` removes the entry, the last row clears the history.
+It is an input palette rather than live: listed on every keystroke so a
+command just run is there, and never at the root, where an `enter` would
+run one.
+
+| keys | action |
+| --- | --- |
+| `enter` | Run the command; in the view, copy the output |
+| `cmd+enter` | Run in a terminal; in the view, open one |
+| `cmd+c` | Copy the command |
+| `cmd+r` | In the view: run again |
+| `cmd+shift+e` | In the view: copy stderr |
+| `cmd+d` | History: remove the entry |
+
+Settings, `[extensions.shell]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `shell` | text | `$SHELL -lic` | The shell and its flags; the command is the last argument. |
+| `cwd` | folder | `~` | Where commands run. |
+| `timeout` | 1 to 600 s | `10` | The kill after. |
+| `env` | list of `KEY=VALUE` | empty | Set for every command. |
+| `confirm` | boolean | `true` | Ask before a destructive-looking command. |
+| `terminal` | text | empty (`Terminal`) | What `cmd+enter` opens. |
+
+Not done: stdin (closed), colour (escapes shown as printed), streaming
+(the view fills at the end), a session (`cd` does not stick).
+
+## Downloads (`downloads`)
+
+The Downloads folder newest first, from `extensions/downloads/`. A live,
+primary palette: the rows are at the root by name and the folder is read
+again on every show. A file still coming in (`.crdownload`, `.part`,
+`.download`, `.partial`) leads under Downloading with the name it will
+have, a blue tag, its size and, once it has grown between two listings,
+the rate (Safari's `.download` bundle gives its percentage and total from
+its plist); the rest sit under Today, Yesterday, This week and Older by
+modification day with the size and the age on the right and the kind as
+the subtitle. An image or a PDF wears a 64 px thumbnail (`sips` on macOS,
+ImageMagick on Linux, made once into the cache directory, the newest 24
+per listing); other rows a kind glyph. With `browser_folders` the
+browsers' own download folders (Chrome-family `Preferences`, Firefox
+`prefs.js`) are listed too when they differ from `folder`. The last rows
+clear what is older than `clear_days` (the count and size in the row, a
+confirm card) and open the folder. The detail pane adds the url and the
+page the file came from (Spotlight's `kMDItemWhereFroms`). The root's
+Now section shows the newest download of the last ten minutes
+(`suggest`).
+
+| keys | action |
+| --- | --- |
+| `enter` | Open (marked rows: every one) |
+| `cmd+enter` | Reveal in Finder / the file manager |
+| `cmd+y` | Quick Look (macOS) |
+| `cmd+c` | Copy the file itself |
+| `cmd+shift+c` | Copy the path |
+| `cmd+m` | Move to a folder (a form; `~` expanded, the folder created) |
+| `cmd+shift+r` | Rename (a form) |
+| `cmd+d` | Move to Trash (asks first; marked rows together) |
+| `tab`, `shift+↓`, `cmd+click` | Mark rows |
+
+Open, reveal, both copies and the trash take marked rows (`multi`). Trash
+is Finder's delete on macOS, `gio trash` on Linux; for the tests,
+`PAL_DOWNLOADS_TRASH` names a stand-in and `PAL_DOWNLOADS_CACHE` the
+thumbnail directory.
+
+Settings, `[extensions.downloads]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `folder` | folder | `~/Downloads` | The downloads folder. |
+| `browser_folders` | boolean | `true` | Also the browsers' own download folders when they differ. |
+| `limit` | 10 to 2000 | `200` | At most this many files, the newest. |
+| `thumbnails` | boolean | `true` | Previews for images and PDFs. |
+| `clear_days` | 1 to 365 | `30` | The age the Clear row trashes. |
