@@ -9,6 +9,10 @@
 //! (`Cmd::run_store`: results on stdout, one `pal\t<reason>` line on stderr
 //! and exit 1 on failure), then `reload` reaches the running instance so
 //! its host picks the change up.
+//!
+//! `pal action NAME` and the v1 subcommands (`pick`, `run`, `meta`, ...)
+//! are for the scripts written against pal v1: `compat.rs`, in this
+//! process, no instance needed.
 
 use clap::{Parser, Subcommand};
 use pal_core::extensions::Store;
@@ -43,9 +47,20 @@ pub enum Cmd {
     Remove { name: String },
     /// List the extensions in the store.
     List,
+    /// Run a pal v1 action on the value on stdin: copy, paste, open, type, cmd, or a plugins/actions/NAME script.
+    Action { name: String },
 }
 
 impl Cmd {
+    /// The commands that run in this process with no instance: `Some(status)`
+    /// for one of them, `None` for the rest.
+    pub fn run_compat(&self) -> Option<i32> {
+        match self {
+            Cmd::Action { name } => Some(crate::compat::action(name)),
+            _ => None,
+        }
+    }
+
     /// The store commands, run in this process: `Some(changed)` for one of
     /// them (printed, exit status set on failure), `None` for the rest.
     pub fn run_store(&self) -> Option<bool> {
@@ -135,7 +150,7 @@ impl Cmd {
             Cmd::Quit => crate::quit(&handle),
             // Reaches the instance only when a second process skipped
             // `run_store` (it never does); the store is that process's job.
-            Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List => {}
+            Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } => {}
         });
     }
 }

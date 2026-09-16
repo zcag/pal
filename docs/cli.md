@@ -25,6 +25,7 @@ pal install SPEC    install an extension into the store (see Extensions)
 pal update [NAME]   fetch an installed extension's source again (every one with a source, without a name)
 pal remove NAME     remove an installed extension
 pal list            the installed extensions: name, version, source
+pal action NAME     act on the value on stdin (see Actions for scripts)
 pal --version
 pal --help
 ```
@@ -57,3 +58,19 @@ pal remove my-extension
 ```
 
 What each does and what an extension is: [Extensions](extensions.md).
+
+## Actions for scripts
+
+`pal action NAME` reads a value on stdin and acts on it, with no running
+instance needed (script palettes call it from the host). `copy` puts it on
+the clipboard, `paste` prints the clipboard (the value is ignored), `open`
+opens it, `type` pastes it into the app in front (a synthesised Cmd+V, so
+Accessibility on macOS), `cmd` runs it with `bash -c`. `copy` and `open`
+print the `{"hud": ...}` line the script tier reads, so a palette whose
+command ends in `| pal action copy` gets its HUD. Any other name is an
+action script: `plugins/actions/NAME/plugin.toml` next to the config file,
+else under the `scripts` extension's plugin repo, run as `<command> run`
+from its directory with the value on stdin.
+
+pal v1's own subcommands (`pick`, `run`, `meta`, `prompt`, ...) do not
+exist here; v1 is retired, not forwarded to.

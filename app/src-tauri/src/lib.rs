@@ -8,6 +8,7 @@ mod bridge;
 mod cache;
 mod cli;
 mod clipboard;
+mod compat;
 mod effects;
 mod events;
 mod firstrun;
@@ -18,6 +19,7 @@ mod icon;
 mod index;
 mod registry;
 mod settings;
+mod storage;
 mod system;
 mod tray;
 mod updater;
@@ -158,6 +160,10 @@ pub(crate) fn quit(app: &AppHandle) {
 pub fn run() {
     START.get_or_init(Instant::now);
     let cli = cli::Cli::parse();
+    // The v1 compatibility commands never touch an instance.
+    if let Some(status) = cli.cmd.as_ref().and_then(cli::Cmd::run_compat) {
+        std::process::exit(status);
+    }
     let context = tauri::generate_context!();
     // The store commands run here, in this process, so their output lands
     // on the caller's terminal; a running instance is then told to restart
@@ -244,6 +250,7 @@ pub fn run() {
             //   6. hotkey: the registered map, before settings applies it
             //   7. settings: load the file, apply hotkeys/tray/autostart, watch
             //   8. clipboard: the recorder, retention from the loaded settings
+            //      storage: the extensions' key-value files, nothing read yet
             //   9. updater: the daily check (release builds)
             //  10. cache restore: last run's listings, so the root answers now
             //  11. host: spawned last, its notifications need everything above
@@ -271,6 +278,7 @@ pub fn run() {
             hotkey::install(app.handle());
             settings::install(app.handle(), config);
             clipboard::install(app.handle());
+            storage::install(app.handle());
             updater::install(app.handle());
             index::restore_cache(app.handle());
             host::Host::start(app.handle());

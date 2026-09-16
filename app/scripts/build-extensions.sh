@@ -5,6 +5,8 @@
 #
 #   resources/host/src/*.ts            the host, run by the bun sidecar as-is
 #   resources/extensions/<name>/index.js   each extension bundled to one file
+#   resources/extensions/<name>/pal.json   its manifest: the host reads the
+#                                          settings defaults and title from it
 #
 # `bun build` inlines an extension's dependencies (calc's mathjs, emoji's
 # data.json), so no node_modules ships. Imports of ../../host/src/* stay
@@ -32,6 +34,7 @@ cp "$root"/host/src/*.ts "$tmp/host/src/"
 for entry in "$root"/extensions/*/index.ts; do
   name=$(basename "$(dirname "$entry")")
   "$bun" build "$entry" --target bun --outdir "$tmp/extensions/$name" --external '../../host/src/*' >/dev/null
+  cp "$(dirname "$entry")/pal.json" "$tmp/extensions/$name/"
 done
 mkdir -p "$out"
 rsync -rc --delete "$tmp/" "$out/"

@@ -12,7 +12,7 @@ use pal_core::config::{migrate, spec_defaults, ConfigFile};
 /// gone from disk is looked for (the v1 checkout).
 const SCRIPTS_MANIFEST: &str = include_str!("../../../extensions/scripts/pal.json");
 
-fn v1_repo() -> String {
+pub(crate) fn v1_repo() -> String {
     let manifest: serde_json::Value = serde_json::from_str(SCRIPTS_MANIFEST).expect("bundled pal.json parses");
     spec_defaults(&manifest["settings"]).get("v1_repo").and_then(toml::Value::as_str).unwrap_or("~/proj/pal-v1").to_string()
 }

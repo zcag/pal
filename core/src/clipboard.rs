@@ -537,6 +537,16 @@ pub fn write_text(text: &str) -> Result<()> {
     platform::write(&Content::Text(text.into()))
 }
 
+/// The text on the clipboard now, if that is what is there (a file list or
+/// an image is `None`): the other half of [`write_text`], for
+/// `pal action paste`.
+pub fn read_text() -> Option<String> {
+    match platform::read()? {
+        Content::Text(s) => Some(s),
+        _ => None,
+    }
+}
+
 /// [`write_text`], then the paste shortcut, as [`Clipboard::paste`].
 pub fn paste_text(text: &str) -> Result<()> {
     if !crate::ax::trusted() {
