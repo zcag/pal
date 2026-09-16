@@ -37,7 +37,7 @@ export { SettingsAbout, aboutIndex, copyText, type CrashReport, type PanicReport
 export { SettingsList, type SettingsListItem } from "./SettingsList";
 export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
 export { SettingsDiagnostics } from "./SettingsDiagnostics";
-export { describeDefault, isModified, needsSetup, permissionRows } from "./SettingsTypes";
+export { describeDefault, hotkeyList, isModified, needsSetup, permissionRows } from "./SettingsTypes";
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
   GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, CalendarPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
