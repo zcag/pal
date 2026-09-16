@@ -20,7 +20,14 @@ export function call<T = unknown>(method: string, params?: unknown): Promise<T> 
       rej(new Error(`core timed out on ${method}`));
     }, TIMEOUT_MS);
     pending.set(id, { resolve: res as (v: unknown) => void, reject: rej, timer });
-    process.stdout.write(JSON.stringify(req) + "\n");
+    try {
+      process.stdout.write(JSON.stringify(req) + "\n");
+    } catch (e) {
+      // The core is gone (EPIPE): fail now rather than after the timeout.
+      pending.delete(id);
+      clearTimeout(timer);
+      rej(e instanceof Error ? e : new Error(String(e)));
+    }
   });
 }
 

@@ -180,7 +180,7 @@ function Control({ spec, value, onChange, id }: { spec: SettingSpec; value: Sett
       return (
         <span className="pal-path">
           <input id={id} className="pal-field__input pal-path__input" type="text" value={(value as string) ?? ""} placeholder={spec.placeholder ?? (spec.pick === "folder" ? "Choose a folder" : "Choose a file")} spellCheck={false} onChange={(e) => onChange(e.target.value)} />
-          <button type="button" className="pal-button">Choose…</button>
+          <button type="button" className="pal-button" disabled title="No file picker yet; type or paste the path">Choose…</button>
         </span>
       );
     case "list":

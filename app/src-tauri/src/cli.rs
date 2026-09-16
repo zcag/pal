@@ -6,8 +6,9 @@
 //! keybind runs.
 //!
 //! `pal install|update|remove|list` work the extension store in this process
-//! (`Cmd::run_store`, printing to the terminal), then `reload` reaches the
-//! running instance so its host picks the change up.
+//! (`Cmd::run_store`: results on stdout, one `pal\t<reason>` line on stderr
+//! and exit 1 on failure), then `reload` reaches the running instance so
+//! its host picks the change up.
 
 use clap::{Parser, Subcommand};
 use pal_core::extensions::Store;
@@ -50,33 +51,42 @@ impl Cmd {
     pub fn run_store(&self) -> Option<bool> {
         let store = Store::locate();
         let bun = crate::host::bun();
+        let text = |e: pal_core::extensions::Error| e.to_string();
         let r: Result<bool, String> = match self {
-            Cmd::Install { spec } => store.install(spec, Some(&bun)).map(|i| {
+            Cmd::Install { spec } => store.install(spec, Some(&bun)).map_err(text).map(|i| {
                 println!("installed {} {} at {}", i.name, i.version, i.dir.display());
                 true
             }),
-            Cmd::Update { name: Some(name) } => store.update(name, Some(&bun)).map(|i| {
+            Cmd::Update { name: Some(name) } => store.update(name, Some(&bun)).map_err(text).map(|i| {
                 println!("updated {} {}", i.name, i.version);
                 true
             }),
-            Cmd::Update { name: None } => store.list().map(|all| {
-                let mut changed = false;
+            // Every extension with a source, each failure on its own line;
+            // the exit status is 1 only when none could be updated.
+            Cmd::Update { name: None } => store.list().map_err(text).and_then(|all| {
+                let (mut changed, mut failed) = (false, Vec::new());
                 for i in all.iter().filter(|i| i.record.is_some()) {
                     match store.update(&i.name, Some(&bun)) {
                         Ok(u) => {
                             println!("updated {} {}", u.name, u.version);
                             changed = true;
                         }
-                        Err(e) => eprintln!("{}: {e}", i.name),
+                        Err(e) => {
+                            eprintln!("pal\t{}: {e}", i.name);
+                            failed.push(i.name.clone());
+                        }
                     }
                 }
-                changed
+                if !changed && !failed.is_empty() {
+                    return Err(format!("no extension updated ({})", failed.join(", ")));
+                }
+                Ok(changed)
             }),
-            Cmd::Remove { name } => store.remove(name).map(|()| {
+            Cmd::Remove { name } => store.remove(name).map_err(text).map(|()| {
                 println!("removed {name}");
                 true
             }),
-            Cmd::List => store.list().map(|all| {
+            Cmd::List => store.list().map_err(text).map(|all| {
                 for i in &all {
                     let source = i.record.as_ref().map_or("(by hand)", |r| r.source.as_str());
                     println!("{}\t{}\t{}", i.name, i.version, source);
@@ -84,8 +94,7 @@ impl Cmd {
                 false
             }),
             _ => return None,
-        }
-        .map_err(|e| e.to_string());
+        };
         match r {
             Ok(changed) => Some(changed),
             Err(e) => {
@@ -135,10 +144,14 @@ impl Cmd {
 /// single-instance plugin listens on, before any of tauri is built: the
 /// plugin would do the same from its setup, but only after GTK and the
 /// display are up, 150 ms on marko against 40 for the bare binary. Same
-/// wire format as tauri-plugin-single-instance 2.4 (its client side is
-/// private; `platform_impl/{macos,linux}.rs` there is the reference, and
-/// its `semver` feature, which suffixes the name, must stay off). False
-/// when no instance answered; the plugin then settles it.
+/// wire format as tauri-plugin-single-instance 2.4.4 (its client side is
+/// private; `platform_impl/{macos,linux}.rs` there is the reference:
+/// macOS a unix socket `/tmp/<identifier with . and - as _>_si.sock`
+/// carrying `<cwd>\0\0<argv joined by \0>`, Linux the session bus
+/// `<identifier>.SingleInstance` `ExecuteCallback(argv, cwd)`; its
+/// `semver` feature, which suffixes the name, must stay off). Checked
+/// against that version's source 2026-09-16; a plugin bump is where this
+/// breaks. False when no instance answered; the plugin then settles it.
 pub fn handover(identifier: &str) -> bool {
     let args: Vec<String> = std::env::args().collect();
     handover_with(identifier, args)

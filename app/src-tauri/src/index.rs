@@ -172,6 +172,12 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             settings::register(app, ext, params, false);
             remove_extension(app, ext);
         }
+        // Its directory went away while the host was up: nothing to keep.
+        "extension/removed" => {
+            let ext = params["extension"].as_str().unwrap_or_default();
+            settings::forget(app, ext);
+            remove_extension(app, ext);
+        }
         // The host is up: drop sources whose extension it no longer has
         // (deleted while it was down), so a restart cannot leave strays,
         // and their cache files (`known` is every extension on disk, loaded
@@ -186,7 +192,9 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             for ext in stale {
                 remove_extension(app, &ext);
             }
-            settings::retain(app, &live);
+            // `known`, not `live`: a failed extension stays listed in
+            // Settings, where its error is shown.
+            settings::retain(app, &known);
             let (app, host, dir) = (app.clone(), host.clone(), cache_dir(app));
             tauri::async_runtime::spawn(async move {
                 // File removals off the reader task.

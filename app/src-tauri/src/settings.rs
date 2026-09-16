@@ -4,8 +4,10 @@
 //! commands the window calls, and the window itself.
 //!
 //! The file stays the source of truth: the window writes keys through
-//! `ConfigFile::set_json`/`unset` and re-reads on `pal://config`, the event
-//! the watcher emits after every reload (hand edits included).
+//! `ConfigFile::set_json`/`unset` and re-reads on [`events::CONFIG`], the
+//! event the watcher emits after every reload (hand edits included), and on
+//! [`events::HOST`] for the extension registry (an extension loaded, failed,
+//! or the host came up).
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -17,11 +19,11 @@ use pal_core::extensions::{Installed, Store, Update};
 use pal_core::frecency::Frecency;
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
+use tauri::{AppHandle, Manager, State, WindowEvent};
 
 use crate::host::Host;
 use crate::index::{palette_id, PaletteMeta};
-use crate::{autostart, hotkey, index, panel, tray};
+use crate::{autostart, events, hotkey, index, lock, panel, tray};
 
 pub const WINDOW: &str = "settings";
 
@@ -71,7 +73,7 @@ pub fn install(app: &AppHandle, file: ConfigFile) {
     autostart::apply(app, &loaded.config);
     let handle = app.clone();
     match file.watch(move |l| on_reload(&handle, l)) {
-        Ok(w) => *app.state::<Settings>()._watch.lock().unwrap() = Some(w),
+        Ok(w) => *lock(&app.state::<Settings>()._watch) = Some(w),
         Err(e) => eprintln!("config\twatch failed\t{e}"),
     }
     if let Some(w) = app.get_webview_window(WINDOW) {
@@ -89,8 +91,8 @@ pub fn install(app: &AppHandle, file: ConfigFile) {
 /// The watcher's callback, on its thread: store, re-apply, tell everyone.
 fn on_reload(app: &AppHandle, loaded: Loaded) {
     let st = app.state::<Settings>();
-    let prev = std::mem::replace(&mut *st.loaded.lock().unwrap(), loaded.clone()).config;
-    *st.changed.lock().unwrap() = Some(unix_ms(SystemTime::now()));
+    let prev = std::mem::replace(&mut *lock(&st.loaded), loaded.clone()).config;
+    *lock(&st.changed) = Some(unix_ms(SystemTime::now()));
     eprintln!("config\treloaded\t{}\t{} diagnostics", loaded.path.display(), loaded.diagnostics.len());
     for d in &loaded.diagnostics {
         eprintln!("config\t{:?}\t{}\t{}", d.level, d.path, d.message);
@@ -102,7 +104,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     if prev.general.launch_at_login != loaded.config.general.launch_at_login {
         autostart::apply(app, &loaded.config);
     }
-    let _ = app.emit("pal://config", &loaded);
+    events::emit(app, events::CONFIG, &loaded);
     if let Some(host) = app.try_state::<Arc<Host>>() {
         tauri::async_runtime::spawn(index::apply_config(app.clone(), host.inner().clone(), prev, loaded.config));
     }
@@ -110,12 +112,15 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
 
 /// The current config, a copy.
 pub fn config(app: &AppHandle) -> Config {
-    app.state::<Settings>().loaded.lock().unwrap().config.clone()
+    lock(&app.state::<Settings>().loaded).config.clone()
 }
 
 // ---- extension registry --------------------------------------------------
 
-/// `extension/loaded` or `extension/error` from the host.
+/// `extension/loaded` or `extension/error` from the host. No event of its
+/// own: the host loop emits [`events::HOST`] with the notification right
+/// after this returns, and the window re-reads on that (one `Loaded`
+/// serialisation per extension at startup was the alternative).
 pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
     let root = params["root"].as_str().unwrap_or_default().to_string();
     let dir = Path::new(&root).join(name);
@@ -132,18 +137,21 @@ pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
         record,
     };
     let st = app.state::<Settings>();
-    let mut exts = st.extensions.lock().unwrap();
+    let mut exts = lock(&st.extensions);
     match exts.iter_mut().find(|e| e.name == name) {
         Some(e) => *e = ext,
         None => exts.push(ext),
     }
-    drop(exts);
-    let _ = app.emit("pal://config", &*st.loaded.lock().unwrap());
 }
 
 /// `host/ready`: extensions the host no longer has are gone.
 pub fn retain(app: &AppHandle, live: &[String]) {
-    app.state::<Settings>().extensions.lock().unwrap().retain(|e| live.contains(&e.name));
+    lock(&app.state::<Settings>().extensions).retain(|e| live.contains(&e.name));
+}
+
+/// `extension/removed`: its directory is gone.
+pub fn forget(app: &AppHandle, name: &str) {
+    lock(&app.state::<Settings>().extensions).retain(|e| e.name != name);
 }
 
 /// An extension's resolved values, `ResolvedSettings` in host/protocol.ts:
@@ -178,11 +186,16 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
     }
 }
 
+/// `(name, manifest)` of every registered extension: what `resolved` needs,
+/// copied out so the store (a `security` subprocess per secret on macOS) is
+/// never consulted under a lock the window's `settings_get` waits on.
+fn manifests(app: &AppHandle) -> Vec<(String, Value)> {
+    lock(&app.state::<Settings>().extensions).iter().map(|e| (e.name.clone(), e.manifest.clone())).collect()
+}
+
 /// Extensions whose resolved values differ between the two configs.
 pub fn changed_extensions(app: &AppHandle, prev: &Config, next: &Config) -> Vec<String> {
-    let st = app.state::<Settings>();
-    let exts = st.extensions.lock().unwrap();
-    exts.iter().filter(|e| resolved(prev, &e.name, &e.manifest) != resolved(next, &e.name, &e.manifest)).map(|e| e.name.clone()).collect()
+    manifests(app).into_iter().filter(|(name, m)| resolved(prev, name, m) != resolved(next, name, m)).map(|(name, _)| name).collect()
 }
 
 /// `settings/changed` to the host for the named extensions.
@@ -190,13 +203,9 @@ pub async fn push(app: &AppHandle, host: &Arc<Host>, names: &[String]) {
     if names.is_empty() {
         return;
     }
-    let payload = {
-        let st = app.state::<Settings>();
-        let config = &st.loaded.lock().unwrap().config;
-        let exts = st.extensions.lock().unwrap();
-        let map: serde_json::Map<String, Value> = exts.iter().filter(|e| names.contains(&e.name)).map(|e| (e.name.clone(), resolved(config, &e.name, &e.manifest))).collect();
-        json!({ "extensions": map })
-    };
+    let config = config(app);
+    let map: serde_json::Map<String, Value> = manifests(app).into_iter().filter(|(name, _)| names.contains(name)).map(|(name, m)| { let r = resolved(&config, &name, &m); (name, r) }).collect();
+    let payload = json!({ "extensions": map });
     if let Err(e) = host.notify("settings/changed", payload).await {
         eprintln!("settings\tpush failed\t{e}");
     }
@@ -235,14 +244,14 @@ pub struct View {
 
 #[tauri::command]
 pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
-    let l = st.loaded.lock().unwrap();
+    let l = lock(&st.loaded);
     View {
         config: l.config.clone(),
         diagnostics: l.diagnostics.clone(),
         path: l.path.clone(),
-        changed: *st.changed.lock().unwrap(),
+        changed: *lock(&st.changed),
         version: app.package_info().version.to_string(),
-        extensions: st.extensions.lock().unwrap().clone(),
+        extensions: lock(&st.extensions).clone(),
     }
 }
 
@@ -258,12 +267,12 @@ fn retrying(f: impl Fn() -> Result<(), Error>) -> Result<(), String> {
 
 #[tauri::command(async)]
 pub fn settings_set(st: State<'_, Settings>, key: String, value: Value) -> Result<(), String> {
-    retrying(|| st.file.set_json(&key, value.clone()))
+    retrying(|| st.file.set_json(&key, value.clone())).map_err(|e| format!("{key}: {e}"))
 }
 
 #[tauri::command(async)]
 pub fn settings_unset(st: State<'_, Settings>, key: String) -> Result<(), String> {
-    retrying(|| st.file.unset(&key))
+    retrying(|| st.file.unset(&key)).map_err(|e| format!("{key}: {e}"))
 }
 
 /// Puts `value` in the OS store under `key` and returns the reference the
@@ -271,12 +280,20 @@ pub fn settings_unset(st: State<'_, Settings>, key: String) -> Result<(), String
 #[tauri::command(async)]
 pub fn settings_set_secret(key: String, value: String) -> Result<String, String> {
     let key = SecretRef::parse(&key).map_or(key.as_str(), |r| r.key).to_string();
-    platform_store().set(&key, &value).map_err(|e| e.to_string())?;
+    platform_store().set(&key, &value).map_err(|e| format!("{key}: could not store in the keychain: {e}"))?;
     Ok(format!("keychain:{key}"))
 }
 
+/// Spawns `cmd` and reaps it off this thread: `open` returns at once,
+/// `xdg-open` can linger as long as the editor, and a child nobody waits on
+/// is a zombie until we exit. The exit status is not ours to judge (`open`
+/// reports a missing editor as 1 after the fact).
 fn run(cmd: &str, args: &[&str]) -> Result<(), String> {
-    std::process::Command::new(cmd).args(args).spawn().map(drop).map_err(|e| format!("{cmd} failed: {e}"))
+    let mut child = std::process::Command::new(cmd).args(args).spawn().map_err(|e| format!("{cmd} failed: {e}"))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _ = child.wait();
+    });
+    Ok(())
 }
 
 /// The file in the default text editor. Created from the template first
@@ -307,10 +324,10 @@ pub fn settings_reveal_file(st: State<'_, Settings>) -> Result<(), String> {
 
 #[tauri::command(async)]
 pub fn settings_reset_frecency(app: AppHandle, frecency: State<'_, Mutex<Frecency>>) -> Result<(), String> {
-    let mut f = frecency.lock().unwrap();
+    let mut f = lock(&frecency);
     f.clear();
-    f.flush().map_err(|e| e.to_string())?;
-    let _ = app.emit("pal://index", ());
+    f.flush().map_err(|e| format!("frecency: {e}"))?;
+    events::emit(&app, events::INDEX, ());
     Ok(())
 }
 
@@ -322,8 +339,10 @@ pub async fn settings_restart_host(host: State<'_, Arc<Host>>) -> Result<(), Str
 
 // ---- the extension store ---------------------------------------------------
 // `pal_core::extensions` does the work off the runtime; the host is restarted
-// after every change to the store, since its watcher only covers a root that
-// existed when it started and never unloads a removed extension.
+// after every change to the store. Its watcher does see the change (a new
+// root, a removed extension), but the index only drops a gone extension's
+// sources and cache on `host/ready`, and `bun install` under a watched root
+// would trigger a reload per file.
 
 /// The store next to the config file the window is a front for.
 fn store(st: &Settings) -> Store {

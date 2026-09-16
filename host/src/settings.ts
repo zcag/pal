@@ -45,11 +45,21 @@ export function caller(extension?: string): Context {
   return { extension: ext };
 }
 
-/** The core's `settings/changed`: replaces each named extension's values and tells its listeners. */
+/**
+ * The core's `settings/changed`: replaces each named extension's values and
+ * tells its listeners. One extension's listener throwing is its own problem
+ * (logged), never the other extensions' values.
+ */
 export function update(extensions: Record<string, ResolvedSettings>) {
   for (const [name, s] of Object.entries(extensions)) {
     table.set(name, s);
-    listeners.get(name)?.forEach((cb) => cb(s));
+    for (const cb of listeners.get(name) ?? []) {
+      try {
+        cb(s);
+      } catch (e) {
+        console.error(`[host] settings listener of ${name} threw: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
   }
 }
 

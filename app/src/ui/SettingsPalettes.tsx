@@ -51,7 +51,7 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, fil
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = flat.length - 1;
     else if (e.key === " " && current) { e.preventDefault(); e.stopPropagation(); set(current.p, { enabled: !current.p.config.enabled }); return; }
-    if (next === undefined || next < 0) return;
+    if (next === undefined || !flat[next]) return;
     e.preventDefault();
     e.stopPropagation();
     onSelect(flat[next].p.id);
@@ -124,7 +124,7 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, fil
       </div>
 
       <div className="pal-palettes__pane">
-        {current ? <PalettePane p={current.p} ext={current.ext} onChange={(patch) => set(current.p, patch)} /> : <Empty title="No palette selected" hint="Pick one to set its hotkey, alias and settings" />}
+        {current ? <PalettePane key={current.p.id} p={current.p} ext={current.ext} onChange={(patch) => set(current.p, patch)} /> : <Empty title="No palette selected" hint="Pick one to set its hotkey, alias and settings" />}
       </div>
     </div>
   );

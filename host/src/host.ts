@@ -9,18 +9,20 @@
 // in the repo) or index.js (bundled, as shipped; see
 // app/scripts/build-extensions.sh). Later roots win on a name clash, so the
 // core passes the bundled root first and the user's own last. A root that
-// does not exist is skipped.
-import { watch } from "node:fs";
-import { mkdir, readdir, readlink, rm, stat, symlink } from "node:fs/promises";
-import { resolve } from "node:path";
+// does not exist yet is picked up when it appears (its parent is watched).
+import { watch, type FSWatcher } from "node:fs";
+import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
-import type { Ctx, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingsChanged } from "./protocol.ts";
+import type { Ctx, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "./protocol.ts";
 
 const VERSION = "0.0.1";
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
 if (ROOTS.length === 0) ROOTS.push(resolve(import.meta.dir, "../../extensions"));
 setRoots(ROOTS);
+/** An import that never settles (a top-level await on something that never comes) must not hold `host/ready` back. Env for the tests. */
+const LOAD_TIMEOUT_MS = Number(process.env.PAL_LOAD_TIMEOUT_MS) || 10_000;
 
 type Found = { root: string; entry: string };
 const exts = new Map<string, Extension>();
@@ -37,21 +39,31 @@ console.log = console.info = console.debug = console.error;
 const notify = (method: string, params?: unknown) => send({ method, params });
 
 const exists = (p: string) => stat(p).then(() => true, () => false);
+const isDir = (p: string) => stat(p).then((s) => s.isDirectory(), () => false);
+
+function timeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, rej) => { t = setTimeout(() => rej(new Error(`${what} timed out after ${ms} ms`)), ms); });
+  return Promise.race([p, late]).finally(() => clearTimeout(t));
+}
 
 /** `<root>/<name>/index.{ts,js}`, or undefined when `name` is no extension there. */
 async function entry(root: string, name: string): Promise<Found | undefined> {
   for (const file of ["index.ts", "index.js"]) {
-    const entry = `${root}/${name}/${file}`;
-    if (await exists(entry)) return { root, entry };
+    const path = `${root}/${name}/${file}`;
+    if (await exists(path)) return { root, entry: path };
   }
 }
+
+/** `node_modules` (the `pal` link lives there) and dotfiles are never extensions. */
+const isExtensionName = (name: string) => !!name && name !== "node_modules" && !name.startsWith(".");
 
 /** Every extension across the roots; a later root replaces an earlier one's entry. */
 async function discover(): Promise<Map<string, Found>> {
   const map = new Map<string, Found>();
   for (const root of ROOTS) {
     if (!(await exists(root))) continue;
-    const names = (await readdir(root, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name);
+    const names = (await readdir(root, { withFileTypes: true }).catch(() => [])).filter((d) => d.isDirectory() && isExtensionName(d.name)).map((d) => d.name);
     for (const name of names) {
       const f = await entry(root, name);
       if (f) map.set(name, f);
@@ -80,9 +92,18 @@ async function manifestOf(dir: string, name: string): Promise<Manifest> {
   }
 }
 
+/** Never rejects: a failed load is `extension/error`, anything else a log line, and the other extensions still serve. */
 async function load(name: string) {
+  try {
+    await reload(name);
+  } catch (e) {
+    log(`load ${name} failed: ${describe(e)}`);
+  }
+}
+
+async function reload(name: string) {
   const f = found.get(name) ?? (await discover()).get(name);
-  if (!f) return; // not an extension dir
+  if (!f) return drop(name);
   found.set(name, f);
   const t0 = performance.now();
   const manifest = await manifestOf(`${f.root}/${name}`, name);
@@ -97,12 +118,12 @@ async function load(name: string) {
   try {
     // The query string defeats Bun's module cache on re-import; the old
     // module instance stays resident, which is the price of no restart.
-    const mod = await context.run({ extension: name }, () => import(`${f.entry}?t=${Date.now()}`));
+    const mod = await timeout(context.run({ extension: name }, () => import(`${f.entry}?t=${Date.now()}`)), LOAD_TIMEOUT_MS, `import of ${name}`);
     const ext = mod.default as Extension;
     if (!ext?.palettes) throw new Error("default export has no palettes");
     exts.set(name, ext);
     errors.delete(name);
-    for (const k of details.keys()) if (k.startsWith(`${name}/`)) details.delete(k);
+    forgetDetails(name);
     log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}) from ${f.root} in ${(performance.now() - t0).toFixed(1)}ms`);
     notify("extension/loaded", { extension: name, root: f.root, palettes: metas(ext, manifest), manifest });
   } catch (e) {
@@ -114,6 +135,25 @@ async function load(name: string) {
   }
 }
 
+/**
+ * The directory is gone from every root (deleted, or its entry file
+ * removed): whatever was loaded from it leaves. The resident module cannot
+ * be unloaded, but nothing routes to it any more. A name that was never
+ * an extension (a stray file in a root) is nothing to report.
+ */
+function drop(name: string) {
+  if (!manifests.has(name)) return;
+  found.delete(name);
+  exts.delete(name);
+  errors.delete(name);
+  manifests.delete(name);
+  forgetDetails(name);
+  log(`removed ${name}`);
+  notify("extension/removed", { extension: name });
+}
+
+const forgetDetails = (name: string) => { for (const k of details.keys()) if (k.startsWith(`${name}/`)) details.delete(k); };
+
 // Bun raises BuildMessage (one) or AggregateError of them (many) for a file
 // that fails to compile; neither prints its position by itself.
 function describe(e: unknown): string {
@@ -123,6 +163,8 @@ function describe(e: unknown): string {
     .join("; ");
 }
 
+const realOr = (p: string) => realpath(p).catch(() => resolve(p));
+
 /**
  * `<root>/node_modules/pal` -> this host, so `import { settings } from "pal"`
  * in an installed extension resolves to api.ts (host/package.json `exports`)
@@ -130,17 +172,30 @@ function describe(e: unknown): string {
  * of that name (Bun auto-installs a bare import it cannot resolve; a
  * `Bun.plugin` onResolve did not intercept it, 2026-09-16). The bundled
  * root, next to the host's own dir, imports by relative path and is left
- * alone. Re-pointed when the host moved (an app update).
+ * alone (compared by real path, so a symlinked config dir still counts as
+ * the user's). Re-pointed when the host moved (an app update); a real
+ * directory at that path is someone else's and is left as it is.
  */
 async function linkApi(root: string) {
   const host = resolve(import.meta.dir, "..");
-  if (resolve(root, "..") === resolve(host, "..")) return;
+  if (dirname(await realOr(root)) === dirname(await realOr(host))) return;
   const link = `${root}/node_modules/pal`;
-  if ((await readlink(link).catch(() => undefined)) === host) return;
+  const current = await lstat(link).catch(() => undefined);
+  if (current && !current.isSymbolicLink()) return log(`${link} exists and is not a link; leaving it`);
+  if (current && (await readlink(link).catch(() => undefined)) === host) return;
   await mkdir(`${root}/node_modules`, { recursive: true });
-  await rm(link, { recursive: true, force: true });
+  if (current) await rm(link, { force: true });
   await symlink(host, link);
   log(`linked ${link} -> ${host}`);
+}
+
+/** Everything under a root, in one pass; what a fresh root gets when it appears. */
+async function loadRoot(root: string) {
+  await linkApi(root).catch((e) => log(`link pal in ${root} failed: ${describe(e)}`));
+  const all = await discover();
+  const names = [...all].filter(([, f]) => f.root === root).map(([name]) => name);
+  for (const name of names) found.delete(name);
+  await Promise.all(names.map(load));
 }
 
 async function loadAll() {
@@ -149,17 +204,70 @@ async function loadAll() {
   await Promise.all([...found.keys()].map(load));
 }
 
-async function watchExtensions() {
-  const timers = new Map<string, ReturnType<typeof setTimeout>>();
-  for (const root of ROOTS) {
-    if (!(await exists(root))) continue;
-    watch(root, { recursive: true }, (_event, file) => {
+// ---- watching --------------------------------------------------------------
+// One recursive watcher per root that exists, plus one on each root's
+// parent so a root created after start (the user's first `pal install`)
+// is picked up, and a root deleted whole lets its extensions go.
+
+const watchers = new Map<string, FSWatcher>();
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Coalesces the burst of events one save produces into one reload. */
+function schedule(name: string) {
+  clearTimeout(timers.get(name));
+  // A new directory, or one whose entry moved roots: look again. A removed
+  // one falls through to `drop` inside `load`, or to the root it still has.
+  timers.set(name, setTimeout(() => { timers.delete(name); found.delete(name); load(name); }, 50));
+}
+
+function watchRoot(root: string) {
+  if (watchers.has(root)) return;
+  try {
+    const w = watch(root, { recursive: true }, (_event, file) => {
       const name = String(file ?? "").split("/")[0];
-      if (!name) return;
-      clearTimeout(timers.get(name));
-      // A new directory, or one whose entry moved roots: look again.
-      timers.set(name, setTimeout(() => (found.delete(name), load(name)), 50));
+      if (isExtensionName(name)) schedule(name);
     });
+    w.on("error", (e) => { log(`watch ${root} failed: ${describe(e)}`); unwatchRoot(root); });
+    watchers.set(root, w);
+  } catch (e) {
+    log(`watch ${root} failed: ${describe(e)}`);
+  }
+}
+
+function unwatchRoot(root: string) {
+  watchers.get(root)?.close();
+  watchers.delete(root);
+}
+
+/** The root came or went: watch it and load what is there, or let its extensions go. */
+async function rootChanged(root: string) {
+  if (await isDir(root)) {
+    if (watchers.has(root)) return;
+    log(`root ${root} appeared`);
+    watchRoot(root);
+    await loadRoot(root);
+  } else if (watchers.has(root)) {
+    log(`root ${root} gone`);
+    unwatchRoot(root);
+    for (const [name, f] of found) if (f.root === root) schedule(name);
+  }
+}
+
+async function watchExtensions() {
+  for (const root of ROOTS) {
+    if (await isDir(root)) watchRoot(root);
+    const parent = dirname(root);
+    if (parent === root || watchers.has(parent) || !(await isDir(parent))) continue;
+    try {
+      const w = watch(parent, (_event, file) => {
+        const hit = ROOTS.find((r) => dirname(r) === parent && basename(r) === String(file ?? ""));
+        if (hit) rootChanged(hit).catch((e) => log(`root ${hit}: ${describe(e)}`));
+      });
+      w.on("error", (e) => { log(`watch ${parent} failed: ${describe(e)}`); unwatchRoot(parent); });
+      watchers.set(parent, w);
+    } catch (e) {
+      log(`watch ${parent} failed: ${describe(e)}`);
+    }
   }
 }
 
@@ -189,6 +297,19 @@ function palette(p: any) {
 
 /** Runs `f` knowing which palette it serves, so `settings.get()` in there needs no argument. */
 const inContext = <T>(p: any, f: () => T): T => context.run({ extension: String(p?.extension), palette: String(p?.palette) }, f);
+
+/** Secrets arrive resolved (the value itself); the log gets their keys only. */
+function redacted(name: string, s: ResolvedSettings) {
+  const m = manifests.get(name);
+  const hide = (specs: SettingSpec[] | undefined, values: Record<string, unknown>) => {
+    const secret = new Set((specs ?? []).filter((x) => x.kind === "secret").map((x) => x.id));
+    return Object.fromEntries(Object.entries(values ?? {}).map(([k, v]) => [k, secret.has(k) ? "<secret>" : v]));
+  };
+  return {
+    settings: hide(m?.settings, s.settings),
+    palettes: Object.fromEntries(Object.entries(s.palettes ?? {}).map(([k, v]) => [k, hide(m?.palettes?.[k]?.settings, v)])),
+  };
+}
 
 const methods: Record<string, (params: any) => unknown> = {
   hello: () => ({
@@ -224,8 +345,12 @@ const methods: Record<string, (params: any) => unknown> = {
   },
   // Notification from the core: the resolved values of the named extensions.
   "settings/changed": (p: SettingsChanged) => {
-    updateSettings(p.extensions);
-    for (const [name, s] of Object.entries(p.extensions)) log(`settings ${name} ${JSON.stringify(s.settings)} palettes ${JSON.stringify(s.palettes)}`);
+    const changed = p?.extensions ?? {};
+    updateSettings(changed);
+    for (const [name, s] of Object.entries(changed)) {
+      const r = redacted(name, s);
+      log(`settings ${name} ${JSON.stringify(r.settings)} palettes ${JSON.stringify(r.palettes)}`);
+    }
   },
 };
 
@@ -260,7 +385,7 @@ async function handle(line: string) {
   // stdin EOF means the core is gone; the watcher would otherwise keep us alive.
   log("stdin closed, exiting");
   process.exit(0);
-})();
+})().catch((e) => { log(`stdin failed: ${describe(e)}`); process.exit(1); });
 await loadAll();
 await watchExtensions();
 // `known`: every extension found on disk, loaded or not (the core keeps a failed one's cache).

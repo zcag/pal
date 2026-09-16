@@ -2,7 +2,9 @@
 // envelope, the detail cache, ctx, the reverse core path, and exit on EOF.
 // One host per describe block against a throwaway root.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { API, Host, Root, manifest, simpleExt } from "./harness.ts";
+import { existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { API, HOST, Host, Root, manifest, simpleExt } from "./harness.ts";
 
 describe("loading", () => {
   let root: Root;
@@ -212,6 +214,89 @@ export default { palettes: {
     expect(await host.list("ext", "echo")).toEqual([{ id: "x", name: '{"s":"cba"}' }]);
     expect(host.coreCalls.find((c) => c.method === "echo.reverse")).toEqual({ method: "echo.reverse", params: { s: "abc" } });
     expect(await host.pick("ext", "echo", "x")).toEqual({ failed: "core says no" });
+  });
+});
+
+describe("watching", () => {
+  test("an extension whose directory is deleted leaves: extension/removed, gone from hello and known, no longer served", async () => {
+    const root = new Root({ stay: { "index.ts": simpleExt("stay") }, go: { "index.ts": simpleExt("go") } });
+    const host = await Host.start({ roots: [root.dir] });
+    expect(await host.list("go", "go")).toHaveLength(1);
+    const removed = host.next("extension/removed", (p) => p.extension === "go");
+    rmSync(join(root.dir, "go"), { recursive: true });
+    await removed;
+    expect((await host.call("list", { extension: "go", palette: "go" })).error).toBe("no extension go");
+    const h = await host.hello();
+    expect(h.extensions.map((e) => e.name)).toEqual(["stay"]);
+    expect(h.errors).toEqual({});
+    expect(await host.list("stay", "stay")).toHaveLength(1);
+    host.kill();
+    root.rm();
+  });
+
+  test("a root created after start is watched: its extensions load and reload, and it gets the pal link", async () => {
+    const parent = new Root();
+    const late = join(parent.dir, "extensions");
+    const host = await Host.start({ roots: [late] });
+    expect((await host.hello()).extensions).toEqual([]);
+    const loaded = host.next("extension/loaded", (p) => p.extension === "fresh");
+    mkdirSync(join(late, "fresh"), { recursive: true });
+    writeFileSync(join(late, "fresh", "index.ts"), simpleExt("fresh"));
+    expect((await loaded).params).toMatchObject({ extension: "fresh", root: late });
+    expect(await host.list("fresh", "fresh")).toEqual([{ id: "a", name: "A" }]);
+    expect(existsSync(join(late, "node_modules", "pal"))).toBe(true);
+    const reloaded = host.next("extension/loaded", (p) => p.extension === "fresh");
+    writeFileSync(join(late, "fresh", "index.ts"), simpleExt("fresh", { list: `() => [{ id: "b", name: "B" }]` }));
+    await reloaded;
+    expect(await host.list("fresh", "fresh")).toEqual([{ id: "b", name: "B" }]);
+    host.kill();
+    parent.rm();
+  });
+
+  test("a root deleted whole lets its extensions go", async () => {
+    const parent = new Root();
+    const root = join(parent.dir, "extensions");
+    mkdirSync(join(root, "e"), { recursive: true });
+    writeFileSync(join(root, "e", "index.ts"), simpleExt("e"));
+    const host = await Host.start({ roots: [root] });
+    expect(await host.list("e", "e")).toHaveLength(1);
+    const removed = host.next("extension/removed", (p) => p.extension === "e");
+    rmSync(root, { recursive: true });
+    await removed;
+    expect((await host.hello()).extensions).toEqual([]);
+    host.kill();
+    parent.rm();
+  });
+
+  test("the pal link: made once, re-pointed when stale, a real directory at that path is left alone", async () => {
+    const root = new Root({ e: { "index.ts": simpleExt("e") } });
+    const link = join(root.dir, "node_modules", "pal");
+    mkdirSync(dirname(link), { recursive: true });
+    symlinkSync("/nonexistent/old-host", link);
+    let host = await Host.start({ roots: [root.dir] });
+    expect(readlinkSync(link)).toBe(resolve(HOST, "../.."));
+    expect(host.stderr).toContain(`linked ${link}`);
+    host.kill();
+    host = await Host.start({ roots: [root.dir] });
+    expect(host.stderr).not.toContain("linked ");
+    host.kill();
+    rmSync(link);
+    mkdirSync(link);
+    host = await Host.start({ roots: [root.dir] });
+    expect(host.stderr).toContain("is not a link; leaving it");
+    expect(lstatSync(link).isDirectory()).toBe(true);
+    host.kill();
+    root.rm();
+  });
+
+  test("an import that never settles is reported as extension/error and does not hold host/ready back", async () => {
+    const root = new Root({ hang: { "index.ts": "await new Promise(() => {});\nexport default { palettes: {} };" }, ok: { "index.ts": simpleExt("ok") } });
+    process.env.PAL_LOAD_TIMEOUT_MS = "500";
+    const host = await Host.start({ roots: [root.dir] }).finally(() => delete process.env.PAL_LOAD_TIMEOUT_MS);
+    expect(await host.list("ok", "ok")).toHaveLength(1);
+    expect(host.failed().find((f) => f.extension === "hang")?.message).toBe("import of hang timed out after 500 ms");
+    host.kill();
+    root.rm();
   });
 });
 

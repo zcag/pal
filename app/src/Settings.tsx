@@ -6,7 +6,7 @@
  * this file maps the core's shapes onto theirs and turns their onChange
  * calls into key writes.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
@@ -93,19 +93,41 @@ function patch(config: RawConfig, key: string[], value: unknown): RawConfig {
   return next as unknown as RawConfig;
 }
 
+/** A text field the user is typing into: a reload landing now would put the file's last state over the keystrokes not yet written. */
+function typing(): boolean {
+  const el = document.activeElement;
+  if (!(el instanceof HTMLInputElement) || el.type === "search") return false;
+  return ["text", "number", "password"].includes(el.type);
+}
+
 export default function Settings() {
   const [view, setView] = useState<View | null>(null);
   const [page, setPage] = useState<SettingsPage>("general");
   const [palette, setPalette] = useState<string | undefined>(undefined);
   const [ext, setExt] = useState<string | undefined>(undefined);
+  /** The last failed command, shown in the title bar until a write succeeds. */
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(() => invoke<View>("settings_get").then(setView).catch((e) => setError(String(e))), []);
+  // Re-reads are coalesced (ten extensions load in a burst at startup) and
+  // held while a text field has focus: the field keeps what is being typed,
+  // and the read runs when focus leaves.
+  const held = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const refresh = useCallback(() => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      if (typing()) { held.current = true; return; }
+      held.current = false;
+      invoke<View>("settings_get").then(setView).catch((e) => setError(String(e)));
+    }, 50);
+  }, []);
   useEffect(() => {
     refresh();
     const a = listen("pal://config", refresh);
     const b = listen<{ method?: string }>("pal://host", (e) => { if (e.payload.method?.startsWith("extension/") || e.payload.method === "host/ready") refresh(); });
-    return () => { a.then((f) => f()); b.then((f) => f()); };
+    const onBlur = () => { if (held.current) refresh(); };
+    window.addEventListener("focusout", onBlur);
+    return () => { a.then((f) => f()); b.then((f) => f()); window.removeEventListener("focusout", onBlur); clearTimeout(timer.current); };
   }, [refresh]);
 
   // Escape or cmd+w (ctrl+w off macOS, keys.ts's mapping) closes (hides) the window; the design's inner scopes stop what they handle.
@@ -136,17 +158,19 @@ export default function Settings() {
   const onInstall = async (spec: string) => { await invoke("extensions_install", { spec }); };
   const onExtUpdate = async (name: string) => { await invoke("extensions_update", { name }); forget(name); };
   const onExtRemove = async (name: string) => { await invoke("extensions_remove", { name }); forget(name); };
+  // A selection that names nothing (first paint, or a removed extension) moves to the first entry.
   useEffect(() => {
-    if (!palette && extensions[0]?.palettes[0]) setPalette(extensions[0].palettes[0].id);
-    if (!ext && extensions[0]) setExt(extensions[0].name);
+    if (extensions.length === 0) return;
+    if (!extensions.some((e) => e.palettes.some((p) => p.id === palette))) setPalette(extensions.flatMap((e) => e.palettes)[0]?.id);
+    if (!extensions.some((e) => e.name === ext)) setExt(extensions[0].name);
   }, [extensions, palette, ext]);
 
-  /** One key to the file; `undefined` removes it. The local copy moves at once. */
+  /** One key to the file; `undefined` removes it. The local copy moves at once; a refused write (the core's error, `Contended` after its retry included) shows in the title bar and the file's state comes back. */
   const write = useCallback((key: string[], value: unknown) => {
     setView((v) => (v ? { ...v, config: patch(v.config, key, value) } : v));
     const dotted = key.map(seg).join(".");
     const call = value === undefined ? invoke("settings_unset", { key: dotted }) : invoke("settings_set", { key: dotted, value });
-    call.catch((e) => { setError(`${dotted}: ${e}`); refresh(); });
+    call.then(() => setError(null), (e) => { setError(String(e)); refresh(); });
   }, [refresh]);
 
   /** A declared setting: a value equal to its default (or none) leaves the file, anything else is written. */
@@ -209,11 +233,12 @@ export default function Settings() {
     }
   };
   const count = extensions.reduce((n, e) => n + e.palettes.length, 0);
-  const aside = page === "palettes" ? `${count} palettes from ${extensions.length} extensions` : page === "extensions" ? `${extensions.length} installed` : error ? <span title={error}>Last write failed</span> : undefined;
+  const summary = page === "palettes" ? `${count} palettes from ${extensions.length} extensions` : page === "extensions" ? `${extensions.length} installed` : undefined;
+  const aside = error ? <span role="alert" title={error} style={{ color: "var(--pal-tag-red)" }}>{error}</span> : summary;
   const fileName = view.path.split("/").pop() ?? "config.toml";
 
   return (
-    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file")} version={view.version}>
+    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file").catch((e) => setError(String(e)))} version={view.version}>
       {page === "general" && (
         <SettingsGeneral
           value={general}

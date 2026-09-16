@@ -56,7 +56,7 @@ export function SettingsExtensions({ extensions, selected, onSelect, onChange, o
     else if (e.key === "ArrowUp") next = Math.max(i - 1, 0);
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = extensions.length - 1;
-    if (next === undefined) return;
+    if (next === undefined || !extensions[next]) return;
     e.preventDefault();
     e.stopPropagation();
     onSelect(extensions[next].name);
@@ -94,6 +94,7 @@ export function SettingsExtensions({ extensions, selected, onSelect, onChange, o
       <div className="pal-extensions__pane">
         {current ? (
           <ExtensionPane
+            key={current.name}
             ext={current}
             busy={busy[current.name]}
             failed={failed[current.name]}
@@ -165,17 +166,18 @@ type PaneProps = {
 function ExtensionPane({ ext, busy, failed, onChange, onUpdate, onRemove }: PaneProps) {
   const set = (id: string, v: SettingValue) => onChange({ ...ext.values, [id]: v });
   const href = repoHref(ext.repo);
-  // Remove asks once: the second press within a few seconds is the answer.
-  const [arming, setArming] = useState(false);
+  // Remove asks once: the second press while the count runs is the answer.
+  // The pane is keyed by extension, so switching extensions resets it.
+  const [left, setLeft] = useState(0);
+  const arming = left > 0;
   useEffect(() => {
     if (!arming) return;
-    const t = setTimeout(() => setArming(false), 4000);
+    const t = setTimeout(() => setLeft(left - 1), 1000);
     return () => clearTimeout(t);
-  }, [arming]);
-  useEffect(() => setArming(false), [ext.name]);
+  }, [arming, left]);
   const remove = () => {
-    if (!arming) return setArming(true);
-    setArming(false);
+    if (!arming) return setLeft(5);
+    setLeft(0);
     onRemove();
   };
   return (
@@ -190,8 +192,8 @@ function ExtensionPane({ ext, busy, failed, onChange, onUpdate, onRemove }: Pane
             <span className="pal-extensions__uptodate">Up to date</span>
           )}
           {!(ext.bundled ?? ext.repo === "bundled") && (
-            <button type="button" className="pal-button" data-destructive disabled={!!busy} onClick={remove} onBlur={() => setArming(false)}>
-              {busy === "removing" ? "Removing…" : arming ? "Remove? Click again" : "Remove"}
+            <button type="button" className="pal-button" data-destructive disabled={!!busy} onClick={remove} onBlur={() => setLeft(0)} aria-live="polite">
+              {busy === "removing" ? "Removing…" : arming ? `Remove? Click again (${left})` : "Remove"}
             </button>
           )}
         </div>

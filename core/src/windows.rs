@@ -9,13 +9,15 @@
 //!   ([`crate::ax::element`]) for what CoreGraphics does not say: the title
 //!   of another app's window (CoreGraphics only gives it with Screen
 //!   Recording permission) and whether it is minimised. The AX window for a
-//!   CoreGraphics one is found by frame and title, both APIs report in the
-//!   same coordinate space. Focus is `activateWithOptions` on the app plus
-//!   `AXRaise` on the window; close presses the window's close button;
-//!   minimise sets `AXMinimized`. Without Accessibility the list still works
-//!   (titles from CoreGraphics when Screen Recording allows, else the app
-//!   name), focus falls back to activating the app, and close / minimise
-//!   fail with [`Error::NeedsAccessibility`].
+//!   CoreGraphics one is found by frame (title breaks a tie), both APIs
+//!   report in the same coordinate space. `AXWindows` only lists windows on
+//!   the current Space, so a window elsewhere keeps its CoreGraphics row
+//!   (name only with Screen Recording) and `focus` on it activates the app,
+//!   which is what switches Spaces. Focus is `activateWithOptions` on the
+//!   app plus `AXRaise` on the window; close presses the window's close
+//!   button; minimise sets `AXMinimized`. Without Accessibility the list
+//!   still works, focus falls back to activating the app, and close /
+//!   minimise fail with [`Error::NeedsAccessibility`].
 //! - **Linux**: Hyprland (`hyprctl clients -j`, `dispatch focuswindow` /
 //!   `closewindow`, minimise = move to the `special:minimized` workspace),
 //!   Sway (`swaymsg -t get_tree`, `[con_id=N] focus` / `kill` / `move
@@ -129,6 +131,10 @@ mod platform {
 
     /// A CoreGraphics and an AX frame agree within this many points.
     const FRAME_SLACK: f64 = 2.0;
+    /// A CoreGraphics window with no AX counterpart is listed only when
+    /// both sides are at least this: tab strips and 0x0 placeholders are not
+    /// windows.
+    const MIN_SIDE: f64 = 50.0;
 
     /// One row of `CGWindowListCopyWindowInfo`, the fields pal reads.
     struct CgWindow {
@@ -196,11 +202,13 @@ mod platform {
         (a.x - b.x).abs() <= FRAME_SLACK && (a.y - b.y).abs() <= FRAME_SLACK && (a.w - b.w).abs() <= FRAME_SLACK && (a.h - b.h).abs() <= FRAME_SLACK
     }
 
-    /// The AX window that is `cg`: same frame, and the same title when
-    /// CoreGraphics has one. Removed from `pool` so two identical windows
-    /// each get their own.
+    /// The AX window that is `cg`: same frame, the title breaking a tie
+    /// (CoreGraphics' name can lag the app's, so it is not required to
+    /// agree). Removed from `pool` so two identical windows each get their
+    /// own.
     fn take_match(pool: &mut Vec<AxWindow>, cg: &CgWindow) -> Option<AxWindow> {
-        let i = pool.iter().position(|ax| ax.frame.is_some_and(|f| same_frame(&f, &cg.frame)) && (cg.name.is_empty() || ax.title == cg.name))?;
+        let same = |ax: &AxWindow| ax.frame.is_some_and(|f| same_frame(&f, &cg.frame));
+        let i = pool.iter().position(|ax| same(ax) && ax.title == cg.name).or_else(|| pool.iter().position(same))?;
         Some(pool.remove(i))
     }
 
@@ -239,17 +247,16 @@ mod platform {
     pub fn list() -> Result<Vec<Window>> {
         let displays = displays();
         let cg = cg_windows();
-        // Per app: its AX windows still unmatched, and whether it had any at
-        // all (an app that answers AX with nothing gets CoreGraphics rows).
-        // Each AX read is a round trip to that app's main thread, 10-30 ms
-        // for a napping one, so the apps are asked side by side.
-        let mut apps: Vec<(i32, Retained<NSRunningApplication>, Vec<AxWindow>, bool)> = vec![];
+        // Per app: its AX windows still unmatched. Each AX read is a round
+        // trip to that app's main thread, 10-30 ms for a napping one, so
+        // the apps are asked side by side.
+        let mut apps: Vec<(i32, Retained<NSRunningApplication>, Vec<AxWindow>)> = vec![];
         let mut pids: Vec<i32> = vec![];
         for w in &cg {
             if !pids.contains(&w.pid) {
                 if let Some(app) = running(w.pid) {
                     pids.push(w.pid);
-                    apps.push((w.pid, app, vec![], false));
+                    apps.push((w.pid, app, vec![]));
                 }
             }
         }
@@ -259,21 +266,20 @@ mod platform {
                 handles.into_iter().map(|h| h.join().unwrap_or_default()).collect()
             });
             for (entry, ax) in apps.iter_mut().zip(ax) {
-                entry.3 = !ax.is_empty();
                 entry.2 = ax;
             }
         }
         let mut out = vec![];
         for cg in cg {
             let Some(i) = apps.iter().position(|(p, ..)| *p == cg.pid) else { continue };
-            let (_, app, pool, by_ax) = &mut apps[i];
+            let (_, app, pool) = &mut apps[i];
             let (title, minimized) = match take_match(pool, &cg) {
                 Some(ax) => (if ax.title.is_empty() { cg.name.clone() } else { ax.title }, ax.minimized),
-                // The app's own window list is the truth: a layer-0 window
-                // it does not list is a helper (tooltip, overlay). Without
-                // one, CoreGraphics is all there is.
-                None if *by_ax => continue,
-                None if cg.name.is_empty() && !cg.on_screen => continue,
+                // No AX window for it: on another Space (`AXWindows` only
+                // lists the current one), or the app answers AX with
+                // nothing. Keep it if it looks like a window (named, or on
+                // screen, and not one of the 0x0 / strip-shaped helpers).
+                None if (cg.name.is_empty() && !cg.on_screen) || cg.frame.w < MIN_SIDE || cg.frame.h < MIN_SIDE => continue,
                 None => (cg.name.clone(), false),
             };
             let name = app.localizedName().map(|s| s.to_string()).unwrap_or_default();
@@ -297,12 +303,14 @@ mod platform {
         cg_windows().into_iter().find(|w| w.id == n).ok_or_else(|| Error::NotFound(id.into()))
     }
 
-    /// The AX window behind a CoreGraphics one, when pal may look.
+    /// The AX window behind a CoreGraphics one, when pal may look. An app
+    /// can list nothing over AX (napping on another space, no AX support):
+    /// [`Error::Failed`], not `NotFound`, since the window is there.
     fn ax_of(cg: &CgWindow, what: &'static str) -> Result<Element> {
         if !crate::ax::trusted() {
             return Err(Error::NeedsAccessibility(what));
         }
-        take_match(&mut ax_windows(cg.pid), cg).map(|ax| ax.el).ok_or_else(|| Error::NotFound(cg.id.to_string()))
+        take_match(&mut ax_windows(cg.pid), cg).map(|ax| ax.el).ok_or_else(|| Error::Failed("the app does not expose that window to Accessibility".into()))
     }
 
     pub fn focus(id: &str) -> Result<()> {
@@ -317,8 +325,9 @@ mod platform {
                 }
                 win.raise()
             }
-            // App-level activation is what is left without the permission.
-            Err(Error::NeedsAccessibility(_)) => true,
+            // App-level activation is what is left without the permission,
+            // or when the app does not expose the window.
+            Err(Error::NeedsAccessibility(_) | Error::Failed(_)) => true,
             Err(e) => return Err(e),
         };
         app.unhide();

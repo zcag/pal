@@ -1,6 +1,5 @@
 //! Every event the shell emits to the webviews, in one place, with its
-//! payload. The pages subscribe by these names (`app/src`); `settings.rs`
-//! emits [`CONFIG`] itself.
+//! payload. The pages subscribe by these names (`app/src`).
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
@@ -13,9 +12,7 @@ pub const SHOWN: &str = "pal://shown";
 /// the page queries again. No payload.
 pub const INDEX: &str = "pal://index";
 /// The config was reloaded or an extension registered: the `Loaded` config
-/// with its diagnostics. Emitted by settings.rs, which still spells the
-/// name out; the constant is here so the list is complete.
-#[allow(dead_code)]
+/// with its diagnostics.
 pub const CONFIG: &str = "pal://config";
 /// A notification from the extension host, as it sent it
 /// (`{ method, params }`), plus `{ method: "host/exit" }` when it went down.
