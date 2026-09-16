@@ -12,17 +12,17 @@ import { listen } from "@tauri-apps/api/event";
 import {
   SettingsExtensions, SettingsGeneral, SettingsPalettes, SettingsWindow,
   extensionsIndex, generalIndex, palettesIndex,
-  type Diagnostic, type GeneralConfig, type PaletteConfig, type SettingSpec, type SettingValue, type SettingValues,
+  type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
   type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette,
 } from "./ui";
-import { comboOf } from "./ui/keys";
+import { comboOf, isMac } from "./ui/keys";
 import { iconOf } from "./items";
 
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
 
 type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; icon?: string; settings?: Record<string, unknown> };
 type RawConfig = {
-  general: { hotkey: string; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"] };
+  general: { hotkey: string; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean };
   palettes: Record<string, RawPalette>;
   extensions: Record<string, Record<string, unknown>>;
 };
@@ -34,7 +34,7 @@ type Record_ = { source: string; ref?: string; installed_at: number; commit_or_e
 type Ext = { name: string; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; installed?: number; record?: Record_ };
 /** `pal_core::extensions::Update`. */
 type Update = { name: string; current: string; latest: string };
-type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string };
+type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus };
 
 /** `palettes.<id>`: the extension's name when the palette is named like it, else `<extension>-<palette>` (index.rs `palette_id`). */
 const paletteId = (ext: string, palette: string) => (ext === palette ? ext : `${ext}-${palette}`);
@@ -128,9 +128,12 @@ export default function Settings() {
     refresh();
     const a = listen("pal://config", refresh);
     const b = listen<{ method?: string }>("pal://host", (e) => { if (e.payload.method?.startsWith("extension/") || e.payload.method === "host/ready") refresh(); });
+    // The hotkey's registration outcome and a permission grant land in the view too (settings.rs `View`).
+    const c = listen("pal://hotkey", refresh);
+    const d = listen("pal://permissions", refresh);
     const onBlur = () => { if (held.current) refresh(); };
     window.addEventListener("focusout", onBlur);
-    return () => { a.then((f) => f()); b.then((f) => f()); window.removeEventListener("focusout", onBlur); clearTimeout(timer.current); };
+    return () => { for (const u of [a, b, c, d]) u.then((f) => f()); window.removeEventListener("focusout", onBlur); clearTimeout(timer.current); };
   }, [refresh]);
 
   // Escape or cmd+w (ctrl+w off macOS, keys.ts's mapping) closes (hides) the window; the design's inner scopes stop what they handle.
@@ -192,14 +195,16 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkey: config.general.hotkey, theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position };
+  const general: GeneralConfig = { hotkey: config.general.hotkey, theme: config.general.theme, launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, askPermissionsOnStart: config.general.ask_permissions_on_start };
   const onGeneral = (next: GeneralConfig) => {
     if (next.hotkey !== general.hotkey) write(["general", "hotkey"], next.hotkey);
     if (next.theme !== general.theme) write(["general", "theme"], next.theme);
     if (next.launchAtLogin !== general.launchAtLogin) write(["general", "launch_at_login"], next.launchAtLogin);
     if (next.menuBarIcon !== general.menuBarIcon) write(["general", "menu_bar_icon"], next.menuBarIcon ? undefined : false);
     if (next.position !== general.position) write(["general", "position"], next.position);
+    if (next.askPermissionsOnStart !== general.askPermissionsOnStart) write(["general", "ask_permissions_on_start"], next.askPermissionsOnStart ? undefined : false);
   };
+  const fail = (e: unknown) => setError(String(e));
 
   const onPalette = (id: string, next: PaletteConfig) => {
     const p = extensions.flatMap((e) => e.palettes).find((x) => x.id === id);
@@ -249,8 +254,13 @@ export default function Settings() {
           file={{ path: view.path, changed: view.changed }}
           onOpenFile={() => invoke("settings_open_file").catch((e) => setError(String(e)))}
           onRevealFile={() => invoke("settings_reveal_file").catch((e) => setError(String(e)))}
-          onResetFrecency={() => invoke("settings_reset_frecency").catch((e) => setError(String(e)))}
-          onRestartHost={() => invoke("settings_restart_host").catch((e) => setError(String(e)))}
+          onResetFrecency={() => invoke("settings_reset_frecency").catch(fail)}
+          onRestartHost={() => invoke("settings_restart_host").catch(fail)}
+          hotkey={view.hotkey}
+          onOpenKeyboardShortcuts={() => invoke("open_system_settings", { pane: "keyboard-shortcuts" }).catch(fail)}
+          // Off macOS every permission is a given (permissions.rs), so the group has nothing to say.
+          permissions={isMac ? view.permissions : undefined}
+          onRequestPermission={(which) => invoke("permissions_request", { which }).then(refresh, fail)}
         />
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} />}

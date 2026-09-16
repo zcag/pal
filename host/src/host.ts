@@ -15,7 +15,8 @@ import { lstat, mkdir, readdir, readlink, realpath, rm, stat, symlink } from "no
 import { basename, dirname, resolve } from "node:path";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
-import type { Ctx, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged } from "./protocol.ts";
+import { checkView } from "./view.ts";
+import type { Ctx, Extension, Manifest, Notification, Palette, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SettingsChanged, ViewPalette } from "./protocol.ts";
 
 const VERSION = "0.0.1";
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
@@ -271,9 +272,14 @@ async function watchExtensions() {
   }
 }
 
+/** A palette whose `view` is a function draws a tree instead of listing rows. */
+const isView = (p: Palette): p is ViewPalette => typeof p.view === "function";
+
+// A view palette is `input` on the wire: the core indexes nothing of it
+// and the root keeps only its own row, which is what `input` already means.
 const metas = (ext: Extension, manifest?: Manifest): PaletteMeta[] =>
   Object.entries(ext.palettes).map(([name, p]) => ({
-    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder, showDetail: p.showDetail, filters: p.filters,
+    name, title: p.title ?? name, live: !!p.live, input: !!p.input || isView(p), icon: p.icon, view: isView(p) ? "view" : p.view, columns: p.columns, placeholder: p.placeholder, showDetail: p.showDetail, filters: p.filters,
     detail: typeof p.detail === "function" ? "lazy" : undefined,
     ttl: p.ttl ?? manifest?.palettes?.[name]?.ttl,
   }));
@@ -322,11 +328,24 @@ const methods: Record<string, (params: any) => unknown> = {
   }),
   list: async (p) => {
     details.delete(paletteKey(p));
-    const items = await inContext(p, () => palette(p).list(p.query, ctxOf(p)));
+    const pal = palette(p);
+    if (isView(pal)) throw new Error(`${paletteKey(p)}: a view palette has no list`);
+    const items = await inContext(p, () => pal.list(p.query, ctxOf(p)));
     if (!Array.isArray(items)) throw new Error(`${paletteKey(p)}: list returned ${items === null ? "null" : typeof items}, not an array`);
     return { items };
   },
-  pick: async (p) => (await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {},
+  // An effect carrying a view is checked like a `view` answer: the UI draws it the same way.
+  pick: async (p) => {
+    const r = (await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {};
+    if (r && typeof r === "object" && "view" in r && r.view !== undefined) checkView(r.view, `${paletteKey(p)}: pick ${p.action ?? ""} view`);
+    return r;
+  },
+  // The tree a view palette opens with; `filter`/`args` reach it as ctx like a list.
+  view: async (p) => {
+    const pal = palette(p);
+    if (!isView(pal)) throw new Error(`${paletteKey(p)}: not a view palette`);
+    return checkView(await inContext(p, () => pal.view(ctxOf(p))), `${paletteKey(p)}: view`);
+  },
   // `{}` when the palette has no `detail` or answers nothing: the UI keeps the inline one.
   detail: (p) => {
     const pal = palette(p);

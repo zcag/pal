@@ -28,6 +28,7 @@ mod windows;
 #[cfg_attr(target_os = "macos", path = "panel/macos.rs")]
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]
 mod panel;
+mod permissions;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
@@ -125,6 +126,10 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     events::emit(app, events::SHOWN, Shown { t0, palette });
     // After the event: the live palettes list again off this thread.
     index::on_shown(app);
+    // A fresh profile's first show asks for Accessibility (once per run);
+    // a missing permission is watched for while the panel is up.
+    permissions::ask_on_first_show(app);
+    permissions::watch(app);
 }
 
 fn toggle(app: &AppHandle) {
@@ -231,6 +236,10 @@ pub fn run() {
             settings::settings_close,
             updater::check_updates,
             welcome::welcome_reset,
+            hotkey::hotkey_status,
+            permissions::permissions_status,
+            permissions::permissions_request,
+            permissions::open_system_settings,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
@@ -249,6 +258,7 @@ pub fn run() {
             //   5. index: the index, frecency, registry, cache saver, welcome
             //   6. hotkey: the registered map, before settings applies it
             //   7. settings: load the file, apply hotkeys/tray/autostart, watch
+            //      permissions: log what the OS lets pal do, watch for a grant
             //   8. clipboard: the recorder, retention from the loaded settings
             //      storage: the extensions' key-value files, nothing read yet
             //   9. updater: the daily check (release builds)
@@ -277,6 +287,7 @@ pub fn run() {
             index::install(app.handle(), &data);
             hotkey::install(app.handle());
             settings::install(app.handle(), config);
+            permissions::install(app.handle());
             clipboard::install(app.handle());
             storage::install(app.handle());
             updater::install(app.handle());

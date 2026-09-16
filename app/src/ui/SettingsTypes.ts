@@ -79,6 +79,24 @@ export type GeneralConfig = {
   /** The menu bar (macOS) / tray (Linux) icon; the app has no Dock icon. */
   menuBarIcon: boolean;
   position: "top" | "centre" | "last";
+  /** macOS: ask for Accessibility on the panel's first show of a fresh profile. */
+  askPermissionsOnStart: boolean;
+};
+
+/** hotkey.rs `Outcome`: how the root hotkey's last registration went. */
+export type HotkeyStatus = {
+  /** `general.hotkey` as configured, trimmed; empty when off. */
+  wanted: string;
+  registered: boolean;
+  /** The OS's refusal, or the parse error a fallback covered. */
+  error?: string;
+  /** Spotlight's own binding, present only when it is the combination `wanted` names. */
+  spotlight?: string;
+};
+
+/** permissions.rs `Status`: what the OS lets pal do. Always granted off macOS. */
+export type PermissionsStatus = {
+  accessibility: boolean;
 };
 
 export type ConfigFileInfo = {

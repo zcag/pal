@@ -5,8 +5,9 @@
 //! is a given and the element API does not exist.
 //!
 //! [`trusted`] tells, [`request`] shows the system prompt that adds pal to
-//! the Accessibility list; the user grants in System Settings and a later
-//! `trusted` sees it without a restart.
+//! the Accessibility list (macOS lists an app under Privacy & Security >
+//! Accessibility only after that call), [`open_settings`] opens that pane;
+//! the user grants there and a later `trusted` sees it without a restart.
 
 /// Whether pal may drive other apps (send keys, raise windows). Always true
 /// off macOS.
@@ -18,6 +19,12 @@ pub fn trusted() -> bool {
 /// Returns the current state.
 pub fn request() -> bool {
     platform::request()
+}
+
+/// macOS: open System Settings on Privacy & Security > Accessibility, the
+/// switch itself. No-op off macOS.
+pub fn open_settings() -> std::io::Result<()> {
+    platform::open_settings()
 }
 
 #[cfg(target_os = "macos")]
@@ -43,6 +50,13 @@ mod platform {
             AXIsProcessTrustedWithOptions(&*opts)
         }
     }
+
+    pub fn open_settings() -> std::io::Result<()> {
+        // `open` returns at once; the child is reaped here so it never lingers as a zombie.
+        let mut child = std::process::Command::new("open").arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility").spawn()?;
+        std::thread::spawn(move || child.wait());
+        Ok(())
+    }
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -52,6 +66,9 @@ mod platform {
     }
     pub fn request() -> bool {
         true
+    }
+    pub fn open_settings() -> std::io::Result<()> {
+        Ok(())
     }
 }
 

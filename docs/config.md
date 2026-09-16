@@ -19,6 +19,7 @@ position = "top"           # top | centre | last
 launch_at_login = false
 menu_bar_icon = true
 check_updates = true
+ask_permissions_on_start = true   # macOS: ask for Accessibility on first show
 extension_dirs = ["~/dotfiles/pal-extensions"]   # extra extension roots, loaded after the store
 
 # Per-palette settings, keyed by palette id. Absent palette: all defaults.
@@ -65,6 +66,7 @@ writes those two header lines and nothing else into the config directory.
 | `menu_bar_icon` | bool | `true` | Show pal's icon in the menu bar (macOS) or system tray (Linux). The app has no Dock icon, so this is the visible way to reach Settings and Quit; the hotkey and `pal settings` work without it. |
 | `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day, in release builds (the GitHub release manifest; nothing is downloaded). Today a found update is a log line: download and install are not wired, and the menu's "Check for updates" is a disabled placeholder until they are, so `false` means no check at all. |
 | `extension_dirs` | list of paths | `[]` | Extra directories of extensions, one subdirectory per extension like the store, for a dotfiles-managed set. Loaded after the bundled extensions and the store, in order, so a later directory's extension replaces an earlier one's by name. `~` is expanded. Read when the host starts: `pal reload` after a change. See [Extensions](extensions.md). |
+| `ask_permissions_on_start` | bool | `true` | macOS: ask for the Accessibility permission (the system prompt, and System Settings opened on that pane) the first time the panel shows on a profile that has not hidden the Welcome tips yet. Paste and window switching need it. `false` leaves the ask to the Welcome row and to Settings > General > Permissions. Nothing on Linux. |
 
 Hotkey syntax: modifiers first, `+` between, one main key, case does not
 matter. Modifiers: `ctrl` (or `control`), `alt` (or `option`), `cmd` (or
@@ -72,8 +74,14 @@ matter. Modifiers: `ctrl` (or `control`), `alt` (or `option`), `cmd` (or
 Keys: letters, digits, `space`, `enter`, `f1`..`f12`, punctuation and the
 rest of the usual key names. A `general.hotkey` that does not parse falls
 back to `ctrl+space` and is logged, so pal stays reachable. A hotkey another
-app already holds is reported and skipped. On Linux the hotkey reaches only
-X11 clients; Wayland sessions bind `pal toggle` in the compositor.
+app already holds is reported and skipped: the previous root hotkey stays
+registered, and Settings > General says "Not registered" with the OS's
+reason under the field. On macOS `cmd+space` is Spotlight's until "Show
+Spotlight search" is unticked under System Settings > Keyboard > Keyboard
+Shortcuts > Spotlight; pal reads that binding, says so in Settings, and
+while the key is wanted and held polls it every 2 s so the registration
+lands as soon as it is freed. On Linux the hotkey reaches only X11
+clients; Wayland sessions bind `pal toggle` in the compositor.
 
 ## `[palettes.<id>]`
 

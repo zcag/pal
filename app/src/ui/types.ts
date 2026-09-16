@@ -86,3 +86,30 @@ export type FormField =
   | { kind: "checkbox"; id: string; label: string; text?: string; value?: boolean };
 
 export type FormValues = Record<string, string | boolean>;
+
+// ---- view: a declarative render tree ------------------------------------
+// Mirrors `ViewNode` / `View` in host/src/protocol.ts (the contract); this
+// side only adds nothing. Unknown node types are skipped by the renderer.
+
+export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";
+
+/** `enter` on a new key, `exit` on a gone one, `delay` in steps of `--pal-dur-fast`. */
+export type Transition = { enter?: "fade" | "slide-up" | "flip"; exit?: "fade" | "none"; delay?: number };
+
+type NodeBase = { key?: string; transition?: Transition };
+
+/** Steps of the 4 px grid, `--pal-space-N`. */
+export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type ViewNode =
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; children: ViewNode[] })
+  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint" })
+  | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: IconMask; alt?: string })
+  | (NodeBase & { type: "badge"; text: string; color?: TagColor })
+  | (NodeBase & { type: "divider" })
+  | (NodeBase & { type: "spacer"; size?: number })
+  | (NodeBase & { type: "progress"; value: number; width?: number })
+  | (NodeBase & { type: "keycap"; keys: string });
+
+/** A view level: the tree, its actions (first is Enter), an optional title over the tree; `keys: "actions"` maps bare keys to actions. */
+export type ViewSpec = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions" };

@@ -27,9 +27,21 @@ panel from anywhere.
 
 Two palettes need the Accessibility permission: clipboard history (pasting
 into the app in front sends a synthesised Cmd+V) and windows (raise, close,
-minimise). The first time one of them needs it, pal shows the system prompt
-once and a toast that says "Grant pal in System Settings > Privacy &
-Security > Accessibility". Nothing else asks for a permission.
+minimise); so does `pal action type`. macOS lists an app under Privacy &
+Security > Accessibility only once the app has asked, so pal asks: the
+first time the panel opens on a new profile (the system prompt, and System
+Settings opened on that pane; `ask_permissions_on_start = false` in the
+config turns that off), from the first row of the Welcome section, from
+Settings > General > Permissions (a granted / not granted dot and a Grant
+button), and the first time a paste or a window switch is refused (a toast
+says so). Flip the switch next to pal in that pane; pal sees it within a
+couple of seconds, no restart. Nothing else asks for a permission.
+
+The grant is tied to the app's code signature, and pal's releases are
+ad-hoc signed, so every build carries a new one. After installing a rebuilt
+pal.app the switch can look on and still do nothing: remove pal from the
+list (the minus button) and grant it again. A Developer ID signature is
+what keeps a grant across updates; releases do not have one yet.
 
 ### Linux
 
@@ -66,9 +78,18 @@ Hyprland does not read XDG autostart, so add `exec-once = pal` to
 ## The hotkey
 
 `Ctrl+Space` by default, on both platforms. Change it in Settings under
-Hotkey, or set `general.hotkey` in the config file (`alt+space`,
-`cmd+shift+p`, ...). An empty value turns the hotkey off, for a compositor
-bind that runs `pal toggle`.
+Hotkey (record a combination, or press one of the presets), or set
+`general.hotkey` in the config file (`alt+space`, `cmd+shift+p`, ...). An
+empty value turns the hotkey off, for a compositor bind that runs
+`pal toggle`. The line under the field says whether the OS took the
+registration, and why not when it did not.
+
+On macOS, `⌘Space` is Spotlight's: the system takes the press before any
+app, so it cannot even be recorded (Spotlight opens instead; use the
+preset). Set it, and Settings says "Spotlight uses ⌘Space" with a button
+to System Settings > Keyboard > Keyboard Shortcuts, where unticking
+Spotlight's "Show Spotlight search" frees it; pal registers the key
+within a couple of seconds of that, nothing to restart.
 
 ## Ten-second tour
 

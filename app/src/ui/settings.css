@@ -229,6 +229,42 @@
 .pal-hotkey[data-compact]:focus-visible, .pal-hotkey[data-compact][data-recording] { background: var(--pal-bg-elevated, #26262d); box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
 .pal-hotkey .pal-kbd kbd { color: var(--pal-fg, #ececf0); }
 
+/* The hotkey row: recorder and presets on one line, the outcome under them. */
+.pal-hotkey-field { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); min-width: 0; }
+.pal-hotkey-field__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px); }
+.pal-hotkey-presets { display: inline-flex; flex-wrap: wrap; gap: var(--pal-space-1, 4px); }
+.pal-hotkey-presets .pal-button[aria-pressed="true"] { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); color: var(--pal-fg, #ececf0); }
+.pal-hotkey-status {
+  display: flex;
+  align-items: center;
+  gap: var(--pal-space-2, 8px);
+  margin: 0;
+  color: var(--pal-fg-muted, #a3a4ae);
+  font-size: var(--pal-text-sm, 12px);
+}
+.pal-hotkey-status[data-state="failed"] { color: var(--pal-destructive, #ff6e66); }
+.pal-hotkey-status__dot, .pal-permission__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--pal-fg-faint, #868794); }
+.pal-hotkey-status[data-state="ok"] .pal-hotkey-status__dot, .pal-permission[data-granted] .pal-permission__dot { background: var(--pal-success, #4fc98a); }
+.pal-hotkey-status[data-state="failed"] .pal-hotkey-status__dot { background: var(--pal-destructive, #ff6e66); }
+.pal-hotkey-guidance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pal-space-2, 8px);
+  max-width: 60ch;
+  padding: var(--pal-space-3, 12px);
+  border-radius: var(--pal-radius-control, 6px);
+  background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3));
+  box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08));
+  font-size: var(--pal-text-sm, 12px);
+  line-height: var(--pal-leading-prose, 1.55);
+}
+.pal-hotkey-guidance p { margin: 0; }
+
+/* The permission row: a dot with its word, then the button. */
+.pal-permission { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); min-width: 96px; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
+.pal-permission[data-granted] { color: var(--pal-fg, #ececf0); }
+
 .pal-segment {
   display: inline-flex;
   gap: 2px;

@@ -36,6 +36,26 @@ export const settings = {
   onChange: (cb: (s: ResolvedSettings) => void, extension?: string) => subscribe(caller(extension).extension, cb),
 };
 
+/**
+ * Small per-extension key-value store, kept by the core in
+ * `<data dir>/pal/storage/<extension>.json` (one file per extension, written
+ * whole and atomically on every change, shared by every config profile).
+ * Values are JSON; `get` answers `null` for a key that is not there. The
+ * file is capped at `storage.LIMIT` bytes: a `set` that would exceed it
+ * rejects and nothing is written. For a bankroll, a cursor, a last-used
+ * choice; not for a cache of any size. Which extension is asking is known
+ * inside `list`/`pick`/`view` and at import time; elsewhere pass the name.
+ */
+export const storage = {
+  /** Bytes per extension file, serialised. */
+  LIMIT: 256 * 1024,
+  get: <T = unknown>(key: string, extension?: string) => call<T | null>("storage.get", { extension: caller(extension).extension, key }),
+  set: (key: string, value: unknown, extension?: string) => call<null>("storage.set", { extension: caller(extension).extension, key, value }),
+  remove: (key: string, extension?: string) => call<null>("storage.remove", { extension: caller(extension).extension, key }),
+  /** Every key the extension has set, sorted. */
+  keys: (extension?: string) => call<string[]>("storage.keys", { extension: caller(extension).extension }),
+};
+
 /** `pal_core::clipboard::Entry`: one of text/image/files is set, by kind. */
 export type ClipboardEntry = {
   id: number;

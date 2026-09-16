@@ -1,4 +1,4 @@
-import type { CSSProperties, MouseEvent } from "react";
+import type { CSSProperties, HTMLAttributes, MouseEvent } from "react";
 import { Icon } from "./Icon";
 import { graphemes, relativeDate, useNow } from "./format";
 import { keepFocus } from "./keys";
@@ -24,11 +24,11 @@ export function Highlight({ text, positions }: { text: string; positions?: Set<n
 
 const tagNames = new Set(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal"]);
 
-/** A tag: `color` names a token palette (red, green, ...) or is any CSS colour. */
-export function Tag({ text, color }: { text: string; color?: string }) {
+/** A tag: `color` names a token palette (red, green, ...) or is any CSS colour. Other attributes land on the span. */
+export function Tag({ text, color, className, style, ...rest }: { text: string; color?: string } & HTMLAttributes<HTMLSpanElement>) {
   const named = color && tagNames.has(color);
   return (
-    <span className="pal-tag" data-color={named ? color : color ? "custom" : undefined} style={color && !named ? ({ "--tag": color } as CSSProperties) : undefined}>
+    <span className={className ? `pal-tag ${className}` : "pal-tag"} data-color={named ? color : color ? "custom" : undefined} style={{ ...style, ...(color && !named ? ({ "--tag": color } as CSSProperties) : undefined) }} {...rest}>
       {text}
     </span>
   );

@@ -9,7 +9,8 @@
 //! The rows only exist for the empty query (`index::query` leaves the
 //! source out otherwise) and a pick from them is never recorded in
 //! frecency (`index::pick`). The rows are re-derived on every show
-//! (`sync`): the Accessibility row goes as soon as the permission is there.
+//! (`sync`, and on the grant from `permissions::watch`): the Accessibility
+//! row leads while the permission is missing and goes as soon as it is there.
 
 use std::path::{Path, PathBuf};
 
@@ -17,7 +18,7 @@ use pal_core::index::{Item, Source};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
 
-use crate::{effects, events, index, settings};
+use crate::{effects, events, index, permissions, settings};
 
 pub const REPO: &str = "https://github.com/zcag/pal";
 pub const EXTENSIONS_GUIDE: &str = "https://github.com/zcag/pal/blob/main/docs/extensions.md";
@@ -116,11 +117,22 @@ fn row(id: &str, name: &str, subtitle: &str, icon: &str, markdown: String) -> It
 }
 
 /// The rows, top to bottom. Every one carries a `detail` so the pane has
-/// something to say; the first declares `actions: []` so Enter on it shows
-/// that detail instead of picking (the shell's "Show details" is then its
-/// first action).
+/// something to say; the about row declares `actions: []` so Enter on it
+/// shows that detail instead of picking (the shell's "Show details" is
+/// then its first action). Accessibility leads while it is missing: it is
+/// the one thing a first run has to do.
 pub fn rows(env: &Env) -> Vec<Item> {
     let hk = hotkey_label(&env.hotkey);
+    let mut rows = Vec::new();
+    if !env.ax_trusted {
+        rows.push(row(
+            ACCESSIBILITY,
+            "Grant Accessibility for paste and window switching",
+            "Enter shows the system prompt and opens the switch in System Settings",
+            "\u{f0565}",
+            "# Accessibility\n\nPasting a row into the app in front and switching to a window both drive another app, which macOS only allows to apps on its Accessibility list.\n\nEnter here shows the system prompt (which puts pal on that list) and opens System Settings › Privacy & Security › Accessibility, where the switch is. pal reads nothing you type. This row goes as soon as the permission is there.".into(),
+        ));
+    }
     let mut about = row(
         ABOUT,
         "You are in pal: type to search apps, bookmarks, emoji, your clipboard and more",
@@ -131,7 +143,7 @@ pub fn rows(env: &Env) -> Vec<Item> {
         ),
     );
     about.extra.insert("actions".into(), json!([]));
-    let mut rows = vec![
+    rows.extend([
         about,
         row(
             HOTKEY,
@@ -154,16 +166,7 @@ pub fn rows(env: &Env) -> Vec<Item> {
             "\u{f02a4}",
             format!("# pal on GitHub\n\nSource, releases and the issue tracker:\n\n{REPO}\n\nA star helps others find it; an issue with what you expected and what happened helps fix it."),
         ),
-    ];
-    if !env.ax_trusted {
-        rows.push(row(
-            ACCESSIBILITY,
-            "Grant Accessibility for paste and window switching",
-            "macOS asks once; the switch is in System Settings",
-            "\u{f0565}",
-            "# Accessibility\n\nPasting a row into the app in front and switching to a window both drive another app, which macOS only allows to apps on its Accessibility list.\n\nEnter here shows the system prompt; the switch is under System Settings › Privacy & Security › Accessibility. pal reads nothing you type.".into(),
-        ));
-    }
+    ]);
     rows.push(row(
         HIDE,
         "Hide these tips",
@@ -178,7 +181,7 @@ pub fn install(app: &AppHandle, data: &Path) {
     app.manage(DataDir(data.to_path_buf()));
 }
 
-fn data_dir(app: &AppHandle) -> PathBuf {
+pub(crate) fn data_dir(app: &AppHandle) -> PathBuf {
     app.state::<DataDir>().0.clone()
 }
 
@@ -219,10 +222,9 @@ pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
         EXTENSIONS => effects::apply(app, json!({ "open": EXTENSIONS_GUIDE })).await,
         GITHUB => effects::apply(app, json!({ "open": REPO })).await,
         ACCESSIBILITY => {
-            // The user asked: prompt every time, not once per run.
-            let trusted = pal_core::ax::request();
-            eprintln!("welcome\taccessibility requested\ttrusted={trusted}");
-            if trusted {
+            // The user asked: prompt and pane every time, not once per run.
+            let status = permissions::request(app, "accessibility")?;
+            if status.accessibility {
                 sync(app);
                 Ok(json!({ "toast": { "title": "Accessibility granted", "message": "Paste and window switching work now", "style": "success" } }))
             } else {
@@ -276,18 +278,20 @@ mod tests {
     #[test]
     fn rows_in_order_with_accessibility_only_while_untrusted() {
         let ids = |rows: &[Item]| rows.iter().map(|r| r.id.clone()).collect::<Vec<_>>();
-        assert_eq!(ids(&rows(&env(false))), [ABOUT, HOTKEY, EXTENSIONS, GITHUB, ACCESSIBILITY, HIDE]);
+        assert_eq!(ids(&rows(&env(false))), [ACCESSIBILITY, ABOUT, HOTKEY, EXTENSIONS, GITHUB, HIDE], "the permission leads until granted");
         assert_eq!(ids(&rows(&env(true))), [ABOUT, HOTKEY, EXTENSIONS, GITHUB, HIDE]);
     }
 
     #[test]
     fn rows_carry_icon_detail_and_the_about_row_is_inert() {
-        let rows = rows(&env(false));
-        for r in &rows {
+        let untrusted = rows(&env(false));
+        for r in &untrusted {
             assert!(r.icon.as_ref().and_then(Value::as_str).is_some_and(|s| s.chars().count() == 1), "{}: one glyph", r.id);
             assert!(r.extra["detail"]["markdown"].as_str().is_some_and(|m| m.starts_with("# ")), "{}: a detail", r.id);
         }
-        assert_eq!(rows[0].extra["actions"], json!([]), "Enter on the first row shows its detail");
+        assert!(untrusted[0].extra.get("actions").is_none(), "Enter on the Accessibility row asks");
+        let rows = rows(&env(true));
+        assert_eq!(rows[0].extra["actions"], json!([]), "Enter on the about row shows its detail");
         assert!(rows.iter().skip(1).all(|r| r.extra.get("actions").is_none()));
         let about = rows[0].extra["detail"]["markdown"].as_str().unwrap();
         assert!(about.contains(&hotkey_label("ctrl+space")), "the detail names the hotkey");

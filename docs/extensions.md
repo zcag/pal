@@ -97,7 +97,7 @@ export default {
   path), `paste`, `focus` (a window id), `hide`, `toast`, `hud` (a line in
   the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
   `keep` (stay open and list again), `push` (drill into a palette with
-  `args`), `show` (a detail-only level).
+  `args`), `show` (a detail-only level), `view` (a render tree, below).
 - `detail(id, ctx?)`: the detail pane's content for a row, asked lazily.
 - Palette flags: `live` (arrival order, re-listed on every show, not twice
   within 2 s; with a `ttl`, only once the last listing is older than that),
@@ -112,6 +112,96 @@ export default {
 Settings reach the code resolved: the manifest's defaults with the file's
 values on top, kept current on every config change (an extension whose
 values changed is listed again).
+
+## View palettes: a render tree
+
+A palette can draw instead of list: give it `view(ctx)` in place of
+`list`, returning a `View`, and pal opens it as a **view level**. The
+bundled Blackjack is one (`extensions/blackjack/`). The tree is built from
+a fixed vocabulary the app draws with its own tokens, never HTML, so a view
+looks like the rest of the panel in both themes.
+
+```ts
+export default {
+  palettes: {
+    table: {
+      title: "Table",
+      view: () => ({
+        title: "Your turn",
+        keys: "actions",
+        tree: { type: "stack", padding: 4, gap: 2, children: [
+          { type: "text", value: "Dealer", style: "muted", size: "xs" },
+          { type: "stack", direction: "row", gap: 1, minHeight: 80, children: [
+            { type: "image", key: "d0", src: svgDataUrl, width: 56, height: 80, transition: { enter: "slide-up" } },
+          ] },
+          { type: "badge", text: "17", color: "blue" },
+        ] },
+        actions: [{ id: "hit", title: "Hit", shortcut: "h" }, { id: "stand", title: "Stand", shortcut: "s" }],
+      }),
+      pick: (_id, action) => ({ view: nextTree(action) }),
+    },
+  },
+} satisfies Extension;
+```
+
+- In a view level the search input is gone: the view's `title` stands in
+  its place, the footer shows the first action and "Actions ⌘K", ⌘K lists
+  `actions` with their keys, Escape (and ⌘⌫) leaves. Enter runs the first
+  action, ⌘Enter the second, a modifier combo the action carrying it as
+  `shortcut`. With `keys: "actions"` a **bare key** does too: `h`, `space`,
+  `+`, `-`, `up`, `down`, `left`, `right` as `shortcut`. One pick at a
+  time: a key pressed while the reply is on its way is dropped, not
+  queued, and the search row sweeps meanwhile.
+- A pick from the view is `pick(id, action, ctx)` with the view's `id`
+  (`view` unless the view sets one) and the action's id. Answer `{ view }`
+  and the level's tree is replaced in place; any other effect works as from
+  a row (`toast` shows over the view, `copy` hides). From a list row,
+  `{ view }` pushes a new view level. `ctx.args` are the `push` that opened
+  the level, `ctx.filter` its filter.
+- Action ids may not start with `pal:` (the shell's own); the host refuses
+  such a view. A tree is refused past 2000 nodes or 24 levels deep, and when
+  two siblings share a `key`.
+- The palette is reported `input: true` (nothing of it is indexed; the root
+  has only its own row) with `view: "view"`. It still declares `icon`,
+  `title` and settings like any other; `detail` and `filters` have no
+  meaning for it.
+
+The vocabulary (`ViewNode` in `host/src/protocol.ts`; every node may carry
+`key` and `transition`):
+
+| node | fields | draws |
+| --- | --- | --- |
+| `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `children` | a flex box |
+| `text` | `value`, `style` title/body/muted/mono/number, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`) | one run of text |
+| `image` | `src` (`icon://…` or `data:image/…`, anything else is not shown), `width`/`height` px, `mask` rounded/circle, `alt` | a picture the extension made or the app's icon scheme serves |
+| `badge` | `text`, `color` (grey, blue, green, amber, red, violet, pink, teal) | a tag, as on a row |
+| `divider` | | a hairline (vertical in a row) |
+| `spacer` | `size` px, else the free space | space |
+| `progress` | `value` 0..1, `width` px | a bar |
+| `keycap` | `keys` in the shortcut spelling (`h`, `cmd+k`, `up`) | key caps, as in the footer |
+
+Unknown node types are skipped, not errors, so a newer extension still
+draws on an older app. `key` makes a node the same node across trees: the
+app keeps its DOM, and animates one whose key is new or gone per
+`transition`: `enter` `fade`, `slide-up` (6 px rise) or `flip` (a
+horizontal unfold); `exit` `fade` (default) or `none`; `delay` staggers the
+entrance in steps of 80 ms (0..8). Durations and easings are the tokens';
+reduced motion turns them off. A row whose keyed children come and go wants
+a `minHeight` so the layout holds still.
+
+## Storage
+
+`storage` in the `pal` module is a small per-extension key-value store:
+`get(key)` (null when unset), `set(key, value)` (any JSON; null removes),
+`remove(key)`, `keys()`. The core keeps one file per extension,
+`<data dir>/pal/storage/<extension>.json` (`~/Library/Application
+Support/pal/storage/` on macOS, `~/.local/share/pal/storage/` on Linux),
+written whole and atomically on every change and shared by every config
+profile. It is capped at 256 KB serialised: a `set` that would cross the
+cap rejects and nothing is written. For a bankroll, a cursor, a last-used
+choice; not for a cache. Which extension is asking is known inside
+`list`/`pick`/`view` and at import time; elsewhere pass the name as the
+last argument.
 
 ## The `pal` module
 
@@ -133,11 +223,13 @@ else. Every call is one request to the core.
   `{ focus: id }` effect from `pick`, so the panel hides first.
 - `system.commands()` (sleep, lock, dark mode, volume, and so on, with
   `available` per machine), `system.run(id)` (hides the panel, then runs).
+- `storage.get(key)`, `set(key, value)`, `remove(key)`, `keys()`: the
+  extension's own key-value file (above).
 - `home(path)`: a leading `~` expanded. `core.call(method, params)`: the
   raw bridge.
 
 The protocol's types ride along: `Extension`, `Palette`, `Item`, `Effect`,
-`Ctx`, `Detail`, `Manifest`.
+`Ctx`, `Detail`, `View`, `ViewNode`, `Manifest`.
 
 Dependencies: a `package.json` next to `index.ts` is honoured; `pal
 install` runs `bun install --production` in the copy it makes.

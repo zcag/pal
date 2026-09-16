@@ -49,3 +49,13 @@ describe("relativeDate", () => {
     expect(relativeDate(now + 26 * 3600 * 1000, now)).toBe("in 1d");
   });
 });
+
+describe("shortcutKeys", () => {
+  it("names the plus key itself when the shortcut ends with it", async () => {
+    const { shortcutKeys } = await import("../format");
+    expect(shortcutKeys("+")).toEqual(["+"]);
+    expect(shortcutKeys("shift++")).toEqual(["Shift", "+"]);
+    expect(shortcutKeys("-")).toEqual(["-"]);
+    expect(shortcutKeys("cmd+k")).toEqual(["Ctrl", "K"]);
+  });
+});

@@ -61,7 +61,10 @@ pub struct Config {
 #[schemars(extend("additionalProperties" = false))]
 pub struct General {
     /// Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,
-    /// for a compositor keybind that runs `pal toggle` instead.
+    /// for a compositor keybind that runs `pal toggle` instead. On macOS
+    /// `cmd+space` is Spotlight's until its "Show Spotlight search"
+    /// shortcut is unticked under System Settings > Keyboard > Keyboard
+    /// Shortcuts; pal says so in Settings and registers it once it is free.
     pub hotkey: String,
     pub theme: Theme,
     /// Start pal when you sign in: a LaunchAgent on macOS, an XDG autostart
@@ -85,6 +88,12 @@ pub struct General {
     /// replaces an earlier one. `~` is expanded. The host is restarted
     /// (`pal reload`) before a change here is seen.
     pub extension_dirs: Vec<String>,
+    /// macOS: ask for the Accessibility permission (the system prompt, and
+    /// System Settings on that pane) the first time the panel shows on a
+    /// profile that has not hidden the Welcome tips yet. Paste and window
+    /// switching need it; `false` leaves the ask to the Welcome row and to
+    /// Settings > General > Permissions.
+    pub ask_permissions_on_start: bool,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -92,7 +101,7 @@ pub struct General {
 
 impl Default for General {
     fn default() -> Self {
-        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), extra: BTreeMap::new() }
+        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), ask_permissions_on_start: true, extra: BTreeMap::new() }
     }
 }
 

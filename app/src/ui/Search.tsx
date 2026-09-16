@@ -19,9 +19,11 @@ export type SearchProps = {
   loading?: boolean;
   /** A level with nothing to search (a detail-only view): the input stays for focus, but takes no text and shows no caret. */
   readOnly?: boolean;
+  /** A level with no input at all (a view level): this title stands where the input would, as a navigation title. */
+  title?: string;
 };
 
-export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly }: SearchProps) {
+export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly, title }: SearchProps) {
   return (
     <div className="pal-search" data-loading={loading || undefined} data-readonly={readOnly || undefined} aria-busy={loading || undefined}>
       {back && (
@@ -31,7 +33,7 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
           <span className="pal-search__crumb">{back.title}</span>
         </button>
       )}
-      <input
+      {title !== undefined ? <span className="pal-search__title" role="heading" aria-level={1}>{title}</span> : <input
         ref={inputRef}
         className="pal-search__input"
         type="text"
@@ -49,7 +51,7 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
         value={value}
         readOnly={readOnly}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
-      />
+      />}
       {filter && (
         <label className="pal-search__filter">
           <select value={filter.value} onChange={(e) => filter.onChange(e.target.value)} aria-label="Filter" tabIndex={-1}>

@@ -8,5 +8,7 @@ pub mod frecency;
 pub mod fs;
 pub mod icons;
 pub mod index;
+pub mod spotlight;
+pub mod storage;
 pub mod system;
 pub mod windows;

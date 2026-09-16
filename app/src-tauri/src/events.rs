@@ -22,6 +22,12 @@ pub const CLIPBOARD: &str = "pal://clipboard";
 /// The HUD window's text: `{ text }`; the page shows it with the brief's
 /// motion (hud.rs).
 pub const HUD: &str = "pal://hud";
+/// A permission changed hands: `permissions::Status` (today: Accessibility
+/// was granted, seen by the poll in permissions.rs).
+pub const PERMISSIONS: &str = "pal://permissions";
+/// The root hotkey's registration outcome changed: `hotkey::Outcome`
+/// (registered, failed and why, Spotlight holding it).
+pub const HOTKEY: &str = "pal://hotkey";
 
 /// Emit to every window; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.

@@ -2,16 +2,20 @@ import { useSyncExternalStore } from "react";
 import { isMac } from "./keys";
 import type { Shortcut } from "./types";
 
+const arrows: Record<string, string> = { up: "↑", down: "↓", left: "←", right: "→", arrowup: "↑", arrowdown: "↓", arrowleft: "←", arrowright: "→" };
 const macGlyph: Record<string, string> = {
   cmd: "⌘", ctrl: "⌃", alt: "⌥", shift: "⇧",
   enter: "↵", backspace: "⌫", escape: "esc", tab: "⇥", space: "␣",
-  arrowup: "↑", arrowdown: "↓", arrowleft: "←", arrowright: "→",
+  ...arrows,
 };
-const otherName: Record<string, string> = { cmd: "Ctrl", ctrl: "Ctrl", alt: "Alt", shift: "Shift", enter: "Enter", backspace: "Bksp", escape: "Esc", tab: "Tab" };
+const otherName: Record<string, string> = { cmd: "Ctrl", ctrl: "Ctrl", alt: "Alt", shift: "Shift", enter: "Enter", backspace: "Bksp", escape: "Esc", tab: "Tab", space: "Space", ...arrows };
 
-/** Keys of a shortcut as the platform writes them: ["⌘", "⇧", "C"] or ["Ctrl", "Shift", "C"]. */
+/** Keys of a shortcut as the platform writes them: ["⌘", "⇧", "C"] or ["Ctrl", "Shift", "C"]. A trailing "+" is the plus key itself (`+`, `shift++`). */
 export function shortcutKeys(s: Shortcut): string[] {
-  return s.split("+").map((p) => (isMac ? macGlyph[p] : otherName[p]) ?? p.toUpperCase());
+  const plus = s.endsWith("+");
+  const parts = (plus ? s.slice(0, -1) : s).split("+").filter(Boolean);
+  if (plus) parts.push("+");
+  return parts.map((p) => (isMac ? macGlyph[p] : otherName[p]) ?? p.toUpperCase());
 }
 
 const units: [number, string][] = [[60, "s"], [60, "m"], [24, "h"], [7, "d"], [4.35, "w"], [12, "mo"], [Infinity, "y"]];

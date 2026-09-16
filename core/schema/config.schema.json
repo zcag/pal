@@ -3,6 +3,11 @@
     "General": {
       "additionalProperties": false,
       "properties": {
+        "ask_permissions_on_start": {
+          "default": true,
+          "description": "macOS: ask for the Accessibility permission (the system prompt, and\nSystem Settings on that pane) the first time the panel shows on a\nprofile that has not hidden the Welcome tips yet. Paste and window\nswitching need it; `false` leaves the ask to the Welcome row and to\nSettings > General > Permissions.",
+          "type": "boolean"
+        },
         "check_updates": {
           "default": true,
           "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded).\nToday a found update is a log line: download and install are not\nwired, and the menu's \"Check for updates\" is a disabled placeholder\nuntil they are.",
@@ -18,7 +23,7 @@
         },
         "hotkey": {
           "default": "ctrl+space",
-          "description": "Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,\nfor a compositor keybind that runs `pal toggle` instead.",
+          "description": "Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,\nfor a compositor keybind that runs `pal toggle` instead. On macOS\n`cmd+space` is Spotlight's until its \"Show Spotlight search\"\nshortcut is unticked under System Settings > Keyboard > Keyboard\nShortcuts; pal says so in Settings and registers it once it is free.",
           "type": "string"
         },
         "launch_at_login": {
@@ -107,6 +112,7 @@
     "general": {
       "$ref": "#/$defs/General",
       "default": {
+        "ask_permissions_on_start": true,
         "check_updates": true,
         "extension_dirs": [],
         "hotkey": "ctrl+space",

@@ -23,7 +23,7 @@ use tauri::{AppHandle, Manager, State, WindowEvent};
 
 use crate::host::Host;
 use crate::index::{palette_id, PaletteMeta};
-use crate::{autostart, events, hotkey, index, lock, panel, tray};
+use crate::{autostart, events, hotkey, index, lock, panel, permissions, tray};
 
 pub const WINDOW: &str = "settings";
 
@@ -221,6 +221,8 @@ pub fn open(app: &AppHandle) {
     }
     let _ = w.show();
     let _ = w.set_focus();
+    // The Permissions group shows a live dot: a grant made while the window is up is seen.
+    permissions::watch(app);
 }
 
 pub fn close(app: &AppHandle) {
@@ -243,6 +245,10 @@ pub struct View {
     /// The user store's directory (`Store::locate`): an extension whose
     /// `root` is this one can be updated and removed from the window.
     store: PathBuf,
+    /// How the root hotkey's last registration went (hotkey.rs).
+    hotkey: hotkey::Outcome,
+    /// What the OS lets pal do (permissions.rs).
+    permissions: permissions::Status,
 }
 
 #[tauri::command]
@@ -256,6 +262,8 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         version: app.package_info().version.to_string(),
         extensions: lock(&st.extensions).clone(),
         store: Store::locate().dir().to_path_buf(),
+        hotkey: hotkey::outcome(&app),
+        permissions: permissions::status(),
     }
 }
 

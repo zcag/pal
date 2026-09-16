@@ -12,9 +12,9 @@ const ms = (v: string) => (v.trim().endsWith("ms") ? parseFloat(v) : parseFloat(
  * animationend, or `--pal-dur-<dur>` plus a margin when no event comes. Under
  * reduced motion they leave at once. Without `className` the wrapper is
  * box-less (display: contents), so an absolutely positioned overlay keeps its
- * containing block.
+ * containing block. `onExited` fires once the children are gone.
  */
-export function Presence({ show, dur = "fast", className, children }: { show: boolean; dur?: Dur; className?: string; children: ReactNode }) {
+export function Presence({ show, dur = "fast", className, onExited, children }: { show: boolean; dur?: Dur; className?: string; /** After an exit has run its course and the children are gone. */ onExited?: () => void; children: ReactNode }) {
   const node = useRef<HTMLDivElement>(null);
   const last = useRef(children);
   if (show) last.current = children;
@@ -22,6 +22,11 @@ export function Presence({ show, dur = "fast", className, children }: { show: bo
   // Derived from the flip, in render, so the closing frame already carries data-exiting.
   if (state.show !== show) setState({ show, exiting: !show && !reduced() });
   const { exiting } = state;
+
+  // Told once the children are gone: after the exit, or at once under reduced motion.
+  const exited = useRef(onExited);
+  exited.current = onExited;
+  useEffect(() => { if (!show && !exiting) exited.current?.(); }, [show, exiting]);
 
   useEffect(() => {
     if (!exiting) return;

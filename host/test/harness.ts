@@ -230,8 +230,15 @@ export class Host {
   }
 }
 
+/** The storage capability, in memory: `<extension>\0<key>` to value. */
+export const stored = new Map<string, unknown>();
+
 /** Built-in answers for the OS capabilities; `settings.get` resolves the manifest, anything else is null. */
 const CORE: CoreTable = {
+  "storage.get": ({ extension, key }: { extension: string; key: string }) => stored.get(`${extension}\0${key}`) ?? null,
+  "storage.set": ({ extension, key, value }: { extension: string; key: string; value: unknown }) => { stored.set(`${extension}\0${key}`, value); return null; },
+  "storage.remove": ({ extension, key }: { extension: string; key: string }) => { stored.delete(`${extension}\0${key}`); return null; },
+  "storage.keys": ({ extension }: { extension: string }) => [...stored.keys()].filter((k) => k.startsWith(`${extension}\0`)).map((k) => k.split("\0")[1]).sort(),
   "clipboard.list": ({ query = "", limit = 200 }: { query?: string; limit?: number } = {}) =>
     fixtures.clipboard.filter((e) => !query || (e.text ?? e.files?.join(" ") ?? "").toLowerCase().includes(query.toLowerCase())).slice(0, limit),
   "clipboard.get": ({ id }: { id: number }) => {

@@ -68,6 +68,74 @@ export type Action = {
   confirm?: string;
 };
 
+// ---- view: a declarative render tree -------------------------------------
+// A level the UI draws from a small fixed vocabulary, never HTML: a game
+// board, a dashboard, a card. The extension sends a tree, the UI renders it
+// with the tokens; a pick from it carries an action id and usually answers
+// with a new tree. `host/src/view.ts` checks a tree before it goes out.
+
+/** The tag palette (`--pal-tag-*` in tokens.css). */
+export type TagColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal";
+
+/**
+ * How a keyed node comes and goes. `enter` runs when the node first
+ * appears (its key was not in the previous tree): `fade`, `slide-up` (the
+ * brief's rise, 6 px), `flip` (a horizontal unfold, for a card turning
+ * over). `exit` when its key leaves: `fade` (the default) or `none` (gone
+ * at once; a face-down card replaced by its face). `delay` staggers the
+ * entrance in steps of `--pal-dur-fast` (0..8), so a deal lands one card
+ * at a time. Durations and easings are the tokens'; nothing else.
+ */
+export type Transition = { enter?: "fade" | "slide-up" | "flip"; exit?: "fade" | "none"; delay?: number };
+
+type NodeBase = {
+  /**
+   * Stable across trees: the UI animates a node whose key is new and one
+   * whose key is gone (`Transition`), and keeps the DOM of one that stays.
+   * Unique among siblings. Without one a node is matched by position.
+   */
+  key?: string;
+  transition?: Transition;
+};
+
+/** Spacing in steps of the 4 px grid (`--pal-space-1..6`); 0 is none. */
+export type Space = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type ViewNode =
+  /** A flex box. `grow` takes the free space along its parent; `minHeight` (px) holds a row's height while its keyed children come and go. */
+  | (NodeBase & { type: "stack"; direction?: "row" | "column"; gap?: Space; padding?: Space; align?: "start" | "center" | "end" | "stretch"; justify?: "start" | "center" | "end" | "between"; grow?: boolean; minHeight?: number; children: ViewNode[] })
+  /**
+   * One run of text. `style`: `title` (15 px semibold), `body` (13 px),
+   * `muted` (13 px, muted colour), `mono` (12 px mono), `number` (tabular
+   * figures, semibold). `size`/`weight`/`color` refine it: colours are
+   * the tag palette plus `accent`, `success`, `destructive`, `muted`, `faint`.
+   */
+  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint" })
+  /** An `icon://` url or a `data:image/...` the extension produced (an SVG it drew); anything else is not shown. Sized in px. */
+  | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: "circle" | "rounded"; alt?: string })
+  /** A tag, as on a row. */
+  | (NodeBase & { type: "badge"; text: string; color?: TagColor })
+  /** A hairline across the stack (vertical in a row). */
+  | (NodeBase & { type: "divider" })
+  /** Free space, or `size` px of it. */
+  | (NodeBase & { type: "spacer"; size?: number })
+  /** A bar filled to `value` (0..1); `width` in px, else it takes the free space. */
+  | (NodeBase & { type: "progress"; value: number; width?: number })
+  /** A shortcut as key caps, in the `Action.shortcut` spelling (`h`, `cmd+k`, `up`). */
+  | (NodeBase & { type: "keycap"; keys: string });
+
+/**
+ * A view level: the search input is hidden, the body is `tree`, the footer
+ * shows the first action and "Actions ⌘K", ⌘K lists `actions` with their
+ * keys. `keys: "actions"`: a bare key runs the action carrying it as its
+ * `shortcut` (`h`, `space`, `+`, `up`); Enter is always the first action,
+ * Escape always leaves. A pick from the view is `pick(id, action, ctx)`
+ * with this `id` (default `view`) and the action's id; answering with a
+ * new `{ view }` replaces the level's tree, so the loop is key, pick, tree.
+ * An action id may not start with `pal:` (the shell's own).
+ */
+export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions" };
+
 /**
  * What `pick` returns and the shell acts on. `copy` and `open` run in the
  * core; the window hides afterwards unless `keep` or `toast` is set (a
@@ -108,6 +176,8 @@ export type Effect = {
   push?: { extension: string; palette: string; args?: unknown };
   /** Show output: the UI pushes a detail-only level (the Detail, full width; `title` is the level's crumb). */
   show?: Detail & { title?: string };
+  /** A render tree (`View`): from a list, pushes a view level; from a view, replaces its tree. */
+  view?: View;
 };
 
 /**
@@ -119,7 +189,7 @@ export type Effect = {
  */
 export type Ctx = { filter?: string; args?: unknown; refresh?: boolean };
 
-export type Palette = {
+type PaletteBase = {
   /** Section label at the root; the palette key otherwise. */
   title?: string;
   /** The palette's own row at the root: a glyph, emoji or hex colour (the string forms of `Icon`). */
@@ -130,8 +200,6 @@ export type Palette = {
    * current at the root (with `input` the rows are never at the root anyway).
    */
   live?: boolean;
-  /** Inside the palette; the root is always a list. */
-  view?: "list" | "grid";
   columns?: number;
   /**
    * Items are never indexed: `list(query)` runs on every keystroke inside
@@ -157,7 +225,6 @@ export type Palette = {
    * re-lists on every show. The manifest may declare it instead.
    */
   ttl?: number;
-  list(query?: string, ctx?: Ctx): Item[] | Promise<Item[]>;
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
   /**
    * The detail pane's content for one item, asked when the pane is open and
@@ -168,6 +235,26 @@ export type Palette = {
    */
   detail?(id: string, ctx?: Ctx): Detail | void | Promise<Detail | void>;
 };
+
+/** Rows: `list` answers them; `view` names the layout inside. */
+export type ListPalette = PaletteBase & {
+  /** Inside the palette; the root is always a list. */
+  view?: "list" | "grid";
+  list(query?: string, ctx?: Ctx): Item[] | Promise<Item[]>;
+};
+
+/**
+ * A view palette: no rows to index, the root has only its own row, and
+ * opening it (Enter on that row, its hotkey, an `Effect.push` to it) asks
+ * `view(ctx)` for the tree. Picks arrive at `pick` with the view's `id`
+ * and the action's id; `ctx.args` are the push's.
+ */
+export type ViewPalette = PaletteBase & {
+  view(ctx?: Ctx): View | Promise<View>;
+  list?: never;
+};
+
+export type Palette = ListPalette | ViewPalette;
 
 export type Extension = { palettes: Record<string, Palette> };
 
@@ -220,11 +307,14 @@ export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Re
 export type SettingsChanged = { extensions: Record<string, ResolvedSettings> };
 
 /** What `hello` and `extension/loaded` say about a palette. */
-export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "showDetail" | "filters" | "ttl"> & {
+export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" | "showDetail" | "filters" | "ttl"> & {
   name: string;
   title: string;
   live: boolean;
+  /** Also true for a view palette: nothing of it is indexed. */
   input: boolean;
+  /** `view`: the palette answers `view(ctx)`; the UI opens it as a view level. */
+  view?: "list" | "grid" | "view";
   /** The palette answers `detail(id)`. */
   detail?: "lazy";
 };

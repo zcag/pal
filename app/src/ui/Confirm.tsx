@@ -32,7 +32,7 @@ export function Confirm({ title, action, destructive, onConfirm, onCancel }: Con
       actions: onCancel,
       filter: other,
       move: ({ dir }) => (dir === "left" || dir === "right" ? other() : undefined),
-      jump: swallow, jumpTo: swallow, secondary: swallow, back: swallow, detail: swallow, shortcut: swallow,
+      jump: swallow, jumpTo: swallow, secondary: swallow, back: swallow, detail: swallow, shortcut: swallow, key: swallow,
     },
     { scope: root },
   );

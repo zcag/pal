@@ -17,6 +17,7 @@ for the extension's `ttl` (an hour by default) unless it sets its own.
 | palette | id | kind | what `Enter` does |
 | --- | --- | --- | --- |
 | Applications | `apps` | indexed | launches the app |
+| Blackjack | `blackjack` | view | deals, hits, or the next hand |
 | Bookmarks | `bookmarks` | indexed | opens the link |
 | Calculator | `calc` | input | copies the result |
 | Clipboard History | `clipboard-history` | live, input | pastes into the app in front |
@@ -54,6 +55,43 @@ Settings, `[extensions.apps]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `folders` | list of paths | `[]` | Extra folders scanned in addition to the system's application folders. `~` is expanded. A change rescans. |
+
+## Blackjack (`blackjack`)
+
+A hand of blackjack in the panel, keyboard only. Enter on the palette's
+row (or its hotkey) opens the table as a view level: the search input
+gives way to the phase ("Place your bet", "Your turn", "Dealer busts"),
+the footer shows the primary key, ⌘K lists every move with its key.
+
+- Betting: `+` and `-` move the bet by the minimum, Enter deals.
+- Playing: `H` hit, `S` stand, `D` double down (first two cards, one card
+  then stand), `P` split (a pair, once; split aces take one card each).
+  Totals show live next to each hand ("Soft 17"); the dealer's hole card
+  stays face down until you stand, then flips and the dealer draws to 17.
+- Settled: the result and the net for the hand, Enter for the next hand.
+  `N` starts a new game (asks first) with a fresh bankroll and record.
+- Escape leaves at any point; the hand, the bankroll and the record persist
+  (in the extension's storage), so the table is as you left it next time.
+
+Rules: dealer stands on 17 (soft 17 too unless `dealer_hits_soft_17`),
+blackjack pays 3:2, a dealer blackjack is checked at once, doubling after a
+split is allowed, no surrender. The shoe is `decks` decks and is
+reshuffled before a deal once under a quarter of it is left (the status
+line's bar). Insurance is offered on an ace only with `insurance = true`,
+costs half the bet and pays 2:1.
+
+Cards are drawn by the extension as SVG (rank and suit indices, pips laid
+out as on a real deck) so nothing is loaded from disk; the view vocabulary
+they ride on is in [Extensions](extensions.md).
+
+```toml
+[extensions.blackjack]
+decks = 6                     # 1..8
+starting_bankroll = 1000
+min_bet = 10                  # also the step for + and -
+dealer_hits_soft_17 = false
+insurance = false
+```
 
 ## Bookmarks (`bookmarks`)
 

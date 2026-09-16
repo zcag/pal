@@ -1,0 +1,55 @@
+import { describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+
+// Icon glyphs read `window` at import; no DOM is needed for markup checks.
+vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
+import { SettingsGeneral, comboLabel, hotkeyPresets } from "../SettingsGeneral";
+import type { GeneralConfig } from "../SettingsTypes";
+
+const general: GeneralConfig = { hotkey: "cmd+space", theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", askPermissionsOnStart: true };
+const noop = () => {};
+const page = (props: Partial<Parameters<typeof SettingsGeneral>[0]>) =>
+  renderToStaticMarkup(<SettingsGeneral value={general} onChange={noop} file={{ path: "~/.config/pal/config.toml" }} {...props} />);
+
+describe("SettingsGeneral hotkey row", () => {
+  it("offers the presets as buttons, the current one pressed", () => {
+    const html = page({});
+    expect(hotkeyPresets.length).toBeGreaterThan(2);
+    expect(html).toContain('aria-label="Presets"');
+    expect(html.match(/aria-pressed="true"/g)?.length).toBe(1);
+  });
+  it("says registered under the field", () => {
+    expect(page({ hotkey: { wanted: "ctrl+space", registered: true } })).toContain("Registered as");
+  });
+  it("names the failure and, for Spotlight's key, the switch that frees it", () => {
+    const html = page({ hotkey: { wanted: "cmd+space", registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" }, onOpenKeyboardShortcuts: noop });
+    expect(html).toContain("Not registered: Spotlight takes this key first");
+    expect(html).toContain(`Spotlight uses ${comboLabel("cmd+space")}. Turn it off in System Settings &gt; Keyboard &gt; Keyboard Shortcuts &gt; Spotlight (untick Show Spotlight search), then pal registers it.`);
+    expect(html).toContain("Open Keyboard Shortcuts");
+  });
+  it("shows no guidance for a plain failure on another key", () => {
+    const html = page({ hotkey: { wanted: "ctrl+space", registered: false, error: "HotKey already registered" } });
+    expect(html).toContain("Not registered: HotKey already registered");
+    expect(html).not.toContain("Spotlight uses");
+  });
+  it("explains an empty hotkey", () => {
+    expect(page({ hotkey: { wanted: "", registered: true } })).toContain("pal toggle");
+  });
+});
+
+describe("SettingsGeneral permissions", () => {
+  it("is absent unless the platform reports permissions", () => {
+    expect(page({})).not.toContain("Permissions");
+  });
+  it("shows the dot, the Grant button, and the first-launch switch", () => {
+    const html = page({ permissions: { accessibility: false }, onRequestPermission: noop });
+    expect(html).toContain("Not granted");
+    expect(html).toContain("Grant…");
+    expect(html).toContain("Ask on first launch");
+  });
+  it("disables the button once granted", () => {
+    const html = page({ permissions: { accessibility: true }, onRequestPermission: noop });
+    expect(html).toContain('data-granted="true"');
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>Granted<\/button>/);
+  });
+});

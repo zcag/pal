@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Launcher, LIMIT, type LauncherHandle } from "./Launcher";
-import { mergeDetail, sourceKey, staysOpen, toItem, toLiveHits, type Ctx, type Effect, type SourceInfo, type WireHit, type WireItem } from "./items";
+import { mergeDetail, sourceKey, staysOpen, toItem, toLiveHits, toView, type Ctx, type Effect, type SourceInfo, type WireHit, type WireItem } from "./items";
 import type { Hit } from "./ui";
-import type { Detail, Item } from "./ui/types";
+import type { Detail, Item, ViewSpec } from "./ui/types";
 
 const mark = (name: string, t: number) => invoke("mark", { name, t });
 
@@ -58,6 +58,14 @@ export default function App() {
     return mergeDetail(item.detail, r);
   }, []);
 
+  // The tree a view palette opens with; the level's filter and args go along as with a list.
+  const view = useCallback(async (scope: SourceInfo, ctx?: Ctx): Promise<ViewSpec> => {
+    const t0 = performance.now();
+    const r = await invoke<ViewSpec>("host_request", { method: "view", params: { extension: scope.extension, palette: scope.palette, filter: ctx?.filter, args: ctx?.args } });
+    mark(`view ${sourceKey(scope)} ms`, performance.now() - t0);
+    return toView(r);
+  }, []);
+
   // A copy landed in history: re-list, but only when the clipboard palette is what is showing.
   useEffect(() => {
     const un = listen("pal://clipboard", () => { if (showing.current?.extension === "clipboard") bump(); });
@@ -94,5 +102,5 @@ export default function App() {
   // The welcome marker goes; the core puts the rows back and bumps the index.
   const welcome = () => invoke("welcome_reset");
 
-  return <Launcher ref={launcher} sources={sources} search={search} detail={detail} version={version} mark={mark} onHide={() => invoke("hide")} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} />;
+  return <Launcher ref={launcher} sources={sources} search={search} detail={detail} view={view} version={version} mark={mark} onHide={() => invoke("hide")} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} />;
 }

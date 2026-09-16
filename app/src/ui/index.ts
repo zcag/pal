@@ -12,6 +12,7 @@ export { Row, Highlight, Accessory } from "./Row";
 export { Icon } from "./Icon";
 export { Kbd } from "./Kbd";
 export { Detail } from "./Detail";
+export { View } from "./View";
 export { ActionPanel, actionShortcut } from "./ActionPanel";
 export { Footer } from "./Footer";
 export { Form } from "./Form";
@@ -35,5 +36,5 @@ export { SettingsDiagnostics } from "./SettingsDiagnostics";
 export { describeDefault, isModified } from "./SettingsTypes";
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, SettingsPalette, SettingsExtension,
-  GeneralConfig, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
+  GeneralConfig, HotkeyStatus, PermissionsStatus, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
 } from "./SettingsTypes";

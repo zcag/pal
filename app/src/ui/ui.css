@@ -456,6 +456,65 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 [data-exiting] > .pal-toast { animation: none; opacity: 0; transform: translateY(6px); transition: opacity var(--pal-dur-base, 120ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-base, 120ms) var(--pal-ease-in, ease-in); }
 .pal-panel__aside[data-exiting] { animation: none; opacity: 0; overflow: hidden; border-left-color: transparent; transition: opacity var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
 
+/* View level: a render tree (ui/View.tsx) in the body. The root stack fills it; everything inside is a flex box on the 4px grid. */
+.pal-view { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; overscroll-behavior: contain; outline: none; }
+.pal-view > .pal-view__stack { flex: 1 0 auto; }
+.pal-view__stack { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 0; }
+.pal-view__stack[data-direction="row"] { flex-direction: row; align-items: center; }
+.pal-view__stack[data-align="start"] { align-items: flex-start; }
+.pal-view__stack[data-align="center"] { align-items: center; }
+.pal-view__stack[data-align="end"] { align-items: flex-end; }
+.pal-view__stack[data-align="stretch"] { align-items: stretch; }
+.pal-view__stack[data-justify="center"] { justify-content: center; }
+.pal-view__stack[data-justify="end"] { justify-content: flex-end; }
+.pal-view__stack[data-justify="between"] { justify-content: space-between; }
+.pal-view__stack[data-grow] { flex: 1 1 0; }
+.pal-view__text { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pal-view__text[data-style="title"] { font-size: var(--pal-text-lg, 15px); font-weight: var(--pal-weight-semibold, 600); }
+.pal-view__text[data-style="muted"] { color: var(--pal-fg-muted, #a3a4ae); }
+.pal-view__text[data-style="mono"] { font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); }
+.pal-view__text[data-style="number"] { font-weight: var(--pal-weight-semibold, 600); font-variant-numeric: tabular-nums; }
+.pal-view__text[data-size="xs"] { font-size: var(--pal-text-xs, 11px); }
+.pal-view__text[data-size="sm"] { font-size: var(--pal-text-sm, 12px); }
+.pal-view__text[data-size="md"] { font-size: var(--pal-text-md, 13px); }
+.pal-view__text[data-size="lg"] { font-size: var(--pal-text-lg, 15px); }
+.pal-view__text[data-size="xl"] { font-size: var(--pal-text-xl, 18px); }
+.pal-view__text[data-weight="regular"] { font-weight: var(--pal-weight-regular, 400); }
+.pal-view__text[data-weight="medium"] { font-weight: var(--pal-weight-medium, 500); }
+.pal-view__text[data-weight="semibold"] { font-weight: var(--pal-weight-semibold, 600); }
+.pal-view__text[data-color="muted"] { color: var(--pal-fg-muted, #a3a4ae); }
+.pal-view__text[data-color="faint"] { color: var(--pal-fg-faint, #868794); }
+.pal-view__text[data-color="accent"] { color: var(--pal-accent, #9f97ff); }
+.pal-view__text[data-color="success"] { color: var(--pal-success, #4fc98a); }
+.pal-view__text[data-color="destructive"] { color: var(--pal-destructive, #ff6e66); }
+.pal-view__text[data-color="grey"] { color: var(--pal-tag-grey); }
+.pal-view__text[data-color="blue"] { color: var(--pal-tag-blue); }
+.pal-view__text[data-color="green"] { color: var(--pal-tag-green); }
+.pal-view__text[data-color="amber"] { color: var(--pal-tag-amber); }
+.pal-view__text[data-color="red"] { color: var(--pal-tag-red); }
+.pal-view__text[data-color="violet"] { color: var(--pal-tag-violet); }
+.pal-view__text[data-color="pink"] { color: var(--pal-tag-pink); }
+.pal-view__text[data-color="teal"] { color: var(--pal-tag-teal); }
+.pal-view__image { display: block; flex: none; object-fit: contain; }
+.pal-view__image[data-mask="rounded"] { border-radius: var(--pal-radius-icon, 6px); }
+.pal-view__image[data-mask="circle"] { border-radius: 50%; }
+.pal-view__divider { flex: none; align-self: stretch; margin: 0; border: 0; height: 1px; background: var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-view__stack[data-direction="row"] > .pal-view__divider, .pal-view__stack[data-direction="row"] > [data-exiting] > .pal-view__divider { width: 1px; height: auto; }
+.pal-view__spacer { flex: 1 1 0; min-width: 0; min-height: 0; }
+.pal-view__progress { flex: 1 1 auto; min-width: 48px; height: 4px; border-radius: 2px; background: var(--pal-line-strong, rgba(255, 255, 255, 0.16)); overflow: hidden; }
+.pal-view__progress > span { display: block; height: 100%; border-radius: inherit; background: var(--pal-accent, #9f97ff); transition: width var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
+.pal-view .pal-kbd, .pal-view .pal-tag { flex: none; }
+/* Entrances (brief's motion table): fade, the toast's 6px rise, and a horizontal unfold for a card turning over. `both` keeps a delayed node hidden until its turn. */
+.pal-view [data-enter="fade"] { animation: pal-fade var(--pal-dur-base, 120ms) var(--pal-ease, ease) both; }
+.pal-view [data-enter="slide-up"] { animation: pal-rise var(--pal-dur-slow, 180ms) var(--pal-ease, ease) both; }
+.pal-view [data-enter="flip"] { animation: pal-flip var(--pal-dur-slow, 180ms) var(--pal-ease, ease) both; }
+@keyframes pal-flip { from { transform: scaleX(0); opacity: 0.4; } }
+/* Exits: a gone key fades fast; one that rose drops back the 6px. */
+.pal-view [data-exiting] > .pal-view__node { animation: none; opacity: 0; transition: opacity var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-fast, 80ms) var(--pal-ease-in, ease-in); }
+.pal-view [data-exiting] > .pal-view__node[data-enter="slide-up"] { transform: translateY(6px); }
+/* The search row of a view level: the crumb, then the view's title where the input would be. */
+.pal-search__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg, #ececf0); font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-medium, 500); }
+
 /* HUD */
 .pal-hud {
   display: inline-flex;

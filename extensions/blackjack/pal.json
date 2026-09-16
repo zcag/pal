@@ -1,0 +1,19 @@
+{
+  "name": "blackjack",
+  "title": "Blackjack",
+  "description": "A hand of blackjack in the panel, keyboard only: H hit, S stand, D double, P split, Enter deals. The bankroll and the record persist.",
+  "version": "0.1.0",
+  "icon": "🃏",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "number", "id": "decks", "label": "Decks", "description": "Decks in the shoe; it is reshuffled once a quarter is left.", "min": 1, "max": 8, "default": 6 },
+    { "kind": "number", "id": "starting_bankroll", "label": "Starting bankroll", "description": "Chips a new game starts with.", "min": 10, "max": 1000000, "step": 10, "unit": "$", "default": 1000 },
+    { "kind": "number", "id": "min_bet", "label": "Minimum bet", "description": "The smallest bet, and the step + and - move it by.", "min": 1, "max": 10000, "unit": "$", "default": 10 },
+    { "kind": "boolean", "id": "dealer_hits_soft_17", "label": "Dealer hits soft 17", "text": "The dealer draws on a soft 17 (H17) instead of standing (S17).", "default": false },
+    { "kind": "boolean", "id": "insurance", "label": "Offer insurance", "text": "Ask about insurance when the dealer shows an ace.", "default": false }
+  ],
+  "palettes": {
+    "blackjack": { "description": "The table. Escape leaves mid-hand; the hand is there when you come back." }
+  }
+}

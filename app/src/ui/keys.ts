@@ -20,7 +20,9 @@ export type Command =
   | { type: "back" }
   | { type: "filter"; dir: 1 | -1 }
   | { type: "detail" }
-  | { type: "shortcut"; combo: Shortcut };
+  | { type: "shortcut"; combo: Shortcut }
+  /** A bare printable key (`h`, `+`, `space`), no modifier but shift. Declined, it is typing and goes to the search input. */
+  | { type: "key"; key: string };
 
 /**
  * Return `false` to decline: the key bubbles and keeps its native effect.
@@ -44,11 +46,14 @@ export const grammar: { keys: string[]; does: string }[] = [
   { keys: ["cmd+1"], does: "Jump to row 1..9 (cmd+1 to cmd+9)" },
   { keys: ["home", "end", "pageup", "pagedown"], does: "Scroll the list" },
   { keys: ["cmd+c"], does: "Any other modifier combo runs the action carrying that shortcut" },
+  { keys: ["h", "space"], does: "In a view level with bare-key actions, a bare key runs the action carrying it" },
 ];
 
 const keyName = (e: KeyboardEvent) => {
   const m = /^(?:Key|Digit)(\w)$/.exec(e.code);
-  return m ? m[1].toLowerCase() : e.key.toLowerCase();
+  if (m) return m[1].toLowerCase();
+  const k = e.key.toLowerCase();
+  return k === " " ? "space" : k.replace(/^arrow/, "");
 };
 
 /** "cmd+shift+c" for the event, using the platform's primary modifier as "cmd". */
@@ -87,6 +92,7 @@ export function resolve(e: KeyboardEvent): Command | null {
     if (/^[1-9]$/.test(k)) return { type: "jumpTo", index: Number(k) - 1 };
   }
   if ((cmd || e.altKey || (isMac && e.ctrlKey)) && k.length === 1) return { type: "shortcut", combo: comboOf(e) };
+  if (!cmd && !e.altKey && !e.ctrlKey && (e.key.length === 1 || e.key === " ")) return { type: "key", key: k };
   return null;
 }
 
@@ -102,7 +108,7 @@ export const keepFocus = (e: { target: EventTarget | null; preventDefault(): voi
   if (!isEditable(e.target)) e.preventDefault();
 };
 
-/** Only cursor movement should repeat while a key is held; Enter, Escape and shortcuts fire once. */
+/** Only cursor movement should repeat while a key is held; Enter, Escape, shortcuts and bare-key actions fire once. */
 const repeats = (cmd: Command) => cmd.type === "move" || cmd.type === "jump";
 
 type Options = {
@@ -132,7 +138,7 @@ export function useKeys(handlers: Handlers, { scope, input }: Options = {}) {
         return;
       }
       const field = input?.current;
-      if (!field || cmd || e.metaKey || e.ctrlKey) return;
+      if (!field || (cmd && cmd.type !== "key") || e.metaKey || e.ctrlKey) return;
       // Typing with nothing focused goes to the search input, unless an overlay or form (a key scope) is up: its own fields own the keys.
       const typing = e.key.length === 1 || e.key === "Backspace";
       if (typing && !isEditable(document.activeElement) && !document.querySelector("[data-keyscope]")) field.focus();

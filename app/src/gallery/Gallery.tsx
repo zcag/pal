@@ -2,20 +2,24 @@
  * Every component in every state, light and dark side by side. Opened with
  * `?gallery` in a normal browser against the Vite dev server.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  ActionPanel, Detail, Empty, Footer, Form, Grid, Hud, Kbd, List, Panel, Row, Search, Toast,
+  ActionPanel, Detail, Empty, Footer, Form, Grid, Hud, Kbd, List, Panel, Row, Search, Toast, View,
   grammar, groupBySection, useCursor, type Hit, type ToastSpec,
 } from "../ui";
-import type { FormValues, Item } from "../ui/types";
+import type { FormValues, Item, ViewNode } from "../ui/types";
 import { Launcher } from "../Launcher";
+import { PALETTES, toView, type SourceInfo } from "../items";
 import { toItem, type Raw } from "../fixtures";
+import { DEFAULTS, apply, newGame, type Action as Move, type State } from "../../../extensions/blackjack/game.ts";
+import { cardSvg, backSvg } from "../../../extensions/blackjack/cards.ts";
+import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
   SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
   extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
-import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral } from "./data";
+import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyBlocked, settingsPermissions } from "./data";
 import "./gallery.css";
 
 const themes = ["light", "dark"] as const;
@@ -90,6 +94,13 @@ function StreamingList({ pool }: { pool: Item[] }) {
 /** The `cmds` rows as a lazy palette: metadata inline, the markdown answered 700 ms after the cursor rests. */
 const lazyFixture = (items: Item[]): Item[] => items.map((i) => (i.palette === "cmds" ? { ...i, detail: { metadata: i.detail?.metadata }, lazyDetail: true } : i));
 
+/** One live launcher at a time: both listen on the window, as the app's one does, so two would answer every key. */
+type Live = "playground" | "blackjack";
+function LiveSlot({ id, live, onLive, children }: { id: Live; live: Live; onLive: (id: Live) => void; children: ReactNode }) {
+  if (live === id) return <>{children}</>;
+  return <div className="g-frame g-frame--live g-frame--parked"><button type="button" onClick={() => onLive(id)}>Make this the live launcher</button><span className="g-note">The other live launcher has the keyboard; one at a time, as in the app.</span></div>;
+}
+
 function Playground({ items }: { items: Item[] }) {
   const [hud, setHud] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
@@ -129,6 +140,91 @@ function FormDemo() {
   );
 }
 
+/* View section: the vocabulary, and blackjack drawn by the extension's own render.ts. */
+const vocabulary: ViewNode = {
+  type: "stack", padding: 4, gap: 3,
+  children: [
+    { type: "stack", direction: "row", gap: 3, children: [
+      { type: "text", value: "title", style: "title" }, { type: "text", value: "body", style: "body" }, { type: "text", value: "muted", style: "muted" },
+      { type: "text", value: "mono 0x1F", style: "mono" }, { type: "text", value: "1,024.50", style: "number" },
+      { type: "divider" },
+      { type: "text", value: "xs", size: "xs" }, { type: "text", value: "sm", size: "sm" }, { type: "text", value: "md", size: "md" }, { type: "text", value: "lg", size: "lg" }, { type: "text", value: "xl", size: "xl" },
+      { type: "divider" },
+      { type: "text", value: "regular", weight: "regular" }, { type: "text", value: "medium", weight: "medium" }, { type: "text", value: "semibold", weight: "semibold" },
+    ] },
+    { type: "stack", direction: "row", gap: 3, children: (["accent", "success", "destructive", "muted", "faint", "grey", "blue", "green", "amber", "red", "violet", "pink", "teal"] as const).map((color) => ({ type: "text", value: color, color })) },
+    { type: "stack", direction: "row", gap: 2, children: (["grey", "blue", "green", "amber", "red", "violet", "pink", "teal"] as const).map((color) => ({ type: "badge", text: color, color })) },
+    { type: "stack", direction: "row", gap: 2, children: [
+      { type: "keycap", keys: "h" }, { type: "keycap", keys: "space" }, { type: "keycap", keys: "+" }, { type: "keycap", keys: "up" }, { type: "keycap", keys: "enter" }, { type: "keycap", keys: "cmd+shift+k" },
+      { type: "spacer" },
+      { type: "text", value: "spacer pushes this right", style: "muted", size: "sm" },
+    ] },
+    { type: "stack", direction: "row", gap: 3, align: "center", children: [
+      { type: "text", value: "progress", style: "muted", size: "xs" },
+      { type: "progress", value: 0 }, { type: "progress", value: 0.25 }, { type: "progress", value: 0.62, width: 72 }, { type: "progress", value: 1 },
+    ] },
+    { type: "stack", direction: "row", gap: 2, align: "end", children: [
+      { type: "image", src: cardSvg("AS"), width: 56, height: 80, alt: "ace of spades" },
+      { type: "image", src: cardSvg("QH"), width: 56, height: 80 },
+      { type: "image", src: cardSvg("10D"), width: 56, height: 80 },
+      { type: "image", src: cardSvg("7C"), width: 56, height: 80 },
+      { type: "image", src: backSvg(), width: 56, height: 80 },
+      { type: "image", src: cardSvg("KS"), width: 28, height: 40, mask: "rounded" },
+      { type: "image", src: cardSvg("2H"), width: 40, height: 40, mask: "circle" },
+      { type: "text", value: "image: an SVG the extension drew, sized in px, rounded or circle mask", style: "muted", size: "xs" },
+    ] },
+    { type: "stack", direction: "row", gap: 2, children: [
+      { type: "stack", direction: "column", gap: 1, padding: 2, children: [{ type: "text", value: "column, gap 1, padding 2", style: "muted", size: "xs" }, { type: "text", value: "one" }, { type: "text", value: "two" }] },
+      { type: "divider" },
+      { type: "stack", direction: "column", gap: 1, padding: 2, align: "center", grow: true, children: [{ type: "text", value: "grow, align center", style: "muted", size: "xs" }, { type: "text", value: "centred" }] },
+      { type: "divider" },
+      { type: "stack", direction: "column", gap: 1, padding: 2, align: "end", children: [{ type: "text", value: "align end", style: "muted", size: "xs" }, { type: "text", value: "right" }] },
+    ] },
+  ],
+};
+
+/** A rigged shoe: the dealer pops from the end, so `order` lists player, dealer, player, hole, then draws. */
+const rigged = (order: string[], s = DEFAULTS): State => {
+  const st = newGame(s, () => 0.5);
+  return { ...st, shoe: [...st.shoe.slice(0, 200), ...[...order].reverse()] as State["shoe"] };
+};
+const midHand = apply(apply(rigged(["8S", "KH", "8D", "7C", "3S", "5S", "10S"]), "deal"), "split");
+const settledHand = (() => { let st = apply(rigged(["10S", "9H", "9D", "6C", "KS"]), "deal"); st = apply(st, "stand"); st.stats = { hands: 12, wins: 7, losses: 4, pushes: 1, blackjacks: 1, net: 85 }; return st; })();
+const betting = (() => { const st = newGame(DEFAULTS, () => 0.5); st.stats = { hands: 12, wins: 7, losses: 4, pushes: 1, blackjacks: 1, net: 85 }; st.bankroll = 1085; st.bet = 25; return st; })();
+
+const blackjackSource: SourceInfo = { extension: "", palette: "blackjack", title: "Blackjack", live: false, input: true, view: "view", icon: "🃏", count: 0, stale: false };
+
+/** A live view level: the root has one palette row; Enter on it asks `view`, every key is a pick whose reply is the next tree, exactly as the host does it. */
+function BlackjackDemo() {
+  const state = useRef<State>(newGame(DEFAULTS));
+  const [log, setLog] = useState<string[]>([]);
+  const search = useCallback(async (q: string, scope?: SourceInfo): Promise<Hit[]> => (scope || (q && !"blackjack".includes(q.toLowerCase())) ? [] : [{ item: { id: "blackjack", name: "Blackjack", subtitle: "Blackjack", icon: { kind: "emoji", value: "🃏" }, palette: PALETTES, keywords: ["blackjack"] } }]), []);
+  return (
+    <div className="g-playground">
+      <p className="g-note">Live: Enter on the row opens the view level. H hit, S stand, D double, P split, Enter deals, + / − set the bet, N starts over (asks first), ⌘K lists the moves, Escape leaves and the hand is still there when you come back. Every key is a pick answered with the next tree by the extension's own <code>render.ts</code>.</p>
+      <div className="g-frame g-frame--live">
+        <Launcher
+          sources={[blackjackSource]}
+          search={search}
+          view={async () => toView(renderTable(state.current, DEFAULTS))}
+          onPick={async (item, _q, action) => {
+            if (item.palette === PALETTES) return { keep: true };
+            // A host round trip's worth of latency, so the one-pick-at-a-time rule and the sweep can be seen.
+            await new Promise((r) => setTimeout(r, 120));
+            const move = action as Move | undefined;
+            const next = move ? apply(state.current, move, DEFAULTS) : state.current;
+            setLog((l) => [`pick ${item.id} (${action}) -> ${next.phase}`, ...l].slice(0, 4));
+            state.current = next;
+            return { view: toView(renderTable(next, DEFAULTS)) };
+          }}
+          onHide={() => setLog((l) => ["hide", ...l].slice(0, 4))}
+        />
+      </div>
+      <pre className="g-log">{log.join("\n") || " "}</pre>
+    </div>
+  );
+}
+
 const toasts: ToastSpec[] = [
   { style: "success", title: "Copied", message: "https://developers.raycast.com" },
   { style: "failure", title: "Could not reach marko", message: "ssh: connect to host marko port 22: No route to host" },
@@ -137,6 +233,7 @@ const toasts: ToastSpec[] = [
 
 export default function Gallery() {
   const [raws, setRaws] = useState<Raw[]>([]);
+  const [live, setLive] = useState<Live>("playground");
   const [theme, setTheme] = useState<(typeof themes)[number]>(() => (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
   useEffect(() => {
@@ -163,7 +260,7 @@ export default function Gallery() {
       </header>
 
       <Section id="playground" title="Playground">
-        {raws.length ? <Playground items={all} /> : null}
+        <LiveSlot id="playground" live={live} onLive={setLive}>{raws.length ? <Playground items={all} /> : null}</LiveSlot>
       </Section>
 
       <Section id="grammar" title="Keyboard grammar">
@@ -279,6 +376,35 @@ export default function Gallery() {
         </State>
       </Section>
 
+      <Section id="view" title="View">
+        <p className="g-note">A view level: the extension sends a render tree from a fixed vocabulary (stack, text, image, badge, divider, spacer, progress, keycap) and the app draws it with the tokens; the search input gives way to the view's title, the footer keeps the first action and ⌘K.</p>
+        <State label="Vocabulary: every primitive in every style"><Pair surface><View tree={vocabulary} /></Pair></State>
+        <State label="Blackjack, mid-hand after a split: hand 1 is being played (blue), the hole card is face down">
+          <Pair panel>
+            <Panel search={<Search value="" onChange={noop} back={{ title: "Blackjack", icon: { kind: "emoji", value: "🃏" }, onBack: noop }} title="Hand 1 of 2" />} footer={<Footer icon={{ kind: "emoji", value: "🃏" }} title="Hand 1 of 2" primary={{ title: "Hit" }} actions />}>
+              <View tree={toView(renderTable(midHand, DEFAULTS)).tree} />
+            </Panel>
+          </Pair>
+        </State>
+        <State label="Blackjack, settled: the dealer drew and bust, the result line rose in, the bankroll and the record moved">
+          <Pair panel>
+            <Panel search={<Search value="" onChange={noop} back={{ title: "Blackjack", icon: { kind: "emoji", value: "🃏" }, onBack: noop }} title="Dealer busts" />} footer={<Footer icon={{ kind: "emoji", value: "🃏" }} title="Dealer busts" primary={{ title: "Next hand" }} actions />}>
+              <View tree={toView(renderTable(settledHand, DEFAULTS)).tree} />
+            </Panel>
+          </Pair>
+        </State>
+        <State label="Blackjack, placing a bet: the table is clear and the rows keep their height; ⌘K lists the moves with their keys">
+          <Pair panel>
+            <Panel search={<Search value="" onChange={noop} back={{ title: "Blackjack", icon: { kind: "emoji", value: "🃏" }, onBack: noop }} title="Place your bet" />} footer={<Footer icon={{ kind: "emoji", value: "🃏" }} title="Place your bet" primary={{ title: "Deal" }} actions />} overlay={<ActionPanel actions={toView(renderTable(betting, DEFAULTS)).actions} onRun={noop} onClose={noop} title="Place your bet" />}>
+              <View tree={toView(renderTable(betting, DEFAULTS)).tree} />
+            </Panel>
+          </Pair>
+        </State>
+        <State label="Live">
+          <LiveSlot id="blackjack" live={live} onLive={setLive}><BlackjackDemo /></LiveSlot>
+        </State>
+      </Section>
+
       <Section id="detail" title="Detail">
         <State label="Markdown and metadata"><Pair surface><Detail detail={deploy.detail!} /></Pair></State>
         <State label="Loading (lazy markdown), metadata inline"><Pair surface><Detail detail={{ metadata: deploy.detail!.metadata }} loading /></Pair></State>
@@ -358,7 +484,7 @@ export default function Gallery() {
 
 const nav = [
   { id: "playground", title: "Playground" }, { id: "grammar", title: "Grammar" }, { id: "panel", title: "Panel" }, { id: "search", title: "Search" },
-  { id: "row", title: "Row" }, { id: "list", title: "List" }, { id: "grid", title: "Grid" }, { id: "detail", title: "Detail" }, { id: "actions", title: "ActionPanel" },
+  { id: "row", title: "Row" }, { id: "list", title: "List" }, { id: "grid", title: "Grid" }, { id: "view", title: "View" }, { id: "detail", title: "Detail" }, { id: "actions", title: "ActionPanel" },
   { id: "footer", title: "Footer" }, { id: "form", title: "Form" }, { id: "empty", title: "Empty" }, { id: "toast", title: "Toast" }, { id: "hud", title: "HUD" },
   { id: "settings", title: "Settings" },
 ];
@@ -391,7 +517,7 @@ function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diag
   const aside = page === "palettes" ? `${count} palettes from ${exts.length} extensions` : page === "extensions" ? `${exts.length} installed` : undefined;
   return (
     <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" version="0.1.0">
-      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} />}
+      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} hotkey={{ ...settingsHotkeyBlocked, wanted: general.hotkey, registered: general.hotkey !== "cmd+space", spotlight: general.hotkey === "cmd+space" ? "cmd+space" : undefined }} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} />}
       {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
       {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} onChange={patchExt} />}
     </SettingsWindow>

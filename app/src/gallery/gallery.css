@@ -14,6 +14,8 @@
 .g-theme::before { content: attr(data-theme); display: block; margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #e6e6ea; }
 .g-frame { position: relative; width: 760px; height: 480px; max-width: 100%; }
 .g-frame--live { width: 760px; height: 480px; }
+.g-frame--parked { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed rgba(255, 255, 255, 0.4); border-radius: 16px; }
+.g-frame--parked button { font: inherit; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.4); background: #fff; color: #222; }
 .g-surface { height: auto; padding: 8px; }
 .g-loose { display: flex; justify-content: center; padding: 8px; }
 .g-anchor { position: relative; height: 84px; }

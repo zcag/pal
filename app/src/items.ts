@@ -3,7 +3,7 @@
  * the UI item model. Provisional, like the wire shape it reads.
  */
 import { isSymbol } from "./ui/icons";
-import type { Accessory, Action, Detail, FilterOption, Icon, Item } from "./ui/types";
+import type { Accessory, Action, Detail, FilterOption, Icon, Item, ViewSpec } from "./ui/types";
 
 /** `pal_core::index::Source`. */
 export type Source = { extension: string; palette: string };
@@ -34,7 +34,8 @@ export type SourceInfo = Source & {
   live: boolean;
   input: boolean;
   icon?: string;
-  view?: "list" | "grid";
+  /** `view`: opened as a view level (the palette answers `view(ctx)`), never listed. */
+  view?: "list" | "grid" | "view";
   columns?: number;
   placeholder?: string;
   /** Open with the detail pane showing. */
@@ -69,10 +70,22 @@ export type Effect = {
   push?: { extension: string; palette: string; args?: unknown };
   /** A detail-only level to read. */
   show?: Detail & { title?: string };
+  /** A render tree: a new view level from a list, the next tree of the view it came from. */
+  view?: ViewSpec;
 };
 
-/** A toast needs the window; `keep` asks for it; `push` and `show` open a level in it. Everything else hides. */
-export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r || "push" in r || "show" in r);
+/** A toast needs the window; `keep` asks for it; `push`, `show` and `view` open or refresh a level in it. Everything else hides. */
+export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r || "push" in r || "show" in r || "view" in r);
+
+/**
+ * An action as the wire carries it, and nothing more: the UI keys its own
+ * on the `pal:` prefix, and the host refuses those ids in a view, so an
+ * extension's actions can never run the shell's code.
+ */
+const toAction = (a: Action): Action => ({ id: String(a.id), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style, confirm: a.confirm });
+
+/** A `View` off the wire as the UI keeps it; the host has checked the tree. */
+export const toView = (v: ViewSpec): ViewSpec => ({ tree: v.tree, actions: (v.actions ?? []).map(toAction), title: v.title, id: v.id, keys: v.keys });
 
 /** `Item.palette` for a source. Fixture rows (the gallery) have no extension and keep their bare palette name. */
 export const sourceKey = (s: Source) => (s.extension ? `${s.extension}/${s.palette}` : s.palette);
@@ -145,7 +158,7 @@ export function toItem(hit: WireHit, paletteTitle: string, lazy = false): Item {
     accessories: w.accessories ?? (palette === PALETTES ? [{ text: "Palette" }] : typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined),
     detail: w.detail ?? detailOf(w, paletteTitle),
     lazyDetail: lazy && !w.detail?.markdown ? true : undefined,
-    actions: w.actions,
+    actions: w.actions?.map(toAction),
   };
 }
 

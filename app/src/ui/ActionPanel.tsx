@@ -67,6 +67,8 @@ export function ActionPanel({ actions, onRun, onClose, title }: ActionPanelProps
       filter: swallow,
       detail: swallow,
       shortcut: ({ combo }) => { const a = actions.find((x) => x.shortcut === combo); if (a) run(a); },
+      // Typing into the panel's own field; never a bare-key action of the level behind.
+      key: () => "native",
     },
     { scope: root },
   );

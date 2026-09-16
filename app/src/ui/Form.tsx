@@ -39,6 +39,7 @@ export function Form({ title, fields, submitTitle = "Submit", onSubmit, onCancel
       back: native,
       jumpTo: () => {},
       detail: () => {},
+      key: native,
     },
     { scope: root },
   );

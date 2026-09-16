@@ -153,9 +153,12 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 };
 
 /* Settings: four extensions as installed, their palettes as configured in config.toml. */
-import type { Diagnostic, GeneralConfig, SettingSpec, SettingsExtension } from "../ui/SettingsTypes";
+import type { Diagnostic, GeneralConfig, HotkeyStatus, PermissionsStatus, SettingSpec, SettingsExtension } from "../ui/SettingsTypes";
 
-export const settingsGeneral: GeneralConfig = { hotkey: "ctrl+space", theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top" };
+export const settingsGeneral: GeneralConfig = { hotkey: "ctrl+space", theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", askPermissionsOnStart: true };
+/** A stock Mac asking for ⌘Space: Spotlight holds it, the guidance shows. */
+export const settingsHotkeyBlocked: HotkeyStatus = { wanted: "cmd+space", registered: false, error: "Spotlight takes this key first", spotlight: "cmd+space" };
+export const settingsPermissions: PermissionsStatus = { accessibility: false };
 
 export const settingsFile = { path: "~/.config/pal/config.toml", changed: now - 2 * 60e3 };
 

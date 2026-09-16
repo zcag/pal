@@ -2,7 +2,9 @@
 //! host/protocol.ts): what needs the OS runs here, the rest (hide, toast,
 //! keep) is the webview's. Returns the envelope the webview should see:
 //! usually the one given, a toast instead when a paste needs the
-//! Accessibility permission pal does not have. Feedback after the panel
+//! Accessibility permission pal does not have (the first refusal per run
+//! also asks: the system prompt and the System Settings pane,
+//! `permissions::request_once`). Feedback after the panel
 //! hides is the HUD's (hud.rs): "Copied" after a `copy` that hides, an
 //! extension's own `hud` text, and the once-per-run note when a `focus`
 //! could only bring the app forward.
@@ -13,30 +15,21 @@ use std::time::Duration;
 use serde_json::{json, Value};
 use tauri::AppHandle;
 
-use crate::{clipboard, hud, panel};
+use crate::{clipboard, hud, panel, permissions};
 
 /// After `panel::hide`, before a keystroke or an activate: the orderOut
 /// has to reach the window server and the app in front has to become key
 /// again, a few frames; short enough not to read as lag after Enter.
 const HIDE_SETTLE: Duration = Duration::from_millis(80);
 
-/// The system prompt that adds pal to the Accessibility list, once per run
-/// across every effect that wanted it.
-fn ask_accessibility_once() {
-    static ASKED: AtomicBool = AtomicBool::new(false);
-    if !ASKED.swap(true, Ordering::Relaxed) {
-        pal_core::ax::request();
-    }
-}
-
 /// The toast to show instead of an effect that reaches into another app
-/// (paste) when pal lacks Accessibility; the system prompt is shown once
-/// per run. `None` when the effect can go ahead.
-fn accessibility_blocked(what: &str) -> Option<Value> {
+/// (paste) when pal lacks Accessibility; the ask (prompt and pane) happens
+/// once per run. `None` when the effect can go ahead.
+fn accessibility_blocked(app: &AppHandle, what: &str) -> Option<Value> {
     if pal_core::ax::trusted() {
         return None;
     }
-    ask_accessibility_once();
+    permissions::request_once(app, "accessibility");
     Some(accessibility_toast(what))
 }
 
@@ -51,7 +44,7 @@ fn focus_feedback(trusted: bool, first: bool, app: &str) -> Option<String> {
 /// Whether the webview keeps the panel up for this envelope (`staysOpen`
 /// in app/src/items.ts): the HUD is for what hides.
 fn stays_open(envelope: &Value) -> bool {
-    ["keep", "toast", "push", "show"].iter().any(|k| envelope.get(k).is_some())
+    ["keep", "toast", "push", "show", "view"].iter().any(|k| envelope.get(k).is_some())
 }
 
 /// The toast for a `what` that needs Accessibility, as an envelope.
@@ -92,7 +85,7 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
     if let Some(what) = envelope.get("paste") {
         let what: clipboard::Paste = serde_json::from_value(what.clone()).map_err(|e| format!("bad paste effect: {e}"))?;
         // Checked before hiding: the toast needs the panel.
-        if let Some(toast) = accessibility_blocked("Paste") {
+        if let Some(toast) = accessibility_blocked(app, "Paste") {
             return Ok(toast);
         }
         hide_first(app).await?;
@@ -109,12 +102,12 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
         } else {
             // Without the permission the core can still bring the app
             // forward, just not the window asked for: do that, say so once,
-            // and show the system prompt once.
+            // and ask once.
             let name = blocking(move || pal_core::windows::activate(&id).map_err(|e| e.to_string())).await?;
             if let Some(text) = focus_feedback(trusted, !HINTED.swap(true, Ordering::Relaxed), &name) {
                 hud::show(app, &text);
             }
-            ask_accessibility_once();
+            permissions::request_once(app, "accessibility");
         }
     }
     if let Some(text) = envelope.get("hud").and_then(Value::as_str) {
@@ -146,7 +139,7 @@ mod tests {
 
     #[test]
     fn hud_after_copy_only_when_the_panel_hides() {
-        for open in [json!({ "copy": "x", "keep": true }), json!({ "copy": "x", "toast": { "title": "t" } }), json!({ "copy": "x", "push": {} }), json!({ "copy": "x", "show": {} })] {
+        for open in [json!({ "copy": "x", "keep": true }), json!({ "copy": "x", "toast": { "title": "t" } }), json!({ "copy": "x", "push": {} }), json!({ "copy": "x", "show": {} }), json!({ "view": { "tree": {} } })] {
             assert!(stays_open(&open), "{open}");
         }
         assert!(!stays_open(&json!({ "copy": "x" })));
