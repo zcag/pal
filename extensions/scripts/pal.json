@@ -6,13 +6,39 @@
   "icon": "$",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "path", "id": "config", "label": "v1 config", "description": "A pal v1 config.toml; every [palette.<name>] in it becomes a palette here.", "pick": "file", "placeholder": "~/.config/pal/config.toml", "default": "~/.config/pal/config.toml" },
     { "kind": "list", "id": "skip", "label": "Skip", "description": "v1 palette names not to load, because a native extension covers them.", "placeholder": "calc", "default": ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"] },
-    { "kind": "path", "id": "v1_repo", "label": "v1 checkout", "description": "Where github:zcag/pal/... bases resolve when v1's plugin cache (~/.local/share/pal) has no copy.", "pick": "folder", "default": "~/proj/pal-v1" },
+    { "kind": "path", "id": "v1_repo", "label": "v1 checkout", "description": "The v1 checkout: where github:zcag/pal/... bases resolve when v1's plugin cache (~/.local/share/pal) has no copy, and where a base under a v1 checkout missing on this box is looked up. ~/proj/pal is tried when this path has no plugins.", "pick": "folder", "default": "~/proj/pal-v1" },
     { "kind": "number", "id": "timeout", "label": "Script timeout", "description": "A list or pick script still running after this is killed.", "min": 1, "max": 300, "unit": "s", "default": 30 },
     { "kind": "number", "id": "preview_max", "label": "Previews at once", "description": "An item's preview command runs when the detail pane rests on it; at most this many run at the same time. 0 turns previews off.", "min": 0, "max": 32, "unit": "runs", "default": 4 },
     { "kind": "number", "id": "ttl", "label": "Listing lifetime", "description": "A palette that declares no ttl keeps its last listing across restarts and shows for this long before its script runs again; a palette's own ttl wins, and a live palette is exempt (it relists on every show unless it sets its own). Default an hour: scripts are the slow tier, and the root answers from the kept listing meanwhile. 0 runs every script on every start.", "min": 0, "max": 604800, "unit": "s", "default": 3600 }
   ],
+  "store": {
+    "tagline": "A palette from a shell script or a data file, no TypeScript: one TOML table each.",
+    "category": "developer",
+    "features": [
+      "Every `[palette.<name>]` table of a v1-style config becomes a palette, `scripts-<name>` in the settings",
+      "A data-file palette: `auto_list = true` and a `data` file (JSON array, JSON lines or TOML), each row an item with `name`, `subtitle`, `keywords`, `url`, `section`, `accessories`, `detail`",
+      "A script palette: a `run.sh` answering `list` with JSON lines and `pick` with a result envelope (`clipboard`, `open`, `toast`, `show`, `palette` to drill in, `reload`)",
+      "Actions per table or per row: `copy`, `open`, `cmd`, `type`, or `pick` back into the script, with a shortcut, a confirm and `reload`",
+      "`input` palettes list on every keystroke with the query on stdin, `live` ones on every show, `filter` gives a scope dropdown, `view = \"grid\"` tiles",
+      "`preview`: a shell command run lazily for the detail pane; a `ttl` keeps a listing across restarts so a slow script is not run on every start"
+    ],
+    "permissions": ["accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-data-file.png", "caption": "A data-file palette: six rows from links.json, sectioned, the table's icon unless a row has its own" },
+      { "file": "2-script.png", "caption": "A script palette: the rows run.sh printed as JSON lines, with sections and tags" },
+      { "file": "3-root.png", "caption": "A script palette's rows at the root: deploy finds both deploy commands" },
+      { "file": "4-actions.png", "caption": "The table's actions on a row: Open and Copy link" }
+    ],
+    "actions": [
+      { "title": "Open", "description": "An `open` action on the row's url.", "keys": "enter" },
+      { "title": "Copy link", "description": "A `copy` action on a row field.", "keys": "cmd+c" },
+      { "title": "Select", "description": "The default of a script palette without actions: run.sh pick with the row in the environment.", "keys": "enter" }
+    ]
+  },
   "palettes": {}
 }

@@ -35,6 +35,12 @@ const PATH = [...new Set([...(process.env.PATH ?? "").split(":"), `${HOME}/.loca
 
 // ---- paths -----------------------------------------------------------------
 
+/** The v1 checkout: `v1_repo` when it holds the plugins, else `~/proj/pal` (the path v1 had before this rewrite took it), else `v1_repo` as set. */
+function v1Repo(): string {
+  const set = home(S().v1_repo);
+  return [set, `${HOME}/proj/pal`].find((d) => existsSync(`${d}/plugins/palettes`)) ?? set;
+}
+
 /** v1's `expand_path`: `github:` to its sparse-checkout cache (or the v1 checkout for zcag/pal), `~`, absolute, else relative to the config dir. */
 function expand(p: string, cfgDir: string): string {
   const gh = p.match(/^github:([^/]+)\/([^/]+)\/(.+?)(?:@([^@/]+))?$/);
@@ -42,7 +48,7 @@ function expand(p: string, cfgDir: string): string {
     const [, user, repo, path, ref = "main"] = gh;
     const cache = `${process.env.XDG_DATA_HOME || `${HOME}/.local/share`}/pal/plugins/github.com/${user}/${repo}/${ref}/${path}`;
     if (existsSync(cache)) return cache;
-    if (user === "zcag" && repo === "pal") return `${home(S().v1_repo)}/${path}`;
+    if (user === "zcag" && repo === "pal") return `${v1Repo()}/${path}`;
     return cache;
   }
   p = home(p);
@@ -180,7 +186,7 @@ const glyph = (s: unknown): string | undefined => {
 
 /** v1 (Raycast) `{text:{value,color}} | {tag:{value,color}} | {date}`, or a plain `{text}`. */
 function accessory(a: Raw): Accessory | undefined {
-  if (a.tag !== undefined) return typeof a.tag === "object" ? { tag: String(a.tag.value), color: a.tag.color } : { tag: String(a.tag) };
+  if (a.tag !== undefined) return typeof a.tag === "object" ? { tag: String(a.tag.value), color: a.tag.color } : { tag: String(a.tag), color: a.color };
   if (a.text !== undefined) return { text: String(typeof a.text === "object" ? a.text.value : a.text) };
   if (a.date !== undefined) return { date: typeof a.date === "object" ? a.date.value : a.date };
 }
@@ -316,7 +322,7 @@ async function builtin(p: Loaded, name: string, value: string, env: Env): Promis
     case "cmd": return shell(value, env);
     case "type": return { paste: { text: value } };
   }
-  const dir = [`${dirname(home(S().config))}/plugins/actions/${name}`, `${home(S().v1_repo)}/plugins/actions/${name}`].find((d) => existsSync(`${d}/plugin.toml`));
+  const dir = [`${dirname(home(S().config))}/plugins/actions/${name}`, `${v1Repo()}/plugins/actions/${name}`].find((d) => existsSync(`${d}/plugin.toml`));
   const exec = dir && command(dir, readToml(`${dir}/plugin.toml`) ?? {});
   if (!exec) return { toast: { title: `No action ${name}`, message: `${p.name}: not a builtin, and no plugins/actions/${name}`, style: "failure" } };
   return effect(envelope((await run(exec.concat("run"), { stdin: value, env, cwd: dir })).out));
@@ -338,12 +344,12 @@ function unavailable(cfg: V1Palette): string | undefined {
 }
 
 function discover(): Record<string, Palette> {
-  const { config, skip: skipped, v1_repo, ttl: defaultTtl } = S();
+  const { config, skip: skipped, ttl: defaultTtl } = S();
   const file = home(config);
   const root = readToml(file);
   if (!root) { log(`no v1 config at ${file}`); return {}; }
   const cfgDir = dirname(file);
-  const v1 = home(v1_repo);
+  const v1 = v1Repo();
   const general = (root.general ?? {}) as Raw;
   const baseEnv: Env = { ...(general.env_file ? readEnvFile(expand(general.env_file, cfgDir)) : {}), _PAL_CONFIG: file, _PAL_CONFIG_DIR: cfgDir };
   const skip = new Set(skipped);
@@ -358,8 +364,8 @@ function discover(): Record<string, Palette> {
       continue;
     }
     let dir = user.base ? expand(user.base, cfgDir) : undefined;
-    // v1 lived at ~/proj/pal before this rewrite took the path; its plugins are still in the v1 checkout.
-    const moved = dir && !existsSync(dir) && dir.match(/\/pal\/(plugins\/.+)$/);
+    // A base under a v1 checkout that is not on this box (~/proj/pal before this rewrite took the path, ~/proj/pal-v1 after) resolves in the one that is.
+    const moved = dir && !existsSync(dir) && dir.match(/\/pal(?:-v1)?\/(plugins\/.+)$/);
     if (moved && existsSync(`${v1}/${moved[1]}`)) { log(`${name}: ${dir} is gone, using ${v1}/${moved[1]}`); dir = `${v1}/${moved[1]}`; }
     const plugin = dir ? readToml(`${dir}/plugin.toml`) ?? {} : {};
     // v1 fills config gaps from plugin.toml field by field; the config wins where set.
