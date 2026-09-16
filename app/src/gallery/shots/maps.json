@@ -1,0 +1,815 @@
+{
+  "palettes": {
+    "maps": {
+      "title": "Maps",
+      "icon": {
+        "tile": {
+          "glyph": "󰗵",
+          "bg": "green"
+        }
+      },
+      "input": true,
+      "placeholder": "A place, or a route: home > work",
+      "filters": [
+        {
+          "id": "driving",
+          "title": "Driving"
+        },
+        {
+          "id": "transit",
+          "title": "Transit"
+        },
+        {
+          "id": "walking",
+          "title": "Walking"
+        },
+        {
+          "id": "cycling",
+          "title": "Cycling"
+        }
+      ],
+      "byQuery": {
+        "": [
+          {
+            "id": "home",
+            "name": "Home",
+            "subtitle": "Moda, Kadıköy, İstanbul",
+            "icon": "󰋜",
+            "keywords": [
+              "home"
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "work",
+            "name": "Work",
+            "subtitle": "Levent, Beşiktaş, İstanbul",
+            "icon": "󰃖",
+            "keywords": [
+              "work",
+              "office"
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "commute",
+            "name": "Moda, Kadıköy, İstanbul → Levent, Beşiktaş, İstanbul",
+            "subtitle": "driving · Google Maps",
+            "icon": "󰎐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "commute-back",
+            "name": "Levent, Beşiktaş, İstanbul → Moda, Kadıköy, İstanbul",
+            "subtitle": "driving · Google Maps",
+            "icon": "󰎐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "place:Gym",
+            "name": "Gym",
+            "subtitle": "Kadıköy Belediyesi Spor Salonu",
+            "icon": "󰍎",
+            "keywords": [
+              "Gym"
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "place:Airport",
+            "name": "Airport",
+            "subtitle": "İstanbul Havalimanı",
+            "icon": "󰍎",
+            "keywords": [
+              "Airport"
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "place:Parents",
+            "name": "Parents",
+            "subtitle": "Bornova, İzmir",
+            "icon": "󰍎",
+            "keywords": [
+              "Parents"
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ],
+        "kadıköy": [
+          {
+            "id": "search",
+            "name": "Search kadıköy",
+            "subtitle": "Google Maps",
+            "icon": "󰦄",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "to",
+            "name": "Directions from here",
+            "subtitle": "current location → kadıköy · driving · Google Maps",
+            "icon": "󰇐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "from-home",
+            "name": "Directions from home",
+            "subtitle": "Moda, Kadıköy, İstanbul → kadıköy · driving · Google Maps",
+            "icon": "󰇐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "from-work",
+            "name": "Directions from work",
+            "subtitle": "Levent, Beşiktaş, İstanbul → kadıköy · driving · Google Maps",
+            "icon": "󰇐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "home",
+            "name": "Home",
+            "subtitle": "Moda, Kadıköy, İstanbul",
+            "icon": "󰋜",
+            "keywords": [
+              "home"
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "place:Gym",
+            "name": "Gym",
+            "subtitle": "Kadıköy Belediyesi Spor Salonu",
+            "icon": "󰍎",
+            "keywords": [
+              "Gym"
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ],
+        "home > work": [
+          {
+            "id": "route",
+            "name": "Moda, Kadıköy, İstanbul → Levent, Beşiktaş, İstanbul",
+            "subtitle": "walking · Google Maps",
+            "icon": "󰎐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "route-back",
+            "name": "Levent, Beşiktaş, İstanbul → Moda, Kadıköy, İstanbul",
+            "subtitle": "walking · Google Maps",
+            "icon": "󰎐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ],
+        "Moda Sah": [
+          {
+            "id": "search",
+            "name": "Search Moda Sah",
+            "subtitle": "Google Maps",
+            "icon": "󰦄",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "to",
+            "name": "Directions from here",
+            "subtitle": "current location → Moda Sah · driving · Google Maps",
+            "icon": "󰇐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "from-home",
+            "name": "Directions from home",
+            "subtitle": "Moda, Kadıköy, İstanbul → Moda Sah · driving · Google Maps",
+            "icon": "󰇐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "from-work",
+            "name": "Directions from work",
+            "subtitle": "Levent, Beşiktaş, İstanbul → Moda Sah · driving · Google Maps",
+            "icon": "󰇐",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open directions"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "pred:ChIJ1",
+            "name": "Moda Sahili Parkı",
+            "subtitle": "Caferağa, Kadıköy/İstanbul",
+            "icon": "󰍎",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "pred:ChIJ2",
+            "name": "Moda Sahili Yürüyüş Yolu",
+            "subtitle": "Moda, Kadıköy/İstanbul",
+            "icon": "󰍎",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "pred:ChIJ3",
+            "name": "Moda Sahil Cafe",
+            "subtitle": "Moda Cd., Kadıköy/İstanbul",
+            "icon": "󰍎",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "directions",
+                "title": "Directions from here"
+              },
+              {
+                "id": "from_home",
+                "title": "Directions from home",
+                "shortcut": "cmd+h"
+              },
+              {
+                "id": "from_work",
+                "title": "Directions from work",
+                "shortcut": "cmd+w"
+              },
+              {
+                "id": "copy_address",
+                "title": "Copy address",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy_link",
+                "title": "Copy link",
+                "shortcut": "cmd+l"
+              },
+              {
+                "id": "other",
+                "title": "Open in the other app",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-places": {
+      "palette": "maps",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-search": {
+      "palette": "maps",
+      "keys": [
+        "type:kadıköy"
+      ]
+    },
+    "3-route": {
+      "palette": "maps",
+      "keys": [
+        "type:home > work",
+        "tab",
+        "tab"
+      ]
+    },
+    "4-autocomplete": {
+      "palette": "maps",
+      "keys": [
+        "type:Moda Sah",
+        "wait:400",
+        "down*4"
+      ]
+    },
+    "5-actions": {
+      "palette": "maps",
+      "keys": [
+        "type:kadıköy",
+        "down*5",
+        "cmd+k"
+      ]
+    }
+  }
+}

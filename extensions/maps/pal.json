@@ -1,0 +1,68 @@
+{
+  "name": "maps",
+  "title": "Maps",
+  "description": "Search places and get directions in Google Maps or Apple Maps from the panel, no key needed: Search, Directions from here, from home and from work for what you type, a route as `home > work`, your saved places as rows, and, with a Places API key, autocomplete as you type. `go:` or `maps:` at the root answers inline.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰗵", "bg": "green" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "select", "id": "app", "label": "Open in", "description": "Which app the rows open. Apple Maps is macOS only (a `maps://` url); Copy link always copies a web url.", "options": [
+      { "id": "google", "title": "Google Maps (the browser)" },
+      { "id": "apple", "title": "Apple Maps" }
+    ], "default": "google" },
+    { "kind": "text", "id": "home", "label": "Home", "description": "An address or place name; the Home row and the “from home” directions.", "placeholder": "Moda, Kadıköy, İstanbul", "default": "" },
+    { "kind": "text", "id": "work", "label": "Work", "description": "Likewise; with both set the empty palette lists the commute both ways.", "placeholder": "Levent, İstanbul", "default": "" },
+    { "kind": "list", "id": "places", "label": "Saved places", "description": "One per line as `Name = address` (a line without `=` is both). Each is a row: open, directions to it, copy the address.", "placeholder": "Gym = Kadıköy Sports Hall, İstanbul", "default": [] },
+    { "kind": "secret", "id": "api_key", "label": "Places API key", "description": "Optional. A Google Cloud key with Places API (New) enabled: place predictions appear under the rows as you type (autocomplete requests are billed by Google past the monthly free credit). Empty: nothing is fetched, the urls need no key.", "placeholder": "AIza…", "default": "" }
+  ],
+  "store": {
+    "tagline": "Places and directions from the panel, no key needed",
+    "category": "productivity",
+    "features": [
+      "Type a place: Search, Directions from here, from home, from work, and the saved places that match; Enter opens it in Google Maps or Apple Maps",
+      "A route with both ends: `home > work`, `here -> Kadıköy`, `istanbul to ankara`; the reverse route as the second row",
+      "The travel mode is the filter: driving, transit, walking, cycling (Tab cycles it)",
+      "Nothing typed: Home, Work, the commute both ways and every saved place, each with Open, Directions, Copy address, Copy link and Open in the other app",
+      "With a Places API key, autocomplete predictions as you type, opened pinned to their place id",
+      "`go: coffee` or `maps: home > work` at the root answers inline"
+    ],
+    "permissions": ["network"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-places.png", "caption": "Nothing typed: Home, Work, the commute both ways and the saved places" },
+      { "file": "2-search.png", "caption": "kadıköy typed: Search, directions from here, home and work, a saved place that matches" },
+      { "file": "3-route.png", "caption": "home > work: the route and its reverse, walking chosen as the mode" },
+      { "file": "4-autocomplete.png", "caption": "With a Places API key: predictions under the rows" },
+      { "file": "5-actions.png", "caption": "What a place can do: open, directions from here, from home, from work, copy the address or the link" }
+    ],
+    "actions": [
+      { "title": "Open", "description": "The place in the chosen app; on a route row, the directions.", "keys": "enter" },
+      { "title": "Directions from here", "description": "From the current location to the place.", "keys": "cmd+enter" },
+      { "title": "Directions from home", "keys": "cmd+h" },
+      { "title": "Directions from work", "keys": "cmd+w" },
+      { "title": "Copy address", "keys": "cmd+c" },
+      { "title": "Copy link", "description": "The web url of what Enter would open.", "keys": "cmd+l" },
+      { "title": "Open in the other app", "description": "Apple Maps when Google is chosen, and the other way.", "keys": "cmd+shift+o" }
+    ]
+  },
+  "palettes": {
+    "maps": {
+      "kind": "input",
+      "inline": true,
+      "match": "^\\s*(?:maps?|go)\\s*:\\s*\\S",
+      "description": "Type a place or a route (`home > work`); the filter is the travel mode. Nothing typed lists home, work, the commute and the saved places. `maps:` or `go:` at the root answers inline.",
+      "keys": [
+        { "keys": "enter", "title": "Open the place or the route" },
+        { "keys": "cmd+enter", "title": "Directions from here" },
+        { "keys": "cmd+h", "title": "Directions from home" },
+        { "keys": "cmd+w", "title": "Directions from work" },
+        { "keys": "cmd+c", "title": "Copy the address" },
+        { "keys": "cmd+l", "title": "Copy the link" },
+        { "keys": "cmd+shift+o", "title": "Open in the other app" },
+        { "keys": "tab", "title": "Next travel mode" }
+      ]
+    }
+  }
+}

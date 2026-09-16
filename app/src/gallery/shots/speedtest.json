@@ -1,0 +1,1789 @@
+{
+  "palettes": {
+    "speedtest": {
+      "title": "Speedtest",
+      "icon": {
+        "tile": {
+          "glyph": "󰓅",
+          "bg": "violet"
+        }
+      },
+      "view": "view",
+      "tree": {
+        "id": "speedtest",
+        "title": "Speed test",
+        "actions": [
+          {
+            "id": "start",
+            "title": "Start the test"
+          },
+          {
+            "id": "copy",
+            "title": "Copy result"
+          },
+          {
+            "id": "history",
+            "title": "History",
+            "shortcut": "cmd+h"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 3,
+          "padding": 4,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "align": "center",
+              "key": "head",
+              "children": [
+                {
+                  "type": "badge",
+                  "text": "Speedtest by Ookla",
+                  "color": "grey"
+                },
+                {
+                  "type": "text",
+                  "value": "Press Enter to start",
+                  "style": "muted",
+                  "size": "sm"
+                },
+                {
+                  "type": "spacer"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 3,
+              "padding": 4,
+              "surface": "elevated",
+              "radius": true,
+              "key": "gauges",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "down",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Download",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0,
+                      "color": "blue"
+                    },
+                    {
+                      "type": "text",
+                      "value": "–",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "up",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Upload",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0,
+                      "color": "green"
+                    },
+                    {
+                      "type": "text",
+                      "value": "–",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "ping",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Ping",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "–",
+                      "sub": "latency",
+                      "color": "neutral"
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "–",
+                      "sub": "jitter",
+                      "color": "neutral"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "foot",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Speedtest by Ookla · nothing runs until Enter",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "done": {
+      "title": "Speedtest",
+      "icon": {
+        "tile": {
+          "glyph": "󰓅",
+          "bg": "violet"
+        }
+      },
+      "view": "view",
+      "tree": {
+        "id": "speedtest",
+        "title": "Speed test",
+        "actions": [
+          {
+            "id": "start",
+            "title": "Run again"
+          },
+          {
+            "id": "copy",
+            "title": "Copy result"
+          },
+          {
+            "id": "open",
+            "title": "Open the result page",
+            "shortcut": "cmd+o"
+          },
+          {
+            "id": "history",
+            "title": "History",
+            "shortcut": "cmd+h"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 3,
+          "padding": 4,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "align": "center",
+              "key": "head",
+              "children": [
+                {
+                  "type": "badge",
+                  "text": "Speedtest by Ookla",
+                  "color": "grey"
+                },
+                {
+                  "type": "text",
+                  "value": "Turkcell, Istanbul · Turk Telekom",
+                  "style": "muted",
+                  "size": "sm"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "badge",
+                  "text": "done",
+                  "color": "green"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 3,
+              "padding": 4,
+              "surface": "elevated",
+              "radius": true,
+              "key": "gauges",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "down",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Download",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 1,
+                      "color": "blue"
+                    },
+                    {
+                      "type": "text",
+                      "value": "467",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "up",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Upload",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 1,
+                      "color": "green"
+                    },
+                    {
+                      "type": "text",
+                      "value": "99.5",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "ping",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Ping",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "6.2 ms",
+                      "sub": "latency",
+                      "color": "neutral"
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "0.9 ms",
+                      "sub": "jitter",
+                      "color": "neutral"
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "0%",
+                      "sub": "loss",
+                      "color": "neutral"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "foot",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "9/17/2026, 2:19:19 AM · Enter runs again, cmd+Enter copies, cmd+o opens the result",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "notool": {
+      "title": "Speedtest",
+      "icon": {
+        "tile": {
+          "glyph": "󰓅",
+          "bg": "violet"
+        }
+      },
+      "view": "view",
+      "tree": {
+        "id": "speedtest",
+        "title": "Speed test",
+        "actions": [
+          {
+            "id": "start",
+            "title": "Look for a tool again"
+          },
+          {
+            "id": "copy",
+            "title": "Copy result"
+          },
+          {
+            "id": "history",
+            "title": "History",
+            "shortcut": "cmd+h"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 3,
+          "padding": 4,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "align": "center",
+              "key": "head",
+              "children": [
+                {
+                  "type": "badge",
+                  "text": "no tool",
+                  "color": "red"
+                },
+                {
+                  "type": "text",
+                  "value": "Install one of the tools below",
+                  "style": "muted",
+                  "size": "sm"
+                },
+                {
+                  "type": "spacer"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 3,
+              "padding": 4,
+              "surface": "elevated",
+              "radius": true,
+              "key": "gauges",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "down",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Download",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0,
+                      "color": "blue"
+                    },
+                    {
+                      "type": "text",
+                      "value": "–",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "up",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Upload",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0,
+                      "color": "green"
+                    },
+                    {
+                      "type": "text",
+                      "value": "–",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "ping",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Ping",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "–",
+                      "sub": "latency",
+                      "color": "neutral"
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "–",
+                      "sub": "jitter",
+                      "color": "neutral"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "foot",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "No speed test tool is installed. One of:",
+                  "style": "muted",
+                  "size": "sm"
+                },
+                {
+                  "type": "text",
+                  "value": "Speedtest by Ookla:  brew tap teamookla/speedtest && brew install speedtest",
+                  "style": "mono",
+                  "size": "sm"
+                },
+                {
+                  "type": "text",
+                  "value": "speedtest-cli:  brew install speedtest-cli",
+                  "style": "mono",
+                  "size": "sm"
+                },
+                {
+                  "type": "text",
+                  "value": "fast (Netflix):  npm install --global fast-cli",
+                  "style": "mono",
+                  "size": "sm"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "history": {
+      "title": "Speedtest History",
+      "icon": {
+        "tile": {
+          "glyph": "󰓅",
+          "bg": "violet"
+        }
+      },
+      "live": true,
+      "placeholder": "Search past runs",
+      "items": [
+        {
+          "id": "trend",
+          "name": "Trend: the last 8 runs",
+          "subtitle": "Download and upload as bars",
+          "icon": "󰄪",
+          "actions": [
+            {
+              "id": "trend",
+              "title": "Show the trend"
+            }
+          ]
+        },
+        {
+          "id": "run:1789593556814",
+          "name": "↓ 461 Mbps  ↑ 98.4 Mbps  ·  6.4 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1789593556814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 461 Mbps · ↑ 98.4 Mbps · ping 6.4 ms (jitter 1.0 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/17/2026, 12:19:16 AM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1789507156814",
+          "name": "↓ 449 Mbps  ↑ 97.1 Mbps  ·  6.9 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1789507156814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 449 Mbps · ↑ 97.1 Mbps · ping 6.9 ms (jitter 1.0 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/16/2026, 12:19:16 AM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1789417156814",
+          "name": "↓ 313 Mbps  ↑ 95.8 Mbps  ·  7.2 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1789417156814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 313 Mbps · ↑ 95.8 Mbps · ping 7.2 ms (jitter 1.1 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/14/2026, 11:19:16 PM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1789341556814",
+          "name": "↓ 455 Mbps  ↑ 99.0 Mbps  ·  6.1 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1789341556814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 455 Mbps · ↑ 99.0 Mbps · ping 6.1 ms (jitter 0.9 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/14/2026, 2:19:16 AM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1789237156814",
+          "name": "↓ 96.3 Mbps  ↑ 41.2 Mbps  ·  18.4 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1789237156814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 96.3 Mbps · ↑ 41.2 Mbps · ping 18.4 ms (jitter 2.8 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/12/2026, 9:19:16 PM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1789168756814",
+          "name": "↓ 453 Mbps  ↑ 98.8 Mbps  ·  6.3 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1789168756814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 453 Mbps · ↑ 98.8 Mbps · ping 6.3 ms (jitter 0.9 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/12/2026, 2:19:16 AM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1789075156814",
+          "name": "↓ 430 Mbps  ↑ 96.5 Mbps  ·  6.7 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1789075156814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 430 Mbps · ↑ 96.5 Mbps · ping 6.7 ms (jitter 1.0 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/11/2026, 12:19:16 AM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "run:1788909556814",
+          "name": "↓ 459 Mbps  ↑ 99.2 Mbps  ·  6.2 ms",
+          "subtitle": "Turkcell, Istanbul · Turk Telekom · Speedtest by Ookla",
+          "icon": "󰓅",
+          "accessories": [
+            {
+              "date": 1788909556814
+            }
+          ],
+          "detail": {
+            "markdown": "**↓ 459 Mbps · ↑ 99.2 Mbps · ping 6.2 ms (jitter 0.9 ms) · Turkcell, Istanbul · Turk Telekom**",
+            "metadata": [
+              {
+                "label": "When",
+                "value": "9/9/2026, 2:19:16 AM"
+              },
+              {
+                "label": "Tool",
+                "value": "Speedtest by Ookla"
+              },
+              {
+                "label": "IP",
+                "value": "85.1.2.3"
+              },
+              {
+                "label": "Result",
+                "link": {
+                  "text": "www.speedtest.net/result/c/seeded",
+                  "href": "https://www.speedtest.net/result/c/seeded"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "open",
+              "title": "Open the result page",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "clear",
+          "name": "Clear history",
+          "subtitle": "8 runs",
+          "icon": "󰃢",
+          "actions": [
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "style": "destructive",
+              "confirm": "Forget every run?"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "speedtest/speedtest:start": {
+      "view": {
+        "id": "speedtest",
+        "title": "Speed test",
+        "actions": [
+          {
+            "id": "stop",
+            "title": "Stop the test"
+          },
+          {
+            "id": "copy",
+            "title": "Copy result"
+          },
+          {
+            "id": "history",
+            "title": "History",
+            "shortcut": "cmd+h"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 3,
+          "padding": 4,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "align": "center",
+              "key": "head",
+              "children": [
+                {
+                  "type": "badge",
+                  "text": "Speedtest by Ookla",
+                  "color": "grey"
+                },
+                {
+                  "type": "text",
+                  "value": "Turkcell, Istanbul · Turk Telekom",
+                  "style": "muted",
+                  "size": "sm"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "badge",
+                  "text": "downloading",
+                  "color": "blue"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 3,
+              "padding": 4,
+              "surface": "elevated",
+              "radius": true,
+              "key": "gauges",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "down",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Download",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.72,
+                      "color": "blue"
+                    },
+                    {
+                      "type": "text",
+                      "value": "465",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 3,
+                  "align": "center",
+                  "key": "up",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Upload",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0,
+                      "color": "green"
+                    },
+                    {
+                      "type": "text",
+                      "value": "–",
+                      "style": "number",
+                      "size": "xl",
+                      "weight": "semibold",
+                      "width": 72,
+                      "align": "end"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Mbps",
+                      "style": "muted",
+                      "size": "sm",
+                      "width": 40
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "ping",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Ping",
+                      "style": "muted",
+                      "width": 80
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "6.2 ms",
+                      "sub": "latency",
+                      "color": "neutral"
+                    },
+                    {
+                      "type": "tile",
+                      "width": 96,
+                      "height": 44,
+                      "text": "0.8 ms",
+                      "sub": "jitter",
+                      "color": "neutral"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "foot",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "0 s · Enter stops",
+                  "style": "muted",
+                  "size": "sm"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "history/trend": {
+      "view": {
+        "id": "trend",
+        "title": "Last 9 runs",
+        "actions": [
+          {
+            "id": "copy_all",
+            "title": "Copy as text"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "padding": 4,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Mbps, oldest first",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "text",
+                  "value": "best ↓ 467 · ↑ 99.5 Mbps",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 2,
+              "padding": 3,
+              "surface": "sunken",
+              "radius": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1788909556814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 9 02:19 AM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9830653804930333,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 459",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9969849246231156,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 99.2",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "6.2 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789075156814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 11 12:19 AM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9219721329046089,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 430",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9698492462311558,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 96.5",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "6.7 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789168756814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 12 02:19 AM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9704180064308682,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 453",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9929648241206029,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 98.8",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "6.3 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789237156814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 12 09:19 PM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.20643086816720257,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 96.3",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.414070351758794,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 41.2",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "18.4 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789341556814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 14 02:19 AM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9753483386923901,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 455",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9949748743718593,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 99.0",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "6.1 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789417156814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 14 11:19 PM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.669882100750268,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 313",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9628140703517588,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 95.8",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "7.2 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789507156814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 16 12:19 AM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9622722400857449,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 449",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9758793969849245,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 97.1",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "6.9 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789593556814",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 17 12:19 AM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9886387995712754,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 461",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 0.9889447236180905,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 98.4",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "6.4 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "gap": 2,
+                  "align": "center",
+                  "key": "run:1789600759948",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Sep 17 02:19 AM",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 96
+                    },
+                    {
+                      "type": "progress",
+                      "value": 1,
+                      "color": "blue",
+                      "width": 220
+                    },
+                    {
+                      "type": "text",
+                      "value": "↓ 467",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "progress",
+                      "value": 1,
+                      "color": "green",
+                      "width": 120
+                    },
+                    {
+                      "type": "text",
+                      "value": "↑ 99.5",
+                      "style": "number",
+                      "size": "sm",
+                      "width": 64
+                    },
+                    {
+                      "type": "text",
+                      "value": "6.2 ms",
+                      "style": "muted",
+                      "size": "xs",
+                      "width": 56,
+                      "align": "end"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-idle": {
+      "palette": "speedtest",
+      "keys": [
+        "wait:300"
+      ]
+    },
+    "2-running": {
+      "palette": "speedtest",
+      "keys": [
+        "wait:300",
+        "enter",
+        "wait:600"
+      ]
+    },
+    "3-done": {
+      "palette": "done",
+      "keys": [
+        "wait:300"
+      ]
+    },
+    "4-history": {
+      "palette": "history",
+      "keys": [
+        "down"
+      ]
+    },
+    "5-trend": {
+      "palette": "history",
+      "keys": [
+        "enter",
+        "wait:600"
+      ]
+    },
+    "6-no-tool": {
+      "palette": "notool",
+      "keys": [
+        "wait:300"
+      ]
+    }
+  }
+}

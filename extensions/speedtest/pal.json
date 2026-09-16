@@ -1,0 +1,70 @@
+{
+  "name": "speedtest",
+  "title": "Speedtest",
+  "description": "Run an internet speed test in the panel with the CLI you have (Speedtest by Ookla, speedtest-cli or fast) and watch it: a bar per direction with the live figure, ping and jitter, the server and the ISP. Nothing runs until Enter. The result is one line to copy; every run lands in a history with a trend drawn as bars.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰓅", "bg": "violet" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "select", "id": "tool", "label": "Tool", "description": "Which CLI runs the test. Auto takes Speedtest by Ookla (the only one that reports progress), else speedtest-cli, else fast. `speedtest` on PATH is told apart by its --version.", "options": [
+      { "id": "auto", "title": "Auto (Ookla, speedtest-cli, fast)" },
+      { "id": "ookla", "title": "Speedtest by Ookla (speedtest)" },
+      { "id": "speedtest-cli", "title": "speedtest-cli (Python)" },
+      { "id": "fast", "title": "fast (Netflix, fast-cli)" }
+    ], "default": "auto" },
+    { "kind": "text", "id": "server", "label": "Server id", "description": "A speedtest.net server id to test against (`speedtest -L` lists nearby ones); empty picks the nearest. Ignored by fast.", "placeholder": "nearest", "default": "" },
+    { "kind": "number", "id": "keep", "label": "Runs to keep", "description": "How many finished runs the history holds.", "min": 1, "max": 200, "default": 30 }
+  ],
+  "store": {
+    "tagline": "A speed test you can watch, in the panel",
+    "category": "system",
+    "features": [
+      "Runs the CLI you have: Speedtest by Ookla (with per-phase progress), speedtest-cli, or fast; the view says which, and names the brew formula and the npm package when none is installed",
+      "Never starts by itself: opening the palette shows the last result, Enter runs a test, Enter again stops it",
+      "Live: a bar per direction filling with the phase and the figure in Mbps beside it, the ping and jitter tiles, the server and the ISP, updated as the tool prints",
+      "One line to copy (`cmd+enter`): down, up, ping and jitter, the server, the ISP; `cmd+o` opens Ookla's result page",
+      "History (`cmd+h`): every finished run with its date, tool and server, and a Trend row drawing the last twenty as download and upload bars"
+    ],
+    "permissions": ["network"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-idle.png", "caption": "Opened: the tool found; nothing runs until Enter" },
+      { "file": "2-running.png", "caption": "Downloading: the bar fills with Ookla's progress, the figure moves with it" },
+      { "file": "3-done.png", "caption": "Done: both figures, ping and jitter, the server and the ISP" },
+      { "file": "4-history.png", "caption": "History: the runs, newest first" },
+      { "file": "5-trend.png", "caption": "The trend: the last runs as bars, download in blue and upload in green" },
+      { "file": "6-no-tool.png", "caption": "Nothing installed: the three ways to get a tool" }
+    ],
+    "actions": [
+      { "title": "Start the test", "description": "Runs the tool; while it runs the same key stops it.", "keys": "enter" },
+      { "title": "Copy result", "description": "Down, up, ping and jitter, the server and the ISP, on one line.", "keys": "cmd+enter" },
+      { "title": "Open the result page", "description": "Speedtest by Ookla only.", "keys": "cmd+o" },
+      { "title": "History", "keys": "cmd+h" },
+      { "title": "Remove a run", "description": "In the history.", "keys": "cmd+d" }
+    ]
+  },
+  "palettes": {
+    "speedtest": {
+      "kind": "view",
+      "on": ["show"],
+      "description": "The last result and the tool found; Enter runs a test and the view follows it live; Enter again stops it.",
+      "keys": [
+        { "keys": "enter", "title": "Start the test (stop it while it runs)" },
+        { "keys": "cmd+enter", "title": "Copy the result" },
+        { "keys": "cmd+o", "title": "Open the result page (Ookla)" },
+        { "keys": "cmd+h", "title": "History" }
+      ]
+    },
+    "history": {
+      "kind": "live",
+      "description": "Finished runs, newest first, with a Trend row that draws the last twenty as bars.",
+      "keys": [
+        { "keys": "enter", "title": "Copy the run (on Trend: show the bars)" },
+        { "keys": "cmd+o", "title": "Open the result page" },
+        { "keys": "cmd+d", "title": "Remove the run" }
+      ]
+    }
+  }
+}

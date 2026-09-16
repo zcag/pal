@@ -1,0 +1,1069 @@
+{
+  "palettes": {
+    "search": {
+      "title": "YouTube",
+      "icon": {
+        "tile": {
+          "glyph": "󰗃",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "Search videos (trending while empty)",
+      "byQuery": {
+        "": [
+          {
+            "id": "Ld7Xf_LUL2w",
+            "name": "1950s New York Café Jazz | Vintage Diner Coffee Shop Ambience",
+            "subtitle": "Vintage City Echoes · 1:07:49 · 244K views · 3 months ago",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/Ld7Xf_LUL2w/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=Ld7Xf_LUL2w",
+            "keywords": [
+              "Vintage City Echoes"
+            ],
+            "section": "Trending",
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/Ld7Xf_LUL2w/mqdefault.jpg)\n\n**1950s New York Café Jazz | Vintage Diner Coffee Shop Ambience**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Vintage City Echoes",
+                    "href": "https://www.youtube.com/channel/UCFreD1WCJoZysrRcMNAAzrA"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "1:07:49"
+                },
+                {
+                  "label": "Views",
+                  "value": "243,931"
+                },
+                {
+                  "label": "Published",
+                  "value": "6/17/2026 (3 months ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=Ld7Xf_LUL2w",
+                    "href": "https://www.youtube.com/watch?v=Ld7Xf_LUL2w"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "MYPVQccHhAQ",
+            "name": "4K Cozy Coffee Shop with Smooth Piano Jazz Music for Relaxing, Studying and Working",
+            "subtitle": "Relaxing Jazz Piano · 3:35:23 · 72.4M views · 4 years ago",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/MYPVQccHhAQ/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=MYPVQccHhAQ",
+            "keywords": [
+              "Relaxing Jazz Piano"
+            ],
+            "section": "Trending",
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/MYPVQccHhAQ/mqdefault.jpg)\n\n**4K Cozy Coffee Shop with Smooth Piano Jazz Music for Relaxing, Studying and Working**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Relaxing Jazz Piano",
+                    "href": "https://www.youtube.com/channel/UC84t1K5ri-7u9bFCaUKTXDA"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "3:35:23"
+                },
+                {
+                  "label": "Views",
+                  "value": "72,385,856"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/18/2022 (4 years ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=MYPVQccHhAQ",
+                    "href": "https://www.youtube.com/watch?v=MYPVQccHhAQ"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "5yx6BWlEVcY",
+            "name": "Chillhop Radio - jazzy & lofi hip hop beats 🐾",
+            "subtitle": "Chillhop Music · live now",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/5yx6BWlEVcY/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=5yx6BWlEVcY",
+            "keywords": [
+              "Chillhop Music"
+            ],
+            "section": "Trending",
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/5yx6BWlEVcY/mqdefault.jpg)\n\n**Chillhop Radio - jazzy & lofi hip hop beats 🐾**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Chillhop Music",
+                    "href": "https://www.youtube.com/channel/UCOxqgCwgOqC2lMqC5PYz_Dg"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "live now"
+                },
+                {
+                  "label": "Views",
+                  "value": "0"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/17/2026 (2 minutes ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=5yx6BWlEVcY",
+                    "href": "https://www.youtube.com/watch?v=5yx6BWlEVcY"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "ydY2FvooX-Q",
+            "name": "Relaxing Fall Jazz in Lakeside 🍂 Cozy Coffee Shop Ambience & Smooth Jazz Instrumental Music to Study",
+            "subtitle": "Relax Jazz Cafe · 3:43:13 · 35K views · 1 day ago",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/ydY2FvooX-Q/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=ydY2FvooX-Q",
+            "keywords": [
+              "Relax Jazz Cafe"
+            ],
+            "section": "Trending",
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/ydY2FvooX-Q/mqdefault.jpg)\n\n**Relaxing Fall Jazz in Lakeside 🍂 Cozy Coffee Shop Ambience & Smooth Jazz Instrumental Music to Study**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Relax Jazz Cafe",
+                    "href": "https://www.youtube.com/channel/UCZR3-lM6Z-n5_UGHlwx_Rpw"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "3:43:13"
+                },
+                {
+                  "label": "Views",
+                  "value": "35,238"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/16/2026 (1 day ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=ydY2FvooX-Q",
+                    "href": "https://www.youtube.com/watch?v=ydY2FvooX-Q"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "dYuNh58nLt8",
+            "name": "🍂 Chillhop Essentials · Fall 2026 [jazzy lofi beats / no AI]",
+            "subtitle": "Chillhop Music · 58:36 · 178K views · 14 days ago",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/dYuNh58nLt8/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=dYuNh58nLt8",
+            "keywords": [
+              "Chillhop Music"
+            ],
+            "section": "Trending",
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/dYuNh58nLt8/mqdefault.jpg)\n\n**🍂 Chillhop Essentials · Fall 2026 [jazzy lofi beats / no AI]**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Chillhop Music",
+                    "href": "https://www.youtube.com/channel/UCOxqgCwgOqC2lMqC5PYz_Dg"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "58:36"
+                },
+                {
+                  "label": "Views",
+                  "value": "178,488"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/3/2026 (14 days ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=dYuNh58nLt8",
+                    "href": "https://www.youtube.com/watch?v=dYuNh58nLt8"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "UJs6__K7gSY",
+            "name": "Bedtime Lofi 💤  8 hours of relaxing beats to sleep to",
+            "subtitle": "Lofi Girl · 8:00:28 · 6.8M views · 11 months ago",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/UJs6__K7gSY/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=UJs6__K7gSY",
+            "keywords": [
+              "Lofi Girl"
+            ],
+            "section": "Trending",
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/UJs6__K7gSY/mqdefault.jpg)\n\n**Bedtime Lofi 💤  8 hours of relaxing beats to sleep to**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Lofi Girl",
+                    "href": "https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "8:00:28"
+                },
+                {
+                  "label": "Views",
+                  "value": "6,800,000"
+                },
+                {
+                  "label": "Published",
+                  "value": "10/22/2025 (11 months ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=UJs6__K7gSY",
+                    "href": "https://www.youtube.com/watch?v=UJs6__K7gSY"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "rFZHOHl-L8A",
+            "name": "lofi hip hop radio 📚 beats to relax/study to",
+            "subtitle": "Lofi Girl · live now",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/rFZHOHl-L8A/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=rFZHOHl-L8A",
+            "keywords": [
+              "Lofi Girl"
+            ],
+            "section": "Trending",
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/rFZHOHl-L8A/mqdefault.jpg)\n\n**lofi hip hop radio 📚 beats to relax/study to**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Lofi Girl",
+                    "href": "https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "live now"
+                },
+                {
+                  "label": "Views",
+                  "value": "0"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/17/2026 (1 minute ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=rFZHOHl-L8A",
+                    "href": "https://www.youtube.com/watch?v=rFZHOHl-L8A"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ],
+        "lofi": [
+          {
+            "id": "rFZHOHl-L8A",
+            "name": "lofi hip hop radio 📚 beats to relax/study to",
+            "subtitle": "Lofi Girl · live now",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/rFZHOHl-L8A/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=rFZHOHl-L8A",
+            "keywords": [
+              "Lofi Girl"
+            ],
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/rFZHOHl-L8A/mqdefault.jpg)\n\n**lofi hip hop radio 📚 beats to relax/study to**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Lofi Girl",
+                    "href": "https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "live now"
+                },
+                {
+                  "label": "Views",
+                  "value": "0"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/17/2026 (1 minute ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=rFZHOHl-L8A",
+                    "href": "https://www.youtube.com/watch?v=rFZHOHl-L8A"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "UJs6__K7gSY",
+            "name": "Bedtime Lofi 💤  8 hours of relaxing beats to sleep to",
+            "subtitle": "Lofi Girl · 8:00:28 · 6.8M views · 11 months ago",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/UJs6__K7gSY/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=UJs6__K7gSY",
+            "keywords": [
+              "Lofi Girl"
+            ],
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/UJs6__K7gSY/mqdefault.jpg)\n\n**Bedtime Lofi 💤  8 hours of relaxing beats to sleep to**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Lofi Girl",
+                    "href": "https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "8:00:28"
+                },
+                {
+                  "label": "Views",
+                  "value": "6,800,000"
+                },
+                {
+                  "label": "Published",
+                  "value": "10/22/2025 (11 months ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=UJs6__K7gSY",
+                    "href": "https://www.youtube.com/watch?v=UJs6__K7gSY"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "dYuNh58nLt8",
+            "name": "🍂 Chillhop Essentials · Fall 2026 [jazzy lofi beats / no AI]",
+            "subtitle": "Chillhop Music · 58:36 · 178K views · 14 days ago",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/dYuNh58nLt8/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=dYuNh58nLt8",
+            "keywords": [
+              "Chillhop Music"
+            ],
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/dYuNh58nLt8/mqdefault.jpg)\n\n**🍂 Chillhop Essentials · Fall 2026 [jazzy lofi beats / no AI]**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Chillhop Music",
+                    "href": "https://www.youtube.com/channel/UCOxqgCwgOqC2lMqC5PYz_Dg"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "58:36"
+                },
+                {
+                  "label": "Views",
+                  "value": "178,488"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/3/2026 (14 days ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=dYuNh58nLt8",
+                    "href": "https://www.youtube.com/watch?v=dYuNh58nLt8"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "5yx6BWlEVcY",
+            "name": "Chillhop Radio - jazzy & lofi hip hop beats 🐾",
+            "subtitle": "Chillhop Music · live now",
+            "icon": {
+              "image": "https://i.ytimg.com/vi/5yx6BWlEVcY/default.jpg"
+            },
+            "url": "https://www.youtube.com/watch?v=5yx6BWlEVcY",
+            "keywords": [
+              "Chillhop Music"
+            ],
+            "detail": {
+              "markdown": "![](https://i.ytimg.com/vi/5yx6BWlEVcY/mqdefault.jpg)\n\n**Chillhop Radio - jazzy & lofi hip hop beats 🐾**",
+              "metadata": [
+                {
+                  "label": "Channel",
+                  "link": {
+                    "text": "Chillhop Music",
+                    "href": "https://www.youtube.com/channel/UCOxqgCwgOqC2lMqC5PYz_Dg"
+                  }
+                },
+                {
+                  "label": "Length",
+                  "value": "live now"
+                },
+                {
+                  "label": "Views",
+                  "value": "0"
+                },
+                {
+                  "label": "Published",
+                  "value": "9/17/2026 (2 minutes ago)"
+                },
+                {
+                  "label": "URL",
+                  "link": {
+                    "text": "youtube.com/watch?v=5yx6BWlEVcY",
+                    "href": "https://www.youtube.com/watch?v=5yx6BWlEVcY"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in browser"
+              },
+              {
+                "id": "play",
+                "title": "Play in player"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "later",
+                "title": "Watch later",
+                "shortcut": "cmd+s"
+              },
+              {
+                "id": "channel",
+                "title": "Open the channel",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "channels": {
+      "title": "YouTube Channels",
+      "icon": {
+        "tile": {
+          "glyph": "󰗃",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "A channel's name",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:type",
+            "name": "Type a channel's name",
+            "subtitle": "Enter lists its latest videos, cmd+enter opens it",
+            "icon": "󰀉",
+            "actions": []
+          },
+          {
+            "id": "hint:oauth",
+            "name": "Your subscriptions are not here",
+            "subtitle": "Listing them needs a Google sign-in (OAuth), which pal does not do",
+            "icon": "󰋽",
+            "actions": []
+          }
+        ],
+        "lofi": [
+          {
+            "id": "UCSJ4gkVC6NrvII8umztf0Ow",
+            "name": "Lofi Girl",
+            "subtitle": "Connecting people through music.",
+            "icon": {
+              "image": "https://yt3.ggpht.com/P2GSa5qZ0deWYGMqnq6cnWoWdxtXzK9s09ls0s_OlIMKx_3Vwjl3tdotbkLFjRmCPN1p7ox6=s88-c-k-c0x00ffffff-no-rj"
+            },
+            "url": "https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow",
+            "actions": [
+              {
+                "id": "videos",
+                "title": "Latest videos"
+              },
+              {
+                "id": "open",
+                "title": "Open the channel"
+              },
+              {
+                "id": "copy_url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "later": {
+      "title": "Watch Later",
+      "icon": {
+        "tile": {
+          "glyph": "󰗃",
+          "bg": "red"
+        }
+      },
+      "live": true,
+      "placeholder": "Search saved videos",
+      "items": [
+        {
+          "id": "ydY2FvooX-Q",
+          "name": "Relaxing Fall Jazz in Lakeside 🍂 Cozy Coffee Shop Ambience & Smooth Jazz Instrumental Music to Study",
+          "subtitle": "Relax Jazz Cafe · 3:43:13 · 35K views · 1 day ago",
+          "icon": {
+            "image": "https://i.ytimg.com/vi/ydY2FvooX-Q/default.jpg"
+          },
+          "url": "https://www.youtube.com/watch?v=ydY2FvooX-Q",
+          "keywords": [
+            "Relax Jazz Cafe"
+          ],
+          "detail": {
+            "markdown": "![](https://i.ytimg.com/vi/ydY2FvooX-Q/mqdefault.jpg)\n\n**Relaxing Fall Jazz in Lakeside 🍂 Cozy Coffee Shop Ambience & Smooth Jazz Instrumental Music to Study**",
+            "metadata": [
+              {
+                "label": "Channel",
+                "link": {
+                  "text": "Relax Jazz Cafe",
+                  "href": "https://www.youtube.com/channel/UCZR3-lM6Z-n5_UGHlwx_Rpw"
+                }
+              },
+              {
+                "label": "Length",
+                "value": "3:43:13"
+              },
+              {
+                "label": "Views",
+                "value": "35,238"
+              },
+              {
+                "label": "Published",
+                "value": "9/16/2026 (1 day ago)"
+              },
+              {
+                "label": "URL",
+                "link": {
+                  "text": "youtube.com/watch?v=ydY2FvooX-Q",
+                  "href": "https://www.youtube.com/watch?v=ydY2FvooX-Q"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "play",
+              "title": "Play in player"
+            },
+            {
+              "id": "copy_url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "channel",
+              "title": "Open the channel",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove from Watch Later",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "UJs6__K7gSY",
+          "name": "Bedtime Lofi 💤  8 hours of relaxing beats to sleep to",
+          "subtitle": "Lofi Girl · 8:00:28 · 6.8M views · 11 months ago",
+          "icon": {
+            "image": "https://i.ytimg.com/vi/UJs6__K7gSY/default.jpg"
+          },
+          "url": "https://www.youtube.com/watch?v=UJs6__K7gSY",
+          "keywords": [
+            "Lofi Girl"
+          ],
+          "detail": {
+            "markdown": "![](https://i.ytimg.com/vi/UJs6__K7gSY/mqdefault.jpg)\n\n**Bedtime Lofi 💤  8 hours of relaxing beats to sleep to**",
+            "metadata": [
+              {
+                "label": "Channel",
+                "link": {
+                  "text": "Lofi Girl",
+                  "href": "https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow"
+                }
+              },
+              {
+                "label": "Length",
+                "value": "8:00:28"
+              },
+              {
+                "label": "Views",
+                "value": "6,800,000"
+              },
+              {
+                "label": "Published",
+                "value": "10/22/2025 (11 months ago)"
+              },
+              {
+                "label": "URL",
+                "link": {
+                  "text": "youtube.com/watch?v=UJs6__K7gSY",
+                  "href": "https://www.youtube.com/watch?v=UJs6__K7gSY"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "play",
+              "title": "Play in player"
+            },
+            {
+              "id": "copy_url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "channel",
+              "title": "Open the channel",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "remove",
+              "title": "Remove from Watch Later",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "clear",
+          "name": "Clear Watch Later",
+          "subtitle": "2 videos",
+          "icon": "󰃢",
+          "actions": [
+            {
+              "id": "clear",
+              "title": "Clear Watch Later",
+              "style": "destructive",
+              "confirm": "Forget every saved video?"
+            }
+          ]
+        }
+      ]
+    },
+    "nokey": {
+      "title": "YouTube",
+      "icon": {
+        "tile": {
+          "glyph": "󰗃",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "Search videos (trending while empty)",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:setup",
+            "name": "Set `api_key` or `invidious_url` under Settings › Extensions › YouTube",
+            "subtitle": "A Data API v3 key (free, 100 searches a day) or an Invidious instance that serves its API",
+            "icon": "󰋽",
+            "actions": []
+          },
+          {
+            "id": "hint:root",
+            "name": "At the root, yt: before the query",
+            "subtitle": "yt: lofi hip hop",
+            "icon": "󰋽",
+            "actions": []
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-search": {
+      "palette": "search",
+      "keys": [
+        "type:lofi",
+        "wait:600",
+        "down",
+        "cmd+i",
+        "wait:600"
+      ]
+    },
+    "2-trending": {
+      "palette": "search",
+      "keys": [
+        "wait:600"
+      ]
+    },
+    "3-actions": {
+      "palette": "search",
+      "keys": [
+        "type:lofi",
+        "wait:600",
+        "down",
+        "cmd+k"
+      ]
+    },
+    "4-channels": {
+      "palette": "channels",
+      "keys": [
+        "type:lofi",
+        "wait:600"
+      ]
+    },
+    "5-later": {
+      "palette": "later",
+      "keys": [
+        "wait:600"
+      ]
+    },
+    "6-no-key": {
+      "palette": "nokey",
+      "keys": []
+    }
+  }
+}

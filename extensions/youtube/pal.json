@@ -1,0 +1,87 @@
+{
+  "name": "youtube",
+  "title": "YouTube",
+  "description": "Search YouTube from the panel: videos with their thumbnail, channel, length, views and age, trending while nothing is typed; Enter opens one, cmd+Enter plays it in IINA, mpv or VLC, cmd+s keeps it in Watch Later. Through the Data API v3 with a free key, or an Invidious instance without one. Channels by name, with their latest videos.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰗃", "bg": "red" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "secret", "id": "api_key", "label": "Data API key", "description": "A Google Cloud API key with YouTube Data API v3 enabled on its project (console.cloud.google.com › APIs & Services › Enable APIs › YouTube Data API v3 › Credentials). Free; the daily quota of 10,000 units is about 100 searches. Wins over the Invidious instance when both are set.", "placeholder": "AIza…", "default": "" },
+    { "kind": "text", "id": "invidious_url", "label": "Invidious instance", "description": "Searched without a key through `/api/v1`. Most public instances have turned the API off (only invidious.f5.si answered on 2026-09-17); a self-hosted one is the reliable choice.", "placeholder": "https://invidious.example.org", "default": "" },
+    { "kind": "select", "id": "player", "label": "Player", "description": "What cmd+Enter plays the video in. Auto takes IINA, then mpv, then VLC, whichever is installed, else the browser. mpv and VLC need yt-dlp for YouTube.", "options": [
+      { "id": "auto", "title": "Auto (IINA, mpv, VLC, else the browser)" },
+      { "id": "iina", "title": "IINA" },
+      { "id": "mpv", "title": "mpv" },
+      { "id": "vlc", "title": "VLC" },
+      { "id": "browser", "title": "The browser" }
+    ], "default": "auto" },
+    { "kind": "text", "id": "region", "label": "Region", "description": "A two-letter country code for the trending list; empty is YouTube's default.", "placeholder": "TR", "default": "" }
+  ],
+  "store": {
+    "tagline": "Search YouTube, open or play, keep for later",
+    "category": "media",
+    "features": [
+      "Videos with the thumbnail, the channel, the length, the views and the age, searched 400 ms after the last key; trending while nothing is typed",
+      "`enter` opens the video in the browser, `cmd+enter` plays it in IINA, mpv or VLC (auto picks the first installed), `cmd+c` copies the url, `cmd+shift+o` opens the channel",
+      "Watch Later (`cmd+s`) is a list of its own; its rows are at the root, so a saved video is found by title",
+      "Channels by name: Enter lists the channel's latest videos, `cmd+enter` opens it. Subscriptions need a Google sign-in (OAuth), which pal does not do",
+      "The Data API v3 with a free key (a search costs 100 of the 10,000 daily units), or an Invidious instance without one",
+      "`yt: lofi` at the root answers inline; a query nothing matched offers “Search YouTube for …”"
+    ],
+    "permissions": ["network"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-search.png", "caption": "lofi typed: the videos with channel, length, views and age, the detail pane with the thumbnail" },
+      { "file": "2-trending.png", "caption": "Nothing typed: the trending list" },
+      { "file": "3-actions.png", "caption": "What a video can do: open, play in IINA, copy the url, watch later, the channel" },
+      { "file": "4-channels.png", "caption": "Channels by name: Enter lists the channel's latest videos" },
+      { "file": "5-later.png", "caption": "Watch Later: what cmd+s kept" },
+      { "file": "6-no-key.png", "caption": "Without a key or an instance: the row saying which setting to fill" }
+    ],
+    "actions": [
+      { "title": "Open in browser", "keys": "enter" },
+      { "title": "Play in player", "description": "IINA, mpv or VLC per the `player` setting; the browser when none is installed.", "keys": "cmd+enter" },
+      { "title": "Copy URL", "keys": "cmd+c" },
+      { "title": "Watch later", "keys": "cmd+s" },
+      { "title": "Open the channel", "keys": "cmd+shift+o" },
+      { "title": "Latest videos", "description": "On a channel row: its videos, newest first.", "keys": "enter" },
+      { "title": "Remove from Watch Later", "keys": "cmd+d" }
+    ]
+  },
+  "palettes": {
+    "search": {
+      "kind": "input",
+      "inline": true,
+      "match": "^\\s*yt\\s*:\\s*\\S",
+      "fallback": "Search YouTube for “{query}”",
+      "description": "Type to search videos; nothing typed lists what is trending. `yt:` at the root answers inline.",
+      "keys": [
+        { "keys": "enter", "title": "Open in the browser" },
+        { "keys": "cmd+enter", "title": "Play in IINA, mpv or VLC" },
+        { "keys": "cmd+c", "title": "Copy the url" },
+        { "keys": "cmd+s", "title": "Watch later" },
+        { "keys": "cmd+shift+o", "title": "Open the channel" }
+      ]
+    },
+    "channels": {
+      "kind": "input",
+      "description": "Channels by name; Enter lists the channel's latest videos. Subscriptions need OAuth and are not listed.",
+      "keys": [
+        { "keys": "enter", "title": "Latest videos" },
+        { "keys": "cmd+enter", "title": "Open the channel" },
+        { "keys": "cmd+c", "title": "Copy the url" }
+      ]
+    },
+    "later": {
+      "kind": "live",
+      "description": "Videos kept with cmd+s, newest first; the same actions, and cmd+d removes one.",
+      "keys": [
+        { "keys": "enter", "title": "Open in the browser" },
+        { "keys": "cmd+enter", "title": "Play in the player" },
+        { "keys": "cmd+d", "title": "Remove" }
+      ]
+    }
+  }
+}

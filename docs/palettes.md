@@ -3073,3 +3073,200 @@ Settings, `[extensions.downloads]`:
 | `limit` | 10 to 2000 | `200` | At most this many files, the newest. |
 | `thumbnails` | boolean | `true` | Previews for images and PDFs. |
 | `clear_days` | 1 to 365 | `30` | The age the Clear row trashes. |
+
+## GIFs (`gifs`, `gifs-favourites`)
+
+Tenor (or Giphy) searched from the panel, from `extensions/gifs/`. An
+input grid: what is typed is searched 300 ms after the last key, nothing
+typed lists what is trending under a Trending section, and every tile is
+the GIF's small animated preview (Tenor's `nanogif`, Giphy's
+`fixed_height_small`), fetched once into the cache directory
+(`~/Library/Caches/pal/gifs`, `$XDG_CACHE_HOME/pal/gifs`) and sent as a
+data url. `enter` downloads the GIF into the cache, named after its
+title, and puts the **file** on the clipboard (`copy_files`), so it
+pastes as a picture; `cmd+enter` copies the url; `cmd+o` opens the page;
+`cmd+s` writes the file to `save_to`; `cmd+f` keeps it. The detail pane
+(`cmd+i`) shows the preview larger, the size in pixels and bytes, the
+page. A root query nothing matched offers "Search GIFs for …".
+
+Favourite GIFs (`gifs-favourites`, a live grid, its rows at the root):
+what `cmd+f` kept, newest first, the last 200 in `storage`, with the same
+actions and `cmd+d` to remove; the last row clears it after a confirm
+card.
+
+Backends: Tenor v2 with a Google Cloud API key that has the Tenor API
+enabled (free, no billing), or Giphy with a key from developers.giphy.com;
+without one the grid is one row saying which setting to fill and where
+the key comes from. `content_filter` is Tenor's `contentfilter` and
+Giphy's `rating` in one setting.
+
+| keys | action |
+| --- | --- |
+| `enter` | Copy the GIF file |
+| `cmd+enter` | Copy the url |
+| `cmd+o` | Open the page on tenor.com or giphy.com |
+| `cmd+s` | Save to Downloads (`save_to`) |
+| `cmd+f` | Add to favourites |
+| `cmd+d` | Favourites: remove |
+
+Settings, `[extensions.gifs]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `backend` | `tenor`, `giphy` | `tenor` | Where the GIFs come from. |
+| `tenor_api_key` | secret | empty | The Google Cloud key with the Tenor API enabled. |
+| `giphy_api_key` | secret | empty | The Giphy key. |
+| `content_filter` | `off`, `low`, `medium`, `high` | `medium` | What the results may show. |
+| `save_to` | folder | `~/Downloads` | Where `cmd+s` writes the file. |
+
+`[palettes.gifs.settings] columns` (3 to 10, default 6) is the tiles per
+row of both grids. For the tests, `PAL_GIFS_TENOR` and `PAL_GIFS_GIPHY`
+replace the hosts and `PAL_GIFS_CACHE` the cache directory.
+
+## Maps (`maps`)
+
+Places and directions in Google Maps or Apple Maps, from
+`extensions/maps/`. An input palette over urls, no key: a typed place
+gets Search, Directions from here, from home and from work, and the
+saved places whose name or address contains it; `home > work`,
+`here -> Kadıköy` or `Moda to Levent` is a route with both ends and its
+reverse (`>` and `->` always split; ` to ` only when an end is home, work,
+here or a saved place, so "things to do in Moda" stays a search); nothing
+typed lists Home, Work, the commute both ways and every saved place. The
+travel mode is the filter (driving, transit, walking, cycling; Tab cycles
+it). `go: coffee` or `maps: home > work` at the root answers inline.
+
+With `api_key` (a Google Cloud key with Places API (New) enabled), place
+predictions follow the rows 250 ms after the last key and open pinned to
+their place id; the inline ask never waits on them. Google bills those
+requests past the monthly free credit, so they are debounced and cached
+per input.
+
+| keys | action |
+| --- | --- |
+| `enter` | Open the place in the chosen app; on a route row, the directions |
+| `cmd+enter` | Directions from here (the current location) |
+| `cmd+h` | Directions from home |
+| `cmd+w` | Directions from work |
+| `cmd+c` | Copy the address |
+| `cmd+l` | Copy the link (a web url, never `maps://`) |
+| `cmd+shift+o` | Open in the other app |
+| `tab` | Next travel mode |
+
+Settings, `[extensions.maps]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `app` | `google`, `apple` | `google` | Which app the rows open; Apple Maps is macOS only. |
+| `home` | text | empty | The Home row, `home` in a route, "from home" directions. |
+| `work` | text | empty | Likewise; both set lists the commute. |
+| `places` | list | empty | `Name = address` per line; a line without `=` is both. |
+| `api_key` | secret | empty | Places API (New) key, for autocomplete. |
+
+For the tests, `PAL_MAPS_PLACES` replaces the Places host.
+
+## Speedtest (`speedtest`, `speedtest-history`)
+
+A speed test watched in the panel, run by the CLI installed, from
+`extensions/speedtest/`. A view palette: opening it draws the last result
+and which tool was found (Speedtest by Ookla, `speedtest-cli` or `fast`,
+in that order for `auto`; `speedtest` on PATH is told apart by its
+`--version`, since sivel's package installs an alias of that name), or
+the three install lines when none is; **nothing runs until Enter**.
+Enter spawns the tool in its own process group and the view follows its
+stream through `view.update`: a bar per direction with the live figure
+in Mbps (Ookla's own fraction fills it; the other two get an estimate
+from the elapsed time that stops short of full), the ping tiles (latency,
+jitter, loss when reported), the server and the ISP in the head, the
+elapsed time in the foot with a tick between the tool's lines. Enter
+while it runs stops it (SIGTERM to the group, SIGKILL a second later);
+a test past two minutes is stopped. `cmd+enter` copies the result as
+one line, `cmd+o` opens Ookla's result page, `cmd+h` opens the history;
+Escape leaves and a running test keeps running, the view catching up
+when reopened (`on: ["show"]` re-asks it, and a push lands when the
+level reports itself).
+
+Speedtest History (`speedtest-history`, live): every finished run,
+newest first, the last `keep` in `storage`, the figures and the ping as
+the name, the server, ISP and tool as the subtitle, the date on the
+right; `enter` copies the line, `cmd+o` opens the result page, `cmd+d`
+removes it, the last row clears after a confirm card. The first row,
+Trend, is a view of the last twenty runs as bars, download in blue and
+upload in green, each against the best of its own, the ping beside;
+Enter there copies the history as text.
+
+| keys | action |
+| --- | --- |
+| `enter` | Start the test; while it runs, stop it |
+| `cmd+enter` | Copy the result |
+| `cmd+o` | Open the result page (Ookla) |
+| `cmd+h` | History |
+| `cmd+d` | History: remove the run |
+
+Settings, `[extensions.speedtest]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `tool` | `auto`, `ookla`, `speedtest-cli`, `fast` | `auto` | Which CLI runs the test. |
+| `server` | text | empty | A speedtest.net server id; fast ignores it. |
+| `keep` | 1 to 200 | `30` | Runs the history holds. |
+
+For the tests, `PAL_SPEEDTEST_PATH` names a directory searched first for
+the three binaries.
+
+## YouTube (`youtube`, `youtube-channels`, `youtube-later`)
+
+YouTube searched from the panel, from `extensions/youtube/`. An input
+palette: 400 ms after the last key the videos come back with the
+thumbnail (`i.ytimg.com`, no key) as the icon and `channel · length ·
+views · age` as the subtitle (`live now` for a stream); nothing typed is
+the trending list for `region` under a Trending section; `yt: lofi` at
+the root answers inline, and a root query nothing matched offers "Search
+YouTube for …". `enter` opens the video in the browser, `cmd+enter` plays
+it in IINA, mpv or VLC (`player`; `auto` takes the first installed, the
+browser when none is; mpv and VLC need `yt-dlp`), `cmd+c` copies the url,
+`cmd+s` keeps it, `cmd+shift+o` opens the channel; the detail pane shows
+the bigger thumbnail, the channel as a link, the exact views and the
+date.
+
+YouTube Channels (`youtube-channels`, input): channels by name with the
+avatar, the subscriber count and the description; `enter` lists the
+channel's latest videos as a level of the search palette (what is typed
+there filters them), `cmd+enter` opens the channel. Subscriptions are not
+listed: they need a Google sign-in (OAuth), which pal does not do, and
+the empty palette says so.
+
+Watch Later (`youtube-later`, live, its rows at the root): what `cmd+s`
+kept, newest first, the last 200 in `storage`, the same actions and
+`cmd+d` to remove; the last row clears it after a confirm card.
+
+Backends: the Data API v3 with `api_key` (a Google Cloud key with the
+API enabled; 10,000 units a day, a search 100, so about a hundred
+searches), or an Invidious instance at `invidious_url` through
+`/api/v1` with no key; the key wins when both are set. Most public
+Invidious instances have turned the API off (on 2026-09-17 only
+`invidious.f5.si` of the listed ones answered), so a self-hosted one is
+the reliable choice; a refused key, a used-up quota, an instance that
+answers HTML or an error is one row naming the fix.
+
+| keys | action |
+| --- | --- |
+| `enter` | Open in the browser; on a channel, its latest videos |
+| `cmd+enter` | Play in the player; on a channel, open it |
+| `cmd+c` | Copy the url |
+| `cmd+s` | Watch later |
+| `cmd+shift+o` | Open the channel |
+| `cmd+d` | Watch Later: remove |
+
+Settings, `[extensions.youtube]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `api_key` | secret | empty | The Data API v3 key. |
+| `invidious_url` | text | empty | An Invidious instance serving its API. |
+| `player` | `auto`, `iina`, `mpv`, `vlc`, `browser` | `auto` | What `cmd+enter` plays in. |
+| `region` | text | empty | A two-letter country code for the trending list. |
+
+For the tests, `PAL_YOUTUBE_API` replaces the Data API host (the
+Invidious host is the setting) and `PAL_YOUTUBE_PATH` a directory
+searched first for the players.
