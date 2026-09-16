@@ -22,10 +22,10 @@
     },
     {
       "kind": "list",
-      "id": "bar_exclude",
-      "label": "Hide on the bar for",
+      "id": "exclude",
+      "label": "Leave to another extension",
       "placeholder": "Spotify",
-      "description": "Players the bar item ignores, by app name (Spotify, Music, Google Chrome) or player id (spotify, music, system); a player another extension's item already shows, say. The palette still lists them.",
+      "description": "Players this extension leaves to another (the Spotify extension's own item, say), by app name (Spotify, Music, Google Chrome) or player id (spotify, music, system): the bar item and the root's Now row skip them; the palette still lists them.",
       "default": []
     }
   ],

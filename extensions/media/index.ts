@@ -48,7 +48,7 @@ const POLL_MS = Number(process.env.PAL_MEDIA_POLL_MS) || 5000;
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
 type Player = MediaPlayer & { artwork_id?: string | null };
 type Playing = NowPlaying & { stream?: boolean };
-type Settings = { bar_artwork?: boolean; bar_exclude?: string[] };
+type Settings = { bar_artwork?: boolean; exclude?: string[] };
 /** `core/media.artwork`: the cover as a data url, and its own size (square or not). */
 type Artwork = { data: string; width: number; height: number };
 type Cover = { id: string; image: string; square: boolean };
@@ -149,12 +149,12 @@ function empty(systemWide: boolean): Item {
 
 const playing = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing");
 
-/** The players the bar item leaves to others (`bar_exclude`, by app name or player id, case-insensitive). */
+/** The players this extension leaves to another (`exclude`, by app name or player id, case-insensitive): the bar item and the Now row skip them, the palette lists them. */
 const excluded = (p: Player) => {
-  const list = (settings.get<Settings>(EXTENSION).bar_exclude ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const list = (settings.get<Settings>(EXTENSION).exclude ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean);
   return list.includes(p.id.toLowerCase()) || list.includes(p.name.toLowerCase()) || (p.app !== null && list.some((x) => p.app!.toLowerCase().includes(`/${x}.app`)));
 };
-/** The playing player the bar shows: the first playing one that is not excluded. */
+/** The playing player the bar and the Now row show: the first playing one that is not excluded. */
 const playingForBar = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing" && !excluded(p));
 
 /**
@@ -244,7 +244,7 @@ export default {
       placeholder: "Play, pause, skip",
       // The empty root's Now section: the playing track, nothing while nothing plays.
       suggest: async () => {
-        try { const p = playing(await media.nowPlaying()); return p ? [await item(p)] : []; } catch { return []; }
+        try { const p = playingForBar(await media.nowPlaying()); return p ? [await item(p)] : []; } catch { return []; }
       },
       list: async () => {
         try {

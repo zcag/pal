@@ -134,16 +134,18 @@ describe("media", () => {
       np = { players: [spotify, music, idle], system_wide: true };
     });
 
-    test("bar_exclude: a listed player is left to another item, by name, id or app; the palette still lists it", async () => {
+    test("exclude: a listed player is left to another extension on the bar and in the Now row, by name, id or app; the palette still lists it", async () => {
       np = { players: [spotify, music, idle], system_wide: true };
-      host.changeSettings("media", { settings: { bar_exclude: ["Spotify"] } });
+      host.changeSettings("media", { settings: { exclude: ["Spotify"] } });
       expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
-      host.changeSettings("media", { settings: { bar_exclude: ["spotify"] } });
+      host.changeSettings("media", { settings: { exclude: ["spotify"] } });
       expect(await host.render("media", "now-playing")).toMatchObject({ hidden: true });
       expect((await host.list("media", "media")).map((r) => r.id)).toContain("spotify");
-      host.changeSettings("media", { settings: { bar_exclude: ["Music"] } });
+      host.changeSettings("media", { settings: { exclude: ["Spotify"] } });
+      expect(await host.request("suggest", { extension: "media", palette: "media" })).toEqual([]);
+      host.changeSettings("media", { settings: { exclude: ["Music"] } });
       expect((await host.render("media", "now-playing")).title).toContain("Blue Monday");
-      host.changeSettings("media", { settings: { bar_exclude: [] } });
+      host.changeSettings("media", { settings: { exclude: [] } });
     });
 
     test("actions go to the playing player and keep the popover; copy and open", async () => {
