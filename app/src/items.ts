@@ -2,7 +2,7 @@
  * Adapts what the core sends per hit (a host item, fields pass through) to
  * the UI item model. Provisional, like the wire shape it reads.
  */
-import type { Accessory, Action, Detail, Icon, Item } from "./ui/types";
+import type { Accessory, Action, Detail, FilterOption, Icon, Item } from "./ui/types";
 
 /** `pal_core::index::Source`. */
 export type Source = { extension: string; palette: string };
@@ -36,15 +36,34 @@ export type SourceInfo = Source & {
   view?: "list" | "grid";
   columns?: number;
   placeholder?: string;
-  detail?: boolean;
+  /** Open with the detail pane showing. */
+  showDetail?: boolean;
+  /** The palette answers `detail(id)` for an item whose inline detail has no markdown. */
+  detail?: "lazy";
+  /** A scope dropdown inside the palette; first is the default. */
+  filters?: FilterOption[];
   count: number;
 };
 
-/** What a pick returns (`Effect` in host/protocol.ts); `copy` and `open` already ran in the core. */
-export type Effect = { copy?: string; open?: string; paste?: unknown; hide?: true; toast?: { title: string; message?: string; style?: "success" | "failure" }; keep?: true };
+/** How a level was opened (`Ctx` in host/protocol.ts): the filter picked, the args of the `push` that opened it. */
+export type Ctx = { filter?: string; args?: unknown };
 
-/** A toast needs the window; `keep` asks for it. Everything else hides. */
-export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r);
+/** What a pick returns (`Effect` in host/protocol.ts); `copy` and `open` already ran in the core. */
+export type Effect = {
+  copy?: string;
+  open?: string;
+  paste?: unknown;
+  hide?: true;
+  toast?: { title: string; message?: string; style?: "success" | "failure" };
+  keep?: true;
+  /** Drill in: a level scoped to that palette, its `list` given `args`. */
+  push?: { extension: string; palette: string; args?: unknown };
+  /** A detail-only level to read. */
+  show?: Detail & { title?: string };
+};
+
+/** A toast needs the window; `keep` asks for it; `push` and `show` open a level in it. Everything else hides. */
+export const staysOpen = (r: unknown): r is Effect => !!r && typeof r === "object" && ("keep" in r || "toast" in r || "push" in r || "show" in r);
 
 /** `Item.palette` for a source. Fixture rows (the gallery) have no extension and keep their bare palette name. */
 export const sourceKey = (s: Source) => (s.extension ? `${s.extension}/${s.palette}` : s.palette);
@@ -92,7 +111,12 @@ function detailOf(w: WireItem, paletteTitle: string): Detail {
 
 const safeHost = (url: string) => { try { return new URL(url).host; } catch { return url; } };
 
-export function toItem(hit: WireHit, paletteTitle: string): Item {
+/**
+ * `lazy`: the palette answers `detail(id)`. An item whose inline detail has
+ * no markdown then keeps what it has (or the generic one) and is marked to
+ * ask; the reply is merged over it (`mergeDetail`).
+ */
+export function toItem(hit: WireHit, paletteTitle: string, lazy = false): Item {
   const w = hit.item;
   const palette = sourceKey(hit.source);
   return {
@@ -106,10 +130,17 @@ export function toItem(hit: WireHit, paletteTitle: string): Item {
     section: w.section,
     accessories: w.accessories ?? (palette === PALETTES ? [{ text: "Palette" }] : typeof w.hex === "string" ? [{ tag: w.hex, color: w.hex }] : undefined),
     detail: w.detail ?? detailOf(w, paletteTitle),
+    lazyDetail: lazy && !w.detail?.markdown ? true : undefined,
     actions: w.actions,
   };
 }
 
+/** A `detail(id)` reply over the item's inline detail: what the reply has wins, the rest stays. */
+export const mergeDetail = (inline: Detail | undefined, reply: unknown): Detail => {
+  const r = reply && typeof reply === "object" ? (reply as Detail) : {};
+  return { markdown: r.markdown ?? inline?.markdown, metadata: r.metadata ?? inline?.metadata };
+};
+
 /** A host `list` reply as hits: unranked rows, in the order given, no match positions. */
-export const toLiveHits = (source: Source, items: WireItem[], paletteTitle: string) =>
-  items.map((item) => ({ item: toItem({ source, id: item.id, score: 0, name_positions: [], item }, paletteTitle) }));
+export const toLiveHits = (source: Source, items: WireItem[], paletteTitle: string, lazy = false) =>
+  items.map((item) => ({ item: toItem({ source, id: item.id, score: 0, name_positions: [], item }, paletteTitle, lazy) }));

@@ -2,7 +2,7 @@
  * Every component in every state, light and dark side by side. Opened with
  * `?gallery` in a normal browser against the Vite dev server.
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ActionPanel, Detail, Empty, Footer, Form, Grid, Hud, Kbd, List, Panel, Row, Search, Toast,
   grammar, groupBySection, useCursor, type Hit, type ToastSpec,
@@ -87,17 +87,26 @@ function StreamingList({ pool }: { pool: Item[] }) {
   );
 }
 
+/** The `cmds` rows as a lazy palette: metadata inline, the markdown answered 700 ms after the cursor rests. */
+const lazyFixture = (items: Item[]): Item[] => items.map((i) => (i.palette === "cmds" ? { ...i, detail: { metadata: i.detail?.metadata }, lazyDetail: true } : i));
+
 function Playground({ items }: { items: Item[] }) {
   const [hud, setHud] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const flash = (text: string) => { setHud(text); setTimeout(() => setHud(null), 1200); };
+  const lazy = useMemo(() => lazyFixture(items), [items]);
   return (
     <div className="g-playground">
-      <p className="g-note">Live: every key in the grammar works here. Enter and Escape at the root flash a HUD instead of hiding. Marks go to the console.</p>
+      <p className="g-note">Live: every key in the grammar works here. Enter and Escape at the root flash a HUD instead of hiding. Marks go to the console. Commands are a lazy-detail palette (skeleton, then markdown); a palette with a few sections has them as its filter dropdown (Tab cycles); Enter on a command opens a show level (its output), Enter on a bookmark a drill-in level (Commands, with args).</p>
       <div className="g-frame g-frame--live">
         <Launcher
-          items={items}
-          onPick={(item) => { flash(`Picked ${item.name}`); setLog((l) => [`pick ${item.id}`, ...l].slice(0, 5)); }}
+          items={lazy}
+          detail={(item) => new Promise((r) => setTimeout(() => r({ markdown: `# ${item.name}\n\nFetched on demand for \`${item.id}\`.\n\n\`\`\`\n${item.name}\n\`\`\``, metadata: item.detail?.metadata }), 700))}
+          onPick={(item, _q, action, ctx) => {
+            flash(`Picked ${item.name}`); setLog((l) => [`pick ${item.id}${action ? ` (${action})` : ""}${ctx?.args ? ` args=${JSON.stringify(ctx.args)}` : ""}`, ...l].slice(0, 5));
+            if (item.palette === "cmds" && !ctx?.args) return { show: { markdown: "```\n$ " + item.id + "\n" + Array.from({ length: 40 }, (_, i) => `[${String(i + 1).padStart(2, "0")}/40] ${item.name}: step ${i + 1} ok`).join("\n") + "\n```", title: `${item.name} output` } };
+            if (item.palette === "bookmarks" && !ctx?.args) return { push: { extension: "", palette: "cmds", args: { parent: item.id } } };
+          }}
           onHide={() => flash("Hidden")}
           mark={(name, t) => console.debug(name, Math.round(t))}
         />
@@ -177,6 +186,19 @@ export default function Gallery() {
         <State label="With detail pane (cmd+i)">
           <Pair panel><Panel search={<Search value="dep" onChange={noop} />} aside={<Detail detail={deploy.detail!} />} footer={<Footer icon={deploy.icon} title={deploy.name} primary={{ title: "Run" }} actions />}><DemoList items={mixed} /></Panel></Pair>
         </State>
+        <State label="Detail pane, lazy detail on its way: the metadata is inline, the markdown is being fetched">
+          <Pair panel><Panel search={<Search value="dep" onChange={noop} />} aside={<Detail detail={{ metadata: deploy.detail!.metadata }} loading />} footer={<Footer icon={deploy.icon} title={deploy.name} primary={{ title: "Run" }} actions />}><DemoList items={mixed} /></Panel></Pair>
+        </State>
+        <State label="Drilled into a palette with filters: the dropdown holds the palette's own scopes">
+          <Pair panel><Panel search={<Search value="" onChange={noop} back={{ title: "Pull requests", icon: { kind: "glyph", value: "󰘬" }, onBack: noop }} filter={{ options: [{ id: "all", title: "All" }, { id: "work", title: "Work (serpapi)" }, { id: "own", title: "Own repos" }, { id: "oss", title: "Out there (OSS)" }], value: "work", onChange: noop }} placeholder="Search Pull requests…" />} footer={<Footer title="4 of 11" primary={{ title: "Open PR" }} actions />}><DemoList items={byPalette("cmds", 6)} /></Panel></Pair>
+        </State>
+        <State label="Show level (a pick's output to read): the Detail full width, Back in the footer, arrows scroll">
+          <Pair panel>
+            <Panel search={<Search value="" onChange={noop} back={{ title: "Deploy output", onBack: noop }} placeholder="" readOnly />} footer={<Footer title="Deploy output" primary={{ title: "Back" }} />}>
+              <div className="pal-show" role="document"><Detail detail={{ markdown: "```\n" + Array.from({ length: 14 }, (_, i) => `[${String(i + 1).padStart(2, "0")}/14] deploying tela… step ${i + 1} ok`).join("\n") + "\n```" }} /></div>
+            </Panel>
+          </Pair>
+        </State>
         <State label="Empty results">
           <Pair panel><Panel search={<Search value="zzzz" onChange={noop} />} footer={<Footer title="0 of 14719" />}><Empty icon={{ kind: "glyph", value: "⌕" }} title="No results" hint="Try a different search" /></Panel></Pair>
         </State>
@@ -244,6 +266,7 @@ export default function Gallery() {
 
       <Section id="detail" title="Detail">
         <State label="Markdown and metadata"><Pair surface><Detail detail={deploy.detail!} /></Pair></State>
+        <State label="Loading (lazy markdown), metadata inline"><Pair surface><Detail detail={{ metadata: deploy.detail!.metadata }} loading /></Pair></State>
         <State label="Metadata only"><Pair surface><Detail detail={person.detail!} /></Pair></State>
         <State label="Markdown only"><Pair surface><Detail detail={markdownOnly} /></Pair></State>
       </Section>

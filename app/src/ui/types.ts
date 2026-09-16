@@ -58,6 +58,8 @@ export type Item = {
   section?: string;
   accessories?: Accessory[];
   detail?: Detail;
+  /** `detail` is what came inline; the rest is asked for when the pane rests on the item. */
+  lazyDetail?: boolean;
   actions?: Action[];
 };
 

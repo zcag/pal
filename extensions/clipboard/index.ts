@@ -104,7 +104,7 @@ export default {
       icon: "⎘",
       live: true,
       input: true,
-      detail: true,
+      showDetail: true,
       placeholder: "Search clipboard history",
       list: async (query = "") => {
         const s = settings.get<Settings>();

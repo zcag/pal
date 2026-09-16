@@ -206,6 +206,16 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-detail { display: flex; flex-direction: column; min-height: 100%; }
 .pal-detail__md { flex: 1; padding: var(--pal-space-4, 16px) var(--pal-space-5, 20px); line-height: var(--pal-leading-prose, 1.55); overflow-wrap: anywhere; }
 .pal-detail__meta { flex: none; margin: 0; padding: var(--pal-space-2, 8px) var(--pal-space-5, 20px); border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+/* Lazy detail on its way: text-shaped bars where the markdown will be, breathing so a slow one reads as alive, not stuck. */
+.pal-detail__skeleton { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); padding-top: calc(var(--pal-space-4, 16px) + 2px); }
+.pal-detail__skeleton > span { display: block; height: 0.8em; border-radius: var(--pal-radius-control, 6px); background: var(--pal-fg-faint, #868794); opacity: 0.22; animation: pal-breathe 1.4s var(--pal-ease, ease) infinite alternate; }
+.pal-detail__skeleton > span:nth-child(2) { animation-delay: 0.15s; }
+.pal-detail__skeleton > span:nth-child(3) { animation-delay: 0.3s; }
+.pal-detail__skeleton > span:nth-child(4) { animation-delay: 0.45s; }
+@keyframes pal-breathe { from { opacity: 0.14; } to { opacity: 0.3; } }
+/* A detail-only level (`Effect.show`): the Detail takes the body, full width, and scrolls. */
+.pal-show { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; outline: none; }
+.pal-search[data-readonly] .pal-search__input { caret-color: transparent; }
 .pal-meta { display: flex; justify-content: space-between; gap: var(--pal-space-3, 12px); padding: var(--pal-space-1, 4px) 0; font-size: var(--pal-text-sm, 12px); }
 .pal-meta__label { flex: none; color: var(--pal-fg-faint, #868794); }
 .pal-meta__value { margin: 0; min-width: 0; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--pal-space-1, 4px); text-align: right; overflow-wrap: anywhere; }
@@ -462,4 +472,5 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 /* tokens.css zeroes every --pal-dur-* under reduced motion; the loops here have their own durations. */
 @media (prefers-reduced-motion: reduce) {
   .pal-search[data-loading]::after { animation: none; }
+  .pal-detail__skeleton > span { animation: none; }
 }

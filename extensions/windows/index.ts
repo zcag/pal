@@ -1,9 +1,10 @@
-// Window switcher over the core's windows capability. An input palette:
-// `windows.list` runs on open and on every keystroke, so the rows are what
-// is open right now and the order is the desktop's (front to back on
-// macOS, most recently focused first on Hyprland), never a ranking. Enter
-// focuses (a `focus` effect: the panel hides, then the window comes up),
-// the rest of the actions close or minimise without leaving the palette.
+// Window switcher over the core's windows capability. A live palette:
+// `windows.list` runs every time the panel shows, so the rows are what is
+// open right now, in the index (window titles are root results, as in
+// Raycast), and the order is the desktop's (front to back on macOS, most
+// recently focused first on Hyprland), never a ranking. Enter focuses (a
+// `focus` effect: the panel hides, then the window comes up), the rest of
+// the actions close or minimise without leaving the palette.
 import type { Accessory, Action, Extension, Item } from "../../host/src/protocol.ts";
 import { settings, windows, type Window } from "../../host/src/api.ts";
 
@@ -16,12 +17,6 @@ const ACTIONS: Action[] = [
   { id: "minimize", title: "Minimize", shortcut: "cmd+m" },
 ];
 
-/** Every word of the query somewhere in the app name or the title. */
-function matches(w: Window, query: string): boolean {
-  const hay = `${w.app} ${w.title} ${w.bundle_or_class}`.toLowerCase();
-  return query.toLowerCase().split(/\s+/).filter(Boolean).every((word) => hay.includes(word));
-}
-
 function item(w: Window): Item {
   const accessories: Accessory[] = [];
   if (w.minimized) accessories.push({ tag: "minimized", color: "secondary" });
@@ -31,6 +26,7 @@ function item(w: Window): Item {
     id: w.id,
     name: w.title,
     subtitle: w.app,
+    keywords: [w.bundle_or_class],
     icon: w.icon ? { app: w.icon } : "▢",
     accessories,
     actions: w.minimized ? ACTIONS.filter((a) => a.id !== "minimize") : ACTIONS,
@@ -45,11 +41,10 @@ export default {
       title: "Windows",
       icon: "▣",
       live: true,
-      input: true,
       placeholder: "Switch to a window",
-      list: async (query = "") => {
+      list: async () => {
         const minimized = settings.get<Partial<Settings>>().include_minimized ?? true;
-        return (await windows.list()).filter((w) => (minimized || !w.minimized) && matches(w, query)).map(item);
+        return (await windows.list()).filter((w) => minimized || !w.minimized).map(item);
       },
       pick: async (id, action) => {
         switch (action) {

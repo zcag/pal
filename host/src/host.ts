@@ -15,7 +15,7 @@ import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { call, resolve as resolveCore } from "./bridge.ts";
 import { context, setRoots, update as updateSettings } from "./settings.ts";
-import type { Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingsChanged } from "./protocol.ts";
+import type { Ctx, Extension, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingsChanged } from "./protocol.ts";
 
 const VERSION = "0.0.1";
 const ROOTS = process.argv.slice(2).map((r) => resolve(r));
@@ -99,6 +99,7 @@ async function load(name: string) {
     if (!ext?.palettes) throw new Error("default export has no palettes");
     exts.set(name, ext);
     errors.delete(name);
+    for (const k of details.keys()) if (k.startsWith(`${name}/`)) details.delete(k);
     log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}) from ${f.root} in ${(performance.now() - t0).toFixed(1)}ms`);
     notify("extension/loaded", { extension: name, root: f.root, palettes: metas(ext), manifest });
   } catch (e) {
@@ -140,8 +141,18 @@ async function watchExtensions() {
 
 const metas = (ext: Extension): PaletteMeta[] =>
   Object.entries(ext.palettes).map(([name, p]) => ({
-    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder, detail: p.detail, filters: p.filters,
+    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder, showDetail: p.showDetail, filters: p.filters,
+    detail: typeof p.detail === "function" ? "lazy" : undefined,
   }));
+
+/**
+ * `detail(id)` answers, per palette, keyed by item id and the ctx that listed
+ * it; a `list` of that palette drops them (the items may be new), a reload of
+ * the extension too.
+ */
+const details = new Map<string, Map<string, Promise<unknown>>>();
+const paletteKey = (p: any) => `${p?.extension}/${p?.palette}`;
+const ctxOf = (p: any): Ctx | undefined => (p?.filter !== undefined || p?.args !== undefined ? { filter: p.filter, args: p.args } : undefined);
 
 function palette(p: any) {
   const ext = exts.get(p?.extension);
@@ -163,8 +174,27 @@ const methods: Record<string, (params: any) => unknown> = {
     extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: exts.has(name) ? metas(exts.get(name)!) : [] })),
     errors: Object.fromEntries(errors),
   }),
-  list: async (p) => ({ items: await inContext(p, () => palette(p).list(p.query, p.filter)) }),
-  pick: async (p) => (await inContext(p, () => palette(p).pick(p.id, p.action))) ?? {},
+  list: async (p) => {
+    details.delete(paletteKey(p));
+    return { items: await inContext(p, () => palette(p).list(p.query, ctxOf(p))) };
+  },
+  pick: async (p) => (await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {},
+  // `{}` when the palette has no `detail` or answers nothing: the UI keeps the inline one.
+  detail: (p) => {
+    const pal = palette(p);
+    if (!pal.detail) return {};
+    const key = paletteKey(p);
+    const cache = details.get(key) ?? new Map<string, Promise<unknown>>();
+    details.set(key, cache);
+    const k = `${JSON.stringify(ctxOf(p)?.args ?? null)}\0${p.id}`;
+    let r = cache.get(k);
+    if (!r) {
+      r = Promise.resolve(inContext(p, () => pal.detail!(p.id, ctxOf(p)))).then((d) => d ?? {});
+      cache.set(k, r);
+      r.catch(() => cache.delete(k));
+    }
+    return r;
+  },
   // Notification from the core: the resolved values of the named extensions.
   "settings/changed": (p: SettingsChanged) => {
     updateSettings(p.extensions);

@@ -126,6 +126,60 @@ down as it stabilises.
   parks the window on `special:minimized` and `focus` brings it back to the
   active workspace.
 
+- **Lazy detail is a palette method, `detail(id, ctx)`**, and the meta says
+  `detail: "lazy"` when it exists (host/protocol.ts `Palette`). The old
+  "open with the pane" flag is renamed `showDetail` so the two do not share
+  a name. The UI asks when the pane is open and the cursor has rested 100 ms
+  on an item whose inline detail has no markdown (`Item.lazyDetail`, set by
+  `items.ts` for a lazy palette); the reply is merged over the inline one
+  (markdown/metadata that came back win, the rest stays), a skeleton shows
+  only when the answer is slower than 150 ms more, and a reply for an item
+  the cursor has left is dropped. The host caches answers per palette and
+  item id (`details` in host.ts) until that palette lists again or its
+  extension reloads; the UI keeps them per level until the index changes.
+  `scripts`: v1 `preview` runs there now, on demand, `preview_max` (default
+  4) capping how many run at once; `prs` lists in ~40 ms instead of ~5.9 s,
+  one `gh pr view` per pane rest (~1 s, then cached).
+- **`list`/`pick`/`detail` take a trailing `ctx: { filter?, args? }`**
+  rather than more positional strings: how the palette was opened. On the
+  wire the two ride flat in the params (`filter`, `args`).
+- **Filters through the core.** `PaletteMeta.filters` passes through
+  `sources()`; inside a palette the Search dropdown holds them (Tab cycles),
+  the first is the default and is what a plain list runs with (the core
+  sends `filter: filters[0].id` explicitly, so an extension sees the same
+  id either way). An indexed palette is listed again per filter
+  (`index::filter`): the bucket is swapped for that filter's rows, each
+  filter's list kept until the palette lists again, so the second visit is
+  a swap; the page asks on every query and the core no-ops when the bucket
+  already holds that filter. The root sees the filtered bucket while the
+  user is inside (the filter resets to the first on leaving the level, and
+  the next query restores it). An input palette gets the filter with every
+  keystroke. Verified with `scripts/otp` (4) and `ha-states` (10).
+- **Drill-in envelopes.** `Effect.push: { extension, palette, args? }`
+  pushes a level scoped to that palette; a level with `args` is listed from
+  the extension on every keystroke (never from the index), `args` reach
+  `list`/`pick`/`detail` as `ctx.args`, and its picks are not remembered
+  (frecency is the parent's). `Effect.show: Detail & { title? }` pushes a
+  detail-only level: the Detail full width, the crumb and the footer's Back
+  (Enter or Escape pop), arrows and PageUp/Down scroll, the input read-only.
+  `scripts` maps v1 `{palette, env}` to `push` (env as args, exported to the
+  script again; the script's rows are kept per args so a root pick still
+  works after a drill-in listing) and v1 `show` to `show`.
+- **`keep` lists an indexed palette again** (`index::pick`), so "stay open
+  and list again" holds for every palette, not only input ones: a closed
+  window is gone from the next query.
+- **Live palettes at the root.** A `live` palette that is not `input`
+  (windows, otp) is in the index and listed again on every `pal://shown`
+  (`index::on_shown`), all at once, 2 s each, one `pal://index` at the end,
+  spawned after the event so the paint never waits: hotkey to paint stayed
+  at 1-4 ms with two live palettes; the relist itself is ~15-20 ms for
+  windows and ~300 ms for otp (its script reads the Messages db), and a
+  palette that misses the timeout keeps its old rows for that show.
+  `windows` is plain `live` now, so window titles are root results.
+- **Palette rows carry the extension title as subtitle** (Raycast shows the
+  extension name), left out when it equals the palette's title (Windows /
+  Windows). Root sections stay ordered by best hit.
+
 ## Open for Cagdas
 
 Things an agent could not decide alone; each waits for a call.
@@ -149,10 +203,12 @@ Things an agent could not decide alone; each waits for a call.
   say where they really live.
 - **`ssh` and `psg`** were v1 builtins and show as inert rows under `scripts`.
   Reimplement as real extensions (small: `~/.ssh/config` parser; `ps` + kill)?
-- **Windows at the root?** Raycast lists open windows as root results;
-  here they are drill-in only (`input: true` is the only way to re-list on
-  open without touching the UI). A root section needs a "re-list this
-  palette when the panel shows" hook in the index; worth adding?
+- **Live palettes relist on every show.** `otp` (a script) costs ~300 ms
+  of background work per show, after the paint; fine for two palettes, a
+  budget question once user extensions declare `live` freely. A per-palette
+  `ttl` (skip the relist when the last one is fresher) is the obvious knob.
+- **`show`'s metadata.** The show level renders the Detail, so v1's
+  `show.metadata` comes along; the brief said markdown only. Keep or drop?
 - **Focus without Accessibility.** The core can still activate the app
   (not the window) when the permission is missing; the effect shows the
   same toast as paste instead of half-doing it. Keep that, or activate and

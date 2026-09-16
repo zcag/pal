@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
-import type { Accessory, Action, Detail, Effect, Extension, Item, Palette } from "../../host/src/protocol.ts";
+import type { Accessory, Action, Ctx, Detail, Effect, Extension, Item, Palette } from "../../host/src/protocol.ts";
 import { settings } from "../../host/src/api.ts";
 
 type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number };
@@ -26,7 +26,7 @@ type V1Palette = Raw & {
 const HOME = homedir();
 const log = (...a: unknown[]) => console.error("[scripts]", ...a);
 const tilde = (p: string) => (p.startsWith("~/") ? HOME + p.slice(1) : p);
-const DEFAULTS: Settings = { config: "~/.config/pal/config.toml", skip: ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"], v1_repo: "~/proj/pal-v1", timeout: 30, preview_max: 50 };
+const DEFAULTS: Settings = { config: "~/.config/pal/config.toml", skip: ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"], v1_repo: "~/proj/pal-v1", timeout: 30, preview_max: 4 };
 const S: Settings = { ...DEFAULTS, ...settings.get<Partial<Settings>>("scripts") };
 settings.onChange(() => log("settings changed; restart the host to rediscover palettes"), "scripts");
 
@@ -135,8 +135,6 @@ function envelope(out: string): Raw | undefined {
   }
 }
 
-const unsupported = (what: string): Effect["toast"] => ({ title: "Not supported yet", message: `${what} from a v1 script`, style: "failure" });
-
 function effect(env?: Raw): Effect {
   if (!env) return {};
   const e: Effect = {};
@@ -147,8 +145,9 @@ function effect(env?: Raw): Effect {
   if (env.toast) e.toast = { title: String(env.toast.title ?? env.toast.message ?? ""), message: env.toast.title ? env.toast.message : undefined, style };
   // A hud after copy/open/close is v1's passive notification; a toast here would hold the window open.
   else if (typeof env.hud === "string" && e.copy === undefined && e.open === undefined && !env.close) e.toast = { title: env.hud };
-  if (env.show) e.toast = unsupported("show (a markdown view)");
-  if (env.palette) e.toast = unsupported(`a drill-down into ${env.palette}`);
+  // v1 `show` is a detail to read; `palette` (+ `env`) a drill-down into another v1 palette, which is one of ours.
+  if (env.show && typeof env.show === "object") e.show = { ...detail(env.show), title: typeof env.show.title === "string" ? env.show.title : undefined };
+  if (typeof env.palette === "string") e.push = { extension: "scripts", palette: env.palette, args: env.env && typeof env.env === "object" ? env.env : undefined };
   return e;
 }
 
@@ -191,7 +190,7 @@ const toActions = (actions: V1Action[]): Action[] =>
 
 const DEFAULT_TITLE: Record<string, string> = { copy: "Copy", open: "Open", cmd: "Run", type: "Paste" };
 
-function toItem(raw: Raw, p: Loaded, preview?: string): Item {
+function toItem(raw: Raw, p: Loaded): Item {
   const { icon_utf, icon_rc, icon_xdg, icon, accessories, detail: d, actions, preview: _p, ...rest } = raw;
   const id = String(raw.id ?? raw.name ?? "");
   const own = Array.isArray(actions) && actions.length ? toActions(actions) : p.actions;
@@ -201,7 +200,7 @@ function toItem(raw: Raw, p: Loaded, preview?: string): Item {
     name: String(raw.name ?? id),
     icon: glyph(icon_utf) ?? glyph(icon) ?? p.icon,
     accessories: Array.isArray(accessories) ? accessories.map(accessory).filter((a): a is Accessory => !!a) : undefined,
-    detail: detail(d, preview),
+    detail: detail(d),
     actions: own ?? (p.defaultTitle ? [{ id: "_default", title: p.defaultTitle }] : undefined),
   };
 }
@@ -212,9 +211,15 @@ type Loaded = {
   name: string; cfg: V1Palette; icon?: string; env: Env;
   exec?: string[]; dir?: string; data?: string;
   actions?: Action[]; defaultTitle?: string;
-  items: Map<string, Raw>;
+  /** The raw rows of the last list, by the args it ran with (a drill-in level lists apart from the root). */
+  items: Map<string, Map<string, Raw>>;
   cache?: { at: number; key: string; items: Item[] };
 };
+
+/** `Effect.push` args are v1's `env`: a string map, exported to the script as it is. */
+const argsEnv = (ctx?: Ctx): Env =>
+  ctx?.args && typeof ctx.args === "object" ? Object.fromEntries(Object.entries(ctx.args as Raw).filter(([, v]) => typeof v === "string")) : {};
+const argsKey = (ctx?: Ctx) => JSON.stringify(argsEnv(ctx));
 
 const inert = (name: string, subtitle: string): Palette => ({
   title: name, icon: "!",
@@ -222,47 +227,50 @@ const inert = (name: string, subtitle: string): Palette => ({
   pick: () => ({}),
 });
 
-async function listItems(p: Loaded, query?: string, filter?: string): Promise<Item[]> {
-  const key = `${query ?? ""}\0${filter ?? ""}`;
+async function listItems(p: Loaded, query?: string, ctx?: Ctx): Promise<Item[]> {
+  const filter = ctx?.filter;
+  const key = `${query ?? ""}\0${filter ?? ""}\0${argsKey(ctx)}`;
   const ttl = Number(p.cfg.ttl ?? 0) * 1000;
   if (p.cache && p.cache.key === key && Date.now() - p.cache.at < ttl) return p.cache.items;
-  const env: Env = { ...p.env, ...(filter !== undefined && { PAL_FILTER: filter }), ...(query !== undefined && { PAL_QUERY: query }) };
+  const env: Env = { ...p.env, ...argsEnv(ctx), ...(filter !== undefined && { PAL_FILTER: filter }), ...(query !== undefined && { PAL_QUERY: query }) };
   let rows: Raw[] = [];
   if (p.cfg.auto_list && p.data) rows = readData(p.data);
   else if (p.exec) rows = parseLines((await run(p.exec.concat("list"), { stdin: query, env, cwd: p.dir })).out);
   // v1's normalize_item: an id-less item gets its name, and pick sees it (PAL_ID, the stdin item).
   for (const r of rows) if (r.id === undefined && r.name !== undefined) r.id = r.name;
-  p.items = new Map(rows.map((r) => [String(r.id ?? ""), r]));
-  const previews = await previewAll(rows, env);
-  const items = rows.map((r, i) => toItem(r, p, previews[i]));
+  p.items.set(argsKey(ctx), new Map(rows.map((r) => [String(r.id ?? ""), r])));
+  const items = rows.map((r) => toItem(r, p));
   if (ttl) p.cache = { at: Date.now(), key, items };
   return items;
 }
 
+/** At most `preview_max` preview commands run at once; the rest wait their turn. */
+let previewsRunning = 0;
+const previewQueue: (() => void)[] = [];
+const previewSlot = () => (previewsRunning < S.preview_max ? (previewsRunning++, Promise.resolve()) : new Promise<void>((r) => previewQueue.push(() => (previewsRunning++, r()))));
+const previewDone = () => { previewsRunning--; previewQueue.shift()?.(); };
+
 /**
- * v1 `preview`: a shell command whose stdout is the detail markdown, meant
- * to run when a row is selected. Nothing asks lazily yet, so it runs at
- * list time, and only for short lists (S.preview_max), eight at a time.
+ * v1 `preview`: a shell command whose stdout is the detail markdown, run
+ * when the detail pane rests on the row (the host caches it per item until
+ * the next list). Rows without one answer nothing, so the inline detail stands.
  */
-async function previewAll(rows: Raw[], env: Env): Promise<(string | undefined)[]> {
-  const out: (string | undefined)[] = new Array(rows.length);
-  if (rows.length > S.preview_max || !rows.some((r) => typeof r.preview === "string")) return out;
-  let next = 0;
-  const worker = async () => {
-    for (let i = next++; i < rows.length; i = next++) {
-      if (typeof rows[i].preview !== "string") continue;
-      const r = await run(["bash", "-c", rows[i].preview], { env: { ...env, ...itemEnv(rows[i]) }, timeout: 10 });
-      if (r.ok) out[i] = r.out;
-    }
-  };
-  await Promise.all(Array.from({ length: 8 }, worker));
-  return out;
+async function detailItem(p: Loaded, id: string, ctx?: Ctx): Promise<Detail | void> {
+  const raw = p.items.get(argsKey(ctx))?.get(id);
+  if (!raw || typeof raw.preview !== "string" || S.preview_max <= 0) return;
+  await previewSlot();
+  try {
+    const r = await run(["bash", "-c", raw.preview], { env: { ...p.env, ...argsEnv(ctx), ...itemEnv(raw) }, timeout: 10 });
+    if (r.ok) return { markdown: r.out };
+  } finally {
+    previewDone();
+  }
 }
 
-async function pickItem(p: Loaded, id: string, actionId?: string): Promise<Effect> {
-  const raw = p.items.get(id);
+async function pickItem(p: Loaded, id: string, actionId?: string, ctx?: Ctx): Promise<Effect> {
+  const raw = p.items.get(argsKey(ctx))?.get(id);
   if (!raw) return { toast: { title: "Item not found", message: "List again and retry", style: "failure" } };
-  const env: Env = { ...p.env, ...itemEnv(raw) };
+  const env: Env = { ...p.env, ...argsEnv(ctx), ...itemEnv(raw) };
   const actions: V1Action[] = Array.isArray(raw.actions) && raw.actions.length ? raw.actions : p.cfg.actions ?? [];
   const action = actionId ? actions.find((a) => a.id === actionId || a.title === actionId) : actions.find((a) => a.primary) ?? actions[0];
   const pick = async () => (p.exec ? effect(envelope((await run(p.exec.concat("pick"), { stdin: JSON.stringify(raw), env, cwd: p.dir })).out)) : {});
@@ -357,10 +365,12 @@ function discover(): Record<string, Palette> {
       live: !!cfg.live,
       view: cfg.view === "grid" ? "grid" : undefined,
       columns: cfg.display?.columns,
-      detail: cfg.display?.detail || undefined,
+      showDetail: cfg.display?.detail || undefined,
       filters: cfg.filter?.map((f) => ({ id: f.id, title: f.name ?? f.id })),
-      list: (query, filter) => listItems(p, query, filter),
-      pick: (id, action) => pickItem(p, id, action),
+      list: (query, ctx) => listItems(p, query, ctx),
+      pick: (id, action, ctx) => pickItem(p, id, action, ctx),
+      // Only a script's rows can carry `preview`; a data file's never do.
+      ...(exec && { detail: (id: string, ctx?: Ctx) => detailItem(p, id, ctx) }),
     };
     report.push(`${name}: ${cfg.auto_list && data ? `data ${data}` : `script ${exec![0]}`}`);
   }

@@ -6,7 +6,7 @@
 // One JSON object per line, both directions. Requests carry an id, responses
 // echo it, notifications have none. Change freely.
 //
-// Both sides send requests: the core asks the host to `list`/`pick`, the host
+// Both sides send requests: the core asks the host to `list`/`pick`/`detail`, the host
 // asks the core for a capability with a `core/<capability>.<fn>` method
 // (`core/clipboard.list`), and each answers on its own output. A line is
 // classified by shape alone: a `method` makes it a request (with an id) or
@@ -91,14 +91,34 @@ export type Effect = {
   toast?: { title: string; message?: string; style?: "success" | "failure" };
   /** Stay open and list again. */
   keep?: true;
+  /**
+   * Drill in: the UI pushes a level scoped to that palette (any extension's).
+   * `args` reach its `list`/`pick`/`detail` as `ctx.args`, so a palette can
+   * list the children of the picked item; a level with args is always listed
+   * from the extension, never from the index.
+   */
+  push?: { extension: string; palette: string; args?: unknown };
+  /** Show output: the UI pushes a detail-only level (the Detail, full width; `title` is the level's crumb). */
+  show?: Detail & { title?: string };
 };
+
+/**
+ * How the palette was opened, given to `list`/`pick`/`detail`: the chosen
+ * `filter` id (absent means the first), and the `args` of an `Effect.push`
+ * that opened this level (absent at the root and on a plain drill-in).
+ */
+export type Ctx = { filter?: string; args?: unknown };
 
 export type Palette = {
   /** Section label at the root; the palette key otherwise. */
   title?: string;
   /** The palette's own row at the root; same forms as `Item.icon`. */
   icon?: string;
-  /** Arrival order is the order (OTP codes, tabs): never ranked by use. */
+  /**
+   * Arrival order is the order (OTP codes, tabs, windows): never ranked by
+   * use, and listed again every time the panel is shown so the rows are
+   * current at the root (with `input` the rows are never at the root anyway).
+   */
   live?: boolean;
   /** Inside the palette; the root is always a list. */
   view?: "list" | "grid";
@@ -111,11 +131,24 @@ export type Palette = {
   input?: boolean;
   placeholder?: string;
   /** Open with the detail pane showing. */
-  detail?: boolean;
-  /** A scope dropdown; the chosen id reaches `list` as `filter`. First is the default. */
+  showDetail?: boolean;
+  /**
+   * A scope dropdown; the chosen id reaches `list` as `ctx.filter`. First is
+   * the default. An indexed palette is listed again per filter (the core
+   * caches each until the palette re-lists); an input palette gets it with
+   * every keystroke.
+   */
   filters?: { id: string; title: string }[];
-  list(query?: string, filter?: string): Item[] | Promise<Item[]>;
-  pick(id: string, action?: string): Effect | void | Promise<Effect | void>;
+  list(query?: string, ctx?: Ctx): Item[] | Promise<Item[]>;
+  pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
+  /**
+   * The detail pane's content for one item, asked when the pane is open and
+   * the cursor rests on an item whose inline `detail` has no markdown (its
+   * metadata may be inline; what comes back is merged over it). The host
+   * caches the answer per item until the palette lists again. Declaring it
+   * makes the palette `detail: "lazy"` in its meta.
+   */
+  detail?(id: string, ctx?: Ctx): Detail | void | Promise<Detail | void>;
 };
 
 export type Extension = { palettes: Record<string, Palette> };
@@ -169,4 +202,11 @@ export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Re
 export type SettingsChanged = { extensions: Record<string, ResolvedSettings> };
 
 /** What `hello` and `extension/loaded` say about a palette. */
-export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "detail" | "filters"> & { name: string; title: string; live: boolean; input: boolean };
+export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "showDetail" | "filters"> & {
+  name: string;
+  title: string;
+  live: boolean;
+  input: boolean;
+  /** The palette answers `detail(id)`. */
+  detail?: "lazy";
+};

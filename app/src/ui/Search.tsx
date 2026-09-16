@@ -17,11 +17,13 @@ export type SearchProps = {
   /** What `listId` is; a Grid says "grid". */
   popup?: "listbox" | "grid";
   loading?: boolean;
+  /** A level with nothing to search (a detail-only view): the input stays for focus, but takes no text and shows no caret. */
+  readOnly?: boolean;
 };
 
-export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading }: SearchProps) {
+export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly }: SearchProps) {
   return (
-    <div className="pal-search" data-loading={loading || undefined} aria-busy={loading || undefined}>
+    <div className="pal-search" data-loading={loading || undefined} data-readonly={readOnly || undefined} aria-busy={loading || undefined}>
       {back && (
         <button type="button" className="pal-search__back" onClick={back.onBack} onMouseDown={keepFocus} aria-label={`Back from ${back.title}`} tabIndex={-1}>
           <span className="pal-search__chevron" aria-hidden>‹</span>
@@ -45,6 +47,7 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
         spellCheck={false}
         placeholder={placeholder}
         value={value}
+        readOnly={readOnly}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
       />
       {filter && (

@@ -32,12 +32,20 @@ function Meta({ m }: { m: Metadata }) {
   );
 }
 
-/** Side pane: rendered markdown above a metadata list. */
-export function Detail({ detail }: { detail: DetailSpec }) {
+/**
+ * Side pane: rendered markdown above a metadata list. `loading`: the
+ * markdown is on its way (a lazy detail); a skeleton stands in for it while
+ * the metadata, which is here already, shows as it is.
+ */
+export function Detail({ detail, loading }: { detail: DetailSpec; loading?: boolean }) {
   const html = useMemo(() => (detail.markdown ? (md.parse(detail.markdown) as string) : ""), [detail.markdown]);
   return (
-    <div className="pal-detail">
-      {html && <div className="pal-detail__md pal-md" dangerouslySetInnerHTML={{ __html: html }} />}
+    <div className="pal-detail" aria-busy={loading || undefined}>
+      {loading ? (
+        <div className="pal-detail__md pal-detail__skeleton" role="status" aria-label="Loading details">
+          <span style={{ width: "62%" }} /><span style={{ width: "88%" }} /><span style={{ width: "74%" }} /><span style={{ width: "40%" }} />
+        </div>
+      ) : html && <div className="pal-detail__md pal-md" dangerouslySetInnerHTML={{ __html: html }} />}
       {detail.metadata?.length ? (
         <dl className="pal-detail__meta">
           {detail.metadata.map((m, i) => <Meta key={i} m={m} />)}

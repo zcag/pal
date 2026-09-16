@@ -100,6 +100,8 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
         return;
     }
     let _ = app.emit("pal://shown", Shown { t0, palette });
+    // After the event: the live palettes list again off this thread.
+    index::on_shown(app);
 }
 
 fn toggle(app: &AppHandle) {
@@ -153,6 +155,8 @@ pub fn run() {
             index::query,
             index::sources,
             index::pick,
+            index::detail,
+            index::filter,
             settings::settings_get,
             settings::settings_set,
             settings::settings_unset,
