@@ -1,0 +1,934 @@
+{
+  "palettes": {
+    "window-management": {
+      "title": "Window Management",
+      "live": false,
+      "input": false,
+      "icon": "◧",
+      "placeholder": "Left half, maximize, center...",
+      "items": [
+        {
+          "id": "left_half",
+          "name": "Left Half",
+          "subtitle": "Focused window",
+          "icon": "◧",
+          "keywords": [
+            "half",
+            "left",
+            "split"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "right_half",
+          "name": "Right Half",
+          "subtitle": "Focused window",
+          "icon": "◨",
+          "keywords": [
+            "half",
+            "right",
+            "split"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "top_half",
+          "name": "Top Half",
+          "subtitle": "Focused window",
+          "icon": "⬒",
+          "keywords": [
+            "half",
+            "top",
+            "up"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "bottom_half",
+          "name": "Bottom Half",
+          "subtitle": "Focused window",
+          "icon": "⬓",
+          "keywords": [
+            "half",
+            "bottom",
+            "down"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "left_third",
+          "name": "Left Third",
+          "subtitle": "Focused window",
+          "icon": "◂⅓",
+          "keywords": [
+            "third",
+            "left",
+            "first"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "center_third",
+          "name": "Center Third",
+          "subtitle": "Focused window",
+          "icon": "⅓",
+          "keywords": [
+            "third",
+            "center",
+            "middle"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "right_third",
+          "name": "Right Third",
+          "subtitle": "Focused window",
+          "icon": "⅓▸",
+          "keywords": [
+            "third",
+            "right",
+            "last"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "left_two_thirds",
+          "name": "Left Two Thirds",
+          "subtitle": "Focused window",
+          "icon": "◂⅔",
+          "keywords": [
+            "thirds",
+            "left",
+            "first"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "right_two_thirds",
+          "name": "Right Two Thirds",
+          "subtitle": "Focused window",
+          "icon": "⅔▸",
+          "keywords": [
+            "thirds",
+            "right",
+            "last"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "top_left_quarter",
+          "name": "Top Left Quarter",
+          "subtitle": "Focused window",
+          "icon": "◰",
+          "keywords": [
+            "quarter",
+            "corner",
+            "top",
+            "left"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "top_right_quarter",
+          "name": "Top Right Quarter",
+          "subtitle": "Focused window",
+          "icon": "◳",
+          "keywords": [
+            "quarter",
+            "corner",
+            "top",
+            "right"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "bottom_left_quarter",
+          "name": "Bottom Left Quarter",
+          "subtitle": "Focused window",
+          "icon": "◱",
+          "keywords": [
+            "quarter",
+            "corner",
+            "bottom",
+            "left"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "bottom_right_quarter",
+          "name": "Bottom Right Quarter",
+          "subtitle": "Focused window",
+          "icon": "◲",
+          "keywords": [
+            "quarter",
+            "corner",
+            "bottom",
+            "right"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "maximize",
+          "name": "Maximize",
+          "subtitle": "Focused window",
+          "icon": "⛶",
+          "keywords": [
+            "full",
+            "fill",
+            "big",
+            "zoom"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "almost_maximize",
+          "name": "Almost Maximize",
+          "subtitle": "Focused window",
+          "icon": "▣",
+          "keywords": [
+            "full",
+            "fill",
+            "big",
+            "large"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "center",
+          "name": "Center",
+          "subtitle": "Focused window",
+          "icon": "⊡",
+          "keywords": [
+            "centre",
+            "middle"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "reasonable_size",
+          "name": "Reasonable Size",
+          "subtitle": "Focused window",
+          "icon": "▢",
+          "keywords": [
+            "small",
+            "medium",
+            "shrink"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "next_display",
+          "name": "Next Display",
+          "subtitle": "Focused window",
+          "icon": "⇨",
+          "keywords": [
+            "screen",
+            "monitor",
+            "move",
+            "other"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "previous_display",
+          "name": "Previous Display",
+          "subtitle": "Focused window",
+          "icon": "⇦",
+          "keywords": [
+            "screen",
+            "monitor",
+            "move",
+            "other"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "restore",
+          "name": "Restore",
+          "subtitle": "Focused window",
+          "icon": "↺",
+          "keywords": [
+            "undo",
+            "back",
+            "previous",
+            "original"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
+            }
+          ]
+        }
+      ],
+      "levels": {
+        "w3": [
+          {
+            "id": "left_half",
+            "name": "Left Half",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◧",
+            "keywords": [
+              "half",
+              "left",
+              "split"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "right_half",
+            "name": "Right Half",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◨",
+            "keywords": [
+              "half",
+              "right",
+              "split"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "top_half",
+            "name": "Top Half",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⬒",
+            "keywords": [
+              "half",
+              "top",
+              "up"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "bottom_half",
+            "name": "Bottom Half",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⬓",
+            "keywords": [
+              "half",
+              "bottom",
+              "down"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "left_third",
+            "name": "Left Third",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◂⅓",
+            "keywords": [
+              "third",
+              "left",
+              "first"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "center_third",
+            "name": "Center Third",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⅓",
+            "keywords": [
+              "third",
+              "center",
+              "middle"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "right_third",
+            "name": "Right Third",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⅓▸",
+            "keywords": [
+              "third",
+              "right",
+              "last"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "left_two_thirds",
+            "name": "Left Two Thirds",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◂⅔",
+            "keywords": [
+              "thirds",
+              "left",
+              "first"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "right_two_thirds",
+            "name": "Right Two Thirds",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⅔▸",
+            "keywords": [
+              "thirds",
+              "right",
+              "last"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "top_left_quarter",
+            "name": "Top Left Quarter",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◰",
+            "keywords": [
+              "quarter",
+              "corner",
+              "top",
+              "left"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "top_right_quarter",
+            "name": "Top Right Quarter",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◳",
+            "keywords": [
+              "quarter",
+              "corner",
+              "top",
+              "right"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "bottom_left_quarter",
+            "name": "Bottom Left Quarter",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◱",
+            "keywords": [
+              "quarter",
+              "corner",
+              "bottom",
+              "left"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "bottom_right_quarter",
+            "name": "Bottom Right Quarter",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "◲",
+            "keywords": [
+              "quarter",
+              "corner",
+              "bottom",
+              "right"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "maximize",
+            "name": "Maximize",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⛶",
+            "keywords": [
+              "full",
+              "fill",
+              "big",
+              "zoom"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "almost_maximize",
+            "name": "Almost Maximize",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "▣",
+            "keywords": [
+              "full",
+              "fill",
+              "big",
+              "large"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "center",
+            "name": "Center",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⊡",
+            "keywords": [
+              "centre",
+              "middle"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "reasonable_size",
+            "name": "Reasonable Size",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "▢",
+            "keywords": [
+              "small",
+              "medium",
+              "shrink"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "next_display",
+            "name": "Next Display",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⇨",
+            "keywords": [
+              "screen",
+              "monitor",
+              "move",
+              "other"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "previous_display",
+            "name": "Previous Display",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "⇦",
+            "keywords": [
+              "screen",
+              "monitor",
+              "move",
+              "other"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          },
+          {
+            "id": "restore",
+            "name": "Restore",
+            "subtitle": "Pull Request #42 · acme/widgets",
+            "icon": "↺",
+            "keywords": [
+              "undo",
+              "back",
+              "previous",
+              "original"
+            ],
+            "actions": [
+              {
+                "id": "apply",
+                "title": "Apply"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "arrange": {
+      "title": "Arrange Window",
+      "live": false,
+      "input": true,
+      "icon": "▢",
+      "placeholder": "Which window?",
+      "items": [
+        {
+          "id": "w1",
+          "name": "~/proj/widgets",
+          "subtitle": "kitty",
+          "keywords": [
+            "net.kovidgoyal.kitty"
+          ],
+          "icon": {
+            "app": "/Applications/kitty.app"
+          },
+          "accessories": [],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Arrange"
+            }
+          ]
+        },
+        {
+          "id": "w3",
+          "name": "Pull Request #42 · acme/widgets",
+          "subtitle": "Google Chrome",
+          "keywords": [
+            "com.google.Chrome"
+          ],
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "accessories": [],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Arrange"
+            }
+          ]
+        },
+        {
+          "id": "w4",
+          "name": "Release notes - Google Docs",
+          "subtitle": "Google Chrome",
+          "keywords": [
+            "com.google.Chrome"
+          ],
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "accessories": [
+            {
+              "text": "Display 2"
+            }
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Arrange"
+            }
+          ]
+        },
+        {
+          "id": "w6",
+          "name": "Downloads",
+          "subtitle": "Finder",
+          "keywords": [
+            "com.apple.finder"
+          ],
+          "icon": {
+            "app": "/System/Library/CoreServices/Finder.app"
+          },
+          "accessories": [],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Arrange"
+            }
+          ]
+        },
+        {
+          "id": "w7",
+          "name": "index.ts - widgets",
+          "subtitle": "Code",
+          "keywords": [
+            "com.microsoft.VSCode"
+          ],
+          "icon": {
+            "app": "/Applications/Visual Studio Code.app"
+          },
+          "accessories": [],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Arrange"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "arrange/w3": {
+      "push": {
+        "extension": "",
+        "palette": "window-management",
+        "args": "w3"
+      }
+    }
+  },
+  "shots": {
+    "1-layouts": {
+      "palette": "window-management",
+      "keys": [
+        "down*4"
+      ]
+    },
+    "2-search": {
+      "palette": "window-management",
+      "keys": [
+        "type:quarter"
+      ]
+    },
+    "3-arrange": {
+      "palette": "arrange",
+      "keys": [
+        "down"
+      ]
+    },
+    "4-target": {
+      "palette": "arrange",
+      "keys": [
+        "down",
+        "enter",
+        "wait:300",
+        "down*8"
+      ]
+    }
+  }
+}

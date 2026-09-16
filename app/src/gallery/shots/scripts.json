@@ -1,0 +1,260 @@
+{
+ "palettes": {
+  "links": {
+   "title": "links",
+   "icon": "🔗",
+   "items": [
+    {
+     "name": "Home Assistant",
+     "url": "http://homeassistant.local:8123",
+     "keywords": [
+      "ha",
+      "home"
+     ],
+     "section": "Home",
+     "id": "Home Assistant",
+     "icon": "🔗",
+     "actions": [
+      {
+       "id": "open",
+       "title": "Open"
+      },
+      {
+       "id": "copy",
+       "title": "Copy link",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "name": "Router",
+     "url": "http://192.168.1.1",
+     "subtitle": "admin page",
+     "section": "Home",
+     "id": "Router",
+     "icon": "🔗",
+     "actions": [
+      {
+       "id": "open",
+       "title": "Open"
+      },
+      {
+       "id": "copy",
+       "title": "Copy link",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "name": "Grafana",
+     "url": "https://grafana.example.com",
+     "subtitle": "dashboards",
+     "section": "Work",
+     "id": "Grafana",
+     "icon": "🔗",
+     "actions": [
+      {
+       "id": "open",
+       "title": "Open"
+      },
+      {
+       "id": "copy",
+       "title": "Copy link",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "name": "CI",
+     "url": "https://ci.acme.dev",
+     "subtitle": "pipelines",
+     "section": "Work",
+     "id": "CI",
+     "icon": "🔗",
+     "actions": [
+      {
+       "id": "open",
+       "title": "Open"
+      },
+      {
+       "id": "copy",
+       "title": "Copy link",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "name": "Docs",
+     "url": "https://docs.acme.dev",
+     "section": "Work",
+     "id": "Docs",
+     "icon": "📚",
+     "actions": [
+      {
+       "id": "open",
+       "title": "Open"
+      },
+      {
+       "id": "copy",
+       "title": "Copy link",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "name": "GitHub",
+     "url": "https://github.com",
+     "section": "Work",
+     "id": "GitHub",
+     "icon": "🐙",
+     "actions": [
+      {
+       "id": "open",
+       "title": "Open"
+      },
+      {
+       "id": "copy",
+       "title": "Copy link",
+       "shortcut": "cmd+c"
+      }
+     ]
+    }
+   ]
+  },
+  "cmds": {
+   "title": "cmds",
+   "icon": "$",
+   "items": [
+    {
+     "id": "deploy",
+     "name": "Deploy site",
+     "subtitle": "rsync dist/ to web-1",
+     "section": "Deploy",
+     "icon": "🚀",
+     "accessories": [
+      {
+       "tag": "prod",
+       "color": "red"
+      }
+     ],
+     "actions": [
+      {
+       "id": "_default",
+       "title": "Select"
+      }
+     ]
+    },
+    {
+     "id": "deploy-staging",
+     "name": "Deploy staging",
+     "subtitle": "rsync dist/ to staging",
+     "section": "Deploy",
+     "icon": "🚀",
+     "accessories": [
+      {
+       "tag": "staging",
+       "color": "amber"
+      }
+     ],
+     "actions": [
+      {
+       "id": "_default",
+       "title": "Select"
+      }
+     ]
+    },
+    {
+     "id": "backup",
+     "name": "Backup now",
+     "subtitle": "restic backup ~",
+     "section": "Maintenance",
+     "icon": "💾",
+     "actions": [
+      {
+       "id": "_default",
+       "title": "Select"
+      }
+     ]
+    },
+    {
+     "id": "update",
+     "name": "Update packages",
+     "subtitle": "brew upgrade",
+     "section": "Maintenance",
+     "icon": "⬆",
+     "actions": [
+      {
+       "id": "_default",
+       "title": "Select"
+      }
+     ]
+    },
+    {
+     "id": "theme",
+     "name": "Toggle theme",
+     "subtitle": "theme toggle",
+     "section": "Desktop",
+     "icon": "◐",
+     "accessories": [
+      {
+       "text": "dark"
+      }
+     ],
+     "actions": [
+      {
+       "id": "_default",
+       "title": "Select"
+      }
+     ]
+    },
+    {
+     "id": "screensaver",
+     "name": "Start screen saver",
+     "section": "Desktop",
+     "icon": "🌙",
+     "actions": [
+      {
+       "id": "_default",
+       "title": "Select"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "effects": {
+  "cmds/deploy": {
+   "keep": true,
+   "toast": {
+    "title": "Ran deploy",
+    "message": "exit 0"
+   }
+  }
+ },
+ "shots": {
+  "1-data-file": {
+   "palette": "links",
+   "keys": [
+    "down"
+   ]
+  },
+  "2-script": {
+   "palette": "cmds",
+   "keys": [
+    "down"
+   ]
+  },
+  "3-root": {
+   "keys": [
+    "type:deploy"
+   ]
+  },
+  "4-actions": {
+   "palette": "links",
+   "keys": [
+    "down*2",
+    "cmd+k"
+   ]
+  }
+ }
+}

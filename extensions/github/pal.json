@@ -7,21 +7,335 @@
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "secret", "id": "token", "label": "Token", "description": "A personal access token (repo, notifications, read:org). Leave empty to use the gh CLI's login.", "placeholder": "ghp_...", "default": "" },
-    { "kind": "text", "id": "default_org", "label": "Organisation", "description": "An organisation whose recently pushed repositories are listed, and an owner the Create Repository form offers.", "placeholder": "acme", "default": "" },
-    { "kind": "path", "id": "repos_root", "label": "Clones folder", "pick": "folder", "description": "Where your clones live (<root>/<name> or <root>/<owner>/<name>): enables Checkout on a pull request and Open in editor on a repository.", "placeholder": "~/proj", "default": "" },
-    { "kind": "select", "id": "clone_protocol", "label": "Clone URL", "description": "What Copy clone URL copies.", "options": [{ "id": "ssh", "title": "SSH (git@github.com:...)" }, { "id": "https", "title": "HTTPS" }], "default": "ssh" },
-    { "kind": "number", "id": "merged_days", "label": "Merged within", "description": "How far back the Merged list of Pull Requests reaches.", "min": 1, "max": 90, "unit": "days", "default": 7 },
-    { "kind": "select", "id": "merge_method", "label": "Merge method", "description": "How the Merge action merges.", "options": [{ "id": "merge", "title": "Merge commit" }, { "id": "squash", "title": "Squash" }, { "id": "rebase", "title": "Rebase" }], "default": "merge" }
+    {
+      "kind": "secret",
+      "id": "token",
+      "label": "Token",
+      "description": "A personal access token (repo, notifications, read:org). Leave empty to use the gh CLI's login.",
+      "placeholder": "ghp_...",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "default_org",
+      "label": "Organisation",
+      "description": "An organisation whose recently pushed repositories are listed, and an owner the Create Repository form offers.",
+      "placeholder": "acme",
+      "default": ""
+    },
+    {
+      "kind": "path",
+      "id": "repos_root",
+      "label": "Clones folder",
+      "pick": "folder",
+      "description": "Where your clones live (<root>/<name> or <root>/<owner>/<name>): enables Checkout on a pull request and Open in editor on a repository.",
+      "placeholder": "~/proj",
+      "default": ""
+    },
+    {
+      "kind": "select",
+      "id": "clone_protocol",
+      "label": "Clone URL",
+      "description": "What Copy clone URL copies.",
+      "options": [
+        {
+          "id": "ssh",
+          "title": "SSH (git@github.com:...)"
+        },
+        {
+          "id": "https",
+          "title": "HTTPS"
+        }
+      ],
+      "default": "ssh"
+    },
+    {
+      "kind": "number",
+      "id": "merged_days",
+      "label": "Merged within",
+      "description": "How far back the Merged list of Pull Requests reaches.",
+      "min": 1,
+      "max": 90,
+      "unit": "days",
+      "default": 7
+    },
+    {
+      "kind": "select",
+      "id": "merge_method",
+      "label": "Merge method",
+      "description": "How the Merge action merges.",
+      "options": [
+        {
+          "id": "merge",
+          "title": "Merge commit"
+        },
+        {
+          "id": "squash",
+          "title": "Squash"
+        },
+        {
+          "id": "rebase",
+          "title": "Rebase"
+        }
+      ],
+      "default": "merge"
+    }
   ],
   "palettes": {
-    "prs": { "title": "Pull Requests", "description": "Yours, the ones waiting on your review, and what merged lately.", "ttl": 300 },
-    "issues": { "title": "Issues", "description": "Assigned to you, mentioning you, opened by you; Create Issue.", "ttl": 300 },
-    "repos": { "title": "Repositories", "description": "Yours, starred, and your organisation's recently pushed.", "ttl": 300 },
-    "notifications": { "title": "Notifications", "description": "Unread, by reason; opening one marks it read.", "ttl": 60 },
-    "search": { "title": "Search GitHub", "description": "GitHub's search syntax over issues, pull requests, repositories and users." }
+    "prs": {
+      "title": "Pull Requests",
+      "description": "Yours, the ones waiting on your review, and what merged lately.",
+      "ttl": 300,
+      "kind": "list",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the pull request"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy its URL"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Checkout the branch"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Merge"
+        }
+      ]
+    },
+    "issues": {
+      "title": "Issues",
+      "description": "Assigned to you, mentioning you, opened by you; Create Issue.",
+      "ttl": 300,
+      "kind": "list",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the issue"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy its URL"
+        },
+        {
+          "keys": "cmd+shift+x",
+          "title": "Close it"
+        }
+      ]
+    },
+    "repos": {
+      "title": "Repositories",
+      "description": "Yours, starred, and your organisation's recently pushed.",
+      "ttl": 300,
+      "kind": "list",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open on GitHub"
+        },
+        {
+          "keys": "cmd+e",
+          "title": "Open the clone in the editor"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the clone URL"
+        }
+      ]
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Unread, by reason; opening one marks it read.",
+      "ttl": 60,
+      "kind": "live",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Mark read and open"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Mark as read"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Mark all as read"
+        }
+      ]
+    },
+    "search": {
+      "title": "Search GitHub",
+      "description": "GitHub's search syntax over issues, pull requests, repositories and users.",
+      "kind": "input",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open what was found"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy its URL"
+        },
+        {
+          "keys": "tab",
+          "title": "Everything, Issues and PRs, Repositories, Users"
+        }
+      ]
+    }
   },
   "bar": {
-    "notifications": { "title": "Notifications", "description": "The unread count as a badge, hidden at zero; the newest five and Mark all read in the popover.", "refresh": { "every": 300, "on": ["show", "wake", "network"] } }
+    "notifications": {
+      "title": "Notifications",
+      "description": "The unread count as a badge, hidden at zero; the newest five and Mark all read in the popover.",
+      "refresh": {
+        "every": 300,
+        "on": [
+          "show",
+          "wake",
+          "network"
+        ]
+      }
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "Your pull requests, issues, repositories and notifications as rows, and GitHub's search typed into the panel.",
+    "category": "developer",
+    "features": [
+      "Pull Requests: yours, the ones waiting on your review, and what merged this week, with the checks, the review decision and a draft or conflicts tag on the row",
+      "The detail pane on a pull request or issue: the body, the latest comments and reviews, every check by name, who approved",
+      "Repositories: yours, your organisation's recently pushed and your stars; `cmd+e` opens the local clone in the editor",
+      "Notifications by reason, newest first; `enter` marks the thread read and opens it, `cmd+shift+a` marks all read",
+      "Search GitHub as you type: `repo:acme/widgets is:pr`, `author:mara`, `label:bug`, results sectioned by kind",
+      "Create Issue and Create Repository as forms; Checkout branch and Merge from the row"
+    ],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-prs.png",
+        "caption": "Pull Requests: Mine, Review requested and Merged, with the checks and the review decision on each row"
+      },
+      {
+        "file": "2-pr-detail.png",
+        "caption": "The pane a pull request opens with: the body, the latest comments and reviews, every check by name"
+      },
+      {
+        "file": "3-notifications.png",
+        "caption": "Notifications by reason, newest first; the first row is the unread count"
+      },
+      {
+        "file": "4-search.png",
+        "caption": "Search GitHub: repositories, issues, pull requests and users for one query"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Open",
+        "description": "The pull request, issue, repository, notification or profile on GitHub; a notification is marked read first.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy URL",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Checkout branch",
+        "description": "gh pr checkout in the clone under repos_root.",
+        "keys": "cmd+shift+o"
+      },
+      {
+        "title": "Copy branch name",
+        "keys": "cmd+shift+b"
+      },
+      {
+        "title": "Open checks",
+        "keys": "cmd+shift+k"
+      },
+      {
+        "title": "Open files changed",
+        "keys": "cmd+shift+f"
+      },
+      {
+        "title": "Copy reference",
+        "description": "owner/repo#n."
+      },
+      {
+        "title": "Mark ready for review",
+        "description": "On a draft.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Merge",
+        "description": "With merge_method; asks first.",
+        "keys": "cmd+shift+m"
+      },
+      {
+        "title": "Close issue",
+        "description": "Asks first.",
+        "keys": "cmd+shift+x"
+      },
+      {
+        "title": "Create Issue",
+        "description": "A form: repository, title, body."
+      },
+      {
+        "title": "Open in editor",
+        "description": "The local clone, in code or the system opener.",
+        "keys": "cmd+e"
+      },
+      {
+        "title": "Open folder",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Copy clone URL",
+        "description": "ssh or https, per clone_protocol.",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Copy owner/name"
+      },
+      {
+        "title": "Open issues"
+      },
+      {
+        "title": "Open pull requests"
+      },
+      {
+        "title": "Create Repository",
+        "description": "A form: owner, name, description, private."
+      },
+      {
+        "title": "Mark as read",
+        "description": "Without opening.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Mark all as read",
+        "description": "Asks first.",
+        "keys": "cmd+shift+a"
+      },
+      {
+        "title": "Open profile",
+        "description": "A user found by Search.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy login",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Open repositories"
+      }
+    ]
   }
 }

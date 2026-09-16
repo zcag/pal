@@ -1,0 +1,328 @@
+{
+ "palettes": {
+  "ssh": {
+   "title": "SSH Hosts",
+   "icon": "󰒋",
+   "placeholder": "Connect to a host",
+   "items": [
+    {
+     "id": "web-1",
+     "name": "web-1",
+     "subtitle": "web-1.example.com",
+     "keywords": [
+      "web-1.example.com",
+      "deploy"
+     ],
+     "icon": "󰒋",
+     "accessories": [
+      {
+       "text": "deploy"
+      }
+     ],
+     "section": ".ssh/config",
+     "actions": [
+      {
+       "id": "connect",
+       "title": "Connect"
+      },
+      {
+       "id": "copy-host",
+       "title": "Copy host",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "copy-command",
+       "title": "Copy ssh command",
+       "shortcut": "cmd+shift+c"
+      },
+      {
+       "id": "ping",
+       "title": "Ping",
+       "shortcut": "cmd+p"
+      }
+     ]
+    },
+    {
+     "id": "web-2",
+     "name": "web-2",
+     "subtitle": "web-2.example.com",
+     "keywords": [
+      "web-2.example.com",
+      "deploy"
+     ],
+     "icon": "󰒋",
+     "accessories": [
+      {
+       "text": "deploy"
+      }
+     ],
+     "section": ".ssh/config",
+     "actions": [
+      {
+       "id": "connect",
+       "title": "Connect"
+      },
+      {
+       "id": "copy-host",
+       "title": "Copy host",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "copy-command",
+       "title": "Copy ssh command",
+       "shortcut": "cmd+shift+c"
+      },
+      {
+       "id": "ping",
+       "title": "Ping",
+       "shortcut": "cmd+p"
+      }
+     ]
+    },
+    {
+     "id": "db",
+     "name": "db",
+     "subtitle": "db.internal.example.com",
+     "keywords": [
+      "db.internal.example.com",
+      "postgres",
+      "bastion"
+     ],
+     "icon": "󰒋",
+     "accessories": [
+      {
+       "text": "postgres"
+      },
+      {
+       "tag": ":2222"
+      },
+      {
+       "tag": "via bastion",
+       "color": "blue"
+      }
+     ],
+     "section": ".ssh/config",
+     "actions": [
+      {
+       "id": "connect",
+       "title": "Connect"
+      },
+      {
+       "id": "copy-host",
+       "title": "Copy host",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "copy-command",
+       "title": "Copy ssh command",
+       "shortcut": "cmd+shift+c"
+      },
+      {
+       "id": "copy-jump",
+       "title": "Copy ssh -J command",
+       "shortcut": "cmd+shift+j"
+      },
+      {
+       "id": "ping",
+       "title": "Ping",
+       "shortcut": "cmd+p"
+      }
+     ]
+    },
+    {
+     "id": "bastion",
+     "name": "bastion",
+     "subtitle": "bastion.example.com",
+     "keywords": [
+      "bastion.example.com",
+      "ops"
+     ],
+     "icon": "󰒋",
+     "accessories": [
+      {
+       "text": "ops"
+      }
+     ],
+     "section": ".ssh/config",
+     "actions": [
+      {
+       "id": "connect",
+       "title": "Connect"
+      },
+      {
+       "id": "copy-host",
+       "title": "Copy host",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "copy-command",
+       "title": "Copy ssh command",
+       "shortcut": "cmd+shift+c"
+      },
+      {
+       "id": "ping",
+       "title": "Ping",
+       "shortcut": "cmd+p"
+      }
+     ]
+    },
+    {
+     "id": "pi",
+     "name": "pi",
+     "subtitle": "192.168.1.40",
+     "keywords": [
+      "192.168.1.40"
+     ],
+     "icon": "󰒋",
+     "accessories": [
+      {
+       "text": "pi"
+      }
+     ],
+     "section": ".ssh/config",
+     "actions": [
+      {
+       "id": "connect",
+       "title": "Connect"
+      },
+      {
+       "id": "copy-host",
+       "title": "Copy host",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "copy-command",
+       "title": "Copy ssh command",
+       "shortcut": "cmd+shift+c"
+      },
+      {
+       "id": "ping",
+       "title": "Ping",
+       "shortcut": "cmd+p"
+      }
+     ]
+    },
+    {
+     "id": "ci",
+     "name": "ci",
+     "subtitle": "ci.acme.dev",
+     "keywords": [
+      "ci.acme.dev",
+      "runner"
+     ],
+     "icon": "󰒋",
+     "accessories": [
+      {
+       "text": "runner"
+      }
+     ],
+     "section": ".ssh/conf.d/work.conf",
+     "actions": [
+      {
+       "id": "connect",
+       "title": "Connect"
+      },
+      {
+       "id": "copy-host",
+       "title": "Copy host",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "copy-command",
+       "title": "Copy ssh command",
+       "shortcut": "cmd+shift+c"
+      },
+      {
+       "id": "ping",
+       "title": "Ping",
+       "shortcut": "cmd+p"
+      }
+     ]
+    },
+    {
+     "id": "staging",
+     "name": "staging",
+     "subtitle": "staging.acme.dev",
+     "keywords": [
+      "staging.acme.dev",
+      "deploy",
+      "bastion"
+     ],
+     "icon": "󰒋",
+     "accessories": [
+      {
+       "text": "deploy"
+      },
+      {
+       "tag": "via bastion",
+       "color": "blue"
+      }
+     ],
+     "section": ".ssh/conf.d/work.conf",
+     "actions": [
+      {
+       "id": "connect",
+       "title": "Connect"
+      },
+      {
+       "id": "copy-host",
+       "title": "Copy host",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "copy-command",
+       "title": "Copy ssh command",
+       "shortcut": "cmd+shift+c"
+      },
+      {
+       "id": "copy-jump",
+       "title": "Copy ssh -J command",
+       "shortcut": "cmd+shift+j"
+      },
+      {
+       "id": "ping",
+       "title": "Ping",
+       "shortcut": "cmd+p"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "effects": {
+  "ssh/web-1:ping": {
+   "keep": true,
+   "toast": {
+    "title": "web-1.example.com: 3 ms",
+    "style": "success"
+   }
+  }
+ },
+ "shots": {
+  "1-hosts": {
+   "palette": "ssh",
+   "keys": [
+    "down*2"
+   ]
+  },
+  "2-search": {
+   "keys": [
+    "type:example"
+   ]
+  },
+  "3-actions": {
+   "palette": "ssh",
+   "keys": [
+    "down*2",
+    "cmd+k"
+   ]
+  },
+  "4-ping": {
+   "palette": "ssh",
+   "keys": [
+    "cmd+p",
+    "wait:300"
+   ]
+  }
+ }
+}

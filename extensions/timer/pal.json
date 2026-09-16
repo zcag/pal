@@ -7,13 +7,106 @@
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "path", "id": "command", "label": "timer command", "description": "The timer CLI (a name on PATH or a path). It keeps the timers; pal only reads and asks.", "pick": "file", "default": "timer" },
-    { "kind": "path", "id": "dir", "label": "State directory", "description": "Where the CLI keeps one file per timer (its TIMER_DIR). ~ is expanded.", "pick": "folder", "default": "~/.local/share/timer" }
+    {
+      "kind": "path",
+      "id": "command",
+      "label": "timer command",
+      "description": "The timer CLI (a name on PATH or a path). It keeps the timers; pal only reads and asks.",
+      "pick": "file",
+      "default": "timer"
+    },
+    {
+      "kind": "path",
+      "id": "dir",
+      "label": "State directory",
+      "description": "Where the CLI keeps one file per timer (its TIMER_DIR). ~ is expanded.",
+      "pick": "folder",
+      "default": "~/.local/share/timer"
+    }
   ],
   "palettes": {
-    "timers": { "title": "Timers", "description": "Every timer with what is left; New timer asks for a duration and a name." }
+    "timers": {
+      "title": "Timers",
+      "description": "Every timer with what is left; New timer asks for a duration and a name.",
+      "kind": "live",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Pause, resume or dismiss"
+        },
+        {
+          "keys": "cmd++",
+          "title": "Add five minutes"
+        },
+        {
+          "keys": "cmd+backspace",
+          "title": "Stop"
+        }
+      ]
+    }
   },
   "bar": {
-    "timer": { "title": "Timer", "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running.", "refresh": { "every": 10, "on": ["wake"] } }
+    "timer": {
+      "title": "Timer",
+      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running.",
+      "refresh": {
+        "every": 10,
+        "on": [
+          "wake"
+        ]
+      }
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "Named countdown timers over the timer CLI: what is left, pause, resume, add five minutes, and a bar item that rings red when one lands.",
+    "category": "productivity",
+    "features": [
+      "One row per timer, most urgent first: `3:12 left, done at 04:41 PM`, `Paused at 41:05`, `Landed 1:35 ago`, with a state tag",
+      "New timer is a form: `25m`, `90s`, `1h30m` or a bare number of minutes, an optional name, and a checkbox to ring the phone when it lands",
+      "`enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+backspace` stops",
+      "The CLI keeps the timers, so one started in a terminal and one started here are the same list",
+      "A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; hidden with none"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-timers.png",
+        "caption": "Every timer with what is left: a landed one, two running, one paused, and New timer last"
+      },
+      {
+        "file": "2-new.png",
+        "caption": "New timer: a duration, an optional name, ring the phone when it lands"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Pause, add five minutes, or stop a running timer"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Pause / Resume / Dismiss",
+        "description": "Pause a running timer, resume a paused one, dismiss a landed one.",
+        "keys": "enter"
+      },
+      {
+        "title": "Add 5 minutes",
+        "keys": "cmd++"
+      },
+      {
+        "title": "Stop",
+        "description": "The timer is gone.",
+        "keys": "cmd+backspace"
+      },
+      {
+        "title": "New timer",
+        "description": "A form: duration, name, ring the phone.",
+        "keys": "enter"
+      }
+    ]
   }
 }

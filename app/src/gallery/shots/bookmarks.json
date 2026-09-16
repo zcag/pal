@@ -1,0 +1,534 @@
+{
+  "palettes": {
+    "bookmarks": {
+      "title": "Bookmarks",
+      "icon": "🔖",
+      "items": [
+        {
+          "id": "http://homeassistant.local:8123",
+          "name": "Home Assistant",
+          "subtitle": "http://homeassistant.local:8123",
+          "url": "http://homeassistant.local:8123",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "icon": "🏠",
+          "keywords": [
+            "ha",
+            "home"
+          ]
+        },
+        {
+          "id": "https://grafana.example.com",
+          "name": "Grafana",
+          "subtitle": "Dashboards",
+          "url": "https://grafana.example.com",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "icon": "📈",
+          "keywords": [
+            "metrics"
+          ]
+        },
+        {
+          "id": "https://github.com",
+          "name": "GitHub",
+          "subtitle": "https://github.com",
+          "url": "https://github.com",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "icon": "🐙"
+        },
+        {
+          "id": "https://developer.mozilla.org",
+          "name": "MDN Web Docs",
+          "subtitle": "https://developer.mozilla.org",
+          "url": "https://developer.mozilla.org",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Bar",
+            "Dev"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Bar / Dev"
+            }
+          ],
+          "section": "Chrome"
+        },
+        {
+          "id": "https://react.dev/reference/react",
+          "name": "React reference",
+          "subtitle": "https://react.dev/reference/react",
+          "url": "https://react.dev/reference/react",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Bar",
+            "Dev"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Bar / Dev"
+            }
+          ],
+          "section": "Chrome"
+        },
+        {
+          "id": "https://tailwindcss.com/docs",
+          "name": "Tailwind CSS docs",
+          "subtitle": "https://tailwindcss.com/docs",
+          "url": "https://tailwindcss.com/docs",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Bar",
+            "Dev"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Bar / Dev"
+            }
+          ],
+          "section": "Chrome"
+        },
+        {
+          "id": "https://news.ycombinator.com",
+          "name": "Hacker News",
+          "subtitle": "https://news.ycombinator.com",
+          "url": "https://news.ycombinator.com",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Bar"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Bar"
+            }
+          ],
+          "section": "Chrome"
+        },
+        {
+          "id": "https://www.recipetineats.com",
+          "name": "RecipeTin Eats",
+          "subtitle": "https://www.recipetineats.com",
+          "url": "https://www.recipetineats.com",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            }
+          ],
+          "keywords": [
+            "Other Bookmarks",
+            "Cooking"
+          ],
+          "accessories": [
+            {
+              "text": "Other Bookmarks / Cooking"
+            }
+          ],
+          "section": "Chrome"
+        },
+        {
+          "id": "https://bun.sh/docs",
+          "name": "Bun docs",
+          "subtitle": "https://bun.sh/docs",
+          "url": "https://bun.sh/docs",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Bar",
+            "Dev"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Bar / Dev"
+            }
+          ],
+          "section": "Chrome (Work)"
+        },
+        {
+          "id": "https://linear.app",
+          "name": "Linear",
+          "subtitle": "https://linear.app",
+          "url": "https://linear.app",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Bar"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Bar"
+            }
+          ],
+          "section": "Chrome (Work)"
+        },
+        {
+          "id": "https://www.apple.com/macos",
+          "name": "macOS",
+          "subtitle": "https://www.apple.com/macos",
+          "url": "https://www.apple.com/macos",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Safari"
+            }
+          ],
+          "keywords": [
+            "Favorites"
+          ],
+          "accessories": [
+            {
+              "text": "Favorites"
+            }
+          ],
+          "section": "Safari"
+        },
+        {
+          "id": "https://developer.apple.com/documentation",
+          "name": "Apple Developer Documentation",
+          "subtitle": "https://developer.apple.com/documentation",
+          "url": "https://developer.apple.com/documentation",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Safari"
+            }
+          ],
+          "keywords": [
+            "Favorites",
+            "Dev"
+          ],
+          "accessories": [
+            {
+              "text": "Favorites / Dev"
+            }
+          ],
+          "section": "Safari"
+        },
+        {
+          "id": "https://www.wikipedia.org",
+          "name": "Wikipedia",
+          "subtitle": "https://www.wikipedia.org",
+          "url": "https://www.wikipedia.org",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Safari"
+            }
+          ],
+          "keywords": [
+            "Favorites"
+          ],
+          "accessories": [
+            {
+              "text": "Favorites"
+            }
+          ],
+          "section": "Safari"
+        },
+        {
+          "id": "https://addons.mozilla.org",
+          "name": "Firefox Add-ons",
+          "subtitle": "https://addons.mozilla.org",
+          "url": "https://addons.mozilla.org",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Firefox"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Toolbar"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Toolbar"
+            }
+          ],
+          "section": "Firefox"
+        },
+        {
+          "id": "https://www.rust-lang.org/learn",
+          "name": "Learn Rust",
+          "subtitle": "https://www.rust-lang.org/learn",
+          "url": "https://www.rust-lang.org/learn",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in browser"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "open-in",
+              "title": "Open in Firefox"
+            }
+          ],
+          "keywords": [
+            "Bookmarks Menu",
+            "Dev"
+          ],
+          "accessories": [
+            {
+              "text": "Bookmarks Menu / Dev"
+            }
+          ],
+          "section": "Firefox"
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "bookmarks",
+      "keys": [
+        "down*3"
+      ]
+    },
+    "2-search": {
+      "palette": "bookmarks",
+      "keys": [
+        "type:dev"
+      ]
+    },
+    "3-actions": {
+      "palette": "bookmarks",
+      "keys": [
+        "down*3",
+        "cmd+k"
+      ]
+    }
+  }
+}

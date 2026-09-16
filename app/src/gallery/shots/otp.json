@@ -1,0 +1,381 @@
+{
+  "palettes": {
+    "otp": {
+      "title": "Verification Codes",
+      "icon": "✉",
+      "live": true,
+      "placeholder": "Search codes and senders",
+      "items": [
+        {
+          "id": "1",
+          "name": "NORTHBANK",
+          "subtitle": "Your one-time code is 483920. It expires in 5 minutes. Do not share it.",
+          "icon": "✉",
+          "keywords": [
+            "483920",
+            "NORTHBANK"
+          ],
+          "accessories": [
+            {
+              "tag": "483920",
+              "color": "green"
+            },
+            {
+              "date": 1789565801252
+            }
+          ],
+          "section": "Today",
+          "detail": {
+            "markdown": "Your one-time code is 483920. It expires in 5 minutes. Do not share it.",
+            "metadata": [
+              {
+                "label": "Code",
+                "tags": [
+                  {
+                    "text": "483920",
+                    "color": "green"
+                  }
+                ]
+              },
+              {
+                "label": "From",
+                "value": "NORTHBANK"
+              },
+              {
+                "label": "Received",
+                "value": "9/16/2026, 4:36:41 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste code"
+            },
+            {
+              "id": "copy",
+              "title": "Copy code",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-sender",
+              "title": "Copy sender",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "name": "Google",
+          "subtitle": "G-771205 is your Google verification code.",
+          "icon": "✉",
+          "keywords": [
+            "771205",
+            "Google"
+          ],
+          "accessories": [
+            {
+              "tag": "771205",
+              "color": "green"
+            },
+            {
+              "date": 1789563041252
+            }
+          ],
+          "section": "Today",
+          "detail": {
+            "markdown": "G-771205 is your Google verification code.",
+            "metadata": [
+              {
+                "label": "Code",
+                "tags": [
+                  {
+                    "text": "771205",
+                    "color": "green"
+                  }
+                ]
+              },
+              {
+                "label": "From",
+                "value": "Google"
+              },
+              {
+                "label": "Received",
+                "value": "9/16/2026, 3:50:41 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste code"
+            },
+            {
+              "id": "copy",
+              "title": "Copy code",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-sender",
+              "title": "Copy sender",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "3",
+          "name": "Acme Delivery",
+          "subtitle": "Acme Delivery: your pickup PIN is 2841. Show it at the counter.",
+          "icon": "✉",
+          "keywords": [
+            "2841",
+            "+1 555 0142",
+            "Acme Delivery"
+          ],
+          "accessories": [
+            {
+              "tag": "2841",
+              "color": "green"
+            },
+            {
+              "date": 1789555121252
+            }
+          ],
+          "section": "Today",
+          "detail": {
+            "markdown": "Acme Delivery: your pickup PIN is 2841. Show it at the counter.",
+            "metadata": [
+              {
+                "label": "Code",
+                "tags": [
+                  {
+                    "text": "2841",
+                    "color": "green"
+                  }
+                ]
+              },
+              {
+                "label": "From",
+                "value": "Acme Delivery (+1 555 0142)"
+              },
+              {
+                "label": "Received",
+                "value": "9/16/2026, 1:38:41 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste code"
+            },
+            {
+              "id": "copy",
+              "title": "Copy code",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-sender",
+              "title": "Copy sender",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "4",
+          "name": "GitHub",
+          "subtitle": "Your GitHub authentication code is 559104",
+          "icon": "✉",
+          "keywords": [
+            "559104",
+            "GitHub"
+          ],
+          "accessories": [
+            {
+              "tag": "559104",
+              "color": "green"
+            },
+            {
+              "date": 1789540721252
+            }
+          ],
+          "section": "Today",
+          "detail": {
+            "markdown": "Your GitHub authentication code is 559104",
+            "metadata": [
+              {
+                "label": "Code",
+                "tags": [
+                  {
+                    "text": "559104",
+                    "color": "green"
+                  }
+                ]
+              },
+              {
+                "label": "From",
+                "value": "GitHub"
+              },
+              {
+                "label": "Received",
+                "value": "9/16/2026, 9:38:41 AM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste code"
+            },
+            {
+              "id": "copy",
+              "title": "Copy code",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-sender",
+              "title": "Copy sender",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "5",
+          "name": "AIRLINE",
+          "subtitle": "Use code 90237 to confirm your seat change for flight 214.",
+          "icon": "✉",
+          "keywords": [
+            "90237",
+            "AIRLINE"
+          ],
+          "accessories": [
+            {
+              "tag": "90237",
+              "color": "green"
+            },
+            {
+              "date": 1789468721252
+            }
+          ],
+          "section": "Earlier",
+          "detail": {
+            "markdown": "Use code 90237 to confirm your seat change for flight 214.",
+            "metadata": [
+              {
+                "label": "Code",
+                "tags": [
+                  {
+                    "text": "90237",
+                    "color": "green"
+                  }
+                ]
+              },
+              {
+                "label": "From",
+                "value": "AIRLINE"
+              },
+              {
+                "label": "Received",
+                "value": "9/15/2026, 1:38:41 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste code"
+            },
+            {
+              "id": "copy",
+              "title": "Copy code",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-sender",
+              "title": "Copy sender",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "6",
+          "name": "Slack",
+          "subtitle": "Your Slack confirmation code is 66-1204",
+          "icon": "✉",
+          "keywords": [
+            "1204",
+            "no-reply@slack.com",
+            "Slack"
+          ],
+          "accessories": [
+            {
+              "tag": "1204",
+              "color": "green"
+            },
+            {
+              "date": 1789421921252
+            }
+          ],
+          "section": "Earlier",
+          "detail": {
+            "markdown": "Your Slack confirmation code is 66-1204",
+            "metadata": [
+              {
+                "label": "Code",
+                "tags": [
+                  {
+                    "text": "1204",
+                    "color": "green"
+                  }
+                ]
+              },
+              {
+                "label": "From",
+                "value": "Slack (no-reply@slack.com)"
+              },
+              {
+                "label": "Received",
+                "value": "9/15/2026, 12:38:41 AM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste code"
+            },
+            {
+              "id": "copy",
+              "title": "Copy code",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-sender",
+              "title": "Copy sender",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-codes": {
+      "palette": "otp",
+      "keys": []
+    },
+    "2-detail": {
+      "palette": "otp",
+      "keys": [
+        "down",
+        "cmd+i"
+      ]
+    },
+    "3-actions": {
+      "palette": "otp",
+      "keys": [
+        "cmd+k"
+      ]
+    }
+  }
+}

@@ -6,13 +6,54 @@
   "icon": "⎘",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "list", "id": "exclude_apps", "label": "Exclude apps", "description": "Bundle ids (com.1password.1password) or names; copies made in these are not recorded, and none already recorded is listed.", "placeholder": "com.1password.1password", "default": ["com.apple.keychainaccess", "com.apple.Passwords"] },
     { "kind": "number", "id": "max_entries", "label": "Keep entries", "description": "How many unpinned entries history keeps; older ones past this are deleted on the next copy.", "min": 1, "max": 100000, "unit": "entries", "default": 1000 },
     { "kind": "number", "id": "max_age_days", "label": "Keep for", "description": "Unpinned entries older than this are deleted on the next copy. 0 keeps them until the entry limit.", "min": 0, "max": 3650, "unit": "days", "default": 30 },
     { "kind": "select", "id": "primary_action", "label": "Primary action", "description": "What Enter does on an entry.", "options": [{ "id": "paste", "title": "Paste into the app in front" }, { "id": "copy", "title": "Copy to the clipboard" }], "default": "paste" }
   ],
+  "store": {
+    "tagline": "Everything you copied, searchable, with images; Enter pastes it back.",
+    "category": "productivity",
+    "features": [
+      "Text, images and file lists, recorded while pal runs, searched with SQLite full-text search on every keystroke",
+      "The detail pane open from the start: the full text, the image, or the file list, with kind, size, source app and time",
+      "Pinned entries in a section at the top, never expiring; the rest newest first, kept for `max_age_days` and `max_entries`",
+      "Filters: All, Text, Images, Files, Links (text that is one url) and Colors (a `#hex` or `rgb()`, drawn as a swatch)",
+      "Paste (`enter`) or copy back (`cmd+enter`), paste as plain text (`cmd+shift+v`), open a link (`cmd+o`), copy an image as a file (`cmd+shift+c`)",
+      "Never recorded: what a password manager marks concealed, copies over 10 MB, copies made in an excluded app"
+    ],
+    "permissions": ["accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-list.png", "caption": "The history with the pane open: pinned first, then newest, the source app and the time on the right" },
+      { "file": "2-image.png", "caption": "An image entry: its size and dimensions, the picture in the pane" },
+      { "file": "3-colors.png", "caption": "The Colors filter: a copied colour is drawn as its own swatch" },
+      { "file": "4-actions.png", "caption": "Paste, Copy, Pin, Delete, Clear history" }
+    ],
+    "actions": [
+      { "title": "Paste", "description": "Hides the panel and pastes the entry into the app that was in front.", "keys": "enter" },
+      { "title": "Copy", "description": "Puts the entry back on the clipboard.", "keys": "cmd+enter" },
+      { "title": "Open link", "description": "On an entry that is one url.", "keys": "cmd+o" },
+      { "title": "Paste as plain text", "keys": "cmd+shift+v" },
+      { "title": "Copy image file", "description": "The PNG the recorder keeps, as a file.", "keys": "cmd+shift+c" },
+      { "title": "Pin / Unpin", "description": "Pinned entries sort first and never expire.", "keys": "cmd+p" },
+      { "title": "Delete", "description": "Asks first.", "keys": "cmd+d" },
+      { "title": "Delete all unpinned", "description": "Asks first; pinned entries stay." },
+      { "title": "Clear history", "description": "Asks first; pinned entries included.", "keys": "cmd+shift+d" }
+    ]
+  },
   "palettes": {
-    "history": { "description": "Every copy, pinned ones first, then newest." }
+    "history": {
+      "kind": "input",
+      "description": "Every copy, pinned ones first, then newest.",
+      "keys": [
+        { "keys": "enter", "title": "Paste into the app in front" },
+        { "keys": "cmd+enter", "title": "Copy back to the clipboard" },
+        { "keys": "cmd+p", "title": "Pin" },
+        { "keys": "tab", "title": "Text, Images, Files, Links, Colors" }
+      ]
+    }
   }
 }

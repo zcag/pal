@@ -1,0 +1,220 @@
+{
+  "palettes": {
+    "timers": {
+      "title": "Timers",
+      "icon": "󰥔",
+      "live": true,
+      "placeholder": "Timers",
+      "items": [
+        {
+          "id": "laundry",
+          "name": "laundry",
+          "subtitle": "Landed 1:35 ago",
+          "icon": "󰥔",
+          "keywords": [
+            "timer",
+            "done"
+          ],
+          "accessories": [
+            {
+              "tag": "done",
+              "color": "red"
+            }
+          ],
+          "actions": [
+            {
+              "id": "done",
+              "title": "Dismiss"
+            },
+            {
+              "id": "add",
+              "title": "Add 5 minutes",
+              "shortcut": "cmd++"
+            },
+            {
+              "id": "stop",
+              "title": "Stop",
+              "shortcut": "cmd+backspace",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "tea",
+          "name": "tea",
+          "subtitle": "3:12 left, done at 04:41 PM",
+          "icon": "󰥔",
+          "keywords": [
+            "timer",
+            "running"
+          ],
+          "accessories": [
+            {
+              "tag": "running",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "pause",
+              "title": "Pause"
+            },
+            {
+              "id": "add",
+              "title": "Add 5 minutes",
+              "shortcut": "cmd++"
+            },
+            {
+              "id": "stop",
+              "title": "Stop",
+              "shortcut": "cmd+backspace",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "standup",
+          "name": "standup",
+          "subtitle": "24:40 left, done at 05:03 PM",
+          "icon": "󰥔",
+          "keywords": [
+            "timer",
+            "running"
+          ],
+          "accessories": [
+            {
+              "tag": "running",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "pause",
+              "title": "Pause"
+            },
+            {
+              "id": "add",
+              "title": "Add 5 minutes",
+              "shortcut": "cmd++"
+            },
+            {
+              "id": "stop",
+              "title": "Stop",
+              "shortcut": "cmd+backspace",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "focus",
+          "name": "focus",
+          "subtitle": "Paused at 41:05",
+          "icon": "󰥔",
+          "keywords": [
+            "timer",
+            "paused"
+          ],
+          "accessories": [
+            {
+              "tag": "paused",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "resume",
+              "title": "Resume"
+            },
+            {
+              "id": "add",
+              "title": "Add 5 minutes",
+              "shortcut": "cmd++"
+            },
+            {
+              "id": "stop",
+              "title": "Stop",
+              "shortcut": "cmd+backspace",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
+          "id": "new",
+          "name": "New timer",
+          "subtitle": "A duration and a name",
+          "icon": "+",
+          "keywords": [
+            "timer",
+            "start",
+            "countdown"
+          ],
+          "actions": [
+            {
+              "id": "new",
+              "title": "New timer"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "timers/new": {
+      "form": {
+        "id": "new",
+        "title": "New timer",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "duration",
+            "label": "Duration",
+            "placeholder": "25m, 90s, 1h30m, 2:30, 25",
+            "required": true,
+            "description": "A bare number is minutes."
+          },
+          {
+            "kind": "text",
+            "id": "name",
+            "label": "Name",
+            "placeholder": "tea",
+            "description": "Optional; the duration otherwise. A name already taken restarts that timer."
+          },
+          {
+            "kind": "checkbox",
+            "id": "ring",
+            "label": "Phone",
+            "text": "Ring the phone out loud when it lands"
+          }
+        ],
+        "submit": {
+          "id": "start",
+          "title": "Start"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-timers": {
+      "palette": "timers",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-new": {
+      "palette": "timers",
+      "keys": [
+        "down*4",
+        "enter",
+        "wait:300",
+        "type:25m"
+      ]
+    },
+    "3-actions": {
+      "palette": "timers",
+      "keys": [
+        "down",
+        "cmd+k"
+      ]
+    }
+  }
+}

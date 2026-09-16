@@ -38,3 +38,17 @@
 
 /* Solo: one component at the viewport size, no chrome. */
 .g-solo { width: 100vw; height: 100vh; background: var(--pal-bg, #1c1c21); }
+
+/* Shot: the panel at its size, centred on the site's wallpaper (pal-site's .desk), for the store screenshots. */
+.g-shot {
+  position: relative; width: 100vw; height: 100vh; display: grid; place-items: center; overflow: hidden;
+  background: linear-gradient(135deg, #DCE4F5 0%, #E9DDF2 38%, #F6E3D6 72%, #DDEBE0 100%);
+}
+.g-shot::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply;
+  background:
+    radial-gradient(60% 60% at 20% 30%, rgba(255, 255, 255, 0.45), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 44px);
+}
+.g-shot .g-frame { max-width: none; }

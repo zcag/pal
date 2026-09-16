@@ -1,0 +1,345 @@
+{
+  "palettes": {
+    "audio": {
+      "title": "Audio",
+      "live": true,
+      "icon": "♫",
+      "placeholder": "Switch output or input, set the volume",
+      "items": [
+        {
+          "id": "output:mbp-speakers",
+          "name": "MacBook Pro Speakers",
+          "subtitle": "Output · builtin",
+          "icon": "󰓃",
+          "keywords": [
+            "output",
+            "builtin"
+          ],
+          "accessories": [
+            {
+              "text": "60%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "default",
+              "title": "Set as Output"
+            },
+            {
+              "id": "volume",
+              "title": "Set Volume…",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            }
+          ],
+          "section": "Output"
+        },
+        {
+          "id": "output:airpods",
+          "name": "AirPods Pro",
+          "subtitle": "Output · bluetooth",
+          "icon": "󰋋",
+          "keywords": [
+            "output",
+            "bluetooth"
+          ],
+          "accessories": [
+            {
+              "text": "50%"
+            },
+            {
+              "tag": "default",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "default",
+              "title": "Set as Output"
+            },
+            {
+              "id": "volume",
+              "title": "Set Volume…",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            }
+          ],
+          "section": "Output"
+        },
+        {
+          "id": "output:studio",
+          "name": "Studio Display Speakers",
+          "subtitle": "Output · usb",
+          "icon": "󰓃",
+          "keywords": [
+            "output",
+            "usb"
+          ],
+          "accessories": [
+            {
+              "tag": "muted",
+              "color": "amber"
+            },
+            {
+              "text": "80%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "default",
+              "title": "Set as Output"
+            },
+            {
+              "id": "volume",
+              "title": "Set Volume…",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "mute",
+              "title": "Unmute",
+              "shortcut": "cmd+m"
+            }
+          ],
+          "section": "Output"
+        },
+        {
+          "id": "output:hdmi",
+          "name": "LG UltraFine",
+          "subtitle": "Output · hdmi",
+          "icon": "󰓃",
+          "keywords": [
+            "output",
+            "hdmi"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "default",
+              "title": "Set as Output"
+            },
+            {
+              "id": "volume",
+              "title": "Set Volume…",
+              "shortcut": "cmd+shift+v"
+            }
+          ],
+          "section": "Output"
+        },
+        {
+          "id": "input:mbp-mic",
+          "name": "MacBook Pro Microphone",
+          "subtitle": "Input · builtin",
+          "icon": "󰍬",
+          "keywords": [
+            "input",
+            "builtin"
+          ],
+          "accessories": [
+            {
+              "text": "75%"
+            },
+            {
+              "tag": "default",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "default",
+              "title": "Set as Input"
+            },
+            {
+              "id": "volume",
+              "title": "Set Volume…",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            }
+          ],
+          "section": "Input"
+        },
+        {
+          "id": "input:airpods",
+          "name": "AirPods Pro",
+          "subtitle": "Input · bluetooth",
+          "icon": "󰍬",
+          "keywords": [
+            "input",
+            "bluetooth"
+          ],
+          "accessories": [
+            {
+              "text": "100%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "default",
+              "title": "Set as Input"
+            },
+            {
+              "id": "volume",
+              "title": "Set Volume…",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            }
+          ],
+          "section": "Input"
+        },
+        {
+          "id": "input:yeti",
+          "name": "Yeti Nano",
+          "subtitle": "Input · usb",
+          "icon": "󰍬",
+          "keywords": [
+            "input",
+            "usb"
+          ],
+          "accessories": [
+            {
+              "text": "50%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "default",
+              "title": "Set as Input"
+            },
+            {
+              "id": "volume",
+              "title": "Set Volume…",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            }
+          ],
+          "section": "Input"
+        }
+      ],
+      "levels": {
+        "volume": [
+          {
+            "id": "0",
+            "name": "0%",
+            "subtitle": "AirPods Pro",
+            "icon": "󰖁",
+            "accessories": [],
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set volume to 0%"
+              }
+            ]
+          },
+          {
+            "id": "25",
+            "name": "25%",
+            "subtitle": "AirPods Pro",
+            "icon": "󰕾",
+            "accessories": [],
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set volume to 25%"
+              }
+            ]
+          },
+          {
+            "id": "50",
+            "name": "50%",
+            "subtitle": "AirPods Pro",
+            "icon": "󰕾",
+            "accessories": [
+              {
+                "tag": "current",
+                "color": "green"
+              }
+            ],
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set volume to 50%"
+              }
+            ]
+          },
+          {
+            "id": "75",
+            "name": "75%",
+            "subtitle": "AirPods Pro",
+            "icon": "󰕾",
+            "accessories": [],
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set volume to 75%"
+              }
+            ]
+          },
+          {
+            "id": "100",
+            "name": "100%",
+            "subtitle": "AirPods Pro",
+            "icon": "󰕾",
+            "accessories": [],
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set volume to 100%"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "effects": {
+    "audio/output:airpods:volume": {
+      "push": {
+        "extension": "",
+        "palette": "audio",
+        "args": "volume"
+      }
+    }
+  },
+  "shots": {
+    "1-devices": {
+      "palette": "audio",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-actions": {
+      "palette": "audio",
+      "keys": [
+        "down",
+        "cmd+k"
+      ]
+    },
+    "3-volume": {
+      "palette": "audio",
+      "keys": [
+        "down",
+        "cmd+shift+v",
+        "down*2"
+      ]
+    }
+  }
+}

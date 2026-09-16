@@ -6,10 +6,43 @@
   "icon": "󰋉",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "text", "id": "public_ip_url", "label": "Public IP endpoint", "description": "Fetched with a 3 s timeout and kept 10 minutes; JSON with `ip` (and `city`, `country`, `org` when it has them) or a bare address. Empty: no public IP row.", "placeholder": "https://ipinfo.io/json", "default": "https://ipinfo.io/json" }
   ],
+  "store": {
+    "tagline": "Every address this machine has right now, one Enter from the clipboard.",
+    "category": "system",
+    "features": [
+      "This machine: each interface's IPv4 and global IPv6 (`en0 · Wi-Fi`, `eth0`), the Tailscale IPv4 and IPv6, the hostname and the Bonjour `.local` name",
+      "Internet: the public IP with the city, country and organisation the endpoint gives, fetched once and kept ten minutes",
+      "Network: the default gateway with its interface, the DNS servers in resolver order",
+      "The value is the row's name, so it reads at a glance; `enter` copies it, `cmd+enter` opens the Network settings",
+      "Opens with the detail pane: interface, kind, SSID, security, MAC and status for an address; city, region and organisation for the public IP",
+      "Live: listed again when the panel shows and the last listing is over a minute old; `cmd+r` fetches the public IP again"
+    ],
+    "permissions": ["network", "location"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-addresses.png", "caption": "Every address in three sections, the detail pane on the Wi-Fi interface" },
+      { "file": "2-public.png", "caption": "The public IP with where it is and whose it is" },
+      { "file": "3-search.png", "caption": "dns at the root finds the resolvers" },
+      { "file": "4-actions.png", "caption": "Copy the value, or open the Network settings" }
+    ],
+    "actions": [
+      { "title": "Copy", "description": "The row's value.", "keys": "enter" },
+      { "title": "Open Network settings", "description": "System Settings on macOS; gnome-control-center, systemsettings or nm-connection-editor on Linux.", "keys": "cmd+enter" }
+    ]
+  },
   "palettes": {
-    "network": { "description": "Live rows, listed again when the panel shows and the last listing is over a minute old; ⌘R lists now and fetches the public IP again." }
+    "network": {
+      "kind": "live",
+      "description": "Live rows, listed again when the panel shows and the last listing is over a minute old; ⌘R lists now and fetches the public IP again.",
+      "keys": [
+        { "keys": "enter", "title": "Copy the value" },
+        { "keys": "cmd+enter", "title": "Open Network settings" },
+        { "keys": "cmd+r", "title": "List again, public IP included" }
+      ]
+    }
   }
 }

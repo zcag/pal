@@ -1,0 +1,436 @@
+{
+  "palettes": {
+    "snippets": {
+      "title": "Snippets",
+      "live": false,
+      "input": false,
+      "icon": "✂",
+      "items": [
+        {
+          "id": "create",
+          "name": "Create Snippet",
+          "subtitle": "A text to paste by name or keyword",
+          "icon": "+",
+          "keywords": [
+            "new",
+            "add"
+          ],
+          "actions": [
+            {
+              "id": "create",
+              "title": "Create Snippet"
+            }
+          ]
+        },
+        {
+          "id": "s1",
+          "name": "Email signature",
+          "subtitle": "Best,",
+          "icon": "✂",
+          "keywords": [
+            "sig"
+          ],
+          "accessories": [
+            {
+              "tag": "sig"
+            }
+          ],
+          "detail": {
+            "markdown": "# Email signature\n\n```\nBest,\nAda Lovelace\nAnalytical Engines Ltd\n```",
+            "metadata": [
+              {
+                "label": "Keyword",
+                "value": "sig"
+              },
+              {
+                "label": "Length",
+                "value": "41 characters"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this snippet?"
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "name": "Today",
+          "subtitle": "{date} {time}",
+          "icon": "✂",
+          "keywords": [
+            "today"
+          ],
+          "accessories": [
+            {
+              "tag": "today"
+            },
+            {
+              "text": "dynamic"
+            }
+          ],
+          "detail": {
+            "markdown": "# Today\n\n```\n{date} {time}\n```",
+            "metadata": [
+              {
+                "label": "Keyword",
+                "value": "today"
+              },
+              {
+                "label": "Length",
+                "value": "13 characters"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this snippet?"
+            }
+          ]
+        },
+        {
+          "id": "s3",
+          "name": "Meeting notes",
+          "subtitle": "# Notes {date}",
+          "icon": "✂",
+          "keywords": [
+            "notes"
+          ],
+          "accessories": [
+            {
+              "tag": "notes"
+            },
+            {
+              "text": "dynamic"
+            }
+          ],
+          "detail": {
+            "markdown": "# Meeting notes\n\n```\n# Notes {date}\n\nAttendees:\n\nDecisions:\n\nNext steps:\n```",
+            "metadata": [
+              {
+                "label": "Keyword",
+                "value": "notes"
+              },
+              {
+                "label": "Length",
+                "value": "51 characters"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this snippet?"
+            }
+          ]
+        },
+        {
+          "id": "s4",
+          "name": "Shrug",
+          "subtitle": "¯\\_(ツ)_/¯",
+          "icon": "✂",
+          "keywords": [
+            "shrug"
+          ],
+          "accessories": [
+            {
+              "tag": "shrug"
+            }
+          ],
+          "detail": {
+            "markdown": "# Shrug\n\n```\n¯\\_(ツ)_/¯\n```",
+            "metadata": [
+              {
+                "label": "Keyword",
+                "value": "shrug"
+              },
+              {
+                "label": "Length",
+                "value": "9 characters"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this snippet?"
+            }
+          ]
+        },
+        {
+          "id": "s5",
+          "name": "Request id",
+          "subtitle": "X-Request-Id: {uuid}",
+          "icon": "✂",
+          "keywords": [
+            "rid"
+          ],
+          "accessories": [
+            {
+              "tag": "rid"
+            },
+            {
+              "text": "dynamic"
+            }
+          ],
+          "detail": {
+            "markdown": "# Request id\n\n```\nX-Request-Id: {uuid}\n```",
+            "metadata": [
+              {
+                "label": "Keyword",
+                "value": "rid"
+              },
+              {
+                "label": "Length",
+                "value": "20 characters"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this snippet?"
+            }
+          ]
+        },
+        {
+          "id": "s6",
+          "name": "Quote clipboard",
+          "subtitle": "> {clipboard}",
+          "icon": "✂",
+          "keywords": [
+            "quote"
+          ],
+          "accessories": [
+            {
+              "tag": "quote"
+            },
+            {
+              "text": "dynamic"
+            }
+          ],
+          "detail": {
+            "markdown": "# Quote clipboard\n\n```\n> {clipboard}\n```",
+            "metadata": [
+              {
+                "label": "Keyword",
+                "value": "quote"
+              },
+              {
+                "label": "Length",
+                "value": "13 characters"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this snippet?"
+            }
+          ]
+        },
+        {
+          "id": "import",
+          "name": "Import Snippets",
+          "subtitle": "From a JSON file",
+          "icon": "⇣",
+          "keywords": [
+            "json",
+            "restore"
+          ],
+          "actions": [
+            {
+              "id": "import",
+              "title": "Import…"
+            }
+          ]
+        },
+        {
+          "id": "export",
+          "name": "Export Snippets",
+          "subtitle": "To a JSON file",
+          "icon": "⇡",
+          "keywords": [
+            "json",
+            "backup"
+          ],
+          "actions": [
+            {
+              "id": "export",
+              "title": "Export…"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "snippets/create": {
+      "form": {
+        "id": "create",
+        "title": "Create Snippet",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "name",
+            "label": "Name",
+            "required": true,
+            "placeholder": "Email signature"
+          },
+          {
+            "kind": "text",
+            "id": "keyword",
+            "label": "Keyword",
+            "placeholder": "sig",
+            "description": "One word that finds it."
+          },
+          {
+            "kind": "textarea",
+            "id": "text",
+            "label": "Text",
+            "required": true,
+            "placeholder": "Best,\nAda",
+            "description": "{clipboard}, {date}, {time}, {datetime} and {uuid} are filled in when pasted; {selection} is the clipboard too. {cursor} is not supported."
+          }
+        ],
+        "submit": {
+          "id": "save",
+          "title": "Create"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "snippets",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-detail": {
+      "palette": "snippets",
+      "keys": [
+        "down*3",
+        "cmd+i"
+      ]
+    },
+    "3-actions": {
+      "palette": "snippets",
+      "keys": [
+        "down",
+        "cmd+k"
+      ]
+    },
+    "4-form": {
+      "palette": "snippets",
+      "keys": [
+        "enter"
+      ]
+    }
+  }
+}

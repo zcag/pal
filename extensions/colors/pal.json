@@ -6,16 +6,55 @@
   "icon": "#4F46D6",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [],
+  "store": {
+    "tagline": "Named colours as swatches to copy, and any colour converted into every notation.",
+    "category": "developer",
+    "features": [
+      "700 named colours as swatch tiles: the 148 CSS names, pal's own tokens, Tailwind 3.4 (`slate 500`) and Material 2014 (`red a200`), one section per set",
+      "Search by name, hex (`#64748b`), token spelling (`slate-500`) or set (`tailwind`); the last twelve picked lead in a Recent section",
+      "`Enter` copies the hex, `cmd+enter` the `rgb()`, with `hsl()` and the token name behind shortcuts",
+      "Convert colour: type `#f80`, `rgb(255 136 0 / 50%)`, `hsl(30 100% 50%)`, `hwb()`, `oklch()` or a CSS name and every notation is a row",
+      "The nearest CSS name (tagged close, near or far) and the WCAG contrast ratio on white and on black with its level",
+      "A detail pane with a wide swatch, the complementary colour and three lighter and darker steps as coloured tags"
+    ],
+    "permissions": [],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-grid.png", "caption": "The swatch grid: recently picked first, then one section per set" },
+      { "file": "2-convert.png", "caption": "Convert colour: rgb(255 136 0) as hex, hsl, hwb, oklch, the nearest CSS name and the contrast ratios" },
+      { "file": "3-detail.png", "caption": "The detail pane on a conversion: a wide swatch, every notation, the nearest name, contrast on white and black" },
+      { "file": "4-actions.png", "caption": "What a swatch can do: copy the hex, the rgb, the hsl or the token name" }
+    ],
+    "actions": [
+      { "title": "Copy hex", "description": "`#64748b`; on a conversion row, Copy copies that row.", "keys": "enter" },
+      { "title": "Copy rgb", "description": "`rgb(100, 116, 139)`", "keys": "cmd+enter" },
+      { "title": "Copy hsl", "description": "`hsl(215, 16%, 47%)`", "keys": "cmd+shift+h" },
+      { "title": "Copy name", "description": "The token: `slate-500`, `aliceblue`, `tag-blue`.", "keys": "cmd+shift+n" }
+    ]
+  },
   "palettes": {
     "colors": {
+      "kind": "grid",
       "description": "The bundled palettes as swatch tiles; recently copied colours first.",
+      "keys": [
+        { "keys": "enter", "title": "Copy hex" },
+        { "keys": "cmd+enter", "title": "Copy rgb" },
+        { "keys": "cmd+shift+h", "title": "Copy hsl" },
+        { "keys": "cmd+shift+n", "title": "Copy name" }
+      ],
       "settings": [
         { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 8 }
       ]
     },
     "convert": {
-      "description": "Type a colour in any notation; the rows are its conversions."
+      "kind": "input",
+      "description": "Type a colour in any notation; the rows are its conversions.",
+      "keys": [
+        { "keys": "enter", "title": "Copy the row" },
+        { "keys": "cmd+i", "title": "Contrast, nearest name, relatives" }
+      ]
     }
   }
 }

@@ -7,9 +7,98 @@
   "author": "pal",
   "repo": "bundled",
   "palettes": {
-    "media": { "description": "One row per player with the track and its artwork." }
+    "media": {
+      "description": "One row per player with the track and its artwork.",
+      "kind": "live",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Play or pause"
+        },
+        {
+          "keys": "cmd+right",
+          "title": "Next track"
+        },
+        {
+          "keys": "cmd+left",
+          "title": "Previous track"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy artist - title"
+        }
+      ]
+    }
   },
   "bar": {
-    "now-playing": { "title": "Now Playing", "description": "The playing track on the strip, hidden while nothing plays; pause and skip from the popover.", "refresh": { "every": 30, "on": ["show", "wake"] } }
+    "now-playing": {
+      "title": "Now Playing",
+      "description": "The playing track on the strip, hidden while nothing plays; pause and skip from the popover.",
+      "refresh": {
+        "every": 30,
+        "on": [
+          "show",
+          "wake"
+        ]
+      }
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "What is playing in Spotify, Music or any MPRIS player: play, pause, skip from the keyboard.",
+    "category": "media",
+    "features": [
+      "One row per running player: the track, artist and album, the artwork, a `playing` / `paused` / `stopped` tag",
+      "`enter` plays or pauses and the tag follows; `cmd+right` and `cmd+left` skip",
+      "`cmd+c` copies `artist - title`; `cmd+o` opens the track (Spotify's `spotify:track:` link) or the app",
+      "Live: the current track is a root result, so its title or artist finds it without opening the palette",
+      "A bar item with the playing track and the transport in its popover, refreshed within seconds of a skip"
+    ],
+    "permissions": [
+      "automation"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-players.png",
+        "caption": "One row per player: Spotify playing, Music paused, a browser with nothing loaded"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "The transport on a row: pause, next, previous, copy the track, open it in the player"
+      },
+      {
+        "file": "3-root.png",
+        "caption": "The playing track found from the root by its title"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Play / Pause",
+        "description": "Toggles; the row's tag follows.",
+        "keys": "enter"
+      },
+      {
+        "title": "Next Track",
+        "keys": "cmd+right"
+      },
+      {
+        "title": "Previous Track",
+        "keys": "cmd+left"
+      },
+      {
+        "title": "Copy Track",
+        "description": "artist - title.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Open in Spotify / Music",
+        "description": "The track's url, else the app on macOS.",
+        "keys": "cmd+o"
+      }
+    ]
   }
 }

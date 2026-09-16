@@ -6,10 +6,46 @@
   "icon": "▤",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "boolean", "id": "include_system", "label": "System processes", "text": "List system processes too (pid below 100, and kernel threads on Linux)", "default": false }
   ],
+  "store": {
+    "tagline": "What is running, busiest first, with its memory; :3000 lists what listens on a port.",
+    "category": "system",
+    "features": [
+      "One `ps` per keystroke, sorted by CPU then memory; the pid and resident memory on the right, a process above 10% CPU tagged `NN% cpu`",
+      "The query matches the name or a pid prefix; `:3000` lists what listens on that TCP port, `:` alone every listener (`lsof` on macOS, `ss` on Linux)",
+      "Filters: All, Mine (your own user), Top CPU and Top memory (the 25 busiest or largest)",
+      "Kill sends SIGTERM and Force kill (`cmd+shift+k`) SIGKILL, both after a confirm; the palette stays open and lists again",
+      "A process in a `.app` bundle gets that app's icon on macOS; Open in Activity Monitor (`cmd+o`) types its pid into the search field",
+      "`include_system` lists pids below 100 and kernel threads too"
+    ],
+    "permissions": ["automation", "accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-list.png", "caption": "Processes by CPU then memory; a busy one is tagged with its share" },
+      { "file": "2-port.png", "caption": ": lists every TCP listener with its port as a tag; :80 narrows to the ports starting with 80" },
+      { "file": "3-confirm.png", "caption": "Kill asks before SIGTERM" },
+      { "file": "4-actions.png", "caption": "Kill, Force kill, Copy PID, Open in Activity Monitor" }
+    ],
+    "actions": [
+      { "title": "Kill", "description": "SIGTERM, after a confirm.", "keys": "enter" },
+      { "title": "Force kill", "description": "SIGKILL, after a confirm.", "keys": "cmd+shift+k" },
+      { "title": "Copy PID", "keys": "cmd+c" },
+      { "title": "Open in Activity Monitor", "description": "macOS: brings Activity Monitor up with the pid in its search field.", "keys": "cmd+o" }
+    ]
+  },
   "palettes": {
-    "processes": { "description": "Every process, by CPU then memory." }
+    "processes": {
+      "kind": "input",
+      "description": "Every process, by CPU then memory.",
+      "keys": [
+        { "keys": "enter", "title": "Kill (asks first)" },
+        { "keys": "cmd+shift+k", "title": "Force kill" },
+        { "keys": "cmd+c", "title": "Copy the pid" },
+        { "keys": "tab", "title": "Next filter: Mine, Top CPU, Top memory" }
+      ]
+    }
   }
 }

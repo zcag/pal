@@ -1,0 +1,3991 @@
+{
+  "palettes": {
+    "entities": {
+      "title": "Home Assistant",
+      "live": true,
+      "icon": "󰟐",
+      "placeholder": "Search entities",
+      "filters": [
+        {
+          "id": "all",
+          "title": "All entities"
+        },
+        {
+          "id": "every",
+          "title": "Every domain"
+        },
+        {
+          "id": "light",
+          "title": "Lights"
+        },
+        {
+          "id": "switch",
+          "title": "Switches"
+        },
+        {
+          "id": "sensor",
+          "title": "Sensors"
+        },
+        {
+          "id": "binary_sensor",
+          "title": "Binary sensors"
+        },
+        {
+          "id": "climate",
+          "title": "Climate"
+        },
+        {
+          "id": "media_player",
+          "title": "Media players"
+        },
+        {
+          "id": "person",
+          "title": "People"
+        },
+        {
+          "id": "script",
+          "title": "Scripts"
+        },
+        {
+          "id": "automation",
+          "title": "Automations"
+        },
+        {
+          "id": "scene",
+          "title": "Scenes"
+        }
+      ],
+      "items": [
+        {
+          "id": "light.kitchen",
+          "name": "Kitchen Light",
+          "subtitle": "Light · Kitchen",
+          "icon": "#ffc878",
+          "keywords": [
+            "light.kitchen",
+            "light",
+            "Kitchen"
+          ],
+          "accessories": [
+            {
+              "tag": "on",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T13:25:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "brightness",
+              "title": "Brightness",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "lock.front_door",
+          "name": "Front Door",
+          "subtitle": "Lock · Entrance",
+          "icon": "󰌾",
+          "keywords": [
+            "lock.front_door",
+            "lock",
+            "Entrance"
+          ],
+          "accessories": [
+            {
+              "tag": "locked",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T12:27:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "unlock",
+              "title": "Unlock",
+              "confirm": "Unlock Front Door?"
+            },
+            {
+              "id": "lock",
+              "title": "Lock",
+              "confirm": "Lock Front Door?"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "light.bedroom",
+          "name": "Bedroom Light",
+          "subtitle": "Light · Bedroom",
+          "icon": "󰌵",
+          "keywords": [
+            "light.bedroom",
+            "light",
+            "Bedroom"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-16T04:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "brightness",
+              "title": "Brightness",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "light.hallway",
+          "name": "Hallway",
+          "subtitle": "Light · Hallway",
+          "icon": "󰌵",
+          "keywords": [
+            "light.hallway",
+            "light",
+            "Hallway"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-15T23:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "brightness",
+              "title": "Brightness",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "light.living_room",
+          "name": "Living Room Lamp",
+          "subtitle": "Light · Living Room",
+          "icon": "#2878ff",
+          "keywords": [
+            "light.living_room",
+            "light",
+            "Living Room"
+          ],
+          "accessories": [
+            {
+              "tag": "on",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T11:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "brightness",
+              "title": "Brightness",
+              "shortcut": "cmd+b"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "switch.coffee_maker",
+          "name": "Coffee Maker",
+          "subtitle": "Switch · Kitchen",
+          "icon": "󰔡",
+          "keywords": [
+            "switch.coffee_maker",
+            "switch",
+            "Kitchen"
+          ],
+          "accessories": [
+            {
+              "tag": "on",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T12:57:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "switch.desk_plug",
+          "name": "Desk Plug",
+          "subtitle": "Switch",
+          "icon": "󰔡",
+          "keywords": [
+            "switch.desk_plug",
+            "switch"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-15T11:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "climate.living_room",
+          "name": "Living Room Thermostat",
+          "subtitle": "Climate · Living Room",
+          "icon": "󰔏",
+          "keywords": [
+            "climate.living_room",
+            "climate",
+            "Living Room"
+          ],
+          "accessories": [
+            {
+              "tag": "heat",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T10:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "temperature",
+              "title": "Set temperature"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "media_player.living_room_tv",
+          "name": "Living Room TV",
+          "subtitle": "Media Player · Living Room",
+          "icon": "󰓃",
+          "keywords": [
+            "media_player.living_room_tv",
+            "media_player",
+            "Living Room"
+          ],
+          "accessories": [
+            {
+              "tag": "playing",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T13:12:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "play_pause",
+              "title": "Pause"
+            },
+            {
+              "id": "next",
+              "title": "Next track"
+            },
+            {
+              "id": "previous",
+              "title": "Previous track"
+            },
+            {
+              "id": "volume",
+              "title": "Volume",
+              "shortcut": "cmd+u"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "cover.garage_door",
+          "name": "Garage Door",
+          "subtitle": "Cover · Garage",
+          "icon": "󱄜",
+          "keywords": [
+            "cover.garage_door",
+            "cover",
+            "Garage"
+          ],
+          "accessories": [
+            {
+              "tag": "closed",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-16T08:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "close",
+              "title": "Close"
+            },
+            {
+              "id": "stop",
+              "title": "Stop"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "fan.bedroom",
+          "name": "Bedroom Fan",
+          "subtitle": "Fan · Bedroom",
+          "icon": "󰈐",
+          "keywords": [
+            "fan.bedroom",
+            "fan",
+            "Bedroom"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-15T07:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "scene.good_morning",
+          "name": "Good Morning",
+          "subtitle": "Scene",
+          "icon": "󰏘",
+          "keywords": [
+            "scene.good_morning",
+            "scene"
+          ],
+          "accessories": [
+            {
+              "tag": "unknown",
+              "color": "red"
+            },
+            {
+              "date": "2026-09-16T07:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "activate",
+              "title": "Activate"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "scene.movie_night",
+          "name": "Movie Night",
+          "subtitle": "Scene",
+          "icon": "󰏘",
+          "keywords": [
+            "scene.movie_night",
+            "scene"
+          ],
+          "accessories": [
+            {
+              "tag": "unknown",
+              "color": "red"
+            },
+            {
+              "date": "2026-09-14T13:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "activate",
+              "title": "Activate"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "script.leaving_home",
+          "name": "Leaving Home",
+          "subtitle": "Script",
+          "icon": "󰯂",
+          "keywords": [
+            "script.leaving_home",
+            "script"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-16T06:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Run"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "automation.morning_blinds",
+          "name": "Morning Blinds",
+          "subtitle": "Automation",
+          "icon": "󰚩",
+          "keywords": [
+            "automation.morning_blinds",
+            "automation"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-11T13:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "trigger",
+              "title": "Trigger"
+            },
+            {
+              "id": "on",
+              "title": "Enable"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "automation.sunset_lights",
+          "name": "Sunset Lights",
+          "subtitle": "Automation",
+          "icon": "󰚩",
+          "keywords": [
+            "automation.sunset_lights",
+            "automation"
+          ],
+          "accessories": [
+            {
+              "tag": "on",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-13T13:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "trigger",
+              "title": "Trigger"
+            },
+            {
+              "id": "off",
+              "title": "Disable"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "sensor.living_room_temperature",
+          "name": "Living Room Temperature",
+          "subtitle": "Sensor · Living Room",
+          "icon": "󰊚",
+          "keywords": [
+            "sensor.living_room_temperature",
+            "sensor",
+            "Living Room"
+          ],
+          "accessories": [
+            {
+              "text": "21.4 °C"
+            },
+            {
+              "date": "2026-09-16T13:34:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_value",
+              "title": "Copy value"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "sensor.outdoor_humidity",
+          "name": "Outdoor Humidity",
+          "subtitle": "Sensor",
+          "icon": "󰊚",
+          "keywords": [
+            "sensor.outdoor_humidity",
+            "sensor"
+          ],
+          "accessories": [
+            {
+              "text": "63 %"
+            },
+            {
+              "date": "2026-09-16T13:29:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_value",
+              "title": "Copy value"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "sensor.power_now",
+          "name": "Power Now",
+          "subtitle": "Sensor · Kitchen",
+          "icon": "󰊚",
+          "keywords": [
+            "sensor.power_now",
+            "sensor",
+            "Kitchen"
+          ],
+          "accessories": [
+            {
+              "text": "412 W"
+            },
+            {
+              "date": "2026-09-16T13:36:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_value",
+              "title": "Copy value"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "binary_sensor.front_door",
+          "name": "Front Door Contact",
+          "subtitle": "Binary Sensor · Entrance",
+          "icon": "󰐾",
+          "keywords": [
+            "binary_sensor.front_door",
+            "binary_sensor",
+            "Entrance"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-16T12:27:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_value",
+              "title": "Copy value"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "binary_sensor.motion_hall",
+          "name": "Hall Motion",
+          "subtitle": "Binary Sensor · Hallway",
+          "icon": "󰐾",
+          "keywords": [
+            "binary_sensor.motion_hall",
+            "binary_sensor",
+            "Hallway"
+          ],
+          "accessories": [
+            {
+              "tag": "on",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T13:35:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_value",
+              "title": "Copy value"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "person.alex",
+          "name": "Alex",
+          "subtitle": "Person",
+          "icon": "󰀄",
+          "keywords": [
+            "person.alex",
+            "person"
+          ],
+          "accessories": [
+            {
+              "tag": "home",
+              "color": "green"
+            },
+            {
+              "date": "2026-09-16T09:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_value",
+              "title": "Copy value"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "person.sam",
+          "name": "Sam",
+          "subtitle": "Person",
+          "icon": "󰀄",
+          "keywords": [
+            "person.sam",
+            "person"
+          ],
+          "accessories": [
+            {
+              "tag": "not home",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-16T12:07:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_value",
+              "title": "Copy value"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "input_boolean.guest_mode",
+          "name": "Guest Mode",
+          "subtitle": "Input Boolean",
+          "icon": "󰔡",
+          "keywords": [
+            "input_boolean.guest_mode",
+            "input_boolean"
+          ],
+          "accessories": [
+            {
+              "tag": "off",
+              "color": "grey"
+            },
+            {
+              "date": "2026-09-08T05:37:09.970Z"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Toggle"
+            },
+            {
+              "id": "on",
+              "title": "Turn on"
+            },
+            {
+              "id": "off",
+              "title": "Turn off"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy entity id",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "attributes",
+              "title": "Show attributes",
+              "shortcut": "cmd+i"
+            },
+            {
+              "id": "open_ha",
+              "title": "Open in Home Assistant",
+              "shortcut": "cmd+o"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "light.kitchen": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "light.kitchen"
+            },
+            {
+              "label": "State",
+              "value": "on"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 4:25:09 PM"
+            },
+            {
+              "label": "Brightness",
+              "value": "191"
+            },
+            {
+              "label": "Rgb Color",
+              "value": "[255,200,120]"
+            }
+          ]
+        },
+        "lock.front_door": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "lock.front_door"
+            },
+            {
+              "label": "State",
+              "value": "locked"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 3:27:09 PM"
+            }
+          ]
+        },
+        "light.bedroom": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "light.bedroom"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 7:37:09 AM"
+            }
+          ]
+        },
+        "light.hallway": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "light.hallway"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 2:37:09 AM"
+            }
+          ]
+        },
+        "light.living_room": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "light.living_room"
+            },
+            {
+              "label": "State",
+              "value": "on"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 2:37:09 PM"
+            },
+            {
+              "label": "Brightness",
+              "value": "64"
+            },
+            {
+              "label": "Rgb Color",
+              "value": "[40,120,255]"
+            }
+          ]
+        },
+        "switch.coffee_maker": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "switch.coffee_maker"
+            },
+            {
+              "label": "State",
+              "value": "on"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 3:57:09 PM"
+            }
+          ]
+        },
+        "switch.desk_plug": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "switch.desk_plug"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/15/2026, 2:37:09 PM"
+            }
+          ]
+        },
+        "climate.living_room": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "climate.living_room"
+            },
+            {
+              "label": "State",
+              "value": "heat"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 1:37:09 PM"
+            },
+            {
+              "label": "Temperature",
+              "value": "21"
+            },
+            {
+              "label": "Current Temperature",
+              "value": "20.5"
+            },
+            {
+              "label": "Hvac Modes",
+              "value": "[\"off\",\"heat\",\"cool\",\"heat_cool\"]"
+            },
+            {
+              "label": "Min Temp",
+              "value": "7"
+            },
+            {
+              "label": "Max Temp",
+              "value": "30"
+            },
+            {
+              "label": "Temperature Unit",
+              "value": "°C"
+            }
+          ]
+        },
+        "media_player.living_room_tv": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "media_player.living_room_tv"
+            },
+            {
+              "label": "State",
+              "value": "playing"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 4:12:09 PM"
+            },
+            {
+              "label": "Volume Level",
+              "value": "0.35"
+            },
+            {
+              "label": "Media Title",
+              "value": "Planet Earth III"
+            }
+          ]
+        },
+        "cover.garage_door": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "cover.garage_door"
+            },
+            {
+              "label": "State",
+              "value": "closed"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 11:37:09 AM"
+            }
+          ]
+        },
+        "fan.bedroom": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "fan.bedroom"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/15/2026, 10:37:09 AM"
+            }
+          ]
+        },
+        "scene.good_morning": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "scene.good_morning"
+            },
+            {
+              "label": "State",
+              "value": "unknown"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 10:37:09 AM"
+            }
+          ]
+        },
+        "scene.movie_night": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "scene.movie_night"
+            },
+            {
+              "label": "State",
+              "value": "unknown"
+            },
+            {
+              "label": "Changed",
+              "value": "9/14/2026, 4:37:09 PM"
+            }
+          ]
+        },
+        "script.leaving_home": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "script.leaving_home"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 9:37:09 AM"
+            }
+          ]
+        },
+        "automation.morning_blinds": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "automation.morning_blinds"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/11/2026, 4:37:09 PM"
+            },
+            {
+              "label": "Id",
+              "value": "1702"
+            }
+          ]
+        },
+        "automation.sunset_lights": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "automation.sunset_lights"
+            },
+            {
+              "label": "State",
+              "value": "on"
+            },
+            {
+              "label": "Changed",
+              "value": "9/13/2026, 4:37:09 PM"
+            },
+            {
+              "label": "Id",
+              "value": "1701"
+            },
+            {
+              "label": "Last Triggered",
+              "value": "2026-09-16T10:37:09.970Z"
+            }
+          ]
+        },
+        "sensor.living_room_temperature": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "sensor.living_room_temperature"
+            },
+            {
+              "label": "State",
+              "value": "21.4 °C"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 4:34:09 PM"
+            },
+            {
+              "label": "Unit Of Measurement",
+              "value": "°C"
+            },
+            {
+              "label": "Device Class",
+              "value": "temperature"
+            }
+          ]
+        },
+        "sensor.outdoor_humidity": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "sensor.outdoor_humidity"
+            },
+            {
+              "label": "State",
+              "value": "63 %"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 4:29:09 PM"
+            },
+            {
+              "label": "Unit Of Measurement",
+              "value": "%"
+            },
+            {
+              "label": "Device Class",
+              "value": "humidity"
+            }
+          ]
+        },
+        "sensor.power_now": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "sensor.power_now"
+            },
+            {
+              "label": "State",
+              "value": "412 W"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 4:36:09 PM"
+            },
+            {
+              "label": "Unit Of Measurement",
+              "value": "W"
+            }
+          ]
+        },
+        "binary_sensor.front_door": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "binary_sensor.front_door"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 3:27:09 PM"
+            },
+            {
+              "label": "Device Class",
+              "value": "door"
+            }
+          ]
+        },
+        "binary_sensor.motion_hall": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "binary_sensor.motion_hall"
+            },
+            {
+              "label": "State",
+              "value": "on"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 4:35:09 PM"
+            },
+            {
+              "label": "Device Class",
+              "value": "motion"
+            }
+          ]
+        },
+        "person.alex": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "person.alex"
+            },
+            {
+              "label": "State",
+              "value": "home"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 12:37:09 PM"
+            }
+          ]
+        },
+        "person.sam": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "person.sam"
+            },
+            {
+              "label": "State",
+              "value": "not_home"
+            },
+            {
+              "label": "Changed",
+              "value": "9/16/2026, 3:07:09 PM"
+            }
+          ]
+        },
+        "input_boolean.guest_mode": {
+          "metadata": [
+            {
+              "label": "Entity",
+              "value": "input_boolean.guest_mode"
+            },
+            {
+              "label": "State",
+              "value": "off"
+            },
+            {
+              "label": "Changed",
+              "value": "9/8/2026, 8:37:09 AM"
+            }
+          ]
+        }
+      },
+      "byFilter": {
+        "light": [
+          {
+            "id": "light.kitchen",
+            "name": "Kitchen Light",
+            "subtitle": "Light · Kitchen",
+            "icon": "#ffc878",
+            "keywords": [
+              "light.kitchen",
+              "light",
+              "Kitchen"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T13:25:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "light.bedroom",
+            "name": "Bedroom Light",
+            "subtitle": "Light · Bedroom",
+            "icon": "󰌵",
+            "keywords": [
+              "light.bedroom",
+              "light",
+              "Bedroom"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-16T04:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "light.hallway",
+            "name": "Hallway",
+            "subtitle": "Light · Hallway",
+            "icon": "󰌵",
+            "keywords": [
+              "light.hallway",
+              "light",
+              "Hallway"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-15T23:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "light.living_room",
+            "name": "Living Room Lamp",
+            "subtitle": "Light · Living Room",
+            "icon": "#2878ff",
+            "keywords": [
+              "light.living_room",
+              "light",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T11:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          }
+        ],
+        "every": [
+          {
+            "id": "light.kitchen",
+            "name": "Kitchen Light",
+            "subtitle": "Light · Kitchen",
+            "icon": "#ffc878",
+            "keywords": [
+              "light.kitchen",
+              "light",
+              "Kitchen"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T13:25:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "lock.front_door",
+            "name": "Front Door",
+            "subtitle": "Lock · Entrance",
+            "icon": "󰌾",
+            "keywords": [
+              "lock.front_door",
+              "lock",
+              "Entrance"
+            ],
+            "accessories": [
+              {
+                "tag": "locked",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T12:27:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "unlock",
+                "title": "Unlock",
+                "confirm": "Unlock Front Door?"
+              },
+              {
+                "id": "lock",
+                "title": "Lock",
+                "confirm": "Lock Front Door?"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "light.bedroom",
+            "name": "Bedroom Light",
+            "subtitle": "Light · Bedroom",
+            "icon": "󰌵",
+            "keywords": [
+              "light.bedroom",
+              "light",
+              "Bedroom"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-16T04:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "light.hallway",
+            "name": "Hallway",
+            "subtitle": "Light · Hallway",
+            "icon": "󰌵",
+            "keywords": [
+              "light.hallway",
+              "light",
+              "Hallway"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-15T23:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "light.living_room",
+            "name": "Living Room Lamp",
+            "subtitle": "Light · Living Room",
+            "icon": "#2878ff",
+            "keywords": [
+              "light.living_room",
+              "light",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T11:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "switch.coffee_maker",
+            "name": "Coffee Maker",
+            "subtitle": "Switch · Kitchen",
+            "icon": "󰔡",
+            "keywords": [
+              "switch.coffee_maker",
+              "switch",
+              "Kitchen"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T12:57:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "switch.desk_plug",
+            "name": "Desk Plug",
+            "subtitle": "Switch",
+            "icon": "󰔡",
+            "keywords": [
+              "switch.desk_plug",
+              "switch"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-15T11:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "climate.living_room",
+            "name": "Living Room Thermostat",
+            "subtitle": "Climate · Living Room",
+            "icon": "󰔏",
+            "keywords": [
+              "climate.living_room",
+              "climate",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "tag": "heat",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T10:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "temperature",
+                "title": "Set temperature"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "media_player.living_room_tv",
+            "name": "Living Room TV",
+            "subtitle": "Media Player · Living Room",
+            "icon": "󰓃",
+            "keywords": [
+              "media_player.living_room_tv",
+              "media_player",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "tag": "playing",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T13:12:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "play_pause",
+                "title": "Pause"
+              },
+              {
+                "id": "next",
+                "title": "Next track"
+              },
+              {
+                "id": "previous",
+                "title": "Previous track"
+              },
+              {
+                "id": "volume",
+                "title": "Volume",
+                "shortcut": "cmd+u"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "cover.garage_door",
+            "name": "Garage Door",
+            "subtitle": "Cover · Garage",
+            "icon": "󱄜",
+            "keywords": [
+              "cover.garage_door",
+              "cover",
+              "Garage"
+            ],
+            "accessories": [
+              {
+                "tag": "closed",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-16T08:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "close",
+                "title": "Close"
+              },
+              {
+                "id": "stop",
+                "title": "Stop"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "fan.bedroom",
+            "name": "Bedroom Fan",
+            "subtitle": "Fan · Bedroom",
+            "icon": "󰈐",
+            "keywords": [
+              "fan.bedroom",
+              "fan",
+              "Bedroom"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-15T07:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "scene.good_morning",
+            "name": "Good Morning",
+            "subtitle": "Scene",
+            "icon": "󰏘",
+            "keywords": [
+              "scene.good_morning",
+              "scene"
+            ],
+            "accessories": [
+              {
+                "tag": "unknown",
+                "color": "red"
+              },
+              {
+                "date": "2026-09-16T07:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "activate",
+                "title": "Activate"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "scene.movie_night",
+            "name": "Movie Night",
+            "subtitle": "Scene",
+            "icon": "󰏘",
+            "keywords": [
+              "scene.movie_night",
+              "scene"
+            ],
+            "accessories": [
+              {
+                "tag": "unknown",
+                "color": "red"
+              },
+              {
+                "date": "2026-09-14T13:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "activate",
+                "title": "Activate"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "script.leaving_home",
+            "name": "Leaving Home",
+            "subtitle": "Script",
+            "icon": "󰯂",
+            "keywords": [
+              "script.leaving_home",
+              "script"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-16T06:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "run",
+                "title": "Run"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "automation.morning_blinds",
+            "name": "Morning Blinds",
+            "subtitle": "Automation",
+            "icon": "󰚩",
+            "keywords": [
+              "automation.morning_blinds",
+              "automation"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-11T13:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "trigger",
+                "title": "Trigger"
+              },
+              {
+                "id": "on",
+                "title": "Enable"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "automation.sunset_lights",
+            "name": "Sunset Lights",
+            "subtitle": "Automation",
+            "icon": "󰚩",
+            "keywords": [
+              "automation.sunset_lights",
+              "automation"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-13T13:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "trigger",
+                "title": "Trigger"
+              },
+              {
+                "id": "off",
+                "title": "Disable"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "sensor.living_room_temperature",
+            "name": "Living Room Temperature",
+            "subtitle": "Sensor · Living Room",
+            "icon": "󰊚",
+            "keywords": [
+              "sensor.living_room_temperature",
+              "sensor",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "text": "21.4 °C"
+              },
+              {
+                "date": "2026-09-16T13:34:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "sensor.outdoor_humidity",
+            "name": "Outdoor Humidity",
+            "subtitle": "Sensor",
+            "icon": "󰊚",
+            "keywords": [
+              "sensor.outdoor_humidity",
+              "sensor"
+            ],
+            "accessories": [
+              {
+                "text": "63 %"
+              },
+              {
+                "date": "2026-09-16T13:29:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "sensor.power_now",
+            "name": "Power Now",
+            "subtitle": "Sensor · Kitchen",
+            "icon": "󰊚",
+            "keywords": [
+              "sensor.power_now",
+              "sensor",
+              "Kitchen"
+            ],
+            "accessories": [
+              {
+                "text": "412 W"
+              },
+              {
+                "date": "2026-09-16T13:36:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "binary_sensor.front_door",
+            "name": "Front Door Contact",
+            "subtitle": "Binary Sensor · Entrance",
+            "icon": "󰐾",
+            "keywords": [
+              "binary_sensor.front_door",
+              "binary_sensor",
+              "Entrance"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-16T12:27:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "binary_sensor.motion_hall",
+            "name": "Hall Motion",
+            "subtitle": "Binary Sensor · Hallway",
+            "icon": "󰐾",
+            "keywords": [
+              "binary_sensor.motion_hall",
+              "binary_sensor",
+              "Hallway"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T13:35:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "person.alex",
+            "name": "Alex",
+            "subtitle": "Person",
+            "icon": "󰀄",
+            "keywords": [
+              "person.alex",
+              "person"
+            ],
+            "accessories": [
+              {
+                "tag": "home",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T09:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "person.sam",
+            "name": "Sam",
+            "subtitle": "Person",
+            "icon": "󰀄",
+            "keywords": [
+              "person.sam",
+              "person"
+            ],
+            "accessories": [
+              {
+                "tag": "not home",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-16T12:07:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "input_boolean.guest_mode",
+            "name": "Guest Mode",
+            "subtitle": "Input Boolean",
+            "icon": "󰔡",
+            "keywords": [
+              "input_boolean.guest_mode",
+              "input_boolean"
+            ],
+            "accessories": [
+              {
+                "tag": "off",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-08T05:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "vacuum.robo",
+            "name": "Robo",
+            "subtitle": "Vacuum",
+            "icon": "󰜍",
+            "keywords": [
+              "vacuum.robo",
+              "vacuum"
+            ],
+            "accessories": [
+              {
+                "tag": "docked",
+                "color": "grey"
+              },
+              {
+                "date": "2026-09-15T17:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "start",
+                "title": "Start"
+              },
+              {
+                "id": "return_to_base",
+                "title": "Return to dock"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          }
+        ]
+      },
+      "levels": {
+        "brightness": [
+          {
+            "id": "current",
+            "name": "Kitchen Light",
+            "subtitle": "Brightness 75%",
+            "icon": "#ffc878",
+            "actions": []
+          },
+          {
+            "id": "10",
+            "name": "10%",
+            "icon": "󰃟",
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set brightness"
+              }
+            ]
+          },
+          {
+            "id": "25",
+            "name": "25%",
+            "icon": "󰃟",
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set brightness"
+              }
+            ]
+          },
+          {
+            "id": "50",
+            "name": "50%",
+            "icon": "󰃟",
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set brightness"
+              }
+            ]
+          },
+          {
+            "id": "75",
+            "name": "75%",
+            "icon": "󰃟",
+            "accessories": [
+              {
+                "tag": "current",
+                "color": "blue"
+              }
+            ],
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set brightness"
+              }
+            ]
+          },
+          {
+            "id": "100",
+            "name": "100%",
+            "icon": "󰃟",
+            "actions": [
+              {
+                "id": "set",
+                "title": "Set brightness"
+              }
+            ]
+          }
+        ],
+        "attributes": [
+          {
+            "id": "state",
+            "name": "state",
+            "subtitle": "heat",
+            "icon": "󰔏",
+            "accessories": [
+              {
+                "date": "2026-09-16T10:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "friendly_name",
+            "name": "friendly_name",
+            "subtitle": "Living Room Thermostat",
+            "icon": "󰘎",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "temperature",
+            "name": "temperature",
+            "subtitle": "21",
+            "icon": "󰘎",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "current_temperature",
+            "name": "current_temperature",
+            "subtitle": "20.5",
+            "icon": "󰘎",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "hvac_modes",
+            "name": "hvac_modes",
+            "subtitle": "[\"off\",\"heat\",\"cool\",\"heat_cool\"]",
+            "icon": "󰘎",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "min_temp",
+            "name": "min_temp",
+            "subtitle": "7",
+            "icon": "󰘎",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "max_temp",
+            "name": "max_temp",
+            "subtitle": "30",
+            "icon": "󰘎",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "temperature_unit",
+            "name": "temperature_unit",
+            "subtitle": "°C",
+            "icon": "󰘎",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_key",
+                "title": "Copy name",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "Living Room": [
+          {
+            "id": "light.living_room",
+            "name": "Living Room Lamp",
+            "subtitle": "Light · Living Room",
+            "icon": "#2878ff",
+            "keywords": [
+              "light.living_room",
+              "light",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "tag": "on",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T11:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "toggle",
+                "title": "Toggle"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "brightness",
+                "title": "Brightness",
+                "shortcut": "cmd+b"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "sensor.living_room_temperature",
+            "name": "Living Room Temperature",
+            "subtitle": "Sensor · Living Room",
+            "icon": "󰊚",
+            "keywords": [
+              "sensor.living_room_temperature",
+              "sensor",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "text": "21.4 °C"
+              },
+              {
+                "date": "2026-09-16T13:34:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy_value",
+                "title": "Copy value"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "climate.living_room",
+            "name": "Living Room Thermostat",
+            "subtitle": "Climate · Living Room",
+            "icon": "󰔏",
+            "keywords": [
+              "climate.living_room",
+              "climate",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "tag": "heat",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T10:37:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "temperature",
+                "title": "Set temperature"
+              },
+              {
+                "id": "on",
+                "title": "Turn on"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "media_player.living_room_tv",
+            "name": "Living Room TV",
+            "subtitle": "Media Player · Living Room",
+            "icon": "󰓃",
+            "keywords": [
+              "media_player.living_room_tv",
+              "media_player",
+              "Living Room"
+            ],
+            "accessories": [
+              {
+                "tag": "playing",
+                "color": "green"
+              },
+              {
+                "date": "2026-09-16T13:12:09.970Z"
+              }
+            ],
+            "actions": [
+              {
+                "id": "play_pause",
+                "title": "Pause"
+              },
+              {
+                "id": "next",
+                "title": "Next track"
+              },
+              {
+                "id": "previous",
+                "title": "Previous track"
+              },
+              {
+                "id": "volume",
+                "title": "Volume",
+                "shortcut": "cmd+u"
+              },
+              {
+                "id": "off",
+                "title": "Turn off"
+              },
+              {
+                "id": "copy_id",
+                "title": "Copy entity id",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "attributes",
+                "title": "Show attributes",
+                "shortcut": "cmd+i"
+              },
+              {
+                "id": "open_ha",
+                "title": "Open in Home Assistant",
+                "shortcut": "cmd+o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "services": {
+      "title": "Home Assistant Services",
+      "icon": "󰉁",
+      "placeholder": "Search services",
+      "items": [
+        {
+          "id": "climate.set_hvac_mode",
+          "name": "Set HVAC mode",
+          "subtitle": "Climate · Sets climate device's HVAC mode.",
+          "icon": "󰔏",
+          "keywords": [
+            "climate",
+            "set_hvac_mode",
+            "climate.set_hvac_mode"
+          ],
+          "accessories": [
+            {
+              "text": "climate.set_hvac_mode"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "climate.set_temperature",
+          "name": "Set target temperature",
+          "subtitle": "Climate · Sets the temperature setpoint.",
+          "icon": "󰔏",
+          "keywords": [
+            "climate",
+            "set_temperature",
+            "climate.set_temperature"
+          ],
+          "accessories": [
+            {
+              "text": "climate.set_temperature"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "homeassistant.restart",
+          "name": "Restart",
+          "subtitle": "Homeassistant · Restarts Home Assistant.",
+          "icon": "󰉁",
+          "keywords": [
+            "homeassistant",
+            "restart",
+            "homeassistant.restart"
+          ],
+          "accessories": [
+            {
+              "text": "homeassistant.restart"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "homeassistant.turn_on",
+          "name": "Generic turn on",
+          "subtitle": "Homeassistant · Generic action to turn devices on under any domain.",
+          "icon": "󰉁",
+          "keywords": [
+            "homeassistant",
+            "turn_on",
+            "homeassistant.turn_on"
+          ],
+          "accessories": [
+            {
+              "text": "homeassistant.turn_on"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "light.toggle",
+          "name": "Toggle",
+          "subtitle": "Light · Toggles one or more lights.",
+          "icon": "󰌵",
+          "keywords": [
+            "light",
+            "toggle",
+            "light.toggle"
+          ],
+          "accessories": [
+            {
+              "text": "light.toggle"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "light.turn_off",
+          "name": "Turn off",
+          "subtitle": "Light · Turns off one or more lights.",
+          "icon": "󰌵",
+          "keywords": [
+            "light",
+            "turn_off",
+            "light.turn_off"
+          ],
+          "accessories": [
+            {
+              "text": "light.turn_off"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "light.turn_on",
+          "name": "Turn on",
+          "subtitle": "Light · Turns on one or more lights and adjusts their properties.",
+          "icon": "󰌵",
+          "keywords": [
+            "light",
+            "turn_on",
+            "light.turn_on"
+          ],
+          "accessories": [
+            {
+              "text": "light.turn_on"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "media_player.media_play_pause",
+          "name": "Play/Pause",
+          "subtitle": "Media Player · Toggles play/pause.",
+          "icon": "󰓃",
+          "keywords": [
+            "media_player",
+            "media_play_pause",
+            "media_player.media_play_pause"
+          ],
+          "accessories": [
+            {
+              "text": "media_player.media_play_pause"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "media_player.volume_set",
+          "name": "Set volume",
+          "subtitle": "Media Player · Sets the volume level.",
+          "icon": "󰓃",
+          "keywords": [
+            "media_player",
+            "volume_set",
+            "media_player.volume_set"
+          ],
+          "accessories": [
+            {
+              "text": "media_player.volume_set"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "notify.persistent_notification",
+          "name": "Send a persistent notification",
+          "subtitle": "Notify · Sends a notification that is visible in the notifications panel.",
+          "icon": "󰆈",
+          "keywords": [
+            "notify",
+            "persistent_notification",
+            "notify.persistent_notification"
+          ],
+          "accessories": [
+            {
+              "text": "notify.persistent_notification"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "scene.turn_on",
+          "name": "Activate",
+          "subtitle": "Scene · Activates a scene.",
+          "icon": "󰏘",
+          "keywords": [
+            "scene",
+            "turn_on",
+            "scene.turn_on"
+          ],
+          "accessories": [
+            {
+              "text": "scene.turn_on"
+            }
+          ],
+          "actions": [
+            {
+              "id": "call",
+              "title": "Call"
+            },
+            {
+              "id": "copy_id",
+              "title": "Copy service id",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    },
+    "areas": {
+      "title": "Home Assistant Areas",
+      "icon": "󰋜",
+      "placeholder": "Search areas",
+      "items": [
+        {
+          "id": "Bedroom",
+          "name": "Bedroom",
+          "subtitle": "2 entities",
+          "icon": "󰋜",
+          "keywords": [
+            "area"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Show entities"
+            }
+          ]
+        },
+        {
+          "id": "Entrance",
+          "name": "Entrance",
+          "subtitle": "2 entities",
+          "icon": "󰋜",
+          "keywords": [
+            "area"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Show entities"
+            }
+          ]
+        },
+        {
+          "id": "Garage",
+          "name": "Garage",
+          "subtitle": "1 entity",
+          "icon": "󰋜",
+          "keywords": [
+            "area"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Show entities"
+            }
+          ]
+        },
+        {
+          "id": "Hallway",
+          "name": "Hallway",
+          "subtitle": "2 entities",
+          "icon": "󰋜",
+          "keywords": [
+            "area"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Show entities"
+            }
+          ]
+        },
+        {
+          "id": "Kitchen",
+          "name": "Kitchen",
+          "subtitle": "3 entities",
+          "icon": "󰋜",
+          "keywords": [
+            "area"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Show entities"
+            }
+          ]
+        },
+        {
+          "id": "Living Room",
+          "name": "Living Room",
+          "subtitle": "4 entities",
+          "icon": "󰋜",
+          "keywords": [
+            "area"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Show entities"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "entities/light.kitchen:brightness": {
+      "push": {
+        "extension": "",
+        "palette": "entities",
+        "args": "brightness"
+      }
+    },
+    "entities/climate.living_room:attributes": {
+      "push": {
+        "extension": "",
+        "palette": "entities",
+        "args": "attributes"
+      }
+    },
+    "entities/climate.living_room:temperature": {
+      "form": {
+        "id": "climate.living_room",
+        "title": "Set Living Room Thermostat",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "temperature",
+            "label": "Temperature",
+            "required": true,
+            "default": "21",
+            "placeholder": "21",
+            "description": "7..30 °C"
+          },
+          {
+            "kind": "select",
+            "id": "hvac_mode",
+            "label": "Mode",
+            "options": [
+              {
+                "id": "off",
+                "title": "Off"
+              },
+              {
+                "id": "heat",
+                "title": "Heat"
+              },
+              {
+                "id": "cool",
+                "title": "Cool"
+              },
+              {
+                "id": "heat_cool",
+                "title": "Heat Cool"
+              }
+            ],
+            "default": "heat"
+          }
+        ],
+        "submit": {
+          "id": "set_temperature",
+          "title": "Set"
+        }
+      }
+    },
+    "services/light.turn_on": {
+      "form": {
+        "id": "light.turn_on",
+        "title": "Turn on",
+        "fields": [
+          {
+            "kind": "select",
+            "id": "entity_id",
+            "label": "Entity",
+            "required": true,
+            "options": [
+              {
+                "id": "light.bedroom",
+                "title": "Bedroom Light (light.bedroom)"
+              },
+              {
+                "id": "light.hallway",
+                "title": "Hallway (light.hallway)"
+              },
+              {
+                "id": "light.kitchen",
+                "title": "Kitchen Light (light.kitchen)"
+              },
+              {
+                "id": "light.living_room",
+                "title": "Living Room Lamp (light.living_room)"
+              }
+            ]
+          },
+          {
+            "id": "brightness_pct",
+            "label": "Brightness",
+            "required": false,
+            "description": "(0..100 %)",
+            "kind": "text"
+          },
+          {
+            "id": "color_name",
+            "label": "Color name",
+            "required": false,
+            "kind": "select",
+            "options": [
+              {
+                "id": "red",
+                "title": "red"
+              },
+              {
+                "id": "blue",
+                "title": "blue"
+              },
+              {
+                "id": "warm white",
+                "title": "warm white"
+              }
+            ]
+          },
+          {
+            "id": "transition",
+            "label": "Transition",
+            "required": false,
+            "description": "(0..300 seconds)",
+            "kind": "text",
+            "placeholder": "2"
+          }
+        ],
+        "submit": {
+          "id": "call",
+          "title": "Call light.turn_on"
+        }
+      }
+    },
+    "areas/Living Room": {
+      "push": {
+        "extension": "",
+        "palette": "entities",
+        "args": "Living Room"
+      }
+    }
+  },
+  "shots": {
+    "1-entities": {
+      "palette": "entities",
+      "keys": []
+    },
+    "2-actions": {
+      "palette": "entities",
+      "keys": [
+        "cmd+k"
+      ]
+    },
+    "3-detail": {
+      "palette": "entities",
+      "keys": [
+        "down*7",
+        "cmd+i"
+      ]
+    },
+    "4-service": {
+      "palette": "services",
+      "keys": [
+        "type:turn on",
+        "down",
+        "enter"
+      ]
+    }
+  }
+}

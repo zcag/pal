@@ -1,0 +1,399 @@
+{
+  "palettes": {
+    "windows": {
+      "title": "Windows",
+      "live": true,
+      "input": false,
+      "icon": "▣",
+      "placeholder": "Switch to a window",
+      "items": [
+        {
+          "id": "w1",
+          "name": "~/proj/widgets",
+          "subtitle": "kitty",
+          "keywords": [
+            "net.kovidgoyal.kitty",
+            "kitty"
+          ],
+          "icon": {
+            "app": "/Applications/kitty.app"
+          },
+          "accessories": [],
+          "section": "kitty",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "minimize",
+              "title": "Minimize",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "minimize-all",
+              "title": "Minimize all of this app",
+              "shortcut": "cmd+shift+m"
+            },
+            {
+              "id": "close-all",
+              "title": "Close all of this app",
+              "shortcut": "cmd+shift+w",
+              "style": "destructive",
+              "confirm": "Close every window of this app?"
+            }
+          ]
+        },
+        {
+          "id": "w2",
+          "name": "ssh web-1",
+          "subtitle": "kitty",
+          "keywords": [
+            "net.kovidgoyal.kitty",
+            "kitty"
+          ],
+          "icon": {
+            "app": "/Applications/kitty.app"
+          },
+          "accessories": [
+            {
+              "text": "ws 2"
+            }
+          ],
+          "section": "kitty",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "minimize",
+              "title": "Minimize",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "minimize-all",
+              "title": "Minimize all of this app",
+              "shortcut": "cmd+shift+m"
+            },
+            {
+              "id": "close-all",
+              "title": "Close all of this app",
+              "shortcut": "cmd+shift+w",
+              "style": "destructive",
+              "confirm": "Close every window of this app?"
+            }
+          ]
+        },
+        {
+          "id": "w3",
+          "name": "Pull Request #42 · acme/widgets",
+          "subtitle": "Google Chrome",
+          "keywords": [
+            "com.google.Chrome",
+            "Google Chrome"
+          ],
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "accessories": [],
+          "section": "Google Chrome",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "minimize",
+              "title": "Minimize",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "minimize-all",
+              "title": "Minimize all of this app",
+              "shortcut": "cmd+shift+m"
+            },
+            {
+              "id": "close-all",
+              "title": "Close all of this app",
+              "shortcut": "cmd+shift+w",
+              "style": "destructive",
+              "confirm": "Close every window of this app?"
+            }
+          ]
+        },
+        {
+          "id": "w4",
+          "name": "Release notes - Google Docs",
+          "subtitle": "Google Chrome",
+          "keywords": [
+            "com.google.Chrome",
+            "Google Chrome"
+          ],
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "accessories": [
+            {
+              "text": "Display 2"
+            }
+          ],
+          "section": "Google Chrome",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "minimize",
+              "title": "Minimize",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "minimize-all",
+              "title": "Minimize all of this app",
+              "shortcut": "cmd+shift+m"
+            },
+            {
+              "id": "close-all",
+              "title": "Close all of this app",
+              "shortcut": "cmd+shift+w",
+              "style": "destructive",
+              "confirm": "Close every window of this app?"
+            }
+          ]
+        },
+        {
+          "id": "w5",
+          "name": "YouTube",
+          "subtitle": "Google Chrome",
+          "keywords": [
+            "com.google.Chrome",
+            "Google Chrome"
+          ],
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "accessories": [
+            {
+              "tag": "minimized"
+            }
+          ],
+          "section": "Google Chrome",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "minimize-all",
+              "title": "Minimize all of this app",
+              "shortcut": "cmd+shift+m"
+            },
+            {
+              "id": "close-all",
+              "title": "Close all of this app",
+              "shortcut": "cmd+shift+w",
+              "style": "destructive",
+              "confirm": "Close every window of this app?"
+            }
+          ]
+        },
+        {
+          "id": "w6",
+          "name": "Downloads",
+          "subtitle": "Finder",
+          "keywords": [
+            "com.apple.finder",
+            "Finder"
+          ],
+          "icon": {
+            "app": "/System/Library/CoreServices/Finder.app"
+          },
+          "accessories": [],
+          "section": "Finder",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "minimize",
+              "title": "Minimize",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "w7",
+          "name": "index.ts - widgets",
+          "subtitle": "Code",
+          "keywords": [
+            "com.microsoft.VSCode",
+            "Code"
+          ],
+          "icon": {
+            "app": "/Applications/Visual Studio Code.app"
+          },
+          "accessories": [],
+          "section": "Code",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "minimize",
+              "title": "Minimize",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "w8",
+          "name": "Inbox (3)",
+          "subtitle": "Mail",
+          "keywords": [
+            "com.apple.mail",
+            "Mail"
+          ],
+          "icon": {
+            "app": "/System/Applications/Mail.app"
+          },
+          "accessories": [
+            {
+              "text": "other space"
+            }
+          ],
+          "section": "Mail",
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "minimize",
+              "title": "Minimize",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "hide-app",
+              "title": "Hide app",
+              "shortcut": "cmd+h"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "windows",
+      "keys": [
+        "down*2"
+      ]
+    },
+    "2-actions": {
+      "palette": "windows",
+      "keys": [
+        "down*2",
+        "cmd+k"
+      ]
+    },
+    "3-root": {
+      "keys": [
+        "type:chrome"
+      ]
+    },
+    "4-confirm": {
+      "palette": "windows",
+      "keys": [
+        "down*2",
+        "cmd+shift+w"
+      ]
+    }
+  }
+}

@@ -1,0 +1,2243 @@
+{
+  "palettes": {
+    "history": {
+      "title": "Clipboard History",
+      "icon": "⎘",
+      "live": true,
+      "input": true,
+      "showDetail": true,
+      "placeholder": "Search clipboard history",
+      "filters": [
+        {
+          "id": "all",
+          "title": "All"
+        },
+        {
+          "id": "text",
+          "title": "Text"
+        },
+        {
+          "id": "image",
+          "title": "Images"
+        },
+        {
+          "id": "files",
+          "title": "Files"
+        },
+        {
+          "id": "links",
+          "title": "Links"
+        },
+        {
+          "id": "colors",
+          "title": "Colors"
+        }
+      ],
+      "items": [
+        {
+          "id": "2",
+          "name": "ssh -J bastion.example.com deploy@web-1",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "kitty"
+            },
+            {
+              "date": 1789307184762
+            },
+            {
+              "tag": "pinned",
+              "color": "amber"
+            }
+          ],
+          "detail": {
+            "markdown": "````\nssh -J bastion.example.com deploy@web-1\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "39 B · 39 chars"
+              },
+              {
+                "label": "Source",
+                "value": "kitty"
+              },
+              {
+                "label": "Copied",
+                "value": "9/13/2026, 4:46:24 PM"
+              },
+              {
+                "label": "Pinned",
+                "tags": [
+                  {
+                    "text": "pinned",
+                    "color": "amber"
+                  }
+                ]
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Unpin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ],
+          "section": "Pinned"
+        },
+        {
+          "id": "9",
+          "name": "Best regards,",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "Mail"
+            },
+            {
+              "date": 1788529584762
+            },
+            {
+              "tag": "pinned",
+              "color": "amber"
+            }
+          ],
+          "detail": {
+            "markdown": "````\nBest regards,\nAda\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "17 B · 17 chars"
+              },
+              {
+                "label": "Source",
+                "value": "Mail"
+              },
+              {
+                "label": "Copied",
+                "value": "9/4/2026, 4:46:24 PM"
+              },
+              {
+                "label": "Pinned",
+                "tags": [
+                  {
+                    "text": "pinned",
+                    "color": "amber"
+                  }
+                ]
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Unpin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ],
+          "subtitle": "2 lines · Best regards, Ada",
+          "section": "Pinned"
+        },
+        {
+          "id": "14",
+          "name": "https://github.com/acme/widgets/pull/412",
+          "accessories": [
+            {
+              "text": "Chrome"
+            },
+            {
+              "date": 1789566144762
+            }
+          ],
+          "detail": {
+            "markdown": "````\nhttps://github.com/acme/widgets/pull/412\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "40 B · 40 chars"
+              },
+              {
+                "label": "Source",
+                "value": "Chrome"
+              },
+              {
+                "label": "Copied",
+                "value": "9/16/2026, 4:42:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "open",
+              "title": "Open link",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ],
+          "url": "https://github.com/acme/widgets/pull/412"
+        },
+        {
+          "id": "13",
+          "name": "#5b8def",
+          "icon": "#5b8def",
+          "accessories": [
+            {
+              "text": "VS Code"
+            },
+            {
+              "date": 1789565304762
+            }
+          ],
+          "detail": {
+            "markdown": "````\n#5b8def\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "7 B · 7 chars"
+              },
+              {
+                "label": "Source",
+                "value": "VS Code"
+              },
+              {
+                "label": "Copied",
+                "value": "9/16/2026, 4:28:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ]
+        },
+        {
+          "id": "12",
+          "name": "Image 1440 x 900",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E"
+          },
+          "accessories": [
+            {
+              "text": "Preview"
+            },
+            {
+              "text": "402.7 KB"
+            },
+            {
+              "date": 1789563984762
+            }
+          ],
+          "detail": {
+            "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E)",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "image"
+              },
+              {
+                "label": "Size",
+                "value": "402.7 KB · 1440 x 900 px"
+              },
+              {
+                "label": "Source",
+                "value": "Preview"
+              },
+              {
+                "label": "Copied",
+                "value": "9/16/2026, 4:06:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy image file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ]
+        },
+        {
+          "id": "11",
+          "name": "SELECT id, name FROM users",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "kitty"
+            },
+            {
+              "date": 1789559184762
+            }
+          ],
+          "detail": {
+            "markdown": "````\nSELECT id, name FROM users\nWHERE created_at > now() - interval '7 days'\nORDER BY created_at DESC;\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "97 B · 97 chars"
+              },
+              {
+                "label": "Source",
+                "value": "kitty"
+              },
+              {
+                "label": "Copied",
+                "value": "9/16/2026, 2:46:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ],
+          "subtitle": "3 lines · SELECT id, name FROM users WHERE created_at > now() - interval '7 days' ORDER BY created_at DESC;"
+        },
+        {
+          "id": "10",
+          "name": "invoice-2026-09.pdf, receipt.pdf",
+          "subtitle": "2 files",
+          "icon": "▤",
+          "accessories": [
+            {
+              "text": "Finder"
+            },
+            {
+              "date": 1789555584762
+            }
+          ],
+          "detail": {
+            "markdown": "- `/Users/ada/Downloads/invoice-2026-09.pdf`\n- `/Users/ada/Downloads/receipt.pdf`",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "files"
+              },
+              {
+                "label": "Size",
+                "value": "72 B"
+              },
+              {
+                "label": "Source",
+                "value": "Finder"
+              },
+              {
+                "label": "Copied",
+                "value": "9/16/2026, 1:46:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ]
+        },
+        {
+          "id": "8",
+          "name": "rgb(34, 197, 94)",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "Chrome"
+            },
+            {
+              "date": 1789548384762
+            }
+          ],
+          "detail": {
+            "markdown": "````\nrgb(34, 197, 94)\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "16 B · 16 chars"
+              },
+              {
+                "label": "Source",
+                "value": "Chrome"
+              },
+              {
+                "label": "Copied",
+                "value": "9/16/2026, 11:46:24 AM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ]
+        },
+        {
+          "id": "7",
+          "name": "docker compose up -d --build",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "kitty"
+            },
+            {
+              "date": 1789541184762
+            }
+          ],
+          "detail": {
+            "markdown": "````\ndocker compose up -d --build\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "28 B · 28 chars"
+              },
+              {
+                "label": "Source",
+                "value": "kitty"
+              },
+              {
+                "label": "Copied",
+                "value": "9/16/2026, 9:46:24 AM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ]
+        },
+        {
+          "id": "6",
+          "name": "Ada Lovelace <ada@example.org>",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "Mail"
+            },
+            {
+              "date": 1789479984762
+            }
+          ],
+          "detail": {
+            "markdown": "````\nAda Lovelace <ada@example.org>\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "30 B · 30 chars"
+              },
+              {
+                "label": "Source",
+                "value": "Mail"
+              },
+              {
+                "label": "Copied",
+                "value": "9/15/2026, 4:46:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ]
+        },
+        {
+          "id": "5",
+          "name": "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard",
+          "accessories": [
+            {
+              "text": "Safari"
+            },
+            {
+              "date": 1789472784762
+            }
+          ],
+          "detail": {
+            "markdown": "````\nhttps://developer.mozilla.org/en-US/docs/Web/API/Clipboard\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "58 B · 58 chars"
+              },
+              {
+                "label": "Source",
+                "value": "Safari"
+              },
+              {
+                "label": "Copied",
+                "value": "9/15/2026, 2:46:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "open",
+              "title": "Open link",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ],
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard"
+        },
+        {
+          "id": "4",
+          "name": "Meeting moved to Thursday 15:00, same room.",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "Slack"
+            },
+            {
+              "date": 1789393584762
+            }
+          ],
+          "detail": {
+            "markdown": "````\nMeeting moved to Thursday 15:00, same room.\n````",
+            "metadata": [
+              {
+                "label": "Kind",
+                "value": "text"
+              },
+              {
+                "label": "Size",
+                "value": "43 B · 43 chars"
+              },
+              {
+                "label": "Source",
+                "value": "Slack"
+              },
+              {
+                "label": "Copied",
+                "value": "9/14/2026, 4:46:24 PM"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "paste",
+              "title": "Paste"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "paste-plain",
+              "title": "Paste as plain text",
+              "shortcut": "cmd+shift+v"
+            },
+            {
+              "id": "pin",
+              "title": "Pin",
+              "shortcut": "cmd+p"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Delete this entry from history?"
+            },
+            {
+              "id": "delete-unpinned",
+              "title": "Delete all unpinned",
+              "style": "destructive",
+              "confirm": "Delete every unpinned entry? Pinned ones stay."
+            },
+            {
+              "id": "clear",
+              "title": "Clear history",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive",
+              "confirm": "Delete every entry, pinned ones included?"
+            }
+          ]
+        }
+      ],
+      "byFilter": {
+        "colors": [
+          {
+            "id": "13",
+            "name": "#5b8def",
+            "icon": "#5b8def",
+            "accessories": [
+              {
+                "text": "VS Code"
+              },
+              {
+                "date": 1789565304762
+              }
+            ],
+            "detail": {
+              "markdown": "````\n#5b8def\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "7 B · 7 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "VS Code"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 4:28:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          },
+          {
+            "id": "8",
+            "name": "rgb(34, 197, 94)",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "Chrome"
+              },
+              {
+                "date": 1789548384762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nrgb(34, 197, 94)\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "16 B · 16 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Chrome"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 11:46:24 AM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          }
+        ],
+        "image": [
+          {
+            "id": "12",
+            "name": "Image 1440 x 900",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E"
+            },
+            "accessories": [
+              {
+                "text": "Preview"
+              },
+              {
+                "text": "402.7 KB"
+              },
+              {
+                "date": 1789563984762
+              }
+            ],
+            "detail": {
+              "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%201440%20900%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23DCE4F5%22/%3E%3Cstop%20offset%3D%22.4%22%20stop-color%3D%22%23E9DDF2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23DDEBE0%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%221440%22%20height%3D%22900%22%20fill%3D%22url%28%23g%29%22/%3E%3Crect%20x%3D%22150%22%20y%3D%2290%22%20width%3D%221140%22%20height%3D%22720%22%20rx%3D%2228%22%20fill%3D%22%23f4f2f6%22%20stroke%3D%22%23d8d4dc%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22120%22%20width%3D%221080%22%20height%3D%2270%22%20rx%3D%2212%22%20fill%3D%22%23e8e5ec%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22220%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23dcd8e2%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22300%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22380%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3Crect%20x%3D%22180%22%20y%3D%22460%22%20width%3D%221080%22%20height%3D%2260%22%20rx%3D%2210%22%20fill%3D%22%23ecE9f0%22/%3E%3C/svg%3E)",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "image"
+                },
+                {
+                  "label": "Size",
+                  "value": "402.7 KB · 1440 x 900 px"
+                },
+                {
+                  "label": "Source",
+                  "value": "Preview"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 4:06:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy image file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          }
+        ],
+        "links": [
+          {
+            "id": "14",
+            "name": "https://github.com/acme/widgets/pull/412",
+            "accessories": [
+              {
+                "text": "Chrome"
+              },
+              {
+                "date": 1789566144762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nhttps://github.com/acme/widgets/pull/412\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "40 B · 40 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Chrome"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 4:42:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "open",
+                "title": "Open link",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ],
+            "url": "https://github.com/acme/widgets/pull/412"
+          },
+          {
+            "id": "5",
+            "name": "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard",
+            "accessories": [
+              {
+                "text": "Safari"
+              },
+              {
+                "date": 1789472784762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nhttps://developer.mozilla.org/en-US/docs/Web/API/Clipboard\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "58 B · 58 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Safari"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/15/2026, 2:46:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "open",
+                "title": "Open link",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ],
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard"
+          }
+        ],
+        "text": [
+          {
+            "id": "2",
+            "name": "ssh -J bastion.example.com deploy@web-1",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "kitty"
+              },
+              {
+                "date": 1789307184762
+              },
+              {
+                "tag": "pinned",
+                "color": "amber"
+              }
+            ],
+            "detail": {
+              "markdown": "````\nssh -J bastion.example.com deploy@web-1\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "39 B · 39 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "kitty"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/13/2026, 4:46:24 PM"
+                },
+                {
+                  "label": "Pinned",
+                  "tags": [
+                    {
+                      "text": "pinned",
+                      "color": "amber"
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Unpin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ],
+            "section": "Pinned"
+          },
+          {
+            "id": "9",
+            "name": "Best regards,",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "Mail"
+              },
+              {
+                "date": 1788529584762
+              },
+              {
+                "tag": "pinned",
+                "color": "amber"
+              }
+            ],
+            "detail": {
+              "markdown": "````\nBest regards,\nAda\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "17 B · 17 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Mail"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/4/2026, 4:46:24 PM"
+                },
+                {
+                  "label": "Pinned",
+                  "tags": [
+                    {
+                      "text": "pinned",
+                      "color": "amber"
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Unpin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ],
+            "subtitle": "2 lines · Best regards, Ada",
+            "section": "Pinned"
+          },
+          {
+            "id": "14",
+            "name": "https://github.com/acme/widgets/pull/412",
+            "accessories": [
+              {
+                "text": "Chrome"
+              },
+              {
+                "date": 1789566144762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nhttps://github.com/acme/widgets/pull/412\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "40 B · 40 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Chrome"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 4:42:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "open",
+                "title": "Open link",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ],
+            "url": "https://github.com/acme/widgets/pull/412"
+          },
+          {
+            "id": "13",
+            "name": "#5b8def",
+            "icon": "#5b8def",
+            "accessories": [
+              {
+                "text": "VS Code"
+              },
+              {
+                "date": 1789565304762
+              }
+            ],
+            "detail": {
+              "markdown": "````\n#5b8def\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "7 B · 7 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "VS Code"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 4:28:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          },
+          {
+            "id": "11",
+            "name": "SELECT id, name FROM users",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "kitty"
+              },
+              {
+                "date": 1789559184762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nSELECT id, name FROM users\nWHERE created_at > now() - interval '7 days'\nORDER BY created_at DESC;\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "97 B · 97 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "kitty"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 2:46:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ],
+            "subtitle": "3 lines · SELECT id, name FROM users WHERE created_at > now() - interval '7 days' ORDER BY created_at DESC;"
+          },
+          {
+            "id": "8",
+            "name": "rgb(34, 197, 94)",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "Chrome"
+              },
+              {
+                "date": 1789548384762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nrgb(34, 197, 94)\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "16 B · 16 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Chrome"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 11:46:24 AM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          },
+          {
+            "id": "7",
+            "name": "docker compose up -d --build",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "kitty"
+              },
+              {
+                "date": 1789541184762
+              }
+            ],
+            "detail": {
+              "markdown": "````\ndocker compose up -d --build\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "28 B · 28 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "kitty"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 9:46:24 AM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          },
+          {
+            "id": "6",
+            "name": "Ada Lovelace <ada@example.org>",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "Mail"
+              },
+              {
+                "date": 1789479984762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nAda Lovelace <ada@example.org>\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "30 B · 30 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Mail"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/15/2026, 4:46:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          },
+          {
+            "id": "5",
+            "name": "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard",
+            "accessories": [
+              {
+                "text": "Safari"
+              },
+              {
+                "date": 1789472784762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nhttps://developer.mozilla.org/en-US/docs/Web/API/Clipboard\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "58 B · 58 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Safari"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/15/2026, 2:46:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "open",
+                "title": "Open link",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ],
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard"
+          },
+          {
+            "id": "4",
+            "name": "Meeting moved to Thursday 15:00, same room.",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "Slack"
+              },
+              {
+                "date": 1789393584762
+              }
+            ],
+            "detail": {
+              "markdown": "````\nMeeting moved to Thursday 15:00, same room.\n````",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "text"
+                },
+                {
+                  "label": "Size",
+                  "value": "43 B · 43 chars"
+                },
+                {
+                  "label": "Source",
+                  "value": "Slack"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/14/2026, 4:46:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "paste-plain",
+                "title": "Paste as plain text",
+                "shortcut": "cmd+shift+v"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "id": "10",
+            "name": "invoice-2026-09.pdf, receipt.pdf",
+            "subtitle": "2 files",
+            "icon": "▤",
+            "accessories": [
+              {
+                "text": "Finder"
+              },
+              {
+                "date": 1789555584762
+              }
+            ],
+            "detail": {
+              "markdown": "- `/Users/ada/Downloads/invoice-2026-09.pdf`\n- `/Users/ada/Downloads/receipt.pdf`",
+              "metadata": [
+                {
+                  "label": "Kind",
+                  "value": "files"
+                },
+                {
+                  "label": "Size",
+                  "value": "72 B"
+                },
+                {
+                  "label": "Source",
+                  "value": "Finder"
+                },
+                {
+                  "label": "Copied",
+                  "value": "9/16/2026, 1:46:24 PM"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "paste",
+                "title": "Paste"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              },
+              {
+                "id": "pin",
+                "title": "Pin",
+                "shortcut": "cmd+p"
+              },
+              {
+                "id": "delete",
+                "title": "Delete",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Delete this entry from history?"
+              },
+              {
+                "id": "delete-unpinned",
+                "title": "Delete all unpinned",
+                "style": "destructive",
+                "confirm": "Delete every unpinned entry? Pinned ones stay."
+              },
+              {
+                "id": "clear",
+                "title": "Clear history",
+                "shortcut": "cmd+shift+d",
+                "style": "destructive",
+                "confirm": "Delete every entry, pinned ones included?"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "history",
+      "keys": [
+        "down*5"
+      ]
+    },
+    "2-image": {
+      "palette": "history",
+      "keys": [
+        "down*4"
+      ]
+    },
+    "3-colors": {
+      "palette": "history",
+      "keys": [
+        "tab*5"
+      ]
+    },
+    "4-actions": {
+      "palette": "history",
+      "keys": [
+        "down*2",
+        "cmd+k"
+      ]
+    }
+  }
+}

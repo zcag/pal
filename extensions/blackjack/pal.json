@@ -6,6 +6,7 @@
   "icon": "🃏",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "number", "id": "decks", "label": "Decks", "description": "Decks in the shoe; it is reshuffled once a quarter is left.", "min": 1, "max": 8, "default": 6 },
     { "kind": "number", "id": "starting_bankroll", "label": "Starting bankroll", "description": "Chips a new game starts with.", "min": 10, "max": 1000000, "step": 10, "unit": "$", "default": 1000 },
@@ -13,7 +14,48 @@
     { "kind": "boolean", "id": "dealer_hits_soft_17", "label": "Dealer hits soft 17", "text": "The dealer draws on a soft 17 (H17) instead of standing (S17).", "default": false },
     { "kind": "boolean", "id": "insurance", "label": "Offer insurance", "text": "Ask about insurance when the dealer shows an ace.", "default": false }
   ],
+  "store": {
+    "tagline": "A hand of blackjack in the panel, keyboard only; the bankroll and the record persist.",
+    "category": "fun",
+    "features": [
+      "The table as a view level: the phase replaces the search input (`Place your bet`, `Your turn`, `Dealer busts`), the footer shows the primary key, `cmd+k` lists every move",
+      "`+` and `-` set the bet, `Enter` deals; `H` hit, `S` stand, `D` double down, `P` split a pair; totals show live (`Soft 17`)",
+      "Dealer stands on 17 (H17 by setting), blackjack pays 3:2, a dealer blackjack is checked at once, doubling after a split allowed, no surrender; insurance by setting",
+      "A shoe of 1 to 8 decks, reshuffled once under a quarter is left (the status line's bar)",
+      "Escape leaves at any point; the hand, the bankroll and the record are there when you come back, across restarts",
+      "Cards are SVG the extension draws itself, pips laid out as on a real deck"
+    ],
+    "permissions": [],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-bet.png", "caption": "Placing a bet: + and - move it by the minimum, Enter deals" },
+      { "file": "2-hand.png", "caption": "Mid-hand after a split: hand 1 is being played, the hole card is face down" },
+      { "file": "3-settled.png", "caption": "Settled: the dealer drew and bust, the net for the hand, the record moved" },
+      { "file": "4-moves.png", "caption": "A pair of eights against a king: hit, stand, double down or split, each with its key" }
+    ],
+    "actions": [
+      { "title": "Deal", "description": "Also Next hand once a hand is settled.", "keys": "enter" },
+      { "title": "Hit", "keys": "h" },
+      { "title": "Stand", "keys": "s" },
+      { "title": "Double down", "description": "On the first two cards: one card, then stand.", "keys": "d" },
+      { "title": "Split", "description": "A pair, once; split aces take one card each.", "keys": "p" },
+      { "title": "Raise the bet", "keys": "+" },
+      { "title": "Lower the bet", "keys": "-" },
+      { "title": "Take insurance", "description": "Offered on an ace with `insurance` on; Enter declines.", "keys": "i" },
+      { "title": "New game", "description": "A fresh bankroll and record; asks first.", "keys": "n" }
+    ]
+  },
   "palettes": {
-    "blackjack": { "description": "The table. Escape leaves mid-hand; the hand is there when you come back." }
+    "blackjack": {
+      "kind": "view",
+      "description": "The table. Escape leaves mid-hand; the hand is there when you come back.",
+      "keys": [
+        { "keys": "enter", "title": "Deal, or the next hand" },
+        { "keys": "h", "title": "Hit" },
+        { "keys": "s", "title": "Stand" },
+        { "keys": "d", "title": "Double down" },
+        { "keys": "p", "title": "Split" }
+      ]
+    }
   }
 }

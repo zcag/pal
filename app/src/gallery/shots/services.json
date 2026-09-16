@@ -1,0 +1,1347 @@
+{
+ "palettes": {
+  "services": {
+   "title": "Services",
+   "icon": "⚙",
+   "live": true,
+   "placeholder": "Unit name or description",
+   "filters": [
+    {
+     "id": "user",
+     "title": "User"
+    },
+    {
+     "id": "system",
+     "title": "System"
+    },
+    {
+     "id": "failed",
+     "title": "Failed"
+    },
+    {
+     "id": "running",
+     "title": "Running"
+    }
+   ],
+   "items": [
+    {
+     "id": "user:pipewire.service",
+     "name": "pipewire",
+     "subtitle": "PipeWire Multimedia Service",
+     "icon": "⚙",
+     "keywords": [
+      "pipewire.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "text": "enabled"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "pipewire.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "active (running)"
+       },
+       {
+        "label": "Unit file",
+        "value": "enabled"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "disable",
+       "title": "Disable",
+       "shortcut": "cmd+e"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:wireplumber.service",
+     "name": "wireplumber",
+     "subtitle": "Multimedia Service Session Manager",
+     "icon": "⚙",
+     "keywords": [
+      "wireplumber.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "text": "enabled"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "wireplumber.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "active (running)"
+       },
+       {
+        "label": "Unit file",
+        "value": "enabled"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "disable",
+       "title": "Disable",
+       "shortcut": "cmd+e"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:syncthing.service",
+     "name": "syncthing",
+     "subtitle": "Syncthing - Open Source Continuous File Synchronization",
+     "icon": "⚙",
+     "keywords": [
+      "syncthing.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "text": "enabled"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "syncthing.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "active (running)"
+       },
+       {
+        "label": "Unit file",
+        "value": "enabled"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "disable",
+       "title": "Disable",
+       "shortcut": "cmd+e"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:gpg-agent.service",
+     "name": "gpg-agent",
+     "subtitle": "GnuPG cryptographic agent and passphrase cache",
+     "icon": "⚙",
+     "keywords": [
+      "gpg-agent.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "gpg-agent.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "active (running)"
+       },
+       {
+        "label": "Unit file",
+        "value": "static"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:ssh-agent.service",
+     "name": "ssh-agent",
+     "subtitle": "SSH key agent",
+     "icon": "⚙",
+     "keywords": [
+      "ssh-agent.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "text": "enabled"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "ssh-agent.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "active (running)"
+       },
+       {
+        "label": "Unit file",
+        "value": "enabled"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "disable",
+       "title": "Disable",
+       "shortcut": "cmd+e"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:report.service",
+     "name": "report",
+     "subtitle": "Weekly usage report",
+     "icon": "⚙",
+     "keywords": [
+      "report.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "text": "disabled"
+      },
+      {
+       "tag": "inactive/dead",
+       "color": "grey"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "report.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "inactive (dead)"
+       },
+       {
+        "label": "Unit file",
+        "value": "disabled"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "start",
+       "title": "Start"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "enable",
+       "title": "Enable",
+       "shortcut": "cmd+e"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:backup.service",
+     "name": "backup",
+     "subtitle": "Nightly restic backup",
+     "icon": "⚙",
+     "keywords": [
+      "backup.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "text": "enabled"
+      },
+      {
+       "tag": "failed/failed",
+       "color": "red"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "backup.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "failed (failed)"
+       },
+       {
+        "label": "Unit file",
+        "value": "enabled"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "start",
+       "title": "Start"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "disable",
+       "title": "Disable",
+       "shortcut": "cmd+e"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:xdg-desktop-portal.service",
+     "name": "xdg-desktop-portal",
+     "subtitle": "Portal service",
+     "icon": "⚙",
+     "keywords": [
+      "xdg-desktop-portal.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "xdg-desktop-portal.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "active (running)"
+       },
+       {
+        "label": "Unit file",
+        "value": "static"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "user:podman.service",
+     "name": "podman",
+     "subtitle": "Podman API Service",
+     "icon": "⚙",
+     "keywords": [
+      "podman.service",
+      "user"
+     ],
+     "accessories": [
+      {
+       "text": "disabled"
+      },
+      {
+       "tag": "inactive/dead",
+       "color": "grey"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Unit",
+        "value": "podman.service"
+       },
+       {
+        "label": "Scope",
+        "value": "user"
+       },
+       {
+        "label": "Load",
+        "value": "loaded"
+       },
+       {
+        "label": "Active",
+        "value": "inactive (dead)"
+       },
+       {
+        "label": "Unit file",
+        "value": "disabled"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "start",
+       "title": "Start"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "enable",
+       "title": "Enable",
+       "shortcut": "cmd+e"
+      },
+      {
+       "id": "copy",
+       "title": "Copy unit name",
+       "shortcut": "cmd+c"
+      }
+     ]
+    }
+   ],
+   "byFilter": {
+    "failed": [
+     {
+      "id": "user:backup.service",
+      "name": "backup",
+      "subtitle": "Nightly restic backup",
+      "icon": "⚙",
+      "keywords": [
+       "backup.service",
+       "user"
+      ],
+      "accessories": [
+       {
+        "text": "enabled"
+       },
+       {
+        "tag": "failed/failed",
+        "color": "red"
+       }
+      ],
+      "detail": {
+       "metadata": [
+        {
+         "label": "Unit",
+         "value": "backup.service"
+        },
+        {
+         "label": "Scope",
+         "value": "user"
+        },
+        {
+         "label": "Load",
+         "value": "loaded"
+        },
+        {
+         "label": "Active",
+         "value": "failed (failed)"
+        },
+        {
+         "label": "Unit file",
+         "value": "enabled"
+        }
+       ]
+      },
+      "actions": [
+       {
+        "id": "start",
+        "title": "Start"
+       },
+       {
+        "id": "logs",
+        "title": "Logs",
+        "shortcut": "cmd+l"
+       },
+       {
+        "id": "restart",
+        "title": "Restart",
+        "shortcut": "cmd+shift+r"
+       },
+       {
+        "id": "disable",
+        "title": "Disable",
+        "shortcut": "cmd+e"
+       },
+       {
+        "id": "copy",
+        "title": "Copy unit name",
+        "shortcut": "cmd+c"
+       }
+      ],
+      "section": "User"
+     },
+     {
+      "id": "system:nginx.service",
+      "name": "nginx",
+      "subtitle": "A high performance web server and a reverse proxy server",
+      "icon": "⚙",
+      "keywords": [
+       "nginx.service",
+       "system"
+      ],
+      "accessories": [
+       {
+        "text": "enabled"
+       },
+       {
+        "tag": "failed/failed",
+        "color": "red"
+       }
+      ],
+      "detail": {
+       "metadata": [
+        {
+         "label": "Unit",
+         "value": "nginx.service"
+        },
+        {
+         "label": "Scope",
+         "value": "system"
+        },
+        {
+         "label": "Load",
+         "value": "loaded"
+        },
+        {
+         "label": "Active",
+         "value": "failed (failed)"
+        },
+        {
+         "label": "Unit file",
+         "value": "enabled"
+        }
+       ]
+      },
+      "actions": [
+       {
+        "id": "start",
+        "title": "Start"
+       },
+       {
+        "id": "logs",
+        "title": "Logs",
+        "shortcut": "cmd+l"
+       },
+       {
+        "id": "restart",
+        "title": "Restart",
+        "shortcut": "cmd+shift+r",
+        "confirm": "Restart this system unit?"
+       },
+       {
+        "id": "disable",
+        "title": "Disable",
+        "shortcut": "cmd+e",
+        "confirm": "Disable this system unit?"
+       },
+       {
+        "id": "copy",
+        "title": "Copy unit name",
+        "shortcut": "cmd+c"
+       }
+      ],
+      "section": "System"
+     },
+     {
+      "id": "system:fstrim.service",
+      "name": "fstrim",
+      "subtitle": "Discard unused blocks on filesystems from /etc/fstab",
+      "icon": "⚙",
+      "keywords": [
+       "fstrim.service",
+       "system"
+      ],
+      "accessories": [
+       {
+        "tag": "failed/failed",
+        "color": "red"
+       }
+      ],
+      "detail": {
+       "metadata": [
+        {
+         "label": "Unit",
+         "value": "fstrim.service"
+        },
+        {
+         "label": "Scope",
+         "value": "system"
+        },
+        {
+         "label": "Load",
+         "value": "loaded"
+        },
+        {
+         "label": "Active",
+         "value": "failed (failed)"
+        },
+        {
+         "label": "Unit file",
+         "value": "static"
+        }
+       ]
+      },
+      "actions": [
+       {
+        "id": "start",
+        "title": "Start"
+       },
+       {
+        "id": "logs",
+        "title": "Logs",
+        "shortcut": "cmd+l"
+       },
+       {
+        "id": "restart",
+        "title": "Restart",
+        "shortcut": "cmd+shift+r",
+        "confirm": "Restart this system unit?"
+       },
+       {
+        "id": "copy",
+        "title": "Copy unit name",
+        "shortcut": "cmd+c"
+       }
+      ],
+      "section": "System"
+     }
+    ]
+   }
+  },
+  "launchd": {
+   "title": "Launch Agents",
+   "icon": "⚙",
+   "live": true,
+   "placeholder": "Label",
+   "filters": [
+    {
+     "id": "agents",
+     "title": "Agents"
+    },
+    {
+     "id": "loaded",
+     "title": "Loaded"
+    },
+    {
+     "id": "running",
+     "title": "Running"
+    }
+   ],
+   "items": [
+    {
+     "id": "io.example.sketchybar",
+     "name": "io.example.sketchybar",
+     "subtitle": "/opt/homebrew/bin/sketchybar",
+     "icon": "⚙",
+     "keywords": [
+      "io.example.sketchybar.plist"
+     ],
+     "accessories": [
+      {
+       "text": "pid 812"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Label",
+        "value": "io.example.sketchybar"
+       },
+       {
+        "label": "Plist",
+        "value": "~/Library/LaunchAgents/io.example.sketchybar.plist"
+       },
+       {
+        "label": "Program",
+        "value": "/opt/homebrew/bin/sketchybar"
+       },
+       {
+        "label": "State",
+        "value": "running, pid 812"
+       }
+      ]
+     },
+     "section": "~/Library/LaunchAgents",
+     "actions": [
+      {
+       "id": "unload",
+       "title": "Unload",
+       "confirm": "Unload this job? launchd stops it and forgets it until it is loaded again."
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "show",
+       "title": "Show plist",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "open",
+       "title": "Open plist file",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "copy",
+       "title": "Copy label",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "io.example.syncthing",
+     "name": "io.example.syncthing",
+     "subtitle": "/opt/homebrew/bin/syncthing",
+     "icon": "⚙",
+     "keywords": [
+      "io.example.syncthing.plist"
+     ],
+     "accessories": [
+      {
+       "text": "pid 830"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Label",
+        "value": "io.example.syncthing"
+       },
+       {
+        "label": "Plist",
+        "value": "~/Library/LaunchAgents/io.example.syncthing.plist"
+       },
+       {
+        "label": "Program",
+        "value": "/opt/homebrew/bin/syncthing"
+       },
+       {
+        "label": "State",
+        "value": "running, pid 830"
+       }
+      ]
+     },
+     "section": "~/Library/LaunchAgents",
+     "actions": [
+      {
+       "id": "unload",
+       "title": "Unload",
+       "confirm": "Unload this job? launchd stops it and forgets it until it is loaded again."
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "show",
+       "title": "Show plist",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "open",
+       "title": "Open plist file",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "copy",
+       "title": "Copy label",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "io.example.backup",
+     "name": "io.example.backup",
+     "subtitle": "~/.local/bin/backup",
+     "icon": "⚙",
+     "keywords": [
+      "io.example.backup.plist"
+     ],
+     "accessories": [
+      {
+       "tag": "exit 1",
+       "color": "red"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Label",
+        "value": "io.example.backup"
+       },
+       {
+        "label": "Plist",
+        "value": "~/Library/LaunchAgents/io.example.backup.plist"
+       },
+       {
+        "label": "Program",
+        "value": "~/.local/bin/backup"
+       },
+       {
+        "label": "State",
+        "value": "loaded, last exit 1"
+       }
+      ]
+     },
+     "section": "~/Library/LaunchAgents",
+     "actions": [
+      {
+       "id": "unload",
+       "title": "Unload",
+       "confirm": "Unload this job? launchd stops it and forgets it until it is loaded again."
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "show",
+       "title": "Show plist",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "open",
+       "title": "Open plist file",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "copy",
+       "title": "Copy label",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "io.example.chrome-cdp",
+     "name": "io.example.chrome-cdp",
+     "subtitle": "~/.local/bin/chrome-cdp",
+     "icon": "⚙",
+     "keywords": [
+      "io.example.chrome-cdp.plist"
+     ],
+     "accessories": [
+      {
+       "tag": "loaded",
+       "color": "blue"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Label",
+        "value": "io.example.chrome-cdp"
+       },
+       {
+        "label": "Plist",
+        "value": "~/Library/LaunchAgents/io.example.chrome-cdp.plist"
+       },
+       {
+        "label": "Program",
+        "value": "~/.local/bin/chrome-cdp"
+       },
+       {
+        "label": "State",
+        "value": "loaded, last exit 0"
+       }
+      ]
+     },
+     "section": "~/Library/LaunchAgents",
+     "actions": [
+      {
+       "id": "unload",
+       "title": "Unload",
+       "confirm": "Unload this job? launchd stops it and forgets it until it is loaded again."
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "show",
+       "title": "Show plist",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "open",
+       "title": "Open plist file",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "copy",
+       "title": "Copy label",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "io.example.power",
+     "name": "io.example.power",
+     "subtitle": "~/.local/bin/power",
+     "icon": "⚙",
+     "keywords": [
+      "io.example.power.plist"
+     ],
+     "accessories": [
+      {
+       "tag": "not loaded",
+       "color": "grey"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Label",
+        "value": "io.example.power"
+       },
+       {
+        "label": "Plist",
+        "value": "~/Library/LaunchAgents/io.example.power.plist"
+       },
+       {
+        "label": "Program",
+        "value": "~/.local/bin/power"
+       },
+       {
+        "label": "State",
+        "value": "not loaded"
+       }
+      ]
+     },
+     "section": "~/Library/LaunchAgents",
+     "actions": [
+      {
+       "id": "load",
+       "title": "Load"
+      },
+      {
+       "id": "show",
+       "title": "Show plist",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "open",
+       "title": "Open plist file",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "copy",
+       "title": "Copy label",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "com.example.updater",
+     "name": "com.example.updater",
+     "subtitle": "/Library/Application Support/Example/updater",
+     "icon": "⚙",
+     "keywords": [
+      "com.example.updater.plist"
+     ],
+     "accessories": [
+      {
+       "text": "pid 455"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Label",
+        "value": "com.example.updater"
+       },
+       {
+        "label": "Plist",
+        "value": "/Library/LaunchAgents/com.example.updater.plist"
+       },
+       {
+        "label": "Program",
+        "value": "/Library/Application Support/Example/updater"
+       },
+       {
+        "label": "State",
+        "value": "running, pid 455"
+       }
+      ]
+     },
+     "section": "/Library/LaunchAgents",
+     "actions": [
+      {
+       "id": "unload",
+       "title": "Unload",
+       "confirm": "Unload this job? launchd stops it and forgets it until it is loaded again."
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "show",
+       "title": "Show plist",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "open",
+       "title": "Open plist file",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "copy",
+       "title": "Copy label",
+       "shortcut": "cmd+c"
+      }
+     ]
+    },
+    {
+     "id": "com.docker.socket",
+     "name": "com.docker.socket",
+     "subtitle": "/Applications/Docker.app/Contents/MacOS/com.docker.socket",
+     "icon": "⚙",
+     "keywords": [
+      "com.docker.socket.plist"
+     ],
+     "accessories": [
+      {
+       "tag": "loaded",
+       "color": "blue"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Label",
+        "value": "com.docker.socket"
+       },
+       {
+        "label": "Plist",
+        "value": "/Library/LaunchAgents/com.docker.socket.plist"
+       },
+       {
+        "label": "Program",
+        "value": "/Applications/Docker.app/Contents/MacOS/com.docker.socket"
+       },
+       {
+        "label": "State",
+        "value": "loaded, last exit 0"
+       }
+      ]
+     },
+     "section": "/Library/LaunchAgents",
+     "actions": [
+      {
+       "id": "unload",
+       "title": "Unload",
+       "confirm": "Unload this job? launchd stops it and forgets it until it is loaded again."
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "show",
+       "title": "Show plist",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "open",
+       "title": "Open plist file",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "copy",
+       "title": "Copy label",
+       "shortcut": "cmd+c"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "effects": {
+  "services/user:backup.service:logs": {
+   "show": {
+    "title": "backup.service logs",
+    "markdown": "````\nSep 16 02:00:01 web-1 systemd[1120]: Starting Nightly restic backup...\nSep 16 02:00:02 web-1 restic[48213]: open repository\nSep 16 02:00:02 web-1 restic[48213]: repository 9f1c2a7e opened (version 2, compression level auto)\nSep 16 02:00:03 web-1 restic[48213]: lock repository\nSep 16 02:00:03 web-1 restic[48213]: using parent snapshot 3b8d0e11\nSep 16 02:00:04 web-1 restic[48213]: load index files\nSep 16 02:00:19 web-1 restic[48213]: start scan on [/home/deploy]\nSep 16 02:00:19 web-1 restic[48213]: start backup on [/home/deploy]\nSep 16 02:03:41 web-1 restic[48213]: Fatal: unable to save snapshot: rclone: connection reset by peer\nSep 16 02:03:41 web-1 systemd[1120]: backup.service: Main process exited, code=exited, status=1/FAILURE\nSep 16 02:03:41 web-1 systemd[1120]: backup.service: Failed with result 'exit-code'.\nSep 16 02:03:41 web-1 systemd[1120]: Failed to start Nightly restic backup.\n````"
+   }
+  }
+ },
+ "shots": {
+  "1-units": {
+   "palette": "services",
+   "keys": [
+    "down*2"
+   ]
+  },
+  "2-failed": {
+   "palette": "services",
+   "keys": [
+    "tab",
+    "tab",
+    "down"
+   ]
+  },
+  "3-logs": {
+   "palette": "services",
+   "keys": [
+    "down*6",
+    "cmd+l"
+   ]
+  },
+  "4-agents": {
+   "palette": "launchd",
+   "keys": [
+    "down*2"
+   ]
+  }
+ }
+}

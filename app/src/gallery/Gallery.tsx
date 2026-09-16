@@ -20,6 +20,7 @@ import {
   aboutIndex, extensionsIndex, generalIndex, palettesIndex, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
 import { settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyBlocked, settingsPermissions } from "./data";
+import Shots from "./shots";
 import "./gallery.css";
 
 const themes = ["light", "dark"] as const;
@@ -275,8 +276,12 @@ function Solo({ what }: { what: string }) {
 }
 
 export default function Gallery() {
-  const solo = new URLSearchParams(location.search).get("gallery");
+  const params = new URLSearchParams(location.search);
+  const solo = params.get("gallery");
   if (solo?.startsWith("settings")) return <Solo what={solo} />;
+  // `?gallery&shot=<extension>&palette=<key>`: one launcher on the wallpaper, for the store screenshots (shots.tsx).
+  const shot = params.get("shot");
+  if (shot) return <Shots extension={shot} palette={params.get("palette") ?? undefined} />;
   return <GalleryPage />;
 }
 

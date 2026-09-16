@@ -1,0 +1,1079 @@
+{
+  "palettes": {
+    "files": {
+      "title": "Files",
+      "icon": "▤",
+      "input": true,
+      "placeholder": "Search files by name",
+      "byQuery": {
+        "": [
+          {
+            "id": "/Users/ada/Downloads/invoice-2026-09.pdf",
+            "name": "invoice-2026-09.pdf",
+            "subtitle": "~/Downloads",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "86.1 KB"
+              },
+              {
+                "date": 1789563984762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ],
+            "section": "Recently used"
+          },
+          {
+            "id": "/Users/ada/proj/widgets/README.md",
+            "name": "README.md",
+            "subtitle": "~/proj/widgets",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "4.7 KB"
+              },
+              {
+                "date": 1789559184762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ],
+            "section": "Recently used"
+          },
+          {
+            "id": "/Users/ada/Pictures/Screenshots/panel.png",
+            "name": "panel.png",
+            "subtitle": "~/Pictures/Screenshots",
+            "icon": "▣",
+            "accessories": [
+              {
+                "text": "402.7 KB"
+              },
+              {
+                "date": 1789548384762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ],
+            "section": "Recently used"
+          },
+          {
+            "id": "/Users/ada/proj/widgets/src/index.ts",
+            "name": "index.ts",
+            "subtitle": "~/proj/widgets/src",
+            "icon": "‹›",
+            "accessories": [
+              {
+                "text": "9.2 KB"
+              },
+              {
+                "date": 1789479984762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ],
+            "section": "Recently used"
+          },
+          {
+            "id": "/Users/ada/Documents/notes/2026-09-15.md",
+            "name": "2026-09-15.md",
+            "subtitle": "~/Documents/notes",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "2.1 KB"
+              },
+              {
+                "date": 1789469184762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ],
+            "section": "Recently used"
+          },
+          {
+            "id": "/Users/ada/Downloads/pal-0.2.0.dmg",
+            "name": "pal-0.2.0.dmg",
+            "subtitle": "~/Downloads",
+            "icon": "▦",
+            "accessories": [
+              {
+                "text": "23.0 MB"
+              },
+              {
+                "date": 1789393584762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ],
+            "section": "Recently used"
+          },
+          {
+            "id": "/Users/ada/Documents/budget.numbers",
+            "name": "budget.numbers",
+            "subtitle": "~/Documents",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "127.0 KB"
+              },
+              {
+                "date": 1789220784762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ],
+            "section": "Recently used"
+          }
+        ],
+        "readme": [
+          {
+            "id": "/Users/ada/proj/widgets/README.md",
+            "name": "README.md",
+            "subtitle": "~/proj/widgets",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "4.7 KB"
+              },
+              {
+                "date": 1789559184762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ]
+          },
+          {
+            "id": "/Users/ada/proj/widgets/docs/readme-template.md",
+            "name": "readme-template.md",
+            "subtitle": "~/proj/widgets/docs",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "1.2 KB"
+              },
+              {
+                "date": 1789307184762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ]
+          },
+          {
+            "id": "/Users/ada/Downloads/readme.txt",
+            "name": "readme.txt",
+            "subtitle": "~/Downloads",
+            "icon": "≡",
+            "accessories": [
+              {
+                "text": "312 B"
+              },
+              {
+                "date": 1788788784762
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "reveal",
+                "title": "Reveal in Finder"
+              },
+              {
+                "id": "quick-look",
+                "title": "Quick Look",
+                "shortcut": "cmd+y"
+              },
+              {
+                "id": "open-with",
+                "title": "Open with…",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "copy",
+                "title": "Copy path",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-file",
+                "title": "Copy file",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "trash",
+                "title": "Move to Trash",
+                "shortcut": "cmd+d",
+                "style": "destructive",
+                "confirm": "Move this to the Trash?"
+              }
+            ]
+          }
+        ]
+      },
+      "details": {
+        "/Users/ada/proj/widgets/README.md": {
+          "markdown": "````md\n# widgets\n\nA small library of UI widgets.\n\n## Install\n\n    bun add @acme/widgets\n\n````",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "~/proj/widgets/README.md"
+            },
+            {
+              "label": "Size",
+              "value": "4.7 KB"
+            },
+            {
+              "label": "Modified",
+              "value": "9/16/2026, 2:46:24 PM"
+            },
+            {
+              "label": "Kind",
+              "value": "document"
+            }
+          ]
+        }
+      },
+      "levels": {
+        "open-with": [
+          {
+            "id": "/System/Applications/TextEdit.app",
+            "name": "TextEdit",
+            "subtitle": "/System/Applications",
+            "icon": {
+              "app": "/System/Applications/TextEdit.app"
+            },
+            "keywords": [
+              "com.apple.TextEdit"
+            ],
+            "accessories": [
+              {
+                "tag": "Default"
+              }
+            ],
+            "actions": [
+              {
+                "id": "open-with",
+                "title": "Open"
+              }
+            ]
+          },
+          {
+            "id": "/Applications/Obsidian.app",
+            "name": "Obsidian",
+            "subtitle": "/Applications",
+            "icon": {
+              "app": "/Applications/Obsidian.app"
+            },
+            "keywords": [
+              "md.obsidian"
+            ],
+            "accessories": [],
+            "actions": [
+              {
+                "id": "open-with",
+                "title": "Open"
+              }
+            ]
+          },
+          {
+            "id": "/Applications/Visual Studio Code.app",
+            "name": "Visual Studio Code",
+            "subtitle": "/Applications",
+            "icon": {
+              "app": "/Applications/Visual Studio Code.app"
+            },
+            "keywords": [
+              "com.microsoft.VSCode"
+            ],
+            "accessories": [],
+            "actions": [
+              {
+                "id": "open-with",
+                "title": "Open"
+              }
+            ]
+          },
+          {
+            "id": "/Applications/Zed.app",
+            "name": "Zed",
+            "subtitle": "/Applications",
+            "icon": {
+              "app": "/Applications/Zed.app"
+            },
+            "keywords": [
+              "dev.zed.Zed"
+            ],
+            "accessories": [],
+            "actions": [
+              {
+                "id": "open-with",
+                "title": "Open"
+              }
+            ]
+          },
+          {
+            "id": "/System/Applications/Preview.app",
+            "name": "Preview",
+            "subtitle": "/System/Applications",
+            "icon": {
+              "app": "/System/Applications/Preview.app"
+            },
+            "keywords": [
+              "com.apple.Preview"
+            ],
+            "accessories": [],
+            "actions": [
+              {
+                "id": "open-with",
+                "title": "Open"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "recent": {
+      "title": "Recent Files",
+      "icon": "◷",
+      "live": true,
+      "placeholder": "Recently used files",
+      "items": [
+        {
+          "id": "/Users/ada/Downloads/invoice-2026-09.pdf",
+          "name": "invoice-2026-09.pdf",
+          "subtitle": "~/Downloads",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "86.1 KB"
+            },
+            {
+              "date": 1789563984762
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder"
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "open-with",
+              "title": "Open with…",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?"
+            }
+          ]
+        },
+        {
+          "id": "/Users/ada/proj/widgets/README.md",
+          "name": "README.md",
+          "subtitle": "~/proj/widgets",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "4.7 KB"
+            },
+            {
+              "date": 1789559184762
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder"
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "open-with",
+              "title": "Open with…",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?"
+            }
+          ]
+        },
+        {
+          "id": "/Users/ada/Pictures/Screenshots/panel.png",
+          "name": "panel.png",
+          "subtitle": "~/Pictures/Screenshots",
+          "icon": "▣",
+          "accessories": [
+            {
+              "text": "402.7 KB"
+            },
+            {
+              "date": 1789548384762
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder"
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "open-with",
+              "title": "Open with…",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?"
+            }
+          ]
+        },
+        {
+          "id": "/Users/ada/proj/widgets/src/index.ts",
+          "name": "index.ts",
+          "subtitle": "~/proj/widgets/src",
+          "icon": "‹›",
+          "accessories": [
+            {
+              "text": "9.2 KB"
+            },
+            {
+              "date": 1789479984762
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder"
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "open-with",
+              "title": "Open with…",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?"
+            }
+          ]
+        },
+        {
+          "id": "/Users/ada/Documents/notes/2026-09-15.md",
+          "name": "2026-09-15.md",
+          "subtitle": "~/Documents/notes",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "2.1 KB"
+            },
+            {
+              "date": 1789469184762
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder"
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "open-with",
+              "title": "Open with…",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?"
+            }
+          ]
+        },
+        {
+          "id": "/Users/ada/Downloads/pal-0.2.0.dmg",
+          "name": "pal-0.2.0.dmg",
+          "subtitle": "~/Downloads",
+          "icon": "▦",
+          "accessories": [
+            {
+              "text": "23.0 MB"
+            },
+            {
+              "date": 1789393584762
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder"
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "open-with",
+              "title": "Open with…",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?"
+            }
+          ]
+        },
+        {
+          "id": "/Users/ada/Documents/budget.numbers",
+          "name": "budget.numbers",
+          "subtitle": "~/Documents",
+          "icon": "≡",
+          "accessories": [
+            {
+              "text": "127.0 KB"
+            },
+            {
+              "date": 1789220784762
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder"
+            },
+            {
+              "id": "quick-look",
+              "title": "Quick Look",
+              "shortcut": "cmd+y"
+            },
+            {
+              "id": "open-with",
+              "title": "Open with…",
+              "shortcut": "cmd+o"
+            },
+            {
+              "id": "copy",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-file",
+              "title": "Copy file",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "/Users/ada/proj/widgets/README.md": {
+          "markdown": "````md\n# widgets\n\nA small library of UI widgets.\n\n## Install\n\n    bun add @acme/widgets\n\n````",
+          "metadata": [
+            {
+              "label": "Path",
+              "value": "~/proj/widgets/README.md"
+            },
+            {
+              "label": "Size",
+              "value": "4.7 KB"
+            },
+            {
+              "label": "Modified",
+              "value": "9/16/2026, 2:46:24 PM"
+            },
+            {
+              "label": "Kind",
+              "value": "document"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "effects": {
+    "files//Users/ada/proj/widgets/README.md:open-with": {
+      "push": {
+        "extension": "",
+        "palette": "files",
+        "args": "open-with"
+      }
+    }
+  },
+  "shots": {
+    "1-search": {
+      "palette": "files",
+      "keys": [
+        "type:readme"
+      ]
+    },
+    "2-detail": {
+      "palette": "files",
+      "keys": [
+        "type:readme",
+        "cmd+i"
+      ]
+    },
+    "3-open-with": {
+      "palette": "files",
+      "keys": [
+        "type:readme",
+        "cmd+o"
+      ]
+    },
+    "4-recent": {
+      "palette": "recent",
+      "keys": [
+        "down"
+      ]
+    }
+  }
+}

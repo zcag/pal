@@ -1,0 +1,875 @@
+{
+  "palettes": {
+    "tabs": {
+      "title": "Browser Tabs",
+      "icon": "◍",
+      "live": true,
+      "placeholder": "Switch to a tab",
+      "filters": [
+        {
+          "id": "all",
+          "title": "All"
+        },
+        {
+          "id": "audible",
+          "title": "Audible"
+        },
+        {
+          "id": "window",
+          "title": "This window"
+        }
+      ],
+      "items": [
+        {
+          "id": "cdp:Pull requests · acme/widgets",
+          "name": "Pull requests · acme/widgets",
+          "subtitle": "github.com",
+          "keywords": [
+            "https://github.com/acme/widgets/pulls",
+            "github.com",
+            "Google Chrome"
+          ],
+          "accessories": [
+            {
+              "text": "Google Chrome"
+            },
+            {
+              "text": "window 1"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://github.com/acme/widgets/pulls"
+        },
+        {
+          "id": "cdp:Deploying with Docker Compose",
+          "name": "Deploying with Docker Compose",
+          "subtitle": "docs.docker.com",
+          "keywords": [
+            "https://docs.docker.com/compose/",
+            "docs.docker.com",
+            "Google Chrome"
+          ],
+          "accessories": [
+            {
+              "text": "Google Chrome"
+            },
+            {
+              "text": "window 1"
+            },
+            {
+              "tag": "muted"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "mute",
+              "title": "Unmute",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://docs.docker.com/compose/"
+        },
+        {
+          "id": "cdp:Lo-fi beats to focus to",
+          "name": "Lo-fi beats to focus to",
+          "subtitle": "www.youtube.com",
+          "keywords": [
+            "https://www.youtube.com/watch?v=lofi",
+            "www.youtube.com",
+            "Google Chrome"
+          ],
+          "accessories": [
+            {
+              "text": "Google Chrome"
+            },
+            {
+              "text": "window 1"
+            },
+            {
+              "tag": "playing",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://www.youtube.com/watch?v=lofi"
+        },
+        {
+          "id": "cdp:Settings",
+          "name": "Settings",
+          "subtitle": "chrome://settings",
+          "keywords": [
+            "chrome://settings",
+            "chrome://settings",
+            "Google Chrome"
+          ],
+          "accessories": [
+            {
+              "text": "Google Chrome"
+            },
+            {
+              "text": "window 1"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          }
+        },
+        {
+          "id": "cdp:Kitty terminal docs",
+          "name": "Kitty terminal docs",
+          "subtitle": "sw.kovidgoyal.net",
+          "keywords": [
+            "https://sw.kovidgoyal.net/kitty/",
+            "sw.kovidgoyal.net",
+            "Google Chrome"
+          ],
+          "accessories": [
+            {
+              "text": "Google Chrome"
+            },
+            {
+              "text": "window 2"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://sw.kovidgoyal.net/kitty/"
+        },
+        {
+          "id": "cdp:Bun runtime",
+          "name": "Bun runtime",
+          "subtitle": "bun.sh",
+          "keywords": [
+            "https://bun.sh",
+            "bun.sh",
+            "Google Chrome"
+          ],
+          "accessories": [
+            {
+              "text": "Google Chrome"
+            },
+            {
+              "text": "window 2"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "mute",
+              "title": "Mute",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://bun.sh"
+        },
+        {
+          "id": "as:Apple Developer Documentation",
+          "name": "Apple Developer Documentation",
+          "subtitle": "developer.apple.com",
+          "keywords": [
+            "https://developer.apple.com/documentation",
+            "developer.apple.com",
+            "Safari"
+          ],
+          "accessories": [
+            {
+              "text": "Safari"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://developer.apple.com/documentation"
+        },
+        {
+          "id": "as:MDN Web Docs",
+          "name": "MDN Web Docs",
+          "subtitle": "developer.mozilla.org",
+          "keywords": [
+            "https://developer.mozilla.org",
+            "developer.mozilla.org",
+            "Safari"
+          ],
+          "accessories": [
+            {
+              "text": "Safari"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://developer.mozilla.org"
+        },
+        {
+          "id": "as:Hacker News",
+          "name": "Hacker News",
+          "subtitle": "news.ycombinator.com",
+          "keywords": [
+            "https://news.ycombinator.com",
+            "news.ycombinator.com",
+            "Safari"
+          ],
+          "accessories": [
+            {
+              "text": "Safari"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://news.ycombinator.com"
+        },
+        {
+          "id": "ff:Firefox Add-ons",
+          "name": "Firefox Add-ons",
+          "subtitle": "addons.mozilla.org",
+          "keywords": [
+            "https://addons.mozilla.org",
+            "addons.mozilla.org",
+            "Firefox"
+          ],
+          "accessories": [
+            {
+              "text": "Firefox"
+            }
+          ],
+          "actions": [
+            {
+              "id": "focus",
+              "title": "Focus window"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown link",
+              "shortcut": "cmd+shift+c"
+            }
+          ],
+          "url": "https://addons.mozilla.org"
+        }
+      ],
+      "byFilter": {
+        "audible": [
+          {
+            "id": "cdp:Lo-fi beats to focus to",
+            "name": "Lo-fi beats to focus to",
+            "subtitle": "www.youtube.com",
+            "keywords": [
+              "https://www.youtube.com/watch?v=lofi",
+              "www.youtube.com",
+              "Google Chrome"
+            ],
+            "accessories": [
+              {
+                "text": "Google Chrome"
+              },
+              {
+                "tag": "playing",
+                "color": "green"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "mute",
+                "title": "Mute",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://www.youtube.com/watch?v=lofi"
+          }
+        ],
+        "window": [
+          {
+            "id": "cdp:Pull requests · acme/widgets",
+            "name": "Pull requests · acme/widgets",
+            "subtitle": "github.com",
+            "keywords": [
+              "https://github.com/acme/widgets/pulls",
+              "github.com",
+              "Google Chrome"
+            ],
+            "accessories": [
+              {
+                "text": "Google Chrome"
+              },
+              {
+                "text": "window 1"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "mute",
+                "title": "Mute",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://github.com/acme/widgets/pulls"
+          },
+          {
+            "id": "cdp:Deploying with Docker Compose",
+            "name": "Deploying with Docker Compose",
+            "subtitle": "docs.docker.com",
+            "keywords": [
+              "https://docs.docker.com/compose/",
+              "docs.docker.com",
+              "Google Chrome"
+            ],
+            "accessories": [
+              {
+                "text": "Google Chrome"
+              },
+              {
+                "text": "window 1"
+              },
+              {
+                "tag": "muted"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "mute",
+                "title": "Unmute",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://docs.docker.com/compose/"
+          },
+          {
+            "id": "cdp:Lo-fi beats to focus to",
+            "name": "Lo-fi beats to focus to",
+            "subtitle": "www.youtube.com",
+            "keywords": [
+              "https://www.youtube.com/watch?v=lofi",
+              "www.youtube.com",
+              "Google Chrome"
+            ],
+            "accessories": [
+              {
+                "text": "Google Chrome"
+              },
+              {
+                "text": "window 1"
+              },
+              {
+                "tag": "playing",
+                "color": "green"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "mute",
+                "title": "Mute",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://www.youtube.com/watch?v=lofi"
+          },
+          {
+            "id": "cdp:Settings",
+            "name": "Settings",
+            "subtitle": "chrome://settings",
+            "keywords": [
+              "chrome://settings",
+              "chrome://settings",
+              "Google Chrome"
+            ],
+            "accessories": [
+              {
+                "text": "Google Chrome"
+              },
+              {
+                "text": "window 1"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "mute",
+                "title": "Mute",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "icon": {
+              "app": "/Applications/Google Chrome.app"
+            }
+          },
+          {
+            "id": "as:Apple Developer Documentation",
+            "name": "Apple Developer Documentation",
+            "subtitle": "developer.apple.com",
+            "keywords": [
+              "https://developer.apple.com/documentation",
+              "developer.apple.com",
+              "Safari"
+            ],
+            "accessories": [
+              {
+                "text": "Safari"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://developer.apple.com/documentation"
+          },
+          {
+            "id": "as:MDN Web Docs",
+            "name": "MDN Web Docs",
+            "subtitle": "developer.mozilla.org",
+            "keywords": [
+              "https://developer.mozilla.org",
+              "developer.mozilla.org",
+              "Safari"
+            ],
+            "accessories": [
+              {
+                "text": "Safari"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://developer.mozilla.org"
+          },
+          {
+            "id": "as:Hacker News",
+            "name": "Hacker News",
+            "subtitle": "news.ycombinator.com",
+            "keywords": [
+              "https://news.ycombinator.com",
+              "news.ycombinator.com",
+              "Safari"
+            ],
+            "accessories": [
+              {
+                "text": "Safari"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus"
+              },
+              {
+                "id": "close",
+                "title": "Close",
+                "shortcut": "cmd+w",
+                "style": "destructive"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://news.ycombinator.com"
+          },
+          {
+            "id": "ff:Firefox Add-ons",
+            "name": "Firefox Add-ons",
+            "subtitle": "addons.mozilla.org",
+            "keywords": [
+              "https://addons.mozilla.org",
+              "addons.mozilla.org",
+              "Firefox"
+            ],
+            "accessories": [
+              {
+                "text": "Firefox"
+              }
+            ],
+            "actions": [
+              {
+                "id": "focus",
+                "title": "Focus window"
+              },
+              {
+                "id": "copy-url",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "copy-markdown",
+                "title": "Copy as markdown link",
+                "shortcut": "cmd+shift+c"
+              }
+            ],
+            "url": "https://addons.mozilla.org"
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "tabs",
+      "keys": [
+        "down*2"
+      ]
+    },
+    "2-audible": {
+      "palette": "tabs",
+      "keys": [
+        "tab"
+      ]
+    },
+    "3-actions": {
+      "palette": "tabs",
+      "keys": [
+        "down",
+        "cmd+k"
+      ]
+    },
+    "4-root": {
+      "keys": [
+        "type:docker"
+      ]
+    }
+  }
+}

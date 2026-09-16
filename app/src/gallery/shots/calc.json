@@ -1,0 +1,352 @@
+{
+  "palettes": {
+    "calc": {
+      "title": "Calculator",
+      "icon": "=",
+      "input": true,
+      "placeholder": "Calculate",
+      "byQuery": {
+        "2^10 + 15% of 240": [
+          {
+            "id": "result",
+            "name": "1,060",
+            "subtitle": "2^10 + 15% of 240",
+            "icon": "=",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          }
+        ],
+        "10:00 utc to tokyo": [
+          {
+            "id": "result",
+            "name": "7:00 PM",
+            "subtitle": "10:00 UTC (UTC) → Tokyo (GMT+9)",
+            "icon": "=",
+            "accessories": [
+              {
+                "text": "Asia/Tokyo"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          },
+          {
+            "id": "full",
+            "name": "Wednesday, September 16, 2026 at 7:00 PM",
+            "subtitle": "in Asia/Tokyo",
+            "icon": "=",
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          }
+        ],
+        "12 usd to try": [
+          {
+            "id": "result",
+            "name": "583.67 TRY",
+            "subtitle": "12 USD to TRY",
+            "icon": "=",
+            "accessories": [
+              {
+                "text": "1 USD = 48.6395 TRY"
+              },
+              {
+                "text": "rates 2026-09-15"
+              }
+            ],
+            "detail": {
+              "markdown": "**12.00 USD** = **583.67 TRY**",
+              "metadata": [
+                {
+                  "label": "Rate",
+                  "value": "1 USD = 48.6395 TRY"
+                },
+                {
+                  "label": "Inverse",
+                  "value": "1 TRY = 0.0205594 USD"
+                },
+                {
+                  "label": "From",
+                  "value": "US Dollar (USD)"
+                },
+                {
+                  "label": "To",
+                  "value": "Turkish Lira (TRY)"
+                },
+                {
+                  "label": "Rates",
+                  "value": "2026-09-15"
+                },
+                {
+                  "label": "Source",
+                  "link": {
+                    "text": "European Central Bank via frankfurter.dev",
+                    "href": "https://www.frankfurter.dev"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          },
+          {
+            "id": "reverse",
+            "name": "0.25 USD",
+            "subtitle": "12 TRY to USD",
+            "icon": "=",
+            "accessories": [
+              {
+                "text": "1 TRY = 0.0205594 USD"
+              },
+              {
+                "text": "rates 2026-09-15"
+              }
+            ],
+            "detail": {
+              "markdown": "**12.00 USD** = **583.67 TRY**",
+              "metadata": [
+                {
+                  "label": "Rate",
+                  "value": "1 USD = 48.6395 TRY"
+                },
+                {
+                  "label": "Inverse",
+                  "value": "1 TRY = 0.0205594 USD"
+                },
+                {
+                  "label": "From",
+                  "value": "US Dollar (USD)"
+                },
+                {
+                  "label": "To",
+                  "value": "Turkish Lira (TRY)"
+                },
+                {
+                  "label": "Rates",
+                  "value": "2026-09-15"
+                },
+                {
+                  "label": "Source",
+                  "link": {
+                    "text": "European Central Bank via frankfurter.dev",
+                    "href": "https://www.frankfurter.dev"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          }
+        ],
+        "days until 2026-12-25": [
+          {
+            "id": "result",
+            "name": "100 days",
+            "subtitle": "days until Friday, December 25, 2026",
+            "icon": "=",
+            "accessories": [
+              {
+                "text": "14 weeks 2 days"
+              },
+              {
+                "text": "3 months 9 days"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          }
+        ],
+        "": [
+          {
+            "id": "hint:Type an expression",
+            "name": "Type an expression",
+            "subtitle": "2+2 · sqrt 2 · 15% of 240 · 255 to hex",
+            "icon": "=",
+            "actions": []
+          },
+          {
+            "id": "hint:Convert",
+            "name": "Convert",
+            "subtitle": "12 usd to try · 5 km to miles · 72 f to c",
+            "icon": "=",
+            "actions": []
+          },
+          {
+            "id": "hint:Dates and time",
+            "name": "Dates and time",
+            "subtitle": "today + 3 days · days until 2026-12-25 · 10:00 in tokyo",
+            "icon": "=",
+            "actions": []
+          }
+        ],
+        "5 km to miles": [
+          {
+            "id": "result",
+            "name": "3.10686 miles",
+            "subtitle": "5 km to miles",
+            "icon": "=",
+            "accessories": [
+              {
+                "text": "miles"
+              }
+            ],
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "shots": {
+    "1-currency": {
+      "palette": "calc",
+      "keys": [
+        "type:12 usd to try"
+      ]
+    },
+    "2-dates": {
+      "palette": "calc",
+      "keys": [
+        "type:days until 2026-12-25"
+      ]
+    },
+    "3-timezone": {
+      "palette": "calc",
+      "keys": [
+        "type:10:00 utc to tokyo"
+      ]
+    },
+    "4-actions": {
+      "palette": "calc",
+      "keys": [
+        "type:2^10 + 15% of 240",
+        "cmd+k"
+      ]
+    }
+  }
+}

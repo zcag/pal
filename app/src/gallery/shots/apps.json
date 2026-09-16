@@ -1,0 +1,1093 @@
+{
+  "palettes": {
+    "apps": {
+      "title": "Applications",
+      "icon": "▢",
+      "items": [
+        {
+          "id": "/System/Applications/Utilities/Activity Monitor.app",
+          "name": "Activity Monitor",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Utilities/Activity Monitor.app"
+          },
+          "keywords": [
+            "com.apple.ActivityMonitor"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Calendar.app",
+          "name": "Calendar",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Calendar.app"
+          },
+          "keywords": [
+            "com.apple.iCal"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Google Chrome.app",
+          "name": "Google Chrome",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "keywords": [
+            "com.google.Chrome",
+            "Chrome"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/System/Library/CoreServices/Finder.app",
+          "name": "Finder",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Library/CoreServices/Finder.app"
+          },
+          "keywords": [
+            "com.apple.finder"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/kitty.app",
+          "name": "kitty",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/kitty.app"
+          },
+          "keywords": [
+            "net.kovidgoyal.kitty"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Mail.app",
+          "name": "Mail",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Mail.app"
+          },
+          "keywords": [
+            "com.apple.mail"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Messages.app",
+          "name": "Messages",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Messages.app"
+          },
+          "keywords": [
+            "com.apple.MobileSMS"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Music.app",
+          "name": "Music",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Music.app"
+          },
+          "keywords": [
+            "com.apple.Music"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Notes.app",
+          "name": "Notes",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Notes.app"
+          },
+          "keywords": [
+            "com.apple.Notes"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Obsidian.app",
+          "name": "Obsidian",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Obsidian.app"
+          },
+          "keywords": [
+            "md.obsidian"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Preview.app",
+          "name": "Preview",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Preview.app"
+          },
+          "keywords": [
+            "com.apple.Preview"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Safari.app",
+          "name": "Safari",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Safari.app"
+          },
+          "keywords": [
+            "com.apple.Safari"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Slack.app",
+          "name": "Slack",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Slack.app"
+          },
+          "keywords": [
+            "com.tinyspeck.slackmacgap"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Spotify.app",
+          "name": "Spotify",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Spotify.app"
+          },
+          "keywords": [
+            "com.spotify.client"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/System Settings.app",
+          "name": "System Settings",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "com.apple.systempreferences"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Utilities/Terminal.app",
+          "name": "Terminal",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Utilities/Terminal.app"
+          },
+          "keywords": [
+            "com.apple.Terminal"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Visual Studio Code.app",
+          "name": "Visual Studio Code",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Visual Studio Code.app"
+          },
+          "keywords": [
+            "com.microsoft.VSCode",
+            "Code"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Zed.app",
+          "name": "Zed",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Zed.app"
+          },
+          "keywords": [
+            "dev.zed.Zed"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "pane:Accessibility",
+          "name": "Accessibility",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "voiceover",
+            "zoom",
+            "a11y"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Appearance",
+          "name": "Appearance",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "dark mode",
+            "light",
+            "accent",
+            "theme"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Battery",
+          "name": "Battery",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "energy",
+            "power"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Displays",
+          "name": "Displays",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "monitor",
+            "resolution",
+            "night shift"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Keyboard",
+          "name": "Keyboard",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "shortcuts",
+            "input sources",
+            "dictation"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Network",
+          "name": "Network",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "ethernet",
+            "firewall",
+            "dns",
+            "vpn"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Privacy & Security",
+          "name": "Privacy & Security",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "accessibility",
+            "screen recording",
+            "full disk access",
+            "permissions"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Sound",
+          "name": "Sound",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "output",
+            "input",
+            "volume"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "pane:Wi-Fi",
+          "name": "Wi-Fi",
+          "subtitle": "System Settings",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "settings",
+            "preferences",
+            "system settings",
+            "wireless",
+            "wlan",
+            "network"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy-url",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "apps",
+      "keys": [
+        "down*2"
+      ]
+    },
+    "2-search": {
+      "keys": [
+        "type:ma"
+      ]
+    },
+    "3-actions": {
+      "palette": "apps",
+      "keys": [
+        "down*12",
+        "cmd+k"
+      ]
+    },
+    "4-panes": {
+      "palette": "apps",
+      "keys": [
+        "type:settings",
+        "down*3"
+      ]
+    }
+  }
+}

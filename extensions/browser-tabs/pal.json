@@ -6,13 +6,50 @@
   "icon": "◍",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "number", "id": "port", "label": "DevTools port", "description": "The --remote-debugging-port of a Chromium browser (Chrome, Brave, Edge, Chromium). When something listens there its tabs come over the DevTools protocol, with playing and muted state; otherwise the browsers below are asked.", "min": 1, "max": 65535, "default": 9222 },
     { "kind": "list", "id": "apps", "label": "Scriptable browsers", "description": "macOS only: browsers asked over AppleScript when they are running, by app name. A Chromium browser already on the DevTools port is skipped.", "placeholder": "Safari", "default": ["Safari", "Google Chrome"] },
     { "kind": "boolean", "id": "firefox", "label": "Firefox", "text": "List Firefox tabs from its session file", "description": "Read-only: Firefox has no scripting interface, so Focus only raises its window.", "default": true },
     { "kind": "path", "id": "firefox_session", "label": "Firefox session file", "description": "A sessionstore-backups/recovery.jsonlz4; empty finds the most recent profile's.", "pick": "file", "default": "" }
   ],
+  "store": {
+    "tagline": "Every open tab across Chrome, Safari and Firefox; Enter switches to it.",
+    "category": "productivity",
+    "features": [
+      "A Chromium browser started with `--remote-debugging-port=9222` lists over the DevTools protocol, with `playing` and `muted` tags",
+      "Safari and Chrome over one AppleScript run on macOS, so a Chrome without the port still lists",
+      "Firefox's tabs from its session file, read-only: they list, and Focus raises its window",
+      "Live: listed again on every show, so tab titles are root results; the url, the host and the browser are keywords",
+      "Filters: All, Audible (what is playing sound), This window",
+      "Close (`cmd+w`), Mute (`cmd+m`, the page's media elements), Copy URL (`cmd+c`), Copy as markdown link (`cmd+shift+c`)"
+    ],
+    "permissions": ["automation", "accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-list.png", "caption": "The tabs of two browsers in their own order, the host as the subtitle, playing and muted tagged" },
+      { "file": "2-audible.png", "caption": "The Audible filter: only the tabs a page reports as playing sound" },
+      { "file": "3-actions.png", "caption": "Focus, Close, Copy URL, Mute, Copy as markdown link" },
+      { "file": "4-root.png", "caption": "Live: tab titles are root results, so part of one typed at the root finds it" }
+    ],
+    "actions": [
+      { "title": "Focus", "description": "Selects the tab in the browser, then raises its window; for Firefox only the window.", "keys": "enter" },
+      { "title": "Close", "description": "Not for Firefox.", "keys": "cmd+w" },
+      { "title": "Copy URL", "keys": "cmd+c" },
+      { "title": "Mute / Unmute", "description": "DevTools tabs only: the page's media elements, not Chrome's tab mute.", "keys": "cmd+m" },
+      { "title": "Copy as markdown link", "description": "[title](url).", "keys": "cmd+shift+c" }
+    ]
+  },
   "palettes": {
-    "tabs": { "description": "Open tabs across Chrome, Safari and Firefox." }
+    "tabs": {
+      "kind": "live",
+      "description": "Open tabs across Chrome, Safari and Firefox.",
+      "keys": [
+        { "keys": "enter", "title": "Switch to the tab" },
+        { "keys": "cmd+w", "title": "Close the tab" },
+        { "keys": "cmd+m", "title": "Mute the tab" },
+        { "keys": "tab", "title": "All, Audible, This window" }
+      ]
+    }
   }
 }

@@ -6,12 +6,45 @@
   "icon": "🔖",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "path", "id": "file", "label": "Bookmarks file", "pick": "file", "description": "A JSON array of {name, url, subtitle?, icon?, keywords?}; the url is opened or copied.", "default": "~/.config/pal/data/bookmarks.json" },
     { "kind": "list", "id": "browsers", "label": "Browsers", "description": "Whose bookmarks to list, in order (the first wins a url two have): chrome, brave, edge, chromium, vivaldi, arc, safari, firefox. Empty lists the file alone.", "placeholder": "chrome", "default": ["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"] },
     { "kind": "list", "id": "exclude_folders", "label": "Exclude folders", "description": "Bookmark folders skipped, by name (`Archive`) or a short path (`Bookmarks Bar/Old`).", "placeholder": "Archive", "default": [] }
   ],
+  "store": {
+    "tagline": "Your browsers' bookmarks and a JSON file of your own links, searched by name, folder and keyword.",
+    "category": "productivity",
+    "features": [
+      "Chrome, Brave, Edge, Chromium, Vivaldi and Arc: every profile's `Bookmarks` file, a section per browser and profile (`Chrome (Work)`)",
+      "Safari's `Bookmarks.plist` and Firefox's `places.sqlite`, read on every listing so an edit shows at once",
+      "A JSON file of hand-picked links with `name`, `url`, optional `subtitle`, `icon` and `keywords`",
+      "The folder path on the right (`Bookmarks Bar / Dev`) and as keywords; a url two sources have is listed once",
+      "Open, copy the link, copy it as `[name](url)`, or open it in the browser it came from"
+    ],
+    "permissions": ["full-disk-access"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-list.png", "caption": "The file's links first, then each browser in its section, the folder on the right" },
+      { "file": "2-search.png", "caption": "A folder name is a keyword: typing it finds what is filed under it" },
+      { "file": "3-actions.png", "caption": "Open in browser, Copy link, Copy as markdown, Open in Chrome" }
+    ],
+    "actions": [
+      { "title": "Open in browser", "description": "The system's default browser.", "keys": "enter" },
+      { "title": "Copy link", "keys": "cmd+c" },
+      { "title": "Copy as markdown", "description": "[name](url).", "keys": "cmd+shift+c" },
+      { "title": "Open in Chrome, Safari, Firefox", "description": "On a browser's row: the browser it came from." }
+    ]
+  },
   "palettes": {
-    "bookmarks": { "description": "The links in the file and the browsers, by name, folder and keyword." }
+    "bookmarks": {
+      "kind": "list",
+      "description": "The links in the file and the browsers, by name, folder and keyword.",
+      "keys": [
+        { "keys": "enter", "title": "Open in the browser" },
+        { "keys": "cmd+c", "title": "Copy the link" },
+        { "keys": "cmd+shift+c", "title": "Copy as markdown" }
+      ]
+    }
   }
 }

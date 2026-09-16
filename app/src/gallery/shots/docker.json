@@ -1,0 +1,1358 @@
+{
+ "palettes": {
+  "docker": {
+   "title": "Docker Containers",
+   "icon": "󰡨",
+   "live": true,
+   "placeholder": "Container, image or project",
+   "items": [
+    {
+     "id": "3f9c2a1b7e40",
+     "name": "web",
+     "subtitle": "nginx:1.27-alpine",
+     "icon": "󰡨",
+     "keywords": [
+      "3f9c2a1b7e40",
+      "nginx:1.27-alpine",
+      "shop"
+     ],
+     "accessories": [
+      {
+       "text": "80, 443"
+      },
+      {
+       "text": "Up 27 hours"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "3f9c2a1b7e40"
+       },
+       {
+        "label": "Image",
+        "value": "nginx:1.27-alpine"
+       },
+       {
+        "label": "Command",
+        "value": "nginx -g 'daemon off;'"
+       },
+       {
+        "label": "Status",
+        "value": "Up 27 hours"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Ports",
+        "value": "0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp"
+       },
+       {
+        "label": "Mounts",
+        "value": "shop_certs"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       },
+       {
+        "label": "Compose project",
+        "value": "shop"
+       }
+      ]
+     },
+     "section": "Running",
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop",
+       "confirm": "Stop this container?"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "shell",
+       "title": "Shell",
+       "shortcut": "cmd+t"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? It is stopped first; its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "running"
+    },
+    {
+     "id": "a81d0f6c2e91",
+     "name": "api",
+     "subtitle": "ghcr.io/acme/api:2.4.1",
+     "icon": "󰡨",
+     "keywords": [
+      "a81d0f6c2e91",
+      "ghcr.io/acme/api:2.4.1",
+      "shop"
+     ],
+     "accessories": [
+      {
+       "text": "8080:3000"
+      },
+      {
+       "text": "Up 27 hours"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "a81d0f6c2e91"
+       },
+       {
+        "label": "Image",
+        "value": "ghcr.io/acme/api:2.4.1"
+       },
+       {
+        "label": "Command",
+        "value": "node server.js"
+       },
+       {
+        "label": "Status",
+        "value": "Up 27 hours"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Ports",
+        "value": "0.0.0.0:8080->3000/tcp"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       },
+       {
+        "label": "Compose project",
+        "value": "shop"
+       }
+      ]
+     },
+     "section": "Running",
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop",
+       "confirm": "Stop this container?"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "shell",
+       "title": "Shell",
+       "shortcut": "cmd+t"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? It is stopped first; its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "running"
+    },
+    {
+     "id": "c02e7b9d4a55",
+     "name": "db",
+     "subtitle": "postgres:16",
+     "icon": "󰡨",
+     "keywords": [
+      "c02e7b9d4a55",
+      "postgres:16",
+      "shop"
+     ],
+     "accessories": [
+      {
+       "text": "5432"
+      },
+      {
+       "text": "Up 27 hours (healthy)"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "c02e7b9d4a55"
+       },
+       {
+        "label": "Image",
+        "value": "postgres:16"
+       },
+       {
+        "label": "Command",
+        "value": "postgres"
+       },
+       {
+        "label": "Status",
+        "value": "Up 27 hours (healthy)"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Ports",
+        "value": "127.0.0.1:5432->5432/tcp"
+       },
+       {
+        "label": "Mounts",
+        "value": "shop_pgdata"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       },
+       {
+        "label": "Compose project",
+        "value": "shop"
+       }
+      ]
+     },
+     "section": "Running",
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop",
+       "confirm": "Stop this container?"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "shell",
+       "title": "Shell",
+       "shortcut": "cmd+t"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? It is stopped first; its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "running"
+    },
+    {
+     "id": "e4b6d1a8f302",
+     "name": "cache",
+     "subtitle": "redis:7-alpine",
+     "icon": "󰡨",
+     "keywords": [
+      "e4b6d1a8f302",
+      "redis:7-alpine",
+      "shop"
+     ],
+     "accessories": [
+      {
+       "text": "Up 27 hours"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "e4b6d1a8f302"
+       },
+       {
+        "label": "Image",
+        "value": "redis:7-alpine"
+       },
+       {
+        "label": "Command",
+        "value": "redis-server"
+       },
+       {
+        "label": "Status",
+        "value": "Up 27 hours"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       },
+       {
+        "label": "Compose project",
+        "value": "shop"
+       }
+      ]
+     },
+     "section": "Running",
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop",
+       "confirm": "Stop this container?"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "shell",
+       "title": "Shell",
+       "shortcut": "cmd+t"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? It is stopped first; its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "running"
+    },
+    {
+     "id": "7d5a3e0c9b14",
+     "name": "grafana",
+     "subtitle": "grafana/grafana:11.2.0",
+     "icon": "󰡨",
+     "keywords": [
+      "7d5a3e0c9b14",
+      "grafana/grafana:11.2.0"
+     ],
+     "accessories": [
+      {
+       "text": "3000"
+      },
+      {
+       "text": "Up 3 days"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "7d5a3e0c9b14"
+       },
+       {
+        "label": "Image",
+        "value": "grafana/grafana:11.2.0"
+       },
+       {
+        "label": "Command",
+        "value": "/run.sh"
+       },
+       {
+        "label": "Status",
+        "value": "Up 3 days"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Ports",
+        "value": "0.0.0.0:3000->3000/tcp"
+       },
+       {
+        "label": "Mounts",
+        "value": "grafana_data"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       }
+      ]
+     },
+     "section": "Running",
+     "actions": [
+      {
+       "id": "stop",
+       "title": "Stop",
+       "confirm": "Stop this container?"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "shell",
+       "title": "Shell",
+       "shortcut": "cmd+t"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? It is stopped first; its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "running"
+    },
+    {
+     "id": "9b1f4c7e2d68",
+     "name": "migrate",
+     "subtitle": "ghcr.io/acme/api:2.4.1",
+     "icon": "󰡨",
+     "keywords": [
+      "9b1f4c7e2d68",
+      "ghcr.io/acme/api:2.4.1",
+      "shop"
+     ],
+     "accessories": [
+      {
+       "text": "Exited (0) 27 hours ago"
+      },
+      {
+       "tag": "exited",
+       "color": "grey"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "9b1f4c7e2d68"
+       },
+       {
+        "label": "Image",
+        "value": "ghcr.io/acme/api:2.4.1"
+       },
+       {
+        "label": "Command",
+        "value": "node migrate.js"
+       },
+       {
+        "label": "Status",
+        "value": "Exited (0) 27 hours ago"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       },
+       {
+        "label": "Compose project",
+        "value": "shop"
+       }
+      ]
+     },
+     "section": "Stopped",
+     "actions": [
+      {
+       "id": "start",
+       "title": "Start"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? Its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "exited"
+    },
+    {
+     "id": "5e8a2d9f1c73",
+     "name": "pgadmin",
+     "subtitle": "dpage/pgadmin4:8",
+     "icon": "󰡨",
+     "keywords": [
+      "5e8a2d9f1c73",
+      "dpage/pgadmin4:8"
+     ],
+     "accessories": [
+      {
+       "text": "5050:80"
+      },
+      {
+       "text": "Exited (137) 3 days ago"
+      },
+      {
+       "tag": "exited",
+       "color": "grey"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "5e8a2d9f1c73"
+       },
+       {
+        "label": "Image",
+        "value": "dpage/pgadmin4:8"
+       },
+       {
+        "label": "Command",
+        "value": "/entrypoint.sh"
+       },
+       {
+        "label": "Status",
+        "value": "Exited (137) 3 days ago"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Ports",
+        "value": "0.0.0.0:5050->80/tcp"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       }
+      ]
+     },
+     "section": "Stopped",
+     "actions": [
+      {
+       "id": "start",
+       "title": "Start"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? Its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "exited"
+    },
+    {
+     "id": "0c4d7f2a6e19",
+     "name": "playground",
+     "subtitle": "ubuntu:24.04",
+     "icon": "󰡨",
+     "keywords": [
+      "0c4d7f2a6e19",
+      "ubuntu:24.04"
+     ],
+     "accessories": [
+      {
+       "text": "Exited (0) 2 weeks ago"
+      },
+      {
+       "tag": "exited",
+       "color": "grey"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "0c4d7f2a6e19"
+       },
+       {
+        "label": "Image",
+        "value": "ubuntu:24.04"
+       },
+       {
+        "label": "Command",
+        "value": "bash"
+       },
+       {
+        "label": "Status",
+        "value": "Exited (0) 2 weeks ago"
+       },
+       {
+        "label": "Created",
+        "value": "2026-09-10 08:12:31 +0000 UTC"
+       },
+       {
+        "label": "Networks",
+        "value": "bridge"
+       }
+      ]
+     },
+     "section": "Stopped",
+     "actions": [
+      {
+       "id": "start",
+       "title": "Start"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this container? Its writable layer is lost."
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      }
+     ],
+     "state": "exited"
+    }
+   ]
+  },
+  "images": {
+   "title": "Docker Images",
+   "icon": "󰡨",
+   "live": true,
+   "placeholder": "Image",
+   "items": [
+    {
+     "id": "nginx:1.27-alpine",
+     "name": "nginx:1.27-alpine",
+     "subtitle": "91c3f6e2a7b4",
+     "icon": "󰡨",
+     "keywords": [
+      "91c3f6e2a7b4",
+      "nginx"
+     ],
+     "accessories": [
+      {
+       "text": "43.2MB"
+      },
+      {
+       "text": "2 weeks ago"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "91c3f6e2a7b4"
+       },
+       {
+        "label": "Repository",
+        "value": "nginx"
+       },
+       {
+        "label": "Tag",
+        "value": "1.27-alpine"
+       },
+       {
+        "label": "Size",
+        "value": "43.2MB"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run…"
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this image? A container still using it keeps docker from removing it."
+      }
+     ]
+    },
+    {
+     "id": "ghcr.io/acme/api:2.4.1",
+     "name": "ghcr.io/acme/api:2.4.1",
+     "subtitle": "4e7a1b9c0d23",
+     "icon": "󰡨",
+     "keywords": [
+      "4e7a1b9c0d23",
+      "ghcr.io/acme/api"
+     ],
+     "accessories": [
+      {
+       "text": "312MB"
+      },
+      {
+       "text": "27 hours ago"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "4e7a1b9c0d23"
+       },
+       {
+        "label": "Repository",
+        "value": "ghcr.io/acme/api"
+       },
+       {
+        "label": "Tag",
+        "value": "2.4.1"
+       },
+       {
+        "label": "Size",
+        "value": "312MB"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run…"
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this image? A container still using it keeps docker from removing it."
+      }
+     ]
+    },
+    {
+     "id": "postgres:16",
+     "name": "postgres:16",
+     "subtitle": "b7d2e9f4c1a8",
+     "icon": "󰡨",
+     "keywords": [
+      "b7d2e9f4c1a8",
+      "postgres"
+     ],
+     "accessories": [
+      {
+       "text": "438MB"
+      },
+      {
+       "text": "3 weeks ago"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "b7d2e9f4c1a8"
+       },
+       {
+        "label": "Repository",
+        "value": "postgres"
+       },
+       {
+        "label": "Tag",
+        "value": "16"
+       },
+       {
+        "label": "Size",
+        "value": "438MB"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run…"
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this image? A container still using it keeps docker from removing it."
+      }
+     ]
+    },
+    {
+     "id": "redis:7-alpine",
+     "name": "redis:7-alpine",
+     "subtitle": "d1f8a3c6e2b9",
+     "icon": "󰡨",
+     "keywords": [
+      "d1f8a3c6e2b9",
+      "redis"
+     ],
+     "accessories": [
+      {
+       "text": "41.4MB"
+      },
+      {
+       "text": "3 weeks ago"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "d1f8a3c6e2b9"
+       },
+       {
+        "label": "Repository",
+        "value": "redis"
+       },
+       {
+        "label": "Tag",
+        "value": "7-alpine"
+       },
+       {
+        "label": "Size",
+        "value": "41.4MB"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run…"
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this image? A container still using it keeps docker from removing it."
+      }
+     ]
+    },
+    {
+     "id": "grafana/grafana:11.2.0",
+     "name": "grafana/grafana:11.2.0",
+     "subtitle": "2a9c4e7f1b36",
+     "icon": "󰡨",
+     "keywords": [
+      "2a9c4e7f1b36",
+      "grafana/grafana"
+     ],
+     "accessories": [
+      {
+       "text": "489MB"
+      },
+      {
+       "text": "6 weeks ago"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "2a9c4e7f1b36"
+       },
+       {
+        "label": "Repository",
+        "value": "grafana/grafana"
+       },
+       {
+        "label": "Tag",
+        "value": "11.2.0"
+       },
+       {
+        "label": "Size",
+        "value": "489MB"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run…"
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this image? A container still using it keeps docker from removing it."
+      }
+     ]
+    },
+    {
+     "id": "ubuntu:24.04",
+     "name": "ubuntu:24.04",
+     "subtitle": "f6c1e8d3a9b2",
+     "icon": "󰡨",
+     "keywords": [
+      "f6c1e8d3a9b2",
+      "ubuntu"
+     ],
+     "accessories": [
+      {
+       "text": "78.1MB"
+      },
+      {
+       "text": "2 months ago"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "f6c1e8d3a9b2"
+       },
+       {
+        "label": "Repository",
+        "value": "ubuntu"
+       },
+       {
+        "label": "Tag",
+        "value": "24.04"
+       },
+       {
+        "label": "Size",
+        "value": "78.1MB"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run…"
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this image? A container still using it keeps docker from removing it."
+      }
+     ]
+    },
+    {
+     "id": "8e3b5a1d7c94",
+     "name": "8e3b5a1d7c94",
+     "subtitle": "8e3b5a1d7c94",
+     "icon": "󰡨",
+     "keywords": [
+      "8e3b5a1d7c94",
+      "<none>"
+     ],
+     "accessories": [
+      {
+       "text": "1.02GB"
+      },
+      {
+       "text": "5 weeks ago"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Id",
+        "value": "8e3b5a1d7c94"
+       },
+       {
+        "label": "Repository",
+        "value": "<none>"
+       },
+       {
+        "label": "Tag",
+        "value": "<none>"
+       },
+       {
+        "label": "Size",
+        "value": "1.02GB"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run…"
+      },
+      {
+       "id": "copy-id",
+       "title": "Copy id",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "remove",
+       "title": "Remove",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Remove this image? A container still using it keeps docker from removing it."
+      }
+     ]
+    }
+   ]
+  },
+  "compose": {
+   "title": "Compose Projects",
+   "icon": "󰡨",
+   "live": true,
+   "placeholder": "Compose project",
+   "items": [
+    {
+     "id": "shop",
+     "name": "shop",
+     "subtitle": "~/proj/shop",
+     "icon": "󰡨",
+     "keywords": [
+      "shop"
+     ],
+     "accessories": [
+      {
+       "text": "running(4), exited(1)"
+      },
+      {
+       "tag": "running",
+       "color": "amber"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Status",
+        "value": "running(4), exited(1)"
+       },
+       {
+        "label": "Config",
+        "value": "~/proj/shop/compose.yaml"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "up",
+       "title": "Up"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "down",
+       "title": "Down",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Stop and remove this project's containers and networks?"
+      },
+      {
+       "id": "open",
+       "title": "Open project folder",
+       "shortcut": "cmd+o"
+      }
+     ]
+    },
+    {
+     "id": "monitoring",
+     "name": "monitoring",
+     "subtitle": "~/proj/monitoring",
+     "icon": "󰡨",
+     "keywords": [
+      "monitoring"
+     ],
+     "accessories": [
+      {
+       "text": "running(3)"
+      },
+      {
+       "tag": "running",
+       "color": "green"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Status",
+        "value": "running(3)"
+       },
+       {
+        "label": "Config",
+        "value": "~/proj/monitoring/compose.yaml"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "up",
+       "title": "Up"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "down",
+       "title": "Down",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Stop and remove this project's containers and networks?"
+      },
+      {
+       "id": "open",
+       "title": "Open project folder",
+       "shortcut": "cmd+o"
+      }
+     ]
+    },
+    {
+     "id": "blog",
+     "name": "blog",
+     "subtitle": "~/proj/blog",
+     "icon": "󰡨",
+     "keywords": [
+      "blog"
+     ],
+     "accessories": [
+      {
+       "text": "exited(2)"
+      },
+      {
+       "tag": "exited",
+       "color": "grey"
+      }
+     ],
+     "detail": {
+      "metadata": [
+       {
+        "label": "Status",
+        "value": "exited(2)"
+       },
+       {
+        "label": "Config",
+        "value": "~/proj/blog/compose.yaml"
+       }
+      ]
+     },
+     "actions": [
+      {
+       "id": "up",
+       "title": "Up"
+      },
+      {
+       "id": "logs",
+       "title": "Logs",
+       "shortcut": "cmd+l"
+      },
+      {
+       "id": "restart",
+       "title": "Restart",
+       "shortcut": "cmd+shift+r"
+      },
+      {
+       "id": "down",
+       "title": "Down",
+       "shortcut": "cmd+d",
+       "style": "destructive",
+       "confirm": "Stop and remove this project's containers and networks?"
+      },
+      {
+       "id": "open",
+       "title": "Open project folder",
+       "shortcut": "cmd+o"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "effects": {
+  "docker/3f9c2a1b7e40:logs": {
+   "show": {
+    "title": "Logs 3f9c2a1b7e40",
+    "markdown": "````\n2026/09/16 09:12:01 [notice] 1#1: using the \"epoll\" event method\n2026/09/16 09:12:01 [notice] 1#1: nginx/1.27.2\n2026/09/16 09:12:01 [notice] 1#1: start worker processes\n2026/09/16 09:12:01 [notice] 1#1: start worker process 29\n2026/09/16 09:12:01 [notice] 1#1: start worker process 30\n172.18.0.1 - - [16/Sep/2026:09:14:22 +0000] \"GET / HTTP/1.1\" 200 615 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:14:22 +0000] \"GET /assets/app.css HTTP/1.1\" 200 4021 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:14:23 +0000] \"GET /api/products HTTP/1.1\" 200 2318 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:15:40 +0000] \"POST /api/cart HTTP/1.1\" 201 87 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:15:41 +0000] \"GET /cart HTTP/1.1\" 200 1180 \"-\" \"Mozilla/5.0\"\n172.18.0.1 - - [16/Sep/2026:09:20:03 +0000] \"GET /healthz HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.31\"\n172.18.0.1 - - [16/Sep/2026:09:20:33 +0000] \"GET /healthz HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.31\"\n````"
+   }
+  },
+  "images/nginx:1.27-alpine:run": {
+   "form": {
+    "id": "nginx:1.27-alpine",
+    "title": "Run nginx:1.27-alpine",
+    "fields": [
+     {
+      "kind": "text",
+      "id": "name",
+      "label": "Name",
+      "placeholder": "docker picks one when empty"
+     },
+     {
+      "kind": "text",
+      "id": "ports",
+      "label": "Ports",
+      "placeholder": "8080:80, 443:443",
+      "description": "host:container pairs, comma separated; each becomes a -p."
+     }
+    ],
+    "submit": {
+     "id": "run-submit",
+     "title": "Run"
+    }
+   }
+  }
+ },
+ "shots": {
+  "1-containers": {
+   "palette": "docker",
+   "keys": [
+    "down"
+   ]
+  },
+  "2-actions": {
+   "palette": "docker",
+   "keys": [
+    "cmd+k"
+   ]
+  },
+  "3-logs": {
+   "palette": "docker",
+   "keys": [
+    "cmd+l"
+   ]
+  },
+  "4-run": {
+   "palette": "images",
+   "keys": [
+    "enter",
+    "wait:200",
+    "type:web"
+   ]
+  }
+ }
+}

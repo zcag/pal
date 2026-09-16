@@ -7,15 +7,117 @@
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "number", "id": "hours", "label": "Look back", "description": "How many hours of messages to scan for codes.", "min": 1, "max": 720, "unit": "hours", "default": 24 },
-    { "kind": "list", "id": "senders", "label": "Ignore senders", "description": "Senders whose messages are never listed, as Messages shows them (a shortcode like AKBANK, a number, an email). Case does not matter.", "placeholder": "AKBANK", "default": [] },
-    { "kind": "path", "id": "db", "label": "Messages database", "description": "The chat.db to read. ~ is expanded.", "pick": "file", "default": "~/Library/Messages/chat.db" },
-    { "kind": "path", "id": "contacts", "label": "Contacts database", "description": "An AddressBook-v22.abcddb whose names replace phone numbers; empty means every source under ~/Library/Application Support/AddressBook.", "pick": "file", "default": "" }
+    {
+      "kind": "number",
+      "id": "hours",
+      "label": "Look back",
+      "description": "How many hours of messages to scan for codes.",
+      "min": 1,
+      "max": 720,
+      "unit": "hours",
+      "default": 24
+    },
+    {
+      "kind": "list",
+      "id": "senders",
+      "label": "Ignore senders",
+      "description": "Senders whose messages are never listed, as Messages shows them (a shortcode like AKBANK, a number, an email). Case does not matter.",
+      "placeholder": "AKBANK",
+      "default": []
+    },
+    {
+      "kind": "path",
+      "id": "db",
+      "label": "Messages database",
+      "description": "The chat.db to read. ~ is expanded.",
+      "pick": "file",
+      "default": "~/Library/Messages/chat.db"
+    },
+    {
+      "kind": "path",
+      "id": "contacts",
+      "label": "Contacts database",
+      "description": "An AddressBook-v22.abcddb whose names replace phone numbers; empty means every source under ~/Library/Application Support/AddressBook.",
+      "pick": "file",
+      "default": ""
+    }
   ],
   "palettes": {
-    "otp": { "description": "Codes from the last day of messages, Today and Earlier." }
+    "otp": {
+      "description": "Codes from the last day of messages, Today and Earlier.",
+      "kind": "live",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Paste the code"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the code"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the sender"
+        }
+      ]
+    }
   },
   "bar": {
-    "latest-code": { "title": "Latest code", "description": "The newest verification code on the strip for a minute after it arrives; a click copies it.", "refresh": { "every": 10 } }
+    "latest-code": {
+      "title": "Latest code",
+      "description": "The newest verification code on the strip for a minute after it arrives; a click copies it.",
+      "refresh": {
+        "every": 10
+      }
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "The one-time codes in your recent text messages, newest first; enter pastes the code where you were.",
+    "category": "integration",
+    "features": [
+      "Reads Messages' own database (`~/Library/Messages/chat.db`), one read-only query per listing, the last 24 hours by default",
+      "A message counts when it names a code (code, kod, şifre, OTP, PIN, verification, `G-123456`) and carries 4 to 8 digits that are not an amount, a date or a phone number",
+      "The sender as Messages knows it, a contact's name for a number or email in Contacts, the code as a green tag with how long ago it arrived",
+      "Live: the code that just arrived is the first row and a root result; Today and Earlier sections",
+      "A bar item that shows the newest code for a minute after it arrives; a click copies it"
+    ],
+    "permissions": [
+      "full-disk-access",
+      "accessibility"
+    ],
+    "platforms": [
+      "macos"
+    ],
+    "screenshots": [
+      {
+        "file": "1-codes.png",
+        "caption": "The codes of the day and earlier: the sender, the message, the code as a tag, when it came"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "The detail pane: the whole message, the code, the sender, when it was received"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Paste the code into the app in front, copy it, or copy the sender"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Paste code",
+        "description": "Hides, then pastes into the app that was in front.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy code",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy sender",
+        "description": "As Messages stores it.",
+        "keys": "cmd+shift+c"
+      }
+    ]
   }
 }

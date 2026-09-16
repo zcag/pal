@@ -1,0 +1,212 @@
+{
+  "palettes": {
+    "bluetooth": {
+      "title": "Bluetooth",
+      "live": true,
+      "icon": "󰂯",
+      "placeholder": "Connect or disconnect a device",
+      "items": [
+        {
+          "id": "F4:5C:89:AB:12:01",
+          "name": "AirPods Pro",
+          "subtitle": "Headphones",
+          "icon": "󰋋",
+          "keywords": [
+            "F4:5C:89:AB:12:01",
+            "headphones"
+          ],
+          "accessories": [
+            {
+              "text": "L 80% · R 75% · Case 90%"
+            },
+            {
+              "tag": "connected",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Disconnect",
+              "confirm": "Disconnect AirPods Pro?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Address",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "DC:2B:2A:0C:44:7E",
+          "name": "Magic Keyboard",
+          "subtitle": "Keyboard",
+          "icon": "󰌌",
+          "keywords": [
+            "DC:2B:2A:0C:44:7E",
+            "keyboard"
+          ],
+          "accessories": [
+            {
+              "text": "62%"
+            },
+            {
+              "tag": "connected",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Disconnect",
+              "confirm": "Disconnect Magic Keyboard?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Address",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "DC:2B:2A:0C:51:13",
+          "name": "Magic Trackpad",
+          "subtitle": "Mouse",
+          "icon": "󰍽",
+          "keywords": [
+            "DC:2B:2A:0C:51:13",
+            "mouse"
+          ],
+          "accessories": [
+            {
+              "text": "88%"
+            },
+            {
+              "tag": "connected",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Disconnect",
+              "confirm": "Disconnect Magic Trackpad?"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Address",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "88:C6:26:3F:9A:02",
+          "name": "Sony WH-1000XM5",
+          "subtitle": "Headphones",
+          "icon": "󰋋",
+          "keywords": [
+            "88:C6:26:3F:9A:02",
+            "headphones"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Connect"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Address",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "B8:27:EB:11:22:33",
+          "name": "Kitchen Speaker",
+          "subtitle": "Speaker",
+          "icon": "󰓃",
+          "keywords": [
+            "B8:27:EB:11:22:33",
+            "speaker"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Connect"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Address",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "98:B8:BC:70:1D:E4",
+          "name": "DualSense Controller",
+          "subtitle": "Game controller",
+          "icon": "󰊗",
+          "keywords": [
+            "98:B8:BC:70:1D:E4",
+            "gamepad"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Connect"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Address",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "3C:22:FB:9E:80:0A",
+          "name": "Pixel 9",
+          "subtitle": "Phone",
+          "icon": "󰏲",
+          "keywords": [
+            "3C:22:FB:9E:80:0A",
+            "phone"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "toggle",
+              "title": "Connect"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Address",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-devices": {
+      "palette": "bluetooth",
+      "keys": []
+    },
+    "2-actions": {
+      "palette": "bluetooth",
+      "keys": [
+        "down*3",
+        "cmd+k"
+      ]
+    },
+    "3-disconnect": {
+      "palette": "bluetooth",
+      "keys": [
+        "enter"
+      ]
+    }
+  }
+}

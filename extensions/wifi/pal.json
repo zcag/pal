@@ -6,7 +6,45 @@
   "icon": "󰖩",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
+  "store": {
+    "tagline": "Join, forget and inspect Wi-Fi networks, and turn the radio off, from the keyboard.",
+    "category": "system",
+    "features": [
+      "Sections Current, Known and Available: the current network with its IP, channel, security and signal (`▂▄▆█ 92%`), saved networks tagged `in range` when a scan sees them",
+      "`enter` joins: a saved or open network at once, a secured new one after a password form",
+      "`cmd+shift+c` copies a saved network's password (the keychain prompts on macOS)",
+      "`ctrl+x` forgets a network, after a confirm; `cmd+c` copies the IP or the network's name",
+      "A Scan for Networks row on macOS, where a scan takes seconds; a Wi-Fi row turns the radio off or on",
+      "Live: read again on every show"
+    ],
+    "permissions": ["location"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-networks.png", "caption": "The current network with its address and signal, the saved ones, what is in range" },
+      { "file": "2-join.png", "caption": "A secured network that is not saved asks for its password" },
+      { "file": "3-actions.png", "caption": "A known network: join, copy its password, forget it" },
+      { "file": "4-forget.png", "caption": "Forget asks first; the password goes with it" }
+    ],
+    "actions": [
+      { "title": "Join", "description": "A saved or open network joins at once; a secured new one asks for its password.", "keys": "enter" },
+      { "title": "Copy Password", "description": "The saved password; the macOS keychain prompts.", "keys": "cmd+shift+c" },
+      { "title": "Copy IP", "description": "On the current row.", "keys": "cmd+c" },
+      { "title": "Copy Name", "description": "On an available row.", "keys": "cmd+c" },
+      { "title": "Forget", "description": "Removes the saved network, after a confirm.", "keys": "ctrl+x" },
+      { "title": "Scan", "description": "On the Scan for Networks row: a fresh scan, then the list again.", "keys": "enter" },
+      { "title": "Turn Off / Turn On", "description": "On the Wi-Fi row: the radio.", "keys": "enter" }
+    ]
+  },
   "palettes": {
-    "wifi": { "description": "Current, known and available networks with their signal." }
+    "wifi": {
+      "kind": "live",
+      "description": "Current, known and available networks with their signal.",
+      "keys": [
+        { "keys": "enter", "title": "Join" },
+        { "keys": "cmd+shift+c", "title": "Copy the password" },
+        { "keys": "ctrl+x", "title": "Forget" }
+      ]
+    }
   }
 }

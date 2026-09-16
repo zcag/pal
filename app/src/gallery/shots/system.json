@@ -1,0 +1,320 @@
+{
+  "palettes": {
+    "system": {
+      "title": "System",
+      "live": true,
+      "input": false,
+      "icon": "⏻",
+      "placeholder": "Sleep, lock, volume, dark mode...",
+      "items": [
+        {
+          "id": "sleep",
+          "name": "Sleep",
+          "subtitle": "Put the machine to sleep",
+          "icon": "⏾",
+          "keywords": [
+            "suspend"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Sleep"
+            }
+          ]
+        },
+        {
+          "id": "sleep-displays",
+          "name": "Sleep Displays",
+          "subtitle": "Turn the displays off",
+          "icon": "🖥",
+          "keywords": [
+            "screen",
+            "monitor"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Sleep Displays"
+            }
+          ]
+        },
+        {
+          "id": "lock",
+          "name": "Lock Screen",
+          "subtitle": "Lock the session",
+          "icon": "🔒",
+          "keywords": [
+            "lock"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Lock Screen"
+            }
+          ]
+        },
+        {
+          "id": "logout",
+          "name": "Log Out",
+          "subtitle": "End the session",
+          "icon": "⎋",
+          "keywords": [
+            "sign out"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Log Out",
+              "style": "destructive",
+              "confirm": "Log Out now?"
+            }
+          ]
+        },
+        {
+          "id": "restart",
+          "name": "Restart",
+          "subtitle": "Reboot the machine",
+          "icon": "↻",
+          "keywords": [
+            "reboot"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Restart",
+              "style": "destructive",
+              "confirm": "Restart now?"
+            }
+          ]
+        },
+        {
+          "id": "shutdown",
+          "name": "Shut Down",
+          "subtitle": "Power the machine off",
+          "icon": "⏻",
+          "keywords": [
+            "halt",
+            "power off"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Shut Down",
+              "style": "destructive",
+              "confirm": "Shut Down now?"
+            }
+          ]
+        },
+        {
+          "id": "empty-trash",
+          "name": "Empty Trash",
+          "subtitle": "Delete what is in the Trash",
+          "icon": "🗑",
+          "keywords": [
+            "bin"
+          ],
+          "accessories": [
+            {
+              "text": "3 items"
+            }
+          ],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Empty Trash",
+              "style": "destructive",
+              "confirm": "Empty Trash now?"
+            }
+          ]
+        },
+        {
+          "id": "dark-mode",
+          "name": "Toggle Dark Mode",
+          "subtitle": "Switch the appearance",
+          "icon": "◐",
+          "keywords": [
+            "light",
+            "theme",
+            "appearance"
+          ],
+          "accessories": [
+            {
+              "tag": "dark",
+              "color": "violet"
+            }
+          ],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Toggle Dark Mode"
+            }
+          ]
+        },
+        {
+          "id": "volume-up",
+          "name": "Volume Up",
+          "subtitle": "10% louder",
+          "icon": "🔊",
+          "keywords": [
+            "sound",
+            "louder"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Volume Up"
+            }
+          ]
+        },
+        {
+          "id": "volume-down",
+          "name": "Volume Down",
+          "subtitle": "10% quieter",
+          "icon": "🔉",
+          "keywords": [
+            "sound",
+            "quieter"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Volume Down"
+            }
+          ]
+        },
+        {
+          "id": "mute",
+          "name": "Toggle Mute",
+          "subtitle": "Silence the output",
+          "icon": "🔇",
+          "keywords": [
+            "sound",
+            "silence"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Toggle Mute"
+            }
+          ]
+        },
+        {
+          "id": "brightness-up",
+          "name": "Brightness Up",
+          "subtitle": "10% brighter",
+          "icon": "☀",
+          "keywords": [
+            "screen",
+            "display"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Brightness Up"
+            }
+          ]
+        },
+        {
+          "id": "brightness-down",
+          "name": "Brightness Down",
+          "subtitle": "10% dimmer",
+          "icon": "☼",
+          "keywords": [
+            "screen",
+            "display",
+            "dim"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Brightness Down"
+            }
+          ]
+        },
+        {
+          "id": "eject",
+          "name": "Eject All Disks",
+          "subtitle": "Unmount every external disk",
+          "icon": "⏏",
+          "keywords": [
+            "unmount",
+            "usb"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Eject All Disks"
+            }
+          ]
+        },
+        {
+          "id": "show-desktop",
+          "name": "Show Desktop",
+          "subtitle": "Move every window aside",
+          "icon": "▦",
+          "keywords": [
+            "desktop",
+            "mission control"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Show Desktop"
+            }
+          ]
+        },
+        {
+          "id": "keep-awake",
+          "name": "Keep Awake",
+          "subtitle": "Stop the machine sleeping until you allow it",
+          "icon": "☕",
+          "keywords": [
+            "caffeinate",
+            "awake",
+            "insomnia"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Keep Awake"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "system",
+      "keys": [
+        "down*7"
+      ]
+    },
+    "2-root": {
+      "keys": [
+        "type:sleep"
+      ]
+    },
+    "3-confirm": {
+      "palette": "system",
+      "keys": [
+        "down*5",
+        "enter"
+      ]
+    }
+  }
+}

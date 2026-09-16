@@ -6,6 +6,7 @@
   "icon": "󰣪",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "list", "id": "projects", "label": "Project folders", "description": "Folders scanned two levels deep for a Makefile, makefile or GNUmakefile. ~ is expanded.", "placeholder": "~/proj", "default": ["~/proj"] },
     { "kind": "select", "id": "terminal", "label": "Run in", "description": "Where Run puts make. A terminal keeps its window open until you press Enter; background runs it unseen and toasts the exit status (the output opens in the panel when it failed; a run past 8 s is left to finish on its own). On Linux the terminal is $TERMINAL, else kitty, foot, alacritty, xterm.", "options": [
@@ -18,7 +19,41 @@
       { "id": "Alacritty", "title": "Alacritty" }
     ], "default": "auto" }
   ],
+  "store": {
+    "tagline": "Every Makefile target under your projects, one Enter from running.",
+    "category": "developer",
+    "features": [
+      "Every target of every Makefile two levels under the `projects` folders, one section per project; `pal test` finds a project's target from the root",
+      "Descriptions from `## text` on the rule line or the comment above it, shown after the folder in the subtitle",
+      "`enter` opens a terminal in the project folder running `make <target>`; the window waits for Enter so a quick target's output stays readable",
+      "`terminal = \"background\"` runs it unseen: a toast with the exit status and the last line, the whole output in the panel when it failed",
+      "The detail pane shows the recipe; `cmd+l` opens the whole Makefile in the panel, `cmd+c` copies `make -C <dir> <target>`"
+    ],
+    "permissions": ["automation"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-targets.png", "caption": "Targets sectioned by project, the description after the folder" },
+      { "file": "2-recipe.png", "caption": "The detail pane: the target's recipe, the project and the Makefile" },
+      { "file": "3-makefile.png", "caption": "Show Makefile: the whole file in the panel" },
+      { "file": "4-actions.png", "caption": "Run, copy the command, open the project, show the Makefile" }
+    ],
+    "actions": [
+      { "title": "Run", "description": "make <target> in a terminal in the project folder, or in the background per the setting.", "keys": "enter" },
+      { "title": "Copy command", "description": "make -C <dir> <target>.", "keys": "cmd+c" },
+      { "title": "Open project", "description": "The project folder in the file manager.", "keys": "cmd+o" },
+      { "title": "Show Makefile", "description": "The whole file in the panel.", "keys": "cmd+l" }
+    ]
+  },
   "palettes": {
-    "make": { "description": "Every target of every Makefile in the project folders, one section per project." }
+    "make": {
+      "kind": "list",
+      "description": "Every target of every Makefile in the project folders, one section per project.",
+      "keys": [
+        { "keys": "enter", "title": "Run the target" },
+        { "keys": "cmd+c", "title": "Copy the make command" },
+        { "keys": "cmd+l", "title": "Show the Makefile" },
+        { "keys": "cmd+i", "title": "The recipe in the detail pane" }
+      ]
+    }
   }
 }

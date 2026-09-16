@@ -1,0 +1,485 @@
+{
+  "palettes": {
+    "quicklinks": {
+      "title": "Quicklinks",
+      "live": false,
+      "input": false,
+      "icon": "🔗",
+      "items": [
+        {
+          "id": "create",
+          "name": "Create Quicklink",
+          "subtitle": "A link, with {query} where what you type goes",
+          "icon": "+",
+          "keywords": [
+            "new",
+            "add"
+          ],
+          "actions": [
+            {
+              "id": "create",
+              "title": "Create Quicklink"
+            }
+          ]
+        },
+        {
+          "id": "l1",
+          "name": "GitHub search",
+          "subtitle": "https://github.com/search?q={query}",
+          "url": "https://github.com/search?q={query}",
+          "keywords": [
+            "gh",
+            "code"
+          ],
+          "accessories": [
+            {
+              "tag": "{query}"
+            }
+          ],
+          "detail": {
+            "markdown": "# GitHub search\n\n```\nhttps://github.com/search?q={query}\n```",
+            "metadata": [
+              {
+                "label": "Asks for",
+                "value": "query"
+              },
+              {
+                "label": "Keywords",
+                "tags": [
+                  {
+                    "text": "gh"
+                  },
+                  {
+                    "text": "code"
+                  }
+                ]
+              },
+              {
+                "label": "Source",
+                "value": "Your quicklinks"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this quicklink?"
+            }
+          ]
+        },
+        {
+          "id": "l2",
+          "name": "Wikipedia",
+          "subtitle": "https://en.wikipedia.org/wiki/{query}",
+          "url": "https://en.wikipedia.org/wiki/{query}",
+          "keywords": [
+            "wiki"
+          ],
+          "accessories": [
+            {
+              "tag": "{query}"
+            }
+          ],
+          "detail": {
+            "markdown": "# Wikipedia\n\n```\nhttps://en.wikipedia.org/wiki/{query}\n```",
+            "metadata": [
+              {
+                "label": "Asks for",
+                "value": "query"
+              },
+              {
+                "label": "Keywords",
+                "tags": [
+                  {
+                    "text": "wiki"
+                  }
+                ]
+              },
+              {
+                "label": "Source",
+                "value": "Your quicklinks"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this quicklink?"
+            }
+          ]
+        },
+        {
+          "id": "l3",
+          "name": "Home Assistant",
+          "subtitle": "http://homeassistant.local:8123",
+          "url": "http://homeassistant.local:8123",
+          "keywords": [
+            "ha",
+            "home"
+          ],
+          "detail": {
+            "markdown": "# Home Assistant\n\n```\nhttp://homeassistant.local:8123\n```",
+            "metadata": [
+              {
+                "label": "Keywords",
+                "tags": [
+                  {
+                    "text": "ha"
+                  },
+                  {
+                    "text": "home"
+                  }
+                ]
+              },
+              {
+                "label": "Source",
+                "value": "Your quicklinks"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this quicklink?"
+            }
+          ]
+        },
+        {
+          "id": "l4",
+          "name": "npm package",
+          "subtitle": "https://www.npmjs.com/package/{argument name=\"Package\"}",
+          "url": "https://www.npmjs.com/package/{argument name=\"Package\"}",
+          "accessories": [
+            {
+              "tag": "{Package}"
+            }
+          ],
+          "detail": {
+            "markdown": "# npm package\n\n```\nhttps://www.npmjs.com/package/{argument name=\"Package\"}\n```",
+            "metadata": [
+              {
+                "label": "Asks for",
+                "value": "Package"
+              },
+              {
+                "label": "Source",
+                "value": "Your quicklinks"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this quicklink?"
+            }
+          ]
+        },
+        {
+          "id": "l5",
+          "name": "Router",
+          "subtitle": "http://192.168.1.1",
+          "url": "http://192.168.1.1",
+          "keywords": [
+            "gateway"
+          ],
+          "detail": {
+            "markdown": "# Router\n\n```\nhttp://192.168.1.1\n```",
+            "metadata": [
+              {
+                "label": "Keywords",
+                "tags": [
+                  {
+                    "text": "gateway"
+                  }
+                ]
+              },
+              {
+                "label": "Source",
+                "value": "Your quicklinks"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this quicklink?"
+            }
+          ]
+        },
+        {
+          "id": "l6",
+          "name": "MDN",
+          "subtitle": "https://developer.mozilla.org/en-US/search?q={query}",
+          "url": "https://developer.mozilla.org/en-US/search?q={query}",
+          "keywords": [
+            "docs",
+            "web"
+          ],
+          "accessories": [
+            {
+              "tag": "{query}"
+            }
+          ],
+          "detail": {
+            "markdown": "# MDN\n\n```\nhttps://developer.mozilla.org/en-US/search?q={query}\n```",
+            "metadata": [
+              {
+                "label": "Asks for",
+                "value": "query"
+              },
+              {
+                "label": "Keywords",
+                "tags": [
+                  {
+                    "text": "docs"
+                  },
+                  {
+                    "text": "web"
+                  }
+                ]
+              },
+              {
+                "label": "Source",
+                "value": "Your quicklinks"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "copy",
+              "title": "Copy URL",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "edit",
+              "title": "Edit",
+              "shortcut": "cmd+e"
+            },
+            {
+              "id": "delete",
+              "title": "Delete",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete this quicklink?"
+            }
+          ]
+        },
+        {
+          "id": "import",
+          "name": "Import Quicklinks",
+          "subtitle": "From a JSON file",
+          "icon": "⇣",
+          "keywords": [
+            "json",
+            "restore"
+          ],
+          "actions": [
+            {
+              "id": "import",
+              "title": "Import…"
+            }
+          ]
+        },
+        {
+          "id": "export",
+          "name": "Export Quicklinks",
+          "subtitle": "To a JSON file",
+          "icon": "⇡",
+          "keywords": [
+            "json",
+            "backup"
+          ],
+          "actions": [
+            {
+              "id": "export",
+              "title": "Export…"
+            }
+          ]
+        }
+      ],
+      "levels": {
+        "gh": [
+          {
+            "id": "https://github.com/search?q=rust%20async",
+            "name": "Open GitHub search",
+            "subtitle": "https://github.com/search?q=rust%20async",
+            "url": "https://github.com/search?q=rust%20async",
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "effects": {
+    "quicklinks/l1": {
+      "push": {
+        "extension": "",
+        "palette": "quicklinks",
+        "args": "gh"
+      }
+    },
+    "quicklinks/create": {
+      "form": {
+        "id": "create",
+        "title": "Create Quicklink",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "name",
+            "label": "Name",
+            "required": true,
+            "placeholder": "GitHub search"
+          },
+          {
+            "kind": "text",
+            "id": "url",
+            "label": "URL",
+            "required": true,
+            "placeholder": "https://github.com/search?q={query}",
+            "description": "{query} stands for what you type when opening it."
+          },
+          {
+            "kind": "text",
+            "id": "keywords",
+            "label": "Keywords",
+            "placeholder": "gh code",
+            "description": "Extra words that find it, space separated."
+          }
+        ],
+        "submit": {
+          "id": "save",
+          "title": "Create"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-list": {
+      "palette": "quicklinks",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-query": {
+      "palette": "quicklinks",
+      "keys": [
+        "down",
+        "enter",
+        "wait:300",
+        "type:rust async"
+      ]
+    },
+    "3-actions": {
+      "palette": "quicklinks",
+      "keys": [
+        "down*3",
+        "cmd+k"
+      ]
+    },
+    "4-form": {
+      "palette": "quicklinks",
+      "keys": [
+        "enter"
+      ]
+    }
+  }
+}

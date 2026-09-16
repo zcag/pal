@@ -6,10 +6,44 @@
   "icon": "Ω",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [],
+  "store": {
+    "tagline": "The characters one pastes rather than types: arrows, math, currency, dashes, keyboard glyphs, box drawing.",
+    "category": "reference",
+    "features": [
+      "1795 characters as a grid, one section per block: arrows, math, Greek, currency, quotes and dashes, spaces, superscripts and fractions, accented Latin letters, the Mac keyboard glyphs (⌘ ⌥ ⇧ ⌃), check marks, box drawing, shapes, dingbats, enclosed numbers",
+      "Search by name, code point (`2192`, `u+2192`), HTML entity (`rarr`, `nbsp`), LaTeX command (`\\rightarrow`, `\\alpha`), Unicode 1.0 name (`command key`) or a plain word (`cmd`, `turkish`, `tick`, `eur`)",
+      "`Enter` copies the character, `cmd+enter` pastes it into the app in front",
+      "Copy the code point (`U+2192`), the HTML entity (`&rarr;`) or the numeric reference (`&#x2192;`) behind shortcuts",
+      "A detail pane with the glyph large, the block, the code point, both HTML forms, the UTF-8 bytes, the LaTeX command and the aliases",
+      "The last twelve copied lead in a Recent section"
+    ],
+    "permissions": ["accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-grid.png", "caption": "The grid by block, the cursor on an arrow" },
+      { "file": "2-search.png", "caption": "Searching `arrow`: the matches across the arrows, keyboard and other blocks" },
+      { "file": "3-actions.png", "caption": "Copy, paste, or copy the code point, the entity or the numeric reference" }
+    ],
+    "actions": [
+      { "title": "Copy character", "keys": "enter" },
+      { "title": "Paste", "description": "Into the app that was in front; needs Accessibility on macOS.", "keys": "cmd+enter" },
+      { "title": "Copy code point", "description": "`U+2192`", "keys": "cmd+shift+u" },
+      { "title": "Copy HTML entity", "description": "`&rarr;`, or `&#x2192;` for a character without a named entity.", "keys": "cmd+shift+e" },
+      { "title": "Copy numeric reference", "description": "`&#x2192;`", "keys": "cmd+shift+n" }
+    ]
+  },
   "palettes": {
     "unicode": {
+      "kind": "grid",
       "description": "The bundled character table, by block; recently copied characters first.",
+      "keys": [
+        { "keys": "enter", "title": "Copy character" },
+        { "keys": "cmd+enter", "title": "Paste" },
+        { "keys": "cmd+shift+u", "title": "Copy code point" },
+        { "keys": "cmd+shift+e", "title": "Copy HTML entity" }
+      ],
       "settings": [
         { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 10 }
       ]

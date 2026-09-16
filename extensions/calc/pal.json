@@ -6,12 +6,46 @@
   "icon": "=",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "number", "id": "precision", "label": "Precision", "description": "Significant digits in a result; integers are never rounded, units and rates show at most 6.", "min": 2, "max": 20, "default": 10 },
     { "kind": "text", "id": "locale", "label": "Locale", "description": "How numbers and dates are written (en: 1,234.5; tr: 1.234,5; de: 1.234,5). Also how a typed number is read.", "default": "en" },
     { "kind": "text", "id": "home_currency", "label": "Home currency", "description": "What a bare amount (12 usd) converts to. Empty: the time zone's currency.", "placeholder": "TRY", "default": "" }
   ],
+  "store": {
+    "tagline": "Sums, units, currencies, dates and time zones, answered as you type.",
+    "category": "productivity",
+    "features": [
+      "Arithmetic with precedence, percentages, powers, factorials and bases: `2^10`, `15% of 240`, `255 to hex`",
+      "Units through mathjs plus the spellings people type: `5 km to miles`, `72 f to c`, `12 gb to mb`, `5 ft 3 in to cm`",
+      "The 30 ECB currencies by code, symbol or name (`12 usd to try`, `€12 to $`, `1k usd`), rates fetched once a day and cached",
+      "Dates and durations: `today + 3 days`, `days until 2026-12-25`, `weeks between 2025-06-15 and 2026-01-01`",
+      "Time zones by city, abbreviation or offset: `10:00 utc to tokyo`, `5pm ldn in sf`, `now in utc`",
+      "A second row with the other form: the reverse conversion, a fraction, the hex and binary of an integer, the ISO date"
+    ],
+    "permissions": ["network", "accessibility"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-currency.png", "caption": "12 usd to try at the ECB's rate; the reverse conversion is the second row" },
+      { "file": "2-dates.png", "caption": "A day count, with the weeks and months on the right" },
+      { "file": "3-timezone.png", "caption": "10:00 UTC in Tokyo, the full date there as the second row" },
+      { "file": "4-actions.png", "caption": "What a result can do: copy, paste into the app in front, copy without formatting" }
+    ],
+    "actions": [
+      { "title": "Copy result", "description": "The result as shown.", "keys": "enter" },
+      { "title": "Paste result", "description": "Into the app that was in front.", "keys": "cmd+enter" },
+      { "title": "Copy without formatting", "description": "No grouping or symbols: 583.68, 1000000.", "keys": "cmd+shift+c" },
+      { "title": "Copy expression = result", "keys": "cmd+shift+e" }
+    ]
+  },
   "palettes": {
-    "calc": { "description": "Type an expression; the result is the row." }
+    "calc": {
+      "kind": "input",
+      "description": "Type an expression; the result is the row.",
+      "keys": [
+        { "keys": "enter", "title": "Copy the result" },
+        { "keys": "cmd+enter", "title": "Paste the result" }
+      ]
+    }
   }
 }

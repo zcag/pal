@@ -6,10 +6,48 @@
   "icon": "▢",
   "author": "pal",
   "repo": "bundled",
+  "license": "MIT",
   "settings": [
     { "kind": "list", "id": "folders", "label": "Extra folders", "description": "Scanned in addition to the system's application folders.", "placeholder": "/path/to/apps", "default": [] }
   ],
+  "store": {
+    "tagline": "Every installed app, with its icon, one keystroke from launching.",
+    "category": "productivity",
+    "features": [
+      "macOS: `.app` bundles in `/Applications`, `/System/Applications` and `~/Applications`, one level deep so the Utilities folders come along",
+      "Linux: `.desktop` entries from every XDG data dir and the flatpak exports, hidden and `NoDisplay` ones skipped",
+      "The bundle id and the display name are keywords, so `com.apple.` or `Chrome` finds the app",
+      "A running app carries a green `Running` tag and gains Quit (`cmd+q`) and Hide (`cmd+h`)",
+      "35 System Settings panes as rows on macOS: `Keyboard`, `Displays`, `Privacy & Security`, found by words like `dark mode` or `dns`",
+      "A `.desktop` file's own actions (`New Private Window`) are the row's secondary actions on Linux"
+    ],
+    "permissions": ["automation"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-list.png", "caption": "The applications, their source as the subtitle, the running ones tagged" },
+      { "file": "2-search.png", "caption": "Typing at the root: the name, the bundle id and the display name all match" },
+      { "file": "3-actions.png", "caption": "A running app: Open, Quit, Hide, Reveal in Finder, Copy path, Copy bundle id" },
+      { "file": "4-panes.png", "caption": "The System Settings panes are rows too, found by what they hold" }
+    ],
+    "actions": [
+      { "title": "Open", "keys": "enter" },
+      { "title": "Quit", "description": "Asks the app through AppleScript, so it may ask you to save; a toast when it is not running.", "keys": "cmd+q" },
+      { "title": "Hide", "description": "Through System Events.", "keys": "cmd+h" },
+      { "title": "Reveal in Finder", "keys": "cmd+shift+r" },
+      { "title": "Copy path", "keys": "cmd+c" },
+      { "title": "Copy bundle id", "keys": "cmd+shift+c" },
+      { "title": "Copy URL", "description": "On a System Settings pane: its x-apple.systempreferences: link.", "keys": "cmd+c" }
+    ]
+  },
   "palettes": {
-    "apps": { "description": "Everything that launches." }
+    "apps": {
+      "kind": "list",
+      "description": "Everything that launches.",
+      "keys": [
+        { "keys": "enter", "title": "Open the app" },
+        { "keys": "cmd+q", "title": "Quit a running app" },
+        { "keys": "cmd+shift+r", "title": "Reveal in Finder" }
+      ]
+    }
   }
 }

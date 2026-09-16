@@ -1,0 +1,780 @@
+{
+ "palettes": {
+  "make": {
+   "title": "Makefile targets",
+   "icon": "󰅩",
+   "placeholder": "Target or project",
+   "items": [
+    {
+     "id": "build@~/proj/api",
+     "name": "build",
+     "subtitle": "~/proj/api: Compile the server into bin/api",
+     "icon": "󰅩",
+     "keywords": [
+      "api",
+      "phony"
+     ],
+     "section": "api",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "test@~/proj/api",
+     "name": "test",
+     "subtitle": "~/proj/api: Run every test with the race detector",
+     "icon": "󰅩",
+     "keywords": [
+      "api",
+      "phony"
+     ],
+     "section": "api",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "lint@~/proj/api",
+     "name": "lint",
+     "subtitle": "~/proj/api: Vet and staticcheck",
+     "icon": "󰅩",
+     "keywords": [
+      "api",
+      "phony"
+     ],
+     "section": "api",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "run@~/proj/api",
+     "name": "run",
+     "subtitle": "~/proj/api: Start the server on :8080 with the dev config",
+     "icon": "󰅩",
+     "keywords": [
+      "api",
+      "phony"
+     ],
+     "section": "api",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "migrate@~/proj/api",
+     "name": "migrate",
+     "subtitle": "~/proj/api: Apply pending database migrations",
+     "icon": "󰅩",
+     "keywords": [
+      "api",
+      "phony"
+     ],
+     "section": "api",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "docker@~/proj/api",
+     "name": "docker",
+     "subtitle": "~/proj/api: Build the image tagged with the git sha",
+     "icon": "󰅩",
+     "keywords": [
+      "api",
+      "phony"
+     ],
+     "section": "api",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "clean@~/proj/api",
+     "name": "clean",
+     "subtitle": "~/proj/api",
+     "icon": "󰅩",
+     "keywords": [
+      "api",
+      "phony"
+     ],
+     "section": "api",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "plan@~/proj/infra",
+     "name": "plan",
+     "subtitle": "~/proj/infra: terraform plan for the production workspace",
+     "icon": "󰅩",
+     "keywords": [
+      "infra",
+      "phony"
+     ],
+     "section": "infra",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "apply@~/proj/infra",
+     "name": "apply",
+     "subtitle": "~/proj/infra: terraform apply, after a plan",
+     "icon": "󰅩",
+     "keywords": [
+      "infra",
+      "phony"
+     ],
+     "section": "infra",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "fmt@~/proj/infra",
+     "name": "fmt",
+     "subtitle": "~/proj/infra",
+     "icon": "󰅩",
+     "keywords": [
+      "infra",
+      "phony"
+     ],
+     "section": "infra",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "dev@~/proj/site",
+     "name": "dev",
+     "subtitle": "~/proj/site: Vite dev server with hot reload",
+     "icon": "󰅩",
+     "keywords": [
+      "site",
+      "phony"
+     ],
+     "section": "site",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "build@~/proj/site",
+     "name": "build",
+     "subtitle": "~/proj/site: Production build into dist/",
+     "icon": "󰅩",
+     "keywords": [
+      "site",
+      "phony"
+     ],
+     "section": "site",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "deploy@~/proj/site",
+     "name": "deploy",
+     "subtitle": "~/proj/site: Sync dist/ to the web host",
+     "icon": "󰅩",
+     "keywords": [
+      "site",
+      "phony"
+     ],
+     "section": "site",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    },
+    {
+     "id": "preview@~/proj/site",
+     "name": "preview",
+     "subtitle": "~/proj/site",
+     "icon": "󰅩",
+     "keywords": [
+      "site",
+      "phony"
+     ],
+     "section": "site",
+     "actions": [
+      {
+       "id": "run",
+       "title": "Run"
+      },
+      {
+       "id": "copy",
+       "title": "Copy command",
+       "shortcut": "cmd+c"
+      },
+      {
+       "id": "open",
+       "title": "Open project",
+       "shortcut": "cmd+o"
+      },
+      {
+       "id": "makefile",
+       "title": "Show Makefile",
+       "shortcut": "cmd+l"
+      }
+     ]
+    }
+   ],
+   "details": {
+    "build@~/proj/api": {
+     "markdown": "````make\ngo build -o bin/api ./cmd/api\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/api"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Compile the server into bin/api"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "test@~/proj/api": {
+     "markdown": "````make\ngo test -race ./...\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/api"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Run every test with the race detector"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "lint@~/proj/api": {
+     "markdown": "````make\ngo vet ./...\nstaticcheck ./...\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/api"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Vet and staticcheck"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "run@~/proj/api": {
+     "markdown": "````make\n./bin/api --config config/dev.toml\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/api"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Start the server on :8080 with the dev config"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "migrate@~/proj/api": {
+     "markdown": "````make\nmigrate -path db/migrations -database \"$$DATABASE_URL\" up\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/api"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Apply pending database migrations"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "docker@~/proj/api": {
+     "markdown": "````make\ndocker build -t ghcr.io/acme/api:$$(git rev-parse --short HEAD) .\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/api"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Build the image tagged with the git sha"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "clean@~/proj/api": {
+     "markdown": "````make\nrm -rf bin/\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/api"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "plan@~/proj/infra": {
+     "markdown": "````make\nterraform plan -var-file=prod.tfvars\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/infra"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "terraform plan for the production workspace"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "apply@~/proj/infra": {
+     "markdown": "````make\nterraform apply -var-file=prod.tfvars\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/infra"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "terraform apply, after a plan"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "fmt@~/proj/infra": {
+     "markdown": "````make\nterraform fmt -recursive\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/infra"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "dev@~/proj/site": {
+     "markdown": "````make\nnpm run dev\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/site"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Vite dev server with hot reload"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "build@~/proj/site": {
+     "markdown": "````make\nnpm run build\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/site"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Production build into dist/"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "deploy@~/proj/site": {
+     "markdown": "````make\nrsync -az --delete dist/ web-1:/srv/site/\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/site"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Description",
+       "value": "Sync dist/ to the web host"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    },
+    "preview@~/proj/site": {
+     "markdown": "````make\nnpm run preview\n````",
+     "metadata": [
+      {
+       "label": "Project",
+       "value": "~/proj/site"
+      },
+      {
+       "label": "Makefile",
+       "value": "Makefile"
+      },
+      {
+       "label": "Phony",
+       "value": "yes"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "effects": {
+  "make/build@~/proj/api:makefile": {
+   "show": {
+    "title": "Makefile in ~/proj/api",
+    "markdown": "````make\n.PHONY: build test lint run migrate docker clean\n\n## Compile the server into bin/api\nbuild:\n\tgo build -o bin/api ./cmd/api\n\n## Run every test with the race detector\ntest:\n\tgo test -race ./...\n\nlint: ## Vet and staticcheck\n\tgo vet ./...\n\tstaticcheck ./...\n\n## Start the server on :8080 with the dev config\nrun: build\n\t./bin/api --config config/dev.toml\n\n## Apply pending database migrations\nmigrate:\n\tmigrate -path db/migrations -database \"$$DATABASE_URL\" up\n\ndocker: ## Build the image tagged with the git sha\n\tdocker build -t ghcr.io/acme/api:$$(git rev-parse --short HEAD) .\n\nclean:\n\trm -rf bin/\n````"
+   }
+  }
+ },
+ "shots": {
+  "1-targets": {
+   "palette": "make",
+   "keys": [
+    "down"
+   ]
+  },
+  "2-recipe": {
+   "palette": "make",
+   "keys": [
+    "down*3",
+    "cmd+i",
+    "wait:400"
+   ]
+  },
+  "3-makefile": {
+   "palette": "make",
+   "keys": [
+    "cmd+l"
+   ]
+  },
+  "4-actions": {
+   "palette": "make",
+   "keys": [
+    "down*5",
+    "cmd+k"
+   ]
+  }
+ }
+}

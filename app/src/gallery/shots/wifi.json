@@ -1,0 +1,318 @@
+{
+  "palettes": {
+    "wifi": {
+      "title": "Wi-Fi",
+      "live": true,
+      "icon": "󰖩",
+      "placeholder": "Join a network",
+      "items": [
+        {
+          "id": "current:Homenet",
+          "name": "Homenet",
+          "subtitle": "192.168.1.42 · channel 44 · WPA3 Personal",
+          "icon": "󰖩",
+          "keywords": [
+            "wifi",
+            "network",
+            "current"
+          ],
+          "accessories": [
+            {
+              "text": "▂▄▆█ 92%"
+            },
+            {
+              "tag": "connected",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "copy_ip",
+              "title": "Copy IP",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "password",
+              "title": "Copy Password",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "forget",
+              "title": "Forget",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Forget Homenet? Its password goes with it."
+            }
+          ],
+          "section": "Current"
+        },
+        {
+          "id": "known:Office 5G",
+          "name": "Office 5G",
+          "subtitle": "WPA2 Enterprise · channel 36",
+          "icon": "󰖩",
+          "keywords": [
+            "wifi",
+            "network",
+            "saved"
+          ],
+          "accessories": [
+            {
+              "text": "▂▄▆ 61%"
+            },
+            {
+              "tag": "in range",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join"
+            },
+            {
+              "id": "password",
+              "title": "Copy Password",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "forget",
+              "title": "Forget",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Forget Office 5G? Its password goes with it."
+            }
+          ],
+          "section": "Known"
+        },
+        {
+          "id": "known:Cafe Nero",
+          "name": "Cafe Nero",
+          "subtitle": "Saved",
+          "icon": "󰖩",
+          "keywords": [
+            "wifi",
+            "network",
+            "saved"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join"
+            },
+            {
+              "id": "password",
+              "title": "Copy Password",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "forget",
+              "title": "Forget",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Forget Cafe Nero? Its password goes with it."
+            }
+          ],
+          "section": "Known"
+        },
+        {
+          "id": "known:Parents",
+          "name": "Parents",
+          "subtitle": "Saved",
+          "icon": "󰖩",
+          "keywords": [
+            "wifi",
+            "network",
+            "saved"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join"
+            },
+            {
+              "id": "password",
+              "title": "Copy Password",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "forget",
+              "title": "Forget",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Forget Parents? Its password goes with it."
+            }
+          ],
+          "section": "Known"
+        },
+        {
+          "id": "net:Neighbour_2G",
+          "name": "Neighbour_2G",
+          "subtitle": "WPA2 Personal · channel 6",
+          "icon": "󰌾",
+          "keywords": [
+            "wifi",
+            "network"
+          ],
+          "accessories": [
+            {
+              "text": "▂▄ 48%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Name",
+              "shortcut": "cmd+c"
+            }
+          ],
+          "section": "Available"
+        },
+        {
+          "id": "net:FRITZ!Box 7590",
+          "name": "FRITZ!Box 7590",
+          "subtitle": "WPA2 Personal · channel 11",
+          "icon": "󰌾",
+          "keywords": [
+            "wifi",
+            "network"
+          ],
+          "accessories": [
+            {
+              "text": "▂▄ 35%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Name",
+              "shortcut": "cmd+c"
+            }
+          ],
+          "section": "Available"
+        },
+        {
+          "id": "net:Guest",
+          "name": "Guest",
+          "subtitle": "Open · channel 1",
+          "icon": "󰖩",
+          "keywords": [
+            "wifi",
+            "network"
+          ],
+          "accessories": [
+            {
+              "text": "▂▄ 27%"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join"
+            },
+            {
+              "id": "copy",
+              "title": "Copy Name",
+              "shortcut": "cmd+c"
+            }
+          ],
+          "section": "Available"
+        },
+        {
+          "id": "scan",
+          "name": "Scan for Networks",
+          "subtitle": "scanned 12 s ago · takes a few seconds",
+          "icon": "󰍉",
+          "keywords": [
+            "rescan",
+            "refresh"
+          ],
+          "actions": [
+            {
+              "id": "scan",
+              "title": "Scan"
+            }
+          ],
+          "section": "Available"
+        },
+        {
+          "id": "power",
+          "name": "Turn Wi-Fi Off",
+          "subtitle": "en0",
+          "icon": "󰌾",
+          "keywords": [
+            "wifi",
+            "radio",
+            "toggle",
+            "power"
+          ],
+          "actions": [
+            {
+              "id": "power",
+              "title": "Turn Off"
+            }
+          ],
+          "section": "Wi-Fi"
+        }
+      ]
+    }
+  },
+  "effects": {
+    "wifi/net:Neighbour_2G": {
+      "form": {
+        "id": "net:Neighbour_2G",
+        "title": "Join Neighbour_2G",
+        "fields": [
+          {
+            "id": "password",
+            "kind": "password",
+            "label": "Password",
+            "required": true,
+            "placeholder": "The network's password"
+          }
+        ],
+        "submit": {
+          "id": "join_with",
+          "title": "Join"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-networks": {
+      "palette": "wifi",
+      "keys": []
+    },
+    "2-join": {
+      "palette": "wifi",
+      "keys": [
+        "down*4",
+        "enter"
+      ]
+    },
+    "3-actions": {
+      "palette": "wifi",
+      "keys": [
+        "down",
+        "cmd+k"
+      ]
+    },
+    "4-forget": {
+      "palette": "wifi",
+      "keys": [
+        "down",
+        "ctrl+x"
+      ]
+    }
+  }
+}
