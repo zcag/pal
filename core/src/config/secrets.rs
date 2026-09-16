@@ -180,8 +180,11 @@ mod tests {
     }
 
     /// Writes a real keychain item (`pal-test/roundtrip`) and removes it after.
+    /// Needs an unlocked login keychain, which a CI runner does not have:
+    /// `cargo test -p pal-core -- --ignored keychain_set_then_get_roundtrip`.
     #[test]
     #[cfg(target_os = "macos")]
+    #[ignore]
     fn keychain_set_then_get_roundtrip() {
         let key = "pal-test/roundtrip";
         Keychain.set(key, "first").unwrap();

@@ -1,0 +1,142 @@
+# A `v*` tag: bundle pal for every platform and put the bundles on a draft
+# GitHub release named after the tag, notes generated from the commits.
+# Nothing is public until the draft is published by hand; docs/releasing.md
+# has the checklist. `make release VERSION=x.y.z` bumps the versions first;
+# the guard below refuses a tag that does not match tauri.conf.json.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  bundle:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          # Cross-compiled on the same arm64 runner: build.rs fetches the
+          # x64 bun sidecar for this target, the JS side is arch-neutral.
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches the app version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          v=$(jq -r .version app/src-tauri/tauri.conf.json)
+          [ "v$v" = "$TAG" ] || { echo "tag $TAG but tauri.conf.json says $v (run make release VERSION=...)"; exit 1; }
+
+      # ci.yml's list (https://tauri.app/start/prerequisites/#linux) plus
+      # patchelf, which tauri-action's own example installs for the AppImage
+      # step. The .deb declares libwebkit2gtk-4.1-0 and libgtk-3-0 of this
+      # runner's Ubuntu as its dependencies; the AppImage bundles them.
+      - name: Linux prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+            libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Bun version
+        id: bun
+        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' app/scripts/fetch-bun.sh)" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun.outputs.version }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - name: Bun sidecar
+        uses: actions/cache@v4
+        with:
+          path: app/src-tauri/binaries
+          key: sidecar-${{ matrix.target }}-${{ hashFiles('app/scripts/fetch-bun.sh') }}
+
+      # build-extensions.sh (beforeBuildCommand) bundles each extension with
+      # bun, so their dependencies must be installed.
+      - name: Install JS dependencies
+        run: |
+          (cd app && npm ci)
+          (cd host && bun install --frozen-lockfile)
+          for d in extensions/*/; do
+            if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
+          done
+
+      # The updater signature is optional: without the secret the build still
+      # ships, only the `.tar.gz`/`.sig` pair and latest.json are left out
+      # (tauri build fails on an empty key, so the flag is turned off, not
+      # the env var).
+      - name: Updater signing
+        id: sign
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "args=" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is not set: no updater artifacts or latest.json for this release"
+            echo '{"bundle":{"createUpdaterArtifacts":false}}' > "$RUNNER_TEMP/no-updater.json"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "args=--config $RUNNER_TEMP/no-updater.json" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # linuxdeploy ships its own old `strip`, which rejects libraries
+          # with `.relr.dyn` sections (what current binutils emit; the bundle
+          # failed on Arch without this, notes/linux.md). Whether Ubuntu
+          # 24.04's libraries carry them is untested, and the flag costs
+          # nothing here: Debian ships its libraries stripped and the pal
+          # binary is stripped by the release profile (`strip = true`), so
+          # skipping linuxdeploy's pass only removes a failure mode.
+          NO_STRIP: ${{ runner.os == 'Linux' && 'true' || '' }}
+          # macOS stays ad-hoc signed (bundle.macOS.signingIdentity "-") until
+          # a Developer ID exists. Then: set signingIdentity to it (the env
+          # only applies when the config leaves it unset), hardenedRuntime
+          # true with entitlements for the bun sidecar's JIT, and uncomment:
+          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: app
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseDraft: true
+          generateReleaseNotes: true
+          args: --target ${{ matrix.target }} ${{ steps.sign.outputs.args }}
+          uploadUpdaterJson: ${{ steps.sign.outputs.enabled == 'true' }}

@@ -159,6 +159,11 @@ mod tests {
     fn dropping_the_watcher_stops_it() {
         let (_d, f, w, rx) = setup();
         drop(w);
+        // notify's inotify backend stops asynchronously (`Drop` sends
+        // Shutdown and wakes the loop, no join), so a write landing in the
+        // same poll as the shutdown still gets through; FSEvents stops in
+        // `Drop`. Failed 5 of 5 on marko without the pause.
+        std::thread::sleep(Duration::from_millis(100));
         std::fs::write(f.path(), "[general]\ntheme = \"light\"\n").unwrap();
         // The thread ends with the watch, taking the callback (and its
         // sender) with it.

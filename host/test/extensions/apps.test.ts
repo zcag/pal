@@ -1,13 +1,16 @@
-// apps against this Mac: the real application folders.
+// apps against this Mac: the real application folders, Google Chrome among
+// them. Skipped elsewhere (the Linux scan reads .desktop files and a CI
+// runner has no /Applications).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { Host } from "../harness.ts";
 
+const mac = process.platform === "darwin";
 let host: Host;
-beforeAll(async () => { host = await Host.bundled(); });
-afterAll(() => host.kill());
+beforeAll(async () => { if (mac) host = await Host.bundled(); });
+afterAll(() => host?.kill());
 
-describe("apps", () => {
+describe.skipIf(!mac)("apps", () => {
   test("loads with one palette and the manifest's folders setting", async () => {
     const l = host.loaded().find((l) => l.extension === "apps")!;
     expect(l.palettes).toEqual([{ name: "apps", title: "Applications", live: false, input: false }]);

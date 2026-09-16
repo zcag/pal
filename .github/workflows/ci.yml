@@ -1,0 +1,104 @@
+# Every push and pull request: the checks from README "Checks" plus the
+# test suites, on the two platforms pal ships for. No bundle here; that is
+# release.yml. Budget is ~10 min warm: cargo via rust-cache, npm via
+# setup-node, bun's package cache and the fetched bun sidecar via
+# actions/cache (build.rs downloads it once per target otherwise).
+name: ci
+
+on:
+  push:
+    branches: ["**"]  # every branch; a tag push is release.yml's
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tauri v2's Debian list (https://tauri.app/start/prerequisites/#linux).
+      # libwebkit2gtk-4.1-dev pulls gtk3, soup3, javascriptcore and the
+      # wayland dev packages; the core's own Linux deps (arboard over
+      # wl-clipboard-rs/x11rb, freedesktop-icons, resvg, bundled rusqlite,
+      # zbus) are pure Rust or dlopen at runtime, so nothing is added.
+      - name: Linux prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+            libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # The same Bun release the app ships as its sidecar (fetch-bun.sh
+      # pins it), so the host tests run on what users get.
+      - name: Bun version
+        id: bun
+        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' app/scripts/fetch-bun.sh)" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.bun.outputs.version }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - name: Bun sidecar
+        uses: actions/cache@v4
+        with:
+          path: app/src-tauri/binaries
+          key: sidecar-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('app/scripts/fetch-bun.sh') }}
+
+      - name: Install JS dependencies
+        run: |
+          (cd app && npm ci)
+          (cd host && bun install --frozen-lockfile)
+          for d in extensions/*/; do
+            if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
+          done
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      # `#[ignore]` covers what needs a real session: a pasteboard, an
+      # unlocked keychain, the ranking fixture corpus.
+      - name: cargo test
+        run: cargo test --workspace
+      # The app crate through build.rs and tauri-build, without bundling.
+      - name: cargo build (app)
+        run: cargo build -p pal
+
+      - name: app typecheck and tests
+        working-directory: app
+        run: |
+          npx tsc --noEmit
+          npx vitest run
+      # host/tsconfig.json includes ../extensions, so this typechecks them too.
+      - name: host typecheck and tests
+        working-directory: host
+        run: |
+          bunx tsc --noEmit
+          bun test
