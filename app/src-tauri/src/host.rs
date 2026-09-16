@@ -19,8 +19,9 @@ use tokio::process::{ChildStdin, Command};
 use tokio::sync::{oneshot, Mutex as AsyncMutex};
 
 const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
-/// The sidecar's file name next to our executable (`bundle.externalBin`).
-const SIDECAR: &str = "bun";
+/// The sidecar's file name next to our executable (`bundle.externalBin`): not
+/// `bun`, which the .deb would install as /usr/bin/bun over the user's own.
+const SIDECAR: &str = "pal-bun";
 const RESTART_DELAY: Duration = Duration::from_millis(500);
 /// A hung extension must not hang a keystroke or a pick for good.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -30,7 +31,7 @@ type Reply = oneshot::Sender<Result<Value, String>>;
 /// Where the host and its extensions come from, decided once at start.
 ///
 /// The bun binary is the sidecar next to our executable (tauri-build copies
-/// `binaries/bun-<triple>` there in dev too), else `bun` on PATH. A debug
+/// `binaries/pal-bun-<triple>` there in dev too), else `bun` on PATH. A debug
 /// build prefers PATH: tauri-build recopies the sidecar on every build and
 /// macOS spends ~600 ms verifying a fresh binary on its first exec. The host
 /// script and the bundled extensions are the repo's own files in a debug

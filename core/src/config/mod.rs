@@ -58,7 +58,7 @@ pub struct Config {
 #[schemars(extend("additionalProperties" = false))]
 pub struct General {
     /// Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,
-    /// for a compositor keybind that runs `pal-app toggle` instead.
+    /// for a compositor keybind that runs `pal toggle` instead.
     pub hotkey: String,
     pub theme: Theme,
     /// Start pal when you sign in. (The key is what the settings view

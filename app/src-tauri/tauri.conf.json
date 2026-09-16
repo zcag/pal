@@ -44,7 +44,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg", "appimage", "deb"],
     "category": "Utility",
     "copyright": "Copyright 2026 Cagdas Salur",
     "homepage": "https://github.com/zcag/pal",
@@ -58,7 +58,7 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/bun"
+      "binaries/pal-bun"
     ],
     "resources": {
       "resources/host": "host",

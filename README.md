@@ -29,7 +29,7 @@ cd app && npm run tauri dev
 ```
 
 The first cargo build fetches the pinned Bun release into
-`app/src-tauri/binaries/bun-<triple>` (`app/scripts/fetch-bun.sh`, checksum
+`app/src-tauri/binaries/pal-bun-<triple>` (`app/scripts/fetch-bun.sh`, checksum
 verified, gitignored): it ships inside the app as the extension host's
 runtime, and in dev the app runs that same copy. In dev the host and the
 extensions load from the repo and reload when a file changes.

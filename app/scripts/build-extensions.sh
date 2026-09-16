@@ -18,7 +18,7 @@ out="$root/app/src-tauri/resources"
 bun=${BUN:-$(command -v bun || true)}
 if [ -z "$bun" ]; then
   triple=$(rustc -vV | sed -n 's/^host: //p')
-  bun="$root/app/src-tauri/binaries/bun-$triple"
+  bun="$root/app/src-tauri/binaries/pal-bun-$triple"
   [ -x "$bun" ] || "$root/app/scripts/fetch-bun.sh" "$triple"
 fi
 

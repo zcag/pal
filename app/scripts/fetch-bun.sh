@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Fetch the Bun release binary that ships inside pal as the extension host,
-# one per Rust target triple, into app/src-tauri/binaries/bun-<triple> (the
-# name tauri's `bundle.externalBin` expects). Verified against the SHA256 the
+# one per Rust target triple, into app/src-tauri/binaries/pal-bun-<triple>
+# (the name tauri's `bundle.externalBin` expects; `pal-bun` so the .deb does
+# not install /usr/bin/bun over the user's own). Verified against the SHA256 the
 # release publishes. No argument: the triple this machine builds for.
 #
 #   app/scripts/fetch-bun.sh                       # host triple
@@ -36,7 +37,7 @@ mkdir -p "$out"
 
 for triple in "${triples[@]}"; do
   name=$(asset "$triple")
-  dest="$out/bun-$triple"
+  dest="$out/pal-bun-$triple"
   if [ -x "$dest" ] && "$dest" --version 2>/dev/null | grep -qx "$BUN_VERSION"; then
     echo "fetch-bun: $dest is already $BUN_VERSION"
     continue

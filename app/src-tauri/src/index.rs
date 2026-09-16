@@ -117,7 +117,11 @@ fn palette_row(r: &Registered, config: &Config) -> Item {
 
 pub fn install(app: &AppHandle) {
     app.manage(Mutex::new(Index::new()));
-    app.manage(Mutex::new(Frecency::open()));
+    let frecency = Frecency::open();
+    if let Some(n) = frecency.notice() {
+        eprintln!("frecency\t{n}");
+    }
+    app.manage(Mutex::new(frecency));
     app.manage(Palettes::default());
 }
 

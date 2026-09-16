@@ -11,7 +11,7 @@ use std::process::Command;
 
 fn main() {
     let target = std::env::var("TARGET").expect("cargo sets TARGET");
-    let sidecar = format!("binaries/bun-{target}");
+    let sidecar = format!("binaries/pal-bun-{target}");
     if !Path::new(&sidecar).exists() {
         println!("cargo:warning=fetching the bun sidecar for {target} (scripts/fetch-bun.sh)");
         let status = Command::new("../scripts/fetch-bun.sh").arg(&target).status();
