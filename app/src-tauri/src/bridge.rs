@@ -4,10 +4,14 @@
 //! reader. The methods, with `api.ts` as the caller:
 //!
 //! - `core/apps.{for_file, open_with}` (apps.rs)
+//! - `core/audio.{devices, set_default, set_volume, set_mute}` (audio.rs)
+//! - `core/bluetooth.{devices, connect, disconnect}` (bluetooth.rs)
 //! - `core/clipboard.{list, get, pin, delete, clear, copy}` (clipboard.rs)
+//! - `core/media.{now_playing, control}` (media.rs)
 //! - `core/settings.get {extension, manifest}` (settings.rs)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
 //! - `core/system.{commands, run}` (system.rs)
+//! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
 //! - `core/windows.{list, close, minimize, frame, set_frame, displays, focused, layout}` (windows.rs)
 
 use serde_json::Value;
@@ -24,10 +28,14 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
     let (capability, func) = route(method)?;
     match capability {
         "apps" => crate::apps::call(app, func, params),
+        "audio" => crate::audio::call(app, func, params),
+        "bluetooth" => crate::bluetooth::call(app, func, params),
         "clipboard" => crate::clipboard::call(app, func, params),
+        "media" => crate::media::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
         "storage" => crate::storage::call(app, func, params),
         "system" => crate::system::call(app, func, params),
+        "wifi" => crate::wifi::call(app, func, params),
         "windows" => crate::windows::call(app, func, params),
         _ => Err(format!("unknown capability {capability}")),
     }
@@ -42,6 +50,7 @@ mod tests {
         assert_eq!(route("core/clipboard.list"), Ok(("clipboard", "list")));
         assert_eq!(route("core/apps.for_file"), Ok(("apps", "for_file")));
         assert_eq!(route("core/settings.get"), Ok(("settings", "get")));
+        assert_eq!(route("core/wifi.set_power"), Ok(("wifi", "set_power")));
         assert!(route("list").is_err());
         assert!(route("core/list").is_err(), "no capability");
         assert!(route("core/.list").is_err());

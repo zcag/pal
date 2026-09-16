@@ -1,0 +1,12 @@
+{
+  "name": "bluetooth",
+  "title": "Bluetooth",
+  "description": "Paired devices: connect, disconnect, see the battery.",
+  "version": "0.1.0",
+  "icon": "󰂯",
+  "author": "pal",
+  "repo": "bundled",
+  "palettes": {
+    "bluetooth": { "description": "Every paired device, the connected ones first, with battery when the OS reports it." }
+  }
+}

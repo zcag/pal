@@ -4,7 +4,9 @@
 //! (`bridge`), the `icon://` scheme, the menu bar icon, and timing marks.
 
 mod apps;
+mod audio;
 mod autostart;
+mod bluetooth;
 mod bridge;
 mod cache;
 mod cli;
@@ -18,6 +20,7 @@ mod hotkey;
 mod hud;
 mod icon;
 mod index;
+mod media;
 mod registry;
 mod settings;
 mod storage;
@@ -25,6 +28,7 @@ mod system;
 mod tray;
 mod updater;
 mod welcome;
+mod wifi;
 mod windows;
 #[cfg_attr(target_os = "macos", path = "panel/macos.rs")]
 #[cfg_attr(not(target_os = "macos"), path = "panel/linux.rs")]

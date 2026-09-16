@@ -1,0 +1,12 @@
+{
+  "name": "media",
+  "title": "Now Playing",
+  "description": "What is playing in Spotify, Music or any MPRIS player: play, pause, skip.",
+  "version": "0.1.0",
+  "icon": "󰝚",
+  "author": "pal",
+  "repo": "bundled",
+  "palettes": {
+    "media": { "description": "One row per player with the track and its artwork." }
+  }
+}

@@ -298,11 +298,37 @@ to the core.
 - `checkView(view)`, `checkForm(form)`: what the host runs on every answer
   (the limits above), for an extension's own tests. `defineExtension(ext)`:
   the typed default export.
+- `audio.devices()` (every output and input, `AudioDevice[]`: `id`,
+  `name`, `kind`, `default`, `volume`, `muted`, `transport`),
+  `setDefault(id, kind)`, `setVolume(id, kind, percent)`,
+  `setMute(id, kind, muted?)` (omitted toggles; resolves with the state
+  after). CoreAudio on macOS, `wpctl` else `pactl` on Linux.
+- `bluetooth.devices()` (paired, `BluetoothDevice[]`: `address`, `name`,
+  `connected`, `kind`, `battery`, `battery_detail`; connected first),
+  `connect(address)`, `disconnect(address)` (synchronous, seconds).
+  `system_profiler` + IOBluetooth on macOS, `bluetoothctl` on Linux.
+- `wifi.status()` (`interface`, `powered`, `current` with `ssid`, `signal`,
+  `channel`, `security`, `ip`; `ssid` null when macOS hides it),
+  `known()`, `scan(mode)` (`cached` never runs the tool, `auto` reuses a
+  scan under a minute old, `fresh` scans now; `networks` strongest first
+  plus `hidden`, the count of nameless ones), `join(ssid, password?)`,
+  `forget(ssid)`, `password(ssid)` (the keychain prompts on macOS),
+  `setPower(on)`. `networksetup`/`ipconfig`/`system_profiler` on macOS,
+  `nmcli` on Linux.
+- `media.nowPlaying()` (`players`: `MediaPlayer[]` with `id`, `name`,
+  `state`, `title`, `artist`, `album`, `artwork`, `url`, `app`,
+  `position`, `duration`, playing first; `system_wide`: whether
+  `playerctl` / `nowplaying-cli` is there), `control(player, command)`
+  (`play_pause`, `play`, `pause`, `next`, `previous`; the panel stays up).
+  Spotify and Music over AppleScript plus `nowplaying-cli` on macOS,
+  `playerctl` on Linux.
 
 The protocol's types ride along: `Extension`, `Palette`, `Item`, `Action`,
 `Icon`, `Effect`, `Ctx`, `Detail`, `View`, `ViewNode`, `Form`,
 `FormField`, `FormValues`, `Manifest`, `SettingSpec`, and the API's own
-(`ClipboardEntry`, `Window`, `WindowLayout`, `SystemCommand`, `App`).
+(`ClipboardEntry`, `Window`, `WindowLayout`, `SystemCommand`, `App`,
+`AudioDevice`, `BluetoothDevice`, `WifiStatus`, `WifiNetwork`, `WifiScan`,
+`MediaPlayer`, `NowPlaying`).
 
 Dependencies: a `package.json` next to `index.ts` is honoured; `pal
 install` runs `bun install --production` in the copy it makes. List

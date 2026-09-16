@@ -44,6 +44,10 @@ objc2-app-kit = { version = "0.3", default-features = false, features = ["std", 
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation", "CGWindow"] }
 # windows: the AXUIElement C API speaks CF types
 objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFArray", "CFString", "CFNumber", "CFCGTypes"] }
+# audio: the CoreAudio HAL (devices, defaults, volume, mute) without a tool to install
+objc2-core-audio = { version = "0.3", default-features = false, features = ["std", "AudioHardware"] }
+# bluetooth: IOBluetoothDevice for connect/disconnect (the list is system_profiler's)
+objc2-io-bluetooth = { version = "0.3", default-features = false, features = ["std", "objc2", "objc2-foundation", "IOBluetoothObject", "IOBluetoothDevice"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 freedesktop-icons = "0.4"

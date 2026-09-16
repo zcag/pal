@@ -1,0 +1,12 @@
+{
+  "name": "audio",
+  "title": "Audio",
+  "description": "Output and input devices: switch the default, set the volume, mute.",
+  "version": "0.1.0",
+  "icon": "♫",
+  "author": "pal",
+  "repo": "bundled",
+  "palettes": {
+    "audio": { "description": "Every output and input, the defaults tagged, with their volume." }
+  }
+}

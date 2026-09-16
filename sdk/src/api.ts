@@ -192,3 +192,113 @@ export const system = {
   /** Hides the panel, then runs. Rejects with the tool's complaint. */
   run: (id: string) => call<null>("system.run", { id }),
 };
+
+/** `pal_core::audio::Device`: one direction of a device; a headset is an output entry and an input entry with the same `id`. */
+export type AudioDevice = {
+  /** What the setters take: the CoreAudio UID, the PipeWire node id, or the PulseAudio sink/source name. */
+  id: string;
+  name: string;
+  kind: "output" | "input";
+  default: boolean;
+  /** Percent, 0..100; null when the device has no volume control. */
+  volume: number | null;
+  muted: boolean | null;
+  /** `bluetooth`, `usb`, `builtin`, `hdmi`, `airplay`, ... when the backend says (macOS); null otherwise. */
+  transport: string | null;
+};
+
+/** Audio devices (`pal_core::audio`): CoreAudio on macOS, `wpctl` (PipeWire) else `pactl` on Linux. */
+export const audio = {
+  /** Every output and input, outputs first, the defaults marked. */
+  devices: () => call<AudioDevice[]>("audio.devices"),
+  /** Make `id` the default for its direction. */
+  setDefault: (id: string, kind: AudioDevice["kind"]) => call<null>("audio.set_default", { id, kind }),
+  /** Percent, 0..100. */
+  setVolume: (id: string, kind: AudioDevice["kind"], volume: number) => call<null>("audio.set_volume", { id, kind, volume }),
+  /** Mute, unmute, or toggle when `muted` is omitted; resolves with the state after. */
+  setMute: (id: string, kind: AudioDevice["kind"], muted?: boolean) => call<boolean>("audio.set_mute", { id, kind, muted }),
+};
+
+/** `pal_core::bluetooth::Device`: a paired device. */
+export type BluetoothDevice = {
+  /** `AA:BB:CC:DD:EE:FF`. */
+  address: string;
+  name: string;
+  connected: boolean;
+  /** `headphones`, `speaker`, `keyboard`, `mouse`, `gamepad`, `phone`, `watch`, `computer`, `other`. */
+  kind: string;
+  /** Percent, the main level (AirPods: the lower bud) when the OS reports one. */
+  battery: number | null;
+  /** The per-part levels when there are several: `L 80% · R 75% · Case 90%`. */
+  battery_detail: string | null;
+};
+
+/** Paired Bluetooth devices (`pal_core::bluetooth`): `system_profiler` + IOBluetooth on macOS, `bluetoothctl` on Linux. */
+export const bluetooth = {
+  /** Connected first, then by name. Rejects when the machine has no adapter. */
+  devices: () => call<BluetoothDevice[]>("bluetooth.devices"),
+  /** Synchronous: resolves once connected or the attempt gave up (seconds). */
+  connect: (address: string) => call<null>("bluetooth.connect", { address }),
+  disconnect: (address: string) => call<null>("bluetooth.disconnect", { address }),
+};
+
+/** `pal_core::wifi::Current`: the network the machine is on. `ssid` is null when the OS hides it (macOS 15+ without Location Services). */
+export type WifiCurrent = { ssid: string | null; signal: number | null; channel: string | null; security: string | null; ip: string | null };
+/** `pal_core::wifi::Status`: `interface` is null on a machine without Wi-Fi; `current` null while off or not associated. */
+export type WifiStatus = { interface: string | null; powered: boolean; current: WifiCurrent | null };
+/** `pal_core::wifi::Known`: a saved network, in the OS's preference order. */
+export type WifiKnown = { ssid: string; security: string | null };
+/** `pal_core::wifi::Network`: one scan result; `security` null for an open network. */
+export type WifiNetwork = { ssid: string; signal: number; channel: string | null; security: string | null; known: boolean; current: boolean };
+/** `pal_core::wifi::Scan`: `hidden` counts networks whose name the OS withheld; `age_secs` is null for a scan just taken. */
+export type WifiScan = { networks: WifiNetwork[]; hidden: number; age_secs: number | null };
+/** `cached`: never runs the tool (empty without a previous scan); `auto`: the cache while under 60 s old; `fresh`: scan now. */
+export type WifiScanMode = "cached" | "auto" | "fresh";
+
+/** Wi-Fi (`pal_core::wifi`): `networksetup`/`ipconfig`/`system_profiler` on macOS, `nmcli` on Linux. */
+export const wifi = {
+  status: () => call<WifiStatus>("wifi.status"),
+  /** The saved networks. */
+  known: () => call<WifiKnown[]>("wifi.known"),
+  /** Nearby networks, strongest first, one per name. A macOS scan takes seconds: list with `cached` and offer `fresh` as an action. */
+  scan: (mode: WifiScanMode = "auto") => call<WifiScan>("wifi.scan", { mode }),
+  /** Join by name; `password` for a network that is not saved. Rejects with the tool's complaint. */
+  join: (ssid: string, password?: string) => call<null>("wifi.join", { ssid, password }),
+  /** Remove a saved network. */
+  forget: (ssid: string) => call<null>("wifi.forget", { ssid }),
+  /** The saved password; on macOS the keychain asks the user first. */
+  password: (ssid: string) => call<string>("wifi.password", { ssid }),
+  setPower: (on: boolean) => call<null>("wifi.set_power", { on }),
+};
+
+/** `pal_core::media::Player`: one player and what it is on. */
+export type MediaPlayer = {
+  /** What `control` takes: `spotify`, `music`, `system` (nowplaying-cli), or the playerctl name. */
+  id: string;
+  /** `Spotify`, `Music`, `Firefox`. */
+  name: string;
+  state: "playing" | "paused" | "stopped";
+  title: string | null;
+  artist: string | null;
+  album: string | null;
+  /** An http(s) or file url, usable as `icon: { image }`. */
+  artwork: string | null;
+  /** The track's own url, for Open. */
+  url: string | null;
+  /** The player's `.app` / `.desktop`, usable as `icon: { app }` and with the `open` effect. */
+  app: string | null;
+  /** Seconds. */
+  position: number | null;
+  duration: number | null;
+};
+/** `pal_core::media::NowPlaying`: `system_wide` says whether a source beyond Spotify and Music is installed (`playerctl`, `nowplaying-cli`). */
+export type NowPlaying = { players: MediaPlayer[]; system_wide: boolean };
+export type MediaCommand = "play_pause" | "play" | "pause" | "next" | "previous";
+
+/** Now playing (`pal_core::media`): Spotify and Music over AppleScript plus `nowplaying-cli` on macOS, `playerctl` on Linux. */
+export const media = {
+  /** Every running player, playing ones first. */
+  nowPlaying: () => call<NowPlaying>("media.now_playing"),
+  /** A transport command to one player; the panel stays up. */
+  control: (player: string, command: MediaCommand) => call<null>("media.control", { player, command }),
+};
