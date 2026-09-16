@@ -12,7 +12,6 @@ mod bridge;
 mod cache;
 mod cli;
 mod clipboard;
-mod color;
 mod commands;
 mod compat;
 mod crash;
