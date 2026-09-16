@@ -131,9 +131,9 @@ variables every script gets.
 
 `command list` runs for a listing. For an `input` palette the query is on
 stdin and in `PAL_QUERY`, on every keystroke; otherwise stdin is empty
-(the null device) and there is no query. The chosen filter is `PAL_FILTER`. Stdout is JSON
-lines: one object per row, blank lines skipped, lines that are not a JSON
-object dropped. Stderr goes to pal's log.
+(the null device) and there is no query. The chosen filter is `PAL_FILTER`.
+Stdout is JSON lines: one object per row, blank lines skipped, lines that
+are not a JSON object dropped. Stderr goes to pal's log.
 
 Row fields:
 

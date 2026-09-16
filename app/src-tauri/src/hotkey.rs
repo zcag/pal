@@ -2,9 +2,9 @@
 //! shows it straight inside that palette. All come from the config file and
 //! are swapped live when it changes (`settings::on_reload`) or a palette
 //! arrives (`index::sync_extension`). An empty `general.hotkey` means none
-//! (a compositor keybind runs `pal-app toggle` instead). On Linux this only
+//! (a compositor keybind runs `pal toggle` instead). On Linux this only
 //! reaches X11 clients (the global-hotkey crate is X11-only); Wayland goes
-//! through `pal-app toggle`. The plugin hops to the main thread itself and
+//! through `pal toggle`. The plugin hops to the main thread itself and
 //! waits for it, so `apply` may run on the watcher's thread, but must not
 //! hold the map `pressed` reads while it does: a press being handled on
 //! the main thread would wait for the map, and the plugin's hop for the

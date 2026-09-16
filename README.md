@@ -8,7 +8,8 @@ defaults.
 ## Layout
 
 - `app/` the Tauri v2 shell: React UI in `src/`, Rust in `src-tauri/`
-- `core/` `pal-core`, the parts that are neither UI nor OS glue (config, index, clipboard, icons)
+- `core/` `pal-core`, the parts that are neither UI nor OS glue (config,
+  index, clipboard, icons)
 - `host/` the extension host, one long-lived Bun process the app talks to over stdio
 - `extensions/` the default extensions, one directory each with an `index.ts`
 - `notes/` decisions and platform notes
@@ -24,7 +25,9 @@ librsvg, openssl, base-devel on Linux).
 git clone git@github.com:zcag/pal.git && cd pal
 (cd app && npm install)
 (cd host && bun install)
-(cd extensions/calc && bun install)
+for d in extensions/*/; do
+  [ -f "$d/package.json" ] && (cd "$d" && bun install)
+done
 cd app && npm run tauri dev
 ```
 
@@ -75,7 +78,8 @@ first and that one last, so a user extension with the same name wins.
 
 ## Docs
 
-- [Getting started](docs/getting-started.md): install, the hotkey, a ten-second tour
+- [Getting started](docs/getting-started.md): install, the hotkey, a
+  ten-second tour
 - [Config](docs/config.md): the config file key by key
 - [Palettes](docs/palettes.md): the default palettes, their actions and settings
 - [Scripts and data files](docs/scripts.md): the zero-code tier

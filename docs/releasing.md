@@ -9,8 +9,9 @@ is what makes it public and what the in-app updater sees.
 1. `make release VERSION=x.y.z` sets the version in `app/src-tauri/tauri.conf.json`,
    `app/src-tauri/Cargo.toml`, `app/package.json`, `core/Cargo.toml` and the two
    lockfiles. Review the diff, commit it.
-2. Tag and push the tag, as the target prints: `git tag -a vx.y.z -m vx.y.z && git push origin vx.y.z`.
-   The workflow refuses a tag that does not match `tauri.conf.json`'s version.
+2. Tag and push the tag, as the target prints:
+   `git tag -a vx.y.z -m vx.y.z && git push origin vx.y.z`. The workflow
+   refuses a tag that does not match `tauri.conf.json`'s version.
 3. Three jobs run (`macos-latest` for aarch64 and, cross-compiled, x86_64;
    `ubuntu-24.04` for x86_64) and upload to one draft release named after the
    tag, notes generated from the commits since the previous tag. ~15 to 25 min
