@@ -1,0 +1,1197 @@
+{
+  "palettes": {
+    "chats": {
+      "title": "Chats",
+      "icon": {
+        "tile": {
+          "glyph": "󰖣",
+          "bg": "green"
+        }
+      },
+      "live": true,
+      "tier": "primary",
+      "placeholder": "A person or a group",
+      "items": [
+        {
+          "id": "254011223344556@lid",
+          "name": "Mara Lind",
+          "subtitle": "standup in 20?",
+          "icon": {
+            "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMxMjhjN2UiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWkiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk08L3RleHQ+PC9zdmc+"
+          },
+          "keywords": [
+            "chat"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "3",
+              "color": "green"
+            },
+            {
+              "date": 1789600560000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "120363012345678901@g.us",
+          "name": "Weekend hike",
+          "subtitle": "Ola Berg: [location]",
+          "icon": {
+            "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMxMjhjN2UiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWkiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlc8L3RleHQ+PC9zdmc+"
+          },
+          "keywords": [
+            "group",
+            "Ola Berg"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "group",
+              "color": "grey"
+            },
+            {
+              "tag": "5",
+              "color": "green"
+            },
+            {
+              "date": 1789600140000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open WhatsApp"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "905559876543@c.us",
+          "name": "Tomas Ruiz",
+          "subtitle": "the cabin is booked, sending the map",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23d9534f%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3ET%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "chat"
+          ],
+          "section": "Unread",
+          "accessories": [
+            {
+              "tag": "1",
+              "color": "green"
+            },
+            {
+              "date": 1789598820000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "120363099887766554@g.us",
+          "name": "Family",
+          "subtitle": "Dinner at eight on Sunday?",
+          "icon": "󰡉",
+          "keywords": [
+            "group"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "tag": "group",
+              "color": "grey"
+            },
+            {
+              "date": 1789596180000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open WhatsApp"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "905551112233@c.us",
+          "name": "Ola Berg",
+          "subtitle": "Thanks, got it",
+          "icon": {
+            "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMxMjhjN2UiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWkiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk88L3RleHQ+PC9zdmc+"
+          },
+          "keywords": [
+            "chat"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "date": 1789592880000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "301122334455667@lid",
+          "name": "Lina Kova",
+          "subtitle": "see you friday",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23e0a800%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EL%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "chat"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "date": 1789507080000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "120363055544433322@g.us",
+          "name": "pal beta",
+          "subtitle": "Group",
+          "icon": "󰡉",
+          "keywords": [
+            "group"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "tag": "group",
+              "color": "grey"
+            },
+            {
+              "date": 1789420680000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open WhatsApp"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "905557778899@c.us",
+          "name": "Acme Support",
+          "subtitle": "Your ticket #4471 is closed",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2325d366%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "chat"
+          ],
+          "section": "Recent",
+          "accessories": [
+            {
+              "date": 1789255080000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "unread",
+              "title": "Mark as unread",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "254011223344556@lid": {
+          "markdown": "**Mara Lind** · 01:38 AM\n\ncan you look at the parser before standup?\n\n**You** · 01:43 AM\n\non it, give me ten\n\n**Mara Lind** · 02:06 AM\n\n_[photo]_\n\n**Mara Lind** · 02:15 AM\n> on it, give me ten\n\nthe tests are green now, the diff is small\n\n**Mara Lind** · 02:16 AM\n\nstandup in 20?",
+          "metadata": [
+            {
+              "label": "Chat",
+              "value": "Mara Lind"
+            },
+            {
+              "label": "Kind",
+              "value": "Direct message"
+            },
+            {
+              "label": "Unread",
+              "value": "3 messages"
+            },
+            {
+              "label": "Phone",
+              "value": "+90 555 123 45 67"
+            },
+            {
+              "label": "Newest",
+              "value": "02:16 AM"
+            },
+            {
+              "label": "Open",
+              "link": {
+                "text": "In the web client",
+                "href": "https://web.whatsapp.com/send?phone=905551234567"
+              }
+            }
+          ]
+        },
+        "120363012345678901@g.us": {
+          "markdown": "**Ola Berg** · 01:18 AM\n\nwho is in for saturday?\n\n**You** · 01:23 AM\n\nme, if we start before nine\n\n**Tomas Ruiz** · 01:48 AM\n\n_[voice message]_\n\n**Lina Kova** · 01:58 AM\n> me, if we start before nine\n\ntrailhead at 8:30 then\n\n**Ola Berg** · 02:09 AM\n\n_[location]_",
+          "metadata": [
+            {
+              "label": "Chat",
+              "value": "Weekend hike"
+            },
+            {
+              "label": "Kind",
+              "value": "Group"
+            },
+            {
+              "label": "Unread",
+              "value": "5 messages"
+            },
+            {
+              "label": "Newest",
+              "value": "02:09 AM"
+            },
+            {
+              "label": "Open",
+              "link": {
+                "text": "In the web client",
+                "href": "https://web.whatsapp.com/"
+              }
+            }
+          ]
+        },
+        "905559876543@c.us": {
+          "markdown": "**Tomas Ruiz** · 01:47 AM\n\nthe cabin is booked, sending the map",
+          "metadata": [
+            {
+              "label": "Chat",
+              "value": "Tomas Ruiz"
+            },
+            {
+              "label": "Kind",
+              "value": "Direct message"
+            },
+            {
+              "label": "Unread",
+              "value": "1 message"
+            },
+            {
+              "label": "Phone",
+              "value": "+90 555 987 65 43"
+            },
+            {
+              "label": "Newest",
+              "value": "01:47 AM"
+            },
+            {
+              "label": "Open",
+              "link": {
+                "text": "In the web client",
+                "href": "https://web.whatsapp.com/send?phone=905559876543"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "unread": {
+      "title": "Unread",
+      "icon": {
+        "tile": {
+          "glyph": "󰖣",
+          "bg": "green"
+        }
+      },
+      "live": true,
+      "placeholder": "An unread chat",
+      "items": [
+        {
+          "id": "254011223344556@lid",
+          "name": "Mara Lind",
+          "subtitle": "standup in 20?",
+          "icon": {
+            "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMxMjhjN2UiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWkiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk08L3RleHQ+PC9zdmc+"
+          },
+          "keywords": [
+            "chat"
+          ],
+          "section": "Direct messages",
+          "accessories": [
+            {
+              "tag": "3",
+              "color": "green"
+            },
+            {
+              "date": 1789600560000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "120363012345678901@g.us",
+          "name": "Weekend hike",
+          "subtitle": "Ola Berg: [location]",
+          "icon": {
+            "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMxMjhjN2UiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWkiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlc8L3RleHQ+PC9zdmc+"
+          },
+          "keywords": [
+            "group",
+            "Ola Berg"
+          ],
+          "section": "Groups",
+          "accessories": [
+            {
+              "tag": "group",
+              "color": "grey"
+            },
+            {
+              "tag": "5",
+              "color": "green"
+            },
+            {
+              "date": 1789600140000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open WhatsApp"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-name",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "905559876543@c.us",
+          "name": "Tomas Ruiz",
+          "subtitle": "the cabin is booked, sending the map",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23d9534f%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3ET%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "chat"
+          ],
+          "section": "Direct messages",
+          "accessories": [
+            {
+              "tag": "1",
+              "color": "green"
+            },
+            {
+              "date": 1789598820000
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "read",
+              "title": "Mark as read",
+              "shortcut": "cmd+enter",
+              "multi": true
+            },
+            {
+              "id": "reply",
+              "title": "Send a message",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "react",
+              "title": "React to the latest message",
+              "shortcut": "cmd+shift+e"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "254011223344556@lid": {
+          "markdown": "**Mara Lind** · 01:38 AM\n\ncan you look at the parser before standup?\n\n**You** · 01:43 AM\n\non it, give me ten\n\n**Mara Lind** · 02:06 AM\n\n_[photo]_\n\n**Mara Lind** · 02:15 AM\n> on it, give me ten\n\nthe tests are green now, the diff is small\n\n**Mara Lind** · 02:16 AM\n\nstandup in 20?",
+          "metadata": [
+            {
+              "label": "Chat",
+              "value": "Mara Lind"
+            },
+            {
+              "label": "Kind",
+              "value": "Direct message"
+            },
+            {
+              "label": "Unread",
+              "value": "3 messages"
+            },
+            {
+              "label": "Phone",
+              "value": "+90 555 123 45 67"
+            },
+            {
+              "label": "Newest",
+              "value": "02:16 AM"
+            },
+            {
+              "label": "Open",
+              "link": {
+                "text": "In the web client",
+                "href": "https://web.whatsapp.com/send?phone=905551234567"
+              }
+            }
+          ]
+        },
+        "120363012345678901@g.us": {
+          "markdown": "**Ola Berg** · 01:18 AM\n\nwho is in for saturday?\n\n**You** · 01:23 AM\n\nme, if we start before nine\n\n**Tomas Ruiz** · 01:48 AM\n\n_[voice message]_\n\n**Lina Kova** · 01:58 AM\n> me, if we start before nine\n\ntrailhead at 8:30 then\n\n**Ola Berg** · 02:09 AM\n\n_[location]_",
+          "metadata": [
+            {
+              "label": "Chat",
+              "value": "Weekend hike"
+            },
+            {
+              "label": "Kind",
+              "value": "Group"
+            },
+            {
+              "label": "Unread",
+              "value": "5 messages"
+            },
+            {
+              "label": "Newest",
+              "value": "02:09 AM"
+            },
+            {
+              "label": "Open",
+              "link": {
+                "text": "In the web client",
+                "href": "https://web.whatsapp.com/"
+              }
+            }
+          ]
+        },
+        "905559876543@c.us": {
+          "markdown": "**Tomas Ruiz** · 01:47 AM\n\nthe cabin is booked, sending the map",
+          "metadata": [
+            {
+              "label": "Chat",
+              "value": "Tomas Ruiz"
+            },
+            {
+              "label": "Kind",
+              "value": "Direct message"
+            },
+            {
+              "label": "Unread",
+              "value": "1 message"
+            },
+            {
+              "label": "Phone",
+              "value": "+90 555 987 65 43"
+            },
+            {
+              "label": "Newest",
+              "value": "01:47 AM"
+            },
+            {
+              "label": "Open",
+              "link": {
+                "text": "In the web client",
+                "href": "https://web.whatsapp.com/send?phone=905559876543"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "search": {
+      "title": "Search WhatsApp",
+      "icon": {
+        "tile": {
+          "glyph": "󰖣",
+          "bg": "green"
+        }
+      },
+      "input": true,
+      "placeholder": "Words from any message",
+      "byQuery": {
+        "parser": [
+          {
+            "id": "false_254011223344556@lid_A1",
+            "name": "can you look at the parser before standup?",
+            "subtitle": "Mara Lind",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23d9534f%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Mara Lind",
+              "Mara Lind"
+            ],
+            "accessories": [
+              {
+                "date": 1789598280000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open chat"
+              },
+              {
+                "id": "copy",
+                "title": "Copy message",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "web",
+                "title": "Open in the web client",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          },
+          {
+            "id": "true_905557778899@c.us_G0",
+            "name": "the invoice for september is missing the parser line",
+            "subtitle": "You in Acme Support",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2325d366%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Acme Support",
+              "You"
+            ],
+            "accessories": [
+              {
+                "date": 1789168680000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open chat"
+              },
+              {
+                "id": "copy",
+                "title": "Copy message",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "web",
+                "title": "Open in the web client",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ],
+        "cabin": [
+          {
+            "id": "false_905559876543@c.us_C1",
+            "name": "the cabin is booked, sending the map",
+            "subtitle": "Tomas Ruiz",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23d9534f%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3ET%3C%2Ftext%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "Tomas Ruiz",
+              "Tomas Ruiz"
+            ],
+            "accessories": [
+              {
+                "date": 1789598820000
+              }
+            ],
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open chat"
+              },
+              {
+                "id": "copy",
+                "title": "Copy message",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "web",
+                "title": "Open in the web client",
+                "shortcut": "cmd+shift+o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "contacts": {
+      "title": "Contacts",
+      "icon": {
+        "tile": {
+          "glyph": "󰖣",
+          "bg": "green"
+        }
+      },
+      "tier": "catalog",
+      "placeholder": "A name or a number",
+      "items": [
+        {
+          "id": "905557778899@c.us",
+          "name": "Acme Support",
+          "subtitle": "+90 555 777 88 99",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2325d366%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EA%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905557778899",
+            "+90 555 777 88 99"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        },
+        {
+          "id": "905550001122@c.us",
+          "name": "Dana Ruiz",
+          "subtitle": "+90 555 000 11 22",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%2334b7f1%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3ED%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905550001122",
+            "+90 555 000 11 22"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        },
+        {
+          "id": "905553334455@c.us",
+          "name": "Lina Kova",
+          "subtitle": "+90 555 333 44 55",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23e0a800%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EL%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905553334455",
+            "+90 555 333 44 55"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        },
+        {
+          "id": "905551234567@c.us",
+          "name": "Mara Lind",
+          "subtitle": "+90 555 123 45 67",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23d9534f%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EM%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905551234567",
+            "+90 555 123 45 67"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        },
+        {
+          "id": "905551112233@c.us",
+          "name": "Ola Berg",
+          "subtitle": "+90 555 111 22 33",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23d9534f%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3EO%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905551112233",
+            "+90 555 111 22 33"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        },
+        {
+          "id": "905559876543@c.us",
+          "name": "Tomas Ruiz",
+          "subtitle": "+90 555 987 65 43",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23d9534f%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22system-ui%22%20font-size%3D%2232%22%20font-weight%3D%22700%22%20fill%3D%22%23fff%22%20text-anchor%3D%22middle%22%3ET%3C%2Ftext%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "905559876543",
+            "+90 555 987 65 43"
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open chat"
+            },
+            {
+              "id": "copy-number",
+              "title": "Copy number",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-vcard",
+              "title": "Copy as vCard",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "web",
+              "title": "Open in the web client",
+              "shortcut": "cmd+shift+o"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "chats/254011223344556@lid:reply": {
+      "form": {
+        "id": "254011223344556@lid",
+        "title": "Message Mara Lind",
+        "fields": [
+          {
+            "kind": "textarea",
+            "id": "text",
+            "label": "Message",
+            "required": true,
+            "default": "",
+            "placeholder": "Sent to Mara Lind from your own number"
+          },
+          {
+            "kind": "checkbox",
+            "id": "quote",
+            "label": "Reply",
+            "text": "Quote the latest message: “standup in 20?”",
+            "default": false
+          }
+        ],
+        "submit": {
+          "id": "send",
+          "title": "Send"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-chats": {
+      "palette": "chats",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-detail": {
+      "palette": "chats",
+      "keys": [
+        "cmd+i",
+        "wait:400"
+      ]
+    },
+    "3-unread": {
+      "palette": "unread",
+      "keys": [
+        "down"
+      ]
+    },
+    "4-search": {
+      "palette": "search",
+      "keys": [
+        "type:parser",
+        "wait:500"
+      ]
+    },
+    "5-contacts": {
+      "palette": "contacts",
+      "keys": [
+        "down*3"
+      ]
+    },
+    "6-message": {
+      "palette": "chats",
+      "keys": [
+        "cmd+k",
+        "wait:200",
+        "type:Send a",
+        "wait:200",
+        "enter",
+        "wait:300"
+      ]
+    }
+  }
+}
