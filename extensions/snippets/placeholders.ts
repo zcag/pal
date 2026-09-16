@@ -13,9 +13,15 @@ export const isoDate = (d: Date) => `${d.getFullYear()}-${two(d.getMonth() + 1)}
 /** Local time as `HH:MM`. */
 export const isoTime = (d: Date) => `${two(d.getHours())}:${two(d.getMinutes())}`;
 
-/** The placeholders in the order they are looked for; `{datetime}` is date and time with a space. */
-export const PLACEHOLDERS = ["clipboard", "date", "time", "datetime", "uuid"] as const;
-const RE = /\{(clipboard|date|time|datetime|uuid)\}/g;
+/**
+ * The placeholders in the order they are looked for; `{datetime}` is date
+ * and time with a space. `{selection}` is Raycast's spelling for the
+ * selected text, which pal cannot read: it is filled from the clipboard
+ * like `{clipboard}`, the documented fallback. `{cursor}` is not one: pal
+ * pastes whole and cannot place the caret, so it stays in the text.
+ */
+export const PLACEHOLDERS = ["clipboard", "selection", "date", "time", "datetime", "uuid"] as const;
+const RE = /\{(clipboard|selection|date|time|datetime|uuid)\}/g;
 
 /** True when the text has a placeholder to fill. */
 export const hasPlaceholders = (text: string) => new RegExp(RE.source).test(text);
@@ -29,10 +35,10 @@ export async function expand(text: string, s: Sources): Promise<string> {
   if (!hasPlaceholders(text)) return text;
   const now = (s.now ?? (() => new Date()))();
   const uuid = s.uuid ?? (() => crypto.randomUUID());
-  const clip = text.includes("{clipboard}") ? await s.clipboard() : "";
+  const clip = text.includes("{clipboard}") || text.includes("{selection}") ? await s.clipboard() : "";
   return text.replace(RE, (_, k: string) => {
     switch (k) {
-      case "clipboard": return clip;
+      case "clipboard": case "selection": return clip;
       case "date": return isoDate(now);
       case "time": return isoTime(now);
       case "datetime": return `${isoDate(now)} ${isoTime(now)}`;
@@ -47,6 +53,23 @@ export const asSnippets = (v: unknown): Snippet[] =>
     ? v.filter((x): x is Snippet => !!x && typeof x === "object" && typeof (x as Snippet).id === "string" && typeof (x as Snippet).name === "string" && typeof (x as Snippet).text === "string")
         .map((x) => ({ id: x.id, name: x.name, text: x.text, ...(typeof x.keyword === "string" && x.keyword ? { keyword: x.keyword } : {}) }))
     : [];
+
+/**
+ * An import file as snippets: a JSON array of `{name, text, keyword?}`
+ * (Raycast's export shape too); anything without a name and a text is
+ * dropped, a keyword with a space in it too, and every snippet gets a
+ * fresh id. Throws on a non-array.
+ */
+export function fromJson(data: unknown): Snippet[] {
+  if (!Array.isArray(data)) throw new Error("expected a JSON array of {name, text, keyword?}");
+  return data
+    .map((r) => (r && typeof r === "object" ? (r as { name?: unknown; text?: unknown; keyword?: unknown }) : {}))
+    .filter((r) => typeof r.name === "string" && r.name.trim() && typeof r.text === "string" && r.text.trim())
+    .map((r) => {
+      const keyword = typeof r.keyword === "string" ? r.keyword.trim() : "";
+      return { id: crypto.randomUUID(), name: (r.name as string).trim(), text: r.text as string, ...(keyword && !badKeyword(keyword) && { keyword }) };
+    });
+}
 
 /** A keyword is one word: no spaces, so typing it finds the row whole. */
 export const badKeyword = (k: string): string | undefined => (/\s/.test(k.trim()) ? "One word, no spaces" : undefined);

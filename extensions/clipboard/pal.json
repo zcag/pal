@@ -1,7 +1,7 @@
 {
   "name": "clipboard",
   "title": "Clipboard",
-  "description": "What you copied, searchable, with images. Enter pastes it back into the app in front.",
+  "description": "What you copied, searchable, with images; pinned entries first, a filter by kind (text, images, files, links, colors). Enter pastes it back into the app in front.",
   "version": "0.1.0",
   "icon": "⎘",
   "author": "pal",

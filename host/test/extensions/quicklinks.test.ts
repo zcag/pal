@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { asLinks, badUrl, fill, placeholder, splitKeywords } from "../../../extensions/quicklinks/links.ts";
+import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords } from "../../../extensions/quicklinks/links.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 
@@ -29,6 +29,12 @@ describe("links", () => {
     expect(badUrl("~/notes.md")).toBeUndefined();
     expect(badUrl("")).toBe("Required");
     expect(badUrl("github.com")).toMatch(/^Not a URL/);
+  });
+  test("fromJson takes {name, url} or Raycast's {name, link}, drops the rest, gives fresh ids; a non-array throws", () => {
+    const links = fromJson([{ name: "A", url: "https://a", keywords: ["k"] }, { name: "B", link: "https://b" }, { url: "https://c" }, { name: "bad", url: "nope" }, null, 3]);
+    expect(links.map(({ id, ...l }) => l)).toEqual([{ name: "A", url: "https://a", keywords: ["k"] }, { name: "B", url: "https://b" }, { name: "https://c", url: "https://c" }]);
+    expect(new Set(links.map((l) => l.id)).size).toBe(3);
+    expect(() => fromJson({})).toThrow(/array/);
   });
   test("asLinks drops what is not a link; splitKeywords splits on commas and spaces", () => {
     expect(asLinks([{ id: "1", name: "a", url: "u", keywords: ["k", 2] }, { id: "2", name: "b" }, null, "x"])).toEqual([{ id: "1", name: "a", url: "u", keywords: ["k", "2"] }]);
@@ -54,9 +60,11 @@ const list = () => host.list("quicklinks", "quicklinks");
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("quicklinks", "quicklinks", id, action, ctx);
 
 describe("quicklinks", () => {
-  test("rows: the create row first, then stored links (favicon from url, {query} as a tag, edit and delete), then the import file's, read-only", async () => {
+  test("rows: the create row first, then stored links (favicon from url, {query} as a tag, edit and delete), then the import file's, read-only, then Import and Export", async () => {
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["create", "gh", "ha", "import:http://grafana.lan", "import:http://bare"]);
+    expect(items.map((i) => i.id)).toEqual(["create", "gh", "ha", "import:http://grafana.lan", "import:http://bare", "import", "export"]);
+    expect(items[5]).toMatchObject({ name: "Import Quicklinks", actions: [{ id: "import", title: "Import…" }] });
+    expect(items[6]).toMatchObject({ name: "Export Quicklinks", actions: [{ id: "export", title: "Export…" }] });
     expect(items[0]).toMatchObject({ name: "Create Quicklink", actions: [{ id: "create", title: "Create Quicklink" }] });
     expect(items[1]).toMatchObject({ name: "GitHub search", subtitle: "https://github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }] });
     expect(items[1].icon).toBeUndefined();
@@ -132,6 +140,29 @@ describe("quicklinks", () => {
     expect((await host.call("pick", { extension: "quicklinks", palette: "quicklinks", id: "nope" })).error).toMatch(/no quicklink nope/);
     expect((await host.call("pick", { extension: "quicklinks", palette: "quicklinks", id: "import:http://bare", action: "save", values: { name: "x", url: "https://x" } })).error).toMatch(/no quicklink/);
     expect((await host.hello()).pid).toBe(host.pid);
+  });
+
+  test("export asks for a path and writes the stored links (ids left out); import reads one back, skipping urls already there, refusing a file it cannot read", async () => {
+    const out = join(dir, "out", "links.json");
+    const form = (await pick("export", "export")).form as Form;
+    expect(form).toMatchObject({ id: "export", title: "Export Quicklinks", submit: { id: "save", title: "Export" } });
+    expect(form.fields.map((f) => [f.id, (f as { default?: string }).default])).toEqual([["path", "~/Downloads/pal-quicklinks.json"]]);
+    const before = stored.get("quicklinks\0links") as { id: string; name: string; url: string }[];
+    const r = await pick("export", "save", { values: { path: out } });
+    expect(r).toEqual({ keep: true, toast: { title: `Exported ${before.length} quicklinks`, message: out } });
+    const written = await Bun.file(out).json();
+    expect(written).toEqual(before.map(({ id, ...l }) => l));
+    // Import: the same file adds nothing; one more link in it adds that one.
+    expect(((await pick("import", "import")).form as Form).fields[0].id).toBe("path");
+    expect(await pick("import", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: "Imported 0 quicklinks", message: `${before.length} already there` } });
+    writeFileSync(out, JSON.stringify([...written, { name: "New", link: "https://new.example" }]));
+    expect(await pick("import", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: "Imported 1 quicklink", message: `${before.length} already there` } });
+    const after = stored.get("quicklinks\0links") as { name: string; url: string }[];
+    expect(after).toHaveLength(before.length + 1);
+    expect(after.at(-1)).toMatchObject({ name: "New", url: "https://new.example" });
+    const bad = (await pick("import", "save", { values: { path: join(dir, "missing.json") } })).form as Form;
+    expect(bad.errors!.path).toMatch(/^Could not read/);
+    expect(((await pick("export", "save", { values: { path: "" } })).form as Form).errors).toEqual({ path: "Required" });
   });
 
   test("a broken import file lists the stored links alone and says so on stderr", async () => {

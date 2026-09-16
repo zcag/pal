@@ -44,6 +44,20 @@ export const asLinks = (v: unknown): Link[] =>
         .map((x) => ({ id: x.id, name: x.name, url: x.url, ...(Array.isArray(x.keywords) && x.keywords.length ? { keywords: x.keywords.map(String) } : {}) }))
     : [];
 
+/**
+ * An import file as links: a JSON array of `{name, url, keywords?}`, or
+ * Raycast's export `{name, link}`; anything without a usable url is
+ * dropped, and every link gets a fresh id. Throws on a non-array.
+ */
+export function fromJson(data: unknown): Link[] {
+  if (!Array.isArray(data)) throw new Error("expected a JSON array of {name, url}");
+  return data
+    .map((r) => (r && typeof r === "object" ? (r as { name?: unknown; url?: unknown; link?: unknown; keywords?: unknown }) : {}))
+    .map((r) => ({ url: typeof r.url === "string" ? r.url : typeof r.link === "string" ? r.link : "", name: typeof r.name === "string" ? r.name : "", keywords: Array.isArray(r.keywords) ? r.keywords.map(String) : undefined }))
+    .filter((r) => r.url && !badUrl(r.url))
+    .map((r) => ({ id: crypto.randomUUID(), name: r.name || r.url, url: r.url, ...(r.keywords?.length && { keywords: r.keywords }) }));
+}
+
 /** `"a, b  c"` as keywords: split on commas and whitespace, blanks dropped. */
 export const splitKeywords = (s: string): string[] | undefined => {
   const k = s.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);

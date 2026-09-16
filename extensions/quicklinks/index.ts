@@ -1,14 +1,18 @@
 // Quicklinks: your own links, kept in the extension's storage and edited
 // through forms in the panel. A url with a `{query}` placeholder opens
 // through a drill-in level whose input fills it (a search engine); one
-// without opens at once. An `import` file adds read-only links.
+// without opens at once. An `import` file adds read-only links; the Import
+// and Export rows move links in and out as JSON files.
 import { home, settings, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item } from "@zcag/pal";
-import { asLinks, badUrl, fill, placeholder, splitKeywords, type Link } from "./links.ts";
+import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords, type Link } from "./links.ts";
 
 const KEY = "links";
 const CREATE = "create";
+const IMPORT = "import";
+const EXPORT = "export";
 const IMPORTED = "import:";
 const EXTENSION = "quicklinks", PALETTE = "quicklinks";
+const EXPORT_DEFAULT = "~/Downloads/pal-quicklinks.json";
 
 const OPEN: Action = { id: "open", title: "Open" };
 const COPY: Action = { id: "copy", title: "Copy URL", shortcut: "cmd+c" };
@@ -71,6 +75,36 @@ const form = (l?: Link, errors?: Record<string, string>): Form => ({
   errors,
 });
 
+/** The path form of the Import and Export rows; `errors` when a submit was refused. */
+const pathForm = (id: typeof IMPORT | typeof EXPORT, path?: string, errors?: Record<string, string>): Form => ({
+  id,
+  title: id === IMPORT ? "Import Quicklinks" : "Export Quicklinks",
+  fields: [{ kind: "text", id: "path", label: "File", required: true, default: path ?? (id === EXPORT ? EXPORT_DEFAULT : undefined), placeholder: EXPORT_DEFAULT, description: id === IMPORT ? "A JSON array of {name, url, keywords?} (Raycast's {name, link} works too). Links whose url you already have are skipped." : "Your quicklinks as a JSON array of {name, url, keywords?}; an existing file is replaced." }],
+  submit: { id: "save", title: id === IMPORT ? "Import" : "Export" },
+  errors,
+});
+
+/** Import: the file's links that are new by url appended; export: the stored links written. Either refusal is the form again. */
+async function transfer(id: typeof IMPORT | typeof EXPORT, values: FormValues): Promise<Effect> {
+  const raw = String(values.path ?? "").trim();
+  if (!raw) return { form: pathForm(id, raw, { path: "Required" }) };
+  const path = home(raw);
+  const links = await own();
+  if (id === EXPORT) {
+    try { await Bun.write(path, JSON.stringify(links.map(({ id: _, ...l }) => l), null, 2) + "\n"); }
+    catch (e) { return { form: pathForm(id, raw, { path: `Could not write: ${e instanceof Error ? e.message : e}` }) }; }
+    return { keep: true, toast: { title: `Exported ${links.length} ${links.length === 1 ? "quicklink" : "quicklinks"}`, message: path } };
+  }
+  let incoming: Link[];
+  try { incoming = fromJson(await Bun.file(path).json()); }
+  catch (e) { return { form: pathForm(id, raw, { path: `Could not read: ${e instanceof Error ? e.message : e}` }) }; }
+  const have = new Set(links.map((l) => l.url));
+  const fresh: Link[] = [];
+  for (const l of incoming) if (!have.has(l.url)) { have.add(l.url); fresh.push(l); }
+  if (fresh.length) await storage.set(KEY, [...links, ...fresh]);
+  return { keep: true, toast: { title: `Imported ${fresh.length} ${fresh.length === 1 ? "quicklink" : "quicklinks"}`, message: incoming.length > fresh.length ? `${incoming.length - fresh.length} already there` : undefined } };
+}
+
 /** The submit: refused with the form again, else stored and listed again. */
 async function save(id: string, values: FormValues): Promise<Effect> {
   const links = await own();
@@ -110,11 +144,14 @@ export default {
         return [
           { id: CREATE, name: "Create Quicklink", subtitle: "A link, with {query} where what you type goes", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Quicklink" }] },
           ...(await all()).map(row),
+          { id: IMPORT, name: "Import Quicklinks", subtitle: "From a JSON file", icon: "⇣", keywords: ["json", "restore"], actions: [{ id: IMPORT, title: "Import…" }] },
+          { id: EXPORT, name: "Export Quicklinks", subtitle: "To a JSON file", icon: "⇡", keywords: ["json", "backup"], actions: [{ id: EXPORT, title: "Export…" }] },
         ];
       },
       pick: async (id, action, ctx?: Ctx): Promise<Effect | void> => {
         // From the drill-in: the row's id is the filled url.
         if ((ctx?.args as { link?: string } | undefined)?.link) return action === "copy" ? { copy: id } : { open: id };
+        if (id === IMPORT || id === EXPORT) return action === "save" ? transfer(id, ctx?.values ?? {}) : { form: pathForm(id) };
         if (action === "save") return save(id, ctx?.values ?? {});
         if (id === CREATE) return { form: form() };
         const l = await find(id);

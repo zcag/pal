@@ -1,15 +1,17 @@
 {
   "name": "bookmarks",
   "title": "Bookmarks",
-  "description": "Hand-picked links from a JSON file: open one, or copy its address.",
-  "version": "0.1.0",
+  "description": "Your browsers' bookmarks (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Safari, Firefox) and hand-picked links from a JSON file: open one, copy its address, or open it in the browser it came from.",
+  "version": "0.2.0",
   "icon": "🔖",
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "path", "id": "file", "label": "Bookmarks file", "pick": "file", "description": "A JSON array of {name, url, subtitle?, icon?, keywords?}; the url is opened or copied.", "default": "~/.config/pal/data/bookmarks.json" }
+    { "kind": "path", "id": "file", "label": "Bookmarks file", "pick": "file", "description": "A JSON array of {name, url, subtitle?, icon?, keywords?}; the url is opened or copied.", "default": "~/.config/pal/data/bookmarks.json" },
+    { "kind": "list", "id": "browsers", "label": "Browsers", "description": "Whose bookmarks to list, in order (the first wins a url two have): chrome, brave, edge, chromium, vivaldi, arc, safari, firefox. Empty lists the file alone.", "placeholder": "chrome", "default": ["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"] },
+    { "kind": "list", "id": "exclude_folders", "label": "Exclude folders", "description": "Bookmark folders skipped, by name (`Archive`) or a short path (`Bookmarks Bar/Old`).", "placeholder": "Archive", "default": [] }
   ],
   "palettes": {
-    "bookmarks": { "description": "The links in the file, by name and keyword." }
+    "bookmarks": { "description": "The links in the file and the browsers, by name, folder and keyword." }
   }
 }

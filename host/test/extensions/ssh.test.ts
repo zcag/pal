@@ -23,6 +23,13 @@ Host deck steamdeck
   HostName=192.168.1.9
   User deck
 
+Host inner
+  HostName 10.0.0.7
+  ProxyJump marko
+
+Host loop
+  HostName 127.0.0.1
+
 Host *.internal !bastion
   User root
 
@@ -59,10 +66,12 @@ describe("ssh", () => {
     expect(host.loaded().find((l) => l.extension === "ssh")!.palettes[0]).toMatchObject({ name: "ssh", title: "SSH Hosts", live: false, input: false, placeholder: "Connect to a host" });
   });
 
-  test("Host names in file order, includes one level, patterns and Match blocks skipped", async () => {
+  test("Host names in file order, includes one level, patterns and Match blocks skipped; the file is the section", async () => {
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["work", "extra", "marko", "deck", "steamdeck", "bare"]);
-    expect(items.every((i) => i.section === "Configured")).toBe(true);
+    expect(items.map((i) => i.id)).toEqual(["work", "extra", "marko", "deck", "steamdeck", "inner", "loop", "bare"]);
+    const dirName = dir.slice(dir.lastIndexOf("/") + 1);
+    // The section is the file, relative to the config's directory (`.ssh/config`, `.ssh/conf.d/work.conf` in real life).
+    expect(items.map((i) => i.section)).toEqual([`${dirName}/conf.d/work.conf`, `${dirName}/extra`, ...Array(6).fill(`${dirName}/config`)]);
   });
 
   test("HostName is the subtitle and a keyword; User and Port are accessories; key=value works", async () => {
@@ -74,7 +83,10 @@ describe("ssh", () => {
     expect(by.extra.subtitle).toBe("extra.example.com");
     expect(by.bare.subtitle).toBeUndefined();
     expect(by.bare.accessories).toEqual([]);
-    expect(by.marko.actions!.map((a) => a.id)).toEqual(["connect", "copy-host", "copy-command"]);
+    expect(by.marko.actions!.map((a) => a.id)).toEqual(["connect", "copy-host", "copy-command", "ping"]);
+    // A ProxyJump is a tag and a keyword, and adds the -J copy.
+    expect(by.inner).toMatchObject({ keywords: ["10.0.0.7", "marko"], accessories: [{ tag: "via marko", color: "blue" }] });
+    expect(by.inner.actions!.map((a) => a.id)).toEqual(["connect", "copy-host", "copy-command", "copy-jump", "ping"]);
   });
 
   test("known_hosts only with the setting on: names, [host]:port unwrapped, hashed, IPs and configured ones skipped", async () => {
@@ -82,14 +94,24 @@ describe("ssh", () => {
     const items = await list();
     const known = items.filter((i) => i.section === "Known hosts");
     expect(known.map((i) => i.id)).toEqual(["archer", "archer.lan", "nas.lan"]);
-    expect(items.slice(0, 6).every((i) => i.section === "Configured")).toBe(true);
+    expect(items.slice(0, 8).every((i) => i.section !== "Known hosts")).toBe(true);
     host.changeSettings("ssh", { settings: { config } });
     expect((await list()).some((i) => i.section === "Known hosts")).toBe(false);
   });
 
-  test("copy actions", async () => {
+  test("copy actions, the -J form with the jump host", async () => {
     expect(await pick("marko", "copy-host")).toEqual({ copy: "marko" });
     expect(await pick("marko", "copy-command")).toEqual({ copy: "ssh marko" });
+    expect(await pick("inner", "copy-jump")).toEqual({ copy: "ssh -J marko inner" });
+    expect(await pick("marko", "copy-jump")).toEqual({ copy: "ssh marko" });
+  });
+
+  test("ping: the round trip as a toast for a host that answers, a failure toast for one that does not", async () => {
+    if (!Bun.which("ping")) return;
+    const ok = await pick("loop", "ping");
+    expect(ok).toMatchObject({ keep: true, toast: { title: expect.stringMatching(/^127\.0\.0\.1: [\d.]+ ms$/), style: "success" } });
+    const bad = await pick("bare", "ping");
+    expect(bad).toMatchObject({ keep: true, toast: { title: "bare did not answer", style: "failure" } });
   });
 
   test("a missing config lists nothing rather than failing", async () => {

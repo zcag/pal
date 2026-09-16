@@ -1,25 +1,28 @@
 // SSH hosts from ~/.ssh/config (ported from v1 builtin/ssh.rs): every
 // `Host` block that is a name rather than a pattern, with its HostName,
-// User and Port; `Include` lines are followed one level (globs, `~`,
-// relative to ~/.ssh). Optionally the names in known_hosts as a second
-// section. Enter opens a terminal running `ssh <host>`; the other actions
-// copy the name or the command.
+// User, Port and ProxyJump; `Include` lines are followed one level (globs,
+// `~`, relative to ~/.ssh), and the file a host came from is its section.
+// Optionally the names in known_hosts as a last section. Enter opens a
+// terminal running `ssh <host>`; the other actions copy the name or the
+// command (the `-J` form for a host behind a jump), or ping the host.
 import { readFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, resolve } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { home, settings, xdg, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.ssh]`, defaults in pal.json. */
 type Settings = { config: string; include_known_hosts: boolean; terminal: "auto" | "kitty" | "Terminal" | "iTerm2" | "Ghostty" | "Alacritty" };
 
-type HostEntry = { name: string; hostname?: string; user?: string; port?: string };
+type HostEntry = { name: string; file: string; hostname?: string; user?: string; port?: string; jump?: string };
 
 const LINUX = process.platform === "linux";
 const ICON = xdg("network-server") ?? "⌁";
-const ACTIONS: Action[] = [
-  { id: "connect", title: "Connect" },
-  { id: "copy-host", title: "Copy host", shortcut: "cmd+c" },
-  { id: "copy-command", title: "Copy ssh command", shortcut: "cmd+shift+c" },
-];
+const CONNECT: Action = { id: "connect", title: "Connect" };
+const COPY_HOST: Action = { id: "copy-host", title: "Copy host", shortcut: "cmd+c" };
+const COPY_COMMAND: Action = { id: "copy-command", title: "Copy ssh command", shortcut: "cmd+shift+c" };
+const COPY_JUMP: Action = { id: "copy-jump", title: "Copy ssh -J command", shortcut: "cmd+shift+j" };
+const PING: Action = { id: "ping", title: "Ping", shortcut: "cmd+p" };
+const PING_MS = 3000;
+const KNOWN = "Known hosts";
 
 // ---- config ----------------------------------------------------------------
 
@@ -52,7 +55,7 @@ function parse(file: string, depth = 0): HostEntry[] {
     const value = m[2].trim();
     switch (key) {
       case "host":
-        current = value.split(/\s+/).filter((h) => h && !isPattern(h)).map((name) => ({ name }));
+        current = value.split(/\s+/).filter((h) => h && !isPattern(h)).map((name) => ({ name, file }));
         out.push(...current);
         break;
       case "match":
@@ -64,6 +67,7 @@ function parse(file: string, depth = 0): HostEntry[] {
       case "hostname": for (const h of current) h.hostname ??= value; break;
       case "user": for (const h of current) h.user ??= value; break;
       case "port": for (const h of current) h.port ??= value; break;
+      case "proxyjump": if (value.toLowerCase() !== "none") for (const h of current) h.jump ??= value; break;
     }
   }
   return out;
@@ -86,19 +90,31 @@ function knownHosts(file: string): string[] {
   return [...names].sort();
 }
 
+/** The section for a file: relative to the config's directory when under it, `~` for the home otherwise. */
+function sectionOf(file: string, configDir: string): string {
+  const rel = relative(configDir, file);
+  if (rel && !rel.startsWith("..") && !isAbsolute(rel)) return `${basename(configDir)}/${rel}`;
+  const h = home("~");
+  return file.startsWith(h + "/") ? "~" + file.slice(h.length) : file;
+}
+
+/** What a pick needs beyond the name, from the last listing. */
+const hosts = new Map<string, HostEntry>();
+
 function item(h: HostEntry, section: string): Item {
   const accessories: Accessory[] = [];
   if (h.user) accessories.push({ text: h.user });
   if (h.port) accessories.push({ tag: `:${h.port}` });
+  if (h.jump) accessories.push({ tag: `via ${h.jump}`, color: "blue" });
   return {
     id: h.name,
     name: h.name,
     subtitle: h.hostname && h.hostname !== h.name ? h.hostname : undefined,
-    keywords: [h.hostname, h.user].filter((k): k is string => !!k && k !== h.name),
+    keywords: [h.hostname, h.user, h.jump].filter((k): k is string => !!k && k !== h.name),
     icon: ICON,
     accessories,
     section,
-    actions: ACTIONS,
+    actions: [CONNECT, COPY_HOST, COPY_COMMAND, ...(h.jump ? [COPY_JUMP] : []), PING],
   };
 }
 
@@ -107,11 +123,28 @@ function list(): Item[] {
   const file = home(config);
   const seen = new Set<string>();
   const items: Item[] = [];
-  for (const h of parse(file)) if (seen.add(h.name)) items.push(item(h, "Configured"));
+  hosts.clear();
+  for (const h of parse(file)) {
+    if (seen.has(h.name)) continue;
+    seen.add(h.name);
+    hosts.set(h.name, h);
+    items.push(item(h, sectionOf(h.file, dirname(file))));
+  }
   if (!include_known_hosts) return items;
   const configured = new Set([...seen, ...items.map((i) => i.subtitle).filter(Boolean)]);
-  for (const name of knownHosts(resolve(dirname(file), "known_hosts"))) if (!configured.has(name)) items.push(item({ name }, "Known hosts"));
+  for (const name of knownHosts(resolve(dirname(file), "known_hosts"))) if (!configured.has(name)) items.push(item({ name, file }, KNOWN));
   return items;
+}
+
+/** One echo; the round trip from ping's own `time=` field, or why not. macOS takes `-W` in ms, Linux in seconds. */
+async function ping(target: string): Promise<{ ok: true; ms: number } | { ok: false; why: string }> {
+  const proc = Bun.spawn(["ping", "-c", "1", "-W", LINUX ? "2" : "2000", target], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  const timer = setTimeout(() => proc.kill(), PING_MS);
+  const [code, out, err] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+  clearTimeout(timer);
+  const m = out.match(/time[=<]([\d.]+)\s*ms/);
+  if (code === 0 && m) return { ok: true, ms: parseFloat(m[1]) };
+  return { ok: false, why: (err.trim() || out.trim().split("\n").pop() || `ping exited ${code}`).replace(/^ping: /, "") };
 }
 
 // ---- terminals ---------------------------------------------------------------
@@ -155,11 +188,20 @@ export default {
       icon: ICON,
       placeholder: "Connect to a host",
       list,
-      pick: (id, action) => {
+      pick: async (id, action) => {
         const cmd = `ssh ${id}`;
+        // A pick on a row restored from the persisted index, before this run has listed.
+        if (!hosts.size) list();
+        const h = hosts.get(id);
         switch (action) {
           case "copy-host": return { copy: id };
           case "copy-command": return { copy: cmd };
+          case "copy-jump": return { copy: h?.jump ? `ssh -J ${h.jump} ${id}` : cmd };
+          case "ping": {
+            const target = h?.hostname ?? id;
+            const r = await ping(target);
+            return { keep: true, toast: r.ok ? { title: `${target}: ${r.ms < 10 ? r.ms.toFixed(1) : Math.round(r.ms)} ms`, style: "success" } : { title: `${target} did not answer`, message: r.why, style: "failure" } };
+          }
         }
         const argv = terminalArgv(["ssh", id]);
         if (typeof argv === "string") return { keep: true, toast: { title: "Could not open a terminal", message: argv, style: "failure" } };

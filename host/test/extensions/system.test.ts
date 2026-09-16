@@ -1,13 +1,33 @@
-// system against canned core/system.* replies.
+// system against canned core/system.* replies with the core's real ids, a
+// temp folder standing in for the Trash (`PAL_TRASH_DIR`).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { SystemCommand } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
+
+const MAC = process.platform === "darwin";
+const COMMANDS: SystemCommand[] = [
+  { id: "sleep", title: "Sleep", subtitle: "Put the machine to sleep", icon: "⏾", keywords: ["suspend"], destructive: false, available: true },
+  { id: "shutdown", title: "Shut Down", subtitle: "Power the machine off", icon: "⏻", keywords: ["halt", "power"], destructive: true, available: true },
+  { id: "empty-trash", title: "Empty Trash", subtitle: "Delete everything in the trash", icon: "⌫", keywords: ["bin"], destructive: true, available: true },
+  { id: "dark-mode", title: "Toggle Dark Mode", subtitle: "Switch between light and dark appearance", icon: "◐", keywords: ["theme"], destructive: false, available: true },
+  { id: "dnd", title: "Toggle Do Not Disturb", subtitle: "Focus", icon: "⊘", keywords: ["focus"], destructive: false, available: false },
+];
+
+const trash = mkdtempSync(join(tmpdir(), "pal-trash-"));
+writeFileSync(join(trash, "a.txt"), "");
+writeFileSync(join(trash, "b.txt"), "");
+writeFileSync(join(trash, ".DS_Store"), "");
 
 let host: Host;
 const ran: string[] = [];
 beforeAll(async () => {
-  host = await Host.bundled({ core: { "system.run": (p) => { if (p.id === "sleep") throw new Error("pmset: not permitted"); ran.push(p.id); return null; } } });
+  process.env.PAL_TRASH_DIR = trash;
+  host = await Host.bundled({ core: { "system.commands": () => COMMANDS, "system.run": (p) => { if (p.id === "sleep") throw new Error("pmset: not permitted"); ran.push(p.id); return null; } } });
 });
-afterAll(() => host.kill());
+afterAll(() => { host.kill(); rmSync(trash, { recursive: true, force: true }); });
 
 const list = (q?: string) => host.list("system", "system", q);
 
@@ -18,8 +38,27 @@ describe("system", () => {
 
   test("only available commands, mapped one to one, one run action each", async () => {
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["sleep", "shutdown", "trash"]);
-    expect(items[0]).toEqual({ id: "sleep", name: "Sleep", subtitle: "Put the machine to sleep", icon: "⏾", keywords: ["suspend"], actions: [{ id: "run", title: "Sleep" }] });
+    expect(items.map((i) => i.id)).toEqual(["sleep", "shutdown", "empty-trash", "dark-mode"]);
+    expect(items[0]).toEqual({ id: "sleep", name: "Sleep", subtitle: "Put the machine to sleep", icon: "⏾", keywords: ["suspend"], accessories: [], actions: [{ id: "run", title: "Sleep" }] });
+  });
+
+  test("Empty Trash counts what is in the Trash (.DS_Store aside); Toggle Dark Mode tags the current appearance", async () => {
+    const by = Object.fromEntries((await list()).map((i) => [i.id, i]));
+    expect(by["empty-trash"].accessories).toEqual([{ text: "2 items" }]);
+    rmSync(join(trash, "b.txt"));
+    expect((await list()).find((i) => i.id === "empty-trash")!.accessories).toEqual([{ text: "1 item" }]);
+    rmSync(join(trash, "a.txt"));
+    expect((await list()).find((i) => i.id === "empty-trash")!.accessories).toEqual([{ text: "empty" }]);
+    if (MAC) expect(by["dark-mode"].accessories).toEqual([{ tag: expect.stringMatching(/^(dark|light)$/), color: expect.stringMatching(/^(violet|amber)$/) }]);
+    else expect(by["dark-mode"].accessories!.length).toBeLessThanOrEqual(1);
+  });
+
+  test("an unreadable Trash is a row without a count", async () => {
+    process.env.PAL_TRASH_DIR = join(trash, "nope");
+    const h = await Host.bundled({ core: { "system.commands": () => COMMANDS } });
+    expect((await h.list("system", "system")).find((i) => i.id === "empty-trash")!.accessories).toEqual([]);
+    h.kill();
+    process.env.PAL_TRASH_DIR = trash;
   });
 
   test("destructive rows carry a confirm while the setting is on, not when it is off", async () => {
@@ -36,7 +75,7 @@ describe("system", () => {
   });
 
   test("the list ignores a query: matching is the index's", async () => {
-    expect((await list("shut")).map((i) => i.id)).toEqual(["sleep", "shutdown", "trash"]);
+    expect((await list("shut")).map((i) => i.id)).toEqual(["sleep", "shutdown", "empty-trash", "dark-mode"]);
   });
 
   test("pick runs through the core and hides; a refusal is a failure toast that keeps the palette", async () => {

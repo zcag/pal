@@ -1,15 +1,25 @@
 {
   "name": "emoji",
   "title": "Emoji",
-  "description": "An emoji picker: a grid of glyphs, searched by name and keyword. Copies the emoji or its :shortcode:.",
-  "version": "0.1.0",
+  "description": "An emoji picker: a grid of glyphs by category, recently used first, searched by name, keyword and :shortcode:. Copies or pastes the emoji (with your skin tone), or copies its :shortcode:.",
+  "version": "0.2.0",
   "icon": "😀",
   "author": "pal",
   "repo": "bundled",
-  "settings": [],
+  "settings": [
+    { "kind": "select", "id": "skin_tone", "label": "Skin tone", "description": "Applied to the emoji that take one (hands, people) when shown, copied and pasted.", "options": [
+      { "id": "none", "title": "None (yellow)" },
+      { "id": "light", "title": "Light" },
+      { "id": "medium-light", "title": "Medium-light" },
+      { "id": "medium", "title": "Medium" },
+      { "id": "medium-dark", "title": "Medium-dark" },
+      { "id": "dark", "title": "Dark" }
+    ], "default": "none" },
+    { "kind": "boolean", "id": "paste_by_default", "label": "Paste on Enter", "text": "Enter pastes the emoji into the app in front; ⌘Enter copies it", "description": "Off, Enter copies and ⌘Enter pastes. Pasting needs Accessibility on macOS.", "default": false }
+  ],
   "palettes": {
     "emoji": {
-      "description": "Every emoji in the bundled list.",
+      "description": "Every emoji in the bundled list, by category.",
       "settings": [
         { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 10 }
       ]

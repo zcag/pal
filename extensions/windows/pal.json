@@ -1,7 +1,7 @@
 {
   "name": "windows",
   "title": "Windows",
-  "description": "Every open window, with its app's icon. Enter switches to it; close and minimise from the action panel.",
+  "description": "Every open window, with its app's icon, grouped by app. Enter switches to it; close, minimise, close or minimise all of the app, and hide the app from the action panel.",
   "version": "0.1.0",
   "icon": "▣",
   "author": "pal",

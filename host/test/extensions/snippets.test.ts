@@ -4,7 +4,10 @@
 // keyword as a row keyword, paste and copy with placeholders filled, the
 // create and edit forms, refusal, delete.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { asSnippets, badKeyword, expand, hasPlaceholders, isoDate, isoTime, preview } from "../../../extensions/snippets/placeholders.ts";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, isoDate, isoTime, preview } from "../../../extensions/snippets/placeholders.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host, fixtures, stored } from "../harness.ts";
 
@@ -12,8 +15,9 @@ const at = new Date(2026, 8, 16, 9, 5); // local 2026-09-16 09:05
 const pinned = { clipboard: () => "from the clipboard", now: () => at, uuid: () => "u-u-i-d" };
 
 describe("placeholders", () => {
-  test("date, time, datetime, uuid and clipboard are filled; anything else in braces stays", async () => {
+  test("date, time, datetime, uuid and clipboard are filled, selection from the clipboard too; {cursor} and anything else in braces stays", async () => {
     expect(await expand("On {date} at {time} ({datetime}) id {uuid}: {clipboard} {cursor} {x}", pinned)).toBe("On 2026-09-16 at 09:05 (2026-09-16 09:05) id u-u-i-d: from the clipboard {cursor} {x}");
+    expect(await expand("<{selection}>", pinned)).toBe("<from the clipboard>");
     expect(isoDate(at)).toBe("2026-09-16");
     expect(isoTime(at)).toBe("09:05");
   });
@@ -31,6 +35,12 @@ describe("placeholders", () => {
     expect(hasPlaceholders("{date}")).toBe(true);
     expect(hasPlaceholders("{data}")).toBe(false);
   });
+  test("fromJson takes {name, text, keyword?}, drops the rest and a keyword with a space, gives fresh ids; a non-array throws", () => {
+    const out = fromJson([{ name: " A ", text: "t", keyword: "a" }, { name: "B", text: "u", keyword: "two words" }, { name: "C" }, { text: "no name" }, null]);
+    expect(out.map(({ id, ...s }) => s)).toEqual([{ name: "A", text: "t", keyword: "a" }, { name: "B", text: "u" }]);
+    expect(new Set(out.map((s) => s.id)).size).toBe(2);
+    expect(() => fromJson("x")).toThrow(/array/);
+  });
   test("helpers: keyword is one word, preview is the first non-empty line trimmed, asSnippets drops junk", () => {
     expect(badKeyword("sig")).toBeUndefined();
     expect(badKeyword("my sig")).toBe("One word, no spaces");
@@ -40,6 +50,7 @@ describe("placeholders", () => {
   });
 });
 
+const dir = mkdtempSync(join(tmpdir(), "pal-sn-"));
 let host: Host;
 beforeAll(async () => {
   stored.clear();
@@ -49,15 +60,17 @@ beforeAll(async () => {
   ]);
   host = await Host.bundled();
 });
-afterAll(() => host.kill());
+afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
 
 const list = () => host.list("snippets", "snippets");
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("snippets", "snippets", id, action, ctx);
 
 describe("snippets", () => {
-  test("rows: the create row first, then the snippets with the keyword as a row keyword and a tag, the text as detail, dynamic ones marked", async () => {
+  test("rows: the create row first, then the snippets with the keyword as a row keyword and a tag, the text as detail, dynamic ones marked, then Import and Export", async () => {
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["create", "sig", "stamp"]);
+    expect(items.map((i) => i.id)).toEqual(["create", "sig", "stamp", "import", "export"]);
+    expect(items[3]).toMatchObject({ name: "Import Snippets", actions: [{ id: "import", title: "Import…" }] });
+    expect(items[4]).toMatchObject({ name: "Export Snippets", actions: [{ id: "export", title: "Export…" }] });
     expect(items[0]).toMatchObject({ name: "Create Snippet", actions: [{ id: "create", title: "Create Snippet" }] });
     expect(items[1]).toMatchObject({ name: "Signature", subtitle: "Best,", keywords: ["sig"], accessories: [{ tag: "sig" }] });
     expect(items[1].detail!.markdown).toContain("Best,\nCagdas");
@@ -105,6 +118,25 @@ describe("snippets", () => {
     const all = stored.get("snippets\0snippets") as { id: string; name: string; text: string }[];
     expect(all.map((s) => s.id)).toEqual(["sig", "stamp", all[2].id]);
     expect(all[0]).toEqual({ id: "sig", name: "Sign-off", text: "Cheers" });
+  });
+
+  test("export asks for a path and writes the snippets (ids left out); import reads one back, skipping what is already there, refusing a file it cannot read", async () => {
+    const out = join(dir, "snippets.json");
+    const form = (await pick("export", "export")).form as Form;
+    expect(form).toMatchObject({ id: "export", title: "Export Snippets", submit: { id: "save", title: "Export" } });
+    expect((form.fields[0] as { default?: string }).default).toBe("~/Downloads/pal-snippets.json");
+    const before = stored.get("snippets\0snippets") as { id: string; name: string; text: string; keyword?: string }[];
+    expect(await pick("export", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: `Exported ${before.length} snippets`, message: out } });
+    const written = await Bun.file(out).json();
+    expect(written).toEqual(before.map(({ id, ...s }) => s));
+    expect(await pick("import", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: "Imported 0 snippets", message: `${before.length} already there` } });
+    writeFileSync(out, JSON.stringify([...written, { name: "New", text: "hello", keyword: "hi" }]));
+    expect(await pick("import", "save", { values: { path: out } })).toEqual({ keep: true, toast: { title: "Imported 1 snippet", message: `${before.length} already there` } });
+    const after = stored.get("snippets\0snippets") as { name: string; text: string; keyword?: string }[];
+    expect(after).toHaveLength(before.length + 1);
+    expect(after.at(-1)).toMatchObject({ name: "New", text: "hello", keyword: "hi" });
+    expect(((await pick("import", "save", { values: { path: join(dir, "missing.json") } })).form as Form).errors!.path).toMatch(/^Could not read/);
+    expect(((await pick("import", "import")).form as Form).title).toBe("Import Snippets");
   });
 
   test("delete drops the snippet and lists again; an unknown id is an error, not a crash", async () => {

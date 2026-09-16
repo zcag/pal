@@ -1,7 +1,7 @@
 {
   "name": "processes",
   "title": "Processes",
-  "description": "What is running, busiest first, with its memory. Kill from the action panel.",
+  "description": "What is running, busiest first, with its memory; `:3000` lists what listens on a port. Kill from the action panel, or open the process in Activity Monitor.",
   "version": "0.1.0",
   "icon": "▤",
   "author": "pal",

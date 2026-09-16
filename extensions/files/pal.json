@@ -1,7 +1,7 @@
 {
   "name": "files",
   "title": "Files",
-  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux. Open, open with another app, reveal, copy the path or the file, trash.",
+  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; the recently used files before you type, and as a palette of their own. Open, open with another app, reveal, Quick Look, copy the path or the file, trash.",
   "version": "0.1.0",
   "icon": "▤",
   "author": "pal",
@@ -13,6 +13,7 @@
     { "kind": "list", "id": "exclude", "label": "Exclude", "description": "Folders skipped below the search folders, by name (`node_modules`) or a short path (`Library/Caches`).", "placeholder": "node_modules", "default": ["node_modules", ".cache", "Library/Caches", "target"] }
   ],
   "palettes": {
-    "files": { "description": "Type part of a file name; rows are the matches under the configured folders." }
+    "files": { "description": "Type part of a file name; rows are the matches under the configured folders. Before you type: the recently used files." },
+    "recent": { "description": "Files used in the last seven days under the configured folders, newest first." }
   }
 }

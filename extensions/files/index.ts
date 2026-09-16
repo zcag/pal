@@ -5,9 +5,13 @@
 // (`mdfind`) on macOS; on Linux `fd`, else `locate`, else a bounded `find`
 // (slow, and the empty-query hint says so). `PAL_FILES_BACKEND` forces one
 // of them: the tests run `find` on a temp folder no index knows about.
+// The empty query lists the recently used files (recent.ts: Spotlight's
+// last-used date, or GTK's recently-used.xbel), which the `recent` palette
+// lists on its own too, with the same rows and actions.
 import { readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
-import { apps as appsApi, home, settings, type Action, type App, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, home, settings, type Action, type App, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { parseMdfindRecent, parseXbel, type Recent } from "./recent.ts";
 
 /** `[extensions.files]`, defaults in pal.json. */
 type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclude: string[] };
@@ -114,13 +118,15 @@ const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024)
 const ACTIONS: Action[] = [
   { id: "open", title: "Open" },
   { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager" },
+  ...(MAC ? [{ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" }] : []),
   { id: "open-with", title: "Open with…", shortcut: "cmd+o" },
   { id: "copy", title: "Copy path", shortcut: "cmd+c" },
   { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c" },
   { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?" },
 ];
 
-async function item(p: string): Promise<Item | undefined> {
+/** A row for a path that still exists; `usedAt` (a recent file) replaces the modified date on the right. */
+async function item(p: string, usedAt?: number, section?: string): Promise<Item | undefined> {
   const st = await stat(p).catch(() => undefined);
   if (!st) return;
   const dir = st.isDirectory();
@@ -130,9 +136,38 @@ async function item(p: string): Promise<Item | undefined> {
     name: basename(p) || p,
     subtitle: short(dirname(p)),
     icon: MAC && p.endsWith(".app") ? { app: p } : GLYPH[k],
-    accessories: [...(k === "folder" ? [] : [{ text: size(st.size) }]), { date: st.mtimeMs }],
+    accessories: [...(k === "folder" ? [] : [{ text: size(st.size) }]), { date: usedAt ?? st.mtimeMs }],
+    ...(section && { section }),
     actions: ACTIONS,
   };
+}
+
+// ---- recent --------------------------------------------------------------
+
+/** Seven days, what both sources are asked for. */
+const RECENT_DAYS = 7;
+const RECENT_SECTION = "Recently used";
+/** Tests point the Linux source at a file of their own; on macOS this also stands in for Spotlight. */
+const XBEL = process.env.PAL_RECENT_XBEL || `${process.env.XDG_DATA_HOME || home("~/.local/share")}/recently-used.xbel`;
+
+/** Newest first, within the configured folders and their excludes, files only. */
+async function recentPaths(s: Settings, folders: string[]): Promise<Recent[]> {
+  let found: Recent[];
+  if (MAC && !process.env.PAL_RECENT_XBEL) {
+    const proc = Bun.spawn(["mdfind", "-attr", "kMDItemLastUsedDate", ...folders.flatMap((f) => ["-onlyin", f]), `kMDItemLastUsedDate >= $time.now(-${RECENT_DAYS * 86400}) && kMDItemContentTypeTree != "public.folder"`], { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+    const timer = setTimeout(() => proc.kill(), SEARCH_MS);
+    found = parseMdfindRecent(await new Response(proc.stdout).text().catch(() => ""));
+    clearTimeout(timer);
+  } else {
+    const since = Date.now() - RECENT_DAYS * 86400_000;
+    found = parseXbel(await readFile(XBEL, "utf8").catch(() => "")).filter((r) => r.at >= since);
+  }
+  return found.filter((r) => under(r.path, folders) && (s.show_hidden || !hidden(r.path, folders)) && !excluded(r.path, folders, s.exclude)).slice(0, s.limit);
+}
+
+async function recentRows(s: Settings, folders: string[], section?: string): Promise<Item[]> {
+  const rows = await Promise.all((await recentPaths(s, folders)).map((r) => item(r.path, r.at, section)));
+  return rows.filter((i): i is Item => i !== undefined && i.icon !== GLYPH.folder);
 }
 
 /** Exact name first, then a prefix match, then the backend's order. */
@@ -207,6 +242,28 @@ async function run(argv: string[], ms: number): Promise<void> {
 
 const trash = (p: string) => run(MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p], TRASH_MS);
 
+/** The shared actions of a file row; `open-with` needs the palette to push on, the rest are the same everywhere. */
+async function fileAction(id: string, action: string | undefined, palette: string): Promise<Effect> {
+  switch (action) {
+    case "reveal": spawnDetached(MAC ? ["open", "-R", id] : ["xdg-open", dirname(id)]); return { hide: true };
+    case "quick-look": spawnDetached(["qlmanage", "-p", id]); return { hide: true };
+    case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith } };
+    case "copy": return { copy: id };
+    case "copy-file": return { copy_files: [id] };
+    case "trash":
+      try { await trash(id); } catch (e) { return { keep: true, toast: { title: "Could not move to Trash", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+      return { keep: true, toast: { title: "Moved to Trash", message: basename(id) } };
+    default: return { open: id };
+  }
+}
+
+/** The "Open with…" level: the apps for `file`, or the pick of one. */
+const openWithPick = async (file: string, id: string) => {
+  try { await appsApi.openWith(file, id); } catch (e) { return { keep: true as const, toast: { title: "Could not open", message: String((e as Error)?.message ?? e), style: "failure" as const } }; }
+  return { hide: true as const };
+};
+const openWithDetail = (file: string, id: string): Detail => ({ metadata: [{ label: "Application", value: short(id) }, { label: "Opens", value: short(file) }] });
+
 const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: ICON, actions: [] });
 
 function hints(folders: string[]): Item[] {
@@ -231,31 +288,44 @@ export default {
         const s = settings.get<Settings>();
         const folders = s.folders.map(home);
         const q = query.trim();
-        if (!q || !BACKEND) return hints(folders);
+        if (!q || !BACKEND) {
+          // The empty query is the recently used files, as in Raycast; the hints when there are none.
+          const recent = BACKEND ? await recentRows(s, folders, RECENT_SECTION) : [];
+          return recent.length ? recent : hints(folders);
+        }
         const paths = await search(q, s, folders);
-        const rows = (await Promise.all(paths.map(item))).filter((i): i is Item => i !== undefined);
+        const rows = (await Promise.all(paths.map((p) => item(p)))).filter((i): i is Item => i !== undefined);
         return rank(rows, q);
       },
-      pick: async (id, action, ctx) => {
+      pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        if (file) {
-          try { await appsApi.openWith(file, id); } catch (e) { return { keep: true, toast: { title: "Could not open", message: String((e as Error)?.message ?? e), style: "failure" } }; }
-          return { hide: true };
-        }
-        switch (action) {
-          case "reveal": spawnDetached(MAC ? ["open", "-R", id] : ["xdg-open", dirname(id)]); return { hide: true };
-          case "open-with": return { push: { extension: "files", palette: "files", args: { open_with: id } satisfies OpenWith } };
-          case "copy": return { copy: id };
-          case "copy-file": return { copy_files: [id] };
-          case "trash":
-            try { await trash(id); } catch (e) { return { keep: true, toast: { title: "Could not move to Trash", message: String((e as Error)?.message ?? e), style: "failure" } }; }
-            return { keep: true, toast: { title: "Moved to Trash", message: basename(id) } };
-          default: return { open: id };
-        }
+        return file ? openWithPick(file, id) : fileAction(id, action, "files");
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);
-        return file ? { metadata: [{ label: "Application", value: short(id) }, { label: "Opens", value: short(file) }] } : detail(id);
+        return file ? openWithDetail(file, id) : detail(id);
+      },
+    },
+    recent: {
+      title: "Recent Files",
+      icon: "◷",
+      // Newest first is the order; listed again on a show once the listing is a minute old.
+      live: true,
+      ttl: 60,
+      placeholder: "Recently used files",
+      list: async (query = "", ctx) => {
+        const file = openWithOf(ctx);
+        if (file) return appRows(file, query);
+        const s = settings.get<Settings>();
+        return recentRows(s, s.folders.map(home));
+      },
+      pick: (id, action, ctx) => {
+        const file = openWithOf(ctx);
+        return file ? openWithPick(file, id) : fileAction(id, action, "recent");
+      },
+      detail: (id, ctx) => {
+        const file = openWithOf(ctx);
+        return file ? openWithDetail(file, id) : detail(id);
       },
     },
   },

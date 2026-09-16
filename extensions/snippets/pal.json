@@ -1,7 +1,7 @@
 {
   "name": "snippets",
   "title": "Snippets",
-  "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {date}, {time} and {uuid} filled in. Created and edited in the panel.",
+  "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {date}, {time} and {uuid} filled in. Created and edited in the panel; imported and exported as JSON.",
   "version": "0.1.0",
   "icon": "✂",
   "author": "pal",

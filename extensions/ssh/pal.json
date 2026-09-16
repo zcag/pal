@@ -1,7 +1,7 @@
 {
   "name": "ssh",
   "title": "SSH Hosts",
-  "description": "The hosts in ~/.ssh/config (and its Include files). Enter opens a terminal running ssh.",
+  "description": "The hosts in ~/.ssh/config (and its Include files, one section per file). Enter opens a terminal running ssh; copy the command (with -J for a host behind a ProxyJump), or ping the host.",
   "version": "0.1.0",
   "icon": "󰒋",
   "author": "pal",

@@ -1,12 +1,16 @@
 // Snippets: short texts kept in the extension's storage and edited through
 // forms in the panel. Enter pastes one into the app in front with its
 // placeholders filled (placeholders.ts), cmd+c copies it instead. The
-// keyword is a row keyword, so typing `sig` finds the signature.
-import { clipboard, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item } from "@zcag/pal";
-import { asSnippets, badKeyword, expand, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
+// keyword is a row keyword, so typing `sig` finds the signature. The Import
+// and Export rows move snippets in and out as JSON files.
+import { clipboard, home, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item } from "@zcag/pal";
+import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
 
 const KEY = "snippets";
 const CREATE = "create";
+const IMPORT = "import";
+const EXPORT = "export";
+const EXPORT_DEFAULT = "~/Downloads/pal-snippets.json";
 
 const PASTE: Action = { id: "paste", title: "Paste" };
 const COPY: Action = { id: "copy", title: "Copy", shortcut: "cmd+c" };
@@ -44,11 +48,42 @@ const form = (s?: Snippet, errors?: Record<string, string>): Form => ({
   fields: [
     { kind: "text", id: "name", label: "Name", required: true, default: s?.name, placeholder: "Email signature" },
     { kind: "text", id: "keyword", label: "Keyword", default: s?.keyword, placeholder: "sig", description: "One word that finds it." },
-    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text, placeholder: "Best,\nCagdas", description: "{clipboard}, {date}, {time}, {datetime} and {uuid} are filled in when pasted." },
+    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text, placeholder: "Best,\nCagdas", description: "{clipboard}, {date}, {time}, {datetime} and {uuid} are filled in when pasted; {selection} is the clipboard too. {cursor} is not supported." },
   ],
   submit: { id: "save", title: s ? "Save" : "Create" },
   errors,
 });
+
+/** The path form of the Import and Export rows; `errors` when a submit was refused. */
+const pathForm = (id: typeof IMPORT | typeof EXPORT, path?: string, errors?: Record<string, string>): Form => ({
+  id,
+  title: id === IMPORT ? "Import Snippets" : "Export Snippets",
+  fields: [{ kind: "text", id: "path", label: "File", required: true, default: path ?? (id === EXPORT ? EXPORT_DEFAULT : undefined), placeholder: EXPORT_DEFAULT, description: id === IMPORT ? "A JSON array of {name, text, keyword?} (Raycast's export works). Snippets whose name and text you already have are skipped." : "Your snippets as a JSON array of {name, text, keyword?}; an existing file is replaced." }],
+  submit: { id: "save", title: id === IMPORT ? "Import" : "Export" },
+  errors,
+});
+
+/** Import: the file's snippets that are new by name and text appended; export: the stored snippets written. Either refusal is the form again. */
+async function transfer(id: typeof IMPORT | typeof EXPORT, values: FormValues): Promise<Effect> {
+  const raw = String(values.path ?? "").trim();
+  if (!raw) return { form: pathForm(id, raw, { path: "Required" }) };
+  const path = home(raw);
+  const snippets = await all();
+  if (id === EXPORT) {
+    try { await Bun.write(path, JSON.stringify(snippets.map(({ id: _, ...s }) => s), null, 2) + "\n"); }
+    catch (e) { return { form: pathForm(id, raw, { path: `Could not write: ${e instanceof Error ? e.message : e}` }) }; }
+    return { keep: true, toast: { title: `Exported ${snippets.length} ${snippets.length === 1 ? "snippet" : "snippets"}`, message: path } };
+  }
+  let incoming: Snippet[];
+  try { incoming = fromJson(await Bun.file(path).json()); }
+  catch (e) { return { form: pathForm(id, raw, { path: `Could not read: ${e instanceof Error ? e.message : e}` }) }; }
+  const key = (s: Snippet) => `${s.name}\0${s.text}`;
+  const have = new Set(snippets.map(key));
+  const fresh: Snippet[] = [];
+  for (const s of incoming) if (!have.has(key(s))) { have.add(key(s)); fresh.push(s); }
+  if (fresh.length) await storage.set(KEY, [...snippets, ...fresh]);
+  return { keep: true, toast: { title: `Imported ${fresh.length} ${fresh.length === 1 ? "snippet" : "snippets"}`, message: incoming.length > fresh.length ? `${incoming.length - fresh.length} already there` : undefined } };
+}
 
 /** The submit: refused with the form again, else stored and listed again. */
 async function save(id: string, values: FormValues): Promise<Effect> {
@@ -75,8 +110,11 @@ export default {
       list: async (): Promise<Item[]> => [
         { id: CREATE, name: "Create Snippet", subtitle: "A text to paste by name or keyword", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Snippet" }] },
         ...(await all()).map(row),
+        { id: IMPORT, name: "Import Snippets", subtitle: "From a JSON file", icon: "⇣", keywords: ["json", "restore"], actions: [{ id: IMPORT, title: "Import…" }] },
+        { id: EXPORT, name: "Export Snippets", subtitle: "To a JSON file", icon: "⇡", keywords: ["json", "backup"], actions: [{ id: EXPORT, title: "Export…" }] },
       ],
       pick: async (id, action, ctx?: Ctx): Promise<Effect | void> => {
+        if (id === IMPORT || id === EXPORT) return action === "save" ? transfer(id, ctx?.values ?? {}) : { form: pathForm(id) };
         if (action === "save") return save(id, ctx?.values ?? {});
         if (id === CREATE) return { form: form() };
         const s = (await all()).find((x) => x.id === id);
