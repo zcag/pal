@@ -140,7 +140,7 @@ async function watchExtensions() {
 
 const metas = (ext: Extension): PaletteMeta[] =>
   Object.entries(ext.palettes).map(([name, p]) => ({
-    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder, detail: p.detail,
+    name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder, detail: p.detail, filters: p.filters,
   }));
 
 function palette(p: any) {
@@ -163,7 +163,7 @@ const methods: Record<string, (params: any) => unknown> = {
     extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: exts.has(name) ? metas(exts.get(name)!) : [] })),
     errors: Object.fromEntries(errors),
   }),
-  list: async (p) => ({ items: await inContext(p, () => palette(p).list(p.query)) }),
+  list: async (p) => ({ items: await inContext(p, () => palette(p).list(p.query, p.filter)) }),
   pick: async (p) => (await inContext(p, () => palette(p).pick(p.id, p.action))) ?? {},
   // Notification from the core: the resolved values of the named extensions.
   "settings/changed": (p: SettingsChanged) => {

@@ -1,0 +1,17 @@
+{
+  "name": "scripts",
+  "title": "Scripts and data files",
+  "description": "Runs v1-style palettes from a pal v1 config: script plugins (run.sh speaking JSON lines) and data files (json, jsonl, toml). The zero-code tier.",
+  "version": "0.1.0",
+  "icon": "$",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "path", "id": "config", "label": "v1 config", "description": "A pal v1 config.toml; every [palette.<name>] in it becomes a palette here.", "pick": "file", "placeholder": "~/.config/pal/config.toml", "default": "~/.config/pal/config.toml" },
+    { "kind": "list", "id": "skip", "label": "Skip", "description": "v1 palette names not to load, because a native extension covers them.", "placeholder": "calc", "default": ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"] },
+    { "kind": "path", "id": "v1_repo", "label": "v1 checkout", "description": "Where github:zcag/pal/... bases resolve when v1's plugin cache (~/.local/share/pal) has no copy.", "pick": "folder", "default": "~/proj/pal-v1" },
+    { "kind": "number", "id": "timeout", "label": "Script timeout", "description": "A list or pick script still running after this is killed.", "min": 1, "max": 300, "unit": "s", "default": 30 },
+    { "kind": "number", "id": "preview_max", "label": "Preview up to", "description": "Item preview commands run at list time, only when a palette lists at most this many rows. 0 turns previews off.", "min": 0, "max": 500, "unit": "rows", "default": 50 }
+  ],
+  "palettes": {}
+}

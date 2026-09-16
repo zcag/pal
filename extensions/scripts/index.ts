@@ -1,0 +1,371 @@
+// The zero-code tier: every `[palette.<name>]` of a pal v1 config becomes a
+// palette here. A data palette reads its json/jsonl/toml file; a script
+// palette runs the plugin's command (`run.sh list`, query on stdin, JSON
+// lines out; `run.sh pick`, the item on stdin and as PAL_<KEY> env vars) and
+// maps v1's item fields, actions and result envelope onto the new shapes.
+// Discovery happens once at import; a changed config path needs a host
+// restart.
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, isAbsolute, resolve } from "node:path";
+import { parse as parseToml } from "smol-toml";
+import type { Accessory, Action, Detail, Effect, Extension, Item, Palette } from "../../host/src/protocol.ts";
+import { settings } from "../../host/src/api.ts";
+
+type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number };
+type Raw = Record<string, any>;
+type V1Action = { id?: string; title?: string; action?: string; value?: string; key?: string; shortcut?: string; style?: string; confirm?: string; reload?: boolean; primary?: boolean };
+type V1Palette = Raw & {
+  base?: string; data?: string; command?: string | string[];
+  icon?: string; icon_utf?: string; input?: boolean; input_prompt?: string; live?: boolean;
+  auto_list?: boolean; auto_pick?: boolean; default_action?: string; action_key?: string; actions?: V1Action[];
+  view?: string; display?: { detail?: boolean; columns?: number }; filter?: { id: string; name?: string }[];
+  requires?: string[]; os?: string; ttl?: number;
+};
+
+const HOME = homedir();
+const log = (...a: unknown[]) => console.error("[scripts]", ...a);
+const tilde = (p: string) => (p.startsWith("~/") ? HOME + p.slice(1) : p);
+const DEFAULTS: Settings = { config: "~/.config/pal/config.toml", skip: ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"], v1_repo: "~/proj/pal-v1", timeout: 30, preview_max: 50 };
+const S: Settings = { ...DEFAULTS, ...settings.get<Partial<Settings>>("scripts") };
+settings.onChange(() => log("settings changed; restart the host to rediscover palettes"), "scripts");
+
+// Scripts call jq, pal, bt, gh...; the app's PATH under launchd has none of them.
+const PATH = [...new Set([...(process.env.PATH ?? "").split(":"), `${HOME}/.local/bin`, `${HOME}/.cargo/bin`, "/opt/homebrew/bin", "/usr/local/bin"])].filter(Boolean).join(":");
+
+// ---- paths -----------------------------------------------------------------
+
+/** v1's `expand_path`: `github:` to its sparse-checkout cache (or the v1 checkout for zcag/pal), `~`, absolute, else relative to the config dir. */
+function expand(p: string, cfgDir: string): string {
+  const gh = p.match(/^github:([^/]+)\/([^/]+)\/(.+?)(?:@([^@/]+))?$/);
+  if (gh) {
+    const [, user, repo, path, ref = "main"] = gh;
+    const cache = `${process.env.XDG_DATA_HOME || `${HOME}/.local/share`}/pal/plugins/github.com/${user}/${repo}/${ref}/${path}`;
+    if (existsSync(cache)) return cache;
+    if (user === "zcag" && repo === "pal") return `${tilde(S.v1_repo)}/${path}`;
+    return cache;
+  }
+  p = tilde(p);
+  return isAbsolute(p) ? p : resolve(cfgDir, p);
+}
+
+function readToml(file: string): Raw | undefined {
+  try { return parseToml(readFileSync(file, "utf8")) as Raw; } catch (e) { if (existsSync(file)) log(`bad toml ${file}: ${e}`); }
+}
+
+/** A `.env`-style file into a table; v1's `general.env_file`. */
+function readEnvFile(file: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    for (const raw of readFileSync(file, "utf8").split("\n")) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      const i = line.indexOf("=");
+      if (i > 0) out[line.slice(0, i).trim()] = line.slice(i + 1).trim().replace(/^(["'])(.*)\1$/, "$2");
+    }
+  } catch {}
+  return out;
+}
+
+/** JSON lines, a JSON array, or the first top-level array of a TOML file; bad lines are dropped. */
+function readData(file: string): Raw[] {
+  let text: string;
+  try { text = readFileSync(file, "utf8"); } catch { log(`no data file ${file}`); return []; }
+  if (file.endsWith(".toml")) {
+    const arr = Object.values(readToml(file) ?? {}).find(Array.isArray) as Raw[] | undefined;
+    return arr ?? [];
+  }
+  if (text.trim().startsWith("[")) { try { return JSON.parse(text); } catch { return []; } }
+  return parseLines(text);
+}
+
+const parseLines = (text: string): Raw[] =>
+  text.split("\n").flatMap((l) => { if (!l.trim()) return []; try { const v = JSON.parse(l); return v && typeof v === "object" ? [v] : []; } catch { return []; } });
+
+// ---- processes --------------------------------------------------------------
+
+type Env = Record<string, string>;
+type Run = { out: string; ok: boolean; timedOut: boolean };
+
+async function run(cmd: string[], opts: { stdin?: string; env: Env; cwd?: string; timeout?: number }): Promise<Run> {
+  const ms = (opts.timeout ?? S.timeout) * 1000;
+  let proc: ReturnType<typeof Bun.spawn>;
+  try {
+    proc = Bun.spawn(cmd, { stdin: opts.stdin === undefined ? "ignore" : new Blob([opts.stdin]), stdout: "pipe", stderr: "inherit", cwd: opts.cwd, env: { ...process.env, PATH, ...opts.env } });
+  } catch (e) {
+    log(`cannot run ${cmd[0]}: ${e}`);
+    return { out: "", ok: false, timedOut: false };
+  }
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; proc.kill(); }, ms);
+  const out = await new Response(proc.stdout as ReadableStream).text();
+  const code = await proc.exited;
+  clearTimeout(timer);
+  if (timedOut) log(`${cmd.join(" ")} killed after ${ms} ms`);
+  return { out, ok: code === 0 && !timedOut, timedOut };
+}
+
+/**
+ * v1's `cmd` action: `bash -c` with the item's env. Waited on briefly so a
+ * `reload` re-lists after the command has done its work and an envelope it
+ * prints (`... | pal action copy`) still counts; a slow one runs on alone.
+ */
+async function shell(value: string, env: Env): Promise<Effect> {
+  const proc = Bun.spawn(["bash", "-c", value], { stdin: "ignore", stdout: "pipe", stderr: "inherit", env: { ...process.env, PATH, ...env } });
+  const text = new Response(proc.stdout as ReadableStream).text();
+  const done = await Promise.race([text.then(() => true), Bun.sleep(3000).then(() => false)]);
+  if (!done) { proc.unref(); return {}; }
+  return effect(envelope(await text));
+}
+
+/** Every item field as `PAL_<KEY>`: strings as they are, anything else as JSON. */
+const itemEnv = (raw: Raw): Env =>
+  Object.fromEntries(Object.entries(raw).map(([k, v]) => [`PAL_${k.toUpperCase()}`, typeof v === "string" ? v : JSON.stringify(v)]));
+
+// ---- v1 result envelope -> Effect ------------------------------------------
+
+const ENVELOPE_KEYS = ["toast", "hud", "clipboard", "open", "show", "reload", "close", "palette"];
+
+/** The envelope in a pick's output: the whole output, else its last line; anything else is plain text v1 would have printed. */
+function envelope(out: string): Raw | undefined {
+  const lines = out.trim().split("\n");
+  for (const s of [out.trim(), lines[lines.length - 1]]) {
+    if (!s.startsWith("{")) continue;
+    try { const v = JSON.parse(s); if (v && typeof v === "object" && ENVELOPE_KEYS.some((k) => k in v)) return v; } catch {}
+  }
+}
+
+const unsupported = (what: string): Effect["toast"] => ({ title: "Not supported yet", message: `${what} from a v1 script`, style: "failure" });
+
+function effect(env?: Raw): Effect {
+  if (!env) return {};
+  const e: Effect = {};
+  if (typeof env.clipboard === "string") e.copy = env.clipboard;
+  if (typeof env.open === "string") e.open = env.open;
+  if (env.reload) e.keep = true;
+  const style = env.toast?.style === "success" || env.toast?.style === "failure" ? env.toast.style : undefined;
+  if (env.toast) e.toast = { title: String(env.toast.title ?? env.toast.message ?? ""), message: env.toast.title ? env.toast.message : undefined, style };
+  // A hud after copy/open/close is v1's passive notification; a toast here would hold the window open.
+  else if (typeof env.hud === "string" && e.copy === undefined && e.open === undefined && !env.close) e.toast = { title: env.hud };
+  if (env.show) e.toast = unsupported("show (a markdown view)");
+  if (env.palette) e.toast = unsupported(`a drill-down into ${env.palette}`);
+  return e;
+}
+
+// ---- v1 item -> Item ---------------------------------------------------------
+
+/** A glyph, emoji or hex colour is an icon here; an xdg/Raycast icon name is not. */
+const glyph = (s: unknown): string | undefined => {
+  if (typeof s !== "string") return;
+  const t = s.trim();
+  return t && (/[^\x00-\x7f]/.test(t) || /^#[0-9a-f]{3,8}$/i.test(t)) ? t : undefined;
+};
+
+/** v1 (Raycast) `{text:{value,color}} | {tag:{value,color}} | {date}`, or a plain `{text}`. */
+function accessory(a: Raw): Accessory | undefined {
+  if (a.tag !== undefined) return typeof a.tag === "object" ? { tag: String(a.tag.value), color: a.tag.color } : { tag: String(a.tag) };
+  if (a.text !== undefined) return { text: String(typeof a.text === "object" ? a.text.value : a.text) };
+  if (a.date !== undefined) return { date: typeof a.date === "object" ? a.date.value : a.date };
+}
+
+/** v1 `{markdown, metadata:[{label, text, link, tags} | {separator}]}`; separators have no equivalent. */
+function detail(d: Raw | undefined, markdown?: string): Detail | undefined {
+  if (!d && markdown === undefined) return;
+  const metadata = ((d?.metadata ?? []) as Raw[]).filter((m) => m.label).map((m) => ({
+    label: String(m.label),
+    value: m.link ? undefined : m.text === undefined ? undefined : String(m.text),
+    link: m.link ? { text: String(m.text ?? m.link), href: String(m.link) } : undefined,
+    tags: Array.isArray(m.tags) ? m.tags.map((t: any) => (typeof t === "string" ? { text: t } : { text: String(t.text ?? t.value), color: t.color })) : undefined,
+  }));
+  return { markdown: markdown ?? d?.markdown, metadata: metadata.length ? metadata : undefined };
+}
+
+/** v1 picks the `primary` action, else the first; here the first is Enter, so the primary goes first. */
+function ordered(actions: V1Action[]): V1Action[] {
+  const i = actions.findIndex((a) => a.primary);
+  return i > 0 ? [actions[i], ...actions.filter((_, j) => j !== i)] : actions;
+}
+
+const toActions = (actions: V1Action[]): Action[] =>
+  ordered(actions).map((a) => ({ id: String(a.id ?? a.title), title: String(a.title ?? a.id), shortcut: a.shortcut, style: a.style === "destructive" ? "destructive" : undefined, confirm: a.confirm }));
+
+const DEFAULT_TITLE: Record<string, string> = { copy: "Copy", open: "Open", cmd: "Run", type: "Paste" };
+
+function toItem(raw: Raw, p: Loaded, preview?: string): Item {
+  const { icon_utf, icon_rc, icon_xdg, icon, accessories, detail: d, actions, preview: _p, ...rest } = raw;
+  const id = String(raw.id ?? raw.name ?? "");
+  const own = Array.isArray(actions) && actions.length ? toActions(actions) : p.actions;
+  return {
+    ...rest,
+    id,
+    name: String(raw.name ?? id),
+    icon: glyph(icon_utf) ?? glyph(icon) ?? p.icon,
+    accessories: Array.isArray(accessories) ? accessories.map(accessory).filter((a): a is Accessory => !!a) : undefined,
+    detail: detail(d, preview),
+    actions: own ?? (p.defaultTitle ? [{ id: "_default", title: p.defaultTitle }] : undefined),
+  };
+}
+
+// ---- palettes ------------------------------------------------------------------
+
+type Loaded = {
+  name: string; cfg: V1Palette; icon?: string; env: Env;
+  exec?: string[]; dir?: string; data?: string;
+  actions?: Action[]; defaultTitle?: string;
+  items: Map<string, Raw>;
+  cache?: { at: number; key: string; items: Item[] };
+};
+
+const inert = (name: string, subtitle: string): Palette => ({
+  title: name, icon: "!",
+  list: () => [{ id: "hint", name: `${name} is not available`, subtitle, icon: "!", actions: [] }],
+  pick: () => ({}),
+});
+
+async function listItems(p: Loaded, query?: string, filter?: string): Promise<Item[]> {
+  const key = `${query ?? ""}\0${filter ?? ""}`;
+  const ttl = Number(p.cfg.ttl ?? 0) * 1000;
+  if (p.cache && p.cache.key === key && Date.now() - p.cache.at < ttl) return p.cache.items;
+  const env: Env = { ...p.env, ...(filter !== undefined && { PAL_FILTER: filter }), ...(query !== undefined && { PAL_QUERY: query }) };
+  let rows: Raw[] = [];
+  if (p.cfg.auto_list && p.data) rows = readData(p.data);
+  else if (p.exec) rows = parseLines((await run(p.exec.concat("list"), { stdin: query, env, cwd: p.dir })).out);
+  // v1's normalize_item: an id-less item gets its name, and pick sees it (PAL_ID, the stdin item).
+  for (const r of rows) if (r.id === undefined && r.name !== undefined) r.id = r.name;
+  p.items = new Map(rows.map((r) => [String(r.id ?? ""), r]));
+  const previews = await previewAll(rows, env);
+  const items = rows.map((r, i) => toItem(r, p, previews[i]));
+  if (ttl) p.cache = { at: Date.now(), key, items };
+  return items;
+}
+
+/**
+ * v1 `preview`: a shell command whose stdout is the detail markdown, meant
+ * to run when a row is selected. Nothing asks lazily yet, so it runs at
+ * list time, and only for short lists (S.preview_max), eight at a time.
+ */
+async function previewAll(rows: Raw[], env: Env): Promise<(string | undefined)[]> {
+  const out: (string | undefined)[] = new Array(rows.length);
+  if (rows.length > S.preview_max || !rows.some((r) => typeof r.preview === "string")) return out;
+  let next = 0;
+  const worker = async () => {
+    for (let i = next++; i < rows.length; i = next++) {
+      if (typeof rows[i].preview !== "string") continue;
+      const r = await run(["bash", "-c", rows[i].preview], { env: { ...env, ...itemEnv(rows[i]) }, timeout: 10 });
+      if (r.ok) out[i] = r.out;
+    }
+  };
+  await Promise.all(Array.from({ length: 8 }, worker));
+  return out;
+}
+
+async function pickItem(p: Loaded, id: string, actionId?: string): Promise<Effect> {
+  const raw = p.items.get(id);
+  if (!raw) return { toast: { title: "Item not found", message: "List again and retry", style: "failure" } };
+  const env: Env = { ...p.env, ...itemEnv(raw) };
+  const actions: V1Action[] = Array.isArray(raw.actions) && raw.actions.length ? raw.actions : p.cfg.actions ?? [];
+  const action = actionId ? actions.find((a) => a.id === actionId || a.title === actionId) : actions.find((a) => a.primary) ?? actions[0];
+  const pick = async () => (p.exec ? effect(envelope((await run(p.exec.concat("pick"), { stdin: JSON.stringify(raw), env, cwd: p.dir })).out)) : {});
+  if (!action) {
+    if (p.cfg.auto_pick) return builtin(p, p.cfg.default_action ?? "cmd", String(raw[p.cfg.action_key ?? "name"] ?? ""), env);
+    return pick();
+  }
+  if (action.id) env.PAL_ACTION = action.id;
+  const kind = action.action ?? "pick";
+  const key = action.key ?? p.cfg.action_key;
+  const value = action.value ?? (key ? String(raw[key] ?? "") : "");
+  const e = kind === "pick" ? await pick() : await builtin(p, kind, value, env);
+  return action.reload ? { keep: true, ...e } : e;
+}
+
+/** v1's action plugins: copy/open/cmd/type natively, anything else a `plugins/actions/<name>` script given the value on stdin. */
+async function builtin(p: Loaded, name: string, value: string, env: Env): Promise<Effect> {
+  switch (name) {
+    case "copy": return { copy: value };
+    case "open": return { open: value };
+    case "cmd": return shell(value, env);
+    case "type": return { paste: { text: value } };
+  }
+  const dir = [`${dirname(tilde(S.config))}/plugins/actions/${name}`, `${tilde(S.v1_repo)}/plugins/actions/${name}`].find((d) => existsSync(`${d}/plugin.toml`));
+  const exec = dir && command(dir, readToml(`${dir}/plugin.toml`) ?? {});
+  if (!exec) return { toast: { title: `No action ${name}`, message: `${p.name}: not a builtin, and no plugins/actions/${name}`, style: "failure" } };
+  return effect(envelope((await run(exec.concat("run"), { stdin: value, env, cwd: dir })).out));
+}
+
+/** The plugin's `command` (plugin.toml, or the config's), resolved in its dir; `run.sh` when there is none. */
+function command(dir: string, plugin: Raw, user?: Raw): string[] | undefined {
+  const c = user?.command ?? plugin.command;
+  const arr = typeof c === "string" ? [c] : Array.isArray(c) ? c.map(String) : existsSync(`${dir}/run.sh`) ? ["run.sh"] : undefined;
+  return arr && [resolve(dir, arr[0]), ...arr.slice(1)];
+}
+
+/** `requires` (binaries, `|` between alternatives) and `os`, v1's `Palette::available`. */
+function unavailable(cfg: V1Palette): string | undefined {
+  const os = process.platform === "darwin" ? "macos" : process.platform;
+  if (cfg.os && cfg.os.toLowerCase() !== os) return `${cfg.os} only`;
+  const missing = (cfg.requires ?? []).find((req) => !req.split("|").some((b) => Bun.which(b.trim())));
+  if (missing) return `needs ${missing}`;
+}
+
+function discover(): Record<string, Palette> {
+  const file = tilde(S.config);
+  const root = readToml(file);
+  if (!root) { log(`no v1 config at ${file}`); return {}; }
+  const cfgDir = dirname(file);
+  const general = (root.general ?? {}) as Raw;
+  const baseEnv: Env = { ...(general.env_file ? readEnvFile(expand(general.env_file, cfgDir)) : {}), _PAL_CONFIG: file, _PAL_CONFIG_DIR: cfgDir };
+  const skip = new Set(S.skip);
+  const palettes: Record<string, Palette> = {};
+  const report: string[] = [];
+
+  for (const [name, user] of Object.entries((root.palette ?? {}) as Record<string, V1Palette>)) {
+    if (skip.has(name)) { report.push(`${name}: skipped (native)`); continue; }
+    if (user.base?.startsWith("builtin/")) {
+      palettes[name] = inert(name, `v1 builtin (${user.base}) has no equivalent yet`);
+      report.push(`${name}: builtin, inert`);
+      continue;
+    }
+    let dir = user.base ? expand(user.base, cfgDir) : undefined;
+    // v1 lived at ~/proj/pal before this rewrite took the path; its plugins are still in the v1 checkout.
+    const moved = dir && !existsSync(dir) && dir.match(/\/pal\/(plugins\/.+)$/);
+    if (moved && existsSync(`${tilde(S.v1_repo)}/${moved[1]}`)) { log(`${name}: ${dir} is gone, using ${tilde(S.v1_repo)}/${moved[1]}`); dir = `${tilde(S.v1_repo)}/${moved[1]}`; }
+    const plugin = dir ? readToml(`${dir}/plugin.toml`) ?? {} : {};
+    // v1 fills config gaps from plugin.toml field by field; the config wins where set.
+    const cfg = { ...plugin, ...Object.fromEntries(Object.entries(user).filter(([, v]) => v !== undefined)) } as V1Palette;
+    const why = unavailable(cfg);
+    if (why) { report.push(`${name}: gated (${why})`); continue; }
+    const exec = dir ? command(dir, plugin, user) : undefined;
+    const data = cfg.data ? expand(cfg.data, cfgDir) : undefined;
+    if (!(cfg.auto_list && data) && !exec) {
+      palettes[name] = inert(name, dir ? `no command in ${dir}` : "no base and no data");
+      report.push(`${name}: nothing to run`);
+      continue;
+    }
+    const p: Loaded = {
+      name, cfg, dir, exec, data,
+      icon: glyph(cfg.icon_utf) ?? glyph(cfg.icon),
+      env: { ...baseEnv, _PAL_PALETTE: name, _PAL_PLUGIN_CONFIG: JSON.stringify(cfg) },
+      actions: cfg.actions?.length ? toActions(cfg.actions) : undefined,
+      defaultTitle: cfg.auto_pick ? DEFAULT_TITLE[cfg.default_action ?? "cmd"] : exec ? "Select" : undefined,
+      items: new Map(),
+    };
+    palettes[name] = {
+      title: name,
+      icon: p.icon,
+      input: !!cfg.input,
+      placeholder: cfg.input_prompt,
+      live: !!cfg.live,
+      view: cfg.view === "grid" ? "grid" : undefined,
+      columns: cfg.display?.columns,
+      detail: cfg.display?.detail || undefined,
+      filters: cfg.filter?.map((f) => ({ id: f.id, title: f.name ?? f.id })),
+      list: (query, filter) => listItems(p, query, filter),
+      pick: (id, action) => pickItem(p, id, action),
+    };
+    report.push(`${name}: ${cfg.auto_list && data ? `data ${data}` : `script ${exec![0]}`}`);
+  }
+  log(report.join("\n  "));
+  return palettes;
+}
+
+export default { palettes: discover() } satisfies Extension;

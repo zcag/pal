@@ -106,7 +106,9 @@ export type Palette = {
   placeholder?: string;
   /** Open with the detail pane showing. */
   detail?: boolean;
-  list(query?: string): Item[] | Promise<Item[]>;
+  /** A scope dropdown; the chosen id reaches `list` as `filter`. First is the default. */
+  filters?: { id: string; title: string }[];
+  list(query?: string, filter?: string): Item[] | Promise<Item[]>;
   pick(id: string, action?: string): Effect | void | Promise<Effect | void>;
 };
 
@@ -161,4 +163,4 @@ export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Re
 export type SettingsChanged = { extensions: Record<string, ResolvedSettings> };
 
 /** What `hello` and `extension/loaded` say about a palette. */
-export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "detail"> & { name: string; title: string; live: boolean; input: boolean };
+export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "detail" | "filters"> & { name: string; title: string; live: boolean; input: boolean };
