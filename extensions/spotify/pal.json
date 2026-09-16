@@ -1,0 +1,197 @@
+{
+  "name": "spotify",
+  "title": "Spotify",
+  "description": "Search, play, queue and like on Spotify from the panel, with a lyrics view that follows the song and a bar item that shows the line playing.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰓇", "bg": "green" } },
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    {
+      "kind": "text",
+      "id": "client_id",
+      "label": "Client id",
+      "placeholder": "32 hex characters from developer.spotify.com",
+      "description": "Your own Spotify app's client id (README: create one at developer.spotify.com with the redirect http://127.0.0.1:27182/callback). No secret is needed: pal signs in with PKCE.",
+      "default": ""
+    },
+    {
+      "kind": "number",
+      "id": "redirect_port",
+      "label": "Redirect port",
+      "description": "The port pal listens on for the sign-in redirect; must match the redirect URI registered on the app.",
+      "min": 1024,
+      "max": 65535,
+      "default": 27182
+    },
+    {
+      "kind": "boolean",
+      "id": "bar_lyrics",
+      "label": "Lyrics on the bar",
+      "text": "Show the lyric line playing instead of the track name",
+      "description": "Only when lrclib has synced lyrics for the track; the track name otherwise.",
+      "default": true
+    },
+    {
+      "kind": "list",
+      "id": "pinned",
+      "label": "Pinned playlists",
+      "placeholder": "A playlist name, or its spotify:playlist: link",
+      "description": "Each one is a \"Play <name>\" row at the root.",
+      "default": []
+    }
+  ],
+  "palettes": {
+    "now-playing": {
+      "title": "Lyrics",
+      "description": "The track playing with its cover, a ticking progress bar, the state, and lrclib's synced lyrics around the line playing.",
+      "kind": "view",
+      "keys": [
+        { "keys": "space, enter", "title": "Play or pause" },
+        { "keys": "left, right", "title": "Seek 10 s back or forward" },
+        { "keys": "up, down", "title": "Volume up or down" },
+        { "keys": "l", "title": "Like or unlike" },
+        { "keys": "s", "title": "Shuffle on or off" },
+        { "keys": "r", "title": "Repeat: all, one, off" },
+        { "keys": "q", "title": "The queue" },
+        { "keys": "d", "title": "Devices" },
+        { "keys": "cmd+right, cmd+left", "title": "Next or previous track" },
+        { "keys": "cmd+c", "title": "Copy the line playing (the track without lyrics)" },
+        { "keys": "cmd+o", "title": "Open in Spotify" },
+        { "keys": "f", "title": "Search lrclib when it has no lyrics" }
+      ]
+    },
+    "search": {
+      "title": "Search Spotify",
+      "description": "Tracks, artists, albums, playlists, podcasts and episodes as sections with their cover art.",
+      "kind": "input",
+      "keys": [
+        { "keys": "enter", "title": "Play" },
+        { "keys": "cmd+enter", "title": "Add to queue (a track); show tracks (a playlist or album)" },
+        { "keys": "cmd+l", "title": "Like or unlike a track" },
+        { "keys": "cmd+s", "title": "Play a playlist shuffled" },
+        { "keys": "cmd+o", "title": "Open in Spotify" },
+        { "keys": "cmd+c", "title": "Copy link" }
+      ]
+    },
+    "playlists": {
+      "title": "Playlists",
+      "description": "Your playlists and the ones you follow; a drill-in lists the tracks and plays from one.",
+      "kind": "list",
+      "ttl": 300,
+      "keys": [
+        { "keys": "enter", "title": "Play" },
+        { "keys": "cmd+enter", "title": "Show tracks (a playlist); add to queue (a track of one)" },
+        { "keys": "cmd+s", "title": "Play shuffled" },
+        { "keys": "cmd+l", "title": "Like or unlike a track of a listed playlist" },
+        { "keys": "cmd+o", "title": "Open in Spotify" },
+        { "keys": "cmd+c", "title": "Copy link" }
+      ]
+    },
+    "library": {
+      "title": "Library",
+      "description": "Liked Songs newest first, recently played, and the top tracks and artists of the last weeks, as filters.",
+      "kind": "list",
+      "ttl": 300,
+      "keys": [
+        { "keys": "tab", "title": "Liked Songs, Recently played, Top tracks, Top artists" },
+        { "keys": "enter", "title": "Play" },
+        { "keys": "cmd+enter", "title": "Add to queue" },
+        { "keys": "cmd+l", "title": "Like or unlike" },
+        { "keys": "cmd+o", "title": "Open in Spotify" },
+        { "keys": "cmd+c", "title": "Copy link" }
+      ]
+    },
+    "devices": {
+      "title": "Spotify Devices",
+      "description": "Every device Spotify is open on: transfer playback to one, and the volume of the active one.",
+      "kind": "live",
+      "keys": [
+        { "keys": "enter", "title": "Play here (a device); volume up, down, mute (the volume rows)" },
+        { "keys": "cmd+enter", "title": "Transfer without playing" },
+        { "keys": "cmd+up, cmd+down", "title": "Volume of the active device" }
+      ]
+    },
+    "queue": {
+      "title": "Queue",
+      "description": "What plays now and what comes next; skip to a row.",
+      "kind": "live",
+      "keys": [
+        { "keys": "enter", "title": "Skip to the row (play or pause on the first)" },
+        { "keys": "cmd+l", "title": "Like or unlike" },
+        { "keys": "cmd+o", "title": "Open in Spotify" },
+        { "keys": "cmd+c", "title": "Copy link" }
+      ]
+    },
+    "commands": {
+      "title": "Spotify",
+      "description": "Play or pause, next, previous, like, lyrics, sign out, and a Play row per pinned playlist, all root results.",
+      "kind": "list",
+      "tier": "primary",
+      "keys": [
+        { "keys": "enter", "title": "Run" },
+        { "keys": "cmd+s", "title": "Play a pinned playlist shuffled" },
+        { "keys": "cmd+o", "title": "Open a pinned playlist in Spotify" }
+      ]
+    }
+  },
+  "bar": {
+    "playing": {
+      "title": "Spotify",
+      "description": "The track playing (or the lyric line, with \"Lyrics on the bar\"), hidden while nothing plays; the lyrics view as the popover, ticking while it is up.",
+      "refresh": { "every": 30, "on": ["show", "wake", "network", "media"] }
+    }
+  },
+  "license": "MIT",
+  "store": {
+    "tagline": "Play, search, queue and like on Spotify, lyrics that follow",
+    "category": "media",
+    "features": [
+      "Signs in to your own Spotify app with PKCE: no secret, the refresh token kept by pal",
+      "Search as you type: tracks, artists, albums, playlists, podcasts and episodes in sections with their cover art; Enter plays, cmd+enter queues, cmd+l likes, cmd+o opens in Spotify",
+      "Playlists (yours and followed, with a drill-in per playlist), Library (Liked Songs, recently played, top tracks and artists), Devices (transfer, volume) and the Queue (skip to a row)",
+      "A lyrics view: the cover, a ticking progress bar, shuffle, repeat and like, and lrclib's synced lyrics around the line playing, the cover's colour as a tint; space, arrows, l, s, r, q, d",
+      "Root rows for play or pause, next, previous, like, and \"Play <playlist>\" for each pinned playlist",
+      "A bar item with the track or the lyric line playing; the popover is the lyrics view, ticking, with the whole transport on keys",
+      "Rate limits honoured (a 429 is waited out or shown with its time), the token refreshed early, offline and no-device states as one line"
+    ],
+    "permissions": ["network", "token"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-lyrics.png", "caption": "The lyrics view: the cover, the progress, the line playing bright among the lines around it" },
+      { "file": "2-lyrics-dark.png", "caption": "The same view on the dark panel, the cover's colour under the art" },
+      { "file": "3-search.png", "caption": "Search: tracks, artists, albums, playlists and podcasts as sections" },
+      { "file": "4-playlists.png", "caption": "Playlists: yours and the followed ones; cmd+enter lists a playlist's tracks" },
+      { "file": "5-library.png", "caption": "Library: Liked Songs newest first, the other filters on Tab" },
+      { "file": "6-queue.png", "caption": "The queue: what plays now, what comes next, Enter skips to a row" },
+      { "file": "bar-menubar-dark.png", "caption": "On the menu bar: the lyric line playing beside the Spotify mark", "kind": "bar" },
+      { "file": "bar-menubar-light.png", "caption": "The same item on a light menu bar, with the track name when lrclib has no lyrics", "kind": "bar" },
+      { "file": "bar-sketchybar.png", "caption": "On sketchybar: the mark in the icon font, the line as the label", "kind": "bar" }
+    ],
+    "actions": [
+      { "title": "Play", "description": "A track, or a playlist, album, artist or show as the context.", "keys": "enter" },
+      { "title": "Add to queue", "keys": "cmd+enter" },
+      { "title": "Show tracks", "description": "A playlist's or album's tracks as a level; Enter plays from there.", "keys": "cmd+enter" },
+      { "title": "Play shuffled", "keys": "cmd+s" },
+      { "title": "Like", "description": "Adds to or removes from Liked Songs.", "keys": "cmd+l" },
+      { "title": "Open in Spotify", "keys": "cmd+o" },
+      { "title": "Copy link", "keys": "cmd+c" },
+      { "title": "Play or pause", "description": "In the lyrics view.", "keys": "space" },
+      { "title": "Seek back 10 s", "keys": "left" },
+      { "title": "Seek forward 10 s", "keys": "right" },
+      { "title": "Volume up", "keys": "up" },
+      { "title": "Volume down", "keys": "down" },
+      { "title": "Shuffle on", "keys": "s" },
+      { "title": "Repeat all", "description": "Then Repeat one, then off.", "keys": "r" },
+      { "title": "Queue", "keys": "q" },
+      { "title": "Devices", "keys": "d" },
+      { "title": "Copy current line", "keys": "cmd+c" },
+      { "title": "Search on lrclib", "description": "When lrclib has no lyrics for the track.", "keys": "f" },
+      { "title": "Play here", "description": "Transfers playback to the device.", "keys": "enter" },
+      { "title": "Transfer without playing", "keys": "cmd+enter" },
+      { "title": "Skip to it", "description": "In the queue: one Next per row ahead.", "keys": "enter" },
+      { "title": "Sign in to Spotify", "description": "Opens the browser; pal listens on 127.0.0.1 for the redirect." },
+      { "title": "Sign out", "description": "Forgets the tokens." }
+    ]
+  }
+}

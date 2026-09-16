@@ -1,0 +1,8 @@
+{
+  "name": "pal-ext-spotify",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jpeg-js": "^0.4.4"
+  }
+}

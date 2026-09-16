@@ -2642,3 +2642,64 @@ Settings, `[extensions.hue]`:
 | `main_room` | text | unset | The bar dot's room and the popover's scenes. |
 | `bar_scenes` | list | `[]` | Scene names or ids in the popover, in order. |
 | `timeout` | number (s) | `5` | One request's limit. |
+
+## Spotify (`spotify-now-playing`, `spotify-search`, `spotify-playlists`, `spotify-library`, `spotify-devices`, `spotify-queue`, `spotify-commands`, `spotify/playing`)
+
+One extension over the Spotify Web API, signed in to your own Spotify
+app with PKCE (no secret; `extensions/spotify/README.md` says how to
+create the app and register `http://127.0.0.1:27182/callback`). The
+refresh token lives in the extension's storage file, since the SDK has
+no `settings.set` to write a `keychain:` reference through; Sign Out
+deletes it.
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Lyrics | `spotify-now-playing` | view | play or pause; the transport on keys |
+| Search Spotify | `spotify-search` | input | plays the row |
+| Playlists | `spotify-playlists` | indexed, 5 min | plays the playlist; `cmd+enter` lists its tracks |
+| Library | `spotify-library` | indexed, 5 min, filters | plays the track |
+| Spotify Devices | `spotify-devices` | live | transfers playback there |
+| Queue | `spotify-queue` | live | skips to the row |
+| Spotify | `spotify-commands` | indexed, primary | play or pause, next, previous, like, lyrics, sign out, "Play <pinned playlist>" |
+
+**Search** lists Tracks, Artists, Albums, Playlists, Podcasts and
+Episodes as sections with the cover as the icon. A track: `enter` plays,
+`cmd+enter` queues, `cmd+l` likes or unlikes, `cmd+o` opens in Spotify,
+`cmd+c` copies the link; a playlist or album: `enter` plays it as the
+context, `cmd+enter` its tracks as a level (a row there plays from that
+point inside it), `cmd+s` shuffled. **Library**'s filters: Liked Songs
+(newest first), Recently played, Top tracks, Top artists (the last
+weeks). **Devices**: a row per device with its glyph, volume and
+`active` tag, plus Volume up, down and Mute for the active one.
+**Queue**: what plays now, then the queue numbered; the Web API cannot
+remove a queued track, so Enter skips to the row (one Next per row).
+The **Spotify** rows are root results (`pause`, `next`, `like`, `Play
+Focus`); the playing track is also a Now row at the empty root.
+
+**The lyrics view** (`spotify-now-playing`): the cover, the track, a
+ticking progress bar, badges (paused, shuffle, repeat, liked, the device
+and its volume) and lrclib.net's synced lyrics around the line playing,
+the line bright at the largest size, the three before muted, the three
+after faint, sliding up as the song goes; unsynced lyrics scroll with
+the position; "No lyrics on lrclib" with `f` to search there. The
+cover's dominant colour is a band under the art and the progress bar's
+colour. Keys: `space` play or pause, `left`/`right` seek 10 s,
+`up`/`down` volume, `l` like, `s` shuffle, `r` repeat, `q` queue, `d`
+devices, `cmd+right`/`cmd+left` skip, `cmd+c` copy the line, `cmd+o`
+open in Spotify. Every key answers with the next tree at once from a
+locally patched state. The panel's view does not tick by itself (pal has
+no channel to push a tree into an open level); the bar popover does.
+
+**The bar item** (`spotify/playing`): the track, or with `bar_lyrics`
+the lyric line playing; hidden while nothing plays. The popover is the
+lyrics view in a compact layout, pushed every second while it is up
+(five minutes after the last show or action; Spotify read every 5 s, the
+clock between reads), and outside that window the item asks to be
+rendered again when the next line starts. Rendered every 30 s, on show,
+wake, network and the `media` trigger.
+
+Settings, `[extensions.spotify]`: `client_id` (text), `redirect_port`
+(number, `27182`), `bar_lyrics` (boolean, `true`), `pinned` (list of
+playlist names or `spotify:playlist:` links). A `429` is waited out
+under two seconds and otherwise refused locally until its `Retry-After`;
+offline, no device and Premium-required states are one line each.
