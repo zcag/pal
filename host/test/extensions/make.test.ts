@@ -97,9 +97,10 @@ describe("make", () => {
     await list();
     expect(await pick(id("test", pal))).toEqual({ hud: "make test" });
     const argv = JSON.parse(readFileSync(join(root, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[];
-    // kitty takes the script as its last argument; Terminal.app (the CI runner) wraps it in an AppleScript `do script` line.
-    const script = argv.find((a) => a.includes("make test"))!.replace(/^tell application "Terminal" to do script "/, "").replace(/\\"/g, '"');
-    expect(script).toStartWith(`cd ${pal} && exec sh -c 'make test; s=$?;`);
+    // kitty takes the script as its last argument; Terminal.app (the CI runner) wraps it in an AppleScript `do script` line with its own quoting.
+    const script = argv.find((a) => a.includes("make test"))!;
+    expect(script).toContain(`cd ${pal} && exec sh -c `);
+    expect(script).toContain("make test; s=$?;");
     expect(script).toContain("read -r _");
     expect(await pick(id("a", pal), "run")).toEqual({ hud: "make a" });
   });

@@ -429,6 +429,8 @@ impl Live {
 /// adapter. `now_playing` answers from [`Live`] while it is up and falls
 /// back to `get` while it is not.
 #[cfg(unix)]
+// Only macOS starts the adapter (`get_or_start` from the macOS `system()`); Linux keeps the module for `current`/`shutdown` and playerctl has no stream.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 mod stream {
     use super::*;
     use std::io::{BufRead, BufReader};
