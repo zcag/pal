@@ -133,6 +133,7 @@ listed by `pal bar list`, but nothing is drawn and no item renders
 | `hover_delay` | integer, ms | `250` | How long the pointer rests on an item before its popover peeks. |
 | `hover_grace` | integer, ms | `400` | How long after the pointer has left both the item and the popover a peek stays. |
 | `menubar.open_on_hover` | bool | `false` | A hover peeks on the menu bar (Apple's bar has no hover convention, so off). |
+| `menubar.max_chars` | int | `32` | The longest title an item draws on the menu bar; longer text ends in an ellipsis, since Apple's bar hides whatever runs under the notch or off the left edge. |
 | `sketchybar.open_on_hover` | bool | `true` | A hover peeks on sketchybar. |
 | `sketchybar.position` | string | `"right"` | Where pal's items go: `left`, `right`, `center`, `q`, `e`, or `before:<item>` / `after:<item>` next to one of the bar's own items. |
 | `sketchybar.colors` | table of strings | `{}` | Overrides of the colour names the model uses (`red`, `amber`, `muted`, `text`, ...) as `0xAARRGGBB` or `#rrggbb`, so a themed bar keeps its own palette. |
@@ -146,6 +147,7 @@ Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
 | `position` | string | unset | This item's sketchybar position; `sketchybar.position` when unset. |
 | `hotkey` | string | unset | A global hotkey that opens the item's popover (or runs its open action). Same syntax as `general.hotkey`; the root and palette hotkeys win a clash. |
 | `open_on_hover` | bool | unset | This item's say on hovering; the target's default when unset. |
+| `max_chars` | int | unset | This item's longest menu bar title; `menubar.max_chars` when unset. |
 | `order` | integer | `0` | Order among pal's own items, ascending left to right (on the menu bar, and within one sketchybar position). |
 
 A change re-targets, moves or removes items live. pal only ever touches

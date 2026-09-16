@@ -48,6 +48,24 @@ pub fn dark(app: &AppHandle) -> bool {
 
 pub fn install(_app: &AppHandle) {}
 
+/// `s` cut to `max` characters with an ellipsis, on a word edge when one is near.
+pub fn clip(s: &str, max: usize) -> String {
+    let n = s.chars().count();
+    if n <= max {
+        return s.to_string();
+    }
+    let chars: Vec<char> = s.chars().collect();
+    let cut = max.saturating_sub(1);
+    let keep: String = chars[..cut].iter().collect();
+    // A cut inside a word backs up to the word's start when that loses less than a third.
+    let mid_word = chars[cut] != ' ';
+    let trimmed = match keep.rfind(' ') {
+        Some(i) if mid_word && i >= keep.len() * 2 / 3 => keep[..i].to_string(),
+        _ => keep,
+    };
+    format!("{}…", trimmed.trim_end())
+}
+
 /// The title text beside the icon: an emoji icon first (the font has no
 /// emoji), the title, each segment as `glyph text`, two spaces apart, then
 /// a count badge as ` ·3`.
@@ -70,6 +88,8 @@ pub fn title_text(draw: &Draw) -> String {
     if let Some(n) = item.count() {
         text.push_str(&format!(" ·{n}"));
     }
+    // Apple's bar hides whatever runs under the notch or off the left edge: a long line stops short.
+    let text = clip(&text, draw.max_chars);
     text.trim().to_string()
 }
 
@@ -266,7 +286,17 @@ mod tests {
     use serde_json::json;
 
     fn draw(item: serde_json::Value) -> Draw {
-        Draw { item: serde_json::from_value(item).unwrap(), order: 0, position: "right".into(), hover: false }
+        Draw { item: serde_json::from_value(item).unwrap(), order: 0, position: "right".into(), hover: false, max_chars: 32 }
+    }
+
+    #[test]
+    fn long_titles_stop_short_of_the_notch() {
+        assert_eq!(clip("short", 32), "short");
+        assert_eq!(clip("With a coat that smells of rain and the radio playing", 32), "With a coat that smells of rain…");
+        assert_eq!(clip("abcdefghijklmnopqrstuvwxyz0123456789", 12), "abcdefghijk…");
+        let mut d = draw(json!({ "title": "A lyric line long enough to reach the notch on a 14 inch MacBook" }));
+        d.max_chars = 24;
+        assert_eq!(title_text(&d), "A lyric line long…");
     }
 
     #[test]

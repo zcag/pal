@@ -309,6 +309,8 @@ pub struct Draw {
     pub position: String,
     /// A hover peeks (the target's `open_on_hover`, per item overridable).
     pub hover: bool,
+    /// The longest title on the menu bar (`[bar.menubar] max_chars`); sketchybar ignores it.
+    pub max_chars: usize,
 }
 
 /// One declared item.
@@ -621,7 +623,7 @@ fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind) -> Option<Dra
         Kind::Menubar => BarTarget::Menubar,
     };
     let hover = item.has_menu() && config.bar.open_on_hover(key, target);
-    Some(Draw { item, order: cfg.order.unwrap_or(0), position: config.bar.position_of(key), hover })
+    Some(Draw { item, order: cfg.order.unwrap_or(0), position: config.bar.position_of(key), hover, max_chars: config.bar.max_chars(key) })
 }
 
 /// Push `key`'s state to every target: drawn where its target says and

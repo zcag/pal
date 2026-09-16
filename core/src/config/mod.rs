@@ -459,12 +459,17 @@ impl Default for Bar {
 }
 
 /// `[bar.menubar]`: the macOS menu bar target.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
 pub struct BarMenubar {
     /// A hover peeks the item's popover. Off: Apple's bar has no hover convention.
     pub open_on_hover: bool,
+    /// Longest title an item draws on the menu bar, in characters; longer
+    /// text ends in an ellipsis. Apple's bar hides whatever runs into the
+    /// notch or past the left edge, so a lyric line or a track title must
+    /// stop short. Per item: `[bar.items."<key>"] max_chars`.
+    pub max_chars: usize,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -514,6 +519,8 @@ pub struct BarItemConfig {
     /// Order among pal's own items: ascending left to right on the menu
     /// bar and within a sketchybar position.
     pub order: Option<i64>,
+    /// This item's longest menu bar title; `[bar.menubar] max_chars` when unset.
+    pub max_chars: Option<usize>,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -521,7 +528,13 @@ pub struct BarItemConfig {
 
 impl Default for BarItemConfig {
     fn default() -> Self {
-        Self { enabled: true, target: None, position: None, hotkey: None, open_on_hover: None, order: None, extra: BTreeMap::new() }
+        Self { enabled: true, target: None, position: None, hotkey: None, open_on_hover: None, order: None, max_chars: None, extra: BTreeMap::new() }
+    }
+}
+
+impl Default for BarMenubar {
+    fn default() -> Self {
+        Self { open_on_hover: false, max_chars: 32, extra: BTreeMap::new() }
     }
 }
 
@@ -545,6 +558,11 @@ impl Bar {
     }
 
     /// Whether a hover peeks `key` on `target`: the item's say, else the target's.
+    /// The longest menu bar title for `key`, in characters.
+    pub fn max_chars(&self, key: &str) -> usize {
+        self.item(key).max_chars.unwrap_or(self.menubar.max_chars).max(4)
+    }
+
     pub fn open_on_hover(&self, key: &str, target: BarTarget) -> bool {
         self.item(key).open_on_hover.unwrap_or(match target {
             BarTarget::Sketchybar => self.sketchybar.open_on_hover,

@@ -455,7 +455,7 @@ mod tests {
     use serde_json::json;
 
     fn draw(item: serde_json::Value, position: &str, hover: bool) -> Draw {
-        Draw { item: serde_json::from_value::<BarItem>(item).unwrap(), order: 0, position: position.into(), hover }
+        Draw { item: serde_json::from_value::<BarItem>(item).unwrap(), order: 0, position: position.into(), hover, max_chars: 32 }
     }
 
     fn pal() -> Palette {

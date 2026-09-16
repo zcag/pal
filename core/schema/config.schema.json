@@ -29,6 +29,7 @@
         "menubar": {
           "$ref": "#/$defs/BarMenubar",
           "default": {
+            "max_chars": 32,
             "open_on_hover": false
           }
         },
@@ -59,6 +60,12 @@
         "hotkey": {
           "description": "Global hotkey that opens the item's popover engaged (or runs its open action).",
           "type": "string"
+        },
+        "max_chars": {
+          "description": "This item's longest menu bar title; `[bar.menubar] max_chars` when unset.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
         },
         "open_on_hover": {
           "description": "A hover peeks this item; the target's default when unset.",
@@ -91,6 +98,13 @@
       "additionalProperties": false,
       "description": "`[bar.menubar]`: the macOS menu bar target.",
       "properties": {
+        "max_chars": {
+          "default": 32,
+          "description": "Longest title an item draws on the menu bar, in characters; longer\ntext ends in an ellipsis. Apple's bar hides whatever runs into the\nnotch or past the left edge, so a lyric line or a track title must\nstop short. Per item: `[bar.items.\"<key>\"] max_chars`.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
         "open_on_hover": {
           "default": false,
           "description": "A hover peeks the item's popover. Off: Apple's bar has no hover convention.",
@@ -396,6 +410,7 @@
         "hover_grace": 400,
         "items": {},
         "menubar": {
+          "max_chars": 32,
           "open_on_hover": false
         },
         "sketchybar": {
