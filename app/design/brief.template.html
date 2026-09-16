@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>pal design brief</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ---------------------------------------------------------------------
  * 1. pal tokens, inlined verbatim from app/src/ui/tokens.css.
@@ -60,7 +57,7 @@ html, body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); }
 body {
   font: 400 14px/1.55 var(--pal-font-ui);
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
 }
 a { color: inherit; }
 code, .mono { font-family: var(--pal-font-mono); font-size: 0.92em; }
@@ -201,7 +198,7 @@ table.t td.v { font-family: var(--pal-font-mono); font-size: 12px; white-space: 
   box-shadow: var(--pal-shadow-panel), var(--pal-bevel);
   overflow: hidden;
   font: var(--pal-weight-regular) var(--pal-text-md) / var(--pal-leading-ui) var(--pal-font-ui);
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   position: relative;
   text-align: left;
@@ -529,8 +526,9 @@ mark.p-m { background: var(--pal-match); color: inherit; border-radius: var(--pa
 <!-- ============================================================ -->
 <section class="s" id="type">
   <h2>Type</h2>
-  <p><strong>IBM Plex Sans, bundled with the app; IBM Plex Mono for code and codes.</strong> Not the system stack: pal ships on macOS and Linux, and the system stack renders SF on one and whatever fontconfig finds on the other, so the same row would be 6% wider on marko than on hornet and the design would have to be tuned twice. Plex has true tabular figures (OTP codes and dates line up), a mono sibling so code in a detail pane does not change voice, and an OFL licence so it can ship in the bundle. It also reads as a tool, not a brochure. Three weights only: 400, 500, 600.</p>
-  <p>Scale is five sizes, chosen for the row they sit on rather than a ratio: 11 / 12 / 13 / 15 / 18. UI text is single-line and vertically centred, so its line height is 1.25; prose in the detail pane gets 1.55. Tracking is default everywhere except +0.01em on 11px labels, where Plex tightens.</p>
+  <p><strong>The system UI font, nothing bundled: SF on macOS, the desktop's sans on Linux; the system mono for code and codes.</strong> The panel is judged next to Spotlight and Raycast on a Mac, and both are set in SF; a bundled face (IBM Plex was the candidate) reads as a web page dropped onto the desktop, and costs a font load before the first paint. On Linux the stack falls through to what the desktop set (<code>Inter</code>, <code>Noto Sans</code>, then <code>system-ui</code>), so pal looks like the rest of that desktop rather than like a Mac; the same row measuring a few percent wider there is the price, and the layout (ellipsis on titles, fixed accessory column) absorbs it. What Plex was chosen for, true tabular figures, comes from the system font instead: accessories, tags and metadata values set <code>font-variant-numeric: tabular-nums</code>, so dates, sizes and OTP codes still line up across rows. Three weights only: 400, 500, 600.</p>
+  <p>Scale is five sizes, chosen for the row they sit on rather than a ratio: 11 / 12 / 13 / 15 / 18. UI text is single-line and vertically centred, so its line height is 1.25; prose in the detail pane gets 1.55. Tracking is default everywhere except +0.01em on 11px labels, where a text face tightens.</p>
+  <p>Stacks, from <code>tokens.css</code>: <code>--pal-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Inter", "Noto Sans", system-ui, sans-serif</code> and <code>--pal-font-mono: ui-monospace, "SF Mono", Menlo, "JetBrains Mono", monospace</code>.</p>
   <div class="spec" id="type-spec"></div>
   <p class="why" style="margin-top:16px"><b>What is deliberately absent.</b> No all-caps labels (section headers are 11px medium, sentence case, in the faint colour). No weight change on selection (a bolder selected title shifts the text by a pixel on every arrow key). No italic anywhere in the shell.</p>
 </section>

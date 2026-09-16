@@ -27,6 +27,24 @@
         "visibleOnAllWorkspaces": true
       },
       {
+        "label": "hud",
+        "title": "pal HUD",
+        "url": "index.html?hud",
+        "width": 480,
+        "height": 72,
+        "visible": false,
+        "focus": false,
+        "focusable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "visibleOnAllWorkspaces": true,
+        "acceptFirstMouse": false
+      },
+      {
         "label": "settings",
         "title": "pal Settings",
         "url": "index.html?settings",

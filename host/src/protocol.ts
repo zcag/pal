@@ -91,6 +91,12 @@ export type Effect = {
   focus?: string;
   hide?: true;
   toast?: { title: string; message?: string; style?: "success" | "failure" };
+  /**
+   * A line in the HUD (the small capsule at the bottom of the screen) once
+   * the panel has hidden, for a pick with no other visible result; `copy`
+   * shows "Copied" there by itself, this replaces that text.
+   */
+  hud?: string;
   /** Stay open and list again. */
   keep?: true;
   /**

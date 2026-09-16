@@ -21,7 +21,7 @@ pal hide            hide the panel
 pal settings        open the settings window
 pal reload          restart the extension host (reloads every extension from disk)
 pal quit            quit the running instance (flushes its state, stops the extension host)
-pal install SPEC    install an extension into ~/.config/pal/extensions
+pal install SPEC    install an extension into the store (see Extensions)
 pal update [NAME]   fetch an installed extension's source again (every one with a source, without a name)
 pal remove NAME     remove an installed extension
 pal list            the installed extensions: name, version, source

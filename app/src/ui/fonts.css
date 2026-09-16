@@ -7,7 +7,7 @@
  * this a glyph icon is tofu on Linux and on any Mac without one. Restricted
  * to the private-use ranges, so it never draws a letter or a symbol that a
  * text font has, and is only fetched once a PUA glyph is on screen. UI text
- * fonts are not bundled (open question in the brief).
+ * is the system font (tokens.css --pal-font-ui), nothing bundled for it.
  */
 @font-face {
   font-family: "Symbols Nerd Font Mono";

@@ -38,6 +38,19 @@ fn base(xdg: &str, platform: Option<PathBuf>) -> PathBuf {
         .join("pal")
 }
 
+/// `p` with a leading `~` (alone, or before a `/`) replaced by the home
+/// directory, the one spelling a config value may use; anything else is
+/// returned as it is.
+pub fn expand_home(p: &str) -> PathBuf {
+    match p.strip_prefix('~') {
+        Some(rest) if rest.is_empty() || rest.starts_with('/') => match dirs::home_dir() {
+            Some(home) => home.join(rest.trim_start_matches('/')),
+            None => PathBuf::from(p),
+        },
+        _ => PathBuf::from(p),
+    }
+}
+
 /// Whether `bin` is on `$PATH`: the gate for every capability that shells
 /// out to a tool the user may not have.
 pub(crate) fn on_path(bin: &str) -> bool {
@@ -65,6 +78,16 @@ pub fn write_atomic(target: &Path, bytes: impl AsRef<[u8]>) -> std::io::Result<(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn expand_home_takes_a_leading_tilde_only() {
+        let home = dirs::home_dir().unwrap();
+        assert_eq!(expand_home("~"), home);
+        assert_eq!(expand_home("~/x/y"), home.join("x/y"));
+        assert_eq!(expand_home("~x/y"), PathBuf::from("~x/y"), "another user's home is not ours to expand");
+        assert_eq!(expand_home("/a/~/b"), PathBuf::from("/a/~/b"));
+        assert_eq!(expand_home(""), PathBuf::from(""));
+    }
 
     #[test]
     fn write_atomic_creates_dir_and_leaves_no_temp() {

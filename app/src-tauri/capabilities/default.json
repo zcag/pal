@@ -4,6 +4,7 @@
   "description": "The panel",
   "windows": [
     "main",
+    "hud",
     "settings"
   ],
   "permissions": [

@@ -124,8 +124,9 @@
 .pal-row__title { flex: 0 1 auto; max-width: 65%; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .pal-row__title[data-solo] { max-width: none; }
 .pal-row__sub { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
-.pal-row__accs { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: var(--pal-row-gap, 12px); }
-.pal-acc { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
+/* Accessories, tags and metadata values carry the numbers that stack across rows (dates, sizes, codes): tabular figures so they line up in the system font. */
+.pal-row__accs { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: var(--pal-row-gap, 12px); font-variant-numeric: tabular-nums; }
+.pal-acc { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); font-variant-numeric: tabular-nums; }
 .pal-row__ordinal { color: var(--pal-fg-faint, #868794); font: inherit; font-size: var(--pal-text-xs, 11px); }
 mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; border-radius: var(--pal-radius-mark, 2px); }
 
@@ -141,6 +142,7 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   color: var(--tag);
   font-size: var(--pal-text-xs, 11px);
   font-weight: var(--pal-weight-medium, 500);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .pal-tag[data-color="blue"] { --tag: var(--pal-tag-blue); --tag-bg: var(--pal-tag-blue-bg); }
@@ -220,7 +222,7 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-search[data-readonly] .pal-search__input { caret-color: transparent; }
 .pal-meta { display: flex; justify-content: space-between; gap: var(--pal-space-3, 12px); padding: var(--pal-space-1, 4px) 0; font-size: var(--pal-text-sm, 12px); }
 .pal-meta__label { flex: none; color: var(--pal-fg-faint, #868794); }
-.pal-meta__value { margin: 0; min-width: 0; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--pal-space-1, 4px); text-align: right; overflow-wrap: anywhere; }
+.pal-meta__value { margin: 0; min-width: 0; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--pal-space-1, 4px); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .pal-md > :first-child { margin-top: 0; }
 .pal-md > :last-child { margin-bottom: 0; }
 .pal-md h1, .pal-md h2, .pal-md h3 { margin: var(--pal-space-4, 16px) 0 var(--pal-space-2, 8px); font-weight: var(--pal-weight-semibold, 600); line-height: var(--pal-leading-ui, 1.25); }
@@ -471,6 +473,11 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-hud .pal-icon { color: var(--pal-success, #4fc98a); }
+/* The HUD window's page (HudPage.tsx): the capsule at the bottom centre, 24px in so the shadow (20px below) stays inside the window; the text clips before the window does. Out: slower than the in, so it is not read as a flicker. */
+.pal-hud-page { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0 var(--pal-space-4, 16px) var(--pal-space-6, 24px); pointer-events: none; }
+.pal-hud-page .pal-hud { max-width: 100%; }
+.pal-hud-page .pal-hud > span { overflow: hidden; text-overflow: ellipsis; }
+[data-exiting] > .pal-hud { animation: none; opacity: 0; transform: translateY(6px) scale(0.98); transition: opacity var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in), transform var(--pal-dur-hud-out, 240ms) var(--pal-ease-in, ease-in); }
 
 /* tokens.css zeroes every --pal-dur-* under reduced motion; the loops here have their own durations. */
 @media (prefers-reduced-motion: reduce) {

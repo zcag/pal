@@ -98,6 +98,14 @@ bind = CTRL, space, exec, pal toggle
 bundling pass, and the class follows.) The same set is quoted in
 `app/src-tauri/src/panel/linux.rs` as what the app cannot do itself.
 
+The HUD window (`hud.rs`) has the same class, so the rule above would put it
+at 20% down too; its own rule keys on the title and goes first (untested on
+marko, written from the panel's):
+
+```
+windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, no_focus on, move (monitor_w*0.5-window_w*0.5) (monitor_h-window_h-8), match:title ^(pal HUD)$
+```
+
 `center on` also works but centres vertically. `move` with `monitor_w`/`window_w`
 expressions is what puts it where `place()` wants it, since the app cannot.
 

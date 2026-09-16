@@ -101,9 +101,11 @@ On Linux, `⌘` in the above is `Ctrl`. The whole grammar is in
 
 `~/.config/pal/config.toml` on both platforms (`$XDG_CONFIG_HOME/pal/config.toml`
 when that variable is set; `PAL_CONFIG=<path>` overrides both). The first
-launch creates it from a two-line template and puts `config.schema.json`
-next to it, so an editor with TOML schema support validates and completes
-the file.
+launch creates it from a two-line template whose first line points an
+editor with TOML schema support at the published schema, so it validates
+and completes the file; nothing else is written into that directory. A pal
+v1 config found there is migrated first: kept whole as `config.v1.toml`
+and run through the `scripts` extension ([Config](config.md)).
 
 The Settings window (`⌘,` in the panel, `pal settings`, or Settings... in
 the menu) is a front for that file: every change it makes is a write to the
@@ -121,5 +123,6 @@ Every key, with its default, is in [Config](config.md).
   `<profile>` is `default` for the default config path.
 - Clipboard history: `clipboard.db` and a `clipboard/` folder of images, one
   level up from the profile directory.
-- Your own extensions: `~/.config/pal/extensions/<name>/index.ts`, see
+- Installed extensions: `extensions/<name>/`, next to `clipboard.db`. Your
+  own can also live anywhere `general.extension_dirs` names, see
   [Extensions](extensions.md).

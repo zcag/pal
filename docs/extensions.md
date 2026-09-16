@@ -13,12 +13,21 @@ and moves ahead of this page while `pali` is being built.
 
 - Bundled: `extensions/<name>/` in the repo (the app's resource tree in a
   release build).
-- Yours: `~/.config/pal/extensions/<name>/`, next to the config file
-  (`extensions/` next to whatever `PAL_CONFIG` points at). Loaded after the
-  bundled root, so a directory named like a bundled extension replaces it.
+- The store, what `pal install` and the settings window fill:
+  `~/Library/Application Support/pal/extensions/<name>/` on macOS,
+  `~/.local/share/pal/extensions/<name>/` on Linux (`$XDG_DATA_HOME/pal/`
+  when set). One store for every config file. Not in the config directory:
+  that is often a dotfiles checkout, and the store's install records,
+  staging directory and the host's `node_modules/pal` link do not belong in
+  one.
+- Yours, kept wherever you like: every directory in
+  `general.extension_dirs` ([Config](config.md)), one subdirectory per
+  extension, for a set that lives in dotfiles.
 
-The host loads every directory under those roots that has an `index.ts`
-(or `index.js`), watches them, and reloads an extension whose files change.
+The roots load in that order and a later one wins on a name: a directory
+named like a bundled extension replaces it. The host loads every directory
+under those roots that has an `index.ts` (or `index.js`), watches them, and
+reloads an extension whose files change.
 
 ## The manifest, `pal.json`
 
@@ -85,12 +94,17 @@ export default {
   With `input: true` it runs on every keystroke inside the palette and the
   root has only the palette's own row (a calculator).
 - `pick(id, action?, ctx?)` returns an `Effect`: `copy`, `open` (url or
-  path), `paste`, `focus` (a window id), `hide`, `toast`, `keep` (stay open
-  and list again), `push` (drill into a palette with `args`), `show` (a
-  detail-only level).
+  path), `paste`, `focus` (a window id), `hide`, `toast`, `hud` (a line in
+  the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
+  `keep` (stay open and list again), `push` (drill into a palette with
+  `args`), `show` (a detail-only level).
 - `detail(id, ctx?)`: the detail pane's content for a row, asked lazily.
-- Palette flags: `live` (arrival order, re-listed on every show), `view:
-  "grid"` + `columns`, `placeholder`, `showDetail`, `filters`, `ttl`.
+- Palette flags: `live` (arrival order, re-listed on every show, not twice
+  within 2 s; with a `ttl`, only once the last listing is older than that),
+  `view: "grid"` + `columns`, `placeholder`, `showDetail`, `filters`, `ttl`.
+  Without a `ttl` a palette is listed on every load: the bundled TypeScript
+  extensions have none, they are cheap; `scripts` defaults its tables to an
+  hour ([Scripts](scripts.md)).
 - An `Item` has `id` (stable), `name`, `subtitle`, `icon`, `keywords`,
   `url`, `accessories`, `detail`, `actions` (first is Enter, second
   cmd+Enter; an empty list is an inert hint row).
@@ -102,10 +116,11 @@ values changed is listed again).
 ## The `pal` module
 
 `import { ... } from "pal"` is the host's API (`host/src/api.ts`); the host
-links it into `~/.config/pal/extensions/node_modules/pal` so the bare name
-resolves for an installed extension (the bundled ones import it by relative
-path). Do not list `pal` as a dependency in `package.json`: the npm package
-of that name is something else. Every call is one request to the core.
+links it into `<root>/node_modules/pal` in the store and in every
+`extension_dirs` root, so the bare name resolves for an extension there
+(the bundled ones import it by relative path). Do not list `pal` as a
+dependency in `package.json`: the npm package of that name is something
+else. Every call is one request to the core.
 
 - `settings.get<T>()`: the extension's values, `[extensions.<name>]`.
   `settings.palette<T>()`: the current palette's declared values.
@@ -140,9 +155,9 @@ and Remove are on each extension). A spec is:
 
 Install fetches the codeload tarball (20 s), validates the manifest, runs
 `bun install --production` when there is a `package.json` (120 s), and
-renames the finished copy into `~/.config/pal/extensions/<name>/` in one
-step, so nothing ever sees it half-done. A name already installed is
-refused: `update` it instead. `.pal-install.json` in the directory records
+renames the finished copy into the store's `<name>/` in one step, so
+nothing ever sees it half-done. A name already installed is refused:
+`update` it instead. `.pal-install.json` in the directory records
 the source, the ref, the time and the commit it was fetched at.
 
 `pal update NAME` fetches the recorded source again and replaces the

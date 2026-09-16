@@ -34,7 +34,7 @@ type Record_ = { source: string; ref?: string; installed_at: number; commit_or_e
 type Ext = { name: string; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; installed?: number; record?: Record_ };
 /** `pal_core::extensions::Update`. */
 type Update = { name: string; current: string; latest: string };
-type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[] };
+type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string };
 
 /** `palettes.<id>`: the extension's name when the palette is named like it, else `<extension>-<palette>` (index.rs `palette_id`). */
 const paletteId = (ext: string, palette: string) => (ext === palette ? ext : `${ext}-${palette}`);
@@ -70,6 +70,9 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest?: strin
     icon: m.icon ? iconOf(m.icon, title) : undefined,
     version: m.version ?? "",
     latest,
+    // "bundled" here means "not the store's": Update and Remove only apply there. An
+    // extension from `general.extension_dirs` gets the same treatment (and the
+    // "Ships with pal" label, which the page cannot yet tell apart).
     repo: m.repo ?? (e.root === userRoot ? "" : "bundled"),
     bundled: e.root !== userRoot,
     source: e.record?.source,
@@ -152,8 +155,8 @@ export default function Settings() {
   }, [page, updates]);
   const forget = (name: string) => setUpdates((u) => (u && name in u ? Object.fromEntries(Object.entries(u).filter(([k]) => k !== name)) : u));
 
-  /** The user's store, `extensions/` next to the config file: what the host loads last (host.rs `Layout`). */
-  const userRoot = view ? view.path.replace(/\/[^/]*$/, "/extensions") : "";
+  /** The user's store (`Store::locate`, under the data dir): the root whose extensions Update and Remove apply to. */
+  const userRoot = view?.store ?? "";
   const extensions = useMemo(() => (view ? view.extensions.map((e) => toExtension(e, view.config, userRoot, updates?.[e.name])) : []), [view, userRoot, updates]);
   const onInstall = async (spec: string) => { await invoke("extensions_install", { spec }); };
   const onExtUpdate = async (name: string) => { await invoke("extensions_update", { name }); forget(name); };

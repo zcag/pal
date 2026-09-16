@@ -231,6 +231,8 @@ type Loaded = {
   name: string; cfg: V1Palette; icon?: string; env: Env;
   exec?: string[]; dir?: string; data?: string;
   actions?: Action[]; defaultTitle?: string;
+  /** Seconds a listing stays good for: the table's own `ttl`, else for a non-live table the extension's `ttl` setting when above 0 (docs/scripts.md, "ttl"). */
+  ttl?: number;
   /** The raw rows of the last list, by the args it ran with (a drill-in level lists apart from the root). */
   items: Map<string, Map<string, Raw>>;
   cache?: { at: number; key: string; items: Item[] };
@@ -250,7 +252,7 @@ const inert = (name: string, subtitle: string): Palette => ({
 async function listItems(p: Loaded, query?: string, ctx?: Ctx): Promise<Item[]> {
   const filter = ctx?.filter;
   const key = `${query ?? ""}\0${filter ?? ""}\0${argsKey(ctx)}`;
-  const ttl = Number(p.cfg.ttl ?? 0) * 1000;
+  const ttl = (p.ttl ?? 0) * 1000;
   if (p.cache && p.cache.key === key && Date.now() - p.cache.at < ttl && !ctx?.refresh) return p.cache.items;
   const env: Env = { ...p.env, ...argsEnv(ctx), ...(filter !== undefined && { PAL_FILTER: filter }), ...(query !== undefined && { PAL_QUERY: query }) };
   let rows: Raw[] = [];
@@ -375,6 +377,8 @@ function discover(): Record<string, Palette> {
     }
     const p: Loaded = {
       name, cfg, dir, exec, data,
+      // The table's own ttl, else the setting; a live table is exempt from the default (it asked for fresh rows on every show, and a ttl would skip that relist).
+      ttl: cfg.ttl ?? (defaultTtl > 0 && !cfg.live ? defaultTtl : undefined),
       icon: glyph(cfg.icon_utf) ?? glyph(cfg.icon) ?? xdg(cfg.icon_xdg),
       env: { ...baseEnv, _PAL_PALETTE: name, _PAL_PLUGIN_CONFIG: JSON.stringify(cfg) },
       actions: cfg.actions?.length ? toActions(cfg.actions) : undefined,
@@ -387,8 +391,8 @@ function discover(): Record<string, Palette> {
       input: !!cfg.input,
       placeholder: cfg.input_prompt,
       live: !!cfg.live,
-      // v1's ttl (else the extension's `ttl` setting): the core keeps the last listing across restarts for this long; the in-process cache above covers show relists and drill-ins.
-      ttl: cfg.ttl ?? (defaultTtl > 0 ? defaultTtl : undefined),
+      // The core keeps the last listing across restarts for this long; the in-process cache in listItems covers show relists and drill-ins with the same value.
+      ttl: p.ttl,
       view: cfg.view === "grid" ? "grid" : undefined,
       columns: cfg.display?.columns,
       showDetail: cfg.display?.detail || undefined,

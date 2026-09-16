@@ -1,6 +1,6 @@
 [
-  ["--pal-font-ui", "Every UI string. IBM Plex Sans bundled; system fallbacks only until the font loads."],
-  ["--pal-font-mono", "Code in detail panes, hex captions, OTP codes and other accessory codes."],
+  ["--pal-font-ui", "Every UI string. The system UI font: SF on macOS, the desktop's sans (Inter, Noto Sans, whatever system-ui resolves to) on Linux. Nothing bundled."],
+  ["--pal-font-mono", "Code in detail panes, hex captions, OTP codes and other accessory codes. The system mono: SF Mono or Menlo on macOS, JetBrains Mono or the fontconfig monospace on Linux."],
   ["--pal-font-symbols", "Nerd Font glyph icons (one private-use codepoint). Symbols Nerd Font Mono, bundled; covers the private-use range only."],
   ["--pal-font-emoji", "Emoji icons: the platform colour font."],
   ["--pal-text-xs", "Section headers, tags, kbd, footer labels."],
@@ -55,6 +55,7 @@
   ["--pal-dur-base", "Panel hide, action panel open, HUD in, toast out."],
   ["--pal-dur-slow", "Detail pane open, toast in."],
   ["--pal-dur-hud-hold", "How long the HUD stays before fading."],
+  ["--pal-dur-hud-out", "The HUD fading out after the hold."],
   ["--pal-ease", "Entrances and layout changes: fast start, long settle."],
   ["--pal-ease-in", "Exits: accelerate away."],
   ["--pal-bg", "Panel surface; the opaque fallback when the compositor cannot blur."],

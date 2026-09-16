@@ -44,3 +44,32 @@ pub fn hide(app: &AppHandle) {
         let _ = w.hide();
     }
 }
+
+// ---- HUD -----------------------------------------------------------------
+//
+// The HUD (hud.rs) is a second toplevel, `focusable: false` and always on
+// top in tauri.conf.json, so a show never takes focus from the app the
+// pick landed in. Same class as the panel, so a compositor rule keyed on
+// the class places it like the panel; key the HUD's own rule on its title:
+//
+// ```text
+// windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, no_focus on, move (monitor_w*0.5-window_w*0.5) (monitor_h-window_h-8), match:title ^(pal HUD)$
+// ```
+
+pub fn hud_install(window: &WebviewWindow) {
+    // Pre-map like the panel: the first show then costs one frame, not a surface.
+    let _ = window.show();
+    let _ = window.hide();
+}
+
+pub fn hud_show(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(crate::hud::WINDOW) {
+        let _ = w.show();
+    }
+}
+
+pub fn hud_hide(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(crate::hud::WINDOW) {
+        let _ = w.hide();
+    }
+}

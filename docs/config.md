@@ -9,7 +9,7 @@ an empty or missing file is all defaults.
 ## The file
 
 ```toml
-#:schema ./config.schema.json
+#:schema https://raw.githubusercontent.com/zcag/pal/main/core/schema/config.schema.json
 # pal settings. The settings view writes this file; editing by hand is fine too.
 
 [general]
@@ -19,6 +19,7 @@ position = "top"           # top | centre | last
 launch_at_login = false
 menu_bar_icon = true
 check_updates = true
+extension_dirs = ["~/dotfiles/pal-extensions"]   # extra extension roots, loaded after the store
 
 # Per-palette settings, keyed by palette id. Absent palette: all defaults.
 [palettes.clipboard-history]
@@ -47,12 +48,11 @@ folders = ["~/Applications/Nix Apps"]
 token = "keychain:pal/github-token"   # a secret reference, never the value
 ```
 
-The first line is taplo's schema directive. The first launch writes the two
-header lines and puts `config.schema.json` next to the file, so an editor
+The first line is taplo's schema directive, pointing at the committed
+schema's URL (`core/schema/config.schema.json` on `main`), so an editor
 with TOML schema support (VS Code "Even Better TOML", nvim through taplo)
-validates keys and completes them. The schema is refreshed when a new
-release changes it. The committed copy is
-`core/schema/config.schema.json`.
+validates keys and completes them; taplo fetches it. The first launch
+writes those two header lines and nothing else into the config directory.
 
 ## `[general]`
 
@@ -64,6 +64,7 @@ release changes it. The committed copy is
 | `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, an XDG autostart entry (`~/.config/autostart/pal.desktop`) on Linux. The app registers it when this changes; on macOS the plist takes effect at the next login. |
 | `menu_bar_icon` | bool | `true` | Show pal's icon in the menu bar (macOS) or system tray (Linux). The app has no Dock icon, so this is the visible way to reach Settings and Quit; the hotkey and `pal settings` work without it. |
 | `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day, in release builds (the GitHub release manifest; nothing is downloaded). Today a found update is a log line: download and install are not wired, and the menu's "Check for updates" is a disabled placeholder until they are, so `false` means no check at all. |
+| `extension_dirs` | list of paths | `[]` | Extra directories of extensions, one subdirectory per extension like the store, for a dotfiles-managed set. Loaded after the bundled extensions and the store, in order, so a later directory's extension replaces an earlier one's by name. `~` is expanded. Read when the host starts: `pal reload` after a change. See [Extensions](extensions.md). |
 
 Hotkey syntax: modifiers first, `+` between, one main key, case does not
 matter. Modifiers: `ctrl` (or `control`), `alt` (or `option`), `cmd` (or
@@ -121,10 +122,14 @@ A setting of kind `secret` never sits in the file as plain text. The file
 holds a reference:
 
 - `keychain:<service>/<account>` or `keychain:<account>` (service `pal`):
-  the OS store, macOS Keychain as a generic password. The Settings window
-  writes the value there under `pal/<extension>-<key>` and puts
-  `keychain:pal/<extension>-<key>` in the file. By hand:
-  `security add-generic-password -s pal -a github-token -w`.
+  the OS store. On macOS that is the Keychain, as a generic password; on
+  Linux the Secret Service (gnome-keyring, KWallet's compat service) through
+  the `secret-tool` CLI from libsecret, as an item with the attributes
+  `service` and `account`. The Settings window writes the value there under
+  `pal/<extension>-<key>` and puts `keychain:pal/<extension>-<key>` in the
+  file. By hand: `security add-generic-password -s pal -a github-token -w`
+  on macOS, `secret-tool store --label="pal github-token" service pal
+  account github-token` on Linux.
 - `env:<NAME>`: an environment variable of the pal process.
 
 A setting the extension declared `kind: "secret"` reaches it resolved:
@@ -136,9 +141,11 @@ stays as the reference string and is logged as `secrets  unresolved`; the
 extension still loads. Settings of any other kind are never resolved, even
 when their value looks like a reference, and neither is a key the manifest
 does not declare. Removing a secret in Settings unsets the key; the
-keychain item stays. On Linux the Secret Service lookup is not implemented
-yet: every `keychain:` lookup fails with a store error there, and `env:`
-references work everywhere.
+keychain item stays. On Linux without `secret-tool` on PATH (package
+`libsecret` on Arch, `libsecret-tools` on Debian and Ubuntu) or without a
+Secret Service on the session bus, every `keychain:` reference is
+unresolved and the log says which of the two is missing; `env:` references
+work everywhere.
 
 ## Live reload
 
@@ -193,9 +200,34 @@ profile is logged at startup. `clipboard.db` stays one level up: it is
 history, not a view of one config.
 
 The data dir is `~/Library/Application Support/pal` on macOS and
-`~/.local/share/pal` on Linux (`$XDG_DATA_HOME/pal` when set).
+`~/.local/share/pal` on Linux (`$XDG_DATA_HOME/pal` when set). The
+extension store, `extensions/` in it, is shared by every profile.
 
 A symlinked config file (dotfiles setups) is followed: edits and the watch
 go to the real file, so a write never replaces the link with a plain file.
 The watch follows the link once, at startup; re-pointing it later is not
 seen.
+
+## Coming from pal v1
+
+v1 kept its config at the same path in another shape (`[palette.<name>]`
+tables, `general.default_frontend`). The first launch that finds one there
+migrates it, and logs each step as a `migrate` line:
+
+- the v1 file is kept whole as `config.v1.toml` next to it (written and
+  read back before the original is touched);
+- in that copy, a `base` that no longer exists on disk but does under the
+  `scripts` extension's `v1_repo` (the v1 checkout, `~/proj/pal-v1` by
+  default) is pointed there;
+- a new `config.toml` is written from the template, with
+  `[extensions.scripts] config` set to the copy's absolute path, so every
+  `[palette.*]` table keeps running through [Scripts](scripts.md), and
+  `[extensions.bookmarks] file` set to v1's `palette.bookmarks.data` when
+  there was one. v1 had no hotkey key; everything else starts from the
+  defaults.
+
+A `config.v1.toml` already there with other content stops the migration
+(the log says so; move it away). A file already in this shape, or an empty
+or missing one, is not touched: the template is written when there is no
+file. `cargo run -p pal-core --example migrate` runs the same code on
+`PAL_CONFIG`, for a dry run on a copy.

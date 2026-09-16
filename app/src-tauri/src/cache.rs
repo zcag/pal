@@ -113,6 +113,36 @@ pub fn read_all(dir: &Path) -> Vec<(Source, Entry)> {
     out
 }
 
+/// Before profiles, `frecency.json` and `index/` sat at the data dir's
+/// root; those files are the `default` profile's. Its frecency moves under
+/// `default/` when that has none (else the root copy is left for the user
+/// to look at), and the root `index/` is deleted: it is a cache, relisted
+/// on the next start. Returns one line per thing done, for the log.
+pub fn adopt_pre_profile(root: &Path) -> Vec<String> {
+    let mut notes = Vec::new();
+    let old = root.join(pal_core::frecency::FILE_NAME);
+    if old.is_file() {
+        let new = root.join("default").join(pal_core::frecency::FILE_NAME);
+        if new.exists() {
+            notes.push(format!("kept\t{}: the default profile has its own", old.display()));
+        } else {
+            let r = std::fs::create_dir_all(root.join("default")).and_then(|()| std::fs::rename(&old, &new));
+            notes.push(match r {
+                Ok(()) => format!("moved\t{} -> {}", old.display(), new.display()),
+                Err(e) => format!("move failed\t{}: {e}", old.display()),
+            });
+        }
+    }
+    let index = root.join(DIR_NAME);
+    if index.is_dir() {
+        notes.push(match std::fs::remove_dir_all(&index) {
+            Ok(()) => format!("removed\t{}", index.display()),
+            Err(e) => format!("remove failed\t{}: {e}", index.display()),
+        });
+    }
+    notes
+}
+
 /// Remove the directories of extensions not in `keep`; returns their names.
 pub fn prune(dir: &Path, keep: &[String]) -> Vec<String> {
     let mut gone = Vec::new();
@@ -197,6 +227,28 @@ mod tests {
     fn entry(n: usize) -> Entry {
         let meta = PaletteMeta { name: "p".into(), title: "P".into(), ttl: Some(60.0), ..Default::default() };
         Entry::new(1_700_000_000, "Ext".into(), meta, (0..n).map(|i| item(&format!("i{i}"))).collect())
+    }
+
+    #[test]
+    fn pre_profile_files_move_under_default() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        assert!(adopt_pre_profile(root).is_empty(), "nothing old, nothing said");
+        std::fs::write(root.join("frecency.json"), "{}").unwrap();
+        std::fs::create_dir_all(root.join("index/apps")).unwrap();
+        std::fs::write(root.join("index/apps/apps.json"), "{}").unwrap();
+        let notes = adopt_pre_profile(root);
+        assert_eq!(notes.len(), 2, "{notes:?}");
+        assert!(notes[0].starts_with("moved\t") && notes[1].starts_with("removed\t"), "{notes:?}");
+        assert_eq!(std::fs::read_to_string(root.join("default/frecency.json")).unwrap(), "{}");
+        assert!(!root.join("frecency.json").exists() && !root.join("index").exists());
+        assert!(adopt_pre_profile(root).is_empty(), "once");
+        // A root file next to a profile that already has one is left alone.
+        std::fs::write(root.join("frecency.json"), "old").unwrap();
+        let notes = adopt_pre_profile(root);
+        assert!(notes[0].starts_with("kept\t"), "{notes:?}");
+        assert_eq!(std::fs::read_to_string(root.join("default/frecency.json")).unwrap(), "{}");
+        assert!(root.join("frecency.json").exists());
     }
 
     #[test]

@@ -71,7 +71,7 @@ fn keys(path: &str) -> Result<(Key, Vec<Key>), Error> {
     Ok((last, keys))
 }
 
-fn set(doc: &mut DocumentMut, path: &str, mut value: Value) -> Result<(), Error> {
+pub(super) fn set(doc: &mut DocumentMut, path: &str, mut value: Value) -> Result<(), Error> {
     let (last, parents) = keys(path)?;
     let mut table: &mut dyn TableLike = doc.as_table_mut();
     let (mut walked, mut inline) = (String::new(), false);

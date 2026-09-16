@@ -47,9 +47,10 @@ type Reply = oneshot::Sender<Result<Value, String>>;
 /// script and the bundled extensions are the repo's own files in a debug
 /// build (so edits reload live) and the resource tree staged by
 /// `scripts/build-extensions.sh` otherwise; a release binary run from the
-/// repo, without that tree, falls back to the repo. The user's extensions,
-/// `extensions/` next to the config file (`~/.config/pal/extensions`), are
-/// the last root either way.
+/// repo, without that tree, falls back to the repo. Then the user's store
+/// (`pal_core::extensions::Store::locate`, `<data dir>/extensions`) and
+/// every `general.extension_dirs` entry, in that order, so a later root's
+/// extension replaces an earlier one's by name.
 #[derive(Debug)]
 struct Layout {
     bun: PathBuf,
@@ -76,9 +77,9 @@ impl Layout {
             (false, Some(dir)) => dir,
             _ => PathBuf::from(REPO),
         };
-        let config = pal_core::config::ConfigFile::locate();
-        let user = config.path().parent().unwrap_or(Path::new(".")).join("extensions");
-        Layout { bun, host: base.join("host/src/host.ts"), roots: vec![base.join("extensions"), user] }
+        let mut roots = vec![base.join("extensions"), pal_core::extensions::Store::locate().dir().to_path_buf()];
+        roots.extend(crate::settings::config(app).general.extension_dirs());
+        Layout { bun, host: base.join("host/src/host.ts"), roots }
     }
 }
 

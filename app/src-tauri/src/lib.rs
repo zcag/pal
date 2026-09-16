@@ -13,6 +13,7 @@ mod events;
 mod firstrun;
 mod host;
 mod hotkey;
+mod hud;
 mod icon;
 mod index;
 mod registry;
@@ -236,7 +237,7 @@ pub fn run() {
         .setup(|app| {
             // Startup order, each step needing the ones before it:
             //   1. activation policy: no Dock icon, before any window shows
-            //   2. firstrun: the config file and schema exist for the watcher
+            //   2. firstrun: a v1 config is migrated, the config file exists for the watcher
             //   3. panel: the pre-warmed window, so the first show paints
             //   4. profile: the config file keys the data dir
             //   5. index: the index, frecency, registry, cache saver, welcome
@@ -254,11 +255,18 @@ pub fn run() {
             firstrun::install();
             let window = app.get_webview_window(WINDOW).ok_or("tauri.conf.json has no `main` window")?;
             panel::install(&window);
+            match app.get_webview_window(hud::WINDOW) {
+                Some(w) => panel::hud_install(&w),
+                None => eprintln!("hud\ttauri.conf.json has no `hud` window; no HUD this run"),
+            }
             // The index cache and frecency are keyed by config file, so two
             // configs (`pali.toml` in dev, `config.toml`) never share one.
             let config = ConfigFile::locate();
             let data = config.data_dir();
             eprintln!("profile\t{}\t{}\t{}", config.profile(), config.path().display(), data.display());
+            for n in cache::adopt_pre_profile(&pal_core::fs::data_dir()) {
+                eprintln!("profile\t{n}");
+            }
             index::install(app.handle(), &data);
             hotkey::install(app.handle());
             settings::install(app.handle(), config);

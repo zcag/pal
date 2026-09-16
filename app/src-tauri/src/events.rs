@@ -19,11 +19,21 @@ pub const CONFIG: &str = "pal://config";
 pub const HOST: &str = "pal://host";
 /// The clipboard recorded a copy: `{ id, kind }`.
 pub const CLIPBOARD: &str = "pal://clipboard";
+/// The HUD window's text: `{ text }`; the page shows it with the brief's
+/// motion (hud.rs).
+pub const HUD: &str = "pal://hud";
 
 /// Emit to every window; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.
 pub fn emit<S: Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
     if let Err(e) = app.emit(event, payload) {
         eprintln!("event\t{event}\temit failed\t{e}");
+    }
+}
+
+/// Emit to one window by label; same failure handling as `emit`.
+pub fn emit_to<S: Serialize + Clone>(app: &AppHandle, window: &str, event: &str, payload: S) {
+    if let Err(e) = app.emit_to(window, event, payload) {
+        eprintln!("event\t{event}\temit to {window} failed\t{e}");
     }
 }

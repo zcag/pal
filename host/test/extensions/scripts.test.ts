@@ -46,6 +46,7 @@ ttl = 60
 
 [palette.fresh]
 base = "plugins/counter"
+live = true
 
 [palette.gated]
 base = "plugins/inp"
@@ -114,11 +115,13 @@ describe("discovery", () => {
     expect(host.stderr).toMatch(/otheros: gated \((linux|macos) only\)/);
   });
 
-  test("meta from the v1 fields: input, prompt, live, grid, columns, detail pane, filters, lazy detail only for scripts", () => {
+  test("meta from the v1 fields: input, prompt, live, grid, columns, detail pane, filters, lazy detail only for scripts; ttl from the table, else the setting's default for a non-live one", () => {
     const by = Object.fromEntries(host.loaded().find((l) => l.extension === "scripts")!.palettes.map((p) => [p.name, p]));
     expect(by.inp).toEqual({ name: "inp", title: "inp", live: true, input: true, placeholder: "Type here", detail: "lazy" });
-    expect(by.grid).toEqual({ name: "grid", title: "grid", live: false, input: false, view: "grid", columns: 5, showDetail: true, filters: [{ id: "all", title: "All" }, { id: "few", title: "few" }] });
-    expect(by.links).toEqual({ name: "links", title: "links", live: false, input: false, icon: "★" });
+    expect(by.grid).toEqual({ name: "grid", title: "grid", live: false, input: false, view: "grid", columns: 5, showDetail: true, filters: [{ id: "all", title: "All" }, { id: "few", title: "few" }], ttl: 3600 });
+    expect(by.counter.ttl).toBe(60);
+    expect(by.fresh).not.toHaveProperty("ttl");
+    expect(by.links).toEqual({ name: "links", title: "links", live: false, input: false, icon: "★", ttl: 3600 });
     expect(by.links.detail).toBeUndefined();
   });
 
@@ -197,7 +200,7 @@ describe("script palette", () => {
     expect(await host.detail("scripts", "inp", "a")).toEqual({ markdown: "preview-of-alpha -from-env-file\n" });
   });
 
-  test("ttl caches a list for the same query; without ttl every list runs the script", async () => {
+  test("ttl caches a list for the same query; a live table without ttl runs the script on every list", async () => {
     expect(await host.list("scripts", "counter", "")).toEqual(await host.list("scripts", "counter", ""));
     const f1 = (await host.list("scripts", "fresh", ""))[0].name;
     const f2 = (await host.list("scripts", "fresh", ""))[0].name;

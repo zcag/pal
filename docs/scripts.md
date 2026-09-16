@@ -24,6 +24,10 @@ config = "~/.config/pal/scripts.toml"
 Relative paths inside that file (`data`, `base`, `general.env_file`) are
 resolved against the file's directory. `~` is expanded.
 
+Coming from v1, the first launch does this for you: the v1 config is kept
+as `config.v1.toml` next to pal's, and `config` is set to it (the
+migration is described in [Config](config.md)).
+
 ## A data-file palette
 
 ```toml
@@ -218,11 +222,12 @@ inside that window does not run the script again. In the core, every
 listing is written to disk and restored at the next start; with a `ttl`
 the palette is listed again only when the restored listing is older than
 that (in a low-priority pass shortly after startup), without one on every
-start. `live` palettes still relist on every show. `⌘R` (Refresh) runs the
-script regardless.
+start. A `live` palette relists on every show; with a `ttl` only when its
+last listing is older than that. `⌘R` (Refresh) runs the script regardless.
 
-A table without `ttl` takes the extension's `ttl` setting when that is
-above 0.
+A table without `ttl` takes the extension's `ttl` setting (default an
+hour) when that is above 0; a `live` table without one is exempt and keeps
+relisting on every show, since that is what `live` asks for.
 
 ## `preview`: lazy detail
 
@@ -244,7 +249,7 @@ second limit; the answer is cached per row until the palette lists again.
 | `v1_repo` | path | `~/proj/pal-v1` | Where `github:zcag/pal/...` bases resolve when v1's plugin cache has no copy. |
 | `timeout` | seconds, 1 to 300 | `30` | A `list` or `pick` still running after this is killed. |
 | `preview_max` | 0 to 32 | `4` | How many `preview` commands run at the same time. 0 turns previews off. |
-| `ttl` | seconds, 0 to 604800 | `0` | Listing lifetime for tables that declare no `ttl`. 0 runs every script on every start. |
+| `ttl` | seconds, 0 to 604800 | `3600` | Listing lifetime for non-live tables that declare no `ttl`; a table's own `ttl` wins. 0 runs every script on every start. |
 
 `config`, `skip`, `v1_repo` and `ttl` are read when the extension loads;
 after changing them, Settings > Restart extension host. `timeout` and

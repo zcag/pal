@@ -12,10 +12,13 @@
 //!   live when a save does not parse.
 //! - [`schema`] emits a JSON Schema for the typed part so editors validate and
 //!   complete the file.
+//! - [`migrate`] turns a pal v1 config found at the path into this shape
+//!   on first run, keeping the v1 file aside for the `scripts` extension.
 //! - [`secrets`] resolves `keychain:` / `env:` references lazily, so secrets
 //!   never sit in the file as plain text.
 
 mod edit;
+pub mod migrate;
 pub mod schema;
 pub mod secrets;
 mod watch;
@@ -76,6 +79,12 @@ pub struct General {
     /// wired, and the menu's "Check for updates" is a disabled placeholder
     /// until they are.
     pub check_updates: bool,
+    /// Extra directories of extensions (one subdirectory per extension,
+    /// like the store), for a dotfiles-managed set. Loaded after the
+    /// bundled extensions and the store, so a name in a later directory
+    /// replaces an earlier one. `~` is expanded. The host is restarted
+    /// (`pal reload`) before a change here is seen.
+    pub extension_dirs: Vec<String>,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -83,7 +92,14 @@ pub struct General {
 
 impl Default for General {
     fn default() -> Self {
-        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extra: BTreeMap::new() }
+        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, menu_bar_icon: true, position: Position::Top, check_updates: true, extension_dirs: Vec::new(), extra: BTreeMap::new() }
+    }
+}
+
+impl General {
+    /// [`extension_dirs`](Self::extension_dirs) as paths, `~` expanded.
+    pub fn extension_dirs(&self) -> Vec<PathBuf> {
+        self.extension_dirs.iter().map(|d| fs::expand_home(d)).collect()
     }
 }
 
@@ -300,9 +316,13 @@ pub fn parse(text: &str) -> Result<(Config, Vec<Diagnostic>), Diagnostic> {
     Ok((config, diags))
 }
 
+/// Where the schema for the `#:schema` directive is published: the
+/// committed copy on `main`, so nothing is written next to the file.
+pub const SCHEMA_URL: &str = "https://raw.githubusercontent.com/zcag/pal/main/core/schema/config.schema.json";
+
 /// Header written when an edit creates the file. `#:schema` is taplo's
-/// directive; [`schema::install`] puts the schema next to the file.
-pub const TEMPLATE: &str = "#:schema ./config.schema.json\n# pal settings. The settings view writes this file; editing by hand is fine too.\n";
+/// directive (a URL is accepted).
+pub const TEMPLATE: &str = "#:schema https://raw.githubusercontent.com/zcag/pal/main/core/schema/config.schema.json\n# pal settings. The settings view writes this file; editing by hand is fine too.\n";
 
 /// The config file: where it is, and everything done to it.
 #[derive(Debug, Clone)]
@@ -438,12 +458,14 @@ token = "keychain:pal/github-token"
         assert!(c.general.menu_bar_icon, "the icon is on until turned off");
         assert!(c.general.check_updates, "the daily check is on until turned off");
         assert_eq!(c.general.position, Position::Top);
-        let (c, d) = parse("[general]\nlaunch_at_login = true\nmenu_bar_icon = false\nposition = \"centre\"\ncheck_updates = false\n").unwrap();
+        assert!(c.general.extension_dirs.is_empty());
+        let (c, d) = parse("[general]\nlaunch_at_login = true\nmenu_bar_icon = false\nposition = \"centre\"\ncheck_updates = false\nextension_dirs = [\"~/dotfiles/pal\", \"/opt/pal-ext\"]\n").unwrap();
         assert!(d.is_empty());
         assert!(c.general.launch_at_login);
         assert!(!c.general.menu_bar_icon);
         assert!(!c.general.check_updates);
         assert_eq!(c.general.position, Position::Centre);
+        assert_eq!(c.general.extension_dirs(), [dirs::home_dir().unwrap().join("dotfiles/pal"), PathBuf::from("/opt/pal-ext")], "tilde expanded, order kept");
         assert!(parse("[general]\nposition = \"middle\"\n").is_err(), "an unknown position is a parse error, not a warning");
     }
 
@@ -569,6 +591,11 @@ enabld = false
     /// Env is process-global: the test that flips it and the one that
     /// reads `config_dir` twice in one call take turns.
     static ENV: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn template_points_at_the_published_schema() {
+        assert_eq!(TEMPLATE.lines().next(), Some(format!("#:schema {SCHEMA_URL}").as_str()));
+    }
 
     #[test]
     fn locate_honours_env() {

@@ -9,8 +9,8 @@
 
 :root {
   /* type */
-  --pal-font-ui: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
-  --pal-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --pal-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Inter", "Noto Sans", system-ui, sans-serif;
+  --pal-font-mono: ui-monospace, "SF Mono", Menlo, "JetBrains Mono", monospace;
   --pal-font-symbols: "Symbols Nerd Font Mono";
   --pal-font-emoji: "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "Twemoji Mozilla", sans-serif;
   --pal-text-xs: 11px;     /* section headers, tags, kbd, footer */
@@ -73,6 +73,7 @@
   --pal-dur-base: 120ms;
   --pal-dur-slow: 180ms;
   --pal-dur-hud-hold: 900ms;
+  --pal-dur-hud-out: 240ms;
   --pal-ease: cubic-bezier(0.2, 0, 0, 1);
   --pal-ease-in: cubic-bezier(0.4, 0, 1, 1);
 
@@ -268,6 +269,7 @@
     --pal-dur-fast: 0ms;
     --pal-dur-base: 0ms;
     --pal-dur-slow: 0ms;
+    --pal-dur-hud-out: 0ms;
   }
 }
 

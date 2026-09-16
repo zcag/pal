@@ -2,20 +2,16 @@
 //!
 //! taplo (VS Code "Even Better TOML", nvim via LSP) reads a `#:schema <path
 //! or url>` comment on the file's first line; [`TEMPLATE`](super::TEMPLATE)
-//! writes one pointing at `./config.schema.json`, and [`install`] puts the
-//! schema there. The `x-taplo-info.patterns` on the root also lets taplo's
-//! catalog match `**/pal/config.toml` without the directive once the schema
-//! is published at a URL.
-
-use std::path::{Path, PathBuf};
+//! writes one pointing at the committed copy's URL
+//! ([`SCHEMA_URL`](super::SCHEMA_URL)), so nothing is written into the
+//! config directory (a dotfiles checkout, often). The
+//! `x-taplo-info.patterns` on the root also lets taplo's catalog match
+//! `**/pal/config.toml` without the directive.
 
 use super::Config;
-use crate::fs;
 
-/// What [`install`] writes next to the config, and what [`TEMPLATE`](super::TEMPLATE) points at.
-pub const FILE_NAME: &str = "config.schema.json";
-
-/// The schema as pretty JSON. Committed copy: `core/schema/config.schema.json`.
+/// The schema as pretty JSON. Committed copy: `core/schema/config.schema.json`,
+/// what [`SCHEMA_URL`](super::SCHEMA_URL) serves.
 pub fn json() -> String {
     // TOML has no null: an unset `Option` is an absent key, so neither the
     // `null` type nor a `null` default belongs in what the editor shows.
@@ -45,17 +41,6 @@ fn strip_null(v: &mut serde_json::Value) {
     }
 }
 
-/// Write the schema next to `config_path` (only when its bytes differ, so
-/// nothing watching the directory wakes for nothing). Returns the path.
-pub fn install(config_path: &Path) -> std::io::Result<PathBuf> {
-    let path = config_path.parent().unwrap_or(Path::new(".")).join(FILE_NAME);
-    let text = json();
-    if std::fs::read_to_string(&path).ok().as_deref() != Some(&text) {
-        fs::write_atomic(&path, text)?;
-    }
-    Ok(path)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,15 +65,5 @@ mod tests {
         assert_eq!(palette["enabled"]["default"], true);
         assert_eq!(palette["alias"]["type"], "string", "no null type: TOML cannot write one");
         assert!(palette["alias"]["default"].is_null(), "no `default: null` either");
-    }
-
-    #[test]
-    fn install_writes_next_to_config() {
-        let dir = tempfile::tempdir().unwrap();
-        let p = install(&dir.path().join("pal").join("config.toml")).unwrap();
-        assert_eq!(p, dir.path().join("pal").join(FILE_NAME));
-        let m = std::fs::metadata(&p).unwrap().modified().unwrap();
-        install(&dir.path().join("pal").join("config.toml")).unwrap();
-        assert_eq!(std::fs::metadata(&p).unwrap().modified().unwrap(), m, "unchanged schema is not rewritten");
     }
 }

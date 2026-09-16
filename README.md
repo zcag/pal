@@ -38,7 +38,8 @@ runtime, and in dev the app runs that same copy. In dev the host and the
 extensions load from the repo and reload when a file changes.
 
 Ctrl+Space toggles the panel (`general.hotkey` in `~/.config/pal/config.toml`,
-written with a commented template and its JSON schema on first launch). On
+written from a commented template on first launch; a v1 config there is
+migrated aside first). On
 Wayland there is no global hotkey API, so bind `pal toggle` in the
 compositor instead; `notes/linux.md` has the Hyprland rules.
 
@@ -72,9 +73,11 @@ from CI anyway: `docs/releasing.md`). Output under `target/release/bundle/`:
 
 Inside the bundle, `bun` sits next to the `pal` binary (`Contents/MacOS/`,
 `usr/bin/`) and the staged tree under the resource directory
-(`Contents/Resources/`, `usr/lib/pal/`). User extensions go in
-`~/.config/pal/extensions/<name>/index.ts`; the host loads the bundled root
-first and that one last, so a user extension with the same name wins.
+(`Contents/Resources/`, `usr/lib/pal/`). Installed extensions go in the
+store under the data dir (`~/Library/Application Support/pal/extensions/`,
+`~/.local/share/pal/extensions/`), and `general.extension_dirs` adds roots
+of your own; the host loads the bundled root first and those after, so a
+user extension with the same name wins.
 
 ## Docs
 

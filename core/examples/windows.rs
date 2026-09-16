@@ -1,6 +1,7 @@
 //! Exercise the window switcher from a terminal:
 //! `cargo run -p pal-core --example windows -- list`             every window, front to back
 //! `cargo run -p pal-core --example windows -- focus <id>`       raise it (restores a minimised one)
+//! `cargo run -p pal-core --example windows -- activate <id>`    its app to the front only (the no-Accessibility fallback)
 //! `cargo run -p pal-core --example windows -- minimize <id>`
 //! `cargo run -p pal-core --example windows -- close <id>`
 //! `cargo run -p pal-core --example windows -- icon <id>`        the .app / .desktop its icon comes from
@@ -30,6 +31,7 @@ fn main() {
             }
         }
         Some("focus") => done(windows::focus(id())),
+        Some("activate") => done(windows::activate(id()).map(|app| println!("{app}"))),
         Some("minimize") => done(windows::minimize(id())),
         Some("close") => done(windows::close(id())),
         Some("icon") => {
@@ -37,7 +39,7 @@ fn main() {
             println!("{:?}", windows::app_icon_source(&w));
         }
         _ => {
-            eprintln!("usage: windows list | focus <id> | minimize <id> | close <id> | icon <id>");
+            eprintln!("usage: windows list | focus <id> | activate <id> | minimize <id> | close <id> | icon <id>");
             std::process::exit(2);
         }
     }

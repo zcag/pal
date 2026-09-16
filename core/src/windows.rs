@@ -16,8 +16,9 @@
 //!   which is what switches Spaces. Focus is `activateWithOptions` on the
 //!   app plus `AXRaise` on the window; close presses the window's close
 //!   button; minimise sets `AXMinimized`. Without Accessibility the list
-//!   still works, focus falls back to activating the app, and close /
-//!   minimise fail with [`Error::NeedsAccessibility`].
+//!   still works, focus falls back to activating the app ([`activate`] is
+//!   that step on its own), and close / minimise fail with
+//!   [`Error::NeedsAccessibility`].
 //! - **Linux**: Hyprland (`hyprctl clients -j`, `dispatch focuswindow` /
 //!   `closewindow`, minimise = move to the `special:minimized` workspace),
 //!   Sway (`swaymsg -t get_tree`, `[con_id=N] focus` / `kill` / `move
@@ -86,6 +87,15 @@ pub fn list() -> Result<Vec<Window>> {
 /// Bring the window to the front, restoring it when minimised.
 pub fn focus(id: &str) -> Result<()> {
     platform::focus(id)
+}
+
+/// Bring the window's application to the front, not the window itself:
+/// the app shows whichever window it last had in front. What `focus` is
+/// left with without Accessibility on macOS, as a step of its own; on Linux
+/// the window manager has no app level, so it is `focus`. Returns the app's
+/// name, for the feedback that says which app came up.
+pub fn activate(id: &str) -> Result<String> {
+    platform::activate(id)
 }
 
 /// Close it the way its close button would.
@@ -315,7 +325,6 @@ mod platform {
 
     pub fn focus(id: &str) -> Result<()> {
         let cg = find(id)?;
-        let app = NSRunningApplication::runningApplicationWithProcessIdentifier(cg.pid).ok_or_else(|| Error::NotFound(id.into()))?;
         // The window first, so the app comes forward showing it rather than
         // whichever window it last had in front.
         let raised = match ax_of(&cg, "focus") {
@@ -330,14 +339,23 @@ mod platform {
             Err(Error::NeedsAccessibility(_) | Error::Failed(_)) => true,
             Err(e) => return Err(e),
         };
+        activate_app(&cg, id)?;
+        raised.then_some(()).ok_or_else(|| Error::Failed("the app came forward but refused to raise that window".into()))
+    }
+
+    pub fn activate(id: &str) -> Result<String> {
+        activate_app(&find(id)?, id)
+    }
+
+    /// Unhide and activate the app owning `cg`; its name on success.
+    fn activate_app(cg: &CgWindow, id: &str) -> Result<String> {
+        let app = NSRunningApplication::runningApplicationWithProcessIdentifier(cg.pid).ok_or_else(|| Error::NotFound(id.into()))?;
         app.unhide();
         #[allow(deprecated)] // `activate()` (14+) does not take focus from another app without a cooperative handoff.
-        let ok = app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);
-        match (ok, raised) {
-            (true, true) => Ok(()),
-            (true, false) => Err(Error::Failed("the app came forward but refused to raise that window".into())),
-            (false, _) => Err(Error::Failed("the app refused to activate".into())),
+        if !app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps) {
+            return Err(Error::Failed("the app refused to activate".into()));
         }
+        Ok(app.localizedName().map(|s| s.to_string()).unwrap_or_default())
     }
 
     pub fn close(id: &str) -> Result<()> {
@@ -461,6 +479,13 @@ mod platform {
             }
             Backend::X11 => run("wmctrl", &["-i", "-a", id]).map(drop),
         }
+    }
+
+    /// No app level under a window manager: the window itself, named by its app.
+    pub fn activate(id: &str) -> Result<String> {
+        let w = find(id)?;
+        focus(id)?;
+        Ok(w.app)
     }
 
     pub fn close(id: &str) -> Result<()> {
@@ -647,6 +672,9 @@ mod platform {
         Err(Error::Unavailable("unsupported platform".into()))
     }
     pub fn focus(_: &str) -> Result<()> {
+        Err(Error::Unavailable("unsupported platform".into()))
+    }
+    pub fn activate(_: &str) -> Result<String> {
         Err(Error::Unavailable("unsupported platform".into()))
     }
     pub fn close(_: &str) -> Result<()> {

@@ -87,6 +87,21 @@ struct Entry {
     subtitle: Option<Utf32String>,
 }
 
+impl Entry {
+    /// The item is called `q`: its name, or one of its keywords (an alias),
+    /// equals it case-insensitively, whitespace trimmed.
+    fn is_exactly(&self, q: &str) -> bool {
+        eq_ignore_case(self.item.name.trim(), q) || self.item.keywords.iter().any(|k| eq_ignore_case(k.trim(), q))
+    }
+}
+
+/// Case-insensitive equality by Unicode lowercase, no normalisation (an
+/// accent is part of the name). Stops at the first differing char, so a
+/// scan over every match costs about one comparison each.
+fn eq_ignore_case(a: &str, b: &str) -> bool {
+    a.chars().flat_map(char::to_lowercase).eq(b.chars().flat_map(char::to_lowercase))
+}
+
 impl From<Item> for Entry {
     fn from(item: Item) -> Self {
         Self {
@@ -263,10 +278,12 @@ impl Index {
     /// query lists everything in insertion order (plus boost). Words match
     /// fuzzily and independently; `!`, `^`, `'` and `$` are ordinary text,
     /// not fzf operators (Spotlight and Raycast have none, and a bookmark
-    /// called `!important` must be findable).
+    /// called `!important` must be findable). An item named what was typed
+    /// (or with a keyword saying so) gets [`EXACT_BONUS`] and leads.
     pub fn query(&mut self, q: &str, opts: QueryOpts) -> Vec<Hit> {
         self.pat = Pattern::new(q, CaseMatching::Smart, Normalization::Smart, AtomKind::Fuzzy);
         let matching = !self.pat.atoms.is_empty();
+        let exact_q = q.trim();
         let mut cands = Vec::new();
         'scan: for (b, bucket) in self.buckets.iter().enumerate() {
             if opts.sources.is_some_and(|s| !s.contains(&bucket.source)) {
@@ -287,6 +304,7 @@ impl Index {
                 };
                 let boost = if bucket.live { None } else { opts.boost };
                 let score = score + boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id));
+                let score = if matching && entry.is_exactly(exact_q) { score + EXACT_BONUS } else { score };
                 // Name length only breaks ties between matches; the empty
                 // query keeps insertion order.
                 let len = if matching { entry.name.len() as u32 } else { 0 };
@@ -322,6 +340,28 @@ impl Index {
             .collect()
     }
 }
+
+/// Added to the score of an item named what was typed (name or keyword,
+/// case-insensitive), so it ranks above every fuzzy hit whatever their
+/// history: what you typed *is* this item (Raycast does the same with names
+/// and aliases). Sized against the two other adjustments: a frecency boost
+/// tops out at 200 (`frecency::MAX_SCORE * BOOST_SCALE`), and nucleo gives
+/// about 16 per matched char, so a hot fuzzy hit is at most 200 plus a
+/// fraction of the query's own score above an untouched exact hit (a
+/// keyword-exact hit scores 80% of a name hit: 33 apart at `chrome`). 1000
+/// clears that for any query a launcher sees; at 16 per char the spread
+/// would need a 50-char query to approach it. The welcome source's 1e9 is
+/// only ever added on the empty query, where nothing is exact. Among exact
+/// hits the score (with its boost) and then the name length still order.
+///
+/// No prefix bonus, on purpose: nucleo scores a word-start match the same
+/// as a prefix or an exact one (`ha` is 62 for `ha`, `hat` and `Claude
+/// Code URL Handler` alike, fixture corpus), so a bonus that mattered
+/// against a boosted item would have to be at least the boost, and a used
+/// item overtaking an untouched prefix hit is what the frecency scale is
+/// designed to do (`frecency.rs`, "Composing with the match score"). The
+/// length tie-break already puts the prefix hit first among equals.
+pub const EXACT_BONUS: f32 = 1000.0;
 
 /// A scored candidate; `(b, e)` is its insertion order.
 struct Cand {
@@ -497,12 +537,66 @@ mod tests {
     }
 
     #[test]
+    fn exact_name_beats_a_boosted_fuzzy_hit() {
+        let mut ix = index();
+        // The frecency maximum on the emoji `hand`: without the bonus it leads.
+        let hand = |_: &Source, i: &str| if i == "i5" { 200.0 } else { 0.0 };
+        let hits = ix.query("ha", QueryOpts { boost: Some(&hand), ..Default::default() });
+        assert_eq!(ids(&hits)[..2], ["ha", "i5"]);
+        assert_eq!(hits[0].score, hits[1].score - 200.0 + EXACT_BONUS);
+        // Case-insensitive, trimmed; a keyword is an alias. (An upper-case
+        // query is case-sensitive to the matcher, nucleo's Smart case, and
+        // the bonus only goes to a match; `TERMINAL` finds nothing at all.)
+        let hits = ix.query("  terminal ", QueryOpts { boost: Some(&hand), ..Default::default() });
+        assert_eq!(ids(&hits)[..2], ["terminal.app", "ghostty.app"], "name exact first, keyword exact second");
+        assert!(hits[1].score > hits[2].score + 500.0, "the keyword alias got the bonus too");
+        assert!(ix.query("TERMINAL", QueryOpts::default()).is_empty());
+        // A multi-word name: the whole trimmed query is compared.
+        let hits = ix.query("google chrome", QueryOpts::default());
+        assert_eq!(hits[0].id, "chrome.app");
+        assert!(hits[0].score > EXACT_BONUS);
+        // Ties among exact hits: score (with boost) first, then name length.
+        let mut ix = index();
+        ix.extend(src("icons"), vec![item("i8", "Chrome", None, &[]), item("i9", "chrome ", None, &[])]);
+        let hits = ix.query("chrome", QueryOpts::default());
+        assert_eq!(ids(&hits)[..3], ["i1", "i8", "i9"], "equal scores: insertion order");
+        let i9 = |_: &Source, i: &str| if i == "i9" { 10.0 } else { 0.0 };
+        let hits = ix.query("chrome", QueryOpts { boost: Some(&i9), ..Default::default() });
+        assert_eq!(ids(&hits)[..3], ["i9", "i1", "i8"]);
+        // No accent folding for exactness: `Émile` is not `emile`.
+        ix.extend(src("icons"), vec![item("e", "Émile", None, &[])]);
+        let hits = ix.query("emile", QueryOpts::default());
+        assert!(hits[0].score < EXACT_BONUS);
+        assert!(ix.query("émile", QueryOpts::default())[0].score > EXACT_BONUS);
+        // Live sources get it too: exactness is the match, not the history.
+        ix.set_live(src("icons"), true);
+        assert!(ix.query("hand", QueryOpts::default())[0].score > EXACT_BONUS);
+    }
+
+    #[test]
+    fn prefix_and_word_start_score_alike_length_decides() {
+        // Measured on the fixture too (`ha`: 62 for `ha`, `hat` and `Claude
+        // Code URL Handler`): nucleo has no prefix preference, the length
+        // tie-break orders them, and a boost of any size flips a non-exact
+        // one. That is why there is an EXACT_BONUS and no prefix bonus.
+        let mut ix = index();
+        let hits = ix.query("ha", QueryOpts::default());
+        let (hat, handler) = (pos(&hits, "i6"), pos(&hits, "handler.app"));
+        assert_eq!(hits[hat].score, hits[handler].score);
+        assert!(hat < handler);
+        let one = |_: &Source, i: &str| if i == "handler.app" { 1.0 } else { 0.0 };
+        let hits = ix.query("ha", QueryOpts { boost: Some(&one), ..Default::default() });
+        assert!(pos(&hits, "handler.app") < pos(&hits, "i6"));
+        assert_eq!(hits[0].id, "ha", "the exact hit still leads");
+    }
+
+    #[test]
     fn boost_reorders_matches_and_empty_state() {
         let mut ix = index();
         let favour = |id: &'static str| move |_: &Source, i: &str| if i == id { 1000.0 } else { 0.0 };
         let hand = favour("i5");
-        let hits = ix.query("ha", QueryOpts { boost: Some(&hand), ..Default::default() });
-        assert_eq!(ids(&hits)[..2], ["i5", "ha"]);
+        let hits = ix.query("han", QueryOpts { boost: Some(&hand), ..Default::default() });
+        assert_eq!(ids(&hits)[..2], ["i5", "handler.app"]);
         let bookmark = favour("ha");
         let hits = ix.query("", QueryOpts { boost: Some(&bookmark), limit: 2, ..Default::default() });
         assert_eq!(ids(&hits), ["ha", "chrome.app"]);
@@ -657,6 +751,17 @@ mod tests {
         assert_eq!((hits[0].source.palette.as_str(), name(&ix, &hits[0]).as_str()), ("apps", "Terminal"));
         let hits = ix.query("slack", QueryOpts::default());
         assert_eq!((hits[0].source.palette.as_str(), name(&ix, &hits[0]).as_str()), ("apps", "Slack"));
+
+        // Exact over a hot fuzzy hit (frecency maximum), the case from
+        // notes/decisions.md: a picked emoji against the bookmark `ha`.
+        let hot = |s: &Source, id: &str| if s.palette == "emoji" && id == "\u{1FA89}" { 200.0 } else { 0.0 };
+        let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..Default::default() });
+        assert_eq!((hits[0].source.palette.as_str(), hits[0].id.as_str()), ("bookmarks", "ha"));
+        assert_eq!(name(&ix, &hits[1]), "harp");
+        let hot = |s: &Source, id: &str| if s.palette == "apps" && id.ends_with("Google Chrome.app") { 200.0 } else { 0.0 };
+        let hits = ix.query("chrome", QueryOpts { boost: Some(&hot), ..Default::default() });
+        assert_eq!(name(&ix, &hits[0]), "chrome", "an exact icon name outranks the hot app");
+        assert_eq!(name(&ix, &hits[2]), "Google Chrome");
 
         for q in ["c", "chrome", "ha", ""] {
             let mut t = Vec::new();

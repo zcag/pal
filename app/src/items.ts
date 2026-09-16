@@ -62,6 +62,8 @@ export type Effect = {
   paste?: unknown;
   hide?: true;
   toast?: { title: string; message?: string; style?: "success" | "failure" };
+  /** Shown by the core in the HUD window after the panel hides. */
+  hud?: string;
   keep?: true;
   /** Drill in: a level scoped to that palette, its `list` given `args`. */
   push?: { extension: string; palette: string; args?: unknown };

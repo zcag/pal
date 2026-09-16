@@ -240,6 +240,9 @@ pub struct View {
     changed: Option<u64>,
     version: String,
     extensions: Vec<Ext>,
+    /// The user store's directory (`Store::locate`): an extension whose
+    /// `root` is this one can be updated and removed from the window.
+    store: PathBuf,
 }
 
 #[tauri::command]
@@ -252,6 +255,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         changed: *lock(&st.changed),
         version: app.package_info().version.to_string(),
         extensions: lock(&st.extensions).clone(),
+        store: Store::locate().dir().to_path_buf(),
     }
 }
 
@@ -338,43 +342,39 @@ pub async fn settings_restart_host(host: State<'_, Arc<Host>>) -> Result<(), Str
 }
 
 // ---- the extension store ---------------------------------------------------
-// `pal_core::extensions` does the work off the runtime; the host is restarted
+// `pal_core::extensions` does the work off the runtime, in the one store
+// (`Store::locate`, under the data dir: not tied to the config file); the host is restarted
 // after every change to the store. Its watcher does see the change (a new
 // root, a removed extension), but the index only drops a gone extension's
 // sources and cache on `host/ready`, and `bun install` under a watched root
 // would trigger a reload per file.
 
-/// The store next to the config file the window is a front for.
-fn store(st: &Settings) -> Store {
-    Store::at(st.file.path().parent().unwrap_or(Path::new(".")).join("extensions"))
-}
-
-async fn in_store<T: Send + 'static>(st: &Settings, f: impl FnOnce(Store) -> pal_core::extensions::Result<T> + Send + 'static) -> Result<T, String> {
-    let store = store(st);
+async fn in_store<T: Send + 'static>(f: impl FnOnce(Store) -> pal_core::extensions::Result<T> + Send + 'static) -> Result<T, String> {
+    let store = Store::locate();
     tauri::async_runtime::spawn_blocking(move || f(store)).await.map_err(|e| e.to_string())?.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn extensions_install(st: State<'_, Settings>, host: State<'_, Arc<Host>>, spec: String) -> Result<Installed, String> {
+pub async fn extensions_install(host: State<'_, Arc<Host>>, spec: String) -> Result<Installed, String> {
     let bun = crate::host::bun();
-    let r = in_store(&st, move |s| s.install(&spec, Some(&bun))).await?;
+    let r = in_store(move |s| s.install(&spec, Some(&bun))).await?;
     eprintln!("extensions	installed	{} {}", r.name, r.version);
     host.restart().await;
     Ok(r)
 }
 
 #[tauri::command]
-pub async fn extensions_update(st: State<'_, Settings>, host: State<'_, Arc<Host>>, name: String) -> Result<Installed, String> {
+pub async fn extensions_update(host: State<'_, Arc<Host>>, name: String) -> Result<Installed, String> {
     let bun = crate::host::bun();
-    let r = in_store(&st, move |s| s.update(&name, Some(&bun))).await?;
+    let r = in_store(move |s| s.update(&name, Some(&bun))).await?;
     eprintln!("extensions	updated	{} {}", r.name, r.version);
     host.restart().await;
     Ok(r)
 }
 
 #[tauri::command]
-pub async fn extensions_remove(st: State<'_, Settings>, host: State<'_, Arc<Host>>, name: String) -> Result<(), String> {
-    in_store(&st, move |s| s.remove(&name)).await?;
+pub async fn extensions_remove(host: State<'_, Arc<Host>>, name: String) -> Result<(), String> {
+    in_store(move |s| s.remove(&name)).await?;
     eprintln!("extensions	removed");
     host.restart().await;
     Ok(())
@@ -383,8 +383,8 @@ pub async fn extensions_remove(st: State<'_, Settings>, host: State<'_, Arc<Host
 /// GitHub-installed extensions whose branch moved; network, so up to 10 s
 /// per extension, and an extension whose check fails is simply not listed.
 #[tauri::command]
-pub async fn extensions_check_updates(st: State<'_, Settings>) -> Result<Vec<Update>, String> {
-    in_store(&st, |s| s.check_updates()).await
+pub async fn extensions_check_updates() -> Result<Vec<Update>, String> {
+    in_store(|s| s.check_updates()).await
 }
 
 #[tauri::command]

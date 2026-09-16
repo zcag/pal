@@ -13,7 +13,9 @@
 //! keyword on its row. `apply_config` re-applies both when the file changes.
 //!
 //! A live palette (`live`, not `input`) is listed again every time the panel
-//! shows (`on_shown`), after the paint, so its rows are current at the root.
+//! shows (`on_shown`), after the paint, so its rows are current at the root;
+//! not twice within `LIVE_RELIST_GAP`, and with a `ttl` only once its rows
+//! are older than that (`relist_due`).
 //! A palette with `filters` is listed once per filter the user picks
 //! (`filter`), the bucket swapped for that filter's rows and each list kept
 //! until the palette lists again. An item's lazy detail (`detail`) is one
@@ -62,6 +64,10 @@ const DEFAULT_LIMIT: usize = 200;
 /// show: the relist is background work after the paint, and a palette
 /// that takes longer than a show is worth is better stale than late.
 const LIVE_RELIST_TIMEOUT: Duration = Duration::from_secs(2);
+/// A live palette relisted for a show this recently is not relisted for
+/// the next one: a double show (toggle, toggle) or a relist still in
+/// flight would only queue a second run of the same extension.
+const LIVE_RELIST_GAP: Duration = Duration::from_secs(2);
 /// After `host/ready`, before the pass over the palettes whose cached
 /// listing is older than their `ttl`: the panel has painted and the
 /// no-`ttl` listings are in flight by then.
@@ -70,6 +76,18 @@ const REFRESH_DELAY: Duration = Duration::from_secs(1);
 /// Whether that pass has run: until it has, an expired palette waits for
 /// it; after, an expired palette (an extension reloaded) lists at once.
 static REFRESHED: AtomicBool = AtomicBool::new(false);
+
+/// When each live palette's last show relist was issued (`on_shown`), for
+/// `LIVE_RELIST_GAP`. A few entries: a Vec, so the static is const.
+static RELISTED: Mutex<Vec<(Source, Instant)>> = Mutex::new(Vec::new());
+
+/// Whether a live palette lists again on this show: not within
+/// `LIVE_RELIST_GAP` of its last show relist (`since_relist`, `None` for
+/// never this run), and with a `ttl` only once its rows (`listed_at`, unix
+/// seconds) are older than that; without one every show, as before.
+fn relist_due(m: &PaletteMeta, since_relist: Option<Duration>, listed_at: Option<u64>, now: u64) -> bool {
+    !since_relist.is_some_and(|d| d < LIVE_RELIST_GAP) && !m.fresh(listed_at, now)
+}
 
 fn unix_secs() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs())
@@ -355,16 +373,33 @@ async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &Pa
     events::emit(app, events::INDEX, ());
 }
 
-/// The panel is showing: list every live palette again, all at once, each
-/// given `LIVE_RELIST_TIMEOUT`, and tell the page once. Spawned, so the
-/// show never waits on it; the paint has the old rows, the next keystroke
-/// (or the `pal://index` re-query) the new ones.
+/// The panel is showing: list every live palette that is due
+/// (`relist_due`) again, all at once, each given `LIVE_RELIST_TIMEOUT`,
+/// and tell the page once. Spawned, so the show never waits on it; the
+/// paint has the old rows, the next keystroke (or the `pal://index`
+/// re-query) the new ones.
 pub fn on_shown(app: &AppHandle) {
     // The welcome rows follow the permission and the marker; a no-op once hidden.
     welcome::sync(app);
     let live: Vec<(Source, PaletteMeta)> = Palettes::with(app, |reg| {
         reg.iter().filter(|r| r.enabled && r.meta.relists_on_show()).map(|r| (r.source.clone(), r.meta.clone())).collect()
     });
+    let now = unix_secs();
+    let ages: Vec<Option<u64>> = with_index(app, |ix| live.iter().map(|(s, _)| ix.source(s).and_then(|i| i.listed_at)).collect());
+    let mut relisted = lock(&RELISTED);
+    let (live, skipped): (Vec<_>, Vec<_>) = live.into_iter().zip(ages).partition(|((source, m), listed_at)| {
+        let since = relisted.iter().find(|(s, _)| s == source).map(|(_, t)| t.elapsed());
+        relist_due(m, since, *listed_at, now)
+    });
+    for ((source, _), _) in &live {
+        relisted.retain(|(s, _)| s != source);
+        relisted.push((source.clone(), Instant::now()));
+    }
+    drop(relisted);
+    if !skipped.is_empty() {
+        eprintln!("index\tshow relist\tskipped {}", skipped.iter().map(|((s, _), _)| format!("{}/{}", s.extension, s.palette)).collect::<Vec<_>>().join(", "));
+    }
+    let live: Vec<(Source, PaletteMeta)> = live.into_iter().map(|(l, _)| l).collect();
     if live.is_empty() {
         return;
     }
@@ -650,6 +685,25 @@ mod tests {
         let meta = PaletteMeta { name: "history".into(), title: "Clipboard".into(), live: true, ttl: Some(30.0), ..Default::default() };
         let v = serde_json::to_value(SourceView { extension: "clipboard".into(), palette: "history".into(), meta, count: 3, stale: true, listed_at: None }).unwrap();
         assert_eq!(v, json!({ "extension": "clipboard", "palette": "history", "name": "history", "title": "Clipboard", "live": true, "input": false, "ttl": 30.0, "count": 3, "stale": true }));
+    }
+
+    #[test]
+    fn live_relist_is_due_unless_just_done_or_within_ttl() {
+        let live = PaletteMeta { name: "otp".into(), title: "OTP".into(), live: true, ..Default::default() };
+        // No ttl: every show, whatever the rows' age.
+        assert!(relist_due(&live, None, None, 100));
+        assert!(relist_due(&live, None, Some(10), 100));
+        assert!(relist_due(&live, Some(LIVE_RELIST_GAP), Some(100), 100), "the gap is a strict bound");
+        // A show relist issued under the gap ago: a double show, skipped.
+        assert!(!relist_due(&live, Some(Duration::from_millis(300)), None, 100));
+        assert!(!relist_due(&live, Some(LIVE_RELIST_GAP - Duration::from_millis(1)), None, 100));
+        // With a ttl: only once the rows are older than it; never-listed rows are due.
+        let budgeted = PaletteMeta { ttl: Some(60.0), ..live.clone() };
+        assert!(!relist_due(&budgeted, None, Some(100), 160));
+        assert!(relist_due(&budgeted, None, Some(100), 161));
+        assert!(relist_due(&budgeted, None, None, 161));
+        // Both gates hold at once.
+        assert!(!relist_due(&budgeted, Some(Duration::from_secs(1)), Some(100), 161));
     }
 
     #[test]

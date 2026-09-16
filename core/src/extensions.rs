@@ -1,6 +1,6 @@
-//! User-installed extensions: the store at `<config dir>/extensions/<name>/`,
-//! the last root the host loads (bundled ones come first, so a user copy of
-//! `calc` wins over the bundled one by name).
+//! User-installed extensions: the store at `<data dir>/extensions/<name>/`,
+//! the root the host loads after the bundled ones (so a user copy of `calc`
+//! wins over the bundled one by name; `general.extension_dirs` come after).
 //!
 //! An extension is a directory with a `pal.json` (name, version) and an
 //! `index.ts`. Installing is: stage it in a temp dir next to the store (a
@@ -17,8 +17,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::ConfigFile;
-use crate::fs::write_atomic;
+use crate::fs::{self, write_atomic};
 
 /// The install record kept next to the manifest, so `update` knows where
 /// the extension came from and `check_updates` what commit it is at.
@@ -221,19 +220,24 @@ impl Store {
         Store { dir: dir.into() }
     }
 
-    /// `extensions/` next to the config file (`ConfigFile::locate`), the
-    /// same directory `app/src-tauri/src/host.rs` passes as the last root.
+    /// `<data dir>/extensions` (`~/Library/Application Support/pal/extensions`
+    /// on macOS, `~/.local/share/pal/extensions` on Linux): one store for
+    /// every config, the directory `app/src-tauri/src/host.rs` passes as
+    /// the user root. Not next to the config file: that is a dotfiles
+    /// checkout for many, and the store, its staging dir and the host's
+    /// `node_modules/pal` link are not dotfiles (a dotfiles-managed
+    /// extensions dir is `general.extension_dirs`).
     pub fn locate() -> Store {
-        let config = ConfigFile::locate();
-        Store::at(config.path().parent().unwrap_or(Path::new(".")).join("extensions"))
+        Store::at(fs::data_dir().join("extensions"))
     }
 
     pub fn dir(&self) -> &Path {
         &self.dir
     }
 
-    /// `<config dir>/.extensions-staging`: where an install is assembled and
-    /// a replaced copy is parked. Its leftovers are only ever a crash's.
+    /// `.extensions-staging` next to the store: where an install is
+    /// assembled and a replaced copy is parked. Its leftovers are only ever
+    /// a crash's.
     pub fn staging(&self) -> PathBuf {
         self.dir.parent().unwrap_or(&self.dir).join(".extensions-staging")
     }

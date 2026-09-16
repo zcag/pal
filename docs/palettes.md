@@ -8,9 +8,11 @@ the config file unless noted, and the per-palette keys (`enabled`, `alias`,
 Three words used below. An **input** palette is never in the index: its
 rows come from the extension on every keystroke inside it, and the root
 only has the palette's own row. A **live** palette is listed again every
-time the panel shows, so its rows are current at the root. A palette that
-is neither is indexed: listed once, searched from the index, refreshed with
-`⌘R`.
+time the panel shows (not twice within 2 s, and with a `ttl` only once its
+last listing is older than that), so its rows are current at the root. A
+palette that is neither is indexed: listed once, searched from the index,
+refreshed with `⌘R`; a `scripts` palette keeps its listing across restarts
+for the extension's `ttl` (an hour by default) unless it sets its own.
 
 | palette | id | kind | what `Enter` does |
 | --- | --- | --- | --- |

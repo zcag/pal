@@ -8,6 +8,14 @@
           "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded).\nToday a found update is a log line: download and install are not\nwired, and the menu's \"Check for updates\" is a disabled placeholder\nuntil they are.",
           "type": "boolean"
         },
+        "extension_dirs": {
+          "default": [],
+          "description": "Extra directories of extensions (one subdirectory per extension,\nlike the store), for a dotfiles-managed set. Loaded after the\nbundled extensions and the store, so a name in a later directory\nreplaces an earlier one. `~` is expanded. The host is restarted\n(`pal reload`) before a change here is seen.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "hotkey": {
           "default": "ctrl+space",
           "description": "Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,\nfor a compositor keybind that runs `pal toggle` instead.",
@@ -100,6 +108,7 @@
       "$ref": "#/$defs/General",
       "default": {
         "check_updates": true,
+        "extension_dirs": [],
         "hotkey": "ctrl+space",
         "launch_at_login": false,
         "menu_bar_icon": true,

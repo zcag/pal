@@ -27,10 +27,14 @@ pub enum SecretError {
     /// The reference points at nothing: the user has to add the secret.
     #[error("no secret at {0}")]
     NotFound(String),
-    /// The store itself failed (locked, missing, no backend on this
-    /// platform); the secret may well exist.
+    /// The store itself failed (locked, a denied or dismissed prompt); the
+    /// secret may well exist.
     #[error("{0}")]
     Store(String),
+    /// There is no store to ask: no `secret-tool` on PATH, no Secret Service
+    /// on the session bus. Nothing `keychain:` can resolve until there is.
+    #[error("{0}")]
+    Unavailable(String),
 }
 
 /// Where `keychain:` references are looked up.
@@ -82,7 +86,7 @@ pub fn platform_store() -> Box<dyn SecretStore> {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        Box::new(SecretService)
+        Box::new(SecretService::default())
     }
 }
 
@@ -92,7 +96,7 @@ pub fn platform_store() -> Box<dyn SecretStore> {
 #[cfg(target_os = "macos")]
 pub struct Keychain;
 
-#[cfg(target_os = "macos")]
+/// `<service>/<account>`, or service `pal` for a bare key.
 fn service_account(key: &str) -> (&str, &str) {
     key.split_once('/').unwrap_or(("pal", key))
 }
@@ -131,20 +135,92 @@ impl SecretStore for Keychain {
     }
 }
 
-/// TODO: Secret Service (libsecret) lookup, `secret-tool lookup service
-/// <service> account <account>` or the `secret-service` crate. Every lookup
-/// fails with a `Store` error until then; `env:` references work everywhere.
-#[cfg(not(target_os = "macos"))]
-pub struct SecretService;
+/// Secret Service (libsecret) through the `secret-tool` CLI, so pal needs no
+/// D-Bus client of its own: `keychain:<service>/<account>` is the item with
+/// attributes `service` and `account` (`keychain:<account>` means service
+/// `pal`), the same two `secret-tool` takes on the command line. Add one by
+/// hand with `secret-tool store --label="pal github-token" service pal
+/// account github-token`. Compiled everywhere so the fake-tool tests run on
+/// macOS too; only `platform_store` picks it.
+pub struct SecretService {
+    /// The program to run: `secret-tool` off PATH, or a path (tests).
+    tool: std::ffi::OsString,
+}
 
-#[cfg(not(target_os = "macos"))]
-impl SecretStore for SecretService {
-    fn get(&self, key: &str) -> Result<String, SecretError> {
-        Err(SecretError::Store(format!("keychain:{key}: Secret Service lookup not implemented on this platform yet")))
+impl Default for SecretService {
+    fn default() -> Self {
+        Self::with_tool("secret-tool")
+    }
+}
+
+impl SecretService {
+    pub fn with_tool(tool: impl Into<std::ffi::OsString>) -> Self {
+        Self { tool: tool.into() }
     }
 
-    fn set(&self, key: &str, _value: &str) -> Result<(), SecretError> {
-        Err(SecretError::Store(format!("keychain:{key}: Secret Service store not implemented on this platform yet")))
+    /// Runs `secret-tool <args>` with `stdin` fed to it and stdin closed
+    /// after, mapping a missing binary to `Unavailable`.
+    fn run(&self, args: &[&str], stdin: Option<&str>) -> Result<std::process::Output, SecretError> {
+        use std::io::Write;
+        use std::process::{Command, Stdio};
+        let mut child = Command::new(&self.tool)
+            .args(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| match e.kind() {
+                std::io::ErrorKind::NotFound => SecretError::Unavailable("secret-tool (libsecret) is not installed; keychain: references need it, env: works without".into()),
+                _ => SecretError::Store(e.to_string()),
+            })?;
+        if let (Some(mut pipe), Some(text)) = (child.stdin.take(), stdin) {
+            pipe.write_all(text.as_bytes()).map_err(|e| SecretError::Store(e.to_string()))?;
+        }
+        child.wait_with_output().map_err(|e| SecretError::Store(e.to_string()))
+    }
+
+    /// `secret-tool` exits 1 for every failure, so the kind is in stderr:
+    /// nothing said is a miss; a bus or activation complaint means no
+    /// Secret Service is reachable; anything else (locked, denied, a
+    /// dismissed prompt) is the store's problem and the item may exist.
+    fn failure(key: &str, stderr: &[u8]) -> SecretError {
+        let msg = String::from_utf8_lossy(stderr).trim().to_string();
+        if msg.is_empty() {
+            SecretError::NotFound(format!("keychain:{key}"))
+        } else if ["org.freedesktop.secrets", "Could not connect", "D-Bus"].iter().any(|n| msg.contains(n)) {
+            SecretError::Unavailable(format!("keychain:{key}: no Secret Service on the session bus ({msg})"))
+        } else {
+            SecretError::Store(format!("keychain:{key}: {msg}"))
+        }
+    }
+}
+
+impl SecretStore for SecretService {
+    fn get(&self, key: &str) -> Result<String, SecretError> {
+        let (service, account) = service_account(key);
+        let out = self.run(&["lookup", "service", service, "account", account], None)?;
+        if out.status.success() {
+            Ok(String::from_utf8_lossy(&out.stdout).trim_end_matches('\n').to_string())
+        } else {
+            Err(Self::failure(key, &out.stderr))
+        }
+    }
+
+    /// `store` replaces an item with the same attributes; the value goes on
+    /// stdin, which is where `secret-tool` reads it from without a tty.
+    fn set(&self, key: &str, value: &str) -> Result<(), SecretError> {
+        let (service, account) = service_account(key);
+        let label = format!("pal {key}");
+        let out = self.run(&["store", "--label", &label, "service", service, "account", account], Some(value))?;
+        if out.status.success() {
+            Ok(())
+        } else {
+            // A miss makes no sense for a write: an empty stderr is still a store failure.
+            Err(match Self::failure(key, &out.stderr) {
+                SecretError::NotFound(_) => SecretError::Store(format!("keychain:{key}: secret-tool store failed")),
+                e => e,
+            })
+        }
     }
 }
 
@@ -192,6 +268,90 @@ mod tests {
         std::env::set_var("PAL_TEST_SECRET", "from-env");
         assert_eq!(resolve("env:PAL_TEST_SECRET", &store).unwrap(), "from-env");
         assert!(matches!(resolve("env:PAL_TEST_MISSING", &store), Err(SecretError::NotFound(_))));
+    }
+
+    /// A stand-in `secret-tool` that answers by account name, and records
+    /// every `store` (args, then stdin) to `<dir>/stored`.
+    fn fake_secret_tool(dir: &std::path::Path) -> SecretService {
+        use std::os::unix::fs::PermissionsExt;
+        let tool = dir.join("secret-tool");
+        std::fs::write(
+            &tool,
+            format!(
+                r#"#!/bin/sh
+cmd=$1; shift
+case "$cmd" in
+  lookup)
+    case "$4" in
+      tok) printf 's3cret' ;;
+      nl) printf 'ends-with-newline\n' ;;
+      nope) exit 1 ;;
+      nobus) echo 'secret-tool: Could not connect: No such file or directory' >&2; exit 1 ;;
+      noservice) echo 'secret-tool: Error calling StartServiceByName for org.freedesktop.secrets: Timeout was reached' >&2; exit 1 ;;
+      locked) echo 'secret-tool: The collection is locked' >&2; exit 1 ;;
+    esac ;;
+  store)
+    printf '%s\n' "$*" > '{dir}/stored'; cat >> '{dir}/stored'
+    case "$*" in
+      *denied*) echo 'secret-tool: Access denied' >&2; exit 1 ;;
+      *nobus*) echo 'secret-tool: Could not connect: No such file or directory' >&2; exit 1 ;;
+    esac ;;
+esac
+"#,
+                dir = dir.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&tool, std::fs::Permissions::from_mode(0o755)).unwrap();
+        SecretService::with_tool(tool)
+    }
+
+    #[test]
+    fn secret_tool_lookup_mapping() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = fake_secret_tool(dir.path());
+        assert_eq!(store.get("pal/tok").unwrap(), "s3cret");
+        assert_eq!(store.get("tok").unwrap(), "s3cret", "bare key is service pal");
+        assert_eq!(store.get("pal/nl").unwrap(), "ends-with-newline", "trailing newline dropped, as the keychain path does");
+        assert_eq!(store.get("pal/nope"), Err(SecretError::NotFound("keychain:pal/nope".into())), "silent exit 1 is a miss");
+        assert!(matches!(store.get("pal/nobus"), Err(SecretError::Unavailable(m)) if m.contains("no Secret Service") && m.contains("Could not connect")));
+        assert!(matches!(store.get("pal/noservice"), Err(SecretError::Unavailable(m)) if m.contains("org.freedesktop.secrets")));
+        assert!(matches!(store.get("pal/locked"), Err(SecretError::Store(m)) if m == "keychain:pal/locked: secret-tool: The collection is locked"));
+    }
+
+    #[test]
+    fn secret_tool_store_args_and_stdin() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = fake_secret_tool(dir.path());
+        store.set("pal/github-token", "va lue\n").unwrap();
+        let rec = std::fs::read_to_string(dir.path().join("stored")).unwrap();
+        assert_eq!(rec, "--label pal pal/github-token service pal account github-token\nva lue\n", "attributes on argv, the value on stdin verbatim");
+        assert!(matches!(store.set("pal/denied", "x"), Err(SecretError::Store(m)) if m == "keychain:pal/denied: secret-tool: Access denied"));
+        assert!(matches!(store.set("pal/nobus", "x"), Err(SecretError::Unavailable(_))));
+    }
+
+    #[test]
+    fn secret_tool_absent_is_unavailable() {
+        let store = SecretService::with_tool("/nonexistent/secret-tool");
+        assert!(matches!(store.get("pal/tok"), Err(SecretError::Unavailable(m)) if m.contains("not installed")));
+        assert!(matches!(store.set("pal/tok", "x"), Err(SecretError::Unavailable(_))));
+    }
+
+    /// Writes a real Secret Service item (`pal-test/roundtrip`) and removes
+    /// it after. Needs `secret-tool` and an unlocked keyring on the session
+    /// bus: `cargo test -p pal-core -- --ignored secret_tool_set_then_get_roundtrip`.
+    #[test]
+    #[cfg(not(target_os = "macos"))]
+    #[ignore]
+    fn secret_tool_set_then_get_roundtrip() {
+        let store = SecretService::default();
+        let key = "pal-test/roundtrip";
+        store.set(key, "first").unwrap();
+        assert_eq!(store.get(key).unwrap(), "first");
+        store.set(key, "second").unwrap();
+        assert_eq!(store.get(key).unwrap(), "second", "store replaces in place");
+        let _ = std::process::Command::new("secret-tool").args(["clear", "service", "pal-test", "account", "roundtrip"]).output();
+        assert!(matches!(store.get(key), Err(SecretError::NotFound(_))));
     }
 
     #[test]
