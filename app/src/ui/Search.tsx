@@ -8,8 +8,8 @@ export type SearchProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   inputRef?: RefObject<HTMLInputElement | null>;
-  /** Shown when a level is pushed: a back chevron and the level's title. */
-  back?: { title: string; icon?: IconSpec; onBack: () => void };
+  /** Shown when a level is pushed: a back chevron and the level's title; without `onBack` (a bottom level with nothing under it) the title alone. */
+  back?: { title: string; icon?: IconSpec; onBack?: () => void };
   filter?: Filter;
   /** The listbox (or grid) this input drives, for aria-controls / aria-activedescendant. */
   listId?: string;
@@ -26,13 +26,18 @@ export type SearchProps = {
 export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly, title }: SearchProps) {
   return (
     <div className="pal-search" data-loading={loading || undefined} data-readonly={readOnly || undefined} aria-busy={loading || undefined}>
-      {back && (
+      {back && (back.onBack ? (
         <button type="button" className="pal-search__back" onClick={back.onBack} onMouseDown={keepFocus} aria-label={`Back from ${back.title}`} tabIndex={-1}>
           <span className="pal-search__chevron" aria-hidden>‹</span>
           {back.icon && <Icon icon={back.icon} size="sm" />}
           <span className="pal-search__crumb">{back.title}</span>
         </button>
-      )}
+      ) : (
+        <span className="pal-search__back" data-static="" role="heading" aria-level={1}>
+          {back.icon && <Icon icon={back.icon} size="sm" />}
+          <span className="pal-search__crumb">{back.title}</span>
+        </span>
+      ))}
       {title !== undefined ? <span className="pal-search__title" role="heading" aria-level={1}>{title}</span> : <input
         ref={inputRef}
         className="pal-search__input"

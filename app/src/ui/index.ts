@@ -23,20 +23,23 @@ export { Hud } from "./Hud";
 export { Presence } from "./presence";
 export { useNavStack, type NavStack } from "./nav";
 export { useCursor, type Cursor } from "./cursor";
-export { useKeys, useCmdHeld, keepFocus, grammar, type Command, type Handlers } from "./keys";
+export { useKeys, useCmdHeld, keepFocus, grammar, shortcutsOf, hasShortcut, type Command, type Handlers } from "./keys";
 export { groupBySection, domId } from "./virtual";
 export { relativeDate, shortcutKeys, graphemePositions } from "./format";
 import "./settings.css";
-export { SettingsWindow, settingsPages } from "./SettingsWindow";
+export { SettingsWindow, settingsPages, pageTitle, flashAnchor } from "./SettingsWindow";
+export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type OverviewInput, type OverviewItem } from "./SettingsOverview";
 export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
 export { SettingsPalettes, palettesIndex, paletteIcon } from "./SettingsPalettes";
 export { SettingsExtensions, extensionsIndex } from "./SettingsExtensions";
-export { SettingsAbout, aboutIndex, type UpdateInfo } from "./SettingsAbout";
+export { SettingsBar, barIndex } from "./SettingsBar";
+export { SettingsAbout, aboutIndex, copyText, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo } from "./SettingsAbout";
 export { SettingsList, type SettingsListItem } from "./SettingsList";
 export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
 export { SettingsDiagnostics } from "./SettingsDiagnostics";
-export { describeDefault, isModified } from "./SettingsTypes";
+export { describeDefault, isModified, needsSetup, permissionRows } from "./SettingsTypes";
 export type {
-  SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, SettingsPalette, SettingsExtension,
-  GeneralConfig, HotkeyStatus, PermissionsStatus, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
+  SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
+  GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, CalendarPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
+  BarTarget, BarConfig, BarItemConfig, BarItem,
 } from "./SettingsTypes";

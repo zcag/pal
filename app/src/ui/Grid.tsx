@@ -3,7 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Icon } from "./Icon";
 import { Highlight } from "./Row";
 import { keepFocus, useCmdHeld } from "./keys";
-import { domId, flatten, useHover, useMetrics } from "./virtual";
+import { domId, flatten, useGridColumns, useHover, useMetrics } from "./virtual";
 import type { Hit, ListHandle } from "./List";
 
 export type GridProps = {
@@ -19,22 +19,26 @@ export type GridProps = {
 };
 
 /**
- * Tiles in rows of `columns`, virtualised by row, same cursor semantics as
- * List. Row heights follow the tile's aspect and the caption line, so the
- * rows measure themselves and the estimate only has to be close.
+ * Tiles in rows of as many columns as the width takes (`columns` is the
+ * most; beside a detail pane the list is narrower), virtualised by row, same
+ * cursor semantics as List. Row heights follow the tile's aspect and the
+ * caption line, so the rows measure themselves and the estimate only has to
+ * be close; a change of column count renews the item keys, which drops the
+ * virtualiser's size cache so every row measures again.
  */
 export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, columns = 6, aspect = 1, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
-  const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item), columns), [hits, columns]);
+  const cols = useGridColumns(scroller, metrics, columns);
+  const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item), cols), [hits, cols]);
   const cmdHeld = useCmdHeld();
   const { hover, hovered } = useHover(cursor, onCursor);
 
   const estimateRow = () => {
     const w = scroller.current?.clientWidth;
-    return w ? Math.round((w - metrics.pad * 2 - metrics.gap * (columns - 1)) / columns / aspect) + metrics.header : metrics.row * 2;
+    return w ? Math.round((w - metrics.inset * 2 - metrics.gap * (cols - 1)) / cols / aspect) + metrics.header : metrics.row * 2;
   };
-  const getItemKey = useCallback((i: number) => (rows[i].kind === "header" ? `h${i}` : i), [rows, metrics, columns, aspect]);
+  const getItemKey = useCallback((i: number) => (rows[i].kind === "header" ? `h${i}` : i), [rows, metrics, cols, aspect]);
   const virt = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scroller.current,
@@ -48,11 +52,12 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
   });
 
   useImperativeHandle(ref, () => ({
+    columns: () => cols,
     pageSize: () => {
       const rowH = virt.getVirtualItems().find((v) => rows[v.index].kind === "items")?.size ?? estimateRow();
-      return Math.max(1, Math.floor((scroller.current?.clientHeight ?? 0) / rowH) - 1) * columns;
+      return Math.max(1, Math.floor((scroller.current?.clientHeight ?? 0) / rowH) - 1) * cols;
     },
-  }), [columns, rows, virt]);
+  }), [cols, rows, virt]);
 
   useLayoutEffect(() => {
     if (hovered()) return;
@@ -63,7 +68,7 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
   }, [cursor, rows, rowOf, virt, hovered]);
 
   return (
-    <div ref={scroller} className="pal-grid" role="grid" id={id} aria-label={label} aria-activedescendant={hits.length ? domId(id, cursor) : undefined} style={{ "--cols": columns } as CSSProperties}>
+    <div ref={scroller} className="pal-grid" role="grid" id={id} aria-label={label} aria-activedescendant={hits.length ? domId(id, cursor) : undefined} style={{ "--cols": cols } as CSSProperties}>
       <div className="pal-list__inner" style={{ height: virt.getTotalSize() }}>
         {virt.getVirtualItems().map((v) => {
           const row = rows[v.index];
@@ -71,7 +76,7 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
           if (row.kind === "header") {
             return (
               <div key={v.key} className="pal-section" role="row" style={style}>
-                <span className="pal-section__title" role="rowheader" aria-colspan={columns}>{row.title}</span>
+                <span className="pal-section__title" role="rowheader" aria-colspan={cols}>{row.title}</span>
                 <span className="pal-section__count" aria-hidden>{row.count}</span>
               </div>
             );

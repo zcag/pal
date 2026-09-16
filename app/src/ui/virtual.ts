@@ -30,19 +30,46 @@ export function flatten<T extends { section?: string }>(items: T[], per = 1) {
   return { rows, rowOf };
 }
 
-export type Metrics = { row: number; header: number; pad: number; gap: number };
+export type Metrics = { row: number; header: number; pad: number; gap: number; inset: number; tile: number };
 
 const px = (el: Element, name: string, fallback: number) =>
   parseFloat(getComputedStyle(el).getPropertyValue(name)) || fallback;
 
+const defaultMetrics: Metrics = { row: 40, header: 28, pad: 8, gap: 8, inset: 8, tile: 56 };
+
 /** Row sizes from the tokens, read off the scroller so the virtualiser and the CSS agree. */
 export function useMetrics(scroller: RefObject<HTMLElement | null>): Metrics {
-  const [m, setM] = useState<Metrics>({ row: 40, header: 28, pad: 8, gap: 8 });
+  const [m, setM] = useState<Metrics>(defaultMetrics);
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (el) setM({ row: px(el, "--pal-row-h", 40), header: px(el, "--pal-section-h", 28), pad: px(el, "--pal-space-2", 8), gap: px(el, "--pal-grid-gap", 8) });
+    if (el) setM({ row: px(el, "--pal-row-h", 40), header: px(el, "--pal-section-h", 28), pad: px(el, "--pal-space-2", 8), gap: px(el, "--pal-grid-gap", 8), inset: px(el, "--pal-list-inset", 8), tile: px(el, "--pal-grid-tile", 56) });
   }, [scroller]);
   return m;
+}
+
+/**
+ * Grid columns for a scroller `width` px wide: as many cells of at least the
+ * tile's width (plus the gap between) as fit inside the list insets, at most
+ * `max` (what the extension asked for), never under 2.
+ */
+export function gridColumns(width: number, { tile, gap, inset }: Pick<Metrics, "tile" | "gap" | "inset">, max: number): number {
+  return Math.max(2, Math.min(max, Math.floor((width - inset * 2 + gap) / (tile + gap))));
+}
+
+/** The live column count of a grid scroller, following its width; `max` until the first measurement. */
+export function useGridColumns(scroller: RefObject<HTMLElement | null>, metrics: Metrics, max: number): number {
+  const [cols, setCols] = useState(max);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const measure = () => setCols(gridColumns(el.clientWidth, metrics, max));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [scroller, metrics, max]);
+  return cols;
 }
 
 /**

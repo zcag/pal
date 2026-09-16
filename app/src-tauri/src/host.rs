@@ -133,7 +133,7 @@ impl Host {
         let t0 = Instant::now();
         *lock(&self.started) = t0;
         let layout = Layout::resolve(&self.app);
-        eprintln!("host\tspawn\t{} {} {}", layout.bun.display(), layout.host.display(), layout.roots.iter().map(|r| r.display().to_string()).collect::<Vec<_>>().join(" "));
+        eprintln!("host\tspawn\t{} {} {}\t{:.1}ms since start", layout.bun.display(), layout.host.display(), layout.roots.iter().map(|r| r.display().to_string()).collect::<Vec<_>>().join(" "), crate::since_start_ms());
         // Without --no-install Bun fetches any unresolved bare import from npm
         // at load time; an extension's typo would pull arbitrary code.
         let mut child = Command::new(&layout.bun)
@@ -170,7 +170,7 @@ impl Host {
                 }
                 (None, Some(method)) => {
                     if method == "host/ready" {
-                        eprintln!("host\tready\t{:.1}ms", t0.elapsed().as_secs_f64() * 1000.0);
+                        eprintln!("host\tready\t{:.1}ms\t{:.1}ms since start", t0.elapsed().as_secs_f64() * 1000.0, crate::since_start_ms());
                     }
                     crate::index::on_notification(&self.app, self, method, &msg["params"]);
                     events::emit(&self.app, events::HOST, msg);

@@ -95,3 +95,43 @@ pub fn hud_hide(app: &AppHandle) {
         let _ = w.hide();
     }
 }
+
+// ---- bar popover ---------------------------------------------------------
+//
+// The bar popover (bar/popover.rs) is a fourth toplevel, `pal Bar`: shown
+// engaged it takes focus like the panel and hides when it loses it; a
+// peek (`engaged = false`) is shown without focus. Same class as the
+// panel; a compositor rule keyed on its title floats it where pal placed
+// it (`set_position` is a no-op on Wayland, so it lands where the rule
+// says):
+//
+// ```text
+// windowrule = float on, pin on, no_anim on, border_size 0, match:title ^(pal Bar)$
+// ```
+
+pub fn bar_install(window: &WebviewWindow) {
+    let app = window.app_handle().clone();
+    window.on_window_event(move |e| {
+        if matches!(e, WindowEvent::Focused(false)) {
+            crate::bar::popover::on_resign(&app);
+        }
+    });
+    let _ = window.show();
+    let _ = window.hide();
+}
+
+pub fn bar_show(app: &AppHandle, engaged: bool) {
+    let Some(w) = app.get_webview_window(crate::bar::popover::WINDOW) else { return };
+    let _ = w.show();
+    if engaged {
+        let _ = w.set_focus();
+        let webview: &tauri::Webview = w.as_ref();
+        let _ = webview.set_focus();
+    }
+}
+
+pub fn bar_hide(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(crate::bar::popover::WINDOW) {
+        let _ = w.hide();
+    }
+}

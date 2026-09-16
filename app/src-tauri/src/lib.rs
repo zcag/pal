@@ -6,12 +6,16 @@
 mod apps;
 mod audio;
 mod autostart;
+mod bar;
 mod bluetooth;
 mod bridge;
 mod cache;
 mod cli;
 mod clipboard;
+mod commands;
 mod compat;
+mod crash;
+mod deeplink;
 mod effects;
 mod events;
 mod firstrun;
@@ -66,10 +70,11 @@ pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-/// Prints a timing mark from either side, on one clock (wall time, ms).
+/// Prints a timing mark from either side, on one clock (wall time, ms),
+/// and where it fell since `run` began (the startup timeline).
 #[tauri::command]
 fn mark(name: String, t: Option<f64>) {
-    eprintln!("mark\t{}\t{:.1}", name, t.unwrap_or_else(now_ms));
+    eprintln!("mark\t{}\t{:.1}\t{:.1}ms since start", name, t.unwrap_or_else(now_ms), since_start_ms());
 }
 
 #[derive(Clone, Serialize)]
@@ -131,6 +136,7 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     events::emit(app, events::SHOWN, Shown { t0, palette });
     // After the event: the live palettes list again off this thread.
     index::on_shown(app);
+    bar::on_shown(app);
     // A fresh profile's first show asks for Accessibility (once per run);
     // a missing permission is watched for while the panel is up.
     permissions::ask_on_first_show(app);
@@ -169,7 +175,8 @@ pub(crate) fn quit(app: &AppHandle) {
 
 pub fn run() {
     START.get_or_init(Instant::now);
-    let cli = cli::Cli::parse();
+    // A `pal://` link as the only argument (Linux: what the desktop entry runs) is not a subcommand: the plugins carry it (deeplink.rs).
+    let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None } } else { cli::Cli::parse() };
     // The v1 compatibility commands never touch an instance.
     if let Some(status) = cli.cmd.as_ref().and_then(cli::Cmd::run_compat) {
         std::process::exit(status);
@@ -205,6 +212,7 @@ pub fn run() {
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
     let builder = icon::register(builder).plugin(tauri_plugin_updater::Builder::new().build()).plugin(autostart::plugin());
+    let builder = deeplink::register(builder);
     // Size and position of the settings window only; the panel and the HUD place themselves.
     let builder = builder.plugin(tauri_plugin_window_state::Builder::new().with_state_flags(settings::STATE).with_filter(|label| label == settings::WINDOW).build());
     builder
@@ -249,6 +257,10 @@ pub fn run() {
             permissions::permissions_status,
             permissions::permissions_request,
             permissions::open_system_settings,
+            bar::popover::bar_hide,
+            bar::popover::bar_size,
+            bar::popover::bar_action,
+            bar::popover::bar_refresh,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
@@ -272,6 +284,7 @@ pub fn run() {
             //      storage: the extensions' key-value files, nothing read yet
             //   9. updater: the daily check (release builds)
             //  10. cache restore: last run's listings, so the root answers now
+            //      bar: the popover window, the strip targets and their probes
             //  11. host: spawned last, its notifications need everything above
             // Every step logs its own failure and the next one still runs:
             // no state is half-managed, a step that cannot start just leaves
@@ -289,10 +302,11 @@ pub fn run() {
             // configs (a dev profile, `config.toml`) never share one.
             let config = ConfigFile::locate();
             let data = config.data_dir();
-            eprintln!("profile\t{}\t{}\t{}", config.profile(), config.path().display(), data.display());
+            eprintln!("profile\t{}\t{}\t{}\t{:.1}ms since start", config.profile(), config.path().display(), data.display(), since_start_ms());
             for n in cache::adopt_pre_profile(&pal_core::fs::data_dir(), &config.profile()) {
                 eprintln!("profile\t{n}");
             }
+            crash::install(app.handle(), &data);
             index::install(app.handle(), &data);
             hotkey::install(app.handle());
             settings::install(app.handle(), config);
@@ -301,6 +315,7 @@ pub fn run() {
             storage::install(app.handle());
             updater::install(app.handle());
             index::restore_cache(app.handle());
+            bar::install(app.handle());
             host::Host::start(app.handle());
             // Icons and favicons are cached forever otherwise; a month is
             // long enough that a daily app never refetches.
@@ -319,6 +334,7 @@ pub fn run() {
             // The host is already down (`quit`), or the OS is ending us and
             // its stdin closes with the process: flush what is ours.
             if let RunEvent::Exit = event {
+                bar::remove_all(app);
                 index::flush(app);
                 eprintln!("quit\tflushed\t{:.1}ms since start", since_start_ms());
             }

@@ -181,6 +181,33 @@ const vocabulary: ViewNode = {
     { type: "stack", direction: "row", gap: 3, align: "center", children: [
       { type: "text", value: "progress", style: "muted", size: "xs" },
       { type: "progress", value: 0 }, { type: "progress", value: 0.25 }, { type: "progress", value: 0.62, width: 72 }, { type: "progress", value: 1 },
+      { type: "progress", value: 0.7, width: 48, color: "green" }, { type: "progress", value: 0.4, width: 48, color: "grey" },
+    ] },
+    { type: "stack", direction: "row", gap: 2, align: "end", children: [
+      ...(["neutral", "accent", "grey", "blue", "green", "amber", "red", "violet", "pink", "teal"] as const).map((color): ViewNode => ({ type: "stack", direction: "column", gap: 1, children: [
+        { type: "tile", width: 32, height: 32, text: "8", color, fill: "solid" },
+        { type: "tile", width: 32, height: 32, text: "8", color, fill: "soft" },
+        { type: "tile", width: 32, height: 32, text: "8", color, fill: "outline" },
+      ] })),
+      { type: "tile", width: 64, height: 64, text: "2048", color: "accent", fill: "solid" },
+      { type: "tile", width: 56, height: 48, text: "42", sub: "played", color: "neutral", fill: "soft" },
+      { type: "tile", width: 32, height: 40, text: "Q", color: "neutral", fill: "soft" },
+      { type: "text", value: "tile: solid, soft, outline per colour; the type scales with the box and shrinks to fit the text; a sub line", style: "muted", size: "xs" },
+    ] },
+    { type: "stack", direction: "row", gap: 3, align: "start", children: [
+      { type: "stack", direction: "row", gap: 2, padding: 2, surface: "sunken", radius: true, children: [
+        { type: "tile", width: 40, height: 40, text: "2", color: "neutral", fill: "solid" }, { type: "tile", width: 40, height: 40, color: "neutral", fill: "outline" }, { type: "tile", width: 40, height: 40, text: "4", color: "neutral", fill: "soft" },
+        { type: "text", value: "sunken, radius", style: "muted", size: "xs" },
+      ] },
+      { type: "stack", direction: "column", gap: 1, padding: 3, surface: "elevated", radius: true, children: [
+        { type: "text", value: "elevated, radius", style: "muted", size: "xs" },
+        ...([["1", 0.1, "grey"], ["2", 0.6, "grey"], ["3", 1, undefined]] as const).map(([n, v, color]): ViewNode => ({ type: "stack", direction: "row", gap: 1, children: [
+          { type: "text", value: n, style: "mono", size: "xs", color: "faint", width: 8, align: "end" },
+          { type: "progress", value: v, width: 80, color },
+          { type: "text", value: String(Math.round(v * 14)), style: "number", size: "xs", color: color ? "muted" : "accent", width: 20, align: "end" },
+        ] })),
+        { type: "text", value: "text.width lines the columns up", style: "muted", size: "xs" },
+      ] },
     ] },
     { type: "stack", direction: "row", gap: 2, align: "end", children: [
       { type: "image", src: cardSvg("AS"), width: 56, height: 80, alt: "ace of spades" },
@@ -435,7 +462,7 @@ function GalleryPage() {
       </Section>
 
       <Section id="view" title="View">
-        <p className="g-note">A view level: the extension sends a render tree from a fixed vocabulary (stack, text, image, badge, divider, spacer, progress, keycap) and the app draws it with the tokens; the search input gives way to the view's title, the footer keeps the first action and ⌘K.</p>
+        <p className="g-note">A view level: the extension sends a render tree from a fixed vocabulary (stack, text, image, tile, badge, divider, spacer, progress, keycap) and the app draws it with the tokens; the search input gives way to the view's title, the footer keeps the first action and ⌘K. A keyed node enters (fade, slide-up/down/left/right, flip, pop), exits, or with <code>move</code> slides from where its key was in the previous tree.</p>
         <State label="Vocabulary: every primitive in every style"><Pair surface><View tree={vocabulary} /></Pair></State>
         <State label="Blackjack, mid-hand after a split: hand 1 is being played (blue), the hole card is face down">
           <Pair panel>

@@ -5,6 +5,8 @@ import { keepFocus, useKeys } from "./keys";
 export type ConfirmProps = {
   /** The question. */
   title: string;
+  /** What the question is about, under it: a link's target, a spec. */
+  message?: string;
   /** The go-ahead button's label: the action's own title. */
   action: string;
   destructive?: boolean;
@@ -18,7 +20,7 @@ export type ConfirmProps = {
  * else leaves the card: every other command is swallowed so the launcher
  * behind it cannot move or run anything while the question is up.
  */
-export function Confirm({ title, action, destructive, onConfirm, onCancel }: ConfirmProps) {
+export function Confirm({ title, message, action, destructive, onConfirm, onCancel }: ConfirmProps) {
   const root = useRef<HTMLDivElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   const go = useRef<HTMLButtonElement>(null);
@@ -41,6 +43,7 @@ export function Confirm({ title, action, destructive, onConfirm, onCancel }: Con
       <div className="pal-scrim" onClick={onCancel} aria-hidden />
       <div ref={root} className="pal-confirm" role="alertdialog" aria-modal aria-labelledby="pal-confirm-title" data-keyscope onMouseDown={keepFocus}>
         <div id="pal-confirm-title" className="pal-confirm__title">{title}</div>
+        {message && <div className="pal-confirm__message">{message}</div>}
         <div className="pal-form__buttons">
           <button ref={cancel} type="button" className="pal-button" onClick={onCancel}>Cancel <Kbd shortcut="escape" /></button>
           <button ref={go} type="button" className="pal-button" data-primary data-destructive={destructive || undefined} onClick={onConfirm}>{action} <Kbd shortcut="enter" /></button>

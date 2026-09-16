@@ -13,6 +13,11 @@
 //! `pal action NAME` and the v1 subcommands (`pick`, `run`, `meta`, ...)
 //! are for the scripts written against pal v1: `compat.rs`, in this
 //! process, no instance needed.
+//!
+//! `pal bar ...` (bar/mod.rs): `list` and `json` read the feed file the
+//! instance writes, in this process; `click`, `hover`, `action`, `render`
+//! and `sync` reach the instance (sketchybar's click and hover scripts
+//! run them).
 
 use clap::{Parser, Subcommand};
 use pal_core::extensions::Store;
@@ -33,8 +38,11 @@ pub enum Cmd {
     Show,
     /// Hide the panel.
     Hide,
-    /// Open the settings window.
-    Settings,
+    /// Open the settings window, on a page when one is named.
+    Settings {
+        /// `overview`, `general`, `palettes`, `extensions`, `bar` or `about`.
+        page: Option<String>,
+    },
     /// Restart the extension host, so it reloads every extension from disk.
     Reload,
     /// Quit the running instance (flushes its state, stops the extension host).
@@ -49,6 +57,41 @@ pub enum Cmd {
     List,
     /// Run a pal v1 action on the value on stdin: copy, paste, open, type, cmd, or a plugins/actions/NAME script.
     Action { name: String },
+    /// Bar items: list them, click or hover one, run an action, render again, re-apply sketchybar.
+    Bar {
+        #[command(subcommand)]
+        cmd: BarCmd,
+    },
+}
+
+#[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
+pub enum BarCmd {
+    /// Every declared item, visible or not, with its last title.
+    List,
+    /// The item's last rendered state as JSON.
+    Json { key: String },
+    /// A click on the item: its popover, or its open action.
+    Click {
+        key: String,
+        /// Where the click came from: `sketchybar` (the item's bounding rect is queried), `menubar`, or `x,y,w,h` in screen points.
+        #[arg(long)]
+        anchor: Option<String>,
+    },
+    /// The pointer entered or left the item (sketchybar's `mouse.entered` / `mouse.exited`).
+    Hover {
+        key: String,
+        #[arg(long)]
+        anchor: Option<String>,
+        /// `enter` or `exit`; `$SENDER`'s `mouse.entered` / `mouse.exited` are read too.
+        #[arg(long)]
+        state: String,
+    },
+    /// Run one of the item's actions (a menu node's `action`, or `segment:<id>`).
+    Action { key: String, action: String },
+    /// Render the item again now.
+    Render { key: String },
+    /// Re-apply the sketchybar target (the end of a sketchybarrc).
+    Sync,
 }
 
 impl Cmd {
@@ -57,6 +100,31 @@ impl Cmd {
     pub fn run_compat(&self) -> Option<i32> {
         match self {
             Cmd::Action { name } => Some(crate::compat::action(name)),
+            Cmd::Bar { cmd: BarCmd::List } => {
+                let feed = crate::bar::read_feed();
+                for (key, e) in &feed.items {
+                    let item = e.item.as_ref();
+                    let state = match item {
+                        None => "unrendered",
+                        Some(i) if i.hidden => "hidden",
+                        _ if e.stale => "stale",
+                        _ => "visible",
+                    };
+                    let title = item.and_then(|i| i.title.clone()).unwrap_or_default();
+                    println!("{key}\t{state}\t{}\t{title}", e.title);
+                }
+                Some(0)
+            }
+            Cmd::Bar { cmd: BarCmd::Json { key } } => match crate::bar::read_feed().items.get(key) {
+                Some(e) => {
+                    println!("{}", serde_json::to_string_pretty(e).unwrap_or_default());
+                    Some(0)
+                }
+                None => {
+                    eprintln!("pal\tno bar item {key}");
+                    Some(1)
+                }
+            },
             _ => None,
         }
     }
@@ -140,7 +208,7 @@ impl Cmd {
             Cmd::Toggle => crate::toggle(&handle),
             Cmd::Show => crate::show(&handle),
             Cmd::Hide => crate::panel::hide(&handle),
-            Cmd::Settings => crate::settings::open(&handle),
+            Cmd::Settings { page } => crate::settings::open_page(&handle, page.as_deref()),
             Cmd::Reload => {
                 if let Some(host) = handle.try_state::<std::sync::Arc<crate::host::Host>>() {
                     let host = host.inner().clone();
@@ -148,11 +216,50 @@ impl Cmd {
                 }
             }
             Cmd::Quit => crate::quit(&handle),
+            Cmd::Bar { cmd } => run_bar(&handle, cmd),
             // Reaches the instance only when a second process skipped
             // `run_store` (it never does); the store is that process's job.
             Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } => {}
         });
     }
+}
+
+/// `--anchor`: `sketchybar` queries the item's bounding rect (off the
+/// main thread, it is a subprocess), `x,y,w,h` is a rect, anything else
+/// (or nothing) no rect. Then the popover's event.
+fn run_bar(app: &AppHandle, cmd: BarCmd) {
+    use crate::bar::{popover, sketchybar, Rect};
+    let anchor_of = |anchor: Option<&str>, key: &str| -> (Option<Rect>, &'static str) {
+        match anchor {
+            Some("sketchybar") => (sketchybar::anchor_of(&sketchybar::name_of(key)), "sketchybar"),
+            Some("menubar") => (None, "menubar"),
+            Some(s) => (Rect::parse(s), "cli"),
+            None => (None, "cli"),
+        }
+    };
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || match cmd {
+        BarCmd::Click { key, anchor } => {
+            let (rect, name) = anchor_of(anchor.as_deref(), &key);
+            popover::on_click(&app, &key, rect, name);
+        }
+        BarCmd::Hover { key, anchor, state } => {
+            let entered = matches!(state.trim(), "enter" | "entered" | "mouse.entered");
+            let (rect, name) = if entered { anchor_of(anchor.as_deref(), &key) } else { (None, "cli") };
+            popover::on_hover(&app, &key, rect, entered, name);
+        }
+        BarCmd::Action { key, action } => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = crate::bar::action(&app, &key, &action, "cli", popover::WINDOW).await {
+                    eprintln!("bar\taction\t{key}\t{action}\tfailed\t{e}");
+                }
+            });
+        }
+        BarCmd::Render { key } => crate::bar::render(&app, &key, "cli"),
+        BarCmd::Sync => sketchybar::resync(&app),
+        BarCmd::List | BarCmd::Json { .. } => {}
+    });
 }
 
 /// Hands this process's argv to a running instance over the channel the

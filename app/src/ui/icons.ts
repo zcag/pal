@@ -20,6 +20,8 @@ const base: string = (() => {
 
 export const appIconUrl = (path: string, size: number) => `${base}app?path=${encodeURIComponent(path)}&size=${size}`;
 export const faviconUrl = (url: string, size: number) => `${base}favicon?url=${encodeURIComponent(url)}&size=${size}`;
+/** One of an installed extension's store screenshots, as is (`<root>/<ext>/screenshots/<file>`). */
+export const screenshotUrl = (ext: string, file: string) => `${base}shot?ext=${encodeURIComponent(ext)}&file=${encodeURIComponent(file)}&size=0`;
 
 /**
  * One private-use codepoint (U+E000-F8FF, U+F0000-FFFFD): a Nerd Font glyph,

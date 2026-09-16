@@ -21,7 +21,8 @@ serde_json = "1"
 # settings: manifest defaults as the table the core overlays
 toml = "1"
 tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macros"] }
-tauri-plugin-single-instance = "2"
+# deep-link: a second process's `pal://` argv reaches the plugin in the instance (deeplink.rs)
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 # launch at login: a LaunchAgent on macOS, an XDG autostart entry on Linux
 tauri-plugin-autostart = "2"
 clap = { version = "4", features = ["derive"] }
@@ -29,10 +30,23 @@ url = "2"
 # updates: the GitHub release manifest, checked on start and daily (updater.rs)
 tauri-plugin-updater = "2"
 tauri-plugin-window-state = "2"
+# bar items: the menu bar glyphs rasterised from the bundled Nerd Font (bar/glyph.rs)
+ab_glyph = "0.2"
+image = { version = "0.25", default-features = false, features = ["png"] }
+# bar items: `data:image/...` icons on the strip
+base64 = "0.22"
+# `pal://` links (deeplink.rs); percent-encoding decodes their parts
+tauri-plugin-deep-link = "2"
+percent-encoding = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
 window-vibrancy = "0.6"
+# bar items: the popover's key monitor and the wake/focus triggers (bar/popover.rs, bar/mod.rs)
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSEvent", "NSWorkspace", "NSRunningApplication", "NSResponder", "NSWindow", "NSPanel", "NSScreen", "NSGraphics", "block2"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSNotification", "NSString", "NSGeometry", "NSOperation", "block2"] }
+block2 = "0.6"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 zbus = "5"

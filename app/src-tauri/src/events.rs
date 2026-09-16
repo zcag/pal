@@ -28,6 +28,22 @@ pub const PERMISSIONS: &str = "pal://permissions";
 /// The root hotkey's registration outcome changed: `hotkey::Outcome`
 /// (registered, failed and why, Spotlight holding it).
 pub const HOTKEY: &str = "pal://hotkey";
+/// To the settings window: `{ page }` to show (`settings::open_page`).
+pub const SETTINGS: &str = "pal://settings";
+/// The bar popover's page: the item to show on one level (`{ key, title,
+/// engaged, urgent, menu, item, effect? }`), `{ engage: true }` once a
+/// peek is made key, `{ hide: true }` when it goes (bar/popover.rs).
+pub const BAR: &str = "pal://bar";
+/// To the panel's page: a confirm card to render with its `Confirm`
+/// component, `{ title, message, ok, cancel, token }`, or `null` to drop
+/// the one up (deeplink.rs); the page answers on [`CONFIRM_REPLY`].
+pub const CONFIRM: &str = "pal://confirm";
+/// From the panel's page: `{ token, ok }`, the answer to a [`CONFIRM`].
+pub const CONFIRM_REPLY: &str = "pal://confirm/reply";
+/// To the panel's page, after a `pal://` link showed it: `{ query?, reset? }`,
+/// the text to type into the search box, at the root when `reset` is set
+/// (deeplink.rs).
+pub const DEEPLINK: &str = "pal://deeplink";
 
 /// Emit to every window; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.

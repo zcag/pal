@@ -86,6 +86,11 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["pal"]
+      }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENBQTJCNzM5OTg2MDlFQgpSV1RyQ1lhWmN5dXFERFFmUWM5UFZDUUlIdnBOKzhobVJ5bXUrOWhVRlhkeitobzF1ZG9kekFlMAo=",
       "endpoints": [

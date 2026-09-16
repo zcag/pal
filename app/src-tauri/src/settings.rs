@@ -24,7 +24,7 @@ use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 use crate::host::Host;
 use crate::index::{palette_id, PaletteMeta};
-use crate::{autostart, events, hotkey, index, lock, panel, permissions, tray};
+use crate::{autostart, crash, events, hotkey, index, lock, panel, permissions, tray};
 
 pub const WINDOW: &str = "settings";
 /// What the window-state plugin keeps for the settings window: where it
@@ -44,6 +44,10 @@ pub struct Ext {
     pub error: Option<String>,
     /// From the code, so empty while it fails to load.
     pub palettes: Vec<PaletteMeta>,
+    /// What the host found wrong with the manifest against the code (a
+    /// `kind` that disagrees, a palette declared but not exported).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
     /// The extension directory's creation time, unix ms.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub installed: Option<u64>,
@@ -75,7 +79,8 @@ pub fn install(app: &AppHandle, file: ConfigFile) {
     app.manage(Settings { file: file.clone(), loaded: Mutex::new(loaded.clone()), changed: Mutex::new(None), extensions: Mutex::new(Vec::new()), _watch: Mutex::new(None) });
     hotkey::apply(app, &loaded.config);
     tray::apply(app, &loaded.config);
-    autostart::apply(app, &loaded.config);
+    // May exit: a release build not started by its agent hands over here.
+    autostart::install(app, &loaded.config);
     let handle = app.clone();
     match file.watch(move |l| on_reload(&handle, l)) {
         Ok(w) => *lock(&app.state::<Settings>()._watch) = Some(w),
@@ -140,6 +145,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     if prev.general.launch_at_login != loaded.config.general.launch_at_login {
         autostart::apply(app, &loaded.config);
     }
+    crate::bar::apply_config(app, &prev, &loaded.config);
     events::emit(app, events::CONFIG, &loaded);
     if let Some(host) = app.try_state::<Arc<Host>>() {
         tauri::async_runtime::spawn(index::apply_config(app.clone(), host.inner().clone(), prev, loaded.config));
@@ -149,6 +155,21 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
 /// The current config, a copy.
 pub fn config(app: &AppHandle) -> Config {
     lock(&app.state::<Settings>().loaded).config.clone()
+}
+
+/// The root's per-source caps (`[general] root_caps`), without copying the config: read per keystroke.
+pub fn root_caps(app: &AppHandle) -> pal_core::index::Caps {
+    lock(&app.state::<Settings>().loaded).config.general.root_caps
+}
+
+/// The config file itself (its path, profile and data dir).
+pub fn file(app: &AppHandle) -> ConfigFile {
+    app.state::<Settings>().file.clone()
+}
+
+/// Every extension the host reported, loaded or not, a copy.
+pub fn extensions(app: &AppHandle) -> Vec<Ext> {
+    lock(&app.state::<Settings>().extensions).clone()
 }
 
 // ---- extension registry --------------------------------------------------
@@ -169,6 +190,7 @@ pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
         loaded,
         error: params["message"].as_str().map(str::to_string),
         palettes: serde_json::from_value(params["palettes"].clone()).unwrap_or_default(),
+        warnings: serde_json::from_value(params["warnings"].clone()).unwrap_or_default(),
         installed,
         record,
     };
@@ -250,8 +272,18 @@ pub async fn push(app: &AppHandle, host: &Arc<Host>, names: &[String]) {
 // ---- window --------------------------------------------------------------
 
 pub fn open(app: &AppHandle) {
+    open_page(app, None);
+}
+
+/// `open`, on `page` (`overview`, `general`, `palettes`, `extensions`,
+/// `bar`, `about`) when one is named: the page switches on
+/// [`events::SETTINGS`].
+pub fn open_page(app: &AppHandle, page: Option<&str>) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     panel::hide(app);
+    if let Some(page) = page {
+        events::emit_to(app, WINDOW, events::SETTINGS, json!({ "page": page }));
+    }
     let _ = w.show();
     let _ = w.set_focus();
     // The Permissions group shows a live dot: a grant made while the window is up is seen.
@@ -270,6 +302,76 @@ pub fn close(app: &AppHandle) {
 
 // ---- commands ------------------------------------------------------------
 
+/// One bar item as the registry knows it (`bar::Entry`), for the Bar page:
+/// the manifest's say and the live state, next to the `[bar.items]` config
+/// the page reads from `config`.
+#[derive(Serialize)]
+pub struct BarItemView {
+    /// `extension/id`, the `[bar.items."<key>"]` key.
+    key: String,
+    extension: String,
+    id: String,
+    title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+    /// The code has a `render` for it; `false` is declared only, never drawn.
+    source: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    refresh_every: Option<f64>,
+    /// Unix seconds of the last successful render; `None` while it never has.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rendered_at: Option<u64>,
+    /// The last render failed or timed out: drawn muted.
+    stale: bool,
+    /// The last rendered state, what the strip shows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    state: Option<BarItemState>,
+}
+
+#[derive(Serialize)]
+pub struct BarItemState {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+    hidden: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    badge: Option<u64>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    dot: bool,
+    urgent: bool,
+}
+
+#[derive(Serialize)]
+pub struct BarView {
+    /// sketchybar answered its last probe: where `auto` draws.
+    sketchybar: bool,
+    items: Vec<BarItemView>,
+}
+
+fn bar_view(app: &AppHandle) -> BarView {
+    let items = if app.try_state::<crate::bar::Bar>().is_some() { crate::bar::snapshot(app) } else { Vec::new() };
+    BarView {
+        sketchybar: app.try_state::<crate::bar::Bar>().is_some_and(|_| crate::bar::sketchybar_alive(app)),
+        items: items
+            .into_iter()
+            .map(|(key, e)| {
+                let (extension, id) = crate::bar::split_key(&key).map(|(a, b)| (a.to_string(), b.to_string())).unwrap_or_default();
+                BarItemView {
+                    state: e.last.as_ref().map(|i| BarItemState { title: i.title.clone(), hidden: i.hidden, badge: i.count(), dot: i.dot(), urgent: i.urgent }),
+                    key,
+                    extension,
+                    id,
+                    title: e.manifest.title.clone(),
+                    description: e.manifest.description.clone(),
+                    source: e.manifest.source,
+                    refresh_every: e.manifest.refresh.as_ref().and_then(|r| r.every),
+                    rendered_at: e.rendered_unix,
+                    stale: e.stale,
+                }
+            })
+            .collect(),
+    }
+}
+
 #[derive(Serialize)]
 pub struct View {
     config: Config,
@@ -286,6 +388,8 @@ pub struct View {
     hotkey: hotkey::Outcome,
     /// What the OS lets pal do (permissions.rs).
     permissions: permissions::Status,
+    /// The bar registry: every declared item and its live state (bar/mod.rs).
+    bar: BarView,
 }
 
 #[tauri::command]
@@ -301,6 +405,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         store: Store::locate().dir().to_path_buf(),
         hotkey: hotkey::outcome(&app),
         permissions: permissions::status(),
+        bar: bar_view(&app),
     }
 }
 
@@ -345,28 +450,54 @@ fn run(cmd: &str, args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
-/// The file in the default text editor. Created from the template first
-/// when it does not exist yet, so the editor opens a file, not a prompt.
-#[tauri::command(async)]
-pub fn settings_open_file(st: State<'_, Settings>) -> Result<(), String> {
-    if !st.file.path().exists() {
-        st.file.edit(|_| Ok(())).map_err(|e| e.to_string())?;
+/// Which file a command means: the config, or one the crash scan found
+/// (`crash.rs`); the page names them, the paths stay here.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Which {
+    #[default]
+    Config,
+    Crash,
+    Panic,
+}
+
+/// The path `which` stands for, when there is one this run.
+fn path_of(app: &AppHandle, st: &Settings, which: Which) -> Result<PathBuf, String> {
+    match which {
+        Which::Config => {
+            // Created from the template first when it does not exist yet,
+            // so the editor opens a file, not a prompt.
+            if !st.file.path().exists() {
+                st.file.edit(|_| Ok(())).map_err(|e| e.to_string())?;
+            }
+            Ok(st.file.path().to_path_buf())
+        }
+        Which::Crash => crash::found(app).report.and_then(|r| r.path).ok_or_else(|| "no crash report".to_string()),
+        Which::Panic => crash::found(app).panic.map(|p| p.path).ok_or_else(|| "no panic file".to_string()),
     }
-    let path = st.file.path().to_string_lossy().into_owned();
+}
+
+/// The file in its default app: the config in the text editor, a crash
+/// report in Console, the panic file in the editor.
+#[tauri::command(async)]
+pub fn settings_open_file(app: AppHandle, st: State<'_, Settings>, file: Option<Which>) -> Result<(), String> {
+    let which = file.unwrap_or_default();
+    let path = path_of(&app, &st, which)?.to_string_lossy().into_owned();
     if cfg!(target_os = "macos") {
-        run("open", &["-t", &path])
+        if which == Which::Crash { run("open", &[&path]) } else { run("open", &["-t", &path]) }
     } else {
         run("xdg-open", &[&path])
     }
 }
 
 #[tauri::command(async)]
-pub fn settings_reveal_file(st: State<'_, Settings>) -> Result<(), String> {
-    let path = st.file.path().to_string_lossy().into_owned();
+pub fn settings_reveal_file(app: AppHandle, st: State<'_, Settings>, file: Option<Which>) -> Result<(), String> {
+    let path = path_of(&app, &st, file.unwrap_or_default())?;
+    let path_s = path.to_string_lossy().into_owned();
     if cfg!(target_os = "macos") {
-        run("open", &["-R", &path])
+        run("open", &["-R", &path_s])
     } else {
-        let dir = st.file.path().parent().unwrap_or(Path::new(".")).to_string_lossy().into_owned();
+        let dir = path.parent().unwrap_or(Path::new(".")).to_string_lossy().into_owned();
         run("xdg-open", &[&dir])
     }
 }
@@ -434,17 +565,20 @@ pub async fn extensions_check_updates() -> Result<Vec<Update>, String> {
 
 // ---- about -----------------------------------------------------------------
 
-/// Where the About page sends people. The version and the config path are
-/// in `View` already.
+/// Where the About page sends people, and what the last run left behind
+/// (`crash.rs`: the OS report and the panic file, when there are any). The
+/// version and the config path are in `View` already.
 #[derive(Serialize)]
 pub struct About {
     docs: &'static str,
     repo: &'static str,
+    #[serde(flatten)]
+    found: crash::Found,
 }
 
 #[tauri::command]
-pub fn settings_about() -> About {
-    About { docs: crate::welcome::EXTENSIONS_GUIDE, repo: crate::welcome::REPO }
+pub fn settings_about(app: AppHandle) -> About {
+    About { docs: crate::welcome::EXTENSIONS_GUIDE, repo: crate::welcome::REPO, found: crash::found(&app) }
 }
 
 /// A link on the page, in the browser. The webview has no handler for

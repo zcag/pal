@@ -28,11 +28,9 @@ describe("Launcher staleness", () => {
 });
 
 describe("Launcher welcome source", () => {
-  it("keeps the tips out of the scope dropdown and the count", () => {
+  it("keeps the tips out of the count, and the root has no scope dropdown", () => {
     const html = markup([source("pal", "welcome", false), source("pal", "palettes", false), source("apps", "apps", false)]);
-    expect(html).toContain('<option value="apps/apps">apps</option>');
-    expect(html).not.toContain("pal/welcome");
-    expect(html).not.toContain("pal/palettes");
+    expect(html).not.toContain("<select");
     expect(html).toContain("0 of 3");
   });
 });

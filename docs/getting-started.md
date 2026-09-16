@@ -78,9 +78,14 @@ Other compositors: bind `pal toggle` to a key the same way. Bind the deb's
 AppImage file itself: each run of the AppImage mounts its squashfs first,
 which puts `pal toggle` at about 230 ms instead of 50.
 
-Autostart: `launch_at_login` writes `~/.config/autostart/pal.desktop`.
-Hyprland does not read XDG autostart, so add `exec-once = pal` to
-`hyprland.conf` instead.
+Autostart: `launch_at_login` writes and enables a `pal.service` user unit
+(`Restart=on-failure`, wanted by `graphical-session.target`), so a session
+that reaches that target (GNOME, KDE, Hyprland under uwsm) starts pal and
+relaunches it after a crash. Hyprland without uwsm reaches neither that
+target nor XDG autostart, so add `exec-once = pal` to `hyprland.conf`: the
+hand-started pal moves itself under the unit at startup. Without systemd
+the setting writes `~/.config/autostart/pal.desktop` and nothing relaunches
+a crashed pal. See [Config](config.md#crash-relaunch).
 
 ## The hotkey
 
@@ -124,6 +129,23 @@ within a couple of seconds of that, nothing to restart.
 
 On Linux, `⌘` in the above is `Ctrl`. The whole grammar is in
 [Keyboard](keyboard.md).
+
+## pal's own commands
+
+pal's own housekeeping is in the root search too, as rows of a `pal`
+section, the way Raycast lists "Raycast Settings" or "Quit Raycast":
+Settings (and Settings › Extensions, › Palettes, › About), Extension Store,
+Install Extension (a form: `github:user/repo`, a GitHub URL or a local
+directory), Reload Extensions (restarts the extension host), Refresh Index,
+Check for Updates, Open Config File and Reveal Config File, Show Tips Again,
+Documentation, Report a Bug (a GitHub issue with your version and OS filled
+in), Copy Diagnostics (version, OS, config path, extensions, hotkey and
+permission status, onto the clipboard), Toggle Theme (light, dark, system),
+Quit pal (asks first), Restart pal, and pal Version (Enter copies it). Every
+row answers to `pal`, so `pal set` finds Settings and `pal quit` Quit. They
+are searched and ranked like any other row; `⌘,`, `⌘R` and the action
+panel's "Open Settings", "Refresh everything" and "Show tips again" run the
+same code.
 
 ## The config file
 

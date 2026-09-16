@@ -7,7 +7,8 @@ import type { Item, Match } from "./types";
 
 export type Hit = { item: Item; match?: Match };
 
-export type ListHandle = { pageSize(): number };
+/** What the key handler asks a list: rows per page, and tiles per row (1 for a list; a grid's follows its width). */
+export type ListHandle = { pageSize(): number; columns(): number };
 
 export type ListProps = {
   id: string;
@@ -45,7 +46,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
     scrollPaddingEnd: metrics.pad,
   });
 
-  useImperativeHandle(ref, () => ({ pageSize: () => Math.max(1, Math.floor((scroller.current?.clientHeight ?? 0) / metrics.row) - 1) }), [metrics.row]);
+  useImperativeHandle(ref, () => ({ columns: () => 1, pageSize: () => Math.max(1, Math.floor((scroller.current?.clientHeight ?? 0) / metrics.row) - 1) }), [metrics.row]);
 
   // Keep the cursor in view when it moves or the rows change; `align: auto` is a no-op while it is already visible. A hover never scrolls.
   useLayoutEffect(() => {

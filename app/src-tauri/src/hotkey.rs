@@ -1,7 +1,9 @@
 //! Global hotkeys: `general.hotkey` shows the panel, `palettes.<id>.hotkey`
-//! shows it straight inside that palette, and `palettes.<id>.item_hotkeys`
+//! shows it straight inside that palette, `palettes.<id>.item_hotkeys`
 //! (`<item id> = "<keys>"`) run one item of the palette with the panel down,
-//! as if picked (`index::run_pick`: the host's `pick`, then its effects).
+//! as if picked (`index::run_pick`: the host's `pick`, then its effects),
+//! and `bar.items.<key>.hotkey` opens a bar item's popover engaged (or runs
+//! its open action, `bar::popover::on_hotkey`).
 //! All come from the config file and are swapped live when it changes
 //! (`settings::on_reload`) or a palette arrives (`index::sync_extension`). An empty `general.hotkey` means none
 //! (a compositor keybind runs `pal toggle` instead). On Linux this only
@@ -40,13 +42,15 @@ const FALLBACK: &str = "ctrl+space";
 const POLL: Duration = Duration::from_secs(2);
 
 /// What a registered shortcut does: toggle the panel, open it in a
-/// palette (by its `extension/palette` key, what the UI scopes on), or
-/// pick one item of a palette without the panel.
+/// palette (by its `extension/palette` key, what the UI scopes on), pick
+/// one item of a palette without the panel, or open a bar item's popover
+/// (by its `extension/id` key).
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Target {
     Root,
     Palette(String),
     Item(Source, String),
+    Bar(String),
 }
 
 /// How the last `apply` went for the root hotkey (`general.hotkey`).
@@ -156,6 +160,11 @@ pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
     match target {
         Some(Target::Root) => crate::toggle(app),
         Some(Target::Palette(key)) => crate::show_in(app, Some(key)),
+        // Off the main thread: the anchor is a `sketchybar --query`.
+        Some(Target::Bar(key)) => {
+            let app = app.clone();
+            tauri::async_runtime::spawn_blocking(move || crate::bar::popover::on_hotkey(&app, &key));
+        }
         Some(Target::Item(source, id)) => {
             let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
             let app = app.clone();
@@ -186,10 +195,12 @@ fn parse_root(s: &str) -> Option<(Shortcut, Option<String>)> {
 }
 
 /// Register what the config wants and drop what it no longer does. A
-/// palette's hotkeys are only registered once the palette exists. In a
-/// clash the root hotkey wins over a palette's, a palette's over an item's;
-/// a hotkey another app holds is reported and skipped, the rest still
-/// apply.
+/// palette's hotkeys are only registered once the palette exists, a bar
+/// item's whatever its state (the item may be hidden or not yet
+/// rendered; its hotkey still opens it). In a clash the root hotkey wins
+/// over a palette's, a palette's over a bar item's, a bar item's over a
+/// palette item's; a hotkey another app holds is reported and skipped,
+/// the rest still apply.
 pub fn apply(app: &AppHandle, config: &Config) {
     let mut wanted: HashMap<Shortcut, Target> = HashMap::new();
     let parse = |what: String, h: &str| match h.trim().parse::<Shortcut>() {
@@ -204,6 +215,13 @@ pub fn apply(app: &AppHandle, config: &Config) {
         for (item, h) in &config.palette(id).item_hotkeys {
             if let Some(s) = parse(format!("palettes.{id}.item_hotkeys.{item}"), h) {
                 wanted.insert(s, Target::Item(source.clone(), item.clone()));
+            }
+        }
+    }
+    for (key, item) in &config.bar.items {
+        if let Some(h) = item.hotkey.as_deref().filter(|h| !h.trim().is_empty() && item.enabled) {
+            if let Some(s) = parse(format!("bar.items.{key}.hotkey"), h) {
+                wanted.insert(s, Target::Bar(key.clone()));
             }
         }
     }

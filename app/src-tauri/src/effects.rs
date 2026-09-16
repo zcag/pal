@@ -46,7 +46,7 @@ fn focus_feedback(trusted: bool, first: bool, app: &str) -> Option<String> {
 
 /// Whether the webview keeps the panel up for this envelope (`staysOpen`
 /// in app/src/items.ts): the HUD is for what hides.
-fn stays_open(envelope: &Value) -> bool {
+pub fn stays_open(envelope: &Value) -> bool {
     ["keep", "toast", "push", "show", "view", "form"].iter().any(|k| envelope.get(k).is_some())
 }
 
@@ -69,12 +69,14 @@ fn copied_hud(envelope: &Value) -> bool {
     envelope.get("paste").is_none() && envelope.get("hud").is_none() && !stays_open(envelope)
 }
 
-/// Hide the panel and wait for its orderOut to hand key focus back to the
-/// app in front, so what follows (a keystroke, an activate) lands there.
-/// Harmless on a panel that was not up (an item hotkey fired).
-async fn hide_first(app: &AppHandle) -> Result<(), String> {
+/// Hide the window the pick came from (`window`: the panel, or the bar
+/// popover) and wait for its orderOut to hand key focus back to the app
+/// in front, so what follows (a keystroke, an activate) lands there.
+/// Harmless on a window that was not up (an item hotkey fired).
+async fn hide_first(app: &AppHandle, window: &str) -> Result<(), String> {
     let handle = app.clone();
-    app.run_on_main_thread(move || panel::hide(&handle)).map_err(|e| e.to_string())?;
+    let popover = window == crate::bar::popover::WINDOW;
+    app.run_on_main_thread(move || if popover { crate::bar::popover::hide(&handle) } else { panel::hide(&handle) }).map_err(|e| e.to_string())?;
     tokio::time::sleep(HIDE_SETTLE).await;
     Ok(())
 }
@@ -94,7 +96,14 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Sen
     tauri::async_runtime::spawn_blocking(f).await.map_err(|e| e.to_string())?
 }
 
+/// The effects for a pick from the main panel.
 pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
+    apply_from(app, envelope, crate::WINDOW).await
+}
+
+/// The effects for a pick from `window` (the panel, or the bar popover):
+/// whatever hides, hides that one.
+pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Result<Value, String> {
     if let Some(text) = envelope.get("copy").and_then(Value::as_str) {
         let text = text.to_string();
         blocking(move || clipboard::copy_text(&text).map_err(|e| format!("copy failed: {e}"))).await?;
@@ -123,14 +132,14 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
         if let Some(toast) = accessibility_blocked(app, "Paste") {
             return Ok(toast);
         }
-        hide_first(app).await?;
+        hide_first(app, window).await?;
         let handle = app.clone();
         blocking(move || clipboard::paste(&handle, what)).await?;
     }
     if let Some(id) = envelope.get("focus").and_then(Value::as_str) {
         static HINTED: AtomicBool = AtomicBool::new(false);
         let trusted = pal_core::ax::trusted();
-        hide_first(app).await?;
+        hide_first(app, window).await?;
         let id = id.to_string();
         if trusted {
             blocking(move || pal_core::windows::focus(&id).map_err(|e| e.to_string())).await?;
@@ -151,7 +160,7 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
             return Ok(toast);
         }
         // Hidden first so the focused window is the one the user was in.
-        hide_first(app).await?;
+        hide_first(app, window).await?;
         let name = p.name.clone();
         let r = blocking(move || windows::apply_layout(&p)).await;
         hud::show(app, &layout_feedback(&name, &r));

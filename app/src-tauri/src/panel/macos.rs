@@ -183,3 +183,99 @@ mod hud {
 }
 
 pub use hud::{hide as hud_hide, install as hud_install, show as hud_show};
+
+// ---- bar popover ---------------------------------------------------------
+
+/// The bar popover's panel (bar/popover.rs): key like the main panel
+/// when engaged, shown without key for a peek; its own tracking area
+/// reports the pointer entering and leaving (the peek's grace spans the
+/// gap between an item and the popover). Its own module, as `hud`.
+mod bar {
+    use tauri::{AppHandle, Manager, WebviewWindow};
+    use tauri_nspanel::{tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, TrackingAreaOptions, WebviewWindowExt};
+
+    tauri_panel! {
+        panel!(BarPanel {
+            config: {
+                can_become_key_window: true,
+                can_become_main_window: false,
+                is_floating_panel: true,
+                hides_on_deactivate: false
+            }
+            with: {
+                tracking_area: {
+                    options: TrackingAreaOptions::new().active_always().mouse_entered_and_exited(),
+                    auto_resize: true
+                }
+            }
+        })
+        panel_event!(BarPanelEvents {
+            window_did_resign_key(notification: &NSNotification) -> ()
+        })
+    }
+
+    /// The main panel's arrangement (`install` above): floating,
+    /// non-activating, all Spaces, never ordered out, hidden = alpha 0
+    /// and the mouse passing through, occlusion detection off.
+    pub fn install(window: &WebviewWindow) {
+        let panel = window.to_panel::<BarPanel>().expect("to_panel");
+        panel.set_level(PanelLevel::Floating.into());
+        panel.set_style_mask(StyleMask::empty().borderless().nonactivating_panel().into());
+        panel.set_collection_behavior(CollectionBehavior::new().can_join_all_spaces().full_screen_auxiliary().ignores_cycle().into());
+        panel.set_has_shadow(true);
+        panel.set_corner_radius(12.0);
+        let app = window.app_handle().clone();
+        let events = BarPanelEvents::new();
+        let h = app.clone();
+        events.window_did_resign_key(move |_| crate::bar::popover::on_resign(&h));
+        let h = app.clone();
+        events.on_mouse_entered(move |_| crate::bar::popover::on_pointer(&h, true));
+        let h = app.clone();
+        events.on_mouse_exited(move |_| crate::bar::popover::on_pointer(&h, false));
+        panel.set_event_handler(Some(events.as_ref()));
+        let occlusion = window.with_webview(|wv| unsafe {
+            let wk = &*(wv.inner() as *const AnyObject);
+            let _: () = msg_send![wk, _setWindowOcclusionDetectionEnabled: false];
+        });
+        if let Err(e) = occlusion {
+            eprintln!("bar\twith_webview failed\t{e}; the popover page may pause when covered");
+        }
+        panel.set_ignores_mouse_events(true);
+        panel.set_alpha_value(0.0);
+        panel.show();
+    }
+
+    /// Show: key (`engaged`, the page's input takes the keyboard) or a
+    /// peek, ordered front without key so the app in front keeps typing.
+    pub fn show(app: &AppHandle, engaged: bool) {
+        super::on_main(app, move |app| {
+            let Ok(p) = app.get_webview_panel(crate::bar::popover::WINDOW) else { return };
+            p.set_ignores_mouse_events(false);
+            p.set_alpha_value(1.0);
+            if engaged {
+                p.show_and_make_key();
+                if let Some(w) = app.get_webview_window(crate::bar::popover::WINDOW) {
+                    let webview: &tauri::Webview = w.as_ref();
+                    let _ = webview.set_focus();
+                }
+            } else {
+                p.order_front_regardless();
+            }
+        });
+    }
+
+    pub fn hide(app: &AppHandle) {
+        super::on_main(app, |app| {
+            let Ok(p) = app.get_webview_panel(crate::bar::popover::WINDOW) else { return };
+            if p.as_panel().alphaValue() <= 0.0 {
+                return;
+            }
+            p.set_ignores_mouse_events(true);
+            p.set_alpha_value(0.0);
+            p.hide();
+            p.show();
+        });
+    }
+}
+
+pub use bar::{hide as bar_hide, install as bar_install, show as bar_show};

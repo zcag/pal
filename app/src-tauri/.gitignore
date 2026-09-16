@@ -10,3 +10,5 @@
 /binaries/
 # Staged by scripts/build-extensions.sh
 /resources/
+# Fetched by scripts/fetch-font.sh
+/fonts/
