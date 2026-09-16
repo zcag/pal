@@ -85,6 +85,8 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 
 ### Settings and config
 
+- v1 migration on first run (`config::migrate`, effc4ff): a v1-shaped `config.toml` is kept whole as `config.v1.toml` (stale `base` lines under the old `~/proj/pal` checkout rewritten to `pal-v1` when that is where they exist), and the new `config.toml` points `[extensions.scripts] config` and `[extensions.bookmarks] file` at it. The user store lives in `<data dir>/pal/extensions`, nothing is written next to the config (`#:schema` is the raw GitHub URL), `general.extension_dirs` adds dotfiles-managed roots; old pre-profile `frecency.json` is adopted into `default`, a root `index/` cache deleted. `show` levels keep metadata. Lock Screen via the private `SACLockScreenImmediate` (fine outside the App Store); DND needs a Shortcut named "Toggle Do Not Disturb", hidden otherwise, no hint.
+
 - Declarative, file-first TOML: everything the view sets lives in the file the user edits and versions; the UI is a front, never the only path. UI change writes the file, file change is picked up live, formatting and comments kept, JSON schema shipped.
 - Extensive settings view; extensions declare their settings, palette extensions also get pal-provided per-palette defaults (hotkey, alias, enabled, ranking behaviour) without declaring them.
 - A declared setting equal to its default leaves the file (the view unsets the key); `enabled = true` likewise.
@@ -111,17 +113,10 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 
 ## Open for Cagdas
 
-- **Your `~/.config/pal` is a symlink into `~/dotty`**, so the dev run left three untracked things in the dotfiles repo: `pali.toml` (the dev config; track it or not, your call), `config.schema.json` (installed next to the config for the `#:schema` directive) and `extensions/` (the user store, with a `node_modules/pal` symlink the host makes for bare `import "pal"`). Decide: ignore them in dotty, or move the store and the schema out of the config dir (a dotfiles-managed `extensions/` is arguably a feature, the symlink and staging dir are not).
 
 Things an agent could not decide alone; each waits for a call.
 
-- Config path once `pali` ships: v1 and pal both want `~/.config/pal/config.toml`, formats differ. Migrate v1's aside on first run, or keep `pali.toml` a while? Blocks taking over `main`.
 - macOS `show-desktop`, `lock`, `dark-mode` system commands are the only unverified ones on hornet (window list/focus/minimize/restore were verified after the unlock at 08:10; see Findings). One-liner: `cargo run -q -p pal-core --example system -- run show-desktop` twice.
-- v1 config lines to fix by hand once v1 stops reading the file: `[palette.ha-states]`/`[palette.ha-services]` still say `base = "~/proj/pal/plugins/..."`; `scripts` falls back to `~/proj/pal-v1` so they load, but the file should say where they live.
-- Cache adoption of the old profile: the old `pal/index` and `pal/frecency.json` were not migrated to `<data dir>/pal/<profile>/`; dead files to delete by hand, or adopt into `default`.
-- `show`'s metadata: the show level renders the Detail, so v1's `show.metadata` comes along; the brief said markdown only. Keep or drop?
-- `SACLockScreenImmediate` (private login.framework) is what Lock Screen uses, Cmd+Ctrl+Q as fallback: fine for a downloaded app, not the App Store.
-- Do Not Disturb on macOS runs a Shortcut named "Toggle Do Not Disturb" when one exists (Focus has no CLI), row hidden otherwise. Ship a first-run hint to create it?
 
 ## Findings that changed the design
 
