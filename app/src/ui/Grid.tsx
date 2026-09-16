@@ -3,7 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Icon } from "./Icon";
 import { Highlight } from "./Row";
 import { keepFocus, useCmdHeld } from "./keys";
-import { domId, flatten, useGridColumns, useHover, useMetrics } from "./virtual";
+import { domId, flatten, useGridColumns, useHover, useMetrics, observeRect } from "./virtual";
 import type { Hit, ListHandle } from "./List";
 
 export type GridProps = {
@@ -43,6 +43,7 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
     count: rows.length,
     getScrollElement: () => scroller.current,
     getItemKey,
+    observeElementRect: observeRect,
     estimateSize: (i) => (rows[i].kind === "header" ? metrics.header : estimateRow()),
     overscan: 3,
     paddingStart: metrics.pad,

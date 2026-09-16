@@ -22,7 +22,7 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 
 ### Product
 
-- Clean rewrite on the orphan branch `pali`; v1 stays on `main`, checked out at `~/proj/pal-v1`. `pali` takes over `main` when done.
+- Clean rewrite on the orphan branch `pali`; **`main` since 2026-09-16 20:10** (GitHub rename: v1's `main` became `v1`, `pali` was pushed as `main` and made the default; the old `pali` ref stays until the marko clone is switched). v1 is branch `v1`, checked out at `~/proj/pal-v1`; its tags `v0.1.2`..`v0.2.1` remain.
 - Name is `pal`; `pali` is the iteration. A standalone app people download, macOS and Linux. Raycast and Spotlight are the behaviour references; the visual identity is ours.
 - Bar: high polish everywhere, no corners cut, minute UX details thought through.
 - Root search: one box across everything; palettes are sections and drill-downs, not a root that lists palettes.
@@ -34,7 +34,7 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 
 - Tauri v2, the shape of Raycast 2.0. Go/no-go on hornet, dev build: hotkey to paint ~30 ms steady (706 ms first show, fixed by pre-painting), keystroke to list 14-42 ms over 14.7k rows, 14.7k rows streamed from a child in ~70 ms.
 - Hotkey on hornet: Ctrl+Space (Alt+Space is taken); from `general.hotkey`, re-registered on file change (`hotkey.rs`). `general.position`: `top` (20%), `centre`, `last`.
-- Settings window: second Tauri window on the same bundle (`index.html?settings`), hidden until asked, closes to hidden; opened by `pal-app settings`, the `pal:settings` root action, `cmd+,`. Escape / cmd+w hide it. Since 2026-09-16 it is built in `settings.rs` (`create`), not tauri.conf.json, so the macOS options stay behind `cfg`: a preferences-window shape after Raycast's, 720 by 520 (min 640 by 480, `tauri-plugin-window-state` remembers size and position for this window only, saved on every hide since a hidden window is where pal is killed), overlay title bar with the title hidden and the traffic lights moved to (13, 20) so they sit mid-band in the page's 52px toolbar, `transparent` plus `window-vibrancy` Sidebar behind `--pal-bg-glass` (Linux: decorated, opaque `--pal-bg`). The page: icon tabs centred on the toolbar (General, Palettes, Extensions, About), one search field on its right whose hits replace the page, forms as elevated cards at a 560px measure with a 160px right-aligned label column; two-pane pages (Palettes, Extensions) put a 220px list left. `theme.ts` also sets the window's own appearance (`setTheme`), else a pinned light theme sits on dark vibrancy and dark scrollbars. Links open through `settings_open_link` (the webview has no `target=_blank` handler; a plain `<a>` did nothing). Verified on hornet with the scratch bundle: note yabai tiles it like any other window (the window fills the space unless a rule floats it, e.g. `yabai -m rule --add app="^pal$" title="^pal Settings$" manage=off`), which is not something pal can fix from inside.
+- Settings window: second Tauri window on the same bundle (`index.html?settings`), hidden until asked, closes to hidden; opened by `pal-app settings`, the `pal:settings` root action, `cmd+,`. Escape / cmd+w hide it. Since 2026-09-16 it is built in `settings.rs` (`create`), not tauri.conf.json, so the macOS options stay behind `cfg`: a preferences-window shape after Raycast's, 960 by 640 since the evening of 2026-09-16 (min 800 by 560; 720 by 520 before that, and a saved size under the new minimum gets the new default once, read from the plugin's file since tao applies the restore a run-loop turn later: `tauri-plugin-window-state` remembers size and position for this window only, saved on every hide since a hidden window is where pal is killed), overlay title bar with the title hidden and the traffic lights moved to (13, 20) so they sit mid-band in the page's 52px toolbar, `transparent` plus `window-vibrancy` Sidebar behind `--pal-bg-glass` (Linux: decorated, opaque `--pal-bg`). The page: icon tabs centred on the toolbar (General, Palettes, Extensions, About), one search field on its right whose hits replace the page, forms as elevated cards at a 640px measure (560 before the window grew) with a 160px right-aligned label column; two-pane pages (Palettes, Extensions) put a 220px list left, and the selected palette's pane takes 40% of the window (a fixed 268px before). Built on the first open since that evening, not at startup (below, the performance findings). `theme.ts` also sets the window's own appearance (`setTheme`), else a pinned light theme sits on dark vibrancy and dark scrollbars. Links open through `settings_open_link` (the webview has no `target=_blank` handler; a plain `<a>` did nothing). Verified on hornet with the scratch bundle: note yabai tiles it like any other window (the window fills the space unless a rule floats it, e.g. `yabai -m rule --add app="^pal$" title="^pal Settings$" manage=off`), which is not something pal can fix from inside.
 - Settings window IA (2026-09-16, revamp): six pages around what people come to do. **Overview** (first): what needs attention as rows with the fix inline (hotkey not registered with Spotlight's switch or the other app named; each missing permission with Grant; an extension with nothing to work with, `needsSetup` = `required` in the manifest else an empty secret / url whose description offers no fallback; load errors; manifest warnings; config file problems; stale bar items; app and extension updates), "Everything is set" with the version when empty, then four facts. **General** (hotkey, permissions summary listing all four with Grant, appearance, startup with the crash-relaunch note, config file, maintenance incl. Refresh listings). **Palettes**: one grouped table (extension header with icon and tagline, rows "Extension › Palette", on / alias / hotkey / icon inline, a live filter) with the selected palette's pane on the right (crumb, description, id, kind, `tier` select "At the root", keys, `item_hotkeys` read-only, declared settings). **Extensions**: the store's hero (tile, tagline, author, version, source, Store page link), a screenshots strip (from the checkout through `icon://localhost/shot` for a store install, from pal.cagdas.io for a bundled one: shipping the 34 sets would add 8.6 MB), callouts for the load error, manifest warnings and what needs setup, the settings form with the missing ones marked, the palettes as chips into Palettes. **Bar** (new): target with detection and a one-line explanation per choice, peek timings, per-target hover, sketchybar position, and every registered item as a row (on, target, position, hotkey, hover, order) with its live state under the name (badge, hidden, poll, last render, stale). **About** plus Copy Diagnostics. Search indexes every row with an anchor; a hit opens the page and lights the row (`[data-flash]`, System Settings' highlight); `/` focuses it, cmd+1..6 switch pages. `settings_get` grew `bar` (registry snapshot with live state) and `warnings` per extension; `permissions::Status` grew Calendars (EventKit), Full Disk Access (probed by opening the Messages db) and Input Monitoring (IOHIDCheckAccess, the FFI moved here from bar/popover.rs), `watch` polls all of them. `pal settings <page>` and `pal://settings/<page>` take the two new pages. Group titles went from tracked caps to sentence case.
 - HUD (`hud.rs`, `panel/{macos,linux}.rs`, `app/src/HudPage.tsx`): a third window `hud` (`index.html?hud`, 480 by 72, transparent, no decorations, `focusable: false`) for the one-line confirmation after the panel hides. macOS: an NSPanel like the main one but never key (`can_become_key_window: false`), status level, all Spaces, mouse ignored, no window shadow (the capsule draws `--pal-shadow-hud`); kept alive hidden the same way (alpha 0, never ordered out, occlusion detection off), so the same screen-lock caveats apply. Linux: a plain always-on-top toplevel, pre-mapped at startup; same class as the panel, so the compositor rule for the HUD keys on its title `pal HUD` (`notes/linux.md`). Placed bottom-centre of the work area of the monitor under the cursor (else the panel's), 8 px up; the capsule sits 24 px inside the window. `hud::show(app, text)` emits `pal://hud` to that window, shows it, and hides it after 120 + 900 + 240 (+ 60) ms; the page runs the brief's motion (in 120, hold 900, out 240 via `--pal-dur-hud-out`) and a new show restarts both clocks. Uses: `copy` shows "Copied" when the envelope hides (not with `paste`, `keep`, `toast`, `push`, `show`, or an own `hud`), `paste` nothing (the target app is the feedback), `toast` unchanged, and an extension's `{ hud: "text" }`. The page is the `Hud` component and nothing else: no list, no host calls. Verified on hornet with a scratch release instance (own identifier, own config, `XDG_DATA_HOME` aside): capsule painted 0.35 s after the trigger, gone by 1.75 s, and two triggers 0.6 s apart kept it up at 1.3 s.
 - Menu bar icon (`tray.rs`): there is no Dock icon, so this is the way to Settings and Quit. Menu: Open pal (hotkey as accelerator hint), Settings… (⌘,), Restart extension host, Check for updates… (disabled until the updater flow is in; `updater::check` exists), Quit pal. Left click opens the menu (Raycast does). Image `app/design/tray.svg` (the app icon as one colour: the slab's outline with the caret and the empty query inside): black template `icons/tray/36x36` + `18x18` on macOS, white `22x22` for Linux panels. `general.menu_bar_icon = false` removes it live; `true` default, unset by the view.
@@ -108,7 +108,10 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 ### Packaging and release
 
 - Sidecar `pal-bun` (pinned release, `app/scripts/fetch-bun.sh`, checksum verified), host and extensions as resources, binary `pal`, bundle targets narrowed, first-run config written with a commented template and schema.
-- CI + release workflows, updater with a daily check behind `general.check_updates`, `make release VERSION=x.y.z` (sets the version everywhere, prints the tag commands; `docs/releasing.md`).
+- CI + release workflows, updater with a daily check behind `general.check_updates`, `make release VERSION=x.y.z` (sets the version everywhere, commits, tags, pushes; `DRY_RUN=1` prints the steps; `docs/releasing.md`).
+- Toolchain pinned in both workflows (`dtolnay/rust-toolchain@1.97.1`, what hornet's Homebrew rustc is): stable 1.98.1 on the runners added `clippy::chunks_exact_to_as_chunks` on 2026-09-16 and turned CI red on code every box had checked clean. Bump both files together. Release notes are the commit subjects since the previous reachable `v*` tag (GitHub's generated notes list pull requests, and this repo has none); a `manifest` job reads `latest.json` back from the draft and fails on a missing platform (the three matrix jobs merge into that file in parallel; `tauri-action`'s `upload-version-json.ts` downloads, merges, deletes and re-uploads, so two finishing together can drop one).
+- macOS stays ad-hoc signed for v0.1.0. Gatekeeper refuses a downloaded ad-hoc app once (`docs/getting-started.md` gives the three ways past it: `xattr -dr com.apple.quarantine`, Privacy & Security > Open Anyway, right-click Open on 14 and earlier). The real fix is a Developer ID Application certificate (Apple Developer Program, USD 99/year) plus notarisation (free within the program, `notarytool`, a few minutes per build), `hardenedRuntime: true` with JIT entitlements for the bun sidecar, and the six `APPLE_*` secrets in `release.yml`; steps in `docs/releasing.md`. A Developer ID signature is also what keeps the Accessibility grant across updates; ad-hoc builds lose it on every install.
+- `pal install <name>`: a bare name is looked up at `https://pal.cagdas.io/api/extensions/<name>` (`spec` field) in `Spec::resolve` (`core/src/extensions.rs`); `--from SPEC` skips the lookup; an unknown name is `Error::Unknown`, an unreachable site `Error::Registry` (no fallback). The deep link and the Settings form go through `Store::install`, so they take names too.
 - Linux bundle (`NO_STRIP=true`, `GDK_BACKEND=wayland,x11` under `APPDIR`, deb depends on `libayatana-appindicator3-1`): `notes/linux.md`.
 
 ### Linux
@@ -122,9 +125,11 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 - Scratch release instance on hornet (a measurement, not the daily one): `CARGO_TARGET_DIR=target/scratch-<x> TAURI_CONFIG='{"identifier":"io.cagdas.pal.scratch"}' cargo build --release --features tauri/custom-protocol -p pal` (the identifier is baked in; each agent its own, the single-instance socket is `$TMPDIR/../io_cagdas_pal_<id>_si.sock`), stage `scripts/build-extensions.sh` and rsync `app/src-tauri/resources/{host,sdk,extensions}` into `target/scratch-<x>/release/` for the bundled layout (without a staged `host/src/host.ts` there the binary falls back to the repo's `.ts`, which reloads on every edit another agent makes), then run it with its own `PAL_CONFIG` (another hotkey, `menu_bar_icon = false`, `[bar] target = "off"` so it never touches the daily sketchybar) and `XDG_DATA_HOME`. Write `date +%s` to `$XDG_DATA_HOME/pal/launchd/handover` first: a hand-started release build otherwise hands itself to launchd within the minute and its stderr is gone. `pal quit` through the same env ends it.
 - Logs: tab-separated marks on stderr (`profile`, `hotkey\t...`, `quit\tflushed`, extension `console.log`), so in dev the `tauri dev` terminal; no log file. Data in `<data dir>/pal/<profile>/`.
 - Daily instance on marko since 2026-09-16 17:00: bare release binary `~/.local/share/pal/bin/pal` (+ `pal-bun`), `~/.local/bin/pal` -> it, host and extensions from the `~/proj/pali` clone (`Layout::resolve` repo fallback), v1 uninstalled, `~/proj/pal` kept for the v1 plugins the scripts tier reads. Super+Space is an xremap entry running `pal toggle`; `hyprland.conf` has the title-keyed panel and HUD rules, `exec-once = pal`, and a `$mod, space` bind that only fires when xremap is down. Log: `nohup pal > /tmp/pal-daily.log` this session, exec-once from the next login.
-- marko: clone `marko:~/proj/pali` (`pali` branch). Release: `cargo build --release --features tauri/custom-protocol`; bundle: `NO_STRIP=true npm run tauri build` in `app/`; take `WAYLAND_DISPLAY`/`DISPLAY` from `systemctl --user show-environment` when launching by hand. `notes/linux.md`.
+- marko: clone `marko:~/proj/pali` (branch `main`). Release: `cargo build --release --features tauri/custom-protocol`; bundle: `NO_STRIP=true npm run tauri build` in `app/`; take `WAYLAND_DISPLAY`/`DISPLAY` from `systemctl --user show-environment` when launching by hand. `notes/linux.md`.
 
 ## Open for Cagdas
+
+- **Queued (asked 2026-09-16 20:15): several root hotkeys.** `general.hotkey` becomes a string or a list (`["cmd+space", "ctrl+space"]`), each registered as `Target::Root`, conflicts reported per entry, a recorder per entry in Settings > General with "Add another". Starts when the settings-window agent is done.
 
 
 Things an agent could not decide alone; each waits for a call.
@@ -132,7 +137,10 @@ Things an agent could not decide alone; each waits for a call.
 - Window layouts: should `restore` survive a restart (a small JSON under the profile, keyed by window id, which macOS reuses after an app relaunch) or stay in memory as now? Should `item_hotkeys` get a Settings table (a per-palette editable map; the UI was left alone), and should the layouts get default hotkeys at all (Raycast ships none bound)? The installed `/Applications/pal.app` is not in the Accessibility list yet, so the palette's `Enter` shows the toast until it is granted; the example binary ran from a trusted terminal.
 - macOS `show-desktop`, `lock`, `dark-mode` system commands are the only unverified ones on hornet (window list/focus/minimize/restore were verified after the unlock at 08:10; see Findings). One-liner: `cargo run -q -p pal-core --example system -- run show-desktop` twice.
 
-## Findings that changed the design
+## Findings
+
+- **Empty list with a live count (2026-09-16 20:40).** Cagdas saw the panel with hits counted in the footer ("97 of 30526", the primary action named) and no rows drawn, now and then, self-healing later. Diagnosis (guess, the state was gone): the virtualiser reads the scroll rect once at mount and then only through ResizeObserver, and WebKit holds those callbacks while the panel sits hidden at alpha 0, so a list whose rows changed while hidden could keep a zero or stale rect and draw nothing. Fix: `observeRect` in `app/src/ui/virtual.ts` re-reads the rect on every `pal:shown` (dispatched by App.tsx) and on `visibilitychange`; List and Grid use it. If it shows up again with this build, the guess was wrong: capture `document.visibilityState`, the `.pal-list` client height and `virt.getVirtualItems().length` from the console.
+ that changed the design
 
 - Raycast 2.0 is a Rust core with a web UI in the system webview, the shape Tauri v2 gives; that set the go/no-go candidate (Shell, above).
 - WebKit suspends rendering (rAF, timers) for a page whose window is ordered out or occluded, so the macOS panel is never ordered out (hidden = alpha 0, mouse ignored) and occlusion detection is switched off via the private `_setWindowOcclusionDetectionEnabled:` Raycast also flips. `app/src-tauri/src/panel/macos.rs:49`.
@@ -397,13 +405,135 @@ Left as measured, not changed:
   over CDP, wifi 79 ms, bluetooth 80-140 ms, windows 15 ms, system,
   audio, media, otp, home-assistant): after the paint, ~80 ms wall in
   parallel, all by their manifests ("device palettes" is open above).
-- The settings window's page loads at startup (created hidden in
-  `settings::install`) and its Overview effect runs `check_updates` and
-  `extensions_check_updates` at every launch (`updater error` at 0.9 s
-  with `check_updates = false`; a GitHub API call). Four WebContent
-  processes sit behind the app (main 135 MB RSS, popover 80, settings 78,
-  HUD 45 on the scratch instance). Settings is another agent's this round.
-- `sketchybar --query bar` is spawned every 30 s to detect the bar while
-  the target is `auto` (the daily instance): a fork per half minute.
 - The clipboard watcher's 250 ms `changeCount` read is in the app's
   0.02%.
+
+Fixed later the same day (the settings window, the update checks, the
+sketchybar probe; measured the same way, `[bar] target = "off"`,
+`check_updates = false`, warm cache, the before binary the build above):
+
+| What | Before | After |
+| --- | --- | --- |
+| Idle after 2 min, app: RSS / footprint | 160-171 MB / 55-64 MB | 153-169 MB / 56-59 MB (three runs each; the app's own share barely moves, the WebContent row is the saving) |
+| Idle after 2 min, WebContent processes behind the app | 4 (main 107, HUD 45, popover 74, settings 65 MB RSS; 292 MB) | 3 (108, 44, 69; 222 MB); the fourth appears on the first settings open |
+| `pal settings`, first open, to the page's first paint | the page was already loaded, hidden | 134 ms (window built and shown 39 ms, chunk loaded +64, view +19, paint +13); 199 ms before the first `settings_get` skipped the 50 ms debounce |
+| `pal settings` once the window exists | `show` | 1.3-6 ms (`settings open shown`) |
+| Panel cold start to first paint | 458-513 ms | 399-419 ms (four runs; `main.tsx` no longer renders through `Suspense`) |
+| `updater error` at launch with `check_updates = false` | at 0.9 s, every launch | none; nothing runs until the Overview opens, and then only when the setting is on |
+| `sketchybar --query bar` forks while the target is `auto` | 4 in 90 s (every 30 s) | 1 at start, +1 per `[bar]` config change, wake or Space change (0 in 95 s idle) |
+
+- **The settings window is built on its first open** (`settings::open_page`
+  runs `create` on the main thread when no window exists; `install` no
+  longer builds one), then hidden on close as before. The page it opens on
+  rides in the URL (`index.html?settings&page=about`, `startPage` in
+  `Settings.tsx`), since the `pal://settings` event would land before the
+  listener; an existing window still gets the event. Size and position
+  restore as before: the plugin restores inside `build`, but tao applies
+  the resize a run-loop turn later, so the under-minimum check reads the
+  plugin's file (`saved_size`) rather than `inner_size`. Open-to-paint was
+  480 ms at first: 300 ms of it was React's fallback throttle on the
+  `lazy` + `Suspense` in `main.tsx` (a resolved lazy component is held
+  back 300 ms after a fallback showed), so every page's chunk is now
+  imported before the render; the rest was the 50 ms `refresh` debounce on
+  the first read (`read` runs at once on mount now). The window itself costs 33-55 ms, under the 150 ms that
+  would have argued for a prebuild after `host/ready`; the ~100 ms to
+  content after it is the page, and a prebuild would have put the fourth WebContent
+  process (~70 MB RSS) back at idle. `settings_get` is `async` now
+  (`permissions::status` probes the OS for 10-20 ms, and the Overview
+  re-reads every 5 s), and `theme.ts` asks `settings_theme` for the one
+  key instead of the 123 KB `View` per window at load (four windows did).
+- **The update checks live in the core** (`settings::Checks`, in the
+  `Settings` state: the app's release check and the store's, each a
+  `Checked { at, value?, error? }`). `settings_check_updates { force }`
+  runs each when due (`Checks::due`: `general.check_updates` on and the
+  last result older than a day, or `force`), remembers, and returns what
+  is known; the page calls it when the Overview or Extensions page opens
+  and from the Overview's "Check now" (`force`). `updater::check` (the
+  daily loop, the tray, the About page, the `pal:check-updates` command)
+  and `extensions_check_updates` remember too, and the daily loop asks
+  `checks_due` so it never repeats a check the window just ran. The
+  Overview's `updatesLine` says when the checks last ran and what they
+  said ("Updates checked 2h ago. No release published yet. Automatic
+  checks are off."), never as an attention row; a missing `latest.json`
+  (`Error::ReleaseNotFound`, the state today) and a manifest without this
+  platform (`TargetNotFound`, `TargetsNotFound`) are `UpdateInfo.status`
+  facts, not errors. `extensions_update`/`extensions_remove` drop the
+  name from the remembered list. Tests: `settings::tests` (due, the
+  serialised shape, forget) and `settings-overview.test.tsx` (the line,
+  no row for a failed or skipped check, Check now).
+- **The sketchybar probe has no timer.** `sketchybar::install` probes
+  once; `reprobe(app, why)` runs on a `[bar]` config change
+  (`bar::apply_config`), on `NSWorkspaceDidWakeNotification` and on
+  `NSWorkspaceActiveSpaceDidChangeNotification` (`triggers::macos`), the
+  answer cached in `Bar::sketchybar` as before; `pal bar sync` still
+  probes at once. A bar started after pal is seen at the next of those.
+  Verified with a `sketchybar` shim on PATH that logs each call and exits
+  1: one call at start, one more on a config edit, none over 95 s idle.
+
+## Release v0.1.0: what remains for Cagdas (2026-09-16)
+
+The dry run on 2026-09-16 (this head, `a84c75d` plus the working tree):
+every `tauri-action` input in `release.yml` exists in the v1 `action.yml`
+(`projectPath`, `tagName`, `releaseName`, `releaseDraft`, `releaseBody`,
+`args`, `uploadUpdaterJson`); the updater pubkey in `tauri.conf.json` is
+byte-identical to `~/Sync/.secrets/pal/pal-updater.key.pub`; `npm pack
+--dry-run` in `sdk/` lists 17 files (`dist/*.d.ts`, `src/*.ts`, README,
+LICENSE, package.json), nothing else; `make release VERSION=0.1.0 DRY_RUN=1`
+prints the eight steps and refuses `0.2.1` (exists on origin). What an agent
+could not do:
+
+1. **Decide the version.** `zcag/pal` already carries the v1 tags `v0.1.2`
+   to `v0.2.1` and GitHub's "latest" is `v0.2.1`. `v0.1.0` is free as a tag,
+   but it sorts below every v1 release: tick **Set as the latest release**
+   when publishing the draft (step 5 in `docs/releasing.md`), or pick
+   `v0.3.0`/`v1.0.0` and skip the question (`make release VERSION=` takes
+   either; `sdk/package.json` and the Cargo versions follow).
+2. **Branch: done.** `main` is the rewrite since 2026-09-16 20:10; the SDK's `main` links are true and the site's specs carry no `@ref`.
+3. **Set the two secrets** (repository Settings > Secrets and variables >
+   Actions; none is set today, `gh api repos/zcag/pal/actions/secrets` says
+   `total_count: 0`):
+   - `TAURI_SIGNING_PRIVATE_KEY`: the contents of
+     `~/Sync/.secrets/pal/pal-updater.key` (`gh secret set
+     TAURI_SIGNING_PRIVATE_KEY < ~/Sync/.secrets/pal/pal-updater.key`)
+   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: the key's password (empty for
+     this key per `docs/releasing.md`; set it to the empty string anyway,
+     `tauri build` reads the variable when the key is set)
+   Without them the build still ships, minus the `.tar.gz`/`.sig` pair and
+   `latest.json`, and the `manifest` job skips itself: no pal would ever
+   see an update from that release.
+4. **CI green first.** `ci.yml` was red on the head (1.98.1 lint in
+   `app/src-tauri/src/bar/glyph.rs:71,87,248,253,264`, and Linux dead code in
+   `bar/popover.rs:119,575`, `deeplink.rs:258-263`, `crash.rs:177-216`); the
+   toolchain pin removes the first, the other agents' working-tree changes
+   the rest. Push, wait for `gh run list --branch main --limit 1` to say
+   `success`.
+5. **Tag**, on a clean tree: `make release VERSION=0.1.0` (dry run first:
+   `make release VERSION=0.1.0 DRY_RUN=1`). Then
+   `gh run watch` on the release workflow.
+6. **Verify the draft**: all four jobs green (`bundle` x3, `manifest`);
+   assets `pal_0.1.0_aarch64.dmg`, `pal_0.1.0_x64.dmg`,
+   `pal_0.1.0_amd64.AppImage`, `pal_0.1.0_amd64.deb`, the two
+   `.app.tar.gz` + `.sig`, `AppImage.sig`, `latest.json` with
+   `darwin-aarch64`, `darwin-x86_64`, `linux-x86_64`; the notes read as a
+   changelog (edit them). Install the aarch64 dmg on hornet (`xattr -dr
+   com.apple.quarantine /Applications/pal.app` first) and the AppImage on
+   marko, run each once, `pal --version` says 0.1.0.
+7. **Publish** the draft (with "Set as the latest release"). Then
+   `curl -sL https://github.com/zcag/pal/releases/latest/download/latest.json
+   | jq .version` says `0.1.0`, and the installed pal's tray "Check for
+   updates" logs `updater\tup to date`. Note `updater.rs` (another agent's
+   file this round) still logs `updater\terror\tCould not fetch a valid
+   release JSON from the remote` for a release without `latest.json`
+   (`tauri_plugin_updater::Error::ReleaseNotFound`) and
+   `TargetsNotFound` for one missing this platform; the quiet "no release
+   yet" wants those two variants matched before `to_string()` in
+   `updater::check`.
+8. **npm**: `cd sdk && npm login && npm publish` (scope `@zcag` must be
+   your npm user or an org you own; `publishConfig.access: public` is in
+   `package.json`, `prepack` builds `dist/`). `npm view @zcag/pal version`
+   says `0.1.0` afterwards. Then the README's "link it from a checkout"
+   note is the fallback only.
+9. **Later, not for v0.1.0**: Developer ID + notarisation (above, and
+   `docs/releasing.md`); the `APPLE_*` secrets stay commented out in
+   `release.yml` until the certificate exists.
+

@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo,
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Row } from "./Row";
 import { useCmdHeld } from "./keys";
-import { domId, flatten, useHover, useMetrics } from "./virtual";
+import { domId, flatten, useHover, useMetrics, observeRect } from "./virtual";
 import type { Item, Match } from "./types";
 
 export type Hit = { item: Item; match?: Match };
@@ -38,6 +38,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
     count: rows.length,
     getScrollElement: () => scroller.current,
     getItemKey,
+    observeElementRect: observeRect,
     estimateSize: (i) => (rows[i].kind === "header" ? metrics.header : metrics.row),
     overscan: 10,
     paddingStart: metrics.pad,

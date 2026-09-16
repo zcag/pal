@@ -1,6 +1,35 @@
 /** Shared bits of the virtualised List and Grid. */
 import { useCallback, useLayoutEffect, useRef, useState, type MouseEvent, type RefObject } from "react";
+import { observeElementRect, type Virtualizer } from "@tanstack/react-virtual";
 import type { Item } from "./types";
+
+/** Dispatched on `window` by the app when the panel has just been shown (App.tsx). */
+export const SHOWN_EVENT = "pal:shown";
+
+/**
+ * The virtualiser's scroll rect, kept true across a hidden spell. The
+ * default observer reads the rect once and then trusts ResizeObserver, and
+ * WebKit holds those callbacks while the panel is hidden (it is kept alive
+ * at alpha 0 between shows), so a list that changed while hidden could keep
+ * a stale or zero rect and render no rows although the footer counted hits.
+ * Re-read on every show and when the document becomes visible again.
+ */
+export const observeRect: (instance: Virtualizer<HTMLDivElement, Element>, cb: (rect: { width: number; height: number }) => void) => void | (() => void) = (instance, cb) => {
+  const stop = observeElementRect(instance, cb);
+  const again = () => {
+    const el = instance.scrollElement;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    cb({ width: Math.round(r.width), height: Math.round(r.height) });
+  };
+  window.addEventListener(SHOWN_EVENT, again);
+  document.addEventListener("visibilitychange", again);
+  return () => {
+    stop?.();
+    window.removeEventListener(SHOWN_EVENT, again);
+    document.removeEventListener("visibilitychange", again);
+  };
+};
 
 export type FlatRow<T> =
   | { kind: "header"; title: string; count: number }

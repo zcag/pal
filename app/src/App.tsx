@@ -5,6 +5,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { Launcher, type LauncherHandle } from "./Launcher";
 import { mark, useCore } from "./core";
 import { Confirm, Presence } from "./ui";
+import { SHOWN_EVENT } from "./ui/virtual";
 
 const hide = () => invoke("hide");
 
@@ -28,6 +29,7 @@ export default function App() {
     const un = listen<{ t0: number; palette?: string }>("pal://shown", (e) => {
       if (e.payload.palette) launcher.current?.open(e.payload.palette);
       else launcher.current?.reset();
+      window.dispatchEvent(new Event(SHOWN_EVENT));
       requestAnimationFrame(() => mark("hotkey->paint ms", Date.now() - e.payload.t0));
     });
     return () => {
