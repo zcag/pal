@@ -61,6 +61,11 @@ pub struct General {
     /// for a compositor keybind that runs `pal-app toggle` instead.
     pub hotkey: String,
     pub theme: Theme,
+    /// Start pal when you sign in. (The key is what the settings view
+    /// writes; registering the login item itself is not wired yet.)
+    pub launch_at_login: bool,
+    /// Where the panel appears on the screen with the pointer.
+    pub position: Position,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
@@ -68,8 +73,19 @@ pub struct General {
 
 impl Default for General {
     fn default() -> Self {
-        Self { hotkey: "ctrl+space".into(), theme: Theme::System, extra: BTreeMap::new() }
+        Self { hotkey: "ctrl+space".into(), theme: Theme::System, launch_at_login: false, position: Position::Top, extra: BTreeMap::new() }
     }
+}
+
+/// `top`: a fifth of the way down, where Spotlight and Raycast sit.
+/// `centre`: centred. `last`: wherever it was last shown.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Position {
+    #[default]
+    Top,
+    Centre,
+    Last,
 }
 
 /// Follow the OS, or force one.
@@ -115,6 +131,19 @@ impl Config {
         self.palettes.get(id).map_or_else(|| std::borrow::Cow::Owned(Palette::default()), std::borrow::Cow::Borrowed)
     }
 
+    /// An extension's settings as it should see them: the defaults its
+    /// manifest declares, with every key the file sets under
+    /// `[extensions.<name>]` on top. Keys the manifest does not declare pass
+    /// through, so a setting written ahead of an upgrade is not lost.
+    pub fn extension_settings(&self, name: &str, manifest_defaults: &toml::Table) -> toml::Table {
+        overlay(manifest_defaults, self.extensions.get(name))
+    }
+
+    /// The same for one palette's declared settings, over `[palettes.<id>].settings`.
+    pub fn palette_settings(&self, id: &str, manifest_defaults: &toml::Table) -> toml::Table {
+        overlay(manifest_defaults, self.palettes.get(id).map(|p| &p.settings))
+    }
+
     /// Unknown keys as diagnostics. The keys stay in the `extra` maps and in
     /// the file; this only makes them visible.
     fn unknown_keys(&self) -> Vec<Diagnostic> {
@@ -128,6 +157,16 @@ impl Config {
         }
         out
     }
+}
+
+/// `defaults` with `set` on top, one level deep: a set key replaces the
+/// default whole (a list is not appended to, a table not merged).
+fn overlay(defaults: &toml::Table, set: Option<&toml::Table>) -> toml::Table {
+    let mut out = defaults.clone();
+    if let Some(set) = set {
+        out.extend(set.iter().map(|(k, v)| (k.clone(), v.clone())));
+    }
+    out
 }
 
 /// How much a [`Diagnostic`] matters: a warning leaves the config usable
@@ -171,7 +210,7 @@ impl Diagnostic {
 
 /// A load's outcome. `config` is always usable: defaults when the file is
 /// missing, the last good config when a watched save does not parse.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Loaded {
     pub path: PathBuf,
     pub config: Config,
@@ -313,6 +352,35 @@ token = "keychain:pal/github-token"
         assert_eq!(cb.settings["history"].as_integer(), Some(200));
         assert_eq!(c.extensions["github"]["token"].as_str(), Some("keychain:pal/github-token"));
         assert!(c.palette("nope").enabled);
+    }
+
+    #[test]
+    fn general_additions_have_defaults() {
+        let (c, _) = parse("").unwrap();
+        assert!(!c.general.launch_at_login);
+        assert_eq!(c.general.position, Position::Top);
+        let (c, d) = parse("[general]\nlaunch_at_login = true\nposition = \"centre\"\n").unwrap();
+        assert!(d.is_empty());
+        assert!(c.general.launch_at_login);
+        assert_eq!(c.general.position, Position::Centre);
+        assert!(parse("[general]\nposition = \"middle\"\n").is_err(), "an unknown position is a parse error, not a warning");
+    }
+
+    #[test]
+    fn extension_settings_overlay_manifest_defaults() {
+        let defaults: toml::Table = toml::from_str("max_entries = 200\nexclude_apps = [\"1Password\"]\nprimary_action = \"paste\"\n").unwrap();
+        let (c, _) = parse("[extensions.clipboard]\nmax_entries = 500\nexclude_apps = []\nundeclared = 1\n\n[palettes.emoji.settings]\nskin = \"medium\"\n").unwrap();
+        let s = c.extension_settings("clipboard", &defaults);
+        assert_eq!(s["max_entries"].as_integer(), Some(500));
+        assert_eq!(s["exclude_apps"].as_array().map(Vec::len), Some(0), "a set list replaces the default, no append");
+        assert_eq!(s["primary_action"].as_str(), Some("paste"), "untouched key keeps its default");
+        assert_eq!(s["undeclared"].as_integer(), Some(1), "undeclared keys pass through");
+        assert_eq!(c.extension_settings("nope", &defaults), defaults, "no file entry: the defaults as given");
+        let pd: toml::Table = toml::from_str("skin = \"none\"\ncolumns = 8\n").unwrap();
+        let p = c.palette_settings("emoji", &pd);
+        assert_eq!(p["skin"].as_str(), Some("medium"));
+        assert_eq!(p["columns"].as_integer(), Some(8));
+        assert_eq!(c.palette_settings("apps", &pd), pd);
     }
 
     #[test]

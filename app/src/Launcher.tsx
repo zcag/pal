@@ -20,13 +20,13 @@ const LIST_ID = "results";
 /** Fixture palettes (the gallery) best browsed as tiles; a real palette declares `view` itself. */
 const gridFixtures = new Set(["emoji", "iconnerd", "chars", "colors"]);
 /** The shell's own actions, kept apart from an item's by the prefix. */
-const BROWSE = "pal:browse", DETAIL = "pal:detail";
+const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings";
 const OPEN: Action = { id: "open", title: "Open" };
 
 /** A palette view is keyed by `sourceKey`. */
 type View = { kind: "root" } | { kind: "palette"; palette: string };
 
-export type LauncherHandle = { reset(): void };
+export type LauncherHandle = { reset(): void; /** Straight into a palette (its `sourceKey`), from a palette hotkey. */ open(palette: string): void };
 
 export type LauncherProps = {
   /** Palettes in the index, load order; empty until the host has listed one. */
@@ -40,6 +40,8 @@ export type LauncherProps = {
   /** `action` is the item's own action id; absent for the default action of an item that declares none. */
   onPick: (item: Item, query: string, action?: string) => void | Promise<unknown>;
   onHide: () => void;
+  /** Opens the settings window; the action is only offered when given. */
+  onSettings?: () => void;
   mark?: (name: string, t: number) => void;
 };
 
@@ -73,7 +75,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, mark } = props;
+  const { version = 0, onPick, onHide, onSettings, mark } = props;
   const local = useLocalSearch(props.items);
   const sources = props.sources ?? local.sources;
   const search = props.search ?? local.search;
@@ -137,7 +139,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const closeActions = () => { setActionsOpen(false); focus(); };
   const closeConfirm = () => { setConfirming(null); focus(); };
   const reset = useCallback(() => { nav.reset(); cur.reset(); setActionsOpen(false); setConfirming(null); setToast(null); input.current?.focus(); }, [nav.reset, cur.reset]);
-  useImperativeHandle(ref, () => ({ reset }), [reset]);
+  const open = useCallback((palette: string) => { reset(); nav.push({ kind: "palette", palette }); }, [reset, nav.push]);
+  useImperativeHandle(ref, () => ({ reset, open }), [reset, open]);
 
   // The item's own actions first (the default "Open" when it declares none), then the shell's.
   const actions = useMemo<Action[]>(() => {
@@ -146,8 +149,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const a: Action[] = current.actions ? [...current.actions] : [isPalette ? { ...OPEN, title: `Open ${current.name}` } : OPEN];
     if (view.kind === "root" && !isPalette) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
     a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
+    if (onSettings && view.kind === "root") a.push({ id: SETTINGS, title: "Open Settings", icon: { kind: "glyph", value: "⚙" }, shortcut: "cmd+,", section: "pal" });
     return a;
-  }, [current, view.kind, showDetail, byKey]);
+  }, [current, view.kind, showDetail, byKey, onSettings]);
 
   // The envelope's copy/open/hide are the caller's; the toast shows here.
   const pickItem = (item: Item, action?: string) =>
@@ -166,6 +170,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     switch (a.id) {
       case BROWSE: push({ kind: "palette", palette: current.palette! }); break;
       case DETAIL: setShowDetail((s) => !s); break;
+      case SETTINGS: onSettings?.(); break;
       default:
         // A palette row drills in; the pick only records the choice.
         if (current.palette === PALETTES) push({ kind: "palette", palette: current.id });
@@ -199,7 +204,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         filterSpec.onChange(o[(i + dir + o.length) % o.length].id);
       }),
       detail: () => setShowDetail((s) => !s),
-      shortcut: ({ combo }) => { const a = actions.find((x) => x.shortcut === combo); return a ? run(a) : false; },
+      shortcut: ({ combo }) => {
+        if (combo === "cmd+," && onSettings) return onSettings();
+        const a = actions.find((x) => x.shortcut === combo);
+        return a ? run(a) : false;
+      },
     },
     { input },
   );

@@ -1,0 +1,15 @@
+{
+  "name": "apps",
+  "title": "Applications",
+  "description": "Installed applications with their own icons: .app bundles on macOS, .desktop entries on Linux.",
+  "version": "0.1.0",
+  "icon": "▢",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "list", "id": "folders", "label": "Extra folders", "description": "Scanned in addition to the system's application folders.", "placeholder": "/path/to/apps", "default": [] }
+  ],
+  "palettes": {
+    "apps": { "description": "Everything that launches." }
+  }
+}

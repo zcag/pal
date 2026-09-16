@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Empty } from "./Empty";
 import { Icon } from "./Icon";
 import { SettingsDivider, SettingsField, SettingsHotkey, SettingsRow, SettingsSwitch } from "./SettingsField";
@@ -113,9 +113,7 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, fil
                     <SettingsHotkey compact value={p.config.hotkey} onChange={(v) => set(p, { hotkey: v })} label={`${p.title} hotkey`} />
                   </span>
                   <span role="gridcell" className="pal-palettes__cell pal-palettes__cell--icon">
-                    <button type="button" className="pal-iconpick" data-override={p.config.icon ? "" : undefined} aria-label={`${p.title} icon${p.config.icon ? ", overridden" : ""}`} title="Change icon">
-                      <Icon icon={paletteIcon(p, ext)} />
-                    </button>
+                    <IconPick p={p} ext={ext} onChange={(icon) => set(p, { icon })} />
                   </span>
                 </div>
               );
@@ -129,6 +127,44 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, fil
         {current ? <PalettePane p={current.p} ext={current.ext} onChange={(patch) => set(current.p, patch)} /> : <Empty title="No palette selected" hint="Pick one to set its hotkey, alias and settings" />}
       </div>
     </div>
+  );
+}
+
+/**
+ * The icon override: the button shows the current icon; a click turns it
+ * into a one-character field (paste an emoji, type a glyph), Enter or blur
+ * commits, Escape cancels, empty clears the override.
+ */
+function IconPick({ p, ext, onChange, withButton }: { p: SettingsPalette; ext: SettingsExtension; onChange: (icon: string | undefined) => void; withButton?: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const commit = (v: string) => { onChange(v.trim() || undefined); setEditing(false); };
+  if (editing) {
+    return (
+      <input
+        className="pal-inline"
+        type="text"
+        size={3}
+        autoFocus
+        defaultValue={p.config.icon ?? ""}
+        placeholder="Emoji"
+        aria-label={`${p.title} icon`}
+        spellCheck={false}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === "Enter") commit(e.currentTarget.value);
+          else if (e.key === "Escape") setEditing(false);
+        }}
+      />
+    );
+  }
+  return (
+    <>
+      <button type="button" className="pal-iconpick" data-override={p.config.icon ? "" : undefined} aria-label={`${p.title} icon${p.config.icon ? ", overridden" : ""}`} title="Change icon" onClick={() => setEditing(true)}>
+        <Icon icon={paletteIcon(p, ext)} />
+      </button>
+      {withButton && <button type="button" className="pal-button" onClick={() => setEditing(true)}>Change…</button>}
+    </>
   );
 }
 
@@ -158,12 +194,9 @@ function PalettePane({ p, ext, onChange }: { p: SettingsPalette; ext: SettingsEx
       <SettingsRow label="Hotkey" layout="stack" description="Opens pal directly in this palette.">
         <SettingsHotkey value={p.config.hotkey} onChange={(v) => onChange({ hotkey: v })} label={`${p.title} hotkey`} />
       </SettingsRow>
-      <SettingsRow label="Icon" layout="stack">
+      <SettingsRow label="Icon" layout="stack" description="An emoji or a glyph, in place of the extension's own.">
         <span className="pal-palettes__iconrow">
-          <button type="button" className="pal-iconpick" data-override={p.config.icon ? "" : undefined} title="Change icon" aria-label="Change icon">
-            <Icon icon={paletteIcon(p, ext)} />
-          </button>
-          <button type="button" className="pal-button">Change…</button>
+          <IconPick p={p} ext={ext} onChange={(icon) => onChange({ icon })} withButton />
           {p.config.icon && <button type="button" className="pal-setting__reset" onClick={() => onChange({ icon: undefined })}>Use {ext.title}'s</button>}
         </span>
       </SettingsRow>

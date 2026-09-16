@@ -8,6 +8,9 @@ export type SettingsGeneralProps = {
   file: ConfigFileInfo;
   onOpenFile?: () => void;
   onRevealFile?: () => void;
+  /** Maintenance, shown when wired: forget what was picked, and restart the extension host. */
+  onResetFrecency?: () => void;
+  onRestartHost?: () => void;
 };
 
 const themes = [
@@ -29,10 +32,12 @@ export const generalIndex: SettingsIndexEntry[] = [
   { page: "general", label: "Launch at login", hint: "Startup" },
   { page: "general", label: "Window position", hint: "Appearance" },
   { page: "general", label: "Config file", hint: "~/.config/pal/config.toml" },
+  { page: "general", label: "Search history", hint: "Maintenance" },
+  { page: "general", label: "Extension host", hint: "Maintenance" },
 ];
 
 /** pal's own settings: the hotkey, how it looks, how it starts, and the file behind all of it. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile }: SettingsGeneralProps) {
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   return (
     <div className="pal-settings-page">
@@ -78,6 +83,21 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
           </span>
         </SettingsRow>
       </SettingsGroup>
+
+      {(onResetFrecency || onRestartHost) && (
+        <SettingsGroup title="Maintenance">
+          {onResetFrecency && (
+            <SettingsRow label="Search history" description="What you picked, and for which query, ranks results. Forget all of it.">
+              <button type="button" className="pal-button" data-destructive onClick={onResetFrecency}>Reset ranking</button>
+            </SettingsRow>
+          )}
+          {onRestartHost && (
+            <SettingsRow label="Extension host" description="Every extension runs in one process. Restart it to reload them all from scratch.">
+              <button type="button" className="pal-button" onClick={onRestartHost}>Restart</button>
+            </SettingsRow>
+          )}
+        </SettingsGroup>
+      )}
     </div>
   );
 }

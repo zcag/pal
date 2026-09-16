@@ -2961,7 +2961,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pal-app"
+name = "pal"
 version = "0.1.0"
 dependencies = [
  "arboard",
@@ -2975,6 +2975,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-single-instance",
  "tokio",
+ "toml 1.1.6+spec-1.1.0",
  "url",
  "zbus",
 ]

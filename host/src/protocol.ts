@@ -112,5 +112,53 @@ export type Palette = {
 
 export type Extension = { palettes: Record<string, Palette> };
 
+// ---- manifest (pal.json) -------------------------------------------------
+// Read by the host without running the extension's code, so the settings
+// window can show an extension whose code fails to load. Mirrored by hand in
+// app/src/ui/SettingsTypes.ts.
+
+export type SettingOption = { id: string; title: string };
+
+type SettingBase = { id: string; label: string; description?: string };
+
+/** One setting an extension declares, with its default. */
+export type SettingSpec = SettingBase &
+  (
+    | { kind: "text"; placeholder?: string; default?: string }
+    /** The file holds a `keychain:` or `env:` reference; the value never sits in it as plain text. */
+    | { kind: "secret"; placeholder?: string; default?: string }
+    | { kind: "number"; min?: number; max?: number; step?: number; unit?: string; default?: number }
+    | { kind: "boolean"; text?: string; default?: boolean }
+    | { kind: "select"; options: SettingOption[]; default?: string }
+    | { kind: "hotkey"; default?: string }
+    | { kind: "path"; pick?: "file" | "folder"; placeholder?: string; default?: string }
+    | { kind: "list"; placeholder?: string; default?: string[] }
+  );
+
+/** What the manifest says about one palette; the code still defines it. */
+export type ManifestPalette = { title?: string; description?: string; settings?: SettingSpec[] };
+
+export type Manifest = {
+  name: string;
+  title: string;
+  description?: string;
+  version?: string;
+  /** Same forms as `Item.icon`. */
+  icon?: string;
+  author?: string;
+  /** `bundled` for the ones that ship with pal, else a repo like `github.com/zcag/pal-github`. */
+  repo?: string;
+  /** Extension-level settings, `[extensions.<name>]` in the file. */
+  settings?: SettingSpec[];
+  /** Per-palette settings, `[palettes.<id>].settings` in the file, keyed by the palette's key in `Extension.palettes`. */
+  palettes?: Record<string, ManifestPalette>;
+};
+
+/** Resolved values one extension sees: manifest defaults with the file's keys on top. */
+export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Record<string, Record<string, unknown>> };
+
+/** `settings/changed`, core to host: every extension's resolved values (or the ones that changed). */
+export type SettingsChanged = { extensions: Record<string, ResolvedSettings> };
+
 /** What `hello` and `extension/loaded` say about a palette. */
 export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "detail"> & { name: string; title: string; live: boolean; input: boolean };

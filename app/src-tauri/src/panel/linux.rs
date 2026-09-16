@@ -7,8 +7,8 @@
 //! the compositor's. Hyprland (0.56 syntax; the class is the binary name):
 //!
 //! ```text
-//! windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal-app)$
-//! bind = CTRL, space, exec, pal-app toggle
+//! windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:class ^(pal)$
+//! bind = CTRL, space, exec, pal toggle
 //! ```
 
 use super::*;

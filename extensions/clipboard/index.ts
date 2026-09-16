@@ -3,9 +3,12 @@
 // the matching, order is pinned first then newest). Enter pastes, the rest
 // of the actions manage the entry.
 import type { Action, Detail, Extension, Item } from "../../host/src/protocol.ts";
-import { clipboard, type ClipboardEntry } from "../../host/src/api.ts";
+import { clipboard, settings, type ClipboardEntry } from "../../host/src/api.ts";
 
-const LIMIT = 200;
+/** `[extensions.clipboard]`, defaults in pal.json. */
+type Settings = { exclude_apps: string[]; max_entries: number; max_age_days: number; primary_action: "paste" | "copy" };
+
+settings.onChange((s) => console.error("[clipboard] settings changed:", JSON.stringify(s.settings)));
 const PREVIEW = 100;
 const DETAIL_MAX = 20_000;
 const THUMB = 48;
@@ -62,15 +65,14 @@ function detail(e: ClipboardEntry): Detail {
   };
 }
 
-const actions = (e: ClipboardEntry): Action[] => [
-  { id: "paste", title: "Paste" },
-  { id: "copy", title: "Copy" },
+const actions = (e: ClipboardEntry, primary: Settings["primary_action"]): Action[] => [
+  ...(primary === "copy" ? [{ id: "copy", title: "Copy" }, { id: "paste", title: "Paste" }] : [{ id: "paste", title: "Paste" }, { id: "copy", title: "Copy" }]),
   { id: "pin", title: e.pinned ? "Unpin" : "Pin", shortcut: "cmd+p" },
   { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?" },
   { id: "clear", title: "Clear history", shortcut: "cmd+shift+d", style: "destructive", confirm: "Delete every entry, pinned ones included?" },
 ];
 
-function item(e: ClipboardEntry): Item {
+function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
   const url = e.kind === "text" && e.text!.length < 2048 && URL_RE.test(e.text!.trim()) ? e.text!.trim() : undefined;
   return {
     id: String(e.id),
@@ -84,8 +86,15 @@ function item(e: ClipboardEntry): Item {
       ...(e.pinned ? [{ tag: "pinned", color: "amber" }] : []),
     ],
     detail: detail(e),
-    actions: actions(e),
+    actions: actions(e, primary),
   };
+}
+
+/** An entry is excluded by its source app's bundle id or readable name, or by age. */
+function shown(e: ClipboardEntry, s: Settings): boolean {
+  if (e.source_app && s.exclude_apps.some((x) => x === e.source_app || x.toLowerCase() === appName(e.source_app!).toLowerCase())) return false;
+  if (s.max_age_days > 0 && Date.now() - e.at > s.max_age_days * 86_400_000) return false;
+  return true;
 }
 
 export default {
@@ -97,7 +106,10 @@ export default {
       input: true,
       detail: true,
       placeholder: "Search clipboard history",
-      list: async (query = "") => (await clipboard.list({ query, limit: LIMIT })).map(item),
+      list: async (query = "") => {
+        const s = settings.get<Settings>();
+        return (await clipboard.list({ query, limit: s.max_entries })).filter((e) => shown(e, s)).map((e) => item(e, s.primary_action));
+      },
       pick: async (id, action) => {
         const entry = Number(id);
         switch (action) {

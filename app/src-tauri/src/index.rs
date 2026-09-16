@@ -5,18 +5,24 @@
 //! its effects run, then into the frecency store. The palettes themselves
 //! are rows of one synthetic source, `pal/palettes`, so the root search
 //! finds them.
+//!
+//! The config file has a say: a palette with `enabled = false` is kept in
+//! the registry (so re-enabling needs no host round trip to know it) but
+//! has no items in the index and no palette row; an `alias` is an extra
+//! keyword on its row. `apply_config` re-applies both when the file changes.
 
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime};
 
+use pal_core::config::Config;
 use pal_core::frecency::{Frecency, Key};
 use pal_core::index::{Hit, Index, Item, QueryOpts, Source};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::effects;
 use crate::host::Host;
+use crate::{effects, hotkey, settings};
 
 const DEFAULT_LIMIT: usize = 200;
 
@@ -52,6 +58,27 @@ pub struct Palettes(Mutex<Vec<Registered>>);
 struct Registered {
     source: Source,
     meta: PaletteMeta,
+    /// `palettes.<id>.enabled` as last applied; off means no items, no row.
+    enabled: bool,
+}
+
+/// The palette's key in the config file, `palettes.<id>`: the extension's
+/// name when the palette is named like it (`emoji`, `apps`), else
+/// `<extension>-<palette>` (`clipboard-history`). Readable in the file and
+/// needs no quoting; the registry resolves it back, so a clash between a
+/// hyphenated extension name and a palette is the one case it cannot tell
+/// apart.
+pub fn palette_id(source: &Source) -> String {
+    if source.extension == source.palette {
+        source.extension.clone()
+    } else {
+        format!("{}-{}", source.extension, source.palette)
+    }
+}
+
+/// Every palette the host reported, enabled or not, with its config id.
+pub fn registered_palettes(app: &AppHandle) -> Vec<(String, Source)> {
+    Palettes::with(app, |reg| reg.iter().map(|r| (palette_id(&r.source), r.source.clone())).collect())
 }
 
 impl Palettes {
@@ -67,18 +94,22 @@ pub fn palettes_source() -> Source {
     Source::new("pal", "palettes")
 }
 
-fn palette_row(r: &Registered) -> Item {
+fn palette_row(r: &Registered, config: &Config) -> Item {
     let m = &r.meta;
     let mut keywords = vec![m.name.clone()];
     if r.source.extension != m.name {
         keywords.push(r.source.extension.clone());
+    }
+    let p = config.palette(&palette_id(&r.source));
+    if let Some(alias) = p.alias.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
+        keywords.push(alias.to_string());
     }
     Item {
         id: format!("{}/{}", r.source.extension, r.source.palette),
         name: m.title.clone(),
         subtitle: None,
         keywords,
-        icon: m.icon.clone().map(Value::String),
+        icon: p.icon.clone().or_else(|| m.icon.clone()).map(Value::String),
         section: None,
         extra: Default::default(),
     }
@@ -114,16 +145,20 @@ pub fn flush(app: &AppHandle) {
 
 // ---- host notifications --------------------------------------------------
 
-/// Called on the host's reader task for every notification.
+/// Called on the host's reader task for every notification. The settings
+/// registry (`settings::Extensions`) learns about every extension here too,
+/// loaded or not, so the settings window can show one whose code failed.
 pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: &Value) {
     match method {
         "extension/loaded" => {
             let ext = params["extension"].as_str().unwrap_or_default().to_string();
             let Ok(metas) = serde_json::from_value::<Vec<PaletteMeta>>(params["palettes"].clone()) else { return };
+            settings::register(app, &ext, params, true);
             tauri::async_runtime::spawn(sync_extension(app.clone(), host.clone(), ext, metas));
         }
         "extension/error" => {
             let ext = params["extension"].as_str().unwrap_or_default();
+            settings::register(app, ext, params, false);
             remove_extension(app, ext);
         }
         // The host is up: drop sources whose extension it no longer has
@@ -136,50 +171,105 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             for ext in stale {
                 remove_extension(app, &ext);
             }
+            settings::retain(app, &live);
         }
         _ => {}
     }
 }
 
-/// Re-lists `pal/palettes` from the registry.
+/// Re-lists `pal/palettes` from the registry: the enabled ones, with their
+/// aliases and icon overrides from the config.
 fn sync_palette_rows(app: &AppHandle) {
-    let rows: Vec<Item> = Palettes::with(app, |reg| reg.iter().map(palette_row).collect());
+    let config = settings::config(app);
+    let rows: Vec<Item> = Palettes::with(app, |reg| reg.iter().filter(|r| r.enabled).map(|r| palette_row(r, &config)).collect());
     with_index(app, |ix| ix.replace(palettes_source(), rows));
 }
 
 async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, metas: Vec<PaletteMeta>) {
+    let config = settings::config(&app);
     Palettes::with(&app, |reg| {
         reg.retain(|r| r.source.extension != ext);
-        reg.extend(metas.iter().map(|m| Registered { source: Source::new(&ext, &m.name), meta: m.clone() }));
+        reg.extend(metas.iter().map(|m| {
+            let source = Source::new(&ext, &m.name);
+            let enabled = config.palette(&palette_id(&source)).enabled;
+            Registered { source, meta: m.clone(), enabled }
+        }));
     });
     sync_palette_rows(&app);
+    hotkey::apply(&app, &config);
     for m in metas {
         let source = Source::new(&ext, &m.name);
-        let t0 = Instant::now();
-        let params = json!({ "extension": ext, "palette": m.name });
-        // An input palette is in the index as an empty source: `sources`
-        // lists it, a root query never finds its rows.
-        let items = if m.input {
-            Vec::new()
-        } else {
-            match host.request("list", params).await {
-                Ok(v) => serde_json::from_value::<Vec<Item>>(v["items"].clone()).unwrap_or_else(|e| {
-                    eprintln!("index\t{ext}/{}\tbad items\t{e}", m.name);
-                    Vec::new()
-                }),
-                Err(e) => {
-                    eprintln!("index\t{ext}/{}\tlist failed\t{e}", m.name);
-                    continue;
-                }
+        if config.palette(&palette_id(&source)).enabled {
+            list_palette(&app, &host, &source, &m).await;
+        }
+    }
+}
+
+/// Asks the host for the palette's items and puts them in the index. An
+/// input palette is in the index as an empty source: `sources` lists it, a
+/// root query never finds its rows.
+async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &PaletteMeta) {
+    let t0 = Instant::now();
+    let params = json!({ "extension": source.extension, "palette": source.palette });
+    let items = if m.input {
+        Vec::new()
+    } else {
+        match host.request("list", params).await {
+            Ok(v) => serde_json::from_value::<Vec<Item>>(v["items"].clone()).unwrap_or_else(|e| {
+                eprintln!("index\t{}/{}\tbad items\t{e}", source.extension, source.palette);
+                Vec::new()
+            }),
+            Err(e) => {
+                eprintln!("index\t{}/{}\tlist failed\t{e}", source.extension, source.palette);
+                return;
             }
-        };
-        let n = items.len();
-        with_index(&app, |ix| {
-            ix.set_live(source.clone(), m.live);
-            ix.replace(source, items);
-        });
-        eprintln!("index\t{ext}/{}\t{n} items\t{:.1}ms\t{:.1}ms since host spawn", m.name, t0.elapsed().as_secs_f64() * 1000.0, host.uptime_ms());
-        let _ = app.emit("pal://index", ());
+        }
+    };
+    let n = items.len();
+    with_index(app, |ix| {
+        ix.set_live(source.clone(), m.live);
+        ix.replace(source.clone(), items);
+    });
+    eprintln!("index\t{}/{}\t{n} items\t{:.1}ms\t{:.1}ms since host spawn", source.extension, source.palette, t0.elapsed().as_secs_f64() * 1000.0, host.uptime_ms());
+    let _ = app.emit("pal://index", ());
+}
+
+/// The config changed: palettes switched off leave the index, ones switched
+/// on are listed again, rows get their aliases, and extensions whose
+/// resolved settings changed are told and re-listed (a folders setting
+/// changes what `list` returns).
+pub async fn apply_config(app: AppHandle, host: Arc<Host>, prev: Config, next: Config) {
+    let (off, on): (Vec<Source>, Vec<(Source, PaletteMeta)>) = Palettes::with(&app, |reg| {
+        let (mut off, mut on) = (Vec::new(), Vec::new());
+        for r in reg.iter_mut() {
+            let wanted = next.palette(&palette_id(&r.source)).enabled;
+            if wanted == r.enabled {
+                continue;
+            }
+            r.enabled = wanted;
+            if wanted {
+                on.push((r.source.clone(), r.meta.clone()));
+            } else {
+                off.push(r.source.clone());
+            }
+        }
+        (off, on)
+    });
+    with_index(&app, |ix| off.iter().for_each(|s| ix.remove(s)));
+    sync_palette_rows(&app);
+    let _ = app.emit("pal://index", ());
+    let changed = settings::changed_extensions(&app, &prev, &next);
+    let ids = |v: &[Source]| v.iter().map(palette_id).collect::<Vec<_>>().join(",");
+    eprintln!("config\tapplied\toff=[{}] on=[{}] settings=[{}]", ids(&off), ids(&on.iter().map(|(s, _)| s.clone()).collect::<Vec<_>>()), changed.join(","));
+    settings::push(&app, &host, &changed).await;
+    for (source, meta) in on {
+        list_palette(&app, &host, &source, &meta).await;
+    }
+    let relist: Vec<(Source, PaletteMeta)> = Palettes::with(&app, |reg| {
+        reg.iter().filter(|r| r.enabled && changed.contains(&r.source.extension)).map(|r| (r.source.clone(), r.meta.clone())).collect()
+    });
+    for (source, meta) in relist {
+        list_palette(&app, &host, &source, &meta).await;
     }
 }
 

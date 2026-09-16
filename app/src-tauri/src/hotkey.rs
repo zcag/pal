@@ -1,38 +1,48 @@
-//! The global hotkey: `general.hotkey` from the config file, swapped live
-//! when the file changes; empty means none (a compositor keybind runs
-//! `pal-app toggle` instead). On Linux this only reaches X11 clients (the
-//! global-hotkey crate is X11-only); Wayland goes through `pal-app toggle`.
-//! The plugin hops to the main thread itself, so `apply` may run on the
-//! watcher's thread.
+//! Global hotkeys: `general.hotkey` shows the panel, `palettes.<id>.hotkey`
+//! shows it straight inside that palette. All come from the config file and
+//! are swapped live when it changes (`settings::on_reload`) or a palette
+//! arrives (`index::sync_extension`). An empty `general.hotkey` means none
+//! (a compositor keybind runs `pal-app toggle` instead). On Linux this only
+//! reaches X11 clients (the global-hotkey crate is X11-only); Wayland goes
+//! through `pal-app toggle`. The plugin hops to the main thread itself, so
+//! `apply` may run on the watcher's thread.
 
+use std::collections::HashMap;
 use std::sync::Mutex;
 
-use pal_core::config::{ConfigFile, Watcher};
+use pal_core::config::Config;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 const FALLBACK: &str = "ctrl+space";
 
-struct Registered(Mutex<Option<Shortcut>>);
-/// Dropping the watcher stops it, so the app owns it.
-struct Watch(#[allow(dead_code)] Watcher);
+/// What a registered shortcut does: toggle the panel, or open it in a
+/// palette (by its `extension/palette` key, what the UI scopes on).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Target {
+    Root,
+    Palette(String),
+}
+
+struct Registered(Mutex<HashMap<Shortcut, Target>>);
 
 pub fn install(app: &AppHandle) {
-    let file = ConfigFile::locate();
-    app.manage(Registered(Mutex::new(None)));
-    apply(app, &file.load().config.general.hotkey);
-    let handle = app.clone();
-    match file.watch(move |loaded| apply(&handle, &loaded.config.general.hotkey)) {
-        Ok(w) => {
-            app.manage(Watch(w));
-        }
-        Err(e) => eprintln!("hotkey\twatch failed\t{e}"),
+    app.manage(Registered(Mutex::new(HashMap::new())));
+}
+
+/// The plugin's handler: look the shortcut up and act.
+pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
+    let target = app.state::<Registered>().0.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(shortcut).cloned();
+    match target {
+        Some(Target::Root) => crate::toggle(app),
+        Some(Target::Palette(key)) => crate::show_in(app, Some(key)),
+        None => {}
     }
 }
 
 /// `None` for an empty setting; a string that does not parse falls back
 /// rather than leaving pal unreachable.
-fn parse(s: &str) -> Option<Shortcut> {
+fn parse_root(s: &str) -> Option<Shortcut> {
     let s = s.trim();
     if s.is_empty() {
         return None;
@@ -43,25 +53,67 @@ fn parse(s: &str) -> Option<Shortcut> {
     }))
 }
 
-fn apply(app: &AppHandle, wanted: &str) {
-    let next = parse(wanted);
+/// Register what the config wants and drop what it no longer does. A
+/// palette's hotkey is only registered once the palette exists. The root
+/// hotkey wins a clash with a palette's; a hotkey another app holds is
+/// reported and skipped, the rest still apply.
+pub fn apply(app: &AppHandle, config: &Config) {
+    let mut wanted: HashMap<Shortcut, Target> = HashMap::new();
+    for (id, source) in crate::index::registered_palettes(app) {
+        if let Some(h) = config.palette(&id).hotkey.as_deref().map(str::trim).filter(|h| !h.is_empty()) {
+            match h.parse::<Shortcut>() {
+                Ok(s) => {
+                    wanted.insert(s, Target::Palette(format!("{}/{}", source.extension, source.palette)));
+                }
+                Err(e) => eprintln!("hotkey\tpalettes.{id}.hotkey {h:?}: {e}; ignored"),
+            }
+        }
+    }
+    if let Some(root) = parse_root(&config.general.hotkey) {
+        wanted.insert(root, Target::Root);
+    }
     let registered = app.state::<Registered>();
     let mut current = registered.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-    if *current == next {
+    if *current == wanted {
         return;
     }
     let shortcuts = app.global_shortcut();
-    // Register the new one first: if another app holds it, the old one
-    // stays and pal remains reachable.
-    if let Some(next) = next {
-        if let Err(e) = shortcuts.register(next) {
-            eprintln!("hotkey\tregister {next} failed\t{e}; keeping {}", current.map_or("none".to_string(), |c| c.to_string()));
-            return;
+    // Register the new ones first: if another app holds the new root
+    // hotkey, the old one stays and pal remains reachable.
+    let mut next: HashMap<Shortcut, Target> = HashMap::new();
+    for (s, target) in &wanted {
+        if current.get(s) == Some(target) {
+            next.insert(*s, target.clone());
+            continue;
+        }
+        if current.contains_key(s) {
+            // Same keys, other target: re-registering is a no-op for the
+            // plugin, only our map changes.
+            next.insert(*s, target.clone());
+            continue;
+        }
+        match shortcuts.register(*s) {
+            Ok(()) => {
+                eprintln!("hotkey\tregistered\t{s}\t{target:?}");
+                next.insert(*s, target.clone());
+            }
+            Err(e) => {
+                eprintln!("hotkey\tregister {s} failed\t{e}");
+                // A root hotkey that cannot be had: keep the previous one.
+                if *target == Target::Root {
+                    if let Some((old, _)) = current.iter().find(|(_, t)| **t == Target::Root) {
+                        next.insert(*old, Target::Root);
+                    }
+                }
+            }
         }
     }
-    if let Some(old) = current.take() {
-        if let Err(e) = shortcuts.unregister(old) {
-            eprintln!("hotkey\tunregister {old} failed\t{e}");
+    for s in current.keys() {
+        if !next.contains_key(s) {
+            match shortcuts.unregister(*s) {
+                Ok(()) => eprintln!("hotkey\tunregistered\t{s}"),
+                Err(e) => eprintln!("hotkey\tunregister {s} failed\t{e}"),
+            }
         }
     }
     *current = next;

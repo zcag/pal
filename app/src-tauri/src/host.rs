@@ -6,6 +6,7 @@
 //! a core capability (`crate::bridge`), answered on its stdin.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -18,11 +19,55 @@ use tokio::process::{ChildStdin, Command};
 use tokio::sync::{oneshot, Mutex as AsyncMutex};
 
 const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+/// The sidecar's file name next to our executable (`bundle.externalBin`).
+const SIDECAR: &str = "bun";
 const RESTART_DELAY: Duration = Duration::from_millis(500);
 /// A hung extension must not hang a keystroke or a pick for good.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 type Reply = oneshot::Sender<Result<Value, String>>;
+
+/// Where the host and its extensions come from, decided once at start.
+///
+/// The bun binary is the sidecar next to our executable (tauri-build copies
+/// `binaries/bun-<triple>` there in dev too), else `bun` on PATH. A debug
+/// build prefers PATH: tauri-build recopies the sidecar on every build and
+/// macOS spends ~600 ms verifying a fresh binary on its first exec. The host
+/// script and the bundled extensions are the repo's own files in a debug
+/// build (so edits reload live) and the resource tree staged by
+/// `scripts/build-extensions.sh` otherwise; a release binary run from the
+/// repo, without that tree, falls back to the repo. The user's extensions,
+/// `extensions/` next to the config file (`~/.config/pal/extensions`), are
+/// the last root either way.
+#[derive(Debug)]
+struct Layout {
+    bun: PathBuf,
+    host: PathBuf,
+    roots: Vec<PathBuf>,
+}
+
+impl Layout {
+    fn resolve(app: &AppHandle) -> Layout {
+        let sidecar = tauri::utils::platform::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|d| d.join(SIDECAR)))
+            .filter(|p| p.is_file());
+        let on_path = std::env::var_os("PATH")
+            .and_then(|p| std::env::split_paths(&p).map(|d| d.join("bun")).find(|b| b.is_file()));
+        let bun = match (cfg!(debug_assertions), sidecar, on_path) {
+            (true, _, Some(p)) | (_, Some(p), _) | (_, None, Some(p)) => p,
+            (_, None, None) => PathBuf::from("bun"),
+        };
+        let staged = app.path().resource_dir().ok().filter(|d| d.join("host/src/host.ts").is_file());
+        let base = match (cfg!(debug_assertions), staged) {
+            (false, Some(dir)) => dir,
+            _ => PathBuf::from(REPO),
+        };
+        let config = pal_core::config::ConfigFile::locate();
+        let user = config.path().parent().unwrap_or(Path::new(".")).join("extensions");
+        Layout { bun, host: base.join("host/src/host.ts"), roots: vec![base.join("extensions"), user] }
+    }
+}
 
 pub struct Host {
     app: AppHandle,
@@ -64,9 +109,13 @@ impl Host {
     async fn run_once(self: &Arc<Self>) -> std::io::Result<std::process::ExitStatus> {
         let t0 = Instant::now();
         *self.started.lock().unwrap() = t0;
-        let mut child = Command::new("bun")
-            .args(["run", "host/src/host.ts"])
-            .current_dir(REPO)
+        let layout = Layout::resolve(&self.app);
+        eprintln!("host\tspawn\t{} {} {}", layout.bun.display(), layout.host.display(), layout.roots.iter().map(|r| r.display().to_string()).collect::<Vec<_>>().join(" "));
+        let mut child = Command::new(&layout.bun)
+            .arg("run")
+            .arg(&layout.host)
+            .args(&layout.roots)
+            .current_dir(layout.host.parent().unwrap_or(Path::new("/")))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .kill_on_drop(true)
@@ -135,6 +184,17 @@ impl Host {
         for (_, tx) in self.pending.lock().unwrap().drain() {
             let _ = tx.send(Err(why.to_string()));
         }
+    }
+
+    /// A notification to the host: no id, no reply (`settings/changed`).
+    pub async fn notify(&self, method: &str, params: Value) -> Result<(), String> {
+        self.write_line(&json!({ "method": method, "params": params })).await
+    }
+
+    /// Ends the running host: closing its stdin is its exit signal, and the
+    /// loop in `start` spawns a fresh one after `RESTART_DELAY`.
+    pub async fn restart(&self) {
+        *self.stdin.lock().await = None;
     }
 
     pub async fn request(&self, method: &str, params: Value) -> Result<Value, String> {

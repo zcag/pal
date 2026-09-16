@@ -12,6 +12,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         .ok_or_else(|| format!("not a core method: {method}"))?;
     match capability {
         "clipboard" => crate::clipboard::call(app, func, params),
+        "settings" => crate::settings::call(app, func, params),
         _ => Err(format!("unknown capability {capability}")),
     }
 }

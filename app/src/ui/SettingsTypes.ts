@@ -57,12 +57,15 @@ export type SettingsExtension = {
   latest?: string;
   /** Source repository, or "bundled" for the ones that ship with pal. */
   repo: string;
-  installed: string | number | Date;
+  installed?: string | number | Date;
   palettes: SettingsPalette[];
   /** Extension-level settings the extension declared. */
   settings: SettingSpec[];
   /** `extensions.<name>` in the file. */
   values: SettingValues;
+  /** False while the code fails to load; `error` says why. The manifest still lists it. */
+  loaded?: boolean;
+  error?: string;
 };
 
 export type GeneralConfig = {

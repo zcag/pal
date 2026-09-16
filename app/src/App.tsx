@@ -52,10 +52,11 @@ export default function App() {
     };
   }, [bump]);
 
-  // hotkey -> painted panel
+  // hotkey -> painted panel; a palette hotkey names where to open
   useEffect(() => {
-    const un = listen<{ t0: number }>("pal://shown", (e) => {
-      launcher.current?.reset();
+    const un = listen<{ t0: number; palette?: string }>("pal://shown", (e) => {
+      if (e.payload.palette) launcher.current?.open(e.payload.palette);
+      else launcher.current?.reset();
       requestAnimationFrame(() => mark("hotkey->paint ms", Date.now() - e.payload.t0));
     });
     return () => {
@@ -73,5 +74,5 @@ export default function App() {
     return r;
   };
 
-  return <Launcher ref={launcher} sources={sources} search={search} version={version} mark={mark} onHide={() => invoke("hide")} onPick={pick} />;
+  return <Launcher ref={launcher} sources={sources} search={search} version={version} mark={mark} onHide={() => invoke("hide")} onPick={pick} onSettings={() => invoke("settings_open")} />;
 }

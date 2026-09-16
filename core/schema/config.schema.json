@@ -8,6 +8,16 @@
           "description": "Global hotkey that shows pal, e.g. `ctrl+space`. Empty turns it off,\nfor a compositor keybind that runs `pal-app toggle` instead.",
           "type": "string"
         },
+        "launch_at_login": {
+          "default": false,
+          "description": "Start pal when you sign in. (The key is what the settings view\nwrites; registering the login item itself is not wired yet.)",
+          "type": "boolean"
+        },
+        "position": {
+          "$ref": "#/$defs/Position",
+          "default": "top",
+          "description": "Where the panel appears on the screen with the pointer."
+        },
         "theme": {
           "$ref": "#/$defs/Theme",
           "default": "system"
@@ -44,6 +54,15 @@
       },
       "type": "object"
     },
+    "Position": {
+      "description": "`top`: a fifth of the way down, where Spotlight and Raycast sit.\n`centre`: centred. `last`: wherever it was last shown.",
+      "enum": [
+        "top",
+        "centre",
+        "last"
+      ],
+      "type": "string"
+    },
     "Theme": {
       "description": "Follow the OS, or force one.",
       "enum": [
@@ -71,6 +90,8 @@
       "$ref": "#/$defs/General",
       "default": {
         "hotkey": "ctrl+space",
+        "launch_at_login": false,
+        "position": "top",
         "theme": "system"
       }
     },

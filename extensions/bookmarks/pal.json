@@ -1,0 +1,15 @@
+{
+  "name": "bookmarks",
+  "title": "Bookmarks",
+  "description": "Hand-picked links from a JSON file: open one, or copy its address.",
+  "version": "0.1.0",
+  "icon": "🔖",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "path", "id": "file", "label": "Bookmarks file", "pick": "file", "description": "A JSON list of {name, url, keywords?}.", "default": "~/.config/pal/data/bookmarks.json" }
+  ],
+  "palettes": {
+    "bookmarks": { "description": "The links in the file, by name and keyword." }
+  }
+}

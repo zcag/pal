@@ -66,6 +66,7 @@ export function SettingsExtensions({ extensions, selected, onSelect, onChange, o
             <span className="pal-row__sub">{e.version}</span>
             <span className="pal-row__accs">
               {e.latest && <Tag text="update" color="amber" />}
+              {e.error && <Tag text="failed" color="red" />}
             </span>
           </div>
         ))}
@@ -100,11 +101,12 @@ function ExtensionPane({ ext, onChange, onUpdate, onRemove }: { ext: SettingsExt
         </div>
       </header>
       <p className="pal-extensions__desc">{ext.description}</p>
+      {ext.error && <p className="pal-extensions__desc" role="alert" style={{ color: "var(--pal-tag-red)" }}>Failed to load: <code>{ext.error}</code></p>}
 
       <dl className="pal-extensions__meta">
         <div className="pal-meta"><dt className="pal-meta__label">Version</dt><dd className="pal-meta__value">{ext.version}{ext.latest && <span className="pal-extensions__latest">{ext.latest} available</span>}</dd></div>
         <div className="pal-meta"><dt className="pal-meta__label">Source</dt><dd className="pal-meta__value">{href ? <a href={href} target="_blank" rel="noreferrer">{ext.repo}</a> : "Ships with pal"}</dd></div>
-        <div className="pal-meta"><dt className="pal-meta__label">Installed</dt><dd className="pal-meta__value">{relativeDate(ext.installed)} ago</dd></div>
+        {ext.installed !== undefined && <div className="pal-meta"><dt className="pal-meta__label">Installed</dt><dd className="pal-meta__value">{relativeDate(ext.installed)} ago</dd></div>}
         <div className="pal-meta"><dt className="pal-meta__label">Palettes</dt><dd className="pal-meta__value">{ext.palettes.map((p) => p.title).join(", ")}</dd></div>
       </dl>
 

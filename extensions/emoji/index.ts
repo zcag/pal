@@ -2,6 +2,7 @@
 // shortcodes): a grid inside, tiles are the glyphs; copy the emoji, or its
 // :shortcode:.
 import type { Extension, Item } from "../../host/src/protocol.ts";
+import { settings } from "../../host/src/api.ts";
 import data from "./data.json";
 
 type Row = { emoji: string; name: string; keywords: string[] };
@@ -24,7 +25,9 @@ export default {
       title: "Emoji",
       icon: "😀",
       view: "grid",
-      columns: 10,
+      // Palette meta is read once at load, so a change here shows after
+      // the extension reloads (a file edit, or Settings > Restart host).
+      columns: Number(settings.palette<{ columns?: number }>("emoji").columns ?? 10),
       list: () => items,
       pick: (id, action) => ({ copy: action === "shortcode" ? shortcode.get(id) ?? id : id }),
     },

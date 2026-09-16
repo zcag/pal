@@ -3,8 +3,31 @@
 // (`import { clipboard } from "pal"`) once extensions are packaged. Every
 // function is one `core/<capability>.<fn>` request over the bridge.
 import { call } from "./bridge.ts";
+import { caller, resolved, subscribe } from "./settings.ts";
+import type { ResolvedSettings } from "./protocol.ts";
 
 export const core = { call };
+
+/**
+ * The extension's settings as the user set them: the manifest's defaults
+ * (pal.json) with the config file's `[extensions.<name>]` on top, kept
+ * current by the core on every config change. Which extension is asking is
+ * known inside `list`/`pick` and at import time; elsewhere pass the name
+ * (see settings.ts).
+ */
+export const settings = {
+  /** Extension-level values, `[extensions.<name>]`. */
+  get: <T = Record<string, unknown>>(extension?: string): T => resolved(caller(extension).extension).settings as T,
+  /** One palette's declared values, `[palettes.<id>].settings`; the current palette inside `list`/`pick`. */
+  palette: <T = Record<string, unknown>>(palette?: string, extension?: string): T => {
+    const c = caller(extension);
+    const name = palette ?? c.palette;
+    if (!name) throw new Error("settings.palette: no palette in context; pass its name");
+    return (resolved(c.extension).palettes[name] ?? {}) as T;
+  },
+  /** Called with the new values whenever they change; returns the unsubscribe. */
+  onChange: (cb: (s: ResolvedSettings) => void, extension?: string) => subscribe(caller(extension).extension, cb),
+};
 
 /** `pal_core::clipboard::Entry`: one of text/image/files is set, by kind. */
 export type ClipboardEntry = {

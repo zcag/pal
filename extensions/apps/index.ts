@@ -4,6 +4,7 @@
 // way; the platform picks the scan and the launch.
 import { readdir } from "node:fs/promises";
 import type { Extension, Item } from "../../host/src/protocol.ts";
+import { settings } from "../../host/src/api.ts";
 
 const HOME = process.env.HOME ?? "";
 const LINUX = process.platform === "linux";
@@ -34,10 +35,14 @@ async function bundleId(app: string): Promise<string | undefined> {
   return plist.match(/<key>CFBundleIdentifier<\/key>\s*<string>([^<]*)<\/string>/)?.[1]?.trim();
 }
 
+/** `[extensions.apps] folders`, on top of the platform roots; `~` expanded. */
+const extraFolders = (): string[] =>
+  ((settings.get<{ folders?: string[] }>().folders ?? []) as string[]).map((f) => String(f).replace(/^~(?=\/|$)/, HOME));
+
 async function scanMac(): Promise<Item[]> {
   const seen = new Set<string>();
   const items: Item[] = [];
-  for (const [root, source] of MAC_ROOTS) {
+  for (const [root, source] of [...MAC_ROOTS, ...extraFolders().map((f): [string, string] => [f, f])]) {
     for (const path of await bundles(root)) {
       const name = path.slice(path.lastIndexOf("/") + 1, -4);
       if (!seen.add(name.toLowerCase())) continue;
@@ -117,7 +122,7 @@ async function scanLinux(): Promise<Item[]> {
   const seen = new Set<string>();
   const items: Item[] = [];
   entries.clear();
-  for (const dir of desktopDirs()) {
+  for (const dir of [...desktopDirs(), ...extraFolders()]) {
     const files = await readdir(dir, { recursive: true }).catch(() => [] as string[]);
     for (const rel of files.filter((f) => f.endsWith(".desktop")).sort()) {
       const id = rel.replaceAll("/", "-"); // spec: subdirs join the id with "-"
@@ -167,6 +172,8 @@ function launchLinux(file: string) {
 // ---- palette -------------------------------------------------------------
 
 let cache: Item[] | undefined;
+// A folders change: the core lists again, and that list must rescan.
+settings.onChange(() => { cache = undefined; });
 
 async function scan(): Promise<Item[]> {
   const items = await (LINUX ? scanLinux() : scanMac());
