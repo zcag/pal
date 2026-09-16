@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun run src/host.ts"
+    "start": "bun run src/host.ts",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0"

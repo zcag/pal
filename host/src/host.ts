@@ -31,6 +31,9 @@ const manifests = new Map<string, Manifest>();
 
 const log = (...a: unknown[]) => console.error("[host]", ...a);
 const send = (msg: Response | Notification) => process.stdout.write(JSON.stringify(msg) + "\n");
+// stdout is the protocol: an extension's console.log would land between the
+// frames, so everything console prints goes to stderr.
+console.log = console.info = console.debug = console.error;
 const notify = (method: string, params?: unknown) => send({ method, params });
 
 const exists = (p: string) => stat(p).then(() => true, () => false);
@@ -101,7 +104,7 @@ async function load(name: string) {
     errors.delete(name);
     for (const k of details.keys()) if (k.startsWith(`${name}/`)) details.delete(k);
     log(`loaded ${name} (${Object.keys(ext.palettes).join(",")}) from ${f.root} in ${(performance.now() - t0).toFixed(1)}ms`);
-    notify("extension/loaded", { extension: name, root: f.root, palettes: metas(ext), manifest });
+    notify("extension/loaded", { extension: name, root: f.root, palettes: metas(ext, manifest), manifest });
   } catch (e) {
     const message = describe(e);
     exts.delete(name);
@@ -139,10 +142,11 @@ async function watchExtensions() {
   }
 }
 
-const metas = (ext: Extension): PaletteMeta[] =>
+const metas = (ext: Extension, manifest?: Manifest): PaletteMeta[] =>
   Object.entries(ext.palettes).map(([name, p]) => ({
     name, title: p.title ?? name, live: !!p.live, input: !!p.input, icon: p.icon, view: p.view, columns: p.columns, placeholder: p.placeholder, showDetail: p.showDetail, filters: p.filters,
     detail: typeof p.detail === "function" ? "lazy" : undefined,
+    ttl: p.ttl ?? manifest?.palettes?.[name]?.ttl,
   }));
 
 /**
@@ -152,7 +156,7 @@ const metas = (ext: Extension): PaletteMeta[] =>
  */
 const details = new Map<string, Map<string, Promise<unknown>>>();
 const paletteKey = (p: any) => `${p?.extension}/${p?.palette}`;
-const ctxOf = (p: any): Ctx | undefined => (p?.filter !== undefined || p?.args !== undefined ? { filter: p.filter, args: p.args } : undefined);
+const ctxOf = (p: any): Ctx | undefined => (p?.filter !== undefined || p?.args !== undefined || p?.refresh ? { filter: p.filter, args: p.args, ...(p.refresh && { refresh: true }) } : undefined);
 
 function palette(p: any) {
   const ext = exts.get(p?.extension);
@@ -171,12 +175,14 @@ const methods: Record<string, (params: any) => unknown> = {
     bun: Bun.version,
     pid: process.pid,
     roots: ROOTS,
-    extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: exts.has(name) ? metas(exts.get(name)!) : [] })),
+    extensions: [...manifests].map(([name, manifest]) => ({ name, root: found.get(name)?.root, manifest, loaded: exts.has(name), palettes: exts.has(name) ? metas(exts.get(name)!, manifest) : [] })),
     errors: Object.fromEntries(errors),
   }),
   list: async (p) => {
     details.delete(paletteKey(p));
-    return { items: await inContext(p, () => palette(p).list(p.query, ctxOf(p))) };
+    const items = await inContext(p, () => palette(p).list(p.query, ctxOf(p)));
+    if (!Array.isArray(items)) throw new Error(`${paletteKey(p)}: list returned ${items === null ? "null" : typeof items}, not an array`);
+    return { items };
   },
   pick: async (p) => (await inContext(p, () => palette(p).pick(p.id, p.action, ctxOf(p)))) ?? {},
   // `{}` when the palette has no `detail` or answers nothing: the UI keeps the inline one.
@@ -236,4 +242,5 @@ async function handle(line: string) {
 })();
 await loadAll();
 await watchExtensions();
-notify("host/ready", { extensions: [...exts.keys()], roots: ROOTS });
+// `known`: every extension found on disk, loaded or not (the core keeps a failed one's cache).
+notify("host/ready", { extensions: [...exts.keys()], known: [...manifests.keys()], roots: ROOTS });

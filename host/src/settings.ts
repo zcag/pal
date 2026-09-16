@@ -11,6 +11,7 @@
 // calls. Anywhere else (a callback after an await, outside list/pick) pass
 // the extension's name.
 import { AsyncLocalStorage } from "node:async_hooks";
+import { realpathSync } from "node:fs";
 import type { ResolvedSettings } from "./protocol.ts";
 
 export type Context = { extension: string; palette?: string };
@@ -21,8 +22,9 @@ const table = new Map<string, ResolvedSettings>();
 const listeners = new Map<string, Set<(s: ResolvedSettings) => void>>();
 let roots: string[] = [];
 
-/** The extension roots, for reading the caller off the stack. */
-export const setRoots = (r: string[]) => { roots = r.map((x) => x.replace(/\/+$/, "") + "/"); };
+/** The extension roots, for reading the caller off the stack; resolved, since stack frames carry real paths. */
+export const setRoots = (r: string[]) => { roots = r.map((x) => real(x).replace(/\/+$/, "") + "/"); };
+const real = (p: string) => { try { return realpathSync(p); } catch { return p; } };
 
 /** `<root>/<name>/...` frames on the stack name the extension. */
 function fromStack(): string | undefined {
