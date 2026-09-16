@@ -16,9 +16,10 @@ export function SettingsSwitch({ checked, onChange, label, disabled }: { checked
 }
 
 /**
- * Hotkey recorder. Shows the combo as key caps; Enter, Space or a click
- * starts recording, the next modifier combo is taken, Escape cancels,
- * Backspace while recording clears the hotkey.
+ * Hotkey recorder, a key-cap styled button. Shows the combo as key caps;
+ * Enter, Space or a click starts recording ("Type shortcut…"), the next
+ * modifier combo is taken, Escape cancels, Backspace while recording
+ * clears the hotkey.
  */
 export function SettingsHotkey({ value, onChange, label, compact }: { value?: string; onChange: (v: string | undefined) => void; label?: string; compact?: boolean }) {
   const [recording, setRecording] = useState(false);
@@ -49,7 +50,7 @@ export function SettingsHotkey({ value, onChange, label, compact }: { value?: st
       onKeyDown={onKey}
       onBlur={() => setRecording(false)}
     >
-      {recording ? <span className="pal-hotkey__prompt">Press keys</span> : value ? <Kbd shortcut={value} /> : <span className="pal-hotkey__prompt">{compact ? "Record" : "Record hotkey"}</span>}
+      {recording ? <span className="pal-hotkey__prompt">Type shortcut…</span> : value ? <Kbd shortcut={value} /> : <span className="pal-hotkey__prompt">{compact ? "Record" : "Record Shortcut"}</span>}
     </button>
   );
 }
@@ -77,13 +78,16 @@ export function SettingsSegment({ value, options, onChange, label }: { value: st
   );
 }
 
+/** A popup button, shaped like the OS's: the current title with the up/down chevrons in an accent square. */
 export function SettingsSelect({ value, options, onChange, id, label }: { value: string; options: SettingOption[]; onChange: (id: string) => void; id?: string; label?: string }) {
   return (
     <span className="pal-select">
       <select id={id} aria-label={label} className="pal-select__input" value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
       </select>
-      <span className="pal-select__chevron" aria-hidden>⌄</span>
+      <span className="pal-select__chevron" aria-hidden>
+        <svg viewBox="0 0 10 14"><path d="M2.5 5.2L5 2.5l2.5 2.7M2.5 8.8L5 11.5l2.5-2.7" /></svg>
+      </span>
     </span>
   );
 }
@@ -241,12 +245,12 @@ export function SettingsRow({ label, description, children, layout = "row", html
   );
 }
 
-/** A section band over a group of rows, the same band the list uses. */
+/** A small uppercase title over a card of rows, hairlines between them: the System Settings group. */
 export function SettingsGroup({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
     <section className="pal-settings-group" aria-label={title}>
       <h3 className="pal-settings-group__title">{title}{note && <span className="pal-settings-group__note">{note}</span>}</h3>
-      {children}
+      <div className="pal-settings-group__rows">{children}</div>
     </section>
   );
 }

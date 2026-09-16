@@ -19,13 +19,18 @@ use pal_core::extensions::{Installed, Store, Update};
 use pal_core::frecency::Frecency;
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, State, WindowEvent};
+use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 use crate::host::Host;
 use crate::index::{palette_id, PaletteMeta};
 use crate::{autostart, events, hotkey, index, lock, panel, permissions, tray};
 
 pub const WINDOW: &str = "settings";
+/// What the window-state plugin keeps for the settings window: where it
+/// was and how big, restored on the next launch (lib.rs registers the
+/// plugin for this window only).
+pub const STATE: StateFlags = StateFlags::SIZE.union(StateFlags::POSITION);
 
 /// One extension as the host reported it, loaded or not.
 #[derive(Debug, Clone, Serialize)]
@@ -76,16 +81,47 @@ pub fn install(app: &AppHandle, file: ConfigFile) {
         Ok(w) => *lock(&app.state::<Settings>()._watch) = Some(w),
         Err(e) => eprintln!("config\twatch failed\t{e}"),
     }
-    if let Some(w) = app.get_webview_window(WINDOW) {
-        let handle = app.clone();
-        // Closing hides: the window is single-instance and comes back as it was.
-        w.on_window_event(move |e| {
-            if let WindowEvent::CloseRequested { api, .. } = e {
-                api.prevent_close();
-                close(&handle);
-            }
-        });
+    if let Err(e) = create(app) {
+        eprintln!("settings\twindow failed\t{e}");
     }
+}
+
+/// The settings window, hidden until `open`. Shaped like a macOS
+/// preferences window: on macOS the title bar is ours (overlay style, no
+/// title, the traffic lights moved down into the page's 52px toolbar band)
+/// and the OS's sidebar vibrancy shows through the page's glass background;
+/// on Linux a plain decorated window with the same toolbar. 720 by 520 by
+/// default, resizable down to 640 by 480; the window-state plugin restores
+/// the last size and position on creation, so this only centres a window
+/// that has never been placed.
+fn create(app: &AppHandle) -> tauri::Result<()> {
+    let builder = WebviewWindowBuilder::new(app, WINDOW, WebviewUrl::App("index.html?settings".into()))
+        .title("pal Settings")
+        .inner_size(720.0, 520.0)
+        .min_inner_size(640.0, 480.0)
+        .center()
+        .visible(false);
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
+        // The close button's top-left: 13px in, and 20px down so the 12px lights sit mid-band.
+        .traffic_light_position(tauri::LogicalPosition::new(13.0, 20.0))
+        .transparent(true);
+    let w = builder.build()?;
+    #[cfg(target_os = "macos")]
+    if let Err(e) = window_vibrancy::apply_vibrancy(&w, window_vibrancy::NSVisualEffectMaterial::Sidebar, None, None) {
+        eprintln!("settings\tvibrancy failed\t{e}");
+    }
+    let handle = app.clone();
+    // Closing hides: the window is single-instance and comes back as it was.
+    w.on_window_event(move |e| {
+        if let WindowEvent::CloseRequested { api, .. } = e {
+            api.prevent_close();
+            close(&handle);
+        }
+    });
+    Ok(())
 }
 
 /// The watcher's callback, on its thread: store, re-apply, tell everyone.
@@ -216,18 +252,19 @@ pub async fn push(app: &AppHandle, host: &Arc<Host>, names: &[String]) {
 pub fn open(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     panel::hide(app);
-    if !w.is_visible().unwrap_or(false) {
-        let _ = w.center();
-    }
     let _ = w.show();
     let _ = w.set_focus();
     // The Permissions group shows a live dot: a grant made while the window is up is seen.
     permissions::watch(app);
 }
 
+/// Hides, and writes the window's size and position down: the plugin only
+/// saves on exit by itself, and a hidden window is where pal usually is
+/// when it is killed.
 pub fn close(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(WINDOW) {
         let _ = w.hide();
+        let _ = app.save_window_state(STATE);
     }
 }
 
@@ -393,6 +430,36 @@ pub async fn extensions_remove(host: State<'_, Arc<Host>>, name: String) -> Resu
 #[tauri::command]
 pub async fn extensions_check_updates() -> Result<Vec<Update>, String> {
     in_store(|s| s.check_updates()).await
+}
+
+// ---- about -----------------------------------------------------------------
+
+/// Where the About page sends people. The version and the config path are
+/// in `View` already.
+#[derive(Serialize)]
+pub struct About {
+    docs: &'static str,
+    repo: &'static str,
+}
+
+#[tauri::command]
+pub fn settings_about() -> About {
+    About { docs: crate::welcome::EXTENSIONS_GUIDE, repo: crate::welcome::REPO }
+}
+
+/// A link on the page, in the browser. The webview has no handler for
+/// `target="_blank"` (nothing happens), so the page asks. Web URLs only:
+/// `open` would happily run a `file:` too.
+#[tauri::command(async)]
+pub fn settings_open_link(url: String) -> Result<(), String> {
+    if !url.starts_with("https://") && !url.starts_with("http://") {
+        return Err(format!("not a web link: {url}"));
+    }
+    if cfg!(target_os = "macos") {
+        run("open", &[&url])
+    } else {
+        run("xdg-open", &[&url])
+    }
 }
 
 #[tauri::command]

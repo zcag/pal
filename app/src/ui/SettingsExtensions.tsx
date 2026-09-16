@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Empty } from "./Empty";
 import { Icon } from "./Icon";
 import { Tag } from "./Row";
 import { SettingsDivider, SettingsField } from "./SettingsField";
+import { SettingsList } from "./SettingsList";
 import type { SettingsExtension, SettingsIndexEntry, SettingValue, SettingValues } from "./SettingsTypes";
 import { relativeDate } from "./format";
 
@@ -15,6 +16,8 @@ export type SettingsExtensionsProps = {
   onInstall?: (spec: string) => Promise<void>;
   onUpdate?: (name: string) => Promise<void> | void;
   onRemove?: (name: string) => Promise<void> | void;
+  /** Opens a URL in the browser; the source link is plain text without it. */
+  onOpenLink?: (url: string) => void;
 };
 
 export const extensionsIndex = (extensions: SettingsExtension[]): SettingsIndexEntry[] =>
@@ -26,12 +29,11 @@ export const extensionsIndex = (extensions: SettingsExtension[]): SettingsIndexE
 const repoHref = (repo: string) => (repo === "bundled" || !repo.includes(".") ? undefined : `https://${repo.replace(/^https?:\/\//, "")}`);
 
 /**
- * Installed extensions on the left; the selected one's version, source
- * and the settings it declared on the right. The separator marks where
- * pal's knowledge of the extension ends and the extension's own begins.
+ * The install field over the page; installed extensions on the left; the
+ * selected one's source, version and declared settings on the right, with
+ * Update and Remove in the pane's footer.
  */
-export function SettingsExtensions({ extensions, selected, onSelect, onChange, onInstall, onUpdate, onRemove }: SettingsExtensionsProps) {
-  const list = useRef<HTMLDivElement>(null);
+export function SettingsExtensions({ extensions, selected, onSelect, onChange, onInstall, onUpdate, onRemove, onOpenLink }: SettingsExtensionsProps) {
   const current = extensions.find((e) => e.name === selected);
   /** What the last button press is doing, per extension, and how it ended. */
   const [busy, setBusy] = useState<Record<string, "updating" | "removing">>({});
@@ -49,71 +51,48 @@ export function SettingsExtensions({ extensions, selected, onSelect, onChange, o
     }
   };
 
-  const onListKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    const i = extensions.findIndex((x) => x.name === selected);
-    let next: number | undefined;
-    if (e.key === "ArrowDown") next = Math.min(i + 1, extensions.length - 1);
-    else if (e.key === "ArrowUp") next = Math.max(i - 1, 0);
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = extensions.length - 1;
-    if (next === undefined || !extensions[next]) return;
-    e.preventDefault();
-    e.stopPropagation();
-    onSelect(extensions[next].name);
-    list.current?.querySelector<HTMLElement>(`[data-ext="${extensions[next].name}"]`)?.focus();
-  };
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-      {onInstall && <InstallBar onInstall={onInstall} />}
     <div className="pal-extensions">
-      <div className="pal-extensions__list" role="listbox" aria-label="Installed extensions" ref={list} onKeyDown={onListKey}>
-        {extensions.map((e) => (
-          <div
-            key={e.name}
-            role="option"
-            aria-selected={e.name === selected}
-            data-ext={e.name}
-            data-active={e.name === selected || undefined}
-            tabIndex={e.name === selected || (!selected && e === extensions[0]) ? 0 : -1}
-            className="pal-row pal-extensions__row"
-            onClick={() => onSelect(e.name)}
-            onFocus={() => onSelect(e.name)}
-          >
-            <Icon icon={e.icon} />
-            <span className="pal-row__title">{e.title}</span>
-            <span className="pal-row__sub">{e.version}</span>
-            <span className="pal-row__accs">
-              {e.latest && <Tag text="update" color="amber" />}
-              {e.error && <Tag text="failed" color="red" />}
-            </span>
-          </div>
-        ))}
+      {onInstall && <InstallBar onInstall={onInstall} />}
+      <div className="pal-split">
+        <SettingsList
+          label="Installed extensions"
+          items={extensions.map((e) => ({
+            id: e.name,
+            icon: e.icon,
+            title: e.title,
+            sub: [e.version, e.bundled ?? e.repo === "bundled" ? "built in" : undefined].filter(Boolean).join(" · "),
+            dim: e.loaded === false,
+            accessory: e.error ? <Tag text="failed" color="red" /> : e.latest ? <Tag text="update" color="amber" /> : undefined,
+          }))}
+          selected={selected}
+          onSelect={onSelect}
+        />
+        <div className="pal-split__pane">
+          {current ? (
+            <ExtensionPane
+              key={current.name}
+              ext={current}
+              busy={busy[current.name]}
+              failed={failed[current.name]}
+              onChange={(v) => onChange(current.name, v)}
+              onUpdate={onUpdate && (() => act(current.name, "updating", onUpdate))}
+              onRemove={onRemove && (() => act(current.name, "removing", onRemove))}
+              onOpenLink={onOpenLink}
+            />
+          ) : (
+            <Empty title="No extension selected" />
+          )}
+        </div>
       </div>
-
-      <div className="pal-extensions__pane">
-        {current ? (
-          <ExtensionPane
-            key={current.name}
-            ext={current}
-            busy={busy[current.name]}
-            failed={failed[current.name]}
-            onChange={(v) => onChange(current.name, v)}
-            onUpdate={() => act(current.name, "updating", onUpdate)}
-            onRemove={() => act(current.name, "removing", onRemove)}
-          />
-        ) : (
-          <Empty title="No extension selected" />
-        )}
-      </div>
-    </div>
     </div>
   );
 }
 
 /**
- * The spec box above the list. Submit installs; the box is read-only and
- * says so while it runs, and the reason stays under it when it fails.
+ * One field with Install at its end. Submit installs; the field is
+ * read-only and says so while it runs, and the reason stays under it when
+ * it fails.
  */
 function InstallBar({ onInstall }: { onInstall: (spec: string) => Promise<void> }) {
   const [spec, setSpec] = useState("");
@@ -133,11 +112,10 @@ function InstallBar({ onInstall }: { onInstall: (spec: string) => Promise<void> 
   };
   const busy = state.kind === "busy";
   return (
-    <form onSubmit={submit} aria-busy={busy} style={{ padding: "var(--pal-space-2, 8px) var(--pal-space-3, 12px)", borderBottom: "1px solid var(--pal-line, rgba(255, 255, 255, 0.08))" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--pal-space-2, 8px)" }}>
+    <form className="pal-install" onSubmit={submit} aria-busy={busy}>
+      <div className="pal-install__field">
         <input
-          className="pal-field__input"
-          style={{ flex: 1, minWidth: 0, fontFamily: "var(--pal-font-mono, ui-monospace, monospace)", fontSize: "var(--pal-text-sm, 12px)" }}
+          className="pal-install__input"
           aria-label="Install from GitHub"
           placeholder="Install from GitHub: user/repo, github:user/repo/subdir@ref, or a URL"
           value={spec}
@@ -145,10 +123,10 @@ function InstallBar({ onInstall }: { onInstall: (spec: string) => Promise<void> 
           spellCheck={false}
           onChange={(e) => setSpec(e.target.value)}
         />
-        <button type="submit" className="pal-button" data-primary disabled={busy || !spec.trim()}>{busy ? "Installing…" : "Install"}</button>
+        <button type="submit" className="pal-button" data-small data-primary disabled={busy || !spec.trim()}>{busy ? "Installing…" : "Install"}</button>
       </div>
-      {state.kind === "error" && <p className="pal-extensions__desc" role="alert" style={{ color: "var(--pal-tag-red)" }}>{state.message}</p>}
-      {state.kind === "done" && <p className="pal-extensions__desc">Installed {state.spec}. The host is restarting; it lists below in a moment.</p>}
+      {state.kind === "error" && <p className="pal-install__note" role="alert" data-error>{state.message}</p>}
+      {state.kind === "done" && <p className="pal-install__note">Installed {state.spec}. The host is restarting; it lists below in a moment.</p>}
     </form>
   );
 }
@@ -159,13 +137,15 @@ type PaneProps = {
   /** Why the last update/remove failed. */
   failed?: string;
   onChange: (values: SettingValues) => void;
-  onUpdate: () => void;
-  onRemove: () => void;
+  onUpdate?: () => void;
+  onRemove?: () => void;
+  onOpenLink?: (url: string) => void;
 };
 
-function ExtensionPane({ ext, busy, failed, onChange, onUpdate, onRemove }: PaneProps) {
+function ExtensionPane({ ext, busy, failed, onChange, onUpdate, onRemove, onOpenLink }: PaneProps) {
   const set = (id: string, v: SettingValue) => onChange({ ...ext.values, [id]: v });
   const href = repoHref(ext.repo);
+  const bundled = ext.bundled ?? ext.repo === "bundled";
   // Remove asks once: the second press while the count runs is the answer.
   // The pane is keyed by extension, so switching extensions resets it.
   const [left, setLeft] = useState(0);
@@ -178,44 +158,57 @@ function ExtensionPane({ ext, busy, failed, onChange, onUpdate, onRemove }: Pane
   const remove = () => {
     if (!arming) return setLeft(5);
     setLeft(0);
-    onRemove();
+    onRemove?.();
   };
   return (
-    <div className="pal-extensions__detail">
-      <header className="pal-extensions__head">
+    <>
+    <div className="pal-pane">
+      <header className="pal-pane__head">
         <Icon icon={ext.icon} />
-        <h3 className="pal-extensions__title">{ext.title}</h3>
-        <div className="pal-extensions__actions">
-          {ext.latest ? (
-            <button type="button" className="pal-button" data-primary disabled={!!busy} onClick={onUpdate}>{busy === "updating" ? "Updating…" : `Update to ${ext.latest}`}</button>
-          ) : (
-            <span className="pal-extensions__uptodate">Up to date</span>
-          )}
-          {!(ext.bundled ?? ext.repo === "bundled") && (
-            <button type="button" className="pal-button" data-destructive disabled={!!busy} onClick={remove} onBlur={() => setLeft(0)} aria-live="polite">
-              {busy === "removing" ? "Removing…" : arming ? `Remove? Click again (${left})` : "Remove"}
-            </button>
-          )}
+        <div className="pal-pane__titles">
+          <h3 className="pal-pane__title">{ext.title}</h3>
+          {ext.description && <p className="pal-pane__sub">{ext.description}</p>}
         </div>
       </header>
-      <p className="pal-extensions__desc">{ext.description}</p>
-      {failed && <p className="pal-extensions__desc" role="alert" style={{ color: "var(--pal-tag-red)" }}>{failed}</p>}
-      {ext.error && <p className="pal-extensions__desc" role="alert" style={{ color: "var(--pal-tag-red)" }}>Failed to load: <code>{ext.error}</code></p>}
+      {failed && <p className="pal-pane__desc" role="alert" data-error>{failed}</p>}
+      {ext.error && <p className="pal-pane__desc" role="alert" data-error>Failed to load: <code>{ext.error}</code></p>}
 
-      <dl className="pal-extensions__meta">
-        <div className="pal-meta"><dt className="pal-meta__label">Version</dt><dd className="pal-meta__value">{ext.version}{ext.latest && <span className="pal-extensions__latest">{ext.latest} available</span>}</dd></div>
-        <div className="pal-meta"><dt className="pal-meta__label">Source</dt><dd className="pal-meta__value">{href ? <a href={href} target="_blank" rel="noreferrer">{ext.repo}</a> : ext.bundled ?? ext.repo === "bundled" ? "Ships with pal" : ext.source ? <code>{ext.source}</code> : "Installed by hand"}</dd></div>
+      <dl className="pal-meta-list">
+        <div className="pal-meta"><dt className="pal-meta__label">Version</dt><dd className="pal-meta__value">{ext.version || "unversioned"}{ext.latest && <span className="pal-extensions__latest">{ext.latest} available</span>}</dd></div>
+        <div className="pal-meta"><dt className="pal-meta__label">Source</dt><dd className="pal-meta__value">
+          {href ? (
+            onOpenLink ? <button type="button" className="pal-link" onClick={() => onOpenLink(href)}>{ext.repo}</button> : <span>{ext.repo}</span>
+          ) : bundled ? "Ships with pal" : ext.source ? <code>{ext.source}</code> : "Installed by hand"}
+        </dd></div>
         {ext.installed !== undefined && <div className="pal-meta"><dt className="pal-meta__label">Installed</dt><dd className="pal-meta__value">{relativeDate(ext.installed)} ago</dd></div>}
         <div className="pal-meta"><dt className="pal-meta__label">Palettes</dt><dd className="pal-meta__value">{ext.palettes.map((p) => p.title).join(", ")}</dd></div>
       </dl>
 
-      <SettingsDivider text="Declared by the extension" note={`extensions.${ext.name}`} />
-      {ext.settings.length === 0 && <p className="pal-extensions__none">{ext.title} declares no settings. Its palettes may; see Palettes.</p>}
-      <div className="pal-extensions__form">
-        {ext.settings.map((s) => (
-          <SettingsField key={s.id} spec={s} value={ext.values[s.id] ?? s.default} onChange={(v) => set(s.id, v)} />
-        ))}
-      </div>
+      <SettingsDivider text="Settings" note={`extensions.${ext.name}`} />
+      {ext.settings.length === 0 ? (
+        <p className="pal-pane__none">{ext.title} declares no settings. Its palettes may; see Palettes.</p>
+      ) : (
+        <div className="pal-settings-group__rows">
+          {ext.settings.map((s) => (
+            <SettingsField key={s.id} spec={s} value={ext.values[s.id] ?? s.default} onChange={(v) => set(s.id, v)} />
+          ))}
+        </div>
+      )}
     </div>
+      {(onUpdate || onRemove) && !bundled && (
+        <footer className="pal-pane__foot">
+          {onUpdate && (ext.latest ? (
+            <button type="button" className="pal-button" data-small data-primary disabled={!!busy} onClick={onUpdate}>{busy === "updating" ? "Updating…" : `Update to ${ext.latest}`}</button>
+          ) : (
+            <span className="pal-pane__note">Up to date</span>
+          ))}
+          {onRemove && (
+            <button type="button" className="pal-button" data-small data-destructive disabled={!!busy} onClick={remove} onBlur={() => setLeft(0)} aria-live="polite">
+              {busy === "removing" ? "Removing…" : arming ? `Remove? Click again (${left})` : "Remove"}
+            </button>
+          )}
+        </footer>
+      )}
+    </>
   );
 }

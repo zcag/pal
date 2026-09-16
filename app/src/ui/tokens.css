@@ -92,6 +92,7 @@
   --pal-accent: #4F46D6;
   --pal-accent-fg: #FFFFFF;
   --pal-accent-soft: rgba(79, 70, 214, 0.12);
+  --pal-knob: #FFFFFF;
   --pal-match: rgba(255, 176, 32, 0.38);
   --pal-destructive: #C02B27;
   --pal-destructive-soft: rgba(192, 43, 39, 0.08);
@@ -140,6 +141,7 @@
     --pal-accent: #9F97FF;
     --pal-accent-fg: #14141A;
     --pal-accent-soft: rgba(159, 151, 255, 0.16);
+    --pal-knob: #FFFFFF;
     --pal-match: rgba(255, 176, 32, 0.30);
     --pal-destructive: #FF6E66;
     --pal-destructive-soft: rgba(255, 110, 102, 0.12);
@@ -188,6 +190,7 @@
   --pal-accent: #9F97FF;
   --pal-accent-fg: #14141A;
   --pal-accent-soft: rgba(159, 151, 255, 0.16);
+  --pal-knob: #FFFFFF;
   --pal-match: rgba(255, 176, 32, 0.30);
   --pal-destructive: #FF6E66;
   --pal-destructive-soft: rgba(255, 110, 102, 0.12);
@@ -234,6 +237,7 @@
   --pal-accent: #4F46D6;
   --pal-accent-fg: #FFFFFF;
   --pal-accent-soft: rgba(79, 70, 214, 0.12);
+  --pal-knob: #FFFFFF;
   --pal-match: rgba(255, 176, 32, 0.38);
   --pal-destructive: #C02B27;
   --pal-destructive-soft: rgba(192, 43, 39, 0.08);
@@ -273,13 +277,19 @@
   }
 }
 
-/* Settings window: its own window, larger than the panel. 240 by 150 grid
-   units; fits a 1280 by 800 display with 160/100 to spare. The sidebar puts
-   its labels on the panel's 52px text edge (16 + 24 icon + 12 gap); the
-   content column is the panel's 720 plus the 20px gutters the detail pane
-   uses, so a form here has the same measure as a form in the panel. */
+/* Settings window: its own window, shaped like a macOS preferences window.
+   720 by 520 default (resizable, 640 by 480 minimum); a 52px toolbar band
+   holds the tabs; the page sits at a 560px measure with labels in a 160px
+   right-aligned column; two-pane pages put a 220px list on the left.
+   Controls are the OS's size, smaller than the panel's 32px. */
 :root {
-  --pal-settings-w: 960px;
-  --pal-settings-h: 600px;
-  --pal-settings-nav-w: 200px;
+  --pal-settings-w: 720px;
+  --pal-settings-h: 520px;
+  --pal-settings-toolbar-h: 52px;
+  --pal-settings-measure: 560px;
+  --pal-settings-label-w: 160px;
+  --pal-settings-list-w: 220px;
+  --pal-settings-control-h: 30px;
+  --pal-switch-w: 26px;
+  --pal-switch-h: 16px;
 }

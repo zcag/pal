@@ -10,10 +10,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
-  SettingsExtensions, SettingsGeneral, SettingsPalettes, SettingsWindow,
-  extensionsIndex, generalIndex, palettesIndex,
+  SettingsAbout, SettingsExtensions, SettingsGeneral, SettingsPalettes, SettingsWindow,
+  aboutIndex, extensionsIndex, generalIndex, palettesIndex,
   type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
-  type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette,
+  type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
 import { iconOf } from "./items";
@@ -35,6 +35,8 @@ type Ext = { name: string; manifest: Manifest; root: string; loaded: boolean; er
 /** `pal_core::extensions::Update`. */
 type Update = { name: string; current: string; latest: string };
 type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus };
+/** settings.rs `About`: where the docs and the source live. */
+type About = { docs: string; repo: string };
 
 /** `palettes.<id>`: the extension's name when the palette is named like it, else `<extension>-<palette>` (index.rs `palette_id`). */
 const paletteId = (ext: string, palette: string) => (ext === palette ? ext : `${ext}-${palette}`);
@@ -110,6 +112,9 @@ export default function Settings() {
   const [ext, setExt] = useState<string | undefined>(undefined);
   /** The last failed command, shown in the title bar until a write succeeds. */
   const [error, setError] = useState<string | null>(null);
+  const [about, setAbout] = useState<About>({ docs: "", repo: "" });
+  useEffect(() => { invoke<About>("settings_about").then(setAbout).catch((e) => setError(String(e))); }, []);
+  const openLink = (url: string) => invoke("settings_open_link", { url }).catch((e) => setError(String(e)));
 
   // Re-reads are coalesced (ten extensions load in a burst at startup) and
   // held while a text field has focus: the field keeps what is being typed,
@@ -124,6 +129,8 @@ export default function Settings() {
       invoke<View>("settings_get").then(setView).catch((e) => setError(String(e)));
     }, 50);
   }, []);
+  // macOS: settings.rs put the OS's vibrancy behind the window; the page goes glass over it.
+  useEffect(() => { if (isMac) document.documentElement.dataset.vibrancy = ""; }, []);
   useEffect(() => {
     refresh();
     const a = listen("pal://config", refresh);
@@ -160,7 +167,8 @@ export default function Settings() {
 
   /** The user's store (`Store::locate`, under the data dir): the root whose extensions Update and Remove apply to. */
   const userRoot = view?.store ?? "";
-  const extensions = useMemo(() => (view ? view.extensions.map((e) => toExtension(e, view.config, userRoot, updates?.[e.name])) : []), [view, userRoot, updates]);
+  // By title: the registry's order is the host's load order, which means nothing to the reader.
+  const extensions = useMemo(() => (view ? view.extensions.map((e) => toExtension(e, view.config, userRoot, updates?.[e.name])).sort((a, b) => a.title.localeCompare(b.title)) : []), [view, userRoot, updates]);
   const onInstall = async (spec: string) => { await invoke("extensions_install", { spec }); };
   const onExtUpdate = async (name: string) => { await invoke("extensions_update", { name }); forget(name); };
   const onExtRemove = async (name: string) => { await invoke("extensions_remove", { name }); forget(name); };
@@ -227,7 +235,7 @@ export default function Settings() {
     }
   };
 
-  const index: SettingsIndexEntry[] = [...generalIndex, ...palettesIndex(extensions), ...extensionsIndex(extensions)];
+  const index: SettingsIndexEntry[] = [...generalIndex, ...palettesIndex(extensions), ...extensionsIndex(extensions), ...aboutIndex];
   /** A search hit selects what it names (the index entries carry no ids, only the titles `palettesIndex`/`extensionsIndex` built them from). */
   const onJump = (entry: SettingsIndexEntry) => {
     if (entry.page === "palettes") {
@@ -240,13 +248,11 @@ export default function Settings() {
       if (hit) setExt(hit.name);
     }
   };
-  const count = extensions.reduce((n, e) => n + e.palettes.length, 0);
-  const summary = page === "palettes" ? `${count} palettes from ${extensions.length} extensions` : page === "extensions" ? `${extensions.length} installed` : undefined;
-  const aside = error ? <span role="alert" title={error} style={{ color: "var(--pal-tag-red)" }}>{error}</span> : summary;
+  const aside = error ? <span role="alert" title={error} data-error>{error}</span> : undefined;
   const fileName = view.path.split("/").pop() ?? "config.toml";
 
   return (
-    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file").catch((e) => setError(String(e)))} version={view.version}>
+    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file").catch((e) => setError(String(e)))} mac={isMac}>
       {page === "general" && (
         <SettingsGeneral
           value={general}
@@ -264,7 +270,17 @@ export default function Settings() {
         />
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} />}
-      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} />}
+      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} />}
+      {page === "about" && (
+        <SettingsAbout
+          version={view.version}
+          file={view.path}
+          links={about}
+          onCheckUpdates={() => invoke<UpdateInfo>("check_updates")}
+          onOpenLink={openLink}
+          onRevealFile={() => invoke("settings_reveal_file").catch(fail)}
+        />
+      )}
     </SettingsWindow>
   );
 }

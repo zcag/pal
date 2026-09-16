@@ -43,17 +43,6 @@
         "alwaysOnTop": true,
         "visibleOnAllWorkspaces": true,
         "acceptFirstMouse": false
-      },
-      {
-        "label": "settings",
-        "title": "pal Settings",
-        "url": "index.html?settings",
-        "width": 960,
-        "height": 600,
-        "minWidth": 720,
-        "minHeight": 480,
-        "visible": false,
-        "center": true
       }
     ],
     "security": {
@@ -81,6 +70,7 @@
     ],
     "resources": {
       "resources/host": "host",
+      "resources/sdk": "sdk",
       "resources/extensions": "extensions"
     },
     "macOS": {

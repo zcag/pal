@@ -115,7 +115,7 @@ export type Diagnostic = {
   message: string;
 };
 
-export type SettingsPage = "general" | "palettes" | "extensions";
+export type SettingsPage = "general" | "palettes" | "extensions" | "about";
 
 /** One searchable entry: a page, the setting's label, and where on the page it lives. */
 export type SettingsIndexEntry = { page: SettingsPage; label: string; hint?: string };

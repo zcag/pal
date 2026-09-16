@@ -81,7 +81,7 @@ function HotkeyStatusLine({ status, onOpenKeyboardShortcuts }: { status: HotkeyS
           <p>
             Spotlight uses {comboLabel(spotlight)}. Turn it off in System Settings &gt; Keyboard &gt; Keyboard Shortcuts &gt; Spotlight (untick Show Spotlight search), then pal registers it.
           </p>
-          {onOpenKeyboardShortcuts && <button type="button" className="pal-button" onClick={onOpenKeyboardShortcuts}>Open Keyboard Shortcuts</button>}
+          {onOpenKeyboardShortcuts && <button type="button" className="pal-button" data-small onClick={onOpenKeyboardShortcuts}>Open Keyboard Shortcuts</button>}
         </div>
       )}
     </>
@@ -109,7 +109,7 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
               <SettingsHotkey value={value.hotkey} onChange={(v) => set("hotkey", v ?? "ctrl+space")} label="Show pal" />
               <span className="pal-hotkey-presets" role="group" aria-label="Presets">
                 {hotkeyPresets.map((p) => (
-                  <button key={p} type="button" className="pal-button" aria-pressed={sameCombo(p, value.hotkey)} onClick={() => set("hotkey", p)}>
+                  <button key={p} type="button" className="pal-button" data-small aria-pressed={sameCombo(p, value.hotkey)} onClick={() => set("hotkey", p)}>
                     {comboLabel(p)}
                   </button>
                 ))}
@@ -133,10 +133,7 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
             <button type="button" className="pal-button" disabled={granted} onClick={() => onRequestPermission?.("accessibility")}>{granted ? "Granted" : "Grant…"}</button>
           </SettingsRow>
           <SettingsRow label="Ask on first launch" description="Show the Accessibility prompt the first time the panel opens on a new profile, while the Welcome tips are up.">
-            <span className="pal-field__check">
-              <SettingsSwitch checked={value.askPermissionsOnStart} onChange={(v) => set("askPermissionsOnStart", v)} label="Ask on first launch" />
-              <span>{value.askPermissionsOnStart ? "On" : "Off"}</span>
-            </span>
+            <SettingsSwitch checked={value.askPermissionsOnStart} onChange={(v) => set("askPermissionsOnStart", v)} label="Ask on first launch" />
           </SettingsRow>
         </SettingsGroup>
       )}
@@ -152,16 +149,10 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
 
       <SettingsGroup title="Startup">
         <SettingsRow label="Launch at login" description="pal stays in the menu bar; the hotkey works from the moment you sign in.">
-          <span className="pal-field__check">
-            <SettingsSwitch checked={value.launchAtLogin} onChange={(v) => set("launchAtLogin", v)} label="Launch at login" />
-            <span>{value.launchAtLogin ? "On" : "Off"}</span>
-          </span>
+          <SettingsSwitch checked={value.launchAtLogin} onChange={(v) => set("launchAtLogin", v)} label="Launch at login" />
         </SettingsRow>
         <SettingsRow label="Menu bar icon" description="pal has no Dock icon. Without this, the hotkey and pal settings are the ways in.">
-          <span className="pal-field__check">
-            <SettingsSwitch checked={value.menuBarIcon} onChange={(v) => set("menuBarIcon", v)} label="Menu bar icon" />
-            <span>{value.menuBarIcon ? "On" : "Off"}</span>
-          </span>
+          <SettingsSwitch checked={value.menuBarIcon} onChange={(v) => set("menuBarIcon", v)} label="Menu bar icon" />
         </SettingsRow>
       </SettingsGroup>
 
@@ -178,8 +169,10 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         >
           <span className="pal-settings-file">
             <code className="pal-settings-file__path">{file.path}</code>
-            <button type="button" className="pal-button" onClick={onOpenFile}>Open in editor</button>
-            <button type="button" className="pal-button" onClick={onRevealFile}>Reveal</button>
+            <span className="pal-button-row">
+              <button type="button" className="pal-button" onClick={onOpenFile}>Open in Editor</button>
+              <button type="button" className="pal-button" onClick={onRevealFile}>Reveal</button>
+            </span>
           </span>
         </SettingsRow>
       </SettingsGroup>
@@ -188,7 +181,7 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         <SettingsGroup title="Maintenance">
           {onResetFrecency && (
             <SettingsRow label="Search history" description="What you picked, and for which query, ranks results. Forget all of it.">
-              <button type="button" className="pal-button" data-destructive onClick={onResetFrecency}>Reset ranking</button>
+              <button type="button" className="pal-button" data-destructive onClick={onResetFrecency}>Reset Ranking</button>
             </SettingsRow>
           )}
           {onRestartHost && (

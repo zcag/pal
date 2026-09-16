@@ -6,13 +6,21 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export type Theme = "system" | "light" | "dark";
 
+/**
+ * The page's tokens, and the window's own appearance with them: the OS
+ * draws the vibrancy behind the settings window, the scrollbars and the
+ * popup menus, and would draw them for the OS's scheme, not pal's.
+ */
 export function applyTheme(theme: Theme | undefined) {
   const el = document.documentElement;
-  if (theme === "light" || theme === "dark") el.dataset.theme = theme;
+  const pinned = theme === "light" || theme === "dark" ? theme : null;
+  if (pinned) el.dataset.theme = pinned;
   else delete el.dataset.theme;
+  getCurrentWindow().setTheme(pinned).catch(() => {});
 }
 
 type ConfigEvent = { config?: { general?: { theme?: Theme } } };

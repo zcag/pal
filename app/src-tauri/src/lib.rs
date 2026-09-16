@@ -3,6 +3,7 @@
 //! index behind it, the core capabilities the host calls back for
 //! (`bridge`), the `icon://` scheme, the menu bar icon, and timing marks.
 
+mod apps;
 mod autostart;
 mod bridge;
 mod cache;

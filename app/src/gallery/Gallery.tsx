@@ -258,6 +258,15 @@ function Solo({ what }: { what: string }) {
   const theme = params.get("theme") === "dark" ? "dark" : "light";
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
   const [, page = "general"] = what.split(":");
+  // `&q=hot` types into the search field once mounted, for the results state.
+  useEffect(() => {
+    const q = params.get("q");
+    const input = document.querySelector<HTMLInputElement>(".pal-settings__search-input");
+    if (!q || !input) return;
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    set?.call(input, q);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, []);
   return (
     <div className="g-solo" data-theme={theme}>
       <SettingsDemo page={page as SettingsPage} diagnostics={params.has("diagnostics")} />

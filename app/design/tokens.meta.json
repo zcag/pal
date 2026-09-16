@@ -100,7 +100,14 @@
   ["--pal-shadow-hud", "The HUD."],
   ["--pal-backdrop", "backdrop-filter for the glass panel."],
   ["--pal-scheme", "The active scheme name, for JS or debugging."],
-  ["--pal-settings-w", "Settings window width: 240 grid units, fits 1280 with 160 to spare."],
-  ["--pal-settings-h", "Settings window height: 150 grid units."],
-  ["--pal-settings-nav-w", "Settings sidebar: 16 pad + 24 icon + 12 gap lands labels on the 52px text edge."]
+  ["--pal-knob", "The switch knob, white in both schemes like the OS's."],
+  ["--pal-settings-w", "Settings window default width; resizable, 640 minimum."],
+  ["--pal-settings-h", "Settings window default height; resizable, 480 minimum."],
+  ["--pal-settings-toolbar-h", "The settings toolbar band: tabs centred, traffic lights inside it on macOS."],
+  ["--pal-settings-measure", "Widest a settings form gets; centred in the window."],
+  ["--pal-settings-label-w", "The right-aligned label column of a settings form."],
+  ["--pal-settings-list-w", "The list on the left of a two-pane settings page."],
+  ["--pal-settings-control-h", "Buttons, popups, fields and the recorder in settings: the OS's size, under the panel's 32px."],
+  ["--pal-switch-w", "Switch track width."],
+  ["--pal-switch-h", "Switch track height; the knob is 2px shorter."]
 ]
