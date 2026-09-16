@@ -12,11 +12,12 @@ Placeholders in the text are filled in when it is pasted or copied:
 | placeholder | becomes |
 | --- | --- |
 | `{clipboard}` | the newest text on the clipboard |
-| `{selection}` | the same as `{clipboard}` (Raycast's spelling; pal cannot read the selected text) |
+| `{selection}` | the text selected in the app in front (the clipboard when nothing is) |
 | `{date}` | today, `YYYY-MM-DD` |
 | `{time}` | now, `HH:MM` |
 | `{datetime}` | both, with a space between |
 | `{uuid}` | a fresh UUID, a different one per occurrence |
+| `{cursor}` | where the caret lands after an expansion (below); dropped by a paste from the panel |
 
 Anything else in braces is left as it is, so a snippet of code keeps its
 braces. A snippet with placeholders carries a `dynamic` accessory.
@@ -64,14 +65,24 @@ An import file looks like this:
 ]
 ```
 
+## Expansion: the keyword typed in any app (macOS)
+
+With `expand = true` in `[extensions.snippets]`, a keyword typed in any
+other app is replaced by its snippet in place: `;sig` becomes the
+signature where it was typed, placeholders filled, the clipboard left as
+it was, `{cursor}` placing the caret. Off by default. pal watches the
+keys typed in other apps (needs Input Monitoring) and types the
+replacement (needs Accessibility, like Paste). The prefix is a setting
+(`;`, `:`, or none for the bare keyword at a word start); terminals and
+password managers never expand (`expand_exclude_apps`), nor does a secure
+text field; the HUD says "Expanded <name>" (`expand_hud`). Not available
+on Linux, where no portable keyboard tap exists: the palette's Enter and
+`pal://snippets/paste?name=sig` are the ways there.
+
 ## What it does not do
 
-- No expansion by typing: Raycast expands a keyword typed in another app;
-  pal pastes on Enter from the panel.
-- `{cursor}` is not supported: pal pastes the text whole and cannot place
-  the caret, so it is left in the text as typed.
-- `{selection}` is the clipboard, not the selected text: copy first.
 - No rich text: what is pasted is plain text.
+- No expansion on Linux (above).
 
 ## Platforms
 

@@ -176,6 +176,21 @@ impl Storage {
     pub fn keys(&self, extension: &str) -> Result<Vec<String>, Error> {
         self.with(extension, |m| (m.keys().cloned().collect(), false))
     }
+
+    /// The extension's whole file gone (an instance removed), and what
+    /// was loaded of it, so a later touch starts empty. Whether a file
+    /// was there.
+    pub fn forget(&self, extension: &str) -> Result<bool, Error> {
+        if !valid_name(extension) {
+            return Err(Error::BadName(extension.to_string()));
+        }
+        self.files.lock().unwrap_or_else(|e| e.into_inner()).remove(extension);
+        match std::fs::remove_file(self.path(extension)) {
+            Ok(()) => Ok(true),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(Error::Io(e.to_string())),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -240,6 +255,11 @@ mod tests {
         for bad in ["@work", "gmail@", "gmail@w@x", "gmail@Work", "gmail@default", "../x@y"] {
             assert_eq!(s.get(bad, "k"), Err(Error::BadName(bad.into())), "{bad}");
         }
+        assert_eq!(s.forget("gmail@work"), Ok(true), "an instance removed: its file goes");
+        assert!(!dir.join("gmail@work.json").exists() && dir.join("gmail.json").is_file());
+        assert_eq!(s.get("gmail@work", "k").unwrap(), Value::Null, "and nothing of it stays loaded");
+        assert_eq!(s.forget("gmail@work"), Ok(false));
+        assert_eq!(s.forget("../x@y"), Err(Error::BadName("../x@y".into())));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

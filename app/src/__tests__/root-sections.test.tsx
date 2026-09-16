@@ -96,7 +96,7 @@ const search = async (q: string, scope?: SourceInfo): Promise<Hit[]> => {
 const fallback = async (q: string): Promise<Hit[]> => [hit("calc/calc", "pal:ask", "Ask Calculator", { group: `Use “${q}” with`, push: { extension: "calc", palette: "calc", query: q } })];
 const mount = async (prefs?: Partial<Prefs>) => {
   await act(async () => {
-    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} fallback={fallback} history={async () => history} prefs={{ aliasSpace: true, fallbacksAlways: false, searchHistory: true, now: [], ...prefs }} onPick={(i) => { picks.push(i.id); }} onHide={() => {}} onForget={async (i) => { forgets.push(i.id); return true; }} />);
+    root.render(<Launcher ref={launcher} sources={SOURCES} search={search} fallback={fallback} history={async () => history} prefs={{ aliasSpace: true, fallbacksAlways: false, searchHistory: true, now: [], compact: false, ...prefs }} onPick={(i) => { picks.push(i.id); }} onHide={() => {}} onForget={async (i) => { forgets.push(i.id); return true; }} />);
   });
   await flush();
 };

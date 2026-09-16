@@ -830,6 +830,47 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-xpane__palette-alias { padding: 0 0.35em; border-radius: var(--pal-radius-tag, 4px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); color: var(--pal-fg-muted, #a3a4ae); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
 .pal-xpane__palette-off { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
 
+/* Instances of a multi extension (docs/design/instances.md): one row per
+   instance, the add form under them, and the segmented pick over the
+   Settings section. */
+.pal-instances__list { display: flex; flex-direction: column; gap: var(--pal-space-1, 4px); margin: 0 0 var(--pal-space-2, 8px); padding: 0; list-style: none; }
+.pal-instances__row { display: flex; align-items: center; gap: var(--pal-space-2, 8px); min-height: 36px; padding: 2px var(--pal-space-2, 8px) 2px 2px; border-radius: var(--pal-radius-control, 6px); }
+.pal-instances__row[data-active] { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
+.pal-instances__row[data-off] .pal-instances__title, .pal-instances__row[data-off] .pal-icon { opacity: 0.55; }
+.pal-instances__main { display: flex; flex: 1 1 auto; align-items: center; gap: var(--pal-space-2, 8px); min-width: 0; padding: 2px; border: 0; border-radius: var(--pal-radius-control, 6px); background: transparent; color: inherit; font: inherit; text-align: left; cursor: default; }
+.pal-instances__main:focus-visible { outline: none; box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+.pal-instances__main .pal-icon { --pal-icon-box: 24px; flex: none; }
+.pal-instances__titles { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.pal-instances__title { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--pal-text-base, 13px); }
+.pal-instances__title .pal-tag { --pal-tag-h: 16px; }
+.pal-instances__key { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-faint, #868794); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
+.pal-instances__rename { width: 160px; }
+.pal-instances__row .pal-switch, .pal-instances__row .pal-button { flex: none; }
+.pal-instances__hint { margin-top: var(--pal-space-2, 8px); }
+.pal-instances__add { display: flex; flex-direction: column; gap: var(--pal-space-2, 8px); margin: var(--pal-space-2, 8px) 0; padding: var(--pal-space-3, 12px); border-radius: var(--pal-radius-control, 6px); background: var(--pal-bg-elevated, #26262d); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-instances__add-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--pal-space-3, 12px); margin-bottom: var(--pal-space-1, 4px); }
+.pal-instances__preview { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; }
+.pal-instances__preview .pal-icon[data-kind="tile"] { --tile: 40px; }
+.pal-instances__field { display: flex; flex: 1 1 140px; flex-direction: column; gap: 2px; min-width: 0; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); }
+.pal-instances__field .pal-inline { width: 100%; background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); font-size: var(--pal-text-sm, 12px); }
+.pal-instances__keyfield { display: flex; align-items: center; gap: 2px; }
+.pal-instances__keyfield code { flex: none; color: var(--pal-fg-faint, #868794); font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-xs, 11px); }
+.pal-instances__keyfield .pal-inline { font-family: var(--pal-font-mono, ui-monospace, monospace); }
+.pal-instances__keyfield .pal-inline[aria-invalid="true"] { box-shadow: 0 0 0 1px var(--pal-tag-red, #e5484d); }
+.pal-instances__tints { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-1, 4px); }
+.pal-instances__tint { width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--brand, var(--pal-fg-faint, #868794)); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); color: inherit; font: inherit; cursor: default; }
+.pal-instances__tint[data-auto] { width: auto; padding: 0 8px; border-radius: 9px; background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); }
+.pal-instances__tint[aria-checked="true"] { box-shadow: 0 0 0 2px var(--pal-bg-elevated, #26262d), 0 0 0 3.5px var(--pal-fg, #ececf0); }
+.pal-instances__tint:focus-visible { outline: none; box-shadow: var(--pal-ring, 0 0 0 2px #9f97ff); }
+/* The swatch's `--brand` comes from the `[data-brand]` rules in icons.css. */
+.pal-instances__note { margin: 0; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); line-height: var(--pal-leading-prose, 1.55); }
+.pal-instances__note[data-error] { color: var(--pal-tag-red, #e5484d); }
+.pal-xpane__instances-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pal-space-2, 8px) var(--pal-space-3, 12px); margin-bottom: var(--pal-space-2, 8px); }
+.pal-xpane__inherits { color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-xpane__fields > [data-inherited] .pal-setting__control { opacity: 0.85; }
+.pal-setting__note { margin-left: var(--pal-space-2, 8px); color: var(--pal-fg-faint, #868794); font-style: italic; }
+.pal-setting__note:first-child { margin-left: 0; }
+
 /* Bar: a scrolling left column (the Defaults card, then the items as a master list) and the selected item's pane on the right. */
 .pal-bar__left { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding: var(--pal-space-5, 20px) var(--pal-space-5, 20px) var(--pal-space-6, 24px); border-right: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-bar__pane { flex: 0 0 var(--pal-settings-pane-w, 40%); min-width: 0; min-height: 0; overflow-y: auto; --pal-settings-label-w: 96px; }
@@ -907,3 +948,9 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-bpane .pal-bar-group { padding-top: var(--pal-space-1, 4px); }
 .pal-bpane__reset { display: flex; align-items: center; gap: var(--pal-space-2, 8px); margin-top: var(--pal-space-4, 16px); padding-top: var(--pal-space-3, 12px); border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-bpane__reset .pal-pane__note { margin-right: 0; font-size: var(--pal-text-xs, 11px); }
+
+/* Settings > General > Theme file: the select, the buttons under it, the file's name or its complaints. */
+.pal-theme-file { display: flex; flex-direction: column; align-items: flex-start; gap: var(--pal-space-2); min-width: 0; }
+.pal-theme-file__note { color: var(--pal-fg-faint); font-size: var(--pal-text-sm); line-height: var(--pal-leading-prose); overflow-wrap: anywhere; }
+.pal-theme-file__note[data-level="error"] { color: var(--pal-destructive); }
+.pal-theme-file__note[data-level="warning"] { color: var(--pal-tag-amber); }

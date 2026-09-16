@@ -2,7 +2,10 @@
 // forms in the panel. Enter pastes one into the app in front with its
 // placeholders filled (placeholders.ts), cmd+c copies it instead. The
 // keyword is a row keyword, so typing `sig` finds the signature. The Import
-// and Export rows move snippets in and out as JSON files.
+// and Export rows move snippets in and out as JSON files. Expansion (the
+// keyword typed in any other app, `expand = true`, macOS) is the app's:
+// it reads this extension's storage file and its settings directly
+// (app/src-tauri/src/expansion.rs), nothing here runs for it.
 import { clipboard, home, selection, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
 
@@ -55,7 +58,7 @@ const form = (s?: Snippet, errors?: Record<string, string>, text?: string): Form
   fields: [
     { kind: "text", id: "name", label: "Name", required: true, default: s?.name, placeholder: "Email signature" },
     { kind: "text", id: "keyword", label: "Keyword", default: s?.keyword, placeholder: "sig", description: "One word that finds it." },
-    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "{clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} and {uuid} are filled in when pasted. {cursor} is not supported." },
+    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "{clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} and {uuid} are filled in when pasted. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out." },
   ],
   submit: { id: "save", title: s ? "Save" : "Create" },
   errors,

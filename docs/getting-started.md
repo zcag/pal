@@ -183,7 +183,10 @@ within a couple of seconds of that, nothing to restart.
    row says where you are. `⌘⌫` with an empty query goes back.
 8. `Tab` and `⇧Tab` cycle the filter dropdown when the palette has one.
 9. `⌘I` toggles the detail pane, the wider view of the current row
-   (clipboard entries open with it showing).
+   (clipboard entries open with it showing). `⌘⇧M` switches to the compact
+   panel (560 px, 32 px rows, no pane, the footer folded into the search
+   row) and back; the choice is written to the config file
+   (`general.compact`).
 10. `⌘R` lists the current palette again, or everything at the root,
     ignoring any cache.
 11. Several rows at once: `⇧↓` and `⇧↑` mark the row under the cursor as
@@ -201,8 +204,20 @@ within a couple of seconds of that, nothing to restart.
     into the panel through its Go to Folder sheet (`ctrl+L` on a GTK
     chooser), so a search in pal points the dialog anywhere.
 
+13. Folders: `Enter` (or `→`) on a folder row in Files browses it as a
+    level (the crumb is the folder, `..` first, `←` or `⌫` goes up, the
+    dropdown sorts by name, date or size, `⌘.` shows hidden files); `~/`
+    or `/` typed in Files lists that folder the same way.
+
 On Linux, `⌘` in the above is `Ctrl`. The whole grammar is in
 [Keyboard](keyboard.md).
+
+Two ways to make the panel yours: a theme file (`general.theme_file`,
+Settings > General > Theme file; two examples ship, Catppuccin Frappé and
+Rosé Pine Dawn) recolours every window from a TOML of tokens, and
+Snippets' expansion (`expand = true`, macOS) replaces a keyword typed in
+any app with its snippet. Both in [Config](config.md#theme-file) and
+[Palettes](palettes.md#snippets-snippets).
 
 ## The root: inline answers, fallbacks, and the empty list
 
@@ -275,7 +290,9 @@ first), Restart pal, and pal Version (Enter copies it). Every
 row answers to `pal`, so `pal set` finds Settings and `pal quit` Quit. They
 are searched and ranked like any other row; `⌘,`, `⌘R` and the action
 panel's "Open Settings", "Refresh everything" and "Show tips again" run the
-same code.
+same code. The store itself is a palette too: **Store** lists
+pal.cagdas.io's extensions in the panel, tagged by what is installed, and
+Enter installs ([Palettes](palettes.md#store-store)).
 
 ## The config file
 

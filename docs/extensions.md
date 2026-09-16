@@ -125,8 +125,22 @@ in `api.ts` is one instance's alone. What changes for the author:
 - `dispose` runs when an instance is removed or reloaded, before its
   worker is terminated. An instance whose event loop hangs is terminated
   after a second without touching the others.
+- Bar items: the strip is not marked; the core appends the instance's
+  title to the tooltip ("3 unread (Work)") and to the popover's title,
+  and Settings > Bar reads "Gmail (Work) › Unread". A lone or unnamed
+  default is not marked.
+- Settings: the user adds, renames, parks and removes instances on the
+  Extensions page ("Add another account", with the suffix slugged from
+  the title), or with `pal instance add gmail work --title Work` and `pal
+  instance remove gmail@work`; nothing is asked of the extension. Settings
+  shows each instance's values with the inherited ones marked; a secret
+  or `scope: "instance"` field reads "Set for this instance" and, empty,
+  puts the instance on the Overview's needs-setup list ("Gmail (Work)
+  needs token"). Removing an instance takes its tables, storage, index
+  cache and frecency away; keychain items stay.
 
-Bundled: `github` (two accounts: `token` per instance, the rest inherits),
+Bundled: `gmail` (two accounts: `token_command`, `address` and `send` per
+instance), `github` (two accounts: `token` per instance, the rest inherits),
 `slack` (a workspace per instance: `workspace` is `scope: "instance"`),
 `home-assistant` (a home per instance: `url` is `scope: "instance"`).
 
@@ -258,10 +272,17 @@ is left to the load-time check.
   `large_type` (the text across the screen, below), `dialog` (a path typed
   into the open or save panel in front, below),
   `keep` (stay open and list again), `push` (drill into a palette with
-  `args`), `show` (a detail-only level), `view` (a render tree, below),
+  `args`; `title` names the level's crumb, the folder being browsed
+  rather than the palette's title; `query` is typed into it), `show` (a
+  detail-only level), `view` (a render tree, below),
   `form` (a prompt with fields, below). `ctx` carries `filter`, the `args`
   of the `push` that opened the level, on a form's submit its `values`,
   and on a multi pick `ids` (below).
+- A bare `→`, `←` or `backspace` on a list row while nothing is typed
+  runs the row's action carrying that key as its `shortcut` (`"right"`,
+  `["left", "backspace"]`); `←` and `backspace` also reach such an action
+  on any row of the level, so a `..` row's Go up works from anywhere in a
+  browsed folder. With text in the box the keys keep their native effect.
 - Several rows at once: an action with `multi: true` is offered while
   rows are marked (`⇧↓`, `⌘`-click, and `Tab` or, with nothing typed, a
   bare `x` in a palette that declares `multi: true` itself), and `Enter` runs it as one
@@ -912,6 +933,11 @@ to the core.
 - `clipboard.list({ query, kind, limit, offset })`, `get(id)`, `pin(id)`,
   `delete(id)`, `clear()`, `copy(id)` (back onto the clipboard),
   `imageUrl(id, size)` for an image entry.
+- `thumbnailUrl(path, size)`: an image file on disk as the webview loads
+  it (`icon://localhost/file`): a thumbnail fitted into `size` px, or the
+  file itself for 0 (a PNG or a JPEG). PNG, JPEG and GIF by extension,
+  absolute paths only; anything else is a 404 and the row keeps its
+  glyph. A screenshot's row, a browsed folder's pictures.
 - `windows.list()` (every window, front to back, with `id`, `app`, `title`,
   `minimized`, `on_screen`), `close(id)`, `minimize(id)`. Focus is the
   `{ focus: id }` effect from `pick`, so the panel hides first.
@@ -939,6 +965,17 @@ to the core.
   (its `view` or `list` asked afresh, as a palette hotkey would). `toast`,
   `keep`, `view`, `form` and `show` need the level a pick came from and
   are refused.
+- `extensions.list()`: every extension the app knows, as
+  `{ name, version, root, loaded, store, bundled }`: `store` for one
+  `pal install` put in the user store (updatable, removable), `bundled`
+  for one that ships with pal. `extensions.install(spec)`,
+  `extensions.update(name)`, `extensions.remove(name)` hand the work to
+  the `pal://install`, `pal://update` and `pal://remove` routes and
+  resolve at once: the store restarts the host your code runs in, so no
+  reply could follow the work. No card is shown (ask through
+  `Action.confirm` first); the HUD says "Installing…" and the outcome,
+  and an install reopens the root with the name typed. What the Store
+  palette is built on.
 - `selection.text()`: the text selected in the app in front, or null.
 - `dialog.current()`: the open or save panel in front, or null (the
   `dialog` effect types a path into it).

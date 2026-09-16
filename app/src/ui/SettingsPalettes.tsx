@@ -26,9 +26,10 @@ export type SettingsPalettesProps = {
 export const paletteIcon = (p: SettingsPalette, ext: SettingsExtension): IconSpec | undefined =>
   p.config.icon ? { kind: "emoji", value: p.config.icon } : p.icon ?? ext.icon;
 
+/** The search index, per instance key (`palettes:gmail@work-inbox`): an instance's group reads "Gmail (Work) › Inbox (Work)". */
 export const palettesIndex = (extensions: SettingsExtension[]): SettingsIndexEntry[] =>
   extensions.flatMap((e) => [
-    ...e.palettes.map((p) => ({ page: "palettes" as const, label: p.title === e.title ? p.title : `${e.title} › ${p.title}`, hint: p.description ?? `${e.title} palette`, anchor: `palettes:${p.id}`, keywords: `${p.config.alias ?? ""} ${p.config.hotkey ?? ""} ${p.id} palette` })),
+    ...e.palettes.map((p) => ({ page: "palettes" as const, label: p.title === e.title ? p.title : `${e.extTitle ?? e.title} › ${p.title}`, hint: p.description ?? `${e.title} palette`, anchor: `palettes:${p.id}`, keywords: `${p.config.alias ?? ""} ${p.config.hotkey ?? ""} ${p.id} ${e.key} ${e.title} palette` })),
     ...e.palettes.flatMap((p) => p.settings.map((s) => ({ page: "palettes" as const, label: s.label, hint: `${e.title} › ${p.title}`, anchor: `palettes:${p.id}:${s.id}`, keywords: s.description }))),
   ]);
 
@@ -57,7 +58,8 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, onO
   const [filter, setFilter] = useState("");
   const table = useRef<HTMLDivElement>(null);
   const q = filter.trim().toLowerCase();
-  const groups = useMemo(() => extensions.map((e) => ({ ext: e, palettes: q ? e.palettes.filter((p) => `${e.title} ${p.title} ${p.config.alias ?? ""} ${p.description ?? ""}`.toLowerCase().includes(q)) : e.palettes })).filter((g) => g.palettes.length), [extensions, q]);
+  // One group per instance key (an entry per key comes in): "Gmail (Work)" with the badged tile over its palettes.
+  const groups = useMemo(() => extensions.map((e) => ({ ext: e, palettes: q ? e.palettes.filter((p) => `${e.title} ${e.key} ${p.title} ${p.config.alias ?? ""} ${p.description ?? ""}`.toLowerCase().includes(q)) : e.palettes })).filter((g) => g.palettes.length), [extensions, q]);
   const all = extensions.flatMap((e) => e.palettes.map((p) => ({ p, ext: e })));
   const current = all.find((x) => x.p.id === selected) ?? all[0];
   const visible = groups.flatMap((g) => g.palettes.map((p) => p.id));
@@ -94,7 +96,7 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, onO
             // One palette: the row stands for the extension too (tagline under the name), no header.
             const solo = ext.palettes.length === 1;
             return (
-            <section key={ext.name} className="pal-ptable" data-solo={solo || undefined} aria-label={ext.title} data-anchor={`palettes:ext:${ext.name}`}>
+            <section key={ext.key} className="pal-ptable" data-solo={solo || undefined} aria-label={ext.title} data-anchor={`palettes:ext:${ext.key}`}>
               {!solo && (
                 <header className="pal-ptable__head">
                   <Icon icon={ext.icon} />
@@ -124,7 +126,7 @@ export function SettingsPalettes({ extensions, selected, onSelect, onChange, onO
                     <span className="pal-ptable__cell pal-ptable__cell--name">
                       <Icon icon={paletteIcon(p, ext)} />
                       <span className="pal-ptable__text">
-                        <span className="pal-ptable__name">{p.title !== ext.title && <span className="pal-ptable__name-ext">{ext.title} › </span>}{p.title}{solo && ext.loaded === false && <Tag text="failed" color="red" />}</span>
+                        <span className="pal-ptable__name">{p.title !== ext.title && <span className="pal-ptable__name-ext">{ext.extTitle ?? ext.title} › </span>}{p.title}{solo && ext.loaded === false && <Tag text="failed" color="red" />}</span>
                         {solo && <span className="pal-ptable__sub">{ext.tagline ?? ext.description}</span>}
                       </span>
                     </span>
@@ -173,7 +175,7 @@ function PalettePane({ p, ext, onChange, onSetting, onOpenExtension, items }: { 
       <header className="pal-ppane__head">
         <Icon icon={paletteIcon(p, ext)} size="lg" />
         <div className="pal-ppane__titles">
-          <span className="pal-ppane__crumb">{onOpenExtension ? <button type="button" className="pal-link" onClick={() => onOpenExtension(ext.name)}>{ext.title}</button> : ext.title} ›</span>
+          <span className="pal-ppane__crumb">{onOpenExtension ? <button type="button" className="pal-link" onClick={() => onOpenExtension(ext.key)}>{ext.title}</button> : ext.title} ›</span>
           <h3 className="pal-ppane__title">{p.title}</h3>
         </div>
       </header>
@@ -206,14 +208,19 @@ function PalettePane({ p, ext, onChange, onSetting, onOpenExtension, items }: { 
       <section className="pal-ppane__section" aria-label="Settings">
         <h4 className="pal-ppane__h">Settings <span className="pal-ppane__h-note">palettes.{p.id}.settings</span></h4>
         {p.settings.length === 0 ? (
-          <p className="pal-ppane__none">{ext.title} declares none for this palette.{ext.settings.length > 0 && onOpenExtension ? <> Its own are on <button type="button" className="pal-link" onClick={() => onOpenExtension(ext.name)}>Extensions</button>.</> : null}</p>
+          <p className="pal-ppane__none">{ext.extTitle ?? ext.title} declares none for this palette.{ext.settings.length > 0 && onOpenExtension ? <> Its own are on <button type="button" className="pal-link" onClick={() => onOpenExtension(ext.key)}>Extensions</button>.</> : null}</p>
         ) : (
           <div className="pal-ppane__fields">
-            {p.settings.map((s) => (
-              <div key={s.id} data-anchor={`palettes:${p.id}:${s.id}`}>
-                <SettingsField spec={s} value={p.config.settings[s.id] ?? s.default} onChange={(v) => onSetting(s.id, v)} layout="stack" />
-              </div>
-            ))}
+            {p.settings.map((s) => {
+              // A non-default instance's palette follows the default's table for what it does not set itself.
+              const own = p.config.settings[s.id];
+              const inherited = p.inherited?.[s.id];
+              return (
+                <div key={s.id} data-anchor={`palettes:${p.id}:${s.id}`} data-inherited={own === undefined && inherited !== undefined ? "" : undefined}>
+                  <SettingsField spec={s} value={own ?? inherited ?? s.default} onChange={(v) => onSetting(s.id, v)} layout="stack" base={p.inherited ? inherited : undefined} note={own === undefined && inherited !== undefined ? `From ${ext.inheritedFrom ?? ext.extTitle ?? ext.title}` : undefined} />
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

@@ -8,7 +8,8 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { BROWSE_CAP, filterEntries, hintRow, isRoot, parentOf, sortEntries, upRow, type Entry } from "../../../extensions/files/browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv } from "../../../extensions/files/content.ts";
 import { parseMdfindRecent, parseXbel } from "../../../extensions/files/recent.ts";
 import type { Item } from "../../../sdk/src/index.ts";
@@ -18,6 +19,8 @@ const HAS_FIND = Bun.which("find") !== null;
 const HAS_GREP = Bun.which("grep") !== null;
 const MAC = process.platform === "darwin";
 const FILE_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "open-with", "copy", "copy-file", "trash"];
+/** A folder: Browse leads, the file actions follow. */
+const FOLDER_ACTIONS = ["browse", ...FILE_ACTIONS];
 /** An image or a PDF: Copy text (OCR) before the trash. */
 const OCR_ACTIONS = [...FILE_ACTIONS.slice(0, -1), "copy-text", "trash"];
 
@@ -38,6 +41,40 @@ describe("content search helpers", () => {
     expect(snippet("12:   the   secret\tphrase  \n")).toBe("the secret phrase");
     expect(snippet("")).toBe("");
     expect(snippet("3:" + "x".repeat(200), 20)).toBe("x".repeat(19) + "…");
+  });
+});
+
+describe("browse helpers", () => {
+  const e = (name: string, dir: boolean, size: number, mtime: number): Entry => ({ path: `/x/${name}`, name, dir, size, mtime });
+  const entries = [e("b.txt", false, 30, 2), e("Docs", true, 0, 5), e("a.txt", false, 10, 9), e(".hidden", false, 1, 1), e("apps", true, 0, 3), e("C.md", false, 20, 4)];
+  test("sorts: name puts folders first then files, case-insensitive; date newest first mixed; size largest first with folders last", () => {
+    expect(sortEntries(entries, "name").map((x) => x.name)).toEqual([".hidden", "a.txt", "apps", "b.txt", "C.md", "Docs"].sort((a, b) => 0) && ["apps", "Docs", ".hidden", "a.txt", "b.txt", "C.md"]);
+    expect(sortEntries(entries, "date").map((x) => x.name)).toEqual(["a.txt", "Docs", "C.md", "apps", "b.txt", ".hidden"]);
+    expect(sortEntries(entries, "size").map((x) => x.name)).toEqual(["b.txt", "C.md", "a.txt", ".hidden", "apps", "Docs"]);
+    expect(sortEntries(entries).map((x) => x.name)).toEqual(sortEntries(entries, "name").map((x) => x.name));
+    expect(entries[0].name).toBe("b.txt"); // the input is not reordered
+  });
+  test("filter: a case-insensitive substring of the name; dot entries only with show_hidden or a query that starts with a dot", () => {
+    expect(filterEntries(entries, "", false).map((x) => x.name)).toEqual(["b.txt", "Docs", "a.txt", "apps", "C.md"]);
+    expect(filterEntries(entries, "", true).map((x) => x.name)).toContain(".hidden");
+    expect(filterEntries(entries, "TXT", false).map((x) => x.name)).toEqual(["b.txt", "a.txt"]);
+    expect(filterEntries(entries, ".hid", false).map((x) => x.name)).toEqual([".hidden"]);
+    expect(filterEntries(entries, " doc ", false).map((x) => x.name)).toEqual(["Docs"]);
+  });
+  test("parent and root: a trailing slash does not count, / is its own parent and has no .. row", () => {
+    expect(parentOf("/Users/x/Downloads")).toBe("/Users/x");
+    expect(parentOf("/Users/x/Downloads/")).toBe("/Users/x");
+    expect(parentOf("/Users")).toBe("/");
+    expect(parentOf("/")).toBe("/");
+    expect(isRoot("/")).toBe(true);
+    expect(isRoot("//")).toBe(true);
+    expect(isRoot("/Users")).toBe(false);
+  });
+  test("the .. row goes up on Enter, left and backspace; the hint row is inert and counts what was cut", () => {
+    const up = upRow("/Users/x/Downloads", (p) => p.replace("/Users/x", "~"), "F");
+    expect(up).toEqual({ id: "up:/Users/x", name: "..", subtitle: "~", icon: "F", keywords: ["up", "parent"], actions: [{ id: "up", title: "Go up", shortcut: ["left", "backspace"] }] });
+    expect(hintRow(12, "F")).toMatchObject({ id: "hint:more", name: "12 more; type to filter", actions: [] });
+    expect(BROWSE_CAP).toBe(500);
   });
 });
 
@@ -139,6 +176,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
   test("meta: an input palette with lazy detail, and the live Recent Files palette with a ttl", () => {
     expect(host.loaded().find((l) => l.extension === "files")!.palettes).toEqual([
       { name: "files", title: "Files", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Search files by name", detail: "lazy", inline: true, match: "^\\s*(~|\\/)", fallback: "ask", fallbackTitle: "Search Files for “{query}”", multi: true },
+      { name: "browse", title: "Browse Folder", live: false, input: true, icon: tile("slate", "\u{f024b}"), placeholder: "Filter this folder", filters: [{ id: "name", title: "Name" }, { id: "date", title: "Date" }, { id: "size", title: "Size" }], detail: "lazy", multi: true },
       { name: "recent", title: "Recent Files", live: true, input: false, icon: tile("slate", "\u{f024b}"), placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary", multi: true },
     ]);
   });
@@ -189,6 +227,9 @@ describe.skipIf(!HAS_FIND)("files", () => {
     if (MAC) expect(alpha.actions!.find((a) => a.id === "quick-look")).toEqual({ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" });
     expect(items.find((i) => i.name === "report-gamma.txt")!.subtitle).toBe(join(dir, "reports"));
     expect(items.find((i) => i.name === "reports")).toMatchObject({ icon: "󰉖", accessories: [{ date: expect.any(Number) }] });
+    // A folder leads with Browse (Enter, and the right arrow from anywhere in the listing), Open second.
+    expect(items.find((i) => i.name === "reports")!.actions!.map((a) => a.id)).toEqual(FOLDER_ACTIONS);
+    expect(items.find((i) => i.name === "reports")!.actions![0]).toEqual({ id: "browse", title: "Browse", shortcut: "right" });
     expect((await list("photo"))[0].icon).toBe("󰥶");
   });
 
@@ -336,5 +377,95 @@ describe.skipIf(!HAS_FIND)("files", () => {
     if (!(MAC ? Bun.which("osascript") : Bun.which("gio"))) return;
     const r = await pick(join(dir, "no-such-file.txt"), "trash");
     expect(r).toMatchObject({ keep: true, toast: { title: "Could not move to Trash", style: "failure" } });
+  });
+});
+
+describe.skipIf(!HAS_FIND)("browsing folders", () => {
+  const browse = (folder: string, query = "", filter?: string) => host.list("files", "browse", query, { args: { browse: folder }, ...(filter && { filter }) });
+  const BROWSE_KEYS = ["browse", "up", "toggle-hidden"];
+
+  test("the browse palette lists the folder: a .. row first (Enter, left, backspace go up), folders before files by name, hidden ones left out, every row with the hidden toggle", async () => {
+    const rows = await browse(dir);
+    expect(rows[0]).toMatchObject({ id: `up:${dirname(dir)}`, name: "..", subtitle: dirname(dir), actions: [{ id: "up", title: "Go up", shortcut: ["left", "backspace"] }, { id: "toggle-hidden", title: "Show hidden files", shortcut: "cmd+." }] });
+    expect(rows.slice(1).map((r) => r.name)).toEqual(["Library", "node_modules", "reports", "gamma-notes.txt", "notes.md", "photo.png", "report-alpha.txt", "Report-Beta.md", "scan.pdf"]);
+    const folder = rows.find((r) => r.name === "reports")!;
+    expect(folder.actions!.map((a) => a.id)).toEqual([...FOLDER_ACTIONS, "toggle-hidden"]);
+    expect(folder.subtitle).toBe(dir);
+    expect(rows.find((r) => r.name === "notes.md")!.actions!.map((a) => a.id)).toEqual([...FILE_ACTIONS, "toggle-hidden"]);
+    // A picture draws its own thumbnail through the app's icon scheme.
+    expect(rows.find((r) => r.name === "photo.png")!.icon).toEqual({ image: `icon://localhost/file?path=${encodeURIComponent(join(dir, "photo.png"))}&size=24` });
+    expect(rows.every((r) => r.actions!.some((a) => BROWSE_KEYS.includes(a.id)))).toBe(true);
+  });
+
+  test("the dropdown sorts: date newest first mixed, size largest first with folders last; the query filters by name", async () => {
+    const now = Date.now();
+    const { utimesSync } = await import("node:fs");
+    // The fixture files were all written within a second: two moved apart so the order is not luck.
+    utimesSync(join(dir, "notes.md"), new Date(now + 60_000), new Date(now + 60_000));
+    utimesSync(join(dir, "reports"), new Date(now + 30_000), new Date(now + 30_000));
+    const byDate = (await browse(dir, "", "date")).slice(1).map((r) => r.name);
+    expect(byDate.slice(0, 2)).toEqual(["notes.md", "reports"]);
+    const bySize = (await browse(dir, "", "size")).slice(1).map((r) => r.name);
+    expect(bySize.slice(0, 2)).toEqual(["notes.md", "report-alpha.txt"]);
+    expect(bySize.slice(-3)).toEqual(["Library", "node_modules", "reports"]);
+    expect((await browse(dir, "REPORT")).map((r) => r.name)).toEqual(["..", "reports", "report-alpha.txt", "Report-Beta.md"]);
+    expect((await browse(dir, ".rep")).map((r) => r.name)).toEqual(["..", ".report-hidden.txt"]);
+  });
+
+  test("at / there is no .. row; the parent's .. row leads to the grandparent", async () => {
+    const root = await browse("/");
+    expect(root[0].name).not.toBe("..");
+    expect(root.every((r) => !r.id.startsWith("up:"))).toBe(true);
+    expect((await browse(join(dir, "reports")))[0]).toMatchObject({ id: `up:${dir}`, subtitle: dir });
+  });
+
+  test("picks: Browse on a folder and Enter on the .. row push the browse palette with the folder as args and its path as the crumb", async () => {
+    expect(await host.pick("files", "browse", join(dir, "reports"), "browse", { args: { browse: dir } })).toEqual({ push: { extension: "files", palette: "browse", args: { browse: join(dir, "reports") }, title: join(dir, "reports") } });
+    expect(await host.pick("files", "browse", `up:${dir}`, "up", { args: { browse: join(dir, "reports") } })).toEqual({ push: { extension: "files", palette: "browse", args: { browse: dir }, title: dir } });
+    // A search row's Browse (Enter on a folder in Files) is the same push.
+    expect(await pick(join(dir, "reports"), "browse")).toEqual({ push: { extension: "files", palette: "browse", args: { browse: join(dir, "reports") }, title: join(dir, "reports") } });
+    // Files keep their actions; the .. row's detail is the folder it leads to.
+    expect(await host.pick("files", "browse", join(dir, "notes.md"), "copy", { args: { browse: dir } })).toEqual({ copy: join(dir, "notes.md") });
+    expect((await host.detail("files", "browse", `up:${dir}`, { args: { browse: join(dir, "reports") } })).metadata![0]).toEqual({ label: "Path", value: dir });
+  });
+
+  test("cmd+. flips show_hidden through settings.set and lists again; the toggle's title follows", async () => {
+    expect(await host.pick("files", "browse", join(dir, "notes.md"), "toggle-hidden", { args: { browse: dir } })).toEqual({ keep: true });
+    expect(host.written.get("files")).toEqual({ show_hidden: true });
+    const rows = await browse(dir);
+    expect(rows.map((r) => r.name)).toContain(".report-hidden.txt");
+    expect(rows[0].actions![1]).toMatchObject({ id: "toggle-hidden", title: "Hide hidden files" });
+    expect(await host.pick("files", "browse", join(dir, "notes.md"), "toggle-hidden", { args: { browse: dir } })).toEqual({ keep: true });
+    expect(host.written.get("files")).toEqual({});
+    expect((await browse(dir)).map((r) => r.name)).not.toContain(".report-hidden.txt");
+  });
+
+  test("a path ending in / typed in Files lists that folder as browsed rows; without the slash it completes as before; the root's inline section stays a completion", async () => {
+    const rows = await list(join(dir, "reports") + "/");
+    expect(rows.map((r) => r.name)).toEqual(["..", "report-gamma.txt"]);
+    expect(rows[0].actions![0].id).toBe("up");
+    expect((await list(join(dir, "rep"))).map((i) => i.name)).toEqual(["report-alpha.txt", "Report-Beta.md", "reports"]);
+    const inline = await host.request<{ extension: string; items: Item[] }[]>("inline", { query: join(dir, "reports") + "/" });
+    expect(inline.find((s) => s.extension === "files")!.items.map((i) => i.name)).toEqual(["report-gamma.txt"]);
+    // A folder row at the root pushes too: Browse is its first action.
+    const folderInline = await host.request<{ extension: string; items: Item[] }[]>("inline", { query: join(dir, "repo") });
+    expect(folderInline.find((s) => s.extension === "files")!.items.map((i) => [i.name, i.actions![0].id])).toEqual([["report-alpha.txt", "open"], ["Report-Beta.md", "open"], ["reports", "browse"]]);
+  });
+
+  test("a folder over the cap shows 500 rows and a hint counting the rest; typing narrows past it", async () => {
+    const big = join(dir, "big");
+    mkdirSync(big);
+    for (let i = 0; i < 510; i++) writeFileSync(join(big, `f${String(i).padStart(3, "0")}.txt`), "");
+    const rows = await browse(big);
+    expect(rows).toHaveLength(1 + 500 + 1);
+    expect(rows.at(-1)).toMatchObject({ id: "hint:more", name: "10 more; type to filter", actions: [] });
+    expect((await browse(big, "f50")).map((r) => r.name)).toEqual(["..", "f500.txt", "f501.txt", "f502.txt", "f503.txt", "f504.txt", "f505.txt", "f506.txt", "f507.txt", "f508.txt", "f509.txt"]);
+    rmSync(big, { recursive: true, force: true });
+  });
+
+  test("open with from a browsed row pushes the browse palette with the file as args, and that level lists the apps", async () => {
+    const p = join(dir, "notes.md");
+    expect(await host.pick("files", "browse", p, "open-with", { args: { browse: dir } })).toEqual({ push: { extension: "files", palette: "browse", args: { open_with: p } } });
+    expect((await host.list("files", "browse", "", { args: { open_with: p } })).map((r) => r.name)).toEqual(APPS.map((a) => a.name));
   });
 });

@@ -441,10 +441,15 @@
           "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded).\nToday a found update is a log line: download and install are not\nwired, and the menu's \"Check for updates\" is a disabled placeholder\nuntil they are.",
           "type": "boolean"
         },
+        "compact": {
+          "default": false,
+          "description": "Compact mode: the panel 560 px wide with 32 px rows, no detail\npane, and the footer folded into the search row (the primary\naction's hint on its right). `cmd+shift+m` in the panel flips it\nand writes it here, so it is remembered per profile.",
+          "type": "boolean"
+        },
         "deeplink_confirm": {
           "$ref": "#/$defs/Confirm",
           "default": true,
-          "description": "A `pal://` link that acts (`run`, `form`, `paste`, `open?url=`, an\nextension's route; a web page can emit one) shows a confirm card\nfirst. `true` asks; `false` runs it straight away, for scripts that\ndrive pal by link; a list of extension names asks for everything\nexcept links into those extensions. `install`, `update` and\n`remove` always ask; the CLI never does (docs/design/links.md)."
+          "description": "A `pal://` link that acts (`run`, `form`, `paste`, `open?url=`, an\nextension's route; a web page can emit one) shows a confirm card\nfirst. `true` asks; `false` runs it straight away, for scripts that\ndrive pal by link; a list of extension names asks for everything\nexcept links into those extensions (a name covers every instance of\nit, a key one instance). `install`, `update`, `remove` and\n`instance/*` always ask; the CLI never does (docs/design/links.md)."
         },
         "extension_dirs": {
           "default": [],
@@ -538,6 +543,11 @@
         "theme": {
           "$ref": "#/$defs/Theme",
           "default": "system"
+        },
+        "theme_file": {
+          "default": "",
+          "description": "A theme file overriding pal's colours, radii and fonts\n(`pal_core::theme`, docs/config.md \"Theme file\"): a name, looked up\nas `<config dir>/themes/<name>.toml`, or a path (`~` expanded).\nLight and dark sections apply to the scheme `theme` (or the OS)\npicks; the file is watched and applies live. Empty is pal's own.",
+          "type": "string"
         }
       },
       "type": "object"
@@ -713,6 +723,7 @@
         "alias_space": true,
         "ask_permissions_on_start": true,
         "check_updates": true,
+        "compact": false,
         "deeplink_confirm": true,
         "extension_dirs": [],
         "fallbacks": [
@@ -742,7 +753,8 @@
         "search_engine": "https://www.google.com/search?q={query}",
         "search_history": true,
         "selection_snapshot": true,
-        "theme": "system"
+        "theme": "system",
+        "theme_file": ""
       }
     },
     "instances": {

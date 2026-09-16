@@ -25,8 +25,8 @@ describe("create from the clipboard", () => {
 });
 
 describe("placeholders", () => {
-  test("date, time, datetime, uuid and clipboard are filled, selection from the clipboard without a selection source; {cursor} and anything else in braces stays", async () => {
-    expect(await expand("On {date} at {time} ({datetime}) id {uuid}: {clipboard} {cursor} {x}", pinned)).toBe("On 2026-09-16 at 09:05 (2026-09-16 09:05) id u-u-i-d: from the clipboard {cursor} {x}");
+  test("date, time, datetime, uuid and clipboard are filled, selection from the clipboard without a selection source; {cursor} goes (a paste cannot place the caret), anything else in braces stays", async () => {
+    expect(await expand("On {date} at {time} ({datetime}) id {uuid}: {clipboard} {cursor} {x}", pinned)).toBe("On 2026-09-16 at 09:05 (2026-09-16 09:05) id u-u-i-d: from the clipboard  {x}");
     expect(await expand("<{selection}>", pinned)).toBe("<from the clipboard>");
     expect(isoDate(at)).toBe("2026-09-16");
     expect(isoTime(at)).toBe("09:05");

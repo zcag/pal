@@ -123,7 +123,7 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>) -> Vec<Item> {
         row(SETTINGS_EXTENSIONS, "Settings › Extensions", "Installed extensions, updates, the store", &["settings", "preferences", "extensions"], &icon),
         row(SETTINGS_PALETTES, "Settings › Palettes", "Enable, alias and hotkey per palette", &["settings", "preferences", "palettes"], &icon),
         row(SETTINGS_ABOUT, "Settings › About", "Version, links, the last crash", &["settings", "preferences", "about", "version"], &icon),
-        row(STORE_ROW, "Extension Store", "pal.cagdas.io/extensions", &["extensions", "store", "browse", "marketplace"], &icon),
+        row(STORE_ROW, "Extension Store", "Browse and install in the panel; the website is a level away", &["extensions", "store", "browse", "marketplace"], &icon),
         row(INSTALL, "Install Extension", "From GitHub, a URL or a local directory", &["extension", "add", "github"], &icon),
         row(RELOAD, "Reload Extensions", "Restart the extension host; every extension loads again from disk", &["restart", "host", "extensions"], &icon),
         row(REFRESH, "Refresh Index", "List every palette again, past any cache", &["reindex", "rebuild", "cache", "index"], &icon),
@@ -177,6 +177,8 @@ pub enum Plan {
     Settings(Option<&'static str>),
     /// A URL in the browser.
     Open(&'static str),
+    /// The store palette (`extensions/store`) as a pushed level; the website when it is not loaded.
+    Store,
     /// The install form.
     InstallForm,
     /// The form's submit: install `spec`.
@@ -208,7 +210,7 @@ pub fn plan(id: &str, action: Option<&str>, values: Option<&Value>) -> Plan {
         SETTINGS_EXTENSIONS => Plan::Settings(Some("extensions")),
         SETTINGS_PALETTES => Plan::Settings(Some("palettes")),
         SETTINGS_ABOUT => Plan::Settings(Some("about")),
-        STORE_ROW => Plan::Open(STORE),
+        STORE_ROW => Plan::Store,
         INSTALL if action == Some(SPEC) => Plan::Install(values.and_then(|v| v[SPEC].as_str()).unwrap_or_default().trim().to_string()),
         INSTALL => Plan::InstallForm,
         RELOAD => Plan::RestartHost,
@@ -311,7 +313,8 @@ impl Diag {
             config: file.path().to_path_buf(),
             profile: file.profile(),
             data: file.data_dir(),
-            extensions: settings::extensions(app).iter().map(|e| (e.name.clone(), e.loaded)).collect(),
+            // By instance key: `gmail` and `gmail@work` each say whether they loaded.
+            extensions: settings::extensions(app).iter().map(|e| (e.key.clone(), e.loaded)).collect(),
             hotkey: hotkey::outcome(app),
             accessibility: permissions::status().accessibility,
             theme: settings::config(app).general.theme,
@@ -425,6 +428,13 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             hide()
         }
         Plan::Open(url) => effects::apply(app, json!({ "open": url })).await,
+        Plan::Store => {
+            if settings::extensions(app).iter().any(|e| e.name == "store" && e.loaded) {
+                Ok(json!({ "push": { "extension": "store", "palette": "store" } }))
+            } else {
+                effects::apply(app, json!({ "open": STORE })).await
+            }
+        }
         Plan::InstallForm => Ok(install_form(None)),
         Plan::Install(spec) => {
             if spec.is_empty() {
@@ -564,7 +574,7 @@ mod tests {
         assert_eq!(plan(SETTINGS_EXTENSIONS, None, None), Plan::Settings(Some("extensions")));
         assert_eq!(plan(SETTINGS_PALETTES, None, None), Plan::Settings(Some("palettes")));
         assert_eq!(plan(SETTINGS_ABOUT, None, None), Plan::Settings(Some("about")));
-        assert_eq!(plan(STORE_ROW, None, None), Plan::Open(STORE));
+        assert_eq!(plan(STORE_ROW, None, None), Plan::Store);
         assert_eq!(plan(DOCS_ROW, None, None), Plan::Open(DOCS));
         assert_eq!(plan(QUIT, Some(QUIT), None), Plan::Quit, "the confirmed action");
         assert_eq!(plan(VERSION, Some("copy"), None), Plan::CopyVersion);

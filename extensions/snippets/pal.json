@@ -1,12 +1,75 @@
 {
   "name": "snippets",
   "title": "Snippets",
-  "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {date}, {time} and {uuid} filled in. Created and edited in the panel; imported and exported as JSON.",
+  "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {date}, {time} and {uuid} filled in. Created and edited in the panel; imported and exported as JSON. On macOS a keyword typed in any app can expand in place.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰆐", "bg": "violet" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰆐",
+      "bg": "violet"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
+  "settings": [
+    {
+      "kind": "boolean",
+      "id": "expand",
+      "label": "Expand as you type",
+      "text": "Replace a keyword typed in any app with its snippet",
+      "description": "macOS only. Type the prefix and the keyword (`;sig`) in any text field and the snippet is pasted in its place, placeholders filled, `{cursor}` placing the caret. Needs Accessibility and Input Monitoring for pal. Off by default.",
+      "default": false
+    },
+    {
+      "kind": "select",
+      "id": "expand_prefix",
+      "label": "Prefix",
+      "description": "What comes before the keyword: `;sig` (the default), `:sig`, or the bare keyword at the start of a word (`sig`, which also fires inside ordinary typing).",
+      "options": [
+        {
+          "id": ";",
+          "title": "; (semicolon)"
+        },
+        {
+          "id": ":",
+          "title": ": (colon)"
+        },
+        {
+          "id": "none",
+          "title": "None, the keyword alone"
+        }
+      ],
+      "default": ";"
+    },
+    {
+      "kind": "list",
+      "id": "expand_exclude_apps",
+      "label": "Never expand in",
+      "description": "Bundle ids of apps where nothing expands: terminals (a keyword is a command there) and password managers by default. Secure text fields (a password field, sudo) never expand anywhere.",
+      "placeholder": "com.apple.Terminal",
+      "default": [
+        "com.apple.Terminal",
+        "net.kovidgoyal.kitty",
+        "com.googlecode.iterm2",
+        "dev.warp.Warp",
+        "com.github.wez.wezterm",
+        "org.alacritty",
+        "io.alacritty",
+        "com.mitchellh.ghostty",
+        "com.1password.1password",
+        "com.agilebits.onepassword7",
+        "com.bitwarden.desktop"
+      ]
+    },
+    {
+      "kind": "boolean",
+      "id": "expand_hud",
+      "label": "Flash the HUD",
+      "text": "Show \"Expanded <name>\" in the HUD after an expansion",
+      "default": true
+    }
+  ],
   "store": {
     "tagline": "Paste short texts by keyword, placeholders filled in",
     "category": "productivity",
@@ -16,10 +79,12 @@
       "The keyword is a row keyword (typing `sig` finds the signature) and shows as a tag; a snippet with placeholders is tagged dynamic",
       "Create Snippet is a form (name, keyword, text); Edit (`cmd+e`) opens it filled in, a keyword with a space is refused",
       "The whole text is in the detail pane (`cmd+i`), the first line is the subtitle",
-      "Import Snippets and Export Snippets move the list as a JSON array of `{name, text, keyword?}`; Raycast's export is read"
+      "Import Snippets and Export Snippets move the list as a JSON array of `{name, text, keyword?}`; Raycast's export is read",
+      "Expansion (macOS, `expand = true`): `;sig` typed in any app is replaced by the snippet, the clipboard left as it was, `{cursor}` placing the caret; never in terminals, password managers or secure fields"
     ],
     "permissions": [
-      "accessibility"
+      "accessibility",
+      "input-monitoring"
     ],
     "platforms": [
       "macos",

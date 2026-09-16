@@ -7,6 +7,7 @@ export const nothingGranted: PermissionsStatus = { accessibility: false, calenda
 /** Home Assistant as installed with nothing filled in: url and token are what it cannot work without. */
 export const homeAssistant: SettingsExtension = {
   name: "home-assistant",
+  key: "home-assistant",
   title: "Home Assistant",
   description: "Lights, switches, scenes and sensors from your Home Assistant.",
   tagline: "Your home's entities as rows.",
@@ -21,7 +22,7 @@ export const homeAssistant: SettingsExtension = {
   palettes: [{ id: "home-assistant", title: "Home Assistant", settings: [], config: { enabled: true, settings: {} } }],
 };
 
-export const otp: SettingsExtension = { name: "otp", title: "Verification codes", description: "Codes from Messages.", version: "0.1.0", repo: "bundled", bundled: true, settings: [], values: {}, palettes: [{ id: "otp", title: "Verification codes", settings: [], config: { enabled: true, settings: {} } }] };
+export const otp: SettingsExtension = { name: "otp", key: "otp", title: "Verification codes", description: "Codes from Messages.", version: "0.1.0", repo: "bundled", bundled: true, settings: [], values: {}, palettes: [{ id: "otp", title: "Verification codes", settings: [], config: { enabled: true, settings: {} } }] };
 
 export const barItems: BarItem[] = [
   { key: "github/notifications", extension: "github", id: "notifications", title: "Notifications", description: "The unread count as a badge, hidden at zero.", extTitle: "GitHub", source: true, refreshEvery: 300, renderedAt: Math.floor(Date.now() / 1000) - 120, stale: false, state: { hidden: false, badge: 3, urgent: false, icon: "\u{f09b}", tooltip: "3 unread" }, config: { enabled: true, look: {} } },

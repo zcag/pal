@@ -53,6 +53,10 @@ pub const TRIGGER: &str = "pal://trigger";
 pub const CONFIRM: &str = "pal://confirm";
 /// From the panel's page: `{ token, ok }`, the answer to a [`CONFIRM`].
 pub const CONFIRM_REPLY: &str = "pal://confirm/reply";
+/// To every page: the theme file as loaded (theme.rs `Current`: `{ file?,
+/// theme: { name?, light, dark }, diagnostics }`); `theme.ts` sets the
+/// variables on `:root`.
+pub const THEME: &str = "pal://theme";
 /// To the panel's page, after a `pal://` link showed it: `{ query?, reset? }`,
 /// the text to type into the search box, at the root when `reset` is set
 /// (deeplink.rs).

@@ -22,11 +22,13 @@ export const isoTime = (d: Date) => `${two(d.getHours())}:${two(d.getMinutes())}
  * The placeholders in the order they are looked for; `{datetime}` is date
  * and time with a space. `{selection}` is the text selected in the app in
  * front (`selection.text()`; Raycast's spelling), the clipboard when
- * nothing is selected or the read is refused. `{cursor}` is not one: pal
- * pastes whole and cannot place the caret, so it stays in the text.
+ * nothing is selected or the read is refused. `{cursor}` is not one here:
+ * a paste from the panel cannot place the caret, so `expand` drops it
+ * from the text; expansion by keyword (the app's, macOS) moves the caret
+ * back to it.
  */
-export const PLACEHOLDERS = ["clipboard", "selection", "date", "time", "datetime", "uuid"] as const;
-const RE = /\{(clipboard|selection|date|time|datetime|uuid)\}/g;
+export const PLACEHOLDERS = ["clipboard", "selection", "date", "time", "datetime", "uuid", "cursor"] as const;
+const RE = /\{(clipboard|selection|date|time|datetime|uuid|cursor)\}/g;
 
 /** True when the text has a placeholder to fill. */
 export const hasPlaceholders = (text: string) => new RegExp(RE.source).test(text);
@@ -55,6 +57,7 @@ export async function expand(text: string, s: Sources): Promise<string> {
       case "date": return isoDate(now);
       case "time": return isoTime(now);
       case "datetime": return `${isoDate(now)} ${isoTime(now)}`;
+      case "cursor": return "";
       default: return uuid();
     }
   });

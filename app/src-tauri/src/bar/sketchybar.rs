@@ -46,7 +46,13 @@ pub const PREFIX: &str = "pal.";
 /// The progress rule's width in cells (the owner's timer rule).
 const RULE_CELLS: usize = 8;
 
-/// `pal.<ext>.<id>` for a key.
+/// `pal.<ext>.<id>` for a key; an instance's `@` stays
+/// (`pal.gmail@work.unread`): sketchybar matches names with `strcmp` and
+/// refuses only an empty one (`bar_item_set_name`, src/bar_item.c;
+/// `bar_manager_get_item_index_for_name`, src/bar_manager.c), the regex
+/// form applies only to a name wrapped in `/` (src/message.c), and the
+/// click script goes through the shell where `@` is plain. Checked
+/// against the source 2026-09-17; no name map needed.
 pub fn name_of(key: &str) -> String {
     format!("{PREFIX}{}", key.replace('/', "."))
 }
@@ -514,6 +520,7 @@ mod tests {
     #[test]
     fn names_and_rule() {
         assert_eq!(name_of("github/prs"), "pal.github.prs");
+        assert_eq!(name_of("gmail@work/unread"), "pal.gmail@work.unread", "an instance key as it is: sketchybar takes any non-empty name");
         assert_eq!(rule(0.5, 8), "━━━━────");
         assert_eq!(rule(1.2, 8), "━━━━━━━━");
         assert_eq!(rule(-1.0, 4), "────");

@@ -80,6 +80,17 @@ pub struct General {
     /// Shortcuts; pal says so in Settings and registers it once it is free.
     pub hotkey: Hotkeys,
     pub theme: Theme,
+    /// A theme file overriding pal's colours, radii and fonts
+    /// (`pal_core::theme`, docs/config.md "Theme file"): a name, looked up
+    /// as `<config dir>/themes/<name>.toml`, or a path (`~` expanded).
+    /// Light and dark sections apply to the scheme `theme` (or the OS)
+    /// picks; the file is watched and applies live. Empty is pal's own.
+    pub theme_file: String,
+    /// Compact mode: the panel 560 px wide with 32 px rows, no detail
+    /// pane, and the footer folded into the search row (the primary
+    /// action's hint on its right). `cmd+shift+m` in the panel flips it
+    /// and writes it here, so it is remembered per profile.
+    pub compact: bool,
     /// Start pal when you sign in: a LaunchAgent on macOS, an XDG autostart
     /// entry on Linux (the app registers it when this changes).
     pub launch_at_login: bool,
@@ -118,8 +129,9 @@ pub struct General {
     /// extension's route; a web page can emit one) shows a confirm card
     /// first. `true` asks; `false` runs it straight away, for scripts that
     /// drive pal by link; a list of extension names asks for everything
-    /// except links into those extensions. `install`, `update` and
-    /// `remove` always ask; the CLI never does (docs/design/links.md).
+    /// except links into those extensions (a name covers every instance of
+    /// it, a key one instance). `install`, `update`, `remove` and
+    /// `instance/*` always ask; the CLI never does (docs/design/links.md).
     pub deeplink_confirm: Confirm,
     /// How many rows one palette may show at the root for a typed query,
     /// by its tier: `{ primary = 8, normal = 6, catalog = 3 }`. The rest
@@ -167,6 +179,8 @@ impl Default for General {
         Self {
             hotkey: Hotkeys::default(),
             theme: Theme::System,
+            theme_file: String::new(),
+            compact: false,
             launch_at_login: false,
             menu_bar_icon: true,
             position: Position::Top,
@@ -279,11 +293,12 @@ pub enum Confirm {
 
 impl Confirm {
     /// Whether a link into `extension` (none for an app-level route like
-    /// `paste`) shows the card.
+    /// `paste`) shows the card. The list trusts by name (`"gmail"` covers
+    /// every instance, `gmail@work` included) or by one key.
     pub fn asks(&self, extension: Option<&str>) -> bool {
         match self {
             Self::All(b) => *b,
-            Self::Except(list) => !extension.is_some_and(|e| list.iter().any(|x| x.trim() == e)),
+            Self::Except(list) => !extension.is_some_and(|e| list.iter().any(|x| x.trim() == e || x.trim() == instance::name_of(e))),
         }
     }
 }
@@ -900,7 +915,8 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
-    fn warn(path: String, message: impl Into<String>) -> Self {
+    /// A warning at `path` (a dotted key, empty for the whole file).
+    pub fn warn(path: String, message: impl Into<String>) -> Self {
         Self { level: Level::Warning, path, line: None, message: message.into() }
     }
 
@@ -1258,6 +1274,19 @@ max_chars = 2
         assert_eq!(p["skin"].as_str(), Some("medium"));
         assert_eq!(p["columns"].as_integer(), Some(8));
         assert_eq!(c.palette_settings("apps", "apps", &pd, &serde_json::Value::Null), pd);
+    }
+
+    #[test]
+    fn confirm_trusts_by_name_or_key() {
+        let except = Confirm::Except(vec!["gmail".into(), " github@work ".into()]);
+        assert!(!except.asks(Some("gmail")), "the name itself");
+        assert!(!except.asks(Some("gmail@work")), "a name covers every instance");
+        assert!(!except.asks(Some("github@work")), "a key, trimmed, covers that instance");
+        assert!(except.asks(Some("github")), "not the default of a key");
+        assert!(except.asks(Some("github@home")), "nor another instance");
+        assert!(except.asks(None), "an app-level route is never in the list");
+        assert!(!Confirm::All(false).asks(Some("gmail@work")));
+        assert!(Confirm::All(true).asks(None));
     }
 
     #[test]

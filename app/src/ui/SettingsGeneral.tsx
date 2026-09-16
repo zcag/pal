@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { SettingsGroup, SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsThemeFile, type ThemeFileProps } from "./SettingsTheme";
 import { MAX_ROOT_HOTKEYS, permissionRows, type ConfigFileInfo, type GeneralConfig, type HotkeyStatus, type PermissionId, type PermissionsStatus, type RootHotkeyStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
 
@@ -25,6 +26,8 @@ export type SettingsGeneralProps = {
   onRequestPermission?: (which: PermissionId) => void;
   /** The Overview, where every permission has its row and its reason. */
   onOpenOverview?: () => void;
+  /** The theme file picker (`general.theme_file`), shown when given: `useThemeFile()` in Settings.tsx, a fixture in the gallery. */
+  themeFile?: ThemeFileProps;
 };
 
 /**
@@ -61,6 +64,7 @@ export const generalIndex: SettingsIndexEntry[] = [
   { page: "general", label: "Permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", anchor: "general:permissions", keywords: "grant privacy" },
   { page: "general", label: "Ask on first launch", hint: "Permissions", anchor: "general:ask" },
   { page: "general", label: "Theme", hint: "Appearance", anchor: "general:theme", keywords: "dark light system" },
+  { page: "general", label: "Theme file", hint: "Appearance", anchor: "general:theme-file", keywords: "colours colors tokens catppuccin rose pine toml accent font" },
   { page: "general", label: "Window position", hint: "Appearance", anchor: "general:position", keywords: "top centre last" },
   { page: "general", label: "Launch at login", hint: "Startup", anchor: "general:login", keywords: "autostart" },
   { page: "general", label: "Menu bar icon", hint: "Startup", anchor: "general:menubar", keywords: "tray" },
@@ -150,7 +154,7 @@ function HotkeyRows({ value, onChange, status, onOpenKeyboardShortcuts }: { valu
 }
 
 /** pal's own settings: the hotkey, how it looks, how it starts, what the OS lets it do, and the file behind all of it. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, hotkey, onOpenKeyboardShortcuts, permissions, onRequestPermission, onOpenOverview }: SettingsGeneralProps) {
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, onResetFrecency, onRestartHost, onRefreshListings, hotkey, onOpenKeyboardShortcuts, permissions, onRequestPermission, onOpenOverview, themeFile }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   const rows = permissionRows(permissions);
   const missing = rows.filter((r) => r.state === "missing");
@@ -198,6 +202,7 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         <SettingsRow anchor="general:theme" label="Theme" description="System follows the OS appearance as it changes.">
           <SettingsSegment value={value.theme} options={themes} onChange={(v) => set("theme", v as GeneralConfig["theme"])} label="Theme" />
         </SettingsRow>
+        {themeFile && <SettingsThemeFile {...themeFile} />}
         <SettingsRow anchor="general:position" label="Window position" description="On the screen with the pointer." htmlFor="pal-general-position">
           <SettingsSelect id="pal-general-position" value={value.position} options={positions} onChange={(v) => set("position", v as GeneralConfig["position"])} />
         </SettingsRow>

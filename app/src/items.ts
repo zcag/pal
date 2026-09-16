@@ -23,7 +23,7 @@ export type WireItem = {
   accessories?: Accessory[];
   detail?: Detail;
   /** A fallback "Ask" row (`fallback.rs`): the palette to open with the query typed. */
-  push?: { extension: string; palette: string; args?: unknown; query?: string };
+  push?: { extension: string; palette: string; args?: unknown; query?: string; /** The level's crumb, in place of the palette's title. */ title?: string };
   [extra: string]: unknown;
 };
 
@@ -90,7 +90,7 @@ export type Effect = {
   hud?: string;
   keep?: true;
   /** Drill in: a level scoped to that palette, its `list` given `args`; `query` is typed into its search box. */
-  push?: { extension: string; palette: string; args?: unknown; query?: string };
+  push?: { extension: string; palette: string; args?: unknown; query?: string; /** The level's crumb, in place of the palette's title. */ title?: string };
   /** A detail-only level to read. */
   show?: Detail & { title?: string };
   /** A render tree: a new view level from a list, the next tree of the view it came from. */

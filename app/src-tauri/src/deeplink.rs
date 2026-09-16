@@ -100,6 +100,12 @@ pub enum Route {
     Update { name: Option<String> },
     /// `pal remove <name>` after the confirm card.
     Remove { name: String },
+    /// `pal instance add <name> <suffix>` after the confirm card: the
+    /// `[instances."<name>@<suffix>"]` table written (docs/design/instances.md).
+    InstanceAdd { name: String, suffix: String, title: Option<String>, tint: Option<String> },
+    /// `pal instance remove <key>` after the confirm card: every table of
+    /// the instance, its storage, cache and frecency gone.
+    InstanceRemove { key: String },
     /// A bar item's popover, by its `extension/id` key; with `action`, one
     /// of its actions instead.
     Bar { key: String, action: Option<String> },
@@ -199,8 +205,11 @@ fn args_of(q: &Query) -> Result<Option<Value>, String> {
     q.get("args").map(|a| serde_json::from_str(&a).map_err(|e| format!("args is not JSON: {e}"))).transpose()
 }
 
+/// An extension name, or an instance key (`gmail@work`: one `@`, a valid
+/// suffix), as the first part of a link; a route's name is the same
+/// grammar without the `@`.
 fn name_ok(s: &str) -> bool {
-    !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "-_.".contains(c))
+    pal_core::config::instance::valid_name(s) || pal_core::config::instance::is_key(s)
 }
 
 /// The routes, matched top to bottom; the aliases sit before the general
@@ -257,6 +266,28 @@ pub const ROUTES: &[Spec] = &[
     Spec { pattern: "update/{name}", doc: "fetch an installed extension again", build: |c| Ok(Route::Update { name: Some(c.part("name").into()) }) },
     Spec { pattern: "remove/{name}", doc: "remove an installed extension", build: |c| Ok(Route::Remove { name: c.part("name").into() }) },
     Spec {
+        pattern: "instance/add/{name}/{suffix}",
+        doc: "add an instance of a multi extension: [instances.\"<name>@<suffix>\"]; ?title= its name, ?tint= its tile colour",
+        build: |c| {
+            let (name, suffix) = (c.part("name"), c.part("suffix"));
+            if !pal_core::config::instance::valid_name(name) || !pal_core::config::instance::valid_suffix(suffix) {
+                return Err(format!("{name}@{suffix} is not an instance key: <name>@<suffix>, the suffix lowercase letters, digits, - and _ (not \"default\")"));
+            }
+            Ok(Route::InstanceAdd { name: name.into(), suffix: suffix.into(), title: c.query.get("title"), tint: c.query.get("tint") })
+        },
+    },
+    Spec {
+        pattern: "instance/remove/{key}",
+        doc: "remove an instance (its tables, storage, cache and ranking; the keychain items stay)",
+        build: |c| {
+            let key = c.part("key");
+            if !pal_core::config::instance::is_key(key) {
+                return Err(format!("{key} is not an instance key (the default instance is the extension itself)"));
+            }
+            Ok(Route::InstanceRemove { key: key.into() })
+        },
+    },
+    Spec {
         pattern: "bar/{extension}/{id}",
         doc: "a bar item's popover; ?action= runs one of its actions instead",
         build: |c| Ok(Route::Bar { key: format!("{}/{}", c.part("extension"), c.part("id")), action: c.query.get("action") }),
@@ -266,7 +297,7 @@ pub const ROUTES: &[Spec] = &[
         doc: "a route the extension declares in pal.json (`links`), with its ?params",
         build: |c| {
             let (extension, route) = (c.part("extension"), c.part("route"));
-            if !name_ok(extension) || !name_ok(route) {
+            if !name_ok(extension) || !pal_core::config::instance::valid_name(route) {
                 return Err(format!("unknown route {extension:?}/{route:?}"));
             }
             Ok(Route::Ext { extension: extension.into(), route: route.into(), params: c.query.map() })
@@ -560,7 +591,7 @@ fn asks(app: &AppHandle, route: &Route, trusted: bool, always: bool) -> bool {
     if trusted {
         return false;
     }
-    if always || matches!(route, Route::Install { .. } | Route::Update { .. } | Route::Remove { .. }) {
+    if always || matches!(route, Route::Install { .. } | Route::Update { .. } | Route::Remove { .. } | Route::InstanceAdd { .. } | Route::InstanceRemove { .. }) {
         return true;
     }
     settings::config(app).general.deeplink_confirm.asks(route.extension())
@@ -608,7 +639,7 @@ fn run(app: &AppHandle, route: Route, trusted: bool) {
             let app = app.clone();
             tauri::async_runtime::spawn(async move { install(&app, &spec, trusted).await });
         }
-        Route::Update { .. } | Route::Remove { .. } => {
+        Route::Update { .. } | Route::Remove { .. } | Route::InstanceAdd { .. } | Route::InstanceRemove { .. } => {
             let app = app.clone();
             tauri::async_runtime::spawn(async move { store(&app, route, trusted).await });
         }
@@ -892,13 +923,15 @@ async fn install(app: &AppHandle, spec: &str, trusted: bool) {
     }
 }
 
-/// `update` and `remove` from a link: always the card, then the store,
-/// then the HUD's word on it.
+/// `update`, `remove` and `instance/*` from a link: always the card, then
+/// the store (or the config file), then the HUD's word on it.
 async fn store(app: &AppHandle, route: Route, trusted: bool) {
     let (title, message, ok) = match &route {
         Route::Update { name: Some(n) } => (format!("Update {n} from a link?"), "Its source is fetched again".to_string(), "Update"),
         Route::Update { name: None } => ("Update every extension from a link?".to_string(), "Each one with a source is fetched again".to_string(), "Update"),
         Route::Remove { name } => (format!("Remove {name} from a link?"), "Its directory is deleted; its settings stay in the config file".to_string(), "Remove"),
+        Route::InstanceAdd { name, suffix, title, .. } => (format!("Add {} as another {name} from a link?", title.as_deref().unwrap_or(suffix)), format!("[instances.\"{name}@{suffix}\"] is written to the config file"), "Add"),
+        Route::InstanceRemove { key } => (format!("Remove the instance {key} from a link?"), "Its tables leave the config file; its storage, cache and ranking are deleted".to_string(), "Remove"),
         _ => return,
     };
     if !trusted {
@@ -930,6 +963,11 @@ async fn store(app: &AppHandle, route: Route, trusted: bool) {
             }
         }
         Route::Remove { name } => settings::extensions_remove(app.clone(), app.state(), name.clone()).await.map(|()| format!("Removed {name}")),
+        Route::InstanceAdd { name, suffix, title, tint } => {
+            let app = app.clone();
+            tauri::async_runtime::spawn_blocking(move || settings::instances_add(app.clone(), app.state(), name, suffix, title, tint)).await.map_err(|e| e.to_string()).and_then(|r| r).map(|key| format!("Added {key}"))
+        }
+        Route::InstanceRemove { key } => settings::instances_remove(app.clone(), key.clone()).await.map(|()| format!("Removed {key}")),
         _ => return,
     };
     match r {
@@ -1136,6 +1174,31 @@ mod tests {
     }
 
     #[test]
+    fn instance_keys_take_the_extensions_place_in_every_route() {
+        assert_eq!(parse("pal://open/gmail@work/inbox?q=x"), Ok(Route::Open { source: src("gmail@work", "inbox"), query: Some("x".into()), filter: None }));
+        assert_eq!(parse("pal://run/gmail@work/inbox/17"), Ok(run("gmail@work", "inbox", "17")));
+        assert!(matches!(parse("pal://form/gmail@work/compose/new?to=a"), Ok(Route::Run { source, fill: Some(_), .. }) if source == src("gmail@work", "compose")));
+        assert_eq!(parse("pal://bar/gmail@work/unread"), Ok(Route::Bar { key: "gmail@work/unread".into(), action: None }));
+        assert_eq!(parse("pal://gmail@work/inbox").unwrap().extension(), Some("gmail@work"), "the extension route form takes a key");
+        assert_eq!(parse("pal://gmail%40work/inbox").unwrap().extension(), Some("gmail@work"), "percent-encoded too");
+        assert!(parse("pal://gmail@w@x/inbox").is_err(), "one @");
+        assert!(parse("pal://gmail@Work/inbox").is_err(), "the suffix is lowercase");
+        assert!(parse("pal://gmail/in@box").is_err(), "a route has no @");
+    }
+
+    #[test]
+    fn instance_add_and_remove() {
+        assert_eq!(parse("pal://instance/add/gmail/work?title=Work&tint=amber"), Ok(Route::InstanceAdd { name: "gmail".into(), suffix: "work".into(), title: Some("Work".into()), tint: Some("amber".into()) }));
+        assert_eq!(parse("pal://instance/add/gmail/work"), Ok(Route::InstanceAdd { name: "gmail".into(), suffix: "work".into(), title: None, tint: None }));
+        assert_eq!(parse("pal://instance/remove/gmail@work"), Ok(Route::InstanceRemove { key: "gmail@work".into() }));
+        assert!(parse("pal://instance/add/gmail/default").is_err(), "default is not a suffix");
+        assert!(parse("pal://instance/add/gmail/Work").is_err());
+        assert!(parse("pal://instance/remove/gmail").is_err(), "the default is not removed");
+        assert!(parse("pal://instance/add/gmail").is_err(), "a name and a suffix");
+        assert_eq!(parse("pal://instance/remove/gmail@work").unwrap().extension(), None, "always asked, not through the allowlist");
+    }
+
+    #[test]
     fn bar_is_the_item_key_with_an_optional_action() {
         assert_eq!(parse("pal://bar/battery/main"), Ok(Route::Bar { key: "battery/main".into(), action: None }));
         assert_eq!(parse("pal://bar/timer/timer?action=stop"), Ok(Route::Bar { key: "timer/timer".into(), action: Some("stop".into()) }));
@@ -1173,7 +1236,7 @@ mod tests {
             ("pal://extensions", "Settings"), ("pal://reload", "Reload"), ("pal://quit", "Quit"), ("pal://commands/theme", "Command"), ("pal://run/pal/commands/theme", "Command"),
             ("pal://open/a/b", "Open"), ("pal://open?url=x", "OpenUrl"), ("pal://run/a/b/c", "Run"), ("pal://form/a/b/c", "Run"), ("pal://copy?text=x", "Copy"), ("pal://paste?text=x", "Paste"),
             ("pal://hud?text=x", "Hud"), ("pal://toast?title=x", "Toast"), ("pal://confetti", "Confetti"), ("pal://install/x", "Install"), ("pal://update", "Update"), ("pal://update/x", "Update"),
-            ("pal://remove/x", "Remove"), ("pal://bar/a/b", "Bar"), ("pal://timer/start", "Ext"),
+            ("pal://remove/x", "Remove"), ("pal://instance/add/gmail/work", "InstanceAdd"), ("pal://instance/remove/gmail@work", "InstanceRemove"), ("pal://bar/a/b", "Bar"), ("pal://timer/start", "Ext"),
         ];
         assert_eq!(examples.len(), ROUTES.len(), "one example per table row");
         for (link, variant) in examples {
@@ -1250,6 +1313,8 @@ mod tests {
         assert!(!list.asks(parse("pal://run/timer/timers/x").unwrap().extension()));
         assert!(list.asks(parse("pal://paste?text=x").unwrap().extension()), "an app-level route has no extension to allow");
         assert!(!list.asks(parse("pal://bar/timer/timer?action=stop").unwrap().extension()), "a bar item's extension is the key's first part");
+        assert!(!list.asks(parse("pal://timer@two/start").unwrap().extension()), "a name in the list covers its instances");
+        assert!(Confirm::Except(vec!["timer@two".into()]).asks(parse("pal://timer/start").unwrap().extension()), "a key in the list covers that instance alone");
         assert!(!Confirm::All(false).asks(None));
         assert!(Confirm::All(true).asks(Some("timer")));
     }

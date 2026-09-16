@@ -19,8 +19,8 @@ import { LIMIT, type DialogInfo, type LauncherHandle, type Prefs, type ViewOpen,
 export const mark = (name: string, t: number) => invoke("mark", { name, t });
 
 /** `[general]` as the core loaded it (`settings_general`); the keys the panel reads. */
-type General = { alias_space?: boolean; fallbacks_always?: boolean; search_history?: boolean; now?: string[] };
-const toPrefs = (g: General | undefined): Prefs => ({ aliasSpace: g?.alias_space !== false, fallbacksAlways: g?.fallbacks_always === true, searchHistory: g?.search_history !== false, now: Array.isArray(g?.now) ? g.now.map(String) : [] });
+type General = { alias_space?: boolean; fallbacks_always?: boolean; search_history?: boolean; now?: string[]; compact?: boolean };
+const toPrefs = (g: General | undefined): Prefs => ({ aliasSpace: g?.alias_space !== false, fallbacksAlways: g?.fallbacks_always === true, searchHistory: g?.search_history !== false, now: Array.isArray(g?.now) ? g.now.map(String) : [], compact: g?.compact === true });
 
 /** What the Launcher reads of `[general]`, current across config reloads (`pal://config`). */
 export function usePrefs(): Prefs {

@@ -171,6 +171,7 @@ export const settingsFile = { path: "~/.config/pal/config.toml", changed: now - 
 export const settingsExtensions: SettingsExtension[] = [
   {
     name: "apps",
+    key: "apps",
     title: "Applications",
     description: "Installed apps and system settings panes, with their real icons.",
     icon: { kind: "tile", bg: "slate", glyph: "\u{f003b}" },
@@ -188,6 +189,7 @@ export const settingsExtensions: SettingsExtension[] = [
   },
   {
     name: "bookmarks",
+    key: "bookmarks",
     title: "Browser",
     description: "Bookmarks and open tabs from the browser you use.",
     icon: { kind: "tile", bg: "orange", glyph: "\u{f00c0}" },
@@ -206,9 +208,14 @@ export const settingsExtensions: SettingsExtension[] = [
       { id: "tabs", title: "Open tabs", settings: [], config: { enabled: false, alias: undefined, hotkey: undefined, settings: {} } },
     ],
   },
+  // GitHub as a `multi` extension with two instances (docs/design/instances.md): the named default and a Work account whose token is not set yet.
   {
     name: "github",
-    title: "GitHub",
+    key: "github",
+    multi: true,
+    instance: { key: "github", title: "Personal", isDefault: true, enabled: true },
+    title: "GitHub (Personal)",
+    extTitle: "GitHub",
     description: "Pull requests, issues and repositories you can see with the token you give it.",
     icon: { kind: "tile", bg: "ink", glyph: "\uf408" },
     version: "1.4.2",
@@ -222,16 +229,47 @@ export const settingsExtensions: SettingsExtension[] = [
     ],
     values: { token: "keychain:pal/github-token", org: "serpapi", drafts: true },
     palettes: [
-      { id: "github-prs", title: "Pull requests", description: "Open pull requests across the organisation, newest first.", settings: [
+      { id: "github-prs", title: "Pull requests (Personal)", description: "Open pull requests across the organisation, newest first.", settings: [
         { kind: "select", id: "state", label: "State", options: [{ id: "open", title: "Open" }, { id: "all", title: "Open and closed" }], default: "open" },
         { kind: "boolean", id: "mine", label: "Mine only", text: "Only pull requests I opened or review", default: false },
       ], config: { enabled: true, alias: "pr", hotkey: "ctrl+alt+p", settings: { mine: true } } },
-      { id: "github-issues", title: "Issues", settings: [], config: { enabled: true, alias: undefined, hotkey: undefined, settings: {} } },
-      { id: "github-repos", title: "Repositories", settings: [], config: { enabled: true, alias: "gh", hotkey: undefined, icon: "📦", settings: {} } },
+      { id: "github-issues", title: "Issues (Personal)", settings: [], config: { enabled: true, alias: undefined, hotkey: undefined, settings: {} } },
+      { id: "github-repos", title: "Repositories (Personal)", settings: [], config: { enabled: true, alias: "gh", hotkey: undefined, icon: "📦", settings: {} } },
+    ],
+  },
+  {
+    name: "github",
+    key: "github@work",
+    multi: true,
+    instance: { key: "github@work", suffix: "work", title: "Work", tint: "violet", badge: "W", isDefault: false, enabled: true },
+    title: "GitHub (Work)",
+    extTitle: "GitHub",
+    description: "Pull requests, issues and repositories you can see with the token you give it.",
+    icon: { kind: "tile", bg: "violet", glyph: "\uf408", badge: "W" },
+    version: "1.4.2",
+    latest: "1.5.0",
+    repo: "github.com/zcag/pal-github",
+    installed: now - 5 * d,
+    settings: [
+      { kind: "secret", id: "token", label: "Token", description: "A fine-grained personal access token with read access to the repositories you want listed.", placeholder: "github_pat_…" },
+      { kind: "select", id: "org", label: "Organisation", description: "Repositories outside it are not listed.", options: [{ id: "zcag", title: "zcag" }, { id: "serpapi", title: "serpapi" }, { id: "all", title: "Everything the token can see" }], default: "all" },
+      { kind: "boolean", id: "drafts", label: "Drafts", text: "Include draft pull requests", default: false },
+    ],
+    values: { token: "keychain:pal/github@work-token", org: "zcag" },
+    inherited: { org: "serpapi", drafts: true },
+    inheritedFrom: "GitHub (Personal)",
+    palettes: [
+      { id: "github@work-prs", title: "Pull requests (Work)", description: "Open pull requests across the organisation, newest first.", settings: [
+        { kind: "select", id: "state", label: "State", options: [{ id: "open", title: "Open" }, { id: "all", title: "Open and closed" }], default: "open" },
+        { kind: "boolean", id: "mine", label: "Mine only", text: "Only pull requests I opened or review", default: false },
+      ], config: { enabled: true, alias: "wpr", hotkey: "ctrl+alt+w", settings: {} }, inherited: { mine: true } },
+      { id: "github@work-issues", title: "Issues (Work)", settings: [], config: { enabled: true, alias: undefined, hotkey: undefined, settings: {} } },
+      { id: "github@work-repos", title: "Repositories (Work)", settings: [], config: { enabled: false, alias: undefined, hotkey: undefined, settings: {} } },
     ],
   },
   {
     name: "clipboard",
+    key: "clipboard",
     title: "Clipboard",
     description: "What you copied, searchable, with images.",
     icon: { kind: "tile", bg: "violet", glyph: "\u{f014d}" },

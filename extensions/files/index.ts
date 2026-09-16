@@ -8,6 +8,12 @@
 // The empty query lists the recently used files (recent.ts: Spotlight's
 // last-used date, or GTK's recently-used.xbel), which the `recent` palette
 // lists on its own too, with the same rows and actions.
+// Folders browse (browse.ts): Enter (or `→`) on a folder row pushes the
+// `browse` palette with that folder as its args, a level whose crumb is
+// the folder, led by a `..` row (`←` or Backspace from anywhere in it goes
+// up) and sorted by the filter dropdown (name, date, size); `cmd+.` flips
+// the `show_hidden` setting. A typed path ending in `/` lists that folder
+// the same way inside Files.
 // Contents too (content.ts): a query starting with `'` or `content:`
 // searches what files say instead of what they are called; a plain query
 // gets the content matches as a second section, "In files", under the
@@ -16,8 +22,9 @@
 // Linux, 1 s at most. `PAL_FILES_CONTENT` forces a tool (the tests use
 // `grep` on their temp folder).
 import { readdir, readFile, stat } from "node:fs/promises";
-import { basename, dirname, extname } from "node:path";
-import { apps as appsApi, conceal, dialog, home, ocr, settings, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { basename, dirname, extname, join } from "node:path";
+import { apps as appsApi, conceal, dialog, home, ocr, settings, thumbnailUrl, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { BROWSE_CAP, SORTS, filterEntries, hintRow, isRoot, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
 import { parseMdfindRecent, parseXbel, type Recent } from "./recent.ts";
 
@@ -26,6 +33,8 @@ type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclud
 /** The args of the level "Open with…" pushes: which file the rows open. */
 type OpenWith = { open_with: string };
 const openWithOf = (ctx?: Ctx): string | undefined => (ctx?.args as OpenWith | undefined)?.open_with;
+/** The args of the level "Browse" pushes: the folder listed. */
+const browseOf = (ctx?: Ctx): string | undefined => (ctx?.args as Browse | undefined)?.browse;
 
 const HOME = home("~");
 const MAC = process.platform === "darwin";
@@ -186,6 +195,10 @@ function kind(p: string, dir: boolean): Kind {
 
 const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(2)} GB`);
 
+/** A folder's primary action: its contents as a pushed level (the `browse` palette); `→` runs it from anywhere in a listing while nothing is typed. */
+const BROWSE: Action = { id: "browse", title: "Browse", shortcut: "right" };
+/** On every row of a browsed folder: flips the `show_hidden` setting, so the listing (every listing) shows or hides dot entries. */
+const hiddenAction = (s: Settings): Action => ({ id: "toggle-hidden", title: s.show_hidden ? "Hide hidden files" : "Show hidden files", shortcut: "cmd+." });
 // Open, reveal, the two copies and the trash work on marked rows too (`multi`: one pick with `ctx.ids`).
 const ACTIONS: Action[] = [
   { id: "open", title: "Open", multi: true },
@@ -211,7 +224,7 @@ async function refreshDialog(): Promise<void> {
 }
 const DIALOG_ACTION = (d: Dialog): Action => ({ id: "dialog", title: `Use in ${d.app}'s ${d.kind} panel`, shortcut: "cmd+g" });
 const actionsFor = (p: string, k: Kind): Action[] => {
-  const base = ocrable(p, k) ? [...ACTIONS.slice(0, 6), OCR_ACTION, ACTIONS[6]] : ACTIONS;
+  const base = k === "folder" ? [BROWSE, ...ACTIONS] : ocrable(p, k) ? [...ACTIONS.slice(0, 6), OCR_ACTION, ACTIONS[6]] : ACTIONS;
   return dialogUp ? [DIALOG_ACTION(dialogUp), ...base] : base;
 };
 
@@ -219,17 +232,70 @@ const actionsFor = (p: string, k: Kind): Action[] => {
 async function item(p: string, usedAt?: number, section?: string): Promise<Item | undefined> {
   const st = await stat(p).catch(() => undefined);
   if (!st) return;
-  const dir = st.isDirectory();
-  const k = kind(p, dir);
+  return entryRow({ path: p, name: basename(p) || p, dir: st.isDirectory(), size: st.size, mtime: st.mtimeMs }, usedAt, section);
+}
+
+/** The row of a stat'ed entry: `thumbs` draws an image's own thumbnail in place of the glyph (a browsed folder, where the pictures are the point). */
+function entryRow(e: Entry, usedAt?: number, section?: string, thumbs = false, extra: Action[] = []): Item {
+  const k = kind(e.path, e.dir);
   return {
-    id: p,
-    name: basename(p) || p,
-    subtitle: short(dirname(p)),
-    icon: MAC && p.endsWith(".app") ? { app: p } : GLYPH[k],
-    accessories: [...(k === "folder" ? [] : [{ text: size(st.size) }]), { date: usedAt ?? st.mtimeMs }],
+    id: e.path,
+    name: e.name,
+    subtitle: short(dirname(e.path)),
+    icon: MAC && e.path.endsWith(".app") ? { app: e.path } : thumbs && k === "image" ? { image: thumbnailUrl(e.path, 24) } : GLYPH[k],
+    accessories: [...(k === "folder" ? [] : [{ text: size(e.size) }]), { date: usedAt ?? e.mtime }],
     ...(section && { section }),
-    actions: actionsFor(p, k),
+    actions: [...actionsFor(e.path, k), ...extra],
   };
+}
+
+// ---- browsing a folder -------------------------------------------------------
+
+/** The level "Browse" pushes for `folder`: the `browse` palette, the crumb the folder's short path. */
+const browsePush = (folder: string): Effect => ({ push: { extension: "files", palette: "browse", args: { browse: folder } satisfies Browse, title: short(folder) } });
+
+/** Every entry of `folder` stat'ed (one that vanished meanwhile is skipped); empty for a folder that cannot be read. */
+async function entries(folder: string): Promise<Entry[]> {
+  let names: string[];
+  try { names = await readdir(folder); } catch { return []; }
+  const all = await Promise.all(names.map(async (name) => {
+    const path = join(folder, name);
+    const st = await stat(path).catch(() => undefined);
+    return st && { path, name, dir: st.isDirectory(), size: st.size, mtime: st.mtimeMs };
+  }));
+  return all.filter((e): e is Entry => !!e);
+}
+
+/**
+ * The rows of a browsed folder: the `..` row (not at `/`), then the
+ * entries sorted by `by` and narrowed by `query`, hidden ones with
+ * `show_hidden`, images with their thumbnails, `BROWSE_CAP` at most with
+ * a hint row for the rest. Every row can flip the hidden setting.
+ */
+async function browseRows(folder: string, query: string, s: Settings, by: Sort = "name"): Promise<Item[]> {
+  const found = sortEntries(filterEntries(await entries(folder), query, s.show_hidden), by);
+  const shown = found.slice(0, BROWSE_CAP);
+  const hidden = hiddenAction(s);
+  const up = upRow(folder, short, GLYPH.folder);
+  return [
+    ...(isRoot(folder) ? [] : [{ ...up, actions: [...up.actions!, hidden] }]),
+    ...shown.map((e) => entryRow(e, undefined, undefined, true, [hidden])),
+    ...(found.length > BROWSE_CAP ? [hintRow(found.length - BROWSE_CAP, GLYPH.folder)] : []),
+  ];
+}
+
+/** The `browse` palette's sort from the filter dropdown; the first is the default. */
+const sortOf = (ctx?: Ctx): Sort => (SORTS.some((x) => x.id === ctx?.filter) ? (ctx!.filter as Sort) : SORTS[0].id);
+
+/** The picks a browsed folder's rows share beyond the file actions: the `..` row, Browse on a folder, the hidden toggle. */
+async function browseAction(id: string, action: string | undefined): Promise<Effect | undefined> {
+  if (id.startsWith("up:")) return browsePush(id.slice(3));
+  if (action === "browse") return browsePush(id);
+  if (action === "toggle-hidden") {
+    await settings.set("show_hidden", !settings.get<Settings>().show_hidden);
+    return { keep: true };
+  }
+  return undefined;
 }
 
 // ---- a typed path ----------------------------------------------------------
@@ -244,15 +310,20 @@ const PATH_ROWS = 5;
  * entries of its parent whose names start with the last segment (a
  * completion: `~/Down` lists Downloads), hidden ones only when the segment
  * starts with a dot or `show_hidden` is on. Nothing for a path whose
- * parent does not exist.
+ * parent does not exist. Inside the palette (`browse` set) a path ending
+ * in `/` that names a folder lists it whole as a browsed folder instead
+ * (the `..` row, every entry, the cap); the root's inline section keeps
+ * the short completion.
  */
-export async function pathRows(query: string, showHidden: boolean, limit = PATH_ROWS): Promise<Item[]> {
+export async function pathRows(query: string, showHidden: boolean, limit = PATH_ROWS, browse?: Settings): Promise<Item[]> {
   const q = query.trim();
   if (!PATH_RE.test(q)) return [];
   const p = home(q);
   if (!q.endsWith("/")) {
     const exact = await item(p);
     if (exact) return [exact];
+  } else if (browse && (await stat(p).catch(() => undefined))?.isDirectory()) {
+    return browseRows(p.replace(/(.)\/+$/, "$1"), "", browse);
   }
   const dir = q.endsWith("/") ? p : dirname(p);
   const prefix = q.endsWith("/") ? "" : basename(p);
@@ -330,6 +401,9 @@ const fence = (s: string, lang: string) => "````" + lang + "\n" + s.replace(/```
  * (app/src-tauri/src/icon.rs), not arbitrary files.
  */
 async function detail(p: string): Promise<Detail> {
+  // The `..` row describes the folder it leads to; the cap's hint row has nothing to say.
+  if (p.startsWith("up:")) return detail(p.slice(3));
+  if (p.startsWith("hint:")) return {};
   const st = await stat(p).catch(() => undefined);
   if (!st) return { markdown: "This file no longer exists.", metadata: [{ label: "Path", value: short(p) }] };
   const dir = st.isDirectory();
@@ -372,6 +446,8 @@ const trash = (p: string) => run(MAC ? ["osascript", "-e", `tell application "Fi
  * multi pick (the actions marked `multi` in `ACTIONS`), else the one.
  */
 async function fileAction(id: string, action: string | undefined, palette: string, ids: string[] = [id]): Promise<Effect> {
+  const browsed = await browseAction(id, action);
+  if (browsed) return browsed;
   switch (action) {
     case "dialog": return { dialog: id };
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
@@ -433,7 +509,7 @@ export default {
         await refreshDialog();
         // A path completes rather than searches, inside the palette too: the backends match names, not paths.
         if (ctx?.inline) return pathRows(query, s.show_hidden);
-        if (PATH_RE.test(query.trim())) return pathRows(query, s.show_hidden, s.limit);
+        if (PATH_RE.test(query.trim())) return pathRows(query, s.show_hidden, s.limit, s);
         const ask = parseQuery(query);
         if (ask.only) {
           if (!ask.content) return [hint("Type words to find in file contents", CONTENT ? `${CONTENT} in ${folders.map(short).join(", ")}` : "No content search tool: Spotlight, rg or grep")];
@@ -455,6 +531,28 @@ export default {
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
         return file ? openWithPick(file, id) : fileAction(id, action, "files", ctx?.ids);
+      },
+      detail: (id, ctx) => {
+        const file = openWithOf(ctx);
+        return file ? openWithDetail(file, id) : detail(id);
+      },
+    },
+    browse: {
+      title: "Browse Folder",
+      input: true,
+      multi: true,
+      placeholder: "Filter this folder",
+      filters: [...SORTS],
+      // Listed from the `args.browse` folder a Browse pick pushed; the crumb is the folder. Without args (opened by name) it is the home folder.
+      list: async (query = "", ctx) => {
+        const file = openWithOf(ctx);
+        if (file) return appRows(file, query);
+        await refreshDialog();
+        return browseRows(browseOf(ctx) ?? HOME, query, settings.get<Settings>(), sortOf(ctx));
+      },
+      pick: (id, action, ctx) => {
+        const file = openWithOf(ctx);
+        return file ? openWithPick(file, id) : fileAction(id, action, "browse", ctx?.ids);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);

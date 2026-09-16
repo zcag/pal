@@ -1,0 +1,1482 @@
+{
+  "palettes": {
+    "store": {
+      "title": "Store",
+      "icon": {
+        "tile": {
+          "glyph": "󰟇",
+          "bg": "teal"
+        }
+      },
+      "input": true,
+      "placeholder": "Search the store",
+      "filters": [
+        {
+          "id": "all",
+          "title": "All"
+        },
+        {
+          "id": "installed",
+          "title": "Installed"
+        },
+        {
+          "id": "updates",
+          "title": "Updates"
+        },
+        {
+          "id": "productivity",
+          "title": "Productivity"
+        },
+        {
+          "id": "developer",
+          "title": "Developer"
+        },
+        {
+          "id": "system",
+          "title": "System"
+        },
+        {
+          "id": "media",
+          "title": "Media"
+        },
+        {
+          "id": "reference",
+          "title": "Reference"
+        },
+        {
+          "id": "fun",
+          "title": "Fun"
+        },
+        {
+          "id": "integration",
+          "title": "Integration"
+        }
+      ],
+      "byQuery": {
+        "": [
+          {
+            "id": "spotify",
+            "name": "Spotify",
+            "subtitle": "Play, search, queue and like on Spotify, lyrics that follow",
+            "icon": {
+              "tile": {
+                "glyph": "󰓇",
+                "bg": "green"
+              }
+            },
+            "keywords": [
+              "spotify",
+              "pal",
+              "media"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "tag": "Update to 0.1.0",
+                "color": "amber"
+              },
+              {
+                "text": "Media"
+              }
+            ],
+            "section": "Updates",
+            "actions": [
+              {
+                "id": "update",
+                "title": "Update",
+                "confirm": "Update Spotify to 0.1.0? Its source is fetched again."
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "remove",
+                "title": "Remove",
+                "shortcut": "ctrl+x",
+                "style": "destructive",
+                "confirm": "Remove Spotify? Its directory is deleted; its settings stay in the config file."
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "onepassword",
+            "name": "1Password",
+            "subtitle": "Copy a 1Password password, username or one-time code via op",
+            "icon": {
+              "tile": {
+                "glyph": "󰯄",
+                "bg": "blue"
+              }
+            },
+            "keywords": [
+              "onepassword",
+              "pal",
+              "integration"
+            ],
+            "accessories": [
+              {
+                "text": "Integration"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install 1Password from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "2048",
+            "name": "2048",
+            "subtitle": "2048 in the panel, keyboard only; the board persists",
+            "icon": {
+              "tile": {
+                "svg": "M2 2h5.5v5.5H2zM8.5 2H14v5.5H8.5zM2 8.5h5.5V14H2zM8.5 8.5H14V14H8.5z",
+                "bg": "amber"
+              }
+            },
+            "keywords": [
+              "2048",
+              "pal",
+              "fun"
+            ],
+            "accessories": [
+              {
+                "text": "Fun"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install 2048 from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "apps",
+            "name": "Applications",
+            "subtitle": "Every installed app, with its icon, a keystroke from launch",
+            "icon": {
+              "tile": {
+                "glyph": "󰀻",
+                "bg": "slate"
+              }
+            },
+            "keywords": [
+              "apps",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Applications from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "audio",
+            "name": "Audio",
+            "subtitle": "Switch the output or input, set the volume, mute",
+            "icon": {
+              "tile": {
+                "glyph": "󰕾",
+                "bg": "violet"
+              }
+            },
+            "keywords": [
+              "audio",
+              "pal",
+              "system"
+            ],
+            "accessories": [
+              {
+                "text": "System"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Audio from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "blackjack",
+            "name": "Blackjack",
+            "subtitle": "Blackjack in the panel: H, S, D, P; the bankroll persists",
+            "icon": {
+              "tile": {
+                "glyph": "󱢡",
+                "bg": "red"
+              }
+            },
+            "keywords": [
+              "blackjack",
+              "pal",
+              "fun"
+            ],
+            "accessories": [
+              {
+                "text": "Fun"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Blackjack from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "bluetooth",
+            "name": "Bluetooth",
+            "subtitle": "Connect and disconnect paired devices, battery in view",
+            "icon": {
+              "tile": {
+                "glyph": "󰂯",
+                "bg": "blue"
+              }
+            },
+            "keywords": [
+              "bluetooth",
+              "pal",
+              "system"
+            ],
+            "accessories": [
+              {
+                "text": "System"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Bluetooth from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "bookmarks",
+            "name": "Bookmarks",
+            "subtitle": "Browser bookmarks and your own links, by name or folder",
+            "icon": {
+              "tile": {
+                "glyph": "󰃀",
+                "bg": "orange"
+              }
+            },
+            "keywords": [
+              "bookmarks",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Bookmarks from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "browser-tabs",
+            "name": "Browser Tabs",
+            "subtitle": "Switch to any open tab of Chrome, Safari or Firefox",
+            "icon": {
+              "tile": {
+                "glyph": "󰓩",
+                "bg": "cyan"
+              }
+            },
+            "keywords": [
+              "browser-tabs",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Browser Tabs from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "calc",
+            "name": "Calculator",
+            "subtitle": "Sums, units, currencies, dates and time zones as you type",
+            "icon": {
+              "tile": {
+                "glyph": "󰃬",
+                "bg": "indigo"
+              }
+            },
+            "keywords": [
+              "calc",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "tag": "bundled",
+                "color": "grey"
+              },
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "page",
+                "title": "Open store page"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "calendar",
+            "name": "Calendar",
+            "subtitle": "Today at a glance, one key to join the call",
+            "icon": {
+              "tile": {
+                "glyph": "󰃭",
+                "bg": "red"
+              }
+            },
+            "keywords": [
+              "calendar",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Calendar from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "clipboard",
+            "name": "Clipboard",
+            "subtitle": "Everything you copied, with images; Enter pastes it back",
+            "icon": {
+              "tile": {
+                "glyph": "󰅍",
+                "bg": "violet"
+              }
+            },
+            "keywords": [
+              "clipboard",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "tag": "links",
+                "color": "violet"
+              },
+              {
+                "tag": "bundled",
+                "color": "grey"
+              },
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "page",
+                "title": "Open store page"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "colors",
+            "name": "Colors",
+            "subtitle": "A colour picker for the keyboard: pick, type, walk the hue, copy in any notation",
+            "icon": "#4F46D6",
+            "keywords": [
+              "colors",
+              "pal",
+              "developer"
+            ],
+            "accessories": [
+              {
+                "text": "Developer"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Colors from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "docker",
+            "name": "Docker",
+            "subtitle": "Start, stop, log and shell into containers from the panel",
+            "icon": {
+              "tile": {
+                "glyph": "󰡨",
+                "bg": "cyan"
+              }
+            },
+            "keywords": [
+              "docker",
+              "pal",
+              "developer"
+            ],
+            "accessories": [
+              {
+                "text": "Developer"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Docker from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "emoji",
+            "name": "Emoji",
+            "subtitle": "Every emoji in a grid; copy or paste it, or its :shortcode:",
+            "icon": {
+              "tile": {
+                "glyph": "󰱱",
+                "bg": "amber"
+              }
+            },
+            "keywords": [
+              "emoji",
+              "pal",
+              "reference"
+            ],
+            "accessories": [
+              {
+                "text": "Reference"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Emoji from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "files",
+            "name": "Files",
+            "subtitle": "File search over the OS index, recent files before you type",
+            "icon": {
+              "tile": {
+                "glyph": "󰉋",
+                "bg": "slate"
+              }
+            },
+            "keywords": [
+              "files",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Files from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "generate",
+            "name": "Generate",
+            "subtitle": "UUIDs, passwords, hashes, base64, lorem, QR codes and JWTs",
+            "icon": {
+              "tile": {
+                "glyph": "󰝮",
+                "bg": "amber"
+              }
+            },
+            "keywords": [
+              "generate",
+              "pal",
+              "developer"
+            ],
+            "accessories": [
+              {
+                "text": "Developer"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Generate from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "github",
+            "name": "GitHub",
+            "subtitle": "Pull requests, issues, repos and notifications in the panel",
+            "icon": {
+              "tile": {
+                "glyph": "",
+                "bg": "ink"
+              }
+            },
+            "keywords": [
+              "github",
+              "pal",
+              "developer"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "tag": "accounts",
+                "color": "teal"
+              },
+              {
+                "tag": "bundled",
+                "color": "grey"
+              },
+              {
+                "text": "Developer"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "page",
+                "title": "Open store page"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "gmail",
+            "name": "Gmail",
+            "subtitle": "Your inbox in the panel, its count on the bar, per account",
+            "icon": {
+              "tile": {
+                "glyph": "󰇮",
+                "bg": "red"
+              }
+            },
+            "keywords": [
+              "gmail",
+              "pal",
+              "integration"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "tag": "accounts",
+                "color": "teal"
+              },
+              {
+                "text": "Integration"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Gmail from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "home-assistant",
+            "name": "Home Assistant",
+            "subtitle": "Toggle, dim and run Home Assistant entities from the panel",
+            "icon": {
+              "tile": {
+                "glyph": "󰟐",
+                "bg": "teal"
+              }
+            },
+            "keywords": [
+              "home-assistant",
+              "pal",
+              "integration"
+            ],
+            "accessories": [
+              {
+                "tag": "accounts",
+                "color": "teal"
+              },
+              {
+                "text": "Integration"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Home Assistant from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "hue",
+            "name": "Hue",
+            "subtitle": "Every Hue light, room and scene, live, under the keys",
+            "icon": {
+              "tile": {
+                "glyph": "󰌵",
+                "bg": "amber"
+              }
+            },
+            "keywords": [
+              "hue",
+              "pal",
+              "integration"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "tag": "links",
+                "color": "violet"
+              },
+              {
+                "tag": "Installed",
+                "color": "green"
+              },
+              {
+                "text": "Integration"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "page",
+                "title": "Open store page"
+              },
+              {
+                "id": "update",
+                "title": "Update",
+                "confirm": "Update Hue to 0.1.0? Its source is fetched again.",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "remove",
+                "title": "Remove",
+                "shortcut": "ctrl+x",
+                "style": "destructive",
+                "confirm": "Remove Hue? Its directory is deleted; its settings stay in the config file."
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "icons",
+            "name": "Icons",
+            "subtitle": "All 11k Nerd Font glyphs: copy one, its code point or name",
+            "icon": {
+              "tile": {
+                "glyph": "󰠱",
+                "bg": "pink"
+              }
+            },
+            "keywords": [
+              "icons",
+              "pal",
+              "reference"
+            ],
+            "accessories": [
+              {
+                "text": "Reference"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Icons from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "make",
+            "name": "Makefile Targets",
+            "subtitle": "Every Makefile target under your projects, Enter runs it",
+            "icon": {
+              "tile": {
+                "glyph": "󰣪",
+                "bg": "orange"
+              }
+            },
+            "keywords": [
+              "make",
+              "pal",
+              "developer"
+            ],
+            "accessories": [
+              {
+                "text": "Developer"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Makefile Targets from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "menu-bar",
+            "name": "Menu Bar Items",
+            "subtitle": "The front app's menus, searched and pressed from one list",
+            "icon": {
+              "tile": {
+                "glyph": "󰍜",
+                "bg": "slate"
+              }
+            },
+            "keywords": [
+              "menu-bar",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "text": "Productivity"
+              }
+            ],
+            "section": "Extensions",
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Menu Bar Items from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "git": [
+          {
+            "id": "github",
+            "name": "GitHub",
+            "subtitle": "Pull requests, issues, repos and notifications in the panel",
+            "icon": {
+              "tile": {
+                "glyph": "",
+                "bg": "ink"
+              }
+            },
+            "keywords": [
+              "github",
+              "pal",
+              "developer"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "tag": "accounts",
+                "color": "teal"
+              },
+              {
+                "tag": "bundled",
+                "color": "grey"
+              },
+              {
+                "text": "Developer"
+              }
+            ],
+            "actions": [
+              {
+                "id": "page",
+                "title": "Open store page"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "tim": [
+          {
+            "id": "onepassword",
+            "name": "1Password",
+            "subtitle": "Copy a 1Password password, username or one-time code via op",
+            "icon": {
+              "tile": {
+                "glyph": "󰯄",
+                "bg": "blue"
+              }
+            },
+            "keywords": [
+              "onepassword",
+              "pal",
+              "integration"
+            ],
+            "accessories": [
+              {
+                "text": "Integration"
+              }
+            ],
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install 1Password from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "calc",
+            "name": "Calculator",
+            "subtitle": "Sums, units, currencies, dates and time zones as you type",
+            "icon": {
+              "tile": {
+                "glyph": "󰃬",
+                "bg": "indigo"
+              }
+            },
+            "keywords": [
+              "calc",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "tag": "bundled",
+                "color": "grey"
+              },
+              {
+                "text": "Productivity"
+              }
+            ],
+            "actions": [
+              {
+                "id": "page",
+                "title": "Open store page"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "timer",
+            "name": "Timer",
+            "subtitle": "Named countdowns, with an alarm on the bar when one lands",
+            "icon": {
+              "tile": {
+                "glyph": "󰔛",
+                "bg": "amber"
+              }
+            },
+            "keywords": [
+              "timer",
+              "pal",
+              "productivity"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "tag": "links",
+                "color": "violet"
+              },
+              {
+                "text": "Productivity"
+              }
+            ],
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Timer from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "otp",
+            "name": "Verification Codes",
+            "subtitle": "One-time codes from your texts, newest first; Enter pastes",
+            "icon": {
+              "tile": {
+                "glyph": "󰍩",
+                "bg": "green"
+              }
+            },
+            "keywords": [
+              "otp",
+              "pal",
+              "integration"
+            ],
+            "accessories": [
+              {
+                "tag": "menu bar",
+                "color": "blue"
+              },
+              {
+                "text": "Integration"
+              }
+            ],
+            "actions": [
+              {
+                "id": "install",
+                "title": "Install",
+                "confirm": "Install Verification Codes from pal.cagdas.io?"
+              },
+              {
+                "id": "page",
+                "title": "Open store page",
+                "shortcut": "cmd+enter"
+              },
+              {
+                "id": "copy-command",
+                "title": "Copy install command",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ]
+      },
+      "details": {
+        "spotify": {
+          "markdown": "# Spotify\n\nSearch, play, queue and like on Spotify from the panel, with a lyrics view that follows the song and a bar item that shows the line playing.\n\n## What it does\n\n- Signs in to your own Spotify app with PKCE: no secret, the refresh token kept by pal\n- Search as you type: tracks, artists, albums, playlists, podcasts and episodes in sections with their cover art; Enter plays, cmd+enter queues, cmd+l likes, cmd+o opens in Spotify\n- Playlists (yours and followed, with a drill-in per playlist), Library (Liked Songs, recently played, top tracks and artists), Devices (transfer, volume) and the Queue (skip to a row)\n- A lyrics view: the cover, a ticking progress bar, shuffle, repeat and like, and lrclib's synced lyrics around the line playing, the cover's colour as a tint; space, arrows, l, s, r, q, d\n- Root rows for play or pause, next, previous, like, and \"Play <playlist>\" for each pinned playlist\n- A bar item with the track or the lyric line playing; the popover is the lyrics view, ticking, with the whole transport on keys\n- Rate limits honoured (a 429 is waited out or shown with its time), the token refreshed early, offline and no-device states as one line\n\n![The lyrics view: the cover, the progress, the line playing bright among the lines around it](https://pal.cagdas.io/extensions/spotify/screenshots/1-lyrics.png)\n![The same view on the dark panel, the cover's colour under the art](https://pal.cagdas.io/extensions/spotify/screenshots/2-lyrics-dark.png)\n![Search: tracks, artists, albums, playlists and podcasts as sections](https://pal.cagdas.io/extensions/spotify/screenshots/3-search.png)\n![Playlists: yours and the followed ones; cmd+enter lists a playlist's tracks](https://pal.cagdas.io/extensions/spotify/screenshots/4-playlists.png)\n![Library: Liked Songs newest first, the other filters on Tab](https://pal.cagdas.io/extensions/spotify/screenshots/5-library.png)\n![The queue: what plays now, what comes next, Enter skips to a row](https://pal.cagdas.io/extensions/spotify/screenshots/6-queue.png)\n\n## Lyrics\n\n| key | does |\n| --- | --- |\n| `space, enter` | Play or pause |\n| `left, right` | Seek 10 s back or forward |\n| `up, down` | Volume up or down |\n| `l` | Like or unlike |\n| `s` | Shuffle on or off |\n| `r` | Repeat: all, one, off |\n| `q` | The queue |\n| `d` | Devices |\n| `cmd+right, cmd+left` | Next or previous track |\n| `cmd+c` | Copy the line playing (the track without lyrics) |\n| `cmd+o` | Open in Spotify |\n| `f` | Search lrclib when it has no lyrics |\n\n## Search Spotify\n\n| key | does |\n| --- | --- |\n| `enter` | Play |\n| `cmd+enter` | Add to queue (a track); show tracks (a playlist or album) |\n| `cmd+l` | Like or unlike a track |\n| `cmd+s` | Play a playlist shuffled |\n| `cmd+o` | Open in Spotify |\n| `cmd+c` | Copy link |\n\n## Playlists\n\n| key | does |\n| --- | --- |\n| `enter` | Play |\n| `cmd+enter` | Show tracks (a playlist); add to queue (a track of one) |\n| `cmd+s` | Play shuffled |\n| `cmd+l` | Like or unlike a track of a listed playlist |\n| `cmd+o` | Open in Spotify |\n| `cmd+c` | Copy link |\n\n## Library\n\n| key | does |\n| --- | --- |\n| `tab` | Liked Songs, Recently played, Top tracks, Top artists |\n| `enter` | Play |\n| `cmd+enter` | Add to queue |\n| `cmd+l` | Like or unlike |\n| `cmd+o` | Open in Spotify |\n| `cmd+c` | Copy link |\n\n## Spotify Devices\n\n| key | does |\n| --- | --- |\n| `enter` | Play here (a device); volume up, down, mute (the volume rows) |\n| `cmd+enter` | Transfer without playing |\n| `cmd+up, cmd+down` | Volume of the active device |\n\n## Queue\n\n| key | does |\n| --- | --- |\n| `enter` | Skip to the row (play or pause on the first) |\n| `cmd+l` | Like or unlike |\n| `cmd+o` | Open in Spotify |\n| `cmd+c` | Copy link |\n\n## Spotify\n\n| key | does |\n| --- | --- |\n| `enter` | Run |\n| `cmd+s` | Play a pinned playlist shuffled |\n| `cmd+o` | Open a pinned playlist in Spotify |",
+          "metadata": [
+            {
+              "label": "Author",
+              "value": "pal"
+            },
+            {
+              "label": "Version",
+              "value": "0.1.0 (installed 0.0.8)"
+            },
+            {
+              "label": "Category",
+              "value": "Media"
+            },
+            {
+              "label": "License",
+              "value": "MIT"
+            },
+            {
+              "label": "Platforms",
+              "value": "macos, linux"
+            },
+            {
+              "label": "Needs",
+              "value": "network, token"
+            },
+            {
+              "label": "Install",
+              "value": "pal install spotify"
+            },
+            {
+              "label": "Page",
+              "link": {
+                "text": "pal.cagdas.io",
+                "href": "https://pal.cagdas.io/extensions/spotify"
+              }
+            }
+          ]
+        },
+        "github": {
+          "markdown": "# GitHub\n\nYour pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.\n\n## What it does\n\n- Pull Requests: yours, the ones waiting on your review, and what merged this week, with the checks, the review decision and a draft or conflicts tag on the row\n- The detail pane on a pull request or issue: the body, the latest comments and reviews, every check by name, who approved\n- Repositories: yours, your organisation's recently pushed and your stars; `cmd+e` opens the local clone in the editor\n- Notifications by reason, newest first; `enter` marks the thread read and opens it, `cmd+shift+a` marks all read\n- Search GitHub as you type: `repo:acme/widgets is:pr`, `author:mara`, `label:bug`, results sectioned by kind\n- Create issue and Create repository as forms; Checkout branch and Merge from the row\n\n![Pull Requests: Mine, Review requested and Merged, with the checks and the review decision on each row](https://pal.cagdas.io/extensions/github/screenshots/1-prs.png)\n![The pane a pull request opens with: the body, the latest comments and reviews, every check by name](https://pal.cagdas.io/extensions/github/screenshots/2-pr-detail.png)\n![Notifications by reason, newest first; the first row is the unread count](https://pal.cagdas.io/extensions/github/screenshots/3-notifications.png)\n![Search GitHub: repositories, issues, pull requests and users for one query](https://pal.cagdas.io/extensions/github/screenshots/4-search.png)\n\n## Pull Requests\n\n| key | does |\n| --- | --- |\n| `enter` | Open the pull request |\n| `cmd+c` | Copy its URL |\n| `cmd+shift+o` | Checkout the branch |\n| `cmd+b` | Copy the branch name |\n| `cmd+shift+k` | Open the checks |\n| `cmd+shift+f` | Open the files changed |\n| `cmd+shift+r` | Mark a draft ready for review |\n| `cmd+shift+m` | Merge |\n| `tab` | All, Mine, Review requested, Merged |\n\n## Issues\n\n| key | does |\n| --- | --- |\n| `enter` | Open the issue |\n| `cmd+c` | Copy its URL |\n| `cmd+shift+x` | Close it |\n| `tab` | All, Assigned, Mentioned, Created |\n\n## Repositories\n\n| key | does |\n| --- | --- |\n| `enter` | Open on GitHub |\n| `cmd+e` | Open the clone in the editor |\n| `cmd+o` | Open the clone's folder |\n| `cmd+shift+c` | Copy the clone URL |\n| `cmd+c` | Copy the URL |\n| `tab` | All, Mine, Starred, Organisation |\n\n## Notifications\n\n| key | does |\n| --- | --- |\n| `enter` | Mark read and open |\n| `cmd+shift+r` | Mark as read |\n| `cmd+shift+a` | Mark all as read |\n| `cmd+c` | Copy its URL |\n\n## Search GitHub\n\n| key | does |\n| --- | --- |\n| `enter` | Open what was found |\n| `cmd+c` | Copy its URL |\n| `tab` | Everything, Issues and PRs, Repositories, Users |",
+          "metadata": [
+            {
+              "label": "Author",
+              "value": "pal"
+            },
+            {
+              "label": "Version",
+              "value": "0.1.0, bundled"
+            },
+            {
+              "label": "Category",
+              "value": "Developer"
+            },
+            {
+              "label": "License",
+              "value": "MIT"
+            },
+            {
+              "label": "Platforms",
+              "value": "macos, linux"
+            },
+            {
+              "label": "Needs",
+              "value": "network, token"
+            },
+            {
+              "label": "Install",
+              "value": "pal install github"
+            },
+            {
+              "label": "Page",
+              "link": {
+                "text": "pal.cagdas.io",
+                "href": "https://pal.cagdas.io/extensions/github"
+              }
+            }
+          ]
+        },
+        "timer": {
+          "markdown": "# Timer\n\nNamed countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette.\n\n## What it does\n\n- One row per timer, most urgent first: `3:12 left, done at 04:41 PM`, `Paused at 41:05`, `Landed 1:35 ago`, with a state tag\n- New timer is a form: `25m`, `90s`, `1h30m` or a bare number of minutes, an optional name, and a checkbox to ring the phone when it lands\n- `enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+d` stops\n- The CLI keeps the timers, so one started in a terminal and one started here are the same list\n- A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; hidden with none\n\n![Every timer with what is left: a landed one, two running, one paused, and New timer last](https://pal.cagdas.io/extensions/timer/screenshots/1-timers.png)\n![New timer: a duration, an optional name, ring the phone when it lands](https://pal.cagdas.io/extensions/timer/screenshots/2-new.png)\n![Pause, add five minutes, or stop a running timer](https://pal.cagdas.io/extensions/timer/screenshots/3-actions.png)\n\n## Timers\n\n| key | does |\n| --- | --- |\n| `enter` | Pause, resume or dismiss |\n| `cmd++` | Add five minutes |\n| `cmd+d` | Stop |",
+          "metadata": [
+            {
+              "label": "Author",
+              "value": "pal"
+            },
+            {
+              "label": "Version",
+              "value": "0.1.0"
+            },
+            {
+              "label": "Category",
+              "value": "Productivity"
+            },
+            {
+              "label": "License",
+              "value": "MIT"
+            },
+            {
+              "label": "Platforms",
+              "value": "macos, linux"
+            },
+            {
+              "label": "Needs",
+              "value": "timer"
+            },
+            {
+              "label": "Install",
+              "value": "pal install timer"
+            },
+            {
+              "label": "Page",
+              "link": {
+                "text": "pal.cagdas.io",
+                "href": "https://pal.cagdas.io/extensions/timer"
+              }
+            }
+          ]
+        },
+        "wordle": {
+          "markdown": "# Wordle\n\nThe five-letter word game in the panel, keyboard only: type a word, Enter submits, the tiles flip. A daily puzzle from the date, practice games on N, the streak and the stats persist.\n\n## What it does\n\n- The board as a view level: letters type into the row, Enter submits, the row flips tile by tile into green, amber and grey; the on-screen keyboard colours as the letters are found\n- A daily puzzle seeded from the date (`daily` setting): opening on a new day starts it, one word a day, the same on every machine\n- `N` for a practice word once the day's puzzle is done (or any time with dailies off, as `cmd+n` mid-game)\n- A word not in the list, or a hard-mode slip, is a red badge over the board; hard mode keeps greens in place and makes ambers count\n- The result view: played, win %, streak and best, the guess distribution as bars, `C` copies the emoji grid for sharing\n- Escape leaves at any point; the game and the stats are there when you come back, across restarts\n- The word lists ship with the extension (public domain sources, see the README); nothing is fetched\n\n![The daily, three guesses in and two letters typed: the keyboard shows what the guesses found](https://pal.cagdas.io/extensions/wordle/screenshots/1-game.png)\n![A word that is not in the list: the badge over the board, the row stays for editing](https://pal.cagdas.io/extensions/wordle/screenshots/2-notice.png)\n![Solved in four: the praise, the stats and the guess distribution, C copies the grid](https://pal.cagdas.io/extensions/wordle/screenshots/3-solved.png)\n\n## wordle\n\n| key | does |\n| --- | --- |\n| `a` | Type a letter |\n| `enter` | Submit the guess |\n| `backspace` | Delete a letter |\n| `c` | Copy the result, once the game is over |\n| `n` | New game, once the game is over |\n| `cmd+n` | New game mid-game, when a practice word can be dropped |",
+          "metadata": [
+            {
+              "label": "Author",
+              "value": "pal"
+            },
+            {
+              "label": "Version",
+              "value": "0.1.0"
+            },
+            {
+              "label": "Category",
+              "value": "Fun"
+            },
+            {
+              "label": "License",
+              "value": "MIT"
+            },
+            {
+              "label": "Platforms",
+              "value": "macos, linux"
+            },
+            {
+              "label": "Needs",
+              "value": "nothing beyond the panel"
+            },
+            {
+              "label": "Install",
+              "value": "pal install wordle"
+            },
+            {
+              "label": "Page",
+              "link": {
+                "text": "pal.cagdas.io",
+                "href": "https://pal.cagdas.io/extensions/wordle"
+              }
+            }
+          ]
+        },
+        "gmail": {
+          "markdown": "# Gmail\n\nYour inbox as rows with the sender, the subject and the snippet; open a message in Gmail, mark it read, search with Gmail's own syntax, browse the labels; an unread count on the bar. One instance per account, each with its own token command; sending only where you turn it on.\n\n## What it does\n\n- Inbox: unread first then recent, each row with the sender's avatar (Gravatar, else the initial on a tinted tile), the subject, the snippet, the labels as chips, a paperclip when there is an attachment, the date\n- Enter opens the message in Gmail at the thread; cmd+Enter marks it read; the pane shows the message as text with the quoted replies folded, the headers and the attachments listed\n- Search Mail as you type with Gmail's own syntax (from:, subject:, has:attachment, newer_than:7d), the results sectioned by label\n- Labels: every label, yours and Gmail's; open it in Gmail or search it here\n- The bar item: the unread count, hidden at zero, refreshed every two minutes and on wake; the popover lists the newest five with Open and Mark as read\n- Two accounts are two instances, each with its own token command, address, palettes and bar item, told apart by the title and the badge on the tile\n- Sending is off per account until you turn it on: with it, Compose and Reply as forms, Drafts to send or discard, Archive and Star on a row. A work account stays read and mark-read only\n- No secret in pal: a command of yours prints the token (gcloud, a helper, a broker), pal keeps it in memory until it expires\n\n![Inbox: unread first, the sender's avatar, the subject and the snippet, the labels, a paperclip, the date](https://pal.cagdas.io/extensions/gmail/screenshots/1-inbox.png)\n![The pane: the message as text, who and when, the labels, the attachments with their sizes](https://pal.cagdas.io/extensions/gmail/screenshots/2-detail.png)\n![Search Mail: Gmail's syntax typed into the panel, the hits sectioned by label](https://pal.cagdas.io/extensions/gmail/screenshots/3-search.png)\n![Labels: yours and Gmail's, Enter opens one in Gmail, cmd+Enter searches it here](https://pal.cagdas.io/extensions/gmail/screenshots/4-labels.png)\n![Compose: to, cc, subject, body, the signature already under it; only with send on](https://pal.cagdas.io/extensions/gmail/screenshots/5-compose.png)\n![Drafts: the recipient and the subject, send or discard after a confirmation](https://pal.cagdas.io/extensions/gmail/screenshots/6-drafts.png)\n\n## Inbox ({instance})\n\n| key | does |\n| --- | --- |\n| `enter` | Open the message in Gmail |\n| `cmd+enter` | Mark as read (Mark as unread on a read row) |\n| `cmd+e` | Archive (send on) |\n| `cmd+s` | Star or unstar (send on) |\n| `cmd+shift+r` | Reply (send on) |\n| `cmd+c` | Copy the link |\n\n## Search Mail ({instance})\n\n| key | does |\n| --- | --- |\n| `enter` | Open the message in Gmail |\n| `cmd+enter` | Mark as read (Mark as unread on a read row) |\n| `cmd+e` | Archive (send on) |\n| `cmd+s` | Star or unstar (send on) |\n| `cmd+shift+r` | Reply (send on) |\n| `cmd+c` | Copy the link |\n\n## Labels ({instance})\n\n| key | does |\n| --- | --- |\n| `enter` | Open the label in Gmail |\n| `cmd+enter` | Search the label here |\n| `cmd+c` | Copy the label name |\n\n## Compose ({instance})\n\n| key | does |\n| --- | --- |\n| `enter` | Open the form; on the form, send |\n\n## Drafts ({instance})\n\n| key | does |\n| --- | --- |\n| `enter` | Open the draft in Gmail |\n| `cmd+enter` | Send the draft, after a confirmation |\n| `cmd+d` | Discard the draft, after a confirmation |",
+          "metadata": [
+            {
+              "label": "Author",
+              "value": "pal"
+            },
+            {
+              "label": "Version",
+              "value": "0.1.0"
+            },
+            {
+              "label": "Category",
+              "value": "Integration"
+            },
+            {
+              "label": "License",
+              "value": "MIT"
+            },
+            {
+              "label": "Platforms",
+              "value": "macos, linux"
+            },
+            {
+              "label": "Needs",
+              "value": "network, token"
+            },
+            {
+              "label": "Install",
+              "value": "pal install gmail"
+            },
+            {
+              "label": "Page",
+              "link": {
+                "text": "pal.cagdas.io",
+                "href": "https://pal.cagdas.io/extensions/gmail"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-browse": {
+      "palette": "store",
+      "keys": [
+        "down*2"
+      ]
+    },
+    "2-detail": {
+      "palette": "store",
+      "keys": [
+        "type:git",
+        "cmd+i"
+      ]
+    },
+    "3-actions": {
+      "palette": "store",
+      "keys": [
+        "down*3",
+        "cmd+k"
+      ]
+    }
+  }
+}

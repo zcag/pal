@@ -1,7 +1,8 @@
 import type { ChangeEvent, RefObject } from "react";
 import { Icon } from "./Icon";
+import { Kbd } from "./Kbd";
 import { keepFocus } from "./keys";
-import type { Filter, Icon as IconSpec } from "./types";
+import type { Filter, Icon as IconSpec, Shortcut } from "./types";
 
 export type SearchProps = {
   value: string;
@@ -21,9 +22,14 @@ export type SearchProps = {
   readOnly?: boolean;
   /** A level with no input at all (a view level): this title stands where the input would, as a navigation title. */
   title?: string;
+  /** Compact mode: the footer's primary action hint ("Open ↵") on the row's right side, since there is no footer; `onHint` runs it on a click. */
+  hint?: { title: string; shortcut?: Shortcut };
+  onHint?: () => void;
+  /** Compact mode: the marked-rows count, where the footer would show it. */
+  count?: number;
 };
 
-export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly, title }: SearchProps) {
+export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading, readOnly, title, hint, onHint, count }: SearchProps) {
   return (
     <div className="pal-search" data-loading={loading || undefined} data-readonly={readOnly || undefined} aria-busy={loading || undefined}>
       {back && (back.onBack ? (
@@ -64,6 +70,12 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
           </select>
           <span className="pal-search__chevron" aria-hidden>⌄</span>
         </label>
+      )}
+      {!!count && <span className="pal-footer__count pal-search__count" aria-live="polite">{count} selected</span>}
+      {hint && (
+        <button type="button" className="pal-footer__hint pal-search__hint" onClick={onHint} onMouseDown={keepFocus} tabIndex={-1}>
+          {hint.title} <Kbd shortcut={hint.shortcut ?? "enter"} />
+        </button>
       )}
     </div>
   );

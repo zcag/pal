@@ -1,7 +1,7 @@
 # Files
 
-Two palettes over the operating system's own file index, never a walk pal
-indexes itself.
+Three palettes: two over the operating system's own file index, never a
+walk pal indexes itself, and one that browses a folder.
 
 **Files** is an input palette: what you type is a name search on every
 keystroke. The row is the file name; the parent folder is the subtitle
@@ -18,6 +18,18 @@ used in the last seven days within the configured folders, newest first
 `~/.local/share/recently-used.xbel`), listed again on a show once the
 listing is a minute old, with the same actions and detail pane. Folders,
 hidden and excluded paths and files that are gone are left out.
+
+**Browse Folder** is where Enter (or `→`) on any folder row leads: a level
+whose crumb is the folder, a `..` row first (Enter, `←` or Backspace on it,
+or `←`/Backspace from anywhere in the level while nothing is typed, goes
+up), then the entries under the dropdown's sort: **Name** (folders first,
+then files, case-insensitive), **Date** (newest first, mixed) or **Size**
+(largest first, folders last); typing filters by name. Pictures draw their
+own thumbnail, `cmd+.` shows or hides dot entries (it flips the
+`show_hidden` setting), and a folder over 500 entries shows that many and
+a row counting the rest. File rows have the same actions as search rows.
+Inside Files a typed path ending in `/` (`~/`, `/usr/local/`) lists that
+folder the same way; without the slash it completes the last segment.
 
 ## Backends
 
@@ -39,7 +51,11 @@ the answer (Spotlight, locate).
 
 | keys | action |
 | --- | --- |
-| `enter` | Open with the system opener |
+| `enter` | Open with the system opener; on a folder, browse it |
+| `right` | Browse the folder under the cursor (while nothing is typed) |
+| `left`, `backspace` | In a browsed folder: go up (while nothing is typed) |
+| `tab` | In a browsed folder: cycle the sort (name, date, size) |
+| `cmd+.` | In a browsed folder: show or hide hidden files |
 | `cmd+enter` | Reveal in Finder (`open -R`), Show in file manager on Linux (`xdg-open` on the parent folder) |
 | `cmd+y` | Quick Look (`qlmanage -p`), macOS only |
 | `cmd+o` | Open with…: a level listing the apps registered for the file, the default first with a `Default` tag; typing narrows them, Enter opens the file with that app |

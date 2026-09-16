@@ -19,6 +19,7 @@ platform's primary modifier: `⌘` on macOS, `Ctrl` on Linux.
 | `shift+↓`, `shift+↑` | In a list, mark the row under the cursor and move (a view's own action first); `escape` clears the marks before the query |
 | `cmd`-click | Mark or unmark one row |
 | `tab`, `x` | In a palette that opts in (`multi`: Files, Windows, `pal pick --multi`; none has a filter dropdown), mark the row and step down; `x` only while nothing is typed, so a name can still be searched |
+| `→`, `←`, `backspace` | In a list while nothing is typed: the row's action carrying that key (a folder's Browse on `→`; `←` and `backspace` also reach the `..` row's Go up from anywhere in a browsed folder). With text in the box the arrows move the caret as usual |
 
 Notes from the same file:
 
@@ -44,7 +45,8 @@ the action panel, with a shortcut (`app/src/Launcher.tsx`).
 | `cmd+,` | Open Settings | the root |
 | `cmd+r` | Refresh everything (root) or Refresh (palette) | the root, or an indexed palette |
 | `cmd+shift+b` | Browse (palette): drill into the palette a result came from | the root |
-| `cmd+i` | Show details / Hide details | everywhere |
+| `cmd+i` | Show details / Hide details | everywhere but compact mode |
+| `cmd+shift+m` | Compact panel / Full panel: flips `general.compact` ([Config](config.md#general)) | the root, a palette |
 
 Palette actions carry their own (`cmd+c` Copy link in bookmarks, `cmd+p`
 Pin in clipboard history, ...); the action panel lists them next to each

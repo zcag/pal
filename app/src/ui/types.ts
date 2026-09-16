@@ -82,7 +82,7 @@ export type Item = {
   /** The root section the row goes under instead of its palette's ("Frequent", "Now", "Use “q” with"). */
   group?: string;
   /** A row that opens a palette (a fallback "Ask" row): the level to push, with `query` typed into it; no pick is sent. */
-  push?: { extension: string; palette: string; args?: unknown; query?: string };
+  push?: { extension: string; palette: string; args?: unknown; query?: string; /** The level's crumb, in place of the palette's title. */ title?: string };
 };
 
 /** Match positions per field, as fzf reports them (character indexes). */

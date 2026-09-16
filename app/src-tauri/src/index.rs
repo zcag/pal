@@ -236,16 +236,23 @@ pub fn flush(app: &AppHandle) {
 /// or not, so the settings window can show one whose code failed.
 pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: &Value) {
     match method {
+        // `extension` is the instance key (`gmail@work`, or the name for
+        // the default and for a non-`multi` extension); `name` and
+        // `instance` say which extension and which copy (settings.rs
+        // `register` keeps them). The registry's title stays the
+        // extension's ("Gmail": the palette row's subtitle); the palette
+        // titles the host sends already carry the instance's.
         "extension/loaded" => {
             let ext = params["extension"].as_str().unwrap_or_default().to_string();
             let metas = match serde_json::from_value::<Vec<PaletteMeta>>(params["palettes"].clone()) {
                 Ok(m) => m,
                 Err(e) => return eprintln!("index\t{ext}\tbad palettes\t{e}"),
             };
-            let title = params["manifest"]["title"].as_str().unwrap_or(&ext).to_string();
+            let name = params["name"].as_str().unwrap_or(pal_core::config::instance::name_of(&ext));
+            let title = params["manifest"]["title"].as_str().unwrap_or(name).to_string();
             settings::register(app, &ext, params, true);
-            // Its bar items: the manifest's `bar` merged with the code's keys by the host.
-            crate::bar::on_extension_loaded(app, &ext, crate::bar::manifest_bars(&params["bar"]));
+            // Its bar items: the manifest's `bar` merged with the code's keys by the host; the instance's label rides on the tooltip.
+            crate::bar::on_extension_loaded(app, &ext, crate::bar::manifest_bars(&params["bar"]), settings::instance_label(app, &ext));
             // A reloaded module hears about its levels already open (a lyrics view up while its file was saved).
             crate::views::resend(app, &ext);
             tauri::async_runtime::spawn(sync_extension(app.clone(), host.clone(), ext, title, metas));
@@ -555,8 +562,15 @@ pub async fn apply_config(app: AppHandle, host: Arc<Host>, prev: Config, next: C
     let changed = settings::changed_extensions(&app, &prev, &next);
     let ids = |v: &[Source]| v.iter().map(palette_id).collect::<Vec<_>>().join(",");
     let on_sources: Vec<Source> = on.iter().map(|(s, _)| s.clone()).collect();
-    eprintln!("config\tapplied\toff=[{}] on=[{}] settings=[{}]", ids(&off), ids(&on_sources), changed.join(","));
+    let instances = settings::changed_instances(&prev, &next);
+    eprintln!("config\tapplied\toff=[{}] on=[{}] settings=[{}] instances=[{}]", ids(&off), ids(&on_sources), changed.join(","), instances.join(","));
     settings::push(&app, &host, &changed).await;
+    // `[instances.*]` of an extension moved: the host reloads every instance of it (one added, removed, parked or retitled).
+    for name in &instances {
+        if let Err(e) = host.notify("instances/changed", serde_json::json!({ "extension": name })).await {
+            eprintln!("config\tinstances/changed\t{name}\tfailed\t{e}");
+        }
+    }
     crate::bar::on_settings_changed(&app, &changed);
     for (source, meta) in on {
         list_palette(&app, &host, &source, &meta, "config").await;
