@@ -1,5 +1,6 @@
 import type { ChangeEvent, RefObject } from "react";
 import { Icon } from "./Icon";
+import { keepFocus } from "./keys";
 import type { Filter, Icon as IconSpec } from "./types";
 
 export type SearchProps = {
@@ -10,17 +11,19 @@ export type SearchProps = {
   /** Shown when a level is pushed: a back chevron and the level's title. */
   back?: { title: string; icon?: IconSpec; onBack: () => void };
   filter?: Filter;
-  /** The listbox this input drives, for aria-controls / aria-activedescendant. */
+  /** The listbox (or grid) this input drives, for aria-controls / aria-activedescendant. */
   listId?: string;
   activeId?: string;
+  /** What `listId` is; a Grid says "grid". */
+  popup?: "listbox" | "grid";
   loading?: boolean;
 };
 
-export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, loading }: SearchProps) {
+export function Search({ value, onChange, placeholder = "Search…", inputRef, back, filter, listId, activeId, popup = "listbox", loading }: SearchProps) {
   return (
-    <div className="pal-search" data-loading={loading || undefined}>
+    <div className="pal-search" data-loading={loading || undefined} aria-busy={loading || undefined}>
       {back && (
-        <button type="button" className="pal-search__back" onClick={back.onBack} aria-label={`Back from ${back.title}`} tabIndex={-1}>
+        <button type="button" className="pal-search__back" onClick={back.onBack} onMouseDown={keepFocus} aria-label={`Back from ${back.title}`} tabIndex={-1}>
           <span className="pal-search__chevron" aria-hidden>‹</span>
           {back.icon && <Icon icon={back.icon} size="sm" />}
           <span className="pal-search__crumb">{back.title}</span>
@@ -32,6 +35,7 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
         type="text"
         role="combobox"
         aria-expanded={!!listId}
+        aria-haspopup={popup}
         aria-controls={listId}
         aria-activedescendant={activeId}
         aria-autocomplete="list"

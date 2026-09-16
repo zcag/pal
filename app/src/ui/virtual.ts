@@ -1,5 +1,5 @@
 /** Shared bits of the virtualised List and Grid. */
-import { useLayoutEffect, useState, type RefObject } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type MouseEvent, type RefObject } from "react";
 import type { Item } from "./types";
 
 export type FlatRow<T> =
@@ -30,19 +30,38 @@ export function flatten<T extends { section?: string }>(items: T[], per = 1) {
   return { rows, rowOf };
 }
 
-export type Metrics = { row: number; header: number; pad: number };
+export type Metrics = { row: number; header: number; pad: number; gap: number };
 
 const px = (el: Element, name: string, fallback: number) =>
   parseFloat(getComputedStyle(el).getPropertyValue(name)) || fallback;
 
 /** Row sizes from the tokens, read off the scroller so the virtualiser and the CSS agree. */
 export function useMetrics(scroller: RefObject<HTMLElement | null>): Metrics {
-  const [m, setM] = useState<Metrics>({ row: 40, header: 28, pad: 8 });
+  const [m, setM] = useState<Metrics>({ row: 40, header: 28, pad: 8, gap: 8 });
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (el) setM({ row: px(el, "--pal-row-h", 40), header: px(el, "--pal-section-h", 28), pad: px(el, "--pal-space-2", 8) });
+    if (el) setM({ row: px(el, "--pal-row-h", 40), header: px(el, "--pal-section-h", 28), pad: px(el, "--pal-space-2", 8), gap: px(el, "--pal-grid-gap", 8) });
   }, [scroller]);
   return m;
+}
+
+/**
+ * Hover moves the cursor only when the pointer really moves, as in Raycast:
+ * `mousemove` also fires with the pointer still when the list scrolls under
+ * it, and when the browser re-syncs hover after a keyboard scroll, and those
+ * must not fight the arrow keys. `hovered()` answers once, right after a
+ * hover set the cursor, so the scroll-into-view effect can sit that one out.
+ */
+export function useHover(cursor: number, onCursor: (index: number) => void) {
+  const m = useRef({ x: NaN, y: NaN, by: -1 });
+  const hover = (index: number) => (e: MouseEvent) => {
+    const s = m.current;
+    if (e.clientX === s.x && e.clientY === s.y) return;
+    s.x = e.clientX; s.y = e.clientY;
+    if (index !== cursor) { s.by = index; onCursor(index); }
+  };
+  const hovered = useCallback(() => { const hit = m.current.by === cursor; m.current.by = -1; return hit; }, [cursor]);
+  return { hover, hovered };
 }
 
 /** Sort a hit list so sections are contiguous, in order of first appearance. */

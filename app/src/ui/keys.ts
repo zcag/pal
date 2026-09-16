@@ -90,8 +90,20 @@ export function resolve(e: KeyboardEvent): Command | null {
   return null;
 }
 
-const isEditable = (el: Element | null) =>
-  !!el && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement || (el as HTMLElement).isContentEditable);
+const isEditable = (el: EventTarget | null) =>
+  el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement || (el instanceof HTMLElement && el.isContentEditable);
+
+/**
+ * `onMouseDown` for rows, tiles, hint buttons and overlay cards: a click on
+ * them must not pull focus off the search input (or an overlay's own field),
+ * so the next keystroke still lands where it did before the click.
+ */
+export const keepFocus = (e: { target: EventTarget | null; preventDefault(): void }) => {
+  if (!isEditable(e.target)) e.preventDefault();
+};
+
+/** Only cursor movement should repeat while a key is held; Enter, Escape and shortcuts fire once. */
+const repeats = (cmd: Command) => cmd.type === "move" || cmd.type === "jump";
 
 type Options = {
   /** Element to listen on; the window when absent. Element scopes swallow handled keys. */
@@ -108,7 +120,10 @@ export function useKeys(handlers: Handlers, { scope, input }: Options = {}) {
     const local = target !== window;
     const onKey = (ev: Event) => {
       const e = ev as KeyboardEvent;
+      // Mid-composition (Turkish dead keys, CJK) the keys belong to the IME: Enter commits, arrows pick a candidate.
+      if (e.isComposing || e.keyCode === 229) return;
       const cmd = resolve(e);
+      if (cmd && e.repeat && !repeats(cmd)) { e.preventDefault(); if (local) e.stopPropagation(); return; }
       const handler = cmd && ref.current[cmd.type];
       const result = handler ? handler(cmd as never) : false;
       if (result !== false) {
@@ -118,9 +133,9 @@ export function useKeys(handlers: Handlers, { scope, input }: Options = {}) {
       }
       const field = input?.current;
       if (!field || cmd || e.metaKey || e.ctrlKey) return;
+      // Typing with nothing focused goes to the search input, unless an overlay or form (a key scope) is up: its own fields own the keys.
       const typing = e.key.length === 1 || e.key === "Backspace";
-      const inOverlay = (e.target as Element | null)?.closest?.("[data-keyscope]");
-      if (typing && !inOverlay && !isEditable(document.activeElement)) field.focus();
+      if (typing && !isEditable(document.activeElement) && !document.querySelector("[data-keyscope]")) field.focus();
     };
     target.addEventListener("keydown", onKey);
     return () => target.removeEventListener("keydown", onKey);

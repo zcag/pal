@@ -1,16 +1,20 @@
 import { useMemo } from "react";
-import { Marked } from "marked";
+import { Marked, Renderer, type Tokens } from "marked";
 import { Tag } from "./Row";
 import type { Detail as DetailSpec, Metadata } from "./types";
 
-// Raw HTML is dropped (extensions describe UI, never HTML); links open outside the panel.
+const unsafeScheme = /^\s*(javascript|data|vbscript):/i;
+
+// Raw HTML is dropped (extensions describe UI, never HTML); links open outside the panel, script-ish ones become text.
 const md = new Marked({
   gfm: true,
   breaks: true,
   renderer: {
     html: () => "",
-    link({ href, text }) {
-      return `<a href="${href}" target="_blank" rel="noreferrer">${text}</a>`;
+    link(this: Renderer, token: Tokens.Link) {
+      if (unsafeScheme.test(token.href)) return this.parser.parseInline(token.tokens);
+      // The stock renderer escapes href and title; only the attributes are ours.
+      return Renderer.prototype.link.call(this, token).replace(/^<a /, '<a target="_blank" rel="noreferrer" ');
     },
   },
 });

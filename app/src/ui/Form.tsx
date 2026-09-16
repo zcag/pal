@@ -17,7 +17,8 @@ const initial = (fields: FormField[]): FormValues =>
 /**
  * A prompt with fields. Enter submits from any field but a textarea, where
  * cmd+enter does; Escape cancels; Tab, arrows, Home/End and cmd+backspace
- * stay native inside the fields and never reach the launcher behind.
+ * stay native inside the fields and never reach the launcher behind, nor do
+ * cmd+1..9 and cmd+i, which would move or open things under the form.
  */
 export function Form({ title, fields, submitTitle = "Submit", onSubmit, onCancel }: FormProps) {
   const root = useRef<HTMLFormElement>(null);
@@ -36,13 +37,15 @@ export function Form({ title, fields, submitTitle = "Submit", onSubmit, onCancel
       jump: native,
       filter: native,
       back: native,
+      jumpTo: () => {},
+      detail: () => {},
     },
     { scope: root },
   );
 
   return (
-    <form ref={root} className="pal-form" data-keyscope onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label={title}>
-      {title && <h2 className="pal-form__title">{title}</h2>}
+    <form ref={root} className="pal-form" data-keyscope onSubmit={(e) => { e.preventDefault(); submit(); }} aria-labelledby={title ? "pal-form-title" : undefined}>
+      {title && <h2 id="pal-form-title" className="pal-form__title">{title}</h2>}
       {fields.map((f) => (
         <label key={f.id} className="pal-field" data-kind={f.kind}>
           <span className="pal-field__label">{f.label}</span>

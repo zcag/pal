@@ -1,5 +1,6 @@
 import { Icon } from "./Icon";
 import { Kbd } from "./Kbd";
+import { keepFocus } from "./keys";
 import type { Icon as IconSpec } from "./types";
 
 export type FooterProps = {
@@ -15,7 +16,7 @@ export type FooterProps = {
 
 export function Footer({ icon, title, primary, actions, onActions, onPrimary }: FooterProps) {
   return (
-    <div className="pal-footer">
+    <div className="pal-footer" onMouseDown={keepFocus}>
       <div className="pal-footer__context">
         {icon && <Icon icon={icon} size="sm" />}
         {title && <span className="pal-footer__title">{title}</span>}
@@ -27,7 +28,7 @@ export function Footer({ icon, title, primary, actions, onActions, onPrimary }: 
           </button>
         )}
         {actions && (
-          <button type="button" className="pal-footer__hint" onClick={onActions} tabIndex={-1}>
+          <button type="button" className="pal-footer__hint" onClick={onActions} tabIndex={-1} aria-haspopup="dialog">
             Actions <Kbd shortcut="cmd+k" />
           </button>
         )}

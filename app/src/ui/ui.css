@@ -17,10 +17,12 @@
   font-weight: var(--pal-weight-regular, 400);
   line-height: var(--pal-leading-ui, 1.25);
 }
-.pal-panel__search { flex: none; border-bottom: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
+.pal-panel__search { position: relative; flex: none; border-bottom: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-panel__body { flex: 1; display: flex; min-height: 0; }
-.pal-panel__main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.pal-panel__body[data-split] .pal-panel__main { flex: 0 0 var(--pal-list-w-split, 296px); }
+/* Detail pane open / close: the list narrows over --pal-dur-slow (brief: a layout change wants continuity); the pane fades in over the same time. */
+.pal-panel__main { flex: none; width: 100%; display: flex; flex-direction: column; min-width: 0; min-height: 0; transition: width var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
+.pal-panel__body[data-split] .pal-panel__main { width: var(--pal-list-w-split, 296px); }
+.pal-panel__aside { animation: pal-fade var(--pal-dur-slow, 180ms) var(--pal-ease, ease); }
 .pal-panel__aside { flex: 1; min-width: 0; border-left: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); overflow-y: auto; }
 .pal-panel__footer { flex: none; border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 
@@ -81,11 +83,10 @@
   content: "";
   position: absolute;
   left: 0; right: 0; bottom: -1px;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(90deg, transparent, var(--pal-accent, #9f97ff), transparent);
-  animation: pal-sweep 1.2s var(--pal-ease, ease) infinite;
+  animation: pal-sweep 1.1s var(--pal-ease, ease) infinite;
 }
-.pal-panel__search { position: relative; }
 @keyframes pal-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
 /* List / grid */
@@ -117,7 +118,11 @@
   cursor: default;
 }
 .pal-row[data-active] { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
+.pal-row .pal-icon[data-kind="glyph"], .pal-row .pal-icon__globe, .pal-action .pal-icon[data-kind="glyph"] { color: var(--pal-fg-muted, #a3a4ae); }
+.pal-row[data-active] .pal-icon, .pal-action[data-active] .pal-icon { color: var(--pal-fg, #ececf0); }
+/* A long title leaves the subtitle a third of the row; alone it may take it all. */
 .pal-row__title { flex: 0 1 auto; max-width: 65%; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pal-row__title[data-solo] { max-width: none; }
 .pal-row__sub { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
 .pal-row__accs { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: var(--pal-row-gap, 12px); }
 .pal-acc { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); }
@@ -147,8 +152,18 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-tag[data-color="teal"] { --tag: var(--pal-tag-teal); --tag-bg: var(--pal-tag-teal-bg); }
 .pal-tag[data-color="custom"] { --tag-bg: color-mix(in srgb, var(--tag) 18%, transparent); }
 
-.pal-grid__row { display: grid; grid-template-columns: repeat(var(--cols, 6), 1fr); gap: var(--pal-grid-gap, 8px); }
-.pal-tile { display: flex; flex-direction: column; gap: var(--pal-space-1, 4px); min-width: 0; cursor: default; }
+/* Rows measure themselves (the tile follows the column width); the row gap is the row's own bottom padding so it is measured too. */
+.pal-grid__row { display: grid; grid-template-columns: repeat(var(--cols, 6), 1fr); column-gap: var(--pal-grid-gap, 8px); padding-bottom: var(--pal-grid-gap, 8px); }
+.pal-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pal-space-1, 4px);
+  min-width: 0;
+  padding: var(--pal-space-1, 4px) var(--pal-space-3, 12px);
+  border-radius: var(--pal-radius-row, 8px);
+  cursor: default;
+}
+.pal-tile[data-active] { background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
 .pal-tile__box {
   position: relative;
   display: flex;
@@ -157,10 +172,9 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   width: 100%;
   border-radius: var(--pal-radius-tile, 10px);
   background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3));
-  border: 2px solid transparent;
 }
-.pal-tile[data-active] .pal-tile__box { border-color: var(--pal-accent, #9f97ff); background: var(--pal-selection, rgba(255, 255, 255, 0.09)); }
-.pal-tile__label { height: calc(var(--pal-section-h, 28px) - var(--pal-space-1, 4px)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: var(--pal-text-xs, 11px); color: var(--pal-fg-muted, #a3a4ae); }
+/* The caption may run wider than the tile, to the cell's edge less a hair (the brief's 72 in 80). */
+.pal-tile__label { margin: 0 calc(var(--pal-space-1, 4px) - var(--pal-space-3, 12px)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: var(--pal-text-xs, 11px); color: var(--pal-fg-muted, #a3a4ae); }
 .pal-tile[data-active] .pal-tile__label { color: var(--pal-fg, #ececf0); }
 .pal-tile__ordinal { position: absolute; top: var(--pal-space-1, 4px); right: var(--pal-space-1, 4px); }
 
@@ -214,7 +228,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-md hr { border: 0; border-top: 1px solid var(--pal-line, rgba(255, 255, 255, 0.08)); }
 
 /* Action panel */
-.pal-scrim { position: absolute; inset: 0; background: var(--pal-scrim, rgba(0, 0, 0, 0.4)); border-radius: inherit; }
+.pal-scrim { position: absolute; inset: var(--pal-search-h, 52px) 0 0; background: var(--pal-scrim, rgba(0, 0, 0, 0.4)); animation: pal-fade var(--pal-dur-base, 120ms) var(--pal-ease, ease); }
+.pal-panel[data-footer] .pal-scrim { bottom: var(--pal-footer-h, 36px); }
 .pal-actions {
   position: absolute;
   right: var(--pal-space-2, 8px);
@@ -227,7 +242,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   border-radius: var(--pal-radius-popover, 12px);
   box-shadow: var(--pal-shadow-popover, 0 0 0 1px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.6));
   overflow: hidden;
-  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease-out);
+  transform-origin: 100% 100%;
+  animation: pal-pop var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-actions__list { flex: 1; min-height: 0; overflow-y: auto; padding: var(--pal-space-2, 8px); }
 .pal-actions__title { padding: var(--pal-space-1, 4px) var(--pal-space-2, 8px) var(--pal-space-2, 8px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-medium, 500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -375,7 +391,7 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   background: var(--pal-bg-elevated, #26262d);
   border-radius: var(--pal-radius-popover, 12px);
   box-shadow: var(--pal-shadow-popover, 0 0 0 1px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.6));
-  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease-out);
+  animation: pal-pop-centred var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-confirm__title { font-size: var(--pal-text-md, 13px); font-weight: var(--pal-weight-medium, 500); }
 /* Scoped: settings.css has a text-coloured destructive button. */
@@ -397,12 +413,12 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   box-shadow: var(--pal-shadow-popover, 0 0 0 1px rgba(0, 0, 0, 0.5), 0 8px 24px -8px rgba(0, 0, 0, 0.6));
   font-size: var(--pal-text-sm, 12px);
   white-space: nowrap;
-  animation: pal-rise var(--pal-dur-slow, 180ms) var(--pal-ease, ease-out);
+  animation: pal-rise var(--pal-dur-slow, 180ms) var(--pal-ease, ease);
 }
 .pal-toast__mark { flex: none; display: inline-flex; width: 1.2em; justify-content: center; }
 .pal-toast[data-style="success"] .pal-toast__mark { color: var(--pal-success, #4fc98a); }
 .pal-toast[data-style="failure"] .pal-toast__mark { color: var(--pal-destructive, #ff6e66); }
-.pal-toast__message { color: var(--pal-fg-muted, #a3a4ae); overflow: hidden; text-overflow: ellipsis; }
+.pal-toast__message { min-width: 0; color: var(--pal-fg-muted, #a3a4ae); overflow: hidden; text-overflow: ellipsis; }
 .pal-spinner {
   display: inline-block;
   width: 0.9em;
@@ -413,7 +429,11 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   animation: pal-spin 0.8s linear infinite;
 }
 @keyframes pal-spin { to { transform: rotate(360deg); } }
-@keyframes pal-rise { from { opacity: 0; transform: translateY(4px); } }
+/* Entrances from the brief's motion table. Exits need the element kept mounted while it fades; the shell unmounts on close, so those wait on it. */
+@keyframes pal-fade { from { opacity: 0; } }
+@keyframes pal-rise { from { opacity: 0; transform: translateY(6px); } }
+@keyframes pal-pop { from { opacity: 0; transform: scale(0.98); } }
+@keyframes pal-pop-centred { from { opacity: 0; transform: translate(-50%, -50%) scale(0.98); } }
 
 /* HUD */
 .pal-hud {
@@ -429,10 +449,11 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
   font-family: var(--pal-font-ui, -apple-system, system-ui, sans-serif);
   font-size: var(--pal-text-lg, 15px);
   white-space: nowrap;
-  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease-out);
+  animation: pal-rise var(--pal-dur-base, 120ms) var(--pal-ease, ease);
 }
 .pal-hud .pal-icon { color: var(--pal-success, #4fc98a); }
 
+/* tokens.css zeroes every --pal-dur-* under reduced motion; the loops here have their own durations. */
 @media (prefers-reduced-motion: reduce) {
-  .pal-toast, .pal-hud, .pal-actions, .pal-search[data-loading]::after { animation: none; }
+  .pal-search[data-loading]::after { animation: none; }
 }

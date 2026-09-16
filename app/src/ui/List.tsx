@@ -1,8 +1,8 @@
-import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, type MouseEvent } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Row } from "./Row";
 import { useCmdHeld } from "./keys";
-import { domId, flatten, useMetrics } from "./virtual";
+import { domId, flatten, useHover, useMetrics } from "./virtual";
 import type { Item, Match } from "./types";
 
 export type Hit = { item: Item; match?: Match };
@@ -20,16 +20,18 @@ export type ListProps = {
 
 /**
  * Virtualised list with section headers. Items are shown in the order given;
- * a `section` change starts a new header (see `groupBySection`).
+ * a `section` change starts a new header (see `groupBySection`). Headers
+ * scroll with the rows, as in Raycast: a sticky one would sit over the
+ * cursor row whenever the cursor is the first in its section.
  */
 export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item)), [hits]);
   const cmdHeld = useCmdHeld();
-  const mouse = useRef({ x: 0, y: 0, hovered: false });
+  const { hover, hovered } = useHover(cursor, onCursor);
 
-  // A fresh key function whenever rows or sizes change makes the virtualiser re-estimate.
+  // The virtualiser caches sizes per key function: a new one when rows or sizes change drops the cache.
   const getItemKey = useCallback((i: number) => (rows[i].kind === "header" ? `h${i}` : i), [rows, metrics]);
   const virt = useVirtualizer({
     count: rows.length,
@@ -45,21 +47,14 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
 
   useImperativeHandle(ref, () => ({ pageSize: () => Math.max(1, Math.floor((scroller.current?.clientHeight ?? 0) / metrics.row) - 1) }), [metrics.row]);
 
-  // Keep the cursor in view when it moves or the rows change; a hover never scrolls.
+  // Keep the cursor in view when it moves or the rows change; `align: auto` is a no-op while it is already visible. A hover never scrolls.
   useLayoutEffect(() => {
-    if (mouse.current.hovered) { mouse.current.hovered = false; return; }
+    if (hovered()) return;
     const row = rowOf[cursor];
     if (row === undefined) return;
     virt.scrollToIndex(row, { align: "auto" });
     if (rows[row - 1]?.kind === "header") virt.scrollToIndex(row - 1, { align: "auto" });
-  }, [cursor, rows, rowOf, virt]);
-
-  const hover = (index: number) => (e: MouseEvent) => {
-    const m = mouse.current;
-    if (e.clientX === m.x && e.clientY === m.y) return; // the list scrolled under a still pointer
-    m.x = e.clientX; m.y = e.clientY;
-    if (index !== cursor) { m.hovered = true; onCursor(index); }
-  };
+  }, [cursor, rows, rowOf, virt, hovered]);
 
   return (
     <div ref={scroller} className="pal-list" role="listbox" id={id} aria-label={label} aria-activedescendant={hits.length ? domId(id, cursor) : undefined}>
