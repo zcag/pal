@@ -1,0 +1,18 @@
+{
+  "name": "browser-tabs",
+  "title": "Browser Tabs",
+  "description": "Every open tab of your browsers with its favicon. Enter switches to it; close, mute and copy from the action panel.",
+  "version": "0.1.0",
+  "icon": "◍",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "number", "id": "port", "label": "DevTools port", "description": "The --remote-debugging-port of a Chromium browser (Chrome, Brave, Edge, Chromium). When something listens there its tabs come over the DevTools protocol, with playing and muted state; otherwise the browsers below are asked.", "min": 1, "max": 65535, "default": 9222 },
+    { "kind": "list", "id": "apps", "label": "Scriptable browsers", "description": "macOS only: browsers asked over AppleScript when they are running, by app name. A Chromium browser already on the DevTools port is skipped.", "placeholder": "Safari", "default": ["Safari", "Google Chrome"] },
+    { "kind": "boolean", "id": "firefox", "label": "Firefox", "text": "List Firefox tabs from its session file", "description": "Read-only: Firefox has no scripting interface, so Focus only raises its window.", "default": true },
+    { "kind": "path", "id": "firefox_session", "label": "Firefox session file", "description": "A sessionstore-backups/recovery.jsonlz4; empty finds the most recent profile's.", "pick": "file", "default": "" }
+  ],
+  "palettes": {
+    "tabs": { "description": "Open tabs across Chrome, Safari and Firefox." }
+  }
+}

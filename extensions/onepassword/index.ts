@@ -1,0 +1,167 @@
+// 1Password over the `op` CLI (ported from v1's `op` palette). One `op item
+// list --format json` per listing, kept for `ttl` seconds so the per-vault
+// filters and a Refresh inside the ttl do not ask the CLI (and its biometric
+// prompt) again. A secret is only ever fetched on a pick, straight from
+// `op item get`, and goes to the clipboard: it is never in a row, a log or
+// the index. Signed out (or no account set up) is one hint row telling how
+// to sign in; a missing CLI is one pointing at the install page. The
+// unlock prompt, when the desktop app integration is on, is the CLI's own.
+import { existsSync } from "node:fs";
+import { settings, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
+
+/** `[extensions.onepassword]`, defaults in pal.json. */
+type Settings = { account: string; vaults: string[]; ttl: number };
+
+/** `op item list --format json`, the fields used here. */
+type OpItem = { id: string; title: string; category: string; vault: { id: string; name: string }; additional_information?: string; urls?: { href: string; primary?: boolean }[]; favorite?: boolean; tags?: string[]; updated_at?: string };
+type OpAccount = { url?: string; email?: string; user_uuid?: string; account_uuid?: string; shorthand?: string };
+
+const ICON = "⚿";
+const INSTALL_URL = "https://developer.1password.com/docs/cli/get-started/";
+const SIGNIN_URL = "https://developer.1password.com/docs/cli/sign-in-manually/";
+/** The app under launchd has a bare PATH; where the CLI's installers put it. */
+const OP_FALLBACKS = ["/opt/homebrew/bin/op", "/usr/local/bin/op", "/usr/bin/op"];
+/** One CLI call at most; a biometric prompt left unanswered stops here. */
+const OP_MS = 60_000;
+
+const CATEGORY_ICON: Record<string, string> = {
+  LOGIN: "⚿", PASSWORD: "⚿", SECURE_NOTE: "≡", CREDIT_CARD: "▭", BANK_ACCOUNT: "▭", IDENTITY: "◉", SSH_KEY: "⌥",
+  API_CREDENTIAL: "⌘", DATABASE: "▤", SERVER: "▤", WIRELESS_ROUTER: "◠", MEMBERSHIP: "★", SOFTWARE_LICENSE: "⌗", DOCUMENT: "▱",
+};
+const category = (c: string) => c.toLowerCase().replace(/_/g, " ");
+
+const ACTIONS: Action[] = [
+  { id: "password", title: "Copy password" },
+  { id: "username", title: "Copy username", shortcut: "cmd+u" },
+  { id: "otp", title: "Copy one-time code", shortcut: "cmd+t" },
+  { id: "open", title: "Open in 1Password", shortcut: "cmd+o" },
+];
+
+const opPath = (): string | undefined => Bun.which("op") ?? OP_FALLBACKS.find((p) => existsSync(p));
+
+/** One `op` invocation; the message of a failure is the CLI's stderr without its `[ERROR] <time>` prefix. */
+async function op(args: string[]): Promise<string> {
+  const bin = opPath();
+  if (!bin) throw new Error("op is not installed");
+  const { account } = settings.get<Settings>();
+  const proc = Bun.spawn([bin, ...args, ...(account ? ["--account", account] : [])], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  const timer = setTimeout(() => proc.kill(), OP_MS);
+  const [code, out, err] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+  clearTimeout(timer);
+  if (code !== 0) throw new Error(err.replace(/^\[ERROR\]\s*[\d/]+\s+[\d:]+\s*/gm, "").trim() || `op exited ${code}`);
+  return out;
+}
+
+const signedOut = (msg: string) => /not (currently )?signed in|no accounts? configured|op signin|account .* not found|session expired/i.test(msg);
+
+// ---- the item list, cached -----------------------------------------------------
+
+let cache: { at: number; items: OpItem[] } | undefined;
+let accounts: OpAccount[] | undefined;
+const byId = new Map<string, OpItem>();
+
+async function items(refresh = false): Promise<OpItem[]> {
+  const { ttl } = settings.get<Settings>();
+  if (!refresh && cache && Date.now() - cache.at < ttl * 1000) return cache.items;
+  const list = JSON.parse(await op(["item", "list", "--format", "json"]) || "[]") as OpItem[];
+  cache = { at: Date.now(), items: list };
+  byId.clear();
+  for (const i of list) byId.set(i.id, i);
+  return list;
+}
+
+/** The account's uuid for the app's `view-item` link: the configured one, else the only one. */
+async function accountUuid(): Promise<string | undefined> {
+  const { account } = settings.get<Settings>();
+  try { accounts ??= JSON.parse(await op(["account", "list", "--format", "json"]) || "[]") as OpAccount[]; } catch { return undefined; }
+  const match = account ? accounts.find((a) => [a.shorthand, a.url, a.account_uuid, a.user_uuid, a.email].includes(account)) : accounts.length === 1 ? accounts[0] : undefined;
+  return match?.account_uuid;
+}
+
+// ---- rows -----------------------------------------------------------------------
+
+const host = (href: string) => { try { return new URL(href.includes("://") ? href : `https://${href}`).hostname.replace(/^www\./, ""); } catch { return href; } };
+
+function item(i: OpItem): Item {
+  const hosts = (i.urls ?? []).map((u) => host(u.href)).filter(Boolean);
+  const primary = (i.urls ?? []).find((u) => u.primary) ?? i.urls?.[0];
+  const accessories: Accessory[] = [];
+  if (i.favorite) accessories.push({ tag: "favorite", color: "amber" });
+  if (hosts[0]) accessories.push({ text: hosts[0] });
+  return {
+    id: i.id,
+    name: i.title,
+    subtitle: [i.vault.name, i.additional_information].filter(Boolean).join(" · "),
+    icon: CATEGORY_ICON[i.category] ?? ICON,
+    keywords: [...new Set([...hosts, i.additional_information ?? "", category(i.category), i.vault.name, ...(i.tags ?? [])].filter(Boolean))],
+    accessories,
+    detail: {
+      metadata: [
+        { label: "Vault", value: i.vault.name },
+        { label: "Category", value: category(i.category) },
+        ...(i.additional_information ? [{ label: "Username", value: i.additional_information }] : []),
+        ...(primary ? [{ label: "Website", link: { text: primary.href, href: primary.href } }] : []),
+        ...(i.tags?.length ? [{ label: "Tags", tags: i.tags.map((t) => ({ text: t })) }] : []),
+        ...(i.updated_at ? [{ label: "Updated", value: new Date(i.updated_at).toLocaleString() }] : []),
+      ],
+    },
+    actions: ACTIONS,
+  };
+}
+
+const hint = (id: string, name: string, subtitle: string, actions: Action[] = []): Item => ({ id, name, subtitle, icon: ICON, actions });
+
+const s0 = settings.get<Settings>();
+const FILTERS = s0.vaults.length ? [{ id: "all", title: "All vaults" }, ...s0.vaults.map((v) => ({ id: v, title: v }))] : undefined;
+
+async function list(filter = "all", refresh = false): Promise<Item[]> {
+  const { vaults } = settings.get<Settings>();
+  if (!opPath()) return [hint("install", "1Password CLI not installed", "The op command line tool is needed; Enter opens the install page.", [{ id: "install", title: "Open install page" }])];
+  let all: OpItem[];
+  try { all = await items(refresh); } catch (e) {
+    const msg = String((e as Error)?.message ?? e);
+    if (signedOut(msg)) return [hint("signin", "Sign in to 1Password", "Run `eval $(op signin)` in a terminal, or turn on the desktop app integration (1Password, Settings, Developer), then refresh with ⌘R.", [{ id: "help", title: "Open sign-in help" }])];
+    return [hint("error", "op failed", msg)];
+  }
+  const wanted = new Set(vaults.map((v) => v.toLowerCase()));
+  const rows = all.filter((i) => (filter !== "all" ? i.vault.name.toLowerCase() === filter.toLowerCase() : wanted.size === 0 || wanted.has(i.vault.name.toLowerCase())));
+  rows.sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+  if (rows.length === 0) return [hint("none", "No items", filter !== "all" ? `Nothing in the vault ${filter}.` : "The account has no items you can see.")];
+  return rows.map(item);
+}
+
+const failed = (what: string, e: unknown) => ({ keep: true as const, toast: { title: `Could not ${what}`, message: String((e as Error)?.message ?? e), style: "failure" as const } });
+
+export default {
+  palettes: {
+    items: {
+      title: "1Password",
+      icon: ICON,
+      ttl: s0.ttl,
+      placeholder: "Search items and websites",
+      ...(FILTERS ? { filters: FILTERS } : {}),
+      list: (_query, ctx) => list(ctx?.filter, ctx?.refresh),
+      pick: async (id, action) => {
+        if (id === "install") return { open: INSTALL_URL };
+        if (id === "signin") return action === "help" ? { open: SIGNIN_URL } : { keep: true };
+        if (id === "error" || id === "none") return { keep: true };
+        switch (action) {
+          case "username": {
+            try { return { copy: (await op(["item", "get", id, "--fields", "label=username", "--reveal"])).trim(), hud: "Copied username" }; } catch (e) { return failed("copy the username", e); }
+          }
+          case "otp": {
+            try { return { copy: (await op(["item", "get", id, "--otp"])).trim(), hud: "Copied one-time code" }; } catch (e) { return failed("copy the one-time code", e); }
+          }
+          case "open": {
+            const i = byId.get(id);
+            const a = await accountUuid();
+            return { open: `onepassword://view-item?i=${encodeURIComponent(id)}${i ? `&v=${encodeURIComponent(i.vault.id)}` : ""}${a ? `&a=${encodeURIComponent(a)}` : ""}` };
+          }
+          default: {
+            try { return { copy: (await op(["item", "get", id, "--fields", "label=password", "--reveal"])).trim(), hud: "Copied password" }; } catch (e) { return failed("copy the password", e); }
+          }
+        }
+      },
+    },
+  },
+} satisfies Extension;

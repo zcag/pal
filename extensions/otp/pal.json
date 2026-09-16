@@ -1,0 +1,18 @@
+{
+  "name": "otp",
+  "title": "Verification Codes",
+  "description": "One-time codes from your recent text messages, newest first. Enter pastes the code into the app in front.",
+  "version": "0.1.0",
+  "icon": "✉",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "number", "id": "hours", "label": "Look back", "description": "How many hours of messages to scan for codes.", "min": 1, "max": 720, "unit": "hours", "default": 24 },
+    { "kind": "list", "id": "senders", "label": "Ignore senders", "description": "Senders whose messages are never listed, as Messages shows them (a shortcode like AKBANK, a number, an email). Case does not matter.", "placeholder": "AKBANK", "default": [] },
+    { "kind": "path", "id": "db", "label": "Messages database", "description": "The chat.db to read. ~ is expanded.", "pick": "file", "default": "~/Library/Messages/chat.db" },
+    { "kind": "path", "id": "contacts", "label": "Contacts database", "description": "An AddressBook-v22.abcddb whose names replace phone numbers; empty means every source under ~/Library/Application Support/AddressBook.", "pick": "file", "default": "" }
+  ],
+  "palettes": {
+    "otp": { "description": "Codes from the last day of messages, Today and Earlier." }
+  }
+}

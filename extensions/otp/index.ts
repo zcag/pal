@@ -1,0 +1,258 @@
+// Verification codes out of Messages (ported from v1's `otp` palette, which
+// read a curated `datak` view; this reads `~/Library/Messages/chat.db`
+// itself). One read-only SQLite query per listing over the last `hours` of
+// incoming messages, a code pulled out of each text that names one, newest
+// first, Today then Earlier. Live: listed again on every show, so the code
+// that just arrived is at the top. Enter pastes the code into the app in
+// front, the other actions copy the code or the sender.
+//
+// The database is behind Full Disk Access on macOS: SQLite answers
+// `SQLITE_AUTH` ("authorization denied") for a process without it, and so
+// does `cp`, so the one hint row points at the Privacy pane. A database
+// SQLite reports locked is copied (with its -wal and -shm) and the copy is
+// read. Linux has no Messages, so the palette is one "Unavailable" row.
+import { Database } from "bun:sqlite";
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { home, settings, type Action, type Extension, type Item } from "@zcag/pal";
+
+/** `[extensions.otp]`, defaults in pal.json. */
+type Settings = { hours: number; senders: string[]; db: string; contacts: string };
+
+type Row = { id: number; text: string | null; body: Uint8Array | null; date: number; sender: string | null; chat: string | null; chat_name: string | null };
+type Code = { id: string; code: string; sender: string; name: string; text: string; at: number };
+
+const MAC = process.platform === "darwin";
+const ICON = "✉";
+/** Rows read per listing at most; the time window bounds it first. */
+const LIMIT = 400;
+/** Seconds between the unix epoch and Apple's (2001-01-01). */
+const APPLE_EPOCH = 978_307_200;
+const FDA_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles";
+const CONTACTS_DIR = "~/Library/Application Support/AddressBook";
+/** Seconds a contacts lookup table is kept. */
+const CONTACTS_TTL = 60;
+
+const ACTIONS: Action[] = [
+  { id: "paste", title: "Paste code" },
+  { id: "copy", title: "Copy code", shortcut: "cmd+c" },
+  { id: "copy-sender", title: "Copy sender", shortcut: "cmd+shift+c" },
+];
+
+// ---- the code in a message ------------------------------------------------
+
+/** Google's `G-123456`; the digits are what the form takes. */
+const GOOGLE = /\bG-(\d{6})\b/;
+/** A run of 4..8 digits that is not part of an amount, a date, a time or a phone number (`1.250,00`, `16.09.2026`, `19:13`, `0850-222`). */
+const DIGITS = /(?<!\d[.,:/-])(?<!\d)\d{4,8}(?![.,:/-]?\d)/g;
+/** Only a message that talks about a code is a code; the word may carry a suffix (kodunuz, şifreniz, verification) but not a prefix (decode). */
+const KEYWORD = /(?<!\p{L})(code|kod|şifre|sifre|otp|pin|parola|password|passcode|doğrulama|dogrulama|verif|c[oó]digo|token|2fa|one-time|tek kullan|security|auth)/giu;
+
+export function extract(text: string): string | undefined {
+  const g = GOOGLE.exec(text);
+  if (g) return g[1];
+  const keys = [...text.matchAll(KEYWORD)].map((m) => m.index!);
+  if (keys.length === 0) return undefined;
+  const near = (i: number) => Math.min(...keys.map((k) => Math.abs(k - i)));
+  const found = [...text.matchAll(DIGITS)].map((m) => ({ code: m[0], score: near(m.index!) + (m[0].length === 6 ? 0 : 1) }));
+  found.sort((a, b) => a.score - b.score);
+  return found[0]?.code;
+}
+
+// ---- reading Messages -------------------------------------------------------
+
+/**
+ * Since Ventura `message.text` is often NULL and the text sits in
+ * `attributedBody`, an NSAttributedString typedstream: the string follows the
+ * `NSString` class name, five bytes of stream framing, and a length that is
+ * one byte, or `0x81` + 2 bytes LE, or `0x82` + 4 bytes LE.
+ */
+export function bodyText(body: Uint8Array | null): string | undefined {
+  if (!body) return undefined;
+  const marker = Buffer.from("NSString");
+  const i = Buffer.from(body).indexOf(marker);
+  if (i < 0) return undefined;
+  let p = i + marker.length + 5;
+  const b = body[p];
+  let len: number;
+  if (b === 0x81) { len = body[p + 1] | (body[p + 2] << 8); p += 3; }
+  else if (b === 0x82) { len = (body[p + 1] | (body[p + 2] << 8) | (body[p + 3] << 16) | (body[p + 4] << 24)) >>> 0; p += 5; }
+  else { len = b; p += 1; }
+  return new TextDecoder().decode(body.subarray(p, p + len));
+}
+
+/** `message.date` is nanoseconds since 2001 on every current macOS, seconds on an old one. */
+const toMs = (d: number) => (d > 1e12 ? d / 1e6 : d * 1000) + APPLE_EPOCH * 1000;
+const fromMs = (ms: number) => (ms - APPLE_EPOCH * 1000) * 1e6;
+
+const QUERY = `
+  SELECT m.ROWID id, m.text, m.attributedBody body, m.date, h.id sender, c.chat_identifier chat, c.display_name chat_name
+  FROM message m
+  LEFT JOIN handle h ON h.ROWID = m.handle_id
+  LEFT JOIN chat_message_join j ON j.message_id = m.ROWID
+  LEFT JOIN chat c ON c.ROWID = j.chat_id
+  WHERE m.is_from_me = 0 AND m.date > ?1
+  ORDER BY m.date DESC
+  LIMIT ?2`;
+
+const sqlite = (e: unknown) => (e as { code?: string })?.code ?? "";
+const locked = (e: unknown) => /SQLITE_BUSY|SQLITE_LOCKED/.test(sqlite(e));
+
+function read(file: string, since: number): Row[] {
+  const db = new Database(file, { readonly: true });
+  try { return db.query<Row, [number, number]>(QUERY).all(fromMs(since), LIMIT * 4); } finally { db.close(); }
+}
+
+/** The database and its journal copied aside, read there, removed: for one SQLite says is locked. */
+function readCopy(file: string, since: number): Row[] {
+  const dir = mkdtempSync(join(tmpdir(), "pal-otp-"));
+  try {
+    for (const suffix of ["", "-wal", "-shm"]) if (existsSync(file + suffix)) copyFileSync(file + suffix, join(dir, "chat.db" + suffix));
+    return read(join(dir, "chat.db"), since);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+// ---- who sent it --------------------------------------------------------------
+
+let contacts: { at: number; names: Map<string, string> } | undefined;
+const digits = (s: string) => s.replace(/\D/g, "");
+/** A phone number keyed by its last ten digits, so `+90 5xx` and `05xx` meet. */
+const phoneKey = (s: string) => digits(s).slice(-10);
+
+/** Names from the Contacts databases (best effort: any failure means numbers stay numbers). */
+function contactNames(setting: string): Map<string, string> {
+  if (contacts && Date.now() - contacts.at < CONTACTS_TTL * 1000) return contacts.names;
+  const names = new Map<string, string>();
+  const files = setting ? [home(setting)] : contactDbs();
+  for (const file of files) {
+    try {
+      const db = new Database(file, { readonly: true });
+      try {
+        const full = (r: { f: string | null; l: string | null; o: string | null }) => [r.f, r.l].filter(Boolean).join(" ") || r.o || "";
+        for (const r of db.query<{ n: string; f: string | null; l: string | null; o: string | null }, []>("SELECT p.ZFULLNUMBER n, r.ZFIRSTNAME f, r.ZLASTNAME l, r.ZORGANIZATION o FROM ZABCDPHONENUMBER p JOIN ZABCDRECORD r ON r.Z_PK = p.ZOWNER").all()) {
+          const name = full(r), key = phoneKey(r.n ?? "");
+          if (name && key.length >= 7 && !names.has(key)) names.set(key, name);
+        }
+        for (const r of db.query<{ n: string; f: string | null; l: string | null; o: string | null }, []>("SELECT e.ZADDRESS n, r.ZFIRSTNAME f, r.ZLASTNAME l, r.ZORGANIZATION o FROM ZABCDEMAILADDRESS e JOIN ZABCDRECORD r ON r.Z_PK = e.ZOWNER").all()) {
+          const name = full(r), key = (r.n ?? "").toLowerCase();
+          if (name && key && !names.has(key)) names.set(key, name);
+        }
+      } finally { db.close(); }
+    } catch { /* no permission, no such file, another schema: numbers stay numbers */ }
+  }
+  contacts = { at: Date.now(), names };
+  return names;
+}
+
+function contactDbs(): string[] {
+  const root = home(CONTACTS_DIR);
+  const out = [join(root, "AddressBook-v22.abcddb")];
+  try { for (const d of readdirSync(join(root, "Sources"))) out.push(join(root, "Sources", d, "AddressBook-v22.abcddb")); } catch { /* none */ }
+  return out.filter((f) => existsSync(f));
+}
+
+/** A number gets its contact's name; a shortcode or an alphanumeric originator is its own name. */
+function senderName(raw: string, names: Map<string, string>): string {
+  if (/^\+?[\d\s()-]{7,}$/.test(raw)) return names.get(phoneKey(raw)) ?? raw;
+  if (raw.includes("@")) return names.get(raw.toLowerCase()) ?? raw;
+  return raw;
+}
+
+// ---- rows -----------------------------------------------------------------------
+
+const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const hint = (id: string, name: string, subtitle: string, actions: Action[] = []): Item => ({ id, name, subtitle, icon: ICON, actions });
+
+/** What `pick` needs per row, from the last listing. */
+const codes = new Map<string, Code>();
+
+function collect(rows: Row[], s: Settings): Code[] {
+  const deny = new Set(s.senders.map((x) => x.trim().toLowerCase()).filter(Boolean));
+  const names = MAC ? contactNames(s.contacts) : new Map<string, string>();
+  const seen = new Set<number>();
+  const out: Code[] = [];
+  for (const r of rows) {
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    const text = oneLine(r.text ?? bodyText(r.body) ?? "");
+    if (!text) continue;
+    const raw = r.sender || r.chat_name || r.chat || "";
+    if (!raw || deny.has(raw.toLowerCase())) continue;
+    const code = extract(text);
+    if (!code) continue;
+    out.push({ id: String(r.id), code, sender: raw, name: senderName(raw, names), text, at: toMs(r.date) });
+  }
+  return out;
+}
+
+function item(c: Code, now: Date): Item {
+  const when = new Date(c.at);
+  return {
+    id: c.id,
+    name: c.name,
+    subtitle: clip(c.text, 140),
+    icon: ICON,
+    keywords: [c.code, c.sender, c.name].filter((k, i, a) => a.indexOf(k) === i),
+    accessories: [{ tag: c.code, color: "green" }, { date: c.at }],
+    section: sameDay(when, now) ? "Today" : "Earlier",
+    detail: {
+      markdown: c.text,
+      metadata: [
+        { label: "Code", tags: [{ text: c.code, color: "green" }] },
+        { label: "From", value: c.name === c.sender ? c.sender : `${c.name} (${c.sender})` },
+        { label: "Received", value: when.toLocaleString() },
+      ],
+    },
+    actions: ACTIONS,
+  };
+}
+
+function list(): Item[] {
+  codes.clear();
+  if (!MAC) return [hint("unavailable", "Unavailable", "Verification codes read the Messages database, which only macOS has.")];
+  const s = settings.get<Settings>();
+  const file = home(s.db);
+  const since = Date.now() - Math.max(1, s.hours) * 3600_000;
+  let rows: Row[];
+  try {
+    try { rows = read(file, since); } catch (e) { if (!locked(e)) throw e; rows = readCopy(file, since); }
+  } catch (e) {
+    const code = sqlite(e), msg = String((e as Error)?.message ?? e);
+    if (code === "SQLITE_AUTH" || /authorization denied|not permitted|EPERM/i.test(msg)) {
+      return [hint("fda", "Full Disk Access needed", "Messages keeps its database behind Full Disk Access: allow pal under Privacy & Security, Full Disk Access, then open the palette again.", [{ id: "settings", title: "Open System Settings" }])];
+    }
+    if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${file} is not there; Messages has not run on this Mac, or the db setting points elsewhere.`)];
+    return [hint("error", "Could not read Messages", msg)];
+  }
+  const now = new Date();
+  const found = collect(rows, s).slice(0, LIMIT);
+  for (const c of found) codes.set(c.id, c);
+  if (found.length === 0) return [hint("none", "No codes", `No message of the last ${s.hours} h names a code.`)];
+  return found.map((c) => item(c, now));
+}
+
+export default {
+  palettes: {
+    otp: {
+      title: "Verification Codes",
+      icon: ICON,
+      live: true,
+      placeholder: "Search codes and senders",
+      list,
+      pick: (id, action) => {
+        if (id === "fda") return { open: FDA_URL };
+        const c = codes.get(id);
+        if (!c) return { keep: true, toast: { title: "That code is no longer listed", style: "failure" } };
+        switch (action) {
+          case "copy": return { copy: c.code };
+          case "copy-sender": return { copy: c.sender };
+          default: return { paste: { text: c.code } };
+        }
+      },
+    },
+  },
+} satisfies Extension;

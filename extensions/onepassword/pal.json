@@ -1,0 +1,17 @@
+{
+  "name": "onepassword",
+  "title": "1Password",
+  "description": "Your 1Password items through the op CLI. Enter copies the password; username, one-time code and the app are in the action panel.",
+  "version": "0.1.0",
+  "icon": "⚿",
+  "author": "pal",
+  "repo": "bundled",
+  "settings": [
+    { "kind": "text", "id": "account", "label": "Account", "description": "Passed as --account to every op call: a shorthand, sign-in address, account id or user id. Empty uses the CLI's default.", "placeholder": "my.1password.com", "default": "" },
+    { "kind": "list", "id": "vaults", "label": "Vaults", "description": "Only these vaults are listed, and each becomes a filter in the palette. Empty lists every vault. A change takes effect when the extension host restarts.", "placeholder": "Personal", "default": [] },
+    { "kind": "number", "id": "ttl", "label": "Refresh after", "description": "Seconds the item list is kept before op is asked again. Refresh in the panel asks at once.", "min": 0, "max": 86400, "unit": "seconds", "default": 300 }
+  ],
+  "palettes": {
+    "items": { "description": "Every item you can see, favourites first." }
+  }
+}
