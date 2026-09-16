@@ -259,6 +259,15 @@ export const clipboard = {
   imageUrl: (id: number, size: number) => `icon://localhost/clip?id=${id}&size=${size}`,
 };
 
+/**
+ * An image file on disk as the webview loads it (`icon://localhost/file`,
+ * app/src-tauri/src/icon.rs): a thumbnail fitted into `size` px, or the
+ * file itself for 0 (a PNG or a JPEG). PNG, JPEG and GIF by extension,
+ * absolute paths only; anything else is a 404 and the row keeps its
+ * glyph. A screenshot's row, a browsed folder's pictures.
+ */
+export const thumbnailUrl = (path: string, size: number) => `icon://localhost/file?path=${encodeURIComponent(path)}&size=${size}`;
+
 /** `pal_core::windows::Window`, plus the app's icon source. */
 export type Window = {
   /** Backend-specific, stable while the window lives; what `focus`/`close`/`minimize` take. */
@@ -308,6 +317,36 @@ export const windows = {
    * which hides first and shows the layout's name in the HUD.
    */
   layout: (req: WindowLayoutRequest) => call<Applied>("windows.layout", req),
+};
+
+/** `extensions.rs` `Row`: one extension the app knows, wherever it came from. */
+export type InstalledExtension = {
+  name: string;
+  /** The manifest's `version`; empty when it states none. */
+  version: string;
+  root: string;
+  loaded: boolean;
+  /** Installed by `pal install` (the user store): can be updated and removed. */
+  store: boolean;
+  /** Ships with the app: never updated or removed from a palette. */
+  bundled: boolean;
+};
+
+/**
+ * The extensions the app has (`extensions.rs`), for the store palette:
+ * `list` says what is installed and from where; `install`, `update` and
+ * `remove` hand the work to the `pal://install` / `update` / `remove`
+ * routes (deeplink.rs) and resolve at once, since the store restarts the
+ * host the caller runs in. No card is shown (the palette asks through
+ * `Action.confirm` first); the HUD carries "Installing…" and the outcome,
+ * and an install reopens the root with the name typed.
+ */
+export const extensions = {
+  list: () => call<InstalledExtension[]>("extensions.list"),
+  /** A store name, `github:user/repo[/subdir][@ref]`, a github.com URL or a directory (`pal install`'s spellings). */
+  install: (spec: string) => call<null>("extensions.install", { spec }),
+  update: (name: string) => call<null>("extensions.update", { name }),
+  remove: (name: string) => call<null>("extensions.remove", { name }),
 };
 
 /** `pal_core::system::SystemCommand`. */

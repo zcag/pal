@@ -90,31 +90,37 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
   }
 
   const names = new Set(v.extensions.map((e) => e.name));
-  for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0, wifi: names.has("wifi") })) {
+  // Snippet expansion watches the keys typed in other apps: Input Monitoring matters once it is on.
+  const expand = v.extensions.some((e) => e.name === "snippets" && e.values?.expand === true);
+  for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0, wifi: names.has("wifi"), expand })) {
     if (p.state !== "missing") continue;
     // A permission only an absent extension needs is not something to do.
     if (p.id === "full_disk_access" && !names.has("otp")) continue;
     if (p.id === "calendar" && !names.has("calendar")) continue;
-    if (p.id === "input_monitoring" && !(v.bar?.length ?? 0)) continue;
+    if (p.id === "input_monitoring" && !(v.bar?.length ?? 0) && !expand) continue;
     if (p.id === "location" && !names.has("wifi")) continue;
     items.push({ id: `permission:${p.id}`, level: "attention", title: p.title, detail: `${p.needs}. ${p.where.startsWith("Privacy") ? `Switch it on under ${p.where}` : `Granted in ${p.where}`}.`, action: { label: p.id === "full_disk_access" ? "Open the pane" : "Grant…", permission: p.id } });
   }
 
+  // Per instance (`key`): "Gmail (Work) needs token" points at that instance's field; a manifest warning is the extension's, said once.
   for (const e of v.extensions) {
     if (e.loaded === false && e.error) {
-      items.push({ id: `failed:${e.name}`, level: "attention", icon: e.icon, title: `${e.title} failed to load`, detail: e.error, action: { label: "Open", go: { page: "extensions", anchor: `extensions:${e.name}` } } });
+      items.push({ id: `failed:${e.key}`, level: "attention", icon: e.icon, title: `${e.title} failed to load`, detail: e.error, action: { label: "Open", go: { page: "extensions", anchor: `extensions:${e.key}` } } });
     }
   }
   for (const e of v.extensions) {
     if (e.loaded === false) continue;
     const missing = needsSetup(e);
     if (missing.length) {
-      items.push({ id: `setup:${e.name}`, level: "attention", icon: e.icon, title: `${e.title} needs ${missing.map((s) => s.label.toLowerCase()).join(" and ")}`, detail: missing[0].description ?? `Its palettes list nothing until ${missing.map((s) => s.label.toLowerCase()).join(" and ")} ${missing.length === 1 ? "is" : "are"} set.`, action: { label: "Set up", go: { page: "extensions", anchor: `extensions:${e.name}:${missing[0].id}` } } });
+      items.push({ id: `setup:${e.key}`, level: "attention", icon: e.icon, title: `${e.title} needs ${missing.map((s) => s.label.toLowerCase()).join(" and ")}`, detail: missing[0].description ?? `Its palettes list nothing until ${missing.map((s) => s.label.toLowerCase()).join(" and ")} ${missing.length === 1 ? "is" : "are"} set.`, action: { label: "Set up", go: { page: "extensions", anchor: `extensions:${e.key}:${missing[0].id}` } } });
     }
   }
+  const warned = new Set<string>();
   for (const e of v.extensions) {
     for (const w of e.warnings ?? []) {
-      items.push({ id: `warning:${e.name}:${w}`, level: "attention", icon: e.icon, title: `${e.title}: manifest warning`, detail: w, action: { label: "Open", go: { page: "extensions", anchor: `extensions:${e.name}` } } });
+      if (warned.has(`${e.name}:${w}`)) continue;
+      warned.add(`${e.name}:${w}`);
+      items.push({ id: `warning:${e.name}:${w}`, level: "attention", icon: e.icon, title: `${e.extTitle ?? e.title}: manifest warning`, detail: w, action: { label: "Open", go: { page: "extensions", anchor: `extensions:${e.name}` } } });
     }
   }
   for (const d of v.diagnostics ?? []) {
@@ -134,8 +140,12 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
       items.push({ id: "update", level: "attention", title: `pal ${v.update.version} is available`, detail: `You have ${v.version}. ${v.update.install_note ? `${v.update.install_note[0].toUpperCase()}${v.update.install_note.slice(1)}.` : "Get it from the releases page."}`, action: { label: "About", go: { page: "about", anchor: "about:updates" } } });
     }
   }
+  const updates = new Set<string>();
   for (const e of v.extensions) {
-    if (e.latest) items.push({ id: `update:${e.name}`, level: "attention", icon: e.icon, title: `${e.title} ${e.latest} is available`, detail: `Installed: ${e.version || "unversioned"}.`, action: { label: "Update", updateExtension: e.name } });
+    if (e.latest && !updates.has(e.name)) {
+      updates.add(e.name);
+      items.push({ id: `update:${e.name}`, level: "attention", icon: e.icon, title: `${e.extTitle ?? e.title} ${e.latest} is available`, detail: `Installed: ${e.version || "unversioned"}.`, action: { label: "Update", updateExtension: e.name } });
+    }
   }
   return items;
 }
@@ -157,7 +167,10 @@ export function updatesLine(c: OverviewChecks | undefined, now = Date.now()): st
 
 /** The facts under the attention list: what is installed and reachable. */
 export function overviewFacts(v: OverviewInput): { label: string; value: ReactNode; go: { page: SettingsPage; anchor?: string } }[] {
-  const loaded = v.extensions.filter((e) => e.loaded !== false);
+  // Extensions count by name; the instances of `multi` ones (`gmail@work`) are said separately when there are any beyond the defaults.
+  const names = new Set(v.extensions.map((e) => e.name));
+  const failedNames = new Set(v.extensions.filter((e) => e.loaded === false).map((e) => e.name));
+  const instances = v.extensions.filter((e) => e.instance && !e.instance.isDefault).length;
   const palettes = v.extensions.flatMap((e) => e.palettes);
   const on = palettes.filter((p) => p.config.enabled).length;
   const withHotkey = palettes.filter((p) => p.config.hotkey).length;
@@ -166,7 +179,7 @@ export function overviewFacts(v: OverviewInput): { label: string; value: ReactNo
   const hotkeys = [withHotkey ? `${withHotkey} with a hotkey` : "", itemHotkeys ? `${plural(itemHotkeys, "item hotkey")}` : ""].filter(Boolean).join(", ");
   return [
     { label: "Hotkey", value: v.hotkey?.hotkeys.length ? <span className="pal-overview__hotkeys" aria-label={combosLabel(v.hotkey.hotkeys.map((h) => h.wanted))}>{v.hotkey.hotkeys.map((h, i) => <span key={i}>{i ? ", " : ""}<Kbd shortcut={h.wanted} /></span>)}</span> : "none", go: { page: "general", anchor: "general:hotkey" } },
-    { label: "Extensions", value: `${plural(loaded.length, "extension")} loaded${loaded.length !== v.extensions.length ? `, ${v.extensions.length - loaded.length} failed` : ""}`, go: { page: "extensions" } },
+    { label: "Extensions", value: `${plural(names.size - failedNames.size, "extension")} loaded${failedNames.size ? `, ${failedNames.size} failed` : ""}${instances ? `, ${plural(instances, "extra instance")}` : ""}`, go: { page: "extensions" } },
     { label: "Palettes", value: `${on} of ${palettes.length} on${hotkeys ? `, ${hotkeys}` : ""}`, go: { page: "palettes" } },
     ...(v.barSupported === false ? [] : [{ label: "Bar", value: v.bar?.length ? `${barOn} of ${plural(v.bar.length, "item")} on` : "no items declared", go: { page: "bar" as const } }]),
   ];

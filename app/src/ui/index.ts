@@ -34,17 +34,19 @@ import "./settings.css";
 export { SettingsWindow, settingsPages, pageTitle, flashAnchor } from "./SettingsWindow";
 export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type OverviewInput, type OverviewItem } from "./SettingsOverview";
 export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
+export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileStatus } from "./SettingsTheme";
 export { SettingsPalettes, palettesIndex, paletteIcon, type PaletteItem } from "./SettingsPalettes";
-export { SettingsExtensions, extensionsIndex } from "./SettingsExtensions";
+export { SettingsExtensions, extensionsIndex, byName } from "./SettingsExtensions";
 export { SettingsBar, barIndex } from "./SettingsBar";
 export { SettingsAbout, aboutIndex, copyText, installing, progressLine, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 export { SettingsList, type SettingsListItem } from "./SettingsList";
 export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
 export { SettingsDiagnostics } from "./SettingsDiagnostics";
-export { describeDefault, hotkeyList, isModified, needsSetup, permissionRows } from "./SettingsTypes";
+export { describeDefault, hotkeyList, isModified, leavesFile, needsSetup, permissionRows } from "./SettingsTypes";
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
   GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, PromptPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
   BarTarget, BarConfig, BarItemConfig, BarItem, BarLookConfig, BarLookOverride, BarBadgeStyle, BarFont,
 } from "./SettingsTypes";
 export { resolveLook, lookDefaults, lookOf, lookWrites } from "./SettingsTypes";
+export { badgedIcon, instanceBadge, instanceTint, instancesOf, resolveInstance, slugSuffix, suffixProblem, suffixTitle, validSuffix, type InstanceInfo, type RawInstance, type SettingsInstance } from "./SettingsTypes";

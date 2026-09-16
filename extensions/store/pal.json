@@ -1,0 +1,112 @@
+{
+  "name": "store",
+  "title": "Store",
+  "description": "pal.cagdas.io's extension list in the panel: search by name, tagline or category, read the description, screenshots and keys in the detail pane, install with Enter. What is installed is tagged, and a store extension the site has a newer version of leads under Updates.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰟇",
+      "bg": "teal"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "store": {
+    "tagline": "Browse and install extensions without leaving the panel",
+    "category": "system",
+    "features": [
+      "Every extension pal.cagdas.io lists, with its tile, tagline and chips (menu bar, links, accounts), narrowed by what you type",
+      "The dropdown filters to Installed, Updates, or one of the site's shelves (Productivity, Developer, System, Media, Reference, Fun, Integration)",
+      "The detail pane (`cmd+i`) shows the description, what it does, the screenshots and the keys of each palette, with the author, version, licence and permissions",
+      "Enter installs an absent extension after a confirm: the HUD says Installing…, the host restarts, the root opens with the name typed",
+      "A store-installed extension the site has a newer version of leads under Updates; Enter updates it, `ctrl+x` removes it",
+      "The list is fetched once an hour and kept across restarts; `cmd+r` fetches now; offline, the last list is shown with a note, or one row says the site is not reachable"
+    ],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-browse.png",
+        "caption": "The store: what is behind under Updates, then every extension with its tile, tagline and chips"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "The detail pane on a row: the description, what it does, the screenshots and the keys"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Install on Enter, the store page, the install command"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Install",
+        "description": "After a confirm; through `pal://install/<name>`, so the HUD reports and the host restarts.",
+        "keys": "enter"
+      },
+      {
+        "title": "Update",
+        "description": "On a store-installed extension the site has a newer version of; asks first.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open store page",
+        "description": "The extension's page on pal.cagdas.io in the browser.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Copy install command",
+        "description": "`pal install <name>` onto the clipboard.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Remove",
+        "description": "A store-installed extension; asks first. Its settings stay in the config file.",
+        "keys": "ctrl+x"
+      }
+    ]
+  },
+  "palettes": {
+    "store": {
+      "tier": "primary",
+      "kind": "input",
+      "description": "The site's extensions, narrowed by the query and the filter; Enter installs, updates or opens the page.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Install, update, or open the store page"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Open store page"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy install command"
+        },
+        {
+          "keys": "ctrl+x",
+          "title": "Remove a store-installed extension"
+        },
+        {
+          "keys": "cmd+i",
+          "title": "Description, screenshots and keys"
+        },
+        {
+          "keys": "tab",
+          "title": "Next filter: Installed, Updates, a category"
+        },
+        {
+          "keys": "cmd+r",
+          "title": "Fetch the list again"
+        }
+      ]
+    }
+  }
+}

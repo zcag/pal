@@ -25,6 +25,7 @@ pal install NAME    install an extension: a name from pal.cagdas.io, or a source
 pal update [NAME]   fetch an installed extension's source again (every one with a source, without a name)
 pal remove NAME     remove an installed extension
 pal list            the installed extensions: name, version, source
+pal instance ...    instances of a multi extension: list, add, remove (see below)
 pal action NAME     act on the value on stdin (see Actions for scripts)
 pal bar ...         bar items (see below)
 pal link URL        run a pal:// link as written; --list prints every route
@@ -93,6 +94,30 @@ The site unreachable is an error, not a fallback: an explicit source
 works offline the same as before.
 
 What each does and what an extension is: [Extensions](extensions.md).
+
+## `pal instance`
+
+A `multi` extension (Gmail, GitHub, Slack, Home Assistant) runs as
+several *instances*, one per account ([Configuration](config.md),
+"`[instances]`"). `list` reads the config file in the calling process;
+`add` and `remove` are the `pal://instance/add` and
+`pal://instance/remove` links ([Deep links](links.md)): file edits the
+running pal makes, its host reloading the extension's instances at once,
+no confirm card from the shell.
+
+```text
+pal instance list                                     every instance the file describes: key, title, state
+pal instance add gmail work --title Work              [instances."gmail@work"] written (--tint amber picks the tile colour)
+pal instance remove gmail@work                        its tables, storage, index cache and ranking gone
+```
+
+`list` prints `<key>\t<title>\t<state>` per instance, the default of each
+extension first (`default`, `on`, or `off` for `enabled = false`); an
+extension with no `[instances.*]` table has one instance and is not
+listed. The suffix is lowercase letters, digits, `-` and `_`, never
+`default`; a bad one is refused in the calling process with exit 2.
+`remove` refuses the default instance, which is the extension itself.
+Keychain items stay, as with `pal remove`.
 
 ## `pal bar`
 

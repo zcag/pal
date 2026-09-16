@@ -48,6 +48,12 @@
   outline: none;
 }
 .pal-search__input::placeholder { color: var(--pal-fg-faint, #868794); }
+/* Compact mode: the primary hint and the marked count on the search row's right, drawn as the footer draws them, a size down. */
+.pal-search__hint { flex: none; height: var(--pal-control-h, 32px); margin-right: calc(var(--pal-space-2, 8px) * -1); font-size: var(--pal-text-xs, 11px); }
+.pal-search__count { flex: none; font-size: var(--pal-text-xs, 11px); }
+/* Compact rows: the subtitle goes (the row is a title and its accessories), as beside the detail pane. */
+[data-density="compact"] .pal-row__sub { display: none; }
+[data-density="compact"] .pal-row__title { max-width: none; }
 .pal-search__back {
   flex: none;
   display: inline-flex;

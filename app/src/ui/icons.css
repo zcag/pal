@@ -7,20 +7,22 @@
  * a quarter of the side, so every size has the same shape. A hairline
  * inset ring keeps ink a square on the dark panel and gives the light
  * tiles an edge on white. Selection changes nothing on a tile, as on an
- * app icon: it is the brand, not a state.
+ * app icon: it is the brand, not a state. The `[data-brand]` rules name
+ * the colour as `--brand` for any element (a tile, a tinted glyph, the
+ * tint swatches of the instances form in settings.css).
  */
-.pal-icon[data-brand="red"] { --brand: var(--pal-brand-red, #e5484d); }
-.pal-icon[data-brand="orange"] { --brand: var(--pal-brand-orange, #ec6a2c); }
-.pal-icon[data-brand="amber"] { --brand: var(--pal-brand-amber, #d98c0a); }
-.pal-icon[data-brand="green"] { --brand: var(--pal-brand-green, #2e9e5f); }
-.pal-icon[data-brand="teal"] { --brand: var(--pal-brand-teal, #139c8f); }
-.pal-icon[data-brand="cyan"] { --brand: var(--pal-brand-cyan, #0e8fbe); }
-.pal-icon[data-brand="blue"] { --brand: var(--pal-brand-blue, #2f74e0); }
-.pal-icon[data-brand="indigo"] { --brand: var(--pal-brand-indigo, #5854d6); }
-.pal-icon[data-brand="violet"] { --brand: var(--pal-brand-violet, #8a4fd0); }
-.pal-icon[data-brand="pink"] { --brand: var(--pal-brand-pink, #d23f9c); }
-.pal-icon[data-brand="slate"] { --brand: var(--pal-brand-slate, #5f6b7c); }
-.pal-icon[data-brand="ink"] { --brand: var(--pal-brand-ink, #24292f); }
+[data-brand="red"] { --brand: var(--pal-brand-red, #e5484d); }
+[data-brand="orange"] { --brand: var(--pal-brand-orange, #ec6a2c); }
+[data-brand="amber"] { --brand: var(--pal-brand-amber, #d98c0a); }
+[data-brand="green"] { --brand: var(--pal-brand-green, #2e9e5f); }
+[data-brand="teal"] { --brand: var(--pal-brand-teal, #139c8f); }
+[data-brand="cyan"] { --brand: var(--pal-brand-cyan, #0e8fbe); }
+[data-brand="blue"] { --brand: var(--pal-brand-blue, #2f74e0); }
+[data-brand="indigo"] { --brand: var(--pal-brand-indigo, #5854d6); }
+[data-brand="violet"] { --brand: var(--pal-brand-violet, #8a4fd0); }
+[data-brand="pink"] { --brand: var(--pal-brand-pink, #d23f9c); }
+[data-brand="slate"] { --brand: var(--pal-brand-slate, #5f6b7c); }
+[data-brand="ink"] { --brand: var(--pal-brand-ink, #24292f); }
 /* Ink is a tile colour, not a mark colour: an ink-tinted glyph would vanish on the dark panel, so it takes the text colour instead. */
 .pal-icon[data-kind="glyph"][data-brand="ink"], .pal-icon[data-brand="ink"]:has(> .pal-icon__globe) { --brand: var(--pal-fg, #ececf0); }
 

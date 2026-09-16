@@ -368,6 +368,21 @@ pub struct Entry {
     pub timer_gen: u64,
     /// Seeded by `PAL_BAR_FIXTURE`: no host behind it.
     pub fixture: bool,
+    /// The instance's label ("Work") for an item of a `multi` extension's
+    /// instance that is not alone (settings.rs `InstanceInfo::label`):
+    /// appended to the tooltip and the popover's title. The strip itself is
+    /// not marked (docs/design/instances.md, Identity).
+    pub instance: Option<String>,
+}
+
+/// `<tooltip> (<label>)`, or the label alone when the item has no
+/// tooltip; the tooltip as it is without a label.
+pub fn labelled(tooltip: Option<&str>, label: Option<&str>) -> Option<String> {
+    match (tooltip, label) {
+        (t, None) => t.map(str::to_string),
+        (Some(t), Some(l)) if !t.is_empty() => Some(format!("{t} ({l})")),
+        (_, Some(l)) => Some(l.to_string()),
+    }
 }
 
 /// The registry, managed state.
@@ -436,9 +451,11 @@ fn draws(config: &Config, key: &str) -> bool {
     SUPPORTED && config.bar.draws(key)
 }
 
-/// The host loaded an extension: register its items (replacing what it
-/// declared before) and render each. Nothing in the manifest: its items go.
-pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>) {
+/// The host loaded an extension (an instance of one: `ext` is the key):
+/// register its items (replacing what it declared before) and render
+/// each. Nothing in the manifest: its items go. `instance` is the label
+/// the tooltips carry, see [`Entry::instance`].
+pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, instance: Option<String>) {
     let config = settings::config(app);
     let (added, gone): (Vec<String>, Vec<String>) = Bar::with(app, |e| {
         let gone: Vec<String> = e.keys().filter(|k| k.starts_with(&format!("{ext}/")) && !bars.iter().any(|b| key_of(ext, &b.id) == **k)).cloned().collect();
@@ -448,9 +465,14 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>) {
         let mut added = Vec::new();
         for m in bars {
             let key = key_of(ext, &m.id);
-            let entry = e.entry(key.clone()).or_insert_with(|| Entry { manifest: m.clone(), last: None, rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false });
+            let entry = e.entry(key.clone()).or_insert_with(|| Entry { manifest: m.clone(), last: None, rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None });
             entry.manifest = m;
             entry.fixture = false;
+            entry.instance = instance.clone();
+            // A label that changed (the second instance appeared) shows on the next draw.
+            if let Some(last) = entry.last.as_mut() {
+                last.tooltip = labelled(last.tooltip.as_deref().and_then(|t| strip_label(t, entry.instance.as_deref())), entry.instance.as_deref());
+            }
             added.push(key);
         }
         (added, gone)
@@ -624,12 +646,23 @@ fn set_stale(app: &AppHandle, key: &str) {
     }
 }
 
+/// `t` without a ` (<label>)` it already ends in, so a re-registration does not stack them.
+fn strip_label<'a>(t: &'a str, label: Option<&str>) -> Option<&'a str> {
+    match label {
+        Some(l) => Some(t.strip_suffix(&format!(" ({l})")).unwrap_or(t)),
+        None => Some(t),
+    }
+}
+
 /// The item's new state (a render, a push): stored, and the targets
 /// touched only when something changed. `push` says it came from
-/// `bar.update`, which restarts the poll.
-fn set(app: &AppHandle, key: &str, item: BarItem, push: bool) {
+/// `bar.update`, which restarts the poll. The instance's label goes on
+/// the tooltip here, before the compare, so an unchanged render stays
+/// unchanged.
+fn set(app: &AppHandle, key: &str, mut item: BarItem, push: bool) {
     let changed = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
+        item.tooltip = labelled(item.tooltip.as_deref(), entry.instance.as_deref());
         let same = entry.last.as_ref() == Some(&item) && !entry.stale;
         entry.last = Some(item);
         entry.stale = false;
@@ -986,7 +1019,7 @@ mod fixture {
                 let Ok(item) = serde_json::from_value::<BarItem>(r["item"].clone()) else { continue };
                 let key = key_of(ext, id);
                 let manifest = ManifestBar { id: id.into(), title: r["title"].as_str().unwrap_or(id).into(), ..Default::default() };
-                e.insert(key.clone(), Entry { manifest, last: Some(item), rendered_at: Some(Instant::now()), rendered_unix: Some(unix_secs()), stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: true });
+                e.insert(key.clone(), Entry { manifest, last: Some(item), rendered_at: Some(Instant::now()), rendered_unix: Some(unix_secs()), stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: true, instance: None });
                 keys.push(key);
             }
         });
@@ -1088,6 +1121,16 @@ mod tests {
         assert_eq!(split_key("github/prs"), Some(("github", "prs")));
         assert_eq!(split_key("github"), None);
         assert_eq!(split_key("a/b/c"), None);
+        // An instance key takes the extension's place: `<key>/<id>` (docs/design/instances.md).
+        assert_eq!(key_of("gmail@work", "unread"), "gmail@work/unread");
+        assert_eq!(split_key("gmail@work/unread"), Some(("gmail@work", "unread")));
+        assert_eq!(labelled(Some("3 unread"), Some("Work")).as_deref(), Some("3 unread (Work)"), "the instance's label on the tooltip");
+        assert_eq!(labelled(None, Some("Work")).as_deref(), Some("Work"));
+        assert_eq!(labelled(Some(""), Some("Work")).as_deref(), Some("Work"));
+        assert_eq!(labelled(Some("3 unread"), None).as_deref(), Some("3 unread"), "a lone default is not marked");
+        assert_eq!(labelled(None, None), None);
+        assert_eq!(strip_label("3 unread (Work)", Some("Work")), Some("3 unread"));
+        assert_eq!(strip_label("3 unread", Some("Work")), Some("3 unread"));
         if SUPPORTED {
             assert_eq!(kinds(BarTarget::Auto, true), [Kind::Sketchybar]);
             assert_eq!(kinds(BarTarget::Auto, false), [Kind::Menubar]);
@@ -1104,7 +1147,7 @@ mod tests {
     fn draw_carries_the_placement_and_hidden_reaches_the_target() {
         let (config, _) = pal_core::config::parse("[bar.menubar]\nsize = 12\n[bar.items.\"x/y\"]\norder = 5\nposition = \"left\"\nopen_on_hover = true\nbadge_style = \"dot\"\n").unwrap();
         let item: BarItem = serde_json::from_value(json!({ "hidden": true, "menu": { "palette": "apps" } })).unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false };
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None };
         let d = draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap();
         assert!(d.item.hidden, "a hidden item is handed over: the target takes its slot away, its timer keeps running");
         assert!(d.item.stale, "the registry's stale rides on the item");
@@ -1116,7 +1159,7 @@ mod tests {
         let none = Entry { last: None, ..entry };
         assert!(draw_for(&config, "x/y", &none, Kind::Menubar).is_none(), "nothing to draw before the first render");
         let (config, _) = pal_core::config::parse("").unwrap();
-        let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false };
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None };
         assert!(draw_for(&config, "x/y", &entry, Kind::Sketchybar).unwrap().hover, "sketchybar peeks by default");
         assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap().hover, "the menu bar does not");
         let no_menu = Entry { last: Some(BarItem::default()), ..entry };

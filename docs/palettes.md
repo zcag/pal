@@ -478,6 +478,8 @@ Placeholders in the text are filled in when it is pasted or copied:
 | `{time}` | now, `HH:MM` |
 | `{datetime}` | both, with a space between |
 | `{uuid}` | a fresh UUID, a different one per occurrence |
+| `{selection}` | the text selected in the app in front (the clipboard when nothing is) |
+| `{cursor}` | where the caret lands after an expansion (below); dropped by a paste from the panel |
 
 Anything else in braces is left as it is, so a snippet of code keeps its
 braces. A snippet with placeholders carries a "dynamic" accessory.
@@ -493,10 +495,58 @@ The root row **Create snippet** opens a form (name, keyword, text);
 | Edit | `⌘E` | the form, filled in |
 | Delete | `⌃X` | removes it, after a confirm |
 
-No settings. The snippets live in `<data dir>/pal/storage/snippets.json`,
-shared by every config profile. Expansion by typing the keyword in other
-apps (Raycast's snippet expansion) is not part of this: pal pastes on
-Enter.
+The snippets live in `<data dir>/pal/storage/snippets.json`, shared by
+every config profile.
+
+### Expansion: the keyword typed in any app
+
+On macOS, with `expand = true`, a snippet's keyword typed in any other app
+is replaced by its text in place: type `;sig` in a mail and the signature
+lands where the keyword was, placeholders filled, the clipboard left as
+it was. Off by default. How it works (`pal_core::expansion`,
+`app/src-tauri/src/expansion.rs`): pal watches the keys typed in other
+apps (an `NSEvent` global monitor, which needs **Input Monitoring** for
+pal; the Overview's row says so and grants it) and keeps the last 64
+characters typed in the app in front; when they end in the prefix and a
+keyword, it deletes what was typed with that many backspaces, puts the
+filled text on the pasteboard marked concealed (clipboard managers and
+pal's own history skip it), pastes it, moves the caret back for a
+`{cursor}`, and 300 ms later puts the previous clipboard back (the
+backspaces and the paste need **Accessibility**, like Paste). Then the
+HUD says "Expanded Signature".
+
+- **Prefix** (`expand_prefix`): `;sig` by default, `:sig`, or `none` for
+  the bare keyword at the start of a word (after a space, a bracket, the
+  start of the field; `design` never fires `sig`). The bare form fires
+  inside ordinary typing more often than you would like, which is why
+  the prefix is the default.
+- **Never in** (`expand_exclude_apps`): bundle ids where nothing expands.
+  Terminals (Terminal, kitty, iTerm, Warp, WezTerm, Alacritty, Ghostty)
+  and password managers (1Password, Bitwarden) by default. A secure text
+  field (a password field, `sudo` in a terminal; `IsSecureEventInputEnabled`)
+  never expands anywhere, and neither do pal's own windows.
+- The buffer empties on an arrow, Enter, Tab, Escape, a `⌘` or `⌃`
+  combination, a change of app, and after an expansion; Backspace takes
+  one character back, so a typo corrected still expands.
+- `{cursor}` in the text: the caret lands there after the paste
+  (`Dear {cursor},` leaves it before the comma). A paste from the panel
+  drops it. `{selection}` is left as written: the selection while a
+  keyword is being typed is the keyword.
+- A snippet saved or edited in the panel expands on the next keystroke:
+  the storage file is re-read when its mtime moves.
+- Linux: not available. Wayland hands key events to the focused client
+  only and X11 has no portable tap either, so nothing watches the keys;
+  the palette's Enter is the way to paste a snippet, and `pal://snippets/paste?name=sig`
+  binds one to a compositor key.
+
+Settings, `[extensions.snippets]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `expand` | bool | `false` | Expand keywords typed in other apps (macOS). Needs Accessibility and Input Monitoring for pal. |
+| `expand_prefix` | `";"`, `":"`, `"none"` | `";"` | What comes before the keyword. |
+| `expand_exclude_apps` | list of bundle ids | terminals and password managers | Apps where nothing expands. |
+| `expand_hud` | bool | `true` | "Expanded <name>" in the HUD after an expansion. |
 
 ## SSH Hosts (`ssh`)
 
@@ -550,7 +600,9 @@ typed path (`~/Down`, `/usr/local/bin`) completes instead of searching:
 the file itself when it exists, else the entries of its folder that start
 with the last segment (hidden ones only when the segment starts with a
 dot or `show_hidden` is on); at the root the same rows show inline under
-a Files section. A root query nothing matched gets a "Search Files for
+a Files section. A path ending in `/` (`~/`, `/usr/local/`) lists that
+folder whole, as [browsing](#browsing-folders) does. A root query nothing
+matched gets a "Search Files for
 “…”" fallback row that opens the palette with it typed. The
 row is the file name; the parent folder is the subtitle (home shortened to
 `~`); the size and the modification date are accessories. `.app` bundles
@@ -601,7 +653,8 @@ Actions:
 
 | action | shortcut | what |
 | --- | --- | --- |
-| Open | `Enter` | the system opener |
+| Open | `Enter` | the system opener; on a folder row this is Browse (below), Open second |
+| Browse | `Enter`, `→` | a folder's contents as a level (below); `→` from anywhere in a listing while nothing is typed |
 | Reveal in Finder / Show in file manager | `⌘Enter` | `open -R` on macOS, `xdg-open` on the parent folder on Linux |
 | Open with… | `⌘O` | a level listing the apps registered for the file (below) |
 | Copy path | `⌘C` | copies the absolute path |
@@ -613,6 +666,39 @@ Actions:
 Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Open, Reveal, Copy path (the
 paths one per line), Copy file and Move to Trash run over all of them as
 one pick; Quick Look and Open with… stay one file's.
+
+### Browsing folders
+
+Enter (or `→`) on any folder row, in a search, the recents, a completion
+or the root's inline Files section, pushes the **Browse Folder** palette
+(`browse`) with that folder: a level whose crumb is the folder's path
+(`~/proj`), led by a `..` row and followed by the entries under the
+dropdown's sort. `Enter`, `←` or `Backspace` on the `..` row goes up, and
+`←` or `Backspace` from any row does too while nothing is typed
+(LaunchBar's and Alfred's convention); `→` on a folder goes in. There is
+no `..` row at `/`. Typing filters the listing by name (a case-insensitive
+substring); `Tab` cycles the sort:
+
+| sort | order |
+| --- | --- |
+| Name | folders first, then files, each case-insensitive alphabetical (Finder's) |
+| Date | newest first, folders and files mixed |
+| Size | largest first, folders (no size of their own) last |
+
+Hidden entries (a leading dot) show only with `show_hidden`, which `⌘.`
+flips from any row (it writes the setting, so every listing follows; the
+action's title says which way). A picture draws its own thumbnail in
+place of the kind glyph (`icon://localhost/file`, the app's scheme). A
+folder over 500 entries shows that many and a last, inert row counting
+the rest; typing narrows past the cap. File rows carry the same actions
+as search rows (`⌘I` for the pane; `Tab`, `x`, `⇧↓` mark rows as in
+Files), the `..` row's pane describes the folder it leads to, and Open
+with… from a browsed row pushes the apps level on this palette. Inside
+Files, a typed path ending in `/` that names a folder lists it the same
+way (the `..` row, every entry sorted by name, the cap), so `~/` is a
+way in without a search; a path without the slash still completes the
+last segment. Opened by name from the root (its own row, "Browse
+Folder") it lists the home folder.
 
 **Open with…** drills into a level of the applications the OS registers
 for the file, each with its own icon: the default (what `Enter` would use)
@@ -740,6 +826,47 @@ to restore", "Next Display: only one display").
 | Top Left, Top Right, Bottom Left, Bottom Right Quarter | `top_left_quarter` `top_right_quarter` `bottom_left_quarter` `bottom_right_quarter` | a quarter |
 | `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills. |
 | `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
+
+## Store (`store`)
+
+pal.cagdas.io's extension list in the panel. An input palette: what you
+type narrows the list by name, title, tagline, category and author; the
+dropdown (`Tab`) filters to **Installed**, **Updates**, or one of the
+site's shelves (Productivity, Developer, System, Media, Reference, Fun,
+Integration). Every row is one extension with its tile, its tagline as
+the subtitle, chips for what it brings (`menu bar`, `links`, `accounts`),
+an `Installed` or `bundled` tag, or `Update to x.y.z` when the site has
+a newer version of one installed from the store; the category on the
+right. What is behind leads the list under an **Updates** heading. The
+detail pane (`⌘I`) shows the description, "What it does", the
+screenshots (loaded from the site) and a keys table per palette, with
+the author, version (the installed one beside it when they differ),
+category, licence, platforms, what it needs, the `pal install` line and
+a link to the page.
+
+| standing | `Enter` | `⌘Enter` | `⌘C` | `⌃X` |
+| --- | --- | --- | --- | --- |
+| not installed | Install (asks first) | Open store page | Copy `pal install <name>` | |
+| from the store, current | Open store page | Update (asks first) | Copy install command | Remove (asks first) |
+| from the store, behind | Update (asks first) | Open store page | Copy install command | Remove (asks first) |
+| bundled with pal | Open store page | | Copy install command | |
+
+Install, Update and Remove run through the core's `pal://install`,
+`pal://update` and `pal://remove` routes ([Links](links.md)) without the
+link's card (the panel's confirm is the question; Enter here is your
+hand): the HUD says "Installing…" and the outcome, the extension host
+restarts with the change, and an install reopens the root with the
+extension's name typed so its palettes are one keystroke away. A
+bundled extension is never updated from here: it ships with pal and
+moves with the app.
+
+The list comes from `https://pal.cagdas.io/api/extensions`, fetched at
+most once an hour, trimmed to what the rows and the pane need, and kept
+in the extension's storage across restarts; `⌘R` fetches now. Offline
+with a list from before, the rows show under a "Showing the list from N
+min ago" note; with no list at all, one row says the site is not
+reachable. `PAL_STORE_API` points the palette at another server (the
+tests serve a fixture). No settings.
 
 ## What it does not do
 
@@ -3270,3 +3397,153 @@ Settings, `[extensions.youtube]`:
 For the tests, `PAL_YOUTUBE_API` replaces the Data API host (the
 Invidious host is the setting) and `PAL_YOUTUBE_PATH` a directory
 searched first for the players.
+## Screenshots (`screenshots`)
+
+Take a screenshot from the panel, then find the ones you took. A live,
+primary palette: three Capture rows lead it, under them the screenshots
+folder newest first, each row with a 48 px thumbnail (the app's `icon://`
+file route), the pixel size read off the PNG header, the file size and
+the age. The folder is read again on every show, so the shot just taken
+is there, and its name finds it at the root.
+
+The Capture rows run the OS tool once the panel is down (the pick answers
+`hide` and the tool starts a beat later, so the panel is never in the
+shot): `screencapture -i` (an area; space switches to a window, Escape
+cancels), `screencapture -i -W` (a window) and `screencapture` (the
+screen) on macOS; `grim -g "$(slurp)"` and `grim` on Linux, where both
+tools must be on PATH (and `wl-copy` for the clipboard) or the section is
+one hint row. Enter sends the shot where the `destination` setting says,
+a file named the way macOS names its own (`Screenshot 2026-09-17 at
+14.03.22.png`) in the folder, or the clipboard; `cmd+c` on the row takes
+the other destination for that one shot; `cmd+enter` waits `timer`
+seconds first (`-T`). The HUD then says `Screenshot saved: <name>` or
+`Copied to the clipboard`; a cancelled capture says nothing. The shutter
+is silent unless `sound` is on.
+
+| keys | action |
+| --- | --- |
+| `enter` | Open (marked rows: every one); on a Capture row, capture |
+| `cmd+enter` | Reveal in Finder / the file manager; on a Capture row, capture after the timer |
+| `cmd+c` | Copy image: the file itself onto the clipboard, so a paste in a chat drops the picture; on a Capture row, the other destination |
+| `cmd+shift+c` | Copy the path |
+| `cmd+m` | Copy as markdown image: `![Screenshot 2026-09-17 at 14.03.22](/Users/x/Desktop/Screenshot%202026-09-17%20at%2014.03.22.png)` |
+| `cmd+shift+t` | Copy text (OCR): the text in the picture through the core's OCR (Vision on macOS, `tesseract` on Linux); `ocr_concealed` keeps it out of the history |
+| `cmd+d` | Move to Trash (asks first; marked rows together) |
+| `tab`, `x`, `shift+↓`, `cmd+click` | Mark rows |
+
+Open, Reveal, Copy image, Copy path and the trash take marked rows
+(`multi`). The detail pane (`cmd+i`) shows the picture itself over its
+name, folder, size, pixels and the time it was taken. The root's Now
+section offers a screenshot taken in the last two minutes as
+`Screenshot taken 40 s ago` with Open, Copy image and the markdown tag.
+For the tests, `PAL_SCREENCAPTURE_BIN` names a stand-in capture tool and
+`PAL_SCREENSHOTS_TRASH` a stand-in trash.
+
+Settings, `[extensions.screenshots]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `destination` | `file`, `clipboard` | `file` | Where Enter on a Capture row sends the shot. |
+| `folder` | folder | (system) | Where captures land and the list reads. Empty: `defaults read com.apple.screencapture location`, else `~/Desktop`; on Linux `~/Pictures/Screenshots` when it exists, else `~/Pictures`. |
+| `timer` | 1 to 60 | `3` | Seconds the delayed capture waits. |
+| `sound` | boolean | `false` | Play the shutter sound. |
+| `all_files` | boolean | `false` | Every image and recording in the folder, not only the ones named like macOS's captures (`Screenshot`, `Screen Shot`, `Screen Recording`, `grim-`). |
+| `limit` | 1 to 500 | `50` | At most this many recent rows. |
+| `ocr_concealed` | boolean | `false` | Text copied by OCR is concealed. |
+
+## WhatsApp (`whatsapp-chats`, `whatsapp-unread`, `whatsapp-search`, `whatsapp-contacts`, `whatsapp/unread`)
+
+One extension, four palettes and a bar item over a self-hosted
+[OpenWA](https://github.com/openwa) gateway's HTTP API (the owner's at
+`http://wp.lan`, one session named `main` linked to his phone, the
+archive of every message since 2018 behind its `/api/search`).
+`extensions/whatsapp/README.md` has the setup for a gateway of your own.
+
+| palette | id | kind | what `Enter` does |
+| --- | --- | --- | --- |
+| Chats | `whatsapp-chats` | live, lazy, primary | opens the chat in the app or the web client |
+| Unread | `whatsapp-unread` | live, lazy | the same, over the unread chats only |
+| Search WhatsApp | `whatsapp-search` | input | opens the hit's chat |
+| Contacts | `whatsapp-contacts` | indexed, 1 h, catalog | opens a chat with the contact |
+
+**Chats.** `GET /chats` (the list, live from WhatsApp), the status feed,
+broadcast lists and Channels dropped, the unread chats first then newest
+first. The unread chats' newest messages (their count, five at most)
+come from `/messages/<chat>/history` (live, `fromMe`, oldest first) laid
+over `/messages?chatId=` (the archive: the sender's saved name, the
+quoted reply), merged by message id, so the row says who said what and
+a media message is named (`[photo]`, `[voice message]`, `[document]
+name`); the other rows carry the gateway's one-line summary. The row:
+the profile picture (else the initial on a tile; a group the group
+glyph), the name, the line, a `group` tag, the unread count in green,
+the time. The pane: the last twenty messages as a conversation (the
+sender in bold, "You" for yours, the time, a quoted reply as a
+blockquote, media in brackets), then kind, unread, the phone (a LID-era
+`@lid` id resolved through `/contacts/<lid>/phone`, once), the newest
+message's time, a link into the web client. Pictures are never on the
+listing's path: the gateway resolves them at ~150 ms each (50 ids took
+11.5 s live), so a background pass asks for eight at a time among the
+newest 48 chats and keeps the urls (good for about nine days, `oe` in
+the query) in storage under `pictures`. One chat list serves the bar
+and the palettes for 30 s.
+
+| action | shortcut | when |
+| --- | --- | --- |
+| Open chat | `Enter` | `whatsapp://send?phone=` in the desktop app, `https://web.whatsapp.com/send?phone=` on the web, per `open` (`auto` is the app when installed on macOS); a group has no link of its own, so WhatsApp opens at the top and the HUD says so |
+| Mark as read / Mark as unread | `⌘Enter` | `POST /chats/read` and `/chats/unread`, over the marked rows too |
+| Send a message | `⌘⇧R` | `send` on; a form with the text and a box to quote the latest message (`/messages/reply`, else `/messages/send-text`) |
+| React to the latest message | `⌘⇧E` | `send` on; WhatsApp's six quick reactions or remove yours (`/messages/react`) |
+| Open in the web client | `⌘⇧O` | |
+| Copy number / Copy name | `⌘C` | `+905...`; a group's name |
+
+**Unread**: the same rows over the chats with something unread, direct
+messages then groups (the root's unread rows). **Search WhatsApp**:
+`/api/search?q=` (full-text over the archive, `<mark>` snippets), 300 ms
+after the last keystroke, 40 hits; the row is the matching line, who
+said it where (the chat's name from the list, a sender's from the
+contacts), when; `Enter` opens the chat, `⌘C` copies the message, the
+pane is the chat's conversation; a provider that is down is one hint
+row with the status and the gateway's message. **Contacts**: `/contacts`
+a thousand a page (the first page, then five in parallel), the saved
+ones (`isMyContact` with a name) one per number, an hour in memory;
+`Enter` opens a chat, `⌘C` copies `+<number>`, `⌘⇧C` a vCard 3.0.
+
+**`send`, off by default.** Off is read and mark-read only: no Send a
+message, no React, no reply field in the popover; every write path
+checks it again at pick time and refuses with a toast naming the
+setting. The key can do all of it; the setting is the control (the
+owner's rule for sends: an outward action, only as a form he submits).
+
+**The bar item** `whatsapp/unread`: the number of unread chats as the
+badge, hidden at zero (`unread_only_bar` off keeps the glyph and lists
+the recent chats in the popover), red while a direct chat is unread
+(`dm_urgent`); every 120 s and on show, wake, network. The popover is a
+view of the item's own (`view.ts`): direct messages then groups with the
+picture as a data url, the newest message and the time, a cursor the
+arrows move and a click sets; `Enter` opens, `m` marks read, `a` all,
+`r` (send on) a message field whose `Enter` sends, `o` WhatsApp, `p` the
+Unread palette, `⌘⇧O` the web client.
+
+Links: `pal://whatsapp/open?chat=<id | phone | name>` (a chat id, a
+number, or a name from the chats then the contacts, exact then prefix)
+and `pal://whatsapp/search?q=`.
+
+Settings, `[extensions.whatsapp]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `base_url` | text | `http://wp.lan` | Where the gateway answers; `/api` is under it. |
+| `api_key` | secret | (none) | Sent as `x-api-key`; in the OS keychain. |
+| `session` | text | `main` | The session's name; the UUID is resolved once and kept in storage (`session:<name>`), resolved again on a 404 naming the session. |
+| `send` | boolean | `false` | Send a message, React, the popover's reply field. |
+| `unread_only_bar` | boolean | `true` | Hide the bar item at zero. |
+| `dm_urgent` | boolean | `true` | Red while a direct chat is unread. |
+| `open` | `auto`, `app`, `web` | `auto` | Where a chat opens. |
+
+Hint rows: no key (Open WhatsApp settings), the gateway unreachable at
+its url, the key rejected (401), a session not ready (a `qr_ready` one
+says to scan the code at the gateway's url; the chat list answers 409
+meanwhile), a session name nobody has, a 429 (refused locally for
+`Retry-After`, 60 s without), the search provider down. Not shown: muted
+and pinned chats and a group's member count (the gateway's chat summary
+has none of them).

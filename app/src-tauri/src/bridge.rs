@@ -10,6 +10,7 @@
 //! - `core/clipboard.{list, get, pin, delete, clear, copy}` (clipboard.rs)
 //! - `core/color.sample` (color.rs)
 //! - `core/effects.run` (effects.rs)
+//! - `core/extensions.{list, install, update, remove}` (extensions.rs: the store palette)
 //! - `core/media.{now_playing, control, artwork}` (media.rs)
 //! - `core/ocr.{image {path | data}, available}` (ocr.rs)
 //! - `core/selection.text` (selection.rs)
@@ -45,6 +46,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "color" => crate::color::call(app, func, params),
         "dialog" => crate::dialog::call(app, func, params),
         "effects" => crate::effects::call(app, func, params),
+        "extensions" => extensions::call(app, func, params),
         "media" => crate::media::call(app, func, params),
         "menubar" => menubar::call(app, func, params),
         "permissions" => crate::permissions::call(app, func, params),
@@ -83,6 +85,7 @@ mod tests {
         assert_eq!(route("core/menubar.press"), Ok(("menubar", "press")));
         assert_eq!(route("core/color.sample"), Ok(("color", "sample")));
         assert_eq!(route("core/effects.run"), Ok(("effects", "run")));
+        assert_eq!(route("core/extensions.list"), Ok(("extensions", "list")));
         assert_eq!(route("core/permissions.request"), Ok(("permissions", "request")));
         assert!(route("list").is_err());
         assert!(route("core/list").is_err(), "no capability");
@@ -97,3 +100,5 @@ mod tests {
 mod calendar;
 #[path = "menubar.rs"]
 mod menubar;
+#[path = "extensions.rs"]
+mod extensions;

@@ -124,12 +124,12 @@ describe("SettingsOverview", () => {
     // Every entry as key caps, the failed one too.
     expect(value.match(/<kbd/g)?.length).toBe(4);
     expect(overviewFacts({ ...ok, hotkey: { hotkeys: [], registered: true } })[0].value).toBe("none");
-    expect(facts[1].value).toBe("4 extensions loaded");
-    expect(facts[2].value).toBe("6 of 7 on, 3 with a hotkey, 2 item hotkeys");
+    expect(facts[1].value).toBe("4 extensions loaded, 1 extra instance");
+    expect(facts[2].value).toBe("8 of 10 on, 4 with a hotkey, 2 item hotkeys");
     const bare = quiet.map((e) => ({ ...e, palettes: e.palettes.map((p) => ({ ...p, config: { ...p.config, hotkey: undefined, itemHotkeys: undefined } })) }));
-    expect(overviewFacts({ ...ok, extensions: bare })[2].value).toBe("6 of 7 on");
+    expect(overviewFacts({ ...ok, extensions: bare })[2].value).toBe("8 of 10 on");
     const oneItem = bare.map((e, i) => (i ? e : { ...e, palettes: e.palettes.map((p, j) => (j ? p : { ...p, config: { ...p.config, itemHotkeys: { a: "ctrl+alt+a" } } })) }));
-    expect(overviewFacts({ ...ok, extensions: oneItem })[2].value).toBe("6 of 7 on, 1 item hotkey");
+    expect(overviewFacts({ ...ok, extensions: oneItem })[2].value).toBe("8 of 10 on, 1 item hotkey");
     expect(facts[3].value).toBe("no items declared");
     expect(overviewFacts({ ...ok, barSupported: false }).map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes"]);
   });

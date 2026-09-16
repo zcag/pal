@@ -1,0 +1,592 @@
+{
+  "palettes": {
+    "screenshots": {
+      "title": "Screenshots",
+      "icon": {
+        "tile": {
+          "glyph": "󰄀",
+          "bg": "teal"
+        }
+      },
+      "live": true,
+      "tier": "primary",
+      "placeholder": "Search screenshots",
+      "items": [
+        {
+          "id": "capture:area",
+          "name": "Capture area",
+          "subtitle": "Drag a selection; space switches to a window, Escape cancels",
+          "icon": "󰩭",
+          "keywords": [
+            "selection",
+            "region",
+            "screenshot"
+          ],
+          "section": "Capture",
+          "actions": [
+            {
+              "id": "capture",
+              "title": "Capture"
+            },
+            {
+              "id": "capture-delayed",
+              "title": "Capture after 3 s",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "capture-other",
+              "title": "Capture to the clipboard",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "capture:window",
+          "name": "Capture window",
+          "subtitle": "Click the window; space switches to a selection",
+          "icon": "󰖯",
+          "keywords": [
+            "screenshot"
+          ],
+          "section": "Capture",
+          "actions": [
+            {
+              "id": "capture",
+              "title": "Capture"
+            },
+            {
+              "id": "capture-delayed",
+              "title": "Capture after 3 s",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "capture-other",
+              "title": "Capture to the clipboard",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "capture:screen",
+          "name": "Capture screen",
+          "subtitle": "Every display, as it is now",
+          "icon": "󰍹",
+          "keywords": [
+            "fullscreen",
+            "display",
+            "screenshot"
+          ],
+          "section": "Capture",
+          "actions": [
+            {
+              "id": "capture",
+              "title": "Capture"
+            },
+            {
+              "id": "capture-delayed",
+              "title": "Capture after 3 s",
+              "shortcut": "cmd+enter"
+            },
+            {
+              "id": "capture-other",
+              "title": "Capture to the clipboard",
+              "shortcut": "cmd+c"
+            }
+          ]
+        },
+        {
+          "id": "~/Desktop/Screenshot 2026-09-17 at 14.03.22.png",
+          "name": "Screenshot 2026-09-17 at 14.03.22.png",
+          "subtitle": "2880×1800 · 1.4 MB",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2096%2060%22%3E%3Crect%20width%3D%2296%22%20height%3D%2260%22%20rx%3D%226%22%20fill%3D%22%234F46D6%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2244%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%239F97FF%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%2244%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%2232%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E"
+          },
+          "keywords": [
+            "screenshot"
+          ],
+          "accessories": [
+            {
+              "date": 1789599598899
+            }
+          ],
+          "section": "Recent",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "copy-image",
+              "title": "Copy image",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown image",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-text",
+              "title": "Copy text (OCR)",
+              "shortcut": "cmd+shift+t"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Desktop/Screenshot 2026-09-17 at 11.48.05.png",
+          "name": "Screenshot 2026-09-17 at 11.48.05.png",
+          "subtitle": "1440×900 · 312 KB",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2096%2060%22%3E%3Crect%20width%3D%2296%22%20height%3D%2260%22%20rx%3D%226%22%20fill%3D%22%23139C8F%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2244%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%232E9E5F%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%2244%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%2232%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E"
+          },
+          "keywords": [
+            "screenshot"
+          ],
+          "accessories": [
+            {
+              "date": 1789591378899
+            }
+          ],
+          "section": "Recent",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "copy-image",
+              "title": "Copy image",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown image",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-text",
+              "title": "Copy text (OCR)",
+              "shortcut": "cmd+shift+t"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Desktop/Screenshot 2026-09-16 at 18.30.41.png",
+          "name": "Screenshot 2026-09-16 at 18.30.41.png",
+          "subtitle": "760×480 · 96 KB",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2096%2060%22%3E%3Crect%20width%3D%2296%22%20height%3D%2260%22%20rx%3D%226%22%20fill%3D%22%23D98C0A%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2244%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%23EC6A2C%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%2244%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%2232%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E"
+          },
+          "keywords": [
+            "screenshot"
+          ],
+          "accessories": [
+            {
+              "date": 1789527778899
+            }
+          ],
+          "section": "Recent",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "copy-image",
+              "title": "Copy image",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown image",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-text",
+              "title": "Copy text (OCR)",
+              "shortcut": "cmd+shift+t"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Desktop/Screen Recording 2026-09-16 at 17.12.09.mov",
+          "name": "Screen Recording 2026-09-16 at 17.12.09.mov",
+          "subtitle": "38.2 MB",
+          "icon": "󰕧",
+          "keywords": [
+            "recording"
+          ],
+          "accessories": [
+            {
+              "date": 1789524178899
+            }
+          ],
+          "section": "Recent",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "copy-image",
+              "title": "Copy image",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Desktop/Screenshot 2026-09-15 at 09.05.13.png",
+          "name": "Screenshot 2026-09-15 at 09.05.13.png",
+          "subtitle": "1200×800 · 214 KB",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2096%2060%22%3E%3Crect%20width%3D%2296%22%20height%3D%2260%22%20rx%3D%226%22%20fill%3D%22%23D23F9C%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2244%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%238A4FD0%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%2244%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%2232%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E"
+          },
+          "keywords": [
+            "screenshot"
+          ],
+          "accessories": [
+            {
+              "date": 1789408978899
+            }
+          ],
+          "section": "Recent",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "copy-image",
+              "title": "Copy image",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown image",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-text",
+              "title": "Copy text (OCR)",
+              "shortcut": "cmd+shift+t"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        },
+        {
+          "id": "~/Desktop/Screenshot 2026-09-12 at 16.40.58.png",
+          "name": "Screenshot 2026-09-12 at 16.40.58.png",
+          "subtitle": "2560×1440 · 1.1 MB",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2096%2060%22%3E%3Crect%20width%3D%2296%22%20height%3D%2260%22%20rx%3D%226%22%20fill%3D%22%235F6B7C%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2244%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%2280%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%232F74E0%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%2244%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%2232%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E"
+          },
+          "keywords": [
+            "screenshot"
+          ],
+          "accessories": [
+            {
+              "date": 1789167778899
+            }
+          ],
+          "section": "Recent",
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open",
+              "multi": true
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "multi": true
+            },
+            {
+              "id": "copy-image",
+              "title": "Copy image",
+              "shortcut": "cmd+c",
+              "multi": true
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+shift+c",
+              "multi": true
+            },
+            {
+              "id": "copy-markdown",
+              "title": "Copy as markdown image",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-text",
+              "title": "Copy text (OCR)",
+              "shortcut": "cmd+shift+t"
+            },
+            {
+              "id": "trash",
+              "title": "Move to Trash",
+              "shortcut": "cmd+d",
+              "style": "destructive",
+              "confirm": "Move this to the Trash?",
+              "multi": true
+            }
+          ]
+        }
+      ],
+      "details": {
+        "~/Desktop/Screenshot 2026-09-17 at 14.03.22.png": {
+          "markdown": "![Screenshot 2026-09-17 at 14.03.22.png](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20480%20300%22%3E%3Crect%20width%3D%22480%22%20height%3D%22300%22%20rx%3D%226%22%20fill%3D%22%234F46D6%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%22284%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%239F97FF%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%22313%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%22224%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E)",
+          "metadata": [
+            {
+              "label": "Name",
+              "value": "Screenshot 2026-09-17 at 14.03.22.png"
+            },
+            {
+              "label": "Folder",
+              "value": "~/Desktop"
+            },
+            {
+              "label": "Size",
+              "value": "1.4 MB"
+            },
+            {
+              "label": "Pixels",
+              "value": "2880 × 1800"
+            },
+            {
+              "label": "Taken",
+              "value": "9/17/2026, 2:03:22 PM"
+            }
+          ]
+        },
+        "~/Desktop/Screenshot 2026-09-17 at 11.48.05.png": {
+          "markdown": "![Screenshot 2026-09-17 at 11.48.05.png](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20480%20300%22%3E%3Crect%20width%3D%22480%22%20height%3D%22300%22%20rx%3D%226%22%20fill%3D%22%23139C8F%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%22284%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%232E9E5F%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%22313%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%22224%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E)",
+          "metadata": [
+            {
+              "label": "Name",
+              "value": "Screenshot 2026-09-17 at 11.48.05.png"
+            },
+            {
+              "label": "Folder",
+              "value": "~/Desktop"
+            },
+            {
+              "label": "Size",
+              "value": "312 KB"
+            },
+            {
+              "label": "Pixels",
+              "value": "1440 × 900"
+            },
+            {
+              "label": "Taken",
+              "value": "9/17/2026, 2:03:22 PM"
+            }
+          ]
+        },
+        "~/Desktop/Screenshot 2026-09-16 at 18.30.41.png": {
+          "markdown": "![Screenshot 2026-09-16 at 18.30.41.png](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20480%20300%22%3E%3Crect%20width%3D%22480%22%20height%3D%22300%22%20rx%3D%226%22%20fill%3D%22%23D98C0A%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%22284%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%23EC6A2C%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%22313%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%22224%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E)",
+          "metadata": [
+            {
+              "label": "Name",
+              "value": "Screenshot 2026-09-16 at 18.30.41.png"
+            },
+            {
+              "label": "Folder",
+              "value": "~/Desktop"
+            },
+            {
+              "label": "Size",
+              "value": "96 KB"
+            },
+            {
+              "label": "Pixels",
+              "value": "760 × 480"
+            },
+            {
+              "label": "Taken",
+              "value": "9/17/2026, 2:03:22 PM"
+            }
+          ]
+        },
+        "~/Desktop/Screenshot 2026-09-15 at 09.05.13.png": {
+          "markdown": "![Screenshot 2026-09-15 at 09.05.13.png](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20480%20300%22%3E%3Crect%20width%3D%22480%22%20height%3D%22300%22%20rx%3D%226%22%20fill%3D%22%23D23F9C%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%22284%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%238A4FD0%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%22313%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%22224%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E)",
+          "metadata": [
+            {
+              "label": "Name",
+              "value": "Screenshot 2026-09-15 at 09.05.13.png"
+            },
+            {
+              "label": "Folder",
+              "value": "~/Desktop"
+            },
+            {
+              "label": "Size",
+              "value": "214 KB"
+            },
+            {
+              "label": "Pixels",
+              "value": "1200 × 800"
+            },
+            {
+              "label": "Taken",
+              "value": "9/17/2026, 2:03:22 PM"
+            }
+          ]
+        },
+        "~/Desktop/Screenshot 2026-09-12 at 16.40.58.png": {
+          "markdown": "![Screenshot 2026-09-12 at 16.40.58.png](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20480%20300%22%3E%3Crect%20width%3D%22480%22%20height%3D%22300%22%20rx%3D%226%22%20fill%3D%22%235F6B7C%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%22284%22%20rx%3D%224%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.92%22/%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22464%22%20height%3D%2210%22%20rx%3D%224%22%20fill%3D%22%232F74E0%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2226%22%20width%3D%22313%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23c7c7cf%22/%3E%3Crect%20x%3D%2216%22%20y%3D%2236%22%20width%3D%22224%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23dcdce2%22/%3E%3C/svg%3E)",
+          "metadata": [
+            {
+              "label": "Name",
+              "value": "Screenshot 2026-09-12 at 16.40.58.png"
+            },
+            {
+              "label": "Folder",
+              "value": "~/Desktop"
+            },
+            {
+              "label": "Size",
+              "value": "1.1 MB"
+            },
+            {
+              "label": "Pixels",
+              "value": "2560 × 1440"
+            },
+            {
+              "label": "Taken",
+              "value": "9/17/2026, 2:03:22 PM"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "effects": {},
+  "shots": {
+    "1-list": {
+      "palette": "screenshots",
+      "keys": [
+        "down*3"
+      ]
+    },
+    "2-actions": {
+      "palette": "screenshots",
+      "keys": [
+        "down*3",
+        "cmd+k"
+      ]
+    },
+    "3-detail": {
+      "palette": "screenshots",
+      "keys": [
+        "down*3",
+        "cmd+i"
+      ]
+    }
+  }
+}

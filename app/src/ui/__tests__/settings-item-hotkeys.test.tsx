@@ -14,7 +14,7 @@ import type { PaletteConfig, SettingsExtension } from "../SettingsTypes";
 
 const config = (itemHotkeys?: Record<string, string>): PaletteConfig => ({ enabled: true, alias: undefined, hotkey: undefined, itemHotkeys, settings: {} });
 const ext = (itemHotkeys?: Record<string, string>): SettingsExtension => ({
-  name: "window-management", title: "Window Management", description: "Halves and thirds.", version: "1.0.0", repo: "bundled", bundled: true, settings: [], values: {}, loaded: true,
+  name: "window-management", key: "window-management", title: "Window Management", description: "Halves and thirds.", version: "1.0.0", repo: "bundled", bundled: true, settings: [], values: {}, loaded: true,
   palettes: [{ id: "window-management", title: "Window Management", settings: [], config: config(itemHotkeys) }],
 });
 const rows = [{ id: "left_half", name: "Left Half" }, { id: "maximize", name: "Maximize" }, { id: "center", name: "Center" }];

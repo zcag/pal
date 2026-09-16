@@ -14,12 +14,14 @@ mod cli;
 mod clipboard;
 mod color;
 mod commands;
+mod compact;
 mod compat;
 mod crash;
 mod deeplink;
 mod dialog;
 mod effects;
 mod events;
+mod expansion;
 mod fallback;
 mod firstrun;
 mod host;
@@ -35,6 +37,7 @@ mod selection;
 mod settings;
 mod storage;
 mod system;
+mod theme;
 mod tray;
 mod updater;
 mod views;
@@ -113,7 +116,7 @@ static PLACED: AtomicBool = AtomicBool::new(false);
 /// Spotlight and Raycast put theirs), centred, or wherever it was last.
 /// Harmless on Wayland, where every step fails or no-ops and the compositor
 /// rule places.
-fn place(app: &AppHandle) {
+pub(crate) fn place(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let position = settings::config(app).general.position;
     if position == Position::Last && PLACED.load(Ordering::Relaxed) {
@@ -292,6 +295,9 @@ pub fn run() {
             settings::extensions_update,
             settings::extensions_remove,
             settings::extensions_check_updates,
+            settings::instances_add,
+            settings::instances_rename,
+            settings::instances_remove,
             settings::settings_check_updates,
             settings::settings_about,
             settings::settings_open_link,
@@ -315,6 +321,10 @@ pub fn run() {
             dialog::dialog_detect,
             large::large_hide,
             large::large_show,
+            theme::theme_current,
+            theme::theme_status,
+            theme::theme_open,
+            theme::theme_open_dir,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
@@ -373,6 +383,9 @@ pub fn run() {
             permissions::install(app.handle());
             clipboard::install(app.handle());
             storage::install(app.handle());
+            expansion::install(app.handle());
+            theme::install(app.handle());
+            compact::install(app.handle());
             updater::install_checks(app.handle());
             index::restore_cache(app.handle());
             views::install(app.handle());

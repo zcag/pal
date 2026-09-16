@@ -43,7 +43,8 @@ describe("SettingsWindow", () => {
   });
   it("indexes palettes and extensions by name with an anchor the page carries", () => {
     const idx = [...palettesIndex(settingsExtensions), ...extensionsIndex(settingsExtensions)];
-    const pr = idx.find((e) => e.label === "GitHub › Pull requests");
+    // The gallery's GitHub has two instances: each is its own group, labelled with the instance.
+    const pr = idx.find((e) => e.label === "GitHub › Pull requests (Personal)");
     expect(pr?.anchor).toBe("palettes:github-prs");
     expect(pr?.keywords).toContain("pr");
     expect(idx.find((e) => e.label === "Mine only")?.anchor).toBe("palettes:github-prs:mine");
@@ -58,22 +59,24 @@ describe("SettingsPalettes", () => {
   const page = (selected?: string) => renderToStaticMarkup(<SettingsPalettes extensions={settingsExtensions} selected={selected} onSelect={noop} onChange={noop} onOpenExtension={noop} />);
   it("lists every palette under its extension's header, the row reading extension › palette; a lone palette is one row", () => {
     const html = page("github-prs");
-    // Applications and Clipboard have one palette each: no header, the tagline under the row's name.
-    expect(count(html, /class="pal-ptable__head"/g)).toBe(2);
+    // Applications and Clipboard have one palette each: no header, the tagline under the row's name. GitHub's two instances are two groups.
+    expect(count(html, /class="pal-ptable__head"/g)).toBe(3);
+    expect(html).toContain('data-anchor="palettes:ext:github@work"');
+    expect(html).toContain('<span class="pal-ptable__name-ext">GitHub › </span>Pull requests (Work)');
     expect(html).toContain('<span class="pal-ptable__name-ext">Clipboard › </span>Clipboard history');
     expect(html).toContain('data-solo="true"');
     expect(html).toContain('<span class="pal-ptable__sub">Installed apps and system settings panes, with their real icons.</span>');
-    expect(count(html, /data-palette-row=/g)).toBe(7);
+    expect(count(html, /data-palette-row=/g)).toBe(10);
     expect(html).toContain('data-palette-row="github-prs" data-anchor="palettes:github-prs" data-active="true"');
-    expect(html).toContain('<span class="pal-ptable__name-ext">GitHub › </span>Pull requests');
+    expect(html).toContain('<span class="pal-ptable__name-ext">GitHub › </span>Pull requests (Personal)');
     expect(html).toContain("Pull requests, issues and repositories you can see with the token you give it.");
-    expect(html).toContain("7 of 7");
+    expect(html).toContain("10 of 10");
     for (const col of ["Palette", "On", "Alias", "Hotkey", "Icon"]) expect(html).toContain(`<span>${col}</span>`);
   });
   it("puts the selected palette in the pane: crumb, description, id, rank, and its declared settings", () => {
     const html = page("github-prs");
     expect(html).toContain('class="pal-ppane__crumb"');
-    expect(html).toContain('class="pal-ppane__title">Pull requests</h3>');
+    expect(html).toContain('class="pal-ppane__title">Pull requests (Personal)</h3>');
     expect(html).toContain("Open pull requests across the organisation, newest first.");
     expect(html).toContain("<code>github-prs</code>");
     expect(html).toContain("At the root");

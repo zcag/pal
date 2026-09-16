@@ -19,6 +19,13 @@
 //! at pal.cagdas.io, `pal_core::extensions::REGISTRY`) or an explicit
 //! source; `--from SPEC` is the source with no lookup.
 //!
+//! `pal instance list|add|remove` (docs/design/instances.md): `list` reads
+//! the config file in this process (every `[instances.*]` table, the
+//! default of each name first); `add` and `remove` are link twins
+//! (`pal://instance/add/<name>/<suffix>`, `pal://instance/remove/<key>`),
+//! file edits the running instance makes, so its host reloads the
+//! extension's instances at once.
+//!
 //! `pal action NAME` and the v1 subcommands (`pick`, `run`, `meta`, ...)
 //! are for the scripts written against pal v1: `compat.rs`, in this
 //! process, no instance needed.
@@ -74,6 +81,11 @@ pub enum Cmd {
     Remove { name: String },
     /// List the extensions in the store.
     List,
+    /// Instances of a multi extension (a second account): list, add or remove one.
+    Instance {
+        #[command(subcommand)]
+        cmd: InstanceCmd,
+    },
     /// Run a pal v1 action on the value on stdin: copy, paste, open, type, cmd, or a plugins/actions/NAME script.
     Action { name: String },
     /// Bar items: list them, click or hover one, run an action, render again, re-apply sketchybar.
@@ -232,6 +244,13 @@ impl Cmd {
             }
             Cmd::Confetti { text } => format!("{s}://confetti{}", text.as_ref().map_or(String::new(), |t| query(&[("text", t)]))),
             Cmd::Command { id } => format!("{s}://commands/{}", enc(id)),
+            Cmd::Instance { cmd: InstanceCmd::Add { name, suffix, title, tint } } => {
+                let mut pairs = Vec::new();
+                if let Some(t) = title { pairs.push(("title", t.as_str())); }
+                if let Some(t) = tint { pairs.push(("tint", t.as_str())); }
+                format!("{s}://instance/add/{}/{}{}", enc(name), enc(suffix), query(&pairs))
+            }
+            Cmd::Instance { cmd: InstanceCmd::Remove { key } } => format!("{s}://instance/remove/{}", enc(key)),
             Cmd::Call { route, params } => format!("{s}://{}{}", path(&route.split('/').collect::<Vec<_>>()), query(&pairs(params))),
             _ => return None,
         })
@@ -245,12 +264,57 @@ impl Cmd {
     }
 }
 
+/// `pal instance list`: one line per instance the file describes,
+/// `<key>\t<title>\t<state>`, grouped by extension with the default first
+/// (`Config::instances_of`); an extension with no `[instances.*]` table
+/// has one instance and is not listed. `off` is `enabled = false`.
+pub fn instance_lines(config: &pal_core::config::Config) -> Vec<String> {
+    use pal_core::config::instance;
+    let names: std::collections::BTreeSet<&str> = config.instances.keys().filter(|k| instance::is_key(k) || instance::valid_name(k)).map(|k| instance::name_of(k)).collect();
+    let mut out = Vec::new();
+    for name in names {
+        for (key, i) in config.instances_of(name) {
+            let title = i.title.clone().unwrap_or_else(|| match instance::split(&key).1 {
+                Some(suffix) => { let mut c = suffix.chars(); c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default() }
+                None => String::new(),
+            });
+            let state = if !i.enabled { "off" } else if key == name { "default" } else { "on" };
+            out.push(format!("{key}\t{title}\t{state}"));
+        }
+    }
+    out
+}
+
 /// `ext/palette/id` as a link path: the first two parts are names, the
 /// rest (an id may hold slashes) is one part, encoded.
 fn item_path(item: &str) -> String {
     let mut it = item.splitn(3, '/');
     let (e, p, id) = (it.next().unwrap_or_default(), it.next().unwrap_or_default(), it.next().unwrap_or_default());
     format!("{}/{}/{}", enc(e), enc(p), enc(id))
+}
+
+#[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
+pub enum InstanceCmd {
+    /// Every instance the config file describes, `<key>\t<title>\t<state>`, the default of each extension first.
+    List,
+    /// Add `[instances."<name>@<suffix>"]` (pal://instance/add/NAME/SUFFIX): a second account of a multi extension.
+    Add {
+        /// The extension's name (`gmail`).
+        name: String,
+        /// The instance's suffix (`work`): lowercase letters, digits, - and _.
+        suffix: String,
+        /// The display name ("Work"); the suffix capitalised otherwise.
+        #[arg(short, long)]
+        title: Option<String>,
+        /// The tile's colour: red, orange, amber, green, teal, cyan, blue, indigo, violet, pink, slate or ink; picked from the suffix otherwise.
+        #[arg(long)]
+        tint: Option<String>,
+    },
+    /// Remove an instance (pal://instance/remove/KEY): its tables, storage, cache and ranking; the keychain items stay.
+    Remove {
+        /// `gmail@work`; the default instance is the extension itself and stays.
+        key: String,
+    },
 }
 
 #[derive(Subcommand, Clone, Debug, PartialEq, Eq)]
@@ -298,6 +362,13 @@ impl Cmd {
                 let link = cmd.link().unwrap_or_default();
                 eprintln!("pal\t{}\t{link}", crate::deeplink::parse(&link).err().unwrap_or_default());
                 Some(2)
+            }
+            Cmd::Instance { cmd: InstanceCmd::List } => {
+                let config = pal_core::config::ConfigFile::locate().load().config;
+                for line in instance_lines(&config) {
+                    println!("{line}");
+                }
+                Some(0)
             }
             Cmd::Bar { cmd: BarCmd::List } => {
                 let feed = crate::bar::read_feed();
@@ -424,7 +495,7 @@ impl Cmd {
             Cmd::Bar { cmd } => run_bar(&handle, cmd),
             // Reaches the instance only when a second process skipped
             // `run_store` (it never does); the store is that process's job.
-            Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } => {}
+            Cmd::Install { .. } | Cmd::Update { .. } | Cmd::Remove { .. } | Cmd::List | Cmd::Action { .. } | Cmd::Instance { cmd: InstanceCmd::List } => {}
             // The instance's side of a picker: connect back to the CLI's socket (pick.rs). Without one the CLI process handled it.
             Cmd::Pick { reply: Some(socket), title, multi, query, select } => crate::pick::serve(&handle, socket.into(), crate::pick::Options { title, multi, query, select }),
             Cmd::Pick { reply: None, .. } => {}
@@ -557,6 +628,10 @@ mod tests {
             (&["command", "refresh"], "pal://commands/refresh"),
             (&["call", "timer/start", "duration=25m", "name=tea", "ring"], "pal://timer/start?duration=25m&name=tea&ring=1"),
             (&["link", "pal://toggle"], "pal://toggle"),
+            (&["instance", "add", "gmail", "work", "--title", "Work", "--tint", "amber"], "pal://instance/add/gmail/work?title=Work&tint=amber"),
+            (&["instance", "add", "github", "work"], "pal://instance/add/github/work"),
+            (&["instance", "remove", "gmail@work"], "pal://instance/remove/gmail%40work"),
+            (&["open", "gmail@work/inbox", "-q", "invoice"], "pal://open/gmail%40work/inbox?q=invoice"),
         ];
         for (args, link) in cases {
             let got = cmd(args).link().unwrap_or_else(|| panic!("{args:?} is no link twin"));
@@ -567,6 +642,17 @@ mod tests {
         assert!(cmd(&["toggle"]).link().is_none(), "the plain subcommands are not links");
         assert!(cmd(&["bar", "list"]).link().is_none());
         assert!(cmd(&["pick", "-m", "-t", "Branch"]).link().is_none());
+    }
+
+    #[test]
+    fn instance_list_reads_the_file_and_the_twins_are_checked_first() {
+        let (config, _) = pal_core::config::parse("[instances.\"gmail@work\"]\ntitle = \"Work\"\n[instances.\"gmail@old\"]\nenabled = false\n[instances.slack]\ntitle = \"Personal\"\n[instances.\"bad@@k\"]\n").unwrap();
+        assert_eq!(instance_lines(&config), ["gmail\t\tdefault", "gmail@old\tOld\toff", "gmail@work\tWork\ton", "slack\tPersonal\tdefault"]);
+        assert!(instance_lines(&pal_core::config::parse("").unwrap().0).is_empty());
+        assert_eq!(cmd(&["instance", "add", "gmail", "default"]).run_compat(), Some(2), "the grammar refuses the suffix before anything is sent");
+        assert_eq!(cmd(&["instance", "remove", "gmail"]).run_compat(), Some(2), "the default is not removed");
+        assert_eq!(cmd(&["instance", "add", "gmail", "work"]).run_compat(), None, "a good one goes on to the handover");
+        assert!(cmd(&["instance", "list"]).link().is_none(), "list is not a link");
     }
 
     #[test]

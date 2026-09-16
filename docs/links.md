@@ -121,7 +121,8 @@ What only shows something (`open` a palette, `settings`, `hud`, `toast`,
 it: `false` turns every card off but the store's (a machine that scripts
 pal by link); a list of extension names, `deeplink_confirm = ["timer",
 "quicklinks"]`, keeps the cards on except for links into those extensions
-(their `run`, `form` and routes). A route the extension declares with
+(their `run`, `form` and routes; a name covers every instance of the
+extension, a key like `"gmail@work"` one instance). A route the extension declares with
 `confirm: true` (system's `run`) asks whatever the setting says.
 
 The `pal` commands never ask: typing the command is the consent. So a

@@ -1,0 +1,1129 @@
+{
+ "commit": "1468a4c61634fecb72a45b3f931bac965a2b6181",
+ "extensions": [
+  {
+   "name": "calc",
+   "kind": "bundled",
+   "title": "Calculator",
+   "description": "Evaluates what you type: arithmetic, units, currencies, percentages, dates and time zones.",
+   "version": "0.2.0",
+   "icon": {
+    "tile": {
+     "glyph": "󰃬",
+     "bg": "indigo"
+    }
+   },
+   "author": "pal",
+   "spec": "github:zcag/pal/extensions/calc",
+   "source": "https://github.com/zcag/pal/tree/HEAD/extensions/calc",
+   "commit": "1468a4c61634fecb72a45b3f931bac965a2b6181",
+   "manifest": {
+    "name": "calc",
+    "title": "Calculator",
+    "description": "Evaluates what you type: arithmetic, units, currencies, percentages, dates and time zones.",
+    "version": "0.2.0",
+    "icon": {
+     "tile": {
+      "glyph": "󰃬",
+      "bg": "indigo"
+     }
+    },
+    "author": "pal",
+    "repo": "bundled",
+    "license": "MIT",
+    "store": {
+     "tagline": "Sums, units, currencies, dates and time zones as you type",
+     "category": "productivity",
+     "features": [
+      "Arithmetic with precedence, percentages, powers, factorials and bases: `2^10`, `15% of 240`, `255 to hex`",
+      "Units through mathjs plus the spellings people type: `5 km to miles`, `72 f to c`, `12 gb to mb`, `5 ft 3 in to cm`",
+      "The 30 ECB currencies by code, symbol or name (`12 usd to try`, `€12 to $`, `1k usd`), rates fetched once a day and cached",
+      "Dates and durations: `today + 3 days`, `days until 2026-12-25`, `weeks between 2025-06-15 and 2026-01-01`",
+      "Time zones by city, abbreviation or offset: `10:00 utc to tokyo`, `5pm ldn in sf`, `now in utc`",
+      "A second row with the other form: the reverse conversion, a fraction, the hex and binary of an integer, the ISO date"
+     ],
+     "permissions": [
+      "network",
+      "accessibility"
+     ],
+     "platforms": [
+      "macos",
+      "linux"
+     ],
+     "screenshots": [
+      {
+       "file": "1-currency.png",
+       "caption": "12 usd to try at the ECB's rate; the reverse conversion is the second row"
+      },
+      {
+       "file": "2-dates.png",
+       "caption": "A day count, with the weeks and months on the right"
+      },
+      {
+       "file": "3-timezone.png",
+       "caption": "10:00 UTC in Tokyo, the full date there as the second row"
+      },
+      {
+       "file": "4-actions.png",
+       "caption": "What a result can do: copy, paste into the app in front, copy without formatting"
+      }
+     ],
+     "actions": [
+      {
+       "title": "Copy result",
+       "description": "The result as shown.",
+       "keys": "enter"
+      },
+      {
+       "title": "Paste result",
+       "description": "Into the app that was in front.",
+       "keys": "cmd+enter"
+      },
+      {
+       "title": "Copy without formatting",
+       "description": "No grouping or symbols: 583.68, 1000000.",
+       "keys": "cmd+shift+c"
+      },
+      {
+       "title": "Copy expression = result",
+       "keys": "cmd+shift+e"
+      }
+     ]
+    },
+    "palettes": {
+     "calc": {
+      "kind": "input",
+      "inline": true,
+      "match": "\\d[-+*/^%=()a-z\\s]|[-+*/^%=()a-z]\\s*\\d|\\b(now|today|tomorrow|yesterday|next|last)\\b",
+      "fallback": true,
+      "description": "Type an expression; the result is the row. At the root, sums, conversions and dates answer inline under a Calculator section; a query that is none of those gets an Ask Calculator fallback row.",
+      "keys": [
+       {
+        "keys": "enter",
+        "title": "Copy the result"
+       },
+       {
+        "keys": "cmd+enter",
+        "title": "Paste the result"
+       },
+       {
+        "keys": "cmd+shift+c",
+        "title": "Copy without formatting"
+       },
+       {
+        "keys": "cmd+shift+e",
+        "title": "Copy expression = result"
+       }
+      ]
+     }
+    }
+   },
+   "updated_at": "2026-09-16T22:26:58Z",
+   "url": "https://pal.cagdas.io/extensions/calc",
+   "tagline": "Sums, units, currencies, dates and time zones as you type",
+   "category": "productivity",
+   "screenshots": [
+    "https://pal.cagdas.io/extensions/calc/screenshots/1-currency.png",
+    "https://pal.cagdas.io/extensions/calc/screenshots/2-dates.png",
+    "https://pal.cagdas.io/extensions/calc/screenshots/3-timezone.png",
+    "https://pal.cagdas.io/extensions/calc/screenshots/4-actions.png"
+   ],
+   "panel_screenshots": [
+    "https://pal.cagdas.io/extensions/calc/screenshots/1-currency.png",
+    "https://pal.cagdas.io/extensions/calc/screenshots/2-dates.png",
+    "https://pal.cagdas.io/extensions/calc/screenshots/3-timezone.png",
+    "https://pal.cagdas.io/extensions/calc/screenshots/4-actions.png"
+   ],
+   "bar_screenshots": [],
+   "has_bar": false,
+   "bar_items": [],
+   "has_links": false,
+   "links": [],
+   "multi": false,
+   "has_readme": true
+  },
+  {
+   "name": "github",
+   "kind": "bundled",
+   "title": "GitHub",
+   "description": "Your pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.",
+   "version": "0.1.0",
+   "icon": {
+    "tile": {
+     "glyph": "",
+     "bg": "ink"
+    }
+   },
+   "author": "pal",
+   "spec": "github:zcag/pal/extensions/github",
+   "source": "https://github.com/zcag/pal/tree/HEAD/extensions/github",
+   "commit": "1468a4c61634fecb72a45b3f931bac965a2b6181",
+   "manifest": {
+    "name": "github",
+    "title": "GitHub",
+    "description": "Your pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.",
+    "version": "0.1.0",
+    "multi": true,
+    "icon": {
+     "tile": {
+      "glyph": "",
+      "bg": "ink"
+     }
+    },
+    "author": "pal",
+    "repo": "bundled",
+    "palettes": {
+     "prs": {
+      "title": "Pull Requests",
+      "description": "Yours, the ones waiting on your review, and what merged lately.",
+      "ttl": 300,
+      "kind": "list",
+      "lazy": true,
+      "keys": [
+       {
+        "keys": "enter",
+        "title": "Open the pull request"
+       },
+       {
+        "keys": "cmd+c",
+        "title": "Copy its URL"
+       },
+       {
+        "keys": "cmd+shift+o",
+        "title": "Checkout the branch"
+       },
+       {
+        "keys": "cmd+b",
+        "title": "Copy the branch name"
+       },
+       {
+        "keys": "cmd+shift+k",
+        "title": "Open the checks"
+       },
+       {
+        "keys": "cmd+shift+f",
+        "title": "Open the files changed"
+       },
+       {
+        "keys": "cmd+shift+r",
+        "title": "Mark a draft ready for review"
+       },
+       {
+        "keys": "cmd+shift+m",
+        "title": "Merge"
+       },
+       {
+        "keys": "tab",
+        "title": "All, Mine, Review requested, Merged"
+       }
+      ]
+     },
+     "issues": {
+      "title": "Issues",
+      "description": "Assigned to you, mentioning you, opened by you; Create issue.",
+      "ttl": 300,
+      "kind": "list",
+      "lazy": true,
+      "keys": [
+       {
+        "keys": "enter",
+        "title": "Open the issue"
+       },
+       {
+        "keys": "cmd+c",
+        "title": "Copy its URL"
+       },
+       {
+        "keys": "cmd+shift+x",
+        "title": "Close it"
+       },
+       {
+        "keys": "tab",
+        "title": "All, Assigned, Mentioned, Created"
+       }
+      ]
+     }
+    },
+    "bar": {
+     "notifications": {
+      "title": "Notifications",
+      "description": "The unread count as a badge, hidden at zero; the newest five, Open all and Mark all read in the popover.",
+      "refresh": {
+       "every": 300,
+       "on": [
+        "show",
+        "wake",
+        "network"
+       ]
+      }
+     }
+    },
+    "license": "MIT",
+    "store": {
+     "tagline": "Pull requests, issues, repos and notifications in the panel",
+     "category": "developer",
+     "features": [
+      "Pull Requests: yours, the ones waiting on your review, and what merged this week, with the checks, the review decision and a draft or conflicts tag on the row",
+      "The detail pane on a pull request or issue: the body, the latest comments and reviews, every check by name, who approved",
+      "Repositories: yours, your organisation's recently pushed and your stars; `cmd+e` opens the local clone in the editor",
+      "Notifications by reason, newest first; `enter` marks the thread read and opens it, `cmd+shift+a` marks all read",
+      "Search GitHub as you type: `repo:acme/widgets is:pr`, `author:mara`, `label:bug`, results sectioned by kind",
+      "Create issue and Create repository as forms; Checkout branch and Merge from the row"
+     ],
+     "permissions": [
+      "network",
+      "token"
+     ],
+     "platforms": [
+      "macos",
+      "linux"
+     ],
+     "screenshots": [
+      {
+       "file": "1-prs.png",
+       "caption": "Pull Requests: Mine, Review requested and Merged, with the checks and the review decision on each row"
+      },
+      {
+       "file": "2-pr-detail.png",
+       "caption": "The pane a pull request opens with: the body, the latest comments and reviews, every check by name"
+      },
+      {
+       "file": "3-notifications.png",
+       "caption": "Notifications by reason, newest first; the first row is the unread count"
+      },
+      {
+       "file": "4-search.png",
+       "caption": "Search GitHub: repositories, issues, pull requests and users for one query"
+      },
+      {
+       "file": "bar-menubar-dark.png",
+       "caption": "On the menu bar: the GitHub glyph with the unread count as a red badge",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-menubar-light.png",
+       "caption": "The same item on a light menu bar",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-menubar-popover.png",
+       "caption": "A click opens the popover: the newest five unread, Open all, Mark all read",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-sketchybar.png",
+       "caption": "On sketchybar: the glyph and the count in red on the label",
+       "kind": "bar"
+      }
+     ],
+     "actions": [
+      {
+       "title": "Open",
+       "description": "The pull request, issue, repository, notification or profile on GitHub; a notification is marked read first.",
+       "keys": "enter"
+      },
+      {
+       "title": "Copy URL",
+       "keys": "cmd+c"
+      },
+      {
+       "title": "Checkout branch",
+       "description": "gh pr checkout in the clone under repos_root.",
+       "keys": "cmd+shift+o"
+      },
+      {
+       "title": "Copy branch name",
+       "keys": "cmd+b"
+      },
+      {
+       "title": "Open checks",
+       "keys": "cmd+shift+k"
+      },
+      {
+       "title": "Open files changed",
+       "keys": "cmd+shift+f"
+      },
+      {
+       "title": "Copy reference",
+       "description": "owner/repo#n."
+      },
+      {
+       "title": "Mark ready for review",
+       "description": "On a draft.",
+       "keys": "cmd+shift+r"
+      },
+      {
+       "title": "Merge",
+       "description": "With merge_method; asks first.",
+       "keys": "cmd+shift+m"
+      },
+      {
+       "title": "Close issue",
+       "description": "Asks first.",
+       "keys": "cmd+shift+x"
+      },
+      {
+       "title": "Create issue",
+       "description": "A form: repository, title, body."
+      },
+      {
+       "title": "Open in editor",
+       "description": "The local clone, in code or the system opener.",
+       "keys": "cmd+e"
+      },
+      {
+       "title": "Open folder",
+       "keys": "cmd+o"
+      },
+      {
+       "title": "Copy clone URL",
+       "description": "ssh or https, per clone_protocol.",
+       "keys": "cmd+shift+c"
+      },
+      {
+       "title": "Copy owner/name"
+      },
+      {
+       "title": "Open issues"
+      },
+      {
+       "title": "Open pull requests"
+      },
+      {
+       "title": "Create repository",
+       "description": "A form: owner, name, description, private."
+      },
+      {
+       "title": "Mark as read",
+       "description": "Without opening.",
+       "keys": "cmd+shift+r"
+      },
+      {
+       "title": "Mark all as read",
+       "description": "Asks first.",
+       "keys": "cmd+shift+a"
+      },
+      {
+       "title": "Open profile",
+       "description": "A user found by Search.",
+       "keys": "enter"
+      },
+      {
+       "title": "Copy login",
+       "keys": "cmd+c"
+      },
+      {
+       "title": "Open repositories"
+      }
+     ]
+    }
+   },
+   "updated_at": "2026-09-16T22:26:58Z",
+   "url": "https://pal.cagdas.io/extensions/github",
+   "tagline": "Pull requests, issues, repos and notifications in the panel",
+   "category": "developer",
+   "screenshots": [
+    "https://pal.cagdas.io/extensions/github/screenshots/1-prs.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/2-pr-detail.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/3-notifications.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/4-search.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-menubar-dark.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-menubar-light.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-menubar-popover.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-sketchybar.png"
+   ],
+   "panel_screenshots": [
+    "https://pal.cagdas.io/extensions/github/screenshots/1-prs.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/2-pr-detail.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/3-notifications.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/4-search.png"
+   ],
+   "bar_screenshots": [
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-menubar-dark.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-menubar-light.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-menubar-popover.png",
+    "https://pal.cagdas.io/extensions/github/screenshots/bar-sketchybar.png"
+   ],
+   "has_bar": true,
+   "bar_items": [
+    {
+     "id": "notifications",
+     "title": "Notifications",
+     "description": "The unread count as a badge, hidden at zero; the newest five, Open all and Mark all read in the popover.",
+     "refresh": {
+      "every": 300,
+      "on": [
+       "show",
+       "wake",
+       "network"
+      ]
+     },
+     "refresh_words": "every 5 min, when the panel shows, on wake, when the network is back"
+    }
+   ],
+   "has_links": false,
+   "links": [],
+   "multi": true,
+   "has_readme": true
+  },
+  {
+   "name": "gmail",
+   "kind": "bundled",
+   "title": "Gmail",
+   "description": "Your inbox as rows with the sender, the subject and the snippet; open a message in Gmail, mark it read, search with Gmail's own syntax, browse the labels; an unread count on the bar. One instance per ",
+   "version": "0.1.0",
+   "icon": {
+    "tile": {
+     "glyph": "󰇮",
+     "bg": "red"
+    }
+   },
+   "author": "pal",
+   "spec": "github:zcag/pal/extensions/gmail",
+   "source": "https://github.com/zcag/pal/tree/HEAD/extensions/gmail",
+   "commit": "1468a4c61634fecb72a45b3f931bac965a2b6181",
+   "manifest": {
+    "name": "gmail",
+    "title": "Gmail",
+    "description": "Your inbox as rows with the sender, the subject and the snippet; open a message in Gmail, mark it read, search with Gmail's own syntax, browse the labels; an unread count on the bar. One instance per account, each with its own token command; sending only where you turn it on.",
+    "version": "0.1.0",
+    "multi": true,
+    "icon": {
+     "tile": {
+      "glyph": "󰇮",
+      "bg": "red"
+     }
+    },
+    "author": "pal",
+    "repo": "bundled",
+    "license": "MIT",
+    "palettes": {
+     "inbox": {
+      "title": "Inbox ({instance})",
+      "description": "The inbox, unread first then recent, with the sender's avatar, the subject, the snippet, the labels, an attachment mark and the date; the pane is the message as text with the quoted replies folded.",
+      "kind": "live",
+      "lazy": true,
+      "rank": 10,
+      "keys": [
+       {
+        "keys": "enter",
+        "title": "Open the message in Gmail"
+       },
+       {
+        "keys": "cmd+enter",
+        "title": "Mark as read (Mark as unread on a read row)"
+       },
+       {
+        "keys": "cmd+e",
+        "title": "Archive (send on)"
+       },
+       {
+        "keys": "cmd+s",
+        "title": "Star or unstar (send on)"
+       },
+       {
+        "keys": "cmd+shift+r",
+        "title": "Reply (send on)"
+       },
+       {
+        "keys": "cmd+c",
+        "title": "Copy the link"
+       }
+      ]
+     },
+     "search": {
+      "title": "Search Mail ({instance})",
+      "description": "Gmail's search as you type, its syntax passed through (from:, to:, subject:, has:attachment, newer_than:7d, label:), sectioned by label.",
+      "kind": "input",
+      "keys": [
+       {
+        "keys": "enter",
+        "title": "Open the message in Gmail"
+       },
+       {
+        "keys": "cmd+enter",
+        "title": "Mark as read (Mark as unread on a read row)"
+       },
+       {
+        "keys": "cmd+e",
+        "title": "Archive (send on)"
+       },
+       {
+        "keys": "cmd+s",
+        "title": "Star or unstar (send on)"
+       },
+       {
+        "keys": "cmd+shift+r",
+        "title": "Reply (send on)"
+       },
+       {
+        "keys": "cmd+c",
+        "title": "Copy the link"
+       }
+      ]
+     }
+    },
+    "bar": {
+     "unread": {
+      "title": "Unread",
+      "description": "The unread count of the inbox as a badge, hidden at zero, the account's title beside the glyph when it has one; the popover lists the newest five with Open and Mark as read, then Open in pal and Open Gmail.",
+      "refresh": {
+       "every": 120,
+       "on": [
+        "show",
+        "wake",
+        "network"
+       ]
+      }
+     }
+    },
+    "store": {
+     "tagline": "Your inbox in the panel, its count on the bar, per account",
+     "category": "integration",
+     "features": [
+      "Inbox: unread first then recent, each row with the sender's avatar (Gravatar, else the initial on a tinted tile), the subject, the snippet, the labels as chips, a paperclip when there is an attachment, the date",
+      "Enter opens the message in Gmail at the thread; cmd+Enter marks it read; the pane shows the message as text with the quoted replies folded, the headers and the attachments listed",
+      "Search Mail as you type with Gmail's own syntax (from:, subject:, has:attachment, newer_than:7d), the results sectioned by label",
+      "Labels: every label, yours and Gmail's; open it in Gmail or search it here",
+      "The bar item: the unread count, hidden at zero, refreshed every two minutes and on wake; the popover lists the newest five with Open and Mark as read",
+      "Two accounts are two instances, each with its own token command, address, palettes and bar item, told apart by the title and the badge on the tile",
+      "Sending is off per account until you turn it on: with it, Compose and Reply as forms, Drafts to send or discard, Archive and Star on a row. A work account stays read and mark-read only",
+      "No secret in pal: a command of yours prints the token (gcloud, a helper, a broker), pal keeps it in memory until it expires"
+     ],
+     "permissions": [
+      "network",
+      "token"
+     ],
+     "platforms": [
+      "macos",
+      "linux"
+     ],
+     "screenshots": [
+      {
+       "file": "1-inbox.png",
+       "caption": "Inbox: unread first, the sender's avatar, the subject and the snippet, the labels, a paperclip, the date"
+      },
+      {
+       "file": "2-detail.png",
+       "caption": "The pane: the message as text, who and when, the labels, the attachments with their sizes"
+      },
+      {
+       "file": "3-search.png",
+       "caption": "Search Mail: Gmail's syntax typed into the panel, the hits sectioned by label"
+      },
+      {
+       "file": "4-labels.png",
+       "caption": "Labels: yours and Gmail's, Enter opens one in Gmail, cmd+Enter searches it here"
+      },
+      {
+       "file": "5-compose.png",
+       "caption": "Compose: to, cc, subject, body, the signature already under it; only with send on"
+      },
+      {
+       "file": "6-drafts.png",
+       "caption": "Drafts: the recipient and the subject, send or discard after a confirmation"
+      },
+      {
+       "file": "bar-menubar-dark.png",
+       "caption": "On the menu bar: the envelope with the unread count, the account's title beside it",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-menubar-light.png",
+       "caption": "The same item on a light menu bar",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-menubar-popover.png",
+       "caption": "A click opens the popover: the newest five unread, each with Open and Mark as read, then Open in pal and Open Gmail",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-sketchybar.png",
+       "caption": "On sketchybar: the glyph, the title and the count",
+       "kind": "bar"
+      }
+     ],
+     "actions": [
+      {
+       "title": "Open in Gmail",
+       "description": "The thread in the browser, in the account's own Gmail.",
+       "keys": "enter"
+      },
+      {
+       "title": "Mark as read",
+       "description": "On an unread row; Mark as unread on a read one.",
+       "keys": "cmd+enter"
+      },
+      {
+       "title": "Archive",
+       "description": "Out of the inbox; send on only.",
+       "keys": "cmd+e"
+      },
+      {
+       "title": "Star",
+       "description": "Star or unstar; send on only.",
+       "keys": "cmd+s"
+      },
+      {
+       "title": "Reply",
+       "description": "A form with the body; the original quoted under it; send on only.",
+       "keys": "cmd+shift+r"
+      },
+      {
+       "title": "Copy link",
+       "keys": "cmd+c"
+      },
+      {
+       "title": "Search label",
+       "description": "On a label row: the search palette with label:<name> typed.",
+       "keys": "cmd+enter"
+      },
+      {
+       "title": "Copy name",
+       "description": "On a label row.",
+       "keys": "cmd+c"
+      },
+      {
+       "title": "Compose",
+       "description": "The form, then the message from the account.",
+       "keys": "enter"
+      },
+      {
+       "title": "Send draft",
+       "description": "Asks first.",
+       "keys": "cmd+enter"
+      },
+      {
+       "title": "Discard draft",
+       "description": "Asks first.",
+       "keys": "cmd+d"
+      },
+      {
+       "title": "Open Gmail settings",
+       "description": "On a hint row: the extension's settings."
+      }
+     ]
+    }
+   },
+   "updated_at": "2026-09-16T22:26:58Z",
+   "url": "https://pal.cagdas.io/extensions/gmail",
+   "tagline": "Your inbox in the panel, its count on the bar, per account",
+   "category": "integration",
+   "screenshots": [
+    "https://pal.cagdas.io/extensions/gmail/screenshots/1-inbox.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/2-detail.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/3-search.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/4-labels.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/5-compose.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/6-drafts.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-menubar-dark.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-menubar-light.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-menubar-popover.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-sketchybar.png"
+   ],
+   "panel_screenshots": [
+    "https://pal.cagdas.io/extensions/gmail/screenshots/1-inbox.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/2-detail.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/3-search.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/4-labels.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/5-compose.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/6-drafts.png"
+   ],
+   "bar_screenshots": [
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-menubar-dark.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-menubar-light.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-menubar-popover.png",
+    "https://pal.cagdas.io/extensions/gmail/screenshots/bar-sketchybar.png"
+   ],
+   "has_bar": true,
+   "bar_items": [
+    {
+     "id": "unread",
+     "title": "Unread",
+     "description": "The unread count of the inbox as a badge, hidden at zero, the account's title beside the glyph when it has one; the popover lists the newest five with Open and Mark as read, then Open in pal and Open Gmail.",
+     "refresh": {
+      "every": 120,
+      "on": [
+       "show",
+       "wake",
+       "network"
+      ]
+     },
+     "refresh_words": "every 2 min, when the panel shows, on wake, when the network is back"
+    }
+   ],
+   "has_links": false,
+   "links": [],
+   "multi": true,
+   "has_readme": true
+  },
+  {
+   "name": "timer",
+   "kind": "bundled",
+   "title": "Timer",
+   "description": "Named countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette.",
+   "version": "0.1.0",
+   "icon": {
+    "tile": {
+     "glyph": "󰔛",
+     "bg": "amber"
+    }
+   },
+   "author": "pal",
+   "spec": "github:zcag/pal/extensions/timer",
+   "source": "https://github.com/zcag/pal/tree/HEAD/extensions/timer",
+   "commit": "1468a4c61634fecb72a45b3f931bac965a2b6181",
+   "manifest": {
+    "name": "timer",
+    "title": "Timer",
+    "description": "Named countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette.",
+    "version": "0.1.0",
+    "icon": {
+     "tile": {
+      "glyph": "󰔛",
+      "bg": "amber"
+     }
+    },
+    "author": "pal",
+    "repo": "bundled",
+    "links": {
+     "start": {
+      "description": "Start a timer",
+      "params": {
+       "duration": {
+        "description": "25m, 90s, 1h30m, 2:30, or minutes as a bare number",
+        "required": true
+       },
+       "name": {
+        "description": "Optional; the duration otherwise. A name already taken restarts that timer"
+       },
+       "ring": {
+        "description": "Ring the phone out loud when it lands",
+        "type": "boolean"
+       }
+      }
+     }
+    },
+    "palettes": {
+     "timers": {
+      "title": "Timers",
+      "description": "Every timer with what is left; New timer asks for a duration and a name.",
+      "kind": "live",
+      "keys": [
+       {
+        "keys": "enter",
+        "title": "Pause, resume or dismiss"
+       },
+       {
+        "keys": "cmd++",
+        "title": "Add five minutes"
+       },
+       {
+        "keys": "cmd+d",
+        "title": "Stop"
+       }
+      ]
+     }
+    },
+    "bar": {
+     "timer": {
+      "title": "Timer",
+      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running.",
+      "refresh": {
+       "every": 10,
+       "on": [
+        "wake"
+       ]
+      }
+     }
+    },
+    "license": "MIT",
+    "store": {
+     "tagline": "Named countdowns, with an alarm on the bar when one lands",
+     "category": "productivity",
+     "features": [
+      "One row per timer, most urgent first: `3:12 left, done at 04:41 PM`, `Paused at 41:05`, `Landed 1:35 ago`, with a state tag",
+      "New timer is a form: `25m`, `90s`, `1h30m` or a bare number of minutes, an optional name, and a checkbox to ring the phone when it lands",
+      "`enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+d` stops",
+      "The CLI keeps the timers, so one started in a terminal and one started here are the same list",
+      "A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; hidden with none"
+     ],
+     "permissions": [
+      "timer"
+     ],
+     "platforms": [
+      "macos",
+      "linux"
+     ],
+     "screenshots": [
+      {
+       "file": "1-timers.png",
+       "caption": "Every timer with what is left: a landed one, two running, one paused, and New timer last"
+      },
+      {
+       "file": "2-new.png",
+       "caption": "New timer: a duration, an optional name, ring the phone when it lands"
+      },
+      {
+       "file": "3-actions.png",
+       "caption": "Pause, add five minutes, or stop a running timer"
+      },
+      {
+       "file": "bar-menubar-dark.png",
+       "caption": "On the menu bar: what is left of the soonest timer, a fill under the glyph, amber past two thirds",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-menubar-light.png",
+       "caption": "A timer that landed: the item turns into a red alarm with its name",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-menubar-popover.png",
+       "caption": "A click opens the Timers palette: every timer, pause, add five minutes, stop",
+       "kind": "bar"
+      },
+      {
+       "file": "bar-sketchybar.png",
+       "caption": "On sketchybar: the fill as a rule of box-drawing cells before the glyph, the countdown as the label",
+       "kind": "bar"
+      }
+     ],
+     "actions": [
+      {
+       "title": "Pause / Resume / Dismiss",
+       "description": "Pause a running timer, resume a paused one, dismiss a landed one.",
+       "keys": "enter"
+      },
+      {
+       "title": "Add 5 minutes",
+       "keys": "cmd++"
+      },
+      {
+       "title": "Stop",
+       "description": "The timer is gone.",
+       "keys": "cmd+d"
+      },
+      {
+       "title": "New timer",
+       "description": "A form: duration, name, ring the phone.",
+       "keys": "enter"
+      }
+     ]
+    }
+   },
+   "updated_at": "2026-09-16T22:26:58Z",
+   "url": "https://pal.cagdas.io/extensions/timer",
+   "tagline": "Named countdowns, with an alarm on the bar when one lands",
+   "category": "productivity",
+   "screenshots": [
+    "https://pal.cagdas.io/extensions/timer/screenshots/1-timers.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/2-new.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/3-actions.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-menubar-dark.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-menubar-light.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-menubar-popover.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-sketchybar.png"
+   ],
+   "panel_screenshots": [
+    "https://pal.cagdas.io/extensions/timer/screenshots/1-timers.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/2-new.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/3-actions.png"
+   ],
+   "bar_screenshots": [
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-menubar-dark.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-menubar-light.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-menubar-popover.png",
+    "https://pal.cagdas.io/extensions/timer/screenshots/bar-sketchybar.png"
+   ],
+   "has_bar": true,
+   "bar_items": [
+    {
+     "id": "timer",
+     "title": "Timer",
+     "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running.",
+     "refresh": {
+      "every": 10,
+      "on": [
+       "wake"
+      ]
+     },
+     "refresh_words": "every 10s, on wake"
+    }
+   ],
+   "has_links": true,
+   "links": [
+    {
+     "route": "start",
+     "url": "pal://timer/start?duration=<duration>",
+     "cli": "pal call timer/start duration=<duration>",
+     "description": "Start a timer",
+     "params": [
+      {
+       "name": "duration",
+       "description": "25m, 90s, 1h30m, 2:30, or minutes as a bare number",
+       "required": true
+      },
+      {
+       "name": "name",
+       "description": "Optional; the duration otherwise. A name already taken restarts that timer"
+      },
+      {
+       "name": "ring",
+       "description": "Ring the phone out loud when it lands",
+       "type": "boolean"
+      }
+     ]
+    }
+   ],
+   "multi": false,
+   "has_readme": true
+  },
+  {
+   "name": "wordle",
+   "kind": "bundled",
+   "title": "Wordle",
+   "description": "The five-letter word game in the panel, keyboard only: type a word, Enter submits, the tiles flip. A daily puzzle from the date, practice games on N, the streak and the stats persist.",
+   "version": "0.1.0",
+   "icon": {
+    "tile": {
+     "svg": "M1.5 1.5h3.5v3.5H1.5zM6.25 1.5h3.5v3.5h-3.5zM11 1.5h3.5v3.5H11zM1.5 6.25h3.5v3.5H1.5zM6.25 6.25h3.5v3.5h-3.5zM11 6.25h3.5v3.5H11zM1.5 11h3.5v3.5H1.5zM6.25 11h3.5v3.5h-3.5zM11 11h3.5v3.5H11z",
+     "bg": "green"
+    }
+   },
+   "author": "pal",
+   "spec": "github:zcag/pal/extensions/wordle",
+   "source": "https://github.com/zcag/pal/tree/HEAD/extensions/wordle",
+   "commit": "1468a4c61634fecb72a45b3f931bac965a2b6181",
+   "manifest": {
+    "name": "wordle",
+    "title": "Wordle",
+    "description": "The five-letter word game in the panel, keyboard only: type a word, Enter submits, the tiles flip. A daily puzzle from the date, practice games on N, the streak and the stats persist.",
+    "version": "0.1.0",
+    "icon": {
+     "tile": {
+      "svg": "M1.5 1.5h3.5v3.5H1.5zM6.25 1.5h3.5v3.5h-3.5zM11 1.5h3.5v3.5H11zM1.5 6.25h3.5v3.5H1.5zM6.25 6.25h3.5v3.5h-3.5zM11 6.25h3.5v3.5H11zM1.5 11h3.5v3.5H1.5zM6.25 11h3.5v3.5h-3.5zM11 11h3.5v3.5H11z",
+      "bg": "green"
+     }
+    },
+    "author": "pal",
+    "repo": "bundled",
+    "license": "MIT",
+    "store": {
+     "tagline": "Wordle in the panel: a daily puzzle, practice words, stats",
+     "category": "fun",
+     "features": [
+      "The board as a view level: letters type into the row, Enter submits, the row flips tile by tile into green, amber and grey; the on-screen keyboard colours as the letters are found",
+      "A daily puzzle seeded from the date (`daily` setting): opening on a new day starts it, one word a day, the same on every machine",
+      "`N` for a practice word once the day's puzzle is done (or any time with dailies off, as `cmd+n` mid-game)",
+      "A word not in the list, or a hard-mode slip, is a red badge over the board; hard mode keeps greens in place and makes ambers count",
+      "The result view: played, win %, streak and best, the guess distribution as bars, `C` copies the emoji grid for sharing",
+      "Escape leaves at any point; the game and the stats are there when you come back, across restarts",
+      "The word lists ship with the extension (public domain sources, see the README); nothing is fetched"
+     ],
+     "permissions": [],
+     "platforms": [
+      "macos",
+      "linux"
+     ],
+     "screenshots": [
+      {
+       "file": "1-game.png",
+       "caption": "The daily, three guesses in and two letters typed: the keyboard shows what the guesses found"
+      },
+      {
+       "file": "2-notice.png",
+       "caption": "A word that is not in the list: the badge over the board, the row stays for editing"
+      },
+      {
+       "file": "3-solved.png",
+       "caption": "Solved in four: the praise, the stats and the guess distribution, C copies the grid"
+      }
+     ],
+     "actions": [
+      {
+       "title": "Type a letter",
+       "description": "Any letter key fills the current row.",
+       "keys": "a"
+      },
+      {
+       "title": "Submit the guess",
+       "description": "Five letters that make a word in the list.",
+       "keys": "enter"
+      },
+      {
+       "title": "Delete a letter",
+       "description": "Backspace takes the last letter back.",
+       "keys": "backspace"
+      },
+      {
+       "title": "Copy the result",
+       "description": "The emoji grid with the puzzle number and the score, once the game is over.",
+       "keys": "c"
+      },
+      {
+       "title": "Today's puzzle / Practice game",
+       "description": "New game: today's puzzle if it is unplayed, else a practice word. `n` once the game is over, `cmd+n` while a practice game is on.",
+       "keys": "n, cmd+n"
+      }
+     ]
+    },
+    "palettes": {
+     "wordle": {
+      "kind": "view",
+      "description": "The board. Escape leaves mid-game; the game is there when you come back.",
+      "keys": [
+       {
+        "keys": "a",
+        "title": "Type a letter"
+       },
+       {
+        "keys": "enter",
+        "title": "Submit the guess"
+       },
+       {
+        "keys": "backspace",
+        "title": "Delete a letter"
+       },
+       {
+        "keys": "c",
+        "title": "Copy the result, once the game is over"
+       },
+       {
+        "keys": "n",
+        "title": "New game, once the game is over"
+       },
+       {
+        "keys": "cmd+n",
+        "title": "New game mid-game, when a practice word can be dropped"
+       }
+      ]
+     }
+    }
+   },
+   "updated_at": "2026-09-16T22:26:58Z",
+   "url": "https://pal.cagdas.io/extensions/wordle",
+   "tagline": "Wordle in the panel: a daily puzzle, practice words, stats",
+   "category": "fun",
+   "screenshots": [
+    "https://pal.cagdas.io/extensions/wordle/screenshots/1-game.png",
+    "https://pal.cagdas.io/extensions/wordle/screenshots/2-notice.png",
+    "https://pal.cagdas.io/extensions/wordle/screenshots/3-solved.png"
+   ],
+   "panel_screenshots": [
+    "https://pal.cagdas.io/extensions/wordle/screenshots/1-game.png",
+    "https://pal.cagdas.io/extensions/wordle/screenshots/2-notice.png",
+    "https://pal.cagdas.io/extensions/wordle/screenshots/3-solved.png"
+   ],
+   "bar_screenshots": [],
+   "has_bar": false,
+   "bar_items": [],
+   "has_links": false,
+   "links": [],
+   "multi": false,
+   "has_readme": true
+  }
+ ],
+ "synced_at": "2026-09-16T22:26:58Z"
+}

@@ -460,7 +460,7 @@ export type Effect = {
    * list the children of the picked item; a level with args is always listed
    * from the extension, never from the index.
    */
-  push?: { extension: string; palette: string; args?: unknown; /** Typed into the level's search box on arrival (a fallback row carrying the root query in). */ query?: string };
+  push?: { extension: string; palette: string; args?: unknown; /** Typed into the level's search box on arrival (a fallback row carrying the root query in). */ query?: string; /** The level's crumb, in place of the palette's title: the folder being browsed, the file the apps are for. */ title?: string };
   /** Show output: the UI pushes a detail-only level (the Detail, full width; `title` is the level's crumb). */
   show?: Detail & { title?: string };
   /** A render tree (`View`): from a list, pushes a view level; from a view, replaces its tree. */

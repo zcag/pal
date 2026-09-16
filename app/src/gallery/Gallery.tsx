@@ -17,12 +17,29 @@ import { render as renderTable } from "../../../extensions/blackjack/render.ts";
 import { actions, deploy, formFields, handWritten, markdownOnly, nerdGlyphs, person, raycastDocs, sample, welcomeRows } from "./data";
 import {
   SettingsAbout, SettingsBar, SettingsDiagnostics, SettingsExtensions, SettingsField, SettingsGeneral, SettingsPalettes, SettingsWindow,
-  aboutIndex, barIndex, extensionsIndex, generalIndex, palettesIndex, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
+  aboutIndex, barIndex, badgedIcon, extensionsIndex, generalIndex, palettesIndex, resolveInstance, type BarItemConfig, type PaletteConfig, type SettingValue, type SettingValues, type SettingsExtension, type SettingsPage,
 } from "../ui";
 import { settingsBar, settingsBarItems, settingsDiagnostics, settingsExtensions, settingsFieldSpecs, settingsFile, settingsGeneral, settingsHotkeyStatus, settingsPermissions, tileRows } from "./data";
 import Shots from "./shots";
 import BarShot from "./bar-shot";
+import { parseThemeToml } from "./theme-toml";
+import { applyThemeFile, type ThemeFile } from "../theme";
+import type { ThemeFileStatus } from "../ui/SettingsTheme";
+import frappeToml from "../../../examples/themes/catppuccin-frappe.toml?raw";
+import dawnToml from "../../../examples/themes/rose-pine-dawn.toml?raw";
 import "./gallery.css";
+
+/** The two bundled example themes, read from the files that ship. */
+const exampleThemes: ThemeFile[] = [parseThemeToml(frappeToml, "catppuccin-frappe.toml"), parseThemeToml(dawnToml, "rose-pine-dawn.toml")];
+/** What Settings > General's picker shows in the gallery: both examples in the folder, the first one set. */
+const settingsThemeFile: ThemeFileStatus = { setting: "catppuccin-frappe", file: "~/.config/pal/themes/catppuccin-frappe.toml", name: "Catppuccin Frappé", diagnostics: [{ level: "warning", path: "light.accnet", message: "not a theme token; docs/config.md lists them" }], dir: "~/.config/pal/themes", themes: [{ name: "catppuccin-frappe", path: "~/.config/pal/themes/catppuccin-frappe.toml", title: "Catppuccin Frappé" }, { name: "rose-pine-dawn", path: "~/.config/pal/themes/rose-pine-dawn.toml", title: "Rosé Pine Dawn" }] };
+
+/** A subtree drawn under a theme file: the scheme's variables set inline on the wrapper, as theme.ts sets them on `:root`. */
+function Themed({ file, theme, children }: { file: ThemeFile; theme: "light" | "dark"; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (ref.current) applyThemeFile(file, ref.current); }, [file, theme]);
+  return <div ref={ref} className="g-theme" data-theme={theme}>{children}</div>;
+}
 
 const themes = ["light", "dark"] as const;
 
@@ -405,6 +422,43 @@ function GalleryPage() {
         </State>
       </Section>
 
+      <Section id="compact" title="Compact mode">
+        <p className="g-note">`general.compact` (cmd+shift+m in the panel): 560 wide, 32 px rows, no detail pane, the footer folded into the search row's right side (the primary hint; ⌘K still lists the actions). The subtitle goes as beside a detail pane; the type stays.</p>
+        <State label="Root, both themes">
+          <div className="g-pair">
+            {themes.map((t) => (
+              <div key={t} className="g-theme" data-theme={t} data-density="compact">
+                <div className="g-frame g-frame--compact"><Panel search={<Search value="" onChange={noop} hint={{ title: "Open" }} />}><DemoList items={mixed} /></Panel></div>
+              </div>
+            ))}
+          </div>
+        </State>
+        <State label="Inside a palette, rows marked">
+          <div className="g-pair">
+            {themes.map((t) => (
+              <div key={t} className="g-theme" data-theme={t} data-density="compact">
+                <div className="g-frame g-frame--compact"><Panel search={<Search value="" onChange={noop} back={{ title: "Pull requests", icon: { kind: "glyph", value: "󰘬" }, onBack: noop }} placeholder="Search Pull requests…" hint={{ title: "Open PR" }} count={2} />}><DemoList items={mixed} /></Panel></div>
+              </div>
+            ))}
+          </div>
+        </State>
+      </Section>
+
+      <Section id="theme-file" title="Theme file">
+        <p className="g-note">`general.theme_file`: the two examples that ship (examples/themes/, read here from the same files), each drawn for its light and its dark section over the same rows. The app sets the section's variables on `:root` and swaps them when the scheme flips.</p>
+        {exampleThemes.map((f) => (
+          <State key={f.file} label={`${f.theme.name} (${f.file})`}>
+            <div className="g-pair">
+              {themes.map((t) => (
+                <Themed key={t} file={f} theme={t}>
+                  <div className="g-frame"><Panel search={<Search value="" onChange={noop} />} footer={<Footer title="12 of 14719" primary={{ title: "Open" }} actions />}><DemoList items={mixed} /></Panel></div>
+                </Themed>
+              ))}
+            </div>
+          </State>
+        ))}
+      </Section>
+
       <Section id="search" title="Search">
         {[
           ["Empty", <Search value="" onChange={noop} />],
@@ -641,7 +695,20 @@ function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diag
   const [ext, setExt] = useState<string | undefined>("github");
   const patchPalette = (id: string, config: PaletteConfig) =>
     setExts((es) => es.map((e) => ({ ...e, palettes: e.palettes.map((p) => (p.id === id ? { ...p, config } : p)) })));
-  const patchExt = (name: string, values: SettingValues) => setExts((es) => es.map((e) => (e.name === name ? { ...e, values } : e)));
+  const patchExt = (key: string, values: SettingValues) => setExts((es) => es.map((e) => (e.key === key ? { ...e, values } : e)));
+  const [extInstance, setExtInstance] = useState<string | undefined>(undefined);
+  // Instances, in memory: add copies the default's entry under the new key, rename and enabled patch its `instance`, remove drops it.
+  const addInstance = async (name: string, suffix: string, title?: string, tint?: string) => setExts((es) => {
+    const base = es.find((e) => e.name === name && e.instance?.isDefault) ?? es.find((e) => e.name === name);
+    if (!base || !base.icon) return es;
+    const inst = resolveInstance(`${name}@${suffix}`, name, { title, tint }, undefined, base.icon.kind === "tile" ? base.icon.bg : undefined);
+    const extTitle = base.extTitle ?? base.title;
+    return [...es, { ...base, key: inst.key, instance: inst, title: `${extTitle} (${inst.title})`, icon: badgedIcon(base.icon, inst), values: {}, inherited: base.values, inheritedFrom: base.title, latest: undefined, palettes: base.palettes.map((p) => ({ ...p, id: p.id.replace(name, inst.key), title: p.title.replace(/ \(.*\)$/, ` (${inst.title})`), config: { enabled: true, settings: {} }, inherited: p.config.settings })) }];
+  });
+  const patchInstance = (key: string, f: (e: SettingsExtension) => SettingsExtension) => setExts((es) => es.map((e) => (e.key === key ? f(e) : e)));
+  const renameInstance = (key: string, title: string) => patchInstance(key, (e) => ({ ...e, instance: { ...e.instance!, title: title || e.instance!.suffix }, title: `${e.extTitle ?? e.title} (${title || e.instance!.suffix})` }));
+  const enableInstance = (key: string, enabled: boolean) => patchInstance(key, (e) => ({ ...e, instance: { ...e.instance!, enabled } }));
+  const removeInstance = async (key: string) => setExts((es) => es.filter((e) => e.key !== key));
   const [bar, setBar] = useState(settingsBar);
   const [barItems, setBarItems] = useState(settingsBarItems);
   const [barKey, setBarKey] = useState<string | undefined>("timer/timer");
@@ -650,9 +717,9 @@ function SettingsDemo({ page: initial, diagnostics }: { page: SettingsPage; diag
   const mac = /Mac/.test(navigator.platform);
   return (
     <SettingsWindow page={page} onPage={setPage} index={index} diagnostics={diagnostics ? settingsDiagnostics : []} file="config.toml" mac={mac}>
-      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} />}
+      {page === "general" && <SettingsGeneral value={general} onChange={setGeneral} file={settingsFile} onOpenFile={noop} onRevealFile={noop} onResetFrecency={noop} onRestartHost={noop} hotkey={settingsHotkeyStatus(general.hotkeys)} onOpenKeyboardShortcuts={noop} permissions={settingsPermissions} onRequestPermission={noop} themeFile={{ status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }} />}
       {page === "palettes" && <SettingsPalettes extensions={exts} selected={palette} onSelect={setPalette} onChange={patchPalette} />}
-      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} />}
+      {page === "extensions" && <SettingsExtensions extensions={exts} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={patchExt} onInstall={() => new Promise((r) => setTimeout(r, 800))} onUpdate={noop} onRemove={noop} onOpenLink={noop} onInstanceAdd={addInstance} onInstanceRename={renameInstance} onInstanceRemove={removeInstance} onInstanceEnabled={enableInstance} />}
       {page === "bar" && <SettingsBar config={bar} onChange={setBar} items={barItems} onItem={patchBarItem} sketchybar={false} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => { setExt(name); setPage("extensions"); }} />}
       {page === "about" && <SettingsAbout version="0.1.0" file={settingsFile.path} links={{ docs: "https://github.com/zcag/pal/blob/main/docs/extensions.md", repo: "https://github.com/zcag/pal" }} onCheckUpdates={() => new Promise((r) => setTimeout(() => r({ available: true, version: "0.2.0", installable: true }), 800))} update={{ available: true, version: "0.2.0", installable: true }} onInstallUpdate={() => new Promise((r) => setTimeout(r, 800))} onOpenLink={noop} onRevealFile={noop} />}
     </SettingsWindow>

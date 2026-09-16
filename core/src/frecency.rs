@@ -367,6 +367,18 @@ impl Frecency {
         had
     }
 
+    /// Drop every item of one extension (an instance removed: `gmail@work`
+    /// and nothing of `gmail`); how many went. The search history stays.
+    pub fn forget_extension(&mut self, extension: &str) -> usize {
+        let before = self.entries.len();
+        self.entries.retain(|k, _| k.extension != extension);
+        let gone = before - self.entries.len();
+        if gone > 0 {
+            self.changed();
+        }
+        gone
+    }
+
     /// Drop all history, the search history included.
     pub fn clear(&mut self) {
         if !self.entries.is_empty() || !self.history.is_empty() {
@@ -584,6 +596,21 @@ mod tests {
         let mut f = Frecency::in_memory();
         f.record(&key("a"), t(now - age));
         f.score(&key("a"), "", t(now))
+    }
+
+    #[test]
+    fn forget_extension_drops_its_keys_alone() {
+        let mut f = Frecency::in_memory();
+        let now = t(1_000_000);
+        f.record(&Key::new("gmail@work", "inbox", "1"), now);
+        f.record(&Key::new("gmail@work", "search", "2"), now);
+        f.record(&Key::new("gmail", "inbox", "1"), now);
+        f.record_history("q");
+        assert_eq!(f.forget_extension("gmail@work"), 2);
+        assert_eq!(f.len(), 1, "the default instance keeps its history");
+        assert!(f.score(&Key::new("gmail", "inbox", "1"), "", now) > 0.0);
+        assert_eq!(f.forget_extension("gmail@work"), 0);
+        assert_eq!(f.history(), ["q"]);
     }
 
     #[test]

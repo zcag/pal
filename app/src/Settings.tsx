@@ -14,6 +14,8 @@ import {
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages,
   resolveLook, lookDefaults, lookOf, lookWrites, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
+  badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
+  useThemeFile,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
 import { screenshotUrl } from "./ui/icons";
@@ -31,14 +33,17 @@ type RawConfig = {
   palettes: Record<string, RawPalette>;
   bar: RawBar;
   extensions: Record<string, Record<string, unknown>>;
+  /** `[instances.<key>]` (core `Instance`): the configured copies of `multi` extensions, and the default's title once named. */
+  instances?: Record<string, RawInstance>;
 };
 type ManifestPalette = { title?: string; description?: string; kind?: string; keys?: PaletteKey[]; tier?: PaletteTier; settings?: SettingSpec[] };
 type ManifestStore = { tagline?: string; screenshots?: { file: string; caption?: string; kind?: string }[] };
-type Manifest = { name: string; title?: string; description?: string; version?: string; icon?: unknown; author?: string; repo?: string; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
+type Manifest = { name: string; title?: string; description?: string; version?: string; icon?: unknown; author?: string; repo?: string; multi?: boolean; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
 /** `PaletteMeta` (registry.rs): what the code said about a palette, `tier` already the manifest's over the code's (host.ts). */
 type Meta = { name: string; title: string; icon?: unknown; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier };
 type Record_ = { source: string; ref?: string; installed_at: number; commit_or_etag?: string };
-type Ext = { name: string; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; warnings?: string[]; installed?: number; record?: Record_ };
+/** settings.rs `Ext`: one instance as the host reported it; `key` is the instance key (`gmail@work`), `name` the manifest's. */
+type Ext = { key: string; name: string; instance: InstanceInfo; manifest: Manifest; root: string; loaded: boolean; error?: string; palettes: Meta[]; warnings?: string[]; installed?: number; record?: Record_ };
 /** `pal_core::extensions::Update`. */
 type Update = { name: string; current: string; latest: string };
 /** settings.rs `Checked`: when a check ran (unix ms) and what it said, the value or the failure's message. */
@@ -54,8 +59,21 @@ type About = { docs: string; repo: string; report?: CrashReport; panic?: PanicRe
 /** The store site, where every bundled extension has a page. */
 const STORE = "https://pal.cagdas.io/extensions";
 
-/** `palettes.<id>`: the extension's name when the palette is named like it, else `<extension>-<palette>` (index.rs `palette_id`). */
-const paletteId = (ext: string, palette: string) => (ext === palette ? ext : `${ext}-${palette}`);
+/** The extension's name behind an instance key: `gmail` for `gmail@work` (`pal_core::config::instance::name_of`). */
+const nameOf = (key: string) => key.split("@")[0];
+
+/** `palettes.<id>`: the instance key when the palette is named like the extension's *name*, else `<key>-<palette>` (`pal_core::config::instance::palette_id`). */
+const paletteId = (key: string, palette: string) => (nameOf(key) === palette ? key : `${key}-${palette}`);
+
+/** The setting ids a non-default instance never inherits: secrets and `scope: instance` (`instance::private_ids`). */
+const isPrivate = (s: SettingSpec) => s.kind === "secret" || s.scope === "instance";
+
+/** What a non-default instance inherits of `base` (the default's table): every declared, non-private key that table sets. */
+function inheritedOf(specs: SettingSpec[], base: Record<string, unknown> | undefined): SettingValues {
+  const out: SettingValues = {};
+  for (const s of specs) if (!isPrivate(s) && base?.[s.id] !== undefined) out[s.id] = base[s.id] as SettingValue;
+  return out;
+}
 
 /** A dotted-key segment, quoted when TOML needs it. */
 const seg = (s: string) => (/^[A-Za-z0-9_-]+$/.test(s) ? s : JSON.stringify(s));
@@ -64,13 +82,27 @@ const sameValue = (a: SettingValue, b: SettingValue) => JSON.stringify(a ?? null
 
 const isTier = (r: unknown): r is PaletteTier => r === "primary" || r === "normal" || r === "catalog";
 
-function toExtension(e: Ext, config: RawConfig, userRoot: string, latest?: string): SettingsExtension {
+/**
+ * One entry per instance the host reported (`Ext`), and for a `multi`
+ * extension one per `[instances."<name>@<suffix>"]` the host has not
+ * loaded (parked: `enabled = false`), built from the default's report with
+ * no palettes. `alone` is whether the extension has one enabled instance:
+ * a named default is labelled only next to another.
+ */
+function toExtension(e: Ext, config: RawConfig, userRoot: string, latest: string | undefined, alone: boolean): SettingsExtension {
   const m = e.manifest;
-  const title = m.title ?? e.name;
+  const extTitle = m.title ?? e.name;
+  const own = m.icon ? iconOf(m.icon, extTitle) : undefined;
+  const instance: SettingsInstance | undefined = m.multi ? resolveInstance(e.key, e.name, config.instances?.[e.key], e.instance, own?.kind === "tile" ? own.bg : undefined) : undefined;
+  // "Gmail (Work)"; a lone or unnamed default stays "Gmail", as its palette titles do (the host's rule).
+  const label = instance && instance.title && (!instance.isDefault || !alone) ? instance.title : undefined;
+  const title = label ? `${extTitle} (${label})` : extTitle;
+  const inherits = !!instance && !instance.isDefault;
+  const defaultTitle = inherits ? config.instances?.[e.name]?.title?.trim() : undefined;
   const codePalettes = new Map(e.palettes.map((p) => [p.name, p]));
   const names = [...new Set([...codePalettes.keys(), ...Object.keys(m.palettes ?? {})])];
   const palettes: SettingsPalette[] = names.map((name) => {
-    const id = paletteId(e.name, name);
+    const id = paletteId(e.key, name);
     const meta = codePalettes.get(name);
     const declared = m.palettes?.[name];
     const raw = config.palettes[id] ?? {};
@@ -85,16 +117,22 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest?: strin
       tier: isTier(meta?.tier) ? meta.tier : isTier(declared?.tier) ? declared.tier : undefined,
       settings: declared?.settings ?? [],
       config: { enabled: raw.enabled ?? true, alias: raw.alias, hotkey: raw.hotkey, icon: raw.icon, tier: isTier(raw.tier) ? raw.tier : undefined, itemHotkeys: raw.item_hotkeys, settings: (raw.settings ?? {}) as SettingValues },
+      ...(inherits && { inherited: inheritedOf(declared?.settings ?? [], config.palettes[paletteId(e.name, name)]?.settings) }),
     };
   });
   const bundled = e.root !== userRoot;
   return {
     name: e.name,
+    key: e.key,
+    multi: m.multi,
+    instance,
+    ...(inherits && { inherited: inheritedOf(m.settings ?? [], config.extensions[e.name]), inheritedFrom: defaultTitle ? `${extTitle} (${defaultTitle})` : extTitle }),
     title,
+    extTitle,
     description: m.description ?? "",
     tagline: m.store?.tagline,
     author: m.author,
-    icon: m.icon ? iconOf(m.icon, title) : undefined,
+    icon: badgedIcon(own, instance),
     version: m.version ?? "",
     latest,
     // "bundled" here means "not the store's": Update and Remove only apply there. An
@@ -106,7 +144,7 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest?: strin
     installed: e.installed,
     palettes,
     settings: m.settings ?? [],
-    values: (config.extensions[e.name] ?? {}) as SettingValues,
+    values: (config.extensions[e.key] ?? {}) as SettingValues,
     loaded: e.loaded,
     error: e.error,
     warnings: e.warnings,
@@ -118,9 +156,22 @@ function toExtension(e: Ext, config: RawConfig, userRoot: string, latest?: strin
   };
 }
 
+/** The parked instances of `multi` extensions the host did not load, as entries of their own: the default's report under the instance's key, nothing loaded. */
+function parkedInstances(exts: Ext[], config: RawConfig): Ext[] {
+  const out: Ext[] = [];
+  for (const key of Object.keys(config.instances ?? {})) {
+    const name = nameOf(key);
+    if (key === name || exts.some((e) => e.key === key)) continue;
+    const base = exts.find((e) => e.name === name && e.manifest.multi);
+    if (base) out.push({ ...base, key, instance: { key, isDefault: false }, loaded: false, error: undefined, palettes: [], warnings: [] });
+  }
+  return out;
+}
+
 function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtension[]): BarItem {
   const raw = config.bar?.items?.[b.key] ?? {};
-  const ext = extensions.find((e) => e.name === b.extension);
+  // `b.extension` is the instance key: the entry's title carries the instance ("Gmail (Work)").
+  const ext = extensions.find((e) => e.key === b.extension);
   return {
     key: b.key,
     extension: b.extension,
@@ -197,7 +248,9 @@ export default function Settings() {
   const [view, setView] = useState<View | null>(null);
   const [page, setPage] = useState<SettingsPage>(startPage);
   const [palette, setPalette] = useState<string | undefined>(undefined);
+  /** The Extensions page's selection: an extension name (one row per name, every instance in its pane), and the instance whose settings its pane shows. */
   const [ext, setExt] = useState<string | undefined>(undefined);
+  const [extInstance, setExtInstance] = useState<string | undefined>(undefined);
   const [barKey, setBarKey] = useState<string | undefined>(undefined);
   /** The last failed command, shown in the title bar until a write succeeds. */
   const [error, setError] = useState<string | null>(null);
@@ -286,19 +339,32 @@ export default function Settings() {
 
   /** The user's store (`Store::locate`, under the data dir): the root whose extensions Update and Remove apply to. */
   const userRoot = view?.store ?? "";
-  // By title: the registry's order is the host's load order, which means nothing to the reader.
-  const extensions = useMemo(() => (view ? view.extensions.map((e) => toExtension(e, view.config, userRoot, latest[e.name])).sort((a, b) => a.title.localeCompare(b.title)) : []), [view, userRoot, latest]);
+  // By title: the registry's order is the host's load order, which means nothing to the reader. One entry per instance key (a parked instance included); the Extensions page groups them by name.
+  const extensions = useMemo(() => {
+    if (!view) return [];
+    const all = [...view.extensions, ...parkedInstances(view.extensions, view.config)];
+    const enabled = (name: string) => all.filter((e) => e.name === name && view.config.instances?.[e.key]?.enabled !== false).length;
+    return all.map((e) => toExtension(e, view.config, userRoot, latest[e.name], enabled(e.name) < 2)).sort((a, b) => a.title.localeCompare(b.title));
+  }, [view, userRoot, latest]);
   const barItems = useMemo(() => (view?.bar ? view.bar.items.map((b) => toBarItem(b, view.config, extensions)) : []), [view, extensions]);
   const onInstall = async (spec: string) => { await invoke("extensions_install", { spec }); };
   // The core forgets the extension's pending update (settings.rs); the re-read lands it.
   const onExtUpdate = async (name: string) => { await invoke("extensions_update", { name }); refresh(); };
   const onExtRemove = async (name: string) => { await invoke("extensions_remove", { name }); refresh(); };
+  // Instances (settings.rs `instances_*`): the file edits, applied to the running config at once; the host reloads the extension's instances.
+  const onInstanceAdd = async (name: string, suffix: string, title?: string, tint?: string) => { await invoke<string>("instances_add", { name, suffix, title: title || null, tint: tint || null }); refresh(); };
+  const onInstanceRename = async (key: string, title: string) => { await invoke("instances_rename", { key, title }); refresh(); };
+  const onInstanceRemove = async (key: string) => { await invoke("instances_remove", { key }); refresh(); };
+  const onInstanceEnabled = (key: string, enabled: boolean) => write(["instances", key, "enabled"], enabled ? undefined : false);
   // A selection that names nothing (first paint, or a removed extension) moves to the first entry.
   useEffect(() => {
     if (extensions.length === 0) return;
     if (!extensions.some((e) => e.palettes.some((p) => p.id === palette))) setPalette(extensions.flatMap((e) => e.palettes)[0]?.id);
     if (!extensions.some((e) => e.name === ext)) setExt(extensions[0].name);
   }, [extensions, palette, ext]);
+
+  /** The theme file picker's state (General): fetched and written by its own hook, since the file lives outside the config. */
+  const themeFile = useThemeFile();
 
   /** One key to the file; `undefined` removes it. The local copy moves at once; a refused write (the core's error, `Contended` after its retry included) shows in the title bar and the file's state comes back. */
   const write = useCallback((key: string[], value: unknown) => {
@@ -308,24 +374,23 @@ export default function Settings() {
     call.then(() => setError(null), (e) => { setError(String(e)); refresh(); });
   }, [refresh]);
 
-  /** A declared setting: a value equal to its default (or none) leaves the file, anything else is written. */
-  const writeDeclared = useCallback(async (key: string[], spec: SettingSpec | undefined, value: SettingValue) => {
+  /** A declared setting: a value equal to its default (or none) leaves the file, anything else is written. For a non-default instance `base` is the value it inherits from the default's table: an equal value leaves the file too, so the instance keeps following. */
+  const writeDeclared = useCallback(async (key: string[], spec: SettingSpec | undefined, value: SettingValue, base?: SettingValue) => {
     if (spec?.kind === "secret" && typeof value === "string" && value && !/^(keychain|env):/.test(value)) {
-      // The value goes to the OS store; the file gets the reference.
+      // The value goes to the OS store; the file gets the reference (`pal/gmail@work-token` for an instance: its own item).
       try {
         value = await invoke<string>("settings_set_secret", { key: `pal/${key.slice(1).join("-")}`, value });
       } catch (e) { setError(String(e)); return; }
     }
-    const clear = value === undefined || value === "" || (spec && sameValue(value, spec.default));
-    write(key, clear ? undefined : value);
+    write(key, leavesFile(value, spec, base) ? undefined : value);
   }, [write]);
 
   /** The palette's indexed rows (index.rs `query` scoped to its source: the cached listing, every row, no cap), for the item hotkeys' picker. */
   const paletteItems = useCallback(async (p: SettingsPalette): Promise<PaletteItem[]> => {
-    const e = view?.extensions.find((x) => x.palettes.some((m) => paletteId(x.name, m.name) === p.id));
-    const m = e?.palettes.find((m) => paletteId(e.name, m.name) === p.id);
+    const e = view?.extensions.find((x) => x.palettes.some((m) => paletteId(x.key, m.name) === p.id));
+    const m = e?.palettes.find((m) => paletteId(e.key, m.name) === p.id);
     if (!e || !m) return [];
-    const hits = await invoke<{ id: string; item: { name: string } }[]>("query", { q: "", limit: 5000, sources: [{ extension: e.name, palette: m.name }] });
+    const hits = await invoke<{ id: string; item: { name: string } }[]>("query", { q: "", limit: 5000, sources: [{ extension: e.key, palette: m.name }] });
     return hits.map((h) => ({ id: h.id, name: h.item.name }));
   }, [view]);
 
@@ -361,15 +426,16 @@ export default function Settings() {
       else for (const k of new Set([...Object.keys(wasKeys), ...Object.keys(nowKeys)])) if (wasKeys[k] !== nowKeys[k]) write(["palettes", id, "item_hotkeys", k], nowKeys[k]);
     }
     for (const k of new Set([...Object.keys(next.settings), ...Object.keys(cur.settings)])) {
-      if (!sameValue(next.settings[k], cur.settings[k])) writeDeclared(["palettes", id, "settings", k], p.settings.find((s) => s.id === k), next.settings[k]);
+      if (!sameValue(next.settings[k], cur.settings[k])) writeDeclared(["palettes", id, "settings", k], p.settings.find((s) => s.id === k), next.settings[k], p.inherited?.[k]);
     }
   };
 
-  const onExtension = (name: string, values: SettingValues) => {
-    const e = extensions.find((x) => x.name === name);
+  /** The instance `key`'s own table (`[extensions.<key>]`); a value equal to what it inherits leaves the file. */
+  const onExtension = (key: string, values: SettingValues) => {
+    const e = extensions.find((x) => x.key === key);
     if (!e) return;
     for (const k of new Set([...Object.keys(values), ...Object.keys(e.values)])) {
-      if (!sameValue(values[k], e.values[k])) writeDeclared(["extensions", name, k], e.settings.find((s) => s.id === k), values[k]);
+      if (!sameValue(values[k], e.values[k])) writeDeclared(["extensions", key, k], e.settings.find((s) => s.id === k), values[k], e.inherited?.[k]);
     }
   };
 
@@ -413,7 +479,8 @@ export default function Settings() {
   const go = (p: SettingsPage, anchor?: string) => {
     setPage(p);
     if (anchor?.startsWith("palettes:")) { const id = anchor.split(":")[1]; if (id !== "ext" && extensions.some((e) => e.palettes.some((x) => x.id === id))) setPalette(id); }
-    if (anchor?.startsWith("extensions:")) { const name = anchor.split(":")[1]; if (extensions.some((e) => e.name === name)) setExt(name); }
+    // `extensions:<key>[:<setting>]`: the key's extension is the row, its instance the pane's settings.
+    if (anchor?.startsWith("extensions:")) { const key = anchor.split(":")[1]; const hit = extensions.find((e) => e.key === key); const name = hit?.name ?? nameOf(key); if (extensions.some((e) => e.name === name)) { setExt(name); if (hit) setExtInstance(hit.key); } }
     if (anchor?.startsWith("bar:")) { const rest = anchor.slice(4); const key = barItems.find((b) => rest === b.key || rest.startsWith(`${b.key}:`))?.key; if (key) setBarKey(key); }
     if (anchor) requestAnimationFrame(() => { if (!flashAnchor(anchor)) setTimeout(() => flashAnchor(anchor), 120); });
   };
@@ -467,11 +534,12 @@ export default function Settings() {
           permissions={permissions}
           onRequestPermission={requestPermission}
           onOpenOverview={() => go("overview", "overview:attention")}
+          themeFile={themeFile}
         />
       )}
       {page === "palettes" && <SettingsPalettes extensions={extensions} selected={palette} onSelect={setPalette} onChange={onPalette} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} items={paletteItems} />}
-      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} />}
-      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(name) => go("extensions", `extensions:${name}`)} />}
+      {page === "extensions" && <SettingsExtensions extensions={extensions} selected={ext} onSelect={setExt} selectedInstance={extInstance} onSelectInstance={setExtInstance} onChange={onExtension} onInstall={onInstall} onUpdate={onExtUpdate} onRemove={onExtRemove} onOpenLink={openLink} onOpenPalette={(id) => go("palettes", `palettes:${id}`)} onInstanceAdd={onInstanceAdd} onInstanceRename={onInstanceRename} onInstanceRemove={onInstanceRemove} onInstanceEnabled={onInstanceEnabled} />}
+      {page === "bar" && <SettingsBar config={bar} onChange={onBar} items={barItems} onItem={onBarItem} sketchybar={view.bar?.sketchybar ?? false} supported={barSupported} selected={barKey} onSelect={setBarKey} onOpenExtension={(key) => go("extensions", `extensions:${key}`)} />}
       {page === "about" && (
         <SettingsAbout
           version={view.version}

@@ -590,17 +590,7 @@ pub fn write_text_concealed_for(text: &str, delay: Duration) -> Result<()> {
         .name("clipboard-clear".into())
         .spawn(move || {
             std::thread::sleep(delay);
-            match restore_plan(platform::read_any().as_ref(), &secret, previous) {
-                Restore::Leave => {}
-                Restore::Clear => {
-                    suppress_watch(SUPPRESS);
-                    platform::clear();
-                }
-                Restore::Write(c) => {
-                    suppress_watch(SUPPRESS);
-                    let _ = platform::write(&c);
-                }
-            }
+            restore(previous, &secret);
         })
         .map(|_| ())
         .map_err(Error::Io)
@@ -711,9 +701,32 @@ pub fn paste_text(text: &str) -> Result<()> {
 }
 
 /// Let the new pasteboard contents settle before the app reads them.
-fn send_paste() -> Result<()> {
+pub(crate) fn send_paste() -> Result<()> {
     std::thread::sleep(Duration::from_millis(50));
     platform::paste_key()
+}
+
+/// What the clipboard holds now, concealed or not: what [`restore`] puts
+/// back after a write pal made for its own paste (snippet expansion).
+pub(crate) fn snapshot() -> Option<Content> {
+    platform::read_any()
+}
+
+/// Put `previous` back (or empty the clipboard when there was nothing) if
+/// `secret` is still what is on it; the watcher records none of it. The
+/// second half of [`snapshot`], the same decision as the clear-after.
+pub(crate) fn restore(previous: Option<Content>, secret: &str) {
+    match restore_plan(platform::read_any().as_ref(), secret, previous) {
+        Restore::Leave => {}
+        Restore::Clear => {
+            suppress_watch(SUPPRESS);
+            platform::clear();
+        }
+        Restore::Write(c) => {
+            suppress_watch(SUPPRESS);
+            let _ = platform::write(&c);
+        }
+    }
 }
 
 /// A keystroke in the `Action.shortcut` spelling (`cmd+shift+g`, `ctrl+l`,
@@ -721,11 +734,17 @@ fn send_paste() -> Result<()> {
 /// uses for the Go to Folder sheet. Needs Accessibility on macOS like
 /// paste; `wtype` or `ydotool` on Linux.
 pub fn send_key(shortcut: &str) -> Result<()> {
+    let k = Keystroke::parse(shortcut).ok_or_else(|| Error::Unavailable(format!("no key {shortcut:?}")))?;
+    send_keystroke(&k)
+}
+
+/// [`send_key`] for a parsed key: what a run of them (the backspaces of an
+/// expansion) calls without parsing each time.
+pub fn send_keystroke(k: &Keystroke) -> Result<()> {
     if !crate::ax::trusted() {
         return Err(Error::NeedsAccessibility);
     }
-    let k = Keystroke::parse(shortcut).ok_or_else(|| Error::Unavailable(format!("no key {shortcut:?}")))?;
-    platform::send_key(&k)
+    platform::send_key(k)
 }
 
 /// A key with modifiers, parsed from the shortcut spelling. The keys pal
@@ -761,6 +780,7 @@ impl Keystroke {
             "a" => 0, "s" => 1, "d" => 2, "f" => 3, "h" => 4, "g" => 5, "z" => 6, "x" => 7, "c" => 8, "v" => 9, "b" => 11, "q" => 12, "w" => 13, "e" => 14, "r" => 15, "y" => 16, "t" => 17,
             "o" => 31, "u" => 32, "i" => 34, "p" => 35, "l" => 37, "j" => 38, "k" => 40, "n" => 45, "m" => 46,
             "enter" | "return" => 36, "tab" => 48, "space" => 49, "escape" | "esc" => 53, "backspace" => 51,
+            "left" => 123, "right" => 124, "down" => 125, "up" => 126,
             _ => return None,
         })
     }
@@ -772,6 +792,7 @@ impl Keystroke {
             "a" => 30, "s" => 31, "d" => 32, "f" => 33, "g" => 34, "h" => 35, "j" => 36, "k" => 37, "l" => 38,
             "z" => 44, "x" => 45, "c" => 46, "v" => 47, "b" => 48, "n" => 49, "m" => 50,
             "enter" | "return" => 28, "tab" => 15, "space" => 57, "escape" | "esc" => 1, "backspace" => 14,
+            "up" => 103, "left" => 105, "right" => 106, "down" => 108,
             _ => return None,
         })
     }

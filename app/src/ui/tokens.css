@@ -48,6 +48,7 @@
   --pal-icon-emoji: 17px;
   --pal-icon-favicon: 16px;
   --pal-list-w-split: 296px; /* list width when a detail pane is open */
+  --pal-density: comfortable; /* `compact` under data-density (below): the narrow panel */
   --pal-grid-cell: 80px;
   --pal-grid-tile: 56px;
   --pal-grid-gap: 8px;
@@ -328,6 +329,31 @@
   --pal-shadow-hud: 0 0 0 1px rgba(26, 26, 31, 0.08), 0 6px 20px -6px rgba(26, 26, 31, 0.24);
   --pal-backdrop: blur(40px) saturate(160%);
   --pal-scheme: light;
+}
+
+/* Compact mode (`general.compact`, cmd+shift+m): data-density="compact" on
+   <html> (theme.ts) or on a subtree (the gallery shows both). The panel is
+   560 wide (the shell sizes the window to match, compact.rs), the rows 32,
+   the search row 44, the footer gone (its primary hint sits in the search
+   row: Search.tsx `hint`), no detail pane. The type stays the same size;
+   only the boxes shrink. */
+:root[data-density="compact"],
+[data-density="compact"] {
+  --pal-density: compact;
+  --pal-panel-w: 560px;
+  --pal-search-h: 44px;
+  --pal-row-h: 32px;
+  --pal-section-h: 24px;
+  --pal-footer-h: 0px;
+  --pal-list-inset: 6px;
+  --pal-row-gap: 10px;
+  --pal-text-x: 44px;
+  --pal-icon-box: 20px;
+  --pal-icon-glyph: 14px;
+  --pal-icon-emoji: 15px;
+  --pal-text-xl: 16px;
+  --pal-grid-cell: 64px;
+  --pal-grid-tile: 44px;
 }
 
 @media (prefers-reduced-motion: reduce) {

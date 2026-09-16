@@ -1,0 +1,207 @@
+{
+  "name": "screenshots",
+  "title": "Screenshots",
+  "description": "Capture an area, a window or the screen to a file or the clipboard, and browse the screenshots you took newest first with thumbnails: open, reveal, copy the image, its path or a markdown tag, read its text, trash it.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰄀",
+      "bg": "teal"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "kind": "select",
+      "id": "destination",
+      "label": "Capture to",
+      "description": "Where a capture goes on Enter; cmd+c on a Capture row takes the other one for that shot.",
+      "options": [
+        {
+          "id": "file",
+          "title": "A file in the screenshots folder"
+        },
+        {
+          "id": "clipboard",
+          "title": "The clipboard"
+        }
+      ],
+      "default": "file"
+    },
+    {
+      "kind": "path",
+      "id": "folder",
+      "label": "Folder",
+      "pick": "folder",
+      "description": "Where captures land and the recent list reads. Empty: what macOS uses (`defaults read com.apple.screencapture location`, else the Desktop); on Linux ~/Pictures/Screenshots when it exists, else ~/Pictures.",
+      "placeholder": "~/Desktop",
+      "default": ""
+    },
+    {
+      "kind": "number",
+      "id": "timer",
+      "label": "Timer",
+      "description": "Seconds the delayed capture (cmd+enter on a Capture row) waits before the shot.",
+      "min": 1,
+      "max": 60,
+      "unit": "seconds",
+      "default": 3
+    },
+    {
+      "kind": "boolean",
+      "id": "sound",
+      "label": "Shutter sound",
+      "text": "Play the capture sound",
+      "description": "macOS plays one unless told not to.",
+      "default": false
+    },
+    {
+      "kind": "boolean",
+      "id": "all_files",
+      "label": "Every image",
+      "text": "List every image and recording in the folder",
+      "description": "Off: only files named like macOS's captures (Screenshot ..., Screen Recording ...).",
+      "default": false
+    },
+    {
+      "kind": "number",
+      "id": "limit",
+      "label": "Rows",
+      "description": "At most this many recent screenshots.",
+      "min": 1,
+      "max": 500,
+      "default": 50
+    },
+    {
+      "kind": "boolean",
+      "id": "ocr_concealed",
+      "label": "OCR copies concealed",
+      "text": "Text read from a screenshot never enters the clipboard history",
+      "default": false
+    }
+  ],
+  "store": {
+    "tagline": "Take a screenshot, then find, copy or read the ones you took",
+    "category": "system",
+    "features": [
+      "Capture area, Capture window and Capture screen rows: `screencapture` on macOS (the panel hides first), `grim` with `slurp` on Linux; Enter to a file or the clipboard per the setting, `cmd+enter` after a timer, `cmd+c` to the other destination",
+      "The folder's screenshots and recordings newest first, each with a thumbnail, its pixel size, its file size and its age; the HUD names the file a capture landed in",
+      "Open, Reveal in Finder, Copy image (the file onto the clipboard), Copy path, Copy as markdown image (`![name](path)`), Copy text (OCR through the Vision framework), Move to Trash",
+      "Rows can be marked (`tab`, `x`): open, reveal, copy and trash run over all of them",
+      "A screenshot taken in the last two minutes leads the empty root's Now section",
+      "The detail pane (`cmd+i`) shows the picture itself with its folder, size, pixels and time"
+    ],
+    "permissions": [],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-list.png",
+        "caption": "Capture area, window or screen, then the folder's screenshots newest first with thumbnails, pixel sizes and ages"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "Open, reveal, copy the image, its path or a markdown tag, read its text, trash it"
+      },
+      {
+        "file": "3-detail.png",
+        "caption": "The detail pane: the picture itself over its name, folder, size and pixels"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Capture",
+        "description": "On a Capture row: to a file in the folder, or to the clipboard when the setting says so.",
+        "keys": "enter"
+      },
+      {
+        "title": "Capture after 3 s",
+        "description": "The same shot after the timer.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Capture to the clipboard",
+        "description": "The other destination for this one shot.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Open",
+        "description": "On a screenshot: the file in its app; marked rows together.",
+        "keys": "enter"
+      },
+      {
+        "title": "Reveal in Finder",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Copy image",
+        "description": "The file itself onto the clipboard: a paste in a chat or a document drops the picture.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy path",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Copy as markdown image",
+        "description": "`![Screenshot 2026-09-17 at 14.03.22](/path/Screenshot%202026-09-17%20at%2014.03.22.png)`.",
+        "keys": "cmd+m"
+      },
+      {
+        "title": "Copy text (OCR)",
+        "description": "The text in the picture onto the clipboard.",
+        "keys": "cmd+shift+t"
+      },
+      {
+        "title": "Move to Trash",
+        "description": "Asks first; marked rows together.",
+        "keys": "cmd+d"
+      }
+    ]
+  },
+  "palettes": {
+    "screenshots": {
+      "kind": "live",
+      "tier": "primary",
+      "description": "Capture rows first, then the screenshots folder newest first with thumbnails, sizes and ages.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Capture, or open the screenshot"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Capture after the timer, or reveal the file"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Capture to the other destination, or copy the image"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the path"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Copy as a markdown image"
+        },
+        {
+          "keys": "cmd+shift+t",
+          "title": "Copy the text in it (OCR)"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash"
+        },
+        {
+          "keys": "tab",
+          "title": "Mark the row for a multi pick"
+        }
+      ]
+    }
+  }
+}

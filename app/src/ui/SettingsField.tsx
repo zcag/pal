@@ -198,17 +198,23 @@ export type SettingsFieldProps = {
   onChange: (value: SettingValue) => void;
   /** `row`: label in a column on the left (forms). `stack`: label above (narrow panes). */
   layout?: "row" | "stack";
+  /** What the value falls back to when unset, in place of the declared default: an instance's inherited value. Reset goes back to it, and a value equal to it counts as unchanged. */
+  base?: SettingValue;
+  /** A muted line under the description ("From Gmail (Personal)", "Set for this instance"). */
+  note?: string;
 };
 
 /**
  * One declared setting as the right control, with label, description,
- * and, once the value differs from the declared default, the default and
- * a way back to it.
+ * and, once the value differs from the declared default (or `base`), the
+ * default and a way back to it.
  */
-export function SettingsField({ spec, value, onChange, layout = "row" }: SettingsFieldProps) {
+export function SettingsField({ spec, value, onChange, layout = "row", base, note }: SettingsFieldProps) {
   const id = useId();
-  const modified = spec.default !== undefined && isModified(spec, value);
+  const inherits = base !== undefined;
+  const modified = inherits ? JSON.stringify(value ?? null) !== JSON.stringify(base ?? null) : spec.default !== undefined && isModified(spec, value);
   const labelled = spec.kind !== "boolean" && spec.kind !== "hotkey" && spec.kind !== "secret";
+  const back = inherits ? `Back to the inherited value: ${describeDefault({ ...spec, default: base } as SettingSpec)}` : `Reset to default: ${describeDefault(spec)}`;
   return (
     <div className="pal-setting" data-layout={layout} data-kind={spec.kind} data-modified={modified || undefined}>
       {labelled ? <label className="pal-setting__label" htmlFor={id}>{spec.label}</label> : <span className="pal-setting__label" id={`${id}-l`}>{spec.label}</span>}
@@ -216,15 +222,16 @@ export function SettingsField({ spec, value, onChange, layout = "row" }: Setting
         <div className="pal-setting__control">
           <Control spec={spec} value={value} onChange={onChange} id={id} />
           {modified && (
-            <button type="button" className="pal-setting__reset" title={`Reset to default: ${describeDefault(spec)}`} onClick={() => onChange(spec.default)}>
+            <button type="button" className="pal-setting__reset" title={back} onClick={() => onChange(inherits ? base : spec.default)}>
               Reset
             </button>
           )}
         </div>
-        {(spec.description || modified) && (
+        {(spec.description || modified || note) && (
           <p className="pal-setting__desc">
             {spec.description}
-            {modified && <>{spec.description ? " " : ""}<span className="pal-setting__default">Default: {describeDefault(spec)}</span></>}
+            {modified && <>{spec.description ? " " : ""}<span className="pal-setting__default">{inherits ? "Inherited" : "Default"}: {describeDefault(inherits ? ({ ...spec, default: base } as SettingSpec) : spec)}</span></>}
+            {note && <>{spec.description || modified ? " " : ""}<span className="pal-setting__note">{note}</span></>}
           </p>
         )}
       </div>

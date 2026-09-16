@@ -5,7 +5,8 @@
  * that introduced this file).
  */
 import { defaultLook, type BarLook } from "./BarStrip";
-import type { Icon } from "./types";
+import { BRAND } from "./icons";
+import type { Brand, Icon } from "./types";
 
 export type SettingOption = { id: string; title: string };
 
@@ -66,14 +67,49 @@ export type SettingsPalette = {
   /** Settings the extension declared for this palette. */
   settings: SettingSpec[];
   config: PaletteConfig;
+  /** A non-default instance: the default instance's palette settings it inherits (`[palettes.gmail-inbox].settings` under `[palettes."gmail@work-inbox"]`), minus the private ones. */
+  inherited?: SettingValues;
+};
+
+/**
+ * One instance of a `multi` extension (`[instances.<key>]`, docs/design/instances.md):
+ * the default is the extension's bare name, another `<name>@<suffix>`.
+ */
+export type SettingsInstance = {
+  /** `gmail`, `gmail@work`. */
+  key: string;
+  /** The part after the `@`; none for the default. */
+  suffix?: string;
+  /** The display name ("Work"): as configured, else the suffix capitalised; the default has none until named. */
+  title?: string;
+  /** The tile's colour and corner letter of a non-default instance. */
+  tint?: Brand;
+  badge?: string;
+  isDefault: boolean;
+  /** `enabled = false` parks it: not loaded, its rows gone, its settings kept. */
+  enabled: boolean;
 };
 
 /** One store screenshot of an extension, served through the `icon://` scheme. */
 export type Screenshot = { src: string; caption?: string; kind?: string };
 
 export type SettingsExtension = {
+  /** The manifest name, the directory: `gmail` for every instance. */
   name: string;
+  /** The instance key (`gmail@work`); the name for the default and for a non-`multi` extension. What the config tables, the links and the bar keys use. */
+  key: string;
+  /** The extension declares `multi`: Settings offers another account. */
+  multi?: boolean;
+  /** Which instance this entry is, for a `multi` extension. */
+  instance?: SettingsInstance;
+  /** A non-default instance: the values it takes from the default's table (`[extensions.gmail]`) when its own has none, secrets and `scope: instance` left out. */
+  inherited?: SettingValues;
+  /** The title of the instance `inherited` comes from ("Gmail (Personal)"). */
+  inheritedFrom?: string;
+  /** "Gmail (Work)": the extension's title with the instance's label; the extension's alone otherwise. */
   title: string;
+  /** The extension's title alone ("Gmail"), for the pane that groups its instances; `title` when absent. */
+  extTitle?: string;
   description: string;
   /** The store's one-liner (`store.tagline`), under the title; `description` when there is none. */
   tagline?: string;
@@ -178,7 +214,7 @@ export type PermissionRow = {
  * The permissions as rows. Every row is listed (the Overview and General
  * say what each is for); `unknown` is a probe with no answer, shown as such.
  */
-export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: boolean; calendar?: boolean; bar?: boolean; wifi?: boolean } = {}): PermissionRow[] {
+export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: boolean; calendar?: boolean; bar?: boolean; wifi?: boolean; /** `[extensions.snippets] expand = true`: keywords typed in other apps are watched for. */ expand?: boolean } = {}): PermissionRow[] {
   if (!p) return [];
   const rows: PermissionRow[] = [
     { id: "accessibility", title: "Accessibility", granted: p.accessibility, state: p.accessibility ? "granted" : "missing", brief: "paste, window switching", needs: "Paste into the app in front, switch to a window, pal action type", where: "Privacy & Security > Accessibility" },
@@ -190,7 +226,8 @@ export function permissionRows(p: PermissionsStatus | undefined, opts: { otp?: b
     rows.push({ id: "full_disk_access", title: "Full Disk Access", granted: p.full_disk_access === true, state: p.full_disk_access === true ? "granted" : p.full_disk_access === false ? "missing" : "unknown", brief: "verification codes", needs: "Verification codes (the OTP palette reads the Messages database)", where: "Privacy & Security > Full Disk Access; add pal there by hand" });
   }
   if (p.input_monitoring !== undefined) {
-    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", brief: "bar peeks", needs: opts.bar ? "A bar peek closes on the next key press" : "A bar peek closes on the next key press (no bar items yet)", where: "Privacy & Security > Input Monitoring" });
+    const peek = opts.bar ? "A bar peek closes on the next key press" : "A bar peek closes on the next key press (no bar items yet)";
+    rows.push({ id: "input_monitoring", title: "Input Monitoring", granted: p.input_monitoring, state: p.input_monitoring ? "granted" : "missing", brief: opts.expand ? "snippet expansion, bar peeks" : "bar peeks", needs: opts.expand ? `Snippet expansion (a keyword typed in any app is watched for; Snippets > Expand as you type is on). ${peek}` : peek, where: "Privacy & Security > Input Monitoring" });
   }
   if (p.location && p.location !== "unavailable") {
     rows.push({ id: "location", title: "Location", granted: p.location === "granted", state: p.location === "granted" ? "granted" : "missing", brief: "Wi-Fi network names", needs: opts.wifi ? "Wi-Fi network names (macOS shows them only to apps with Location access); asked the first time the Wi-Fi palette lists" : "Wi-Fi network names (the Wi-Fi extension, not installed)", where: p.location === "not_determined" ? "the system prompt, once" : "Privacy & Security > Location Services" });
@@ -321,7 +358,7 @@ export type BarItem = {
  */
 export function needsSetup(ext: SettingsExtension): SettingSpec[] {
   return ext.settings.filter((s) => {
-    const v = ext.values[s.id];
+    const v = ext.values[s.id] ?? ext.inherited?.[s.id];
     const empty = v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
     if (!empty) return false;
     if (s.required) return true;
@@ -331,6 +368,17 @@ export function needsSetup(ext: SettingsExtension): SettingSpec[] {
 }
 
 export const defaultOf = (spec: SettingSpec): SettingValue => spec.default;
+
+/**
+ * Whether a declared setting's `value` leaves the file rather than being
+ * written: none, empty, or equal to what the key falls back to, which is
+ * `base` when given (the value a non-default instance inherits from the
+ * default's table, so an equal value keeps following it) and the declared
+ * default otherwise.
+ */
+export function leavesFile(value: SettingValue, spec: SettingSpec | undefined, base?: SettingValue): boolean {
+  return value === undefined || value === "" || JSON.stringify(value ?? null) === JSON.stringify((base ?? spec?.default) ?? null);
+}
 
 export const isModified = (spec: SettingSpec, value: SettingValue) => {
   const d = defaultOf(spec);
@@ -347,4 +395,83 @@ export function describeDefault(spec: SettingSpec): string {
   if (spec.kind === "number") return `${d}${spec.unit ? ` ${spec.unit}` : ""}`;
   if (Array.isArray(d)) return d.join(", ");
   return String(d);
+}
+
+// ---- instances ---------------------------------------------------------------
+
+/** The longest instance suffix (`pal_core::config::instance::MAX_SUFFIX`). */
+export const MAX_SUFFIX = 32;
+
+/** `[a-z0-9][a-z0-9_-]{0,31}` and never `default`: the suffix grammar of `pal_core::config::instance::valid_suffix`. */
+export const validSuffix = (s: string): boolean => new RegExp(`^[a-z0-9][a-z0-9_-]{0,${MAX_SUFFIX - 1}}$`).test(s) && s !== "default";
+
+/** Why a suffix is refused, one line for the form; empty when it is fine. */
+export function suffixProblem(s: string, taken: string[] = []): string {
+  if (!s) return "A suffix is needed: it names the instance in the file, the links and the keychain.";
+  if (s === "default") return "\"default\" is the default instance itself.";
+  if (s.length > MAX_SUFFIX) return `At most ${MAX_SUFFIX} characters.`;
+  if (!/^[a-z0-9]/.test(s)) return "Starts with a lowercase letter or a digit.";
+  if (!validSuffix(s)) return "Lowercase letters, digits, - and _ only.";
+  if (taken.includes(s)) return `There is a ${s} instance already.`;
+  return "";
+}
+
+/** A title as a suffix: lowercased, accents dropped, runs of anything else as one `-`, trimmed, cut to the limit ("Work (SerpApi)" is `work-serpapi`). */
+export function slugSuffix(title: string): string {
+  return title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^[-_]+|[-_]+$/g, "").slice(0, MAX_SUFFIX).replace(/[-_]+$/g, "");
+}
+
+/** "work" is "Work": the title the host gives an untitled instance (`capitalised`, host/src/instances.ts). */
+export const suffixTitle = (suffix: string): string => suffix.charAt(0).toUpperCase() + suffix.slice(1);
+
+/**
+ * The tint the host picks for an instance with none configured: a djb2
+ * hash of the suffix over the brand colours, the extension's own skipped
+ * (`tintOf`, host/src/instances.ts; `BRAND` is `TILE_COLORS` in the same
+ * order). Kept here so a parked instance's tile and the add form's
+ * default read as the host will draw them.
+ */
+export function instanceTint(suffix: string, own?: Brand): Brand {
+  const choices = BRAND.filter((c) => c !== own);
+  let h = 5381;
+  for (const ch of suffix) h = ((h * 33) ^ ch.codePointAt(0)!) >>> 0;
+  return choices[h % choices.length];
+}
+
+/** The badge the host gives an instance with none configured: the title's first letter, upper case. */
+export const instanceBadge = (title: string): string => [...title][0]?.toUpperCase() ?? "";
+
+/** `[instances.<key>]` as the file has it (core `Instance`). */
+export type RawInstance = { title?: string; tint?: string; badge?: string; enabled?: boolean };
+
+/** What the host announced for an instance (settings.rs `InstanceInfo`). */
+export type InstanceInfo = { key: string; title?: string; tint?: string; badge?: string; isDefault: boolean };
+
+/**
+ * The instance of `key` as the Settings pages show it: the host's
+ * announcement (the tint and badge it resolved) over the file's table,
+ * the defaults filled the host's way for one the host has not loaded (a
+ * parked instance). `own` is the extension's tile colour, skipped by the
+ * tint hash.
+ */
+export function resolveInstance(key: string, name: string, raw: RawInstance | undefined, info: InstanceInfo | undefined, own?: Brand): SettingsInstance {
+  const isDefault = key === name;
+  const suffix = isDefault ? undefined : key.slice(name.length + 1);
+  const enabled = raw?.enabled !== false;
+  const title = info?.title ?? raw?.title?.trim() ?? (suffix ? suffixTitle(suffix) : undefined);
+  if (isDefault) return { key, isDefault, enabled, ...(title && { title }) };
+  const tint = (info?.tint as Brand | undefined) ?? (BRAND.includes(raw?.tint as Brand) ? (raw!.tint as Brand) : instanceTint(suffix!, own));
+  const badge = info?.badge ?? ([...(raw?.badge?.trim() ?? "")].slice(0, 2).join("") || instanceBadge(title ?? suffix!));
+  return { key, suffix, title, tint, badge, isDefault, enabled };
+}
+
+/** The extension's tile as the instance's: the tint and the badge in its corner (a tile icon only; anything else stays). */
+export function badgedIcon(icon: Icon | undefined, inst: SettingsInstance | undefined): Icon | undefined {
+  if (!icon || !inst || inst.isDefault || icon.kind !== "tile") return icon;
+  return { ...icon, bg: inst.tint ?? icon.bg, badge: inst.badge };
+}
+
+/** The instances of the extension `ext` belongs to, the default first, then by key (`SettingsExtension.instance` of every entry of its name). */
+export function instancesOf(ext: SettingsExtension, all: SettingsExtension[]): SettingsExtension[] {
+  return all.filter((e) => e.name === ext.name).sort((a, b) => Number(!!b.instance?.isDefault) - Number(!!a.instance?.isDefault) || a.key.localeCompare(b.key));
 }

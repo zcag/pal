@@ -63,6 +63,8 @@ writes those two header lines and nothing else into the config directory.
 | --- | --- | --- | --- |
 | `hotkey` | string, or list of strings | `"ctrl+space"` | Global hotkey that shows pal, or several that all do: `hotkey = ["cmd+space", "ctrl+space"]`. Every entry registers; one another app or Spotlight holds is reported on its own row in Settings and costs the others nothing. Empty (`""` or `[]`) turns it off, for a compositor keybind that runs `pal toggle` instead. Settings writes back whichever spelling the file has, and turns a string into a list only when Add another gives it a second entry (up to three there; the file may hold more). The menu bar hint and the Welcome tips show the first. |
 | `theme` | `system`, `light`, `dark` | `"system"` | Follow the OS, or force one. Applied live to the panel and the Settings window. |
+| `theme_file` | string | `""` | A theme file overriding pal's colours, radii and fonts ([Theme file](#theme-file)): a name, looked up as `<config dir>/themes/<name>.toml` (`"catppuccin-frappe"`), or a path (`"~/dotfiles/pal-theme.toml"`). Its `[light]` and `[dark]` sections apply to whichever scheme `theme` (or the OS) picks; the file is watched and a save applies live. Settings > General > Theme file picks one from the folder. Empty is pal's own look. |
+| `compact` | bool | `false` | Compact mode: the panel 560 px wide with 32 px rows, no detail pane, and the footer folded into the search row (the primary action's hint on its right; `⌘K` still lists everything). `⌘⇧M` in the panel flips it and writes it here, so it is remembered per profile. The gallery shows both. |
 | `position` | `top`, `centre`, `last` | `"top"` | Where the panel appears on the screen with the pointer. `top`: a fifth of the way down, where Spotlight and Raycast sit. `centre`: centred. `last`: wherever it was last shown. On Wayland the compositor places the window and this key does nothing (see [Getting started](getting-started.md)). |
 | `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, a `pal.service` user unit (or, without systemd, an XDG autostart entry) on Linux. The same agent relaunches pal after a crash, on or off; see [Crash relaunch](#crash-relaunch). |
 | `menu_bar_icon` | bool | `true` | Show pal's icon in the menu bar (macOS) or system tray (Linux). The app has no Dock icon, so this is the visible way to reach Settings and Quit; the hotkey and `pal settings` work without it. |
@@ -97,6 +99,77 @@ binding, says so in Settings, and while the key is wanted and held polls
 it every 2 s so the registration lands as soon as it is freed. On Linux
 the hotkey reaches only X11 clients; Wayland sessions bind `pal toggle`
 in the compositor.
+
+## Theme file
+
+`general.theme_file` names a TOML file of the `--pal-*` tokens a user may
+override (`pal_core::theme`): the colours, the tag palette, the brand
+tiles, the radii and the two font stacks. Geometry, spacing and motion
+stay pal's. A file has a `name`, keys shared by both schemes at the top
+level, and a `[light]` and a `[dark]` section for the rest:
+
+```toml
+name = "Catppuccin Frappé"
+radius_row = 6            # both schemes
+
+[light]
+accent = "#8839ef"
+bg = "#eff1f5"
+
+[dark]
+accent = "#ca9ee6"
+bg = "#303446"
+```
+
+The section applied is the scheme in force: `theme = "dark"` pins dark,
+`"system"` follows the OS and swaps the section when the OS flips. Every
+window (the panel, the HUD, Settings, the bar popover) sets the section's
+variables on its `:root`, so a themed panel and a themed Settings window
+agree. The file is watched (an mtime poll every second): a save applies
+live, as a config edit does.
+
+Two examples ship in `examples/themes/`: Catppuccin Frappé (with Latte
+as its light section) and Rosé Pine Dawn (with Rosé Pine as its dark
+one). Settings > General > Theme file lists the files in
+`<config dir>/themes/` (the folder is made with the two examples in it the
+first time that page looks for it; "Open themes folder" seeds an empty
+one), sets `theme_file` to the chosen name, and "Edit theme file" opens
+the file in the editor. Its diagnostics show under the picker and in the
+log (`theme	...`).
+
+Every key is checked: an unknown key is a warning naming its dotted path
+(`light.accnet: not a theme token`), a value of the wrong shape is
+dropped with a warning (`dark.accent: ignored: expected a colour`), and
+the rest applies. A file that does not parse is one error with its line
+and no theme. A colour is `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`, or an
+`rgb()`, `rgba()`, `hsl()`, `hsla()` call; a radius is a number of pixels
+(`14`, `6.5`, `"14px"`); a font is a stack as CSS writes it.
+
+The tokens, each `<key>` driving `--pal-<key>` with `_` as `-`:
+
+| key | kind | what |
+| --- | --- | --- |
+| `accent`, `accent_fg`, `accent_soft` | colour | The accent (the caret, the focus ring, the switch), the ink on it, its tint |
+| `bg`, `bg_glass`, `bg_elevated`, `bg_sunken` | colour | The panel's colour, the glass it is drawn with (give it alpha), a card, a well |
+| `fg`, `fg_muted`, `fg_faint` | colour | Text: titles, subtitles and accessories, section headers and hints |
+| `line`, `line_strong` | colour | Hairlines; the stronger one on controls |
+| `selection` | colour | The cursor's pill on a row |
+| `scrim` | colour | Behind the action panel and a confirm card |
+| `match` | colour | The highlighter on matched letters |
+| `knob` | colour | A switch's knob |
+| `destructive`, `destructive_soft` | colour | A destructive action, its tint |
+| `success`, `success_soft` | colour | A success toast, its tint |
+| `tag_grey`, `tag_blue`, `tag_green`, `tag_amber`, `tag_red`, `tag_violet`, `tag_pink`, `tag_teal` | colour | The tag palette's ink: tags, badges, coloured text in a view |
+| `tag_<colour>_bg` (the same eight) | colour | The tag palette's fills |
+| `brand_red`, `brand_orange`, `brand_amber`, `brand_green`, `brand_teal`, `brand_cyan`, `brand_blue`, `brand_indigo`, `brand_violet`, `brand_pink`, `brand_slate`, `brand_ink` | colour | The icon tiles' twelve colours ([Extensions](extensions.md#icons)) |
+| `tile_fg`, `tile_ring` | colour | The mark on a tile, the hairline around it |
+| `radius_panel`, `radius_popover`, `radius_hud`, `radius_tile`, `radius_row`, `radius_icon`, `radius_control`, `radius_tag`, `radius_kbd` | px | The corners: the panel, the bar popover, the HUD, a tile, the cursor's pill, an icon box, a field or button, a tag, a key cap |
+| `font_ui`, `font_mono` | font | The text and code stacks (`"Inter, sans-serif"`, `"JetBrains Mono, monospace"`) |
+
+The values pal ships with are in `app/src/ui/tokens.css` (`--pal-*`,
+light and dark), the place to read what each token looks like before
+overriding it; the brief (`app/design/brief.html`) shows them on the
+components.
 
 ## `[palettes.<id>]`
 
@@ -269,10 +342,34 @@ own worker of the extension host, so nothing one instance caches leaks
 into another. Every instance of a `multi` extension runs in a worker, the
 default too, even when alone.
 
-A change under `[instances]` reloads the extension's instances (every
-one, like a file change to its code); a `[instances."x@y"]` for an
-extension without `"multi": true` is not loaded. Keys the schema does not
-know under an instance table are warnings, like everywhere else.
+A change under `[instances]` takes effect at once: the running pal
+reloads the extension's instances (every one, like a file change to its
+code), so an added table lists its palettes within a second and a removed
+or parked one takes its rows and bar items away, an open level of it
+popping to the root. A `[instances."x@y"]` for an extension without
+`"multi": true` is not loaded and shows as a warning (`x does not support
+instances`, or `x is not installed`) in the diagnostics strip and on the
+Overview. Keys the schema does not know under an instance table are
+warnings, like everywhere else.
+
+**In Settings and from the shell.** Settings > Extensions shows a
+`multi` extension's instances as a section of its pane: one row each
+(the badged tile, the title, the key, "default", an on/off switch,
+Rename, Remove) and "Add another account", an inline form that slugs a
+suffix from the title, checks it live and offers the tint; the Settings
+section below has a segmented control per instance, an inherited value
+carrying a "From Gmail (Personal)" note and a secret or `scope:
+"instance"` field reading "Set for this instance". A value typed equal
+to the inherited one leaves the file, so the instance keeps following.
+The Palettes page groups per instance ("Gmail (Work) › Inbox (Work)"),
+the Bar page's rows read "Gmail (Work) › Unread", the Overview's
+needs-setup rows name the instance. `pal instance list|add|remove`
+(docs/cli.md) and `pal://instance/add/<name>/<suffix>`,
+`pal://instance/remove/<key>` (docs/links.md) do the same edits.
+Removing an instance unsets every table of its own (`[instances.<key>]`,
+`[extensions.<key>]`, its `[palettes."<key>*"]` and `[bar.items."<key>/*"]`),
+deletes its storage file and index cache and forgets its frecency; the
+keychain items stay, as they do for a removed extension.
 
 ## Secrets
 

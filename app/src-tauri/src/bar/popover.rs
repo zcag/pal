@@ -390,9 +390,12 @@ fn arm(app: &AppHandle, after: Duration, then: Input) {
     });
 }
 
-/// The item's title for the popover: the manifest's.
+/// The item's title for the popover: the manifest's, with the instance's
+/// label when it has one ("Unread (Work)", `Entry::instance`).
 fn title_of(app: &AppHandle, key: &str) -> String {
-    entry(app, key).map(|e| e.manifest.title).filter(|t| !t.is_empty()).unwrap_or_else(|| split_key(key).map_or(key.to_string(), |(_, id)| id.to_string()))
+    let e = entry(app, key);
+    let title = e.as_ref().map(|e| e.manifest.title.clone()).filter(|t| !t.is_empty()).unwrap_or_else(|| split_key(key).map_or(key.to_string(), |(_, id)| id.to_string()));
+    super::labelled(Some(&title), e.and_then(|e| e.instance).as_deref()).unwrap_or(title)
 }
 
 fn payload(app: &AppHandle, key: &str, engaged: bool, effect: Option<&Value>) -> Option<Payload> {

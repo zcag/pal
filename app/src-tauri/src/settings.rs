@@ -14,10 +14,10 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::secrets::{platform_store, SecretRef};
-use pal_core::config::{Config, ConfigFile, Diagnostic, Error, Loaded, Watcher};
+use pal_core::config::{instance, Config, ConfigFile, Diagnostic, Error, Loaded, Watcher};
 use pal_core::extensions::{Installed, Store, Update};
 use pal_core::frecency::Frecency;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, LogicalSize, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
@@ -37,10 +37,18 @@ pub const STATE: StateFlags = StateFlags::SIZE.union(StateFlags::POSITION);
 const SIZE: (f64, f64) = (960.0, 640.0);
 const MIN_SIZE: (f64, f64) = (800.0, 560.0);
 
-/// One extension as the host reported it, loaded or not.
+/// One instance of an extension as the host reported it, loaded or not:
+/// the default (`key == name`) or a configured copy of a `multi` one
+/// (`gmail@work`, docs/design/instances.md).
 #[derive(Debug, Clone, Serialize)]
 pub struct Ext {
+    /// The instance key: what the host calls `extension`, the identity in
+    /// every table, file and link.
+    pub key: String,
+    /// The manifest name, the directory: `gmail` for `gmail@work`.
     pub name: String,
+    /// What the host resolved for the instance (`extension/loaded`).
+    pub instance: InstanceInfo,
     /// `pal.json` as read, untouched (`Manifest` in host/protocol.ts).
     pub manifest: Value,
     pub root: String,
@@ -59,6 +67,40 @@ pub struct Ext {
     /// `.pal-install.json`, for one `pal install` put there.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub record: Option<pal_core::extensions::Record>,
+}
+
+/// `instance` of `extension/loaded` (host/src/instances.ts
+/// `loadedInstance`): the key, the title as configured (the default has
+/// none until named), the mark of a non-default instance, and which one
+/// is the default.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstanceInfo {
+    pub key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tint: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub badge: Option<String>,
+    #[serde(default)]
+    pub is_default: bool,
+}
+
+impl InstanceInfo {
+    /// What an announcement without one means: the extension as its own default.
+    fn default_for(key: &str) -> Self {
+        Self { key: key.to_string(), title: None, tint: None, badge: None, is_default: instance::name_of(key) == key }
+    }
+
+    /// The instance's name for a label ("Gmail (Work)", a bar tooltip's
+    /// suffix): the title of a non-default instance, or the default's own
+    /// once it is named and another instance of the extension is loaded
+    /// (`alone` says none is); nothing for a lone or unnamed default, so
+    /// the one instance that works keeps reading as it did.
+    pub fn label(&self, alone: bool) -> Option<&str> {
+        self.title.as_deref().filter(|_| !self.is_default || !alone)
+    }
 }
 
 pub struct Settings {
@@ -181,6 +223,9 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
         autostart::apply(app, &loaded.config);
     }
     crate::bar::apply_config(app, &prev, &loaded.config);
+    crate::expansion::apply_config(app, &prev, &loaded.config);
+    crate::theme::apply_config(app, &prev, &loaded.config);
+    crate::compact::apply_config(app, &prev, &loaded.config);
     events::emit(app, events::CONFIG, &loaded);
     if let Some(host) = app.try_state::<Arc<Host>>() {
         tauri::async_runtime::spawn(index::apply_config(app.clone(), host.inner().clone(), prev, loaded.config));
@@ -192,9 +237,13 @@ pub fn config(app: &AppHandle) -> Config {
     lock(&app.state::<Settings>().loaded).config.clone()
 }
 
-/// `pal.json` of `name` as the host reported it, loaded or not (deeplink.rs reads `links` for the card's text).
-pub fn manifest_of(app: &AppHandle, name: &str) -> Option<Value> {
-    lock(&app.state::<Settings>().extensions).iter().find(|e| e.name == name).map(|e| e.manifest.clone())
+/// `pal.json` of `key` as the host reported it, loaded or not (deeplink.rs
+/// reads `links` for the card's text): the instance's, else the manifest
+/// of its name (one directory serves every instance).
+pub fn manifest_of(app: &AppHandle, key: &str) -> Option<Value> {
+    let st = app.state::<Settings>();
+    let exts = lock(&st.extensions);
+    exts.iter().find(|e| e.key == key).or_else(|| exts.iter().find(|e| e.name == instance::name_of(key))).map(|e| e.manifest.clone())
 }
 
 /// The root's per-source caps (`[general] root_caps`), without copying the config: read per keystroke.
@@ -218,15 +267,18 @@ pub fn extensions(app: &AppHandle) -> Vec<Ext> {
 /// own: the host loop emits [`events::HOST`] with the notification right
 /// after this returns, and the window re-reads on that (one `Loaded`
 /// serialisation per extension at startup was the alternative).
-pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
+pub fn register(app: &AppHandle, key: &str, params: &Value, loaded: bool) {
     let root = params["root"].as_str().unwrap_or_default().to_string();
-    // `name` is the instance key for an instance (`gmail@work`); the directory is the manifest name's (`params.name`).
-    let dir = Path::new(&root).join(params["name"].as_str().unwrap_or(name));
+    // `key` is the instance key (`gmail@work`); the directory is the manifest name's (`params.name`).
+    let name = params["name"].as_str().unwrap_or_else(|| instance::name_of(key)).to_string();
+    let dir = Path::new(&root).join(&name);
     let installed = std::fs::metadata(&dir).and_then(|m| m.created()).ok().map(unix_ms);
     let record = std::fs::read(dir.join(pal_core::extensions::RECORD)).ok().and_then(|b| serde_json::from_slice(&b).ok());
     let ext = Ext {
-        name: name.to_string(),
+        key: key.to_string(),
+        instance: serde_json::from_value(params["instance"].clone()).unwrap_or_else(|_| InstanceInfo::default_for(key)),
         manifest: if params["manifest"].is_object() { params["manifest"].clone() } else { json!({ "name": name, "title": name }) },
+        name,
         root,
         loaded,
         error: params["message"].as_str().map(str::to_string),
@@ -237,20 +289,28 @@ pub fn register(app: &AppHandle, name: &str, params: &Value, loaded: bool) {
     };
     let st = app.state::<Settings>();
     let mut exts = lock(&st.extensions);
-    match exts.iter_mut().find(|e| e.name == name) {
+    match exts.iter_mut().find(|e| e.key == key) {
         Some(e) => *e = ext,
         None => exts.push(ext),
     }
 }
 
-/// `host/ready`: extensions the host no longer has are gone.
+/// `host/ready`: instances the host no longer has are gone (`known`
+/// lists keys).
 pub fn retain(app: &AppHandle, live: &[String]) {
-    lock(&app.state::<Settings>().extensions).retain(|e| live.contains(&e.name));
+    lock(&app.state::<Settings>().extensions).retain(|e| live.contains(&e.key));
 }
 
-/// `extension/removed`: its directory is gone.
-pub fn forget(app: &AppHandle, name: &str) {
-    lock(&app.state::<Settings>().extensions).retain(|e| e.name != name);
+/// `extension/removed`: its directory is gone, or the instance was
+/// stopped (its `[instances.<key>]` removed or parked).
+pub fn forget(app: &AppHandle, key: &str) {
+    lock(&app.state::<Settings>().extensions).retain(|e| e.key != key);
+}
+
+/// The label of the instance `key` for the bar and the panel (`InstanceInfo::label`), from the registry and the config's count of enabled instances.
+pub fn instance_label(app: &AppHandle, key: &str) -> Option<String> {
+    let alone = config(app).instance_keys(instance::name_of(key), true).len() < 2;
+    lock(&app.state::<Settings>().extensions).iter().find(|e| e.key == key).and_then(|e| e.instance.label(alone).map(str::to_string))
 }
 
 /// An extension's resolved values, `ResolvedSettings` in host/protocol.ts:
@@ -392,16 +452,58 @@ fn write_settings(app: &AppHandle, name: &str, manifest: &Value, writes: Vec<Set
     Ok(r)
 }
 
-/// `(name, manifest)` of every registered extension: what `resolved` needs,
+/// `(key, manifest)` of every registered instance: what `resolved` needs,
 /// copied out so the store (a `security` subprocess per secret on macOS) is
 /// never consulted under a lock the window's `settings_get` waits on.
 fn manifests(app: &AppHandle) -> Vec<(String, Value)> {
-    lock(&app.state::<Settings>().extensions).iter().map(|e| (e.name.clone(), e.manifest.clone())).collect()
+    lock(&app.state::<Settings>().extensions).iter().map(|e| (e.key.clone(), e.manifest.clone())).collect()
 }
 
-/// Extensions whose resolved values differ between the two configs.
+/// Instances whose resolved values differ between the two configs. Each
+/// is resolved by key with the inheritance (`Config::extension_settings`),
+/// so an edit of `[extensions.gmail]` is a change to `gmail@work` too,
+/// unless the key is one the instance does not inherit or overrides.
+/// An instance whose table `next` no longer has (or parks) is left out:
+/// the host is stopping it on `instances/changed`, there is nothing to
+/// push to or relist.
 pub fn changed_extensions(app: &AppHandle, prev: &Config, next: &Config) -> Vec<String> {
-    manifests(app).into_iter().filter(|(name, m)| resolved(prev, name, m) != resolved(next, name, m)).map(|(name, _)| name).collect()
+    changed_keys(&manifests(app), prev, next)
+}
+
+fn changed_keys(entries: &[(String, Value)], prev: &Config, next: &Config) -> Vec<String> {
+    let live = |key: &str| !instance::is_key(key) || next.instances.get(key).is_some_and(|i| i.enabled);
+    entries.iter().filter(|(key, m)| live(key) && resolved(prev, key, m) != resolved(next, key, m)).map(|(key, _)| key.clone()).collect()
+}
+
+/// The extensions whose `[instances.*]` tables differ between the two
+/// configs, by name (`gmail` for a `gmail@work` added, removed, parked or
+/// retitled): each gets an `instances/changed`, on which the host
+/// reloads every instance of the name (the titles of the others depend
+/// on the count).
+pub fn changed_instances(prev: &Config, next: &Config) -> Vec<String> {
+    let keys: std::collections::BTreeSet<&String> = prev.instances.keys().chain(next.instances.keys()).collect();
+    let names: std::collections::BTreeSet<String> = keys.into_iter().filter(|k| prev.instances.get(*k) != next.instances.get(*k)).map(|k| instance::name_of(k).to_string()).collect();
+    names.into_iter().collect()
+}
+
+/// `[instances."x@y"]` the extensions cannot honour, as config warnings
+/// for the diagnostics strip and the Overview: `x` not installed, or
+/// installed without `multi` in its manifest.
+pub fn instance_warnings(config: &Config, exts: &[Ext]) -> Vec<Diagnostic> {
+    config
+        .instances
+        .keys()
+        .filter(|k| instance::is_key(k))
+        .filter_map(|k| {
+            let name = instance::name_of(k);
+            let path = format!("instances.{k}");
+            match exts.iter().find(|e| e.name == name) {
+                None => Some(Diagnostic::warn(path, format!("{name} is not installed"))),
+                Some(e) if e.manifest["multi"] != true => Some(Diagnostic::warn(path, format!("{name} does not support instances"))),
+                Some(_) => None,
+            }
+        })
+        .collect()
 }
 
 /// `settings/changed` to the host for the named extensions.
@@ -692,13 +794,16 @@ pub struct View {
 #[tauri::command(async)]
 pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
     let l = lock(&st.loaded);
+    let exts = lock(&st.extensions).clone();
+    let mut diagnostics = l.diagnostics.clone();
+    diagnostics.extend(instance_warnings(&l.config, &exts));
     View {
         config: l.config.clone(),
-        diagnostics: l.diagnostics.clone(),
+        diagnostics,
         path: l.path.clone(),
         changed: *lock(&st.changed),
         version: app.package_info().version.to_string(),
-        extensions: lock(&st.extensions).clone(),
+        extensions: exts,
         store: Store::locate().dir().to_path_buf(),
         hotkey: hotkey::outcome(&app),
         permissions: permissions::status(),
@@ -725,7 +830,7 @@ pub fn settings_general(st: State<'_, Settings>) -> pal_core::config::General {
 
 /// One retry on `Contended`: a hand save that landed while we held the
 /// text is re-read and the key applied over it.
-fn retrying(f: impl Fn() -> Result<(), Error>) -> Result<(), String> {
+fn retrying<T>(f: impl Fn() -> Result<T, Error>) -> Result<T, String> {
     match f() {
         Err(Error::Contended(_)) => f(),
         r => r,
@@ -882,6 +987,125 @@ pub async fn extensions_check_updates(app: AppHandle) -> Result<Vec<Update>, Str
     check_extensions(&app).await
 }
 
+// ---- instances -------------------------------------------------------------
+// One extension, several configured copies (docs/design/instances.md): the
+// file edits live in `pal_core::config::instance` (`ConfigFile::instance_add`
+// / `instance_remove`); here the edit is applied to the running config at
+// once (`on_reload`, whose instances diff sends `instances/changed` to the
+// host) and, for a removal, the instance's files go once the host has
+// stopped it.
+
+/// How long `instances_remove` waits for the host to stop the instance
+/// before it deletes the instance's files anyway.
+const STOP_WAIT: Duration = Duration::from_secs(3);
+
+/// The file as it is now, applied as the watcher would (the watcher's own
+/// reload of the same bytes follows and finds nothing changed).
+fn reload_now(app: &AppHandle) {
+    let loaded = app.state::<Settings>().file.load();
+    on_reload(app, loaded);
+}
+
+/// `[instances."<name>@<suffix>"]` written: the instance exists from here
+/// (`instances/changed` to the host through the reload). `title` and
+/// `tint` are optional; the host fills the defaults. Answers the key.
+#[tauri::command(async)]
+pub fn instances_add(app: AppHandle, st: State<'_, Settings>, name: String, suffix: String, title: Option<String>, tint: Option<String>) -> Result<String, String> {
+    if !instance::valid_suffix(&suffix) {
+        return Err(format!("{suffix:?} is not an instance suffix: lowercase letters, digits, - and _, up to {} characters, not \"default\"", instance::MAX_SUFFIX));
+    }
+    let key = format!("{name}@{suffix}");
+    match lock(&st.extensions).iter().find(|e| e.name == name) {
+        None => return Err(format!("{name} is not installed")),
+        Some(e) if e.manifest["multi"] != true => return Err(format!("{name} does not support instances")),
+        Some(_) => {}
+    }
+    if let Some(t) = tint.as_deref().filter(|t| !t.is_empty()) {
+        if !TINTS.contains(&t) {
+            return Err(format!("{t:?} is not a tile colour: one of {}", TINTS.join(", ")));
+        }
+    }
+    retrying(|| st.file.instance_add(&key, title.as_deref(), tint.as_deref())).map_err(|e| format!("{key}: {e}"))?;
+    eprintln!("instances\tadded\t{key}");
+    reload_now(&app);
+    Ok(key)
+}
+
+/// The twelve brand colours a tile takes (`TILE_COLORS`, sdk/src/icon.ts).
+pub const TINTS: [&str; 12] = ["red", "orange", "amber", "green", "teal", "cyan", "blue", "indigo", "violet", "pink", "slate", "ink"];
+
+/// `[instances.<key>] title`: the display name (the default instance's
+/// too, `key == name`); empty unsets it, back to the suffix capitalised.
+#[tauri::command(async)]
+pub fn instances_rename(app: AppHandle, st: State<'_, Settings>, key: String, title: String) -> Result<(), String> {
+    if !instance::is_key(&key) && !instance::valid_name(&key) {
+        return Err(format!("{key:?} is not an instance key"));
+    }
+    let path = instance::table_key("instances", &key);
+    let title = title.trim().to_string();
+    retrying(|| if title.is_empty() { st.file.unset(&format!("{path}.title")) } else { st.file.set(&format!("{path}.title"), title.as_str()) }).map_err(|e| format!("{key}: {e}"))?;
+    reload_now(&app);
+    Ok(())
+}
+
+/// The instance gone: every table of its own out of the file
+/// (`ConfigFile::instance_remove`), the host told through the reload and
+/// waited for (its worker disposed, `extension/removed` seen), then its
+/// storage file, its index cache directory and its frecency entries. The
+/// keychain items stay, as they do for a removed extension. The default
+/// instance is refused: that is the extension itself.
+#[tauri::command]
+pub async fn instances_remove(app: AppHandle, key: String) -> Result<(), String> {
+    if !instance::is_key(&key) {
+        return Err(format!("{key:?} is not an instance key; the default instance is the extension itself"));
+    }
+    let st = app.state::<Settings>();
+    let removed = retrying(|| st.file.instance_remove(&key)).map_err(|e| format!("{key}: {e}"))?;
+    eprintln!("instances\tremoved\t{key}\t{}", removed.join(" "));
+    reload_now(&app);
+    // The host stops the worker on `instances/changed`; its `extension/removed` drops the instance from the registry.
+    if app.try_state::<Arc<Host>>().is_some() {
+        let t0 = Instant::now();
+        while t0.elapsed() < STOP_WAIT && lock(&st.extensions).iter().any(|e| e.key == key) {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        if lock(&st.extensions).iter().any(|e| e.key == key) {
+            eprintln!("instances\tremove\t{key}\tstill registered after {STOP_WAIT:?}; deleting its files anyway");
+        }
+    }
+    let index = st.file.data_dir().join(crate::cache::DIR_NAME).join(&key);
+    let (a, k) = (app.clone(), key.clone());
+    let gone = tauri::async_runtime::spawn_blocking(move || {
+        let mut gone = Vec::new();
+        // `<data dir>/pal/storage/<key>.json`, through the store so nothing of it stays loaded.
+        match a.state::<pal_core::storage::Storage>().forget(&k) {
+            Ok(true) => gone.push("storage"),
+            Ok(false) => {}
+            Err(e) => eprintln!("instances\tremove\t{k}\tstorage: {e}"),
+        }
+        if std::fs::remove_dir_all(&index).is_ok() {
+            gone.push("index");
+        }
+        gone
+    })
+    .await
+    .unwrap_or_default();
+    let forgotten = {
+        let st = app.state::<Mutex<Frecency>>();
+        let mut f = lock(&st);
+        let n = f.forget_extension(&key);
+        if n > 0 {
+            if let Err(e) = f.flush() {
+                eprintln!("frecency\tflush failed\t{e}");
+            }
+        }
+        n
+    };
+    eprintln!("instances\tcleaned\t{key}\tfiles=[{}] frecency={forgotten}", gone.join(","));
+    events::emit(&app, events::INDEX, ());
+    Ok(())
+}
+
 // ---- about -----------------------------------------------------------------
 
 /// Where the About page sends people, and what the last run left behind
@@ -970,6 +1194,77 @@ mod tests {
         assert!(plan(None, "insecure", json!("yes")).unwrap_err().contains("true or false"));
         // Odd names are quoted for the dotted key.
         assert_eq!(plan_write(&json!({ "settings": [{ "id": "a.b", "kind": "text" }] }), "my.ext", None, "a.b", json!("v")).unwrap().key, "extensions.\"my.ext\".\"a.b\"");
+    }
+
+    fn cfg(text: &str) -> Config {
+        pal_core::config::parse(text).unwrap().0
+    }
+
+    /// The manifest of a `multi` extension with a plain setting, a secret
+    /// and an instance-scoped one (no `keychain:` values anywhere, so the
+    /// OS store is never asked).
+    fn multi_manifest() -> Value {
+        json!({ "name": "gmail", "multi": true, "settings": [
+            { "id": "signature", "kind": "text", "default": "" },
+            { "id": "token", "kind": "secret" },
+            { "id": "send", "kind": "boolean", "default": false, "scope": "instance" },
+        ], "palettes": { "inbox": { "settings": [{ "id": "columns", "kind": "number", "default": 1 }] } } })
+    }
+
+    #[test]
+    fn changed_extensions_follow_inheritance() {
+        let m = multi_manifest();
+        let entries = vec![("gmail".to_string(), m.clone()), ("gmail@work".to_string(), m.clone()), ("other".to_string(), json!({ "name": "other", "settings": [{ "id": "x", "kind": "text" }] }))];
+        let base = "[instances.\"gmail@work\"]\n";
+        // An edit of the default's table reaches the instance through the inheritance.
+        assert_eq!(changed_keys(&entries, &cfg(base), &cfg("[extensions.gmail]\nsignature = \"C\"\n[instances.\"gmail@work\"]\n")), ["gmail", "gmail@work"]);
+        // Unless the instance overrides the key: then only the default changes.
+        let over = "[extensions.gmail]\nsignature = \"C\"\n[extensions.\"gmail@work\"]\nsignature = \"W\"\n[instances.\"gmail@work\"]\n";
+        assert_eq!(changed_keys(&entries, &cfg("[extensions.\"gmail@work\"]\nsignature = \"W\"\n[instances.\"gmail@work\"]\n"), &cfg(over)), ["gmail"]);
+        // A secret or an instance-scoped key on the default never reaches the instance.
+        assert_eq!(changed_keys(&entries, &cfg(base), &cfg("[extensions.gmail]\ntoken = \"t\"\nsend = true\n[instances.\"gmail@work\"]\n")), ["gmail"]);
+        // The instance's own table changes the instance alone.
+        assert_eq!(changed_keys(&entries, &cfg(base), &cfg("[extensions.\"gmail@work\"]\nsend = true\n[instances.\"gmail@work\"]\n")), ["gmail@work"]);
+        // A palette's settings inherit the same way.
+        assert_eq!(changed_keys(&entries, &cfg(base), &cfg("[palettes.gmail-inbox.settings]\ncolumns = 2\n[instances.\"gmail@work\"]\n")), ["gmail", "gmail@work"]);
+        assert!(changed_keys(&entries, &cfg(base), &cfg("[instances.\"gmail@work\"]\ntitle = \"W\"\n")).is_empty(), "the instance table itself is not a settings change");
+        // An instance removed or parked along with its settings is the host's to stop, not a settings change to push.
+        assert_eq!(changed_keys(&entries, &cfg("[extensions.\"gmail@work\"]\nsend = true\n[instances.\"gmail@work\"]\n"), &cfg("")), Vec::<String>::new());
+        assert_eq!(changed_keys(&entries, &cfg("[extensions.\"gmail@work\"]\nsend = true\n[instances.\"gmail@work\"]\n"), &cfg("[instances.\"gmail@work\"]\nenabled = false\n")), Vec::<String>::new());
+    }
+
+    #[test]
+    fn changed_instances_names_the_extensions_whose_tables_moved() {
+        let a = cfg("[instances.\"gmail@work\"]\ntitle = \"Work\"\n[instances.\"github@work\"]\n");
+        let b = cfg("[instances.\"gmail@work\"]\ntitle = \"Job\"\n[instances.\"github@work\"]\n[instances.slack]\ntitle = \"Personal\"\n");
+        assert_eq!(changed_instances(&a, &b), ["gmail", "slack"], "a retitled instance and a named default; github untouched");
+        assert_eq!(changed_instances(&b, &cfg("")), ["github", "gmail", "slack"], "removed tables count");
+        assert!(changed_instances(&a, &a).is_empty());
+        let parked = cfg("[instances.\"gmail@work\"]\ntitle = \"Work\"\nenabled = false\n[instances.\"github@work\"]\n");
+        assert_eq!(changed_instances(&a, &parked), ["gmail"]);
+    }
+
+    #[test]
+    fn instance_warnings_name_the_missing_and_the_single() {
+        let ext = |name: &str, multi: bool| Ext { key: name.into(), name: name.into(), instance: InstanceInfo::default_for(name), manifest: json!({ "name": name, "multi": multi }), root: String::new(), loaded: true, error: None, palettes: vec![], warnings: vec![], installed: None, record: None };
+        let exts = vec![ext("gmail", true), ext("timer", false)];
+        let c = cfg("[instances.\"gmail@work\"]\n[instances.\"timer@two\"]\n[instances.\"nope@x\"]\n[instances.gmail]\ntitle = \"P\"\n[instances.\"bad@@k\"]\n");
+        let w: Vec<(String, String)> = instance_warnings(&c, &exts).into_iter().map(|d| (d.path, d.message)).collect();
+        assert_eq!(w, [("instances.nope@x".to_string(), "nope is not installed".to_string()), ("instances.timer@two".to_string(), "timer does not support instances".to_string())], "the default's own table and a malformed key (the core's warning) are not these");
+    }
+
+    #[test]
+    fn instance_label_reads_the_title_of_a_non_default_or_a_named_default_with_company() {
+        let work = InstanceInfo { key: "gmail@work".into(), title: Some("Work".into()), tint: Some("amber".into()), badge: Some("W".into()), is_default: false };
+        assert_eq!(work.label(true), Some("Work"), "a non-default instance is always marked");
+        assert_eq!(work.label(false), Some("Work"));
+        let named = InstanceInfo { key: "gmail".into(), title: Some("Personal".into()), tint: None, badge: None, is_default: true };
+        assert_eq!(named.label(true), None, "a lone default reads as it did");
+        assert_eq!(named.label(false), Some("Personal"));
+        assert_eq!(InstanceInfo::default_for("gmail").label(false), None, "an unnamed default stays plain next to another instance");
+        assert!(InstanceInfo::default_for("gmail").is_default && !InstanceInfo::default_for("gmail@work").is_default);
+        let parsed: InstanceInfo = serde_json::from_value(json!({ "key": "gmail@work", "title": "Work", "tint": "amber", "badge": "W", "isDefault": false })).unwrap();
+        assert_eq!(parsed, work, "the host's `instance` as it announces it");
     }
 
     #[test]
