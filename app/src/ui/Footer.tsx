@@ -6,6 +6,8 @@ import type { Icon as IconSpec } from "./types";
 export type FooterProps = {
   icon?: IconSpec;
   title?: string;
+  /** A quiet status after the title ("updating…"). */
+  note?: string;
   /** Primary action hint, right side: "Open ↵". */
   primary?: { title: string };
   /** Show the "Actions ⌘K" affordance. */
@@ -14,12 +16,13 @@ export type FooterProps = {
   onPrimary?: () => void;
 };
 
-export function Footer({ icon, title, primary, actions, onActions, onPrimary }: FooterProps) {
+export function Footer({ icon, title, note, primary, actions, onActions, onPrimary }: FooterProps) {
   return (
     <div className="pal-footer" onMouseDown={keepFocus}>
       <div className="pal-footer__context">
         {icon && <Icon icon={icon} size="sm" />}
         {title && <span className="pal-footer__title">{title}</span>}
+        {note && <span className="pal-footer__note" aria-live="polite">{note}</span>}
       </div>
       <div className="pal-footer__hints">
         {primary && (

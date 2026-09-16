@@ -17,10 +17,21 @@
 //! (`filter`), the bucket swapped for that filter's rows and each list kept
 //! until the palette lists again. An item's lazy detail (`detail`) is one
 //! host round trip, cached there.
+//!
+//! Every default listing also goes to disk (`crate::cache`), and at startup,
+//! before the host is spawned, `restore_cache` puts every cached palette
+//! back: items, meta and palette row, flagged `stale`. When the host then
+//! reports an extension loaded, each palette is listed again now (no `ttl`,
+//! as before), left as it is (`ttl` declared and the cached listing younger
+//! than it), or queued for one sequential low-priority pass after `host/ready`
+//! (`ttl` declared and exceeded). `index_refresh` forces a listing at any
+//! time. `stale` on the wire is "a listing is pending for this source" and
+//! the footer says "updating" while it is.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, Once};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pal_core::config::Config;
 use pal_core::frecency::{Frecency, Key};
@@ -30,15 +41,27 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::host::Host;
-use crate::{effects, hotkey, settings};
+use crate::{cache, effects, hotkey, settings};
 
 const DEFAULT_LIMIT: usize = 200;
 /// A live palette slower than this on show keeps its old rows for this show.
 const LIVE_RELIST_TIMEOUT: Duration = Duration::from_millis(2000);
+/// After `host/ready`, before the pass over the palettes whose cached
+/// listing is older than their `ttl`: the panel has painted and the
+/// no-`ttl` listings are in flight by then.
+const REFRESH_DELAY: Duration = Duration::from_millis(1000);
+
+/// Whether that pass has run: until it has, an expired palette waits for
+/// it; after, an expired palette (an extension reloaded) lists at once.
+static REFRESHED: AtomicBool = AtomicBool::new(false);
+
+fn unix_secs() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs())
+}
 
 /// A palette as the host describes it (`PaletteMeta` in host/protocol.ts).
 /// The optional fields ride to the UI untouched through `SourceView`.
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize, Serialize)]
 pub struct PaletteMeta {
     pub name: String,
     pub title: String,
@@ -63,9 +86,22 @@ pub struct PaletteMeta {
     /// `[{ id, title }]`, first the default; opaque here, the UI's dropdown.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filters: Option<Value>,
+    /// Seconds a listing stays good for: a cached one younger than this is
+    /// not listed again on load. Absent: listed again on every load.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<f64>,
 }
 
 impl PaletteMeta {
+    /// Whether a listing taken at `listed_at` is still within `ttl`.
+    /// Without a `ttl` nothing is.
+    fn fresh(&self, listed_at: Option<u64>, now: u64) -> bool {
+        match (self.ttl, listed_at) {
+            (Some(ttl), Some(at)) => (now.saturating_sub(at) as f64) <= ttl,
+            _ => false,
+        }
+    }
+
     /// The filter a plain list runs with: the first declared one.
     fn default_filter(&self) -> Option<String> {
         self.filters.as_ref()?.get(0)?.get("id")?.as_str().map(str::to_string)
@@ -94,6 +130,8 @@ struct Registered {
     filter: Option<String>,
     /// Each filter's rows as last listed, dropped when the palette lists again.
     filtered: HashMap<String, Vec<Item>>,
+    /// Its cached listing is past its `ttl`: waiting for `refresh_expired`.
+    deferred: bool,
 }
 
 /// The palette's key in the config file, `palettes.<id>`: the extension's
@@ -157,6 +195,41 @@ pub fn install(app: &AppHandle) {
     }
     app.manage(Mutex::new(frecency));
     app.manage(Palettes::default());
+    app.manage(cache::Saver::new(cache::dir()));
+}
+
+/// Put every cached palette back before the host is spawned: registry
+/// entry (enabled per the config), items in the index flagged stale, the
+/// palette rows, the palettes' hotkeys. Needs the settings installed. The
+/// order is the empty query's order until frecency has a say: the palette
+/// rows first, then apps, then the rest by name.
+pub fn restore_cache(app: &AppHandle) {
+    let t0 = Instant::now();
+    let mut cached = cache::read_all(&cache::dir());
+    let rank = |s: &Source| (s.extension != "apps", s.extension.clone(), s.palette.clone());
+    cached.sort_by_key(|(s, _)| rank(s));
+    let config = settings::config(app);
+    let (mut sources, mut items) = (0, 0);
+    with_index(app, |ix| ix.replace(palettes_source(), Vec::new()));
+    Palettes::with(app, |reg| {
+        for (source, e) in cached {
+            let enabled = config.palette(&palette_id(&source)).enabled;
+            let filter = e.meta.default_filter();
+            let mut filtered = HashMap::new();
+            if enabled {
+                sources += 1;
+                items += e.items.len();
+                if let Some(f) = &filter {
+                    filtered.insert(f.clone(), e.items.clone());
+                }
+                with_index(app, |ix| ix.restore(source.clone(), e.items, Some(e.listed_at), e.meta.live));
+            }
+            reg.push(Registered { source, meta: e.meta, ext_title: e.ext_title, enabled, filter, filtered, deferred: false });
+        }
+    });
+    sync_palette_rows(app);
+    hotkey::apply(app, &config);
+    eprintln!("cache\tloaded {sources} sources {items} items in {:.1}ms\t{:.1}ms since start", t0.elapsed().as_secs_f64() * 1000.0, crate::since_start_ms());
 }
 
 /// Runs `f` with the index locked; the registry is locked the same way
@@ -179,6 +252,7 @@ pub fn flush(app: &AppHandle) {
     if let Err(e) = app.state::<Mutex<Frecency>>().lock().unwrap().flush() {
         eprintln!("frecency\tflush failed\t{e}");
     }
+    app.state::<Arc<cache::Saver>>().flush();
 }
 
 // ---- host notifications --------------------------------------------------
@@ -201,9 +275,13 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             remove_extension(app, ext);
         }
         // The host is up: drop sources whose extension it no longer has
-        // (deleted while it was down), so a restart cannot leave strays.
+        // (deleted while it was down), so a restart cannot leave strays,
+        // and their cache files (`known` is every extension on disk, loaded
+        // or not: one that failed to load keeps its cache for when it is
+        // fixed). Then the pass over the expired cached palettes.
         "host/ready" => {
             let live: Vec<String> = serde_json::from_value(params["extensions"].clone()).unwrap_or_default();
+            let known: Vec<String> = serde_json::from_value(params["known"].clone()).unwrap_or_else(|_| live.clone());
             let stale: Vec<String> = Palettes::with(app, |reg| {
                 reg.iter().map(|r| r.source.extension.clone()).filter(|e| !live.contains(e)).collect()
             });
@@ -211,6 +289,11 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
                 remove_extension(app, &ext);
             }
             settings::retain(app, &live);
+            let gone = cache::prune(&cache::dir(), &known);
+            if !gone.is_empty() {
+                eprintln!("cache\tpruned\t{}", gone.join(","));
+            }
+            tauri::async_runtime::spawn(refresh_expired(app.clone(), host.clone()));
         }
         _ => {}
     }
@@ -231,23 +314,65 @@ async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title:
         reg.extend(metas.iter().map(|m| {
             let source = Source::new(&ext, &m.name);
             let enabled = config.palette(&palette_id(&source)).enabled;
-            Registered { source, meta: m.clone(), ext_title: ext_title.clone(), enabled, filter: None, filtered: HashMap::new() }
+            Registered { source, meta: m.clone(), ext_title: ext_title.clone(), enabled, filter: None, filtered: HashMap::new(), deferred: false }
         }));
     });
     sync_palette_rows(&app);
     hotkey::apply(&app, &config);
+    let now = unix_secs();
     for m in metas {
         let source = Source::new(&ext, &m.name);
-        if config.palette(&palette_id(&source)).enabled {
-            list_palette(&app, &host, &source, &m).await;
+        if !config.palette(&palette_id(&source)).enabled {
+            continue;
+        }
+        let info = with_index(&app, |ix| ix.source(&source));
+        let (stale, listed_at) = info.as_ref().map_or((false, None), |i| (i.stale, i.listed_at));
+        if m.input {
+            list_palette(&app, &host, &source, &m, "load").await;
+        } else if m.fresh(listed_at, now) {
+            // The cached (or last) listing stands.
+            with_index(&app, |ix| {
+                ix.set_live(source.clone(), m.live);
+                ix.set_stale(source.clone(), false);
+            });
+            eprintln!("index\t{}/{}\tfresh\t{}s old of ttl {}s", source.extension, source.palette, now.saturating_sub(listed_at.unwrap_or(now)), m.ttl.unwrap_or(0.0));
+        } else if stale && m.ttl.is_some() && !REFRESHED.load(Ordering::Relaxed) {
+            // Expired cache at startup: the sequential pass after host/ready.
+            Palettes::with(&app, |reg| reg.iter_mut().filter(|r| r.source == source).for_each(|r| r.deferred = true));
+            eprintln!("index\t{}/{}\texpired\trefresh after ready", source.extension, source.palette);
+        } else {
+            list_palette(&app, &host, &source, &m, "load").await;
         }
     }
+    let _ = app.emit("pal://index", ());
 }
 
-/// One `list` of a palette, with `filter` when it has one. `None` when the
-/// host failed or answered junk (logged); the bucket is then left alone.
-async fn fetch(host: &Arc<Host>, source: &Source, filter: Option<&str>) -> Option<Vec<Item>> {
-    let params = json!({ "extension": source.extension, "palette": source.palette, "filter": filter });
+/// The low-priority pass after startup: every palette `sync_extension`
+/// deferred (its cached listing older than its `ttl`), one after the
+/// other, each with the host's request timeout. Runs once per host start;
+/// a palette listed by other means meanwhile (`keep`, a config change) is
+/// no longer deferred and is skipped.
+async fn refresh_expired(app: AppHandle, host: Arc<Host>) {
+    tokio::time::sleep(REFRESH_DELAY).await;
+    let t0 = Instant::now();
+    let todo: Vec<(Source, PaletteMeta)> = Palettes::with(&app, |reg| reg.iter().filter(|r| r.enabled && r.deferred).map(|r| (r.source.clone(), r.meta.clone())).collect());
+    let mut n = 0;
+    for (source, m) in &todo {
+        if Palettes::with(&app, |reg| reg.iter().any(|r| &r.source == source && r.deferred)) {
+            list_palette(&app, &host, source, m, "refresh").await;
+            n += 1;
+        }
+    }
+    REFRESHED.store(true, Ordering::Relaxed);
+    eprintln!("index\trefresh pass\t{n} palettes\t{:.1}ms\t{:.1}ms since start", t0.elapsed().as_secs_f64() * 1000.0, crate::since_start_ms());
+}
+
+/// One `list` of a palette, with `filter` when it has one; `refresh` tells
+/// the extension the user asked for a fresh listing (its own cache steps
+/// aside). `None` when the host failed or answered junk (logged); the
+/// bucket is then left alone.
+async fn fetch(host: &Arc<Host>, source: &Source, filter: Option<&str>, refresh: bool) -> Option<Vec<Item>> {
+    let params = json!({ "extension": source.extension, "palette": source.palette, "filter": filter, "refresh": refresh.then_some(true) });
     match host.request("list", params).await {
         Ok(v) => Some(serde_json::from_value::<Vec<Item>>(v["items"].clone()).unwrap_or_else(|e| {
             eprintln!("index\t{}/{}\tbad items\t{e}", source.extension, source.palette);
@@ -260,39 +385,54 @@ async fn fetch(host: &Arc<Host>, source: &Source, filter: Option<&str>) -> Optio
     }
 }
 
-/// Puts a fresh default list in the index: the bucket, and the filter cache
-/// starts over with it (the other filters' rows may be stale).
+/// Puts a fresh default list in the index: the bucket, the filter cache
+/// starts over with it (the other filters' rows may be stale), and the
+/// cache file (debounced) so the next start has it.
 fn store(app: &AppHandle, source: &Source, m: &PaletteMeta, items: Vec<Item>) {
     let filter = m.default_filter();
-    Palettes::with(app, |reg| {
-        if let Some(r) = reg.iter_mut().find(|r| &r.source == source) {
-            r.filtered.clear();
-            if let Some(f) = &filter {
-                r.filtered.insert(f.clone(), items.clone());
-            }
-            r.filter = filter.clone();
+    let ext_title = Palettes::with(app, |reg| {
+        let r = reg.iter_mut().find(|r| &r.source == source)?;
+        r.filtered.clear();
+        if let Some(f) = &filter {
+            r.filtered.insert(f.clone(), items.clone());
         }
+        r.filter = filter.clone();
+        r.deferred = false;
+        Some(r.ext_title.clone())
     });
+    let entry = ext_title.map(|t| cache::Entry::new(unix_secs(), t, m.clone(), items.clone()));
     with_index(app, |ix| {
         ix.set_live(source.clone(), m.live);
         ix.replace(source.clone(), items);
     });
+    if let Some(entry) = entry {
+        app.state::<Arc<cache::Saver>>().save(source.clone(), entry);
+    }
 }
 
 /// Asks the host for the palette's items and puts them in the index. An
 /// input palette is in the index as an empty source: `sources` lists it, a
-/// root query never finds its rows.
-async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &PaletteMeta) {
+/// root query never finds its rows. `why` tags the log line (`load`,
+/// `refresh`, `forced`, `config`, `keep`). A failed list leaves the bucket
+/// as it is but clears `stale`: nothing is pending for it any more.
+async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &PaletteMeta, why: &str) {
     let t0 = Instant::now();
     let items = if m.input {
         Vec::new()
     } else {
-        let Some(items) = fetch(host, source, m.default_filter().as_deref()).await else { return };
-        items
+        match fetch(host, source, m.default_filter().as_deref(), why == "forced").await {
+            Some(items) => items,
+            None => {
+                with_index(app, |ix| ix.set_stale(source.clone(), false));
+                Palettes::with(app, |reg| reg.iter_mut().filter(|r| &r.source == source).for_each(|r| r.deferred = false));
+                let _ = app.emit("pal://index", ());
+                return;
+            }
+        }
     };
     let n = items.len();
     store(app, source, m, items);
-    eprintln!("index\t{}/{}\t{n} items\t{:.1}ms\t{:.1}ms since host spawn", source.extension, source.palette, t0.elapsed().as_secs_f64() * 1000.0, host.uptime_ms());
+    eprintln!("index\t{}/{}\t{n} items\t{:.1}ms\t{:.1}ms since host spawn\t{why}", source.extension, source.palette, t0.elapsed().as_secs_f64() * 1000.0, host.uptime_ms());
     let _ = app.emit("pal://index", ());
 }
 
@@ -318,7 +458,7 @@ pub fn on_shown(app: &AppHandle) {
                 let (host, source, filter) = (host.clone(), source.clone(), m.default_filter());
                 tauri::async_runtime::spawn(async move {
                     let t = Instant::now();
-                    let r = tokio::time::timeout(LIVE_RELIST_TIMEOUT, fetch(&host, &source, filter.as_deref())).await;
+                    let r = tokio::time::timeout(LIVE_RELIST_TIMEOUT, fetch(&host, &source, filter.as_deref(), false)).await;
                     (t.elapsed().as_secs_f64() * 1000.0, r)
                 })
             })
@@ -369,13 +509,13 @@ pub async fn apply_config(app: AppHandle, host: Arc<Host>, prev: Config, next: C
     eprintln!("config\tapplied\toff=[{}] on=[{}] settings=[{}]", ids(&off), ids(&on.iter().map(|(s, _)| s.clone()).collect::<Vec<_>>()), changed.join(","));
     settings::push(&app, &host, &changed).await;
     for (source, meta) in on {
-        list_palette(&app, &host, &source, &meta).await;
+        list_palette(&app, &host, &source, &meta, "config").await;
     }
     let relist: Vec<(Source, PaletteMeta)> = Palettes::with(&app, |reg| {
         reg.iter().filter(|r| r.enabled && changed.contains(&r.source.extension)).map(|r| (r.source.clone(), r.meta.clone())).collect()
     });
     for (source, meta) in relist {
-        list_palette(&app, &host, &source, &meta).await;
+        list_palette(&app, &host, &source, &meta, "config").await;
     }
 }
 
@@ -404,7 +544,8 @@ pub struct HitView {
     item: Item,
 }
 
-/// One source for the UI: the meta as the host gave it, plus the count.
+/// One source for the UI: the meta as the host gave it, plus the count and
+/// whether a listing is pending (`stale`, see the module docs).
 #[derive(Serialize)]
 pub struct SourceView {
     extension: String,
@@ -412,6 +553,10 @@ pub struct SourceView {
     #[serde(flatten)]
     meta: PaletteMeta,
     count: usize,
+    stale: bool,
+    /// Unix seconds of the listing the rows came from.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    listed_at: Option<u64>,
 }
 
 /// Off the main thread: the scan is well under a millisecond, but a
@@ -428,10 +573,14 @@ pub fn query(
     let boost = fre.boost(&q, SystemTime::now());
     let mut ix = index.lock().unwrap();
     let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost) };
-    ix.query(&q, opts)
+    let hits: Vec<HitView> = ix
+        .query(&q, opts)
         .into_iter()
         .map(|hit| HitView { item: ix.get(&hit.source, &hit.id).cloned().expect("hit names an indexed item"), hit })
-        .collect()
+        .collect();
+    static FIRST: Once = Once::new();
+    FIRST.call_once(|| eprintln!("query\tfirst answer\t{q:?}\t{} hits of {} items\t{:.1}ms since start", hits.len(), ix.len(), crate::since_start_ms()));
+    hits
 }
 
 #[tauri::command(async)]
@@ -448,8 +597,33 @@ pub fn sources(index: State<'_, Mutex<Index>>, palettes: State<'_, Palettes>) ->
             extension: s.source.extension,
             palette: s.source.palette,
             count: s.len,
+            stale: s.stale,
+            listed_at: s.listed_at,
         })
         .collect()
+}
+
+/// List `source` again now, or every enabled indexed palette when `None`
+/// (one after the other), whatever their `ttl`: the user asked. The
+/// targets are flagged stale first, so the footer says "updating" while
+/// the listings run; the flag clears as each lands. The extension is told
+/// (`refresh: true` in the ctx) so its own cache steps aside.
+#[tauri::command]
+pub async fn index_refresh(app: AppHandle, source: Option<Source>, host: State<'_, Arc<Host>>) -> Result<(), String> {
+    let targets: Vec<(Source, PaletteMeta)> = Palettes::with(&app, |reg| {
+        reg.iter()
+            .filter(|r| r.enabled && !r.meta.input && source.as_ref().is_none_or(|s| s == &r.source))
+            .map(|r| (r.source.clone(), r.meta.clone()))
+            .collect()
+    });
+    with_index(&app, |ix| targets.iter().for_each(|(s, _)| ix.set_stale(s.clone(), true)));
+    let _ = app.emit("pal://index", ());
+    let t0 = Instant::now();
+    for (source, m) in &targets {
+        list_palette(&app, &host, source, m, "forced").await;
+    }
+    eprintln!("index\trefresh forced\t{} palettes\t{:.1}ms", targets.len(), t0.elapsed().as_secs_f64() * 1000.0);
+    Ok(())
 }
 
 /// Runs the item through the host and its effects here (`copy`, `open`,
@@ -482,7 +656,7 @@ pub async fn pick(
         if r.get("keep").is_some() && args.is_none() {
             let meta = Palettes::with(&app, |reg| reg.iter().find(|r| r.source == source && r.enabled && !r.meta.input).map(|r| r.meta.clone()));
             if let Some(m) = meta {
-                list_palette(&app, &host, &source, &m).await;
+                list_palette(&app, &host, &source, &m, "keep").await;
             }
         }
         r
@@ -528,7 +702,7 @@ pub async fn filter(app: AppHandle, source: Source, filter: String, host: State<
         Some(Some(items)) => items,
         None => {
             let t0 = Instant::now();
-            let items = fetch(&host, &source, Some(&filter)).await.ok_or("list failed")?;
+            let items = fetch(&host, &source, Some(&filter), false).await.ok_or("list failed")?;
             eprintln!("index\t{}/{}\tfilter {filter}\t{} items\t{:.1}ms", source.extension, source.palette, items.len(), t0.elapsed().as_secs_f64() * 1000.0);
             items
         }

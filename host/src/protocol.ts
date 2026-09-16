@@ -106,8 +106,10 @@ export type Effect = {
  * How the palette was opened, given to `list`/`pick`/`detail`: the chosen
  * `filter` id (absent means the first), and the `args` of an `Effect.push`
  * that opened this level (absent at the root and on a plain drill-in).
+ * `refresh` on a `list`: the user asked for a fresh listing (the shell's
+ * Refresh action), so a cache the palette keeps should step aside.
  */
-export type Ctx = { filter?: string; args?: unknown };
+export type Ctx = { filter?: string; args?: unknown; refresh?: boolean };
 
 export type Palette = {
   /** Section label at the root; the palette key otherwise. */
@@ -139,6 +141,14 @@ export type Palette = {
    * every keystroke.
    */
   filters?: { id: string; title: string }[];
+  /**
+   * Seconds a listing stays good for. The core persists every listing and
+   * restores it at the next start; with a `ttl` it lists the palette again
+   * only when the restored listing is older than that (in a low-priority
+   * pass after startup), without one on every start as before. `live` still
+   * re-lists on every show. The manifest may declare it instead.
+   */
+  ttl?: number;
   list(query?: string, ctx?: Ctx): Item[] | Promise<Item[]>;
   pick(id: string, action?: string, ctx?: Ctx): Effect | void | Promise<Effect | void>;
   /**
@@ -177,7 +187,7 @@ export type SettingSpec = SettingBase &
   );
 
 /** What the manifest says about one palette; the code still defines it. */
-export type ManifestPalette = { title?: string; description?: string; settings?: SettingSpec[] };
+export type ManifestPalette = { title?: string; description?: string; settings?: SettingSpec[]; /** See `Palette.ttl`; the code's value wins. */ ttl?: number };
 
 export type Manifest = {
   name: string;
@@ -202,7 +212,7 @@ export type ResolvedSettings = { settings: Record<string, unknown>; palettes: Re
 export type SettingsChanged = { extensions: Record<string, ResolvedSettings> };
 
 /** What `hello` and `extension/loaded` say about a palette. */
-export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "showDetail" | "filters"> & {
+export type PaletteMeta = Pick<Palette, "icon" | "view" | "columns" | "placeholder" | "showDetail" | "filters" | "ttl"> & {
   name: string;
   title: string;
   live: boolean;

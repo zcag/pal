@@ -4,7 +4,7 @@ pub mod ax;
 pub mod clipboard;
 pub mod config;
 pub mod frecency;
-mod fs;
+pub mod fs;
 pub mod icons;
 pub mod index;
 pub mod system;

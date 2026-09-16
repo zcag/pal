@@ -13,7 +13,7 @@ import type { Accessory, Action, Ctx, Detail, Effect, Extension, Item, Palette }
 import { settings } from "../../host/src/api.ts";
 import { xdg } from "../../host/src/icons.ts";
 
-type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number };
+type Settings = { config: string; skip: string[]; v1_repo: string; timeout: number; preview_max: number; ttl: number };
 type Raw = Record<string, any>;
 type V1Action = { id?: string; title?: string; action?: string; value?: string; key?: string; shortcut?: string; style?: string; confirm?: string; reload?: boolean; primary?: boolean };
 type V1Palette = Raw & {
@@ -27,7 +27,7 @@ type V1Palette = Raw & {
 const HOME = homedir();
 const log = (...a: unknown[]) => console.error("[scripts]", ...a);
 const tilde = (p: string) => (p.startsWith("~/") ? HOME + p.slice(1) : p);
-const DEFAULTS: Settings = { config: "~/.config/pal/config.toml", skip: ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"], v1_repo: "~/proj/pal-v1", timeout: 30, preview_max: 4 };
+const DEFAULTS: Settings = { config: "~/.config/pal/config.toml", skip: ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"], v1_repo: "~/proj/pal-v1", timeout: 30, preview_max: 4, ttl: 0 };
 const S: Settings = { ...DEFAULTS, ...settings.get<Partial<Settings>>("scripts") };
 settings.onChange(() => log("settings changed; restart the host to rediscover palettes"), "scripts");
 
@@ -364,8 +364,8 @@ function discover(): Record<string, Palette> {
       input: !!cfg.input,
       placeholder: cfg.input_prompt,
       live: !!cfg.live,
-      // v1's ttl: the core keeps the last listing across restarts for this long; the in-process cache above covers show relists and drill-ins.
-      ttl: cfg.ttl,
+      // v1's ttl (else the extension's `ttl` setting): the core keeps the last listing across restarts for this long; the in-process cache above covers show relists and drill-ins.
+      ttl: cfg.ttl ?? (S.ttl > 0 ? S.ttl : undefined),
       view: cfg.view === "grid" ? "grid" : undefined,
       columns: cfg.display?.columns,
       showDetail: cfg.display?.detail || undefined,

@@ -6,6 +6,7 @@
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32String};
@@ -104,6 +105,11 @@ struct Bucket {
     ids: HashMap<String, usize>,
     /// Ordered by arrival, not by use: `QueryOpts::boost` skips it.
     live: bool,
+    /// Rows came from [`Index::restore`] (a cache) and no fresh list has
+    /// replaced them yet, or a refresh was marked as pending.
+    stale: bool,
+    /// Unix seconds of the last `replace` (or what `restore` was told).
+    listed_at: Option<u64>,
 }
 
 /// What the index knows about one source, for the UI's section labels.
@@ -112,12 +118,33 @@ pub struct SourceInfo {
     pub source: Source,
     pub live: bool,
     pub len: usize,
+    /// See [`Index::restore`]: rows are a cached listing until a fresh one lands.
+    pub stale: bool,
+    /// Unix seconds of the listing the rows came from; `None` for a source
+    /// that only ever `extend`ed or was created by `set_live`.
+    pub listed_at: Option<u64>,
+}
+
+fn unix_now() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }
 
 impl Bucket {
     fn push(&mut self, item: Item) {
         self.ids.entry(item.id.clone()).or_insert(self.entries.len());
         self.entries.push(item.into());
+    }
+
+    fn fill(&mut self, items: Vec<Item>) {
+        self.entries.clear();
+        self.ids.clear();
+        for item in items {
+            self.push(item);
+        }
+    }
+
+    fn info(&self) -> SourceInfo {
+        SourceInfo { source: self.source.clone(), live: self.live, len: self.entries.len(), stale: self.stale, listed_at: self.listed_at }
     }
 }
 
@@ -144,14 +171,42 @@ impl Index {
     }
 
     /// Swap a source's items for `items` (a palette re-listed). The source
-    /// keeps its place in the order; a new source goes last.
+    /// keeps its place in the order; a new source goes last. The rows are
+    /// fresh: `stale` clears and `listed_at` is now.
     pub fn replace(&mut self, source: Source, items: Vec<Item>) {
         let bucket = self.bucket(source);
-        bucket.entries.clear();
-        bucket.ids.clear();
-        for item in items {
-            bucket.push(item);
-        }
+        bucket.stale = false;
+        bucket.listed_at = Some(unix_now());
+        bucket.fill(items);
+    }
+
+    /// Like [`replace`](Self::replace) but with rows from a cache: the
+    /// source is `stale` until a real listing replaces them, and
+    /// `listed_at` is the cached listing's time, so the caller can tell
+    /// how old they are. Marks the source `live` like a listing would.
+    pub fn restore(&mut self, source: Source, items: Vec<Item>, listed_at: Option<u64>, live: bool) {
+        let bucket = self.bucket(source);
+        bucket.stale = true;
+        bucket.listed_at = listed_at;
+        bucket.live = live;
+        bucket.fill(items);
+    }
+
+    /// A source's items as listed, in order, for a cache to write; empty
+    /// for a source the index does not have.
+    pub fn snapshot(&self, source: &Source) -> Vec<Item> {
+        self.buckets.iter().find(|b| &b.source == source).map(|b| b.entries.iter().map(|e| e.item.clone()).collect()).unwrap_or_default()
+    }
+
+    /// Flag a source's rows as (not) awaiting a fresh listing. Creates the
+    /// source empty if new.
+    pub fn set_stale(&mut self, source: Source, stale: bool) {
+        self.bucket(source).stale = stale;
+    }
+
+    /// One source's info, `None` when the index does not have it.
+    pub fn source(&self, source: &Source) -> Option<SourceInfo> {
+        self.buckets.iter().find(|b| &b.source == source).map(Bucket::info)
     }
 
     /// Append `items` to a source (a palette still streaming its list).
@@ -175,7 +230,7 @@ impl Index {
 
     /// Every source in order, with its item count.
     pub fn sources(&self) -> Vec<SourceInfo> {
-        self.buckets.iter().map(|b| SourceInfo { source: b.source.clone(), live: b.live, len: b.entries.len() }).collect()
+        self.buckets.iter().map(Bucket::info).collect()
     }
 
     /// Items across all sources.
@@ -197,7 +252,7 @@ impl Index {
         let i = match self.buckets.iter().position(|b| b.source == source) {
             Some(i) => i,
             None => {
-                self.buckets.push(Bucket { source, entries: Vec::new(), ids: HashMap::new(), live: false });
+                self.buckets.push(Bucket { source, entries: Vec::new(), ids: HashMap::new(), live: false, stale: false, listed_at: None });
                 self.buckets.len() - 1
             }
         };
@@ -498,6 +553,36 @@ mod tests {
         assert_eq!(ids(&ix.query("", QueryOpts::default())), ["n1", "n2", "ha", "l1"]);
         ix.remove(&src("nope"));
         assert_eq!(ix.len(), 4);
+    }
+
+    #[test]
+    fn snapshot_restore_round_trip() {
+        let ix = index();
+        let items = ix.snapshot(&src("icons"));
+        assert_eq!(items.len(), 7);
+        assert_eq!(items.iter().map(|i| i.id.as_str()).collect::<Vec<_>>(), ["i1", "i2", "i3", "i4", "i5", "i6", "i7"], "listing order");
+        assert!(ix.snapshot(&src("nope")).is_empty());
+        // A listing is fresh and dated; a restored one is stale, dated as told.
+        let info = ix.source(&src("icons")).unwrap();
+        assert!(!info.stale && info.listed_at.is_some_and(|t| t > 0));
+        let mut fresh = Index::new();
+        fresh.restore(src("icons"), items, Some(1234), true);
+        let info = fresh.source(&src("icons")).unwrap();
+        assert_eq!((info.stale, info.listed_at, info.live, info.len), (true, Some(1234), true, 7));
+        assert_eq!(fresh.snapshot(&src("icons")), ix.snapshot(&src("icons")));
+        assert_eq!(ids(&fresh.query("chrome", QueryOpts::default())), ["i1", "i2", "i3"], "restored rows match like listed ones");
+        // A real listing clears the flag and re-dates; set_stale flags a pending refresh.
+        fresh.replace(src("icons"), vec![item("n1", "new", None, &[])]);
+        let info = fresh.source(&src("icons")).unwrap();
+        assert!(!info.stale && info.listed_at.is_some_and(|t| t > 1234));
+        fresh.set_stale(src("icons"), true);
+        assert!(fresh.source(&src("icons")).unwrap().stale);
+        assert!(fresh.source(&src("nope")).is_none());
+        // Restore keeps a source's place, like replace.
+        fresh.restore(src("a"), vec![], None, false);
+        fresh.restore(src("icons"), vec![], None, false);
+        assert_eq!(fresh.sources().iter().map(|s| s.source.palette.as_str()).collect::<Vec<_>>(), ["icons", "a"]);
+        assert_eq!(fresh.sources()[1].listed_at, None);
     }
 
     #[test]

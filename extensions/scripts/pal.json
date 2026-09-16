@@ -11,7 +11,8 @@
     { "kind": "list", "id": "skip", "label": "Skip", "description": "v1 palette names not to load, because a native extension covers them.", "placeholder": "calc", "default": ["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"] },
     { "kind": "path", "id": "v1_repo", "label": "v1 checkout", "description": "Where github:zcag/pal/... bases resolve when v1's plugin cache (~/.local/share/pal) has no copy.", "pick": "folder", "default": "~/proj/pal-v1" },
     { "kind": "number", "id": "timeout", "label": "Script timeout", "description": "A list or pick script still running after this is killed.", "min": 1, "max": 300, "unit": "s", "default": 30 },
-    { "kind": "number", "id": "preview_max", "label": "Previews at once", "description": "An item's preview command runs when the detail pane rests on it; at most this many run at the same time. 0 turns previews off.", "min": 0, "max": 32, "unit": "runs", "default": 4 }
+    { "kind": "number", "id": "preview_max", "label": "Previews at once", "description": "An item's preview command runs when the detail pane rests on it; at most this many run at the same time. 0 turns previews off.", "min": 0, "max": 32, "unit": "runs", "default": 4 },
+    { "kind": "number", "id": "ttl", "label": "Listing lifetime", "description": "A palette that declares no ttl keeps its last listing across restarts for this long before its script runs again. 0 runs every script on every start.", "min": 0, "max": 604800, "unit": "s", "default": 0 }
   ],
   "palettes": {}
 }

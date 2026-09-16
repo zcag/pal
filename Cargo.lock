@@ -2973,6 +2973,7 @@ dependencies = [
  "tauri-nspanel",
  "tauri-plugin-global-shortcut",
  "tauri-plugin-single-instance",
+ "tempfile",
  "tokio",
  "toml 1.1.6+spec-1.1.0",
  "url",

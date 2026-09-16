@@ -88,5 +88,8 @@ export default function App() {
     return r;
   };
 
-  return <Launcher ref={launcher} sources={sources} search={search} detail={detail} version={version} mark={mark} onHide={() => invoke("hide")} onPick={pick} onSettings={() => invoke("settings_open")} />;
+  // Past any ttl; the core flags the targets stale (the footer says "updating") and each landing bumps the index.
+  const refresh = (scope?: SourceInfo) => invoke("index_refresh", { source: scope && { extension: scope.extension, palette: scope.palette } });
+
+  return <Launcher ref={launcher} sources={sources} search={search} detail={detail} version={version} mark={mark} onHide={() => invoke("hide")} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} />;
 }

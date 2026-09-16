@@ -180,6 +180,33 @@ down as it stabilises.
   extension name), left out when it equals the palette's title (Windows /
   Windows). Root sections stay ordered by best hit.
 
+- **The index is persisted.** Every default listing is written to
+  `<data dir>/pal/index/<extension>/<palette>.json` (`app/src-tauri/src/
+  cache.rs`: the wire items, `listed_at`, the palette meta and the extension
+  title; atomic, debounced 500 ms per source; a palette over 50k items is not
+  written). At startup, before the host is spawned, `index::restore_cache`
+  puts every file back (items flagged `stale`, registry entry, palette row,
+  palette hotkeys), so the root answers from the previous run: first query
+  answer 32 items at ~400 ms cold vs the full corpus (~15.5k items) at
+  ~400 ms warm, where the full corpus used to land ~10 s after host spawn
+  (the scripts extension). `host/ready` prunes files of extensions no longer
+  on disk (`known` in its params; a failed-to-load one keeps its cache).
+  Order of the restored buckets: `pal/palettes`, then `apps`, then by name,
+  so a cold frecency profile's empty query still leads with palette rows
+  and apps.
+- **`ttl` is a palette meta field** (seconds, from the palette object or
+  the manifest's `palettes.<key>.ttl`; `scripts` maps v1's `ttl`, else its
+  own `ttl` setting). On `extension/loaded` the core lists a palette again
+  now when it has no `ttl` (as before), leaves the restored rows when the
+  cached listing is younger than the `ttl`, and otherwise queues it for one
+  sequential pass 1 s after `host/ready` (`refresh_expired`). `live` still
+  re-lists on show. `SourceInfo.stale` on the wire means "a listing is
+  pending for this source"; the footer shows "updating…" and the search
+  sweep while the current scope has one. `index_refresh(source?)` and the
+  `pal:refresh` action (cmd+r) force a listing past any `ttl`; the `list`
+  then carries `refresh: true` in its ctx so an extension's own cache steps
+  aside.
+
 ## Open for Cagdas
 
 Things an agent could not decide alone; each waits for a call.
@@ -207,6 +234,12 @@ Things an agent could not decide alone; each waits for a call.
   of background work per show, after the paint; fine for two palettes, a
   budget question once user extensions declare `live` freely. A per-palette
   `ttl` (skip the relist when the last one is fresher) is the obvious knob.
+- **`ttl` default.** No v1 plugin on hornet declares one, so every
+  `scripts` palette still runs on every start (in the background now, the
+  root is already answered). Give palettes without a `ttl` a default (an
+  hour?), or leave "no ttl = always fresh" and set `[extensions.scripts]
+  ttl` by hand? And should the cache be keyed per config file (`pali.toml`
+  vs `config.toml` share `~/Library/Application Support/pal/index` today)?
 - **`show`'s metadata.** The show level renders the Detail, so v1's
   `show.metadata` comes along; the brief said markdown only. Keep or drop?
 - **Focus without Accessibility.** The core can still activate the app

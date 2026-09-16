@@ -4,6 +4,7 @@
 //! (`bridge`), the `icon://` scheme, and timing marks.
 
 mod bridge;
+mod cache;
 mod cli;
 mod clipboard;
 mod effects;
@@ -20,8 +21,8 @@ mod windows;
 mod panel;
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use pal_core::config::Position;
@@ -31,6 +32,13 @@ use tauri::webview::PageLoadEvent;
 use tauri_plugin_global_shortcut::ShortcutState;
 
 const WINDOW: &str = "main";
+
+/// When `run` began: the origin of the startup timing lines.
+static START: OnceLock<Instant> = OnceLock::new();
+
+pub(crate) fn since_start_ms() -> f64 {
+    START.get().map_or(0.0, |t| t.elapsed().as_secs_f64() * 1000.0)
+}
 
 fn now_ms() -> f64 {
     let d = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -120,6 +128,7 @@ fn hide(app: AppHandle) {
 // ---- app -----------------------------------------------------------------
 
 pub fn run() {
+    START.get_or_init(Instant::now);
     let cli = cli::Cli::parse();
     let context = tauri::generate_context!();
     if cli.cmd.is_some() && cli::handover(&context.config().identifier) {
@@ -157,6 +166,7 @@ pub fn run() {
             index::pick,
             index::detail,
             index::filter,
+            index::index_refresh,
             settings::settings_get,
             settings::settings_set,
             settings::settings_unset,
@@ -188,6 +198,8 @@ pub fn run() {
             // read the config and register palettes' hotkeys.
             hotkey::install(app.handle());
             settings::install(app.handle());
+            // The last run's listings, so the root answers before the host is up.
+            index::restore_cache(app.handle());
             host::Host::start(app.handle());
             Ok(())
         })

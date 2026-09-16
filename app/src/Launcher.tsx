@@ -20,7 +20,7 @@ const LIST_ID = "results";
 /** Fixture palettes (the gallery) best browsed as tiles; a real palette declares `view` itself. */
 const gridFixtures = new Set(["emoji", "iconnerd", "chars", "colors"]);
 /** The shell's own actions, kept apart from an item's by the prefix. */
-const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings";
+const BROWSE = "pal:browse", DETAIL = "pal:detail", SETTINGS = "pal:settings", REFRESH = "pal:refresh";
 const OPEN: Action = { id: "open", title: "Open" };
 
 /**
@@ -51,6 +51,8 @@ export type LauncherProps = {
   onHide: () => void;
   /** Opens the settings window; the action is only offered when given. */
   onSettings?: () => void;
+  /** Lists `scope` again now (everything at the root), past any ttl; the action is only offered when given. */
+  onRefresh?: (scope?: SourceInfo) => void;
   mark?: (name: string, t: number) => void;
 };
 
@@ -85,7 +87,7 @@ function useLocalSearch(items: Item[] = []) {
       const secs = [...(sections.get(palette) ?? [])];
       const filters = secs.length >= 2 && secs.length <= 8 ? [{ id: "all", title: "All" }, ...secs.map((s) => ({ id: s, title: s }))] : undefined;
       const lazy = items.some((i) => i.palette === palette && i.lazyDetail) ? "lazy" as const : undefined;
-      return { extension: "", palette, title: paletteTitle(palette), live: false, input: false, view: gridFixtures.has(palette) ? "grid" as const : undefined, filters, detail: lazy, count };
+      return { extension: "", palette, title: paletteTitle(palette), live: false, input: false, view: gridFixtures.has(palette) ? "grid" as const : undefined, filters, detail: lazy, count, stale: false };
     });
   }, [items]);
   const fzf = useMemo(() => new Fzf(items, { selector: haystack, limit: LIMIT }), [items]);
@@ -99,7 +101,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, onSettings, mark } = props;
+  const { version = 0, onPick, onHide, onSettings, onRefresh, mark } = props;
   const local = useLocalSearch(props.items);
   const sources = props.sources ?? local.sources;
   const search = props.search ?? local.search;
@@ -123,9 +125,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const titleOf = (key: string) => byKey.get(key)?.title ?? key;
   const scopeKey = view.kind === "palette" ? view.palette : view.kind === "root" && filter !== "all" ? filter : null;
   const scope = scopeKey ? byKey.get(scopeKey) : undefined;
-  const loading = sources.length === 0;
   // The palette rows are not items to count, and an input palette has none to filter by.
   const filterable = sources.filter((s) => sourceKey(s) !== PALETTES && !s.input);
+  // A listing is pending for what is showing: restored rows awaiting the host, or a refresh running.
+  const updating = scope ? scope.stale : filterable.some((s) => s.stale);
+  const loading = sources.length === 0 || updating;
   const total = scope ? scope.count : filterable.reduce((n, s) => n + s.count, 0);
   const args = view.kind === "palette" ? view.args : undefined;
   const scopeFilter = view.kind === "palette" && scope?.filters?.length ? paletteFilter ?? scope.filters[0].id : undefined;
@@ -207,9 +211,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const a: Action[] = current.actions ? [...current.actions] : [isPalette ? { ...OPEN, title: `Open ${current.name}` } : OPEN];
     if (view.kind === "root" && !isPalette) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
     a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
+    // An indexed level only: an input palette or a drill-in lists per keystroke anyway.
+    if (onRefresh && (view.kind === "root" || (view.kind === "palette" && !scope?.input && args === undefined)))
+      a.push({ id: REFRESH, title: view.kind === "root" ? "Refresh everything" : `Refresh ${titleOf(view.palette)}`, icon: { kind: "glyph", value: "↻" }, shortcut: "cmd+r", section: "pal" });
     if (onSettings && view.kind === "root") a.push({ id: SETTINGS, title: "Open Settings", icon: { kind: "glyph", value: "⚙" }, shortcut: "cmd+,", section: "pal" });
     return a;
-  }, [current, view.kind, showDetail, byKey, onSettings]);
+  }, [current, view, showDetail, byKey, onSettings, onRefresh, scope, args]);
 
   // The envelope's copy/open/hide are the caller's; the toast shows here, and a push/show opens its level.
   const pickItem = (item: Item, action?: string) =>
@@ -234,6 +241,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case BROWSE: push({ kind: "palette", palette: current.palette! }); break;
       case DETAIL: setShowDetail((s) => !s); break;
       case SETTINGS: onSettings?.(); break;
+      case REFRESH: onRefresh?.(view.kind === "palette" ? scope : undefined); break;
       default:
         // A palette row drills in; the pick only records the choice.
         if (current.palette === PALETTES) push({ kind: "palette", palette: current.id });
@@ -310,6 +318,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         <Footer
           icon={isShow ? undefined : current?.icon}
           title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : current?.name}
+          note={updating && !isShow ? "updating…" : undefined}
           primary={isShow ? { title: "Back" } : actions[0] && { title: actions[0].title }}
           actions={actions.length > 0}
           onPrimary={() => (isShow ? pop() : actions[0] && run(actions[0]))}
