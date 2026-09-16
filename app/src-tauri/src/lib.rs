@@ -175,6 +175,9 @@ pub(crate) fn quit(app: &AppHandle) {
 
 pub fn run() {
     START.get_or_init(Instant::now);
+    // Before anything spawns: the user's PATH, not launchd's (core env.rs).
+    let (_, from_shell) = pal_core::env::adopt();
+    eprintln!("env\tpath {}\t{:.1}ms since start", if from_shell { "from the login shell" } else { "inherited" }, since_start_ms());
     // A `pal://` link as the only argument (Linux: what the desktop entry runs) is not a subcommand: the plugins carry it (deeplink.rs).
     let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None } } else { cli::Cli::parse() };
     // The v1 compatibility commands never touch an instance.

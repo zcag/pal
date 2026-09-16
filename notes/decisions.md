@@ -139,6 +139,8 @@ Things an agent could not decide alone; each waits for a call.
 
 ## Findings
 
+- **PATH from the Dock (2026-09-16 21:00).** Cagdas: "I already did gh auth login, but github palettes doesn't work". The host ran with launchd's `PATH=/usr/bin:/bin:/usr/sbin:/sbin` (`ps eww` on `pal-bun`), so `Bun.which("gh")` was null and every CLI-backed extension (gh, op, docker, timer, make, nmcli, sketchybar) failed when pal started from the LaunchAgent and worked from a terminal. `pal_core::env::adopt()` at the top of `run()` reads the login shell's PATH (`$SHELL -l -i -c` with a marker, 120 ms on hornet, 2 s cap, skipped when the inherited PATH already reaches past the system dirs) and merges it with the usual tool dirs; the process env carries it to the host and every `Command`.
+
 - **Empty list with a live count (2026-09-16 20:40).** Cagdas saw the panel with hits counted in the footer ("97 of 30526", the primary action named) and no rows drawn, now and then, self-healing later. Diagnosis (guess, the state was gone): the virtualiser reads the scroll rect once at mount and then only through ResizeObserver, and WebKit holds those callbacks while the panel sits hidden at alpha 0, so a list whose rows changed while hidden could keep a zero or stale rect and draw nothing. Fix: `observeRect` in `app/src/ui/virtual.ts` re-reads the rect on every `pal:shown` (dispatched by App.tsx) and on `visibilitychange`; List and Grid use it. If it shows up again with this build, the guess was wrong: capture `document.visibilityState`, the `.pal-list` client height and `virt.getVirtualItems().length` from the console.
  that changed the design
 

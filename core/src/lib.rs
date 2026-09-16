@@ -7,6 +7,7 @@ pub mod bluetooth;
 pub mod calendar;
 pub mod clipboard;
 pub mod config;
+pub mod env;
 pub mod extensions;
 pub mod frecency;
 pub mod fs;
