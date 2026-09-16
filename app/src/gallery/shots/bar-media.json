@@ -6,12 +6,12 @@
     "title": "Motion Picture Soundtrack · Radiohead",
     "tooltip": "Radiohead - Motion Picture Soundtrack (Spotify)",
     "menu": [
-      { "type": "item", "id": "play_pause", "title": "Pause", "shortcut": "space" },
-      { "type": "item", "id": "next", "title": "Next Track", "shortcut": "right" },
-      { "type": "item", "id": "previous", "title": "Previous Track", "shortcut": "left" },
+      { "type": "item", "id": "play_pause", "title": "Pause", "icon": "󰏤", "shortcut": "space" },
+      { "type": "item", "id": "next", "title": "Next track", "icon": "󰒭", "shortcut": "right" },
+      { "type": "item", "id": "previous", "title": "Previous track", "icon": "󰒮", "shortcut": "left" },
       { "type": "separator" },
-      { "type": "item", "id": "copy", "title": "Copy Track", "shortcut": "cmd+c" },
-      { "type": "item", "id": "open", "title": "Open in Spotify", "shortcut": "cmd+o" }
+      { "type": "item", "id": "copy", "title": "Copy track", "icon": "󰆏", "shortcut": "cmd+c" },
+      { "type": "item", "id": "open", "title": "Open in Spotify", "icon": "󰏌", "shortcut": "cmd+o" }
     ]
   },
   "states": [

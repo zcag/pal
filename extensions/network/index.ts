@@ -19,7 +19,9 @@ const OS = process.env.PAL_NETWORK_OS ?? process.platform;
 const MAC = OS === "darwin";
 /** The tests point this at a fixture. */
 const RESOLV_CONF = process.env.PAL_NETWORK_RESOLV ?? "/etc/resolv.conf";
-const ICON = "\u{f06c9}";
+/** md-lan, the palette's own row; the rows carry their kind's glyph. */
+const ICON = "\u{f0317}";
+const GLYPH = { wifi: "\u{f05a9}", wired: "\u{f0200}", tailscale: "\u{f0582}", host: "\u{f0322}", public: "\u{f01e7}", gateway: "\u{f1087}", dns: "\u{f01d6}" }; // md-wifi, md-ethernet, md-vpn, md-laptop, md-earth, md-router_network, md-dns
 const TOOL_MS = 3000;
 const FETCH_MS = 3000;
 const PUBLIC_TTL_MS = 10 * 60 * 1000;
@@ -185,11 +187,11 @@ const SECTION = { machine: "This machine", internet: "Internet", network: "Netwo
 const known = new Map<string, { value: string; detail: Detail }>();
 const meta = (pairs: [string, string | undefined][]): Metadata[] => pairs.filter((p): p is [string, string] => !!p[1]).map(([label, value]) => ({ label, value }));
 
-function row(id: string, value: string, subtitle: string, section: string, keywords: string[], detail: Detail): Item {
+function row(id: string, value: string, subtitle: string, section: string, keywords: string[], detail: Detail, icon: string): Item {
   known.set(id, { value, detail });
-  return { id, name: value, subtitle, icon: ICON, keywords, section, actions: ACTIONS };
+  return { id, name: value, subtitle, icon, keywords, section, actions: ACTIONS };
 }
-const hint = (id: string, name: string, subtitle: string, section: string): Item => ({ id, name, subtitle, icon: ICON, section, actions: [] });
+const hint = (id: string, name: string, subtitle: string, section: string, icon: string): Item => ({ id, name, subtitle, icon, section, actions: [] });
 
 const ifaceDetail = (i: Iface): Detail => ({
   metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid ?? (i.ssidHidden ? "hidden by macOS: the process needs Location Services" : undefined)], ["Security", i.security], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac], ["Status", i.up === undefined ? undefined : i.up ? "active" : "inactive"]]),
@@ -200,25 +202,26 @@ function rows(s: Snapshot, withPublic: boolean): Item[] {
   for (const i of s.ifaces) {
     const label = [i.name, i.kind, i.ssid].filter(Boolean).join(" · ");
     const kw = [i.name, ...(i.kind === "Wi-Fi" ? ["wifi", "wlan", "ssid"] : []), "ip", "lan", "local", ...(i.ssid ? [i.ssid] : [])];
-    for (const a of i.v4) out.push(row(`if:${i.name}:${a}`, a, label, SECTION.machine, kw, ifaceDetail(i)));
-    for (const a of i.v6) out.push(row(`if:${i.name}:${a}`, a, `${label} · IPv6`, SECTION.machine, [...kw, "ipv6"], ifaceDetail(i)));
+    const icon = i.kind === "Wi-Fi" ? GLYPH.wifi : GLYPH.wired;
+    for (const a of i.v4) out.push(row(`if:${i.name}:${a}`, a, label, SECTION.machine, kw, ifaceDetail(i), icon));
+    for (const a of i.v6) out.push(row(`if:${i.name}:${a}`, a, `${label} · IPv6`, SECTION.machine, [...kw, "ipv6"], ifaceDetail(i), icon));
   }
-  if (!s.ifaces.length) out.push(hint("if:none", "No interface has an address", "Not connected to any network", SECTION.machine));
-  for (const [n, a] of s.tailscale.entries()) out.push(row(`tailscale:${a}`, a, n ? "Tailscale · IPv6" : "Tailscale", SECTION.machine, ["tailscale", "ts", "vpn"], { metadata: meta([["Tailscale IPv4", s.tailscale[0]], ["Tailscale IPv6", s.tailscale[1]]]) }));
-  out.push(row("hostname", s.host, "Hostname", SECTION.machine, ["hostname", "host", "name"], { metadata: meta([["Hostname", s.host], ["Local hostname", s.localHost]]) }));
-  if (s.localHost && s.localHost !== s.host) out.push(row("localhostname", s.localHost, "Local hostname (Bonjour)", SECTION.machine, ["hostname", "bonjour", "mdns", "local"], { metadata: meta([["Hostname", s.host], ["Local hostname", s.localHost]]) }));
+  if (!s.ifaces.length) out.push(hint("if:none", "No interface has an address", "Not connected to any network", SECTION.machine, GLYPH.wired));
+  for (const [n, a] of s.tailscale.entries()) out.push(row(`tailscale:${a}`, a, n ? "Tailscale · IPv6" : "Tailscale", SECTION.machine, ["tailscale", "ts", "vpn"], { metadata: meta([["Tailscale IPv4", s.tailscale[0]], ["Tailscale IPv6", s.tailscale[1]]]) }, GLYPH.tailscale));
+  out.push(row("hostname", s.host, "Hostname", SECTION.machine, ["hostname", "host", "name"], { metadata: meta([["Hostname", s.host], ["Local hostname", s.localHost]]) }, GLYPH.host));
+  if (s.localHost && s.localHost !== s.host) out.push(row("localhostname", s.localHost, "Local hostname (Bonjour)", SECTION.machine, ["hostname", "bonjour", "mdns", "local"], { metadata: meta([["Hostname", s.host], ["Local hostname", s.localHost]]) }, GLYPH.host));
   if (withPublic) {
     const p = s.public;
     if (p && "ip" in p) {
       const where = [p.city, p.country].filter(Boolean).join(", ");
       out.push(row("public", p.ip, ["Public IP", where, p.org].filter(Boolean).join(" · "), SECTION.internet, ["public", "wan", "external", "ip", ...(p.country ? [p.country] : []), ...(p.org ? [p.org] : [])], {
         metadata: meta([["Public IP", p.ip], ["City", p.city], ["Region", p.region], ["Country", p.country], ["Organisation", p.org], ["Fetched", new Date(p.at).toLocaleTimeString()]]),
-      }));
-    } else out.push(hint("public:none", "Public IP unavailable", p ? p.error : "no endpoint", SECTION.internet));
+      }, GLYPH.public));
+    } else out.push(hint("public:none", "Public IP unavailable", p ? `${p.error}; cmd+r tries again` : "no endpoint", SECTION.internet, GLYPH.public));
   }
-  if (s.gateway) out.push(row("gateway", s.gateway.ip, ["Gateway", s.gateway.dev].filter(Boolean).join(" · "), SECTION.network, ["gateway", "router", "default route"], { metadata: meta([["Gateway", s.gateway.ip], ["Interface", s.gateway.dev]]) }));
-  for (const [n, d] of s.dns.entries()) out.push(row(`dns:${d}`, d, s.dns.length > 1 ? `DNS ${n + 1}` : "DNS", SECTION.network, ["dns", "nameserver", "resolver"], { metadata: meta([["DNS server", d], ["Order", String(n + 1)], ["All", s.dns.join(", ")]]) }));
-  if (!s.gateway && !s.dns.length) out.push(hint("network:none", "No gateway or DNS", "No default route", SECTION.network));
+  if (s.gateway) out.push(row("gateway", s.gateway.ip, ["Gateway", s.gateway.dev].filter(Boolean).join(" · "), SECTION.network, ["gateway", "router", "default route"], { metadata: meta([["Gateway", s.gateway.ip], ["Interface", s.gateway.dev]]) }, GLYPH.gateway));
+  for (const [n, d] of s.dns.entries()) out.push(row(`dns:${d}`, d, s.dns.length > 1 ? `DNS ${n + 1}` : "DNS", SECTION.network, ["dns", "nameserver", "resolver"], { metadata: meta([["DNS server", d], ["Order", String(n + 1)], ["All", s.dns.join(", ")]]) }, GLYPH.dns));
+  if (!s.gateway && !s.dns.length) out.push(hint("network:none", "No gateway or DNS", "No default route", SECTION.network, GLYPH.gateway));
   return out;
 }
 
@@ -244,8 +247,8 @@ export default {
       title: "Network",
       icon: ICON,
       live: true,
-      ttl: 60,
       showDetail: true,
+      placeholder: "Address, interface, DNS",
       list: async (_query, ctx) => {
         known.clear();
         const { s, withPublic } = await snapshot(ctx);

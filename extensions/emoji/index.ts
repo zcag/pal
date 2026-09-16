@@ -21,8 +21,6 @@ const CATEGORIES = ["Smileys & Emotion", "People & Body", "Animals & Nature", "F
 const RECENT = "recent";
 const RECENT_MAX = 24;
 const SECTION_RECENT = "Recently used";
-/** Seconds a listing stays good for: a show past this lists again, so a used emoji reaches the recents. */
-const TTL = 30;
 
 const rows = data as Row[];
 const byEmoji = new Map(rows.map((r) => [r.emoji, r]));
@@ -71,7 +69,7 @@ export default {
       icon: "😀",
       view: "grid",
       live: true,
-      ttl: TTL,
+      placeholder: "Name, keyword or :shortcode:",
       // Palette meta is read once at load, so a change here shows after
       // the extension reloads (a file edit, or Settings > Restart host).
       columns: settings.palette<PaletteSettings>("emoji").columns,

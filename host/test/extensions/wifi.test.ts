@@ -59,8 +59,8 @@ describe("wifi", () => {
     expect(bySection("Known")).toEqual(["known:marvin", "known:Cafe Wifi"]);
     const marvin = items.find((i) => i.id === "known:marvin")!;
     expect(marvin).toMatchObject({ subtitle: "WPA2 · channel 6", accessories: [{ text: "▂▄▆ 60%" }, { tag: "in range", color: "blue" }] });
-    expect(marvin.actions!.map((a) => a.id)).toEqual(["join", "password", "forget"]);
-    expect(marvin.actions![2]).toMatchObject({ style: "destructive", confirm: "Forget marvin? Its password goes with it." });
+    expect(marvin.actions!.map((a) => a.id)).toEqual(["join", "copy", "password", "forget"]);
+    expect(marvin.actions![3]).toMatchObject({ style: "destructive", confirm: "Forget marvin? Its password goes with it." });
     expect(items.find((i) => i.id === "known:Cafe Wifi")).toMatchObject({ subtitle: "Saved", accessories: [] });
     expect(bySection("Available")).toEqual(["net:Open Cafe", "net:Neighbour", "scan"]);
     expect(items.find((i) => i.id === "net:Open Cafe")).toMatchObject({ subtitle: "Open · channel 1", accessories: [{ text: "▂▄▆ 55%" }] });
@@ -98,6 +98,7 @@ describe("wifi", () => {
     expect(await pick("known:marvin", "password")).toEqual({ keep: true, toast: { title: "Could not read the password", message: "no saved password for marvin", style: "failure" } });
     expect(await pick("current:eldiven", "copy_ip")).toEqual({ copy: "192.168.1.131" });
     expect(await pick("net:Neighbour", "copy")).toEqual({ copy: "Neighbour" });
+    expect(await pick("known:Cafe Wifi", "copy")).toEqual({ copy: "Cafe Wifi" });
   });
 
   test("forget goes to the core and keeps the palette with a toast", async () => {

@@ -3,17 +3,40 @@
   "title": "1Password",
   "description": "Your 1Password items through the op CLI. Enter copies the password; username, one-time code and the app are in the action panel.",
   "version": "0.1.0",
-  "icon": "⚿",
+  "icon": "󰯄",
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "text", "id": "account", "label": "Account", "description": "Passed as --account to every op call: a shorthand, sign-in address, account id or user id. Empty uses the CLI's default.", "placeholder": "my.1password.com", "default": "" },
-    { "kind": "list", "id": "vaults", "label": "Vaults", "description": "Only these vaults are listed, and each becomes a filter in the palette. Empty lists every vault. A change takes effect when the extension host restarts.", "placeholder": "Personal", "default": [] },
-    { "kind": "number", "id": "ttl", "label": "Refresh after", "description": "Seconds the item list is kept before op is asked again. Refresh in the panel asks at once.", "min": 0, "max": 86400, "unit": "seconds", "default": 300 }
+    {
+      "kind": "text",
+      "id": "account",
+      "label": "Account",
+      "description": "Passed as --account to every op call: a shorthand, sign-in address, account id or user id. Empty uses the CLI's default.",
+      "placeholder": "my.1password.com",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "vaults",
+      "label": "Vaults",
+      "description": "Only these vaults are listed, and each becomes a filter in the palette. Empty lists every vault. A change takes effect when the extension host restarts.",
+      "placeholder": "Personal",
+      "default": []
+    },
+    {
+      "kind": "number",
+      "id": "ttl",
+      "label": "Refresh after",
+      "description": "Seconds the item list is kept before op is asked again. Refresh in the panel asks at once.",
+      "min": 0,
+      "max": 86400,
+      "unit": "seconds",
+      "default": 300
+    }
   ],
   "store": {
-    "tagline": "Your 1Password items through the op CLI: a password, username or one-time code onto the clipboard.",
+    "tagline": "Copy a 1Password password, username or one-time code via op",
     "category": "integration",
     "features": [
       "Every item you can see, favourites first, with the vault and username under the title and the website's host on the right",
@@ -23,19 +46,51 @@
       "No secret is ever in a row, the index or a log; the list is one `op item list` kept for `ttl` seconds",
       "Signed out, or without the CLI, one row says how to sign in or where to install"
     ],
-    "permissions": [],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "op"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-items.png", "caption": "Items with their vault, username and website, favourites first" },
-      { "file": "2-detail.png", "caption": "The detail pane: vault, category, username, website, tags, updated" },
-      { "file": "3-actions.png", "caption": "Copy the password, the username or the one-time code, or open the app" },
-      { "file": "4-vault.png", "caption": "A vault from the settings as a filter" }
+      {
+        "file": "1-items.png",
+        "caption": "Items with their vault, username and website, favourites first"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "The detail pane: vault, category, username, website, tags, updated"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Copy the password, the username or the one-time code, or open the app"
+      },
+      {
+        "file": "4-vault.png",
+        "caption": "A vault from the settings as a filter"
+      }
     ],
     "actions": [
-      { "title": "Copy password", "description": "`op item get --fields label=password --reveal`; \"Copied password\" in the HUD.", "keys": "enter" },
-      { "title": "Copy username", "keys": "cmd+u" },
-      { "title": "Copy one-time code", "description": "The current TOTP.", "keys": "cmd+t" },
-      { "title": "Open in 1Password", "description": "The app's own view-item link.", "keys": "cmd+o" }
+      {
+        "title": "Copy password",
+        "description": "`op item get --fields label=password --reveal`; \"Copied password\" in the HUD.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy username",
+        "keys": "cmd+u"
+      },
+      {
+        "title": "Copy one-time code",
+        "description": "The current TOTP.",
+        "keys": "cmd+t"
+      },
+      {
+        "title": "Open in 1Password",
+        "description": "The app's own view-item link.",
+        "keys": "cmd+o"
+      }
     ]
   },
   "palettes": {
@@ -43,10 +98,22 @@
       "kind": "list",
       "description": "Every item you can see, favourites first.",
       "keys": [
-        { "keys": "enter", "title": "Copy the password" },
-        { "keys": "cmd+u", "title": "Copy the username" },
-        { "keys": "cmd+t", "title": "Copy the one-time code" },
-        { "keys": "cmd+o", "title": "Open in 1Password" }
+        {
+          "keys": "enter",
+          "title": "Copy the password"
+        },
+        {
+          "keys": "cmd+u",
+          "title": "Copy the username"
+        },
+        {
+          "keys": "cmd+t",
+          "title": "Copy the one-time code"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open in 1Password"
+        }
       ]
     }
   }

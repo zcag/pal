@@ -3,15 +3,22 @@
   "title": "System",
   "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake.",
   "version": "0.1.0",
-  "icon": "⏻",
+  "icon": "󰐥",
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "boolean", "id": "confirm_destructive", "label": "Ask first", "text": "Confirm before logging out, restarting, shutting down or emptying the trash", "default": true }
+    {
+      "kind": "boolean",
+      "id": "confirm_destructive",
+      "label": "Ask first",
+      "text": "Confirm before logging out, restarting, shutting down or emptying the trash",
+      "default": true,
+      "description": "Log Out, Restart, Shut Down and Empty Trash show a confirmation first; off runs them at once."
+    }
   ],
   "store": {
-    "tagline": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, keep awake.",
+    "tagline": "Sleep, lock, restart, dark mode, volume, keep awake",
     "category": "system",
     "features": [
       "Indexed rows with keywords, so `mute`, `sleep` or `power off` at the root finds the command",
@@ -21,23 +28,46 @@
       "Log Out, Restart, Shut Down and Empty Trash ask first, unless `confirm_destructive` is off",
       "pal hides before running, so the command lands on the desktop, not on pal; a failure keeps the panel open with the tool's message"
     ],
-    "permissions": ["automation", "full-disk-access"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "automation",
+      "full-disk-access"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-list.png", "caption": "The commands this machine can run; the appearance and the Trash count on the right" },
-      { "file": "2-root.png", "caption": "sleep at the root: the rows are indexed with their keywords" },
-      { "file": "3-confirm.png", "caption": "A destructive command asks first" }
+      {
+        "file": "1-list.png",
+        "caption": "The commands this machine can run; the appearance and the Trash count on the right"
+      },
+      {
+        "file": "2-root.png",
+        "caption": "sleep at the root: the rows are indexed with their keywords"
+      },
+      {
+        "file": "3-confirm.png",
+        "caption": "A destructive command asks first"
+      }
     ],
     "actions": [
-      { "title": "Run", "description": "The command; Log Out, Restart, Shut Down and Empty Trash ask first.", "keys": "enter" }
+      {
+        "title": "Run",
+        "description": "The command; Log Out, Restart, Shut Down and Empty Trash ask first.",
+        "keys": "enter"
+      }
     ]
   },
   "palettes": {
     "system": {
+      "tier": "primary",
       "kind": "live",
       "description": "What this machine can do from here.",
       "keys": [
-        { "keys": "enter", "title": "Run the command" }
+        {
+          "keys": "enter",
+          "title": "Run the command"
+        }
       ]
     }
   }

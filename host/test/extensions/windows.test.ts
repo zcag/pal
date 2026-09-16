@@ -30,7 +30,7 @@ const perApp = MAC ? ["hide-app", "minimize-all", "close-all"] : ["minimize-all"
 
 describe("windows", () => {
   test("meta: live, not input, so titles are root results", () => {
-    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: "▣", placeholder: "Switch to a window" }]);
+    expect(host.loaded().find((l) => l.extension === "windows")!.palettes).toEqual([{ name: "windows", title: "Windows", live: true, input: false, icon: "\u{f10ac}", placeholder: "Switch to a window", tier: "primary" }]);
   });
 
   test("rows in the core's order: title, app as subtitle, section and keyword, app icon or a glyph, state accessories", async () => {
@@ -45,7 +45,7 @@ describe("windows", () => {
         { id: "close-all", title: "Close all of this app", shortcut: "cmd+shift+w", style: "destructive", confirm: "Close every window of this app?" },
       ],
     });
-    expect(items[1]).toMatchObject({ icon: "▢", section: "Google Chrome", accessories: [{ tag: "minimized" }, { text: "Display 2" }] });
+    expect(items[1]).toMatchObject({ icon: "\u{f05af}", section: "Google Chrome", accessories: [{ tag: "minimized" }, { text: "Display 2" }] });
     // A minimised window has no Minimize; an app with one window has no per-app actions.
     expect(items[1].actions!.map((a) => a.id)).toEqual(["focus", "close", ...(MAC ? ["hide-app"] : [])]);
     expect(items[2].accessories).toEqual([{ text: "ws 3" }]);

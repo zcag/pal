@@ -26,6 +26,10 @@
         {
           "keys": "cmd+c",
           "title": "Copy artist - title"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open the track in its player"
         }
       ]
     }
@@ -45,7 +49,7 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "What is playing in Spotify, Music or any MPRIS player: play, pause, skip from the keyboard.",
+    "tagline": "Play, pause and skip Spotify, Music or any MPRIS player",
     "category": "media",
     "features": [
       "One row per running player: the track, artist and album, the artwork, a `playing` / `paused` / `stopped` tag",
@@ -97,20 +101,20 @@
     ],
     "actions": [
       {
-        "title": "Play / Pause",
+        "title": "Play or pause",
         "description": "Toggles; the row's tag follows.",
         "keys": "enter"
       },
       {
-        "title": "Next Track",
+        "title": "Next track",
         "keys": "cmd+right"
       },
       {
-        "title": "Previous Track",
+        "title": "Previous track",
         "keys": "cmd+left"
       },
       {
-        "title": "Copy Track",
+        "title": "Copy track",
         "description": "artist - title.",
         "keys": "cmd+c"
       },

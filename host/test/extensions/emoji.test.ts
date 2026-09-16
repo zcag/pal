@@ -28,7 +28,7 @@ describe("skin tone", () => {
 describe("emoji", () => {
   test("meta: a live grid with a ttl and the palette setting's columns", () => {
     const l = host.loaded().find((l) => l.extension === "emoji")!;
-    expect(l.palettes).toEqual([{ name: "emoji", title: "Emoji", live: true, input: false, icon: "😀", view: "grid", columns: 10, ttl: 30 }]);
+    expect(l.palettes).toEqual([{ name: "emoji", title: "Emoji", live: true, input: false, icon: "😀", view: "grid", placeholder: "Name, keyword or :shortcode:", columns: 10, ttl: 30, tier: "catalog" }]);
     expect(l.manifest.settings?.map((s) => s.id)).toEqual(["skin_tone", "paste_by_default"]);
   });
 

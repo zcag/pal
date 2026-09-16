@@ -120,8 +120,8 @@ describe("colors grid", () => {
   test("meta: a swatch grid of 8 columns with a lazy detail, and the converter as an input palette", () => {
     const l = host.loaded().find((l) => l.extension === "colors")!;
     expect(l.palettes).toEqual([
-      { name: "colors", title: "Colors", live: false, input: false, icon: "#4F46D6", view: "grid", columns: 8, detail: "lazy" },
-      { name: "convert", title: "Convert colour", live: false, input: true, icon: "#4F46D6", placeholder: "#ff8800, rgb(255 136 0), hsl(30 100% 50%), a name" },
+      { name: "colors", title: "Colors", live: false, input: false, icon: "#4F46D6", view: "grid", columns: 8, detail: "lazy", tier: "catalog" },
+      { name: "convert", title: "Convert Colour", live: false, input: true, icon: "#4F46D6", placeholder: "#ff8800, rgb(255 136 0), hsl(30 100% 50%), a name" },
     ]);
   });
 

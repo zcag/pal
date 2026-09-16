@@ -35,17 +35,17 @@
             },
             {
               "id": "next",
-              "title": "Next Track",
+              "title": "Next track",
               "shortcut": "cmd+right"
             },
             {
               "id": "previous",
-              "title": "Previous Track",
+              "title": "Previous track",
               "shortcut": "cmd+left"
             },
             {
               "id": "copy",
-              "title": "Copy Track",
+              "title": "Copy track",
               "shortcut": "cmd+c"
             },
             {
@@ -84,17 +84,17 @@
             },
             {
               "id": "next",
-              "title": "Next Track",
+              "title": "Next track",
               "shortcut": "cmd+right"
             },
             {
               "id": "previous",
-              "title": "Previous Track",
+              "title": "Previous track",
               "shortcut": "cmd+left"
             },
             {
               "id": "copy",
-              "title": "Copy Track",
+              "title": "Copy track",
               "shortcut": "cmd+c"
             },
             {
@@ -127,12 +127,12 @@
             },
             {
               "id": "next",
-              "title": "Next Track",
+              "title": "Next track",
               "shortcut": "cmd+right"
             },
             {
               "id": "previous",
-              "title": "Previous Track",
+              "title": "Previous track",
               "shortcut": "cmd+left"
             }
           ]

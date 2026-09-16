@@ -18,7 +18,7 @@ At the root every palette also has a **tier** ([Extensions](extensions.md#tier-w
 `primary` for what is reached by name (Applications, Windows, Bookmarks,
 Quicklinks, Snippets, Recent Files, Browser Tabs, System, SSH Hosts),
 ranked up and capped at 8 rows per palette; `catalog` for the big static
-lists (Emoji, Unicode characters, Colors, both Icons palettes, a v1 data
+lists (Emoji, Unicode Characters, Colors, both Icons palettes, a v1 data
 file of 100 rows or more), ranked down and capped at 3, the rest behind a
 "12 more in Emoji" row; `normal` for everything else, capped at 6.
 `[palettes.<id>] tier` overrides it.
@@ -409,7 +409,7 @@ Placeholders in the text are filled in when it is pasted or copied:
 Anything else in braces is left as it is, so a snippet of code keeps its
 braces. A snippet with placeholders carries a "dynamic" accessory.
 
-The root row **Create Snippet** opens a form (name, keyword, text);
+The root row **Create snippet** opens a form (name, keyword, text);
 **Edit** (⌘E) opens it filled in; a keyword with a space in it is refused
 (one word, so typing it finds the row whole). **Delete** (⌃X) asks first.
 
@@ -1371,7 +1371,7 @@ plays and pushes a track change itself.
 
 No settings.
 
-## Unicode characters (`unicode`)
+## Unicode Characters (`unicode`)
 
 A grid of 1795 characters one pastes rather than types (a `catalog` at
 the root: three rows there, the rest behind the "more" row), from
@@ -1429,7 +1429,7 @@ dark value of each, `accent (light)`, `tag blue (dark)`), Tailwind 3.4's
 palette (`slate 500`) and Material's 2014 palette (`red a200`); one
 section per set. The search matches the name, the hex (`#64748b`), the
 token spelling (`slate-500`) and the set (`tailwind`). The last twelve
-picked lead in a **Recent** section, as in Unicode characters.
+picked lead in a **Recent** section, as in Unicode Characters.
 
 | action | shortcut | what |
 | --- | --- | --- |
@@ -1438,7 +1438,7 @@ picked lead in a **Recent** section, as in Unicode characters.
 | Copy hsl | `⌘⇧H` | `hsl(215, 16%, 47%)` |
 | Copy name | `⌘⇧N` | the token: `slate-500`, `aliceblue`, `tag-blue` |
 
-**Convert colour** is an input palette: type a colour in any notation and
+**Convert Colour** is an input palette: type a colour in any notation and
 the rows are its conversions, each with a swatch, `Enter` copying the
 row. It reads hex in every length with or without the hash (`#f80`,
 `ff880080`), `rgb()`/`rgba()` in the comma and the space syntax with

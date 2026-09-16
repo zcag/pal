@@ -135,7 +135,7 @@ describe("network on macOS tools", () => {
   const list = (ctx?: { refresh?: boolean }) => host.list("network", "network", undefined, ctx);
 
   test("meta: live with a minute's ttl, opens with the detail pane, lazy detail", () => {
-    expect(host.loaded().find((l) => l.extension === "network")!.palettes).toEqual([{ name: "network", title: "Network", live: true, input: false, icon: "\u{f06c9}", showDetail: true, detail: "lazy", ttl: 60 }]);
+    expect(host.loaded().find((l) => l.extension === "network")!.palettes).toEqual([{ name: "network", title: "Network", live: true, input: false, icon: "\u{f0317}", showDetail: true, placeholder: "Address, interface, DNS", detail: "lazy", ttl: 60 }]);
   });
 
   test("rows: the value is the name, the label the subtitle, three sections; the tunnel carrying the Tailscale addresses is folded into the Tailscale rows", async () => {
@@ -155,7 +155,8 @@ describe("network on macOS tools", () => {
       ["dns:192.168.1.1", "192.168.1.1", "DNS 3", "Network"],
     ]);
     const wifi = items[0];
-    expect(wifi.icon).toBe("\u{f06c9}");
+    // Each row carries its kind's glyph: Wi-Fi, Ethernet, Tailscale, hostname, public IP, gateway, DNS.
+    expect(items.map((i) => i.icon)).toEqual(["\u{f05a9}", "\u{f05a9}", "\u{f0200}", "\u{f0582}", "\u{f0582}", "\u{f0322}", "\u{f0322}", "\u{f01e7}", "\u{f1087}", "\u{f01d6}", "\u{f01d6}", "\u{f01d6}"]);
     expect(wifi.keywords).toEqual(["en0", "wifi", "wlan", "ssid", "ip", "lan", "local", "Cafe Wifi"]);
     expect(wifi.actions).toEqual([{ id: "copy", title: "Copy" }, { id: "settings", title: "Open Network settings" }]);
     expect(items[7].keywords).toEqual(["public", "wan", "external", "ip", "TR", "AS1 Example ISP"]);
@@ -193,9 +194,9 @@ describe("network on macOS tools", () => {
     host.changeSettings("network", { settings: { public_ip_url: url("/text") } });
     expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public", name: "198.51.100.4", subtitle: "Public IP" });
     host.changeSettings("network", { settings: { public_ip_url: url("/fail") } });
-    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public:none", name: "Public IP unavailable", subtitle: `500 from 127.0.0.1:${server.port}`, actions: [] });
+    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public:none", name: "Public IP unavailable", subtitle: `500 from 127.0.0.1:${server.port}; cmd+r tries again`, actions: [] });
     host.changeSettings("network", { settings: { public_ip_url: url("/junk") } });
-    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public:none", subtitle: "not an address" });
+    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public:none", subtitle: "not an address; cmd+r tries again" });
     host.changeSettings("network", { settings: { public_ip_url: "" } });
     expect((await list()).some((i) => i.section === "Internet")).toBe(false);
     // A failure is not cached: the next listing with a good url fetches.

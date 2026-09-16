@@ -162,10 +162,10 @@ describe("browser-tabs", () => {
     expect(st.url).toBeUndefined();
     expect(st.icon).toBeDefined();
     expect(radio.accessories).toEqual([{ text: "Google Chrome" }, { text: "window 1" }, { tag: "muted" }]);
-    expect(yt.actions!.map((a) => a.id)).toEqual(["focus", "close", "copy-url", "mute", "copy-markdown"]);
-    expect(yt.actions![3].title).toBe("Mute");
-    expect(radio.actions![3].title).toBe("Unmute");
-    expect(yt.actions![1]).toMatchObject({ shortcut: "cmd+w", style: "destructive" });
+    expect(yt.actions!.map((a) => a.id)).toEqual(["focus", "copy-url", "mute", "copy-markdown", "close"]);
+    expect(yt.actions![2].title).toBe("Mute");
+    expect(radio.actions![2].title).toBe("Unmute");
+    expect(yt.actions![4]).toMatchObject({ shortcut: "cmd+w", style: "destructive" });
     // The probe and the window lookup ran once per page, over one socket each.
     expect(ws.filter((m) => m.method === "Runtime.evaluate").length).toBeGreaterThanOrEqual(4);
     expect(ws.filter((m) => m.method === "Browser.getWindowForTarget").length).toBeGreaterThanOrEqual(4);
@@ -247,7 +247,7 @@ describe.skipIf(!MAC)("browser-tabs over AppleScript", () => {
     expect(ids(items)).toEqual(["as:Safari:1:1", "as:Safari:1:2", "as:Safari:2:1"]);
     expect(items[0]).toMatchObject({ name: "Apple", subtitle: "www.apple.com", accessories: [{ text: "Safari" }, { text: "window 1" }] });
     expect(items[2]).toMatchObject({ name: "example.org/page", accessories: [{ text: "Safari" }, { text: "window 2" }] });
-    expect(items[0].actions!.map((a) => a.id)).toEqual(["focus", "close", "copy-url", "copy-markdown"]);
+    expect(items[0].actions!.map((a) => a.id)).toEqual(["focus", "copy-url", "copy-markdown", "close"]);
     expect(osa()).toEqual(["list Safari"]);
   });
 

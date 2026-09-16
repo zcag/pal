@@ -23,7 +23,7 @@ which tool is missing.
 | keywords | the direction and the transport, so `bluetooth` or `input` finds the rows |
 | section | Output, then Input |
 
-The volume level pushed by Set Volume… has one row per preset with the
+The volume level pushed by Set volume… has one row per preset with the
 device's name as the subtitle and a `current` tag on the level the device
 is at exactly; its icon is the muted speaker for 0 % and the
 loud one for the rest.
@@ -44,8 +44,8 @@ hotkey = "ctrl+alt+a"
 
 | keys | action |
 | --- | --- |
-| `enter` | Set as Output / Set as Input: makes the row the default for its direction; the HUD names it |
-| `cmd+shift+v` | Set Volume…: drills into a level of presets, 0 / 25 / 50 / 75 / 100 %, the current one tagged; a pick sets it and the HUD says so |
+| `enter` | Set as output / Set as input: makes the row the default for its direction; the HUD names it |
+| `cmd+shift+v` | Set volume…: drills into a level of presets, 0 / 25 / 50 / 75 / 100 %, the current one tagged; a pick sets it and the HUD says so |
 | `cmd+m` | Mute / Unmute: toggles mute and stays in the list |
 
 A digital output without a volume control has no volume accessory and no

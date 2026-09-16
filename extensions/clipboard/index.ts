@@ -18,7 +18,8 @@ const URL_RE = /^https?:\/\/\S+$/;
 /** `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb(r, g, b)`, `rgba(r, g, b, a)`. */
 const HEX_RE = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const RGB_RE = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/i;
-const KIND_ICON = { text: "≡", image: "▣", files: "▤" } as const;
+/** The row glyph by kind (Material Design in the bundled Nerd Font): text, an image without a thumbnail, a file list. */
+const KIND_ICON = { text: "\u{f09a8}", image: "\u{f0976}", files: "\u{f1032}" } as const;
 /** The dropdown: the core's kinds, then the two this side derives from text. */
 const FILTERS = [
   { id: "all", title: "All" },
@@ -73,12 +74,14 @@ function subtitle(e: ClipboardEntry): string | undefined {
 
 /** Four backticks fence the text so a ``` inside cannot end it early. */
 const fence = (s: string) => "````\n" + s.replace(/````/g, "```​`") + "\n````";
+/** A wide swatch of a copied colour, as the Colors palette draws one. */
+const swatch = (hex: string) => `![](data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" rx="8" fill="${hex}"/></svg>`)})`;
 
-function detail(e: ClipboardEntry): Detail {
+function detail(e: ClipboardEntry, color?: string): Detail {
   const body =
     e.kind === "image" ? `![](${clipboard.imageUrl(e.id, 0)})`
     : e.kind === "files" ? e.files!.map((f) => `- \`${f}\``).join("\n")
-    : fence(e.text!.length > DETAIL_MAX ? e.text!.slice(0, DETAIL_MAX) + "\n… (truncated)" : e.text!);
+    : (color ? swatch(color) + "\n\n" : "") + fence(e.text!.length > DETAIL_MAX ? e.text!.slice(0, DETAIL_MAX) + "\n… (truncated)" : e.text!);
   return {
     markdown: body,
     metadata: [
@@ -118,7 +121,7 @@ function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
       ...(e.pinned ? [{ tag: "pinned", color: "amber" }] : []),
     ],
     ...(e.pinned && { section: "Pinned" }),
-    detail: detail(e),
+    detail: detail(e, color),
     actions: actions(e, primary, url),
   };
 }

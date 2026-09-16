@@ -21,7 +21,8 @@ const openWithOf = (ctx?: Ctx): string | undefined => (ctx?.args as OpenWith | u
 
 const HOME = home("~");
 const MAC = process.platform === "darwin";
-const ICON = "▤";
+/** The extension's glyph (md-file_search_outline) and the row glyphs by kind, Material Design outlines in the bundled Nerd Font. */
+const ICON = "\u{f0c7d}";
 /** A search that has not produced `limit` lines by then is killed; what it printed is the answer. */
 const SEARCH_MS = 3000;
 /** How deep fd walks below a folder: with fewer than `limit` matches it would otherwise walk all of `~` (1.2 s on a full home). */
@@ -100,7 +101,7 @@ async function search(q: string, s: Settings, folders: string[]): Promise<string
 // ---- rows ----------------------------------------------------------------
 
 type Kind = "folder" | "image" | "document" | "code" | "archive" | "file";
-const GLYPH: Record<Kind, string> = { folder: "▸", image: "▣", document: "≡", code: "‹›", archive: "▦", file: ICON };
+const GLYPH: Record<Kind, string> = { folder: "\u{f0256}", image: "\u{f0976}", document: "\u{f09ee}", code: "\u{f102b}", archive: "\u{f0ffa}", file: "\u{f0224}" };
 const EXT: Record<Exclude<Kind, "folder" | "file">, string[]> = {
   image: ["png", "jpg", "jpeg", "gif", "webp", "heic", "svg", "bmp", "tiff", "avif"],
   document: ["txt", "md", "pdf", "doc", "docx", "rtf", "pages", "odt", "xls", "xlsx", "numbers", "csv", "ppt", "pptx", "key", "epub"],
@@ -308,11 +309,10 @@ export default {
     },
     recent: {
       title: "Recent Files",
-      icon: "◷",
+      icon: "\u{f02da}",
       // Newest first is the order; listed again on a show once the listing is a minute old.
       live: true,
-      ttl: 60,
-      placeholder: "Recently used files",
+      placeholder: "Search recent files",
       list: async (query = "", ctx) => {
         const file = openWithOf(ctx);
         if (file) return appRows(file, query);

@@ -60,7 +60,7 @@ const id = (target: string, dir: string) => `${target}@${dir}`;
 
 describe("make", () => {
   test("meta: indexed, lazy detail", () => {
-    expect(host.loaded().find((l) => l.extension === "make")!.palettes[0]).toMatchObject({ name: "make", title: "Makefile targets", live: false, input: false, detail: "lazy" });
+    expect(host.loaded().find((l) => l.extension === "make")!.palettes[0]).toMatchObject({ name: "make", title: "Makefile Targets", live: false, input: false, detail: "lazy" });
   });
 
   test("targets per project, two levels deep, dot and node_modules folders skipped, a duplicate root listed once", async () => {

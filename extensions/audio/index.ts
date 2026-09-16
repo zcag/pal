@@ -29,7 +29,7 @@ function item(d: AudioDevice): Item {
   if (d.muted) accessories.push({ tag: "muted", color: "amber" });
   if (d.volume !== null) accessories.push({ text: `${d.volume}%` });
   if (d.default) accessories.push({ tag: "default", color: "green" });
-  const actions: Action[] = [{ id: "default", title: `Set as ${dir}` }, { id: "volume", title: "Set Volume…", shortcut: "cmd+shift+v" }];
+  const actions: Action[] = [{ id: "default", title: `Set as ${d.kind}` }, { id: "volume", title: "Set volume…", shortcut: "cmd+shift+v" }];
   if (d.muted !== null) actions.push({ id: "mute", title: d.muted ? "Unmute" : "Mute", shortcut: "cmd+m" });
   return {
     id: rowId(d),

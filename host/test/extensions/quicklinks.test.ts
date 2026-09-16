@@ -65,7 +65,8 @@ describe("quicklinks", () => {
     expect(items.map((i) => i.id)).toEqual(["create", "gh", "ha", "import:http://grafana.lan", "import:http://bare", "import", "export"]);
     expect(items[5]).toMatchObject({ name: "Import Quicklinks", actions: [{ id: "import", title: "Import…" }] });
     expect(items[6]).toMatchObject({ name: "Export Quicklinks", actions: [{ id: "export", title: "Export…" }] });
-    expect(items[0]).toMatchObject({ name: "Create Quicklink", actions: [{ id: "create", title: "Create Quicklink" }] });
+    expect(items[0]).toMatchObject({ name: "Create Quicklink", icon: "\u{f0c94}", actions: [{ id: "create", title: "Create quicklink" }] });
+    for (const i of items) expect(i.icon || i.url).toBeTruthy();
     expect(items[1]).toMatchObject({ name: "GitHub search", subtitle: "https://github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }] });
     expect(items[1].icon).toBeUndefined();
     expect(items[1].actions!.map((a) => a.id)).toEqual(["open", "copy", "edit", "delete"]);

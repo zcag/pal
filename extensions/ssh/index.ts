@@ -7,7 +7,7 @@
 // command (the `-J` form for a host behind a jump), or ping the host.
 import { readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
-import { home, settings, xdg, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
+import { home, settings, xdg, type Accessory, type Action, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.ssh]`, defaults in pal.json. */
 type Settings = { config: string; include_known_hosts: boolean; terminal: "auto" | "kitty" | "Terminal" | "iTerm2" | "Ghostty" | "Alacritty" };
@@ -106,6 +106,14 @@ function item(h: HostEntry, section: string): Item {
   if (h.user) accessories.push({ text: h.user });
   if (h.port) accessories.push({ tag: `:${h.port}` });
   if (h.jump) accessories.push({ tag: `via ${h.jump}`, color: "blue" });
+  const metadata: Metadata[] = [
+    { label: "Host", value: h.name },
+    ...(h.hostname ? [{ label: "HostName", value: h.hostname }] : []),
+    ...(h.user ? [{ label: "User", value: h.user }] : []),
+    ...(h.port ? [{ label: "Port", value: h.port }] : []),
+    ...(h.jump ? [{ label: "ProxyJump", value: h.jump }] : []),
+    { label: "File", value: section },
+  ];
   return {
     id: h.name,
     name: h.name,
@@ -114,6 +122,7 @@ function item(h: HostEntry, section: string): Item {
     icon: ICON,
     accessories,
     section,
+    detail: { markdown: `# ${h.name}\n\n\`\`\`\nssh ${h.jump ? `-J ${h.jump} ` : ""}${h.name}\n\`\`\``, metadata },
     actions: [CONNECT, COPY_HOST, COPY_COMMAND, ...(h.jump ? [COPY_JUMP] : []), PING],
   };
 }
@@ -130,6 +139,8 @@ function list(): Item[] {
     hosts.set(h.name, h);
     items.push(item(h, sectionOf(h.file, dirname(file))));
   }
+  // Nothing configured: one inert row that says where hosts come from.
+  if (!items.length && !include_known_hosts) return [{ id: "hint:empty", name: "No hosts in your ssh config", subtitle: `Add a Host block to ${config}, or point Config file in Settings at another file`, icon: ICON, actions: [] }];
   if (!include_known_hosts) return items;
   const configured = new Set([...seen, ...items.map((i) => i.subtitle).filter(Boolean)]);
   for (const name of knownHosts(resolve(dirname(file), "known_hosts"))) if (!configured.has(name)) items.push(item({ name, file }, KNOWN));

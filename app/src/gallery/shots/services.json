@@ -444,7 +444,7 @@
        "text": "enabled"
       },
       {
-       "tag": "failed/failed",
+       "tag": "failed",
        "color": "red"
       }
      ],
@@ -646,7 +646,7 @@
         "text": "enabled"
        },
        {
-        "tag": "failed/failed",
+        "tag": "failed",
         "color": "red"
        }
       ],
@@ -716,7 +716,7 @@
         "text": "enabled"
        },
        {
-        "tag": "failed/failed",
+        "tag": "failed",
         "color": "red"
        }
       ],
@@ -785,7 +785,7 @@
       ],
       "accessories": [
        {
-        "tag": "failed/failed",
+        "tag": "failed",
         "color": "red"
        }
       ],

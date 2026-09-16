@@ -36,14 +36,14 @@ describe("audio", () => {
     expect(items.map((i) => i.id)).toEqual(["output:BuiltInSpeakerDevice", "output:20-18-5B:output", "output:Digital", "input:BuiltInMicrophoneDevice"]);
     expect(items[0]).toMatchObject({ name: "MacBook Pro Speakers", subtitle: "Output · builtin", section: "Output", accessories: [{ text: "56%" }, { tag: "default", color: "green" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["default", "volume", "mute"]);
-    expect(items[0].actions![0].title).toBe("Set as Output");
+    expect(items[0].actions![0].title).toBe("Set as output");
     expect(items[1].accessories).toEqual([{ tag: "muted", color: "amber" }, { text: "25%" }]);
     expect(items[1].actions!.find((a) => a.id === "mute")!.title).toBe("Unmute");
     // No volume control: no accessory and no Mute action.
     expect(items[2].accessories).toEqual([]);
     expect(items[2].actions!.map((a) => a.id)).toEqual(["default", "volume"]);
     expect(items[3]).toMatchObject({ section: "Input", subtitle: "Input · builtin" });
-    expect(items[3].actions![0].title).toBe("Set as Input");
+    expect(items[3].actions![0].title).toBe("Set as input");
   });
 
   test("Enter sets the default for the row's direction and says so in the HUD", async () => {

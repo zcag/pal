@@ -15,7 +15,7 @@ unit without `.service`, its description the subtitle; on the right the
 unit file's state (`enabled`, `disabled`; nothing for static, generated
 and transient units) and a tag with the active state: the sub state alone
 when active (`running`, `exited`, green), `active/sub` otherwise
-(`inactive/dead` grey, `failed/failed` red, activating amber). Units are
+(`inactive/dead` grey, `failed` red, activating amber). Units are
 what `list-units --all` has loaded, then the unit files it has not (a
 disabled service that never ran), inactive and without a description;
 templates, masked and alias files are skipped. An instance

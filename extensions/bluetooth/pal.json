@@ -8,10 +8,10 @@
   "repo": "bundled",
   "license": "MIT",
   "store": {
-    "tagline": "Connect and disconnect paired devices, with their battery, from the panel.",
+    "tagline": "Connect and disconnect paired devices, battery in view",
     "category": "system",
     "features": [
-      "Every paired device, connected ones first, with a glyph for its kind (headphones, speaker, keyboard, mouse, controller, phone)",
+      "Every paired device, connected ones first, with a glyph for its kind (headphones, speaker, keyboard, mouse, controller, phone, watch, computer)",
       "The battery on the right when the OS reports it; AirPods show `L 80% · R 75% · Case 90%`",
       "`enter` connects or disconnects, on the state read back from the OS at that moment; Disconnect asks first",
       "`cmd+c` copies the address (`AA:BB:CC:DD:EE:FF`)",
@@ -19,15 +19,34 @@
       "Live: the connected state is read again on every show"
     ],
     "permissions": [],
-    "platforms": ["macos", "linux"],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-devices.png", "caption": "Paired devices, the connected ones first with their battery" },
-      { "file": "2-actions.png", "caption": "Connect a device that is not, or copy its address" },
-      { "file": "3-disconnect.png", "caption": "Disconnect asks first" }
+      {
+        "file": "1-devices.png",
+        "caption": "Paired devices, the connected ones first with their battery"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "Connect a device that is not, or copy its address"
+      },
+      {
+        "file": "3-disconnect.png",
+        "caption": "Disconnect asks first"
+      }
     ],
     "actions": [
-      { "title": "Connect / Disconnect", "description": "Toggles the connection; Disconnect asks first; the HUD says which happened.", "keys": "enter" },
-      { "title": "Copy Address", "keys": "cmd+c" }
+      {
+        "title": "Connect / Disconnect",
+        "description": "Toggles the connection; Disconnect asks first; the HUD says which happened.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy address",
+        "keys": "cmd+c"
+      }
     ]
   },
   "palettes": {
@@ -35,8 +54,14 @@
       "kind": "live",
       "description": "Every paired device, the connected ones first, with battery when the OS reports it.",
       "keys": [
-        { "keys": "enter", "title": "Connect or disconnect" },
-        { "keys": "cmd+c", "title": "Copy the address" }
+        {
+          "keys": "enter",
+          "title": "Connect or disconnect"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the address"
+        }
       ]
     }
   }

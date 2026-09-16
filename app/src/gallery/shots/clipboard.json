@@ -37,7 +37,7 @@
         {
           "id": "2",
           "name": "ssh -J bastion.example.com deploy@web-1",
-          "icon": "≡",
+          "icon": "󰦨",
           "accessories": [
             {
               "text": "kitty"
@@ -125,7 +125,7 @@
         {
           "id": "9",
           "name": "Best regards,",
-          "icon": "≡",
+          "icon": "󰦨",
           "accessories": [
             {
               "text": "Mail"
@@ -303,7 +303,7 @@
             }
           ],
           "detail": {
-            "markdown": "````\n#5b8def\n````",
+            "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%235b8def%22%2F%3E%3C%2Fsvg%3E)\n\n````\n#5b8def\n````",
             "metadata": [
               {
                 "label": "Kind",
@@ -446,7 +446,7 @@
         {
           "id": "11",
           "name": "SELECT id, name FROM users",
-          "icon": "≡",
+          "icon": "󰦨",
           "accessories": [
             {
               "text": "kitty"
@@ -522,7 +522,7 @@
           "id": "10",
           "name": "invoice-2026-09.pdf, receipt.pdf",
           "subtitle": "2 files",
-          "icon": "▤",
+          "icon": "󱀲",
           "accessories": [
             {
               "text": "Finder"
@@ -591,7 +591,7 @@
         {
           "id": "8",
           "name": "rgb(34, 197, 94)",
-          "icon": "≡",
+          "icon": "#22c55e",
           "accessories": [
             {
               "text": "Chrome"
@@ -601,7 +601,7 @@
             }
           ],
           "detail": {
-            "markdown": "````\nrgb(34, 197, 94)\n````",
+            "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%2322c55e%22%2F%3E%3C%2Fsvg%3E)\n\n````\nrgb(34, 197, 94)\n````",
             "metadata": [
               {
                 "label": "Kind",
@@ -665,7 +665,7 @@
         {
           "id": "7",
           "name": "docker compose up -d --build",
-          "icon": "≡",
+          "icon": "󰦨",
           "accessories": [
             {
               "text": "kitty"
@@ -739,7 +739,7 @@
         {
           "id": "6",
           "name": "Ada Lovelace <ada@example.org>",
-          "icon": "≡",
+          "icon": "󰦨",
           "accessories": [
             {
               "text": "Mail"
@@ -892,7 +892,7 @@
         {
           "id": "4",
           "name": "Meeting moved to Thursday 15:00, same room.",
-          "icon": "≡",
+          "icon": "󰦨",
           "accessories": [
             {
               "text": "Slack"
@@ -979,7 +979,7 @@
               }
             ],
             "detail": {
-              "markdown": "````\n#5b8def\n````",
+              "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%235b8def%22%2F%3E%3C%2Fsvg%3E)\n\n````\n#5b8def\n````",
               "metadata": [
                 {
                   "label": "Kind",
@@ -1043,7 +1043,7 @@
           {
             "id": "8",
             "name": "rgb(34, 197, 94)",
-            "icon": "≡",
+            "icon": "#22c55e",
             "accessories": [
               {
                 "text": "Chrome"
@@ -1053,7 +1053,7 @@
               }
             ],
             "detail": {
-              "markdown": "````\nrgb(34, 197, 94)\n````",
+              "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%2322c55e%22%2F%3E%3C%2Fsvg%3E)\n\n````\nrgb(34, 197, 94)\n````",
               "metadata": [
                 {
                   "label": "Kind",
@@ -1360,7 +1360,7 @@
           {
             "id": "2",
             "name": "ssh -J bastion.example.com deploy@web-1",
-            "icon": "≡",
+            "icon": "󰦨",
             "accessories": [
               {
                 "text": "kitty"
@@ -1448,7 +1448,7 @@
           {
             "id": "9",
             "name": "Best regards,",
-            "icon": "≡",
+            "icon": "󰦨",
             "accessories": [
               {
                 "text": "Mail"
@@ -1626,7 +1626,7 @@
               }
             ],
             "detail": {
-              "markdown": "````\n#5b8def\n````",
+              "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%235b8def%22%2F%3E%3C%2Fsvg%3E)\n\n````\n#5b8def\n````",
               "metadata": [
                 {
                   "label": "Kind",
@@ -1690,7 +1690,7 @@
           {
             "id": "11",
             "name": "SELECT id, name FROM users",
-            "icon": "≡",
+            "icon": "󰦨",
             "accessories": [
               {
                 "text": "kitty"
@@ -1765,7 +1765,7 @@
           {
             "id": "8",
             "name": "rgb(34, 197, 94)",
-            "icon": "≡",
+            "icon": "#22c55e",
             "accessories": [
               {
                 "text": "Chrome"
@@ -1775,7 +1775,7 @@
               }
             ],
             "detail": {
-              "markdown": "````\nrgb(34, 197, 94)\n````",
+              "markdown": "![](data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22320%22%20height%3D%2264%22%3E%3Crect%20width%3D%22320%22%20height%3D%2264%22%20rx%3D%228%22%20fill%3D%22%2322c55e%22%2F%3E%3C%2Fsvg%3E)\n\n````\nrgb(34, 197, 94)\n````",
               "metadata": [
                 {
                   "label": "Kind",
@@ -1839,7 +1839,7 @@
           {
             "id": "7",
             "name": "docker compose up -d --build",
-            "icon": "≡",
+            "icon": "󰦨",
             "accessories": [
               {
                 "text": "kitty"
@@ -1913,7 +1913,7 @@
           {
             "id": "6",
             "name": "Ada Lovelace <ada@example.org>",
-            "icon": "≡",
+            "icon": "󰦨",
             "accessories": [
               {
                 "text": "Mail"
@@ -2066,7 +2066,7 @@
           {
             "id": "4",
             "name": "Meeting moved to Thursday 15:00, same room.",
-            "icon": "≡",
+            "icon": "󰦨",
             "accessories": [
               {
                 "text": "Slack"
@@ -2143,7 +2143,7 @@
             "id": "10",
             "name": "invoice-2026-09.pdf, receipt.pdf",
             "subtitle": "2 files",
-            "icon": "▤",
+            "icon": "󱀲",
             "accessories": [
               {
                 "text": "Finder"

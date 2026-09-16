@@ -51,7 +51,7 @@ Settings, `[extensions.bookmarks]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `file` | path | `~/.config/pal/data/bookmarks.json` | The bookmarks file. `~` is expanded. |
+| `file` | path | `~/.config/pal/data/bookmarks.json` | The bookmarks file. `~` is expanded. Not there: the browsers alone; unreadable: one hint row naming it. |
 | `browsers` | list | `["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"]` | Whose bookmarks to list, in order. `[]` is the file alone. |
 | `exclude_folders` | list | `[]` | Bookmark folders skipped, by name (`Archive`) or a short path (`Bookmarks Bar/Old`), case-insensitive. |
 

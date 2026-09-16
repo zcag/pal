@@ -50,6 +50,7 @@ rather than launching it.
 | `cmd+c` | Copy path (a pane: Copy URL) |
 | `cmd+shift+c` | Copy bundle id |
 | `cmd+r` | Rescan the application folders |
+| `cmd+i` | Details: the path, bundle id, version and whether it runs (on Linux the desktop file, its command and its actions) |
 
 On Linux the actions are Open, the entry's own desktop actions, and Copy
 path.

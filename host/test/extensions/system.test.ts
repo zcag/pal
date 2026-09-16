@@ -33,13 +33,14 @@ const list = (q?: string) => host.list("system", "system", q);
 
 describe("system", () => {
   test("meta: a live palette, indexed (not input), so its rows are root results", () => {
-    expect(host.loaded().find((l) => l.extension === "system")!.palettes[0]).toMatchObject({ name: "system", title: "System", live: true, input: false, icon: "⏻" });
+    expect(host.loaded().find((l) => l.extension === "system")!.palettes[0]).toMatchObject({ name: "system", title: "System", live: true, input: false, icon: "\u{f0425}" });
   });
 
   test("only available commands, mapped one to one, one run action each", async () => {
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["sleep", "shutdown", "empty-trash", "dark-mode"]);
-    expect(items[0]).toEqual({ id: "sleep", name: "Sleep", subtitle: "Put the machine to sleep", icon: "⏾", keywords: ["suspend"], accessories: [], actions: [{ id: "run", title: "Sleep" }] });
+    // The row draws the extension's glyph for the id, not the core's text symbol.
+    expect(items[0]).toEqual({ id: "sleep", name: "Sleep", subtitle: "Put the machine to sleep", icon: "\u{f0904}", keywords: ["suspend"], accessories: [], actions: [{ id: "run", title: "Sleep" }] });
   });
 
   test("Empty Trash counts what is in the Trash (.DS_Store aside); Toggle Dark Mode tags the current appearance", async () => {

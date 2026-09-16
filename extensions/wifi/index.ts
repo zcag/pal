@@ -19,7 +19,8 @@ export const bars = (signal: number): string => "▂▄▆█".slice(0, Math.max
 const signalAccessory = (signal: number | null): Accessory[] => (signal === null ? [] : [{ text: `${bars(signal)} ${signal}%` }]);
 
 const joinAction: Action = { id: "join", title: "Join" };
-const copyPassword: Action = { id: "password", title: "Copy Password", shortcut: "cmd+shift+c" };
+const copyPassword: Action = { id: "password", title: "Copy password", shortcut: "cmd+shift+c" };
+const copyName: Action = { id: "copy", title: "Copy name", shortcut: "cmd+c" };
 const forget = (ssid: string): Action => ({ id: "forget", title: "Forget", shortcut: "ctrl+x", style: "destructive", confirm: `Forget ${ssid}? Its password goes with it.` });
 
 function available(n: WifiNetwork): Item {
@@ -30,7 +31,7 @@ function available(n: WifiNetwork): Item {
     icon: n.security ? LOCK : WIFI,
     keywords: ["wifi", "network"],
     accessories: signalAccessory(n.signal),
-    actions: [joinAction, { id: "copy", title: "Copy Name", shortcut: "cmd+c" }],
+    actions: [joinAction, copyName],
     section: "Available",
   };
 }
@@ -94,7 +95,7 @@ export default {
             icon: WIFI,
             keywords: ["wifi", "network", "saved"],
             accessories: n ? [...signalAccessory(n.signal), { tag: "in range", color: "blue" }] : [],
-            actions: [joinAction, copyPassword, forget(k.ssid)],
+            actions: [joinAction, copyName, copyPassword, forget(k.ssid)],
             section: "Known",
           });
         }
@@ -119,7 +120,7 @@ export default {
           subtitle: status.interface,
           icon: xdg(status.powered ? "changes-prevent" : "changes-allow")!,
           keywords: ["wifi", "radio", "toggle", "power"],
-          actions: [{ id: "power", title: status.powered ? "Turn Off" : "Turn On" }],
+          actions: [{ id: "power", title: status.powered ? "Turn off" : "Turn on" }],
           section: "Wi-Fi",
         });
         return items;

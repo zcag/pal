@@ -8,19 +8,60 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "text", "id": "binary", "label": "Binary", "description": "The CLI to run: docker, or podman (its docker-compatible commands are what is used).", "placeholder": "docker", "default": "docker" },
-    { "kind": "number", "id": "ttl", "label": "Refresh after", "description": "Seconds a listing stays good for: the palettes list again on show only once the rows are older than this. Read when the extension loads.", "min": 0, "max": 3600, "unit": "s", "default": 10 },
-    { "kind": "select", "id": "terminal", "label": "Terminal (macOS)", "description": "Which terminal Shell opens. Auto picks the first installed of kitty, Ghostty, Alacritty, iTerm2, Terminal. On Linux $TERMINAL, else kitty, foot, alacritty, xterm.", "options": [
-      { "id": "auto", "title": "Auto" },
-      { "id": "kitty", "title": "kitty" },
-      { "id": "Terminal", "title": "Terminal" },
-      { "id": "iTerm2", "title": "iTerm2" },
-      { "id": "Ghostty", "title": "Ghostty" },
-      { "id": "Alacritty", "title": "Alacritty" }
-    ], "default": "auto" }
+    {
+      "kind": "text",
+      "id": "binary",
+      "label": "Binary",
+      "description": "The CLI to run: docker, or podman (its docker-compatible commands are what is used).",
+      "placeholder": "docker",
+      "default": "docker"
+    },
+    {
+      "kind": "number",
+      "id": "ttl",
+      "label": "Refresh after",
+      "description": "Seconds a listing stays good for: the palettes list again on show only once the rows are older than this. Read when the extension loads.",
+      "min": 0,
+      "max": 3600,
+      "unit": "s",
+      "default": 10
+    },
+    {
+      "kind": "select",
+      "id": "terminal",
+      "label": "Terminal (macOS)",
+      "description": "Which terminal Shell opens. Auto picks the first installed of kitty, Ghostty, Alacritty, iTerm2, Terminal. On Linux $TERMINAL, else kitty, foot, alacritty, xterm.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "Auto"
+        },
+        {
+          "id": "kitty",
+          "title": "kitty"
+        },
+        {
+          "id": "Terminal",
+          "title": "Terminal"
+        },
+        {
+          "id": "iTerm2",
+          "title": "iTerm2"
+        },
+        {
+          "id": "Ghostty",
+          "title": "Ghostty"
+        },
+        {
+          "id": "Alacritty",
+          "title": "Alacritty"
+        }
+      ],
+      "default": "auto"
+    }
   ],
   "store": {
-    "tagline": "Containers, images and Compose projects from the panel: start, stop, logs, a shell.",
+    "tagline": "Start, stop, log and shell into containers from the panel",
     "category": "developer",
     "features": [
       "Every container, running ones first: the image under the name, the published ports (`8080:80`), docker's status (`Up 27 hours`) and a coloured state tag on the right",
@@ -30,26 +71,85 @@
       "Podman works through the same commands: set `binary = \"podman\"`",
       "Without the binary, or with the daemon down, one hint row says which; a slow command goes on in the background and the toast says so"
     ],
-    "permissions": ["automation"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "docker",
+      "automation"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-containers.png", "caption": "Containers, running first, with ports, status and a state tag" },
-      { "file": "2-actions.png", "caption": "What a running container can do: stop, logs, shell, restart, remove" },
-      { "file": "3-logs.png", "caption": "The last 200 log lines of a container, opened in the panel" },
-      { "file": "4-run.png", "caption": "Running an image: the name and the ports, then docker run -d" }
+      {
+        "file": "1-containers.png",
+        "caption": "Containers, running first, with ports, status and a state tag"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "What a running container can do: stop, logs, shell, restart, remove"
+      },
+      {
+        "file": "3-logs.png",
+        "caption": "The last 200 log lines of a container, opened in the panel"
+      },
+      {
+        "file": "4-run.png",
+        "caption": "Running an image: the name and the ports, then docker run -d"
+      }
     ],
     "actions": [
-      { "title": "Stop", "description": "A running container; asks first.", "keys": "enter" },
-      { "title": "Start", "description": "A stopped container.", "keys": "enter" },
-      { "title": "Logs", "description": "The last 200 lines, stdout and stderr, in the panel.", "keys": "cmd+l" },
-      { "title": "Shell", "description": "A terminal running docker exec (bash when the image has it, sh otherwise).", "keys": "cmd+t" },
-      { "title": "Restart", "keys": "cmd+shift+r" },
-      { "title": "Remove", "description": "docker rm -f, docker rmi or compose down; asks first.", "keys": "cmd+d" },
-      { "title": "Copy id", "keys": "cmd+c" },
-      { "title": "Run…", "description": "An image: a form for the name and ports, then docker run -d.", "keys": "enter" },
-      { "title": "Up", "description": "A Compose project: compose up -d.", "keys": "enter" },
-      { "title": "Down", "description": "Stops and removes the project's containers and networks; asks first.", "keys": "cmd+d" },
-      { "title": "Open project folder", "keys": "cmd+o" }
+      {
+        "title": "Stop",
+        "description": "A running container; asks first.",
+        "keys": "enter"
+      },
+      {
+        "title": "Start",
+        "description": "A stopped container.",
+        "keys": "enter"
+      },
+      {
+        "title": "Logs",
+        "description": "The last 200 lines, stdout and stderr, in the panel.",
+        "keys": "cmd+l"
+      },
+      {
+        "title": "Shell",
+        "description": "A terminal running docker exec (bash when the image has it, sh otherwise).",
+        "keys": "cmd+t"
+      },
+      {
+        "title": "Restart",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Remove",
+        "description": "docker rm -f, docker rmi or compose down; asks first.",
+        "keys": "cmd+d"
+      },
+      {
+        "title": "Copy id",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Run…",
+        "description": "An image: a form for the name and ports, then docker run -d.",
+        "keys": "enter"
+      },
+      {
+        "title": "Up",
+        "description": "A Compose project: compose up -d.",
+        "keys": "enter"
+      },
+      {
+        "title": "Down",
+        "description": "Stops and removes the project's containers and networks; asks first.",
+        "keys": "cmd+d"
+      },
+      {
+        "title": "Open project folder",
+        "keys": "cmd+o"
+      }
     ]
   },
   "palettes": {
@@ -57,29 +157,74 @@
       "kind": "live",
       "description": "Every container, running first: start, stop, restart, logs, a shell, remove.",
       "keys": [
-        { "keys": "enter", "title": "Stop a running container, start a stopped one" },
-        { "keys": "cmd+l", "title": "Logs" },
-        { "keys": "cmd+t", "title": "Shell in a terminal" },
-        { "keys": "cmd+d", "title": "Remove" }
+        {
+          "keys": "enter",
+          "title": "Stop a running container, start a stopped one"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "Logs"
+        },
+        {
+          "keys": "cmd+t",
+          "title": "Shell in a terminal"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Restart"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Remove"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy id"
+        }
       ]
     },
     "images": {
       "kind": "live",
       "description": "Local images: run one (name and ports asked), remove, copy the id.",
       "keys": [
-        { "keys": "enter", "title": "Run, after a form for the name and ports" },
-        { "keys": "cmd+c", "title": "Copy id" },
-        { "keys": "cmd+d", "title": "Remove" }
+        {
+          "keys": "enter",
+          "title": "Run, after a form for the name and ports"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy id"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Remove"
+        }
       ]
     },
     "compose": {
       "kind": "live",
       "description": "Compose projects docker knows of: up, down, restart, logs.",
       "keys": [
-        { "keys": "enter", "title": "Up" },
-        { "keys": "cmd+l", "title": "Logs" },
-        { "keys": "cmd+d", "title": "Down" },
-        { "keys": "cmd+o", "title": "Open project folder" }
+        {
+          "keys": "enter",
+          "title": "Up"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "Logs"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Restart"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Down"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open project folder"
+        }
       ]
     }
   }

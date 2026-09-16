@@ -4,7 +4,7 @@
       "title": "Timers",
       "icon": "󰥔",
       "live": true,
-      "placeholder": "Timers",
+      "placeholder": "Find a timer by name",
       "items": [
         {
           "id": "laundry",
@@ -34,7 +34,7 @@
             {
               "id": "stop",
               "title": "Stop",
-              "shortcut": "cmd+backspace",
+              "shortcut": "cmd+d",
               "style": "destructive"
             }
           ]
@@ -67,7 +67,7 @@
             {
               "id": "stop",
               "title": "Stop",
-              "shortcut": "cmd+backspace",
+              "shortcut": "cmd+d",
               "style": "destructive"
             }
           ]
@@ -100,7 +100,7 @@
             {
               "id": "stop",
               "title": "Stop",
-              "shortcut": "cmd+backspace",
+              "shortcut": "cmd+d",
               "style": "destructive"
             }
           ]
@@ -133,7 +133,7 @@
             {
               "id": "stop",
               "title": "Stop",
-              "shortcut": "cmd+backspace",
+              "shortcut": "cmd+d",
               "style": "destructive"
             }
           ]
@@ -142,7 +142,7 @@
           "id": "new",
           "name": "New timer",
           "subtitle": "A duration and a name",
-          "icon": "+",
+          "icon": "󰐕",
           "keywords": [
             "timer",
             "start",

@@ -1,4 +1,4 @@
-# Makefile targets
+# Makefile Targets
 
 Every target of every Makefile under the `projects` folders, one section
 per project. A folder is scanned two levels deep for a `Makefile`,

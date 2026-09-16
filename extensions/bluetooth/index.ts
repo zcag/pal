@@ -13,6 +13,7 @@ const GLYPH: Record<string, string> = {
   gamepad: xdg("applications-games")!,
   phone: xdg("phone")!,
   computer: xdg("computer")!,
+  watch: "\u{f0589}", // md-watch
 };
 
 const KIND: Record<string, string> = { headphones: "Headphones", speaker: "Speaker", keyboard: "Keyboard", mouse: "Mouse", gamepad: "Game controller", phone: "Phone", watch: "Watch", computer: "Computer" };
@@ -24,7 +25,7 @@ function item(d: BluetoothDevice): Item {
   const actions: Action[] = d.connected
     ? [{ id: "toggle", title: "Disconnect", confirm: `Disconnect ${d.name}?` }]
     : [{ id: "toggle", title: "Connect" }];
-  actions.push({ id: "copy", title: "Copy Address", shortcut: "cmd+c" });
+  actions.push({ id: "copy", title: "Copy address", shortcut: "cmd+c" });
   return {
     id: d.address,
     name: d.name,

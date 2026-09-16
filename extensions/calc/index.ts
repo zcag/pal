@@ -109,7 +109,7 @@ export default {
       title: "Calculator",
       icon: ICON,
       input: true,
-      placeholder: "Calculate",
+      placeholder: "An expression, a conversion, a date or a time",
       list: async (query = "") => {
         const q = query.trim().replace(/\s*=$/, "");
         if (!q) return HINTS;

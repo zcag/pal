@@ -4,7 +4,7 @@
       "title": "Calculator",
       "icon": "=",
       "input": true,
-      "placeholder": "Calculate",
+      "placeholder": "An expression, a conversion, a date or a time",
       "byQuery": {
         "2^10 + 15% of 240": [
           {

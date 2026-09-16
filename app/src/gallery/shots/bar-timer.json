@@ -17,12 +17,12 @@
   ],
   "palette": {
     "title": "Timers",
-    "placeholder": "Timers",
+    "placeholder": "Find a timer by name",
     "rows": [
-      { "id": "tea", "name": "tea", "subtitle": "3:12 left, done at 04:41 PM", "icon": "󰥔", "accessories": [{ "tag": "running", "color": "blue" }], "actions": [{ "id": "pause", "title": "Pause" }, { "id": "add", "title": "Add 5 minutes", "shortcut": "cmd++" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+backspace", "style": "destructive" }] },
-      { "id": "laundry", "name": "laundry", "subtitle": "22:41 left, done at 05:01 PM", "icon": "󰥔", "accessories": [{ "tag": "running", "color": "blue" }], "actions": [{ "id": "pause", "title": "Pause" }, { "id": "add", "title": "Add 5 minutes", "shortcut": "cmd++" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+backspace", "style": "destructive" }] },
-      { "id": "focus", "name": "focus", "subtitle": "Paused at 41:05", "icon": "󰥔", "accessories": [{ "tag": "paused", "color": "amber" }], "actions": [{ "id": "resume", "title": "Resume" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+backspace", "style": "destructive" }] },
-      { "id": "new", "name": "New timer", "subtitle": "A duration and a name", "icon": "+", "actions": [{ "id": "new", "title": "New timer" }] }
+      { "id": "tea", "name": "tea", "subtitle": "3:12 left, done at 04:41 PM", "icon": "󰥔", "accessories": [{ "tag": "running", "color": "blue" }], "actions": [{ "id": "pause", "title": "Pause" }, { "id": "add", "title": "Add 5 minutes", "shortcut": "cmd++" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+d", "style": "destructive" }] },
+      { "id": "laundry", "name": "laundry", "subtitle": "22:41 left, done at 05:01 PM", "icon": "󰥔", "accessories": [{ "tag": "running", "color": "blue" }], "actions": [{ "id": "pause", "title": "Pause" }, { "id": "add", "title": "Add 5 minutes", "shortcut": "cmd++" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+d", "style": "destructive" }] },
+      { "id": "focus", "name": "focus", "subtitle": "Paused at 41:05", "icon": "󰥔", "accessories": [{ "tag": "paused", "color": "amber" }], "actions": [{ "id": "resume", "title": "Resume" }, { "id": "stop", "title": "Stop", "shortcut": "cmd+d", "style": "destructive" }] },
+      { "id": "new", "name": "New timer", "subtitle": "A duration and a name", "icon": "󰐕", "actions": [{ "id": "new", "title": "New timer" }] }
     ]
   },
   "shots": {

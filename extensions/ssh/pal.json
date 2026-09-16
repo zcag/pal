@@ -8,19 +8,58 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "path", "id": "config", "label": "Config file", "description": "The ssh config to read; Include lines in it are followed one level.", "pick": "file", "default": "~/.ssh/config" },
-    { "kind": "boolean", "id": "include_known_hosts", "label": "Known hosts", "text": "List the names in ~/.ssh/known_hosts too, in a second section", "description": "Only hosts you have connected to by name; hashed and numeric entries are skipped.", "default": false },
-    { "kind": "select", "id": "terminal", "label": "Terminal (macOS)", "description": "Which terminal Connect opens. Auto picks the first installed of kitty, Ghostty, Alacritty, iTerm2, Terminal. On Linux $TERMINAL, else kitty, foot, alacritty, xterm.", "options": [
-      { "id": "auto", "title": "Auto" },
-      { "id": "kitty", "title": "kitty" },
-      { "id": "Terminal", "title": "Terminal" },
-      { "id": "iTerm2", "title": "iTerm2" },
-      { "id": "Ghostty", "title": "Ghostty" },
-      { "id": "Alacritty", "title": "Alacritty" }
-    ], "default": "auto" }
+    {
+      "kind": "path",
+      "id": "config",
+      "label": "Config file",
+      "description": "The ssh config to read; Include lines in it are followed one level.",
+      "pick": "file",
+      "default": "~/.ssh/config"
+    },
+    {
+      "kind": "boolean",
+      "id": "include_known_hosts",
+      "label": "Known hosts",
+      "text": "List the names in ~/.ssh/known_hosts too, in a second section",
+      "description": "Only hosts you have connected to by name; hashed and numeric entries are skipped.",
+      "default": false
+    },
+    {
+      "kind": "select",
+      "id": "terminal",
+      "label": "Terminal (macOS)",
+      "description": "Which terminal Connect opens. Auto picks the first installed of kitty, Ghostty, Alacritty, iTerm2, Terminal. On Linux $TERMINAL, else kitty, foot, alacritty, xterm.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "Auto"
+        },
+        {
+          "id": "kitty",
+          "title": "kitty"
+        },
+        {
+          "id": "Terminal",
+          "title": "Terminal"
+        },
+        {
+          "id": "iTerm2",
+          "title": "iTerm2"
+        },
+        {
+          "id": "Ghostty",
+          "title": "Ghostty"
+        },
+        {
+          "id": "Alacritty",
+          "title": "Alacritty"
+        }
+      ],
+      "default": "auto"
+    }
   ],
   "store": {
-    "tagline": "Your ssh config's hosts, one Enter from a terminal running ssh.",
+    "tagline": "Your ssh config's hosts, one Enter from a terminal",
     "category": "developer",
     "features": [
       "Every named `Host` in `~/.ssh/config`, `Include` files followed one level, one section per file (`.ssh/config`, `.ssh/conf.d/work.conf`)",
@@ -30,31 +69,84 @@
       "`cmd+p` pings the host once and toasts the round trip (`web-1.example.com: 3 ms`), or why it did not answer",
       "Optionally the names in `known_hosts` as a last section"
     ],
-    "permissions": ["automation"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "automation"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-hosts.png", "caption": "Hosts sectioned by the file they came from, user and port on the right, a jump host tagged" },
-      { "file": "2-search.png", "caption": "The real host name finds the alias from the root" },
-      { "file": "3-actions.png", "caption": "Connect, copy the host or the command, the -J form, ping" },
-      { "file": "4-ping.png", "caption": "Ping: one echo, the round trip as a toast" }
+      {
+        "file": "1-hosts.png",
+        "caption": "Hosts sectioned by the file they came from, user and port on the right, a jump host tagged"
+      },
+      {
+        "file": "2-search.png",
+        "caption": "The real host name finds the alias from the root"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Connect, copy the host or the command, the -J form, ping"
+      },
+      {
+        "file": "4-ping.png",
+        "caption": "Ping: one echo, the round trip as a toast"
+      }
     ],
     "actions": [
-      { "title": "Connect", "description": "A terminal window running ssh <host>.", "keys": "enter" },
-      { "title": "Copy host", "keys": "cmd+c" },
-      { "title": "Copy ssh command", "description": "ssh <host>.", "keys": "cmd+shift+c" },
-      { "title": "Copy ssh -J command", "description": "ssh -J <jump> <host>, on a host with a ProxyJump.", "keys": "cmd+shift+j" },
-      { "title": "Ping", "description": "One echo to the HostName; the round trip as a toast.", "keys": "cmd+p" }
+      {
+        "title": "Connect",
+        "description": "A terminal window running ssh <host>.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy host",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy ssh command",
+        "description": "ssh <host>.",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Copy ssh -J command",
+        "description": "ssh -J <jump> <host>, on a host with a ProxyJump.",
+        "keys": "cmd+shift+j"
+      },
+      {
+        "title": "Ping",
+        "description": "One echo to the HostName; the round trip as a toast.",
+        "keys": "cmd+p"
+      }
     ]
   },
   "palettes": {
     "ssh": {
+      "tier": "primary",
       "kind": "list",
       "description": "Every Host in your ssh config, and what it connects to.",
       "keys": [
-        { "keys": "enter", "title": "Connect in a terminal" },
-        { "keys": "cmd+c", "title": "Copy the host name" },
-        { "keys": "cmd+shift+c", "title": "Copy the ssh command" },
-        { "keys": "cmd+p", "title": "Ping" }
+        {
+          "keys": "enter",
+          "title": "Connect in a terminal"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the host name"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the ssh command"
+        },
+        {
+          "keys": "cmd+shift+j",
+          "title": "Copy the ssh -J command (a ProxyJump host)"
+        },
+        {
+          "keys": "cmd+p",
+          "title": "Ping"
+        }
       ]
     }
   }

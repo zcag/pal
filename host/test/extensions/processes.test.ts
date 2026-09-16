@@ -42,7 +42,7 @@ const pick = (id: string, action?: string) => host.pick("processes", "processes"
 describe("processes", () => {
   test("meta: live input palette with the four filters", () => {
     expect(host.loaded().find((l) => l.extension === "processes")!.palettes[0]).toMatchObject({
-      name: "processes", title: "Processes", live: true, input: true, icon: "▤",
+      name: "processes", title: "Processes", live: true, input: true, icon: "\u{f035b}",
       filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "cpu", title: "Top CPU" }, { id: "memory", title: "Top memory" }],
     });
   });
@@ -58,6 +58,16 @@ describe("processes", () => {
       expect(i.actions!.map((a) => a.id)).toEqual(ACTIONS);
     }
     expect(items[0].actions![0]).toMatchObject({ style: "destructive", confirm: expect.any(String) });
+    // Every row has an icon: the app bundle's, else the chip glyph.
+    for (const i of items) expect(i.icon).toBeTruthy();
+  });
+
+  test("detail: the full command and the numbers of the row, from the last listing", async () => {
+    const items = await list();
+    const d = await host.detail("processes", "processes", items[0].id);
+    expect(d!.metadata!.map((m) => m.label)).toEqual(["Command", "PID", "Parent", "User", "CPU", "Memory"]);
+    expect(d!.metadata![1].value).toBe(items[0].id);
+    expect(await host.detail("processes", "processes", "999999999")).toEqual({});
     // Never lists the host itself, and never a system pid by default.
     expect(items.map((i) => i.id)).not.toContain(String(host.pid));
     expect(items.every((i) => Number(i.id) >= 100)).toBe(true);

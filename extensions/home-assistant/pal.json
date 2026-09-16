@@ -8,50 +8,184 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "text", "id": "url", "label": "URL", "placeholder": "http://homeassistant.local:8123", "description": "Where Home Assistant answers, scheme included; no trailing slash needed.", "default": "" },
-    { "kind": "secret", "id": "token", "label": "Token", "placeholder": "keychain:pal/home-assistant-token", "description": "A long-lived access token (your profile in HA, Security, Long-lived access tokens). Stored as a keychain: or env: reference.", "default": "" },
-    { "kind": "list", "id": "domains", "label": "Domains", "placeholder": "light", "description": "Entity domains listed at the root, in this order. A domain filter shows its domain regardless; favourites are listed regardless.", "default": ["light", "switch", "climate", "media_player", "cover", "lock", "fan", "scene", "script", "automation", "sensor", "binary_sensor", "person", "input_boolean"] },
-    { "kind": "list", "id": "favorites", "label": "Favourites", "placeholder": "light.kitchen", "description": "Entity ids pinned to the top, in this order.", "default": [] },
-    { "kind": "number", "id": "timeout", "label": "Timeout", "description": "How long one request may take before the row says Home Assistant did not answer.", "min": 1, "max": 60, "step": 1, "unit": "s", "default": 5 }
+    {
+      "kind": "text",
+      "id": "url",
+      "label": "URL",
+      "placeholder": "http://homeassistant.local:8123",
+      "description": "Where Home Assistant answers, scheme included; no trailing slash needed.",
+      "default": ""
+    },
+    {
+      "kind": "secret",
+      "id": "token",
+      "label": "Token",
+      "placeholder": "keychain:pal/home-assistant-token",
+      "description": "A long-lived access token (your profile in HA, Security, Long-lived access tokens). Stored as a keychain: or env: reference.",
+      "default": ""
+    },
+    {
+      "kind": "list",
+      "id": "domains",
+      "label": "Domains",
+      "placeholder": "light",
+      "description": "Entity domains listed at the root, in this order. A domain filter shows its domain regardless; favourites are listed regardless.",
+      "default": [
+        "light",
+        "switch",
+        "climate",
+        "media_player",
+        "cover",
+        "lock",
+        "fan",
+        "scene",
+        "script",
+        "automation",
+        "sensor",
+        "binary_sensor",
+        "person",
+        "input_boolean"
+      ]
+    },
+    {
+      "kind": "list",
+      "id": "favorites",
+      "label": "Favourites",
+      "placeholder": "light.kitchen",
+      "description": "Entity ids pinned to the top, in this order.",
+      "default": []
+    },
+    {
+      "kind": "number",
+      "id": "timeout",
+      "label": "Timeout",
+      "description": "How long one request may take before the row says Home Assistant did not answer.",
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "unit": "s",
+      "default": 5
+    }
   ],
   "store": {
-    "tagline": "Your Home Assistant entities, services and areas in the panel, over the REST API.",
+    "tagline": "Toggle, dim and run Home Assistant entities from the panel",
     "category": "integration",
     "features": [
       "Every entity of the chosen domains at the root with its state as a tag (`on`, `locked`, `playing`) and when it last changed; favourites first, a filter per domain",
       "Actions by domain: Toggle, Turn on, Turn off, Brightness (`cmd+b`) for a light; Set temperature as a form for a thermostat; Open, Close, Stop for a cover; Lock and Unlock (asking first); play, next, volume for a media player; Activate, Run, Trigger for scenes, scripts and automations",
-      "`cmd+c` copies the entity id, `cmd+i` lists its attributes, `cmd+o` opens it in Home Assistant",
+      "`cmd+c` copies the entity id, `cmd+shift+a` lists its attributes, `cmd+o` opens it in Home Assistant",
       "Every service as a form: the target entity as a select, then the service's fields from its description",
       "Areas as drill-ins: `enter` on an area lists its entities",
       "Entity ids are row ids, so an item hotkey can toggle the kitchen light without showing pal"
     ],
-    "permissions": ["network"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "network",
+      "token"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-entities.png", "caption": "Entities with their state and when it last changed, favourites first" },
-      { "file": "2-actions.png", "caption": "What a light can do: toggle, on, off, brightness, and the rows every entity has" },
-      { "file": "3-detail.png", "caption": "The detail pane: the entity, its state and its attributes" },
-      { "file": "4-service.png", "caption": "A service as a form: the target entity, then the fields Home Assistant describes" }
+      {
+        "file": "1-entities.png",
+        "caption": "Entities with their state and when it last changed, favourites first"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "What a light can do: toggle, on, off, brightness, and the rows every entity has"
+      },
+      {
+        "file": "3-detail.png",
+        "caption": "The detail pane: the entity, its state and its attributes"
+      },
+      {
+        "file": "4-service.png",
+        "caption": "A service as a form: the target entity, then the fields Home Assistant describes"
+      }
     ],
     "actions": [
-      { "title": "Toggle", "description": "Lights, switches, fans, input booleans.", "keys": "enter" },
-      { "title": "Turn on / Turn off", "keys": "cmd+enter" },
-      { "title": "Brightness", "description": "Presets of 10, 25, 50, 75 and 100 % for a light.", "keys": "cmd+b" },
-      { "title": "Set temperature", "description": "A form with the temperature and the mode of a thermostat.", "keys": "enter" },
-      { "title": "Open / Close / Stop", "description": "Covers." },
-      { "title": "Lock / Unlock", "description": "Both ask first." },
-      { "title": "Play / Pause, Next track, Previous track, Turn off", "description": "Media players." },
-      { "title": "Volume", "description": "Presets for a media player.", "keys": "cmd+u" },
-      { "title": "Activate / Run / Trigger", "description": "Scenes, scripts, automations; Enable or Disable for an automation." },
-      { "title": "Press", "description": "Buttons." },
-      { "title": "Start / Return to dock", "description": "Vacuums." },
-      { "title": "Copy value", "description": "Sensors, people and every other domain.", "keys": "enter" },
-      { "title": "Copy entity id", "keys": "cmd+c" },
-      { "title": "Show attributes", "description": "A level with the state and every attribute; each row copies its value.", "keys": "cmd+i" },
-      { "title": "Open in Home Assistant", "description": "The automation or script editor, the history page for the rest.", "keys": "cmd+o" },
-      { "title": "Call", "description": "On a service: the form, then the call.", "keys": "enter" },
-      { "title": "Copy service id", "keys": "cmd+c" },
-      { "title": "Show entities", "description": "On an area.", "keys": "enter" }
+      {
+        "title": "Toggle",
+        "description": "Lights, switches, fans, input booleans.",
+        "keys": "enter"
+      },
+      {
+        "title": "Turn on / Turn off",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Brightness",
+        "description": "Presets of 10, 25, 50, 75 and 100 % for a light.",
+        "keys": "cmd+b"
+      },
+      {
+        "title": "Set temperature",
+        "description": "A form with the temperature and the mode of a thermostat.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open / Close / Stop",
+        "description": "Covers."
+      },
+      {
+        "title": "Lock / Unlock",
+        "description": "Both ask first."
+      },
+      {
+        "title": "Play / Pause, Next track, Previous track, Turn off",
+        "description": "Media players."
+      },
+      {
+        "title": "Volume",
+        "description": "Presets for a media player.",
+        "keys": "cmd+u"
+      },
+      {
+        "title": "Activate / Run / Trigger",
+        "description": "Scenes, scripts, automations; Enable or Disable for an automation."
+      },
+      {
+        "title": "Press",
+        "description": "Buttons."
+      },
+      {
+        "title": "Start / Return to dock",
+        "description": "Vacuums."
+      },
+      {
+        "title": "Copy value",
+        "description": "Sensors, people and every other domain.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy entity id",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Show attributes",
+        "description": "A level with the state and every attribute; each row copies its value.",
+        "keys": "cmd+shift+a"
+      },
+      {
+        "title": "Open in Home Assistant",
+        "description": "The automation or script editor, the history page for the rest.",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Call",
+        "description": "On a service: the form, then the call.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy service id",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Show entities",
+        "description": "On an area.",
+        "keys": "enter"
+      }
     ]
   },
   "palettes": {
@@ -59,25 +193,64 @@
       "kind": "live",
       "description": "Every entity of the chosen domains with its state, favourites first; the domain filters scope it. Actions per domain: toggle, on, off, brightness, temperature, open, close, lock, play, activate, run, trigger, copy value; every row copies its id, shows its attributes, opens in HA.",
       "keys": [
-        { "keys": "enter", "title": "The domain's first action: toggle, activate, run, copy value" },
-        { "keys": "cmd+c", "title": "Copy the entity id" },
-        { "keys": "cmd+i", "title": "Show the attributes" },
-        { "keys": "cmd+o", "title": "Open in Home Assistant" }
+        {
+          "keys": "enter",
+          "title": "The domain's first action: toggle, activate, run, copy value"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "The second: turn on or off, set, pause"
+        },
+        {
+          "keys": "cmd+b",
+          "title": "Brightness presets for a light"
+        },
+        {
+          "keys": "cmd+u",
+          "title": "Volume presets for a media player"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the entity id"
+        },
+        {
+          "keys": "cmd+shift+a",
+          "title": "Show the attributes"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open in Home Assistant"
+        },
+        {
+          "keys": "tab",
+          "title": "All entities, Every domain, one domain"
+        }
       ]
     },
     "services": {
       "kind": "list",
+      "ttl": 3600,
       "description": "Every service Home Assistant offers, by domain; Enter opens a form with the target entity and the service's fields, submit calls it.",
       "keys": [
-        { "keys": "enter", "title": "Open the form, then call" },
-        { "keys": "cmd+c", "title": "Copy the service id" }
+        {
+          "keys": "enter",
+          "title": "Open the form, then call"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the service id"
+        }
       ]
     },
     "areas": {
       "kind": "list",
+      "ttl": 3600,
       "description": "Every area with an entity in it; Enter lists those entities.",
       "keys": [
-        { "keys": "enter", "title": "List the area's entities" }
+        {
+          "keys": "enter",
+          "title": "List the area's entities"
+        }
       ]
     }
   }

@@ -2,7 +2,7 @@
   "palettes": {
     "files": {
       "title": "Files",
-      "icon": "▤",
+      "icon": "󰱽",
       "input": true,
       "placeholder": "Search files by name",
       "byQuery": {
@@ -11,7 +11,7 @@
             "id": "/Users/ada/Downloads/invoice-2026-09.pdf",
             "name": "invoice-2026-09.pdf",
             "subtitle": "~/Downloads",
-            "icon": "≡",
+            "icon": "󰧮",
             "accessories": [
               {
                 "text": "86.1 KB"
@@ -63,7 +63,7 @@
             "id": "/Users/ada/proj/widgets/README.md",
             "name": "README.md",
             "subtitle": "~/proj/widgets",
-            "icon": "≡",
+            "icon": "󰧮",
             "accessories": [
               {
                 "text": "4.7 KB"
@@ -115,7 +115,7 @@
             "id": "/Users/ada/Pictures/Screenshots/panel.png",
             "name": "panel.png",
             "subtitle": "~/Pictures/Screenshots",
-            "icon": "▣",
+            "icon": "󰥶",
             "accessories": [
               {
                 "text": "402.7 KB"
@@ -167,7 +167,7 @@
             "id": "/Users/ada/proj/widgets/src/index.ts",
             "name": "index.ts",
             "subtitle": "~/proj/widgets/src",
-            "icon": "‹›",
+            "icon": "󱀫",
             "accessories": [
               {
                 "text": "9.2 KB"
@@ -219,7 +219,7 @@
             "id": "/Users/ada/Documents/notes/2026-09-15.md",
             "name": "2026-09-15.md",
             "subtitle": "~/Documents/notes",
-            "icon": "≡",
+            "icon": "󰧮",
             "accessories": [
               {
                 "text": "2.1 KB"
@@ -271,7 +271,7 @@
             "id": "/Users/ada/Downloads/pal-0.2.0.dmg",
             "name": "pal-0.2.0.dmg",
             "subtitle": "~/Downloads",
-            "icon": "▦",
+            "icon": "󰿺",
             "accessories": [
               {
                 "text": "23.0 MB"
@@ -323,7 +323,7 @@
             "id": "/Users/ada/Documents/budget.numbers",
             "name": "budget.numbers",
             "subtitle": "~/Documents",
-            "icon": "≡",
+            "icon": "󰧮",
             "accessories": [
               {
                 "text": "127.0 KB"
@@ -377,7 +377,7 @@
             "id": "/Users/ada/proj/widgets/README.md",
             "name": "README.md",
             "subtitle": "~/proj/widgets",
-            "icon": "≡",
+            "icon": "󰧮",
             "accessories": [
               {
                 "text": "4.7 KB"
@@ -428,7 +428,7 @@
             "id": "/Users/ada/proj/widgets/docs/readme-template.md",
             "name": "readme-template.md",
             "subtitle": "~/proj/widgets/docs",
-            "icon": "≡",
+            "icon": "󰧮",
             "accessories": [
               {
                 "text": "1.2 KB"
@@ -479,7 +479,7 @@
             "id": "/Users/ada/Downloads/readme.txt",
             "name": "readme.txt",
             "subtitle": "~/Downloads",
-            "icon": "≡",
+            "icon": "󰧮",
             "accessories": [
               {
                 "text": "312 B"
@@ -652,15 +652,15 @@
     },
     "recent": {
       "title": "Recent Files",
-      "icon": "◷",
+      "icon": "󰋚",
       "live": true,
-      "placeholder": "Recently used files",
+      "placeholder": "Search recent files",
       "items": [
         {
           "id": "/Users/ada/Downloads/invoice-2026-09.pdf",
           "name": "invoice-2026-09.pdf",
           "subtitle": "~/Downloads",
-          "icon": "≡",
+          "icon": "󰧮",
           "accessories": [
             {
               "text": "86.1 KB"
@@ -711,7 +711,7 @@
           "id": "/Users/ada/proj/widgets/README.md",
           "name": "README.md",
           "subtitle": "~/proj/widgets",
-          "icon": "≡",
+          "icon": "󰧮",
           "accessories": [
             {
               "text": "4.7 KB"
@@ -762,7 +762,7 @@
           "id": "/Users/ada/Pictures/Screenshots/panel.png",
           "name": "panel.png",
           "subtitle": "~/Pictures/Screenshots",
-          "icon": "▣",
+          "icon": "󰥶",
           "accessories": [
             {
               "text": "402.7 KB"
@@ -813,7 +813,7 @@
           "id": "/Users/ada/proj/widgets/src/index.ts",
           "name": "index.ts",
           "subtitle": "~/proj/widgets/src",
-          "icon": "‹›",
+          "icon": "󱀫",
           "accessories": [
             {
               "text": "9.2 KB"
@@ -864,7 +864,7 @@
           "id": "/Users/ada/Documents/notes/2026-09-15.md",
           "name": "2026-09-15.md",
           "subtitle": "~/Documents/notes",
-          "icon": "≡",
+          "icon": "󰧮",
           "accessories": [
             {
               "text": "2.1 KB"
@@ -915,7 +915,7 @@
           "id": "/Users/ada/Downloads/pal-0.2.0.dmg",
           "name": "pal-0.2.0.dmg",
           "subtitle": "~/Downloads",
-          "icon": "▦",
+          "icon": "󰿺",
           "accessories": [
             {
               "text": "23.0 MB"
@@ -966,7 +966,7 @@
           "id": "/Users/ada/Documents/budget.numbers",
           "name": "budget.numbers",
           "subtitle": "~/Documents",
-          "icon": "≡",
+          "icon": "󰧮",
           "accessories": [
             {
               "text": "127.0 KB"

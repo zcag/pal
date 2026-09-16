@@ -29,7 +29,7 @@ sections.
 | keys | action |
 | --- | --- |
 | `enter` | Connect on a device that is not connected; Disconnect (asks first) on one that is |
-| `cmd+c` | Copy Address: `AA:BB:CC:DD:EE:FF` |
+| `cmd+c` | Copy address: `AA:BB:CC:DD:EE:FF` |
 
 Enter reads the state back from the OS at that moment rather than trust
 the row, since the list may have been up a while; the HUD then says

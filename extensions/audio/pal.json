@@ -8,7 +8,7 @@
   "repo": "bundled",
   "license": "MIT",
   "store": {
-    "tagline": "Switch the output or input, set the volume, mute, without leaving the keyboard.",
+    "tagline": "Switch the output or input, set the volume, mute",
     "category": "system",
     "features": [
       "Every output and input in two sections, the default of each direction tagged `default`, the volume on the right, `muted` where it is",
@@ -19,16 +19,40 @@
       "Live: the defaults and volumes are read again on every show"
     ],
     "permissions": [],
-    "platforms": ["macos", "linux"],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-devices.png", "caption": "Outputs and inputs, the defaults tagged, a muted device marked, the volume on the right" },
-      { "file": "2-actions.png", "caption": "What a device can do: set as output, set the volume, mute" },
-      { "file": "3-volume.png", "caption": "The volume presets for one device, the current level tagged" }
+      {
+        "file": "1-devices.png",
+        "caption": "Outputs and inputs, the defaults tagged, a muted device marked, the volume on the right"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "What a device can do: set as output, set the volume, mute"
+      },
+      {
+        "file": "3-volume.png",
+        "caption": "The volume presets for one device, the current level tagged"
+      }
     ],
     "actions": [
-      { "title": "Set as Output / Set as Input", "description": "Makes the row the default for its direction; the HUD names it.", "keys": "enter" },
-      { "title": "Set Volume…", "description": "A level of presets, 0 to 100 %.", "keys": "cmd+shift+v" },
-      { "title": "Mute / Unmute", "description": "Toggles mute and stays in the list.", "keys": "cmd+m" }
+      {
+        "title": "Set as output / Set as input",
+        "description": "Makes the row the default for its direction; the HUD names it.",
+        "keys": "enter"
+      },
+      {
+        "title": "Set volume…",
+        "description": "A level of presets, 0 to 100 %.",
+        "keys": "cmd+shift+v"
+      },
+      {
+        "title": "Mute / Unmute",
+        "description": "Toggles mute and stays in the list.",
+        "keys": "cmd+m"
+      }
     ]
   },
   "palettes": {
@@ -36,9 +60,18 @@
       "kind": "live",
       "description": "Every output and input, the defaults tagged, with their volume.",
       "keys": [
-        { "keys": "enter", "title": "Set as the default output or input" },
-        { "keys": "cmd+shift+v", "title": "Set the volume" },
-        { "keys": "cmd+m", "title": "Mute or unmute" }
+        {
+          "keys": "enter",
+          "title": "Set as the default output or input"
+        },
+        {
+          "keys": "cmd+shift+v",
+          "title": "Set the volume"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Mute or unmute"
+        }
       ]
     }
   }

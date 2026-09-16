@@ -3,15 +3,22 @@
   "title": "Windows",
   "description": "Every open window, with its app's icon, grouped by app. Enter switches to it; close, minimise, close or minimise all of the app, and hide the app from the action panel.",
   "version": "0.1.0",
-  "icon": "▣",
+  "icon": "󱂬",
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "boolean", "id": "include_minimized", "label": "Minimised windows", "text": "List minimised windows too", "description": "Focusing a minimised window restores it.", "default": true }
+    {
+      "kind": "boolean",
+      "id": "include_minimized",
+      "label": "Minimised windows",
+      "text": "List minimised windows too",
+      "description": "Focusing a minimised window restores it.",
+      "default": true
+    }
   ],
   "store": {
-    "tagline": "Every open window with its app's icon, grouped by app; Enter switches to it.",
+    "tagline": "Every open window, grouped by app; Enter switches to it",
     "category": "productivity",
     "features": [
       "Live: listed again every time the panel shows, so window titles are root results and the order is the desktop's, front to back",
@@ -21,32 +28,95 @@
       "Minimize all (`cmd+shift+m`) and Close all (`cmd+shift+w`, asks first) act on every window of the app",
       "Hyprland, Sway and X11 (wmctrl) on Linux, detected rather than configured"
     ],
-    "permissions": ["accessibility", "automation"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "accessibility",
+      "automation"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-list.png", "caption": "Open windows in a section per app; a minimised one is tagged" },
-      { "file": "2-actions.png", "caption": "Focus, Close, Minimize, Hide app, and the whole app's windows at once" },
-      { "file": "3-root.png", "caption": "Window titles and app names are root results: chrome finds its three windows" },
-      { "file": "4-confirm.png", "caption": "Close all of this app asks first" }
+      {
+        "file": "1-list.png",
+        "caption": "Open windows in a section per app; a minimised one is tagged"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "Focus, Close, Minimize, Hide app, and the whole app's windows at once"
+      },
+      {
+        "file": "3-root.png",
+        "caption": "Window titles and app names are root results: chrome finds its three windows"
+      },
+      {
+        "file": "4-confirm.png",
+        "caption": "Close all of this app asks first"
+      }
     ],
     "actions": [
-      { "title": "Focus", "description": "Hides the panel, then raises the window, restoring it if minimised.", "keys": "enter" },
-      { "title": "Close", "description": "The palette stays open and lists again.", "keys": "cmd+w" },
-      { "title": "Minimize", "description": "Not offered on a window that already is.", "keys": "cmd+m" },
-      { "title": "Hide app", "description": "macOS: hides the window's process through System Events.", "keys": "cmd+h" },
-      { "title": "Minimize all of this app", "description": "On an app with more than one window.", "keys": "cmd+shift+m" },
-      { "title": "Close all of this app", "description": "Asks first.", "keys": "cmd+shift+w" }
+      {
+        "title": "Focus",
+        "description": "Hides the panel, then raises the window, restoring it if minimised.",
+        "keys": "enter"
+      },
+      {
+        "title": "Close",
+        "description": "The palette stays open and lists again.",
+        "keys": "cmd+w"
+      },
+      {
+        "title": "Minimize",
+        "description": "Not offered on a window that already is.",
+        "keys": "cmd+m"
+      },
+      {
+        "title": "Hide app",
+        "description": "macOS: hides the window's process through System Events.",
+        "keys": "cmd+h"
+      },
+      {
+        "title": "Minimize all of this app",
+        "description": "On an app with more than one window.",
+        "keys": "cmd+shift+m"
+      },
+      {
+        "title": "Close all of this app",
+        "description": "Asks first.",
+        "keys": "cmd+shift+w"
+      }
     ]
   },
   "palettes": {
     "windows": {
+      "tier": "primary",
       "kind": "live",
       "description": "What is open right now, front to back.",
       "keys": [
-        { "keys": "enter", "title": "Focus the window" },
-        { "keys": "cmd+w", "title": "Close it" },
-        { "keys": "cmd+m", "title": "Minimize it" },
-        { "keys": "cmd+h", "title": "Hide the app" }
+        {
+          "keys": "enter",
+          "title": "Focus the window"
+        },
+        {
+          "keys": "cmd+w",
+          "title": "Close it"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Minimize it"
+        },
+        {
+          "keys": "cmd+h",
+          "title": "Hide the app"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Minimize all of the app's windows"
+        },
+        {
+          "keys": "cmd+shift+w",
+          "title": "Close all of the app's windows, after a confirm"
+        }
       ]
     }
   }

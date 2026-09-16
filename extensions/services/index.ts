@@ -99,7 +99,8 @@ function unitItem(scope: Scope, r: UnitRow, enabled: string | undefined, section
   units.set(id, { scope, unit: r.unit, active, enabled });
   const accessories: Accessory[] = [];
   if (enabled && enabled !== "static" && enabled !== "generated" && enabled !== "transient") accessories.push({ text: enabled });
-  accessories.push({ tag: r.active === "active" ? r.sub : `${r.active}/${r.sub}`, color: ACTIVE_COLOR[r.active] ?? "grey" });
+  // `running` for an active unit, `failed` rather than `failed/failed`, else both states.
+  accessories.push({ tag: r.active === "active" || r.active === r.sub ? r.sub : `${r.active}/${r.sub}`, color: ACTIVE_COLOR[r.active] ?? "grey" });
   const metadata: Metadata[] = [
     { label: "Unit", value: r.unit },
     { label: "Scope", value: scope },

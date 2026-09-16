@@ -11,18 +11,19 @@ import { join } from "node:path";
 import { home, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit, run } from "./api.ts";
 import {
-  NOTIF_TTL, TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
+  TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type Notification, type PR, type PRDetail, type Repo, type SearchKind, type User,
 } from "./data.ts";
 
-const ICON = { prs: "⎇", issues: "◉", repos: "▤", notifications: "◍", search: "⌕", user: "◯" } as const;
-/** The bar's glyph (nf-fa-github): drawn from the bundled Nerd Font, unlike the palette icons above. */
+/** Octicons from the bundled Nerd Font (nf-oct-*): pull request, issue, repo, bell, search, person, info, plus. */
+const ICON = { prs: "\uf407", issues: "\uf41b", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", info: "\uf449", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
+/** The bar's glyph (nf-fa-github). */
 const BAR_GLYPH = "\u{f09b}";
 /** Rows of the bar item's menu; the palette has the rest. */
 const BAR_ROWS = 5;
 /** The tag palette's hues as hex, for the state dot a PR or issue row carries. */
 const DOT = { open: "#1a7f37", draft: "#6e7781", merged: "#8250df", closed: "#cf222e", done: "#8250df" } as const;
-const TYPE_GLYPH: Record<string, string> = { PullRequest: ICON.prs, Issue: ICON.issues, Release: "⏏", Discussion: "☰", Commit: "⌾" };
+const TYPE_GLYPH: Record<string, string> = { PullRequest: ICON.prs, Issue: ICON.issues, Release: "\uf412", Discussion: "\uf442", Commit: "\uf417" };
 const REASON: Record<string, string> = { review_requested: "Review requested", mention: "Mentioned", team_mention: "Mentioned", assign: "Assigned", author: "Your threads", comment: "Comments", subscribed: "Subscribed", state_change: "State changed", ci_activity: "CI", security_alert: "Security" };
 const REASON_ORDER = ["Review requested", "Mentioned", "Assigned", "Your threads", "Comments", "State changed", "CI", "Security", "Subscribed"];
 const CHECKOUT_MS = 60_000;
@@ -31,7 +32,7 @@ const CREATE = "create", SUMMARY = "summary";
 
 // ---- rows the palettes share ------------------------------------------------
 
-const hint = (id: string, name: string, subtitle?: string, actions: Action[] = []): Item => ({ id: `hint:${id}`, name, subtitle, icon: "ⓘ", actions });
+const hint = (id: string, name: string, subtitle?: string, actions: Action[] = []): Item => ({ id: `hint:${id}`, name, subtitle, icon: ICON.info, actions });
 
 /** What a failed listing shows instead of rows: how to sign in, when the limit resets, or what went wrong. */
 function failure(e: unknown): Item[] {
@@ -99,7 +100,7 @@ function prActions(pr: PR): Action[] {
     { id: "open", title: "Open" },
     { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
     ...(open && hasGh() && clonePath(pr.repo) ? [{ id: "checkout", title: "Checkout branch", shortcut: "cmd+shift+o" }] : []),
-    { id: "branch", title: "Copy branch name", shortcut: "cmd+shift+b" },
+    { id: "branch", title: "Copy branch name", shortcut: "cmd+b" },
     { id: "checks", title: "Open checks", shortcut: "cmd+shift+k" },
     { id: "files", title: "Open files changed", shortcut: "cmd+shift+f" },
     { id: "ref", title: "Copy reference" },
@@ -295,7 +296,7 @@ async function issueForm(errors?: Record<string, string>, values?: Record<string
   const repos = await recentRepos();
   return {
     id: CREATE,
-    title: "Create Issue",
+    title: "Create issue",
     fields: [
       repos.length
         ? { kind: "select", id: "repo", label: "Repository", options: repos.map((r) => ({ id: r, title: r })), default: String(values?.repo ?? repos[0]), required: true }
@@ -324,7 +325,7 @@ async function saveIssue(values: Record<string, string | boolean>): Promise<Effe
 }
 
 const ISSUE_FILTERS = [{ id: "all", title: "All" }, { id: "assigned", title: "Assigned" }, { id: "mentioned", title: "Mentioned" }, { id: "created", title: "Created" }];
-const createIssueRow: Item = { id: CREATE, name: "Create Issue", subtitle: "A new issue in one of your repositories", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Issue" }] };
+const createIssueRow: Item = { id: CREATE, name: "Create issue", subtitle: "A new issue in one of your repositories", icon: ICON.plus, keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create issue" }] };
 
 async function issueRows(ctx?: Ctx): Promise<Item[]> {
   const lists = await issues(!!ctx?.refresh);
@@ -430,7 +431,7 @@ async function repoForm(errors?: Record<string, string>, values?: Record<string,
   const owners = [...(me ? [{ id: me, title: me }] : []), ...(org ? [{ id: org, title: org }] : [])];
   return {
     id: CREATE,
-    title: "Create Repository",
+    title: "Create repository",
     fields: [
       ...(owners.length > 1 ? [{ kind: "select" as const, id: "owner", label: "Owner", options: owners, default: String(values?.owner ?? owners[0].id) }] : []),
       { kind: "text", id: "name", label: "Name", required: true, default: String(values?.name ?? ""), placeholder: "my-repo" },
@@ -458,7 +459,7 @@ async function saveRepo(values: Record<string, string | boolean>): Promise<Effec
 }
 
 const REPO_FILTERS = [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "starred", title: "Starred" }, { id: "org", title: "Organisation" }];
-const createRepoRow: Item = { id: CREATE, name: "Create Repository", subtitle: "A new repository under your account or your organisation", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Repository" }] };
+const createRepoRow: Item = { id: CREATE, name: "Create repository", subtitle: "A new repository under your account or your organisation", icon: ICON.plus, keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create repository" }] };
 
 async function repoRows(ctx?: Ctx): Promise<Item[]> {
   const filter = ctx?.filter ?? "all", refresh = !!ctx?.refresh;
@@ -599,8 +600,8 @@ async function notifItem(ctx: BarCtx): Promise<BarItem> {
     menu: [
       { type: "section", title: "Unread", children: rows },
       { type: "separator" },
-      { type: "item", id: "open", title: "Open all", subtitle: `${list.length} in pal` },
-      { type: "item", id: "read-all", title: "Mark all read", shortcut: "cmd+shift+r", style: "destructive" },
+      { type: "item", id: "open", title: "Open all", subtitle: `${list.length} in pal`, icon: ICON.inbox },
+      { type: "item", id: "read-all", title: "Mark all read", icon: ICON.check, shortcut: "cmd+shift+a", style: "destructive" },
     ],
   };
 }
@@ -675,7 +676,6 @@ export default {
     prs: {
       title: "Pull Requests",
       icon: ICON.prs,
-      ttl: TTL,
       showDetail: true,
       filters: PR_FILTERS,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await prRows(ctx))]),
@@ -685,7 +685,6 @@ export default {
     issues: {
       title: "Issues",
       icon: ICON.issues,
-      ttl: TTL,
       showDetail: true,
       filters: ISSUE_FILTERS,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await issueRows(ctx))]),
@@ -699,7 +698,6 @@ export default {
     repos: {
       title: "Repositories",
       icon: ICON.repos,
-      ttl: TTL,
       filters: REPO_FILTERS,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await repoRows(ctx))]),
       pick: async (id, action, ctx) => {
@@ -714,7 +712,6 @@ export default {
       title: "Notifications",
       icon: ICON.notifications,
       live: true,
-      ttl: NOTIF_TTL,
       list: (_q, ctx) => guard(async () => [...limitHint(), ...(await notifRows(ctx))]),
       pick: (id, action) => (id.startsWith("hint:") ? pickHint(id) : pickNotif(id, action)),
     },
@@ -722,7 +719,7 @@ export default {
       title: "Search GitHub",
       icon: ICON.search,
       input: true,
-      placeholder: "Search GitHub",
+      placeholder: "Text, repo:owner/name, is:pr, author:login",
       filters: SEARCH_FILTERS,
       list: (query, ctx) => guard(() => searchRows(query, ctx)),
       pick: pickAny,

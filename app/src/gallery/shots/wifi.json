@@ -33,7 +33,7 @@
             },
             {
               "id": "password",
-              "title": "Copy Password",
+              "title": "Copy password",
               "shortcut": "cmd+shift+c"
             },
             {
@@ -71,8 +71,13 @@
               "title": "Join"
             },
             {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            },
+            {
               "id": "password",
-              "title": "Copy Password",
+              "title": "Copy password",
               "shortcut": "cmd+shift+c"
             },
             {
@@ -102,8 +107,13 @@
               "title": "Join"
             },
             {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            },
+            {
               "id": "password",
-              "title": "Copy Password",
+              "title": "Copy password",
               "shortcut": "cmd+shift+c"
             },
             {
@@ -133,8 +143,13 @@
               "title": "Join"
             },
             {
+              "id": "copy",
+              "title": "Copy name",
+              "shortcut": "cmd+c"
+            },
+            {
               "id": "password",
-              "title": "Copy Password",
+              "title": "Copy password",
               "shortcut": "cmd+shift+c"
             },
             {
@@ -168,7 +183,7 @@
             },
             {
               "id": "copy",
-              "title": "Copy Name",
+              "title": "Copy name",
               "shortcut": "cmd+c"
             }
           ],
@@ -195,7 +210,7 @@
             },
             {
               "id": "copy",
-              "title": "Copy Name",
+              "title": "Copy name",
               "shortcut": "cmd+c"
             }
           ],
@@ -222,7 +237,7 @@
             },
             {
               "id": "copy",
-              "title": "Copy Name",
+              "title": "Copy name",
               "shortcut": "cmd+c"
             }
           ],
@@ -259,7 +274,7 @@
           "actions": [
             {
               "id": "power",
-              "title": "Turn Off"
+              "title": "Turn off"
             }
           ],
           "section": "Wi-Fi"

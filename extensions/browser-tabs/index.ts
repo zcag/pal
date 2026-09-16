@@ -206,7 +206,8 @@ function item(t: Tab, browsers: number, windowsOf: number): Item {
   if (windowsOf > 1) accessories.push({ text: `window ${t.window}` });
   if (t.media?.audible) accessories.push({ tag: "playing", color: "green" });
   else if (t.media?.muted) accessories.push({ tag: "muted" });
-  const actions = t.src === "cdp" ? [FOCUS, CLOSE, COPY, mute(!!t.media?.muted), MARKDOWN] : t.src === "as" ? [FOCUS, CLOSE, COPY, MARKDOWN] : [{ ...FOCUS, title: "Focus window" }, COPY, MARKDOWN];
+  // Close is destructive, so it sits last (the brief) and never on cmd+enter.
+  const actions = t.src === "cdp" ? [FOCUS, COPY, mute(!!t.media?.muted), MARKDOWN, CLOSE] : t.src === "as" ? [FOCUS, COPY, MARKDOWN, CLOSE] : [{ ...FOCUS, title: "Focus window" }, COPY, MARKDOWN];
   const app = MAC ? appPath(t.browser) : undefined;
   return {
     id: t.id,
@@ -234,7 +235,7 @@ async function list(filter = "all"): Promise<Item[]> {
   try { scripted = await scriptTabs(s.apps.filter((a) => a !== over?.app)); } catch (e) {
     const msg = String((e as Error)?.message ?? e);
     hints.push(notAuthorized(msg)
-      ? hint("automation", "Automation permission needed", "pal may not control the browser yet: allow it under Privacy & Security, Automation.", [{ id: "settings", title: "Open System Settings" }])
+      ? hint("automation", "Automation permission needed", "pal may not control the browser yet: allow it under Privacy & Security, Automation", [{ id: "settings", title: "Open System Settings" }])
       : hint("osascript", "Could not ask the browsers", msg));
   }
   let tabs = [...(over?.tabs ?? []), ...scripted, ...ff.tabs];
@@ -248,9 +249,9 @@ async function list(filter = "all"): Promise<Item[]> {
   const windowsOf = new Map<string, number>();
   for (const t of tabs) windowsOf.set(t.browser, Math.max(windowsOf.get(t.browser) ?? 0, t.window));
   if (tabs.length === 0 && hints.length === 0) {
-    if (total > 0) return [hint("none", "No tabs match", filter === "audible" ? "No tab is playing sound." : "No tab is in the front window.")];
+    if (total > 0) return [hint("none", "No tabs match", filter === "audible" ? "No tab is playing sound" : "No tab is in the front window")];
     const where = MAC ? `none of ${s.apps.join(", ")} is running` : `start one with --remote-debugging-port=${s.port}`;
-    return [hint("none", "No browser tabs", over ? `${over.app} on :${s.port} has none, and ${where}.` : `Nothing listens on :${s.port}, and ${where}.`)];
+    return [hint("none", "No browser tabs", over ? `${over.app} on :${s.port} has none, and ${where}` : `Nothing listens on :${s.port}, and ${where}`)];
   }
   return [...hints, ...tabs.map((t) => item(t, browsers, windowsOf.get(t.browser) ?? 1))];
 }

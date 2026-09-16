@@ -7,12 +7,15 @@
 // gives. Enter focuses (a `focus` effect: the panel hides, then the window
 // comes up), the rest of the actions close or minimise, one window or the
 // app's whole set, without leaving the palette; Hide app is macOS's hide.
-import { settings, windows, type Accessory, type Action, type Extension, type Item, type Window } from "@zcag/pal";
+import { settings, windows, xdg, type Accessory, type Action, type Extension, type Item, type Window } from "@zcag/pal";
 
 /** `[extensions.windows]`, defaults in pal.json. */
 type Settings = { include_minimized: boolean };
 
 const MAC = process.platform === "darwin";
+/** The palette's glyph (md-dock_window) and the row's when the app has no artwork (md-window_maximize). */
+const WINDOWS_GLYPH = "\u{f10ac}";
+const WINDOW_GLYPH = xdg("window-new")!;
 
 const FOCUS: Action = { id: "focus", title: "Focus" };
 const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive" };
@@ -31,7 +34,7 @@ function item(w: Window, siblings: number): Item {
     name: w.title,
     subtitle: w.app,
     keywords: [w.bundle_or_class, w.app],
-    icon: w.icon ? { app: w.icon } : "▢",
+    icon: w.icon ? { app: w.icon } : WINDOW_GLYPH,
     accessories,
     section: w.app,
     actions: [FOCUS, CLOSE, ...(w.minimized ? [] : [MINIMIZE]), ...(MAC ? [HIDE_APP] : []), ...(siblings > 1 ? [MINIMIZE_ALL, CLOSE_ALL] : [])],
@@ -56,7 +59,7 @@ export default {
   palettes: {
     windows: {
       title: "Windows",
-      icon: "▣",
+      icon: WINDOWS_GLYPH,
       live: true,
       placeholder: "Switch to a window",
       list: async () => {

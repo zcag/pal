@@ -36,7 +36,8 @@ Nerd Font icons:
 | --- | --- |
 | `enter` | Copy glyph: the character itself |
 | `cmd+enter` | Copy code point: `U+F0009` |
-| `cmd+k` | Copy name (`nf-md-account_circle`), Copy CSS class (`nf nf-md-account_circle`) |
+| `cmd+shift+n` | Copy name: `nf-md-account_circle` |
+| `cmd+shift+c` | Copy CSS class: `nf nf-md-account_circle` |
 | `cmd+i` | The detail pane |
 
 Freedesktop icon names:
@@ -45,7 +46,7 @@ Freedesktop icon names:
 | --- | --- |
 | `enter` | Copy name: `folder-open` |
 | `cmd+enter` | Copy glyph |
-| `cmd+k` | Copy code point |
+| `cmd+shift+u` | Copy code point |
 
 ## Setup
 

@@ -10,7 +10,7 @@
           "id": "create",
           "name": "Create Quicklink",
           "subtitle": "A link, with {query} where what you type goes",
-          "icon": "+",
+          "icon": "󰲔",
           "keywords": [
             "new",
             "add"
@@ -18,7 +18,7 @@
           "actions": [
             {
               "id": "create",
-              "title": "Create Quicklink"
+              "title": "Create quicklink"
             }
           ]
         },
@@ -357,7 +357,7 @@
           "id": "import",
           "name": "Import Quicklinks",
           "subtitle": "From a JSON file",
-          "icon": "⇣",
+          "icon": "󰄠",
           "keywords": [
             "json",
             "restore"
@@ -373,7 +373,7 @@
           "id": "export",
           "name": "Export Quicklinks",
           "subtitle": "To a JSON file",
-          "icon": "⇡",
+          "icon": "󰄝",
           "keywords": [
             "json",
             "backup"
@@ -406,7 +406,8 @@
             ]
           }
         ]
-      }
+      },
+      "placeholder": "Name or keyword"
     }
   },
   "effects": {

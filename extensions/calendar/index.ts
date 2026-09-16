@@ -201,7 +201,6 @@ export default {
       title: "My Schedule",
       icon: ICON,
       live: true,
-      ttl: 60,
       placeholder: "Search your events",
       filters: await loadFilters(),
       list: async (_query, ctx): Promise<Item[]> => {

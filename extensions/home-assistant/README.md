@@ -61,7 +61,7 @@ On every entity row:
 | keys | action |
 | --- | --- |
 | `cmd+c` | Copy entity id |
-| `cmd+i` | Show attributes: a level with the state and every attribute as rows, each copying its value (`cmd+c` its name) |
+| `cmd+shift+a` | Show attributes: a level with the state and every attribute as rows, each copying its value (`cmd+c` its name) |
 | `cmd+o` | Open in Home Assistant: the automation or script editor, the history page for the rest |
 
 On a service row: `enter` Call (the form, then the call), `cmd+c` Copy

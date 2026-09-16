@@ -86,15 +86,15 @@ const pick = (id: string, action?: string) => host.pick("files", "files", id, ac
 describe.skipIf(!HAS_FIND)("files", () => {
   test("meta: an input palette with lazy detail, and the live Recent Files palette with a ttl", () => {
     expect(host.loaded().find((l) => l.extension === "files")!.palettes).toEqual([
-      { name: "files", title: "Files", live: false, input: true, icon: "▤", placeholder: "Search files by name", detail: "lazy" },
-      { name: "recent", title: "Recent Files", live: true, input: false, icon: "◷", placeholder: "Recently used files", ttl: 60, detail: "lazy" },
+      { name: "files", title: "Files", live: false, input: true, icon: "󰱽", placeholder: "Search files by name", detail: "lazy" },
+      { name: "recent", title: "Recent Files", live: true, input: false, icon: "󰋚", placeholder: "Search recent files", ttl: 60, detail: "lazy", tier: "primary" },
     ]);
   });
 
   test("an empty query lists the recently used files, newest first, in a section: folders, hidden and excluded paths, gone files, other roots and older than a week left out", async () => {
     const recent = await list("");
     expect(recent.map((i) => i.name)).toEqual(["Report-Beta.md", "report-gamma.txt"]);
-    expect(recent[0]).toMatchObject({ id: join(dir, "Report-Beta.md"), section: "Recently used", icon: "≡", accessories: [{ text: "7 B" }, { date: expect.any(Number) }] });
+    expect(recent[0]).toMatchObject({ id: join(dir, "Report-Beta.md"), section: "Recently used", icon: "󰧮", accessories: [{ text: "7 B" }, { date: expect.any(Number) }] });
     expect(recent[0].actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
     expect(await list()).toEqual(recent);
   });
@@ -127,15 +127,15 @@ describe.skipIf(!HAS_FIND)("files", () => {
     const alpha = items.find((i) => i.name === "report-alpha.txt")!;
     expect(alpha.id).toBe(join(dir, "report-alpha.txt"));
     expect(alpha.subtitle).toBe(dir);
-    expect(alpha.icon).toBe("≡");
+    expect(alpha.icon).toBe("󰧮");
     expect(alpha.accessories).toEqual([{ text: "29 B" }, { date: expect.any(Number) }]);
     expect(alpha.actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
     expect(alpha.actions!.at(-1)).toMatchObject({ id: "trash", style: "destructive", confirm: expect.any(String) });
     expect(alpha.actions!.find((a) => a.id === "copy-file")).toEqual({ id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c" });
     if (MAC) expect(alpha.actions!.find((a) => a.id === "quick-look")).toEqual({ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" });
     expect(items.find((i) => i.name === "report-gamma.txt")!.subtitle).toBe(join(dir, "reports"));
-    expect(items.find((i) => i.name === "reports")).toMatchObject({ icon: "▸", accessories: [{ date: expect.any(Number) }] });
-    expect((await list("photo"))[0].icon).toBe("▣");
+    expect(items.find((i) => i.name === "reports")).toMatchObject({ icon: "󰉖", accessories: [{ date: expect.any(Number) }] });
+    expect((await list("photo"))[0].icon).toBe("󰥶");
   });
 
   test("hidden files are skipped until show_hidden; limit caps the rows", async () => {

@@ -6,7 +6,7 @@
 // Without the binary, or with the daemon down, one inert hint row says so.
 // Logs open as a `show` level; Shell opens a terminal (`terminal.ts`).
 import { basename, dirname } from "node:path";
-import { home, settings, xdg, type Accessory, type Action, type Detail, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
+import { home, settings, type Accessory, type Action, type Detail, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
 import { openTerminal, type TerminalChoice } from "./terminal.ts";
 
 /** `[extensions.docker]`, defaults in pal.json. */
@@ -15,7 +15,8 @@ const S = () => settings.get<Settings>();
 /** `ttl` is palette meta, read once at load (a change takes effect on the next reload). */
 const TTL = S().ttl;
 
-const ICON = xdg("package-x-generic") ?? "▣";
+/** The whale (md-docker), the extension's own icon, on every row. */
+const ICON = "\u{f0868}";
 const LOG_LINES = 200;
 const LIST_MS = 8_000;
 /** The core drops a pick unanswered after 10 s: a slower command (a `stop` whose process ignores SIGTERM, a `compose up` that pulls) goes on without us and the toast says so. */
@@ -158,7 +159,7 @@ async function listContainers(): Promise<Item[]> {
   const r = await docker(["ps", "-a", "--format", "{{json .}}"], LIST_MS);
   if (r.code !== 0) return failed(r);
   const items = rows<PsRow>(r.out).map(container);
-  if (!items.length) return [hint("No containers", "docker ps -a lists nothing")];
+  if (!items.length) return [hint("No containers", "Run an image from Docker Images and it lists here")];
   // Running first; docker's order (newest first) within each.
   return [...items.filter((i) => i.section === "Running"), ...items.filter((i) => i.section !== "Running")];
 }
@@ -217,7 +218,7 @@ async function listImages(): Promise<Item[]> {
   const r = await docker(["images", "--format", "{{json .}}"], LIST_MS);
   if (r.code !== 0) return failed(r);
   const items = rows<ImageRow>(r.out).map(image);
-  return items.length ? items : [hint("No images", "docker images lists nothing")];
+  return items.length ? items : [hint("No images", `${S().binary || "docker"} pull one and it lists here`)];
 }
 
 const runForm = (image: string, errors?: Record<string, string>) => ({ form: {
@@ -289,7 +290,7 @@ async function listCompose(): Promise<Item[]> {
   const r = await docker(["compose", "ls", "-a", "--format", "json"], LIST_MS);
   if (r.code !== 0) return failed(r);
   const items = rows<ComposeRow>(r.out).map(composeProject);
-  return items.length ? items : [hint("No Compose projects", "docker compose ls -a lists nothing")];
+  return items.length ? items : [hint("No Compose projects", "Bring one up with compose up and it lists here")];
 }
 
 async function pickCompose(id: string, action = "up") {
@@ -315,7 +316,7 @@ export default {
       icon: ICON,
       live: true,
       ttl: TTL,
-      placeholder: "Container, image or project",
+      placeholder: "Search containers",
       list: listContainers,
       pick: (id, action) => pickContainer(id, action),
     },
@@ -324,7 +325,7 @@ export default {
       icon: ICON,
       live: true,
       ttl: TTL,
-      placeholder: "Image",
+      placeholder: "Search images",
       list: listImages,
       pick: (id, action, ctx) => pickImage(id, action, ctx?.values),
     },
@@ -333,7 +334,7 @@ export default {
       icon: ICON,
       live: true,
       ttl: TTL,
-      placeholder: "Compose project",
+      placeholder: "Search Compose projects",
       list: listCompose,
       pick: (id, action) => pickCompose(id, action),
     },

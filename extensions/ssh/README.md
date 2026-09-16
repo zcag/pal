@@ -12,9 +12,10 @@ config's directory (`.ssh/config`, `.ssh/conf.d/work.conf`).
 The row is the host's name; `HostName` is the subtitle and a keyword, so
 the real name finds the alias from the root; `User` is an accessory and a
 keyword, `Port` a `:22`-style tag. A host with `ProxyJump` carries a `via
-<jump>` tag and the jump as a keyword. The palette is indexed: listed
+<jump>` tag and the jump as a keyword. The detail pane (`cmd+i`) has the
+command and every field of the block. The palette is indexed: listed
 once, searched from the root, refreshed with `cmd+r` after the config
-changes.
+changes. A config with no named host lists one row saying so.
 
 With `include_known_hosts` on, the names in `~/.ssh/known_hosts` (next to
 the config) come after, in a last Known hosts section: `[host]:port`

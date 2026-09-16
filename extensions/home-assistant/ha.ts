@@ -139,7 +139,7 @@ export const accessories = (s: State): Accessory[] => [
 const A = (id: string, title: string, extra: Partial<Action> = {}): Action => ({ id, title, ...extra });
 export const COMMON: Action[] = [
   A("copy_id", "Copy entity id", { shortcut: "cmd+c" }),
-  A("attributes", "Show attributes", { shortcut: "cmd+i" }),
+  A("attributes", "Show attributes", { shortcut: "cmd+shift+a" }),
   A("open_ha", "Open in Home Assistant", { shortcut: "cmd+o" }),
 ];
 const TOGGLE = [A("toggle", "Toggle"), A("on", "Turn on"), A("off", "Turn off")];

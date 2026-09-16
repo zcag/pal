@@ -77,6 +77,8 @@ describe("ssh", () => {
   test("HostName is the subtitle and a keyword; User and Port are accessories; key=value works", async () => {
     const by = Object.fromEntries((await list()).map((i) => [i.id, i]));
     expect(by.marko).toMatchObject({ name: "marko", subtitle: "marko.lan", keywords: ["marko.lan", "cagdas"], accessories: [{ text: "cagdas" }, { tag: ":2222" }] });
+    expect(by.marko.detail!.metadata!.map((m) => [m.label, m.value])).toEqual([["Host", "marko"], ["HostName", "marko.lan"], ["User", "cagdas"], ["Port", "2222"], ["File", `${dir.slice(dir.lastIndexOf("/") + 1)}/config`]]);
+    expect(by.inner.detail!.markdown).toContain("ssh -J marko inner");
     expect(by.deck).toMatchObject({ subtitle: "192.168.1.9", accessories: [{ text: "deck" }] });
     expect(by.steamdeck.subtitle).toBe("192.168.1.9");
     expect(by.work).toMatchObject({ subtitle: "work.example.com", accessories: [{ text: "me" }] });
@@ -114,9 +116,9 @@ describe("ssh", () => {
     expect(bad).toMatchObject({ keep: true, toast: { title: "bare did not answer", style: "failure" } });
   });
 
-  test("a missing config lists nothing rather than failing", async () => {
+  test("a missing config lists one hint row rather than failing", async () => {
     host.changeSettings("ssh", { settings: { config: join(dir, "nope") } });
-    expect(await list()).toEqual([]);
+    expect(await list()).toMatchObject([{ id: "hint:empty", name: "No hosts in your ssh config", actions: [] }]);
     host.changeSettings("ssh", { settings: { config } });
   });
 });

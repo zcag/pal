@@ -10,16 +10,16 @@
         "type": "section",
         "title": "Unread",
         "children": [
-          { "type": "item", "id": "n1", "title": "Retry the index build on a host restart", "subtitle": "zcag/pal", "icon": "⎇" },
-          { "type": "item", "id": "n2", "title": "Settings window loses the hotkey field on tab switch", "subtitle": "zcag/pal", "icon": "◉" },
-          { "type": "item", "id": "n3", "title": "v0.4.0", "subtitle": "zcag/tela", "icon": "⏏" },
-          { "type": "item", "id": "n4", "title": "Should the store show bar items separately from palettes?", "subtitle": "zcag/pal-site", "icon": "☰" },
-          { "type": "item", "id": "n5", "title": "Bump serde_json to 1.0.145", "subtitle": "zcag/dek", "icon": "⎇" }
+          { "type": "item", "id": "n1", "title": "Retry the index build on a host restart", "subtitle": "zcag/pal", "icon": "" },
+          { "type": "item", "id": "n2", "title": "Settings window loses the hotkey field on tab switch", "subtitle": "zcag/pal", "icon": "" },
+          { "type": "item", "id": "n3", "title": "v0.4.0", "subtitle": "zcag/tela", "icon": "" },
+          { "type": "item", "id": "n4", "title": "Should the store show bar items separately from palettes?", "subtitle": "zcag/pal-site", "icon": "" },
+          { "type": "item", "id": "n5", "title": "Bump serde_json to 1.0.145", "subtitle": "zcag/dek", "icon": "" }
         ]
       },
       { "type": "separator" },
-      { "type": "item", "id": "open", "title": "Open all", "subtitle": "7 in pal" },
-      { "type": "item", "id": "read-all", "title": "Mark all read", "shortcut": "cmd+shift+r", "style": "destructive" }
+      { "type": "item", "id": "open", "title": "Open all", "subtitle": "7 in pal", "icon": "" },
+      { "type": "item", "id": "read-all", "title": "Mark all read", "icon": "", "shortcut": "cmd+shift+a", "style": "destructive" }
     ]
   },
   "states": [

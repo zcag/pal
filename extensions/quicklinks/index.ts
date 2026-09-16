@@ -13,6 +13,8 @@ const EXPORT = "export";
 const IMPORTED = "import:";
 const EXTENSION = "quicklinks", PALETTE = "quicklinks";
 const EXPORT_DEFAULT = "~/Downloads/pal-quicklinks.json";
+/** md-link_plus, md-tray_arrow_down, md-tray_arrow_up: the Create, Import and Export rows (a link row gets its favicon). */
+const ICON = { create: "\u{f0c94}", import: "\u{f0120}", export: "\u{f011d}" };
 
 const OPEN: Action = { id: "open", title: "Open" };
 const COPY: Action = { id: "copy", title: "Copy URL", shortcut: "cmd+c" };
@@ -128,6 +130,7 @@ export default {
     quicklinks: {
       title: "Quicklinks",
       icon: "🔗",
+      placeholder: "Name or keyword",
       list: async (query, ctx): Promise<Item[]> => {
         // The drill-in for a placeholder link: one row, the url filled with what is typed.
         const linkId = (ctx?.args as { link?: string } | undefined)?.link;
@@ -142,10 +145,10 @@ export default {
             : { id: l.id, name: `Type the ${arg}`, subtitle: l.url, url: l.url, actions: [] }];
         }
         return [
-          { id: CREATE, name: "Create Quicklink", subtitle: "A link, with {query} where what you type goes", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Quicklink" }] },
+          { id: CREATE, name: "Create Quicklink", subtitle: "A link, with {query} where what you type goes", icon: ICON.create, keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create quicklink" }] },
           ...(await all()).map(row),
-          { id: IMPORT, name: "Import Quicklinks", subtitle: "From a JSON file", icon: "⇣", keywords: ["json", "restore"], actions: [{ id: IMPORT, title: "Import…" }] },
-          { id: EXPORT, name: "Export Quicklinks", subtitle: "To a JSON file", icon: "⇡", keywords: ["json", "backup"], actions: [{ id: EXPORT, title: "Export…" }] },
+          { id: IMPORT, name: "Import Quicklinks", subtitle: "From a JSON file", icon: ICON.import, keywords: ["json", "restore"], actions: [{ id: IMPORT, title: "Import…" }] },
+          { id: EXPORT, name: "Export Quicklinks", subtitle: "To a JSON file", icon: ICON.export, keywords: ["json", "backup"], actions: [{ id: EXPORT, title: "Export…" }] },
         ];
       },
       pick: async (id, action, ctx?: Ctx): Promise<Effect | void> => {

@@ -28,7 +28,9 @@ type Row = { id: number; text: string | null; body: Uint8Array | null; date: num
 type Code = { id: string; code: string; sender: string; name: string; text: string; at: number };
 
 const MAC = process.platform === "darwin";
-const ICON = "✉";
+/** md-message_text, the rows and the palette; md-lock_alert and md-message_off for the hint rows. */
+const ICON = "\u{f0369}";
+const HINT_ICON = { locked: "\u{f08ee}", none: "\u{f164d}" };
 /** The bar's glyph (nf-fa-key), drawn from the bundled Nerd Font. */
 const BAR_GLYPH = "\u{f084}";
 /** How long a code stays on the strip after it arrived. */
@@ -173,7 +175,7 @@ const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-const hint = (id: string, name: string, subtitle: string, actions: Action[] = []): Item => ({ id, name, subtitle, icon: ICON, actions });
+const hint = (id: string, name: string, subtitle: string, actions: Action[] = [], icon = ICON): Item => ({ id, name, subtitle, icon, actions });
 
 /** What `pick` needs per row, from the last listing. */
 const codes = new Map<string, Code>();
@@ -230,7 +232,7 @@ function readCodes(s: Settings, hours = s.hours): Code[] {
 
 function list(): Item[] {
   codes.clear();
-  if (!MAC) return [hint("unavailable", "Unavailable", "Verification codes read the Messages database, which only macOS has.")];
+  if (!MAC) return [hint("unavailable", "Unavailable", "Verification codes read the Messages database, which only macOS has", [], HINT_ICON.none)];
   const s = settings.get<Settings>();
   let found: Code[];
   try {
@@ -238,14 +240,14 @@ function list(): Item[] {
   } catch (e) {
     const code = sqlite(e), msg = String((e as Error)?.message ?? e);
     if (code === "SQLITE_AUTH" || /authorization denied|not permitted|EPERM/i.test(msg)) {
-      return [hint("fda", "Full Disk Access needed", "Messages keeps its database behind Full Disk Access: allow pal under Privacy & Security, Full Disk Access, then open the palette again.", [{ id: "settings", title: "Open System Settings" }])];
+      return [hint("fda", "Full Disk Access needed", "Allow pal under Privacy & Security, Full Disk Access, then open the palette again", [{ id: "settings", title: "Open System Settings" }], HINT_ICON.locked)];
     }
-    if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${home(s.db)} is not there; Messages has not run on this Mac, or the db setting points elsewhere.`)];
-    return [hint("error", "Could not read Messages", msg)];
+    if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${home(s.db)} is not there: open Messages once, or point the db setting at the file`, [], HINT_ICON.none)];
+    return [hint("error", "Could not read Messages", msg, [], HINT_ICON.locked)];
   }
   const now = new Date();
   for (const c of found) codes.set(c.id, c);
-  if (found.length === 0) return [hint("none", "No codes", `No message of the last ${s.hours} h names a code.`)];
+  if (found.length === 0) return [hint("none", "No codes", `No message of the last ${s.hours} h names a code; raise Look back in Settings to scan further`, [], HINT_ICON.none)];
   return found.map((c) => item(c, now));
 }
 

@@ -6,7 +6,7 @@
 // Quit and Hide in its actions; on Linux a .desktop file's own actions
 // ("New Private Window") are the row's secondary actions.
 import { readdir } from "node:fs/promises";
-import { home, settings, type Action, type Extension, type Item } from "@zcag/pal";
+import { home, settings, type Action, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { execArgv, parseDesktop, splitList, type DesktopAction } from "./desktop.ts";
 
 /** `[extensions.apps]`, defaults in pal.json. */
@@ -200,6 +200,25 @@ async function pickMac(id: string, action?: string) {
   }
 }
 
+/** The detail pane: the path, bundle id and version of an app (read from its plist on request), or a pane's url. */
+async function detailMac(id: string): Promise<Detail> {
+  if (id.startsWith(PANE)) {
+    const paneId = id.slice(PANE.length);
+    const pane = PANES.find(([p]) => p === paneId);
+    return { markdown: `# ${pane?.[1] ?? paneId}\n\nA System Settings pane`, metadata: [{ label: "Opens", value: paneUrl(paneId) }, ...(pane ? [{ label: "Keywords", tags: pane[2].map((text) => ({ text })) }] : [])] };
+  }
+  if (!macApps.has(id)) await apps();
+  const app = macApps.get(id);
+  const plist = await Bun.file(`${id}/Contents/Info.plist`).text().catch(() => "");
+  const version = plistKey(plist, "CFBundleShortVersionString") ?? plistKey(plist, "CFBundleVersion");
+  const pids = (await runningPids()).get(id) ?? [];
+  const metadata: Metadata[] = [{ label: "Path", value: id }];
+  if (app?.bundleId) metadata.push({ label: "Bundle id", value: app.bundleId });
+  if (version) metadata.push({ label: "Version", value: version });
+  metadata.push(pids.length ? { label: "Running", tags: [{ text: pids.length === 1 ? `pid ${pids[0]}` : `${pids.length} processes`, color: "green" }] } : { label: "Running", value: "No" });
+  return { markdown: `# ${app?.name ?? id.slice(id.lastIndexOf("/") + 1, -4)}`, metadata };
+}
+
 // ---- Linux ---------------------------------------------------------------
 
 // `applications/` under every XDG data dir, in precedence order (the spec:
@@ -290,6 +309,19 @@ function launchLinux(file: string, action?: string) {
   spawnDetached(e.exec);
 }
 
+/** The detail pane: the desktop file, its command and its own actions. */
+async function detailLinux(id: string): Promise<Detail> {
+  if (!entries.has(id)) await apps();
+  const e = entries.get(id);
+  const metadata: Metadata[] = [{ label: "File", value: id }];
+  if (e) {
+    metadata.push({ label: "Runs", value: e.exec.join(" ") });
+    if (e.terminal) metadata.push({ label: "Terminal", value: "Yes" });
+    if (e.actions.length) metadata.push({ label: "Actions", tags: e.actions.map((a) => ({ text: a.name })) });
+  }
+  return { markdown: `# ${e?.id.slice(0, -8) ?? id}`, metadata };
+}
+
 async function pickLinux(id: string, action?: string) {
   if (action === "copy-path") return { copy: id };
   // A pick on a row restored from the persisted index, before this run has listed.
@@ -324,6 +356,7 @@ export default {
       title: "Applications",
       list: (_query, ctx) => apps(ctx?.refresh),
       pick: (id, action) => (LINUX ? pickLinux(id, action) : pickMac(id, action)),
+      detail: (id) => (LINUX ? detailLinux(id) : detailMac(id)),
     },
   },
 } satisfies Extension;

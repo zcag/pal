@@ -4,7 +4,7 @@
 // on a TCP port instead (ports.ts over `ss` or `lsof`). Kill sends SIGTERM,
 // Force kill SIGKILL, both after a confirm; the palette stays open and
 // lists again so the row is seen to go.
-import { settings, type Accessory, type Action, type Extension, type Item } from "@zcag/pal";
+import { settings, type Accessory, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
 import { parseLsofListeners, parseSsListeners, portQuery, type Listener } from "./ports.ts";
 
 /** `[extensions.processes]`, defaults in pal.json. */
@@ -28,6 +28,9 @@ const FILTERS = [
 const TOP = 25;
 
 const MAC = process.platform === "darwin";
+/** md-memory for a process without an app bundle and the palette; md-alert_circle_outline for the hint row. */
+const ICON = "\u{f035b}";
+const HINT_ICON = "\u{f05d6}";
 const ACTIONS: Action[] = [
   { id: "kill", title: "Kill", style: "destructive", confirm: "Send SIGTERM?" },
   { id: "force-kill", title: "Force kill", shortcut: "cmd+shift+k", style: "destructive", confirm: "Send SIGKILL? The process gets no chance to clean up." },
@@ -56,12 +59,29 @@ const human = (kb: number) => (kb >= 1024 * 1024 ? `${(kb / 1024 / 1024).toFixed
 
 /** The `.app` bundle a macOS executable lives in, for its icon; a glyph otherwise. */
 function icon(p: Proc): Item["icon"] {
-  if (LINUX) return "▤";
+  if (LINUX) return ICON;
   const i = p.comm.indexOf(".app/Contents/MacOS/");
-  return i > 0 ? { app: p.comm.slice(0, i + 4) } : "▤";
+  return i > 0 ? { app: p.comm.slice(0, i + 4) } : ICON;
+}
+
+/** The last listing's processes by pid, what `detail` reads (`pick` needs only the pid). */
+const seen = new Map<number, Proc>();
+
+function detail(id: string): Detail | undefined {
+  const p = seen.get(Number(id.split(":")[0]));
+  if (!p) return;
+  return { metadata: [
+    { label: "Command", value: p.comm },
+    { label: "PID", value: String(p.pid) },
+    { label: "Parent", value: String(p.ppid) },
+    { label: "User", value: p.uid === UID ? "you" : String(p.uid) },
+    { label: "CPU", value: `${p.cpu.toFixed(1)}%` },
+    { label: "Memory", value: human(p.rss) },
+  ] };
 }
 
 function item(p: Proc): Item {
+  seen.set(p.pid, p);
   const accessories: Accessory[] = [];
   if (p.cpu > 10) accessories.push({ tag: `${p.cpu.toFixed(0)}% cpu`, color: p.cpu >= 50 ? "red" : "amber" });
   accessories.push({ text: String(p.pid) }, { text: human(p.rss) });
@@ -73,7 +93,7 @@ const isSystem = (p: Proc) => p.pid < 100 || (LINUX && (p.pid === 2 || p.ppid ==
 
 /** Every TCP listener, one row per process and port, with the port as a tag; the `ps` row's numbers when the process is in it. */
 async function listeners(prefix: string): Promise<Item[]> {
-  if (!PORTS) return [{ id: "hint:no-ports", name: "No port listing tool", subtitle: "Install lsof (or ss) to list what listens on a port", icon: "▤", actions: [] }];
+  if (!PORTS) return [{ id: "hint:no-ports", name: "No port listing tool", subtitle: "Install lsof (or ss) to list what listens on a port", icon: HINT_ICON, actions: [] }];
   const proc = Bun.spawn(PORTS, { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
   const timer = setTimeout(() => proc.kill(), PORTS_MS);
   const out = await new Response(proc.stdout).text().catch(() => "");
@@ -83,7 +103,7 @@ async function listeners(prefix: string): Promise<Item[]> {
   const procs = new Map((await ps()).map((p) => [p.pid, p]));
   return found.map((l): Item => {
     const p = procs.get(l.pid);
-    const base = p ? item(p) : { id: String(l.pid), name: l.command, icon: "▤" as const, keywords: [String(l.pid)], accessories: [{ text: String(l.pid) }], actions: ACTIONS, pid: l.pid };
+    const base = p ? item(p) : { id: String(l.pid), name: l.command, icon: ICON, keywords: [String(l.pid)], accessories: [{ text: String(l.pid) }], actions: ACTIONS, pid: l.pid };
     return { ...base, id: `${l.pid}:${l.port}`, subtitle: `${l.address}:${l.port}`, keywords: [...(base.keywords ?? []), `:${l.port}`, String(l.port)], accessories: [{ tag: `:${l.port}`, color: "blue" }, ...(base.accessories ?? [])] };
   });
 }
@@ -111,12 +131,13 @@ export default {
   palettes: {
     processes: {
       title: "Processes",
-      icon: "▤",
+      icon: ICON,
       live: true,
       input: true,
       placeholder: "Name, pid, or :port",
       filters: FILTERS,
       list: (query, ctx) => list(query, ctx?.filter),
+      detail,
       pick: (id, action) => {
         // A listener row's id is `pid:port`.
         const pid = Number(id.split(":")[0]);

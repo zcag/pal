@@ -101,7 +101,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -148,7 +148,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -202,7 +202,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -256,7 +256,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -310,7 +310,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -359,7 +359,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -407,7 +407,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -456,7 +456,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -514,7 +514,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -563,7 +563,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -612,7 +612,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -652,7 +652,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -692,7 +692,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -732,7 +732,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -776,7 +776,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -820,7 +820,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -860,7 +860,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -899,7 +899,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -939,7 +939,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -980,7 +980,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -1021,7 +1021,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -1061,7 +1061,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -1101,7 +1101,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -1149,7 +1149,7 @@
             {
               "id": "attributes",
               "title": "Show attributes",
-              "shortcut": "cmd+i"
+              "shortcut": "cmd+shift+a"
             },
             {
               "id": "open_ha",
@@ -1680,7 +1680,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -1734,7 +1734,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -1788,7 +1788,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -1842,7 +1842,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -1898,7 +1898,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -1945,7 +1945,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -1999,7 +1999,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2053,7 +2053,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2107,7 +2107,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2156,7 +2156,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2204,7 +2204,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2253,7 +2253,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2311,7 +2311,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2360,7 +2360,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2409,7 +2409,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2449,7 +2449,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2489,7 +2489,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2529,7 +2529,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2573,7 +2573,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2617,7 +2617,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2657,7 +2657,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2696,7 +2696,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2736,7 +2736,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2777,7 +2777,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2818,7 +2818,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2858,7 +2858,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2898,7 +2898,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2946,7 +2946,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -2990,7 +2990,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -3261,7 +3261,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -3301,7 +3301,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -3350,7 +3350,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -3408,7 +3408,7 @@
               {
                 "id": "attributes",
                 "title": "Show attributes",
-                "shortcut": "cmd+i"
+                "shortcut": "cmd+shift+a"
               },
               {
                 "id": "open_ha",
@@ -3976,7 +3976,7 @@
       "palette": "entities",
       "keys": [
         "down*7",
-        "cmd+i"
+        "cmd+shift+a"
       ]
     },
     "4-service": {

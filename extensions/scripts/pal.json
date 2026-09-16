@@ -3,7 +3,7 @@
   "title": "Scripts and data files",
   "description": "Runs v1-style palettes from a pal v1 config: script plugins (run.sh speaking JSON lines) and data files (json, jsonl, toml). The zero-code tier.",
   "version": "0.1.0",
-  "icon": "$",
+  "icon": "󰆍",
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -16,7 +16,7 @@
     { "kind": "number", "id": "ttl", "label": "Listing lifetime", "description": "A palette that declares no ttl keeps its last listing across restarts and shows for this long before its script runs again; a palette's own ttl wins, and a live palette is exempt (it relists on every show unless it sets its own). Default an hour: scripts are the slow tier, and the root answers from the kept listing meanwhile. 0 runs every script on every start.", "min": 0, "max": 604800, "unit": "s", "default": 3600 }
   ],
   "store": {
-    "tagline": "A palette from a shell script or a data file, no TypeScript: one TOML table each.",
+    "tagline": "Palettes from shell scripts and data files, no TypeScript",
     "category": "developer",
     "features": [
       "Every `[palette.<name>]` table of a v1-style config becomes a palette, `scripts-<name>` in the settings",

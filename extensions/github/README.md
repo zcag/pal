@@ -28,7 +28,7 @@ changes, reviewers, labels and dates (fetched when the cursor rests).
 **Issues** is what is assigned to you, mentions you, or you opened, in
 that order, an issue in two lists listed once. Rows carry the first two
 labels, the comment count and the updated date; the pane the body, the
-latest comments and the milestone. **Create Issue** at the top is a form
+latest comments and the milestone. **Create issue** at the top is a form
 (repository, title, body) whose submit opens the new issue.
 
 **Repositories** is yours (owner or collaborator, by push date), your
@@ -36,7 +36,7 @@ latest comments and the milestone. **Create Issue** at the top is a form
 show the description, tags for private, archived and the language, the
 stars and the push date; the pane adds forks, open issues, the default
 branch, the clone url and the local clone when one sits under
-`repos_root`. **Create Repository** is a form (owner, name, description,
+`repos_root`. **Create repository** is a form (owner, name, description,
 private).
 
 **Notifications** is every unread thread, sectioned by reason (Review
@@ -58,7 +58,7 @@ their avatar. A keystroke waits 300 ms for the next before asking.
 | `enter` | Open (Open on GitHub, Open profile) | everywhere; a notification is marked read first |
 | `cmd+c` | Copy URL (Copy login on a user) | everywhere |
 | `cmd+shift+o` | Checkout branch: `gh pr checkout` in the clone | an open pull request with a clone under `repos_root` and `gh` on PATH |
-| `cmd+shift+b` | Copy branch name | pull requests |
+| `cmd+b` | Copy branch name | pull requests |
 | `cmd+shift+k` | Open checks | pull requests |
 | `cmd+shift+f` | Open files changed | pull requests |
 | `cmd+shift+r` | Mark ready for review | a draft pull request |
@@ -94,7 +94,7 @@ Settings, `[extensions.github]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `token` | secret | (none) | A personal access token; empty means the gh CLI's login. |
-| `default_org` | text | (none) | The organisation whose recently pushed repositories are listed, and an owner the Create Repository form offers. |
+| `default_org` | text | (none) | The organisation whose recently pushed repositories are listed, and an owner the Create repository form offers. |
 | `repos_root` | path | (none) | Where your clones live (`<root>/<name>` or `<root>/<owner>/<name>`); enables Checkout branch and Open in editor. `~` is expanded. |
 | `clone_protocol` | `ssh` / `https` | `ssh` | What Copy clone URL copies. |
 | `merged_days` | number (days) | `7` | How far back the Merged list reaches. |

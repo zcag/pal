@@ -8,12 +8,35 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "list", "id": "calendars", "label": "Calendars", "placeholder": "Work", "description": "Calendar names (or ids) to show; empty shows every calendar. The filter dropdown narrows further.", "default": [] },
-    { "kind": "number", "id": "days", "label": "Days ahead", "description": "How many days from today to list.", "min": 1, "max": 90, "step": 1, "unit": "days", "default": 7 },
-    { "kind": "boolean", "id": "hide_declined", "label": "Hide declined", "text": "Leave out invitations you declined", "default": true }
+    {
+      "kind": "list",
+      "id": "calendars",
+      "label": "Calendars",
+      "placeholder": "Work",
+      "description": "Calendar names (or ids) to show; empty shows every calendar. The filter dropdown narrows further.",
+      "default": []
+    },
+    {
+      "kind": "number",
+      "id": "days",
+      "label": "Days ahead",
+      "description": "How many days from today to list.",
+      "min": 1,
+      "max": 90,
+      "step": 1,
+      "unit": "days",
+      "default": 7
+    },
+    {
+      "kind": "boolean",
+      "id": "hide_declined",
+      "label": "Hide declined",
+      "text": "Leave out invitations you declined",
+      "default": true
+    }
   ],
   "store": {
-    "tagline": "Your schedule in the panel: what is now, what is next, one key to join the call.",
+    "tagline": "Your next days of events, one key to join the call",
     "category": "productivity",
     "features": [
       "Today, Tomorrow, This week and Later as sections; the current event tagged `now`, the next one `in 12 min`",
@@ -25,21 +48,62 @@
       "Delete an event, or one occurrence of a repeating one, after a confirmation",
       "Live with a 60 s ttl: the list is fresh on every show without re-reading the store more than once a minute"
     ],
-    "permissions": ["calendars"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "calendars"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-schedule.png", "caption": "Today and the days after, the running event tagged now, calls tagged Join" },
-      { "file": "2-detail.png", "caption": "The detail pane: notes, when, the attendees with their replies" },
-      { "file": "3-new.png", "caption": "New event: a day in words, times, the calendar" }
+      {
+        "file": "1-schedule.png",
+        "caption": "Today and the days after, the running event tagged now, calls tagged Join"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "The detail pane: the notes as markdown, when, where, the call, the attendees with their replies"
+      },
+      {
+        "file": "3-new.png",
+        "caption": "New event: a title, a day in words, the times, the calendar"
+      }
     ],
     "actions": [
-      { "title": "Join call", "description": "Opens the meeting link; first when the event has one.", "keys": "enter" },
-      { "title": "Open in Calendar", "description": "Shows the event in Calendar.app (macOS).", "keys": "enter" },
-      { "title": "Copy conference link", "keys": "cmd+shift+c" },
-      { "title": "Copy event details", "description": "Title, when, where and the link as text.", "keys": "cmd+c" },
-      { "title": "Delete event", "description": "Asks first; on a repeating event only this occurrence goes (macOS).", "keys": "ctrl+x" },
-      { "title": "New event", "description": "The form, then the event in the chosen calendar.", "keys": "enter" },
-      { "title": "Grant access", "description": "On the permission row: the system prompt, or System Settings when it was denied.", "keys": "enter" }
+      {
+        "title": "Join call",
+        "description": "Opens the meeting link; first when the event has one.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open in Calendar",
+        "description": "Shows the event in Calendar.app (macOS).",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy conference link",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Copy event details",
+        "description": "Title, when, where and the link as text.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Delete event",
+        "description": "Asks first; on a repeating event only this occurrence goes (macOS).",
+        "keys": "ctrl+x"
+      },
+      {
+        "title": "New event",
+        "description": "The form, then the event in the chosen calendar.",
+        "keys": "enter"
+      },
+      {
+        "title": "Grant access",
+        "description": "On the permission row: the system prompt, or System Settings when it was denied.",
+        "keys": "enter"
+      }
     ]
   },
   "palettes": {
@@ -49,10 +113,22 @@
       "ttl": 60,
       "description": "The next days' events in time order, sectioned by day, the current or next one tagged; a New event row at the end.",
       "keys": [
-        { "keys": "enter", "title": "Join the call, else open in Calendar" },
-        { "keys": "cmd+shift+c", "title": "Copy the conference link" },
-        { "keys": "cmd+c", "title": "Copy the event details" },
-        { "keys": "ctrl+x", "title": "Delete the event" }
+        {
+          "keys": "enter",
+          "title": "Join the call, else open in Calendar"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the conference link"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the event details"
+        },
+        {
+          "keys": "ctrl+x",
+          "title": "Delete the event"
+        }
       ]
     }
   }

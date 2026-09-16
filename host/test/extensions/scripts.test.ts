@@ -68,7 +68,22 @@ icon = "x"
 
 [palette.calc]
 base = "plugins/inp"
+
+[palette.big]
+auto_list = true
+data = "big.json"
+
+[palette.bigprimary]
+auto_list = true
+data = "big.json"
+tier = "primary"
+
+[palette.badtier]
+auto_list = true
+data = "links.json"
+tier = "huge"
 `);
+w("big.json", JSON.stringify(Array.from({ length: 100 }, (_, i) => ({ name: `row ${i}` }))));
 w("env", "SECRET=from-env-file\n# comment\nQUOTED='q v'\n");
 w("links.json", JSON.stringify([
   { name: "Alpha", url: "http://a", icon_xdg: "web-browser", accessories: [{ tag: { value: "t", color: "red" } }, { text: { value: "tx" } }, { date: "2025-01-01" }] },
@@ -109,7 +124,7 @@ const names = () => host.loaded().find((l) => l.extension === "scripts")!.palett
 
 describe("discovery", () => {
   test("every usable [palette.*] is a palette; requires/os gate, skip drops, a builtin base and an empty one are inert", () => {
-    expect(names()).toEqual(["alt", "counter", "empty", "fresh", "grid", "inp", "links", "oldbuiltin"]);
+    expect(names()).toEqual(["alt", "badtier", "big", "bigprimary", "counter", "empty", "fresh", "grid", "inp", "links", "oldbuiltin"]);
     expect(host.stderr).toContain("gated: gated (needs definitely-not-a-binary-on-this-box)");
     expect(host.stderr).toContain("calc: skipped (native)");
     expect(host.stderr).toMatch(/otheros: gated \((linux|macos) only\)/);
@@ -117,16 +132,26 @@ describe("discovery", () => {
 
   test("meta from the v1 fields: input, prompt, live, grid, columns, detail pane, filters, lazy detail only for scripts; ttl from the table, else the setting's default for a non-live one", () => {
     const by = Object.fromEntries(host.loaded().find((l) => l.extension === "scripts")!.palettes.map((p) => [p.name, p]));
-    expect(by.inp).toEqual({ name: "inp", title: "inp", live: true, input: true, placeholder: "Type here", detail: "lazy" });
-    expect(by.grid).toEqual({ name: "grid", title: "grid", live: false, input: false, view: "grid", columns: 5, showDetail: true, filters: [{ id: "all", title: "All" }, { id: "few", title: "few" }], ttl: 3600 });
+    expect(by.inp).toEqual({ name: "inp", title: "inp", live: true, input: true, placeholder: "Type here", detail: "lazy", icon: xdg("utilities-terminal") });
+    expect(by.grid).toEqual({ name: "grid", title: "grid", live: false, input: false, view: "grid", columns: 5, showDetail: true, filters: [{ id: "all", title: "All" }, { id: "few", title: "few" }], ttl: 3600, icon: xdg("text-x-generic") });
     expect(by.counter.ttl).toBe(60);
     expect(by.fresh).not.toHaveProperty("ttl");
     expect(by.links).toEqual({ name: "links", title: "links", live: false, input: false, icon: "★", ttl: 3600 });
     expect(by.links.detail).toBeUndefined();
   });
 
+  test("tier: a data file of 100 rows or more is a catalog at the root, the table's own tier wins, a bad one is ignored, a script's rows have none", () => {
+    const by = Object.fromEntries(host.loaded().find((l) => l.extension === "scripts")!.palettes.map((p) => [p.name, p]));
+    expect(by.big.tier).toBe("catalog");
+    expect(by.bigprimary.tier).toBe("primary");
+    expect(by.badtier).not.toHaveProperty("tier");
+    expect(host.stderr).toContain('tier "huge" is not one of primary, normal, catalog; ignored');
+    expect(by.links).not.toHaveProperty("tier");
+    expect(by.counter).not.toHaveProperty("tier");
+  });
+
   test("an inert palette lists one hint row", async () => {
-    expect(await host.list("scripts", "oldbuiltin")).toEqual([{ id: "hint", name: "oldbuiltin is not available", subtitle: "v1 builtin (builtin/palettes/pals) has no equivalent yet", icon: "!", actions: [] }]);
+    expect(await host.list("scripts", "oldbuiltin")).toEqual([{ id: "hint", name: "oldbuiltin is not available", subtitle: "v1 builtin (builtin/palettes/pals) has no equivalent yet", icon: xdg("dialog-warning"), actions: [] }]);
     expect((await host.list("scripts", "empty"))[0].subtitle).toBe("no base and no data");
     expect(await host.pick("scripts", "oldbuiltin", "hint")).toEqual({});
   });

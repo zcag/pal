@@ -82,7 +82,7 @@ const pick = (id: string, action?: string) => host.pick("apps", "apps", id, acti
 describe.skipIf(!mac)("apps", () => {
   test("loads with one palette and the manifest's folders setting", async () => {
     const l = host.loaded().find((l) => l.extension === "apps")!;
-    expect(l.palettes).toEqual([{ name: "apps", title: "Applications", live: false, input: false }]);
+    expect(l.palettes).toEqual([{ name: "apps", title: "Applications", live: false, input: false, tier: "primary", detail: "lazy" }]);
     expect(l.manifest.settings?.map((s) => s.id)).toEqual(["folders"]);
   });
 
@@ -137,6 +137,15 @@ describe.skipIf(!mac)("apps", () => {
     expect(await pick("/Applications/Google Chrome.app", "open")).toEqual({ open: "/Applications/Google Chrome.app" });
     expect(await pick("/Applications/Google Chrome.app", "copy-path")).toEqual({ copy: "/Applications/Google Chrome.app" });
     expect(await pick("/Applications/Google Chrome.app", "copy-id")).toEqual({ copy: "com.google.Chrome" });
+  });
+
+  test("detail: the path, bundle id and version of an app; a pane's url", async () => {
+    const d = await host.detail("apps", "apps", "/Applications/Google Chrome.app");
+    expect(d.markdown).toBe("# Google Chrome");
+    expect(d.metadata!.map((m) => m.label)).toEqual(["Path", "Bundle id", "Version", "Running"]);
+    expect(d.metadata![1].value).toBe("com.google.Chrome");
+    const pane = await host.detail("apps", "apps", "pane:com.apple.Keyboard-Settings.extension");
+    expect(pane.metadata![0]).toEqual({ label: "Opens", value: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension" });
   });
 
   test("quit: an unregistered bundle id falls back to SIGTERM; the next list has no tag; quit again says it is not running", async () => {

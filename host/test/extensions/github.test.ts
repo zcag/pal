@@ -306,7 +306,7 @@ describe("github", () => {
     test("create: a form with a repository select from recent repos, title, body; the submit posts and opens the issue", async () => {
       const r = await pick("issues", "create", "create");
       const form = r.form as Form;
-      expect(form).toMatchObject({ id: "create", title: "Create Issue", submit: { id: "save", title: "Create" } });
+      expect(form).toMatchObject({ id: "create", title: "Create issue", submit: { id: "save", title: "Create" } });
       expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["repo", "select", true], ["title", "text", true], ["body", "textarea", false]]);
       const options = (form.fields[0] as { options: { id: string }[] }).options.map((o) => o.id);
       expect(options.slice(0, 3)).toEqual(["acme/widgets", "acme/api", "zcag/pal"]);
@@ -465,8 +465,8 @@ describe("github", () => {
       const menu = item.menu as any[];
       expect(menu[0]).toMatchObject({ type: "section", title: "Unread" });
       expect(menu[0].children.map((n: any) => n.id)).toEqual(["thread:1002", "thread:1001", "thread:1003"]);
-      expect(menu[0].children[0]).toEqual({ type: "item", id: "thread:1002", title: "Fix the parser", subtitle: "acme/api", icon: "⎇" });
-      expect(menu.slice(1)).toEqual([{ type: "separator" }, { type: "item", id: "open", title: "Open all", subtitle: "3 in pal" }, { type: "item", id: "read-all", title: "Mark all read", shortcut: "cmd+shift+r", style: "destructive" }]);
+      expect(menu[0].children[0]).toEqual({ type: "item", id: "thread:1002", title: "Fix the parser", subtitle: "acme/api", icon: "" });
+      expect(menu.slice(1)).toEqual([{ type: "separator" }, { type: "item", id: "open", title: "Open all", subtitle: "3 in pal", icon: "\uf48d" }, { type: "item", id: "read-all", title: "Mark all read", icon: "\uf49e", shortcut: "cmd+shift+a", style: "destructive" }]);
     });
 
     test("a show/wake/network render asks GitHub (a 304 with the ETag); a timer render takes the cache", async () => {

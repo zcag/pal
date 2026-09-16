@@ -13,7 +13,10 @@ type PaletteSettings = { columns: number };
 const RECENT_KEY = "recent";
 const RECENT_MAX = 12;
 const RECENT = "Recent";
-const ICON = "Ω";
+/** nf-md-omega, from the bundled Nerd Font. */
+const ICON = "\u{f03c9}";
+/** Text presentation for a character the platform would draw as a colour emoji (⏏, ⏭, 🖱): the tile stays a glyph; what is copied is the bare character. */
+const TEXT = "\uFE0E";
 
 const hex = (cp: number) => cp.toString(16).toUpperCase().padStart(4, "0");
 /** `U+2192`. */
@@ -28,7 +31,7 @@ export const utf8 = (cp: number) => [...new TextEncoder().encode(String.fromCode
 const rows = new Map<string, Row>((data as Row[]).map((r) => [hex(r.cp), r]));
 
 /** A space or a format character draws nothing on a tile, so its tile is the open box; the name says which it is. */
-const glyph = (r: Row) => (r.s === "Spaces" ? "␣" : String.fromCodePoint(r.cp));
+const glyph = (r: Row) => { if (r.s === "Spaces") return "␣"; const ch = String.fromCodePoint(r.cp); return /\p{Extended_Pictographic}/u.test(ch) ? ch + TEXT : ch; };
 
 const ACTIONS: Action[] = [
   { id: "copy", title: "Copy character" },
@@ -45,7 +48,6 @@ const item = (r: Row, section: string): Item => ({
   icon: glyph(r),
   keywords: [codePoint(r.cp), ...r.k],
   section,
-  actions: ACTIONS,
 });
 
 /** The stored ids that are still in the table, newest first. */
@@ -85,11 +87,13 @@ function detail(r: Row): Detail {
 export default {
   palettes: {
     unicode: {
-      title: "Unicode characters",
+      title: "Unicode Characters",
       icon: ICON,
       view: "grid",
+      placeholder: "Name, entity, LaTeX or code point",
       // Palette meta is read once at load (see emoji).
       columns: settings.palette<PaletteSettings>("unicode").columns,
+      actions: ACTIONS,
       list: async () => {
         const used = await recent();
         const top = used.map((id) => item(rows.get(id)!, RECENT));

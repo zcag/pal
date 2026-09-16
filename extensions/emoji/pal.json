@@ -8,18 +8,50 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "select", "id": "skin_tone", "label": "Skin tone", "description": "Applied to the emoji that take one (hands, people) when shown, copied and pasted.", "options": [
-      { "id": "none", "title": "None (yellow)" },
-      { "id": "light", "title": "Light" },
-      { "id": "medium-light", "title": "Medium-light" },
-      { "id": "medium", "title": "Medium" },
-      { "id": "medium-dark", "title": "Medium-dark" },
-      { "id": "dark", "title": "Dark" }
-    ], "default": "none" },
-    { "kind": "boolean", "id": "paste_by_default", "label": "Paste on Enter", "text": "Enter pastes the emoji into the app in front; ⌘Enter copies it", "description": "Off, Enter copies and ⌘Enter pastes. Pasting needs Accessibility on macOS.", "default": false }
+    {
+      "kind": "select",
+      "id": "skin_tone",
+      "label": "Skin tone",
+      "description": "Applied to the emoji that take one (hands, people) when shown, copied and pasted.",
+      "options": [
+        {
+          "id": "none",
+          "title": "None (yellow)"
+        },
+        {
+          "id": "light",
+          "title": "Light"
+        },
+        {
+          "id": "medium-light",
+          "title": "Medium-light"
+        },
+        {
+          "id": "medium",
+          "title": "Medium"
+        },
+        {
+          "id": "medium-dark",
+          "title": "Medium-dark"
+        },
+        {
+          "id": "dark",
+          "title": "Dark"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "kind": "boolean",
+      "id": "paste_by_default",
+      "label": "Paste on Enter",
+      "text": "Enter pastes the emoji into the app in front; ⌘Enter copies it",
+      "description": "Off, Enter copies and ⌘Enter pastes. Pasting needs Accessibility on macOS.",
+      "default": false
+    }
   ],
   "store": {
-    "tagline": "An emoji grid by category, recently used first; copy or paste one, or its :shortcode:.",
+    "tagline": "Every emoji in a grid; copy or paste it, or its :shortcode:",
     "category": "reference",
     "features": [
       "Every emoji in the bundled list as a grid, Recently used first (the last 24 you copied or pasted), then Unicode's groups from Smileys & Emotion to Flags",
@@ -29,30 +61,74 @@
       "A skin tone setting applied to the 329 emoji that take one, in the tile, on copy and on paste",
       "Live with a 30 s ttl, so the recents follow what you used"
     ],
-    "permissions": ["accessibility"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "accessibility"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-grid.png", "caption": "The grid: Recently used, then Smileys & Emotion and the other groups" },
-      { "file": "2-search.png", "caption": "Searching by keyword narrows the tiles across every group" },
-      { "file": "3-actions.png", "caption": "Copy, paste, or copy the :shortcode:" }
+      {
+        "file": "1-grid.png",
+        "caption": "The grid: Recently used, then Smileys & Emotion and the other groups"
+      },
+      {
+        "file": "2-search.png",
+        "caption": "Searching by keyword narrows the tiles across every group"
+      },
+      {
+        "file": "3-actions.png",
+        "caption": "Copy, paste, or copy the :shortcode:"
+      }
     ],
     "actions": [
-      { "title": "Copy emoji", "keys": "enter" },
-      { "title": "Paste emoji", "description": "Into the app that was in front; needs Accessibility on macOS.", "keys": "cmd+enter" },
-      { "title": "Copy shortcode", "description": "`:thumbs_up:`", "keys": "cmd+shift+c" }
+      {
+        "title": "Copy emoji",
+        "keys": "enter"
+      },
+      {
+        "title": "Paste emoji",
+        "description": "Into the app that was in front; needs Accessibility on macOS.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Copy shortcode",
+        "description": "`:thumbs_up:`",
+        "keys": "cmd+shift+c"
+      }
     ]
   },
   "palettes": {
     "emoji": {
+      "tier": "catalog",
       "kind": "grid",
+      "ttl": 30,
       "description": "Every emoji in the bundled list, by category.",
       "keys": [
-        { "keys": "enter", "title": "Copy emoji" },
-        { "keys": "cmd+enter", "title": "Paste emoji" },
-        { "keys": "cmd+shift+c", "title": "Copy shortcode" }
+        {
+          "keys": "enter",
+          "title": "Copy emoji"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Paste emoji"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy shortcode"
+        }
       ],
       "settings": [
-        { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 10 }
+        {
+          "kind": "number",
+          "id": "columns",
+          "label": "Columns",
+          "description": "Tiles per row in the grid.",
+          "min": 4,
+          "max": 16,
+          "default": 10
+        }
       ]
     }
   }

@@ -17,6 +17,27 @@ const MAC = process.platform === "darwin";
 /** Tests point this at a temp folder; `~/.Trash` itself needs Full Disk Access to read (then the row just has no count). */
 const TRASH = process.env.PAL_TRASH_DIR || (MAC ? home("~/.Trash") : `${process.env.XDG_DATA_HOME || home("~/.local/share")}/Trash/files`);
 const PROBE_MS = 1500;
+/** One Material Design glyph per command (the bundled Nerd Font), one weight down the column; the core's text symbol is the fallback for an id not here. */
+const GLYPHS: Record<string, string> = {
+  "sleep": "\u{f0904}", // md-power_sleep
+  "sleep-displays": "\u{f0d90}", // md-monitor_off
+  "lock": "\u{f0341}", // md-lock_outline
+  "logout": "\u{f0343}", // md-logout
+  "restart": "\u{f0709}", // md-restart
+  "shutdown": "\u{f0425}", // md-power
+  "empty-trash": "\u{f09e7}", // md-delete_outline
+  "dark-mode": "\u{f050e}", // md-theme_light_dark
+  "volume-up": "\u{f075d}", // md-volume_plus
+  "volume-down": "\u{f075e}", // md-volume_minus
+  "volume-mute": "\u{f0581}", // md-volume_off
+  "brightness-up": "\u{f00e0}", // md-brightness_7
+  "brightness-down": "\u{f00de}", // md-brightness_5
+  "dnd": "\u{f0a91}", // md-bell_off_outline
+  "eject-all": "\u{f0b91}", // md-eject_outline
+  "show-desktop": "\u{f0a1d}", // md-view_dashboard_outline
+  "keep-awake": "\u{f06ca}", // md-coffee_outline
+};
+const ICON = GLYPHS.shutdown;
 
 async function output(argv: string[]): Promise<string | undefined> {
   const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
@@ -47,14 +68,14 @@ function accessories(c: SystemCommand, p: Probes): Accessory[] {
 
 function item(c: SystemCommand, confirm: boolean, p: Probes): Item {
   const run = c.destructive && confirm ? { id: "run", title: c.title, style: "destructive" as const, confirm: `${c.title} now?` } : { id: "run", title: c.title };
-  return { id: c.id, name: c.title, subtitle: c.subtitle, icon: c.icon, keywords: c.keywords, accessories: accessories(c, p), actions: [run] };
+  return { id: c.id, name: c.title, subtitle: c.subtitle, icon: GLYPHS[c.id] ?? c.icon, keywords: c.keywords, accessories: accessories(c, p), actions: [run] };
 }
 
 export default {
   palettes: {
     system: {
       title: "System",
-      icon: "⏻",
+      icon: ICON,
       // The keep-awake row flips between Keep Awake and Allow Sleep: relisted on every show.
       live: true,
       placeholder: "Sleep, lock, volume, dark mode...",

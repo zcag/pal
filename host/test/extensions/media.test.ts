@@ -37,7 +37,7 @@ describe("media", () => {
       name: "Blue Monday", subtitle: "New Order · Power, Corruption & Lies", icon: { image: "https://i.scdn.co/image/ab67" },
       accessories: [{ text: "Spotify" }, { tag: "playing", color: "green" }],
     });
-    expect(items[0].actions!.map((a) => [a.id, a.title])).toEqual([["play_pause", "Pause"], ["next", "Next Track"], ["previous", "Previous Track"], ["copy", "Copy Track"], ["open", "Open in Spotify"]]);
+    expect(items[0].actions!.map((a) => [a.id, a.title])).toEqual([["play_pause", "Pause"], ["next", "Next track"], ["previous", "Previous track"], ["copy", "Copy track"], ["open", "Open in Spotify"]]);
     expect(items[1]).toMatchObject({ name: "Song 2", subtitle: "Blur", icon: { app: "/System/Applications/Music.app" }, accessories: [{ text: "Music" }, { tag: "paused", color: "amber" }] });
     expect(items[1].actions![0].title).toBe("Play");
     // No url: Open goes to the app on macOS only (a .desktop path is not something the opener launches).
@@ -68,6 +68,8 @@ describe("media", () => {
       const item = await host.render("media", "now-playing");
       expect(item).toMatchObject({ icon: "\uf001", title: "Blue Monday · New Order", tooltip: "New Order - Blue Monday (Spotify)" });
       expect((item.menu as any[]).map((n) => n.id ?? n.type)).toEqual(["play_pause", "next", "previous", "separator", "copy", "open"]);
+      // Every row draws a glyph, never the title's initial.
+      for (const n of item.menu as any[]) if (n.type === "item") expect(n.icon).toBeTruthy();
     });
 
     test("actions go to the playing player and keep the popover; copy and open", async () => {

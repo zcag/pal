@@ -32,7 +32,7 @@ const plusDays = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); 
 
 describe("calc", () => {
   test("meta: input palette with a placeholder", () => {
-    expect(host.loaded().find((l) => l.extension === "calc")!.palettes[0]).toEqual({ name: "calc", title: "Calculator", live: false, input: true, icon: "=", placeholder: "Calculate" });
+    expect(host.loaded().find((l) => l.extension === "calc")!.palettes[0]).toEqual({ name: "calc", title: "Calculator", live: false, input: true, icon: "=", placeholder: "An expression, a conversion, a date or a time" });
   });
 
   test("2+2: the result as the title, the expression as subtitle, four actions", async () => {
@@ -241,8 +241,8 @@ describe("dates and time", () => {
     expect(await first("10am new york to utc+3")).toMatch(/^(5|6):00 PM$/);
     expect((await calc("10:00 in tokyo"))[0].subtitle).toMatch(/^10:00 .+ → Tokyo \(GMT\+9\)$/);
     expect((await calc("now in utc"))[0].name).toBe(new Intl.DateTimeFormat("en", { timeStyle: "short", timeZone: "UTC" }).format(Date.now()));
-    expect((await calc("time in tokyo"))[0].accessories).toEqual([{ text: "Asia/Tokyo" }]);
-    expect((await calc("tokyo time"))[0].accessories).toEqual([{ text: "Asia/Tokyo" }]);
+    expect((await calc("time in tokyo"))[0].accessories![0]).toEqual({ text: "Asia/Tokyo" }); // after 15:00 UTC a `next day` accessory follows
+    expect((await calc("tokyo time"))[0].accessories![0]).toEqual({ text: "Asia/Tokyo" });
     expect((await calc("10:00 in Europe/Berlin"))[0].accessories).toEqual([{ text: "Europe/Berlin" }]);
   });
 

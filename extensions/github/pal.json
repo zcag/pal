@@ -3,7 +3,7 @@
   "title": "GitHub",
   "description": "Your pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.",
   "version": "0.1.0",
-  "icon": "⎇",
+  "icon": "",
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -19,7 +19,7 @@
       "kind": "text",
       "id": "default_org",
       "label": "Organisation",
-      "description": "An organisation whose recently pushed repositories are listed, and an owner the Create Repository form offers.",
+      "description": "An organisation whose recently pushed repositories are listed, and an owner the Create repository form offers.",
       "placeholder": "acme",
       "default": ""
     },
@@ -101,14 +101,34 @@
           "title": "Checkout the branch"
         },
         {
+          "keys": "cmd+b",
+          "title": "Copy the branch name"
+        },
+        {
+          "keys": "cmd+shift+k",
+          "title": "Open the checks"
+        },
+        {
+          "keys": "cmd+shift+f",
+          "title": "Open the files changed"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Mark a draft ready for review"
+        },
+        {
           "keys": "cmd+shift+m",
           "title": "Merge"
+        },
+        {
+          "keys": "tab",
+          "title": "All, Mine, Review requested, Merged"
         }
       ]
     },
     "issues": {
       "title": "Issues",
-      "description": "Assigned to you, mentioning you, opened by you; Create Issue.",
+      "description": "Assigned to you, mentioning you, opened by you; Create issue.",
       "ttl": 300,
       "kind": "list",
       "keys": [
@@ -123,6 +143,10 @@
         {
           "keys": "cmd+shift+x",
           "title": "Close it"
+        },
+        {
+          "keys": "tab",
+          "title": "All, Assigned, Mentioned, Created"
         }
       ]
     },
@@ -141,8 +165,20 @@
           "title": "Open the clone in the editor"
         },
         {
+          "keys": "cmd+o",
+          "title": "Open the clone's folder"
+        },
+        {
           "keys": "cmd+shift+c",
           "title": "Copy the clone URL"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the URL"
+        },
+        {
+          "keys": "tab",
+          "title": "All, Mine, Starred, Organisation"
         }
       ]
     },
@@ -163,6 +199,10 @@
         {
           "keys": "cmd+shift+a",
           "title": "Mark all as read"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy its URL"
         }
       ]
     },
@@ -189,7 +229,7 @@
   "bar": {
     "notifications": {
       "title": "Notifications",
-      "description": "The unread count as a badge, hidden at zero; the newest five and Mark all read in the popover.",
+      "description": "The unread count as a badge, hidden at zero; the newest five, Open all and Mark all read in the popover.",
       "refresh": {
         "every": 300,
         "on": [
@@ -202,7 +242,7 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "Your pull requests, issues, repositories and notifications as rows, and GitHub's search typed into the panel.",
+    "tagline": "Pull requests, issues, repos and notifications in the panel",
     "category": "developer",
     "features": [
       "Pull Requests: yours, the ones waiting on your review, and what merged this week, with the checks, the review decision and a draft or conflicts tag on the row",
@@ -210,10 +250,11 @@
       "Repositories: yours, your organisation's recently pushed and your stars; `cmd+e` opens the local clone in the editor",
       "Notifications by reason, newest first; `enter` marks the thread read and opens it, `cmd+shift+a` marks all read",
       "Search GitHub as you type: `repo:acme/widgets is:pr`, `author:mara`, `label:bug`, results sectioned by kind",
-      "Create Issue and Create Repository as forms; Checkout branch and Merge from the row"
+      "Create issue and Create repository as forms; Checkout branch and Merge from the row"
     ],
     "permissions": [
-      "network"
+      "network",
+      "token"
     ],
     "platforms": [
       "macos",
@@ -274,7 +315,7 @@
       },
       {
         "title": "Copy branch name",
-        "keys": "cmd+shift+b"
+        "keys": "cmd+b"
       },
       {
         "title": "Open checks",
@@ -304,7 +345,7 @@
         "keys": "cmd+shift+x"
       },
       {
-        "title": "Create Issue",
+        "title": "Create issue",
         "description": "A form: repository, title, body."
       },
       {
@@ -331,7 +372,7 @@
         "title": "Open pull requests"
       },
       {
-        "title": "Create Repository",
+        "title": "Create repository",
         "description": "A form: owner, name, description, private."
       },
       {

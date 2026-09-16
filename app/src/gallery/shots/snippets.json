@@ -4,13 +4,13 @@
       "title": "Snippets",
       "live": false,
       "input": false,
-      "icon": "✂",
+      "icon": "󰆐",
       "items": [
         {
           "id": "create",
           "name": "Create Snippet",
           "subtitle": "A text to paste by name or keyword",
-          "icon": "+",
+          "icon": "󰐕",
           "keywords": [
             "new",
             "add"
@@ -18,7 +18,7 @@
           "actions": [
             {
               "id": "create",
-              "title": "Create Snippet"
+              "title": "Create snippet"
             }
           ]
         },
@@ -26,7 +26,7 @@
           "id": "s1",
           "name": "Email signature",
           "subtitle": "Best,",
-          "icon": "✂",
+          "icon": "󰆐",
           "keywords": [
             "sig"
           ],
@@ -76,7 +76,7 @@
           "id": "s2",
           "name": "Today",
           "subtitle": "{date} {time}",
-          "icon": "✂",
+          "icon": "󰆐",
           "keywords": [
             "today"
           ],
@@ -129,7 +129,7 @@
           "id": "s3",
           "name": "Meeting notes",
           "subtitle": "# Notes {date}",
-          "icon": "✂",
+          "icon": "󰆐",
           "keywords": [
             "notes"
           ],
@@ -182,7 +182,7 @@
           "id": "s4",
           "name": "Shrug",
           "subtitle": "¯\\_(ツ)_/¯",
-          "icon": "✂",
+          "icon": "󰆐",
           "keywords": [
             "shrug"
           ],
@@ -232,7 +232,7 @@
           "id": "s5",
           "name": "Request id",
           "subtitle": "X-Request-Id: {uuid}",
-          "icon": "✂",
+          "icon": "󰆐",
           "keywords": [
             "rid"
           ],
@@ -285,7 +285,7 @@
           "id": "s6",
           "name": "Quote clipboard",
           "subtitle": "> {clipboard}",
-          "icon": "✂",
+          "icon": "󰆐",
           "keywords": [
             "quote"
           ],
@@ -338,7 +338,7 @@
           "id": "import",
           "name": "Import Snippets",
           "subtitle": "From a JSON file",
-          "icon": "⇣",
+          "icon": "󰋺",
           "keywords": [
             "json",
             "restore"
@@ -354,7 +354,7 @@
           "id": "export",
           "name": "Export Snippets",
           "subtitle": "To a JSON file",
-          "icon": "⇡",
+          "icon": "󰈇",
           "keywords": [
             "json",
             "backup"

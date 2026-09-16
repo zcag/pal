@@ -107,7 +107,7 @@ describe("services (systemd)", () => {
     expect(items[0]).toMatchObject({ name: "agent-chrome", subtitle: "Agent-controlled Chromium", keywords: ["agent-chrome.service", "user"], accessories: [{ text: "enabled" }, { tag: "running", color: "green" }] });
     expect(items[1].accessories).toEqual([{ text: "disabled" }, { tag: "inactive/dead", color: "grey" }]);
     expect(items[2].subtitle).toBeUndefined();
-    expect(items[2].accessories).toEqual([{ tag: "failed/failed", color: "red" }]);
+    expect(items[2].accessories).toEqual([{ tag: "failed", color: "red" }]);
     expect(items[0].actions!.map((a) => [a.id, a.confirm ?? null])).toEqual([["stop", null], ["logs", null], ["restart", null], ["disable", null], ["copy", null]]);
     expect(items[1].actions!.map((a) => a.id)).toEqual(["start", "logs", "restart", "enable", "copy"]);
     expect(items[2].actions!.map((a) => a.id)).toEqual(["start", "logs", "restart", "copy"]);

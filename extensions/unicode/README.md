@@ -1,4 +1,4 @@
-# Unicode characters
+# Unicode Characters
 
 A grid of 1795 characters one pastes rather than types, from
 `extensions/unicode/data.json`: arrows, math, Greek, currency, quotes and

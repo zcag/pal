@@ -39,10 +39,10 @@ The filter dropdown (Tab cycles it):
 | keys | action |
 | --- | --- |
 | `enter` | Focus: selects the tab in the browser, then hides and raises the browser window; for Firefox, "Focus window" raises its window only |
-| `cmd+w` | Close the tab; not for Firefox |
 | `cmd+c` | Copy URL |
 | `cmd+m` | Mute / Unmute: DevTools tabs only, sets `muted` on every media element in the page |
 | `cmd+shift+c` | Copy as markdown link: `[title](url)` |
+| `cmd+w` | Close the tab, last in the panel since it is destructive; not for Firefox |
 | `tab` | Cycle All, Audible, This window |
 
 Close and mute keep the palette open and list again. A focus, close or

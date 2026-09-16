@@ -43,12 +43,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -62,6 +56,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://github.com/acme/widgets/pulls"
@@ -92,12 +92,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -111,6 +105,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://docs.docker.com/compose/"
@@ -142,12 +142,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -161,6 +155,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://www.youtube.com/watch?v=lofi"
@@ -188,12 +188,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -207,6 +201,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "icon": {
@@ -236,12 +236,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -255,6 +249,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://sw.kovidgoyal.net/kitty/"
@@ -282,12 +282,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -301,6 +295,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://bun.sh"
@@ -325,12 +325,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -339,6 +333,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://developer.apple.com/documentation"
@@ -363,12 +363,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -377,6 +371,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://developer.mozilla.org"
@@ -401,12 +401,6 @@
               "title": "Focus"
             },
             {
-              "id": "close",
-              "title": "Close",
-              "shortcut": "cmd+w",
-              "style": "destructive"
-            },
-            {
               "id": "copy-url",
               "title": "Copy URL",
               "shortcut": "cmd+c"
@@ -415,6 +409,12 @@
               "id": "copy-markdown",
               "title": "Copy as markdown link",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "close",
+              "title": "Close",
+              "shortcut": "cmd+w",
+              "style": "destructive"
             }
           ],
           "url": "https://news.ycombinator.com"

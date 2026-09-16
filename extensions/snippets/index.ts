@@ -7,6 +7,11 @@ import { clipboard, home, storage, type Action, type Ctx, type Effect, type Exte
 import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
 
 const KEY = "snippets";
+/** Material Design glyphs in the bundled Nerd Font: scissors for a snippet, plus, import, export for the command rows. */
+const ICON = "\u{f0190}";
+const ICON_CREATE = "\u{f0415}";
+const ICON_IMPORT = "\u{f02fa}";
+const ICON_EXPORT = "\u{f0207}";
 const CREATE = "create";
 const IMPORT = "import";
 const EXPORT = "export";
@@ -27,7 +32,7 @@ function row(s: Snippet): Item {
     id: s.id,
     name: s.name,
     subtitle: preview(s.text),
-    icon: "✂",
+    icon: ICON,
     keywords: s.keyword ? [s.keyword] : undefined,
     accessories: [...(s.keyword ? [{ tag: s.keyword }] : []), ...(hasPlaceholders(s.text) ? [{ text: "dynamic" }] : [])],
     detail: {
@@ -48,7 +53,7 @@ const form = (s?: Snippet, errors?: Record<string, string>): Form => ({
   fields: [
     { kind: "text", id: "name", label: "Name", required: true, default: s?.name, placeholder: "Email signature" },
     { kind: "text", id: "keyword", label: "Keyword", default: s?.keyword, placeholder: "sig", description: "One word that finds it." },
-    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text, placeholder: "Best,\nCagdas", description: "{clipboard}, {date}, {time}, {datetime} and {uuid} are filled in when pasted; {selection} is the clipboard too. {cursor} is not supported." },
+    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text, placeholder: "Best,\nAda", description: "{clipboard}, {date}, {time}, {datetime} and {uuid} are filled in when pasted; {selection} is the clipboard too. {cursor} is not supported." },
   ],
   submit: { id: "save", title: s ? "Save" : "Create" },
   errors,
@@ -106,12 +111,12 @@ export default {
   palettes: {
     snippets: {
       title: "Snippets",
-      icon: "✂",
+      icon: ICON,
       list: async (): Promise<Item[]> => [
-        { id: CREATE, name: "Create Snippet", subtitle: "A text to paste by name or keyword", icon: "+", keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create Snippet" }] },
+        { id: CREATE, name: "Create Snippet", subtitle: "A text to paste by name or keyword", icon: ICON_CREATE, keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create snippet" }] },
         ...(await all()).map(row),
-        { id: IMPORT, name: "Import Snippets", subtitle: "From a JSON file", icon: "⇣", keywords: ["json", "restore"], actions: [{ id: IMPORT, title: "Import…" }] },
-        { id: EXPORT, name: "Export Snippets", subtitle: "To a JSON file", icon: "⇡", keywords: ["json", "backup"], actions: [{ id: EXPORT, title: "Export…" }] },
+        { id: IMPORT, name: "Import Snippets", subtitle: "From a JSON file", icon: ICON_IMPORT, keywords: ["json", "restore"], actions: [{ id: IMPORT, title: "Import…" }] },
+        { id: EXPORT, name: "Export Snippets", subtitle: "To a JSON file", icon: ICON_EXPORT, keywords: ["json", "backup"], actions: [{ id: EXPORT, title: "Export…" }] },
       ],
       pick: async (id, action, ctx?: Ctx): Promise<Effect | void> => {
         if (id === IMPORT || id === EXPORT) return action === "save" ? transfer(id, ctx?.values ?? {}) : { form: pathForm(id) };

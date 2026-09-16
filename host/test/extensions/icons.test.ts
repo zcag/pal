@@ -15,8 +15,8 @@ describe("icons", () => {
   test("meta: two grids of 10 columns; the Nerd Font one with a lazy detail", () => {
     const l = host.loaded().find((l) => l.extension === "icons")!;
     expect(l.palettes).toEqual([
-      { name: "icons", title: "Nerd Font icons", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, detail: "lazy" },
-      { name: "freedesktop", title: "Freedesktop icon names", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10 },
+      { name: "icons", title: "Nerd Font icons", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, detail: "lazy", tier: "catalog" },
+      { name: "freedesktop", title: "Freedesktop icon names", live: false, input: false, icon: "\u{f0151}", view: "grid", columns: 10, tier: "catalog" },
     ]);
   });
 
@@ -35,7 +35,7 @@ describe("icons", () => {
     const account = items.find((i) => i.id === "nf-md-account_circle")!;
     expect(account).toEqual({
       id: "nf-md-account_circle", name: "account circle", subtitle: "U+F0009", icon: "\u{f0009}", keywords: ["nf-md-account_circle"], section: "Material Design",
-      actions: [{ id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point" }, { id: "name", title: "Copy name" }, { id: "class", title: "Copy CSS class" }],
+      actions: [{ id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point" }, { id: "name", title: "Copy name", shortcut: "cmd+shift+n" }, { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c" }],
     });
     // A BMP glyph and an astral one both draw as one code point.
     expect(items.find((i) => i.id === "nf-fa-github")).toMatchObject({ icon: "\u{f09b}", subtitle: "U+F09B" });
@@ -73,7 +73,7 @@ describe("freedesktop", () => {
     expect(items).toHaveLength(Object.keys(XDG_ICONS).length);
     expect(items.map((i) => i.id)).toEqual(Object.keys(XDG_ICONS));
     const err = items.find((i) => i.id === "dialog-error")!;
-    expect(err).toEqual({ id: "dialog-error", name: "dialog-error", subtitle: "nf-md-alert_octagon", icon: "\u{f0029}", keywords: ["nf-md-alert_octagon"], actions: [{ id: "name", title: "Copy name" }, { id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point" }] });
+    expect(err).toEqual({ id: "dialog-error", name: "dialog-error", subtitle: "nf-md-alert_octagon", icon: "\u{f0029}", keywords: ["nf-md-alert_octagon"], actions: [{ id: "name", title: "Copy name" }, { id: "glyph", title: "Copy glyph" }, { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u" }] });
     expect(items.every((i) => i.subtitle)).toBe(true);
   });
 

@@ -7,7 +7,9 @@ name, its full path the subtitle on macOS (Linux `ps` gives only the
 name); the pid and the resident memory sit on the right, and a process
 above 10% CPU carries a `NN% cpu` tag (amber, red from 50%). Rows are
 sorted by CPU, then memory. On macOS a process that lives in a `.app`
-bundle gets that app's icon.
+bundle gets that app's icon, any other a chip glyph. The detail pane
+(`cmd+i`) shows the full command, the pid, the parent pid, the user, the
+CPU share and the memory of the row.
 
 A query of `:` and digits lists what listens on TCP ports instead of
 processes: `:3000` that port, `:30` every port starting with 30, `:`

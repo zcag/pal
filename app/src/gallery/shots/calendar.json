@@ -1,0 +1,597 @@
+{
+  "palettes": {
+    "schedule": {
+      "title": "My Schedule",
+      "icon": "󰃭",
+      "live": true,
+      "placeholder": "Search your events",
+      "filters": [
+        {
+          "id": "all",
+          "title": "All calendars"
+        },
+        {
+          "id": "work",
+          "title": "Work"
+        },
+        {
+          "id": "home",
+          "title": "Home"
+        },
+        {
+          "id": "team",
+          "title": "Team"
+        }
+      ],
+      "items": [
+        {
+          "id": "standup@1",
+          "name": "Daily standup",
+          "subtitle": "09:30 – 09:45",
+          "icon": "#8B5CF6",
+          "section": "Today",
+          "keywords": [
+            "Team"
+          ],
+          "accessories": [
+            {
+              "text": "6 people"
+            },
+            {
+              "tag": "Join",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join call"
+            },
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy conference link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete this occurrence",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"Daily standup\"?"
+            }
+          ]
+        },
+        {
+          "id": "design@1",
+          "name": "Design review: settings window",
+          "subtitle": "11:00 – 12:00 · Room 4",
+          "icon": "#3B82F6",
+          "section": "Today",
+          "keywords": [
+            "Work"
+          ],
+          "accessories": [
+            {
+              "tag": "now",
+              "color": "green"
+            },
+            {
+              "text": "4 people"
+            },
+            {
+              "tag": "Join",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join call"
+            },
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy conference link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete event",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"Design review: settings window\"?"
+            }
+          ]
+        },
+        {
+          "id": "dentist@1",
+          "name": "Dentist",
+          "subtitle": "15:30 – 16:15 · Kadıköy",
+          "icon": "#10B981",
+          "section": "Today",
+          "keywords": [
+            "Home"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete event",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"Dentist\"?"
+            }
+          ]
+        },
+        {
+          "id": "1on1@2",
+          "name": "1:1 with Mara",
+          "subtitle": "10:00 – 10:30",
+          "icon": "#3B82F6",
+          "section": "Tomorrow",
+          "keywords": [
+            "Work"
+          ],
+          "accessories": [
+            {
+              "text": "2 people"
+            },
+            {
+              "tag": "Join",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join call"
+            },
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy conference link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete event",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"1:1 with Mara\"?"
+            }
+          ]
+        },
+        {
+          "id": "release@2",
+          "name": "Release 0.3 planning",
+          "subtitle": "14:00 – 15:00",
+          "icon": "#8B5CF6",
+          "section": "Tomorrow",
+          "keywords": [
+            "Team"
+          ],
+          "accessories": [
+            {
+              "text": "5 people"
+            },
+            {
+              "tag": "maybe",
+              "color": "amber"
+            },
+            {
+              "tag": "Join",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "join",
+              "title": "Join call"
+            },
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_link",
+              "title": "Copy conference link",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete event",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"Release 0.3 planning\"?"
+            }
+          ]
+        },
+        {
+          "id": "football@4",
+          "name": "Five-a-side",
+          "subtitle": "19:00 – 20:00 · Moda pitch",
+          "icon": "#10B981",
+          "section": "This week",
+          "keywords": [
+            "Home"
+          ],
+          "accessories": [
+            {
+              "text": "10 people"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete event",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"Five-a-side\"?"
+            }
+          ]
+        },
+        {
+          "id": "offsite@5",
+          "name": "Team offsite",
+          "subtitle": "All day, until Sat 19 Sep",
+          "icon": "#8B5CF6",
+          "section": "This week",
+          "keywords": [
+            "Team"
+          ],
+          "accessories": [
+            {
+              "text": "12 people"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete event",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"Team offsite\"?"
+            }
+          ]
+        },
+        {
+          "id": "flight@9",
+          "name": "Flight to Berlin",
+          "subtitle": "07:45 – 10:05 · IST",
+          "icon": "#10B981",
+          "section": "Later",
+          "keywords": [
+            "Home"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Calendar"
+            },
+            {
+              "id": "copy_details",
+              "title": "Copy event details",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "delete",
+              "title": "Delete event",
+              "shortcut": "ctrl+x",
+              "style": "destructive",
+              "confirm": "Delete \"Flight to Berlin\"?"
+            }
+          ]
+        },
+        {
+          "id": "new",
+          "name": "New event",
+          "subtitle": "Title, day, time and calendar in a form",
+          "icon": "󰐕",
+          "keywords": [
+            "add",
+            "create"
+          ],
+          "actions": [
+            {
+              "id": "new",
+              "title": "New event"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "design@1": {
+          "markdown": "Walk through the six pages of the settings window: Overview, General, Palettes, Extensions, Bar, About.\n\nBring the hotkey conflict flow and the permissions rows; we decide on the search field placement.\n\n- Overview first, everything that needs attention with the fix inline\n- One grouped table for the palettes\n- The store hero on the Extensions page",
+          "metadata": [
+            {
+              "label": "When",
+              "value": "Wed 16 Sep 2026, 11:00 – 12:00"
+            },
+            {
+              "label": "Calendar",
+              "tags": [
+                {
+                  "text": "Work (iCloud)"
+                }
+              ]
+            },
+            {
+              "label": "Location",
+              "value": "Room 4"
+            },
+            {
+              "label": "Call",
+              "link": {
+                "text": "meet.google.com/abc-defg-hij",
+                "href": "https://meet.google.com/abc-defg-hij"
+              }
+            },
+            {
+              "label": "Organizer",
+              "value": "Mara Lind"
+            },
+            {
+              "label": "Attendees (4)",
+              "tags": [
+                {
+                  "text": "Mara Lind",
+                  "color": "green"
+                },
+                {
+                  "text": "Sam Ortega (you)",
+                  "color": "green"
+                },
+                {
+                  "text": "Tomas Ruiz",
+                  "color": "amber"
+                },
+                {
+                  "text": "Ada Chen",
+                  "color": "grey"
+                }
+              ]
+            },
+            {
+              "label": "Your reply",
+              "tags": [
+                {
+                  "text": "accepted",
+                  "color": "green"
+                }
+              ]
+            }
+          ]
+        },
+        "standup@1": {
+          "markdown": "# Daily standup",
+          "metadata": [
+            {
+              "label": "When",
+              "value": "Wed 16 Sep 2026, 09:30 – 09:45"
+            },
+            {
+              "label": "Calendar",
+              "tags": [
+                {
+                  "text": "Team (Google)"
+                }
+              ]
+            },
+            {
+              "label": "Call",
+              "link": {
+                "text": "zoom.us/j/123456789",
+                "href": "https://zoom.us/j/123456789"
+              }
+            },
+            {
+              "label": "Attendees (6)",
+              "tags": [
+                {
+                  "text": "Mara Lind",
+                  "color": "green"
+                },
+                {
+                  "text": "Sam Ortega (you)",
+                  "color": "green"
+                },
+                {
+                  "text": "Tomas Ruiz",
+                  "color": "green"
+                },
+                {
+                  "text": "Ada Chen",
+                  "color": "grey"
+                },
+                {
+                  "text": "Ravi Patel",
+                  "color": "green"
+                },
+                {
+                  "text": "Lena Koch",
+                  "color": "amber"
+                }
+              ]
+            },
+            {
+              "label": "Repeats",
+              "value": "yes"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "effects": {
+    "schedule/new": {
+      "form": {
+        "id": "new",
+        "title": "New event",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "title",
+            "label": "Title",
+            "required": true,
+            "default": "",
+            "placeholder": "Dentist"
+          },
+          {
+            "kind": "text",
+            "id": "day",
+            "label": "Day",
+            "default": "today",
+            "placeholder": "today",
+            "description": "today, tomorrow, fri, next mon, 2026-09-20, 20 sep"
+          },
+          {
+            "kind": "text",
+            "id": "start",
+            "label": "Start",
+            "default": "14:45",
+            "placeholder": "14:30",
+            "description": "14:30, 2pm, 1430; ignored for an all-day event"
+          },
+          {
+            "kind": "text",
+            "id": "end",
+            "label": "End",
+            "default": "15:45",
+            "placeholder": "15:30",
+            "description": "A time, or a day for an all-day event (its last day)"
+          },
+          {
+            "kind": "checkbox",
+            "id": "all_day",
+            "label": "All day",
+            "text": "The whole day, no times",
+            "default": false
+          },
+          {
+            "kind": "select",
+            "id": "calendar",
+            "label": "Calendar",
+            "options": [
+              {
+                "id": "",
+                "title": "Default calendar"
+              },
+              {
+                "id": "work",
+                "title": "Work (iCloud)"
+              },
+              {
+                "id": "home",
+                "title": "Home (iCloud)"
+              },
+              {
+                "id": "team",
+                "title": "Team (Google)"
+              }
+            ],
+            "default": ""
+          },
+          {
+            "kind": "text",
+            "id": "location",
+            "label": "Location",
+            "default": "",
+            "placeholder": "Room 4, or a meeting link"
+          },
+          {
+            "kind": "textarea",
+            "id": "notes",
+            "label": "Notes",
+            "default": ""
+          }
+        ],
+        "submit": {
+          "id": "create",
+          "title": "Add event"
+        }
+      }
+    }
+  },
+  "shots": {
+    "1-schedule": {
+      "palette": "schedule",
+      "keys": [
+        "down"
+      ]
+    },
+    "2-detail": {
+      "palette": "schedule",
+      "keys": [
+        "down",
+        "cmd+i",
+        "wait:400"
+      ]
+    },
+    "3-new": {
+      "palette": "schedule",
+      "keys": [
+        "type:new event",
+        "enter",
+        "wait:300"
+      ]
+    }
+  }
+}

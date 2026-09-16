@@ -10,14 +10,15 @@
 // status.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
-import { home, settings, xdg, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
+import { home, settings, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
 import { openTerminal, shq, type TerminalChoice } from "./terminal.ts";
 
 /** `[extensions.make]`, defaults in pal.json. */
 type Settings = { projects: string[]; terminal: TerminalChoice | "background" };
 const S = () => settings.get<Settings>();
 
-const ICON = xdg("applications-development") ?? "⚒";
+/** md-hammer, the manifest's icon too. */
+const ICON = "\u{f08ea}";
 const NAMES = ["Makefile", "makefile", "GNUmakefile"];
 const DEPTH = 2;
 /** The core drops a pick unanswered after 10 s: a background make still going by then is left to finish on its own. */
@@ -132,7 +133,6 @@ function list(): Item[] {
         icon: ICON,
         keywords: [name, ...(target.phony ? ["phony"] : [])],
         section: name,
-        actions: ACTIONS,
       });
     }
   }
@@ -178,13 +178,14 @@ async function background(dir: string, target: string) {
 export default {
   palettes: {
     make: {
-      title: "Makefile targets",
+      title: "Makefile Targets",
       icon: ICON,
       placeholder: "Target or project",
+      actions: ACTIONS,
       list,
       pick: async (id, action = "run") => {
         const r = rows.get(id);
-        if (!r) return { keep: true as const, toast: { title: "Target not listed", message: "Refresh the palette first", style: "failure" as const } };
+        if (!r) return { keep: true as const, toast: { title: "Target not listed", message: "Refresh the palette with cmd+r", style: "failure" as const } };
         const { dir } = r.project, { name } = r.target;
         switch (action) {
           case "copy": return { copy: `make -C ${shq(dir)} ${shq(name)}` };

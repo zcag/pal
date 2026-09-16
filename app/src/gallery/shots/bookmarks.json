@@ -3,6 +3,7 @@
     "bookmarks": {
       "title": "Bookmarks",
       "icon": "🔖",
+      "placeholder": "A name, a folder or a keyword",
       "items": [
         {
           "id": "http://homeassistant.local:8123",

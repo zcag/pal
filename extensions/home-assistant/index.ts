@@ -203,7 +203,6 @@ export default {
     services: {
       title: "Home Assistant Services",
       icon: "\u{f0241}",
-      ttl: 3600,
       placeholder: "Search services",
       list: async (): Promise<Item[]> => {
         try { return serviceRows(await client().services()); } catch (e) { return hint(e); }
@@ -220,7 +219,6 @@ export default {
     areas: {
       title: "Home Assistant Areas",
       icon: HOUSE,
-      ttl: 3600,
       placeholder: "Search areas",
       list: async (): Promise<Item[]> => {
         let c: Client;

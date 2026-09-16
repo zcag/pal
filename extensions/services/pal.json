@@ -8,15 +8,40 @@
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "number", "id": "ttl", "label": "Refresh after", "description": "Seconds a listing stays good for: the palette lists again on show only once the rows are older than this. Read when the extension loads.", "min": 0, "max": 3600, "unit": "s", "default": 10 },
-    { "kind": "boolean", "id": "confirm_user", "label": "Confirm user units", "text": "Ask before stopping or restarting a user unit too (system units always ask)", "default": false },
-    { "kind": "list", "id": "agent_dirs", "label": "Agent folders (macOS)", "description": "Where the launchd agent plists are read from; the first is yours, the second every user's.", "default": ["~/Library/LaunchAgents", "/Library/LaunchAgents"] }
+    {
+      "kind": "number",
+      "id": "ttl",
+      "label": "Refresh after",
+      "description": "Seconds a listing stays good for: the palette lists again on show only once the rows are older than this. Read when the extension loads.",
+      "min": 0,
+      "max": 3600,
+      "unit": "s",
+      "default": 10
+    },
+    {
+      "kind": "boolean",
+      "id": "confirm_user",
+      "label": "Confirm user units",
+      "text": "Ask before stopping or restarting a user unit",
+      "default": false,
+      "description": "System units always ask first; a user unit acts at once unless this is on."
+    },
+    {
+      "kind": "list",
+      "id": "agent_dirs",
+      "label": "Agent folders (macOS)",
+      "description": "Where the launchd agent plists are read from; the first is yours, the second every user's.",
+      "default": [
+        "~/Library/LaunchAgents",
+        "/Library/LaunchAgents"
+      ]
+    }
   ],
   "store": {
-    "tagline": "The OS's service manager in the panel: systemd units on Linux, launchd jobs on macOS.",
+    "tagline": "systemd units and launchd jobs: start, stop, restart, logs",
     "category": "system",
     "features": [
-      "Linux: every systemd unit of the user and the system manager, filters User, System, Failed and Running; the unit file's state (`enabled`) and a coloured active-state tag (`running` green, `failed/failed` red) on the right",
+      "Linux: every systemd unit of the user and the system manager, filters User, System, Failed and Running; the unit file's state (`enabled`) and a coloured active-state tag (`running` green, `failed` red) on the right",
       "`enter` stops an active unit or starts an inactive one; a system unit asks first and goes through `systemctl`, then `sudo -n`, then `pkexec`, whichever is allowed",
       "`cmd+l` opens `journalctl -u <unit> -n 200` in the panel; `cmd+e` enables or disables the unit file",
       "macOS: the agent plists in `~/Library/LaunchAgents` and `/Library/LaunchAgents`, everything `launchctl list` knows, and the jobs with a pid, tagged `running`, `loaded`, `exit N` or `not loaded`",
@@ -24,26 +49,87 @@
       "Live: listed again when the panel shows once the rows are older than `ttl`"
     ],
     "permissions": [],
-    "platforms": ["macos", "linux"],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-units.png", "caption": "systemd units under the User filter, the unit file's state and the active state on the right" },
-      { "file": "2-failed.png", "caption": "The Failed filter: units of both managers, in a User and a System section" },
-      { "file": "3-logs.png", "caption": "journalctl for a unit, the last 200 lines in the panel" },
-      { "file": "4-agents.png", "caption": "macOS: launchd agents by folder, with pid and state" }
+      {
+        "file": "1-units.png",
+        "caption": "systemd units under the User filter, the unit file's state and the active state on the right"
+      },
+      {
+        "file": "2-failed.png",
+        "caption": "The Failed filter: units of both managers, in a User and a System section"
+      },
+      {
+        "file": "3-logs.png",
+        "caption": "journalctl for a unit, the last 200 lines in the panel"
+      },
+      {
+        "file": "4-agents.png",
+        "caption": "macOS: launchd agents by folder, with pid and state"
+      }
     ],
     "actions": [
-      { "title": "Stop", "description": "systemctl stop on an active unit; a system unit asks first.", "keys": "enter" },
-      { "title": "Start", "description": "systemctl start on an inactive unit.", "keys": "enter" },
-      { "title": "Logs", "description": "journalctl -u <unit> -n 200 in the panel.", "keys": "cmd+l" },
-      { "title": "Restart", "description": "systemctl restart, or launchctl kickstart -k on macOS.", "keys": "cmd+shift+r" },
-      { "title": "Enable", "description": "systemctl enable on a disabled unit file.", "keys": "cmd+e" },
-      { "title": "Disable", "description": "systemctl disable; a system unit asks first.", "keys": "cmd+e" },
-      { "title": "Copy unit name", "description": "name.service.", "keys": "cmd+c" },
-      { "title": "Unload", "description": "macOS: launchctl bootout; asks first.", "keys": "enter" },
-      { "title": "Load", "description": "macOS: launchctl bootstrap from the plist.", "keys": "enter" },
-      { "title": "Show plist", "description": "macOS: the plist as XML in the panel.", "keys": "cmd+l" },
-      { "title": "Open plist file", "keys": "cmd+o" },
-      { "title": "Copy label", "keys": "cmd+c" }
+      {
+        "title": "Stop",
+        "description": "systemctl stop on an active unit; a system unit asks first.",
+        "keys": "enter"
+      },
+      {
+        "title": "Start",
+        "description": "systemctl start on an inactive unit.",
+        "keys": "enter"
+      },
+      {
+        "title": "Logs",
+        "description": "journalctl -u <unit> -n 200 in the panel.",
+        "keys": "cmd+l"
+      },
+      {
+        "title": "Restart",
+        "description": "systemctl restart, or launchctl kickstart -k on macOS.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Enable",
+        "description": "systemctl enable on a disabled unit file.",
+        "keys": "cmd+e"
+      },
+      {
+        "title": "Disable",
+        "description": "systemctl disable; a system unit asks first.",
+        "keys": "cmd+e"
+      },
+      {
+        "title": "Copy unit name",
+        "description": "name.service.",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Unload",
+        "description": "macOS: launchctl bootout; asks first.",
+        "keys": "enter"
+      },
+      {
+        "title": "Load",
+        "description": "macOS: launchctl bootstrap from the plist.",
+        "keys": "enter"
+      },
+      {
+        "title": "Show plist",
+        "description": "macOS: the plist as XML in the panel.",
+        "keys": "cmd+l"
+      },
+      {
+        "title": "Open plist file",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Copy label",
+        "keys": "cmd+c"
+      }
     ]
   },
   "palettes": {
@@ -51,10 +137,34 @@
       "kind": "live",
       "description": "Every service unit (Linux) or launchd job (macOS), with its state.",
       "keys": [
-        { "keys": "enter", "title": "Stop or start (unload or load on macOS)" },
-        { "keys": "cmd+l", "title": "Logs (the plist on macOS)" },
-        { "keys": "cmd+shift+r", "title": "Restart" },
-        { "keys": "tab", "title": "Next filter: User, System, Failed, Running" }
+        {
+          "keys": "enter",
+          "title": "Stop or start (unload or load on macOS)"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "Logs (the plist on macOS)"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Restart"
+        },
+        {
+          "keys": "cmd+e",
+          "title": "Enable or disable the unit file (Linux)"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open the plist file (macOS)"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the unit name or label"
+        },
+        {
+          "keys": "tab",
+          "title": "Next filter: User, System, Failed, Running"
+        }
       ]
     }
   }

@@ -46,16 +46,18 @@ describe("clipboard", () => {
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["1", "2", "3", "4", "5", "6"]);
     const [text, multi, image, files, url, color] = items;
-    expect(text).toMatchObject({ name: "hello world", icon: "≡", accessories: [{ text: "Chrome" }, { date: 1758000000000 }] });
+    expect(text).toMatchObject({ name: "hello world", icon: "\u{f09a8}", accessories: [{ text: "Chrome" }, { date: 1758000000000 }] });
     expect(text.subtitle).toBeUndefined();
     expect(text.section).toBeUndefined();
     expect(multi).toMatchObject({ name: "line one", subtitle: "3 lines · line one line two line three", section: "Pinned", accessories: [{ text: "kitty" }, { date: 1758000001000 }, { tag: "pinned", color: "amber" }] });
     expect(image).toMatchObject({ name: "Image 640 x 480", icon: { image: "icon://localhost/clip?id=3&size=48" }, accessories: [{ text: "12.1 KB" }, { date: 1758000002000 }] });
-    expect(files).toMatchObject({ name: "a.txt, b.txt", subtitle: "2 files", icon: "▤", accessories: [{ text: "Finder" }, { date: 1758000003000 }] });
+    expect(files).toMatchObject({ name: "a.txt, b.txt", subtitle: "2 files", icon: "\u{f1032}", accessories: [{ text: "Finder" }, { date: 1758000003000 }] });
     expect(url).toMatchObject({ name: "https://example.com/page", url: "https://example.com/page", accessories: [{ text: "Safari" }, { date: 1758000004000 }] });
     expect(url.icon).toBeUndefined();
     // A colour's icon is the hex colour itself: the UI draws a tinted dot for one.
     expect(color).toMatchObject({ name: "rgb(255, 0, 128)", icon: "#ff0080" });
+    // The pane draws the colour as a wide swatch above the fenced text.
+    expect(color.detail!.markdown).toMatch(/^!\[\]\(data:image\/svg\+xml;utf8,.*ff0080.*\)\n\n````\nrgb\(255, 0, 128\)\n````$/);
   });
 
   test("filters: the core's kinds are passed through; links and colours are text narrowed here", async () => {

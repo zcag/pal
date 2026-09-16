@@ -17,13 +17,13 @@ describe("window-management", () => {
   test("meta: an indexed layout palette and an input window picker", () => {
     const l = host.loaded().find((l) => l.extension === EXT)!;
     expect(l.palettes).toEqual([
-      { name: EXT, title: "Window Management", live: false, input: false, icon: "◧", placeholder: "Left half, maximize, center..." },
-      { name: "arrange", title: "Arrange Window", live: false, input: true, icon: "▢", placeholder: "Which window?" },
+      { name: EXT, title: "Window Management", live: false, input: false, icon: "\u{f10aa}", placeholder: "Left half, maximize, center..." },
+      { name: "arrange", title: "Arrange Window", live: false, input: true, icon: "\u{f05af}", placeholder: "Which window?" },
     ]);
     expect(l.manifest.settings?.map((s) => [s.id, s.default])).toEqual([["gap", 0], ["almost_maximize_percent", 90], ["reasonable_size_percent", 60]]);
   });
 
-  test("one static row per layout, in the core's order, glyph icon, Focused window subtitle, Apply and Apply to", async () => {
+  test("one static row per layout, in the core's order, a diagram icon, Focused window subtitle, Apply and Apply to", async () => {
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(LAYOUTS.map((l) => l.id));
     expect(items.map((i) => i.id)).toEqual([
@@ -32,9 +32,12 @@ describe("window-management", () => {
       "top_left_quarter", "top_right_quarter", "bottom_left_quarter", "bottom_right_quarter",
       "maximize", "almost_maximize", "center", "reasonable_size", "next_display", "previous_display", "restore",
     ]);
-    expect(items[0]).toEqual({ id: "left_half", name: "Left Half", subtitle: "Focused window", icon: "◧", keywords: ["half", "left", "split"], actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
+    expect(items[0]).toEqual({ id: "left_half", name: "Left Half", subtitle: "Focused window", icon: { image: expect.stringMatching(/^data:image\/svg\+xml/) }, keywords: ["half", "left", "split"], actions: [{ id: "apply", title: "Apply" }, { id: "apply-to", title: "Apply to…" }] });
     expect(host.coreCalls.filter((c) => c.method.startsWith("windows."))).toEqual([]);
-    for (const i of items) expect(typeof i.icon, i.id).toBe("string");
+    // Every layout draws its own diagram, no two alike, never the initial fallback.
+    const urls = items.map((i) => (i.icon as { image: string }).image);
+    for (const u of urls) expect(u).toMatch(/^data:image\/svg\+xml/);
+    expect(new Set(urls).size).toBe(urls.length);
   });
 
   test("Apply is a layout effect carrying the settings' knobs, the focused window implied", async () => {

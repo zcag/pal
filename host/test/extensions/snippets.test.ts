@@ -71,7 +71,7 @@ describe("snippets", () => {
     expect(items.map((i) => i.id)).toEqual(["create", "sig", "stamp", "import", "export"]);
     expect(items[3]).toMatchObject({ name: "Import Snippets", actions: [{ id: "import", title: "Import…" }] });
     expect(items[4]).toMatchObject({ name: "Export Snippets", actions: [{ id: "export", title: "Export…" }] });
-    expect(items[0]).toMatchObject({ name: "Create Snippet", actions: [{ id: "create", title: "Create Snippet" }] });
+    expect(items[0]).toMatchObject({ name: "Create Snippet", actions: [{ id: "create", title: "Create snippet" }], icon: "\u{f0415}" });
     expect(items[1]).toMatchObject({ name: "Signature", subtitle: "Best,", keywords: ["sig"], accessories: [{ tag: "sig" }] });
     expect(items[1].detail!.markdown).toContain("Best,\nCagdas");
     expect(items[1].actions!.map((a) => a.id)).toEqual(["paste", "copy", "edit", "delete"]);

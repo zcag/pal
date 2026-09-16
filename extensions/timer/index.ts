@@ -25,8 +25,10 @@ type State = "running" | "paused" | "done";
 type Timer = { id: string; name: string; total: number; deadline: number; left: number; state: State; fired: number; auto: boolean };
 
 const EXTENSION = "timer", ITEM = "timer", PALETTE = "timers";
-/** nf-md-timer, drawn from the bundled Nerd Font. */
+/** nf-md-timer, drawn from the bundled Nerd Font; nf-md-plus for the New row, nf-md-alert for a missing CLI. */
 const GLYPH = "\u{f0954}";
+const PLUS = "\u{f0415}";
+const WARN = "\u{f0026}";
 /** The CLI's default `TIMER_DONE_TTL`: how long a landed timer's badge lingers. */
 const DONE_TTL = 300;
 const NEW = "new";
@@ -89,7 +91,8 @@ export const fmt = (s: number): string => {
 /** `timer <args>` against the configured directory; the CLI's complaint is the error. */
 async function timer(...args: string[]): Promise<string> {
   const s = conf();
-  const cmd = Bun.which(s.command) ?? home(s.command);
+  const cmd = cliPath();
+  if (!cmd) throw new Error(`${s.command} is not installed`);
   const proc = Bun.spawn([cmd, ...args], { env: { ...process.env, TIMER_DIR: home(s.dir) }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
   const kill = setTimeout(() => proc.kill(), CLI_MS);
   try {
@@ -159,11 +162,11 @@ function row(t: Timer): Item {
   const left = secsLeft(t);
   const subtitle = t.state === "done" ? `Landed ${fmt(now() - t.fired)} ago` : t.state === "paused" ? `Paused at ${fmt(left)}` : `${fmt(left)} left, done at ${new Date(t.deadline * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   const first: Action = t.state === "done" ? { id: "done", title: "Dismiss" } : t.state === "paused" ? { id: "resume", title: "Resume" } : { id: "pause", title: "Pause" };
-  const actions: Action[] = [first, { id: "add", title: "Add 5 minutes", shortcut: "cmd++" }, { id: "stop", title: "Stop", shortcut: "cmd+backspace", style: "destructive" }];
+  const actions: Action[] = [first, { id: "add", title: "Add 5 minutes", shortcut: "cmd++" }, { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive" }];
   return { id: t.id, name: t.name, subtitle, icon: GLYPH, keywords: ["timer", t.state], accessories: [{ tag: STATE[t.state].tag, color: STATE[t.state].color }], actions };
 }
 
-const newRow: Item = { id: NEW, name: "New timer", subtitle: "A duration and a name", icon: "+", keywords: ["timer", "start", "countdown"], actions: [{ id: "new", title: "New timer" }] };
+const newRow: Item = { id: NEW, name: "New timer", subtitle: "A duration and a name", icon: PLUS, keywords: ["timer", "start", "countdown"], actions: [{ id: "new", title: "New timer" }] };
 
 const form = (errors?: Record<string, string>): Form => ({
   id: NEW,
@@ -177,8 +180,12 @@ const form = (errors?: Record<string, string>): Form => ({
   errors,
 });
 
+/** The CLI as the setting names it, on PATH or as a path; nothing when neither exists. */
+const cliPath = () => { const c = conf().command; return Bun.which(c) ?? (Bun.file(home(c)).size > 0 ? home(c) : undefined); };
+
 async function list(): Promise<Item[]> {
   const ts = await readTimers(dirOf());
+  if (!cliPath()) return [...ts.map(row), { id: "hint:cli", name: `${conf().command} is not installed`, subtitle: "Set timer command in Settings to the timer CLI; the rows above are read from its state directory", icon: WARN, actions: [] }];
   return [...ts.map(row), newRow];
 }
 
@@ -203,7 +210,7 @@ export default {
       title: "Timers",
       icon: GLYPH,
       live: true,
-      placeholder: "Timers",
+      placeholder: "Find a timer by name",
       list,
       pick,
     },

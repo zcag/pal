@@ -3,7 +3,7 @@
   "title": "Verification Codes",
   "description": "One-time codes from your recent text messages, newest first. Enter pastes the code into the app in front.",
   "version": "0.1.0",
-  "icon": "✉",
+  "icon": "󰍩",
   "author": "pal",
   "repo": "bundled",
   "settings": [
@@ -73,7 +73,7 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "The one-time codes in your recent text messages, newest first; enter pastes the code where you were.",
+    "tagline": "One-time codes from your texts, newest first; Enter pastes",
     "category": "integration",
     "features": [
       "Reads Messages' own database (`~/Library/Messages/chat.db`), one read-only query per listing, the last 24 hours by default",

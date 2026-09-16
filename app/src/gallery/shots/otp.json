@@ -2,7 +2,7 @@
   "palettes": {
     "otp": {
       "title": "Verification Codes",
-      "icon": "✉",
+      "icon": "󰍩",
       "live": true,
       "placeholder": "Search codes and senders",
       "items": [
@@ -10,7 +10,7 @@
           "id": "1",
           "name": "NORTHBANK",
           "subtitle": "Your one-time code is 483920. It expires in 5 minutes. Do not share it.",
-          "icon": "✉",
+          "icon": "󰍩",
           "keywords": [
             "483920",
             "NORTHBANK"
@@ -68,7 +68,7 @@
           "id": "2",
           "name": "Google",
           "subtitle": "G-771205 is your Google verification code.",
-          "icon": "✉",
+          "icon": "󰍩",
           "keywords": [
             "771205",
             "Google"
@@ -126,7 +126,7 @@
           "id": "3",
           "name": "Acme Delivery",
           "subtitle": "Acme Delivery: your pickup PIN is 2841. Show it at the counter.",
-          "icon": "✉",
+          "icon": "󰍩",
           "keywords": [
             "2841",
             "+1 555 0142",
@@ -185,7 +185,7 @@
           "id": "4",
           "name": "GitHub",
           "subtitle": "Your GitHub authentication code is 559104",
-          "icon": "✉",
+          "icon": "󰍩",
           "keywords": [
             "559104",
             "GitHub"
@@ -243,7 +243,7 @@
           "id": "5",
           "name": "AIRLINE",
           "subtitle": "Use code 90237 to confirm your seat change for flight 214.",
-          "icon": "✉",
+          "icon": "󰍩",
           "keywords": [
             "90237",
             "AIRLINE"
@@ -301,7 +301,7 @@
           "id": "6",
           "name": "Slack",
           "subtitle": "Your Slack confirmation code is 66-1204",
-          "icon": "✉",
+          "icon": "󰍩",
           "keywords": [
             "1204",
             "no-reply@slack.com",

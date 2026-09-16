@@ -3,17 +3,47 @@
   "title": "Window Management",
   "description": "Halves, thirds, quarters, maximize, center, the other display, restore: move and resize the focused window, or any window, from the keyboard.",
   "version": "0.1.0",
-  "icon": "◧",
+  "icon": "󱂪",
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "number", "id": "gap", "label": "Gap", "description": "Pixels between a window and the screen edge, and between two windows of a split.", "min": 0, "max": 128, "step": 1, "unit": "px", "default": 0 },
-    { "kind": "number", "id": "almost_maximize_percent", "label": "Almost Maximize", "description": "How much of the screen Almost Maximize fills, centred.", "min": 10, "max": 100, "step": 1, "unit": "%", "default": 90 },
-    { "kind": "number", "id": "reasonable_size_percent", "label": "Reasonable Size", "description": "How much of the screen Reasonable Size fills, centred.", "min": 10, "max": 100, "step": 1, "unit": "%", "default": 60 }
+    {
+      "kind": "number",
+      "id": "gap",
+      "label": "Gap",
+      "description": "Pixels between a window and the screen edge, and between two windows of a split.",
+      "min": 0,
+      "max": 128,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "kind": "number",
+      "id": "almost_maximize_percent",
+      "label": "Almost Maximize",
+      "description": "How much of the screen Almost Maximize fills, centred.",
+      "min": 10,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "default": 90
+    },
+    {
+      "kind": "number",
+      "id": "reasonable_size_percent",
+      "label": "Reasonable Size",
+      "description": "How much of the screen Reasonable Size fills, centred.",
+      "min": 10,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "default": 60
+    }
   ],
   "store": {
-    "tagline": "Halves, thirds, quarters, maximize, center, the other display and restore, applied to the focused window from the keyboard.",
+    "tagline": "Halves, thirds, quarters, maximize, center for any window",
     "category": "productivity",
     "features": [
       "Twenty layouts as rows: Left Half, Right Third, Top Left Quarter, Maximize, Almost Maximize, Center, Reasonable Size, Next Display, Restore",
@@ -23,18 +53,47 @@
       "`gap` keeps pixels between windows and the screen edge; the halves, thirds and quarters are equal cells with the gap between them",
       "Per-layout global hotkeys in `[palettes.window-management.item_hotkeys]` move the focused window without showing pal"
     ],
-    "permissions": ["accessibility"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "accessibility"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-layouts.png", "caption": "One row per layout; Enter applies it to the focused window" },
-      { "file": "2-search.png", "caption": "Typing narrows by name and keyword: quarter, third, screen" },
-      { "file": "3-arrange.png", "caption": "Arrange Window: pick a window first, then the layout for it" },
-      { "file": "4-target.png", "caption": "The layouts again, with the picked window as the subtitle" }
+      {
+        "file": "1-layouts.png",
+        "caption": "One row per layout; Enter applies it to the focused window"
+      },
+      {
+        "file": "2-search.png",
+        "caption": "Typing narrows by name and keyword: quarter, third, screen"
+      },
+      {
+        "file": "3-arrange.png",
+        "caption": "Arrange Window: pick a window first, then the layout for it"
+      },
+      {
+        "file": "4-target.png",
+        "caption": "The layouts again, with the picked window as the subtitle"
+      }
     ],
     "actions": [
-      { "title": "Apply", "description": "The layout on the focused window.", "keys": "enter" },
-      { "title": "Apply to…", "description": "Pick a window from the open ones, then the layout goes on that one.", "keys": "cmd+enter" },
-      { "title": "Arrange", "description": "In Arrange Window: the layouts for the picked window.", "keys": "enter" }
+      {
+        "title": "Apply",
+        "description": "The layout on the focused window.",
+        "keys": "enter"
+      },
+      {
+        "title": "Apply to…",
+        "description": "Pick a window from the open ones, then the layout goes on that one.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Arrange",
+        "description": "In Arrange Window: the layouts for the picked window.",
+        "keys": "enter"
+      }
     ]
   },
   "palettes": {
@@ -42,15 +101,24 @@
       "kind": "list",
       "description": "One row per layout; Enter applies it to the window you were in.",
       "keys": [
-        { "keys": "enter", "title": "Apply to the focused window" },
-        { "keys": "cmd+enter", "title": "Apply to a window you pick" }
+        {
+          "keys": "enter",
+          "title": "Apply to the focused window"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Apply to a window you pick"
+        }
       ]
     },
     "arrange": {
       "kind": "input",
       "description": "Pick a window first, then the layout.",
       "keys": [
-        { "keys": "enter", "title": "Pick the window, then its layout" }
+        {
+          "keys": "enter",
+          "title": "Pick the window, then its layout"
+        }
       ]
     }
   }

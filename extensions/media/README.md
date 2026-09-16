@@ -18,9 +18,9 @@ has no next track) is a toast with its message.
 | keys | action | what |
 | --- | --- | --- |
 | `enter` | Play / Pause | toggles; the row's tag follows |
-| `cmd+right` | Next Track | |
-| `cmd+left` | Previous Track | |
-| `cmd+c` | Copy Track | copies `artist - title` |
+| `cmd+right` | Next track | |
+| `cmd+left` | Previous track | |
+| `cmd+c` | Copy track | copies `artist - title` |
 | `cmd+o` | Open in Spotify / Music / ... | the track's url (Spotify's `spotify:track:` link), else the app on macOS |
 
 A row for a player with nothing loaded has only the three transport
@@ -44,7 +44,7 @@ can see:
 
 The bar item **Now Playing** puts the playing track on the strip (hidden
 while nothing plays) with the transport in its popover: Pause (`space`),
-Next (`right`), Previous (`left`), Copy Track (`cmd+c`), Open (`cmd+o`).
+Next (`right`), Previous (`left`), Copy track (`cmd+c`), Open (`cmd+o`).
 The core asks for it every 30 s and on show and wake; in between the
 extension looks at the players itself every 5 s while one was playing at
 the last look, and pushes when the track or the state changed, so a skip

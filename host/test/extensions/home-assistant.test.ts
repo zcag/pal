@@ -154,6 +154,12 @@ describe("entities", () => {
     expect(ids("cover.blind")).toEqual(["close", "open", "stop", "copy_id", "attributes", "open_ha"]);
     expect(ids("lock.front")).toEqual(["unlock", "lock", "copy_id", "attributes", "open_ha"]);
     expect(items.find((i) => i.id === "lock.front")!.actions![0]).toMatchObject({ title: "Unlock", confirm: "Unlock Front door?" });
+    // Show attributes is not on cmd+i, the shell's detail toggle; no two actions of a row share a key.
+    for (const i of items) {
+      const keys = i.actions!.flatMap((a) => (typeof a.shortcut === "string" ? [a.shortcut] : a.shortcut ?? []));
+      expect(keys).not.toContain("cmd+i");
+      expect(new Set(keys).size).toBe(keys.length);
+    }
     expect(ids("media_player.tv")).toEqual(["play_pause", "next", "previous", "volume", "off", "copy_id", "attributes", "open_ha"]);
     expect(items.find((i) => i.id === "media_player.tv")!.actions![0].title).toBe("Pause");
     expect(ids("scene.movie")).toEqual(["activate", "copy_id", "attributes", "open_ha"]);

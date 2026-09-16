@@ -37,10 +37,10 @@ describe("bluetooth", () => {
     expect(items[0]).toEqual({
       id: "14:28:76:8B:AE:C8", name: "AirPods Pro", subtitle: "Headphones", icon: XDG_ICONS["audio-headphones"], keywords: ["14:28:76:8B:AE:C8", "headphones"],
       accessories: [{ text: "L 80% · R 75% · Case 90%" }, { tag: "connected", color: "green" }],
-      actions: [{ id: "toggle", title: "Disconnect", confirm: "Disconnect AirPods Pro?" }, { id: "copy", title: "Copy Address", shortcut: "cmd+c" }],
+      actions: [{ id: "toggle", title: "Disconnect", confirm: "Disconnect AirPods Pro?" }, { id: "copy", title: "Copy address", shortcut: "cmd+c" }],
     });
     expect(items[1].accessories).toEqual([{ text: "55%" }, { tag: "connected", color: "green" }]);
-    expect(items[2]).toMatchObject({ icon: XDG_ICONS["input-keyboard"], accessories: [], actions: [{ id: "toggle", title: "Connect" }, { id: "copy", title: "Copy Address", shortcut: "cmd+c" }] });
+    expect(items[2]).toMatchObject({ icon: XDG_ICONS["input-keyboard"], accessories: [], actions: [{ id: "toggle", title: "Connect" }, { id: "copy", title: "Copy address", shortcut: "cmd+c" }] });
     expect(items[3]).toMatchObject({ subtitle: "50:ED:3C:E5:7F:02", icon: XDG_ICONS["bluetooth"] });
   });
 

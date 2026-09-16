@@ -16,6 +16,14 @@ import { bar, media, xdg, type Accessory, type Action, type BarItem, type Effect
 
 const MAC = process.platform === "darwin";
 const MUSIC = xdg("multimedia-player")!;
+/** The transport's glyphs (Material Design in the bundled Nerd Font), for the popover rows. */
+const GLYPH = {
+  pause: xdg("media-playback-pause")!,
+  next: xdg("media-skip-forward")!,
+  previous: xdg("media-skip-backward")!,
+  copy: xdg("edit-copy")!,
+  open: "\u{f03cc}", // md-open_in_new
+};
 const EXTENSION = "media";
 const ITEM = "now-playing";
 /** The bar's glyph (nf-fa-music), drawn from the bundled Nerd Font. */
@@ -52,10 +60,10 @@ function item(p: MediaPlayer): Item {
   if (!idle) accessories.unshift({ text: p.name });
   const actions: Action[] = [
     { id: "play_pause", title: p.state === "playing" ? "Pause" : "Play" },
-    { id: "next", title: "Next Track", shortcut: "cmd+right" },
-    { id: "previous", title: "Previous Track", shortcut: "cmd+left" },
+    { id: "next", title: "Next track", shortcut: "cmd+right" },
+    { id: "previous", title: "Previous track", shortcut: "cmd+left" },
   ];
-  if (!idle) actions.push({ id: "copy", title: "Copy Track", shortcut: "cmd+c" });
+  if (!idle) actions.push({ id: "copy", title: "Copy track", shortcut: "cmd+c" });
   const target = openTarget(p);
   if (target) actions.push({ id: "open", title: `Open in ${p.name}`, shortcut: "cmd+o" });
   return {
@@ -89,12 +97,12 @@ function barItem(p: MediaPlayer | undefined): BarItem {
     title: [p.title, p.artist].filter(Boolean).join(" · ").slice(0, 40),
     tooltip: `${trackText(p)} (${p.name})`,
     menu: [
-      { type: "item", id: "play_pause", title: "Pause", shortcut: "space" },
-      { type: "item", id: "next", title: "Next Track", shortcut: "right" },
-      { type: "item", id: "previous", title: "Previous Track", shortcut: "left" },
+      { type: "item", id: "play_pause", title: "Pause", icon: GLYPH.pause, shortcut: "space" },
+      { type: "item", id: "next", title: "Next track", icon: GLYPH.next, shortcut: "right" },
+      { type: "item", id: "previous", title: "Previous track", icon: GLYPH.previous, shortcut: "left" },
       { type: "separator" },
-      { type: "item", id: "copy", title: "Copy Track", shortcut: "cmd+c" },
-      ...(target ? [{ type: "item" as const, id: "open", title: `Open in ${p.name}`, shortcut: "cmd+o" }] : []),
+      { type: "item", id: "copy", title: "Copy track", icon: GLYPH.copy, shortcut: "cmd+c" },
+      ...(target ? [{ type: "item" as const, id: "open", title: `Open in ${p.name}`, icon: p.app && MAC ? { app: p.app } : GLYPH.open, shortcut: "cmd+o" }] : []),
     ],
   };
 }

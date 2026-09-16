@@ -39,7 +39,7 @@
           "title": "Add five minutes"
         },
         {
-          "keys": "cmd+backspace",
+          "keys": "cmd+d",
           "title": "Stop"
         }
       ]
@@ -59,16 +59,18 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "Named countdown timers over the timer CLI: what is left, pause, resume, add five minutes, and a bar item that rings red when one lands.",
+    "tagline": "Named countdowns, with an alarm on the bar when one lands",
     "category": "productivity",
     "features": [
       "One row per timer, most urgent first: `3:12 left, done at 04:41 PM`, `Paused at 41:05`, `Landed 1:35 ago`, with a state tag",
       "New timer is a form: `25m`, `90s`, `1h30m` or a bare number of minutes, an optional name, and a checkbox to ring the phone when it lands",
-      "`enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+backspace` stops",
+      "`enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+d` stops",
       "The CLI keeps the timers, so one started in a terminal and one started here are the same list",
       "A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; hidden with none"
     ],
-    "permissions": [],
+    "permissions": [
+      "timer"
+    ],
     "platforms": [
       "macos",
       "linux"
@@ -120,7 +122,7 @@
       {
         "title": "Stop",
         "description": "The timer is gone.",
-        "keys": "cmd+backspace"
+        "keys": "cmd+d"
       },
       {
         "title": "New timer",

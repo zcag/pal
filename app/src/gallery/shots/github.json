@@ -2,7 +2,7 @@
   "palettes": {
     "prs": {
       "title": "Pull Requests",
-      "icon": "⎇",
+      "icon": "",
       "showDetail": true,
       "filters": [
         {
@@ -127,7 +127,7 @@
             {
               "id": "branch",
               "title": "Copy branch name",
-              "shortcut": "cmd+shift+b"
+              "shortcut": "cmd+b"
             },
             {
               "id": "checks",
@@ -237,7 +237,7 @@
             {
               "id": "branch",
               "title": "Copy branch name",
-              "shortcut": "cmd+shift+b"
+              "shortcut": "cmd+b"
             },
             {
               "id": "checks",
@@ -364,7 +364,7 @@
             {
               "id": "branch",
               "title": "Copy branch name",
-              "shortcut": "cmd+shift+b"
+              "shortcut": "cmd+b"
             },
             {
               "id": "checks",
@@ -477,7 +477,7 @@
             {
               "id": "branch",
               "title": "Copy branch name",
-              "shortcut": "cmd+shift+b"
+              "shortcut": "cmd+b"
             },
             {
               "id": "checks",
@@ -572,7 +572,7 @@
             {
               "id": "branch",
               "title": "Copy branch name",
-              "shortcut": "cmd+shift+b"
+              "shortcut": "cmd+b"
             },
             {
               "id": "checks",
@@ -667,7 +667,7 @@
             {
               "id": "branch",
               "title": "Copy branch name",
-              "shortcut": "cmd+shift+b"
+              "shortcut": "cmd+b"
             },
             {
               "id": "checks",
@@ -792,7 +792,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -902,7 +902,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -1031,7 +1031,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -1144,7 +1144,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -1241,7 +1241,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -1336,7 +1336,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -1450,7 +1450,7 @@
     },
     "issues": {
       "title": "Issues",
-      "icon": "◉",
+      "icon": "",
       "showDetail": true,
       "filters": [
         {
@@ -1473,9 +1473,9 @@
       "items": [
         {
           "id": "create",
-          "name": "Create Issue",
+          "name": "Create issue",
           "subtitle": "A new issue in one of your repositories",
-          "icon": "+",
+          "icon": "",
           "keywords": [
             "new",
             "add"
@@ -1483,7 +1483,7 @@
           "actions": [
             {
               "id": "create",
-              "title": "Create Issue"
+              "title": "Create issue"
             }
           ]
         },
@@ -1918,7 +1918,7 @@
     },
     "repos": {
       "title": "Repositories",
-      "icon": "▤",
+      "icon": "",
       "filters": [
         {
           "id": "all",
@@ -1940,9 +1940,9 @@
       "items": [
         {
           "id": "create",
-          "name": "Create Repository",
+          "name": "Create repository",
           "subtitle": "A new repository under your account or your organisation",
-          "icon": "+",
+          "icon": "",
           "keywords": [
             "new",
             "add"
@@ -1950,7 +1950,7 @@
           "actions": [
             {
               "id": "create",
-              "title": "Create Repository"
+              "title": "Create repository"
             }
           ]
         },
@@ -1958,7 +1958,7 @@
           "id": "mara/dotfiles",
           "name": "dotfiles",
           "subtitle": "Shell, editor and terminal config",
-          "icon": "▤",
+          "icon": "",
           "keywords": [
             "mara/dotfiles",
             "mara",
@@ -2065,7 +2065,7 @@
           "id": "mara/notes-cli",
           "name": "notes-cli",
           "subtitle": "Plain-text notes with a search",
-          "icon": "▤",
+          "icon": "",
           "keywords": [
             "mara/notes-cli",
             "mara",
@@ -2172,7 +2172,7 @@
           "id": "acme/widgets",
           "name": "widgets",
           "subtitle": "The widget service and its admin",
-          "icon": "▤",
+          "icon": "",
           "keywords": [
             "acme/widgets",
             "acme",
@@ -2283,7 +2283,7 @@
           "id": "acme/api",
           "name": "api",
           "subtitle": "Public API and webhooks",
-          "icon": "▤",
+          "icon": "",
           "keywords": [
             "acme/api",
             "acme",
@@ -2380,7 +2380,7 @@
           "id": "oven-sh/bun",
           "name": "bun",
           "subtitle": "Incredibly fast JavaScript runtime, bundler, test runner, and package manager",
-          "icon": "▤",
+          "icon": "",
           "keywords": [
             "oven-sh/bun",
             "oven-sh",
@@ -2473,7 +2473,7 @@
           "id": "tauri-apps/tauri",
           "name": "tauri",
           "subtitle": "Build smaller, faster, and more secure desktop applications with a web frontend",
-          "icon": "▤",
+          "icon": "",
           "keywords": [
             "tauri-apps/tauri",
             "tauri-apps",
@@ -2567,9 +2567,9 @@
         "mine": [
           {
             "id": "create",
-            "name": "Create Repository",
+            "name": "Create repository",
             "subtitle": "A new repository under your account or your organisation",
-            "icon": "+",
+            "icon": "",
             "keywords": [
               "new",
               "add"
@@ -2577,7 +2577,7 @@
             "actions": [
               {
                 "id": "create",
-                "title": "Create Repository"
+                "title": "Create repository"
               }
             ]
           },
@@ -2585,7 +2585,7 @@
             "id": "mara/dotfiles",
             "name": "dotfiles",
             "subtitle": "Shell, editor and terminal config",
-            "icon": "▤",
+            "icon": "",
             "keywords": [
               "mara/dotfiles",
               "mara",
@@ -2692,7 +2692,7 @@
             "id": "mara/notes-cli",
             "name": "notes-cli",
             "subtitle": "Plain-text notes with a search",
-            "icon": "▤",
+            "icon": "",
             "keywords": [
               "mara/notes-cli",
               "mara",
@@ -2801,7 +2801,7 @@
             "id": "oven-sh/bun",
             "name": "bun",
             "subtitle": "Incredibly fast JavaScript runtime, bundler, test runner, and package manager",
-            "icon": "▤",
+            "icon": "",
             "keywords": [
               "oven-sh/bun",
               "oven-sh",
@@ -2894,7 +2894,7 @@
             "id": "tauri-apps/tauri",
             "name": "tauri",
             "subtitle": "Build smaller, faster, and more secure desktop applications with a web frontend",
-            "icon": "▤",
+            "icon": "",
             "keywords": [
               "tauri-apps/tauri",
               "tauri-apps",
@@ -2989,7 +2989,7 @@
             "id": "acme/widgets",
             "name": "widgets",
             "subtitle": "The widget service and its admin",
-            "icon": "▤",
+            "icon": "",
             "keywords": [
               "acme/widgets",
               "acme",
@@ -3100,7 +3100,7 @@
             "id": "acme/api",
             "name": "api",
             "subtitle": "Public API and webhooks",
-            "icon": "▤",
+            "icon": "",
             "keywords": [
               "acme/api",
               "acme",
@@ -3198,14 +3198,14 @@
     },
     "notifications": {
       "title": "Notifications",
-      "icon": "◍",
+      "icon": "",
       "live": true,
       "items": [
         {
           "id": "summary",
           "name": "5 unread notifications",
           "subtitle": "GitHub inbox",
-          "icon": "◍",
+          "icon": "",
           "keywords": [
             "unread",
             "inbox"
@@ -3233,7 +3233,7 @@
           "id": "n1",
           "name": "Retry the webhook delivery with backoff",
           "subtitle": "acme/api",
-          "icon": "⎇",
+          "icon": "",
           "keywords": [
             "acme/api",
             null
@@ -3301,7 +3301,7 @@
           "id": "n2",
           "name": "Search loses the cursor when rows stream in",
           "subtitle": "acme/widgets",
-          "icon": "◉",
+          "icon": "",
           "keywords": [
             "acme/widgets",
             null
@@ -3369,7 +3369,7 @@
           "id": "n3",
           "name": "Batch the index writes on startup",
           "subtitle": "acme/widgets",
-          "icon": "⎇",
+          "icon": "",
           "keywords": [
             "acme/widgets",
             null
@@ -3437,7 +3437,7 @@
           "id": "n4",
           "name": "v1.4.2",
           "subtitle": "oven-sh/bun",
-          "icon": "⏏",
+          "icon": "",
           "keywords": [
             "oven-sh/bun",
             null
@@ -3505,7 +3505,7 @@
           "id": "n5",
           "name": "Plugin API proposal",
           "subtitle": "tauri-apps/tauri",
-          "icon": "☰",
+          "icon": "",
           "keywords": [
             "tauri-apps/tauri",
             null
@@ -3573,9 +3573,9 @@
     },
     "search": {
       "title": "Search GitHub",
-      "icon": "⌕",
+      "icon": "",
       "input": true,
-      "placeholder": "Search GitHub",
+      "placeholder": "Text, repo:owner/name, is:pr, author:login",
       "filters": [
         {
           "id": "all",
@@ -3600,7 +3600,7 @@
             "id": "hint:type",
             "name": "Type to search GitHub",
             "subtitle": "free text, repo:owner/name, is:pr, author:login, label:bug",
-            "icon": "⌕",
+            "icon": "",
             "actions": []
           }
         ],
@@ -3709,7 +3709,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -3819,7 +3819,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -3848,7 +3848,7 @@
             "id": "acme/widgets",
             "name": "widgets",
             "subtitle": "The widget service and its admin",
-            "icon": "▤",
+            "icon": "",
             "keywords": [
               "acme/widgets",
               "acme",
@@ -4257,7 +4257,7 @@
               {
                 "id": "branch",
                 "title": "Copy branch name",
-                "shortcut": "cmd+shift+b"
+                "shortcut": "cmd+b"
               },
               {
                 "id": "checks",
@@ -4285,7 +4285,7 @@
             "id": "user:widgets-bot",
             "name": "widgets-bot",
             "subtitle": "Automation for the widgets repos",
-            "icon": "◯",
+            "icon": "",
             "keywords": [
               "widgets-bot"
             ],
@@ -4327,7 +4327,7 @@
     "issues/create": {
       "form": {
         "id": "create",
-        "title": "Create Issue",
+        "title": "Create issue",
         "fields": [
           {
             "kind": "select",

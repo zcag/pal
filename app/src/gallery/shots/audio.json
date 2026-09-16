@@ -23,11 +23,11 @@
           "actions": [
             {
               "id": "default",
-              "title": "Set as Output"
+              "title": "Set as output"
             },
             {
               "id": "volume",
-              "title": "Set Volume…",
+              "title": "Set volume…",
               "shortcut": "cmd+shift+v"
             },
             {
@@ -59,11 +59,11 @@
           "actions": [
             {
               "id": "default",
-              "title": "Set as Output"
+              "title": "Set as output"
             },
             {
               "id": "volume",
-              "title": "Set Volume…",
+              "title": "Set volume…",
               "shortcut": "cmd+shift+v"
             },
             {
@@ -95,11 +95,11 @@
           "actions": [
             {
               "id": "default",
-              "title": "Set as Output"
+              "title": "Set as output"
             },
             {
               "id": "volume",
-              "title": "Set Volume…",
+              "title": "Set volume…",
               "shortcut": "cmd+shift+v"
             },
             {
@@ -123,11 +123,11 @@
           "actions": [
             {
               "id": "default",
-              "title": "Set as Output"
+              "title": "Set as output"
             },
             {
               "id": "volume",
-              "title": "Set Volume…",
+              "title": "Set volume…",
               "shortcut": "cmd+shift+v"
             }
           ],
@@ -154,11 +154,11 @@
           "actions": [
             {
               "id": "default",
-              "title": "Set as Input"
+              "title": "Set as input"
             },
             {
               "id": "volume",
-              "title": "Set Volume…",
+              "title": "Set volume…",
               "shortcut": "cmd+shift+v"
             },
             {
@@ -186,11 +186,11 @@
           "actions": [
             {
               "id": "default",
-              "title": "Set as Input"
+              "title": "Set as input"
             },
             {
               "id": "volume",
-              "title": "Set Volume…",
+              "title": "Set volume…",
               "shortcut": "cmd+shift+v"
             },
             {
@@ -218,11 +218,11 @@
           "actions": [
             {
               "id": "default",
-              "title": "Set as Input"
+              "title": "Set as input"
             },
             {
               "id": "volume",
-              "title": "Set Volume…",
+              "title": "Set volume…",
               "shortcut": "cmd+shift+v"
             },
             {

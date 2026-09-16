@@ -16,7 +16,8 @@ type Settings = { account: string; vaults: string[]; ttl: number };
 type OpItem = { id: string; title: string; category: string; vault: { id: string; name: string }; additional_information?: string; urls?: { href: string; primary?: boolean }[]; favorite?: boolean; tags?: string[]; updated_at?: string };
 type OpAccount = { url?: string; email?: string; user_uuid?: string; account_uuid?: string; shorthand?: string };
 
-const ICON = "⚿";
+/** md-shield_key, the palette's own row and the fallback for a category not in the table. */
+const ICON = "\u{f0bc4}";
 const INSTALL_URL = "https://developer.1password.com/docs/cli/get-started/";
 const SIGNIN_URL = "https://developer.1password.com/docs/cli/sign-in-manually/";
 /** The app under launchd has a bare PATH; where the CLI's installers put it. */
@@ -24,10 +25,13 @@ const OP_FALLBACKS = ["/opt/homebrew/bin/op", "/usr/local/bin/op", "/usr/bin/op"
 /** One CLI call at most; a biometric prompt left unanswered stops here. */
 const OP_MS = 60_000;
 
+/** Material Design glyphs from the bundled Nerd Font, one per 1Password category. */
 const CATEGORY_ICON: Record<string, string> = {
-  LOGIN: "⚿", PASSWORD: "⚿", SECURE_NOTE: "≡", CREDIT_CARD: "▭", BANK_ACCOUNT: "▭", IDENTITY: "◉", SSH_KEY: "⌥",
-  API_CREDENTIAL: "⌘", DATABASE: "▤", SERVER: "▤", WIRELESS_ROUTER: "◠", MEMBERSHIP: "★", SOFTWARE_LICENSE: "⌗", DOCUMENT: "▱",
+  LOGIN: "\u{f030b}", PASSWORD: "\u{f030b}", SECURE_NOTE: "\u{f039e}", CREDIT_CARD: "\u{f019b}", BANK_ACCOUNT: "\u{f0070}", IDENTITY: "\u{f0dab}", SSH_KEY: "\u{f1574}",
+  API_CREDENTIAL: "\u{f109b}", DATABASE: "\u{f01bc}", SERVER: "\u{f048b}", WIRELESS_ROUTER: "\u{f0469}", MEMBERSHIP: "\u{f02a3}", SOFTWARE_LICENSE: "\u{f0fc3}", DOCUMENT: "\u{f09ee}",
 };
+/** md-download, md-login, md-alert_octagon for the hint rows. */
+const HINT_ICON = { install: "\u{f01da}", signin: "\u{f0342}", error: "\u{f0029}" };
 const category = (c: string) => c.toLowerCase().replace(/_/g, " ");
 
 const ACTIONS: Action[] = [
@@ -109,24 +113,24 @@ function item(i: OpItem): Item {
   };
 }
 
-const hint = (id: string, name: string, subtitle: string, actions: Action[] = []): Item => ({ id, name, subtitle, icon: ICON, actions });
+const hint = (id: string, name: string, subtitle: string, actions: Action[] = [], icon = ICON): Item => ({ id, name, subtitle, icon, actions });
 
 const s0 = settings.get<Settings>();
 const FILTERS = s0.vaults.length ? [{ id: "all", title: "All vaults" }, ...s0.vaults.map((v) => ({ id: v, title: v }))] : undefined;
 
 async function list(filter = "all", refresh = false): Promise<Item[]> {
   const { vaults } = settings.get<Settings>();
-  if (!opPath()) return [hint("install", "1Password CLI not installed", "The op command line tool is needed; Enter opens the install page.", [{ id: "install", title: "Open install page" }])];
+  if (!opPath()) return [hint("install", "1Password CLI not installed", "Install the op command line tool; Enter opens the install page", [{ id: "install", title: "Open install page" }], HINT_ICON.install)];
   let all: OpItem[];
   try { all = await items(refresh); } catch (e) {
     const msg = String((e as Error)?.message ?? e);
-    if (signedOut(msg)) return [hint("signin", "Sign in to 1Password", "Run `eval $(op signin)` in a terminal, or turn on the desktop app integration (1Password, Settings, Developer), then refresh with ⌘R.", [{ id: "help", title: "Open sign-in help" }])];
-    return [hint("error", "op failed", msg)];
+    if (signedOut(msg)) return [hint("signin", "Sign in to 1Password", "Run `eval $(op signin)` in a terminal, or turn on the desktop app integration (1Password, Settings, Developer), then refresh with cmd+r", [{ id: "help", title: "Open sign-in help" }], HINT_ICON.signin)];
+    return [hint("error", "op failed", msg, [], HINT_ICON.error)];
   }
   const wanted = new Set(vaults.map((v) => v.toLowerCase()));
   const rows = all.filter((i) => (filter !== "all" ? i.vault.name.toLowerCase() === filter.toLowerCase() : wanted.size === 0 || wanted.has(i.vault.name.toLowerCase())));
   rows.sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
-  if (rows.length === 0) return [hint("none", "No items", filter !== "all" ? `Nothing in the vault ${filter}.` : "The account has no items you can see.")];
+  if (rows.length === 0) return [hint("none", "No items", filter !== "all" ? `Nothing in the vault ${filter}` : "The account has no items you can see")];
   return rows.map(item);
 }
 

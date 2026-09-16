@@ -9,7 +9,7 @@
 import { copyFile, readdir, stat, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { home, settings, type Action, type Extension, type Item } from "@zcag/pal";
+import { home, settings, xdg, type Action, type Extension, type Item } from "@zcag/pal";
 import { chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks, type FirefoxRow, type Found } from "./sources.ts";
 
 /** `[extensions.bookmarks]`, defaults in pal.json. */
@@ -20,7 +20,6 @@ const MAC = process.platform === "darwin";
 /** Tests point the profile roots at a temp home. */
 const HOME = process.env.PAL_BOOKMARKS_HOME || home("~");
 const APP_SUPPORT = `${HOME}/Library/Application Support`;
-const ICON = "🔖";
 
 const OPEN: Action = { id: "open", title: "Open in browser" };
 const COPY: Action = { id: "copy", title: "Copy link", shortcut: "cmd+c" };
@@ -128,11 +127,17 @@ async function browserSources(ids: string[]): Promise<{ sources: Source[]; probl
 
 // ---- the file ------------------------------------------------------------
 
-async function fileRows(): Promise<Row[]> {
+/** The file's rows; a file that is not there is no rows (the browsers still list), one that will not parse is a hint row. */
+async function fileRows(): Promise<{ rows: Row[]; problem?: Problem }> {
   const file = home(settings.get<Settings>().file);
-  const data = await Bun.file(file).json();
-  if (!Array.isArray(data)) throw new Error(`${file}: expected a JSON array of {name, url}`);
-  return data;
+  if (!(await exists(file))) return { rows: [] };
+  try {
+    const data = await Bun.file(file).json();
+    if (!Array.isArray(data)) throw new Error("expected a JSON array of {name, url}");
+    return { rows: data };
+  } catch (e) {
+    return { rows: [], problem: { name: `Could not read ${file.slice(file.lastIndexOf("/") + 1)}`, subtitle: `${String((e as Error)?.message ?? e).split("\n")[0]}: fix the file or point the file setting elsewhere` } };
+  }
 }
 
 // ---- rows ----------------------------------------------------------------
@@ -145,7 +150,9 @@ async function list(): Promise<Item[]> {
   const seen = new Set<string>();
   const items: Item[] = [];
   known.clear();
-  for (const r of await fileRows()) {
+  const file = await fileRows();
+  if (file.problem) items.push({ id: `hint:${file.problem.name}`, name: file.problem.name, subtitle: file.problem.subtitle, icon: xdg("dialog-warning")!, actions: [] });
+  for (const r of file.rows) {
     if (typeof r.url !== "string" || !r.url || seen.has(r.url)) continue;
     seen.add(r.url);
     known.set(r.url, { name: r.name ?? r.url });
@@ -169,7 +176,7 @@ async function list(): Promise<Item[]> {
       });
     }
   }
-  for (const p of problems) items.push({ id: `hint:${p.name}`, name: p.name, subtitle: p.subtitle, icon: ICON, section: "Safari", actions: [] });
+  for (const p of problems) items.push({ id: `hint:${p.name}`, name: p.name, subtitle: p.subtitle, icon: xdg("dialog-warning")!, section: "Safari", actions: [] });
   return items;
 }
 
@@ -186,6 +193,7 @@ export default {
   palettes: {
     bookmarks: {
       title: "Bookmarks",
+      placeholder: "A name, a folder or a keyword",
       list,
       pick: async (id, action) => {
         // A pick on a row restored from the persisted index, before this run has listed.

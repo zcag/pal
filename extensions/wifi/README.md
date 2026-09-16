@@ -26,12 +26,12 @@ interface, or with no backend, the one row says so.
 | keys | action | on |
 | --- | --- | --- |
 | `enter` | Join: a saved or open network at once; a secured network that is not saved asks for its password in a form, and a refused join shows the form again with the tool's message | a known or available row |
-| `cmd+shift+c` | Copy Password: the saved password onto the clipboard | the current row and known rows |
+| `cmd+shift+c` | Copy password: the saved password onto the clipboard | the current row and known rows |
 | `cmd+c` | Copy IP: the interface's IPv4 address | the current row |
-| `cmd+c` | Copy Name: the network's name | an available row |
+| `cmd+c` | Copy name: the network's name | a known or available row |
 | `ctrl+x` | Forget: removes the saved network, after a confirm ("Forget X? Its password goes with it.") | the current row and known rows |
 | `enter` | Scan: a fresh scan, then the list again | the Scan row |
-| `enter` | Turn Off / Turn On: the radio | the Wi-Fi row |
+| `enter` | Turn off / Turn on: the radio | the Wi-Fi row |
 
 Forget and the power toggle keep the palette open and list again; a join
 that succeeds hides pal with "Joined X" in the HUD.

@@ -13,7 +13,7 @@ const pick = (id: string, action?: string) => host.pick("unicode", "unicode", id
 describe("unicode", () => {
   test("meta: a grid with the palette setting's columns and a lazy detail", () => {
     const l = host.loaded().find((l) => l.extension === "unicode")!;
-    expect(l.palettes).toEqual([{ name: "unicode", title: "Unicode characters", live: false, input: false, icon: "Ω", view: "grid", columns: 10, detail: "lazy" }]);
+    expect(l.palettes).toEqual([{ name: "unicode", title: "Unicode Characters", live: false, input: false, icon: "\u{f03c9}", view: "grid", columns: 10, detail: "lazy", tier: "catalog", placeholder: "Name, entity, LaTeX or code point" }]);
   });
 
   test("1795 rows with unique ids, in section order; the arrow has its name, code point, entity, LaTeX and words as keywords", async () => {
@@ -38,6 +38,8 @@ describe("unicode", () => {
     expect(items.find((i) => i.icon === "⌥")!.keywords).toContain("option");
     expect(items.find((i) => i.icon === "⎋")!.keywords).toContain("escape");
     expect(items.find((i) => i.icon === "⏎")!.keywords).toContain("return");
+    // A character the platform draws as a colour emoji carries VS15 on its tile, and copies bare.
+    expect(items.find((i) => i.id === "23CF")).toMatchObject({ name: "eject symbol", icon: "⏏\uFE0E" });
     expect(items.find((i) => i.icon === "ğ")!.keywords).toContain("turkish");
     expect(items.find((i) => i.icon === "ß")!.keywords).toContain("german");
     expect(items.find((i) => i.icon === "œ")!.keywords).toContain("french");

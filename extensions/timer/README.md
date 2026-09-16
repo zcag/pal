@@ -29,8 +29,12 @@ comes back on the form with its message.
 | --- | --- | --- |
 | `enter` | Pause / Resume / Dismiss | pause a running timer, resume a paused one, dismiss a landed one (`timer done`) |
 | `cmd++` | Add 5 minutes | `timer add 5m <id>` |
-| `cmd+backspace` | Stop | `timer stop <id>`, the timer is gone |
+| `cmd+d` | Stop | `timer stop <id>`, the timer is gone |
 | `enter` on New timer | New timer | the form; `enter` in the form starts it |
+
+Without the CLI (the `command` setting names nothing on PATH or on disk)
+the New row is one hint row instead, and the timers the state directory
+already holds are still listed.
 
 Every action keeps the panel open; the directory watcher lists the change
 within a moment. A CLI refusal is a toast with its message.

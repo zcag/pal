@@ -6,35 +6,39 @@
 // applies the chosen layout to the one picked; opened from the root,
 // `arrange` goes the other way round: pick a window, then its layout, the
 // same rows with the window's title as subtitle.
-import { settings, windows, type Action, type Extension, type Item, type Window, type WindowLayout, type WindowLayoutOptions } from "@zcag/pal";
+import { settings, windows, xdg, type Action, type Extension, type Item, type Window, type WindowLayout, type WindowLayoutOptions } from "@zcag/pal";
+import { layoutIcon } from "./icons.ts";
 
 /** `[extensions.window-management]`, defaults in pal.json. */
 type Settings = WindowLayoutOptions;
 
 const EXT = "window-management";
+/** The palettes' glyphs: a docked half for the layouts, a window for the picker (md-dock_left, md-window_maximize). */
+const LAYOUTS_GLYPH = "\u{f10aa}";
+const WINDOW_GLYPH = xdg("window-new")!;
 
-/** One per `pal_core::windows::layout::Layout`, in its order; the glyph suggests the shape. */
-export const LAYOUTS: { id: WindowLayout; title: string; icon: string; keywords: string[] }[] = [
-  { id: "left_half", title: "Left Half", icon: "◧", keywords: ["half", "left", "split"] },
-  { id: "right_half", title: "Right Half", icon: "◨", keywords: ["half", "right", "split"] },
-  { id: "top_half", title: "Top Half", icon: "⬒", keywords: ["half", "top", "up"] },
-  { id: "bottom_half", title: "Bottom Half", icon: "⬓", keywords: ["half", "bottom", "down"] },
-  { id: "left_third", title: "Left Third", icon: "◂⅓", keywords: ["third", "left", "first"] },
-  { id: "center_third", title: "Center Third", icon: "⅓", keywords: ["third", "center", "middle"] },
-  { id: "right_third", title: "Right Third", icon: "⅓▸", keywords: ["third", "right", "last"] },
-  { id: "left_two_thirds", title: "Left Two Thirds", icon: "◂⅔", keywords: ["thirds", "left", "first"] },
-  { id: "right_two_thirds", title: "Right Two Thirds", icon: "⅔▸", keywords: ["thirds", "right", "last"] },
-  { id: "top_left_quarter", title: "Top Left Quarter", icon: "◰", keywords: ["quarter", "corner", "top", "left"] },
-  { id: "top_right_quarter", title: "Top Right Quarter", icon: "◳", keywords: ["quarter", "corner", "top", "right"] },
-  { id: "bottom_left_quarter", title: "Bottom Left Quarter", icon: "◱", keywords: ["quarter", "corner", "bottom", "left"] },
-  { id: "bottom_right_quarter", title: "Bottom Right Quarter", icon: "◲", keywords: ["quarter", "corner", "bottom", "right"] },
-  { id: "maximize", title: "Maximize", icon: "⛶", keywords: ["full", "fill", "big", "zoom"] },
-  { id: "almost_maximize", title: "Almost Maximize", icon: "▣", keywords: ["full", "fill", "big", "large"] },
-  { id: "center", title: "Center", icon: "⊡", keywords: ["centre", "middle"] },
-  { id: "reasonable_size", title: "Reasonable Size", icon: "▢", keywords: ["small", "medium", "shrink"] },
-  { id: "next_display", title: "Next Display", icon: "⇨", keywords: ["screen", "monitor", "move", "other"] },
-  { id: "previous_display", title: "Previous Display", icon: "⇦", keywords: ["screen", "monitor", "move", "other"] },
-  { id: "restore", title: "Restore", icon: "↺", keywords: ["undo", "back", "previous", "original"] },
+/** One per `pal_core::windows::layout::Layout`, in its order; the icon is its diagram (icons.ts). */
+export const LAYOUTS: { id: WindowLayout; title: string; keywords: string[] }[] = [
+  { id: "left_half", title: "Left Half", keywords: ["half", "left", "split"] },
+  { id: "right_half", title: "Right Half", keywords: ["half", "right", "split"] },
+  { id: "top_half", title: "Top Half", keywords: ["half", "top", "up"] },
+  { id: "bottom_half", title: "Bottom Half", keywords: ["half", "bottom", "down"] },
+  { id: "left_third", title: "Left Third", keywords: ["third", "left", "first"] },
+  { id: "center_third", title: "Center Third", keywords: ["third", "center", "middle"] },
+  { id: "right_third", title: "Right Third", keywords: ["third", "right", "last"] },
+  { id: "left_two_thirds", title: "Left Two Thirds", keywords: ["thirds", "left", "first"] },
+  { id: "right_two_thirds", title: "Right Two Thirds", keywords: ["thirds", "right", "last"] },
+  { id: "top_left_quarter", title: "Top Left Quarter", keywords: ["quarter", "corner", "top", "left"] },
+  { id: "top_right_quarter", title: "Top Right Quarter", keywords: ["quarter", "corner", "top", "right"] },
+  { id: "bottom_left_quarter", title: "Bottom Left Quarter", keywords: ["quarter", "corner", "bottom", "left"] },
+  { id: "bottom_right_quarter", title: "Bottom Right Quarter", keywords: ["quarter", "corner", "bottom", "right"] },
+  { id: "maximize", title: "Maximize", keywords: ["full", "fill", "big", "zoom"] },
+  { id: "almost_maximize", title: "Almost Maximize", keywords: ["full", "fill", "big", "large"] },
+  { id: "center", title: "Center", keywords: ["centre", "middle"] },
+  { id: "reasonable_size", title: "Reasonable Size", keywords: ["small", "medium", "shrink"] },
+  { id: "next_display", title: "Next Display", keywords: ["screen", "monitor", "move", "other"] },
+  { id: "previous_display", title: "Previous Display", keywords: ["screen", "monitor", "move", "other"] },
+  { id: "restore", title: "Restore", keywords: ["undo", "back", "previous", "original"] },
 ];
 
 const APPLY: Action = { id: "apply", title: "Apply" };
@@ -58,7 +62,7 @@ function row(l: (typeof LAYOUTS)[number], target?: Args): Item {
     id: l.id,
     name: l.title,
     subtitle: target?.title ?? "Focused window",
-    icon: l.icon,
+    icon: layoutIcon(l.id),
     keywords: l.keywords,
     actions: target ? [APPLY] : [APPLY, APPLY_TO],
   };
@@ -70,7 +74,7 @@ function windowRow(w: Window): Item {
     name: w.title,
     subtitle: w.app,
     keywords: [w.bundle_or_class],
-    icon: w.icon ? { app: w.icon } : "▢",
+    icon: w.icon ? { app: w.icon } : WINDOW_GLYPH,
     accessories: w.monitor ? [{ text: w.monitor }] : [],
     actions: [{ id: "apply", title: "Arrange" }],
   };
@@ -80,7 +84,7 @@ export default {
   palettes: {
     "window-management": {
       title: "Window Management",
-      icon: "◧",
+      icon: LAYOUTS_GLYPH,
       placeholder: "Left half, maximize, center...",
       // Indexed at the root; a level opened with a window (from `arrange`)
       // is listed here per keystroke, so the query is matched by hand.
@@ -98,7 +102,7 @@ export default {
     },
     arrange: {
       title: "Arrange Window",
-      icon: "▢",
+      icon: WINDOW_GLYPH,
       input: true,
       placeholder: "Which window?",
       list: async (query = "") => (await windows.list()).filter((w) => !w.minimized && matches(query, w.title, w.app, w.bundle_or_class)).map(windowRow),

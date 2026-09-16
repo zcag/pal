@@ -10,7 +10,7 @@ the box; the hex is the subtitle. The search matches the name, the hex
 The last twelve picked lead in a **Recent** section, kept in the
 extension's storage and rebuilt when the palette lists again.
 
-**Convert colour** is an input palette: type a colour in any notation and
+**Convert Colour** is an input palette: type a colour in any notation and
 the rows are its conversions, each with a swatch, `Enter` copying the row.
 It reads hex in every length with or without the hash (`#f80`,
 `ff880080`), `rgb()` and `rgba()` in the comma and the space syntax with

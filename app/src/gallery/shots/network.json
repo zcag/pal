@@ -1,504 +1,505 @@
 {
- "palettes": {
-  "network": {
-   "title": "Network",
-   "icon": "󰛉",
-   "live": true,
-   "showDetail": true,
-   "items": [
-    {
-     "id": "if:en0:192.168.1.42",
-     "name": "192.168.1.42",
-     "subtitle": "en0 · Wi-Fi · Home-5G",
-     "icon": "󰛉",
-     "keywords": [
-      "en0",
-      "wifi",
-      "wlan",
-      "ssid",
-      "ip",
-      "lan",
-      "local",
-      "Home-5G"
-     ],
-     "section": "This machine",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Interface",
-        "value": "en0"
-       },
-       {
-        "label": "Kind",
-        "value": "Wi-Fi"
-       },
-       {
-        "label": "SSID",
-        "value": "Home-5G"
-       },
-       {
-        "label": "Security",
-        "value": "WPA2 Personal"
-       },
-       {
-        "label": "IPv4",
-        "value": "192.168.1.42"
-       },
-       {
-        "label": "IPv6",
-        "value": "2001:db8:4f2a:1::1c2e"
-       },
-       {
-        "label": "MAC",
-        "value": "a4:83:e7:2b:9c:10"
-       },
-       {
-        "label": "Status",
-        "value": "active"
-       }
-      ]
-     }
-    },
-    {
-     "id": "if:en0:2001:db8:4f2a:1::1c2e",
-     "name": "2001:db8:4f2a:1::1c2e",
-     "subtitle": "en0 · Wi-Fi · Home-5G · IPv6",
-     "icon": "󰛉",
-     "keywords": [
-      "en0",
-      "wifi",
-      "ipv6"
-     ],
-     "section": "This machine",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Interface",
-        "value": "en0"
-       },
-       {
-        "label": "Kind",
-        "value": "Wi-Fi"
-       },
-       {
-        "label": "SSID",
-        "value": "Home-5G"
-       },
-       {
-        "label": "Security",
-        "value": "WPA2 Personal"
-       },
-       {
-        "label": "IPv4",
-        "value": "192.168.1.42"
-       },
-       {
-        "label": "IPv6",
-        "value": "2001:db8:4f2a:1::1c2e"
-       },
-       {
-        "label": "MAC",
-        "value": "a4:83:e7:2b:9c:10"
-       },
-       {
-        "label": "Status",
-        "value": "active"
-       }
-      ]
-     }
-    },
-    {
-     "id": "if:en5:192.168.1.43",
-     "name": "192.168.1.43",
-     "subtitle": "en5 · Ethernet",
-     "icon": "󰛉",
-     "keywords": [
-      "en5",
-      "ip",
-      "lan",
-      "local"
-     ],
-     "section": "This machine",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Interface",
-        "value": "en5"
-       },
-       {
-        "label": "Kind",
-        "value": "Ethernet"
-       },
-       {
-        "label": "IPv4",
-        "value": "192.168.1.43"
-       },
-       {
-        "label": "MAC",
-        "value": "00:e0:4c:68:0a:31"
-       },
-       {
-        "label": "Status",
-        "value": "active"
-       }
-      ]
-     }
-    },
-    {
-     "id": "tailscale:100.101.102.103",
-     "name": "100.101.102.103",
-     "subtitle": "Tailscale",
-     "icon": "󰛉",
-     "keywords": [
-      "tailscale",
-      "ts",
-      "vpn"
-     ],
-     "section": "This machine",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Tailscale IPv4",
-        "value": "100.101.102.103"
-       },
-       {
-        "label": "Tailscale IPv6",
-        "value": "fd7a:115c:a1e0::1a2b:3c4d"
-       }
-      ]
-     }
-    },
-    {
-     "id": "tailscale:fd7a:115c:a1e0::1a2b:3c4d",
-     "name": "fd7a:115c:a1e0::1a2b:3c4d",
-     "subtitle": "Tailscale · IPv6",
-     "icon": "󰛉",
-     "keywords": [
-      "tailscale",
-      "ts",
-      "vpn"
-     ],
-     "section": "This machine",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Tailscale IPv4",
-        "value": "100.101.102.103"
-       },
-       {
-        "label": "Tailscale IPv6",
-        "value": "fd7a:115c:a1e0::1a2b:3c4d"
-       }
-      ]
-     }
-    },
-    {
-     "id": "hostname",
-     "name": "laptop.local",
-     "subtitle": "Hostname",
-     "icon": "󰛉",
-     "keywords": [
-      "hostname",
-      "host",
-      "name"
-     ],
-     "section": "This machine",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Hostname",
-        "value": "laptop.local"
-       },
-       {
-        "label": "Local hostname",
-        "value": "laptop"
-       }
-      ]
-     }
-    },
-    {
-     "id": "localhostname",
-     "name": "laptop",
-     "subtitle": "Local hostname (Bonjour)",
-     "icon": "󰛉",
-     "keywords": [
-      "hostname",
-      "bonjour",
-      "mdns",
-      "local"
-     ],
-     "section": "This machine",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Hostname",
-        "value": "laptop.local"
-       },
-       {
-        "label": "Local hostname",
-        "value": "laptop"
-       }
-      ]
-     }
-    },
-    {
-     "id": "public",
-     "name": "203.0.113.57",
-     "subtitle": "Public IP · Amsterdam, NL · AS1136 KPN B.V.",
-     "icon": "󰛉",
-     "keywords": [
-      "public",
-      "wan",
-      "external",
-      "ip",
-      "NL",
-      "AS1136 KPN B.V."
-     ],
-     "section": "Internet",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Public IP",
-        "value": "203.0.113.57"
-       },
-       {
-        "label": "City",
-        "value": "Amsterdam"
-       },
-       {
-        "label": "Region",
-        "value": "North Holland"
-       },
-       {
-        "label": "Country",
-        "value": "NL"
-       },
-       {
-        "label": "Organisation",
-        "value": "AS1136 KPN B.V."
-       },
-       {
-        "label": "Fetched",
-        "value": "10:42:17"
-       }
-      ]
-     }
-    },
-    {
-     "id": "gateway",
-     "name": "192.168.1.1",
-     "subtitle": "Gateway · en0",
-     "icon": "󰛉",
-     "keywords": [
-      "gateway",
-      "router",
-      "default route"
-     ],
-     "section": "Network",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "Gateway",
-        "value": "192.168.1.1"
-       },
-       {
-        "label": "Interface",
-        "value": "en0"
-       }
-      ]
-     }
-    },
-    {
-     "id": "dns:192.168.1.1",
-     "name": "192.168.1.1",
-     "subtitle": "DNS 1",
-     "icon": "󰛉",
-     "keywords": [
-      "dns",
-      "nameserver",
-      "resolver"
-     ],
-     "section": "Network",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "DNS server",
-        "value": "192.168.1.1"
-       },
-       {
-        "label": "Order",
-        "value": "1"
-       },
-       {
-        "label": "All",
-        "value": "192.168.1.1, 1.1.1.1"
-       }
-      ]
-     }
-    },
-    {
-     "id": "dns:1.1.1.1",
-     "name": "1.1.1.1",
-     "subtitle": "DNS 2",
-     "icon": "󰛉",
-     "keywords": [
-      "dns",
-      "nameserver",
-      "resolver"
-     ],
-     "section": "Network",
-     "actions": [
-      {
-       "id": "copy",
-       "title": "Copy"
-      },
-      {
-       "id": "settings",
-       "title": "Open Network settings"
-      }
-     ],
-     "detail": {
-      "metadata": [
-       {
-        "label": "DNS server",
-        "value": "1.1.1.1"
-       },
-       {
-        "label": "Order",
-        "value": "2"
-       },
-       {
-        "label": "All",
-        "value": "192.168.1.1, 1.1.1.1"
-       }
-      ]
-     }
+  "palettes": {
+    "network": {
+      "title": "Network",
+      "icon": "󰌗",
+      "live": true,
+      "showDetail": true,
+      "items": [
+        {
+          "id": "if:en0:192.168.1.42",
+          "name": "192.168.1.42",
+          "subtitle": "en0 · Wi-Fi · Home-5G",
+          "icon": "󰖩",
+          "keywords": [
+            "en0",
+            "wifi",
+            "wlan",
+            "ssid",
+            "ip",
+            "lan",
+            "local",
+            "Home-5G"
+          ],
+          "section": "This machine",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Interface",
+                "value": "en0"
+              },
+              {
+                "label": "Kind",
+                "value": "Wi-Fi"
+              },
+              {
+                "label": "SSID",
+                "value": "Home-5G"
+              },
+              {
+                "label": "Security",
+                "value": "WPA2 Personal"
+              },
+              {
+                "label": "IPv4",
+                "value": "192.168.1.42"
+              },
+              {
+                "label": "IPv6",
+                "value": "2001:db8:4f2a:1::1c2e"
+              },
+              {
+                "label": "MAC",
+                "value": "a4:83:e7:2b:9c:10"
+              },
+              {
+                "label": "Status",
+                "value": "active"
+              }
+            ]
+          }
+        },
+        {
+          "id": "if:en0:2001:db8:4f2a:1::1c2e",
+          "name": "2001:db8:4f2a:1::1c2e",
+          "subtitle": "en0 · Wi-Fi · Home-5G · IPv6",
+          "icon": "󰖩",
+          "keywords": [
+            "en0",
+            "wifi",
+            "ipv6"
+          ],
+          "section": "This machine",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Interface",
+                "value": "en0"
+              },
+              {
+                "label": "Kind",
+                "value": "Wi-Fi"
+              },
+              {
+                "label": "SSID",
+                "value": "Home-5G"
+              },
+              {
+                "label": "Security",
+                "value": "WPA2 Personal"
+              },
+              {
+                "label": "IPv4",
+                "value": "192.168.1.42"
+              },
+              {
+                "label": "IPv6",
+                "value": "2001:db8:4f2a:1::1c2e"
+              },
+              {
+                "label": "MAC",
+                "value": "a4:83:e7:2b:9c:10"
+              },
+              {
+                "label": "Status",
+                "value": "active"
+              }
+            ]
+          }
+        },
+        {
+          "id": "if:en5:192.168.1.43",
+          "name": "192.168.1.43",
+          "subtitle": "en5 · Ethernet",
+          "icon": "󰈀",
+          "keywords": [
+            "en5",
+            "ip",
+            "lan",
+            "local"
+          ],
+          "section": "This machine",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Interface",
+                "value": "en5"
+              },
+              {
+                "label": "Kind",
+                "value": "Ethernet"
+              },
+              {
+                "label": "IPv4",
+                "value": "192.168.1.43"
+              },
+              {
+                "label": "MAC",
+                "value": "00:e0:4c:68:0a:31"
+              },
+              {
+                "label": "Status",
+                "value": "active"
+              }
+            ]
+          }
+        },
+        {
+          "id": "tailscale:100.101.102.103",
+          "name": "100.101.102.103",
+          "subtitle": "Tailscale",
+          "icon": "󰖂",
+          "keywords": [
+            "tailscale",
+            "ts",
+            "vpn"
+          ],
+          "section": "This machine",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Tailscale IPv4",
+                "value": "100.101.102.103"
+              },
+              {
+                "label": "Tailscale IPv6",
+                "value": "fd7a:115c:a1e0::1a2b:3c4d"
+              }
+            ]
+          }
+        },
+        {
+          "id": "tailscale:fd7a:115c:a1e0::1a2b:3c4d",
+          "name": "fd7a:115c:a1e0::1a2b:3c4d",
+          "subtitle": "Tailscale · IPv6",
+          "icon": "󰖂",
+          "keywords": [
+            "tailscale",
+            "ts",
+            "vpn"
+          ],
+          "section": "This machine",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Tailscale IPv4",
+                "value": "100.101.102.103"
+              },
+              {
+                "label": "Tailscale IPv6",
+                "value": "fd7a:115c:a1e0::1a2b:3c4d"
+              }
+            ]
+          }
+        },
+        {
+          "id": "hostname",
+          "name": "laptop",
+          "subtitle": "Hostname",
+          "icon": "󰌢",
+          "keywords": [
+            "hostname",
+            "host",
+            "name"
+          ],
+          "section": "This machine",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Hostname",
+                "value": "laptop.local"
+              },
+              {
+                "label": "Local hostname",
+                "value": "laptop"
+              }
+            ]
+          }
+        },
+        {
+          "id": "localhostname",
+          "name": "laptop.local",
+          "subtitle": "Local hostname (Bonjour)",
+          "icon": "󰌢",
+          "keywords": [
+            "hostname",
+            "bonjour",
+            "mdns",
+            "local"
+          ],
+          "section": "This machine",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Hostname",
+                "value": "laptop.local"
+              },
+              {
+                "label": "Local hostname",
+                "value": "laptop"
+              }
+            ]
+          }
+        },
+        {
+          "id": "public",
+          "name": "203.0.113.57",
+          "subtitle": "Public IP · Amsterdam, NL · AS1136 KPN B.V.",
+          "icon": "󰇧",
+          "keywords": [
+            "public",
+            "wan",
+            "external",
+            "ip",
+            "NL",
+            "AS1136 KPN B.V."
+          ],
+          "section": "Internet",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Public IP",
+                "value": "203.0.113.57"
+              },
+              {
+                "label": "City",
+                "value": "Amsterdam"
+              },
+              {
+                "label": "Region",
+                "value": "North Holland"
+              },
+              {
+                "label": "Country",
+                "value": "NL"
+              },
+              {
+                "label": "Organisation",
+                "value": "AS1136 KPN B.V."
+              },
+              {
+                "label": "Fetched",
+                "value": "10:42:17"
+              }
+            ]
+          }
+        },
+        {
+          "id": "gateway",
+          "name": "192.168.1.1",
+          "subtitle": "Gateway · en0",
+          "icon": "󱂇",
+          "keywords": [
+            "gateway",
+            "router",
+            "default route"
+          ],
+          "section": "Network",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "Gateway",
+                "value": "192.168.1.1"
+              },
+              {
+                "label": "Interface",
+                "value": "en0"
+              }
+            ]
+          }
+        },
+        {
+          "id": "dns:192.168.1.1",
+          "name": "192.168.1.1",
+          "subtitle": "DNS 1",
+          "icon": "󰇖",
+          "keywords": [
+            "dns",
+            "nameserver",
+            "resolver"
+          ],
+          "section": "Network",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "DNS server",
+                "value": "192.168.1.1"
+              },
+              {
+                "label": "Order",
+                "value": "1"
+              },
+              {
+                "label": "All",
+                "value": "192.168.1.1, 1.1.1.1"
+              }
+            ]
+          }
+        },
+        {
+          "id": "dns:1.1.1.1",
+          "name": "1.1.1.1",
+          "subtitle": "DNS 2",
+          "icon": "󰇖",
+          "keywords": [
+            "dns",
+            "nameserver",
+            "resolver"
+          ],
+          "section": "Network",
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy"
+            },
+            {
+              "id": "settings",
+              "title": "Open Network settings"
+            }
+          ],
+          "detail": {
+            "metadata": [
+              {
+                "label": "DNS server",
+                "value": "1.1.1.1"
+              },
+              {
+                "label": "Order",
+                "value": "2"
+              },
+              {
+                "label": "All",
+                "value": "192.168.1.1, 1.1.1.1"
+              }
+            ]
+          }
+        }
+      ],
+      "placeholder": "Address, interface, DNS"
     }
-   ]
+  },
+  "shots": {
+    "1-addresses": {
+      "palette": "network"
+    },
+    "2-public": {
+      "palette": "network",
+      "keys": [
+        "down*7"
+      ]
+    },
+    "3-search": {
+      "keys": [
+        "type:dns"
+      ]
+    },
+    "4-actions": {
+      "palette": "network",
+      "keys": [
+        "cmd+i",
+        "down*7",
+        "cmd+k"
+      ]
+    }
   }
- },
- "shots": {
-  "1-addresses": {
-   "palette": "network"
-  },
-  "2-public": {
-   "palette": "network",
-   "keys": [
-    "down*7"
-   ]
-  },
-  "3-search": {
-   "keys": [
-    "type:dns"
-   ]
-  },
-  "4-actions": {
-   "palette": "network",
-   "keys": [
-    "cmd+i",
-    "down*7",
-    "cmd+k"
-   ]
-  }
- }
 }

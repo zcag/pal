@@ -60,7 +60,15 @@ describe("timer", () => {
     expect(existsSync(dir)).toBe(true);
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(["new"]);
-    expect(items[0]).toMatchObject({ name: "New timer", actions: [{ id: "new", title: "New timer" }] });
+    expect(items[0]).toMatchObject({ name: "New timer", icon: "\u{f0415}", actions: [{ id: "new", title: "New timer" }] });
+  });
+
+  test("a command that is not installed is one hint row in place of New timer, and a pick says so", async () => {
+    host.changeSettings("timer", { settings: { command: "pal-no-such-timer", dir } });
+    const items = await list();
+    expect(items[items.length - 1]).toMatchObject({ id: "hint:cli", name: "pal-no-such-timer is not installed", actions: [] });
+    expect(await pick("new", "start", { duration: "5m" })).toMatchObject({ form: { errors: { duration: "pal-no-such-timer is not installed" } } });
+    host.changeSettings("timer", { settings: { command: cli, dir } });
   });
 
   test("the strip: the soonest running timer's time left with a fill and a colour by progress, a landed one as the alarm, a paused one muted", async () => {

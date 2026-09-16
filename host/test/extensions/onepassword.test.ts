@@ -59,7 +59,7 @@ const pick = (id: string, action?: string) => host.pick("onepassword", "items", 
 describe("onepassword", () => {
   test("meta: indexed with the ttl and one filter per configured vault", () => {
     expect(host.loaded().find((l) => l.extension === "onepassword")!.palettes[0]).toMatchObject({
-      name: "items", title: "1Password", live: false, input: false, icon: "⚿", ttl: 300,
+      name: "items", title: "1Password", live: false, input: false, icon: "\u{f0bc4}", ttl: 300,
       filters: [{ id: "all", title: "All vaults" }, { id: "Personal", title: "Personal" }, { id: "Work", title: "Work" }],
     });
   });
@@ -67,7 +67,8 @@ describe("onepassword", () => {
   test("signed out: one hint row with a help link, nothing cached", async () => {
     const rows = await list();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: "signin", name: "Sign in to 1Password", actions: [{ id: "help", title: "Open sign-in help" }] });
+    expect(rows[0]).toMatchObject({ id: "signin", name: "Sign in to 1Password", icon: "\u{f0342}", actions: [{ id: "help", title: "Open sign-in help" }] });
+    expect(rows[0].subtitle).not.toMatch(/\.$/);
     expect(rows[0].subtitle).toContain("op signin");
     expect(await pick("signin", "help")).toEqual({ open: expect.stringContaining("1password.com") });
     expect(await pick("signin")).toEqual({ keep: true });
@@ -79,14 +80,14 @@ describe("onepassword", () => {
     const rows = await list();
     expect(rows.map((r) => r.id)).toEqual(["gh", "bank", "card", "note"]);
     expect(rows[0]).toMatchObject({
-      name: "GitHub", subtitle: "Personal · zcag", icon: "⚿",
+      name: "GitHub", subtitle: "Personal · zcag", icon: "\u{f030b}",
       keywords: ["github.com", "gist.github.com", "zcag", "login", "Personal", "dev"],
       accessories: [{ tag: "favorite", color: "amber" }, { text: "github.com" }],
       actions: [{ id: "password", title: "Copy password" }, { id: "username", title: "Copy username", shortcut: "cmd+u" }, { id: "otp", title: "Copy one-time code", shortcut: "cmd+t" }, { id: "open", title: "Open in 1Password", shortcut: "cmd+o" }],
     });
     expect(rows[0].detail!.metadata).toEqual(expect.arrayContaining([{ label: "Vault", value: "Personal" }, { label: "Website", link: { text: "https://github.com/login", href: "https://github.com/login" } }, { label: "Tags", tags: [{ text: "dev" }] }]));
-    expect(rows[2]).toMatchObject({ name: "Visa", subtitle: "Work · 1234", icon: "▭", accessories: [] });
-    expect(rows[3]).toMatchObject({ name: "Wifi", subtitle: "Work", icon: "≡" });
+    expect(rows[2]).toMatchObject({ name: "Visa", subtitle: "Work · 1234", icon: "\u{f019b}", accessories: [] });
+    expect(rows[3]).toMatchObject({ name: "Wifi", subtitle: "Work", icon: "\u{f039e}" });
     // Never a secret in a row.
     expect(JSON.stringify(rows)).not.toContain("s3cret");
   });

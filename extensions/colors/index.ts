@@ -35,7 +35,6 @@ const item = (r: Row, section: string): Item => ({
   icon: { image: swatch(r.h) },
   keywords: [r.h, token(r), r.s.toLowerCase()],
   section,
-  actions: ACTIONS,
 });
 
 async function recent(): Promise<string[]> {
@@ -72,7 +71,7 @@ export function detailOf(c: RGB, title: string): Detail {
   return { markdown: `![${hex}](${swatchWide(hex)})\n\n**${title}**`, metadata };
 }
 const nearestTag = (d: number) => (d < 0.02 ? "close" : d < 0.06 ? "near" : "far");
-const swatchWide = (hex: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 48"><rect width="120" height="48" rx="8" fill="${hex}"/></svg>`)}`;
+const swatchWide = (hex: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 48"><rect width="400" height="48" rx="8" fill="${hex}"/></svg>`)}`;
 
 // ---- convert ---------------------------------------------------------------
 
@@ -113,6 +112,7 @@ export default {
       view: "grid",
       // Palette meta is read once at load (see emoji).
       columns: settings.palette<PaletteSettings>("colors").columns,
+      actions: ACTIONS,
       list: async () => {
         const used = await recent();
         return [...used.map((id) => item(rows.get(id)!, RECENT)), ...(data as Row[]).filter((r) => !used.includes(r.id)).map((r) => item(r, r.s))];
@@ -132,7 +132,7 @@ export default {
       detail: (id) => { const r = rows.get(id); return r ? detailOf(rgbOf(r), r.n) : undefined; },
     },
     convert: {
-      title: "Convert colour",
+      title: "Convert Colour",
       icon: ICON,
       input: true,
       placeholder: "#ff8800, rgb(255 136 0), hsl(30 100% 50%), a name",

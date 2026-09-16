@@ -4,14 +4,14 @@
       "title": "System",
       "live": true,
       "input": false,
-      "icon": "⏻",
+      "icon": "󰐥",
       "placeholder": "Sleep, lock, volume, dark mode...",
       "items": [
         {
           "id": "sleep",
           "name": "Sleep",
           "subtitle": "Put the machine to sleep",
-          "icon": "⏾",
+          "icon": "󰤄",
           "keywords": [
             "suspend"
           ],
@@ -27,7 +27,7 @@
           "id": "sleep-displays",
           "name": "Sleep Displays",
           "subtitle": "Turn the displays off",
-          "icon": "🖥",
+          "icon": "󰶐",
           "keywords": [
             "screen",
             "monitor"
@@ -44,7 +44,7 @@
           "id": "lock",
           "name": "Lock Screen",
           "subtitle": "Lock the session",
-          "icon": "🔒",
+          "icon": "󰍁",
           "keywords": [
             "lock"
           ],
@@ -60,7 +60,7 @@
           "id": "logout",
           "name": "Log Out",
           "subtitle": "End the session",
-          "icon": "⎋",
+          "icon": "󰍃",
           "keywords": [
             "sign out"
           ],
@@ -78,7 +78,7 @@
           "id": "restart",
           "name": "Restart",
           "subtitle": "Reboot the machine",
-          "icon": "↻",
+          "icon": "󰜉",
           "keywords": [
             "reboot"
           ],
@@ -96,7 +96,7 @@
           "id": "shutdown",
           "name": "Shut Down",
           "subtitle": "Power the machine off",
-          "icon": "⏻",
+          "icon": "󰐥",
           "keywords": [
             "halt",
             "power off"
@@ -115,7 +115,7 @@
           "id": "empty-trash",
           "name": "Empty Trash",
           "subtitle": "Delete what is in the Trash",
-          "icon": "🗑",
+          "icon": "󰧧",
           "keywords": [
             "bin"
           ],
@@ -137,7 +137,7 @@
           "id": "dark-mode",
           "name": "Toggle Dark Mode",
           "subtitle": "Switch the appearance",
-          "icon": "◐",
+          "icon": "󰔎",
           "keywords": [
             "light",
             "theme",
@@ -160,7 +160,7 @@
           "id": "volume-up",
           "name": "Volume Up",
           "subtitle": "10% louder",
-          "icon": "🔊",
+          "icon": "󰝝",
           "keywords": [
             "sound",
             "louder"
@@ -177,7 +177,7 @@
           "id": "volume-down",
           "name": "Volume Down",
           "subtitle": "10% quieter",
-          "icon": "🔉",
+          "icon": "󰝞",
           "keywords": [
             "sound",
             "quieter"
@@ -191,10 +191,10 @@
           ]
         },
         {
-          "id": "mute",
+          "id": "volume-mute",
           "name": "Toggle Mute",
           "subtitle": "Silence the output",
-          "icon": "🔇",
+          "icon": "󰖁",
           "keywords": [
             "sound",
             "silence"
@@ -211,7 +211,7 @@
           "id": "brightness-up",
           "name": "Brightness Up",
           "subtitle": "10% brighter",
-          "icon": "☀",
+          "icon": "󰃠",
           "keywords": [
             "screen",
             "display"
@@ -228,7 +228,7 @@
           "id": "brightness-down",
           "name": "Brightness Down",
           "subtitle": "10% dimmer",
-          "icon": "☼",
+          "icon": "󰃞",
           "keywords": [
             "screen",
             "display",
@@ -243,10 +243,10 @@
           ]
         },
         {
-          "id": "eject",
+          "id": "eject-all",
           "name": "Eject All Disks",
           "subtitle": "Unmount every external disk",
-          "icon": "⏏",
+          "icon": "󰮑",
           "keywords": [
             "unmount",
             "usb"
@@ -263,7 +263,7 @@
           "id": "show-desktop",
           "name": "Show Desktop",
           "subtitle": "Move every window aside",
-          "icon": "▦",
+          "icon": "󰨝",
           "keywords": [
             "desktop",
             "mission control"
@@ -280,7 +280,7 @@
           "id": "keep-awake",
           "name": "Keep Awake",
           "subtitle": "Stop the machine sleeping until you allow it",
-          "icon": "☕",
+          "icon": "󰛊",
           "keywords": [
             "caffeinate",
             "awake",

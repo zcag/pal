@@ -2,7 +2,7 @@
   "palettes": {
     "processes": {
       "title": "Processes",
-      "icon": "▤",
+      "icon": "󰍛",
       "live": true,
       "input": true,
       "placeholder": "Name, pid, or :port",
@@ -77,7 +77,7 @@
           "id": "1207",
           "name": "node",
           "subtitle": "/opt/homebrew/bin/node",
-          "icon": "▤",
+          "icon": "󰍛",
           "keywords": [
             "1207"
           ],
@@ -171,7 +171,7 @@
           "id": "612",
           "name": "WindowServer",
           "subtitle": "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
-          "icon": "▤",
+          "icon": "󰍛",
           "keywords": [
             "612"
           ],
@@ -345,7 +345,7 @@
           "id": "5124",
           "name": "postgres",
           "subtitle": "/opt/homebrew/opt/postgresql@16/bin/postgres",
-          "icon": "▤",
+          "icon": "󰍛",
           "keywords": [
             "5124"
           ],
@@ -387,7 +387,7 @@
           "id": "233",
           "name": "mds_stores",
           "subtitle": "/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores",
-          "icon": "▤",
+          "icon": "󰍛",
           "keywords": [
             "233"
           ],
@@ -429,7 +429,7 @@
           "id": "310",
           "name": "cfprefsd",
           "subtitle": "/usr/sbin/cfprefsd",
-          "icon": "▤",
+          "icon": "󰍛",
           "keywords": [
             "310"
           ],
@@ -522,7 +522,7 @@
             "id": "1207",
             "name": "node",
             "subtitle": "/opt/homebrew/bin/node",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1207"
             ],
@@ -616,7 +616,7 @@
             "id": "612",
             "name": "WindowServer",
             "subtitle": "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "612"
             ],
@@ -790,7 +790,7 @@
             "id": "5124",
             "name": "postgres",
             "subtitle": "/opt/homebrew/opt/postgresql@16/bin/postgres",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "5124"
             ],
@@ -832,7 +832,7 @@
             "id": "233",
             "name": "mds_stores",
             "subtitle": "/System/Library/Frameworks/CoreServices.framework/Frameworks/Metadata.framework/Versions/A/Support/mds_stores",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "233"
             ],
@@ -874,7 +874,7 @@
             "id": "310",
             "name": "cfprefsd",
             "subtitle": "/usr/sbin/cfprefsd",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "310"
             ],
@@ -918,7 +918,7 @@
             "id": "7781:80",
             "name": "caddy",
             "subtitle": "*:80",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "7781",
               ":80",
@@ -966,7 +966,7 @@
             "id": "7781:443",
             "name": "caddy",
             "subtitle": "*:443",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "7781",
               ":443",
@@ -1014,7 +1014,7 @@
             "id": "5124:5432",
             "name": "postgres",
             "subtitle": "127.0.0.1:5432",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "5124",
               ":5432",
@@ -1062,7 +1062,7 @@
             "id": "1440:6379",
             "name": "redis-server",
             "subtitle": "127.0.0.1:6379",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1440",
               ":6379",
@@ -1110,7 +1110,7 @@
             "id": "1207:8080",
             "name": "node",
             "subtitle": "*:8080",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1207",
               ":8080",
@@ -1164,7 +1164,7 @@
             "id": "1207:8080",
             "name": "node",
             "subtitle": "*:8080",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1207",
               ":8080",
@@ -1216,7 +1216,7 @@
             "id": "7781:80",
             "name": "caddy",
             "subtitle": "*:80",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "7781",
               ":80",
@@ -1264,7 +1264,7 @@
             "id": "7781:443",
             "name": "caddy",
             "subtitle": "*:443",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "7781",
               ":443",
@@ -1314,7 +1314,7 @@
             "id": "7781:80",
             "name": "caddy",
             "subtitle": "*:80",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "7781",
               ":80",
@@ -1362,7 +1362,7 @@
             "id": "1207:8080",
             "name": "node",
             "subtitle": "*:8080",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1207",
               ":8080",
@@ -1416,7 +1416,7 @@
             "id": "1207",
             "name": "node",
             "subtitle": "/opt/homebrew/bin/node",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1207"
             ],
@@ -1464,7 +1464,7 @@
             "id": "1207",
             "name": "node",
             "subtitle": "/opt/homebrew/bin/node",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1207"
             ],
@@ -1512,7 +1512,7 @@
             "id": "1207",
             "name": "node",
             "subtitle": "/opt/homebrew/bin/node",
-            "icon": "▤",
+            "icon": "󰍛",
             "keywords": [
               "1207"
             ],

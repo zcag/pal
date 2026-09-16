@@ -36,19 +36,18 @@ const label = (set: string) => SETS[set] ?? set;
 const ACTIONS: Action[] = [
   { id: "glyph", title: "Copy glyph" },
   { id: "codepoint", title: "Copy code point" },
-  { id: "name", title: "Copy name" },
-  { id: "class", title: "Copy CSS class" },
+  { id: "name", title: "Copy name", shortcut: "cmd+shift+n" },
+  { id: "class", title: "Copy CSS class", shortcut: "cmd+shift+c" },
 ];
 
 const item = (g: Glyph, section: string): Item => ({
   id: g.id,
   name: g.name.replace(/_/g, " "),
-  // Eleven thousand rows cross the wire on every listing, so each carries the least: the set is the section, the code is in the subtitle.
+  // Eleven thousand rows cross the wire on every listing, so each carries the least: the set is the section, the code is in the subtitle, the actions are the palette's.
   subtitle: codePoint(g.code),
   icon: char(g),
   keywords: [g.id],
   section,
-  actions: ACTIONS,
 });
 
 async function recent(): Promise<string[]> {
@@ -75,11 +74,11 @@ const detail = (g: Glyph): Detail => ({
 const XDG_ACTIONS: Action[] = [
   { id: "name", title: "Copy name" },
   { id: "glyph", title: "Copy glyph" },
-  { id: "codepoint", title: "Copy code point" },
+  { id: "codepoint", title: "Copy code point", shortcut: "cmd+shift+u" },
 ];
 const xdgRows: Item[] = Object.entries(XDG_ICONS).map(([name, glyph]) => {
   const nf = byCode.get(glyph.codePointAt(0)!.toString(16).padStart(4, "0"));
-  return { id: name, name, subtitle: nf?.id, icon: glyph, keywords: nf ? [nf.id] : [], actions: XDG_ACTIONS };
+  return { id: name, name, subtitle: nf?.id, icon: glyph, keywords: nf ? [nf.id] : [] };
 });
 
 export default {
@@ -90,6 +89,7 @@ export default {
       view: "grid",
       // Palette meta is read once at load (see emoji).
       columns: settings.palette<PaletteSettings>("icons").columns,
+      actions: ACTIONS,
       list: async () => {
         const used = await recent();
         return [...used.map((id) => item(byId.get(id)!, RECENT)), ...glyphs.filter((g) => !used.includes(g.id)).map((g) => item(g, label(g.set)))];
@@ -112,6 +112,7 @@ export default {
       icon: ICON,
       view: "grid",
       columns: 10,
+      actions: XDG_ACTIONS,
       list: () => xdgRows,
       pick: (id, action) => {
         const glyph = XDG_ICONS[id];

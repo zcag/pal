@@ -53,7 +53,7 @@ function rows(key: string, p: Palette, items: WireItem[] = p.items ?? []): Hit[]
   return items.map((w) => {
     const app = w.icon && typeof w.icon === "object" && typeof (w.icon as { app?: unknown }).app === "string" ? appName((w.icon as { app: string }).app) : undefined;
     const icon = app !== undefined ? { image: svgIcon(tileFor(app), app[0]?.toUpperCase() ?? "") } : w.icon;
-    const item = toItem({ source: { extension: "", palette: key }, id: w.id, score: 0, name_positions: [], item: { ...w, icon } }, p.title, !!p.details);
+    const item = toItem({ source: { extension: "", palette: key }, id: w.id, score: 0, name_positions: [], item: { ...w, icon } }, { title: p.title, detail: p.details ? "lazy" : undefined });
     return { item };
   });
 }
@@ -71,7 +71,7 @@ function Shot({ fixture, palette: open }: { fixture: Fixture; palette?: string }
     return [{ extension: "pal", palette: "palettes", title: "Palettes", live: false, input: false, count: own.length, stale: false }, ...own];
   }, [fixture]);
   const paletteRows = useMemo<Hit[]>(() => Object.entries(fixture.palettes).map(([key, p]) => ({
-    item: { id: key, name: p.title, subtitle: p.title, icon: p.icon ? toItem({ source: { extension: "", palette: key }, id: key, score: 0, name_positions: [], item: { id: key, name: p.title, icon: p.icon } }, p.title).icon : undefined, palette: PALETTES, accessories: [{ text: "Palette" }] } as Item,
+    item: { id: key, name: p.title, subtitle: p.title, icon: p.icon ? toItem({ source: { extension: "", palette: key }, id: key, score: 0, name_positions: [], item: { id: key, name: p.title, icon: p.icon } }, { title: p.title }).icon : undefined, palette: PALETTES, accessories: [{ text: "Palette" }] } as Item,
   })), [fixture]);
   const indexed = useMemo(() => Object.entries(fixture.palettes).filter(([, p]) => !p.input && p.view !== "view").flatMap(([key, p]) => rows(key, p)), [fixture]);
 

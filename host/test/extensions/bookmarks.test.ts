@@ -242,10 +242,17 @@ describe("bookmarks", () => {
     expect((await list()).filter((i) => !i.section).map((i) => i.name)).toEqual(["Only"]);
   });
 
-  test("a missing file is an error reply, not a crash", async () => {
+  test("a missing file is no rows, the browsers still list; a broken one is a hint row naming the file", async () => {
     host.changeSettings("bookmarks", { settings: { file: join(dir, "nope.json") } });
-    const r = await host.call("list", { extension: "bookmarks", palette: "bookmarks" });
-    expect(r.error).toMatch(/ENOENT|no such file/i);
+    const items = await list();
+    expect(items.every((i) => i.section)).toBe(true);
+    expect(items.length).toBeGreaterThan(0);
+    writeFileSync(join(dir, "broken.json"), "{ not json");
+    host.changeSettings("bookmarks", { settings: { file: join(dir, "broken.json") } });
+    const hint = (await list())[0];
+    expect(hint).toMatchObject({ id: "hint:Could not read broken.json", name: "Could not read broken.json", actions: [] });
+    expect(hint.subtitle).toMatch(/fix the file/);
+    expect(hint.icon).toBeTruthy();
     expect((await host.hello()).pid).toBe(host.pid);
   });
 });

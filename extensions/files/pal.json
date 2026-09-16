@@ -3,18 +3,54 @@
   "title": "Files",
   "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; the recently used files before you type, and as a palette of their own. Open, open with another app, reveal, Quick Look, copy the path or the file, trash.",
   "version": "0.1.0",
-  "icon": "▤",
+  "icon": "󰱽",
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "list", "id": "folders", "label": "Folders", "description": "Where to search. `~` is expanded.", "placeholder": "~/Documents", "default": ["~"] },
-    { "kind": "number", "id": "limit", "label": "Results", "description": "At most this many rows per query.", "min": 1, "max": 500, "unit": "rows", "default": 50 },
-    { "kind": "boolean", "id": "show_hidden", "label": "Hidden files", "text": "List files and folders whose name starts with a dot", "default": false },
-    { "kind": "list", "id": "exclude", "label": "Exclude", "description": "Folders skipped below the search folders, by name (`node_modules`) or a short path (`Library/Caches`).", "placeholder": "node_modules", "default": ["node_modules", ".cache", "Library/Caches", "target"] }
+    {
+      "kind": "list",
+      "id": "folders",
+      "label": "Folders",
+      "description": "Where to search. `~` is expanded.",
+      "placeholder": "~/Documents",
+      "default": [
+        "~"
+      ]
+    },
+    {
+      "kind": "number",
+      "id": "limit",
+      "label": "Results",
+      "description": "At most this many rows per query.",
+      "min": 1,
+      "max": 500,
+      "unit": "rows",
+      "default": 50
+    },
+    {
+      "kind": "boolean",
+      "id": "show_hidden",
+      "label": "Hidden files",
+      "text": "List files and folders whose name starts with a dot",
+      "default": false
+    },
+    {
+      "kind": "list",
+      "id": "exclude",
+      "label": "Exclude",
+      "description": "Folders skipped below the search folders, by name (`node_modules`) or a short path (`Library/Caches`).",
+      "placeholder": "node_modules",
+      "default": [
+        "node_modules",
+        ".cache",
+        "Library/Caches",
+        "target"
+      ]
+    }
   ],
   "store": {
-    "tagline": "Files by name through the OS's own index, the recently used ones before you type.",
+    "tagline": "File search over the OS index, recent files before you type",
     "category": "productivity",
     "features": [
       "Spotlight (`mdfind -name`) on macOS; `fd`, else `locate`, else a bounded `find` on Linux, one process per keystroke, killed after 3 s",
@@ -24,22 +60,66 @@
       "Reveal (`cmd+enter`), Quick Look (`cmd+y`), Copy path (`cmd+c`), Copy file (`cmd+shift+c`), Move to Trash (`cmd+d`, asks first)",
       "The detail pane: path, size, modified, kind, and the first 40 lines of a text file"
     ],
-    "permissions": ["automation"],
-    "platforms": ["macos", "linux"],
+    "permissions": [
+      "automation"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-search.png", "caption": "Part of a file name typed: the matches under the configured folders, size and date on the right" },
-      { "file": "2-detail.png", "caption": "The detail pane on a text file: path, size, modified, kind, and its first lines" },
-      { "file": "3-open-with.png", "caption": "Open with…: the apps registered for the file, the default tagged" },
-      { "file": "4-recent.png", "caption": "Recent Files: what was used in the last seven days, newest first" }
+      {
+        "file": "1-search.png",
+        "caption": "Part of a file name typed: the matches under the configured folders, size and date on the right"
+      },
+      {
+        "file": "2-detail.png",
+        "caption": "The detail pane on a text file: path, size, modified, kind, and its first lines"
+      },
+      {
+        "file": "3-open-with.png",
+        "caption": "Open with…: the apps registered for the file, the default tagged"
+      },
+      {
+        "file": "4-recent.png",
+        "caption": "Recent Files: what was used in the last seven days, newest first"
+      }
     ],
     "actions": [
-      { "title": "Open", "description": "The system opener.", "keys": "enter" },
-      { "title": "Reveal in Finder", "description": "Show in file manager on Linux.", "keys": "cmd+enter" },
-      { "title": "Quick Look", "description": "macOS only.", "keys": "cmd+y" },
-      { "title": "Open with…", "description": "A level of the apps registered for the file.", "keys": "cmd+o" },
-      { "title": "Copy path", "keys": "cmd+c" },
-      { "title": "Copy file", "description": "The file itself onto the clipboard: a paste in Finder copies it.", "keys": "cmd+shift+c" },
-      { "title": "Move to Trash", "description": "Asks first.", "keys": "cmd+d" }
+      {
+        "title": "Open",
+        "description": "The system opener.",
+        "keys": "enter"
+      },
+      {
+        "title": "Reveal in Finder",
+        "description": "Show in file manager on Linux.",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Quick Look",
+        "description": "macOS only.",
+        "keys": "cmd+y"
+      },
+      {
+        "title": "Open with…",
+        "description": "A level of the apps registered for the file.",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Copy path",
+        "keys": "cmd+c"
+      },
+      {
+        "title": "Copy file",
+        "description": "The file itself onto the clipboard: a paste in Finder copies it.",
+        "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Move to Trash",
+        "description": "Asks first.",
+        "keys": "cmd+d"
+      }
     ]
   },
   "palettes": {
@@ -47,18 +127,70 @@
       "kind": "input",
       "description": "Type part of a file name; rows are the matches under the configured folders. Before you type: the recently used files.",
       "keys": [
-        { "keys": "enter", "title": "Open the file" },
-        { "keys": "cmd+enter", "title": "Reveal in Finder" },
-        { "keys": "cmd+o", "title": "Open with another app" },
-        { "keys": "cmd+i", "title": "The path, size and first lines" }
+        {
+          "keys": "enter",
+          "title": "Open the file"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Reveal in Finder"
+        },
+        {
+          "keys": "cmd+y",
+          "title": "Quick Look (macOS)"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open with another app"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy path"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the file"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash"
+        }
       ]
     },
     "recent": {
+      "tier": "primary",
       "kind": "live",
+      "ttl": 60,
       "description": "Files used in the last seven days under the configured folders, newest first.",
       "keys": [
-        { "keys": "enter", "title": "Open the file" },
-        { "keys": "cmd+enter", "title": "Reveal in Finder" }
+        {
+          "keys": "enter",
+          "title": "Open the file"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Reveal in Finder"
+        },
+        {
+          "keys": "cmd+y",
+          "title": "Quick Look (macOS)"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open with another app"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy path"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the file"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash"
+        }
       ]
     }
   }

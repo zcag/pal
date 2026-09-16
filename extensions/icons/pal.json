@@ -9,52 +9,116 @@
   "license": "MIT",
   "settings": [],
   "store": {
-    "tagline": "Every Nerd Font glyph as a grid, by set, with its code point, name and CSS class to copy.",
+    "tagline": "All 11k Nerd Font glyphs: copy one, its code point or name",
     "category": "reference",
     "features": [
       "10995 glyphs of the Symbols Nerd Font the app bundles (Nerd Fonts 3.5.1), one section per set: Material Design, Font Awesome, Codicons, Octicons, Devicons, Seti, Weather, Powerline and the rest",
       "Search by the set's name with spaces (`account circle`), the `nf-md-account_circle` name (`md-account`) or the code point (`f0009`)",
       "`Enter` copies the glyph itself, ready as an `icon` for a script or a bar; `cmd+enter` the code point (`U+F0009`)",
-      "Copy name (`nf-md-account_circle`) and Copy CSS class (`nf nf-md-account_circle`) from the action panel",
+      "Copy name (`nf-md-account_circle`, `cmd+shift+n`) and Copy CSS class (`nf nf-md-account_circle`, `cmd+shift+c`)",
       "The last twelve picked lead in a Recent section",
       "A second grid of the 114 freedesktop icon names pal draws, each with its glyph, for a script's `icon_xdg`"
     ],
     "permissions": [],
-    "platforms": ["macos", "linux"],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
     "screenshots": [
-      { "file": "1-grid.png", "caption": "The Nerd Font grid, Recent first, then the sets in order" },
-      { "file": "2-search.png", "caption": "Searching `git` across every set: Octicons, Devicons, Material Design and the rest" },
-      { "file": "3-freedesktop.png", "caption": "The freedesktop icon names the SDK's xdg() maps to a glyph" },
-      { "file": "4-actions.png", "caption": "Copy the glyph, its code point, its nf- name or the CSS class" }
+      {
+        "file": "1-grid.png",
+        "caption": "The Nerd Font grid, Recent first, then the sets in order"
+      },
+      {
+        "file": "2-search.png",
+        "caption": "Searching `git` across every set: Octicons, Devicons, Material Design and the rest"
+      },
+      {
+        "file": "3-freedesktop.png",
+        "caption": "The freedesktop icon names the SDK's xdg() maps to a glyph"
+      },
+      {
+        "file": "4-actions.png",
+        "caption": "Copy the glyph, its code point, its nf- name or the CSS class"
+      }
     ],
     "actions": [
-      { "title": "Copy glyph", "description": "The character itself.", "keys": "enter" },
-      { "title": "Copy code point", "description": "`U+F0009`", "keys": "cmd+enter" },
-      { "title": "Copy name", "description": "`nf-md-account_circle`; on a freedesktop row, `Enter` copies the name." },
-      { "title": "Copy CSS class", "description": "`nf nf-md-account_circle`" }
+      {
+        "title": "Copy glyph",
+        "description": "The character itself.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy code point",
+        "description": "`U+F0009`",
+        "keys": "cmd+enter"
+      },
+      {
+        "title": "Copy name",
+        "description": "`nf-md-account_circle`; on a freedesktop row, `enter` copies the name.",
+        "keys": "cmd+shift+n"
+      },
+      {
+        "title": "Copy CSS class",
+        "description": "`nf nf-md-account_circle`",
+        "keys": "cmd+shift+c"
+      }
     ]
   },
   "palettes": {
     "icons": {
+      "tier": "catalog",
       "title": "Nerd Font icons",
       "kind": "grid",
       "description": "The glyphs of the Symbols Nerd Font the app bundles, by set; recently copied glyphs first.",
       "keys": [
-        { "keys": "enter", "title": "Copy glyph" },
-        { "keys": "cmd+enter", "title": "Copy code point" },
-        { "keys": "cmd+k", "title": "Copy name, Copy CSS class" }
+        {
+          "keys": "enter",
+          "title": "Copy glyph"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Copy code point"
+        },
+        {
+          "keys": "cmd+shift+n",
+          "title": "Copy name"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy CSS class"
+        }
       ],
       "settings": [
-        { "kind": "number", "id": "columns", "label": "Columns", "description": "Tiles per row in the grid.", "min": 4, "max": 16, "default": 10 }
+        {
+          "kind": "number",
+          "id": "columns",
+          "label": "Columns",
+          "description": "Tiles per row in the grid.",
+          "min": 4,
+          "max": 16,
+          "default": 10
+        }
       ]
     },
     "freedesktop": {
+      "tier": "catalog",
       "title": "Freedesktop icon names",
       "kind": "grid",
       "description": "The freedesktop icon names pal maps to a glyph (`xdg()` in the SDK), for a script's `icon_xdg`.",
       "keys": [
-        { "keys": "enter", "title": "Copy name" },
-        { "keys": "cmd+enter", "title": "Copy glyph" }
+        {
+          "keys": "enter",
+          "title": "Copy name"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Copy glyph"
+        },
+        {
+          "keys": "cmd+shift+u",
+          "title": "Copy code point"
+        }
       ]
     }
   }
