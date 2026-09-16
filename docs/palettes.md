@@ -152,29 +152,28 @@ running); with neither, paste fails and the toast says so.
 
 What is never recorded: anything a password manager marks as concealed or
 transient (the `org.nspasteboard` convention), copies over 10 MB, and
-copies made while an app in the exclude list is in front. When
-`exclude_apps` is not set in the file, the recorder excludes Keychain
-Access and Passwords (`com.apple.keychainaccess`, `com.apple.Passwords`).
-Copying something already in history bumps it to the top instead of adding
-a duplicate.
+copies made while an app in `exclude_apps` is in front. Copying something
+already in history bumps it to the top instead of adding a duplicate.
+
+Retention runs after every copy: unpinned entries older than
+`max_age_days` are deleted, then the unpinned tail past `max_entries`.
+Pinned entries never expire. A search lists at most 200 rows of what is
+left, newest first after the pinned ones; type more to narrow it.
 
 Settings, `[extensions.clipboard]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `exclude_apps` | list | `[]` | Bundle ids (`com.1password.1password`) or readable names (`Slack`); nothing copied in these is listed, and the recorder skips copies made while one of them is in front. |
-| `max_entries` | number, 10 to 5000 | `200` | How many history entries a search lists at most. |
-| `max_age_days` | number, 0 to 3650 | `0` | Entries older than this are not listed. 0 keeps everything. |
+| `exclude_apps` | list | `["com.apple.keychainaccess", "com.apple.Passwords"]` | Bundle ids (`com.1password.1password`) or readable names (`Slack`). The recorder skips copies made while one of them is in front, and entries already recorded from one are not listed. The default is Keychain Access and Passwords; `[]` excludes nothing. |
+| `max_entries` | number, 1 to 100000 | `1000` | How many unpinned entries history keeps. |
+| `max_age_days` | number, 0 to 3650 | `30` | Unpinned entries older than this are deleted. `0` is no age limit: entries stay until the count limit. |
 | `primary_action` | `paste`, `copy` | `"paste"` | What `Enter` does on an entry. |
 
-The recorder reads `max_entries` and `max_age_days` a second time, as
-retention limits: after every copy, unpinned entries older than
-`max_age_days` are deleted, then the unpinned tail past `max_entries`. When
-the keys are absent from the file the recorder's own defaults apply, 1000
-entries and 30 days. A `max_age_days = 0` written by hand makes the
-recorder delete every unpinned entry on the next copy; the settings view
-never writes the default, so leave the key unset to keep everything the
-recorder allows.
+The recorder reads the three retention keys once, when pal starts, so a
+change to them takes effect at the next launch (`primary_action` applies
+live). On Linux the source app of a copy is not known (neither X11 nor the
+Wayland data-control protocol says who owns the selection), so
+`exclude_apps` has no effect there.
 
 ## Emoji (`emoji`)
 

@@ -139,28 +139,18 @@ pub fn retain(app: &AppHandle, live: &[String]) {
     app.state::<Settings>().extensions.lock().unwrap().retain(|e| live.contains(&e.name));
 }
 
-/// The declared defaults of a spec list, as the table the core overlays.
-fn defaults(specs: &Value) -> toml::Table {
-    let mut t = toml::Table::new();
-    for spec in specs.as_array().into_iter().flatten() {
-        if let (Some(id), Some(d)) = (spec["id"].as_str(), spec.get("default").filter(|d| !d.is_null())) {
-            if let Ok(v) = toml::Value::try_from(d) {
-                t.insert(id.to_string(), v);
-            }
-        }
-    }
-    t
-}
-
 /// An extension's resolved values, `ResolvedSettings` in host/protocol.ts:
-/// `{ settings, palettes: { <name>: {...} } }`.
+/// `{ settings, palettes: { <name>: {...} } }`. Settings declared `kind:
+/// "secret"` arrive as the secret itself, fetched from the OS store; an
+/// unresolvable reference stays as written (and is logged by the core).
 fn resolved(config: &Config, name: &str, manifest: &Value) -> Value {
-    let settings = config.extension_settings(name, &defaults(&manifest["settings"]));
+    let store = platform_store();
+    let settings = config.extension_settings_resolved(name, &manifest["settings"], &*store);
     let mut palettes = serde_json::Map::new();
     if let Some(declared) = manifest["palettes"].as_object() {
         for (palette, p) in declared {
             let id = palette_id(&pal_core::index::Source::new(name, palette));
-            let table = config.palette_settings(&id, &defaults(&p["settings"]));
+            let table = config.palette_settings_resolved(&id, &p["settings"], &*store);
             palettes.insert(palette.clone(), serde_json::to_value(table).unwrap_or(Value::Null));
         }
     }

@@ -188,7 +188,7 @@ function PalettePane({ p, ext, onChange }: { p: SettingsPalette; ext: SettingsEx
           <span>{p.config.enabled ? "Shown in root search" : "Hidden everywhere"}</span>
         </span>
       </SettingsRow>
-      <SettingsRow label="Alias" layout="stack" htmlFor={aliasId} description="Typing it at the root jumps straight into this palette.">
+      <SettingsRow label="Alias" layout="stack" htmlFor={aliasId} description="An extra keyword on the palette's row at the root: typing it finds the palette.">
         <input id={aliasId} className="pal-field__input" type="text" value={p.config.alias ?? ""} placeholder="none" spellCheck={false} onChange={(e) => onChange({ alias: e.target.value || undefined })} />
       </SettingsRow>
       <SettingsRow label="Hotkey" layout="stack" description="Opens pal directly in this palette.">

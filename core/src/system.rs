@@ -18,7 +18,8 @@
 //! **Keep awake** is a toggle: it starts `caffeinate -d -i` (Linux:
 //! `systemd-inhibit ... sleep infinity`) detached and remembers the pid in
 //! `data_dir/keep-awake.pid`; running it again stops that process. The
-//! title says which way it will go.
+//! [`SPECS`] entry is always "Keep Awake"; [`commands`] swaps in "Allow
+//! Sleep" while that pid is alive, so the title says which way it will go.
 
 use std::path::PathBuf;
 use std::process::{Command, Stdio};

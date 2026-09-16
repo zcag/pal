@@ -63,7 +63,7 @@ release changes it. The committed copy is
 | `position` | `top`, `centre`, `last` | `"top"` | Where the panel appears on the screen with the pointer. `top`: a fifth of the way down, where Spotlight and Raycast sit. `centre`: centred. `last`: wherever it was last shown. On Wayland the compositor places the window and this key does nothing (see [Getting started](getting-started.md)). |
 | `launch_at_login` | bool | `false` | Start pal when you sign in: a LaunchAgent (`~/Library/LaunchAgents/io.cagdas.pal.plist`) on macOS, an XDG autostart entry (`~/.config/autostart/pal.desktop`) on Linux. The app registers it when this changes; on macOS the plist takes effect at the next login. |
 | `menu_bar_icon` | bool | `true` | Show pal's icon in the menu bar (macOS) or system tray (Linux). The app has no Dock icon, so this is the visible way to reach Settings and Quit; the hotkey and `pal settings` work without it. |
-| `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day (the GitHub release manifest; nothing installs without asking). `false` leaves the menu's "Check for updates" as the only check. Today a found update is a log line; download and install are not wired, and the menu entry is present but disabled. |
+| `check_updates` | bool | `true` | Look for a newer release 20 s after startup and once a day, in release builds (the GitHub release manifest; nothing is downloaded). Today a found update is a log line: download and install are not wired, and the menu's "Check for updates" is a disabled placeholder until they are, so `false` means no check at all. |
 
 Hotkey syntax: modifiers first, `+` between, one main key, case does not
 matter. Modifiers: `ctrl` (or `control`), `alt` (or `option`), `cmd` (or
@@ -106,11 +106,14 @@ A declared setting set to its default is unset by the settings view, so the
 file only holds what differs.
 
 Changes reach a running extension without a restart: the core pushes the
-resolved values and lists the extension's palettes again. Two exceptions:
+resolved values and lists the extension's palettes again. Three exceptions:
 `emoji`'s `columns` is read once at load (edit the file, then Settings >
-Restart extension host), and the `scripts` extension discovers its palettes
+Restart extension host); the `scripts` extension discovers its palettes
 once at import, so its `config`, `skip`, `v1_repo` and `ttl` need a host
-restart too (`timeout` and `preview_max` apply to the next run).
+restart too (`timeout` and `preview_max` apply to the next run); and the
+clipboard recorder, which runs in pal itself rather than in the host,
+reads `exclude_apps`, `max_entries` and `max_age_days` once at startup, so
+those want pal relaunched.
 
 ## Secrets
 
@@ -124,9 +127,15 @@ holds a reference:
   `security add-generic-password -s pal -a github-token -w`.
 - `env:<NAME>`: an environment variable of the pal process.
 
-The core resolves a reference when something asks for the value
-(`core/src/config/secrets.rs`); anything that is not a reference passes
-through as itself. Removing a secret in Settings unsets the key; the
+A setting the extension declared `kind: "secret"` reaches it resolved:
+the values it gets (at import and on every change) carry the secret itself,
+fetched from the store by the core (`core/src/config/secrets.rs`,
+`resolve_declared`). Anything that is not a reference passes through as
+itself. A reference that does not resolve (no such item, locked keychain)
+stays as the reference string and is logged as `secrets  unresolved`; the
+extension still loads. Settings of any other kind are never resolved, even
+when their value looks like a reference, and neither is a key the manifest
+does not declare. Removing a secret in Settings unsets the key; the
 keychain item stays. On Linux the Secret Service lookup is not implemented
 yet: every `keychain:` lookup fails with a store error there, and `env:`
 references work everywhere.

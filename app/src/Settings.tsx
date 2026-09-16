@@ -15,6 +15,7 @@ import {
   type Diagnostic, type GeneralConfig, type PaletteConfig, type SettingSpec, type SettingValue, type SettingValues,
   type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette,
 } from "./ui";
+import { comboOf } from "./ui/keys";
 import { iconOf } from "./items";
 
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
@@ -101,10 +102,10 @@ export default function Settings() {
     return () => { a.then((f) => f()); b.then((f) => f()); };
   }, [refresh]);
 
-  // Escape or cmd+w closes (hides) the window; the design's inner scopes stop what they handle.
+  // Escape or cmd+w (ctrl+w off macOS, keys.ts's mapping) closes (hides) the window; the design's inner scopes stop what they handle.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || (e.metaKey && e.key.toLowerCase() === "w")) { e.preventDefault(); invoke("settings_close"); }
+      if (e.key === "Escape" || comboOf(e) === "cmd+w") { e.preventDefault(); invoke("settings_close"); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

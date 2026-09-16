@@ -70,9 +70,11 @@ pub struct General {
     pub menu_bar_icon: bool,
     /// Where the panel appears on the screen with the pointer.
     pub position: Position,
-    /// Look for a newer release at startup and once a day (the GitHub
-    /// release manifest; nothing installs without asking). `false` leaves
-    /// the menu's "Check for updates" as the only check.
+    /// Look for a newer release 20 s after startup and once a day, in
+    /// release builds (the GitHub release manifest; nothing is downloaded).
+    /// Today a found update is a log line: download and install are not
+    /// wired, and the menu's "Check for updates" is a disabled placeholder
+    /// until they are.
     pub check_updates: bool,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
@@ -113,7 +115,8 @@ pub enum Theme {
 #[schemars(extend("additionalProperties" = false))]
 pub struct Palette {
     pub enabled: bool,
-    /// Short name that jumps straight into this palette from root search.
+    /// An extra keyword on the palette's row at the root, so typing it finds
+    /// the palette; `Enter` then opens it as usual.
     pub alias: Option<String>,
     /// Hotkey that opens pal directly in this palette.
     pub hotkey: Option<String>,
@@ -152,6 +155,25 @@ impl Config {
         overlay(manifest_defaults, self.palettes.get(id).map(|p| &p.settings))
     }
 
+    /// [`extension_settings`](Self::extension_settings) from the manifest's
+    /// `settings` list itself, with every `kind: "secret"` value that is a
+    /// `keychain:` / `env:` reference resolved through `store`. A reference
+    /// that does not resolve stays as written and is logged, so a missing
+    /// secret never keeps the extension from loading; values of any other
+    /// kind are passed through untouched, reference-shaped or not.
+    pub fn extension_settings_resolved(&self, name: &str, specs: &serde_json::Value, store: &dyn secrets::SecretStore) -> toml::Table {
+        let mut t = self.extension_settings(name, &spec_defaults(specs));
+        secrets::resolve_declared(&mut t, specs, store);
+        t
+    }
+
+    /// The same for one palette's declared settings.
+    pub fn palette_settings_resolved(&self, id: &str, specs: &serde_json::Value, store: &dyn secrets::SecretStore) -> toml::Table {
+        let mut t = self.palette_settings(id, &spec_defaults(specs));
+        secrets::resolve_declared(&mut t, specs, store);
+        t
+    }
+
     /// Unknown keys as diagnostics. The keys stay in the `extra` maps and in
     /// the file; this only makes them visible.
     fn unknown_keys(&self) -> Vec<Diagnostic> {
@@ -165,6 +187,22 @@ impl Config {
         }
         out
     }
+}
+
+/// The defaults a manifest's `settings` list declares (`pal.json`:
+/// `[{ "id", "kind", "default", .. }]`, as JSON), as the table
+/// [`Config::extension_settings`] overlays. An entry without a default, or
+/// whose default is `null`, declares no key.
+pub fn spec_defaults(specs: &serde_json::Value) -> toml::Table {
+    let mut t = toml::Table::new();
+    for spec in specs.as_array().into_iter().flatten() {
+        if let (Some(id), Some(d)) = (spec["id"].as_str(), spec.get("default").filter(|d| !d.is_null())) {
+            if let Ok(v) = toml::Value::try_from(d) {
+                t.insert(id.to_string(), v);
+            }
+        }
+    }
+    t
 }
 
 /// `defaults` with `set` on top, one level deep: a set key replaces the
@@ -424,6 +462,45 @@ token = "keychain:pal/github-token"
         assert_eq!(p["skin"].as_str(), Some("medium"));
         assert_eq!(p["columns"].as_integer(), Some(8));
         assert_eq!(c.palette_settings("apps", &pd), pd);
+    }
+
+    #[test]
+    fn spec_defaults_take_id_and_default() {
+        let specs = serde_json::json!([
+            { "kind": "number", "id": "n", "default": 3, "min": 1 },
+            { "kind": "list", "id": "l", "default": ["a"] },
+            { "kind": "secret", "id": "token" },
+            { "kind": "text", "id": "t", "default": null },
+        ]);
+        let d = spec_defaults(&specs);
+        assert_eq!(d["n"].as_integer(), Some(3));
+        assert_eq!(d["l"].as_array().map(Vec::len), Some(1));
+        assert!(!d.contains_key("token") && !d.contains_key("t"), "no default, no key");
+        assert!(spec_defaults(&serde_json::Value::Null).is_empty());
+    }
+
+    #[test]
+    fn resolved_settings_fetch_declared_secrets_only() {
+        use secrets::MemStore;
+        let store = MemStore::from(std::collections::HashMap::from([("pal/github-token".to_string(), "ghp_x".to_string())]));
+        let specs = serde_json::json!([
+            { "kind": "secret", "id": "token" },
+            { "kind": "secret", "id": "other" },
+            { "kind": "text", "id": "note", "default": "keychain:pal/github-token" },
+            { "kind": "text", "id": "url", "default": "https://x" },
+        ]);
+        let (c, _) = parse("[extensions.github]\ntoken = \"keychain:pal/github-token\"\nother = \"keychain:pal/missing\"\nundeclared = \"keychain:pal/github-token\"\n\n[palettes.github.settings]\ntoken = \"keychain:pal/github-token\"\n").unwrap();
+        let s = c.extension_settings_resolved("github", &specs, &store);
+        assert_eq!(s["token"].as_str(), Some("ghp_x"), "a declared secret is fetched");
+        assert_eq!(s["other"].as_str(), Some("keychain:pal/missing"), "a miss keeps the reference");
+        assert_eq!(s["note"].as_str(), Some("keychain:pal/github-token"), "only kind: secret is resolved");
+        assert_eq!(s["undeclared"].as_str(), Some("keychain:pal/github-token"), "an undeclared key is never resolved");
+        assert_eq!(s["url"].as_str(), Some("https://x"));
+        assert_eq!(c.extension_settings_resolved("github", &serde_json::Value::Null, &store)["token"].as_str(), Some("keychain:pal/github-token"), "no specs, no resolution");
+        assert_eq!(c.palette_settings_resolved("github", &specs, &store)["token"].as_str(), Some("ghp_x"));
+        std::env::set_var("PAL_TEST_RESOLVED", "from-env");
+        let (c, _) = parse("[extensions.github]\ntoken = \"env:PAL_TEST_RESOLVED\"\n").unwrap();
+        assert_eq!(c.extension_settings_resolved("github", &specs, &store)["token"].as_str(), Some("from-env"));
     }
 
     #[test]

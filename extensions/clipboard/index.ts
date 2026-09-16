@@ -5,9 +5,11 @@
 import type { Action, Detail, Extension, Item } from "../../host/src/protocol.ts";
 import { clipboard, settings, type ClipboardEntry } from "../../host/src/api.ts";
 
-/** `[extensions.clipboard]`, defaults in pal.json. */
-type Settings = { exclude_apps: string[]; max_entries: number; max_age_days: number; primary_action: "paste" | "copy" };
+/** `[extensions.clipboard]`, defaults in pal.json. `max_entries` and `max_age_days` are the recorder's (app clipboard.rs); this side never reads them. */
+type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy" };
 
+/** Rows asked from the core per list; retention decides what exists, this only bounds one page. */
+const PAGE = 200;
 const PREVIEW = 100;
 const DETAIL_MAX = 20_000;
 const THUMB = 48;
@@ -89,11 +91,9 @@ function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
   };
 }
 
-/** An entry is excluded by its source app's bundle id or readable name, or by age. */
+/** An entry recorded before its app went on the exclude list is hidden by bundle id or readable name. */
 function shown(e: ClipboardEntry, s: Settings): boolean {
-  if (e.source_app && s.exclude_apps.some((x) => x === e.source_app || x.toLowerCase() === appName(e.source_app!).toLowerCase())) return false;
-  if (s.max_age_days > 0 && Date.now() - e.at > s.max_age_days * 86_400_000) return false;
-  return true;
+  return !e.source_app || !s.exclude_apps.some((x) => x === e.source_app || x.toLowerCase() === appName(e.source_app!).toLowerCase());
 }
 
 export default {
@@ -107,7 +107,7 @@ export default {
       placeholder: "Search clipboard history",
       list: async (query = "") => {
         const s = settings.get<Settings>();
-        return (await clipboard.list({ query, limit: s.max_entries })).filter((e) => shown(e, s)).map((e) => item(e, s.primary_action));
+        return (await clipboard.list({ query, limit: PAGE })).filter((e) => shown(e, s)).map((e) => item(e, s.primary_action));
       },
       pick: async (id, action) => {
         const entry = Number(id);

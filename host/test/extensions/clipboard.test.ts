@@ -26,7 +26,7 @@ describe("clipboard", () => {
     ]);
   });
 
-  test("list asks core/clipboard.list with the query and the max_entries limit", async () => {
+  test("list asks core/clipboard.list with the query and its own page size", async () => {
     await list("hello");
     expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "hello", limit: 200 } });
   });
@@ -91,14 +91,12 @@ describe("clipboard", () => {
     expect(r.error).toBe("no entry 99");
   });
 
-  test("settings: primary_action copy reorders, exclude_apps and max_age_days drop rows, max_entries caps the ask", async () => {
-    host.changeSettings("clipboard", { settings: { primary_action: "copy", exclude_apps: ["com.google.Chrome", "safari"], max_entries: 50 } });
+  test("settings: primary_action copy reorders, exclude_apps drops rows; the retention keys are the recorder's, not a list filter", async () => {
+    host.changeSettings("clipboard", { settings: { primary_action: "copy", exclude_apps: ["com.google.Chrome", "safari"], max_entries: 1, max_age_days: 1 } });
     const items = await list();
-    expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "", limit: 50 } });
+    expect(host.coreCalls.at(-1)).toEqual({ method: "clipboard.list", params: { query: "", limit: 200 } });
     expect(items.map((i) => i.id)).toEqual(["2", "3", "4"]);
     expect(items[0].actions!.map((a) => a.id).slice(0, 2)).toEqual(["copy", "paste"]);
-    host.changeSettings("clipboard", { settings: { max_age_days: 1 } });
-    expect(await list()).toEqual([]);
     host.changeSettings("clipboard", {});
     expect(await list()).toHaveLength(fixtures.clipboard.length);
   });

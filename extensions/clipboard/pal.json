@@ -7,9 +7,9 @@
   "author": "pal",
   "repo": "bundled",
   "settings": [
-    { "kind": "list", "id": "exclude_apps", "label": "Exclude apps", "description": "Bundle ids (com.1password.1password) or names; nothing copied in these is listed.", "placeholder": "com.1password.1password", "default": [] },
-    { "kind": "number", "id": "max_entries", "label": "Entries shown", "description": "How many history entries a search lists at most.", "min": 10, "max": 5000, "step": 10, "unit": "entries", "default": 200 },
-    { "kind": "number", "id": "max_age_days", "label": "Keep for", "description": "Entries older than this are not listed. 0 keeps everything.", "min": 0, "max": 3650, "unit": "days", "default": 0 },
+    { "kind": "list", "id": "exclude_apps", "label": "Exclude apps", "description": "Bundle ids (com.1password.1password) or names; copies made in these are not recorded, and none already recorded is listed.", "placeholder": "com.1password.1password", "default": ["com.apple.keychainaccess", "com.apple.Passwords"] },
+    { "kind": "number", "id": "max_entries", "label": "Keep entries", "description": "How many unpinned entries history keeps; older ones past this are deleted on the next copy.", "min": 1, "max": 100000, "unit": "entries", "default": 1000 },
+    { "kind": "number", "id": "max_age_days", "label": "Keep for", "description": "Unpinned entries older than this are deleted on the next copy. 0 keeps them until the entry limit.", "min": 0, "max": 3650, "unit": "days", "default": 30 },
     { "kind": "select", "id": "primary_action", "label": "Primary action", "description": "What Enter does on an entry.", "options": [{ "id": "paste", "title": "Paste into the app in front" }, { "id": "copy", "title": "Copy to the clipboard" }], "default": "paste" }
   ],
   "palettes": {

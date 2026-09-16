@@ -53,6 +53,27 @@ pub fn resolve(value: &str, store: &dyn SecretStore) -> Result<String, SecretErr
     }
 }
 
+/// Resolve, in place, the values of `values` whose spec in `specs` (a
+/// manifest's `settings` list as JSON) is `kind: "secret"` and that are
+/// string references. A failed lookup leaves the reference as written and
+/// logs it, so a missing secret never blocks the caller; anything not
+/// declared secret is left alone even when it looks like a reference.
+pub fn resolve_declared(values: &mut toml::Table, specs: &serde_json::Value, store: &dyn SecretStore) {
+    let secret_ids = specs.as_array().into_iter().flatten().filter(|s| s["kind"] == "secret").filter_map(|s| s["id"].as_str());
+    for id in secret_ids {
+        let Some(toml::Value::String(raw)) = values.get(id) else { continue };
+        if SecretRef::parse(raw).is_none() {
+            continue;
+        }
+        match resolve(raw, store) {
+            Ok(v) => {
+                values.insert(id.to_string(), toml::Value::String(v));
+            }
+            Err(e) => eprintln!("secrets\tunresolved\t{id}\t{e}"),
+        }
+    }
+}
+
 /// The OS store: macOS Keychain, Linux Secret Service.
 pub fn platform_store() -> Box<dyn SecretStore> {
     #[cfg(target_os = "macos")]

@@ -218,9 +218,14 @@ and gstreamer plugin scripts, `linuxdeploy-plugin-appimage` and `AppRun` into
   binary starts without either. With neither library the icon is simply
   missing (a `tray  create failed` line in the log) and the hotkey, `pal
   toggle` and `pal settings` still work. Arch: `libayatana-appindicator`;
-  Debian/Ubuntu: `libayatana-appindicator3-1`, which the deb should list
-  under `bundle.linux.deb.depends` once this is checked on marko. Hyprland
-  and Sway need a bar with an SNI tray (waybar `tray` module) to show it.
+  Debian/Ubuntu: `libayatana-appindicator3-1`, which the deb does list
+  under `bundle.linux.deb.depends` (tauri.conf.json). tauri-cli adds the
+  same package by itself when the `tray-icon` feature is on and pkg-config
+  finds ayatana on the build machine (`crates/tauri-cli/src/interface/rust.rs`,
+  the `TrayKind::Ayatana` arm; the release runner installs
+  `libayatana-appindicator3-dev`), so the explicit entry makes the deb say
+  it regardless of the builder. Hyprland and Sway need a bar with an SNI
+  tray (waybar `tray` module) to show it.
 - The image is `icons/tray/22x22.png`, white on transparent (the same mark
   as macOS's template image, `app/design/tray.svg` with the fill swapped),
   for the dark panels the bars above default to. `icon_as_template` is a

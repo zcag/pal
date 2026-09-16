@@ -6,53 +6,53 @@
 use std::path::PathBuf;
 
 use pal_core::clipboard::{self as cb, Clipboard, Kind, Retention, WatchHandle};
-use pal_core::config::ConfigFile;
+use pal_core::config::{spec_defaults, ConfigFile};
 use pal_core::icons;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
-/// Copies made while these are frontmost are never recorded (Raycast's
-/// default list), on top of the concealed-type convention the core honours.
-const DEFAULT_EXCLUDE: [&str; 2] = ["com.apple.keychainaccess", "com.apple.Passwords"];
+/// The extension's manifest, compiled in: its `settings` defaults are the
+/// recorder's too, so a key absent from the file means what the settings
+/// view shows for it.
+const MANIFEST: &str = include_str!("../../../extensions/clipboard/pal.json");
 
 pub struct State {
     store: Clipboard,
     _watch: WatchHandle,
 }
 
-/// `[extensions.clipboard]` in the config file, the free-form table every
-/// extension gets. Missing keys are the core's defaults.
-#[derive(Default, Deserialize)]
-#[serde(default)]
+/// `[extensions.clipboard]` over the manifest's defaults, the same values
+/// the extension gets. Read once at startup: retention and the exclude
+/// list are fixed for the run.
+#[derive(Deserialize)]
 struct Settings {
-    exclude_apps: Option<Vec<String>>,
-    max_entries: Option<usize>,
-    max_age_days: Option<u64>,
+    exclude_apps: Vec<String>,
+    max_entries: usize,
+    max_age_days: u64,
+}
+
+/// A value of the wrong type in the file (`max_entries = "many"`) is logged
+/// and the manifest's defaults stand in.
+fn settings() -> Settings {
+    let manifest: Value = serde_json::from_str(MANIFEST).expect("bundled pal.json parses");
+    let defaults = spec_defaults(&manifest["settings"]);
+    let table = ConfigFile::locate().load().config.extension_settings("clipboard", &defaults);
+    table.try_into().unwrap_or_else(|e| {
+        eprintln!("clipboard\tsettings\t{e}");
+        defaults.try_into().expect("manifest defaults fit Settings")
+    })
 }
 
 pub fn install(app: &AppHandle) {
-    let settings: Settings = ConfigFile::locate()
-        .load()
-        .config
-        .extensions
-        .get("clipboard")
-        .and_then(|t| t.clone().try_into().ok())
-        .unwrap_or_default();
-    let mut retention = Retention::default();
-    if let Some(n) = settings.max_entries {
-        retention.max_entries = n;
-    }
-    if let Some(d) = settings.max_age_days {
-        retention.max_age = std::time::Duration::from_secs(d * 24 * 3600);
-    }
-    let store = match Clipboard::open_at(&cb::default_dir(), retention) {
+    let settings = settings();
+    // The manifest says `min: 1`; a hand-written 0 would empty the history on the next copy.
+    let store = match Clipboard::open_at(&cb::default_dir(), Retention::days(settings.max_entries.max(1), settings.max_age_days)) {
         Ok(s) => s,
         Err(e) => return eprintln!("clipboard\topen failed\t{e}"),
     };
-    let exclude = settings.exclude_apps.unwrap_or_else(|| DEFAULT_EXCLUDE.iter().map(|s| s.to_string()).collect());
     let handle = app.clone();
-    let watch = store.start_watching(exclude, move |e| {
+    let watch = store.start_watching(settings.exclude_apps, move |e| {
         let _ = handle.emit("pal://clipboard", json!({ "id": e.id, "kind": e.kind }));
     });
     app.manage(State { store, _watch: watch });

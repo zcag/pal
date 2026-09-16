@@ -5,7 +5,7 @@
       "properties": {
         "check_updates": {
           "default": true,
-          "description": "Look for a newer release at startup and once a day (the GitHub\nrelease manifest; nothing installs without asking). `false` leaves\nthe menu's \"Check for updates\" as the only check.",
+          "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded).\nToday a found update is a log line: download and install are not\nwired, and the menu's \"Check for updates\" is a disabled placeholder\nuntil they are.",
           "type": "boolean"
         },
         "hotkey": {
@@ -40,7 +40,7 @@
       "description": "Per-palette settings pal provides to every palette extension without it\ndeclaring them. A palette absent from the file gets the defaults.",
       "properties": {
         "alias": {
-          "description": "Short name that jumps straight into this palette from root search.",
+          "description": "An extra keyword on the palette's row at the root, so typing it finds\nthe palette; `Enter` then opens it as usual.",
           "type": "string"
         },
         "enabled": {

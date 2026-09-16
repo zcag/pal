@@ -13,8 +13,8 @@
 //!   already in history bumps it to the top (`at = now`) instead of inserting.
 //!   A `copy` back out of history does the same, so used entries float up.
 //! - **Retention** runs after every insert: unpinned entries older than
-//!   [`Retention::max_age`] go, then the unpinned tail past
-//!   [`Retention::max_entries`]. Pinned entries never expire.
+//!   [`Retention::max_age`] go (none when it is `None`), then the unpinned
+//!   tail past [`Retention::max_entries`]. Pinned entries never expire.
 //! - **Size cap.** Anything over [`Retention::max_bytes`] is not recorded.
 //! - **Privacy.** Items a password manager marks `org.nspasteboard.ConcealedType`
 //!   or `TransientType` are skipped (macOS convention, <http://nspasteboard.org>);
@@ -127,17 +127,29 @@ pub enum Content {
     Files(Vec<PathBuf>),
 }
 
+/// What the recorder keeps. The defaults match the clipboard extension's
+/// manifest (`extensions/clipboard/pal.json`), which is where the user sets
+/// them.
 #[derive(Clone, Copy, Debug)]
 pub struct Retention {
     pub max_entries: usize,
-    pub max_age: Duration,
+    /// `None`: no age limit, only the count applies.
+    pub max_age: Option<Duration>,
     /// Larger copies are not recorded at all.
     pub max_bytes: u64,
 }
 
 impl Default for Retention {
     fn default() -> Self {
-        Self { max_entries: 1000, max_age: Duration::from_secs(30 * 24 * 3600), max_bytes: 10 * 1024 * 1024 }
+        Self { max_entries: 1000, max_age: Some(Duration::from_secs(30 * 24 * 3600)), max_bytes: 10 * 1024 * 1024 }
+    }
+}
+
+impl Retention {
+    /// From the manifest's units: `max_age_days = 0` is no age limit, never
+    /// "older than now", which would empty the history on the next copy.
+    pub fn days(max_entries: usize, max_age_days: u64) -> Self {
+        Self { max_entries, max_age: (max_age_days > 0).then(|| Duration::from_secs(max_age_days * 24 * 3600)), ..Self::default() }
     }
 }
 
@@ -307,8 +319,11 @@ impl Clipboard {
     /// Age first, then count; pinned rows are exempt from both.
     fn prune(&self, db: &Connection, now_ms: i64) -> Result<()> {
         let r = self.0.retention;
-        let cutoff = now_ms - r.max_age.as_millis() as i64;
-        let mut stale: Vec<Option<String>> = collect_col(db, "DELETE FROM entries WHERE pinned = 0 AND at < ?1 RETURNING image", params![cutoff])?;
+        let mut stale: Vec<Option<String>> = Vec::new();
+        if let Some(max_age) = r.max_age {
+            let cutoff = now_ms - max_age.as_millis() as i64;
+            stale = collect_col(db, "DELETE FROM entries WHERE pinned = 0 AND at < ?1 RETURNING image", params![cutoff])?;
+        }
         stale.extend(collect_col(
             db,
             "DELETE FROM entries WHERE pinned = 0 AND id NOT IN (SELECT id FROM entries WHERE pinned = 0 ORDER BY at DESC LIMIT ?1) RETURNING image",
@@ -879,7 +894,7 @@ mod tests {
     #[test]
     fn retention_by_count_and_age_spares_pinned() {
         let dir = tempfile::tempdir().unwrap();
-        let r = Retention { max_entries: 3, max_age: 10 * DAY, ..Default::default() };
+        let r = Retention { max_entries: 3, max_age: Some(10 * DAY), ..Default::default() };
         let cb = open(dir.path(), r);
         let now = 100 * DAY.as_secs();
         let old = text(&cb, "old", now - 20 * DAY.as_secs());
@@ -898,6 +913,21 @@ mod tests {
         text(&cb, "five", now + 1);
         assert!(matches!(cb.get(old.id), Err(Error::NotFound(_))), "unpinned, it expires on the next insert");
         assert!(matches!(cb.pin(old.id, true), Err(Error::NotFound(_))));
+    }
+
+    #[test]
+    fn no_age_limit_keeps_old_entries() {
+        let dir = tempfile::tempdir().unwrap();
+        let r = Retention::days(2, 0);
+        assert_eq!(r.max_age, None, "0 days is no limit");
+        assert_eq!(Retention::days(2, 7).max_age, Some(7 * DAY));
+        let cb = open(dir.path(), r);
+        let now = 3000 * DAY.as_secs();
+        let ancient = text(&cb, "ancient", now - 2000 * DAY.as_secs());
+        let fresh = text(&cb, "fresh", now);
+        assert_eq!(ids(&cb.list("", None, 10, 0).unwrap()), [fresh.id, ancient.id], "age never prunes");
+        text(&cb, "newer", now + 1);
+        assert!(matches!(cb.get(ancient.id), Err(Error::NotFound(_))), "the count cap still does");
     }
 
     #[test]
