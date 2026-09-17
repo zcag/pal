@@ -66,6 +66,15 @@ export type BarItem = {
   tooltip?: string;
   /** Seconds until the next `render`, this once (prs: 60 while checks run, else the manifest's `every`). */
   refresh?: number;
+  /** A named/hex background tint; sketchybar only. */
+  background?: string;
+  /** Independent per-render glyph and title sizes in points. */
+  icon_size?: number;
+  label_size?: number;
+  /** A fixed glyph slot width in points; sketchybar only. */
+  icon_width?: number;
+  /** A per-render sketchybar position, overriding the item's configured one. */
+  position?: string;
   /** Run `onOpen` on a click or item hotkey even when this item also has a menu. Hover still opens the menu. */
   click?: "open";
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */

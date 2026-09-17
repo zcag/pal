@@ -205,6 +205,12 @@ export function checkBarItem(v: unknown, where = "bar"): BarItem {
   if (item.color !== undefined && !BAR_COLORS.has(item.color)) throw new Error(`${where}: unknown color "${item.color}"`);
   if (item.progress !== undefined && !(typeof item.progress === "number" && item.progress >= 0 && item.progress <= 1)) throw new Error(`${where}: progress must be 0..1`);
   if (item.refresh !== undefined && !(typeof item.refresh === "number" && item.refresh > 0)) throw new Error(`${where}: refresh must be seconds > 0`);
+  if (item.background !== undefined && (typeof item.background !== "string" || !item.background.trim())) throw new Error(`${where}: background must be a colour`);
+  for (const key of ["icon_size", "label_size", "icon_width"] as const) {
+    const value = item[key];
+    if (value !== undefined && !(typeof value === "number" && Number.isFinite(value) && value > 0)) throw new Error(`${where}: ${key} must be a positive number`);
+  }
+  if (item.position !== undefined && (typeof item.position !== "string" || !item.position.trim())) throw new Error(`${where}: position must be a non-empty string`);
   if (item.click !== undefined && item.click !== "open") throw new Error(`${where}: click must be "open"`);
   if (item.segments !== undefined) {
     if (!Array.isArray(item.segments)) throw new Error(`${where}: segments must be an array`);

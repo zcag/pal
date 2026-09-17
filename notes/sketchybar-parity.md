@@ -35,15 +35,15 @@ but do not revive rows that conflict with it.
 - **Spotify lyrics:** timestamped LRC lines now tick at lyric boundaries while playing,
   including when the bar is closed; polling/MediaRemote resynchronises the ticker.
 - **Calendar Upcoming:** has far/near/warning/critical/running presentation states,
-  configurable colours and sensible mocks. Its configured label/icon size and
-  position are stored but deliberately await B2's render model.
+  configurable colours, sizing and placement, plus sensible mocks.
+- **B2 runtime appearance:** an item can dynamically supply a background, separate
+  icon/label sizes, icon width and sketchybar position. Menu bar uses the separate
+  sizes where it can; background, icon width and placement are sketchybar-only.
 
 ### Next, in order
 
-1. **B2:** add the per-render appearance contract for background, label/icon sizing,
-   position and icon width; wire Calendar's already-present sizing/position controls.
-2. **B3:** hover tint, colour animation, and word-safe clipping.
-3. **B6:** scroll input, then use it for lyric seeking where appropriate.
+1. **B3:** hover tint, colour animation, and word-safe clipping.
+2. **B6:** scroll input, then use it for lyric seeking where appropriate.
 
 ### Explicitly deferred
 

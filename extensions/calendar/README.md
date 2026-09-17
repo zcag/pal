@@ -139,9 +139,8 @@ until it ends. Its state is `far` (outside `near_minutes`), `near`,
 `warning` (from `warn_minutes`), `critical` (from `urgent_minutes`) or
 `running`; the boundaries are inclusive. The default colours retain the
 original behaviour: `muted`, `muted`, `amber`, `red`, then `green`.
-Each state has a configurable colour. The matching size and sketchybar
-position settings are prepared too; zero/empty preserve the normal bar
-appearance until pal's per-render appearance fields land. `badge: "dot"`
+Each state has a configurable colour, size and sketchybar position; zero/empty
+preserve the normal Bar appearance. `badge: "dot"`
 when there is a call. The tooltip is the title, the time range and the
 calendar. sketchybar draws the same colours through the bar module's map.
 
@@ -208,8 +207,8 @@ Settings, `[extensions.calendar]`:
 | `warn_minutes` | number | `15` | The bar item enters its warning state this many minutes before the event. |
 | `urgent_minutes` | number | `5` | The bar item enters its critical state this many minutes before the event. |
 | `bar_{far,near,warning,critical,running}_color` | select | `muted`, `muted`, `amber`, `red`, `green` | Colour for each Upcoming state. |
-| `bar_{far,near,attention}_size` | number | `0` | Desired point size for far, near, or warning/critical/running; zero keeps the normal item size until dynamic sizing is available. |
-| `bar_{far,near,attention}_position` | text | empty | Desired sketchybar position for the same states; empty keeps the normal item position until dynamic placement is available. |
+| `bar_{far,near,attention}_size` | number | `0` | Point size for far, near, or warning/critical/running; zero keeps the normal item size. |
+| `bar_{far,near,attention}_position` | text | empty | Sketchybar position for the same states; empty keeps the normal item position. |
 | `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
 | `default_length` | number | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
 

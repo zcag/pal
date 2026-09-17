@@ -151,7 +151,7 @@ impl Style {
 
 type CacheKey = (char, Option<[u8; 3]>, bool, Option<u32>, u32, u32);
 /// The glyph, the text and its face, spacing and width at tenths, the style.
-type StripKey = (Option<char>, String, bool, u32, u32, CacheKey);
+type StripKey = (Option<char>, String, bool, u32, u32, u32, CacheKey);
 
 /// The glyph in `style`, from the cache. `None` when the font has no
 /// outline for it (an emoji, any code point outside the symbol ranges).
@@ -175,6 +175,8 @@ pub struct Text {
     pub mono: bool,
     /// Points between the glyph square and the text.
     pub spacing: f32,
+    /// Point size for the text; `0` follows the glyph size/default.
+    pub size: f32,
     /// A fixed width in points for the whole image; `0` is natural.
     pub width: f32,
 }
@@ -186,14 +188,14 @@ pub fn can_strip(mono: bool) -> bool {
 
 /// The whole item as one image: the glyph square (as [`render`] draws it,
 /// badge and progress included; absent when `glyph` is `None`), the gap,
-/// the text in the system face at `style.size` (13 pt when `0`), a Nerd
+/// the text in the system face at `Text::size` (or `style.size`, then 13 pt), a Nerd
 /// glyph inside the text from the symbols font. A fixed `width` clips
 /// the text to it (an ellipsis is the caller's, `menubar::clip`). `None`
 /// when no text face is on disk, or when nothing would be drawn.
 pub fn strip(glyph: Option<char>, text: &Text, style: &Style) -> Option<Arc<Rgba>> {
     static CACHE: LazyLock<Mutex<HashMap<StripKey, Arc<Rgba>>>> = LazyLock::new(Mutex::default);
     let (c, d, p, a, s) = style.key();
-    let key = (glyph, text.text.clone(), text.mono, (text.spacing * 10.0) as u32, (text.width * 10.0) as u32, (' ', c, d, p, a, s));
+    let key = (glyph, text.text.clone(), text.mono, (text.spacing * 10.0) as u32, (text.size.max(0.0) * 10.0) as u32, (text.width * 10.0) as u32, (' ', c, d, p, a, s));
     if let Some(hit) = crate::lock(&CACHE).get(&key) {
         return Some(hit.clone());
     }
@@ -290,7 +292,7 @@ fn text_run(text: &str, mono: bool, px: f32, mut img: Option<(&mut Rgba, i32, [u
 
 fn draw_strip(glyph: Option<char>, text: &Text, style: &Style) -> Option<Rgba> {
     let has_glyph = glyph.is_some_and(|c| FONT.as_ref().is_some_and(|f| f.glyph_id(c).0 != 0));
-    let px = if style.size > 0.0 { style.size * 2.0 } else { TEXT_PX };
+    let px = if text.size > 0.0 { text.size * 2.0 } else if style.size > 0.0 { style.size * 2.0 } else { TEXT_PX };
     let text_w = if text.text.is_empty() { 0.0 } else { text_run(&text.text, text.mono, px, None)? };
     if !has_glyph && text_w == 0.0 {
         return None;
@@ -419,7 +421,7 @@ mod tests {
             eprintln!("no system text face here: the strip is a menu bar thing");
             return;
         }
-        let text = Text { text: "3:12".into(), mono: false, spacing: 4.0, width: 0.0 };
+        let text = Text { text: "3:12".into(), mono: false, spacing: 4.0, size: 0.0, width: 0.0 };
         let img = strip(Some('\u{f09b}'), &text, &Style::default()).expect("a strip");
         assert_eq!(img.height, SIZE);
         assert!(img.width > SIZE + 8 + 30, "the glyph square, the gap and four characters: {}", img.width);

@@ -133,15 +133,24 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     set(&mut p, "label.drawing", if title.is_empty() { "off" } else { "on" });
     set(&mut p, "label.color", item_color.clone());
     set(&mut p, "label.max_chars", look.max_chars.to_string());
+    set(&mut p, "background.drawing", if item.background.is_some() { "on" } else { "off" });
+    if let Some(background) = &item.background {
+        set(&mut p, "background.color", palette.hex_of(background).unwrap_or_else(|| text.clone()));
+    }
     let trailing = item.segments.is_empty() && item.count().is_none();
     // Icon only: the icon takes the label's right padding (the owner's `icon_only`); the look's spacing before whatever follows it.
     set(&mut p, "icon.padding_left", "8");
     set(&mut p, "icon.padding_right", if title.is_empty() && trailing { "8".to_string() } else { spacing.clone() });
     set(&mut p, "label.padding_left", "0");
     set(&mut p, "label.padding_right", if trailing { "8" } else { "2" });
-    if look.size > 0.0 {
-        set(&mut p, "icon.font.size", format!("{}", look.size));
-        set(&mut p, "label.font.size", format!("{}", look.size));
+    if draw.icon_size() > 0.0 {
+        set(&mut p, "icon.font.size", format!("{}", draw.icon_size()));
+    }
+    if draw.label_size() > 0.0 {
+        set(&mut p, "label.font.size", format!("{}", draw.label_size()));
+    }
+    if let Some(width) = item.icon_width {
+        set(&mut p, "icon.width", format!("{width}"));
     }
     if look.font == BarFont::Mono {
         set(&mut p, "label.font.family", "Menlo");
@@ -176,9 +185,11 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         set(&mut p, "label.color", col);
         set(&mut p, "label.padding_left", if icon.is_empty() { spacing.clone() } else { "0".to_string() });
         set(&mut p, "label.padding_right", if i == last { "8" } else { "2" });
-        if look.size > 0.0 {
-            set(&mut p, "icon.font.size", format!("{}", look.size));
-            set(&mut p, "label.font.size", format!("{}", look.size));
+        if draw.icon_size() > 0.0 {
+            set(&mut p, "icon.font.size", format!("{}", draw.icon_size()));
+        }
+        if draw.label_size() > 0.0 {
+            set(&mut p, "label.font.size", format!("{}", draw.label_size()));
         }
         if look.font == BarFont::Mono {
             set(&mut p, "label.font.family", "Menlo");
@@ -638,6 +649,14 @@ mod tests {
         sized_draw.look.size = 11.0;
         let sized = props("x/y", &sized_draw, &pal(), "pal");
         assert_eq!(diff(Some(&c), Some(&sized), false, None), ["--set", "pal.x.y", "icon.font.size=11", "label.font.size=11"], "a size is set like any property");
+        let dynamic = props("x/y", &draw(json!({ "icon": "\u{f09b}", "title": "2", "background": "amber", "icon_size": 18, "label_size": 11, "icon_width": 31 }), "q", false), &pal(), "pal");
+        let dp = &dynamic.props["pal.x.y"];
+        assert_eq!(dynamic.position, "q");
+        assert_eq!(dp.get("background.color").map(String::as_str), Some("0xfff0b25a"));
+        assert_eq!(dp.get("background.drawing").map(String::as_str), Some("on"));
+        assert_eq!(dp.get("icon.font.size").map(String::as_str), Some("18"));
+        assert_eq!(dp.get("label.font.size").map(String::as_str), Some("11"));
+        assert_eq!(dp.get("icon.width").map(String::as_str), Some("31"));
         let back = diff(Some(&sized), Some(&c), false, None).join(" ");
         assert!(back.starts_with("--remove pal.x.y --add item pal.x.y right --set pal.x.y "), "back to the bar's own size: no unset, so removed and added afresh: {back}");
         assert!(back.contains("--subscribe pal.x.y mouse.entered mouse.exited") && back.ends_with("--move pal.x.y before clock"), "{back}");

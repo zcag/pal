@@ -121,6 +121,16 @@ pub struct BarItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refresh: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_size: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_size: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_width: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub click: Option<Click>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub menu: Option<Value>,
@@ -365,6 +375,16 @@ pub struct Draw {
 }
 
 impl Draw {
+    /// A dynamic glyph size wins over the item's configured appearance.
+    pub fn icon_size(&self) -> f64 {
+        self.item.icon_size.unwrap_or(self.look.size)
+    }
+
+    /// A dynamic label size wins over the item's configured appearance.
+    pub fn label_size(&self) -> f64 {
+        self.item.label_size.unwrap_or(self.look.size)
+    }
+
     /// The colour spec the item is drawn in: `urgent_color` when urgent,
     /// `muted` when [`BarItem::muted`], else the item's own (the look's
     /// tint already applied); `None` is the bar's text colour.
@@ -723,7 +743,8 @@ fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind) -> Option<Dra
     };
     let hover = item.has_menu() && config.bar.open_on_hover(key, target);
     let look = config.bar.look(key, target);
-    Some(Draw { item: item.shaped(&look), order: cfg.order.unwrap_or(0), position: config.bar.position_of(key), hover, look })
+    let position = item.position.clone().unwrap_or_else(|| config.bar.position_of(key));
+    Some(Draw { item: item.shaped(&look), order: cfg.order.unwrap_or(0), position, hover, look })
 }
 
 /// Push `key`'s state to every target: drawn where its target says and
@@ -1086,6 +1107,9 @@ mod tests {
         let direct: BarItem = serde_json::from_value(json!({ "click": "open", "menu": [] })).unwrap();
         assert!(direct.has_menu() && direct.opens_directly(), "a direct item keeps its menu for hover");
         assert_eq!(serde_json::to_value(&direct).unwrap(), json!({ "click": "open", "menu": [] }));
+        let dynamic: BarItem = serde_json::from_value(json!({ "background": "amber", "icon_size": 18, "label_size": 11, "icon_width": 31, "position": "q" })).unwrap();
+        assert_eq!(dynamic.background.as_deref(), Some("amber"));
+        assert_eq!((dynamic.icon_size, dynamic.label_size, dynamic.icon_width, dynamic.position.as_deref()), (Some(18.0), Some(11.0), Some(31.0), Some("q")));
     }
 
     #[test]

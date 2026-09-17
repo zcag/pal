@@ -82,7 +82,7 @@ pub fn clip(s: &str, max: usize) -> String {
 /// keeps its picture and the text stays title text.
 pub fn prerendered(draw: &Draw) -> bool {
     let l = &draw.look;
-    (l.font == BarFont::Mono || l.size > 0.0 || l.width > 0) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
+    (l.font == BarFont::Mono || draw.icon_size() > 0.0 || draw.label_size() > 0.0 || l.width > 0) && glyph::can_strip(l.font == BarFont::Mono) && !matches!(draw.item.icon_kind(), Some(IconKind::Image { .. }))
 }
 
 /// The text of the item: the title, each segment as `glyph text`, two
@@ -141,7 +141,7 @@ fn style(draw: &Draw, palette: &Palette) -> glyph::Style {
         Some(spec) => palette.rgb_of(spec),
     };
     let alpha = if muted { draw.look.dim as f32 / 100.0 } else { 1.0 };
-    glyph::Style { color, dot: item.dot(), progress: item.progress.map(|p| p as f32), alpha, size: draw.look.size as f32 }
+    glyph::Style { color, dot: item.dot(), progress: item.progress.map(|p| p as f32), alpha, size: draw.icon_size() as f32 }
 }
 
 /// The icon image and whether it is a template: a glyph rasterised in the
@@ -161,7 +161,7 @@ fn image(draw: &Draw, palette: &Palette) -> Option<(tauri::image::Image<'static>
     };
     let img = if prerendered(draw) {
         let l = &draw.look;
-        glyph::strip(glyph, &glyph::Text { text: body(draw), mono: l.font == BarFont::Mono, spacing: l.spacing as f32, width: l.width as f32 }, &style)?
+        glyph::strip(glyph, &glyph::Text { text: body(draw), mono: l.font == BarFont::Mono, spacing: l.spacing as f32, size: draw.label_size() as f32, width: l.width as f32 }, &style)?
     } else {
         glyph::render(glyph?, &style)?
     };

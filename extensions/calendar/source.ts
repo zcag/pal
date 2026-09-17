@@ -18,7 +18,7 @@ export type SourceName = "auto" | "system" | "google";
 export type Settings = {
   source: SourceName; accounts: unknown[]; calendars: string[]; days: number; hide_declined: boolean; hide_all_day: boolean;
   horizon_hours: number; near_minutes?: number; warn_minutes: number; urgent_minutes: number; default_length: number;
-  /** The bar's five time states. Colour is usable now; size and position wait for the bar's per-render appearance fields. */
+  /** The bar's five time states: colour, size and sketchybar placement. */
   bar_far_color?: string; bar_near_color?: string; bar_warning_color?: string; bar_critical_color?: string; bar_running_color?: string;
   bar_far_size?: number; bar_near_size?: number; bar_attention_size?: number;
   bar_far_position?: string; bar_near_position?: string; bar_attention_position?: string;

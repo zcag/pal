@@ -67,9 +67,8 @@ type PresentationRules = BarRules & { near_minutes: number };
 export type UpcomingPhase = "far" | "near" | "warning" | "critical" | "running";
 
 /**
- * The appearance Calendar wants for one time state. `color` is part of the
- * current protocol; the bar will map `size` and `position` once those become
- * per-render fields. Keeping the decision here makes that mapping mechanical.
+ * The appearance Calendar wants for one time state. `size` maps to both
+ * runtime font sizes; `position` moves the sketchybar item for this state.
  */
 export type UpcomingPresentation = { phase: UpcomingPhase; color: BarColor; size?: number; position?: string };
 
@@ -174,6 +173,9 @@ export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, 
     icon: ICON,
     title: barTitle(e, now),
     color: presentation.color,
+    icon_size: presentation.size,
+    label_size: presentation.size,
+    position: presentation.position,
     badge: e.conference_url ? "dot" : undefined,
     stale: stale ? true : undefined,
     tooltip: `${e.title || "(no title)"}, ${timeRange(e)}${cal}${e.conference_url ? ", Enter joins" : ""}`,

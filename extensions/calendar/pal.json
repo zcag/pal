@@ -157,7 +157,7 @@
       "kind": "number",
       "id": "bar_far_size",
       "label": "Far size",
-      "description": "Point size outside the near window. Zero keeps the item's normal bar appearance until dynamic sizing is available.",
+      "description": "Point size outside the near window. Zero keeps the item's normal Bar appearance.",
       "min": 0,
       "max": 24,
       "step": 0.5,
@@ -168,7 +168,7 @@
       "kind": "number",
       "id": "bar_near_size",
       "label": "Near size",
-      "description": "Point size from Near from until warning. Zero keeps the item's normal bar appearance until dynamic sizing is available.",
+      "description": "Point size from Near from until warning. Zero keeps the item's normal Bar appearance.",
       "min": 0,
       "max": 24,
       "step": 0.5,
@@ -179,7 +179,7 @@
       "kind": "number",
       "id": "bar_attention_size",
       "label": "Attention size",
-      "description": "Point size while warning, critical or running. Zero keeps the item's normal bar appearance until dynamic sizing is available.",
+      "description": "Point size while warning, critical or running. Zero keeps the item's normal Bar appearance.",
       "min": 0,
       "max": 24,
       "step": 0.5,
@@ -190,21 +190,21 @@
       "kind": "text",
       "id": "bar_far_position",
       "label": "Far position",
-      "description": "A sketchybar position outside the near window, such as left or right. Empty keeps the item's Bar settings position until dynamic placement is available.",
+      "description": "A sketchybar position outside the near window, such as left or right. Empty keeps the item's Bar settings position.",
       "default": ""
     },
     {
       "kind": "text",
       "id": "bar_near_position",
       "label": "Near position",
-      "description": "A sketchybar position after Near from, before warning. Empty keeps the item's Bar settings position until dynamic placement is available.",
+      "description": "A sketchybar position after Near from, before warning. Empty keeps the item's Bar settings position.",
       "default": ""
     },
     {
       "kind": "text",
       "id": "bar_attention_position",
       "label": "Attention position",
-      "description": "A sketchybar position while warning, critical or running, such as q. Empty keeps the item's Bar settings position until dynamic placement is available.",
+      "description": "A sketchybar position while warning, critical or running, such as q. Empty keeps the item's Bar settings position.",
       "default": ""
     },
     {

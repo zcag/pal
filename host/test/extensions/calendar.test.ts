@@ -299,6 +299,8 @@ describe("today helpers", () => {
     expect(upcomingPresentation(at(12), t0, s)).toEqual({ phase: "warning", color: "amber", size: 14, position: "q" });
     expect(upcomingPresentation(at(4), t0, s)).toEqual({ phase: "critical", color: "red", size: 14, position: "q" });
     expect(upcomingPresentation(at(-1), t0, s)).toEqual({ phase: "running", color: "green", size: 14, position: "q" });
+    expect(upcomingItem([at(12)], t0, s)).toMatchObject({ icon_size: 14, label_size: 14, position: "q" });
+    expect(upcomingItem([at(45)], t0, s)).toMatchObject({ icon_size: 11, label_size: 11, position: "center" });
     // Existing defaults stay exactly as the original item: no dynamic look,
     // muted before warning, amber then red, green once the event started.
     const defaults: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
@@ -308,6 +310,7 @@ describe("today helpers", () => {
     expect(upcomingPresentation(at(12), t0, defaults)).toEqual({ phase: "warning", color: "amber", size: undefined, position: undefined });
     expect(upcomingPresentation(at(4), t0, defaults)).toEqual({ phase: "critical", color: "red", size: undefined, position: undefined });
     expect(upcomingPresentation(at(-1), t0, defaults)).toEqual({ phase: "running", color: "green", size: undefined, position: undefined });
+    expect(upcomingItem([at(12)], t0, defaults)).toMatchObject({ icon_size: undefined, label_size: undefined, position: undefined });
   });
 
   /** Every node of a tree, depth first. */
