@@ -44,8 +44,8 @@ but do not revive rows that conflict with it.
   waiting counts; Issues distinguish assigned, mentioned and authored. Each hides at
   zero, has Settings mock states, and opens its existing palette on click. No brackets,
   separators, combined GitHub item or parallel data path.
-- **Weather, Power and Bluetooth Battery:** Weather is a Home Assistant bar surface
-  with configured entity IDs, condition-led glyphs, comfort thresholds and current
+- **Weather, Power and Bluetooth Battery:** Weather is a standalone Open-Meteo surface
+  with a configured place, condition-led glyphs, comfort thresholds and current
   conditions popover; Power reads the OS gauge and enriches it from the existing fresh
   `power` watcher state; Bluetooth extends the existing device source with an
   interruption-only low-battery alert. All three have useful Settings mocks and their
@@ -237,7 +237,7 @@ as parallel agents.
 | E9 | `audio/volume` + `audio/microphone` | **done:** output glyph/level, direct mute, wheel ±5, 18 pt / 31 pt stable glyph slot, Audio palette popover and 5 s poll; mic hidden while healthy, direct 75% restore when muted or absent. Remaining polish: temporary volume-level flash, Sound Settings action and a native audio event. | M | ∥ |
 | E10 | `bluetooth/battery` | **done:** extends the existing Bluetooth core source; connected devices that report at or below a configurable threshold surface as an amber/red interruption, otherwise hidden. It opens Bluetooth Settings directly, uses the Bluetooth palette as its popover and has Settings mocks. | S | — |
 | E11 | `network/status` | **done:** active SSID / wired label, optional friendly SSID map, red no-route state, direct Network Settings action, Network palette popover, `refresh: 5` plus wake/network and mocks. Remaining polish: home hiding, hotspot/public/RSSI variants and compact kv popover. | M | ∥ |
-| E12 | `home-assistant/weather` | **done:** per-instance temperature/weather entity IDs, configurable comfort thresholds and notable conditions; condition glyph/tint mapping, quiet hidden state, stale visible diagnosis, compact current-conditions popover, Home Assistant history action and Settings mocks. | S-M | — |
+| E12 | `weather/weather` | **done:** standalone Open-Meteo location search/current forecast, no Home Assistant dependency; configurable place, comfort thresholds and extra WMO codes; condition glyph/tint mapping, quiet hidden state, visible failure diagnosis, compact current-conditions popover and Settings mocks. | S-M | — |
 | E13 | `system/privacy` (media_use) | assertions + `pgrep`, glyph list, hidden when clear, `background: "orange"` (B2), `refresh: 2` (min `every` is 10, so a `setInterval` + `bar.update` inside the extension). | S-M | after B2 |
 | E14 | `tan` (new extension, `multi`) | instance → port map (`tan` 8793, `tan@work` 8803, a `url` setting), `state.json` + headers for "ran 5 m ago", `quiet_buckets` setting, count / red rule, popover per bucket (`id` semibold coloured by urgency, title muted), Enter opens `links[0]` else `https://tan.lan`; Open tan; a palette of the same rows. `when = "working"` on `tan@work/items`. | M | ∥ |
 | E15 | `claude` (sessions, new extension) | `claude-state ls` (local) + `ssh marko cldd ls` (remote, `hosts` setting), segments [`yours` amber, `working` blue], hidden at 0, `on: ["show"]` with a 10 s remote ttl on `show`, a long-lived `ssh marko inotifywait` the extension owns (restart with backoff, `dispose()`), `bar.update` per burst; hook line in `claude-state` → `pal bar render claude/sessions`; popover: HORNET rows (Enter focuses the kitty window, the `cldd-focus` logic over `kitten @ ls`), MARKO rows (Enter copies the attach line, HUD "copied"), Shell on marko; `click: "open"` copying `ssh -t marko` (B1). Retire `cldd-stream.sh` when it lands. | M-L | ∥ |

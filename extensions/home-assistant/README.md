@@ -84,21 +84,6 @@ token. In pal, Settings › Extensions › Home Assistant: the URL with its
 scheme (`http://homeassistant.local:8123`) and the token, which the
 config file keeps as a `keychain:` or `env:` reference, never the value.
 
-## Weather bar
-
-The optional **Weather** bar item reads exactly two entities from this same
-Home Assistant instance: a numeric outdoor-temperature sensor and a
-`weather.*` entity. Its condition glyph and tint follow the current
-condition; the compact popover keeps the temperature, condition, feels-like
-temperature, humidity and wind together. Press `o` in that popover to open
-the weather entity's history in Home Assistant.
-
-It is deliberately quiet in ordinary, comfortable weather. Rain, storms,
-snow, fog and wind show it immediately; so do temperatures below the low or
-above the high threshold. Empty either entity setting to disable it for that
-HA instance. Settings offers rain, fog, hot, quiet and unavailable mock
-states, so the bar's behaviour can be inspected without waiting for weather.
-
 Settings, `[extensions.home-assistant]`:
 
 | key | type | default | what |
@@ -107,11 +92,6 @@ Settings, `[extensions.home-assistant]`:
 | `token` | secret | unset | A long-lived access token. A `keychain:` or `env:` reference in the file. |
 | `domains` | list | `light`, `switch`, `climate`, `media_player`, `cover`, `lock`, `fan`, `scene`, `script`, `automation`, `sensor`, `binary_sensor`, `person`, `input_boolean` | The domains listed at the root, in this order. |
 | `favorites` | list | `[]` | Entity ids pinned to the top, in this order, whatever their domain. |
-| `temperature_entity` | text | `sensor.outdoor_temperature` | Numeric outdoor-temperature entity used by the Weather bar; empty disables it. |
-| `weather_entity` | text | `weather.forecast_home` | The `weather.*` entity supplying condition and current measurements; empty disables the Weather bar. |
-| `temperature_low` | number | `10` | Weather shows below this value, in the temperature entity's unit. |
-| `temperature_high` | number | `30` | Weather shows above this value, in the temperature entity's unit. |
-| `notable_conditions` | list | rain, storm, snow, fog and wind conditions | Weather shows for these HA condition values even at a comfortable temperature. |
 | `timeout` | number (s) | `5` | How long one request may take. |
 
 When something is wrong every palette is one inert hint row that says
