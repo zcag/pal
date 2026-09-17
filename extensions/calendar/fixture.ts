@@ -10,7 +10,6 @@ import type { Settings } from "./source.ts";
 import { upcomingItem } from "./today.ts";
 import { freshPopover, popover } from "./view.ts";
 
-const MIN = 60_000, H = 60 * MIN;
 /** Wed 16 Sep 2026, 10:00 local: the sync starts in twelve minutes. */
 const NOW = new Date(2026, 8, 16, 10, 0).getTime();
 const at = (h: number, m = 0, day = 0) => new Date(2026, 8, 16 + day, h, m).getTime();

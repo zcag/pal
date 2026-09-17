@@ -9,7 +9,7 @@
 // tick reads and how long that render takes. The Google source is
 // calendar-google.test.ts.
 //
-// The clock is pinned: `PAL_NOW` is the host's clock (calendar/clock.ts)
+// The clock is pinned: `PAL_NOW` is the host's clock (the SDK's clock.ts)
 // and `TZ` its zone, both passed through the harness, so the fixtures are
 // fixed instants around Wed 16 Sep 2026 10:30 UTC and every `over`, `now`,
 // `in 42 min`, tomorrow and horizon reads the same at any hour of any day.
@@ -467,8 +467,8 @@ describe("calendar extension", () => {
 
   test("Quick Add: the row reads the line back (day, time, calendar, place), hints until it can, Enter creates through the same write; a pick after a relist parses again", async () => {
     const Q = "quick";
-    expect(await host.list(E, Q, "")).toEqual([{ id: "hint", name: "Type an event", subtitle: expect.stringContaining("standup tomorrow 10:00"), icon: expect.any(String), actions: [] }]);
-    expect(await host.list(E, Q, "tomorrow")).toEqual([expect.objectContaining({ id: "hint", name: "Not an event yet", subtitle: "A title first: dentist fri 2pm" })]);
+    expect(await host.list(E, Q, "")).toEqual([{ id: "hint:calendar", name: "Type an event", subtitle: expect.stringContaining("standup tomorrow 10:00"), icon: expect.any(String), actions: [] }]);
+    expect(await host.list(E, Q, "tomorrow")).toEqual([expect.objectContaining({ id: "hint:calendar", name: "Not an event yet", subtitle: "A title first: dentist fri 2pm" })]);
     const line = "dentist fri 2pm-3pm at Room 4 @ home";
     const rows = await host.list(E, Q, line);
     expect(rows).toEqual([{ id: line, name: "dentist", subtitle: "Fri 18 Sep 14:00 to 15:00 · Room 4 · Home calendar", icon: { glyph: "\u{f00ee}", color: "#34aadc" }, accessories: [{ date: addDays(now, 2) + 14 * H }], actions: [{ id: "add", title: "Add event" }] }]);
@@ -487,7 +487,7 @@ describe("calendar extension", () => {
     // The source's refusal is a toast, not a form.
     expect(await host.pick(E, Q, "boom sat", "add")).toEqual({ keep: true, toast: { title: "Could not add the event", message: "Holidays does not take new events", style: "failure" } });
     expect(await host.pick(E, Q, "", "add")).toMatchObject({ keep: true, toast: { title: "Not an event yet", style: "failure" } });
-    expect(await host.pick(E, Q, "hint")).toEqual({});
+    expect(await host.pick(E, Q, "hint:calendar")).toEqual({});
     // Without the permission the palette shows the permission row like the others.
     status = "not_determined";
     expect((await host.list(E, Q, "x 3pm"))[0]).toMatchObject({ id: "grant", name: "Grant calendar access" });
@@ -539,8 +539,8 @@ describe("calendar extension", () => {
       expect(last().method).toBe("open_settings");
       status = "unavailable";
       const none = await list();
-      expect(none[0]).toMatchObject({ id: "hint", name: "No calendar on this machine", actions: [] });
-      expect(await pick("hint")).toEqual({});
+      expect(none[0]).toMatchObject({ id: "hint:calendar", name: "No calendar on this machine", actions: [] });
+      expect(await pick("hint:calendar")).toEqual({});
     } finally { status = "granted"; }
   });
 
@@ -548,7 +548,7 @@ describe("calendar extension", () => {
     const h2 = await Host.bundled({ core: { ...core(), "calendar.events": () => { throw new Error("calendar access denied: Privacy & Security > Calendars"); } } });
     try {
       const rows = await h2.list(E, P);
-      expect(rows.map((r) => r.id)).toEqual(["hint", "new"]);
+      expect(rows.map((r) => r.id)).toEqual(["hint:calendar", "new"]);
       expect(rows[0].subtitle).toBe("calendar access denied: Privacy & Security > Calendars");
     } finally { h2.kill(); }
   });
@@ -691,13 +691,13 @@ describe("today palette and the upcoming bar item", () => {
       fail = true;
       expect(await h2.render(E, "upcoming", { reason: "every" })).toMatchObject({ title: "Standup now", stale: true });
       const rows = await h2.list(E, T);
-      expect(rows[0]).toMatchObject({ id: "hint", name: "Showing the last events read", subtitle: "archer is away", section: "Today" });
+      expect(rows[0]).toMatchObject({ id: "hint:calendar", name: "Showing the last events read", subtitle: "archer is away", section: "Today" });
       expect(rows[1].name).toBe("Earlier today");
     } finally { h2.kill(); }
     const h3 = await Host.bundled({ core: { ...table, "calendar.events": () => { throw new Error("archer is away"); } } });
     try {
       await expect(h3.render(E, "upcoming", { reason: "load" })).rejects.toThrow("archer is away");
-      expect((await h3.list(E, T)).map((r) => r.id)).toEqual(["hint"]);
+      expect((await h3.list(E, T)).map((r) => r.id)).toEqual(["hint:calendar"]);
     } finally { h3.kill(); }
   });
 

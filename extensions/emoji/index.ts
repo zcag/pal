@@ -35,7 +35,7 @@ const sorted = [...rows].sort((a, b) => (order.get(a.category) ?? 99) - (order.g
  * in the list, or with no words, is ignored. Parsed once per settings
  * value (the lines are compared by identity of the joined text).
  */
-export function customKeywords(lines: unknown, byName: Map<string, Row>, byEmojiChar: Map<string, Row>): Map<string, string[]> {
+function customKeywords(lines: unknown, byName: Map<string, Row>, byEmojiChar: Map<string, Row>): Map<string, string[]> {
   const out = new Map<string, string[]>();
   if (!Array.isArray(lines)) return out;
   for (const line of lines) {

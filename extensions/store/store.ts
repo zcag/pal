@@ -37,14 +37,14 @@ export type Cache = { fetched_at: number; listings: Listing[] };
 export type Installed = { name: string; version: string; store: boolean; bundled: boolean };
 
 /** How long a fetched list is good for. */
-export const CACHE_MS = 60 * 60 * 1000;
+const CACHE_MS = 60 * 60 * 1000;
 /** The description is cut here in the cache; the site page has the rest. */
 const DESCRIPTION_MAX = 600;
 const FEATURES_MAX = 8;
 
-export const CATEGORIES = ["productivity", "developer", "system", "media", "reference", "fun", "integration"] as const;
+const CATEGORIES = ["productivity", "developer", "system", "media", "reference", "fun", "integration"] as const;
 const CATEGORY_TITLE: Record<string, string> = { productivity: "Productivity", developer: "Developer", system: "System", media: "Media", reference: "Reference", fun: "Fun", integration: "Integration" };
-export const categoryTitle = (c: string) => CATEGORY_TITLE[c] ?? (c ? c[0].toUpperCase() + c.slice(1) : "Other");
+const categoryTitle = (c: string) => CATEGORY_TITLE[c] ?? (c ? c[0].toUpperCase() + c.slice(1) : "Other");
 
 /** The palette's filter dropdown: everything, what is installed, what is behind, then the site's shelves. */
 export const FILTERS = [{ id: "all", title: "All" }, { id: "installed", title: "Installed" }, { id: "updates", title: "Updates" }, ...CATEGORIES.map((c) => ({ id: c, title: categoryTitle(c) }))];
@@ -118,7 +118,7 @@ export function newer(a: string, b: string): boolean {
 }
 
 /** How one listing stands against the machine: not installed, bundled with pal, or from the store (and behind when the site is newer). */
-export type Standing = { installed?: Installed; behind: boolean };
+type Standing = { installed?: Installed; behind: boolean };
 export function standing(l: Listing, installed: Installed[]): Standing {
   const i = installed.find((x) => x.name === l.name);
   return { installed: i, behind: !!i && i.store && newer(l.version, i.version) };
@@ -140,11 +140,11 @@ export function select(listings: Listing[], installed: Installed[], filter: stri
   });
 }
 
-export const INSTALL: Action = { id: "install", title: "Install" };
-export const UPDATE: Action = { id: "update", title: "Update" };
-export const REMOVE: Action = { id: "remove", title: "Remove", shortcut: "ctrl+x", style: "destructive" };
-export const PAGE: Action = { id: "page", title: "Open store page" };
-export const COPY_COMMAND: Action = { id: "copy-command", title: "Copy install command", shortcut: "cmd+c" };
+const INSTALL: Action = { id: "install", title: "Install" };
+const UPDATE: Action = { id: "update", title: "Update" };
+const REMOVE: Action = { id: "remove", title: "Remove", shortcut: "ctrl+x", style: "destructive" };
+const PAGE: Action = { id: "page", title: "Open store page" };
+const COPY_COMMAND: Action = { id: "copy-command", title: "Copy install command", shortcut: "cmd+c" };
 
 /** The row's actions by standing: Install first while absent, Update first while behind, the store page for a bundled one. */
 export function actionsFor(l: Listing, s: Standing): Action[] {

@@ -3,8 +3,7 @@
 // apart with a cap each, the exit code and the duration; plus the pure
 // helpers around it (what looks destructive, the `env` list as a table,
 // the argv that opens a terminal on the command).
-import { home } from "@zcag/pal";
-import { linuxTerminal, linuxTerminalArgv } from "../apps/terminal.ts";
+import { errorMessage, home, terminal } from "@zcag/pal";
 
 export type Run = {
   cmd: string;
@@ -94,7 +93,7 @@ export async function run(cmd: string, o: { shell: string[]; cwd: string; env: R
   try {
     proc = Bun.spawn([...o.shell, cmd], { cwd: o.cwd, env: { ...process.env, ...o.env }, stdin: "ignore", stdout: "pipe", stderr: "pipe", detached: true });
   } catch (e) {
-    return { cmd, out: "", err: `${o.shell[0]}: ${e instanceof Error ? e.message : String(e)}`, code: null, ms: Date.now() - startedAt, timedOut: false, truncated: false, startedAt };
+    return { cmd, out: "", err: `${o.shell[0]}: ${errorMessage(e)}`, code: null, ms: Date.now() - startedAt, timedOut: false, truncated: false, startedAt };
   }
   const kill = (sig: NodeJS.Signals) => { try { process.kill(-proc.pid, sig); } catch {} try { proc.kill(sig); } catch {} };
   let timedOut = false;
@@ -126,40 +125,11 @@ export const duration = (ms: number): string => (ms < 1000 ? `${Math.round(ms)} 
 const keepOpen = (cmd: string, shell: string[]) => `${cmd}; exec ${shell[0]}`;
 
 /**
- * What opens a terminal on the command in `cwd` (the `terminal` setting
- * names the app; macOS: Terminal and iTerm over AppleScript, kitty,
- * Alacritty, WezTerm and Ghostty by their command-line flags; Linux: the
- * name, else `$TERMINAL`, else the first installed terminal, each the way
- * it takes a command: `../apps/terminal.ts`). The line is quoted for the
- * shell it lands in; undefined when Linux has no terminal to name.
+ * What opens a terminal on the command in `cwd`: the `terminal` setting
+ * names the app, the SDK's `terminal.on` knows how each takes a line; the
+ * shell is kept open after the command so the output stays readable.
+ * Undefined when Linux has no terminal to name.
  */
-export function terminalArgv(cmd: string, cwd: string, shell: string[], terminal: string, env: Record<string, string | undefined> = process.env, has?: (name: string) => string | null): string[] | undefined {
-  return terminalOn(keepOpen(cmd, shell), cwd, shell, terminal, env, has);
+export function terminalArgv(cmd: string, cwd: string, shell: string[], term: string, env: Record<string, string | undefined> = process.env, has?: (name: string) => string | null): string[] | undefined {
+  return terminal.on(keepOpen(cmd, shell), cwd, shell, term, env, has);
 }
-
-/** What opens a terminal in `cwd` with nothing run but the shell (Files' Open in Terminal); the same table as `terminalArgv`. */
-export function terminalAt(cwd: string, terminal: string, shell: string[] = [process.env.SHELL || "/bin/sh"], env: Record<string, string | undefined> = process.env, has?: (name: string) => string | null): string[] | undefined {
-  return terminalOn(`exec ${shell[0]}`, cwd, shell, terminal, env, has);
-}
-
-/** The terminal table: `tail` is what runs after `cd cwd` (a command kept open, or the shell alone). */
-function terminalOn(tail: string, cwd: string, shell: string[], terminal: string, env: Record<string, string | undefined>, has?: (name: string) => string | null): string[] | undefined {
-  const line = `cd ${q(cwd)} && ${tail}`;
-  if (!MAC) {
-    const term = terminal.trim() || linuxTerminal(env, has);
-    return term ? linuxTerminalArgv(term, [shell[0], "-c", line]) : undefined;
-  }
-  const name = (terminal || "Terminal").trim();
-  switch (name.toLowerCase()) {
-    case "terminal": case "terminal.app": return ["osascript", "-e", `tell application "Terminal"`, "-e", "activate", "-e", `do script ${JSON.stringify(line)}`, "-e", "end tell"];
-    case "iterm": case "iterm2": case "iterm.app": return ["osascript", "-e", `tell application "iTerm"`, "-e", "activate", "-e", `set w to (create window with default profile)`, "-e", `tell current session of w to write text ${JSON.stringify(line)}`, "-e", "end tell"];
-    case "kitty": return ["open", "-na", "kitty", "--args", "--directory", cwd, shell[0], "-c", tail];
-    case "alacritty": return ["open", "-na", "Alacritty", "--args", "--working-directory", cwd, "-e", shell[0], "-c", tail];
-    case "wezterm": return ["open", "-na", "WezTerm", "--args", "start", "--cwd", cwd, "--", shell[0], "-c", tail];
-    case "ghostty": return ["open", "-na", "Ghostty", "--args", `--working-directory=${cwd}`, `--command=${shell[0]} -c ${q(tail)}`];
-    default: return ["open", "-na", name, "--args", "-e", shell[0], "-c", line];
-  }
-}
-
-/** Single-quoted for a POSIX shell. */
-export const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;

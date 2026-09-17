@@ -3,7 +3,7 @@
 // five-swatch strip), sensors, automations, entertainment areas, and the
 // hint rows for a home with nothing paired or a bridge away. Pure: the
 // fixture renders the same rows.
-import type { Accessory, Action, Item } from "@zcag/pal";
+import { errorMessage, hint as hintRow, type Accessory, type Action, type Item } from "@zcag/pal";
 import { toHex, dim, lux as _lux } from "./color.ts";
 import { HueError } from "./api.ts";
 import { aggregate, lightColor, lightHex, pct, type Automation, type Entertainment, type Light, type Room, type Scene, type Sensor } from "./model.ts";
@@ -38,8 +38,6 @@ export function sceneStrip(swatches: string[]): string {
 const tag = (text: string, color: string): Accessory => ({ tag: text, color });
 const onTag = (on: boolean) => (on ? tag("on", "green") : tag("off", "grey"));
 
-/** The ids of every effect Hue names, with the glyph that stands for it in a row. */
-export const EFFECT_GLYPH: Record<string, string> = { candle: G.candle, fire: G.fire, sparkle: G.shimmer, prism: G.creation, opal: G.creation, glisten: G.shimmer, underwater: G.creation, cosmos: G.creation, sunbeam: G.sun, enchant: G.creation };
 
 export const ROOM_ACTIONS: Action[] = [
   { id: "toggle", title: "Toggle", shortcut: "enter" },
@@ -178,13 +176,7 @@ export function entertainmentRow(e: Entertainment, several: boolean, bridgeName:
 export const archetypeName = (a: string) => a.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 /** The one inert row a broken setup lists, with the fix. */
-export const hint = (e: unknown): Item[] => [{
-  id: "hint",
-  name: e instanceof HueError ? e.message : `Hue: ${e instanceof Error ? e.message : e}`,
-  subtitle: e instanceof HueError ? e.hint : undefined,
-  icon: G.alert,
-  actions: [],
-}];
+export const hint = (e: unknown): Item[] => [hintRow("error", e instanceof HueError ? e.message : `Hue: ${errorMessage(e)}`, e instanceof HueError ? e.hint : undefined, { icon: G.alert })];
 
 /** The row a home with no bridge lists: Enter opens the setup. */
 export const SETUP_ROW: Item = { id: "setup", name: "Set up Hue", subtitle: "Find the bridge, press its button, done", icon: G.router, keywords: ["pair", "bridge"], actions: [{ id: "setup", title: "Set up Hue", shortcut: "enter" }] };

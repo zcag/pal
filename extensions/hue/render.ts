@@ -5,7 +5,7 @@
 // the key hints under everything; and the setup view (find a bridge,
 // press its button, paired). Pure: the fixture renders rigged states with
 // these same functions.
-import type { Action, HexColor, View, ViewNode } from "@zcag/pal";
+import { column, keyHint, keycap, row, text, type Action, type HexColor, type View, type ViewNode } from "@zcag/pal";
 import { MIREK_MAX, MIREK_MIN, clamp, dim, kelvin, mirekToRgb, temperatureStops, toHex, xyToHs, type RGB } from "./color.ts";
 import type { Bridge, Found } from "./api.ts";
 import { aggregate, lightColor, pct, type Light, type Room, type Scene } from "./model.ts";
@@ -59,12 +59,6 @@ export function shown(t: Target): Shown {
   };
 }
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
 const hex = (c: RGB): HexColor => toHex(c);
 const label = (v: string, on: boolean, width = 84): ViewNode => text(v, { style: "muted", size: "xs", width, weight: on ? "semibold" : undefined, color: on ? "accent" : "muted" });
 
@@ -100,7 +94,7 @@ function leftColumn(s: Shown, st: ViewState): ViewNode {
 }
 
 /** A preset as a tile in its white with its name inside; the focused one is taller. */
-function presetsRow(s: Shown, st: ViewState): ViewNode {
+function presetsRow(st: ViewState): ViewNode {
   const on = st.focus === "presets";
   return column([
     row([label("Presets", on, 60), ...(on ? [text(`${PRESETS[st.index]?.brightness ?? ""}% · ${kelvin(PRESETS[st.index]?.mirek ?? 370)} K`, { key: `p-${st.index}`, style: "muted", size: "xs", transition: { enter: "fade", exit: "none" } })] : [])], { key: "t", minHeight: 14 }),
@@ -154,13 +148,12 @@ function header(s: Shown, t: Target): ViewNode {
 }
 
 function hints(st: ViewState, s: Shown): ViewNode {
-  const hint = (keys: string[], what: string): ViewNode[] => [...keys.map(keycap), text(what, { style: "muted", size: "xs" })];
   const items = st.focus === "light"
-    ? [...hint(["left", "right"], "brightness"), ...(s.hasTemperature ? hint(["up", "down"], "warmer / cooler") : []), ...hint(["1-9", "0"], "level / off"), ...hint(["shift"], "big steps")]
+    ? [...keyHint(["left", "right"], "brightness"), ...(s.hasTemperature ? keyHint(["up", "down"], "warmer / cooler") : []), ...keyHint(["1-9", "0"], "level / off"), ...keyHint(["shift"], "big steps")]
     : st.focus === "color"
-      ? [...hint(["left", "right"], "hue"), ...hint(["up", "down"], "saturation"), ...hint(["shift"], "big steps")]
-      : [...hint(["left", "right"], "choose"), ...hint(["enter"], st.focus === "presets" ? "apply preset" : st.focus === "scenes" ? "play scene" : "set effect")];
-  return row([...items, { type: "spacer" }, ...hint(["tab"], "rows"), ...hint(["t"], "toggle"), ...hint(["c"], "copy")], { key: `hints-${st.focus}`, gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
+      ? [...keyHint(["left", "right"], "hue"), ...keyHint(["up", "down"], "saturation"), ...keyHint(["shift"], "big steps")]
+      : [...keyHint(["left", "right"], "choose"), ...keyHint(["enter"], st.focus === "presets" ? "apply preset" : st.focus === "scenes" ? "play scene" : "set effect")];
+  return row([...items, { type: "spacer" }, ...keyHint(["tab"], "rows"), ...keyHint(["t"], "toggle"), ...keyHint(["c"], "copy")], { key: `hints-${st.focus}`, gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
 }
 
 /** Every action the view answers to for this state; the first listed is Enter. */
@@ -203,7 +196,7 @@ export function actions(t: Target, st: ViewState, s: Shown, scenes: Scene[]): Ac
 
 export function render(t: Target, st: ViewState, scenes: Scene[]): View {
   const s = shown(t);
-  const right = column([header(s, t), presetsRow(s, st), scenesRow(scenes, st), effectsRow(s, st), optionsRow(t, st)], { key: "right", gap: 2, grow: true, align: "start" });
+  const right = column([header(s, t), presetsRow(st), scenesRow(scenes, st), effectsRow(s, st), optionsRow(t, st)], { key: "right", gap: 2, grow: true, align: "start" });
   const tree = column(
     [row([leftColumn(s, st), right], { key: "main", gap: 4, align: "start" }), { type: "spacer", key: "fill" }, hints(st, s)],
     { key: "hue", padding: 4, gap: 2, grow: true },
@@ -232,7 +225,7 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
       text(`${st.name} · ${st.ip}`, { style: "muted" }),
       row([{ type: "progress", key: "clock", value: left / 30, width: 320, color: left > 10 ? "blue" : "amber" }, text(`${left} s`, { key: `left-${left}`, style: "number", transition: { enter: "fade", exit: "none" } })], { key: "countdown", minHeight: 20 }),
       text(st.error ? st.error : "pal asks the bridge every second; the panel comes back on its own once the key is in.", { style: "muted", size: "sm", color: st.error ? "destructive" : "muted" }),
-      row([keycap("enter"), text("check now", { style: "muted", size: "xs" }), keycap("escape"), text("leave, pairing keeps going", { style: "muted", size: "xs" })], { key: "keys", gap: 1 }),
+      row([...keyHint("enter", "check now"), ...keyHint("escape", "leave, pairing keeps going")], { key: "keys", gap: 1 }),
     );
     acts.push({ id: "check", title: "Check now", shortcut: "enter" }, { id: "cancel", title: "Stop pairing", shortcut: "x", style: "destructive" });
   } else if (st.phase === "paired") {
@@ -240,7 +233,7 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
       text(`Paired with ${st.name}`, { style: "title", size: "xl", color: "success" }),
       text(`${st.ip} · bridge ${st.id}`, { style: "muted" }),
       text("The address and the key are in the settings (Settings › Extensions › Hue; the key in the keychain), the bridge's certificate is pinned.", { style: "body", size: "sm" }),
-      row([keycap("enter"), text("open Rooms", { style: "muted", size: "xs" }), keycap("c"), text("copy the key", { style: "muted", size: "xs" }), keycap("b"), text("back to the bridges", { style: "muted", size: "xs" })], { key: "keys", gap: 1 }),
+      row([...keyHint("enter", "open Rooms"), ...keyHint("c", "copy the key"), ...keyHint("b", "back to the bridges")], { key: "keys", gap: 1 }),
     );
     acts.push({ id: "rooms", title: "Open Rooms", shortcut: "enter" }, { id: "copy_key", title: "Copy the application key", shortcut: "c" }, { id: "back", title: "Back to the bridges", shortcut: "b" });
   } else if (st.phase === "failed") {
@@ -248,7 +241,7 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
       text("Not paired", { style: "title", size: "xl", color: "destructive" }),
       text(`${st.name} · ${st.ip}`, { style: "muted" }),
       text(st.error, { style: "body", size: "sm" }),
-      row([keycap("enter"), text("try again", { style: "muted", size: "xs" }), keycap("b"), text("back", { style: "muted", size: "xs" })], { key: "keys", gap: 1 }),
+      row([...keyHint("enter", "try again"), ...keyHint("b", "back")], { key: "keys", gap: 1 }),
     );
     acts.push({ id: `pair:${st.ip}`, title: "Try again", shortcut: "enter" }, { id: "back", title: "Back to the bridges", shortcut: "b" });
   } else {
@@ -267,7 +260,7 @@ export function renderSetup(st: SetupState, found: Found[], paired: Bridge[], no
     for (const [i, f] of found.slice(0, 9).entries()) acts.push({ id: `pair:${f.ip}`, title: `${isPaired(f) ? "Pair again with" : "Pair with"} ${f.name ?? f.ip}`, shortcut: String(i + 1), ...(i > 0 && { hidden: true as const }) });
     if (rows.length) kids.push(column(rows, { key: "found", gap: 1, surface: "elevated", radius: true, padding: 2 }));
     for (const b of paired) kids.push(row([text("Paired:", { style: "muted", size: "xs" }), text(b.name, { style: "body", size: "sm", weight: "medium" }), text(b.ip, { style: "mono", size: "xs" }), text(b.from_settings ? "from the settings" : b.cert ? "certificate pinned" : "root CA only", { style: "muted", size: "xs" })], { key: `paired-${b.id}`, gap: 1, minHeight: 18 }));
-    kids.push(row([keycap("1-9"), text("pair", { style: "muted", size: "xs" }), keycap("i"), text("type an address", { style: "muted", size: "xs" }), keycap("r"), text("scan again", { style: "muted", size: "xs" }), ...(paired.length ? [keycap("x"), text("forget a bridge", { style: "muted", size: "xs" })] : [])], { key: "keys", gap: 1 }));
+    kids.push(row([...keyHint("1-9", "pair"), ...keyHint("i", "type an address"), ...keyHint("r", "scan again"), ...(paired.length ? keyHint("x", "forget a bridge") : [])], { key: "keys", gap: 1 }));
     if (found[0]) acts[0] = { ...acts[0], shortcut: ["enter", "1"] };
     acts.push({ id: "type", title: "Type the bridge's address", shortcut: "i" }, { id: "rescan", title: "Scan again", shortcut: "r" });
     if (paired.length) acts.push({ id: "forget", title: `Forget ${paired.length === 1 ? paired[0].name : "a bridge"}`, shortcut: "x", style: "destructive", confirm: `Forget ${paired.length === 1 ? paired[0].name : "the first paired bridge"}? Its key stays on the bridge until you pair again.` });

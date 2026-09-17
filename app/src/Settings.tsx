@@ -194,13 +194,13 @@ const checkedAt = (c: Checks): number | undefined => [c.app?.at, c.extensions?.a
 
 /** Deep set/delete on the local copy, so the window moves before the file's reload confirms it. */
 function patch(config: RawConfig, key: string[], value: unknown): RawConfig {
-  const next = structuredClone(config) as unknown as Record<string, unknown>;
-  let at = next;
+  const next = structuredClone(config);
+  let at: Record<string, unknown> = next;
   for (const k of key.slice(0, -1)) at = (at[k] ??= {}) as Record<string, unknown>;
   const last = key[key.length - 1];
   if (value === undefined) delete at[last];
   else at[last] = value;
-  return next as unknown as RawConfig;
+  return next;
 }
 
 /** A text field the user is typing into: a reload landing now would put the file's last state over the keystrokes not yet written. */

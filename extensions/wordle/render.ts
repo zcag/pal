@@ -7,9 +7,7 @@
 // typed letter (it pops in), green, amber and grey for the marks (a
 // submitted row flips tile by tile), a deleted letter goes at once. The
 // letters are hidden actions: they route, and ⌘K lists only the moves.
-// No host imports: the gallery renders a fixture state with this same
-// function.
-import type { Action, View, ViewNode } from "@zcag/pal";
+import { column, keyHint, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
 import { COLS, LETTERS, ROWS, actions as legal, canNew, keyMarks, mark, nextIsDaily, type Action as Move, type Letter, type Mark, type Settings, type State } from "./game.ts";
 import { dayOf } from "./words.ts";
 
@@ -21,11 +19,8 @@ type Tile = Extract<ViewNode, { type: "tile" }>;
 /** A mark's tile colour: the tag palette's green and amber, grey for a letter that is not in the word. */
 export const COLOR_OF: Record<Mark, Tile["color"]> = { correct: "green", present: "amber", absent: "grey" };
 
-const text = (value: string, extra: Partial<Extract<ViewNode, { type: "text" }>> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
-const hint = (keys: string[], what: string): ViewNode[] => [...keys.map(keycap), text(what, { style: "muted", size: "sm" })];
+/** The games' key hints carry a small caption, not the popovers' extra-small one. */
+const hint = (keys: string[], what: string): ViewNode[] => keyHint(keys, what, { size: "sm" });
 
 const KEYBOARD = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
 const PRAISE = ["Genius", "Magnificent", "Impressive", "Splendid", "Great", "Phew"];

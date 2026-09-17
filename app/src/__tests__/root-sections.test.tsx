@@ -5,7 +5,7 @@
 // space jump (`aliasTarget`, `setQuery`); the search history recalled
 // with Up at the top of an empty root; a fallback "Ask" row opening its
 // palette with the query typed; and the "Reset ranking" action.
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Launcher, aliasTarget, rootHits, type LauncherHandle, type Prefs } from "../Launcher";
@@ -112,13 +112,12 @@ beforeEach(() => {
   // happy-dom's ResizeObserver reports a zero box right after observe, which would undo the rect above.
   (globalThis as { ResizeObserver: unknown }).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
 });
-afterEach(() => { act(() => root.unmount()); el.remove(); });
+afterEach(() => { act(() => root.unmount()); el.remove(); vi.useRealTimers(); });
 const field = () => el.querySelector<HTMLInputElement>(".pal-search__input")!;
 const type = (value: string) => act(() => { const f = field(); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!; setter.call(f, value); f.dispatchEvent(new Event("input", { bubbles: true })); });
 const key = (k: string, init: KeyboardEventInit = {}) => act(() => { (document.activeElement ?? window).dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...init })); });
 const crumb = () => el.querySelector(".pal-search__crumb")?.textContent;
 const rowNames = () => [...el.querySelectorAll(".pal-row__title")].map((r) => r.textContent);
-const wait = (ms: number) => act(() => new Promise((r) => setTimeout(r, ms)));
 
 describe("alias and space", () => {
   it("a word and a space typed forward jumps into the palette the word names, the rest typed there; a deletion or an unknown word does not", async () => {
@@ -189,10 +188,12 @@ describe("search history", () => {
 
 describe("fallback rows and reset ranking", () => {
   it("an Ask row arrives after the debounce when nothing matched and Enter on it opens the palette with the query typed", async () => {
+    vi.useFakeTimers();
     await mount();
     await type("2+2"); await flush();
     expect(rowNames()).toEqual([]);
-    await wait(200); await flush();
+    // The root's debounce (ROOT_DEBOUNCE, 120 ms) on the fake clock, so a loaded box cannot miss it.
+    await act(async () => { vi.advanceTimersByTime(150); }); await flush();
     expect(rowNames()).toEqual(["Ask Calculator"]);
     expect(el.querySelector(".pal-section__title")?.textContent).toBe("Use “2+2” with");
     await key("Enter"); await flush();

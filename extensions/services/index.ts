@@ -1,4 +1,4 @@
-// Services (replaces the v1 `systemd` script palette): one live palette
+// Services: one live palette
 // over the OS's service manager. Linux: systemd units, `systemctl --user`
 // and the system manager, four filters (User, System, Failed, Running);
 // Enter starts a stopped unit and stops a running one, a system unit after
@@ -10,7 +10,7 @@
 // one machine, against fake binaries on PATH).
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { home, settings, xdg, type Accessory, type Action, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
+import { hint as hintRow, home, settings, toast, xdg, type Accessory, type Action, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
 
 /** `[extensions.services]`, defaults in pal.json. */
 type Settings = { ttl: number; confirm_user: boolean; agent_dirs: string[] };
@@ -48,10 +48,10 @@ async function run(argv: string[], ms: number): Promise<Run> {
 }
 
 /** The toast for a verb that is still going: the palette lists again (⌘R later shows the outcome). */
-const pending = (what: string) => ({ keep: true as const, toast: { title: `${what} not done yet`, message: `Still running after ${WAIT_MS / 1000} s; it goes on in the background` } });
+const pending = (what: string) => (toast(`${what} not done yet`, `Still running after ${WAIT_MS / 1000} s; it goes on in the background`));
 
-const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: ICON, actions: [] });
-const fail = (title: string, message: string) => ({ keep: true as const, toast: { title, message, style: "failure" as const } });
+const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle, { icon: ICON });
+const fail = (title: string, message: string) => toast(title, message, "failure");
 const lastLine = (r: Run) => r.err.split("\n").filter(Boolean).slice(-1)[0] || `exit ${r.code}`;
 /** Four backticks fence the text so a ``` inside cannot end it early. */
 const fence = (s: string, lang = "") => "````" + lang + "\n" + s.replace(/````/g, "```​`") + "\n````";
@@ -193,7 +193,7 @@ async function pickSystemd(id: string, action?: string) {
       const done = { start: "Started", stop: "Stopped", restart: "Restarted", enable: "Enabled", disable: "Disabled" }[action];
       if (r.pending) return pending(`${action} ${u.unit}`);
       if (r.code !== 0) return fail(`Could not ${action} ${u.unit}`, r.err.startsWith("Not permitted") ? r.err : lastLine(r));
-      return { keep: true as const, toast: { title: `${done} ${u.unit}` } };
+      return toast(`${done} ${u.unit}`);
     }
   }
   return { keep: true as const };
@@ -318,7 +318,7 @@ async function pickLaunchd(id: string, action?: string) {
       if (action === "load" && !j.plist) return fail("No plist", "Nothing to load this job from");
       const r = await run(argv, ACT_MS);
       const done = { load: "Loaded", unload: "Unloaded", restart: "Restarted" }[action];
-      return r.pending ? pending(`${action} ${id}`) : r.code === 0 ? { keep: true as const, toast: { title: `${done} ${id}` } } : fail(`Could not ${action} ${id}`, lastLine(r));
+      return r.pending ? pending(`${action} ${id}`) : r.code === 0 ? toast(`${done} ${id}`) : fail(`Could not ${action} ${id}`, lastLine(r));
     }
   }
   return { keep: true as const };

@@ -13,7 +13,7 @@ export const MAC = process.platform === "darwin";
 export const HOME = process.env.PAL_BOOKMARKS_HOME || home("~");
 const APP_SUPPORT = `${HOME}/Library/Application Support`;
 /** Where a locked database is copied to before it is read (`PAL_BOOKMARKS_CACHE` in the tests). */
-export const CACHE = process.env.PAL_BOOKMARKS_CACHE || (MAC ? `${HOME}/Library/Caches/pal/bookmarks` : `${process.env.XDG_CACHE_HOME || `${HOME}/.cache`}/pal/bookmarks`);
+const CACHE = process.env.PAL_BOOKMARKS_CACHE || (MAC ? `${HOME}/Library/Caches/pal/bookmarks` : `${process.env.XDG_CACHE_HOME || `${HOME}/.cache`}/pal/bookmarks`);
 
 export type Chromium = { kind: "chromium"; title: string; mac: string; linux: string; app: string; bin: string };
 export type Firefox = { kind: "firefox"; title: string; mac: string; linux: string; app: string; bin: string };

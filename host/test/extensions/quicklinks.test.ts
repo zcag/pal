@@ -4,8 +4,8 @@
 // open with), the refusal round trip, edit, delete, the drill-in for a
 // `{query}` link, `{selection}` filled without asking, the library, an
 // open tab preferred, and an import file's read-only rows. The browser
-// is a Bun server speaking the DevTools HTTP endpoints (browser-tabs'
-// `activeTab`/`findTab`); `PAL_QUICKLINKS_BROWSERS` names the installed
+// is a Bun server speaking the DevTools HTTP endpoints (the SDK's
+// `tabs.active`/`tabs.find`); `PAL_QUICKLINKS_BROWSERS` names the installed
 // browsers and `PAL_QUICKLINKS_OPEN` a stand-in for `open -a` that logs.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -13,7 +13,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LIBRARY } from "../../../extensions/quicklinks/library.ts";
 import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords } from "../../../extensions/quicklinks/links.ts";
-import { samePage } from "../../../extensions/browser-tabs/index.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import type { Item } from "../../../sdk/src/index.ts";
 import { Host, fixtures, stored } from "../harness.ts";
@@ -49,11 +48,6 @@ describe("links", () => {
     expect(asLinks(null)).toEqual([]);
     expect(splitKeywords(" gh, code  search ")).toEqual(["gh", "code", "search"]);
     expect(splitKeywords("  ")).toBeUndefined();
-  });
-  test("samePage (browser-tabs): the origin and path, no query or fragment, no trailing slash, lower-cased", () => {
-    expect(samePage("https://GitHub.com/zcag/pal/?tab=x#top")).toBe("https://github.com/zcag/pal");
-    expect(samePage("https://github.com/zcag/pal")).toBe(samePage("https://github.com/zcag/pal/"));
-    expect(samePage("not a url")).toBe("not a url");
   });
 });
 

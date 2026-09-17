@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CAP, commandsOf, duration, envTable, looksDestructive, PICK_GRACE_MS, q, run, shellArgv, terminalArgv } from "../../../extensions/shell/run.ts";
+import { CAP, commandsOf, duration, envTable, looksDestructive, PICK_GRACE_MS, run, shellArgv, terminalArgv } from "../../../extensions/shell/run.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
@@ -37,24 +37,10 @@ describe("run.ts", () => {
     for (const c of ["ls -la", "rmdir empty", "mvn package", "git status", "git push", "echo rm", "format-code", "kill 123", "chmod +x run.sh", "brew install foo", "npm install", "cat x > /dev/null", "echo hi 2>/dev/null", "grep rm *.txt"]) expect([c, looksDestructive(c)]).toEqual([c, false]);
   });
 
-  test("terminalArgv: Terminal and iTerm over osascript, kitty and the others by flags, Linux with -e; the line cds first and keeps the shell open", () => {
+  test("terminalArgv: the line cds first and keeps the shell open (the table is the SDK's, terminal.test.ts)", () => {
     const sh = ["/bin/zsh", "-lic"];
-    if (MAC) {
-      const t = terminalArgv("ls -la", "/Users/x/proj", sh, "")!;
-      expect(t.slice(0, 3)).toEqual(["osascript", "-e", `tell application "Terminal"`]);
-      expect(t[6]).toBe(`do script "cd '/Users/x/proj' && ls -la; exec /bin/zsh"`);
-      expect(terminalArgv("ls", "/tmp", sh, "iTerm")![2]).toBe(`tell application "iTerm"`);
-      expect(terminalArgv("ls", "/tmp", sh, "kitty")).toEqual(["open", "-na", "kitty", "--args", "--directory", "/tmp", "/bin/zsh", "-c", "ls; exec /bin/zsh"]);
-      expect(terminalArgv("ls", "/tmp", sh, "Ghostty")![4]).toBe("--working-directory=/tmp");
-      expect(terminalArgv("ls", "/tmp", sh, "Warp")).toEqual(["open", "-na", "Warp", "--args", "-e", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
-    } else {
-      // foot takes the command as trailing arguments, alacritty after -e, wezterm after `start --`; the setting wins over $TERMINAL, which wins over what is installed.
-      expect(terminalArgv("ls", "/tmp", sh, "", { TERMINAL: "foot" })).toEqual(["foot", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
-      expect(terminalArgv("ls", "/tmp", sh, "alacritty", { TERMINAL: "foot" })).toEqual(["alacritty", "-e", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
-      expect(terminalArgv("ls", "/tmp", sh, "", {}, (n) => (n === "wezterm" ? "/usr/bin/wezterm" : null))!.slice(0, 3)).toEqual(["wezterm", "start", "--"]);
-      expect(terminalArgv("ls", "/tmp", sh, "", {}, () => null)).toBeUndefined();
-    }
-    expect(q("it's")).toBe(`'it'\\''s'`);
+    if (MAC) expect(terminalArgv("ls -la", "/Users/x/proj", sh, "")![6]).toBe(`do script "cd '/Users/x/proj' && ls -la; exec /bin/zsh"`);
+    else expect(terminalArgv("ls", "/tmp", sh, "", { TERMINAL: "foot" })).toEqual(["foot", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
   });
 
   test("run: stdout and stderr apart, the exit code, the duration; a timeout kills the group and keeps what was printed; a shell that does not exist is an error in err; the cap keeps the tail", async () => {

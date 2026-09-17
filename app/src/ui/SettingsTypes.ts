@@ -457,14 +457,16 @@ export type InstanceInfo = { key: string; title?: string; tint?: string; badge?:
  * tint hash.
  */
 export function resolveInstance(key: string, name: string, raw: RawInstance | undefined, info: InstanceInfo | undefined, own?: Brand): SettingsInstance {
-  const isDefault = key === name;
-  const suffix = isDefault ? undefined : key.slice(name.length + 1);
   const enabled = raw?.enabled !== false;
-  const title = info?.title ?? raw?.title?.trim() ?? (suffix ? suffixTitle(suffix) : undefined);
-  if (isDefault) return { key, isDefault, enabled, ...(title && { title }) };
-  const tint = (info?.tint as Brand | undefined) ?? (BRAND.includes(raw?.tint as Brand) ? (raw!.tint as Brand) : instanceTint(suffix!, own));
-  const badge = info?.badge ?? ([...(raw?.badge?.trim() ?? "")].slice(0, 2).join("") || instanceBadge(title ?? suffix!));
-  return { key, suffix, title, tint, badge, isDefault, enabled };
+  if (key === name) {
+    const title = info?.title ?? raw?.title?.trim();
+    return { key, isDefault: true, enabled, ...(title && { title }) };
+  }
+  const suffix = key.slice(name.length + 1);
+  const title = info?.title ?? raw?.title?.trim() ?? suffixTitle(suffix);
+  const tint = (info?.tint as Brand | undefined) ?? (raw?.tint && BRAND.includes(raw.tint as Brand) ? (raw.tint as Brand) : instanceTint(suffix, own));
+  const badge = info?.badge ?? ([...(raw?.badge?.trim() ?? "")].slice(0, 2).join("") || instanceBadge(title));
+  return { key, suffix, title, tint, badge, isDefault: false, enabled };
 }
 
 /** The extension's tile as the instance's: the tint and the badge in its corner (a tile icon only; anything else stays). */

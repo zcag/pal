@@ -68,11 +68,11 @@ describe("onepassword", () => {
   test("signed out: one hint row with a help link, nothing cached", async () => {
     const rows = await list();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: "signin", name: "Connect the 1Password CLI to the app", icon: "\u{f0342}", actions: [{ id: "help", title: "Open the setup guide" }] });
+    expect(rows[0]).toMatchObject({ id: "hint:signin", name: "Connect the 1Password CLI to the app", icon: "\u{f0342}", actions: [{ id: "help", title: "Open the setup guide" }] });
     expect(rows[0].subtitle).not.toMatch(/\.$/);
     expect(rows[0].subtitle).toContain("Integrate with 1Password CLI");
-    expect(await pick("signin", "help")).toEqual({ open: expect.stringContaining("1password.com") });
-    expect(await pick("signin")).toEqual({ keep: true });
+    expect(await pick("hint:signin", "help")).toEqual({ open: expect.stringContaining("1password.com") });
+    expect(await pick("hint:signin")).toEqual({ keep: true });
     expect(calls()).toEqual(["item list --format json"]);
   });
 
@@ -100,7 +100,7 @@ describe("onepassword", () => {
     expect(calls().length).toBe(before);
     await list("all", true);
     expect(calls().length).toBe(before + 1);
-    expect((await list("Nope"))).toEqual([expect.objectContaining({ id: "none", name: "No items" })]);
+    expect((await list("Nope"))).toEqual([expect.objectContaining({ id: "hint:none", name: "No items" })]);
   });
 
   test("copy password on Enter, username and one-time code from the panel, each straight from op item get", async () => {
@@ -133,6 +133,6 @@ describe("onepassword", () => {
 
   test("signing out again: the next listing past the ttl is the hint row", async () => {
     writeFileSync(state, "out");
-    expect((await list()).map((r) => r.id)).toEqual(["signin"]);
+    expect((await list()).map((r) => r.id)).toEqual(["hint:signin"]);
   });
 });

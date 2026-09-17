@@ -26,10 +26,11 @@ export type Notification = { method: string; params?: unknown };
 
 /**
  * Right-aligned on a row: a run of `text`, a `tag` (a badge, `color` from
- * the tag palette, `TagColor`), or a `date` (an ISO string or unix ms) the
- * UI shows relative ("3 h ago").
+ * the tag palette, `TagColor`), a `date` (an ISO string or unix ms) the
+ * UI shows relative ("3 h ago"), or `keys` (a shortcut, "cmd+shift+c")
+ * drawn as key caps.
  */
-export type Accessory = { text: string } | { tag: string; color?: string } | { date: string | number };
+export type Accessory = { text: string } | { tag: string; color?: string } | { date: string | number } | { keys: string };
 
 /** One line of the detail pane's metadata list: a `label` with a `value`, tags, or a link. */
 export type Metadata = {

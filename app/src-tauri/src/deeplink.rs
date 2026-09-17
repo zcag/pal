@@ -840,7 +840,7 @@ async fn run_item(app: &AppHandle, route: Route, trusted: bool) {
             None => return eprintln!("deeplink\trun\tunanswered"),
         }
     }
-    match index::run_pick(app, &host, source, id, action.as_deref(), args.as_ref(), None).await {
+    match index::run_pick(app, &host, source, &index::Pick { id, action: action.as_deref(), args: args.as_ref(), ..Default::default() }).await {
         Ok(r) => {
             let r = fill.as_ref().map_or(r.clone(), |f| prefill(r, f));
             let name = item_name(app, source, id).unwrap_or_else(|| id.clone());

@@ -3,6 +3,7 @@
 // the quoted replies folded, the markdown the pane shows, the RFC 822
 // text a send needs, and the Gmail links. No network, no settings; the
 // tests import it as is.
+import { mdEscape as escapeMd } from "@zcag/pal";
 
 /** `Name <a@b>`, `a@b`, `"Name" <a@b>`: the two parts, the name empty when there is none. */
 export type Address = { name: string; email: string };
@@ -165,24 +166,8 @@ export function messageText(text: string, html: string, snippet = ""): string {
 
 // ---- markdown ---------------------------------------------------------------------------
 
-const URL = /https?:\/\/[^\s<>"')\]]+/g;
-
-/**
- * Mail text as markdown that reads as the text: the characters marked up
- * by markdown escaped (a bare `<a@b>` would otherwise vanish as HTML, a
- * leading `#` would be a heading), bare links left whole so the renderer
- * links them, the fold line in italics.
- */
-export function mdEscape(text: string): string {
-  const esc = (s: string) => s.replace(/[\\`*_{}[\]<>#|~]/g, "\\$&").replace(/^(\s*)([-+])(\s)/gm, "$1\\$2$3").replace(/^(\s*\d+)\.(\s)/gm, "$1\\.$2");
-  let out = "", at = 0;
-  for (const m of text.matchAll(URL)) {
-    out += esc(text.slice(at, m.index)) + m[0];
-    at = m.index + m[0].length;
-  }
-  out += esc(text.slice(at));
-  return out.split(QUOTE_FOLD.replace(/[[\]]/g, "\\$&")).join(`_${QUOTE_FOLD.slice(1, -1)}_`);
-}
+/** Mail text as markdown that reads as the text (the SDK's `mdEscape`), the fold line in italics. */
+export const mdEscape = (text: string): string => escapeMd(text).split(QUOTE_FOLD.replace(/[[\]]/g, "\\$&")).join(`_${QUOTE_FOLD.slice(1, -1)}_`);
 
 // ---- outgoing ---------------------------------------------------------------------------
 

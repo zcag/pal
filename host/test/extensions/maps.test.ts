@@ -88,7 +88,6 @@ afterAll(() => { host.kill(); places.stop(true); delete process.env.PAL_MAPS_PLA
 
 const list = (q?: string, ctx?: Parameters<Host["list"]>[3]) => host.list("maps", "maps", q, ctx);
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("maps", "maps", id, action, ctx);
-const names = (items: Item[]) => items.map((i) => i.name);
 const ids = (items: Item[]) => items.map((i) => i.id);
 
 describe("maps", () => {

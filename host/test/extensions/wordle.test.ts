@@ -177,7 +177,6 @@ const find = (n: ViewNode, pred: (n: ViewNode) => boolean, out: ViewNode[] = [])
   return out;
 };
 type TileNode = Extract<ViewNode, { type: "tile" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
 
 describe("render", () => {
   test("thirty keyed tiles on a sunken well: a submitted row flips with a stagger, a typed letter pops, the keyboard follows the marks; the letters are hidden actions", () => {

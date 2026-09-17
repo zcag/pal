@@ -18,7 +18,7 @@ const TEXT = "\uFE0E";
 
 const hex = (cp: number) => cp.toString(16).toUpperCase().padStart(4, "0");
 /** `U+2192`. */
-export const codePoint = (cp: number) => `U+${hex(cp)}`;
+const codePoint = (cp: number) => `U+${hex(cp)}`;
 /** `&rarr;` when the entity has a name, else the numeric reference. */
 export const entity = (r: Row) => (r.e ? `&${r.e};` : numeric(r.cp));
 /** `&#x2192;`. */

@@ -1,7 +1,7 @@
 // Snippets: the placeholder expansion (the SDK's placeholders.ts, pure,
 // with the clock and the clipboard pinned), then the extension over the wire
 // against the harness's in-memory storage and clipboard (its clock pinned
-// too, `PAL_NOW` through the harness, snippets/clock.ts): rows with the
+// too, `PAL_NOW` through the harness, the SDK's clock.ts): rows with the
 // keyword as a row keyword, paste and copy with placeholders filled, the
 // create and edit forms, refusal, delete.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";

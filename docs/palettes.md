@@ -1076,9 +1076,9 @@ Settings, `[extensions.files]`:
 | `ocr_concealed` | bool | `false` | Text read from an image (Copy text) is copied concealed, so it never enters the clipboard history. |
 | `terminal` | string | `""` | What Open in Terminal opens: `Terminal` (the default), `iTerm`, `kitty`, `Alacritty`, `WezTerm`, `Ghostty`, or any app name (`open -na <name> --args -e ...`); on Linux a command name, else `$TERMINAL`, else the first installed terminal (the same words as Shell's setting). |
 
-The rename, move and copy forms, the tool runner and the archive command
-live in `extensions/files/ops.ts`; Downloads imports them, so the two
-palettes rename and move the same way.
+The rename, move and copy forms and the archive command are the SDK's
+`files` (`sdk/src/files.ts`); Downloads uses them too, so the two palettes
+rename and move the same way.
 
 ## System (`system`)
 
@@ -1472,7 +1472,7 @@ minutes for the entity rows' subtitles; an HA that refuses the template
 API leaves the rows without areas and the palette with a hint row.
 
 When something is wrong every palette is one inert hint row that says
-what and where to fix it (Settings, Extensions, Home Assistant): no URL, a
+what and where to fix it (Settings › Extensions › Home Assistant): no URL, a
 URL without a scheme, no token, a `keychain:`/`env:` token that did not
 resolve, a rejected token (401), a host that did not answer within the
 timeout, or one that could not be reached. Every request carries the
@@ -2182,7 +2182,7 @@ Settings, per palette, `[palettes.unicode.settings]`:
 
 ## Colors (`colors-picker`, `colors`, `colors-history`, `colors-convert`)
 
-Four palettes over one colour maths (`extensions/colors/color.ts`) and one
+Four palettes over one colour maths (the SDK's `colors`, `sdk/src/color.ts`) and one
 history. At the root a hex, an `rgb()`/`hsl()`/`oklch()`… notation or a CSS name
 answers inline under a Convert Colour section (the first four notations; Enter
 opens the picker on it). **Colour Picker** is a view level: a large swatch on a
@@ -3626,8 +3626,8 @@ Now section shows the newest download of the last ten minutes
 Open, reveal, both copies and the trash take marked rows (`multi`). Trash
 is Finder's delete on macOS, `gio trash` on Linux; for the tests,
 `PAL_DOWNLOADS_TRASH` names a stand-in and `PAL_DOWNLOADS_CACHE` the
-thumbnail directory. The rename and move forms are Files'
-(`extensions/files/ops.ts`).
+thumbnail directory. The rename and move forms are the SDK's
+`files` (`sdk/src/files.ts`), shared with Files.
 
 Settings, `[extensions.downloads]`:
 

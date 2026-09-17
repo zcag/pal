@@ -1,7 +1,7 @@
-// colors: the maths (color.ts, imported directly), then the swatch grid
+// colors: the maths (the SDK's color.ts, imported directly), then the swatch grid
 // and the converter through the host.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { BLACK, CSS_NAMES, WHITE, adjust, complementary, contrast, format, fromLab, harmony, inGamut, lighten, luminance, maxChroma, nameOf, nearestIn, nearestName, parse, shades, swatch, tints, toHex, toHslString, toHwb, toLab, toOklabString, toOklch, toOklchValues, toP3, toRgb, wcag } from "../../../extensions/colors/color.ts";
+import { BLACK, CSS_NAMES, WHITE, adjust, complementary, contrast, format, fromLab, harmony, inGamut, lighten, luminance, maxChroma, nameOf, nearestIn, nearestName, parse, shades, swatch, tints, toHex, toHslString, toHwb, toLab, toOklabString, toOklch, toOklchValues, toP3, toRgb, wcag } from "../../../sdk/src/color.ts";
 import { actions, hueStops, plane, readout, render, vivid } from "../../../extensions/colors/render.ts";
 import { conversions, detailOf, gridItem, historyRows } from "../../../extensions/colors/rows.ts";
 import { SETS, handKept, sectionOf, token, usage, type Row } from "../../../extensions/colors/sets.ts";

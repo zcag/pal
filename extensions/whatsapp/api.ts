@@ -26,8 +26,8 @@ const DEFAULT_BACKOFF_MS = 60_000;
 
 export const log = (msg: string) => console.error(`[whatsapp] ${msg}`);
 
-/** No API key set: nothing can be asked. */
-export class NoKey extends Error { constructor() { super("No API key set"); } }
+/** The API key is not set: nothing can be asked. */
+export class NoKey extends Error { constructor() { super("API key is not set"); } }
 /** OpenWA could not be reached at `url` (refused, timed out, no such host). */
 export class Unreachable extends Error { constructor(readonly url: string, detail: string) { super(`OpenWA is unreachable at ${url}: ${detail}`); } }
 /** OpenWA refused: `status` and its message. `auth` for a 401 or 403 (the key). */
@@ -79,7 +79,7 @@ export async function request<T>(method: "GET" | "POST" | "DELETE", path: string
       signal: AbortSignal.timeout(HTTP_MS),
     });
   } catch (e) {
-    const detail = e instanceof Error ? (e.name === "TimeoutError" ? `no answer in ${HTTP_MS / 1000} s` : e.message.replace(/^fetch failed:?\s*/i, "") || e.name) : String(e);
+    const detail = e instanceof Error ? (e.name === "TimeoutError" ? `did not answer within ${HTTP_MS / 1000} s` : e.message.replace(/^fetch failed:?\s*/i, "") || e.name) : String(e);
     throw new Unreachable(base(), detail);
   }
   if (r.status === 204 || r.headers.get("content-length") === "0") return null as T;

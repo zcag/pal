@@ -6,9 +6,8 @@
 // with `move`, so a tile that slid glides from its old cell to its new one
 // (across rows too), a merged one pops in its cell as the slide lands, and
 // the spawned one pops a beat later. The tiles are drawn with the tokens,
-// so the board follows the theme. No host imports: the gallery renders a
-// fixture state with this same function.
-import type { Action, View, ViewNode } from "@zcag/pal";
+// so the board follows the theme.
+import { column, keyHint, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
 import { SIZE, TARGET, actions as legal, phase, type Action as Move, type Settings, type State } from "./game.ts";
 
 /** 64 px tiles with 8 px gaps in an 8 px well make a 296 px board: four rows plus a header fit the panel. */
@@ -39,11 +38,8 @@ const LOOKS: Record<number, Look> = {
 };
 export const lookOf = (v: number): Look => LOOKS[v] ?? LOOKS[2048];
 
-const text = (value: string, extra: Partial<Extract<ViewNode, { type: "text" }>> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
-const hint = (keys: string[], what: string): ViewNode[] => [...keys.map(keycap), text(what, { style: "muted", size: "sm" })];
+/** The games' key hints carry a small caption, not the popovers' extra-small one. */
+const hint = (keys: string[], what: string): ViewNode[] => keyHint(keys, what, { size: "sm" });
 
 export const num = (n: number): string => n.toLocaleString("en-US");
 

@@ -6,17 +6,17 @@
 // palette over `search.messages`; Status is live and lists what is set now
 // before the presets. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { settings, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
-  MAX_MSGS, MAX_QUIET, avatarData, conversations, deepLink, dnd, endSnooze, expiresAt, inbox, markRead, parsePreset, post, presence, reset as resetData, search, sessionOf, setPresence, setStatus, snooze, status, toMsg, unreadSince, webLink,
-  type Conversation, type Inbox, type Kind, type Msg, type SearchHit, type Unread,
+  MAX_MSGS, MAX_QUIET, conversations, deepLink, dnd, endSnooze, expiresAt, inbox, markRead, parsePreset, post, presence, reset as resetData, search, sessionOf, setPresence, setStatus, snooze, status, toMsg, unreadSince, webLink,
+  type Conversation, type Inbox, type Msg, type SearchHit, type Unread,
 } from "./data.ts";
 import { SECTION, render as renderBar, type BarRow, type BarState } from "./view.ts";
 
-/** Glyphs from the bundled Nerd Font's `md-` set: slack, at, forum, pound, lock, account, account-multiple, magnify, information, emoticon, bell-sleep, bell, account-check, account-off, check-all, open-in-new, inbox. */
-const ICON = { slack: "\u{f04b1}", dm: "\u{f0009}", mention: "\u{f0065}", thread: "\u{f028c}", channel: "\u{f0423}", private: "\u{f033e}", im: "\u{f0004}", mpim: "\u{f000e}", search: "\u{f0349}", info: "\u{f02fc}", status: "\u{f01f2}", dndOn: "\u{f00a0}", dndOff: "\u{f009a}", active: "\u{f0008}", away: "\u{f0012}", clear: "\u{f012d}", browser: "\u{f03cc}", inbox: "\u{f0687}" } as const;
+/** Glyphs from the bundled Nerd Font's `md-` set: slack, at, forum, pound, lock, account, account-multiple, magnify, emoticon, bell-sleep, bell, account-check, account-off, check-all, open-in-new, inbox. */
+const ICON = { slack: "\u{f04b1}", dm: "\u{f0009}", mention: "\u{f0065}", thread: "\u{f028c}", channel: "\u{f0423}", private: "\u{f033e}", im: "\u{f0004}", mpim: "\u{f000e}", search: "\u{f0349}", status: "\u{f01f2}", dndOn: "\u{f00a0}", dndOff: "\u{f009a}", active: "\u{f0008}", away: "\u{f0012}", clear: "\u{f012d}", browser: "\u{f03cc}", inbox: "\u{f0687}" } as const;
 /** How long an inbox is shared between the bar and the palette before either fetches again. */
 const INBOX_FRESH_MS = 30_000;
 const SEARCH_WAIT_MS = 300;
@@ -44,21 +44,18 @@ const rowId = (u: Unread) => `${u.kind}:${u.id}`;
 
 // ---- rows the palettes share ------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle?: string, actions: Action[] = []): Item => ({ id: `hint:${id}`, name, subtitle, icon: ICON.info, actions });
 
 /** What a failed listing shows instead of rows: how to sign in, when the limit lifts, or what went wrong. */
 function failure(e: unknown): Item[] {
-  if (e instanceof NotSignedIn) return [hint("auth", conf().auth === "token" ? "Slack token missing" : "Slack is not signed in", e.message, [{ id: "settings", title: "Open Slack settings" }])];
+  if (e instanceof NotSignedIn) return [hint("auth", conf().auth === "token" ? "Slack token is not set" : "Slack is not signed in", e.message, { actions: [{ id: "settings", title: "Open Slack settings" }] })];
   if (e instanceof RateLimited) return [hint("limit", "Slack rate limit reached", `Retry at ${e.until.toLocaleTimeString()}`)];
-  if (e instanceof ApiError && e.auth) return [hint("auth", "Slack rejected the session", "Open Slack and sign in again, or set a token under Settings, Extensions, Slack", [{ id: "settings", title: "Open Slack settings" }])];
-  log(e instanceof Error ? e.message : String(e));
-  return [hint("error", "Slack did not answer", e instanceof Error ? e.message : String(e))];
+  if (e instanceof ApiError && e.auth) return [hint("auth", "Slack rejected the session", "Open Slack and sign in again, or set a token under Settings › Extensions › Slack", { actions: [{ id: "settings", title: "Open Slack settings" }] })];
+  log(errorMessage(e));
+  return [hint("error", "Slack did not answer", errorMessage(e))];
 }
 const pickHint = (id: string): Effect | void => (id === "hint:auth" ? { open: "pal://settings/extensions" } : undefined);
 const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
-const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
 
-const short = (s: string, n = 100) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const ms = (ts: string) => Math.round(Number(ts) * 1000);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const clock = (ts: string) => { const d = new Date(ms(ts)); return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
@@ -163,13 +160,13 @@ async function pickUnread(u: Unread, action?: string, ctx?: Ctx): Promise<Effect
     case "send": {
       const text = String(ctx?.values?.text ?? "").trim();
       if (!text) return { form: replyForm(u, { text: "Required" }) };
-      try { await post(u.team, u.cid, text, u.top?.thread_ts); } catch (e) { return { form: replyForm(u, { text: e instanceof Error ? e.message : String(e) }, text) }; }
-      return { keep: true, toast: { title: "Sent", message: `${u.where}: ${short(text, 60)}`, style: "success" } };
+      try { await post(u.team, u.cid, text, u.top?.thread_ts); } catch (e) { return { form: replyForm(u, { text: errorMessage(e) }, text) }; }
+      return toast("Sent", `${u.where}: ${truncate(text, 60)}`);
     }
     case "read":
-      try { await markRead(u); } catch (e) { return failToast("Could not mark read", e); }
+      try { await markRead(u); } catch (e) { return failed("mark read", e); }
       dropInbox();
-      return { keep: true, toast: { title: "Marked read", message: u.where } };
+      return toast("Marked read", u.where);
     default: return { open: deepLink(u.team, u.cid, ts) };
   }
 }
@@ -185,7 +182,7 @@ function convRow(c: Conversation, multi: boolean): Item {
   return {
     id: convId(c),
     name: c.name,
-    subtitle: short(c.topic || c.purpose || (c.kind === "im" ? "Direct message" : c.kind === "mpim" ? "Group message" : ""), 120) || undefined,
+    subtitle: truncate(c.topic || c.purpose || (c.kind === "im" ? "Direct message" : c.kind === "mpim" ? "Group message" : ""), 120) || undefined,
     icon: convIcon(c.kind),
     keywords: [c.name.replace(/^#/, ""), kind, ...(multi ? [c.teamName] : [])],
     section: multi ? c.teamName : undefined,
@@ -217,7 +214,7 @@ function hitRow(h: SearchHit): Item {
   hits.set(h.id, h);
   return {
     id: h.id,
-    name: short(h.text || "(no text)", 100),
+    name: truncate(h.text || "(no text)", 100),
     // A hit in a direct message with its sender: the name is the sender already.
     subtitle: h.who && h.who !== h.where ? `${h.who} in ${h.where}` : h.who ? "Direct message" : h.where,
     icon: h.avatar ? { image: h.avatar } : ICON.im,
@@ -256,12 +253,12 @@ async function statusRows(): Promise<Item[]> {
       : { id: "dnd:current", name: "Notifications on", subtitle: "Do Not Disturb is off", icon: ICON.dndOff, section: "Now", keywords: ["dnd"], actions: [] },
     { id: "presence:current", name: p.presence === "away" ? "Away" : "Active", subtitle: p.presence === "away" ? (p.manual ? "Set away by hand" : "Away") : "Shown as active", icon: p.presence === "away" ? ICON.away : ICON.active, section: "Now", keywords: ["presence", "away", "active"], actions: [{ id: "presence:toggle", title: p.presence === "away" ? "Set active" : "Set away" }] },
   ];
-  const presets = (conf().statuses ?? []).map((line, i) => ({ line, preset: parsePreset(line), i })).filter((x) => x.preset);
+  const presets = (conf().statuses ?? []).flatMap((line, i) => { const preset = parsePreset(line); return preset ? [{ preset, i }] : []; });
   const set: Item[] = presets.map(({ preset, i }) => ({
     id: `status:${i}`,
-    name: preset!.text || preset!.emoji,
-    subtitle: [...(emojiFor(preset!.emoji) ? [] : [preset!.emoji]), preset!.expiry ? (preset!.expiry === "today" ? "until tomorrow" : `for ${preset!.expiry}`) : "no expiry"].join(" · "),
-    icon: emojiFor(preset!.emoji) ?? ICON.status,
+    name: preset.text || preset.emoji,
+    subtitle: [...(emojiFor(preset.emoji) ? [] : [preset.emoji]), preset.expiry ? (preset.expiry === "today" ? "until tomorrow" : `for ${preset.expiry}`) : "no expiry"].join(" · "),
+    icon: emojiFor(preset.emoji) ?? ICON.status,
     section: "Status",
     keywords: ["status"],
     actions: [{ id: "set", title: "Set status" }],
@@ -284,25 +281,25 @@ const minutesToMidnight = () => Math.max(1, Math.ceil((expiresAt("today") * 1000
 
 async function pickStatus(id: string, action?: string): Promise<Effect> {
   try {
-    if (id === "status:current" && action === "clear") { await setStatus("", "", 0); return { keep: true, toast: { title: "Status cleared" } }; }
+    if (id === "status:current" && action === "clear") { await setStatus("", "", 0); return toast("Status cleared"); }
     if (id.startsWith("status:")) {
       const preset = parsePreset((conf().statuses ?? [])[Number(id.slice(7))] ?? "");
       if (!preset) throw new Error(`no preset ${id}`);
       await setStatus(preset.emoji, preset.text, expiresAt(preset.expiry));
-      return { keep: true, toast: { title: "Status set", message: `${preset.emoji} ${preset.text}${preset.expiry ? ` (${preset.expiry})` : ""}`, style: "success" } };
+      return toast("Status set", `${preset.emoji} ${preset.text}${preset.expiry ? ` (${preset.expiry})` : ""}`);
     }
-    if (id === "dnd:current" || id === "dnd:end") { await endSnooze(); return { keep: true, toast: { title: "Do Not Disturb ended" } }; }
+    if (id === "dnd:current" || id === "dnd:end") { await endSnooze(); return toast("Do Not Disturb ended"); }
     if (id.startsWith("dnd:")) {
       const minutes = id === "dnd:tomorrow" ? minutesToMidnight() : Number(id.slice(4));
       await snooze(minutes);
-      return { keep: true, toast: { title: "Do Not Disturb on", message: id === "dnd:tomorrow" ? "Until tomorrow" : `For ${minutes === 60 ? "1 hour" : `${minutes} minutes`}` } };
+      return toast("Do Not Disturb on", id === "dnd:tomorrow" ? "Until tomorrow" : `For ${minutes === 60 ? "1 hour" : `${minutes} minutes`}`);
     }
     if (id === "presence:current" || id.startsWith("presence:")) {
       const away = id === "presence:away" || (id === "presence:current" && (await presence()).presence !== "away");
       await setPresence(away ? "away" : "auto");
-      return { keep: true, toast: { title: away ? "Set away" : "Set active" } };
+      return toast(away ? "Set away" : "Set active");
     }
-  } catch (e) { return failToast("Slack refused", e); }
+  } catch (e) { return toast("Slack refused", errorMessage(e), "failure"); }
   throw new Error(`no row ${id}`);
 }
 
@@ -332,7 +329,7 @@ async function barState(i: Inbox): Promise<BarState> {
     const ts = u.top?.ts ?? u.latest;
     return {
       id: rowId(u), kind: u.kind, where: u.where, who: u.top?.who || undefined, text: u.top?.text ?? (u.kind === "channel" ? "Unread" : ""), time: ts ? clock(ts) : undefined, n: u.n, more: u.more,
-      avatar: u.top?.avatar ? await avatarData(u.top.avatar) : undefined,
+      avatar: u.top?.avatar ? await imageData(u.top.avatar) : undefined,
       canReply: u.kind !== "thread", canRead: u.kind !== "thread" && !!u.latest, teamName: u.teamName || undefined,
     };
   }));
@@ -370,10 +367,10 @@ async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-slack") return { open: "slack://open" };
   if (action === "read-all") {
     const i = await loadInbox();
-    const failed: string[] = [];
-    for (const u of i.items) if (u.kind !== "thread" && u.latest) { try { await markRead(u); } catch (e) { failed.push(u.where); log(`mark ${u.cid}: ${e instanceof Error ? e.message : e}`); } }
+    const refused: string[] = [];
+    for (const u of i.items) if (u.kind !== "thread" && u.latest) { try { await markRead(u); } catch (e) { refused.push(u.where); log(`mark ${u.cid}: ${errorMessage(e)}`); } }
     dropInbox();
-    return failed.length ? failToast("Some could not be marked", failed.join(", ")) : { keep: true, hud: "Marked read" };
+    return refused.length ? toast("Some could not be marked", refused.join(", "), "failure") : { keep: true, hud: "Marked read" };
   }
   if (action.startsWith("focus:")) { barFocus = action.slice(6); return redraw(); }
   if (action.startsWith("open:")) return pickUnread(await findUnread(action.slice(5)));
@@ -392,14 +389,14 @@ async function unreadsAction(action: string, ctx?: BarCtx): Promise<Effect> {
       const text = String(ctx?.values?.input ?? "").trim();
       if (!u) { barReplying = undefined; return redraw(); }
       if (!text) return { ...(await redraw()), toast: { title: "Nothing to send", message: "Type the reply first", style: "failure" } };
-      try { await post(u.team, u.cid, text, u.top?.thread_ts); } catch (e) { barDraft = text; return { ...(await redraw()), toast: { title: "Could not send", message: e instanceof Error ? e.message : String(e), style: "failure" } }; }
+      try { await post(u.team, u.cid, text, u.top?.thread_ts); } catch (e) { barDraft = text; return { ...(await redraw()), toast: { title: "Could not send", message: errorMessage(e), style: "failure" } }; }
       barReplying = undefined; barDraft = undefined;
-      return { ...(await redraw()), toast: { title: "Sent", message: `${u.where}: ${short(text, 60)}`, style: "success" } };
+      return { ...(await redraw()), toast: { title: "Sent", message: `${u.where}: ${truncate(text, 60)}`, style: "success" } };
     }
     case "read": {
       if (!cur?.canRead) return { keep: true };
       const u = await findUnread(cur.id);
-      try { await markRead(u); } catch (e) { return failToast("Could not mark read", e); }
+      try { await markRead(u); } catch (e) { return failed("mark read", e); }
       dropInbox();
       return { keep: true, hud: `${u.where}: read` };
     }
@@ -418,7 +415,7 @@ export default {
       live: true,
       list: (_q, ctx) => guard(() => unreadRows(ctx)),
       pick: async (id, action, ctx) => (id.startsWith("hint:") ? pickHint(id) : pickUnread(await findUnread(id), action, ctx)),
-      detail: async (id) => { if (id.startsWith("hint:")) return; try { return await unreadPane(await findUnread(id)); } catch (e) { return { markdown: `_${e instanceof Error ? e.message : String(e)}_` }; } },
+      detail: async (id) => { if (id.startsWith("hint:")) return; try { return await unreadPane(await findUnread(id)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } },
     },
     channels: {
       title: "Channels",

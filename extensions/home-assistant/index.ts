@@ -2,7 +2,7 @@
 // current), services as forms, areas as drill-ins. Everything is the REST
 // API in ha.ts with the settings' URL, token and timeout; a request that
 // fails is one hint row with the fix, never an error.
-import { settings, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { errorMessage, hint, settings, toast, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { actions, asText, attributeRows, Client, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, icon, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
 
 const EXTENSION = "home-assistant";
@@ -22,20 +22,14 @@ function client(): Client {
 }
 
 /** The one row a broken setup lists: inert, with the fix in the subtitle. */
-const hint = (e: unknown): Item[] => [{
-  id: "hint",
-  name: e instanceof HaError ? e.message : `Home Assistant: ${e instanceof Error ? e.message : e}`,
-  subtitle: e instanceof HaError ? e.hint : undefined,
-  icon: "\u{f0026}",
-  actions: [],
-}];
-const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: e instanceof HaError ? `${e.message}. ${e.hint}` : String((e as Error)?.message ?? e), style: "failure" } });
+const problem = (e: unknown): Item[] => [hint("setup", e instanceof HaError ? e.message : `Home Assistant: ${errorMessage(e)}`, e instanceof HaError ? e.hint : undefined, { icon: "\u{f0026}" })];
+const failed = (what: string, e: unknown): Effect => toast(`Could not ${what}`, e instanceof HaError ? `${e.message}. ${e.hint}` : errorMessage(e), "failure");
 
 /** Entity id to area name, kept ten minutes; an HA that refuses the template API leaves the rows without areas. */
 async function areas(c: Client, refresh = false): Promise<Record<string, string>> {
   if (!refresh && areaCache && Date.now() - areaCache.at < AREAS_TTL) return areaCache.map;
   let map: Record<string, string> = {};
-  try { map = await c.areas(); } catch (e) { console.error(`[home-assistant] areas: ${e instanceof Error ? e.message : e}`); }
+  try { map = await c.areas(); } catch (e) { console.error(`[home-assistant] areas: ${errorMessage(e)}`); }
   areaCache = { at: Date.now(), map };
   return map;
 }
@@ -46,7 +40,7 @@ async function call(c: Client, id: string, service: string, data: Record<string,
   try {
     const changed = await c.call(domain, service, { entity_id: id, ...data });
     const me = changed.find((s) => s.entity_id === id);
-    return { keep: true, toast: { title: me ? `${name(me)}: ${stateText(me)}` : `${titleCase(domain)}.${service} sent`, style: "success" } };
+    return toast(me ? `${name(me)}: ${stateText(me)}` : `${titleCase(domain)}.${service} sent`);
   } catch (e) {
     return failed(`${service.replace(/_/g, " ")} ${id}`, e);
   }
@@ -123,7 +117,7 @@ async function callService(c: Client, id: string, ctx?: Ctx): Promise<Effect> {
 /** A pick on an entity row or one of its drill-ins; a request that fails is a toast, so the caller wraps this. */
 async function pickEntity(id: string, action: string | undefined, ctx: Ctx | undefined): Promise<Effect | void> {
   const args = (ctx?.args ?? {}) as Args;
-  if (id === "hint") return;
+  if (id === "hint:setup") return;
   const c = client();
   // The attribute level: every row copies its value (or its name).
   if (args.attributes) {
@@ -170,7 +164,7 @@ export default {
       list: async (_query, ctx): Promise<Item[]> => {
         const args = (ctx?.args ?? {}) as Args;
         let c: Client;
-        try { c = client(); } catch (e) { return hint(e); }
+        try { c = client(); } catch (e) { return problem(e); }
         try {
           if (args.attributes) return attributeRows(await c.state(args.attributes));
           if (args.brightness) return presetRows(await c.state(args.brightness), "brightness");
@@ -180,14 +174,14 @@ export default {
           if (args.area) return states.filter((x) => map[x.entity_id] === args.area).sort((a, b) => name(a).localeCompare(name(b))).map((x) => row(x, args.area));
           return order(states, s, ctx?.filter).map((x) => row(x, map[x.entity_id]));
         } catch (e) {
-          return hint(e);
+          return problem(e);
         }
       },
       pick: async (id, action, ctx): Promise<Effect | void> => {
         try { return await pickEntity(id, action, ctx); } catch (e) { return failed(`reach Home Assistant for ${id}`, e); }
       },
       detail: async (id, ctx): Promise<Detail | void> => {
-        if ((ctx?.args as Args | undefined)?.attributes || id === "hint" || /^\d+$/.test(id) || id === "current") return;
+        if ((ctx?.args as Args | undefined)?.attributes || id === "hint:setup" || /^\d+$/.test(id) || id === "current") return;
         let s: State;
         try { s = await client().state(id); } catch { return; }
         const shown = Object.entries(s.attributes).filter(([k]) => k !== "friendly_name").slice(0, 12);
@@ -205,10 +199,10 @@ export default {
       title: "Home Assistant Services",
       placeholder: "Search services",
       list: async (): Promise<Item[]> => {
-        try { return serviceRows(await client().services()); } catch (e) { return hint(e); }
+        try { return serviceRows(await client().services()); } catch (e) { return problem(e); }
       },
       pick: async (id, action, ctx): Promise<Effect | void> => {
-        if (id === "hint") return;
+        if (id === "hint:setup") return;
         if (action === "copy_id") return { copy: id };
         let c: Client;
         try { c = client(); } catch (e) { return failed("reach Home Assistant", e); }
@@ -221,7 +215,7 @@ export default {
       placeholder: "Search areas",
       list: async (): Promise<Item[]> => {
         let c: Client;
-        try { c = client(); } catch (e) { return hint(e); }
+        try { c = client(); } catch (e) { return problem(e); }
         try {
           const map = await c.areas();
           areaCache = { at: Date.now(), map };
@@ -229,10 +223,10 @@ export default {
           for (const a of Object.values(map)) counts.set(a, (counts.get(a) ?? 0) + 1);
           return [...counts].sort(([a], [b]) => a.localeCompare(b)).map(([area, n]) => ({ id: area, name: area, subtitle: `${n} ${n === 1 ? "entity" : "entities"}`, icon: HOUSE, keywords: ["area"], actions: [{ id: "open", title: "Show entities" }] }));
         } catch (e) {
-          return hint(e);
+          return problem(e);
         }
       },
-      pick: (id): Effect | void => (id === "hint" ? undefined : { push: { extension: EXTENSION, palette: "entities", args: { area: id }, title: id } }),
+      pick: (id): Effect | void => (id === "hint:setup" ? undefined : { push: { extension: EXTENSION, palette: "entities", args: { area: id }, title: id } }),
     },
   },
 } satisfies Extension;

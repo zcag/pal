@@ -13,10 +13,10 @@
 // front changed), reads the menus once more first.
 // macOS only, over Accessibility: elsewhere, and without the permission,
 // the one row says so.
-import { core, permissions, xdg, type Accessory, type Effect, type Extension, type Item } from "@zcag/pal";
+import { core, errorMessage, failed, hint, permissions, toast, xdg, type Accessory, type Effect, type Extension, type Item } from "@zcag/pal";
 
 /** `pal_core::menubar::Item`. */
-export type MenuItem = { id: string; path: string[]; shortcut: string | null; checked: boolean };
+type MenuItem = { id: string; path: string[]; shortcut: string | null; checked: boolean };
 /** `pal_core::menubar::Menu`: the app in front and its items. */
 export type Menu = { app: string; bundle: string; pid: number; icon: string | null; items: MenuItem[]; truncated: boolean; elapsed_ms: number };
 
@@ -38,8 +38,7 @@ const FRESH_MS = 2000;
 export function row(m: Menu, i: MenuItem): Item {
   const accessories: Accessory[] = [];
   if (i.checked) accessories.push({ text: "✓" });
-  // A key-cap accessory is what the panel draws for `{ keys }` (app/src/ui/types.ts); protocol.ts does not list it yet.
-  if (i.shortcut) accessories.push({ keys: i.shortcut } as unknown as Accessory);
+  if (i.shortcut) accessories.push({ keys: i.shortcut });
   return {
     id: i.id,
     name: i.path[i.path.length - 1],
@@ -54,12 +53,13 @@ export function row(m: Menu, i: MenuItem): Item {
 
 const NEEDS_ACCESSIBILITY = /Accessibility/;
 
-function hint(e: unknown): Item {
-  const message = String((e as Error)?.message ?? e);
+/** The one row when the menus cannot be read: the Accessibility ask, or what stands in the way. */
+function problem(e: unknown): Item {
+  const message = errorMessage(e);
   if (NEEDS_ACCESSIBILITY.test(message)) {
-    return { id: "accessibility", name: "Menu bar search needs Accessibility", subtitle: "Grant pal in System Settings > Privacy & Security > Accessibility", icon: xdg("dialog-warning")!, actions: [{ id: "open", title: "Open System Settings" }] };
+    return hint("accessibility", "Menu bar search needs Accessibility", "Grant pal in System Settings > Privacy & Security > Accessibility", { icon: xdg("dialog-warning")!, actions: [{ id: "open", title: "Open System Settings" }] });
   }
-  return { id: "unavailable", name: MAC ? "No menu bar to read" : "Menu bar search is macOS only", subtitle: message.replace(/^menu bar unavailable: /, ""), icon: xdg("dialog-error")!, actions: [] };
+  return hint("unavailable", MAC ? "No menu bar to read" : "Menu bar search is macOS only", message.replace(/^menu bar unavailable: /, ""), { icon: xdg("dialog-error")! });
 }
 
 export default {
@@ -74,15 +74,15 @@ export default {
           listedAt = Date.now();
         } catch (e) {
           current = null;
-          return [hint(e)];
+          return [problem(e)];
         }
         if (current.truncated) console.log(`menu-bar\t${current.app}\t${current.items.length} items in ${current.elapsed_ms} ms, deeper menus left out`);
         return current.items.map((i) => row(current!, i));
       },
       pick: async (id, action): Promise<Effect | void> => {
-        if (id === "unavailable") return { keep: true };
-        if (id === "accessibility") {
-          try { await permissions.request("accessibility"); } catch (e) { return { keep: true, toast: { title: "Could not open System Settings", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+        if (id === "hint:unavailable") return { keep: true };
+        if (id === "hint:accessibility") {
+          try { await permissions.request("accessibility"); } catch (e) { return failed("open System Settings", e); }
           return { keep: true };
         }
         if (action != null && action !== "press") return;
@@ -93,9 +93,9 @@ export default {
           try { current = m = await menubar.items(); listedAt = Date.now(); } catch { m = null; }
           item = m?.items.find((i) => i.id === id);
         }
-        if (!m || !item) return { keep: true, toast: { title: "That menu is gone", message: "The app in front changed; the list is read again on the next show", style: "failure" } };
+        if (!m || !item) return toast("That menu is gone", "The app in front changed; the list is read again on the next show", "failure");
         // The core hides the panel before pressing, so a failure can only reach the HUD.
-        try { await menubar.press(m.pid, id); } catch (e) { return { hud: `Could not press ${item.path[item.path.length - 1]}: ${String((e as Error)?.message ?? e)}` }; }
+        try { await menubar.press(m.pid, id); } catch (e) { return { hud: `Could not press ${item.path[item.path.length - 1]}: ${errorMessage(e)}` }; }
         return { hud: `${m.app}: ${item.path.join(" > ")}` };
       },
     },

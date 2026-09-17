@@ -6,7 +6,7 @@
 // one call per set answers the bodies. The pure part (the row's SVG, the
 // data url, the file name) is exported for the tests; `search` and
 // `fetchSet` are the network.
-import { home, settings, type Action, type Ctx, type Effect, type Item } from "@zcag/pal";
+import { errorMessage, hint, home, settings, type Action, type Ctx, type Effect, type Item } from "@zcag/pal";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -14,28 +14,28 @@ import { join } from "node:path";
 export type Settings = { sets: string[]; save_to: string };
 
 export const API = process.env.PAL_ICONIFY_API ?? "https://api.iconify.design";
-export const SITE = "https://icon-sets.iconify.design";
+const SITE = "https://icon-sets.iconify.design";
 /** Hits per search (the API caps at 999; a grid past this is noise). */
 export const LIMIT = 64;
 /** Keystrokes closer than this share one search. */
-export const DEBOUNCE_MS = 250;
-export const FETCH_MS = 6000;
+const DEBOUNCE_MS = 250;
+const FETCH_MS = 6000;
 /**
  * Iconify draws in `currentColor`; a row icon has no colour of its own to
  * inherit (the `{ image }` is a picture, not a glyph), so the SVG on the
  * tile is filled with a mid grey that reads on both the light and the dark
  * panel. The copied SVG keeps `currentColor`.
  */
-export const TILE_INK = "#888888";
+const TILE_INK = "#888888";
 
 /** One icon as `/<prefix>.json` answers it: the inner SVG at a `left top width height` box. */
-export type IconBody = { body: string; width?: number; height?: number; left?: number; top?: number; rotate?: number; hFlip?: boolean; vFlip?: boolean };
+type IconBody = { body: string; width?: number; height?: number; left?: number; top?: number; rotate?: number; hFlip?: boolean; vFlip?: boolean };
 type SetAnswer = { prefix: string; icons: Record<string, IconBody>; width?: number; height?: number; not_found?: string[] };
 type SearchAnswer = { icons: string[]; total?: number; collections?: Record<string, { name?: string }> };
 
 export type Hit = { id: string; prefix: string; name: string; set: string; svg: string };
 
-export class IconifyError extends Error {
+class IconifyError extends Error {
   constructor(message: string, public status?: number) { super(message); }
 }
 
@@ -58,7 +58,7 @@ export const fileName = (id: string) => `${id.replace(/[^a-z0-9-]+/gi, "-")}.svg
 async function getJson<T>(url: string): Promise<T> {
   let r: Response;
   try { r = await fetch(url, { signal: AbortSignal.timeout(FETCH_MS) }); }
-  catch (e) { throw new IconifyError(`Iconify did not answer: ${(e as Error)?.message ?? e}`); }
+  catch (e) { throw new IconifyError((e as Error)?.name === "TimeoutError" ? `Iconify did not answer within ${FETCH_MS / 1000} s` : `Iconify did not answer: ${errorMessage(e)}`); }
   if (r.status === 429) throw new IconifyError("Iconify is rate limiting this machine; try again in a moment", 429);
   if (!r.ok) throw new IconifyError(`Iconify answered ${r.status}`, r.status);
   return (await r.json()) as T;
@@ -103,7 +103,6 @@ export async function search(query: string, sets: string[]): Promise<Hit[]> {
 
 /** nf-md-magnify, nf-md-alert: the hint rows. */
 const GLYPH = { search: "\u{f0349}", warn: "\u{f0026}" };
-const hint = (id: string, name: string, subtitle: string, icon: string): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
 
 export const ACTIONS: Action[] = [
   { id: "svg", title: "Copy SVG" },
@@ -124,10 +123,10 @@ const conf = () => settings.get<Settings>("icons");
 async function rowsFor(q: string): Promise<Item[]> {
   try {
     const hits = await search(q, conf().sets.map((s) => s.trim()).filter(Boolean));
-    return hits.length ? hits.map(row) : [hint("none", `No icons for “${q}”`, "Another word; the sets setting narrows the search to mdi, tabler, lucide and the like", GLYPH.search)];
+    return hits.length ? hits.map(row) : [hint("none", `No icons for “${q}”`, "Another word; the sets setting narrows the search to mdi, tabler, lucide and the like", { icon: GLYPH.search })];
   } catch (e) {
-    const msg = e instanceof IconifyError ? e.message : `Iconify did not answer: ${(e as Error)?.message ?? e}`;
-    return [hint("fail", msg, "cmd+r tries again; the sets setting narrows the search", GLYPH.warn)];
+    const msg = e instanceof IconifyError ? e.message : `Iconify did not answer: ${errorMessage(e)}`;
+    return [hint("fail", msg, "cmd+r tries again; the sets setting narrows the search", { icon: GLYPH.warn })];
   }
 }
 

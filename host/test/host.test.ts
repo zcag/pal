@@ -511,7 +511,7 @@ describe("watching", () => {
     process.env.PAL_LOAD_TIMEOUT_MS = "500";
     const host = await Host.start({ roots: [root.dir] }).finally(() => delete process.env.PAL_LOAD_TIMEOUT_MS);
     expect(await host.list("ok", "ok")).toHaveLength(1);
-    expect(host.failed().find((f) => f.extension === "hang")?.message).toBe("import of hang timed out after 500 ms");
+    expect(host.failed().find((f) => f.extension === "hang")?.message).toBe("import of hang did not answer within 0.5 s");
     host.kill();
     root.rm();
   });

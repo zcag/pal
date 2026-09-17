@@ -48,13 +48,14 @@ async function appSessions(force = false): Promise<Session[]> {
     extracting ??= extract().finally(() => { extracting = undefined; });
     creds = await extracting;
   }
-  return Object.values(creds.teams).map((t) => ({ ...t, mode: "app" as const, d: creds!.d }));
+  const { teams, d } = creds;
+  return Object.values(teams).map((t) => ({ ...t, mode: "app" as const, d }));
 }
 
 /** The token's one workspace, from `auth.test` (team id, user id, the domain the deep links need). */
 async function tokenSessions(): Promise<Session[]> {
   const token = (process.env.PAL_SLACK_TOKEN || conf().token || "").trim();
-  if (!token) throw new NotSignedIn("No token set; add a user token (xoxp-...) under Settings, Extensions, Slack, or set auth to app");
+  if (!token) throw new NotSignedIn("Slack token is not set; add a user token (xoxp-...) under Settings › Extensions › Slack, or set auth to app");
   if (tokenSession && tokenSession.token === token) return [tokenSession];
   const probe: Session = { mode: "token", token, id: "", name: "", domain: "", user: "" };
   const r = await call<{ team_id: string; user_id: string; team: string; url: string }>(probe, "auth.test");

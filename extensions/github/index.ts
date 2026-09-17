@@ -8,16 +8,16 @@
 // item, `notifications`: the unread count as a badge over the same cache.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { home, tinted, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
-import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit, run } from "./api.ts";
+import { errorMessage, failed, hint, home, run, tinted, toast, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type Notification, type PR, type PRDetail, type Repo, type SearchKind, type User,
 } from "./data.ts";
 import { render as renderNotifs, shown as shownNotifs, type NotifState } from "./view.ts";
 
-/** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, info, plus. */
-const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", info: "\uf449", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
+/** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, plus. */
+const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
 /** The bar's glyph (nf-fa-github). */
 const BAR_GLYPH = "\u{f09b}";
 /** A PR or issue row's mark: the state's octicon in the state's colour (GitHub's own: open green, merged violet, closed red, draft slate). */
@@ -34,27 +34,24 @@ const CREATE = "create", SUMMARY = "summary";
 
 // ---- rows the palettes share ------------------------------------------------
 
-const hint = (id: string, name: string, subtitle?: string, actions: Action[] = []): Item => ({ id: `hint:${id}`, name, subtitle, icon: ICON.info, actions });
 
 /** What a failed listing shows instead of rows: how to sign in, when the limit resets, or what went wrong. */
 function failure(e: unknown): Item[] {
   if (e instanceof AuthError) {
     return [e.ghPresent
-      ? hint("auth", "Sign in to GitHub", "Run `gh auth login` in a terminal, or set a token under Settings, Extensions, GitHub", [{ id: "open", title: "Open token settings" }])
-      : hint("auth", "Sign in to GitHub", "Install the gh CLI and run `gh auth login`, or set a token under Settings, Extensions, GitHub", [{ id: "open", title: "Open token settings" }])];
+      ? hint("auth", "Sign in to GitHub", "Run `gh auth login` in a terminal, or set a token under Settings › Extensions › GitHub", { actions: [{ id: "open", title: "Open token settings" }] })
+      : hint("auth", "Sign in to GitHub", "Install the gh CLI and run `gh auth login`, or set a token under Settings › Extensions › GitHub", { actions: [{ id: "open", title: "Open token settings" }] })];
   }
   if (e instanceof ApiError && e.rateLimited) return [hint("limit", "GitHub rate limit reached", `Resets at ${e.resetAt!.toLocaleTimeString()}`)];
-  if (e instanceof ApiError && e.status === 401) return [hint("auth", "GitHub rejected the token", e.message, [{ id: "open", title: "Open token settings" }])];
-  log(e instanceof Error ? e.message : String(e));
-  return [hint("error", "GitHub did not answer", e instanceof Error ? e.message : String(e))];
+  if (e instanceof ApiError && e.status === 401) return [hint("auth", "GitHub rejected the token", e.message, { actions: [{ id: "open", title: "Open token settings" }] })];
+  log(errorMessage(e));
+  return [hint("error", "GitHub did not answer", errorMessage(e))];
 }
 
 const TOKEN_URL = "https://github.com/settings/tokens/new?scopes=repo,notifications,read:org&description=pal";
 const pickHint = (id: string): Effect | void => (id.startsWith("hint:auth") ? { open: TOKEN_URL } : undefined);
 
-const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
 
-const short = (s: string, n = 100) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const when = (iso: string) => new Date(iso).toLocaleDateString();
 const repoLink = (repo: string): Metadata => ({ label: "Repository", link: { text: repo, href: `https://github.com/${repo}` } });
 const labelTags = (labels: { name: string }[]) => labels.map((l) => ({ text: l.name, color: "grey" }));
@@ -181,18 +178,18 @@ async function pickPR(pr: PR, action?: string): Promise<Effect> {
     case "files": return { open: `${pr.url}/files` };
     case "checkout": {
       const dir = clonePath(pr.repo);
-      if (!dir) return failToast("No local clone", `Set repos_root to where ${pr.repo} is checked out`);
-      const r = await run(["gh", "pr", "checkout", String(pr.number)], CHECKOUT_MS, dir);
-      return r.ok ? { hud: `Checked out ${pr.head}` } : failToast("Checkout failed", r.err);
+      if (!dir) return toast("No local clone", `Set repos_root to where ${pr.repo} is checked out`, "failure");
+      try { await run(["gh", "pr", "checkout", String(pr.number)], { ms: CHECKOUT_MS, cwd: dir }); } catch (e) { return failed("check out the branch", e); }
+      return { hud: `Checked out ${pr.head}` };
     }
     case "ready":
-      try { await markReady(pr); } catch (e) { return failToast("Could not mark ready", e); }
+      try { await markReady(pr); } catch (e) { return failed("mark ready", e); }
       forget("prs");
-      return { keep: true, toast: { title: "Ready for review", message: `#${pr.number} ${short(pr.title, 60)}` } };
+      return toast("Ready for review", `#${pr.number} ${truncate(pr.title, 60)}`);
     case "merge":
-      try { await mergePR(pr); } catch (e) { return failToast("Merge failed", e); }
+      try { await mergePR(pr); } catch (e) { return failed("merge", e); }
       forget("prs");
-      return { keep: true, toast: { title: "Merged", message: `#${pr.number} ${short(pr.title, 60)}`, style: "success" } };
+      return toast("Merged", `#${pr.number} ${truncate(pr.title, 60)}`, "success");
     default: return { open: pr.url };
   }
 }
@@ -278,9 +275,9 @@ async function pickIssue(i: Issue, action?: string): Promise<Effect> {
     case "copy": return { copy: i.url };
     case "ref": return { copy: i.id };
     case "close":
-      try { await closeIssue(i); } catch (e) { return failToast("Could not close", e); }
+      try { await closeIssue(i); } catch (e) { return failed("close", e); }
       forget("issues");
-      return { keep: true, toast: { title: "Closed", message: `#${i.number} ${short(i.title, 60)}` } };
+      return toast("Closed", `#${i.number} ${truncate(i.title, 60)}`);
     default: return { open: i.url };
   }
 }
@@ -290,7 +287,7 @@ async function recentRepos(): Promise<string[]> {
   const out: string[] = [];
   const add = (r: string) => { if (r && !out.includes(r)) out.push(r); };
   for (const t of [issueTable, prTable]) for (const r of t.values()) add(r.repo);
-  try { for (const r of await myRepos()) add(r.id); } catch (e) { log(`repos for the form: ${e instanceof Error ? e.message : e}`); }
+  try { for (const r of await myRepos()) add(r.id); } catch (e) { log(`repos for the form: ${errorMessage(e)}`); }
   return out.slice(0, 40);
 }
 
@@ -322,7 +319,7 @@ async function saveIssue(values: Record<string, string | boolean>): Promise<Effe
     forget("issues");
     return { open: r.url, hud: `Created ${repo}#${r.number}` };
   } catch (e) {
-    return { form: await issueForm({ title: e instanceof Error ? e.message : String(e) }, values) };
+    return { form: await issueForm({ title: errorMessage(e) }, values) };
   }
 }
 
@@ -367,7 +364,7 @@ function repoRow(r: Repo, section?: string): Item {
   return {
     id: r.id,
     name: r.name,
-    subtitle: r.description ? short(r.description, 120) : r.owner,
+    subtitle: r.description ? truncate(r.description, 120) : r.owner,
     icon: ICON.repos,
     keywords: [r.id, r.owner, ...(r.language ? [r.language] : [])],
     url: r.url,
@@ -403,13 +400,13 @@ async function pickRepo(r: Repo, action?: string): Promise<Effect> {
   switch (action) {
     case "editor": {
       const dir = clonePath(r.id);
-      if (!dir) return failToast("No local clone", `Nothing under repos_root for ${r.id}`);
+      if (!dir) return toast("No local clone", `Nothing under repos_root for ${r.id}`, "failure");
       const editor = Bun.which("code");
       if (!editor) return { open: dir };
       spawnDetached([editor, dir]);
       return { hud: `Opened ${r.name} in VS Code` };
     }
-    case "folder": { const dir = clonePath(r.id); return dir ? { open: dir } : failToast("No local clone", `Nothing under repos_root for ${r.id}`); }
+    case "folder": { const dir = clonePath(r.id); return dir ? { open: dir } : toast("No local clone", `Nothing under repos_root for ${r.id}`, "failure"); }
     case "clone": return { copy: cloneUrl(r) };
     case "copy": return { copy: r.url };
     case "name": return { copy: r.id };
@@ -456,7 +453,7 @@ async function saveRepo(values: Record<string, string | boolean>): Promise<Effec
     forget("repos:mine", ...(owner && owner !== me ? [`repos:org:${owner}`] : []));
     return { open: r.url, hud: `Created ${r.id}` };
   } catch (e) {
-    return { form: await repoForm({ name: e instanceof Error ? e.message : String(e) }, values) };
+    return { form: await repoForm({ name: errorMessage(e) }, values) };
   }
 }
 
@@ -474,7 +471,7 @@ async function repoRows(ctx?: Ctx): Promise<Item[]> {
   const [mine, orgs, starred] = await Promise.all([want("mine") ? myRepos(refresh) : [], want("org") && org ? orgRepos(org, refresh) : [], want("starred") ? starredRepos(refresh) : []]);
   add(mine, "Mine");
   if (org) add(orgs, org);
-  else if (filter === "org") rows.push(hint("org", "No organisation set", "Set default_org under Settings, Extensions, GitHub"));
+  else if (filter === "org") rows.push(hint("org", "Organisation is not set", "Set default_org under Settings › Extensions › GitHub"));
   add(starred, "Starred");
   return rows;
 }
@@ -488,7 +485,7 @@ function userRow(u: User, section?: string): Item {
   return {
     id: u.id,
     name: u.name ? `${u.login} (${u.name})` : u.login,
-    subtitle: u.bio ? short(u.bio, 120) : u.org ? "Organisation" : "User",
+    subtitle: u.bio ? truncate(u.bio, 120) : u.org ? "Organisation" : "User",
     icon: u.avatar ? { image: u.avatar } : ICON.user,
     keywords: [u.login, u.name].filter(Boolean),
     url: u.url,
@@ -558,21 +555,21 @@ async function findNotif(id: string): Promise<Notification> {
 
 async function pickNotif(id: string, action?: string): Promise<Effect> {
   if (action === "read-all") {
-    try { await markAllRead(); } catch (e) { return failToast("Could not mark all read", e); }
+    try { await markAllRead(); } catch (e) { return failed("mark all read", e); }
     await forget("notifications");
-    return { keep: true, toast: { title: "All notifications read" } };
+    return toast("All notifications read");
   }
   if (id === SUMMARY) return { open: "https://github.com/notifications" };
   const n = await findNotif(id);
   switch (action) {
     case "copy": return { copy: n.url };
     case "read":
-      try { await markRead(n.thread); } catch (e) { return failToast("Could not mark read", e); }
+      try { await markRead(n.thread); } catch (e) { return failed("mark read", e); }
       await forget("notifications");
-      return { keep: true, toast: { title: "Marked read", message: short(n.title, 60) } };
+      return toast("Marked read", truncate(n.title, 60));
     default:
       // Opening reads it, as the page would: the count is honest by the time you are back.
-      try { await markRead(n.thread); await forget("notifications"); } catch (e) { log(`mark read ${n.thread}: ${e instanceof Error ? e.message : e}`); }
+      try { await markRead(n.thread); await forget("notifications"); } catch (e) { log(`mark read ${n.thread}: ${errorMessage(e)}`); }
       return { open: n.url };
   }
 }
@@ -690,10 +687,14 @@ async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
 /** A pick from the search level: the row's kind is in its table, or in the shape of its id. */
 async function pickAny(id: string, action?: string): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
-  if (prTable.has(id)) return pickPR(prTable.get(id)!, action);
-  if (issueTable.has(id)) return pickIssue(issueTable.get(id)!, action);
-  if (repoTable.has(id)) return pickRepo(repoTable.get(id)!, action);
-  if (userTable.has(id)) return pickUser(userTable.get(id)!, action);
+  const pr = prTable.get(id);
+  if (pr) return pickPR(pr, action);
+  const issue = issueTable.get(id);
+  if (issue) return pickIssue(issue, action);
+  const repo = repoTable.get(id);
+  if (repo) return pickRepo(repo, action);
+  const user = userTable.get(id);
+  if (user) return pickUser(user, action);
   if (splitId(id)) {
     const pr = await findPR(id).catch(() => undefined);
     if (pr) return pickPR(pr, action);
@@ -708,7 +709,7 @@ async function pickAny(id: string, action?: string): Promise<Effect | void> {
 const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
 
 /** The pane for a PR or issue row, asked lazily; the failure is the text of the pane. */
-const pane = async (f: () => Promise<Detail>): Promise<Detail> => { try { return await f(); } catch (e) { return { markdown: `_${e instanceof Error ? e.message : String(e)}_` }; } };
+const pane = async (f: () => Promise<Detail>): Promise<Detail> => { try { return await f(); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } };
 
 const limitHint = (): Item[] => (rateLimit && rateLimit.remaining === 0 && rateLimit.resetAt.getTime() > Date.now() ? [hint("limit", "GitHub rate limit reached", `Resets at ${rateLimit.resetAt.toLocaleTimeString()}; showing what was cached`)] : []);
 
@@ -760,8 +761,9 @@ export default {
       list: (query, ctx) => guard(() => searchRows(query, ctx)),
       pick: pickAny,
       detail: async (id) => {
-        if (prTable.has(id)) return pane(() => prPane(prTable.get(id)!));
-        if (issueTable.has(id)) return pane(() => issuePane(issueTable.get(id)!));
+        const pr = prTable.get(id), issue = issueTable.get(id);
+        if (pr) return pane(() => prPane(pr));
+        if (issue) return pane(() => issuePane(issue));
       },
     },
   },

@@ -268,7 +268,7 @@ describe("whatsapp", () => {
 
   test("send off: no message, no reaction, no reply field, whatever the pick asks; nothing reaches the mock", async () => {
     const before = mock.seen.length;
-    expect(await host.pick(X, "chats", MARA, "reply")).toEqual({ keep: true, toast: { title: "Sending is off", message: "Turn on send under Settings, Extensions, WhatsApp", style: "failure" } });
+    expect(await host.pick(X, "chats", MARA, "reply")).toEqual({ keep: true, toast: { title: "Sending is off", message: "Turn on send under Settings › Extensions › WhatsApp", style: "failure" } });
     expect(await host.pick(X, "chats", MARA, "send", { values: { text: "hi" } })).toMatchObject({ toast: { title: "Sending is off", style: "failure" } });
     expect(await host.pick(X, "chats", MARA, "react")).toMatchObject({ toast: { title: "Reactions are off", style: "failure" } });
     expect(await host.pick(X, "chats", MARA, "react-send", { values: { emoji: "👍" } })).toMatchObject({ toast: { title: "Reactions are off", style: "failure" } });
@@ -290,7 +290,7 @@ describe("whatsapp", () => {
     expect(form.fields.map((f) => [f.id, f.kind])).toEqual([["text", "textarea"], ["quote", "checkbox"]]);
     expect(form.fields[1]).toMatchObject({ text: "Quote the latest message: “standup in 20?”" });
     expect(await host.pick(X, "chats", MARA, "send", { values: { text: "  ", quote: false } })).toMatchObject({ form: { errors: { text: "Required" } } });
-    expect(await host.pick(X, "chats", MARA, "send", { values: { text: "on my way", quote: false } })).toEqual({ keep: true, toast: { title: "Sent", message: "Mara Lind: on my way", style: "success" } });
+    expect(await host.pick(X, "chats", MARA, "send", { values: { text: "on my way", quote: false } })).toEqual({ keep: true, toast: { title: "Sent", message: "Mara Lind: on my way" } });
     expect(await host.pick(X, "chats", MARA, "send", { values: { text: "yes, 20", quote: true } })).toMatchObject({ toast: { title: "Sent" } });
     expect(mock.sent).toEqual([{ chatId: MARA, text: "on my way" }, { chatId: MARA, text: "yes, 20", quoted: "false_254011223344556@lid_A5" }]);
     // A read chat's latest message is fetched at form time: Family's newest is ours, so nothing to quote and nothing to react to.
@@ -300,7 +300,7 @@ describe("whatsapp", () => {
     const react = (await host.pick(X, "chats", HIKE, "react")).form!;
     expect(react).toMatchObject({ id: HIKE, title: "React in Weekend hike", submit: { id: "react-send" } });
     expect((react.fields[0] as { options: { id: string }[] }).options.map((o) => o.id)).toEqual([...REACTIONS, ""]);
-    expect(await host.pick(X, "chats", HIKE, "react-send", { values: { emoji: "❤️" } })).toEqual({ keep: true, toast: { title: "Reacted ❤️", message: "Weekend hike", style: "success" } });
+    expect(await host.pick(X, "chats", HIKE, "react-send", { values: { emoji: "❤️" } })).toEqual({ keep: true, toast: { title: "Reacted ❤️", message: "Weekend hike" } });
     expect(await host.pick(X, "chats", HIKE, "react-send", { values: { emoji: "" } })).toMatchObject({ toast: { title: "Reaction removed" } });
     expect(mock.reacted).toEqual([{ chatId: HIKE, messageId: "false_120363012345678901@g.us_B5", emoji: "❤️" }, { chatId: HIKE, messageId: "false_120363012345678901@g.us_B5", emoji: "" }]);
   });
@@ -446,21 +446,21 @@ describe("whatsapp", () => {
   test("a wrong key is a 401 hint naming the setting; no key at all a hint and a hidden bar item, with no call made; a session name nobody has; an unreachable gateway names the url", async () => {
     host.changeSettings(X, { settings: settings({ api_key: "k-wrong" }) });
     await host.until(() => host.coreCalls.length > 0);
-    expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:auth", name: "OpenWA rejected the API key", subtitle: "401: check api_key under Settings, Extensions, WhatsApp" }]);
+    expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:auth", name: "OpenWA rejected the API key", subtitle: "401: check api_key under Settings › Extensions › WhatsApp" }]);
     expect(mock.seen.at(-1)!.key).toBe("k-wrong");
     host.changeSettings(X, { settings: settings({ api_key: "" }) });
     await host.until(() => host.coreCalls.length > 0);
     const n = mock.seen.length;
-    expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:key", name: "No API key set", subtitle: "Set api_key under Settings, Extensions, WhatsApp: a key from OpenWA's Settings, API keys" }]);
+    expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:key", name: "API key is not set", subtitle: "Set api_key under Settings › Extensions › WhatsApp: a key from OpenWA's Settings, API keys" }]);
     expect(await host.render(X, "unread", { reason: "cli" })).toEqual({ hidden: true });
     expect(mock.seen.length).toBe(n);
     host.changeSettings(X, { settings: settings({ session: "nope" }) });
     await host.until(() => host.coreCalls.length > 0);
-    expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:session", name: 'No WhatsApp session named "nope"', subtitle: `Set session under Settings, Extensions, WhatsApp to a session ${mock.url} lists` }]);
+    expect(await list("chats", "", { refresh: true })).toMatchObject([{ id: "hint:session", name: 'No WhatsApp session named "nope"', subtitle: `Set session under Settings › Extensions › WhatsApp to a session ${mock.url} lists` }]);
     host.changeSettings(X, { settings: settings({ base_url: "http://127.0.0.1:1" }) });
     await host.until(() => host.coreCalls.length > 0);
     const down = await list("chats", "", { refresh: true });
-    expect(down).toMatchObject([{ id: "hint:unreachable", name: "OpenWA is unreachable at http://127.0.0.1:1", subtitle: "Check base_url under Settings, Extensions, WhatsApp, and that the gateway is up" }]);
+    expect(down).toMatchObject([{ id: "hint:unreachable", name: "OpenWA is unreachable at http://127.0.0.1:1", subtitle: "Check base_url under Settings › Extensions › WhatsApp, and that the gateway is up" }]);
     host.changeSettings(X, { settings: settings() });
     await host.until(() => host.coreCalls.length > 0);
     expect((await list("chats", "", { refresh: true }))[0]).toMatchObject({ id: MARA });

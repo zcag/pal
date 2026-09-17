@@ -10,7 +10,7 @@
 // PATH).
 import { readFile } from "node:fs/promises";
 import { hostname } from "node:os";
-import { settings, wifi as wifiCore, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { errorMessage, hint, run as exec, settings, toast, wifi as wifiCore, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.network]`, default in pal.json. */
 type Settings = { public_ip_url: string };
@@ -29,16 +29,7 @@ const MAC_SETTINGS_URL = "x-apple.systempreferences:com.apple.Network-Settings.e
 const LINUX_SETTINGS: string[][] = [["gnome-control-center", "network"], ["systemsettings", "kcm_networkmanagement"], ["nm-connection-editor"]];
 
 /** Stdout of `argv`, or "" when the tool is missing, fails or takes longer than `ms`. */
-async function run(argv: string[], ms = TOOL_MS): Promise<string> {
-  if (!Bun.which(argv[0])) return "";
-  try {
-    const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
-    const timer = setTimeout(() => proc.kill(), ms);
-    const [code, out] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
-    clearTimeout(timer);
-    return code === 0 ? out : "";
-  } catch { return ""; }
-}
+const run = (argv: string[], ms = TOOL_MS): Promise<string> => (Bun.which(argv[0]) ? exec(argv, { ms }).catch(() => "") : Promise.resolve(""));
 
 // ---- what is gathered ------------------------------------------------------
 
@@ -168,7 +159,7 @@ async function fetchPublic(url: string): Promise<Public | { error: string }> {
     }
     return IP_RE.test(text) ? { ip: text, at } : { error: "not an address" };
   } catch (e) {
-    return { error: (e as Error)?.name === "TimeoutError" ? `no reply in ${FETCH_MS / 1000} s` : String((e as Error)?.message ?? e) };
+    return { error: (e as Error)?.name === "TimeoutError" ? `did not answer within ${FETCH_MS / 1000} s` : errorMessage(e) };
   }
 }
 
@@ -196,7 +187,6 @@ function row(id: string, value: string, subtitle: string, section: string, keywo
   known.set(id, { value, detail });
   return { id, name: value, subtitle, icon, keywords, section, actions: ACTIONS };
 }
-const hint = (id: string, name: string, subtitle: string, section: string, icon: string): Item => ({ id, name, subtitle, icon, section, actions: [] });
 
 const ifaceDetail = (i: Iface): Detail => ({
   metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid ?? (i.ssidHidden ? "hidden by macOS until pal has Location access (the Wi-Fi palette asks)" : undefined)], ["Security", i.security], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac], ["Status", i.up === undefined ? undefined : i.up ? "active" : "inactive"]]),
@@ -211,7 +201,7 @@ function rows(s: Snapshot, withPublic: boolean): Item[] {
     for (const a of i.v4) out.push(row(`if:${i.name}:${a}`, a, label, SECTION.machine, kw, ifaceDetail(i), icon));
     for (const a of i.v6) out.push(row(`if:${i.name}:${a}`, a, `${label} · IPv6`, SECTION.machine, [...kw, "ipv6"], ifaceDetail(i), icon));
   }
-  if (!s.ifaces.length) out.push(hint("if:none", "No interface has an address", "Not connected to any network", SECTION.machine, GLYPH.wired));
+  if (!s.ifaces.length) out.push(hint("if:none", "No interface has an address", "Not connected to any network", { section: SECTION.machine, icon: GLYPH.wired }));
   for (const [n, a] of s.tailscale.entries()) out.push(row(`tailscale:${a}`, a, n ? "Tailscale · IPv6" : "Tailscale", SECTION.machine, ["tailscale", "ts", "vpn"], { metadata: meta([["Tailscale IPv4", s.tailscale[0]], ["Tailscale IPv6", s.tailscale[1]]]) }, GLYPH.tailscale));
   out.push(row("hostname", s.host, "Hostname", SECTION.machine, ["hostname", "host", "name"], { metadata: meta([["Hostname", s.host], ["Local hostname", s.localHost]]) }, GLYPH.host));
   if (s.localHost && s.localHost !== s.host) out.push(row("localhostname", s.localHost, "Local hostname (Bonjour)", SECTION.machine, ["hostname", "bonjour", "mdns", "local"], { metadata: meta([["Hostname", s.host], ["Local hostname", s.localHost]]) }, GLYPH.host));
@@ -222,11 +212,11 @@ function rows(s: Snapshot, withPublic: boolean): Item[] {
       out.push(row("public", p.ip, ["Public IP", where, p.org].filter(Boolean).join(" · "), SECTION.internet, ["public", "wan", "external", "ip", ...(p.country ? [p.country] : []), ...(p.org ? [p.org] : [])], {
         metadata: meta([["Public IP", p.ip], ["City", p.city], ["Region", p.region], ["Country", p.country], ["Organisation", p.org], ["Fetched", new Date(p.at).toLocaleTimeString()]]),
       }, GLYPH.public));
-    } else out.push(hint("public:none", "Public IP unavailable", p ? `${p.error}; cmd+r tries again` : "no endpoint", SECTION.internet, GLYPH.public));
+    } else out.push(hint("public:none", "Public IP unavailable", p ? `${p.error}; cmd+r tries again` : "no endpoint", { section: SECTION.internet, icon: GLYPH.public }));
   }
   if (s.gateway) out.push(row("gateway", s.gateway.ip, ["Gateway", s.gateway.dev].filter(Boolean).join(" · "), SECTION.network, ["gateway", "router", "default route"], { metadata: meta([["Gateway", s.gateway.ip], ["Interface", s.gateway.dev]]) }, GLYPH.gateway));
   for (const [n, d] of s.dns.entries()) out.push(row(`dns:${d}`, d, s.dns.length > 1 ? `DNS ${n + 1}` : "DNS", SECTION.network, ["dns", "nameserver", "resolver"], { metadata: meta([["DNS server", d], ["Order", String(n + 1)], ["All", s.dns.join(", ")]]) }, GLYPH.dns));
-  if (!s.gateway && !s.dns.length) out.push(hint("network:none", "No gateway or DNS", "No default route", SECTION.network, GLYPH.gateway));
+  if (!s.gateway && !s.dns.length) out.push(hint("network:none", "No gateway or DNS", "No default route", { section: SECTION.network, icon: GLYPH.gateway }));
   return out;
 }
 
@@ -262,12 +252,12 @@ export default {
         if (action === "settings") {
           if (MAC) return { open: MAC_SETTINGS_URL };
           const tool = LINUX_SETTINGS.find((t) => Bun.which(t[0]));
-          if (!tool) return { keep: true, toast: { title: "No network settings app", message: "None of gnome-control-center, systemsettings, nm-connection-editor is installed", style: "failure" } };
+          if (!tool) return toast("No network settings app", "None of gnome-control-center, systemsettings, nm-connection-editor is installed", "failure");
           spawnDetached(tool);
           return { hide: true };
         }
         const value = (await lookup(id))?.value;
-        return value === undefined ? { keep: true, toast: { title: "Row is gone", message: "The rows were listed again", style: "failure" } } : { copy: value };
+        return value === undefined ? toast("Row is gone", "The rows were listed again", "failure") : { copy: value };
       },
       detail: async (id) => (await lookup(id))?.detail,
     },

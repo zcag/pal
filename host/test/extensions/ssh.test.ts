@@ -111,7 +111,7 @@ describe("ssh", () => {
   test("ping: the round trip as a toast for a host that answers, a failure toast for one that does not", async () => {
     if (!Bun.which("ping")) return;
     const ok = await pick("loop", "ping");
-    expect(ok).toMatchObject({ keep: true, toast: { title: expect.stringMatching(/^127\.0\.0\.1: [\d.]+ ms$/), style: "success" } });
+    expect(ok).toMatchObject({ keep: true, toast: { title: expect.stringMatching(/^127\.0\.0\.1: [\d.]+ ms$/) } });
     const bad = await pick("bare", "ping");
     expect(bad).toMatchObject({ keep: true, toast: { title: "bare did not answer", style: "failure" } });
   });

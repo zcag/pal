@@ -6,9 +6,8 @@
 // keyword typed in any other app, `expand = true`, macOS) is the app's:
 // it reads this extension's storage file and its settings directly
 // (app/src-tauri/src/expansion.rs), nothing here runs for it.
-import { clipboard, home, selection, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
+import { clipboard, errorMessage, home, now, selection, storage, toast, type Action, type Ctx, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, preview, type Snippet } from "./placeholders.ts";
-import { now } from "./clock.ts";
 
 const KEY = "snippets";
 /** Material Design glyphs in the bundled Nerd Font: scissors for a snippet, plus, import, export for the command rows. */
@@ -33,7 +32,7 @@ const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1
 /** Another snippet's text by name or keyword (case-insensitive), for `{snippet name=sig}`. */
 const snippetText = async (name: string) => { const n = name.trim().toLowerCase(); const list = await all(); return (list.find((x) => x.name.toLowerCase() === n) ?? list.find((x) => x.keyword?.toLowerCase() === n))?.text; };
 /** The placeholders' sources: the clipboard, the app in front's selected text for `{selection}` (the clipboard when nothing is selected), the other snippets. */
-const SOURCES = { clipboard: clipboardText, selection: selection.text, now, snippet: snippetText };
+const SOURCES = { clipboard: clipboardText, selection: selection.text, now: () => new Date(now()), snippet: snippetText };
 
 function row(s: Snippet): Item {
   return {
@@ -84,18 +83,18 @@ async function transfer(id: typeof IMPORT | typeof EXPORT, values: FormValues): 
   const snippets = await all();
   if (id === EXPORT) {
     try { await Bun.write(path, JSON.stringify(snippets.map(({ id: _, ...s }) => s), null, 2) + "\n"); }
-    catch (e) { return { form: pathForm(id, raw, { path: `Could not write: ${e instanceof Error ? e.message : e}` }) }; }
-    return { keep: true, toast: { title: `Exported ${snippets.length} ${snippets.length === 1 ? "snippet" : "snippets"}`, message: path } };
+    catch (e) { return { form: pathForm(id, raw, { path: `Could not write: ${errorMessage(e)}` }) }; }
+    return toast(`Exported ${snippets.length} ${snippets.length === 1 ? "snippet" : "snippets"}`, path);
   }
   let incoming: Snippet[];
   try { incoming = fromJson(await Bun.file(path).json()); }
-  catch (e) { return { form: pathForm(id, raw, { path: `Could not read: ${e instanceof Error ? e.message : e}` }) }; }
+  catch (e) { return { form: pathForm(id, raw, { path: `Could not read: ${errorMessage(e)}` }) }; }
   const key = (s: Snippet) => `${s.name}\0${s.text}`;
   const have = new Set(snippets.map(key));
   const fresh: Snippet[] = [];
   for (const s of incoming) if (!have.has(key(s))) { have.add(key(s)); fresh.push(s); }
   if (fresh.length) await storage.set(KEY, [...snippets, ...fresh]);
-  return { keep: true, toast: { title: `Imported ${fresh.length} ${fresh.length === 1 ? "snippet" : "snippets"}`, message: incoming.length > fresh.length ? `${incoming.length - fresh.length} already there` : undefined } };
+  return toast(`Imported ${fresh.length} ${fresh.length === 1 ? "snippet" : "snippets"}`, incoming.length > fresh.length ? `${incoming.length - fresh.length} already there` : undefined);
 }
 
 /** The submit: refused with the form again, else stored and listed again. */
@@ -112,7 +111,7 @@ async function save(id: string, values: FormValues): Promise<Effect> {
   if (Object.keys(errors).length) return { form: form(before, errors) };
   const snippet: Snippet = { id: before?.id ?? crypto.randomUUID(), name, text, ...(keyword && { keyword }) };
   await storage.set(KEY, before ? snippets.map((s) => (s.id === snippet.id ? snippet : s)) : [...snippets, snippet]);
-  return { keep: true, toast: { title: before ? "Saved" : "Created", message: name } };
+  return toast(before ? "Saved" : "Created", name);
 }
 
 export default {
@@ -149,7 +148,7 @@ export default {
           case "edit": return { form: form(s) };
           case "delete": {
             await storage.set(KEY, (await all()).filter((x) => x.id !== id));
-            return { keep: true, toast: { title: "Deleted", message: s.name } };
+            return toast("Deleted", s.name);
           }
           default: return { paste: { text: await expand(s.text, SOURCES) } };
         }

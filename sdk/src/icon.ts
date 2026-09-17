@@ -9,12 +9,7 @@
 // or the extension's own colour. A row with no colour of its own inherits
 // its palette's tile colour in the UI, so a plain glyph is never grey next
 // to a tile.
-//
-// `protocol.ts` still spells `Icon`, `PaletteBase.icon` and
-// `Manifest.icon` without these (another pass owns that file); the
-// helpers here return what those fields take so an extension type-checks
-// today and nothing moves when the contract admits the objects.
-import type { Icon, OwnIcon, TileColorName } from "./protocol.ts";
+import type { OwnIcon, TileColorName, TileIcon, TintedIcon } from "./protocol.ts";
 
 /** The brand palette: `--pal-brand-<name>` in app/src/ui/tokens.css, each with a light and a dark value. */
 export const TILE_COLORS = ["red", "orange", "amber", "green", "teal", "cyan", "blue", "indigo", "violet", "pink", "slate", "ink"] as const satisfies readonly TileColorName[];
@@ -23,10 +18,8 @@ export type TileColor = TileColorName;
 /** A tile's mark: one Nerd Font glyph (a private-use codepoint), or an SVG path set (`<path d>` data, drawn in a 16 by 16 box, filled white). */
 export type TileMark = { glyph: string; svg?: undefined } | { svg: string; glyph?: undefined };
 /** `badge`: one or two characters drawn in the tile's corner, an instance's mark ("W" for Work). */
-export type Tile = TileMark & { bg: TileColor; badge?: string };
-export type TileIcon = { tile: Tile };
-/** A glyph in a colour: a brand name, or a hex colour of the extension's own. */
-export type TintedIcon = { glyph: string; color: TileColor | `#${string}` };
+export type Tile = TileIcon["tile"];
+export type { TileIcon, TintedIcon };
 
 /** An SVG mark is `d` path data only, not markup, and short: it is inlined per row. */
 export const MAX_TILE_SVG = 400;
@@ -50,16 +43,14 @@ export function tile(bg: TileColor, mark: string | { svg: string }): OwnIcon {
  * is, since only a tile has a corner. What the host does to a `multi`
  * extension's tile for a non-default instance.
  */
-export function badged<I>(icon: I, mark: { tint?: TileColor; badge?: string }): I {
+export function badged<I>(icon: I, mark: { tint?: TileColor; badge?: string }): I | TileIcon {
   if (!isTileIcon(icon)) return icon;
   const { badge, tint } = mark;
-  return { tile: { ...icon.tile, ...(tint && { bg: tint }), ...(badge && { badge }) } } as unknown as I;
+  return { tile: { ...icon.tile, ...(tint && { bg: tint }), ...(badge && { badge }) } };
 }
 
 /** A glyph in a colour, for a row: `tinted("", "green")`. */
-export function tinted(glyph: string, color: TileColor | `#${string}`): Icon {
-  return { glyph, color } as unknown as Icon;
-}
+export const tinted = (glyph: string, color: TileColor | `#${string}`): TintedIcon => ({ glyph, color });
 
 export const isTileIcon = (icon: unknown): icon is TileIcon => !!icon && typeof icon === "object" && "tile" in icon && !!(icon as TileIcon).tile && typeof (icon as TileIcon).tile === "object";
 export const isTintedIcon = (icon: unknown): icon is TintedIcon => !!icon && typeof icon === "object" && typeof (icon as TintedIcon).glyph === "string" && "color" in icon;

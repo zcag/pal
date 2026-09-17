@@ -28,7 +28,7 @@
 // too. Outside the popover's window the item asks to be rendered again at
 // the next lyric line (`refresh`), so the strip changes line on time
 // without a poll.
-import { bar, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+import { bar, errorMessage, failed, hint, toast, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { EXTENSION, ITEM, NotSignedIn, conf, log, signIn, signOut, signedIn, stopListener } from "./auth.ts";
 import { ApiError, Offline, RateLimited, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
 import { tintOf, type Tint } from "./color.ts";
@@ -63,28 +63,26 @@ const COVER_MS = 6000;
 
 // ---- errors to rows and statuses -----------------------------------------------
 
-const hint = (id: string, name: string, subtitle?: string, actions: Action[] = [], icon: string = G.info): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions });
-
 function statusOf(e: unknown): Status {
   if (e instanceof NotSignedIn) return { kind: e.reason };
   if (e instanceof RateLimited) return { kind: "limited", message: e.message };
   if (e instanceof Offline) return { kind: "offline", message: e.message };
   if (e instanceof ApiError && e.noDevice) return { kind: "no_device" };
   if (e instanceof ApiError && e.premium) return { kind: "error", message: "Spotify Premium is needed to control playback" };
-  log(e instanceof Error ? e.message : String(e));
-  return { kind: "error", message: e instanceof Error ? e.message : String(e) };
+  log(errorMessage(e));
+  return { kind: "error", message: errorMessage(e) };
 }
 
 /** What a failed listing shows instead of rows. */
 function failure(e: unknown): Item[] {
   const s = statusOf(e);
   switch (s.kind) {
-    case "client_id": return [hint("client_id", "Set a Spotify client id", "Settings, Extensions, Spotify; the README says how to create the app at developer.spotify.com", [{ id: "settings", title: "Open Settings" }], G.key)];
-    case "signed_out": return [hint("signin", "Sign in to Spotify", "Opens Spotify in the browser; pal listens for the redirect and keeps the tokens", [{ id: "signin", title: "Sign in to Spotify" }], G.login)];
-    case "limited": return [hint("limited", "Spotify rate limit reached", s.message, [], G.alert)];
-    case "offline": return [hint("offline", "Spotify is unreachable", s.message, [], G.alert)];
-    case "no_device": return [hint("device", "No active device", "Open Spotify on a device, then try again", [], G.devices)];
-    default: return [hint("error", "Spotify did not answer", s.message, [], G.alert)];
+    case "client_id": return [hint("client_id", "Client id is not set", "Settings › Extensions › Spotify; the README says how to create the app at developer.spotify.com", { icon: G.key, actions: [{ id: "settings", title: "Open Settings" }] })];
+    case "signed_out": return [hint("signin", "Sign in to Spotify", "Opens Spotify in the browser; pal listens for the redirect and keeps the tokens", { icon: G.login, actions: [{ id: "signin", title: "Sign in to Spotify" }] })];
+    case "limited": return [hint("limited", "Spotify rate limit reached", s.message, { icon: G.alert })];
+    case "offline": return [hint("offline", "Spotify is unreachable", s.message, { icon: G.alert })];
+    case "no_device": return [hint("device", "No active device", "Open Spotify on a device, then try again", { icon: G.devices })];
+    default: return [hint("error", "Spotify did not answer", s.message, { icon: G.alert })];
   }
 }
 
@@ -98,16 +96,15 @@ async function pickHint(id: string): Promise<Effect> {
 async function startSignIn(): Promise<Effect> {
   const s = conf();
   const clientId = s.client_id?.trim();
-  if (!clientId) return { keep: true, toast: { title: "No client id", message: "Set it under Settings, Extensions, Spotify (the README tells how)", style: "failure" } };
+  if (!clientId) return toast("Client id is not set", "Set it under Settings › Extensions › Spotify (the README tells how)", "failure");
   try {
     const url = await signIn(clientId, Number(s.redirect_port) || 27182);
     return { open: url, toast: { title: "Finish signing in in the browser", message: `pal listens on 127.0.0.1:${Number(s.redirect_port) || 27182}` } };
   } catch (e) {
-    return { keep: true, toast: { title: "Could not listen for the redirect", message: e instanceof Error ? e.message : String(e), style: "failure" } };
+    return failed("listen for the redirect", e);
   }
 }
 
-const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
 /** Rows or the failure hint, never a thrown listing. */
 const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
 
@@ -156,7 +153,7 @@ function coverOf(t: Track | undefined): Promise<Cover | undefined> {
       const type = r.headers.get("content-type")?.split(";")[0] || "image/jpeg";
       return (cover = { id: t.id, data: `data:${type};base64,${Buffer.from(bytes).toString("base64")}`, tint: type === "image/jpeg" ? tintOf(bytes) : undefined });
     })
-    .catch((e) => { log(`cover: ${e instanceof Error ? e.message : e}`); return undefined; })
+    .catch((e) => { log(`cover: ${errorMessage(e)}`); return undefined; })
     .finally(() => { if (coverFetch?.p === p) coverFetch = undefined; });
   coverFetch = { id: t.id, p };
   return p;
@@ -185,7 +182,7 @@ function thumbOf(t: Track): Promise<void> {
       thumbs.set(t.id, `data:${type};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`);
       if (thumbs.size > THUMB_KEEP) thumbs.delete(thumbs.keys().next().value!);
     })
-    .catch((e) => { log(`thumb: ${e instanceof Error ? e.message : e}`); thumbs.set(t.id, null); })
+    .catch((e) => { log(`thumb: ${errorMessage(e)}`); thumbs.set(t.id, null); })
     .finally(() => thumbFetch.delete(t.id));
   thumbFetch.set(t.id, p);
   return p;
@@ -200,7 +197,7 @@ async function queueFor(maxAge = QUEUE_MS): Promise<QueueTrack[] | undefined> {
       await Promise.all(next.map(thumbOf));
       queueCache = { at: Date.now(), tracks: next.map((t) => ({ id: t.id, name: t.name, artist: t.artist, cover: thumbs.get(t.id) ?? undefined })) };
     })
-    .catch((e) => { log(`queue: ${e instanceof Error ? e.message : e}`); queueCache = { at: Date.now(), tracks: queueCache?.tracks ?? [] }; })
+    .catch((e) => { log(`queue: ${errorMessage(e)}`); queueCache = { at: Date.now(), tracks: queueCache?.tracks ?? [] }; })
     .finally(() => { queueFetch = undefined; });
   await queueFetch;
   return queueCache?.tracks;
@@ -218,7 +215,7 @@ async function likedOf(t: Track | undefined): Promise<boolean | undefined> {
 
 const lyricsKey = (t: Track) => ({ id: t.id, name: t.name, artist: t.artist.split(", ")[0] ?? t.artist, album: t.album, duration: t.duration / 1000 });
 /** Asks lrclib for the track's lyrics (once per track); an error leaves them unknown and is logged. */
-const askLyrics = (t: Track | undefined): Promise<Lyrics | null | undefined> => (t && t.kind === "track" ? lyricsFor(lyricsKey(t)).catch((e) => { log(`lyrics: ${e instanceof Error ? e.message : e}`); return undefined; }) : Promise.resolve(null));
+const askLyrics = (t: Track | undefined): Promise<Lyrics | null | undefined> => (t && t.kind === "track" ? lyricsFor(lyricsKey(t)).catch((e) => { log(`lyrics: ${errorMessage(e)}`); return undefined; }) : Promise.resolve(null));
 
 /** The view's state from the live one, with what is cached of the cover, the tint, the like and the lyrics. */
 function stateOf(l: Live, layout: Layout): NowState {
@@ -259,7 +256,7 @@ async function act(action: string, layout: Layout): Promise<Effect> {
     try { await f(); } catch (e) {
       const s = statusOf(e);
       if (s.kind === "no_device") return { view: render({ ...stateOf(l, layout), status: s }) };
-      return { ...(await again()), toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" as const } };
+      return { ...(await again()), toast: { title, message: errorMessage(e), style: "failure" as const } };
     }
     if (after) patch(after);
     if (settle) { await Bun.sleep(SKIP_SETTLE_MS); return again(true); }
@@ -298,7 +295,7 @@ async function act(action: string, layout: Layout): Promise<Effect> {
     case "like": {
       if (!t || t.kind !== "track") return { ...(await again()), toast: { title: "Only a track can be liked" } };
       const was = likes.get(t.id) ?? (await likedOf(t)) ?? false;
-      try { await (was ? unlike([t.id]) : like([t.id])); likes.set(t.id, !was); } catch (e) { return { ...(await again()), toast: { title: was ? "Could not unlike" : "Could not like", message: e instanceof Error ? e.message : String(e), style: "failure" } }; }
+      try { await (was ? unlike([t.id]) : like([t.id])); likes.set(t.id, !was); } catch (e) { return { ...(await again()), toast: { title: was ? "Could not unlike" : "Could not like", message: errorMessage(e), style: "failure" } }; }
       return { ...(await again()), toast: { title: was ? "Removed from Liked Songs" : "Added to Liked Songs", message: t.name } };
     }
     case "copy": {
@@ -365,7 +362,7 @@ function startTick() {
         const key = JSON.stringify(v);
         if (key !== lastPushed) { lastPushed = key; await liveView.update(v, { extension: EXTENSION, palette: "now-playing" }); }
       }
-    } catch (e) { log(`tick: ${e instanceof Error ? e.message : e}`); }
+    } catch (e) { log(`tick: ${errorMessage(e)}`); }
   }, TICK_MS);
 }
 
@@ -493,7 +490,7 @@ async function pickEntity(id: string, action = "play", ctx?: Ctx): Promise<Effec
   } catch (err) {
     const s = statusOf(err);
     if (s.kind === "no_device") return { keep: true, toast: { title: "No active device", message: "Open Spotify on a device first, or pick one in Devices", style: "failure" } };
-    return failToast(`Could not ${action === "queue" ? "add to the queue" : action}`, err);
+    return failed(action === "queue" ? "add to the queue" : action, err);
   }
   return { keep: true };
 }
@@ -506,7 +503,7 @@ const searchCache = new Map<string, { at: number; rows: Item[] }>();
 
 async function searchRows(query = ""): Promise<Item[]> {
   const q = query.trim();
-  if (q.length < 2) return [hint("search", "Search Spotify", "Tracks, artists, albums, playlists, podcasts", [], G.search)];
+  if (q.length < 2) return [hint("search", "Search Spotify", "Tracks, artists, albums, playlists, podcasts", { icon: G.search })];
   const c = searchCache.get(q);
   if (c && Date.now() - c.at < 60_000) return c.rows;
   const seq = ++searchSeq;
@@ -523,7 +520,7 @@ async function searchRows(query = ""): Promise<Item[]> {
     ...r.shows.map((s) => showRow(s, "Podcasts")),
     ...r.episodes.map((e) => trackRow(e, "Episodes")),
   ];
-  const out = rows.length ? rows : [hint("empty", "No results", `Nothing on Spotify matches "${q}"`, [], G.search)];
+  const out = rows.length ? rows : [hint("empty", "No results", `Nothing on Spotify matches "${q}"`, { icon: G.search })];
   searchCache.set(q, { at: Date.now(), rows: out });
   if (searchCache.size > 50) searchCache.delete(searchCache.keys().next().value!);
   lastSearch = out;
@@ -539,11 +536,11 @@ async function playlistRows(ctx?: Ctx): Promise<Item[]> {
   const args = ctx?.args as { playlist?: string; album?: string; name?: string } | undefined;
   if (args?.playlist) {
     const tracks = await playlistTracks(args.playlist);
-    return tracks.length ? tracks.map((t) => trackRow(t, undefined, {}, `spotify:playlist:${args.playlist}`)) : [hint("empty", "An empty playlist", "Nothing to play here", [], G.playlist)];
+    return tracks.length ? tracks.map((t) => trackRow(t, undefined, {}, `spotify:playlist:${args.playlist}`)) : [hint("empty", "An empty playlist", "Nothing to play here", { icon: G.playlist })];
   }
   if (args?.album) {
     const tracks = await albumTracks(args.album);
-    return tracks.length ? tracks.map((t) => trackRow(t, undefined, {}, `spotify:album:${args.album}`)) : [hint("empty", "An empty album", "Nothing to play here", [], G.album)];
+    return tracks.length ? tracks.map((t) => trackRow(t, undefined, {}, `spotify:album:${args.album}`)) : [hint("empty", "An empty album", "Nothing to play here", { icon: G.album })];
   }
   const [lists, id] = await Promise.all([myPlaylists(), myId()]);
   return lists.map((p) => playlistRow(p, p.ownerId === id ? "Yours" : "Followed"));
@@ -552,7 +549,8 @@ async function playlistRows(ctx?: Ctx): Promise<Item[]> {
 /** The album's tracks: `/albums/{id}` carries them simplified (no album on each), so the album's name and cover are filled in. */
 async function albumTracks(id: string): Promise<Track[]> {
   const album = await api<any>("GET", `/albums/${id}`);
-  return ((album?.tracks?.items ?? []) as any[]).map((t) => toTrack({ ...t, album: { name: album?.name, images: album?.images } })).filter((t): t is Track => !!t);
+  const items: any[] = album?.tracks?.items ?? [];
+  return items.map((t) => toTrack({ ...t, album: { name: album?.name, images: album?.images } })).filter((t): t is Track => !!t);
 }
 
 // ---- library --------------------------------------------------------------------
@@ -571,7 +569,7 @@ async function libraryRows(ctx?: Ctx): Promise<Item[]> {
     default: {
       const rows = await likedTracks();
       for (const t of rows) likes.set(t.id, true);
-      return rows.length ? rows.map((t) => trackRow(t, undefined, { accessories: acc(t, { date: t.addedAt }) })) : [hint("empty", "No liked songs yet", "cmd+l on a track adds it", [], G.heartOutline)];
+      return rows.length ? rows.map((t) => trackRow(t, undefined, { accessories: acc(t, { date: t.addedAt }) })) : [hint("empty", "No liked songs yet", "cmd+l on a track adds it", { icon: G.heartOutline })];
     }
   }
 }
@@ -585,7 +583,7 @@ async function deviceRows(): Promise<Item[]> {
     accessories: [...(d.volume != null ? [{ text: `${d.volume}%` }] : []), ...(d.active ? [{ tag: "active", color: "green" }] : [])],
     actions: d.active ? [{ id: "vol-up", title: "Volume up", shortcut: "cmd+up" }, { id: "vol-down", title: "Volume down", shortcut: "cmd+down" }] : [{ id: "transfer", title: "Play here" }, { id: "transfer-paused", title: "Transfer without playing", shortcut: "cmd+enter" }],
   }));
-  if (!rows.length) rows.push(hint("none", "No devices", "Open Spotify on a phone, a computer or a speaker", [], G.devices));
+  if (!rows.length) rows.push(hint("none", "No devices", "Open Spotify on a phone, a computer or a speaker", { icon: G.devices }));
   const active = ds.find((d) => d.active);
   if (active?.supportsVolume) {
     rows.push(
@@ -618,7 +616,7 @@ async function pickDevice(id: string, action?: string): Promise<Effect> {
     await transfer(deviceId, action !== "transfer-paused");
     holdUntil = 0;
     return { keep: true, toast: { title: "Playback transferred" } };
-  } catch (e) { return failToast("Could not change the device", e); }
+  } catch (e) { return failed("change the device", e); }
 }
 
 // ---- queue -----------------------------------------------------------------------
@@ -634,7 +632,7 @@ async function queueRows(): Promise<Item[]> {
       actions: [{ id: "skip", title: i === 0 ? "Skip to it" : `Skip ${i + 1} ahead` }, { id: "like", title: likes.get(t.id) ? "Unlike" : "Like", shortcut: "cmd+l" }, { id: "open", title: "Open in Spotify", shortcut: "cmd+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
     });
   });
-  if (!rows.length) rows.push(hint("empty", "The queue is empty", "Nothing is playing; cmd+enter on a track queues it", [], G.playlist));
+  if (!rows.length) rows.push(hint("empty", "The queue is empty", "Nothing is playing; cmd+enter on a track queues it", { icon: G.playlist }));
   return rows;
 }
 
@@ -648,7 +646,7 @@ async function pickQueue(id: string, action?: string): Promise<Effect> {
   if (!m) throw new Error(`no row ${id}`);
   if (action !== "skip") return pickEntity(`${table.get(`track:${m[2]}`)?.kind ?? "track"}:${m[2]}`, action);
   const n = Math.min(MAX_SKIP, Number(m[1]) + 1);
-  try { for (let i = 0; i < n; i++) await next(); } catch (e) { return failToast("Could not skip", e); }
+  try { for (let i = 0; i < n; i++) await next(); } catch (e) { return failed("skip", e); }
   forgetQueue();
   holdUntil = 0;
   return { keep: true, toast: { title: n === 1 ? "Skipped" : `Skipped ${n} tracks` } };
@@ -674,7 +672,7 @@ async function pinnedRows(): Promise<Item[]> {
   for (const pin of pins) {
     const id = pin.replace(/^spotify:playlist:/, "").replace(/^https:\/\/open\.spotify\.com\/playlist\//, "").split("?")[0];
     const p = lists.find((l) => l.id === id) ?? lists.find((l) => l.name.toLowerCase() === pin.toLowerCase());
-    if (!p) { rows.push(hint(`pin:${pin}`, `Play ${pin}`, "Not among your playlists; the pinned setting names one by name or link", [], G.alert)); continue; }
+    if (!p) { rows.push(hint(`pin:${pin}`, `Play ${pin}`, "Not among your playlists; the pinned setting names one by name or link", { icon: G.alert })); continue; }
     rows.push({ id: `pin:${p.id}`, name: `Play ${p.name}`, subtitle: [p.owner, `${p.tracks} tracks`].filter(Boolean).join(" · "), icon: picture(p, G.playlist), keywords: ["spotify", "playlist", p.name], actions: [{ id: "play", title: "Play" }, { id: "shuffle", title: "Play shuffled", shortcut: "cmd+s" }, { id: "open", title: "Open in Spotify", shortcut: "cmd+o" }] });
   }
   return rows;

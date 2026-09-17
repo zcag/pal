@@ -1,27 +1,18 @@
 // Google Calendar as a source: the API v3 read directly, per account, with
-// a bearer token a shell command prints. The command is the secret's
-// owner: pal never sees a refresh token or a client secret, only the
-// short-lived access token on the command's stdout, kept in memory until
-// its expiry. `gcloud auth application-default print-access-token`, a broker behind ssh, a
-// keychain lookup: anything that prints a token, or the JSON an OAuth
-// endpoint answers (`access_token`, `expires_in`).
+// a bearer token a shell command prints (the SDK's `mintToken`: the
+// command owns the secret, pal keeps the access token in memory until its
+// stated expiry).
 //
 // The events come back in the core's `CalendarEvent` shape so the
 // palettes and the bar item read one kind of row whatever the source.
 // `PAL_GOOGLE_API` replaces `https://www.googleapis.com/calendar/v3` (the
 // tests point it at a local server).
-import type { Attendee, Calendar, CalendarEvent } from "@zcag/pal";
-import { now as clock } from "./clock.ts";
+import { errorMessage, mintToken, now as clock, type Attendee, type Calendar, type CalendarEvent } from "@zcag/pal";
 import { startOfDay } from "./schedule.ts";
 
 export type Account = { name: string; token_command: string; calendars: string[] };
 
 export const API = (process.env.PAL_GOOGLE_API || "https://www.googleapis.com/calendar/v3").replace(/\/+$/, "");
-/** How long a bare token (no `expires_in`) is trusted; Google's last 60 min. */
-const BARE_TOKEN_TTL = 30 * 60_000;
-/** Refetch this long before the expiry the command stated. */
-const EXPIRY_MARGIN = 60_000;
-const TOKEN_CMD_MS = 20_000;
 const HTTP_MS = 10_000;
 const MAX_RESULTS = 250;
 const EVENT_FIELDS = "items(id,status,summary,description,location,start,end,htmlLink,hangoutLink,conferenceData(entryPoints(entryPointType,uri)),attendees(email,displayName,responseStatus,self,resource),organizer(email,displayName),recurringEventId)";
@@ -59,51 +50,20 @@ export function parseAccounts(raw: unknown): Account[] {
 
 // ---- tokens -------------------------------------------------------------------
 
-/** The token a command's output carries and when it stops being good: JSON with `access_token` (`expires_in` seconds, or `expiry`/`expires_at`), else the first non-empty line. */
-export function parseToken(out: string, now = clock()): { token: string; until: number } | undefined {
-  const s = out.trim();
-  if (!s) return;
-  if (s.startsWith("{")) {
-    let j: Record<string, unknown>;
-    try { j = JSON.parse(s); } catch { return; }
-    const token = typeof j.access_token === "string" ? j.access_token : typeof j.token === "string" ? j.token : undefined;
-    if (!token) return;
-    const secs = typeof j.expires_in === "number" ? j.expires_in : typeof j.expires_in === "string" ? Number(j.expires_in) : NaN;
-    const at = typeof j.expiry === "string" ? Date.parse(j.expiry) : typeof j.expires_at === "number" ? j.expires_at * (j.expires_at < 1e12 ? 1000 : 1) : NaN;
-    const until = Number.isFinite(secs) ? now + secs * 1000 : Number.isFinite(at) ? at : now + BARE_TOKEN_TTL;
-    return { token, until: until - EXPIRY_MARGIN };
-  }
-  const line = s.split("\n").map((l) => l.trim()).find(Boolean);
-  return line ? { token: line, until: now + BARE_TOKEN_TTL - EXPIRY_MARGIN } : undefined;
-}
-
 const tokens = new Map<string, { token: string; until: number }>();
 const minting = new Map<string, Promise<string>>();
 
-/** Runs `token_command` through `sh -c`; its stdout is the token. Cached until the expiry it stated, less a minute; two callers wanting one at once share the run. */
+/** The account's token (`mintToken` on its `token_command`), cached until the expiry it stated, less a minute; two callers wanting one at once share the run. The error names the account. */
 function token(a: Account, fresh = false): Promise<string> {
   const have = tokens.get(a.token_command);
   if (have && !fresh && clock() < have.until) return Promise.resolve(have.token);
   const running = minting.get(a.token_command);
   if (running) return running;
-  const p = mint(a).finally(() => minting.delete(a.token_command));
+  const p = mintToken(a.token_command, clock())
+    .then((t) => { tokens.set(a.token_command, t); return t.token; }, (e) => { throw new Error(`${a.name}: ${errorMessage(e)}`); })
+    .finally(() => minting.delete(a.token_command));
   minting.set(a.token_command, p);
   return p;
-}
-
-async function mint(a: Account): Promise<string> {
-  const proc = Bun.spawn(["sh", "-c", a.token_command], { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: process.env });
-  const kill = setTimeout(() => proc.kill(), TOKEN_CMD_MS);
-  let out: string, err: string, code: number;
-  try {
-    [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-    code = await proc.exited;
-  } finally { clearTimeout(kill); }
-  if (code !== 0) throw new Error(`${a.name}: token command exited ${code}${err.trim() ? `: ${err.trim().split("\n").pop()}` : ""}`);
-  const t = parseToken(out);
-  if (!t) throw new Error(`${a.name}: token command printed no token`);
-  tokens.set(a.token_command, t);
-  return t.token;
 }
 
 /** Forget every cached token (the accounts setting changed). */

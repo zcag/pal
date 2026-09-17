@@ -54,16 +54,21 @@ pub fn stays_open(envelope: &Value) -> bool {
     ["keep", "toast", "push", "show", "view", "form"].iter().any(|k| envelope.get(k).is_some())
 }
 
+/// A toast as an effect envelope: the panel stays up and shows it.
+pub fn toast(title: &str, message: &str, style: &str) -> Value {
+    json!({ "toast": { "title": title, "message": message, "style": style } })
+}
+
 /// The toast for a `what` that needs Accessibility, as an envelope.
 pub fn accessibility_toast(what: &str) -> Value {
-    json!({ "toast": { "title": format!("{what} needs Accessibility"), "message": "Grant pal in System Settings > Privacy & Security > Accessibility", "style": "failure" } })
+    toast(&format!("{what} needs Accessibility"), "Grant pal in System Settings > Privacy & Security > Accessibility", "failure")
 }
 
 /// The toast when the files could not go on the clipboard (no backend on
 /// Linux, a refused pasteboard write): the panel is still up, so it can
 /// carry the reason.
 fn copy_files_toast(err: &str) -> Value {
-    json!({ "toast": { "title": "Could not copy the files", "message": err, "style": "failure" } })
+    toast("Could not copy the files", err, "failure")
 }
 
 /// "Copied" in the HUD after a `copy`/`copy_files` that hides the panel: a

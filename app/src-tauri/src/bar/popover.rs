@@ -35,9 +35,9 @@
 //! so click and hotkey remain the engage paths. The first key engages; it
 //! is not replayed into the page (a global monitor cannot swallow it, and
 //! the app in front already handled it), which is what the spec asks:
-//! the first key engages, the grammar takes over from the next. pal does
-//! not ask for Input Monitoring itself yet (an open question for the
-//! permissions module).
+//! the first key engages, the grammar takes over from the next. The popover
+//! never asks for Input Monitoring itself (a peek only degrades without it);
+//! expansion asks once when it is switched on (`expansion::apply_config`).
 
 use std::collections::HashMap;
 use std::sync::Mutex;

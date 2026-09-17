@@ -1,4 +1,4 @@
-// 1Password over the `op` CLI (ported from v1's `op` palette). One `op item
+// 1Password over the `op` CLI. One `op item
 // list --format json` per listing, kept for `ttl` seconds so the per-vault
 // filters and a Refresh inside the ttl do not ask the CLI (and its biometric
 // prompt) again. A secret is only ever fetched on a pick, straight from
@@ -10,7 +10,7 @@
 // for clipboard managers to skip, out of pal's own history, and replaced
 // by the previous clipboard after 30 s; the username is a plain copy.
 import { existsSync } from "node:fs";
-import { CONCEAL_SECONDS, conceal, settings, type Accessory, type Action, type Effect, type Extension, type Item } from "@zcag/pal";
+import { CONCEAL_SECONDS, conceal, errorMessage, exec, failed, hint, settings, type Accessory, type Action, type Effect, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.onepassword]`, defaults in pal.json. */
 type Settings = { account: string; vaults: string[]; ttl: number };
@@ -51,13 +51,9 @@ async function op(args: string[]): Promise<string> {
   const bin = opPath();
   if (!bin) throw new Error("op is not installed");
   const { account } = settings.get<Settings>();
-  const proc = Bun.spawn([bin, ...args, ...(account ? ["--account", account] : [])], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
   // `op` blocks while 1Password waits for an unlock or for the "allow pal" prompt; past the limit it is killed and the row says what to do.
-  let late = false;
-  const timer = setTimeout(() => { late = true; proc.kill(); }, OP_MS);
-  const [code, out, err] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-  clearTimeout(timer);
-  if (late) throw new Error(`1Password did not answer within ${OP_MS / 1000} s: unlock it, allow pal when it asks, then refresh with cmd+r`);
+  const { code, out, err, timedOut } = await exec([bin, ...args, ...(account ? ["--account", account] : [])], { ms: OP_MS });
+  if (timedOut) throw new Error(`1Password did not answer within ${OP_MS / 1000} s: unlock it, allow pal when it asks, then refresh with cmd+r`);
   if (code !== 0) throw new Error(err.replace(/^\[ERROR\]\s*[\d/]+\s+[\d:]+\s*/gm, "").trim() || `op exited ${code}`);
   return out;
 }
@@ -119,32 +115,30 @@ function item(i: OpItem): Item {
   };
 }
 
-const hint = (id: string, name: string, subtitle: string, actions: Action[] = [], icon = ICON): Item => ({ id, name, subtitle, icon, actions });
 
 const s0 = settings.get<Settings>();
 const FILTERS = s0.vaults.length ? [{ id: "all", title: "All vaults" }, ...s0.vaults.map((v) => ({ id: v, title: v }))] : undefined;
 
 async function list(filter = "all", refresh = false): Promise<Item[]> {
   const { vaults } = settings.get<Settings>();
-  if (!opPath()) return [hint("install", "1Password CLI not installed", "Install the op command line tool; Enter opens the install page", [{ id: "install", title: "Open install page" }], HINT_ICON.install)];
+  if (!opPath()) return [hint("install", "1Password CLI is not installed", "Install the op command line tool; Enter opens the install page", { actions: [{ id: "install", title: "Open install page" }], icon: HINT_ICON.install })];
   let all: OpItem[];
   try { all = await items(refresh); } catch (e) {
-    const msg = String((e as Error)?.message ?? e);
+    const msg = errorMessage(e);
     // A terminal's `op signin` session never reaches pal; the desktop app integration is the way.
     // The CLI reaches the vault through the desktop app: not running, locked, or the integration off are the three failures a user can fix.
-    if (/couldn't connect to the 1Password desktop app/i.test(msg)) return [hint("app", "1Password is not running", "The CLI reaches the vault through the app; Enter opens 1Password, then refresh with cmd+r", [{ id: "open", title: "Open 1Password" }], HINT_ICON.signin)];
-    if (/context deadline exceeded|did not answer/i.test(msg)) return [hint("locked", "1Password did not answer", "Unlock 1Password (or allow pal when it asks), then refresh with cmd+r", [{ id: "open", title: "Open 1Password" }], HINT_ICON.signin)];
-    if (signedOut(msg)) return [hint("signin", "Connect the 1Password CLI to the app", "In 1Password: Settings, Developer, turn on \"Integrate with 1Password CLI\"; then refresh with cmd+r and allow pal when 1Password asks", [{ id: "help", title: "Open the setup guide" }], HINT_ICON.signin)];
-    return [hint("error", "1Password CLI failed", msg.split("\n")[0], [{ id: "help", title: "Open the troubleshooting guide" }], HINT_ICON.error)];
+    if (/couldn't connect to the 1Password desktop app/i.test(msg)) return [hint("app", "1Password is not running", "The CLI reaches the vault through the app; Enter opens 1Password, then refresh with cmd+r", { actions: [{ id: "open", title: "Open 1Password" }], icon: HINT_ICON.signin })];
+    if (/context deadline exceeded|did not answer/i.test(msg)) return [hint("locked", "1Password did not answer", "Unlock 1Password (or allow pal when it asks), then refresh with cmd+r", { actions: [{ id: "open", title: "Open 1Password" }], icon: HINT_ICON.signin })];
+    if (signedOut(msg)) return [hint("signin", "Connect the 1Password CLI to the app", "In 1Password: Settings, Developer, turn on \"Integrate with 1Password CLI\"; then refresh with cmd+r and allow pal when 1Password asks", { actions: [{ id: "help", title: "Open the setup guide" }], icon: HINT_ICON.signin })];
+    return [hint("error", "1Password CLI failed", msg.split("\n")[0], { actions: [{ id: "help", title: "Open the troubleshooting guide" }], icon: HINT_ICON.error })];
   }
   const wanted = new Set(vaults.map((v) => v.toLowerCase()));
   const rows = all.filter((i) => (filter !== "all" ? i.vault.name.toLowerCase() === filter.toLowerCase() : wanted.size === 0 || wanted.has(i.vault.name.toLowerCase())));
   rows.sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
-  if (rows.length === 0) return [hint("none", "No items", filter !== "all" ? `Nothing in the vault ${filter}` : "The account has no items you can see")];
+  if (rows.length === 0) return [hint("none", "No items", filter !== "all" ? `Nothing in the vault ${filter}` : "The account has no items you can see", { icon: ICON })];
   return rows.map(item);
 }
 
-const failed = (what: string, e: unknown) => ({ keep: true as const, toast: { title: `Could not ${what}`, message: String((e as Error)?.message ?? e), style: "failure" as const } });
 /** A secret onto the clipboard, concealed and cleared after `CONCEAL_SECONDS`; the HUD says so. */
 const secret = (what: string, value: string): Effect => ({ copy: conceal(value), hud: `Copied ${what}, clears in ${CONCEAL_SECONDS} s` });
 
@@ -157,11 +151,11 @@ export default {
       ...(FILTERS ? { filters: FILTERS } : {}),
       list: (_query, ctx) => list(ctx?.filter, ctx?.refresh),
       pick: async (id, action) => {
-        if (id === "install") return { open: INSTALL_URL };
-        if (id === "signin") return action === "help" ? { open: SIGNIN_URL } : { keep: true };
-        if (id === "app" || id === "locked") return { open: process.platform === "darwin" ? "/Applications/1Password.app" : "1password://", hud: "Opening 1Password" };
-        if (id === "error") return action === "help" ? { open: "https://developer.1password.com/docs/cli/app-integration/#troubleshooting" } : { keep: true };
-        if (id === "error" || id === "none") return { keep: true };
+        if (id === "hint:install") return { open: INSTALL_URL };
+        if (id === "hint:signin") return action === "help" ? { open: SIGNIN_URL } : { keep: true };
+        if (id === "hint:app" || id === "hint:locked") return { open: process.platform === "darwin" ? "/Applications/1Password.app" : "1password://", hud: "Opening 1Password" };
+        if (id === "hint:error") return action === "help" ? { open: "https://developer.1password.com/docs/cli/app-integration/#troubleshooting" } : { keep: true };
+        if (id.startsWith("hint:")) return { keep: true };
         switch (action) {
           case "username": {
             try { return { copy: (await op(["item", "get", id, "--fields", "label=username", "--reveal"])).trim(), hud: "Copied username" }; } catch (e) { return failed("copy the username", e); }

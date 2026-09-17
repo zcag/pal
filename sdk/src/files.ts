@@ -1,29 +1,15 @@
-// File operations a row can do, shared by Files and Downloads: the
-// rename, move and copy forms and their submits, the archive command, and
-// the tool runner. The forms are pure; the submits touch the file system
-// (rename across volumes falls to `mv`, a copy is `fs.cp`), and every
-// refusal is the form again with the message under the field, the typed
-// value kept.
+// File operations a row can do (Files, Downloads): the rename, move and
+// copy forms and their submits, the archive command. The forms are pure;
+// the submits touch the file system (rename across volumes falls to `mv`,
+// a copy is `fs.cp`), and every refusal is the form again with the
+// message under the field, the typed value kept. `files` on `@zcag/pal`.
 import { cp, mkdir, rename, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { home, type Effect, type Form, type FormValues } from "@zcag/pal";
+import { home, tilde } from "./api.ts";
+import { EXEC_MS, run } from "./exec.ts";
+import type { Effect, Form, FormValues } from "./protocol.ts";
 
 const MAC = process.platform === "darwin";
-const HOME = home("~");
-/** A tool that has not finished by then is killed. */
-export const TOOL_MS = 10_000;
-
-/** `~` for the home folder, for messages and subtitles. */
-export const short = (p: string) => (p === HOME ? "~" : p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p);
-
-/** Runs to completion or `ms`; rejects with stderr (or the exit code) on failure. */
-export async function runTool(argv: string[], ms = TOOL_MS): Promise<void> {
-  const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "ignore", stderr: "pipe" });
-  const timer = setTimeout(() => proc.kill(), ms);
-  const [code, err] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-  clearTimeout(timer);
-  if (code !== 0) throw new Error(err.trim() || `${argv[0]} exited ${code}`);
-}
 
 const exists = (p: string) => stat(p).then(() => true).catch(() => false);
 
@@ -43,16 +29,16 @@ export const copyForm = (path: string, errors?: Form["errors"]): Form => ({
 
 /** `path` becomes `target`, which must not exist; across volumes `rename` fails and `mv` does it. */
 export async function moveTo(path: string, target: string): Promise<void> {
-  if (await exists(target)) throw new Error(`${short(target)} exists already`);
+  if (await exists(target)) throw new Error(`${tilde(target)} exists already`);
   try { await rename(path, target); } catch (e) {
     if ((e as NodeJS.ErrnoException)?.code !== "EXDEV") throw e;
-    await runTool(["mv", "--", path, target]);
+    await run(["mv", "--", path, target]);
   }
 }
 
 /** A copy of `path` (a folder whole) at `target`, which must not exist. */
 export async function copyTo(path: string, target: string): Promise<void> {
-  if (await exists(target)) throw new Error(`${short(target)} exists already`);
+  if (await exists(target)) throw new Error(`${tilde(target)} exists already`);
   await cp(path, target, { recursive: true, errorOnExist: true, force: false });
 }
 
@@ -75,7 +61,7 @@ export async function intoFolderPick(op: "move" | "copy", path: string, values: 
     await mkdir(folder, { recursive: true });
     await (op === "move" ? moveTo : copyTo)(path, join(folder, basename(path)));
   } catch (e) { return { form: form(path, { folder: String((e as Error)?.message ?? e) }) }; }
-  return { keep: true, toast: { title: op === "move" ? "Moved" : "Copied", message: `${basename(path)} to ${short(folder)}` } };
+  return { keep: true, toast: { title: op === "move" ? "Moved" : "Copied", message: `${basename(path)} to ${tilde(folder)}` } };
 }
 
 // ---- archives -----------------------------------------------------------------
@@ -105,10 +91,6 @@ export function archiveArgv(paths: string[], out: string, env: Record<string, st
 export async function archive(paths: string[]): Promise<string> {
   const out = await archiveName(paths[0]);
   const { argv, cwd } = archiveArgv(paths, out);
-  const proc = Bun.spawn(argv, { cwd, stdin: "ignore", stdout: "ignore", stderr: "pipe" });
-  const timer = setTimeout(() => proc.kill(), TOOL_MS * 6);
-  const [code, err] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-  clearTimeout(timer);
-  if (code !== 0) throw new Error(err.trim() || `${argv[0]} exited ${code}`);
+  await run(argv, { cwd, ms: EXEC_MS * 6 });
   return out;
 }

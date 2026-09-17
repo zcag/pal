@@ -6,7 +6,7 @@ import wordsText from "./words.txt";
 
 // ---- randomness -------------------------------------------------------------------
 
-export const randomBytes = (n: number): Uint8Array => crypto.getRandomValues(new Uint8Array(n));
+const randomBytes = (n: number): Uint8Array => crypto.getRandomValues(new Uint8Array(n));
 
 /** A uniform integer in [0, n), by rejection sampling over 32-bit draws. */
 export function randInt(n: number): number {
@@ -76,7 +76,7 @@ export function password(length: number, charset: Charset = "full"): string {
 /** Bits of entropy of a uniform draw of `length` symbols from `alphabet` symbols. */
 export const entropy = (length: number, alphabet: number): number => Math.round(length * Math.log2(alphabet));
 
-export type Strength = { bits: number; label: "weak" | "fair" | "good" | "strong" | "very strong"; color: "red" | "amber" | "blue" | "green" | "teal" };
+type Strength = { bits: number; label: "weak" | "fair" | "good" | "strong" | "very strong"; color: "red" | "amber" | "blue" | "green" | "teal" };
 
 /** What the bits mean, on the usual scale: under 36 weak, under 60 fair, under 80 good, under 128 strong. */
 export function strength(bits: number): Strength {
@@ -169,7 +169,7 @@ export const loremParagraphs = (n: number): string => Array.from({ length: n }, 
 
 // ---- JWT ------------------------------------------------------------------------------
 
-export type Jwt = { header: Record<string, unknown>; payload: Record<string, unknown>; signature: string; raw: [string, string, string] };
+type Jwt = { header: Record<string, unknown>; payload: Record<string, unknown>; signature: string; raw: [string, string, string] };
 
 /** The three parts of a JWT decoded, or undefined when the text is not one. The signature is never checked. */
 export function jwtDecode(token: string): Jwt | undefined {

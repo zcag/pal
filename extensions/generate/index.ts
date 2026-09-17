@@ -7,7 +7,7 @@
 // copies on Enter and pastes on cmd+Enter; the shell's Refresh (cmd+r)
 // lists again, which is how a value is regenerated. The values are made in
 // `gen.ts`, the QR code in `qr.ts`; this file is the rows.
-import { clipboard, settings, type Accessory, type Action, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { clipboard, errorMessage, hint, settings, toast, truncate, type Accessory, type Action, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { base64, base64Decode, base64url, CHARSET_TITLES, CHARSETS, entropy, hash, HASHES, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randomBase64, randomColor, randomHex, randomNumber, relative, rgbOf, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid4, uuid7, WORDS, type Charset, type HashAlgo } from "./gen.ts";
 import { encode as encodeQr, toDataUrl, toSvg } from "./qr.ts";
 
@@ -29,7 +29,6 @@ const GLYPH = {
   qr: "\u{f0432}", // md-qrcode
   jwt: "\u{f030b}", // md-key_variant
   clock: "\u{f0150}", // md-clock_outline
-  hint: "\u{f02fd}", // md-information_outline
   alert: "\u{f05d6}", // md-alert_circle_outline
 };
 
@@ -67,9 +66,8 @@ function row(id: string, value: string, o: RowOpts): Item {
   return { id, name, subtitle: o.subtitle, icon: o.icon ?? GLYPH.id, keywords: o.keywords, accessories: o.accessories, detail, actions: o.actions ?? (o.all ? [COPY, PASTE, COPY_ALL] : [COPY, PASTE]) };
 }
 
-const hint = (id: string, name: string, subtitle: string, icon = GLYPH.hint): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
-
-const short = (text: string, n = 40) => (text.length > n ? `${text.slice(0, n - 1)}…` : text).replace(/\s+/g, " ");
+/** Cut, then one line: a value's newlines collapse only where they survive the cut. */
+const short = (text: string, n = 40) => truncate(text, n).replace(/\s+/g, " ");
 const of = (source: Source) => (source.clipboard ? "the clipboard" : `“${short(source.text)}”`);
 
 /** The strength tag and the bits of a secret, on the right. */
@@ -137,10 +135,10 @@ function everything(): Item[] {
   return [
     ...uuidRows(), ulidRow(), nanoidRow(), passwordRow(), passphraseRow(),
     numberRow(...NUMBER_RANGE), hexRow(DEFAULT_BYTES), bytesRow(DEFAULT_BYTES), loremParagraphRow(1), colorRow(),
-    hint("hash", "Hash text", "sha256 <text>, also md5, sha1, sha512, or hash for all four; alone, the clipboard", GLYPH.hash),
-    hint("encode", "Encode or decode text", "base64 <text>, url <text>, hex <text>, encode <text> for every form, decode <text>", GLYPH.encode),
-    hint("qr", "QR code", "qr <text>, or qr alone for the clipboard", GLYPH.qr),
-    hint("jwt", "Decode a JWT", "jwt <token>: the header, the payload and its times; the signature is not checked", GLYPH.jwt),
+    hint("hash", "Hash text", "sha256 <text>, also md5, sha1, sha512, or hash for all four; alone, the clipboard", { icon: GLYPH.hash }),
+    hint("encode", "Encode or decode text", "base64 <text>, url <text>, hex <text>, encode <text> for every form, decode <text>", { icon: GLYPH.encode }),
+    hint("qr", "QR code", "qr <text>, or qr alone for the clipboard", { icon: GLYPH.qr }),
+    hint("jwt", "Decode a JWT", "jwt <token>: the header, the payload and its times; the signature is not checked", { icon: GLYPH.jwt }),
   ];
 }
 
@@ -155,7 +153,7 @@ async function source(typed: string): Promise<Source | undefined> {
   return text ? { text, clipboard: true } : undefined;
 }
 
-const nothing = (mode: string) => hint("nothing", `Nothing to ${mode}`, `Type text after ${mode}, or copy some first`, GLYPH.alert);
+const nothing = (mode: string) => hint("nothing", `Nothing to ${mode}`, `Type text after ${mode}, or copy some first`, { icon: GLYPH.alert });
 
 const hashRow = (algo: HashAlgo, src: Source, all?: string) =>
   row(algo, hash(algo, src.text), { subtitle: `${algo.toUpperCase()} of ${of(src)}`, icon: GLYPH.hash, all, kind: algo.toUpperCase() });
@@ -188,12 +186,12 @@ function decodeRows(src: Source): Item[] {
   if (u !== undefined) rows.push(row("url-decoded", u, { subtitle: `URL decoded from ${of(src)}`, icon: GLYPH.url, kind: "URL decoded" }));
   if (h !== undefined) rows.push(row("hex-decoded", h, { subtitle: `Hex decoded from ${of(src)}`, icon: GLYPH.hex, kind: "Hex decoded" }));
   if (jwtDecode(src.text)) rows.push(...jwtRows(src));
-  return rows.length ? rows : [hint("undecodable", `Not base64, hex, URL-encoded or a JWT`, of(src), GLYPH.alert)];
+  return rows.length ? rows : [hint("undecodable", `Not base64, hex, URL-encoded or a JWT`, of(src), { icon: GLYPH.alert })];
 }
 
 function qrRows(src: Source): Item[] {
   let qr;
-  try { qr = encodeQr(src.text); } catch (e) { return [hint("qr-big", "Too long for a QR code", e instanceof Error ? e.message : String(e), GLYPH.alert)]; }
+  try { qr = encodeQr(src.text); } catch (e) { return [hint("qr-big", "Too long for a QR code", errorMessage(e), { icon: GLYPH.alert })]; }
   const svg = toSvg(qr);
   const url = toDataUrl(svg);
   const item = row("qr", short(src.text, 80), { subtitle: `QR code of ${of(src)}: version ${qr.version}, ${qr.size} × ${qr.size} modules, level ${qr.ecl}`, icon: { image: url }, actions: [SHOW_QR, COPY_SVG, COPY_TEXT], detail: {
@@ -208,7 +206,7 @@ const stamp = (seconds: number) => new Date(seconds * 1000).toISOString().replac
 
 function jwtRows(src: Source): Item[] {
   const jwt = jwtDecode(src.text);
-  if (!jwt) return [hint("jwt-bad", "Not a JWT", `${of(src)} is not three base64url parts with JSON in the first two`, GLYPH.alert)];
+  if (!jwt) return [hint("jwt-bad", "Not a JWT", `${of(src)} is not three base64url parts with JSON in the first two`, { icon: GLYPH.alert })];
   const headerJson = JSON.stringify(jwt.header, null, 2), payloadJson = JSON.stringify(jwt.payload, null, 2);
   const all = `${headerJson}\n${payloadJson}`;
   const claims = jwt.payload;
@@ -226,7 +224,7 @@ function jwtRows(src: Source): Item[] {
     row("jwt-header", headerJson, { name: `Header: ${alg}${typeof jwt.header.typ === "string" ? `, ${jwt.header.typ}` : ""}${typeof jwt.header.kid === "string" ? `, kid ${jwt.header.kid}` : ""}`, subtitle: JSON.stringify(jwt.header), icon: GLYPH.jwt, all, kind: "JWT header", accessories: [{ text: `${Object.keys(jwt.header).length} fields` }], detail: { markdown: `\`\`\`json\n${headerJson}\n\`\`\``, metadata: [{ label: "Algorithm", value: alg }, { label: "Signature", value: jwt.signature ? `${jwt.signature.length} characters, not verified` : "none" }] } }),
     row("jwt-payload", payloadJson, { name: `Payload${who ? `: ${short(who, 40)}` : ""}`, subtitle: JSON.stringify(jwt.payload), icon: GLYPH.jwt, all, kind: "JWT payload", accessories: [...expiry, { text: `${Object.keys(claims).length} claims` }], detail: { markdown: `\`\`\`json\n${payloadJson}\n\`\`\``, metadata: Object.entries(claims).slice(0, 12).map(([k, v]) => ({ label: k, value: typeof v === "number" && ["exp", "iat", "nbf"].includes(k) ? `${stamp(v)} (${relative(v)})` : typeof v === "string" ? v : JSON.stringify(v) })) } }),
     ...times,
-    hint("jwt-unverified", "Signature not verified", "pal only decodes the token; whether it is genuine is for the issuer's key to say", GLYPH.alert),
+    hint("jwt-unverified", "Signature not verified", "pal only decodes the token; whether it is genuine is for the issuer's key to say", { icon: GLYPH.alert }),
   ];
 }
 
@@ -309,7 +307,7 @@ async function list(query = ""): Promise<Item[]> {
 
 function pick(id: string, action?: string): Effect {
   const h = held.get(id);
-  if (!h) return { keep: true, toast: { title: "Value is gone", message: "The listing changed; pick again", style: "failure" } };
+  if (!h) return toast("Value is gone", "The listing changed; pick again", "failure");
   switch (action) {
     case "paste": return { paste: { text: h.value } };
     case "copy_all": return { copy: h.all ?? h.value };

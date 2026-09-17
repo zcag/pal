@@ -3,7 +3,7 @@
 // state into a row: domain glyph, state tone, accessories, the per-domain
 // actions, and a service's field descriptions into a form. No pal imports,
 // so the tests can drive these without a host.
-import type { Accessory, Action, FormField, Item, TagColor } from "@zcag/pal";
+import { errorMessage, type Accessory, type Action, type FormField, type Item, type TagColor } from "@zcag/pal";
 
 /** `[extensions.home-assistant]`, defaults in pal.json. */
 export type Settings = { url: string; token: string; domains: string[]; favorites: string[]; timeout: number };
@@ -11,12 +11,12 @@ export type Settings = { url: string; token: string; domains: string[]; favorite
 /** One entry of `/api/states`. */
 export type State = { entity_id: string; state: string; attributes: Record<string, unknown>; last_changed: string; last_updated: string };
 /** One field of a service's description; a `fields` of its own makes it a group (`collapsed` ones are HA's "advanced" section). */
-export type ServiceField = { name?: string; description?: string; example?: unknown; required?: boolean; selector?: Record<string, unknown>; fields?: Record<string, ServiceField>; collapsed?: boolean };
+type ServiceField = { name?: string; description?: string; example?: unknown; required?: boolean; selector?: Record<string, unknown>; fields?: Record<string, ServiceField>; collapsed?: boolean };
 export type Service = { name?: string | null; description?: string | null; fields?: Record<string, ServiceField>; target?: { entity?: { domain?: string[] }[] } };
 /** One entry of `/api/services`. */
 export type ServiceDomain = { domain: string; services: Record<string, Service> };
 
-export const SETTINGS_HINT = "Settings › Extensions › Home Assistant";
+const SETTINGS_HINT = "Settings › Extensions › Home Assistant";
 
 /** A request that did not work, with a one-line `hint` for the row. */
 export class HaError extends Error {
@@ -30,7 +30,7 @@ export const titleCase = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, (c
 export function unconfigured(s: Settings): HaError | undefined {
   if (!s.url?.trim()) return new HaError("Home Assistant is not set up", `Set the URL and a long-lived token under ${SETTINGS_HINT}`);
   if (!/^https?:\/\//.test(s.url.trim())) return new HaError("The URL needs http:// or https://", `${s.url.trim()} is not a URL: fix it under ${SETTINGS_HINT}`);
-  if (!s.token?.trim()) return new HaError("No token", `Add a long-lived access token (HA: your profile, Security) under ${SETTINGS_HINT}`);
+  if (!s.token?.trim()) return new HaError("Token is not set", `Add a long-lived access token (HA: your profile, Security) under ${SETTINGS_HINT}`);
   if (/^(keychain|env):/.test(s.token)) return new HaError("The token did not resolve", `${s.token} has no value on this machine; pal's log says why. ${SETTINGS_HINT}`);
 }
 
@@ -59,7 +59,7 @@ export class Client {
       });
     } catch (e) {
       const timedOut = e instanceof Error && e.name === "TimeoutError";
-      throw new HaError(timedOut ? `${this.url} did not answer in ${this.timeoutMs / 1000} s` : `Could not reach ${this.url}`, timedOut ? `Raise the timeout or check the URL under ${SETTINGS_HINT}` : `${e instanceof Error ? e.message : e}. Check the URL under ${SETTINGS_HINT}`);
+      throw new HaError(timedOut ? `${this.url} did not answer within ${this.timeoutMs / 1000} s` : `Could not reach ${this.url}`, timedOut ? `Raise the timeout or check the URL under ${SETTINGS_HINT}` : `${errorMessage(e)}. Check the URL under ${SETTINGS_HINT}`);
     }
     const location = res.headers.get("location");
     if (res.status >= 301 && res.status <= 308 && location && hop < 1) {
@@ -97,7 +97,7 @@ export class Client {
 // ---- rows -----------------------------------------------------------------
 
 /** Domain to Nerd Font glyph (Material Design names, `md-*` in nerd-fonts/glyphnames.json); the house for the rest. */
-export const GLYPH: Record<string, string> = {
+const GLYPH: Record<string, string> = {
   light: "\u{f0335}", switch: "\u{f0521}", input_boolean: "\u{f0521}", fan: "\u{f0210}", climate: "\u{f050f}", humidifier: "\u{f1099}",
   media_player: "\u{f04c3}", cover: "\u{f111c}", lock: "\u{f033e}", scene: "\u{f03d8}", script: "\u{f0bc2}", automation: "\u{f06a9}",
   sensor: "\u{f029a}", binary_sensor: "\u{f043e}", person: "\u{f0004}", device_tracker: "\u{f0004}", zone: "\u{f034e}", camera: "\u{f0100}",
@@ -137,7 +137,7 @@ export const accessories = (s: State): Accessory[] => [
 ];
 
 const A = (id: string, title: string, extra: Partial<Action> = {}): Action => ({ id, title, ...extra });
-export const COMMON: Action[] = [
+const COMMON: Action[] = [
   A("copy_id", "Copy entity id", { shortcut: "cmd+c" }),
   A("attributes", "Show attributes", { shortcut: "cmd+shift+a" }),
   A("open_ha", "Open in Home Assistant", { shortcut: "cmd+o" }),

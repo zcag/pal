@@ -1,11 +1,11 @@
-// Processes (ported from v1 builtin/psg.rs): one `ps` per keystroke, since
+// Processes: one `ps` per keystroke, since
 // the set changes constantly; busiest first (CPU, then memory). The query
 // matches the name and the pid; `:3000` (or `:` alone) lists what listens
 // on a TCP port instead (ports.ts over `ss` or `lsof`). Kill sends SIGTERM,
 // Force kill SIGKILL, both after a confirm; the palette stays open and
 // lists again so the row is seen to go.
-import { settings, type Accessory, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
-import { parseLsofListeners, parseSsListeners, portQuery, type Listener } from "./ports.ts";
+import { exec, failed, hint, settings, type Accessory, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
+import { parseLsofListeners, parseSsListeners, portQuery } from "./ports.ts";
 
 /** `[extensions.processes]`, defaults in pal.json. */
 type Settings = { include_system: boolean };
@@ -93,11 +93,9 @@ const isSystem = (p: Proc) => p.pid < 100 || (LINUX && (p.pid === 2 || p.ppid ==
 
 /** Every TCP listener, one row per process and port, with the port as a tag; the `ps` row's numbers when the process is in it. */
 async function listeners(prefix: string): Promise<Item[]> {
-  if (!PORTS) return [{ id: "hint:no-ports", name: "No port listing tool", subtitle: "Install lsof (or ss) to list what listens on a port", icon: HINT_ICON, actions: [] }];
-  const proc = Bun.spawn(PORTS, { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
-  const timer = setTimeout(() => proc.kill(), PORTS_MS);
-  const out = await new Response(proc.stdout).text().catch(() => "");
-  clearTimeout(timer);
+  if (!PORTS) return [hint("no-ports", "No port listing tool", "Install lsof (or ss) to list what listens on a port", { icon: HINT_ICON })];
+  // lsof exits non-zero over files it may not read; its listing still stands.
+  const out = (await exec(PORTS, { ms: PORTS_MS }).catch(() => undefined))?.out ?? "";
   const found = (PORTS[0] === "ss" ? parseSsListeners(out) : parseLsofListeners(out)).filter((l) => String(l.port).startsWith(prefix)).sort((a, b) => a.port - b.port || a.pid - b.pid);
   if (!found.length) return [];
   const procs = new Map((await ps()).map((p) => [p.pid, p]));
@@ -145,7 +143,7 @@ export default {
         try {
           process.kill(pid, action === "force-kill" ? "SIGKILL" : "SIGTERM");
         } catch (e) {
-          return { keep: true, toast: { title: `Could not kill ${id}`, message: String((e as Error)?.message ?? e), style: "failure" } };
+          return failed(`kill ${id}`, e);
         }
         return { keep: true };
       },

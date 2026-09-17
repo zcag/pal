@@ -10,7 +10,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { home, settings, storage, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, hint, home, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { BACKEND_NAME, FETCH_MS, fileName, GifError, mimeOf, search, type Backend, type Filter, type Gif } from "./backends.ts";
 
 /** `[extensions.gifs]`, defaults in pal.json. */
@@ -22,7 +22,6 @@ const GLYPH = {
   gif: "\u{f0d78}", // md-file_gif_box
   trending: "\u{f0535}", // md-trending_up
   star: "\u{f04ce}", // md-star
-  hint: "\u{f02fd}", // md-information_outline
   alert: "\u{f05d6}", // md-alert_circle_outline
   wait: "\u{f051f}", // md-timer_sand
   broom: "\u{f00e2}", // md-broom
@@ -36,13 +35,13 @@ const FAV: Action = { id: "fav", title: "Add to favourites", shortcut: "cmd+f" }
 const UNFAV: Action = { id: "unfav", title: "Remove from favourites", shortcut: "cmd+d", style: "destructive" };
 const CLEAR: Action = { id: "clear", title: "Clear favourites", style: "destructive", confirm: "Forget every favourite GIF?" };
 
-export const DEBOUNCE_MS = 300;
+const DEBOUNCE_MS = 300;
 const CACHE_MAX = 100;
 const FAV_MAX = 200;
 const MAC = process.platform === "darwin";
 const HOME = home("~");
 /** Previews and downloaded GIFs; `PAL_GIFS_CACHE` for the tests. */
-export const CACHE = process.env.PAL_GIFS_CACHE || (MAC ? `${HOME}/Library/Caches/pal/gifs` : `${process.env.XDG_CACHE_HOME || `${HOME}/.cache`}/pal/gifs`);
+const CACHE = process.env.PAL_GIFS_CACHE || (MAC ? `${HOME}/Library/Caches/pal/gifs` : `${process.env.XDG_CACHE_HOME || `${HOME}/.cache`}/pal/gifs`);
 
 const S = () => settings.get<Settings>();
 const keyOf = (s: Settings) => (s.backend === "giphy" ? s.giphy_api_key : s.tenor_api_key) ?? "";
@@ -62,7 +61,7 @@ async function fetched(url: string, file: string): Promise<string | undefined> {
     await writeFile(path, Buffer.from(await res.arrayBuffer()));
     return path;
   } catch (e) {
-    console.error(`[gifs] ${url}: ${(e as Error)?.message ?? e}`);
+    console.error(`[gifs] ${url}: ${errorMessage(e)}`);
     return;
   }
 }
@@ -99,7 +98,6 @@ async function favour(g: Gif): Promise<void> {
 
 /** What the last listing showed, by id: `pick` needs the urls. */
 const held = new Map<string, Gif>();
-const hint = (id: string, name: string, subtitle = "", icon = GLYPH.hint): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
 const size = (n?: number) => (n === undefined ? undefined : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`);
 
 /** The pane shows the preview from its url (the webview loads http): the data url stays on the row alone, so the wire carries each preview once. */
@@ -130,7 +128,7 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   const my = ++seq;
   if (q && !ctx?.inline) {
     await Bun.sleep(DEBOUNCE_MS);
-    if (my !== seq) return [hint("wait", "Searching…", q, GLYPH.wait)];
+    if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
   }
   const key = `${s.backend}|${s.content_filter}|${q}`;
   try {
@@ -140,7 +138,7 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
       if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
       cache.set(key, gifs);
     }
-    if (my !== seq) return [hint("wait", "Searching…", q, GLYPH.wait)];
+    if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
     if (!gifs.length) return [hint("none", `No GIFs for “${q}”`, BACKEND_NAME[s.backend])];
     const rows = await Promise.all(gifs.map((g) => item(g, RESULT_ACTIONS)));
     if (!q) for (const r of rows) r.section = "Trending";
@@ -148,7 +146,7 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   } catch (e) {
     const ge = e instanceof GifError ? e : undefined;
     console.error(`[gifs] ${ge?.message ?? e}`);
-    return [hint("failed", ge ? ge.hint : `Could not search: ${String((e as Error)?.message ?? e)}`, q || BACKEND_NAME[s.backend], GLYPH.alert)];
+    return [hint("failed", ge ? ge.hint : `Could not search: ${errorMessage(e)}`, q || BACKEND_NAME[s.backend], { icon: GLYPH.alert })];
   }
 }
 
@@ -156,10 +154,10 @@ async function act(g: Gif, action: string | undefined): Promise<Effect> {
   switch (action) {
     case "copy_url": return { copy: g.gif };
     case "open": return { open: g.page || g.gif };
-    case "fav": await favour(g); return { keep: true, toast: { title: "Added to favourites", message: g.title } };
+    case "fav": await favour(g); return toast("Added to favourites", g.title);
     case "save": {
       const path = await download(g);
-      if (!path) return { keep: true, toast: { title: "Could not download", message: g.gif, style: "failure" } };
+      if (!path) return toast("Could not download", g.gif, "failure");
       const dir = home(S().save_to?.trim() || "~/Downloads");
       await mkdir(dir, { recursive: true });
       const out = join(dir, fileName(g));
@@ -168,7 +166,7 @@ async function act(g: Gif, action: string | undefined): Promise<Effect> {
     }
     default: {
       const path = await download(g);
-      if (!path) return { keep: true, toast: { title: "Could not download", message: g.gif, style: "failure" } };
+      if (!path) return toast("Could not download", g.gif, "failure");
       return { copy_files: [path], hud: "Copied GIF" };
     }
   }
@@ -176,7 +174,7 @@ async function act(g: Gif, action: string | undefined): Promise<Effect> {
 
 async function pick(id: string, action?: string): Promise<Effect> {
   const g = held.get(id);
-  if (!g) return { keep: true, toast: { title: "GIF is gone", message: "The listing changed; pick again", style: "failure" } };
+  if (!g) return toast("GIF is gone", "The listing changed; pick again", "failure");
   return act(g, action);
 }
 
@@ -184,19 +182,19 @@ async function pick(id: string, action?: string): Promise<Effect> {
 
 async function favRows(): Promise<Item[]> {
   const list = await favourites();
-  if (!list.length) return [hint("empty", "No favourites yet", "cmd+f on a GIF keeps it here", GLYPH.star)];
+  if (!list.length) return [hint("empty", "No favourites yet", "cmd+f on a GIF keeps it here", { icon: GLYPH.star })];
   const rows = await Promise.all(list.map((g) => item(g, FAV_ACTIONS)));
   rows.push({ id: "clear", name: "Clear favourites", subtitle: `${list.length} ${list.length === 1 ? "GIF" : "GIFs"}`, icon: GLYPH.broom, actions: [CLEAR] });
   return rows;
 }
 
 async function favPick(id: string, action?: string): Promise<Effect> {
-  if (id === "clear") { await storage.remove(FAVS); return { keep: true, toast: { title: "Favourites cleared" } }; }
+  if (id === "clear") { await storage.remove(FAVS); return toast("Favourites cleared"); }
   const g = held.get(id) ?? (await favourites()).find((f) => f.id === id);
-  if (!g) return { keep: true, toast: { title: "GIF is gone", style: "failure" } };
+  if (!g) return toast("GIF is gone", undefined, "failure");
   if (action === "unfav") {
     await storage.set(FAVS, (await favourites()).filter((f) => f.id !== id));
-    return { keep: true, toast: { title: "Removed", message: g.title } };
+    return toast("Removed", g.title);
   }
   return act(g, action);
 }

@@ -7,13 +7,13 @@
 // is shared between the bar and the palettes for CHATS_FRESH_MS. Reading
 // and mark-read are always on; with `send` off there is no reply, no
 // reaction and no message field anywhere, whatever the key could do.
-import { settings, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
+import { errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { ApiError, NoKey, RateLimited, SessionError, Unreachable, base, conf, log, markChatRead, markChatUnread, react as apiReact, reply as apiReply, reset as resetApi, sendText } from "./api.ts";
-import { PANE_MSGS, REACTIONS, RUN_MSGS, avatarData, chat, chatLink, clock, contacts, conversation, conversationMarkdown, dropChats, isGroupId, loadChats, oneLine, currentOpener as opener, phoneOf, prettyPhone, resetData, search, vcard, type Chat, type Hit, type Person } from "./data.ts";
+import { PANE_MSGS, REACTIONS, RUN_MSGS, chat, chatLink, clock, contacts, conversation, conversationMarkdown, dropChats, isGroupId, loadChats, oneLine, currentOpener as opener, phoneOf, prettyPhone, resetData, search, vcard, type Chat, type Hit, type Person } from "./data.ts";
 import { SECTION_ROWS, initialIcon, render as renderBar, type BarRow, type BarState } from "./view.ts";
 
 /** Glyphs from the bundled Nerd Font's `md-` set: whatsapp, account-group, magnify, information, alert, check-all, message-text, reply, emoticon-outline, content-copy, open-in-new, card-account-details, phone. */
-const ICON = { whatsapp: "\u{f05a3}", group: "\u{f0849}", search: "\u{f0349}", info: "\u{f02fc}", alert: "\u{f0026}", read: "\u{f012d}", unread: "\u{f0369}", reply: "\u{f045a}", react: "\u{f01f2}", copy: "\u{f018f}", web: "\u{f03cc}", contact: "\u{f05d2}", phone: "\u{f03f2}" } as const;
+const ICON = { whatsapp: "\u{f05a3}", group: "\u{f0849}", search: "\u{f0349}", alert: "\u{f0026}", read: "\u{f012d}", unread: "\u{f0369}", reply: "\u{f045a}", react: "\u{f01f2}", copy: "\u{f018f}", web: "\u{f03cc}", contact: "\u{f05d2}", phone: "\u{f03f2}" } as const;
 const SEARCH_WAIT_MS = 300;
 const SETTINGS_URL = "pal://settings/extensions";
 
@@ -24,25 +24,22 @@ const canSend = () => conf().send === true;
 
 // ---- rows the palettes share ----------------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle?: string, actions: Action[] = [], icon: string = ICON.info): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions });
 const SETTINGS_ACTION: Action[] = [{ id: "settings", title: "Open WhatsApp settings" }];
 
 /** What a failed listing shows instead of rows: the setting to fill, the url that did not answer, the session's state, when the limit lifts, or what went wrong. */
 function failure(e: unknown): Item[] {
-  if (e instanceof NoKey) return [hint("key", "No API key set", "Set api_key under Settings, Extensions, WhatsApp: a key from OpenWA's Settings, API keys", SETTINGS_ACTION, ICON.alert)];
-  if (e instanceof Unreachable) return [hint("unreachable", `OpenWA is unreachable at ${e.url}`, "Check base_url under Settings, Extensions, WhatsApp, and that the gateway is up", SETTINGS_ACTION, ICON.alert)];
-  if (e instanceof ApiError && e.auth) return [hint("auth", "OpenWA rejected the API key", `${e.status}: check api_key under Settings, Extensions, WhatsApp`, SETTINGS_ACTION, ICON.alert)];
-  if (e instanceof SessionError) return [hint("session", e.message, e.status === "qr_ready" ? `Scan the QR code at ${base()} to link the phone again` : e.status ? `Check the session at ${base()}` : `Set session under Settings, Extensions, WhatsApp to a session ${base()} lists`, SETTINGS_ACTION, ICON.alert)];
-  if (e instanceof RateLimited) return [hint("limit", "OpenWA rate limit reached", `Retry at ${e.until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, [], ICON.alert)];
-  log(e instanceof Error ? e.message : String(e));
-  return [hint("error", "OpenWA did not answer", e instanceof Error ? e.message : String(e), [], ICON.alert)];
+  if (e instanceof NoKey) return [hint("key", "API key is not set", "Set api_key under Settings › Extensions › WhatsApp: a key from OpenWA's Settings, API keys", { actions: SETTINGS_ACTION, icon: ICON.alert })];
+  if (e instanceof Unreachable) return [hint("unreachable", `OpenWA is unreachable at ${e.url}`, "Check base_url under Settings › Extensions › WhatsApp, and that the gateway is up", { actions: SETTINGS_ACTION, icon: ICON.alert })];
+  if (e instanceof ApiError && e.auth) return [hint("auth", "OpenWA rejected the API key", `${e.status}: check api_key under Settings › Extensions › WhatsApp`, { actions: SETTINGS_ACTION, icon: ICON.alert })];
+  if (e instanceof SessionError) return [hint("session", e.message, e.status === "qr_ready" ? `Scan the QR code at ${base()} to link the phone again` : e.status ? `Check the session at ${base()}` : `Set session under Settings › Extensions › WhatsApp to a session ${base()} lists`, { actions: SETTINGS_ACTION, icon: ICON.alert })];
+  if (e instanceof RateLimited) return [hint("limit", "OpenWA rate limit reached", `Retry at ${e.until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, { icon: ICON.alert })];
+  log(errorMessage(e));
+  return [hint("error", "OpenWA did not answer", errorMessage(e), { icon: ICON.alert })];
 }
 const pickHint = (id: string): Effect | void => (id === "hint:key" || id === "hint:auth" || id === "hint:unreachable" || id === "hint:session" ? { open: SETTINGS_URL } : undefined);
 const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
-const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
-const SEND_OFF = "Turn on send under Settings, Extensions, WhatsApp";
+const SEND_OFF = "Turn on send under Settings › Extensions › WhatsApp";
 
-const short = (s: string, n = 110) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** The row's mark: the profile picture, the group glyph (tinted by the tile), else the initial on a tile. */
@@ -72,7 +69,7 @@ function chatRow(c: Chat, section?: string): Item {
   return {
     id: c.id,
     name: c.name,
-    subtitle: c.last ? short(oneLine(c.last)) : c.group ? "Group" : undefined,
+    subtitle: c.last ? truncate(oneLine(c.last), 110) : c.group ? "Group" : undefined,
     icon: chatIcon(c),
     keywords: [c.group ? "group" : "chat", ...(c.who && c.who !== "You" && c.who !== c.name ? [c.who] : [])],
     section,
@@ -102,7 +99,7 @@ const idsOf = (id: string, ctx?: Ctx) => (ctx?.ids?.length ? ctx.ids : [id]);
 async function openChat(c: Chat, where = opener()): Promise<Effect> {
   if (c.group) return { open: chatLink(undefined, where), hud: `${c.name} is a group: WhatsApp opens at the top` };
   const phone = await phoneOf(c.id).catch(() => undefined);
-  if (!phone) return failToast("No number for this chat", `${c.name} has no phone the gateway can resolve`);
+  if (!phone) return toast("No number for this chat", `${c.name} has no phone the gateway can resolve`, "failure");
   return { open: chatLink(phone, where) };
 }
 
@@ -111,7 +108,7 @@ const messageForm = (c: Chat, errors?: Record<string, string>, text = "", quote 
   title: `Message ${c.name}`,
   fields: [
     { kind: "textarea", id: "text", label: "Message", required: true, default: text, placeholder: `Sent to ${c.name} from your own number` },
-    ...(c.latestId && !c.latestFromMe ? [{ kind: "checkbox", id: "quote", label: "Reply", text: `Quote the latest message: “${short(oneLine(c.last ?? ""), 60)}”`, default: quote } as const] : []),
+    ...(c.latestId && !c.latestFromMe ? [{ kind: "checkbox", id: "quote", label: "Reply", text: `Quote the latest message: “${truncate(oneLine(c.last ?? ""), 60)}”`, default: quote } as const] : []),
   ],
   submit: { id: "send", title: "Send" },
   errors,
@@ -121,7 +118,7 @@ const reactForm = (c: Chat, errors?: Record<string, string>): Form => ({
   id: c.id,
   title: `React in ${c.name}`,
   fields: [
-    { kind: "select", id: "emoji", label: "Reaction", options: [...REACTIONS.map((e) => ({ id: e, title: e })), { id: "", title: "Remove your reaction" }], default: REACTIONS[0], description: `On the latest message: “${short(oneLine(c.last ?? ""), 80)}”` },
+    { kind: "select", id: "emoji", label: "Reaction", options: [...REACTIONS.map((e) => ({ id: e, title: e })), { id: "", title: "Remove your reaction" }], default: REACTIONS[0], description: `On the latest message: “${truncate(oneLine(c.last ?? ""), 80)}”` },
   ],
   submit: { id: "react-send", title: "React" },
   errors,
@@ -144,54 +141,54 @@ async function pickChat(c: Chat, action: string | undefined, ctx?: Ctx): Promise
   const n = ids.length;
   switch (action) {
     case "read": {
-      const failed: string[] = [];
-      for (const id of ids) { try { await markChatRead(id); } catch (e) { failed.push((await chat(id)).name); log(`read ${id}: ${e instanceof Error ? e.message : e}`); } }
+      const refused: string[] = [];
+      for (const id of ids) { try { await markChatRead(id); } catch (e) { refused.push((await chat(id)).name); log(`read ${id}: ${errorMessage(e)}`); } }
       dropChats();
-      if (failed.length) return failToast("Could not mark read", failed.join(", "));
-      return { keep: true, toast: { title: "Marked read", message: n > 1 ? plural(n, "chat") : c.name } };
+      if (refused.length) return failed("mark read", refused.join(", "));
+      return toast("Marked read", n > 1 ? plural(n, "chat") : c.name);
     }
     case "unread": {
-      const failed: string[] = [];
-      for (const id of ids) { try { await markChatUnread(id); } catch (e) { failed.push((await chat(id)).name); log(`unread ${id}: ${e instanceof Error ? e.message : e}`); } }
+      const refused: string[] = [];
+      for (const id of ids) { try { await markChatUnread(id); } catch (e) { refused.push((await chat(id)).name); log(`unread ${id}: ${errorMessage(e)}`); } }
       dropChats();
-      if (failed.length) return failToast("Could not mark unread", failed.join(", "));
-      return { keep: true, toast: { title: "Marked unread", message: n > 1 ? plural(n, "chat") : c.name } };
+      if (refused.length) return failed("mark unread", refused.join(", "));
+      return toast("Marked unread", n > 1 ? plural(n, "chat") : c.name);
     }
     case "reply":
-      if (!canSend()) return failToast("Sending is off", SEND_OFF);
+      if (!canSend()) return toast("Sending is off", SEND_OFF, "failure");
       await latestOf(c).catch(() => undefined);
       return { form: messageForm(c) };
     case "send": {
-      if (!canSend()) return failToast("Sending is off", SEND_OFF);
+      if (!canSend()) return toast("Sending is off", SEND_OFF, "failure");
       const text = String(ctx?.values?.text ?? "").trim();
       const quote = ctx?.values?.quote === true;
       if (!text) return { form: messageForm(c, { text: "Required" }, "", quote) };
       try {
         if (quote && c.latestId && !c.latestFromMe) await apiReply(c.id, c.latestId, text);
         else await sendText(c.id, text);
-      } catch (e) { return { form: messageForm(c, { text: e instanceof Error ? e.message : String(e) }, text, quote) }; }
+      } catch (e) { return { form: messageForm(c, { text: errorMessage(e) }, text, quote) }; }
       dropChats();
-      return { keep: true, toast: { title: "Sent", message: `${c.name}: ${short(text, 60)}`, style: "success" } };
+      return toast("Sent", `${c.name}: ${truncate(text, 60)}`);
     }
     case "react": {
-      if (!canSend()) return failToast("Reactions are off", SEND_OFF);
+      if (!canSend()) return toast("Reactions are off", SEND_OFF, "failure");
       const target = await latestOf(c).catch(() => undefined);
-      if (!target) return failToast("Nothing to react to", `The latest message in ${c.name} is yours, or there is none`);
+      if (!target) return toast("Nothing to react to", `The latest message in ${c.name} is yours, or there is none`, "failure");
       return { form: reactForm(c) };
     }
     case "react-send": {
-      if (!canSend()) return failToast("Reactions are off", SEND_OFF);
+      if (!canSend()) return toast("Reactions are off", SEND_OFF, "failure");
       const emoji = String(ctx?.values?.emoji ?? "");
       const target = await latestOf(c).catch(() => undefined);
-      if (!target) return failToast("Nothing to react to", `The latest message in ${c.name} is yours, or there is none`);
-      try { await apiReact(c.id, target, emoji); } catch (e) { return { form: reactForm(c, { emoji: e instanceof Error ? e.message : String(e) }) }; }
-      return { keep: true, toast: { title: emoji ? `Reacted ${emoji}` : "Reaction removed", message: c.name, style: "success" } };
+      if (!target) return toast("Nothing to react to", `The latest message in ${c.name} is yours, or there is none`, "failure");
+      try { await apiReact(c.id, target, emoji); } catch (e) { return { form: reactForm(c, { emoji: errorMessage(e) }) }; }
+      return toast(emoji ? `Reacted ${emoji}` : "Reaction removed", c.name);
     }
     case "web": return openChat(c, "web");
     case "copy-name": return { copy: c.name };
     case "copy-number": {
       const phone = await phoneOf(c.id).catch(() => undefined);
-      return phone ? { copy: `+${phone}` } : failToast("No number for this chat", `${c.name} has no phone the gateway can resolve`);
+      return phone ? { copy: `+${phone}` } : toast("No number for this chat", `${c.name} has no phone the gateway can resolve`, "failure");
     }
     default: return openChat(c);
   }
@@ -207,12 +204,12 @@ async function chatRows(ctx?: Ctx): Promise<Item[]> {
 
 async function unreadRows(ctx?: Ctx): Promise<Item[]> {
   const list = (await loadChats(!!ctx?.refresh)).filter((c) => c.unread > 0);
-  if (!list.length) return [hint("none", "Nothing unread", "Every chat is read", [], ICON.read)];
+  if (!list.length) return [hint("none", "Nothing unread", "Every chat is read", { icon: ICON.read })];
   return list.map((c) => chatRow(c, c.group ? "Groups" : "Direct messages"));
 }
 
 const pickChatRow = async (id: string, action?: string, ctx?: Ctx): Promise<Effect | void> => (id.startsWith("hint:") ? pickHint(id) : pickChat(await chat(id), action, ctx));
-const paneOf = async (id: string): Promise<Detail | void> => { if (id.startsWith("hint:")) return; try { return await chatPane(await chat(id)); } catch (e) { return { markdown: `_${e instanceof Error ? e.message : String(e)}_` }; } };
+const paneOf = async (id: string): Promise<Detail | void> => { if (id.startsWith("hint:")) return; try { return await chatPane(await chat(id)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } };
 
 // ---- search -----------------------------------------------------------------------------------------
 
@@ -224,7 +221,7 @@ function hitRow(h: Hit): Item {
   hits.set(h.id, h);
   return {
     id: h.id,
-    name: short(h.text, 100),
+    name: truncate(h.text, 100),
     // A hit in a direct chat with its sender: the chat's name is the sender already.
     subtitle: h.fromMe ? `You in ${h.chat}` : h.who !== h.chat ? `${h.who} in ${h.chat}` : h.chat,
     icon: isGroupId(h.chatId) ? ICON.group : initialIcon(h.chat),
@@ -236,17 +233,17 @@ function hitRow(h: Hit): Item {
 
 async function searchRows(query = ""): Promise<Item[]> {
   const q = query.trim();
-  if (q.length < 2) return [hint("search", "Search WhatsApp", "Words from any message in the archive, back to the first chat", [], ICON.search)];
+  if (q.length < 2) return [hint("search", "Search WhatsApp", "Words from any message in the archive, back to the first chat", { icon: ICON.search })];
   // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
   let found: Hit[];
   try { found = await search(q); } catch (e) {
-    if (e instanceof ApiError && !e.auth) return (lastSearch = [hint("down", "WhatsApp search is unavailable", `${base()} answered ${e.status}: ${short(e.message, 80)}`, [], ICON.alert)]);
+    if (e instanceof ApiError && !e.auth) return (lastSearch = [hint("down", "WhatsApp search is unavailable", `${base()} answered ${e.status}: ${truncate(e.message, 80)}`, { icon: ICON.alert })]);
     throw e;
   }
-  lastSearch = found.length ? found.map(hitRow) : [hint("empty", "No messages found", `Nothing in the archive matches "${q}"`, [], ICON.search)];
+  lastSearch = found.length ? found.map(hitRow) : [hint("empty", "No messages found", `Nothing in the archive matches "${q}"`, { icon: ICON.search })];
   return lastSearch;
 }
 
@@ -315,7 +312,7 @@ async function barRows(list: Chat[]): Promise<BarRow[]> {
   const picked = unread.length ? [...unread.filter((c) => !c.group).slice(0, SECTION_ROWS), ...unread.filter((c) => c.group).slice(0, SECTION_ROWS)] : list.slice(0, SECTION_ROWS);
   return Promise.all(picked.map(async (c): Promise<BarRow> => ({
     id: c.id, name: c.name, group: c.group, text: c.last ? oneLine(c.last) : c.group ? "Group" : "", time: c.at ? clock(c.at) : undefined, n: c.unread,
-    avatar: c.avatar ? await avatarData(c.avatar) : undefined,
+    avatar: c.avatar ? await imageData(c.avatar) : undefined,
   })));
 }
 
@@ -353,10 +350,10 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: "whatsapp", palette: "unread" } };
   if (action === "open-whatsapp") return { open: chatLink(undefined, opener()) };
   if (action === "read-all") {
-    const failed: string[] = [];
-    for (const c of (await loadChats()).filter((c) => c.unread > 0)) { try { await markChatRead(c.id); } catch (e) { failed.push(c.name); log(`read ${c.id}: ${e instanceof Error ? e.message : e}`); } }
+    const refused: string[] = [];
+    for (const c of (await loadChats()).filter((c) => c.unread > 0)) { try { await markChatRead(c.id); } catch (e) { refused.push(c.name); log(`read ${c.id}: ${errorMessage(e)}`); } }
     dropChats();
-    return failed.length ? failToast("Some could not be marked", failed.join(", ")) : { keep: true, hud: "Marked read" };
+    return refused.length ? toast("Some could not be marked", refused.join(", "), "failure") : { keep: true, hud: "Marked read" };
   }
   if (action.startsWith("focus:")) { barFocus = action.slice(6); return redraw(); }
   const st = await barState(await loadChats());
@@ -375,14 +372,14 @@ async function unreadAction(action: string, ctx?: BarCtx): Promise<Effect> {
       if (!c) { barReplying = undefined; return redraw(); }
       if (!canSend()) { barReplying = undefined; barDraft = undefined; return { ...(await redraw()), toast: { title: "Sending is off", message: SEND_OFF, style: "failure" } }; }
       if (!text) return { ...(await redraw()), toast: { title: "Nothing to send", message: "Type the message first", style: "failure" } };
-      try { await sendText(c.id, text); } catch (e) { barDraft = text; return { ...(await redraw()), toast: { title: "Could not send", message: e instanceof Error ? e.message : String(e), style: "failure" } }; }
+      try { await sendText(c.id, text); } catch (e) { barDraft = text; return { ...(await redraw()), toast: { title: "Could not send", message: errorMessage(e), style: "failure" } }; }
       barReplying = undefined; barDraft = undefined;
       dropChats();
-      return { ...(await redraw()), toast: { title: "Sent", message: `${c.name}: ${short(text, 60)}`, style: "success" } };
+      return { ...(await redraw()), toast: { title: "Sent", message: `${c.name}: ${truncate(text, 60)}`, style: "success" } };
     }
     case "read": {
       if (!cur || cur.n === 0) return { keep: true };
-      try { await markChatRead(cur.id); } catch (e) { return failToast("Could not mark read", e); }
+      try { await markChatRead(cur.id); } catch (e) { return failed("mark read", e); }
       dropChats();
       return { keep: true, hud: `${cur.name}: read` };
     }
@@ -444,7 +441,7 @@ export default {
         if (!h) throw new Error(`no message ${id}`);
         return pickHit(h, action);
       },
-      detail: async (id) => { const h = hits.get(id); if (!h) return; try { return await chatPane(await chat(h.chatId)); } catch (e) { return { markdown: `_${e instanceof Error ? e.message : String(e)}_` }; } },
+      detail: async (id) => { const h = hits.get(id); if (!h) return; try { return await chatPane(await chat(h.chatId)); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } },
     },
     contacts: {
       title: "Contacts",

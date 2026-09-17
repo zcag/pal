@@ -5,8 +5,8 @@
 // type. `home > work`, `here -> Kadıköy`, `istanbul to ankara` is a route
 // with both ends. Nothing typed: home, work, the commute, the saved
 // places. `maps:` or `go:` before a query answers inline at the root.
-import { settings, type Action, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
-import { APP_NAME, directionsUrl, matches, MODES, parse, parsePlaces, resolveEnd, searchUrl, webUrl, type App, type Mode, type Place } from "./maps.ts";
+import { errorMessage, hint, settings, toast, type Action, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
+import { APP_NAME, directionsUrl, matches, MODES, parse, parsePlaces, resolveEnd, searchUrl, webUrl, type App, type Mode } from "./maps.ts";
 
 /** `[extensions.maps]`, defaults in pal.json. */
 type Settings = { app: App; home: string; work: string; places: string[]; api_key: string };
@@ -20,7 +20,6 @@ const GLYPH = {
   work: "\u{f00d6}", // md-briefcase
   here: "\u{f01a4}", // md-crosshairs_gps
   route: "\u{f0390}", // md-navigation
-  hint: "\u{f02fd}", // md-information_outline
   alert: "\u{f05d6}", // md-alert_circle_outline
   wait: "\u{f051f}", // md-timer_sand
 };
@@ -33,11 +32,11 @@ const COPY_ADDRESS: Action = { id: "copy_address", title: "Copy address", shortc
 const COPY_LINK: Action = { id: "copy_link", title: "Copy link", shortcut: "cmd+l" };
 const OTHER_APP: Action = { id: "other", title: "Open in the other app", shortcut: "cmd+shift+o" };
 
-export const DEBOUNCE_MS = 250;
+const DEBOUNCE_MS = 250;
 const PLACES = process.env.PAL_MAPS_PLACES ?? "https://places.googleapis.com";
 const FETCH_MS = 4000;
 const S = () => settings.get<Settings>();
-const modeOf = (ctx?: Ctx): Mode => (MODES.some((m) => m.id === ctx?.filter) ? (ctx!.filter as Mode) : "driving");
+const modeOf = (ctx?: Ctx): Mode => MODES.map((m) => m.id).find((id) => id === ctx?.filter) ?? "driving";
 
 /** What a row stands for: a place (searched, saved or predicted) or a route; `pick` builds the url from it. */
 type Held = { kind: "place"; query: string; address: string; placeId?: string } | { kind: "route"; from?: string; to: string };
@@ -45,7 +44,7 @@ const held = new Map<string, Held>();
 
 // ---- Places API (New) autocomplete -----------------------------------------------------
 
-export type Prediction = { placeId: string; text: string; main: string; secondary: string };
+type Prediction = { placeId: string; text: string; main: string; secondary: string };
 type Suggestion = { placePrediction?: { placeId?: string; text?: { text?: string }; structuredFormat?: { mainText?: { text?: string }; secondaryText?: { text?: string } } } };
 
 /** `places:autocomplete`'s suggestions as predictions; anything without a place id is dropped. */
@@ -74,7 +73,6 @@ async function autocomplete(input: string, key: string): Promise<Prediction[]> {
 
 // ---- rows ---------------------------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle = "", icon = GLYPH.hint): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
 const placeActions = (s: Settings): Action[] => [OPEN, DIRECTIONS, ...(s.home?.trim() ? [FROM_HOME] : []), ...(s.work?.trim() ? [FROM_WORK] : []), COPY_ADDRESS, COPY_LINK, OTHER_APP];
 
 function placeRow(id: string, name: string, subtitle: string, h: Extract<Held, { kind: "place" }>, s: Settings, icon: string, keywords?: string[]): Item {
@@ -116,7 +114,7 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   }
   if (p.from && p.to) {
     const from = resolveEnd(p.from, s), to = resolveEnd(p.to, s);
-    if (!to) return [hint("to", "A route needs a destination", "home > work · here -> Kadıköy", GLYPH.alert)];
+    if (!to) return [hint("to", "A route needs a destination", "home > work · here -> Kadıköy", { icon: GLYPH.alert })];
     const rows = [routeRow("route", from, to, mode, s)];
     if (from) rows.push(routeRow("route-back", to, from, mode, s));
     return rows;
@@ -132,21 +130,21 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   if (s.api_key?.trim() && !ctx?.inline) {
     const my = ++seq;
     await Bun.sleep(DEBOUNCE_MS);
-    if (my !== seq) return [...rows, hint("wait", "Looking up places…", q, GLYPH.wait)];
+    if (my !== seq) return [...rows, hint("wait", "Looking up places…", q, { icon: GLYPH.wait })];
     try {
       const list = await autocomplete(q, s.api_key.trim());
-      if (my !== seq) return [...rows, hint("wait", "Looking up places…", q, GLYPH.wait)];
+      if (my !== seq) return [...rows, hint("wait", "Looking up places…", q, { icon: GLYPH.wait })];
       for (const pr of list) rows.push(placeRow(`pred:${pr.placeId}`, pr.main, pr.secondary, { kind: "place", query: pr.text, address: pr.text, placeId: pr.placeId }, s, GLYPH.pin));
     } catch (e) {
-      console.error(`[maps] ${(e as Error)?.message ?? e}`);
-      rows.push(hint("failed", String((e as Error)?.message ?? e), "Places autocomplete", GLYPH.alert));
+      console.error(`[maps] ${errorMessage(e)}`);
+      rows.push(hint("failed", errorMessage(e), "Places autocomplete", { icon: GLYPH.alert }));
     }
   }
   return rows;
 }
 
 /** The url a row opens for an action, on `app`. */
-export function urlFor(h: Held, action: string | undefined, mode: Mode, s: Settings, app: App): string {
+function urlFor(h: Held, action: string | undefined, mode: Mode, s: Settings, app: App): string {
   if (h.kind === "route") return directionsUrl(h.to, h.from, mode, app);
   switch (action) {
     case "directions": return directionsUrl(h.address, undefined, mode, app);
@@ -158,7 +156,7 @@ export function urlFor(h: Held, action: string | undefined, mode: Mode, s: Setti
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   const h = held.get(id);
-  if (!h) return { keep: true, toast: { title: "Row is gone", message: "The listing changed; pick again", style: "failure" } };
+  if (!h) return toast("Row is gone", "The listing changed; pick again", "failure");
   const s = S();
   const mode = modeOf(ctx);
   if (action === "copy_address") return { copy: h.kind === "place" ? h.address : h.to };

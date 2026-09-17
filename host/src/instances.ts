@@ -7,15 +7,16 @@
 // worker's `core/*` calls relayed through this thread's bridge, `stop`
 // with a grace period before `terminate()`.
 import { TILE_COLORS, type TileColor } from "../../sdk/src/icon.ts";
+import { tooLate } from "./bridge.ts";
 import type { InstanceMeta } from "../../sdk/src/manifest.ts";
 import type { BarMeta, InstanceInfo, Manifest, PaletteMeta, ResolvedSettings } from "../../sdk/src/protocol.ts";
 
 /** The extension's name behind an instance key: `gmail` for `gmail@work` and for `gmail`. */
 export const nameOf = (key: string): string => key.split("@")[0];
 /** The suffix of a non-default key, or undefined for a bare name. */
-export const suffixOf = (key: string): string | undefined => (key.includes("@") ? key.slice(key.indexOf("@") + 1) : undefined);
+const suffixOf = (key: string): string | undefined => (key.includes("@") ? key.slice(key.indexOf("@") + 1) : undefined);
 /** `<name>@<suffix>`, the suffix `[a-z0-9][a-z0-9_-]{0,31}` and never `default` (pal_core::config::instance::is_key). */
-export const isKey = (key: string): boolean => /^[a-z0-9][a-z0-9._-]*@[a-z0-9][a-z0-9_-]{0,31}$/.test(key) && suffixOf(key) !== "default";
+const isKey = (key: string): boolean => /^[a-z0-9][a-z0-9._-]*@[a-z0-9][a-z0-9_-]{0,31}$/.test(key) && suffixOf(key) !== "default";
 
 /** One instance, resolved: what `extension/loaded` announces and the SDK's `instance()` answers, plus the tile's mark. */
 export type Instance = InstanceInfo & { tint?: TileColor; badge?: string; enabled: boolean };
@@ -56,17 +57,16 @@ export function resolveInstances(name: string, answer: unknown, own?: TileColor)
     const key = s.key as string;
     if (key !== name && !(isKey(key) && nameOf(key) === name)) continue;
     if (out.some((i) => i.key === key)) continue;
-    const isDefault = key === name;
     const enabled = s.enabled !== false;
-    if (isDefault) {
-      out.push({ key, name, isDefault, enabled, ...(str(s.title) && { title: str(s.title) }) });
+    const suffix = suffixOf(key);
+    if (suffix === undefined) {
+      out.push({ key, name, isDefault: true, enabled, ...(str(s.title) && { title: str(s.title) }) });
       continue;
     }
-    const suffix = suffixOf(key)!;
     const title = str(s.title) ?? capitalised(suffix);
     const tint = TILE_COLORS.includes(s.tint as TileColor) ? (s.tint as TileColor) : tintOf(suffix, own);
     const badge = [...(str(s.badge) ?? "")].slice(0, 2).join("") || [...title][0].toUpperCase();
-    out.push({ key, name, title, isDefault, enabled, tint, badge });
+    out.push({ key, name, title, isDefault: false, enabled, tint, badge });
   }
   // The default first, whatever order the answer came in.
   out.sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
@@ -112,7 +112,7 @@ export function rewriteCall(method: string, params: unknown, key: string): unkno
 // ---- the main thread's side of worker.ts ----------------------------------
 
 /** What worker.ts answers once the entry is imported and checked. */
-export type WorkerLoaded = { palettes: PaletteMeta[]; bar: BarMeta[]; warnings: string[]; ms: number };
+type WorkerLoaded = { palettes: PaletteMeta[]; bar: BarMeta[]; warnings: string[]; ms: number };
 
 /** `{ init }` to the worker: everything it needs to bind the SDK and import the entry. */
 export type WorkerInit = { inst: Instance; alone: boolean; entry: string; manifest: Manifest; settings: ResolvedSettings; loadTimeout: number; rootTimeout: number };
@@ -120,7 +120,7 @@ export type WorkerInit = { inst: Instance; alone: boolean; entry: string; manife
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; timer?: ReturnType<typeof setTimeout> };
 
 /** How long `stop` waits for the worker's `dispose` before `terminate()`. */
-export const STOP_GRACE_MS = 1000;
+const STOP_GRACE_MS = 1000;
 
 /**
  * One instance in its own Bun `Worker`: its own global (so its own SDK
@@ -189,7 +189,7 @@ export class WorkerInstance {
     if (this.gone) return Promise.reject(new Error(this.gone));
     const id = this.seq++;
     return new Promise((resolve, reject) => {
-      const timer = ms ? setTimeout(() => { this.pending.delete(id); reject(new Error(`${this.key}: ${Object.keys(msg)[0]} timed out after ${ms} ms`)); }, ms) : undefined;
+      const timer = ms ? setTimeout(() => { this.pending.delete(id); reject(tooLate(`${this.key}: ${Object.keys(msg)[0]}`, ms)); }, ms) : undefined;
       this.pending.set(id, { resolve, reject, timer });
       this.worker.postMessage({ id, ...msg });
     });

@@ -1,6 +1,6 @@
 // Generates data.json: the named colours the grid lists, by set. Run by
 // hand (`bun run extensions/colors/build.ts`) and the output is committed,
-// so nothing is fetched at runtime. Sets: the CSS names (color.ts), pal's
+// so nothing is fetched at runtime. Sets: the CSS names (the SDK's `colors`), pal's
 // own tokens (app/src/ui/tokens.css, light and dark), Tailwind's palette
 // (the tailwindcss package on unpkg), Material's 2014 palette (the
 // material-colors package), the Material 3 baseline tonal palettes
@@ -11,8 +11,9 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CSS_NAMES } from "./color.ts";
+import { colors } from "@zcag/pal";
 import { SETS, handKept, type Row } from "./sets.ts";
+const { CSS_NAMES } = colors;
 
 const TAILWIND = "https://unpkg.com/tailwindcss@3.4.17/lib/public/colors.js";
 const MATERIAL = "https://unpkg.com/material-colors@1.2.6/dist/colors.json";

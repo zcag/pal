@@ -10,7 +10,6 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseToken } from "../../../extensions/gmail/api.ts";
 import { gravatarUrl, initialIcon } from "../../../extensions/gmail/avatar.ts";
 import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, size, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
 import type { Item, PaletteMeta } from "../../../sdk/src/protocol.ts";
@@ -19,7 +18,6 @@ import { GmailMock, personal } from "./gmail-mock.ts";
 
 const P = "gmail";
 const W = "gmail@work";
-const MIN = 60_000;
 
 const decodeRaw = (raw: string) => Buffer.from(raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
 const bodyText = (raw: string) => Buffer.from(decodeRaw(raw).split("\r\n\r\n")[1].replace(/\r\n/g, ""), "base64").toString("utf8");
@@ -100,11 +98,7 @@ describe("mail helpers", () => {
     expect(looksAttached({ mimeType: "multipart/alternative" })).toBe(false);
   });
 
-  test("parseToken and the avatar helpers", () => {
-    const now = 1_000_000;
-    expect(parseToken("ya29.abc\n", now)).toEqual({ token: "ya29.abc", until: now + 29 * MIN });
-    expect(parseToken('{"access_token":"t","expires_in":3385}', now)).toEqual({ token: "t", until: now + 3385_000 - MIN });
-    expect(parseToken("", now)).toBeUndefined();
+  test("the avatar helpers", () => {
     expect(gravatarUrl("Mara@Example.com ")).toMatch(/\/ec0b5b5f013f246e0729ebaea54e85d5\?s=64&d=404$/);
     expect(initialIcon("mara lind", "mara@example.com").image).toMatch(/^data:image\/svg\+xml;utf8,.*%3EM%3C/);
   });
@@ -261,7 +255,7 @@ describe("gmail", () => {
     expect(await host.pick(P, "inbox", "m6", "unstar")).toMatchObject({ toast: { title: "Unstarred" } });
     expect(modifies().at(-1)).toEqual({ ids: ["m6"], removeLabelIds: ["STARRED"] });
     const before = modifies().length;
-    expect(await host.pick(W, "inbox", "w3", "archive")).toEqual({ keep: true, toast: { title: "Archive is off", message: "Turn on send for this account under Settings, Extensions, Gmail", style: "failure" } });
+    expect(await host.pick(W, "inbox", "w3", "archive")).toEqual({ keep: true, toast: { title: "Archive is off", message: "Turn on send for this account under Settings › Extensions › Gmail", style: "failure" } });
     expect(await host.pick(W, "inbox", "w3", "star")).toMatchObject({ toast: { title: "Star is off", style: "failure" } });
     expect(await host.pick(W, "inbox", "w3", "reply")).toMatchObject({ toast: { title: "Reply is off", style: "failure" } });
     expect(await host.pick(W, "inbox", "w3", "send", { values: { to: "x@y", subject: "s", body: "b" } })).toMatchObject({ toast: { title: "Reply is off", style: "failure" } });
@@ -281,7 +275,7 @@ describe("gmail", () => {
     expect(again.errors).toEqual({ body: "Required" });
     expect(mock.sent).toHaveLength(0);
     const r = await host.pick(P, "inbox", "m1", "send", { values: { to: "Mara Lind <mara@example.com>", cc: "tomas@example.com", subject: "Re: Parser review before standup?", body: "Looking now." } });
-    expect(r).toEqual({ keep: true, toast: { title: "Sent", message: "Reply to Mara Lind: Re: Parser review before standup?", style: "success" } });
+    expect(r).toEqual({ keep: true, toast: { title: "Sent", message: "Reply to Mara Lind: Re: Parser review before standup?" } });
     expect(mock.sent).toHaveLength(1);
     expect(mock.sent[0].threadId).toBe("t1");
     expect(mock.sent[0].box).toBe("someone@gmail.com");
@@ -348,7 +342,7 @@ describe("gmail", () => {
       { id: "discard", title: "Discard draft", shortcut: "cmd+d", style: "destructive", confirm: 'Discard "Packing list"?' },
     ]);
     expect(await host.pick(P, "drafts", "r1")).toEqual({ open: "https://mail.google.com/mail/u/someone%40gmail.com/#drafts/td1" });
-    expect(await host.pick(P, "drafts", "r1", "send")).toEqual({ keep: true, toast: { title: "Sent", message: "Packing list", style: "success" } });
+    expect(await host.pick(P, "drafts", "r1", "send")).toEqual({ keep: true, toast: { title: "Sent", message: "Packing list" } });
     expect(mock.calls("/users/me/drafts/send").at(-1)!.body).toEqual({ id: "r1" });
     expect(await host.pick(P, "drafts", "r2", "discard")).toEqual({ keep: true, toast: { title: "Discarded", message: "(no subject)" } });
     expect(mock.calls("/users/me/drafts/r2").at(-1)!.method).toBe("DELETE");
@@ -440,7 +434,7 @@ describe("gmail", () => {
       expect(await h2.render(P, "unread", { reason: "load" })).toEqual({ hidden: true });
       const none = await h2.list("gmail@none", "inbox");
       expect(await h2.pick("gmail@none", "inbox", "hint:token")).toEqual({ open: "pal://settings/extensions?anchor=extensions:gmail@none:token_command" });
-      expect(none[0]).toMatchObject({ id: "hint:token", name: "No token command set", subtitle: "Set one under Settings, Extensions, Gmail: a command that prints an access token" });
+      expect(none[0]).toMatchObject({ id: "hint:token", name: "Token command is not set", subtitle: "Set one under Settings › Extensions › Gmail: a command that prints an access token" });
       expect((await h2.list("gmail@none", "labels"))[0].id).toBe("hint:token");
       expect(mock.seen.filter((s) => s.auth === "Bearer undefined")).toHaveLength(0);
     } finally { h2.kill(); }
@@ -454,7 +448,7 @@ describe("gmail", () => {
     });
     try {
       const rows = await h3.list(P, "inbox");
-      expect(rows[0]).toMatchObject({ id: "hint:auth", name: "Gmail rejected the token", subtitle: "Request had invalid authentication credentials.: check the token command's scopes under Settings, Extensions, Gmail" });
+      expect(rows[0]).toMatchObject({ id: "hint:auth", name: "Gmail rejected the token", subtitle: "Request had invalid authentication credentials.: check the token command's scopes under Settings › Extensions › Gmail" });
       await expect(h3.render(P, "unread", { reason: "load" })).rejects.toThrow(/invalid authentication/);
     } finally { h3.kill(); }
   });

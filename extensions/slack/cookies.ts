@@ -13,6 +13,7 @@ import { createCipheriv, createDecipheriv, pbkdf2Sync } from "node:crypto";
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { exec } from "@zcag/pal";
 
 const SALT = "saltysalt";
 const IV = Buffer.alloc(16, 0x20);
@@ -55,11 +56,8 @@ export function encryptedCookie(jar: string, host: string, name: string): Uint8A
 
 /** Runs a command to completion (or `ms`); stdout trimmed, or undefined on failure. */
 export async function run(argv: string[], ms = 10_000): Promise<string | undefined> {
-  const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-  const timer = setTimeout(() => proc.kill(), ms);
-  const [code, out] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
-  clearTimeout(timer);
-  return code === 0 ? out.trim() : undefined;
+  const r = await exec(argv, { ms });
+  return r.code === 0 ? r.out.trim() : undefined;
 }
 
 /**

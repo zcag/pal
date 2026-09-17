@@ -4,7 +4,7 @@
 // one runs on a Mac too.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Host, type CoreTable } from "../harness.ts";
@@ -196,9 +196,9 @@ describe("network on macOS tools", () => {
     host.changeSettings("network", { settings: { public_ip_url: url("/text") } });
     expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public", name: "198.51.100.4", subtitle: "Public IP" });
     host.changeSettings("network", { settings: { public_ip_url: url("/fail") } });
-    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public:none", name: "Public IP unavailable", subtitle: `500 from 127.0.0.1:${server.port}; cmd+r tries again`, actions: [] });
+    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "hint:public:none", name: "Public IP unavailable", subtitle: `500 from 127.0.0.1:${server.port}; cmd+r tries again`, actions: [] });
     host.changeSettings("network", { settings: { public_ip_url: url("/junk") } });
-    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "public:none", subtitle: "not an address; cmd+r tries again" });
+    expect((await list()).find((i) => i.section === "Internet")).toMatchObject({ id: "hint:public:none", subtitle: "not an address; cmd+r tries again" });
     host.changeSettings("network", { settings: { public_ip_url: "" } });
     expect((await list()).some((i) => i.section === "Internet")).toBe(false);
     // A failure is not cached: the next listing with a good url fetches.

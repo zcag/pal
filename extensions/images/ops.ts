@@ -426,8 +426,9 @@ export function parseSips(text: string): Info {
   });
 }
 
-/** The `-format` string for `identify` (ImageMagick), one field per line in `IDENTIFY_FIELDS` order. */
+/** The fields `identify` (ImageMagick) is asked for, one per line in this order (`identifyFormat`). */
 export const IDENTIFY_FIELDS = ["%w", "%h", "%m", "%x", "%[colorspace]", "%[profile:icc]", "%A", "%z", "%[EXIF:Make]", "%[EXIF:Model]", "%[EXIF:LensModel]", "%[EXIF:DateTimeOriginal]", "%[EXIF:ExposureTime]", "%[EXIF:FNumber]", "%[EXIF:ISOSpeedRatings]", "%[EXIF:FocalLength]", "%[EXIF:Software]", "%[EXIF:Copyright]", "%[EXIF:Artist]", "%[EXIF:Orientation]"];
+/** The `-format` string for `identify`. */
 export const identifyFormat = () => IDENTIFY_FIELDS.join("\\n") + "\\n";
 
 export function parseIdentify(text: string): Info {

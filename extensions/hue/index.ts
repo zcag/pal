@@ -14,12 +14,12 @@
 // certificate, the entertainment client key) in storage (`bridges`); a
 // second bridge, while the settings hold one, keeps its key in storage.
 import { hostname } from "node:os";
-import { bar, effects, settings, storage, view as liveView, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
-import { Client, GROUP_GAP_MS, HueError, LIGHT_GAP_MS, PAIR_WINDOW_MS, SETTINGS_HINT, config, devicetype, discoverCloud, discoverMdns, peekCertificate, pressLink, type Bridge, type Found, type HueEvent } from "./api.ts";
+import { bar, effects, errorMessage, failed as failedRow, settings, storage, toast, view as liveView, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
+import { Client, GROUP_GAP_MS, HueError, LIGHT_GAP_MS, PAIR_WINDOW_MS, config, devicetype, discoverCloud, discoverMdns, peekCertificate, pressLink, type Bridge, type Found, type HueEvent } from "./api.ts";
 import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, toHex, xyToHs, type RGB } from "./color.ts";
 import { Home, aggregate, automationsOf, entertainmentOf, lightColor, lightsOf, roomsOf, scenesOf, sensorsOf, type Light, type Room, type Scene } from "./model.ts";
 import { dotPng } from "./png.ts";
-import { freshPopover, gridRooms, moveCursor, renderPopover, VIEW_ID as POPOVER_ID, type PopoverData, type PopoverState } from "./popover.ts";
+import { freshPopover, gridRooms, moveCursor, renderPopover, type PopoverData, type PopoverState } from "./popover.ts";
 import { DURATIONS, EFFECTS, FOCUS, PRESETS, fresh, render, renderSetup, shown, type SetupState, type Target, type ViewState } from "./render.ts";
 import { G, NAME, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
 
@@ -79,8 +79,8 @@ async function connect(b: Bridge): Promise<void> {
     down.delete(b.id);
     startStream(b);
   } catch (e) {
-    down.set(b.id, e instanceof HueError ? e : new HueError(String((e as Error)?.message ?? e), "cmd+r tries again"));
-    console.error(`[hue] ${b.ip}: ${(e as Error).message}`);
+    down.set(b.id, e instanceof HueError ? e : new HueError(errorMessage(e), "cmd+r tries again"));
+    console.error(`[hue] ${b.ip}: ${errorMessage(e)}`);
   }
 }
 
@@ -134,7 +134,7 @@ async function adopt(b: Bridge): Promise<void> {
       await load();
       return;
     } catch (e) {
-      console.error(`[hue] the key stays in storage, the settings refused it: ${(e as Error).message}`);
+      console.error(`[hue] the key stays in storage, the settings refused it: ${errorMessage(e)}`);
     }
   }
   keep(b);
@@ -160,7 +160,7 @@ function startStream(b: Bridge) {
         for await (const ev of c.events(ctl.signal, () => { failures = 0; })) onEvent(b.id, ev);
       } catch (e) {
         if (ctl.signal.aborted) return;
-        if (failures === 0) console.error(`[hue] stream ${b.ip}: ${(e as Error).message}`);
+        if (failures === 0) console.error(`[hue] stream ${b.ip}: ${errorMessage(e)}`);
       }
       if (ctl.signal.aborted) return;
       await Bun.sleep(STREAM_BACKOFF[Math.min(failures++, STREAM_BACKOFF.length - 1)]);
@@ -180,7 +180,7 @@ function pushViews() {
   for (const ev of liveView.open(NAME)) {
     if (ev.palette !== "light") continue;
     const t = targetOf(ev.id.startsWith("light:") ? { light: ev.id } : { room: ev.id });
-    if (t) liveView.update(draw(t), { extension: NAME, palette: "light", id: ev.id }).catch((e) => console.error(`[hue] view push: ${(e as Error).message}`));
+    if (t) liveView.update(draw(t), { extension: NAME, palette: "light", id: ev.id }).catch((e) => console.error(`[hue] view push: ${errorMessage(e)}`));
   }
 }
 
@@ -215,7 +215,7 @@ function put(bridge: string, type: string, rid: string, body: Record<string, unk
       entry.timer = setTimeout(() => {
         const next = entry.next;
         entry.next = undefined;
-        if (next) void send(next).catch((e) => console.error(`[hue] ${type}/${rid}: ${(e as Error).message}`));
+        if (next) void send(next).catch((e) => console.error(`[hue] ${type}/${rid}: ${errorMessage(e)}`));
         else inflight.delete(key);
       }, gap);
     }
@@ -223,8 +223,8 @@ function put(bridge: string, type: string, rid: string, body: Record<string, unk
   return send(withDynamics);
 }
 
-const toast = (title: string, message?: string, style: "success" | "failure" = "success"): Effect => ({ keep: true, toast: { title, message, style } });
-const failed = (what: string, e: unknown): Effect => toast(`Could not ${what}`, e instanceof HueError ? `${e.message}. ${e.hint}` : String((e as Error)?.message ?? e), "failure");
+/** The SDK's failure toast, with a HueError's fix after its message. */
+const failed = (what: string, e: unknown): Effect => failedRow(what, e instanceof HueError ? `${e.message}. ${e.hint}` : e);
 
 // ---- lookups ---------------------------------------------------------------------------
 
@@ -350,7 +350,7 @@ let pairing: AbortController | undefined;
 async function discover(force = false): Promise<Found[]> {
   if (!force && discovered && Date.now() - discovered.at < DISCOVERY_TTL) return discovered.found;
   const url = process.env.PAL_HUE_DISCOVERY ?? undefined;
-  const [cloud, mdns] = await Promise.all([discoverCloud(url).catch((e) => { console.error(`[hue] discovery: ${(e as Error).message}`); return [] as Found[]; }), discoverMdns().catch(() => [] as Found[])]);
+  const [cloud, mdns] = await Promise.all([discoverCloud(url).catch((e) => { console.error(`[hue] discovery: ${errorMessage(e)}`); return [] as Found[]; }), discoverMdns().catch(() => [] as Found[])]);
   const found: Found[] = [];
   const s = current();
   if (s.bridge?.trim()) found.push({ id: "", ip: s.bridge.trim(), name: "Hue Bridge (settings)", via: "setting" });
@@ -381,7 +381,7 @@ function startPairing(ip: string, name: string, id?: string): void {
       cert = await peekCertificate(ip);
       if (id && cert.cn && cert.cn !== id && !s.insecure) throw new HueError(`${ip}'s certificate is for bridge ${cert.cn}, not ${id}`, "Another bridge answers at that address; pair by its own address");
     } catch (e) {
-      if (!s.insecure) { setup = { phase: "failed", ip, name, error: `${(e as Error).message}${e instanceof HueError ? `. ${e.hint}` : ""}` }; return; }
+      if (!s.insecure) { setup = { phase: "failed", ip, name, error: `${errorMessage(e)}${e instanceof HueError ? `. ${e.hint}` : ""}` }; return; }
     }
     const tls = { insecure: !!s.insecure, cert: cert?.selfSigned ? cert.pem : undefined };
     while (!ctl.signal.aborted && Date.now() < deadline) {
@@ -397,7 +397,7 @@ function startPairing(ip: string, name: string, id?: string): void {
           return;
         }
       } catch (e) {
-        if (setup.phase === "press") setup.error = `${(e as Error).message}${e instanceof HueError ? `. ${e.hint}` : ""}`;
+        if (setup.phase === "press") setup.error = `${errorMessage(e)}${e instanceof HueError ? `. ${e.hint}` : ""}`;
       }
       await Bun.sleep(1000);
     }
@@ -405,7 +405,7 @@ function startPairing(ip: string, name: string, id?: string): void {
       setup = { phase: "failed", ip, name, error: "The button was not pressed within 30 seconds. Press it, then try again." };
       await effects.run({ hud: "Hue: the bridge button was not pressed" }).catch(() => {});
     }
-  })().catch((e) => { setup = { phase: "failed", ip, name, error: String((e as Error)?.message ?? e) }; });
+  })().catch((e) => { setup = { phase: "failed", ip, name, error: errorMessage(e) }; });
 }
 
 async function setupView() {
@@ -444,7 +444,7 @@ async function setupPick(action: string | undefined, ctx?: Ctx): Promise<Effect>
       bridges = bridges.filter((x) => x !== b);
       await saveBridges(bridges);
       if (b.from_settings) {
-        try { await settings.set({ application_key: null, bridge: null }, NAME); } catch (e) { console.error(`[hue] could not clear the settings: ${(e as Error).message}`); }
+        try { await settings.set({ application_key: null, bridge: null }, NAME); } catch (e) { console.error(`[hue] could not clear the settings: ${errorMessage(e)}`); }
       }
       discovered = undefined;
       scheduleBar();
@@ -616,7 +616,7 @@ async function rows(make: () => Item[], ctx?: Ctx): Promise<Item[]> {
 /** Enter on a room row toggles it; the other actions open, list or copy. */
 async function pickRoom(id: string, action: string | undefined): Promise<Effect> {
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-  if (id === "hint") return { keep: true };
+  if (id === "hint:error") return { keep: true };
   const r = findRoom(id);
   if (!r) return toast("Unknown room", id, "failure");
   const a = aggregate(r);
@@ -636,7 +636,7 @@ async function pickRoom(id: string, action: string | undefined): Promise<Effect>
 
 async function pickLight(id: string, action: string | undefined): Promise<Effect> {
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-  if (id === "hint") return { keep: true };
+  if (id === "hint:error") return { keep: true };
   const l = findLight(id);
   if (!l) return toast("Unknown light", id, "failure");
   const c = clients.get(l.bridge)!;
@@ -656,7 +656,7 @@ async function pickLight(id: string, action: string | undefined): Promise<Effect
 
 async function pickScene(id: string, action: string | undefined): Promise<Effect> {
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-  if (id === "hint") return { keep: true };
+  if (id === "hint:error") return { keep: true };
   const s = findScene(id);
   if (!s) return toast("Unknown scene", id, "failure");
   switch (action ?? "activate") {
@@ -728,7 +728,7 @@ export default {
       list: (_q, ctx) => rows(() => sensorRows(sensorsOf(home), several(), bridgeName), ctx),
       pick: async (id, action) => {
         if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-        if (id === "hint") return { keep: true };
+        if (id === "hint:error") return { keep: true };
         const s = sensorsOf(home).find((x) => x.id === id);
         if (!s) return toast("Unknown sensor", id, "failure");
         if (action === "copy_id") return { copy: s.id };
@@ -746,7 +746,7 @@ export default {
       list: (_q, ctx) => rows(() => automationsOf(home).map((a) => automationRow(a, several(), bridgeName(a.bridge))), ctx),
       pick: async (id, action) => {
         if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-        if (id === "hint") return { keep: true };
+        if (id === "hint:error") return { keep: true };
         const a = automationsOf(home).find((x) => x.id === id);
         if (!a) return toast("Unknown automation", id, "failure");
         if (action === "copy_id") return { copy: a.id };
@@ -760,7 +760,7 @@ export default {
       list: (_q, ctx) => rows(() => entertainmentOf(home).map((e) => entertainmentRow(e, several(), bridgeName(e.bridge))), ctx),
       pick: async (id, action) => {
         if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
-        if (id === "hint") return { keep: true };
+        if (id === "hint:error") return { keep: true };
         const e = entertainmentOf(home).find((x) => x.id === id);
         if (!e) return toast("Unknown area", id, "failure");
         if (action === "copy_id") return { copy: e.id };
@@ -805,4 +805,4 @@ export default {
 // on (the bridge, its key, insecure, timeout) reads them again and
 // reconnects; any other change (the bar's scenes, the main room) keeps the
 // streams and re-renders the bar.
-settings.onChange(() => { load().then(scheduleBar).catch((e) => console.error(`[hue] ${(e as Error).message}`)); }, NAME);
+settings.onChange(() => { load().then(scheduleBar).catch((e) => console.error(`[hue] ${errorMessage(e)}`)); }, NAME);

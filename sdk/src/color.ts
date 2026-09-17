@@ -5,7 +5,7 @@
 // picker's keys take in HSL or OKLCH (chroma kept inside the gamut), the
 // tints, shades and harmonies, WCAG contrast, the nearest CSS name (in
 // OKLab, so the answer is what the eye would pick), and the SVG swatch the
-// grid tiles show. Unit-tested directly (host/test/extensions/colors.test.ts).
+// grid tiles show. Unit-tested in host/test/extensions/colors.test.ts; `colors` on `@zcag/pal` (the sampler is `color`).
 
 /** sRGB, 0..255 per channel, alpha 0..1 (1 when the input had none). */
 export type RGB = { r: number; g: number; b: number; a: number };

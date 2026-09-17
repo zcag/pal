@@ -542,7 +542,7 @@ fn bun_install(bun: Option<&Path>, dir: &Path) -> Result<()> {
         if t0.elapsed() > BUN_TIMEOUT {
             let _ = child.kill();
             let _ = child.wait();
-            return Err(Error::Bun(format!("timed out after {BUN_TIMEOUT:?}")));
+            return Err(Error::Bun(format!("bun did not answer within {} s", BUN_TIMEOUT.as_secs())));
         }
         std::thread::sleep(Duration::from_millis(50));
     };

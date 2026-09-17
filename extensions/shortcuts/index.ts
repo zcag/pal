@@ -11,7 +11,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { clipboard, effects, type Action, type Ctx, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { clipboard, effects, errorMessage, hint, toast, truncate, type Action, type Ctx, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 
 const MAC = process.platform === "darwin";
 /** Tests point this at a stand-in; the real tool is in /usr/bin on every Mac that has it. */
@@ -79,13 +79,7 @@ function row(s: Shortcut): Item {
   };
 }
 
-const unavailable = (): Item[] => [{
-  id: "unavailable",
-  name: "Apple Shortcuts is not available",
-  subtitle: MAC ? "The shortcuts command line tool ships with macOS 12 and later" : "Shortcuts is a macOS app; there is nothing to run here",
-  icon: ICON_OFF,
-  actions: [],
-}];
+const unavailable = (): Item[] => [hint("unavailable", "Apple Shortcuts is not available", MAC ? "The shortcuts command line tool ships with macOS 12 and later" : "Shortcuts is a macOS app; there is nothing to run here", { icon: ICON_OFF })];
 
 /**
  * Runs the shortcut detached from the pick, `input` as its input file, and
@@ -107,10 +101,10 @@ async function run(s: Shortcut, input?: string): Promise<void> {
     // The output file exists only when the shortcut produced something; text is the case worth a line in the HUD, anything else is a Done.
     const out = code === 0 ? await readFile(outPath).then((b) => new TextDecoder("utf-8", { fatal: true }).decode(b), () => "") : "";
     const first = out.split("\n").map((l) => l.trim()).find(Boolean);
-    const hud = code !== 0 ? `${s.name}: ${err.trim().split("\n")[0].replace(/^Error: /, "") || `exited ${code}`}` : first ? `${s.name}: ${first.length > 80 ? `${first.slice(0, 79)}…` : first}` : `${s.name}: Done`;
+    const hud = code !== 0 ? `${s.name}: ${err.trim().split("\n")[0].replace(/^Error: /, "") || `exited ${code}`}` : first ? `${s.name}: ${truncate(first, 80)}` : `${s.name}: Done`;
     await effects.run({ hud });
   } catch (e) {
-    await effects.run({ hud: `${s.name}: ${e instanceof Error ? e.message : String(e)}` }).catch(() => {});
+    await effects.run({ hud: `${s.name}: ${errorMessage(e)}` }).catch(() => {});
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
@@ -125,9 +119,9 @@ const textForm = (s: Shortcut, errors?: Record<string, string>): Form => ({
 });
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
-  if (id === "unavailable") return;
+  if (id.startsWith("hint:")) return;
   const s = known.get(id);
-  if (!s) return { keep: true, toast: { title: "Shortcut not found", message: "List again (cmd+r) and retry", style: "failure" } };
+  if (!s) return toast("Shortcut not found", "List again (cmd+r) and retry", "failure");
   switch (action) {
     case "open": return { open: `shortcuts://open-shortcut?name=${encodeURIComponent(s.name)}` };
     case "copy": return { copy: s.name };
@@ -140,7 +134,7 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | vo
     }
     case "clipboard": {
       const text = (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text;
-      if (!text) return { keep: true, toast: { title: "Nothing on the clipboard", message: "Copy some text first, or use Run with text", style: "failure" } };
+      if (!text) return toast("Nothing on the clipboard", "Copy some text first, or use Run with text", "failure");
       void run(s, text);
       return { hide: true };
     }
@@ -161,7 +155,7 @@ export default {
         try {
           return (await shortcuts()).map(row);
         } catch (e) {
-          return [{ id: "error", name: "Could not list shortcuts", subtitle: `${e instanceof Error ? e.message : e}; cmd+r tries again`, icon: ICON_OFF, actions: [] }];
+          return [hint("error", "Could not list shortcuts", `${errorMessage(e)}; cmd+r tries again`, { icon: ICON_OFF })];
         }
       },
       pick,

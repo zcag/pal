@@ -3,7 +3,7 @@
 // as an accessory. Enter toggles the connection (Disconnect asks first),
 // ⌘C copies the address. Live: the connected state is read again on
 // every show; the list is the OS's, connected first then by name.
-import { bluetooth, xdg, type Accessory, type Action, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
+import { bluetooth, errorMessage, failed, hint, xdg, type Accessory, type Action, type BluetoothDevice, type Extension, type Item } from "@zcag/pal";
 
 const GLYPH: Record<string, string> = {
   headphones: xdg("audio-headphones")!,
@@ -37,7 +37,6 @@ function item(d: BluetoothDevice): Item {
   };
 }
 
-const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: String((e as Error)?.message ?? e), style: "failure" } });
 
 export default {
   palettes: {
@@ -49,11 +48,11 @@ export default {
         try {
           return (await bluetooth.devices()).map(item);
         } catch (e) {
-          return [{ id: "error", name: "Bluetooth is not available", subtitle: String((e as Error)?.message ?? e), icon: xdg("dialog-error")!, actions: [] }];
+          return [hint("error", "Bluetooth is not available", errorMessage(e), { icon: xdg("dialog-error")! })];
         }
       },
       pick: async (id, action) => {
-        if (id === "error") return { keep: true };
+        if (id === "hint:error") return { keep: true };
         if (action === "copy") return { copy: id };
         // Read the state again rather than trust the row: the list may have been up a while.
         const d = (await bluetooth.devices().catch(() => [] as BluetoothDevice[])).find((d) => d.address === id);

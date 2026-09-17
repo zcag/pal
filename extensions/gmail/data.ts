@@ -5,7 +5,7 @@
 // (an hour in memory, persisted in storage so a restart lists without a
 // call), the address (the setting, else the profile once), a search, the
 // opened message whole, the drafts, and the writes.
-import { storage } from "@zcag/pal";
+import { errorMessage, storage } from "@zcag/pal";
 import * as api from "./api.ts";
 import { avatar } from "./avatar.ts";
 import { bodyOf, header, looksAttached, parseAddress, parseAddresses, type Address, type Attachment, type Message } from "./mail.ts";
@@ -76,7 +76,7 @@ export async function fetchMails(refs: api.Ref[]): Promise<Mail[]> {
   const missing = refs.filter((r) => !mails.has(r.id));
   const got = await api.pool(missing, (r) => api.metadata(r.id));
   for (const m of got) mails.set(m.id, toMail(m));
-  return refs.map((r) => mails.get(r.id)!).filter(Boolean);
+  return refs.flatMap((r) => mails.get(r.id) ?? []);
 }
 
 /** Each mail's sender mark, probed once per address, in parallel. */
@@ -141,7 +141,7 @@ export async function address(): Promise<string> {
   const set = (api.conf().address ?? "").trim();
   if (set) return set;
   if (profileAddress === undefined) {
-    try { profileAddress = (await api.profile()).emailAddress ?? ""; } catch (e) { api.log(`profile: ${e instanceof Error ? e.message : e}`); return ""; }
+    try { profileAddress = (await api.profile()).emailAddress ?? ""; } catch (e) { api.log(`profile: ${errorMessage(e)}`); return ""; }
   }
   return profileAddress;
 }
@@ -154,7 +154,7 @@ export const addressNow = (): string => (api.conf().address ?? "").trim() || pro
 /** Unread first (up to 50; the count from the label when the page is full), then the newest 50 minus those, then the `labels` setting's unread. */
 export async function inbox(): Promise<Inbox> {
   // The label table first: the rows' chips and the `labels` setting need the names.
-  await labels().catch((e) => api.log(`labels: ${e instanceof Error ? e.message : e}`));
+  await labels().catch((e) => api.log(`labels: ${errorMessage(e)}`));
   const extraLabels = await labelIdsFor(api.conf().labels ?? []);
   const [unreadRefs, recentRefs, ...extraRefs] = await Promise.all([
     api.list({ labelIds: ["INBOX", "UNREAD"] }),
@@ -170,9 +170,10 @@ export async function inbox(): Promise<Inbox> {
     m.unread = unreadIds.has(m.id) || (unreadRefs.length >= api.MAX_RESULTS && m.unread);
     m.labelIds = m.unread ? (m.labelIds.includes("UNREAD") ? m.labelIds : [...m.labelIds, "UNREAD"]) : m.labelIds.filter((l) => l !== "UNREAD");
   }
-  const unread = unreadRefs.map((r) => mails.get(r.id)!).filter(Boolean);
-  const recent = recentRefs.filter((r) => !seen.has(r.id)).map((r) => mails.get(r.id)!).filter(Boolean);
-  const extra = extraLabels.map((l, i) => ({ label: l.name, mails: extraRefs[i].filter((r) => !seen.has(r.id)).map((r) => mails.get(r.id)!).filter(Boolean) }));
+  const have = (refs: { id: string }[]) => refs.flatMap((r) => mails.get(r.id) ?? []);
+  const unread = have(unreadRefs);
+  const recent = have(recentRefs.filter((r) => !seen.has(r.id)));
+  const extra = extraLabels.map((l, i) => ({ label: l.name, mails: have(extraRefs[i].filter((r) => !seen.has(r.id))) }));
   await withAvatars([...unread, ...recent, ...extra.flatMap((e) => e.mails)]);
   return { at: Date.now(), unread, recent, extra, count };
 }

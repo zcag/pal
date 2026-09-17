@@ -9,6 +9,7 @@
 // the documented v2 API on the free host with the user's key. `speak` is
 // `say` on macOS with a voice of the language when one is installed,
 // `spd-say` else `espeak` on Linux.
+import { errorMessage } from "@zcag/pal";
 import { deeplSource, deeplTarget, fromDeepl } from "./lang.ts";
 
 export type Backend = "google" | "deepl";
@@ -33,10 +34,10 @@ export type Translation = {
 };
 
 /** The tests point both at a Bun mock. */
-export const GOOGLE = (process.env.PAL_TRANSLATE_GOOGLE || "https://translate.googleapis.com").replace(/\/+$/, "");
+const GOOGLE = (process.env.PAL_TRANSLATE_GOOGLE || "https://translate.googleapis.com").replace(/\/+$/, "");
 export const DEEPL = (process.env.PAL_TRANSLATE_DEEPL || "https://api-free.deepl.com").replace(/\/+$/, "");
 /** A translation past this is a hint row; the root's inline budget is 1.5 s. */
-export const FETCH_MS = 6000;
+const FETCH_MS = 6000;
 /** Google takes 5000 characters per request; longer text is cut and the row says so. */
 export const MAX_CHARS = 5000;
 
@@ -110,7 +111,7 @@ async function google(text: string, from: string, to: string, signal: AbortSigna
 type DeeplReply = { translations?: { detected_source_language?: string; text?: string }[]; message?: string };
 
 async function deepl(text: string, from: string, to: string, key: string, signal: AbortSignal): Promise<Translation> {
-  if (!key) throw new TranslateError("no DeepL key", "Set `api_key` under Settings › Extensions › Translate (a free key ends in :fx), or switch `backend` to Google");
+  if (!key) throw new TranslateError("DeepL key is not set", "Set `api_key` under Settings › Extensions › Translate (a free key ends in :fx), or switch `backend` to Google");
   const body = { text: [text], target_lang: deeplTarget(to), ...(deeplSource(from) && { source_lang: deeplSource(from) }) };
   const r = await fetch(`${DEEPL}/v2/translate`, { method: "POST", body: JSON.stringify(body), headers: { Authorization: `DeepL-Auth-Key ${key}`, "Content-Type": "application/json" }, signal });
   const reply = (await r.json().catch(() => ({}))) as DeeplReply;
@@ -132,7 +133,7 @@ export async function translate(backend: Backend, text: string, from: string, to
   } catch (e) {
     if (e instanceof TranslateError) throw e;
     const offline = ctl.signal.aborted || /fetch|network|ECONN|ENOTFOUND|EAI_AGAIN/i.test(String(e));
-    throw new TranslateError(String((e as Error)?.message ?? e), offline ? `Could not reach ${backend === "deepl" ? "DeepL" : "Google"}: check the network and try again` : String((e as Error)?.message ?? e));
+    throw new TranslateError(errorMessage(e), offline ? `Could not reach ${backend === "deepl" ? "DeepL" : "Google"}: check the network and try again` : errorMessage(e));
   } finally {
     clearTimeout(timer);
   }
@@ -156,7 +157,7 @@ export const voiceFor = (list: { name: string; lang: string }[], lang: string): 
 };
 
 /** The argv that speaks `text` in `lang`; undefined when this machine has no speaker. */
-export async function speakArgv(text: string, lang: string): Promise<string[] | undefined> {
+async function speakArgv(text: string, lang: string): Promise<string[] | undefined> {
   const bin = process.env.PAL_TRANSLATE_SAY;
   if (bin) return [bin, lang, text];
   if (MAC) {

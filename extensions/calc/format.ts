@@ -27,7 +27,7 @@ function exp(x: number, precision: number): string {
 }
 
 /** The locale's decimal separator (`.` or `,`). */
-export const decimalSeparator = (locale: string) => new Intl.NumberFormat(locale).formatToParts(1.1).find((p) => p.type === "decimal")?.value ?? ".";
+const decimalSeparator = (locale: string) => new Intl.NumberFormat(locale).formatToParts(1.1).find((p) => p.type === "decimal")?.value ?? ".";
 
 /**
  * Number literals as the locale writes them turned into what the parsers

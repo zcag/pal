@@ -40,6 +40,7 @@ use pal_core::index::{Item, Source};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
 
+use crate::effects::toast;
 use crate::{autostart, effects, hotkey, index, permissions, settings, updater, welcome};
 
 pub const STORE: &str = "https://pal.cagdas.io/extensions";
@@ -334,9 +335,6 @@ pub fn install_form(error: Option<&str>) -> Value {
     json!({ "form": form })
 }
 
-fn toast(title: &str, message: &str, style: &str) -> Value {
-    json!({ "toast": { "title": title, "message": message, "style": style } })
-}
 
 /// System, then light, then dark, then the system again.
 pub fn next_theme(t: Theme) -> Theme {

@@ -11,9 +11,9 @@
 // could be and is the root's Clipboard section.
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { clipboard, conceal, home, ocr, settings, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { clipboard, conceal, errorMessage, failed, home, ocr, settings, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { rowsPalette } from "./now.ts";
-import { fileNameFor, qrSvg, QR_SHOW_PX } from "./rows.ts";
+import { fileNameFor, qrSvg, QR_SHOW_PX, size } from "./rows.ts";
 
 /** `[extensions.clipboard]`, defaults in pal.json. `max_entries` and `max_age_days` are the recorder's (app clipboard.rs); this side never reads them. */
 type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy"; ocr_concealed: boolean };
@@ -63,7 +63,6 @@ function colorOf(e: ClipboardEntry): string | undefined {
   const [r, g, b] = m.slice(1, 4).map((n) => Math.min(255, +n));
   return "#" + [r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("");
 }
-const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
@@ -197,7 +196,7 @@ async function saveFile(e: ClipboardEntry, values: Ctx["values"]): Promise<Effec
     if (await stat(target).then(() => true).catch(() => false)) return { form: saveForm(e, { name: `${name} exists there already` }) };
     if (e.kind === "image") await copyFile(e.image!, target);
     else await writeFile(target, e.kind === "files" ? e.files!.join("\n") + "\n" : e.text!, { flag: "wx" });
-  } catch (err) { return { form: saveForm(e, { name: String((err as Error)?.message ?? err) }) }; }
+  } catch (err) { return { form: saveForm(e, { name: errorMessage(err) }) }; }
   return { keep: true, toast: { title: "Saved", message: target.replace(home("~"), "~") } };
 }
 
@@ -217,7 +216,8 @@ async function deleteUnpinned(): Promise<number> {
 
 /** An entry recorded before its app went on the exclude list is hidden by bundle id or readable name. */
 function shown(e: ClipboardEntry, s: Settings): boolean {
-  return !e.source_app || !s.exclude_apps.some((x) => x === e.source_app || x.toLowerCase() === appName(e.source_app!).toLowerCase());
+  const app = e.source_app;
+  return !app || !s.exclude_apps.some((x) => x === app || x.toLowerCase() === appName(app).toLowerCase());
 }
 
 export default {
@@ -265,7 +265,7 @@ export default {
             const e = await clipboard.get(entry);
             if (!e.image) return { paste: { entry } };
             let text: string;
-            try { text = await ocr.image({ path: e.image }); } catch (err) { return { keep: true, toast: { title: "Could not read the text", message: String((err as Error)?.message ?? err), style: "failure" } }; }
+            try { text = await ocr.image({ path: e.image }); } catch (err) { return failed("read the text", err); }
             if (!text) return { keep: true, toast: { title: "No text in the image" } };
             return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
           }

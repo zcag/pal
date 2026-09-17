@@ -61,7 +61,7 @@ the answer (Spotlight, locate).
 | `cmd+o` | Open with…: a level listing the apps registered for the file, the default first with a `Default` tag; typing narrows them, Enter opens the file with that app |
 | `cmd+c` | Copy path |
 | `cmd+shift+c` | Copy file: the file itself onto the clipboard; a paste in Finder or a file manager copies it, a paste in a text field gets its path |
-| `cmd+t` | Open in Terminal: a terminal window in the folder (a file's folder), the app the `terminal` setting names (shell's table: Terminal, iTerm, kitty, Alacritty, WezTerm, Ghostty; Linux `$TERMINAL` or the first installed) |
+| `cmd+t` | Open in Terminal: a terminal window in the folder (a file's folder), the app the `terminal` setting names (Terminal, iTerm, kitty, Alacritty, WezTerm, Ghostty; Linux `$TERMINAL` or the first installed) |
 | `cmd+shift+r` | Rename…: a form with the name; the same folder, a taken name refused |
 | `cmd+m` | Move to…: a form with the folder (`~` expanded, made when missing); across volumes `mv` does it |
 | `cmd+alt+c` | Copy to…: the same form, a copy under the same name (a folder whole) |
@@ -106,5 +106,5 @@ macOS (Spotlight, Quick Look, Finder, `mdls`, `ditto`) and Linux (fd,
 locate or find; GTK's recently-used list; `gio trash`, `xdg-open`, `zip`;
 a PNG's size off its header, no tags).
 
-The rename, move and copy forms and the tool runner live in `ops.ts` and
-are the Downloads extension's too (`../files/ops.ts`).
+The rename, move and copy forms are `@zcag/pal`'s `files` helpers, shared
+with the Downloads extension.

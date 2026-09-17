@@ -72,7 +72,8 @@ export function update(extensions: Record<string, ResolvedSettings>) {
 export const resolved = (extension: string): ResolvedSettings => table.get(extension) ?? { settings: {}, palettes: {} };
 
 export function subscribe(extension: string, cb: (s: ResolvedSettings) => void): () => void {
-  if (!listeners.has(extension)) listeners.set(extension, new Set());
-  listeners.get(extension)!.add(cb);
+  let set = listeners.get(extension);
+  if (!set) listeners.set(extension, (set = new Set()));
+  set.add(cb);
   return () => listeners.get(extension)?.delete(cb);
 }

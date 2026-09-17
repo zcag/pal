@@ -198,7 +198,7 @@ pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
             let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = index::run_pick(&app, &host, &source, &id, None, None, None).await {
+                if let Err(e) = index::run_pick(&app, &host, &source, &index::Pick { id: &id, ..Default::default() }).await {
                     eprintln!("hotkey\titem pick failed\t{}/{}\t{id}\t{e}", source.extension, source.palette);
                 }
             });

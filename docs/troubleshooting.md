@@ -118,8 +118,8 @@ installed", "1Password is not running", "1Password did not answer"
 (unlock it, then ⌘R), "Connect the 1Password CLI to the app". The
 palette is `lazy`, so the prompt comes on the first panel show rather
 than at login. The core gives any one listing 10 s; a prompt left
-unanswered longer than that fails the listing ("host timed out on
-list" in the log), so answer it and press ⌘R.
+unanswered longer than that fails the listing ("the host did not answer
+list within 10 s" in the log), so answer it and press ⌘R.
 
 ## PATH, from the Dock
 
@@ -144,10 +144,11 @@ the root (`pal reload`, `pal://reload`), "Restart extension host" in the
 menu bar icon's menu and under Settings › General › Maintenance, and
 after every install, update and remove; a host that exits is respawned
 after half a second (`host<TAB>exit`). During the gap a pick fails with
-a "Failed" toast ("the extension host is restarting; try again in a
-moment"), and the footer says "updating…" while listings are pending. A
-request the host does not answer within 10 s fails with "host timed out
-on `<method>`".
+a "Could not open" toast (the action's own name: "Could not copy URL";
+"the extension host is restarting; try again in a moment" under it), and
+the footer says "updating…" while listings are pending. A
+request the host does not answer within 10 s fails with "the host did
+not answer `<method>` within 10 s".
 
 An edited extension file is re-imported in place, no restart: the host
 watches every root. What does want a restart: `general.extension_dirs`,

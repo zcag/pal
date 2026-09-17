@@ -7,6 +7,9 @@ import type { Request, Response } from "../../sdk/src/protocol.ts";
 /** A hung core handler must not hang the extension that asked; a call that waits on the user (`color.sample`) names its own. */
 const TIMEOUT_MS = 5000;
 
+/** The one wording for a wait that ran out, host-wide: "list of gmail did not answer within 1.5 s". */
+export const tooLate = (what: string, ms: number) => new Error(`${what} did not answer within ${ms / 1000} s`);
+
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> };
 const pending = new Map<number, Pending>();
 let seq = 1;
@@ -17,7 +20,7 @@ export function call<T = unknown>(method: string, params?: unknown, opts: { time
   return new Promise<T>((res, rej) => {
     const timer = setTimeout(() => {
       pending.delete(id);
-      rej(new Error(`core timed out on ${method}`));
+      rej(tooLate(`core ${method}`, opts.timeout ?? TIMEOUT_MS));
     }, opts.timeout ?? TIMEOUT_MS);
     pending.set(id, { resolve: res as (v: unknown) => void, reject: rej, timer });
     try {

@@ -11,7 +11,7 @@
 // (the system prompt, once per install; the app skips the ask for the
 // startup load), and a refusal is a hint row that opens the pane. Live:
 // listed again on every show.
-import { permissions, wifi, xdg, type Accessory, type Action, type Ctx, type Effect, type Extension, type Form, type Item, type PermissionStatus, type WifiNetwork } from "@zcag/pal";
+import { errorMessage, failed, hint, permissions, toast, wifi, xdg, type Accessory, type Action, type Ctx, type Extension, type Form, type Item, type PermissionStatus, type WifiNetwork } from "@zcag/pal";
 
 const MAC = process.platform === "darwin";
 const WIFI = xdg("network-wireless")!;
@@ -55,7 +55,6 @@ function available(n: WifiNetwork): Item {
   };
 }
 
-const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: String((e as Error)?.message ?? e), style: "failure" } });
 const ssidOf = (id: string) => id.slice(id.indexOf(":") + 1);
 
 function passwordForm(ssid: string, id: string, error?: string): Form {
@@ -79,9 +78,9 @@ export default {
         try {
           status = await wifi.status();
         } catch (e) {
-          return [{ id: "error", name: "Wi-Fi is not available", subtitle: String((e as Error)?.message ?? e), icon: xdg("dialog-error")!, actions: [] }];
+          return [hint("error", "Wi-Fi is not available", errorMessage(e), { icon: xdg("dialog-error")! })];
         }
-        if (!status.interface) return [{ id: "error", name: "No Wi-Fi interface", icon: xdg("dialog-error")!, actions: [] }];
+        if (!status.interface) return [hint("error", "No Wi-Fi interface", undefined, { icon: xdg("dialog-error")! })];
         const items: Item[] = [];
         const location = status.powered ? await locationGate(() => permissions.status().then((p) => p.location), () => permissions.request("location")) : "granted";
         const withheld = location !== "granted";
@@ -158,7 +157,7 @@ export default {
         return items;
       },
       pick: async (id, action, ctx?: Ctx) => {
-        if (id === "error") return { keep: true };
+        if (id === "hint:error") return { keep: true };
         if (id === "location") {
           try { await permissions.request("location"); } catch (e) { return failed("open System Settings", e); }
           return { keep: true };
@@ -185,11 +184,11 @@ export default {
           }
           case "forget": {
             try { await wifi.forget(ssid); } catch (e) { return failed(`forget ${ssid}`, e); }
-            return { keep: true, toast: { title: `Forgot ${ssid}`, style: "success" } };
+            return toast(`Forgot ${ssid}`);
           }
           case "join_with": {
             const password = String(ctx?.values?.password ?? "");
-            try { await wifi.join(ssid, password); } catch (e) { return { form: passwordForm(ssid, id, String((e as Error)?.message ?? e)) }; }
+            try { await wifi.join(ssid, password); } catch (e) { return { form: passwordForm(ssid, id, errorMessage(e)) }; }
             return { hud: `Joined ${ssid}` };
           }
           default: {
@@ -198,7 +197,7 @@ export default {
               const n = (await wifi.scan("cached").catch(() => ({ networks: [] as WifiNetwork[] }))).networks.find((n) => n.ssid === ssid);
               if (n?.security && !n.known) return { form: passwordForm(ssid, id) };
             }
-            try { await wifi.join(ssid); } catch (e) { return id.startsWith("net:") ? { form: passwordForm(ssid, id, String((e as Error)?.message ?? e)) } : failed(`join ${ssid}`, e); }
+            try { await wifi.join(ssid); } catch (e) { return id.startsWith("net:") ? { form: passwordForm(ssid, id, errorMessage(e)) } : failed(`join ${ssid}`, e); }
             return { hud: `Joined ${ssid}` };
           }
         }

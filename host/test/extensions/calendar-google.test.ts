@@ -3,7 +3,7 @@
 // text), then the extension through the harness against a local mock of
 // the Calendar API v3 (calendar-google.fixture.json, shaped like the API,
 // written for 2026-09-16 10:00 UTC, which `PAL_NOW` makes the host's clock,
-// calendar/clock.ts, in `TZ=UTC`) with two accounts whose token commands
+// the SDK's clock.ts, in `TZ=UTC`) with two accounts whose token commands
 // are scripts: one prints a bare token, the other the JSON an OAuth
 // endpoint answers. Rows and actions per palette, the filter list, the
 // detail's text, the bar item, the token cache and a 401 re-mint, one
@@ -12,13 +12,12 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isConference, joinLink, links, parseAccounts, parseToken, text, toEvent } from "../../../extensions/calendar/google.ts";
+import { isConference, joinLink, links, parseAccounts, text, toEvent } from "../../../extensions/calendar/google.ts";
 import type { CalendarEvent } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
 import fixture from "./calendar-google.fixture.json" with { type: "json" };
 
 const E = "calendar";
-const MIN = 60_000;
 
 // The fixture's times are in +00:00 and its day is Wed 16 Sep 2026; the host reads the same clock and zone, so the rows say the fixture's own hours.
 process.env.TZ = "UTC";
@@ -74,18 +73,6 @@ describe("google helpers", () => {
     ]);
     expect(parseAccounts(undefined)).toEqual([]);
     expect(parseAccounts(["cmd"])[0].name).toBe("google");
-  });
-  test("parseToken: a bare line, JSON with expires_in or expiry, nothing", () => {
-    const now = 1_000_000;
-    expect(parseToken("ya29.abc\n", now)).toEqual({ token: "ya29.abc", until: now + 29 * MIN });
-    expect(parseToken("\n  ya29.abc  \nignored", now)).toEqual({ token: "ya29.abc", until: now + 29 * MIN });
-    expect(parseToken('{"access_token":"t","expires_in":3385}', now)).toEqual({ token: "t", until: now + 3385_000 - MIN });
-    expect(parseToken('{"access_token":"t","expires_in":"600"}', now)).toEqual({ token: "t", until: now + 600_000 - MIN });
-    expect(parseToken('{"token":"t","expiry":"2026-09-16T12:00:00Z"}', now)).toEqual({ token: "t", until: Date.parse("2026-09-16T12:00:00Z") - MIN });
-    expect(parseToken('{"access_token":"t"}', now)).toEqual({ token: "t", until: now + 29 * MIN });
-    expect(parseToken("", now)).toBeUndefined();
-    expect(parseToken('{"nope":1}', now)).toBeUndefined();
-    expect(parseToken("{broken", now)).toBeUndefined();
   });
   test("joinLink: the video entry point first, hangoutLink, then the location and the description", () => {
     expect(joinLink({ conferenceData: { entryPoints: [{ entryPointType: "phone", uri: "tel:+1" }, { entryPointType: "more", uri: "https://applications.zoom.us/addon/x" }, { entryPointType: "video", uri: "https://zoom.us/j/1" }] }, hangoutLink: "https://meet.google.com/aaa-bbbb-ccc" })).toBe("https://zoom.us/j/1");
@@ -211,7 +198,7 @@ describe("google source", () => {
       expect(host.stderr).toContain("[calendar] work: 503 Backend Error");
       personalToken = "nope";
       const none = await host.list(E, "today", "", { refresh: true });
-      expect(none[0]).toMatchObject({ id: "hint", name: "Showing the last events read", section: "Today" });
+      expect(none[0]).toMatchObject({ id: "hint:calendar", name: "Showing the last events read", section: "Today" });
       expect(none[0].subtitle).toBe("personal: 401 Invalid Credentials; work: 503 Backend Error");
       expect(none.map((r) => r.name)).toContain("Design review: settings window");
       expect(await host.render(E, "upcoming", { reason: "every" })).toMatchObject({ title: "Design review: settings window in 1h", stale: true });
@@ -234,7 +221,7 @@ describe("google source", () => {
     const h3 = await Host.bundled({ core: { "calendar.permission": () => "unavailable" }, settings: { [E]: { settings: { source: "google", accounts: [] } } } });
     try {
       const rows = await h3.list(E, "today");
-      expect(rows[0]).toMatchObject({ id: "hint", name: "Could not read the calendar", subtitle: "No Google account configured: add one under Settings > Calendar > Accounts" });
+      expect(rows[0]).toMatchObject({ id: "hint:calendar", name: "Could not read the calendar", subtitle: "No Google account is set: add one under Settings › Extensions › Calendar" });
     } finally { h3.kill(); }
   });
 });

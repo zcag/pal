@@ -11,7 +11,7 @@
 // after. ops.ts plans the steps (pure), exec.ts runs them.
 import { readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { clipboard, effects, home, ocr, settings, view as views, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata, type View, type ViewNode } from "@zcag/pal";
+import { clipboard, effects, errorMessage, hint, home, ocr, settings, tilde, toast, view as views, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata, type View, type ViewNode } from "@zcag/pal";
 import { available, copyImage, dimsOf, dir, execute, exists, finderSelection, infoOf, keepOriginal, MAC, restoreOriginal, sizeOf, thumbnail, tinypng, tmpPath, trash, which } from "./exec.ts";
 import { ASPECTS, cropped, dims as dimsText, FMT_TITLE, fmtOf, isImage, isMissing, LOSSY, outputFor, parseResize, percent, plan, resized, size, suffixFor, TARGETS, TOOL_HINT, type Aspect, type Avail, type Dims, type Fmt, type Info, type Job, type ResizeSpec, type ToolName } from "./ops.ts";
 
@@ -33,7 +33,6 @@ const GLYPH = {
   square: "\u{f01a2}", // md-crop_square
   aspect: "\u{f0a24}", // md-aspect_ratio
   pad: "\u{f004c}", // md-arrow_expand_all
-  hint: "\u{f02fd}", // md-information_outline
   alert: "\u{f05d6}", // md-alert_circle_outline
   download: "\u{f01da}", // md-download
   off: "\u{f082b}", // md-image_off
@@ -49,10 +48,8 @@ const SOURCES_TTL_MS = 2500;
 const THUMB_ROW = 64, THUMB_PANE = 256;
 /** Images listed from a folder, and completions of a typed path. */
 const FOLDER_MAX = 200, COMPLETIONS = 8;
-const HOME = home("~");
 /** `14-02-33`, the clipboard result's name. */
 const stamp = () => new Date().toTimeString().slice(0, 8).replace(/:/g, "-");
-const short = (p: string) => (p === HOME ? "~" : p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p);
 
 // ---- sources ----------------------------------------------------------------------
 
@@ -132,7 +129,6 @@ function actionsFor(path: string, ocrable: boolean): Action[] {
 
 // ---- rows --------------------------------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle: string, icon = GLYPH.hint): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
 
 const toolLabel = (t: ToolName) => (t === "cjpeg" && (which("cjpeg") ?? "").includes("mozjpeg") ? "mozjpeg" : t === "builtin" ? "pal" : t === "tinypng" ? "TinyPNG" : t);
 
@@ -146,7 +142,7 @@ async function fileRow(path: string, o: { section?: string; clip?: true; ocrable
   return {
     id: path,
     name: o.clip && !r ? "Clipboard image" : basename(path),
-    subtitle: r ? `${jobTitle(r.job)} with ${toolLabel(r.tool)}${r.lossless && r.job.kind === "compress" && !r.job.lossless ? " (lossless: no lossy encoder for it)" : ""} · ${size(r.before)} → ${size(r.after)}` : o.clip ? "From the clipboard" : short(dirname(path)),
+    subtitle: r ? `${jobTitle(r.job)} with ${toolLabel(r.tool)}${r.lossless && r.job.kind === "compress" && !r.job.lossless ? " (lossless: no lossy encoder for it)" : ""} · ${size(r.before)} → ${size(r.after)}` : o.clip ? "From the clipboard" : tilde(dirname(path)),
     icon: thumb ? { image: thumb } : GLYPH.image,
     keywords: [extname(path).slice(1)],
     accessories: [...(r ? [{ tag: r.gain ? percent(r.before, r.after) : "no gain", color: r.gain ? "green" : "grey" }] : []), { text: size(bytes) }, ...(d ? [{ text: dimsText(d) }] : [])],
@@ -192,9 +188,9 @@ function hints(): Item[] {
   const missing = (["pngquant", "oxipng", "cjpeg", "cwebp", "avifenc"] as ToolName[]).filter((t) => !avail.includes(t));
   const none = !avail.includes("sips") && !avail.includes("magick");
   return [
-    hint("how", MAC ? "Select images in Finder, copy one, or type a path" : "Copy images, or type a path", "Compress, resize, convert, rotate, strip metadata, make an icon set", GLYPH.image),
-    ...(none ? [hint("none", "Nothing here resizes or converts", MAC ? "sips is missing from /usr/bin" : "Install ImageMagick: brew install imagemagick or apt install imagemagick", GLYPH.alert)] : []),
-    ...missing.slice(0, 3).map((t) => hint(t, `Install ${t}`, `For ${TOOL_HINT[t]}`, GLYPH.download)),
+    hint("how", MAC ? "Select images in Finder, copy one, or type a path" : "Copy images, or type a path", "Compress, resize, convert, rotate, strip metadata, make an icon set", { icon: GLYPH.image }),
+    ...(none ? [hint("none", "Nothing here resizes or converts", MAC ? "sips is missing from /usr/bin" : "Install ImageMagick: brew install imagemagick or apt install imagemagick", { icon: GLYPH.alert })] : []),
+    ...missing.slice(0, 3).map((t) => hint(t, `${t} is not installed`, `For ${TOOL_HINT[t]}`, { icon: GLYPH.download })),
   ];
 }
 
@@ -203,13 +199,13 @@ async function pathRows(q: string): Promise<Item[]> {
   const p = home(q).replace(/(.)\/+$/, "$1");
   const ocrable = await ocrAvailable();
   const st = await stat(p).catch(() => undefined);
-  if (st?.isFile()) { const r = isImage(p) ? await fileRow(p, { ocrable }) : undefined; return r ? [r] : [hint("not-image", `${basename(p)} is not an image`, "PNG, JPEG, WebP, AVIF, HEIC, GIF, TIFF, BMP or SVG", GLYPH.off)]; }
+  if (st?.isFile()) { const r = isImage(p) ? await fileRow(p, { ocrable }) : undefined; return r ? [r] : [hint("not-image", `${basename(p)} is not an image`, "PNG, JPEG, WebP, AVIF, HEIC, GIF, TIFF, BMP or SVG", { icon: GLYPH.off })]; }
   if (st?.isDirectory()) {
     const files = await folderImages(p);
-    if (!files.length) return [hint("empty", `No images in ${short(p)}`, "Type on for a subfolder", GLYPH.folder)];
-    const rows = await Promise.all(files.map((f) => fileRow(f, { section: short(p), ocrable })));
+    if (!files.length) return [hint("empty", `No images in ${tilde(p)}`, "Type on for a subfolder", { icon: GLYPH.folder })];
+    const rows = await Promise.all(files.map((f) => fileRow(f, { section: tilde(p), ocrable })));
     const out = rows.filter((r): r is Item => !!r);
-    if (out.length > 1) out.unshift({ id: `folder:${p}`, name: `All ${out.length} images in ${basename(p) || p}`, subtitle: short(p), icon: GLYPH.multiple, actions: OPS });
+    if (out.length > 1) out.unshift({ id: `folder:${p}`, name: `All ${out.length} images in ${basename(p) || p}`, subtitle: tilde(p), icon: GLYPH.multiple, actions: OPS });
     return out;
   }
   const dir = dirname(p), prefix = basename(p).toLowerCase();
@@ -219,10 +215,10 @@ async function pathRows(q: string): Promise<Item[]> {
     if (rows.length >= COMPLETIONS) break;
     const f = join(dir, n);
     const s = await stat(f).catch(() => undefined);
-    if (s?.isDirectory()) rows.push(hint(`dir:${f}`, n, "A folder: type its path with a / to list its images", GLYPH.folder));
+    if (s?.isDirectory()) rows.push(hint(`dir:${f}`, n, "A folder: type its path with a / to list its images", { icon: GLYPH.folder }));
     else if (s?.isFile() && isImage(f)) { const r = await fileRow(f, { ocrable }); if (r) rows.push(r); }
   }
-  return rows.length ? rows : [hint("nothing", "No image or folder there", `Nothing under ${short(dir)} starts with “${basename(p)}”`, GLYPH.off)];
+  return rows.length ? rows : [hint("nothing", "No image or folder there", `Nothing under ${tilde(dir)} starts with “${basename(p)}”`, { icon: GLYPH.off })];
 }
 
 // ---- the levels: resize, convert, rotate, crop ---------------------------------------------------
@@ -411,7 +407,7 @@ function batch(files: string[], job: Job | "tinypng", onEach?: () => void): Batc
   const queue = [...files];
   const worker = async () => {
     for (let f = queue.shift(); f !== undefined; f = queue.shift()) {
-      try { b.done.push(job === "tinypng" ? await runTiny(f, s, avail) : await runOne(f, job, s, avail)); } catch (e) { b.failed.push({ file: f, error: String((e as Error)?.message ?? e) }); }
+      try { b.done.push(job === "tinypng" ? await runTiny(f, s, avail) : await runOne(f, job, s, avail)); } catch (e) { b.failed.push({ file: f, error: errorMessage(e) }); }
       onEach?.();
     }
   };
@@ -444,7 +440,7 @@ function summary(b: Batch, job: Job | "tinypng"): { title: string; message?: str
  * Not yet: a progress toast now, the HUD and the copy when it lands.
  */
 async function runJobs(files: string[], job: Job | "tinypng"): Promise<Effect> {
-  if (!files.length) return { keep: true, toast: { title: "No images to work on", style: "failure" } };
+  if (!files.length) return fail("No images to work on");
   const b = batch(files, job);
   const timely = await Promise.race([b.finished.then(() => true), Bun.sleep(BUDGET_MS).then(() => false)]);
   if (timely) return finish(b, job);
@@ -455,7 +451,7 @@ async function runJobs(files: string[], job: Job | "tinypng"): Promise<Effect> {
 /** The finished batch as an effect: what to copy and what to say. */
 async function finish(b: Batch, job: Job | "tinypng"): Promise<Effect> {
   const s = summary(b, job);
-  if (!s.ok) return { keep: true, toast: { title: s.title, message: s.message, style: "failure" } };
+  if (!s.ok) return fail(s.title, s.message);
   const ok = written(b);
   const line = `${s.title}: ${s.message}`;
   if (ok.length === 1 && ok[0].clip && (await copyImage(ok[0].output))) return { hud: `${line} · image copied` };
@@ -486,7 +482,7 @@ async function webView(id: string, files: string[], b: Batch): Promise<View> {
           ]
         : [{ type: "text", value: `${size(r.before)}, already small`, style: "muted" }, { type: "badge", text: "no gain", color: "grey" }]
       : fail ? [{ type: "text", value: fail.error, style: "muted", color: "destructive" }] : [{ type: "text", value: "Working…", style: "muted" }, { type: "spacer" }, { type: "progress", value: 0, width: 96 }];
-    const dimsLine = r?.gain ? `${toolLabel(r.tool)} · ${dimsText(r.from)}${r.to && (r.to.width !== r.from?.width || r.to.height !== r.from?.height) ? ` → ${dimsText(r.to)}` : ""} · ${basename(r.output)}` : short(dirname(f));
+    const dimsLine = r?.gain ? `${toolLabel(r.tool)} · ${dimsText(r.from)}${r.to && (r.to.width !== r.from?.width || r.to.height !== r.from?.height) ? ` → ${dimsText(r.to)}` : ""} · ${basename(r.output)}` : tilde(dirname(f));
     rows.push({ type: "stack", key: f, direction: "row", gap: 3, align: "center", children: [
       picture,
       { type: "stack", grow: true, gap: 1, children: [
@@ -531,7 +527,7 @@ async function openWeb(files: string[]): Promise<Effect> {
 // ---- detail --------------------------------------------------------------------------------------
 
 const infoLines = (i: Info, path: string, bytes: number): Metadata[] => {
-  const m: Metadata[] = [{ label: "Path", value: short(path) }, { label: "Size", value: size(bytes) }];
+  const m: Metadata[] = [{ label: "Path", value: tilde(path) }, { label: "Size", value: size(bytes) }];
   if (i.width && i.height) m.push({ label: "Dimensions", value: `${i.width} × ${i.height} px${i.dpi && i.dpi !== 72 ? `, ${Math.round(i.dpi)} dpi` : ""}` });
   if (i.format) m.push({ label: "Format", value: `${FMT_TITLE[i.format as Fmt] ?? i.format.toUpperCase()}${i.bits ? `, ${i.bits} bits` : ""}${i.alpha ? ", alpha" : ""}` });
   if (i.space || i.profile) m.push({ label: "Colour", value: [i.space, i.profile].filter(Boolean).join(" · ") });
@@ -551,13 +547,13 @@ const infoLines = (i: Info, path: string, bytes: number): Metadata[] => {
 /** The pane: the picture at 256 px over the info; a result adds what made it and where the original is. */
 async function detail(path: string): Promise<Detail> {
   const bytes = await sizeOf(path);
-  if (!bytes) return { markdown: "This file no longer exists.", metadata: [{ label: "Path", value: short(path) }] };
+  if (!bytes) return { markdown: "This file no longer exists.", metadata: [{ label: "Path", value: tilde(path) }] };
   const [info, thumb] = await Promise.all([infoOf(path), S().thumbnails ? thumbnail(path, THUMB_PANE) : undefined]);
   const r = resultOf(path);
   const metadata = infoLines(info, path, bytes);
   if (r) {
-    metadata.unshift({ label: "Made by", value: `${jobTitle(r.job)} with ${toolLabel(r.tool)}` }, { label: "From", value: `${short(r.source)}, ${size(r.before)}${r.from ? `, ${dimsText(r.from)}` : ""}` }, { label: "Saving", tags: [{ text: r.gain ? percent(r.before, r.after) : "no gain", color: r.gain ? "green" : "grey" }] });
-    if (r.kept) metadata.push({ label: "Original kept", value: short(r.kept) });
+    metadata.unshift({ label: "Made by", value: `${jobTitle(r.job)} with ${toolLabel(r.tool)}` }, { label: "From", value: `${tilde(r.source)}, ${size(r.before)}${r.from ? `, ${dimsText(r.from)}` : ""}` }, { label: "Saving", tags: [{ text: r.gain ? percent(r.before, r.after) : "no gain", color: r.gain ? "green" : "grey" }] });
+    if (r.kept) metadata.push({ label: "Original kept", value: tilde(r.kept) });
   }
   return { markdown: thumb ? `![](${thumb})` : undefined, metadata };
 }
@@ -565,7 +561,7 @@ async function detail(path: string): Promise<Detail> {
 // ---- pick -------------------------------------------------------------------------------------------
 
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
-const fail = (title: string, message?: string): Effect => ({ keep: true, toast: { title, message, style: "failure" } });
+const fail = (title: string, message?: string): Effect => toast(title, message, "failure");
 
 async function pick(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect | void> {
   // A pick from the web view.
@@ -600,7 +596,7 @@ async function pick(id: string, action: string | undefined, ctx?: Ctx): Promise<
     case "resize": case "convert": case "rotate": case "crop": return { push: { extension: "images", palette: "images", args: { op: action, files } satisfies LevelArgs, title: `${LEVEL_TITLE[action]} ${files.length === 1 ? basename(one) : `${files.length} images`}` } };
     case "ocr": {
       let text: string;
-      try { text = await ocr.image({ path: one }); } catch (e) { return fail("Could not read the text", String((e as Error)?.message ?? e)); }
+      try { text = await ocr.image({ path: one }); } catch (e) { return fail("Could not read the text", errorMessage(e)); }
       if (!text) return fail("No text in the image", basename(one));
       return { copy: text, hud: "Copied text" };
     }
@@ -615,13 +611,13 @@ async function pick(id: string, action: string | undefined, ctx?: Ctx): Promise<
     case "restore": {
       const r = resultOf(one);
       if (!r?.kept) return fail("No original kept", "The result did not replace its source");
-      try { await restoreOriginal(r.kept, r.source, r.output); } catch (e) { return fail("Could not restore", String((e as Error)?.message ?? e)); }
+      try { await restoreOriginal(r.kept, r.source, r.output); } catch (e) { return fail("Could not restore", errorMessage(e)); }
       results.delete(one);
       return { keep: true, toast: { title: `Restored ${basename(r.source)}`, message: r.output !== r.source ? `${basename(r.output)} removed` : "The original is back in place" } };
     }
     case "trash": {
       const r = resultOf(one);
-      try { await trash(one); } catch (e) { return fail("Could not move to Trash", String((e as Error)?.message ?? e)); }
+      try { await trash(one); } catch (e) { return fail("Could not move to Trash", errorMessage(e)); }
       results.delete(one);
       return { keep: true, toast: { title: "Moved to Trash", message: `${basename(one)}${r && r.source !== one ? `; ${basename(r.source)} stays` : ""}` } };
     }

@@ -233,7 +233,7 @@ pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
             let status = permissions::request(app, "accessibility")?;
             if status.accessibility {
                 sync(app);
-                Ok(json!({ "toast": { "title": "Accessibility granted", "message": "Paste and window switching work now", "style": "success" } }))
+                Ok(crate::effects::toast("Accessibility granted", "Paste and window switching work now", "success"))
             } else {
                 Ok(effects::accessibility_toast("Paste and window switching"))
             }

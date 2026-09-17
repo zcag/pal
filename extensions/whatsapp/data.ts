@@ -5,8 +5,7 @@
 // `chatLink`, `vcard` take no network), the loaders memoised so the bar
 // item and the palettes share one chat list within `CHATS_FRESH_MS`.
 import { existsSync } from "node:fs";
-import { mdEscape } from "../gmail/mail.ts";
-import { storage } from "@zcag/pal";
+import { errorMessage, forgetImages, mdEscape, oneLine, storage } from "@zcag/pal";
 import { archived, chats as apiChats, conf, contact, contactsPage, history, log, pictures as apiPictures, resolvePhone, search as apiSearch, type ChatSummary, type Contact, type DbMessage, type LiveMessage, type SearchHit, PAGE } from "./api.ts";
 
 export type Chat = {
@@ -67,7 +66,6 @@ export const PICTURE_TTL_MS = 24 * 3600_000;
 const PICTURE_MARGIN_MS = 24 * 3600_000;
 export const CONTACTS_TTL_MS = 3600_000;
 export const SEARCH_LIMIT = 40;
-const AVATAR_MS = 2500, MAX_AVATAR = 96 * 1024, AVATAR_MISS_TTL = 15 * 60_000;
 
 const s2ms = (s: number) => Math.round(s * 1000);
 export const isGroupId = (id: string) => id.endsWith("@g.us");
@@ -107,7 +105,7 @@ export function msgOfDb(d: DbMessage, nameOf: (jid: string) => string, chatName:
 /** WhatsApp's own quick reactions, in its order. */
 export const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
-export const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+export { oneLine };
 /** A time today as the clock, else the day and the clock. */
 export const clock = (ms: number) => { const d = new Date(ms); return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
 
@@ -193,7 +191,7 @@ async function fetchChats(): Promise<Chat[]> {
       const incoming = [...run].reverse().find((m) => !m.fromMe);
       c.latestId = incoming?.id ?? top?.id;
       c.latestFromMe = !incoming;
-    } catch (e) { log(`history ${c.id}: ${e instanceof Error ? e.message : e}`); }
+    } catch (e) { log(`history ${c.id}: ${errorMessage(e)}`); }
   }));
   await loadPictures();
   applyPictures(list);
@@ -227,7 +225,7 @@ async function unreadRun(c: Chat): Promise<Msg[]> {
  * gateway never saw).
  */
 export async function conversation(c: Chat, n = PANE_MSGS): Promise<Msg[]> {
-  const [live, db] = await Promise.all([history(c.id, n).catch((e) => { log(`history ${c.id}: ${e instanceof Error ? e.message : e}`); return [] as LiveMessage[]; }), archived(c.id, Math.max(n, 40)).catch(() => [] as DbMessage[])]);
+  const [live, db] = await Promise.all([history(c.id, n).catch((e) => { log(`history ${c.id}: ${errorMessage(e)}`); return [] as LiveMessage[]; }), archived(c.id, Math.max(n, 40)).catch(() => [] as DbMessage[])]);
   // The senders to name: a group's authors, a direct chat's other side; never our own number (an outgoing message's `from`).
   await warmNames([...live.filter((m) => !m.fromMe).map((m) => m.author || m.from), ...db.filter((d) => d.direction !== "outgoing").map((d) => d.author || d.from)].filter((j): j is string => !!j && !isGroupId(j)), c.id);
   const resolve = (jid: string) => nameOf(jid, c);
@@ -333,29 +331,11 @@ function schedulePictures(list: Chat[]): void {
     for (const c of want) { const u = got[c.id] ?? null; pictureMap![c.id] = { u, t: now }; if (u) c.avatar = u; }
     const keep = Object.entries(pictureMap!).sort((a, b) => b[1].t - a[1].t).slice(0, PICTURE_KEEP);
     pictureMap = Object.fromEntries(keep);
-    await storage.set("pictures", pictureMap, "whatsapp").catch((e) => log(`pictures: ${e instanceof Error ? e.message : e}`));
-  }).catch((e) => log(`pictures: ${e instanceof Error ? e.message : e}`)).finally(() => {
+    await storage.set("pictures", pictureMap, "whatsapp").catch((e) => log(`pictures: ${errorMessage(e)}`));
+  }).catch((e) => log(`pictures: ${errorMessage(e)}`)).finally(() => {
     picturePass = undefined;
     if (chatList) schedulePictures(chatList.chats);
   });
-}
-
-const avatars = new Map<string, { at: number; data?: string; pending?: Promise<string | undefined> }>();
-
-/** A picture as a data url for the popover's `image` nodes (which take no http url); fetched once per url, a miss remembered `AVATAR_MISS_TTL`. */
-export function avatarData(url: string): Promise<string | undefined> {
-  const have = avatars.get(url);
-  if (have?.data) return Promise.resolve(have.data);
-  if (have?.pending) return have.pending;
-  if (have && Date.now() - have.at < AVATAR_MISS_TTL) return Promise.resolve(undefined);
-  const pending = fetch(url, { signal: AbortSignal.timeout(AVATAR_MS) }).then(async (r) => {
-    const type = r.headers.get("content-type")?.split(";")[0] ?? "";
-    if (!r.ok || !type.startsWith("image/")) return undefined;
-    const buf = Buffer.from(await r.arrayBuffer());
-    return buf.length && buf.length <= MAX_AVATAR ? `data:${type};base64,${buf.toString("base64")}` : undefined;
-  }).catch(() => undefined).then((data) => { avatars.set(url, { at: Date.now(), data }); return data; });
-  avatars.set(url, { at: Date.now(), pending });
-  return pending;
 }
 
 // ---- contacts ------------------------------------------------------------------------------------------
@@ -429,4 +409,4 @@ export function hitOf(h: SearchHit): Hit {
 }
 
 /** Forget everything memoised (settings changed, tests). */
-export const resetData = () => { chatList = undefined; byId.clear(); runs.clear(); names.clear(); nameLookups.clear(); phones.clear(); pictureMap = undefined; avatars.clear(); people = undefined; };
+export const resetData = () => { chatList = undefined; byId.clear(); runs.clear(); names.clear(); nameLookups.clear(); phones.clear(); pictureMap = undefined; forgetImages(); people = undefined; };

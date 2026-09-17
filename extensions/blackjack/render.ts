@@ -4,9 +4,10 @@
 // cards are keyed per deal and slot so a hit rises in and the hole card
 // flips over; the player's are keyed per deal and card with `move`, so a
 // split's second card glides across to its new hand instead of fading out
-// and in; a cleared table fades out; rows hold their height meanwhile. No
-// host imports: the gallery renders a fixture state with this same
-// function.
+// and in; a cleared table fades out; rows hold their height meanwhile.
+// Types only from `@zcag/pal`: the app's gallery bundles this file into the
+// webview (Gallery.tsx draws the table with it), and the SDK's runtime half
+// (node:fs, Bun) has no place there, so the three node builders stay local.
 import type { Action, View, ViewNode } from "@zcag/pal";
 import { CARD_H, CARD_W, backSvg, cardSvg, type Card } from "./cards.ts";
 import { actions as legal, canDouble, canSplit, isBlackjack, isBust, lastNet, value, type Action as Move, type Settings, type State } from "./game.ts";

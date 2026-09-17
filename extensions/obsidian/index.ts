@@ -4,15 +4,14 @@
 // Tags (every tag with a count), Recent (the last modified), Backlinks and
 // Outgoing links (of the note opened last, or the row they came from).
 // A note opens in Obsidian (`obsidian://open`) or an editor, reads inside
-// the panel through tela's markdown renderer (../tela/md.ts), and the pane
+// the panel through the SDK's markdown renderer (`md`), and the pane
 // shows it with its links, tags and backlinks. Writes: a daily note from
 // its template, a line appended to it, a new note; nothing else is
 // changed. vault.ts owns the index and the file system, notes.ts the
 // parsing.
 import { readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { clipboard, expand, home, selection, settings, storage, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
-import { render as renderMd } from "../tela/md.ts";
+import { clipboard, errorMessage, expand, failed, hint, home, md, selection, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
 import { DAILY_FORMAT, cut, dailyConfig, dayAfter, fileName, fillTemplate, firstVault, formatDate, frontMatter, obsidianSearchUrl, obsidianUrl, plainLine, resolve, unescapePipes, wikilink, type Note } from "./notes.ts";
 import { BACKEND, appendNote, dispose, exists, index, noteText, search, writeNote, type Index } from "./vault.ts";
 
@@ -21,10 +20,10 @@ type Settings = { vault: string; daily_folder: string; daily_format: string; dai
 const conf = () => settings.get<Settings>();
 const EXTENSION = "obsidian";
 
-/** Nerd Font `md-` glyphs: note, calendar (today), calendar week, plus, pencil (append), magnify, dice (random), pound (tag), history, link (backlinks), arrow (outgoing), folder, alert, info, cog. */
+/** Nerd Font `md-` glyphs: note, calendar (today), calendar week, plus, pencil (append), magnify, dice (random), pound (tag), history, link (backlinks), arrow (outgoing), folder, alert, cog. */
 const ICON = {
   note: "\u{f11d7}", today: "\u{f00f6}", week: "\u{f0a33}", plus: "\u{f039d}", append: "\u{f0cb6}", search: "\u{f13b8}", random: "\u{f076e}", tag: "\u{f0423}", history: "\u{f02da}", link: "\u{f0339}", out: "\u{f0054}",
-  folder: "\u{f0256}", alert: "\u{f0026}", info: "\u{f02fd}", cog: "\u{f08bb}", missing: "\u{f039b}",
+  folder: "\u{f0256}", alert: "\u{f0026}", cog: "\u{f08bb}", missing: "\u{f039b}",
 } as const;
 
 const RECENT = 20;
@@ -88,21 +87,19 @@ async function templateText(r: string, rel: string, title: string): Promise<stri
 
 // ---- rows -------------------------------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle?: string, actions: Action[] = [], icon: string = ICON.info): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions });
 
 /** What a failed listing shows: the setting to fill, the folder to restore, or what went wrong. */
 function failure(e: unknown): Item[] {
   if (e instanceof NoVault) {
     return e.reason === "unset"
-      ? [hint("vault", "Set the vault folder", "Settings, Extensions, Obsidian: the folder Obsidian opens; found by itself once Obsidian has opened one", [{ id: "settings", title: "Open settings" }], ICON.cog)]
-      : [hint("vault", "The vault folder is missing", `${e.path} is not there; Settings, Extensions, Obsidian names it`, [{ id: "settings", title: "Open settings" }], ICON.alert)];
+      ? [hint("vault", "Set the vault folder", "Settings › Extensions › Obsidian: the folder Obsidian opens; found by itself once Obsidian has opened one", { actions: [{ id: "settings", title: "Open settings" }], icon: ICON.cog })]
+      : [hint("vault", "The vault folder is missing", `${e.path} is not there; Settings › Extensions › Obsidian names it`, { actions: [{ id: "settings", title: "Open settings" }], icon: ICON.alert })];
   }
-  console.error(`[obsidian] ${e instanceof Error ? e.message : String(e)}`);
-  return [hint("error", "The vault could not be read", `${e instanceof Error ? e.message : String(e)}; cmd+r tries again`, [], ICON.alert)];
+  console.error(`[obsidian] ${errorMessage(e)}`);
+  return [hint("error", "The vault could not be read", `${errorMessage(e)}; cmd+r tries again`, { icon: ICON.alert })];
 }
 
 const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
-const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
 
 const nid = (path: string) => `note:${path}`;
 const pathOf = (id: string) => (id.startsWith("note:") ? id.slice(5) : undefined);
@@ -159,7 +156,7 @@ async function noteRows(ctx?: Ctx): Promise<Item[]> {
   if (args.backlinks !== undefined) return backlinkRows(i, args.backlinks, actions);
   if (args.outgoing !== undefined) return outgoingRows(i, args.outgoing, actions);
   const rows = i.notes.map((n) => noteRow(n, actions));
-  if (!rows.length) rows.push(hint("empty", "The vault has no notes", `Nothing ends in .md under ${i.root}; New note starts one`, [{ id: "new", title: "New note" }], ICON.plus));
+  if (!rows.length) rows.push(hint("empty", "The vault has no notes", `Nothing ends in .md under ${i.root}; New note starts one`, { actions: [{ id: "new", title: "New note" }], icon: ICON.plus }));
   return [...COMMANDS, ...rows];
 }
 
@@ -174,16 +171,16 @@ async function target(i: Index, path: string | undefined): Promise<Note | undefi
 
 async function backlinkRows(i: Index, path: string | undefined, actions: Action[]): Promise<Item[]> {
   const t = await target(i, path);
-  if (!t) return [hint("none", "Open a note first", "Backlinks lists what links to the note you opened last; pick one in Notes or Search", [], ICON.link)];
+  if (!t) return [hint("none", "Open a note first", "Backlinks lists what links to the note you opened last; pick one in Notes or Search", { icon: ICON.link })];
   const from = (i.backlinks.get(t.path) ?? []).map((p) => i.byPath.get(p)).filter((n): n is Note => !!n).sort((a, b) => b.mtime - a.mtime);
-  if (!from.length) return [hint("none", `Nothing links to ${cut(t.title, 40)}`, `A [[${t.name}]] in another note would show here`, [], ICON.link)];
+  if (!from.length) return [hint("none", `Nothing links to ${cut(t.title, 40)}`, `A [[${t.name}]] in another note would show here`, { icon: ICON.link })];
   return from.map((n) => noteRow(n, actions, { section: `Links to ${cut(t.title, 40)}`, icon: ICON.link }));
 }
 
 async function outgoingRows(i: Index, path: string | undefined, actions: Action[]): Promise<Item[]> {
   const t = await target(i, path);
-  if (!t) return [hint("none", "Open a note first", "Outgoing links lists what the note you opened last links to; pick one in Notes or Search", [], ICON.out)];
-  if (!t.links.length) return [hint("none", `${cut(t.title, 40)} links to nothing`, "A [[wikilink]] in it would show here", [], ICON.out)];
+  if (!t) return [hint("none", "Open a note first", "Outgoing links lists what the note you opened last links to; pick one in Notes or Search", { icon: ICON.out })];
+  if (!t.links.length) return [hint("none", `${cut(t.title, 40)} links to nothing`, "A [[wikilink]] in it would show here", { icon: ICON.out })];
   const section = `From ${cut(t.title, 40)}`;
   return t.links.map((l) => {
     const n = resolve(l, i.notes);
@@ -203,10 +200,10 @@ function openInEditor(i: Index, path: string): Effect {
   const abs = join(i.root, path);
   if (!cmd) return { open: abs };
   const argv = cmd.split(/\s+/);
-  if (!Bun.which(argv[0]) && !argv[0].startsWith("/")) return { keep: true, toast: { title: `${argv[0]} is not on PATH`, message: "Settings, Extensions, Obsidian: the editor command", style: "failure" } };
+  if (!Bun.which(argv[0]) && !argv[0].startsWith("/")) return toast(`${argv[0]} is not installed`, "Settings › Extensions › Obsidian: the editor command", "failure");
   try {
     Bun.spawn([...argv, abs], { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref();
-  } catch (e) { return failToast("Could not start the editor", e); }
+  } catch (e) { return failed("start the editor", e); }
   return { hud: `Opened ${basename(path, ".md")} in ${basename(argv[0])}` };
 }
 
@@ -245,7 +242,7 @@ async function noteDetail(i: Index, n: Note): Promise<Detail> {
 async function noteView(i: Index, n: Note): Promise<View> {
   const text = await noteText(i.root, n.path);
   const line = [n.folder || "vault", `${n.words} words`, ...(n.tags.length ? [n.tags.map((t) => `#${t}`).join(" ")] : []), `${(i.backlinks.get(n.path) ?? []).length} backlinks`].join(" · ");
-  const body = renderMd(frontMatter(text).body, { padding: 0, width: 660, dropTitle: n.title });
+  const body = md.render(frontMatter(text).body, { padding: 0, width: 660, dropTitle: n.title, where: "Obsidian" });
   return {
     id: nid(n.path),
     title: cut(n.title, 60),
@@ -358,7 +355,7 @@ async function saveAppend(values: FormValues): Promise<Effect> {
     await appendNote(r, path, text);
     return { hud: `Appended to ${basename(path, ".md")}` };
   } catch (e) {
-    return { form: await appendForm(values, { text: e instanceof Error ? e.message : String(e) }) };
+    return { form: await appendForm(values, { text: errorMessage(e) }) };
   }
 }
 
@@ -393,13 +390,13 @@ async function saveNew(values: FormValues): Promise<Effect> {
     const j = await ix(true);
     return { ...open(j, path), hud: `Created ${name}` };
   } catch (e) {
-    return { form: await newForm(values, { title: e instanceof Error ? e.message : String(e) }) };
+    return { form: await newForm(values, { title: errorMessage(e) }) };
   }
 }
 
 // ---- search ------------------------------------------------------------------------------------
 
-const searchHint = () => hint("search", "Search every note's text", BACKEND === "rg" ? "Words as typed, case-insensitive; ripgrep over the vault" : "Words as typed, case-insensitive; a scan of the vault, 1 s at most", [{ id: "obsidian", title: "Search in Obsidian" }], ICON.search);
+const searchHint = () => hint("search", "Search every note's text", BACKEND === "rg" ? "Words as typed, case-insensitive; ripgrep over the vault" : "Words as typed, case-insensitive; a scan of the vault, 1 s at most", { actions: [{ id: "obsidian", title: "Search in Obsidian" }], icon: ICON.search });
 
 const mark = (line: string, q: string) => line.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), (m) => `**${m}**`);
 
@@ -408,7 +405,7 @@ async function searchRows(query = ""): Promise<Item[]> {
   if (q.length < 2) return [searchHint()];
   const i = await ix();
   const hits = await search(q, i, conf().exclude ?? []);
-  if (!hits.length) return [hint("empty", `No note has “${q}”`, "Titles are matched at the root; this is the text", [{ id: "obsidian", title: "Search in Obsidian" }], ICON.search)];
+  if (!hits.length) return [hint("empty", `No note has “${q}”`, "Titles are matched at the root; this is the text", { actions: [{ id: "obsidian", title: "Search in Obsidian" }], icon: ICON.search })];
   const actions = noteActions();
   return hits.map((h) => {
     const n = i.byPath.get(h.path)!;
@@ -433,14 +430,14 @@ async function tagRows(ctx?: Ctx): Promise<Item[]> {
     accessories: [{ text: `${c.n} note${c.n === 1 ? "" : "s"}` }],
     actions: [{ id: "notes", title: "Notes with the tag" }, { id: "copy", title: "Copy tag", shortcut: "cmd+c" }],
   }));
-  return rows.length ? rows : [hint("none", "No tags", "A #tag in a note's text or a tags: line in its front matter shows here", [], ICON.tag)];
+  return rows.length ? rows : [hint("none", "No tags", "A #tag in a note's text or a tags: line in its front matter shows here", { icon: ICON.tag })];
 }
 
 async function recentRows(ctx?: Ctx): Promise<Item[]> {
   const i = await ix(!!ctx?.refresh);
   const actions = noteActions();
   const rows = i.notes.slice().sort((a, b) => b.mtime - a.mtime).slice(0, RECENT).map((n) => noteRow(n, actions, { section: undefined, subtitle: [n.folder || undefined, n.description].filter(Boolean).join(" · ") || undefined, icon: ICON.history }));
-  return rows.length ? rows : [hint("empty", "The vault has no notes", "New note starts one", [{ id: "new", title: "New note" }], ICON.plus)];
+  return rows.length ? rows : [hint("empty", "The vault has no notes", "New note starts one", { actions: [{ id: "new", title: "New note" }], icon: ICON.plus })];
 }
 
 // ---- picks ----------------------------------------------------------------------------------------
@@ -459,7 +456,7 @@ async function pickCommand(id: string, action?: string): Promise<Effect | void> 
     case "cmd:search": { const i = await ix(); return action === "obsidian" ? { open: obsidianSearchUrl(i.name, "") } : { push: { extension: EXTENSION, palette: "search" } }; }
     case "cmd:random": {
       const i = await ix();
-      if (!i.notes.length) return { keep: true, toast: { title: "The vault has no notes", style: "failure" } };
+      if (!i.notes.length) return toast("The vault has no notes", undefined, "failure");
       const n = i.notes[Math.floor(Math.random() * i.notes.length)];
       await remember(n.path);
       return open(i, n.path);
@@ -505,7 +502,7 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
 const noteDetailOf = async (id: string): Promise<Detail | void> => {
   const path = pathOf(id);
   if (path === undefined) return;
-  try { const i = await ix(); const n = i.byPath.get(path); return n ? await noteDetail(i, n) : undefined; } catch (e) { return { markdown: `_${e instanceof Error ? e.message : String(e)}_` }; }
+  try { const i = await ix(); const n = i.byPath.get(path); return n ? await noteDetail(i, n) : undefined; } catch (e) { return { markdown: `_${errorMessage(e)}_` }; }
 };
 
 /** A link's `path`: relative with or without `.md`, or a note's name as a wikilink would say it. */

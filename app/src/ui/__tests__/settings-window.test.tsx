@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+
+afterEach(() => vi.useRealTimers());
 
 // Icon glyphs read `window` at import; no DOM is needed for markup checks.
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
@@ -155,6 +157,7 @@ describe("SettingsAbout", () => {
     expect(html).toContain("None recorded.");
   });
   it("shows the last crash and panic with their actions", () => {
+    vi.useFakeTimers({ now: new Date("2026-09-16T17:40:00Z") });
     const at = Date.now() - 3 * 3600 * 1000;
     const html = renderToStaticMarkup(<SettingsAbout version="0.1.0" file="~/.config/pal/config.toml" links={{ docs: "", repo: "https://github.com/zcag/pal" }}
       crash={{ at, kind: "EXC_BREAKPOINT (SIGTRAP)", path: "/Users/u/Library/Logs/DiagnosticReports/pal-2026-09-16-144017.ips" }}

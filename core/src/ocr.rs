@@ -31,7 +31,7 @@ pub fn available() -> bool {
 /// a PDF's first page).
 pub fn image(path: &Path) -> Result<String> {
     if !path.is_file() {
-        return Err(Error::Failed(format!("no such file: {}", path.display())));
+        return Err(Error::Failed(format!("no such file {}", path.display())));
     }
     if is_pdf(path) {
         let png = render_pdf(path)?;

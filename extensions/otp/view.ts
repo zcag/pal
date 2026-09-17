@@ -1,12 +1,12 @@
-// The Latest code popover as a tree (`View` in `@zcag/pal`), pure: the
-// gallery renders a fixture state with this same function. 420 px wide:
+// The Latest code popover as a tree (`View` in `@zcag/pal`), pure (the
+// bar-shot fixture renders a state with this same function). 420 px wide:
 // the newest code as a row of digit tiles (grouped in threes, as a form
 // shows it) with the sender, when it arrived and the message under it,
 // then a thin amber bar counting down the minute the item stays for
 // (ticking while the popover shows), the keys as hints, and the two codes
 // before it small under a hairline. A click on the code or a row copies
 // that code (concealed, as the palette does).
-import type { Action, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, oneLine, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
 
 /** One code as the reader found it (index.ts `Code`, the fields the view draws). */
 export type ShownCode = { id: string; code: string; name: string; sender: string; text: string; at: number };
@@ -21,22 +21,13 @@ export type OtpState = {
   window: number;
 };
 
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 /** Codes drawn under the newest one. */
 export const PREVIOUS = 2;
 const DIGIT_H = 52;
 /** nf-md-message_text, the extension's own mark, drawn as a glyph text when there is no code to show. */
 const MESSAGE = "\u{f0369}";
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const hint = (keys: string[], what: string, action: string): ViewNode[] => [...keys.map((k): ViewNode => ({ type: "keycap", keys: k, action })), text(what, { style: "muted", size: "xs" })];
-
-const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+const hint = (keys: string[], what: string, action: string): ViewNode[] => keyHint(keys, what, { action });
 
 /** `just now`, `23 s ago`, `5 min ago`, `2 h ago`. */
 export const ago = (at: number, now: number): string => {
@@ -79,7 +70,7 @@ function latest(st: OtpState): ViewNode {
     [
       digits(c.code),
       row([text(c.name, { key: "from", size: "sm", weight: "semibold" }), text(ago(c.at, st.now), { key: "when", style: "muted", size: "xs" })], { key: "sender", gap: 2, minHeight: 18 }),
-      text(oneLine(c.text), { key: "text", style: "muted", size: "xs", width: COMPACT_W }),
+      text(oneLine(c.text), { key: "text", style: "muted", size: "xs", width: POPOVER_W }),
       row([{ type: "progress", key: "left", value: st.window > 0 ? left / st.window : 0, color: "amber" }, text(`${Math.ceil(left / 1000)}s`, { key: "left-s", style: "mono", size: "xs", color: "muted", width: 28, align: "end" })], { key: "countdown", gap: 2 }),
     ],
     { key: `latest-${c.id}`, gap: 1, transition: { enter: "fade" } },

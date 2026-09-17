@@ -14,9 +14,8 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { home, settings, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
-import { intoFolderPick, moveForm, renameForm, renamePick, runTool, short } from "../files/ops.ts";
-import { browserDirsFrom, finalName, GLYPH, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, size, SUGGEST_MS, THUMBABLE, type Kind, type Section } from "./scan.ts";
+import { bytes, errorMessage, files, hint as hintRow, home, run, settings, tilde, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { browserDirsFrom, finalName, GLYPH, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, SUGGEST_MS, THUMBABLE, type Kind, type Section } from "./scan.ts";
 
 /** `[extensions.downloads]`, defaults in pal.json. */
 type Settings = { folder: string; browser_folders: boolean; limit: number; thumbnails: boolean; clear_days: number };
@@ -26,7 +25,6 @@ const HOME = home("~");
 const OPEN_FOLDER_ICON = "\u{f0770}"; // md-folder_open
 const BROOM = "\u{f00e2}"; // md-broom
 const DOWNLOAD = "\u{f01da}"; // md-download
-const HINT = "\u{f02fd}"; // md-information_outline
 /** Thumbnails are made for the newest rows only; the rest get them on a later listing as the cache fills. */
 const THUMBS_PER_LISTING = 24;
 const THUMB_PX = 64;
@@ -93,12 +91,12 @@ async function progress(e: Entry): Promise<string> {
   if (e.dir && e.name.toLowerCase().endsWith(".download")) {
     // Safari: a bundle with the bytes and the total in its plist.
     const p = safariProgress(await readFile(join(e.path, "Info.plist"), "utf8").catch(() => ""));
-    if (p) return `${Math.min(100, Math.round((p.done / p.total) * 100))}% · ${size(p.done)} of ${size(p.total)}`;
+    if (p) return `${Math.min(100, Math.round((p.done / p.total) * 100))}% · ${bytes(p.done)} of ${bytes(p.total)}`;
   }
   const prev = seen.get(e.path);
   seen.set(e.path, { size: e.size, at: now });
   const r = prev ? rate(prev.size, e.size, now - prev.at) : undefined;
-  return r ? `${size(e.size)} · ${r}` : size(e.size);
+  return r ? `${bytes(e.size)} · ${r}` : bytes(e.size);
 }
 
 // ---- thumbnails ------------------------------------------------------------------------
@@ -164,11 +162,11 @@ const TRASH: Action = { id: "trash", title: "Move to Trash", shortcut: "cmd+d", 
 const FILE_ACTIONS: Action[] = [OPEN, REVEAL, ...(MAC ? [QUICK_LOOK] : []), COPY_FILE, COPY_PATH, MOVE, RENAME, TRASH];
 const PARTIAL_ACTIONS: Action[] = [REVEAL, COPY_PATH];
 
-const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: HINT, actions: [] });
+const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle);
 
 async function item(e: Entry, several: boolean, thumb: boolean, section?: Section): Promise<Item> {
   const icon = (thumb && (await thumbnail(e))) || (MAC && e.name.endsWith(".app") ? { app: e.path } : GLYPH[e.kind]);
-  const where = several ? ` · ${short(e.folder)}` : "";
+  const where = several ? ` · ${tilde(e.folder)}` : "";
   const label = (k: Kind, name: string) => (k === "file" ? extname(name).slice(1).toUpperCase() || "File" : k[0].toUpperCase() + k.slice(1));
   if (e.partial) {
     const done = finalName(e.name) || e.name;
@@ -178,7 +176,7 @@ async function item(e: Entry, several: boolean, thumb: boolean, section?: Sectio
   return {
     id: e.path, name: e.name, subtitle: `${kind}${where}`, icon: typeof icon === "string" && icon.startsWith("data:") ? { image: icon } : icon, keywords: [e.name],
     section: section ?? sectionOf(e.mtime),
-    accessories: [...(e.dir ? [] : [{ text: size(e.size) }]), { date: e.mtime }],
+    accessories: [...(e.dir ? [] : [{ text: bytes(e.size) }]), { date: e.mtime }],
     // No actions of its own: the palette's (`FILE_ACTIONS`, said once), so
     // eight objects do not ride on every row of every listing and show.
   };
@@ -194,9 +192,9 @@ async function list(): Promise<Item[]> {
   rows.sort((a, b) => Number(b.section === "Downloading") - Number(a.section === "Downloading"));
   const old = olderThan(entries.filter((e) => !e.partial), s.clear_days || 30);
   const tail: Item[] = [];
-  if (old.length) tail.push({ id: "clear-old", name: `Clear older than ${s.clear_days || 30} days`, subtitle: `${old.length} ${old.length === 1 ? "item" : "items"}, ${size(old.reduce((n, e) => n + e.size, 0))}, to the Trash`, icon: BROOM, section: "Folder", actions: [{ id: "clear-old", title: "Move them to the Trash", style: "destructive", confirm: `Move ${old.length} ${old.length === 1 ? "item" : "items"} older than ${s.clear_days || 30} days to the Trash?` }] });
-  tail.push({ id: "open-folder", name: "Open Downloads", subtitle: fs.map(short).join(", "), icon: OPEN_FOLDER_ICON, section: "Folder", actions: [{ id: "open-folder", title: "Open the folder" }] });
-  if (!rows.length) return [hint("Nothing downloaded", `${fs.map(short).join(", ")} ${fs.length > 1 ? "are" : "is"} empty`), ...tail];
+  if (old.length) tail.push({ id: "clear-old", name: `Clear older than ${s.clear_days || 30} days`, subtitle: `${old.length} ${old.length === 1 ? "item" : "items"}, ${bytes(old.reduce((n, e) => n + e.size, 0))}, to the Trash`, icon: BROOM, section: "Folder", actions: [{ id: "clear-old", title: "Move them to the Trash", style: "destructive", confirm: `Move ${old.length} ${old.length === 1 ? "item" : "items"} older than ${s.clear_days || 30} days to the Trash?` }] });
+  tail.push({ id: "open-folder", name: "Open Downloads", subtitle: fs.map(tilde).join(", "), icon: OPEN_FOLDER_ICON, section: "Folder", actions: [{ id: "open-folder", title: "Open the folder" }] });
+  if (!rows.length) return [hint("Nothing downloaded", `${fs.map(tilde).join(", ")} ${fs.length > 1 ? "are" : "is"} empty`), ...tail];
   return [...rows, ...tail];
 }
 
@@ -222,14 +220,14 @@ async function whereFrom(path: string): Promise<string[]> {
 
 async function detail(path: string): Promise<Detail> {
   const st = await stat(path).catch(() => undefined);
-  if (!st) return { markdown: "This file is gone.", metadata: [{ label: "Path", value: short(path) }] };
+  if (!st) return { markdown: "This file is gone.", metadata: [{ label: "Path", value: tilde(path) }] };
   const from = await whereFrom(path);
   const k = kindOf(basename(path), st.isDirectory());
   return {
     metadata: [
       { label: "Name", value: basename(path) },
-      { label: "Folder", value: short(dirname(path)) },
-      ...(st.isDirectory() ? [] : [{ label: "Size", value: size(st.size) }]),
+      { label: "Folder", value: tilde(dirname(path)) },
+      ...(st.isDirectory() ? [] : [{ label: "Size", value: bytes(st.size) }]),
       { label: "Kind", value: k === "file" ? extname(path).slice(1).toUpperCase() || "File" : k[0].toUpperCase() + k.slice(1) },
       { label: "Modified", value: new Date(st.mtimeMs).toLocaleString() },
       ...(from.length ? [{ label: "From", link: { text: from[0].replace(/^https?:\/\//, "").slice(0, 80), href: from[0] } }] : []),
@@ -243,9 +241,9 @@ async function detail(path: string): Promise<Detail> {
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 
 /** Finder's delete (macOS) or `gio trash`; `PAL_DOWNLOADS_TRASH` names a stand-in taking the path (the tests). */
-const trash = (p: string) => runTool(process.env.PAL_DOWNLOADS_TRASH ? [process.env.PAL_DOWNLOADS_TRASH, p] : MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p]);
+const trash = (p: string) => run(process.env.PAL_DOWNLOADS_TRASH ? [process.env.PAL_DOWNLOADS_TRASH, p] : MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p]);
 
-const failure = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: String((e as Error)?.message ?? e), style: "failure" } });
+const failure = (title: string, e: unknown): Effect => toast(title, errorMessage(e), "failure");
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   const s = S();
@@ -262,10 +260,10 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
     case "quick-look": spawnDetached(["qlmanage", "-p", id]); return { hide: true };
     case "copy-file": return { copy_files: ids };
     case "copy-path": return { copy: ids.join("\n") };
-    case "rename": return { form: renameForm(id) };
-    case "move": return { form: moveForm(id) };
-    case "rename-submit": return renamePick(id, ctx?.values);
-    case "move-submit": return intoFolderPick("move", id, ctx?.values);
+    case "rename": return { form: files.renameForm(id) };
+    case "move": return { form: files.moveForm(id) };
+    case "rename-submit": return files.renamePick(id, ctx?.values);
+    case "move-submit": return files.intoFolderPick("move", id, ctx?.values);
     case "trash": {
       let n = 0;
       try { for (const p of ids) { await trash(p); n++; } } catch (e) { return failure(n ? `Moved ${n} to the Trash, then failed` : "Could not move to Trash", e); }

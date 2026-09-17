@@ -1,5 +1,5 @@
 // The Now Playing / lyrics view as a render tree (`View` in `@zcag/pal`),
-// pure: the gallery renders fixture states with this same function. Two
+// pure (the fixture renders made-up states with this same function). Two
 // layouts, `wide` for the panel (the cover at the left, the lyrics beside
 // it, three lines either side of the one playing) and `compact` for the
 // bar popover (420 wide, `ctx.compact`: the cover top-left with the
@@ -17,7 +17,7 @@
 // badges stay grey so a red cover never reads as an alarm. The compact
 // layout ends with the queue's next two tracks as small rows (`queue`,
 // left out while unknown), a click on one skipping to it.
-import type { Action, TagColor, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, keycap, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Track } from "./api.ts";
 import { withAlpha, type Tint } from "./color.ts";
 import { lineAt, type Lyrics } from "./lyrics.ts";
@@ -55,15 +55,7 @@ export const AROUND_WIDE = 3, BEFORE_COMPACT = 1, AFTER_COMPACT = 2;
 /** A line's least height, so the column holds still while lines come and go; the current line is taller. */
 const LINE_H = 30, LINE_H_SM = 24, LINE_H_SM_CUR = 32;
 const TIMES_W = 36;
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
 
 /** `4:05`, `1:06:03`. */
 export const clock = (s: number): string => {
@@ -122,7 +114,7 @@ function lyricsColumn(st: NowState): ViewNode {
   const wrap = (children: ViewNode[], key: string) => column(children, { key: `lyrics-${key}`, gap: compact ? 0 : 2, grow: true, justify: "center", align: "start", transition: { enter: "fade" } });
   if (!st.track) return wrap([], "none");
   if (l === undefined) return wrap([text("Looking for lyrics", { style: "muted", size: "sm" })], "loading");
-  if (l === null) return wrap([text("No lyrics on lrclib", { size: "lg", color: "muted" }), row([keycap("f"), text("search lrclib for this track", { style: "muted", size: "xs" })], { gap: 1 })], "missing");
+  if (l === null) return wrap([text("No lyrics on lrclib", { size: "lg", color: "muted" }), row(keyHint("f", "search lrclib for this track"), { gap: 1 })], "missing");
   if (l.instrumental && !l.synced?.length && !l.plain) return wrap([text("Instrumental", { size: "lg", color: "muted" })], "instrumental");
   if (l.synced?.length) return wrap(window(l.synced, st.position, before, after).map((x) => lyricLine(x, compact)), "synced");
   if (l.plain) return wrap([...plainWindow(l.plain, st.position, st.track.duration / 1000, before, after), row([text("Unsynced lyrics, scrolled with the position", { style: "muted", size: "xs" })], { key: "unsynced-note", minHeight: 16 })], "plain");
@@ -159,16 +151,15 @@ function badges(st: NowState): ViewNode {
   return row(kids, { key: "badges", gap: 1, minHeight: 20 });
 }
 
-const hint = (keys: string[], what: string): ViewNode[] => [...keys.map(keycap), text(what, { style: "muted", size: "xs" })];
 
 function hints(st: NowState): ViewNode {
-  const items = [...hint(["space"], st.playing ? "pause" : "play"), ...hint(["left", "right"], "seek 10 s"), ...hint(["up", "down"], "volume"), ...hint(["l"], "like"), ...hint(["s"], "shuffle"), ...hint(["r"], "repeat"), ...hint(["q"], "queue"), ...hint(["d"], "devices")];
+  const items = [...keyHint(["space"], st.playing ? "pause" : "play"), ...keyHint(["left", "right"], "seek 10 s"), ...keyHint(["up", "down"], "volume"), ...keyHint(["l"], "like"), ...keyHint(["s"], "shuffle"), ...keyHint(["r"], "repeat"), ...keyHint(["q"], "queue"), ...keyHint(["d"], "devices")];
   return row(items, { key: "hints", gap: 1, minHeight: 20 });
 }
 
 /** Compact: the transport as keycap hints, one row. */
 function transport(st: NowState): ViewNode {
-  return row([...hint(["space"], st.playing ? "pause" : "play"), ...hint(["cmd+left", "cmd+right"], "track"), ...hint(["left", "right"], "seek"), ...hint(["up", "down"], "volume")], { key: "transport", gap: 1, minHeight: 22 });
+  return row([...keyHint(["space"], st.playing ? "pause" : "play"), ...keyHint(["cmd+left", "cmd+right"], "track"), ...keyHint(["left", "right"], "seek"), ...keyHint(["up", "down"], "volume")], { key: "transport", gap: 1, minHeight: 22 });
 }
 
 /** Compact: like, the device and the queue on one row, each with its key, plus the state badges when on. */
@@ -187,7 +178,7 @@ function stateRow(st: NowState): ViewNode {
 /** Compact: the next two of the queue as small rows (a thumb, the name and the artist), each a click away from being skipped to; nothing while the queue is unknown. */
 function queueRows(st: NowState): ViewNode[] {
   if (!st.queue?.length) return [];
-  const w = COMPACT_W - 36 - 28 - 2 * 8;
+  const w = POPOVER_W - 36 - 28 - 2 * 8;
   return [{ type: "divider", key: "queue-line", transition: { enter: "fade" } }, ...st.queue.slice(0, QUEUE_ROWS).map((q, i): ViewNode => row(
     [
       text(QUEUE_LABELS[i] ?? "", { style: "muted", size: "xs", width: 36 }),
@@ -200,7 +191,7 @@ function queueRows(st: NowState): ViewNode[] {
 
 /** What the view says instead of a track: how to sign in, that nothing plays, that Spotify is away. */
 const STATUS_TEXT: Record<Status["kind"], [string, string]> = {
-  client_id: ["Set a Spotify client id", "Settings, Extensions, Spotify: the README tells how to create the app at developer.spotify.com"],
+  client_id: ["Client id is not set", "Settings › Extensions › Spotify: the README tells how to create the app at developer.spotify.com"],
   signed_out: ["Sign in to Spotify", "Enter opens Spotify in the browser; pal listens for the redirect"],
   nothing: ["Nothing playing", "Start something in Spotify on any device; Enter opens the app"],
   no_device: ["No active device", "Open Spotify on a device, or pick one with d"],
@@ -258,11 +249,11 @@ export function render(st: NowState): View {
   if (st.status || !st.track) tree = statusTree({ ...st, status: st.status ?? { kind: "nothing" } });
   else if (compact) {
     const t = st.track;
-    const tw = COMPACT_W - COVER_SM - 12;
+    const tw = POPOVER_W - COVER_SM - 12;
     tree = column(
       [
         row([coverNode(st, COVER_SM), column([text(t.name, { style: "title", key: `t-${t.id}`, width: tw, transition: { enter: "fade" } }), text(t.artist, { style: "muted", size: "sm", width: tw }), text(t.album, { size: "xs", color: "faint", width: tw })], { key: "titles", gap: 0, grow: true })], { key: "head", gap: 3, align: "center" }),
-        progressRow(st, COMPACT_W),
+        progressRow(st, POPOVER_W),
         lyricsColumn(st),
         transport(st),
         stateRow(st),

@@ -11,7 +11,7 @@
 // last durations used as tiles that start one on a click. A pomodoro
 // session (pomodoro.ts) marks its timer's card with the phase and the
 // round; `p` starts one, `s` skips to the next phase.
-import type { Action, TagColor, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import { phaseWord, type Session } from "./pomodoro.ts";
 
 export type State = "running" | "paused" | "done";
@@ -19,10 +19,8 @@ export type Timer = { id: string; name: string; total: number; deadline: number;
 /** What the popover draws: the timers, the card the keys are on, whether the field is open, the durations last used (for the tiles), the clock, the pomodoro session and today's finished rounds. */
 export type PopoverState = { timers: Timer[]; cursor?: string; field: boolean; recent: string[]; now: number; pomodoro?: Pick<Session, "timerId" | "round" | "of" | "phase">; today?: number };
 
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 /** The card's inner width: less its own padding (3 steps a side). */
-const CARD_W = COMPACT_W - 24;
+const CARD_W = POPOVER_W - 24;
 /** The time-left column: `1:02:34` in xl tabular figures fits. */
 const TIME_W = 92;
 const NAME_W = CARD_W - TIME_W - 8;
@@ -30,13 +28,7 @@ const NAME_W = CARD_W - TIME_W - 8;
 export const DEFAULT_RECENT = ["5m", "25m", "1h"];
 export const MAX_RECENT = 4;
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string, action?: string): ViewNode => ({ type: "keycap", keys, ...(action && { action }) });
-const hint = (keys: string[], what: string, action?: string): ViewNode[] => [...keys.map((k) => keycap(k, action)), text(what, { style: "muted", size: "xs" })];
+const hint = (keys: string[], what: string, action?: string): ViewNode[] => keyHint(keys, what, { action });
 
 /** 754 -> 12:34, 3754 -> 1:02:34, as the CLI prints it. */
 export const fmt = (s: number): string => {
@@ -89,7 +81,7 @@ export const tiles = (st: PopoverState): string[] => [...st.recent, ...DEFAULT_R
 function fieldHelp(st: PopoverState): ViewNode {
   const recent = tiles(st);
   return column([
-    text("A duration, then a name: 25m tea, 90s, 1h30m, 2:30, or bare minutes", { style: "muted", size: "xs", key: "help", width: COMPACT_W - 8 }),
+    text("A duration, then a name: 25m tea, 90s, 1h30m, 2:30, or bare minutes", { style: "muted", size: "xs", key: "help", width: POPOVER_W - 8 }),
     row([text("Start", { style: "muted", size: "xs", width: 40, weight: "semibold" }), ...recent.map((d) => ({ type: "tile", key: `r-${d}`, width: 56, height: 28, text: d, color: "neutral", fill: "solid", action: `recent:${d}` }) as ViewNode)], { key: "recent", gap: 1, minHeight: 28 }),
   ], { key: "field", gap: 2, padding: 1 });
 }

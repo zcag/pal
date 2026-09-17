@@ -5,12 +5,13 @@
 // the shots show what the panel draws without a screen to pick from.
 // `bun run extensions/colors/fixture.ts`, then `node app/scripts/shots.mjs colors`.
 import { writeFileSync } from "node:fs";
-import { parse, swatch, toHex } from "./color.ts";
+import { colors } from "@zcag/pal";
 import { GRID_ACTIONS, HISTORY_ACTIONS, conversions, gridItem, historyRows } from "./rows.ts";
 import { render } from "./render.ts";
 import { SETS, sectionOf, type Row, type SetId } from "./sets.ts";
 import { DEFAULTS, apply, fresh, type Entry, type State } from "./state.ts";
 import data from "./data.json";
+const { parse, toHex } = colors;
 
 const rows = data as Row[];
 const bySet = (id: SetId) => rows.filter((r) => r.s === id);

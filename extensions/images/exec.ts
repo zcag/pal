@@ -5,8 +5,8 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { copyFile, mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { home, thumbnailUrl } from "@zcag/pal";
-import { fmtOf, IDENTIFY_FIELDS, parseExiftool, parseIdentify, parseSips, strip, TOOL_ORDER, type Avail, type Dims, type Fmt, type Info, type Plan, type Step, type ToolName } from "./ops.ts";
+import { exec, home, thumbnailUrl } from "@zcag/pal";
+import { fmtOf, identifyFormat, parseExiftool, parseIdentify, parseSips, strip, TOOL_ORDER, type Avail, type Dims, type Fmt, type Info, type Plan, type Step, type ToolName } from "./ops.ts";
 
 export const MAC = process.platform === "darwin";
 /** A step that has not finished by then is killed and the job fails. */
@@ -51,8 +51,6 @@ export function which(tool: ToolName): string | null {
   }
   return found.get(tool)!;
 }
-/** For the tests: forget what was found. */
-export const forgetTools = () => found.clear();
 
 /** The `tools` setting filtered to what is installed, in its order; the helpers that only decode ride along. */
 export function available(order: string[] = TOOL_ORDER): Avail {
@@ -65,10 +63,7 @@ export function available(order: string[] = TOOL_ORDER): Avail {
 
 /** Runs a command to completion or `ms`; the trimmed stdout, or a rejection with stderr (or the exit code). */
 export async function run(argv: string[], ms = STEP_MS): Promise<string> {
-  const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-  const timer = setTimeout(() => proc.kill(), ms);
-  const [code, out, err] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-  clearTimeout(timer);
+  const { code, out, err } = await exec(argv, { ms });
   if (code !== 0) throw new Error(err.trim().split("\n")[0] || out.trim().split("\n")[0] || `${basename(argv[0])} exited ${code}`);
   return out.trim();
 }
@@ -140,7 +135,7 @@ export async function infoOf(p: string): Promise<Info> {
     if (which("sips")) info = parseSips(await run([which("sips")!, "-g", "all", p], 10_000));
     else if (which("identify")) {
       const bin = which("identify")!;
-      info = parseIdentify(await run([bin, ...(basename(bin) === "magick" ? ["identify"] : []), "-format", IDENTIFY_FIELDS.join("\\n") + "\\n", `${p}[0]`], 10_000));
+      info = parseIdentify(await run([bin, ...(basename(bin) === "magick" ? ["identify"] : []), "-format", identifyFormat(), `${p}[0]`], 10_000));
     }
   } catch {}
   if (which("exiftool")) {

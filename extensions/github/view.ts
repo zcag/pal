@@ -7,7 +7,7 @@
 // moves the ring there. `ROWS` threads at most, then one muted line
 // saying how many more the palette lists. Under everything a row of key
 // hints; nothing unread is "All caught up".
-import type { Action, TagColor, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Notification } from "./data.ts";
 
 export type NotifState = {
@@ -23,11 +23,9 @@ export type NotifState = {
 
 /** What fits under the popover's 480 px cap, in rows: a thread is one, a repository header `HEADER` of one; six threads of one repository, five over five. The rest is one line and the palette. */
 export const ROWS = 6.5, HEADER = 0.45;
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 /** A row's inside: its padding (2 steps a side), the type rail, the age column and the gaps between them. */
 const RAIL_W = 4, RAIL_H = 30, AGE_W = 36, ROW_PAD = 8, GAP = 8;
-const TITLE_W = COMPACT_W - ROW_PAD - RAIL_W - GAP - AGE_W - GAP;
+const TITLE_W = POPOVER_W - ROW_PAD - RAIL_W - GAP - AGE_W - GAP;
 
 /** The subject's type as a colour rail at the row's edge (GitHub's colours for the open state, since the inbox does not say the state) and a word in the meta row. */
 const TYPES: Record<string, { color: TagColor; tag: string }> = {
@@ -60,13 +58,6 @@ export const REASONS: Record<string, { text: string; color: TagColor }> = {
   approval_requested: { text: "approval", color: "violet" },
 };
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
-const hint = (keys: string[], what: string): ViewNode[] => [...keys.map(keycap), text(what, { style: "muted", size: "xs" })];
 
 /** `now`, `4m`, `2h`, `3d`, `2w`, `5mo`: the age of an ISO time at `now`. */
 export function ago(iso: string, now: number): string {
@@ -121,11 +112,11 @@ function threadRow(n: Notification, focused: boolean, st: NotifState): ViewNode 
 }
 
 function repoHeader(repo: string, count: number): ViewNode {
-  return row([text(repo, { size: "xs", weight: "semibold", color: "muted", width: COMPACT_W - 48 }), { type: "spacer" }, { type: "badge", key: "n", text: String(count), color: "grey" }], { key: `repo:${repo}`, gap: 1, minHeight: 18, padding: 0 });
+  return row([text(repo, { size: "xs", weight: "semibold", color: "muted", width: POPOVER_W - 48 }), { type: "spacer" }, { type: "badge", key: "n", text: String(count), color: "grey" }], { key: `repo:${repo}`, gap: 1, minHeight: 18, padding: 0 });
 }
 
 function hints(): ViewNode {
-  return row([...hint(["enter"], "open"), ...hint(["m"], "read"), ...hint(["a"], "all read"), ...hint(["p"], "in pal"), ...hint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
+  return row([...keyHint(["enter"], "open"), ...keyHint(["m"], "read"), ...keyHint(["a"], "all read"), ...keyHint(["p"], "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
 }
 
 function empty(): ViewNode {

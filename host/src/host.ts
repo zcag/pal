@@ -468,15 +468,15 @@ const methods: Record<string, (params: any) => unknown> = {
 };
 
 async function handle(line: string) {
-  let req: Request;
+  let req: Request | Response;
   try {
     req = JSON.parse(line);
   } catch {
     return log("bad json:", line.slice(0, 80));
   }
   // No method: the core answering one of ours (see protocol.ts).
-  if (req.method === undefined) {
-    if (!resolveCore(req as unknown as Response)) log("stray reply", req.id);
+  if (!("method" in req)) {
+    if (!resolveCore(req)) log("stray reply", req.id);
     return;
   }
   try {

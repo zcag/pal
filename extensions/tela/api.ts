@@ -8,7 +8,7 @@
 // Streamable HTTP transport tela's own `tela-mcp` package proxies to: a
 // session is opened once (`initialize`, `notifications/initialized`), kept
 // for the process, and opened again when the server forgets it.
-import { settings } from "@zcag/pal";
+import { errorMessage, settings, slug as slugOf } from "@zcag/pal";
 
 export const EXTENSION = "tela";
 /** Every request is abandoned after this; research (embedding + retrieval) gets longer. */
@@ -48,7 +48,7 @@ const credentials = () => {
 };
 
 /** A page's address on the instance: `/spaces/<space>/pages/<id>/<slug>`, the slug as tela derives it. */
-export const slug = (title: string) => title.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+export const slug = (title: string) => slugOf(title).slice(0, 80);
 export const pageUrl = (space: number, id: number, title = "") => `${baseUrl()}/spaces/${space}/pages/${id}${slug(title) ? `/${slug(title)}` : ""}`;
 export const spaceUrl = (space: number) => `${baseUrl()}/spaces/${space}`;
 export const searchUrl = (q: string) => `${baseUrl()}/search?q=${encodeURIComponent(q)}`;
@@ -180,7 +180,7 @@ export async function cached<T>(key: string, ttlMs: number, refresh: boolean, lo
       mem.set(key, { at: Date.now(), data });
       return data;
     } catch (e) {
-      if (have && !(e instanceof AuthError) && !(e instanceof ApiError && e.unauthorized)) { log(`${key}: ${e instanceof Error ? e.message : e}; showing cached rows`); return have.data; }
+      if (have && !(e instanceof AuthError) && !(e instanceof ApiError && e.unauthorized)) { log(`${key}: ${errorMessage(e)}; showing cached rows`); return have.data; }
       throw e;
     } finally { inflight.delete(key); }
   })();

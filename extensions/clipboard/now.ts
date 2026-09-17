@@ -9,9 +9,9 @@
 // (id and copy time) in storage, and the section stays away until the
 // clipboard changes.
 import { stat } from "node:fs/promises";
-import { clipboard, home, ocr, settings, storage, type ClipboardEntry, type Effect, type Item, type ListPalette } from "@zcag/pal";
+import { clipboard, colors, failed, home, ocr, settings, storage, toast, type ClipboardEntry, type Effect, type Item, type ListPalette } from "@zcag/pal";
 import { analyzeText, desktopName, fetchTitle, privateArgv, qrSvg, QR_SHOW_PX, rows, transform, type Analysis, type PathInfo } from "./rows.ts";
-import { toHex, toHslString, toRgb } from "../colors/color.ts";
+const { toHex, toHslString, toRgb } = colors;
 
 const EXTENSION = "clipboard", PALETTE = "rows";
 /** `[palettes.clipboard-rows].settings`, defaults in pal.json. */
@@ -46,7 +46,7 @@ async function statPaths(lines: string[]): Promise<PathInfo[]> {
 }
 
 /** The current clipboard, read as everything it could be; nothing when history has no entry for it. */
-export async function analyzeCurrent(): Promise<Analysis | undefined> {
+async function analyzeCurrent(): Promise<Analysis | undefined> {
   const e = await clipboard.current();
   if (!e) return undefined;
   if (e.kind === "image") return { entry: e, paths: [], image: { width: e.width ?? undefined, height: e.height ?? undefined, bytes: e.bytes, ocr: await canOcr } };
@@ -64,7 +64,6 @@ async function currentRows(a: Analysis): Promise<Item[]> {
 
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 const installed = (app: string) => (MAC ? Bun.file(`/Applications/${app}.app/Contents/Info.plist`).size > 0 : !!Bun.which(app.toLowerCase().replace(/ browser$/, "").replace(/ /g, "-")));
-const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: e instanceof Error ? e.message : String(e), style: "failure" } });
 const changed: Effect = { keep: true, toast: { title: "The clipboard changed", message: "The rows are for what is on it now", style: "failure" } };
 
 /** A pick on one of the rows: what is on the clipboard now is what it acts on. */
@@ -102,13 +101,13 @@ export async function pickRow(id: string, action?: string): Promise<Effect> {
         case "markdown": return copy(`[${a.title ?? a.url.replace(/^https?:\/\//, "")}](${a.url})`);
         case "private": {
           const argv = privateArgv(installed, a.url, conf().private_browser);
-          if (!argv) return { keep: true, toast: { title: "No browser with a private window found", message: "Chrome, Brave, Edge, Chromium, Vivaldi or Firefox; set private_browser to prefer one", style: "failure" } };
+          if (!argv) return toast("No browser with a private window is installed", "Chrome, Brave, Edge, Chromium, Vivaldi or Firefox; Settings › Extensions › Clipboard names one to prefer", "failure");
           spawnDetached(argv);
           return { hide: true };
         }
         case "shorten": {
           const template = conf().shortener?.trim();
-          if (!template) return { keep: true, toast: { title: "No shortener set", message: "palettes.clipboard-rows.settings.shortener, a URL with {url} in it" } };
+          if (!template) return toast("URL shortener is not set", "Settings › Extensions › Clipboard: a URL with {url} in it", "failure");
           try {
             const r = await fetch(template.replace("{url}", encodeURIComponent(a.url)), { signal: AbortSignal.timeout(5000) });
             const short = (await r.text()).trim().split("\n")[0];

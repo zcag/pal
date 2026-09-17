@@ -1023,7 +1023,7 @@ impl ConfigFile {
 
     /// Which config this is, as a directory name: `default` for the
     /// default location, else the first 8 hex of the sha256 of the
-    /// canonical path (`$PAL_CONFIG=~/.config/pal/pali.toml` in dev). Two
+    /// canonical path (a dev instance run under `$PAL_CONFIG=.../dev.toml`). Two
     /// config files must not share an index cache or a frecency file: a
     /// palette enabled in one is not in the other.
     pub fn profile(&self) -> String {

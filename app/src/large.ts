@@ -48,7 +48,7 @@ export function groupDigits(text: string): string {
   const t = text.trim();
   if (!/^\d{5,16}$/.test(t)) return text;
   const size = t.length === 6 || t.length === 9 ? 3 : 4;
-  return t.match(new RegExp(`\\d{1,${size}}`, "g"))!.join(" ");
+  return t.match(new RegExp(`\\d{1,${size}}`, "g"))?.join(" ") ?? t;
 }
 
 /** What the page shows: the digits grouped, everything else as given. */

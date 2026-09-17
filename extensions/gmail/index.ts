@@ -6,14 +6,14 @@
 // hourly catalog; Compose and Drafts exist only where `send` is on for
 // the account. Every row id is the message id, so a pick after a restart
 // still finds it with one `messages.get`.
-import { instance, settings, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
-import { ApiError, RateLimited, TokenError, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
+import { errorMessage, failed, hint, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
 import { address, addressNow, archive, drafts, inbox, labelNames, labels, mail, markRead, markUnread, open, reset, search, star, type DraftRow, type Inbox, type Mail } from "./data.ts";
 import { buildRaw, displayName, draftUrl, gmailBase, labelQuery, labelTitle, labelUrl, mdEscape, messageText, quoted, replySubject, sectionOf, size, threadUrl, withSignature } from "./mail.ts";
 
-/** Glyphs from the bundled Nerd Font's `md-` set: email, email-open, email-edit, file-send-outline, label, label-outline, inbox, star, information, alert, magnify, tag, send, trash-can-outline, open-in-new, alert-circle-outline, flag, tag-multiple-outline. */
-const ICON = { mail: "\u{f01ee}", open: "\u{f01ef}", compose: "\u{f0ee3}", draft: "\u{f1039}", label: "\u{f0315}", labelOutline: "\u{f0316}", inbox: "\u{f0687}", star: "\u{f04ce}", info: "\u{f02fc}", alert: "\u{f0026}", search: "\u{f0349}", tag: "\u{f04f9}", send: "\u{f048a}", trash: "\u{f0a7a}", browser: "\u{f03cc}", sent: "\u{f048a}", spam: "\u{f05d6}", important: "\u{f023b}", category: "\u{f12f7}" } as const;
+/** Glyphs from the bundled Nerd Font's `md-` set: email, email-open, email-edit, file-send-outline, label, label-outline, inbox, star, alert, magnify, tag, send, trash-can-outline, open-in-new, alert-circle-outline, flag, tag-multiple-outline. */
+const ICON = { mail: "\u{f01ee}", open: "\u{f01ef}", compose: "\u{f0ee3}", draft: "\u{f1039}", label: "\u{f0315}", labelOutline: "\u{f0316}", inbox: "\u{f0687}", star: "\u{f04ce}", alert: "\u{f0026}", search: "\u{f0349}", tag: "\u{f04f9}", send: "\u{f048a}", trash: "\u{f0a7a}", browser: "\u{f03cc}", sent: "\u{f048a}", spam: "\u{f05d6}", important: "\u{f023b}", category: "\u{f12f7}" } as const;
 const SYSTEM_GLYPH: Record<string, string> = { INBOX: ICON.inbox, STARRED: ICON.star, IMPORTANT: ICON.important, SENT: ICON.sent, DRAFT: ICON.draft, SPAM: ICON.spam, TRASH: ICON.trash, UNREAD: ICON.mail };
 /** How long an inbox is shared between the bar and the palette before either fetches again. */
 const INBOX_FRESH_MS = 30_000;
@@ -41,23 +41,20 @@ const canSend = () => conf().send === true;
 
 // ---- rows the palettes share ------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle?: string, actions: Action[] = [], icon: string = ICON.info): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions });
 const SETTINGS_ACTION: Action[] = [{ id: "settings", title: "Open Gmail settings" }];
 
 /** What a failed listing shows instead of rows: the token command's complaint, when the limit lifts, or what went wrong. */
 function failure(e: unknown): Item[] {
-  if (e instanceof TokenError) return [hint("token", conf().token_command?.trim() ? "Token command failed" : "No token command set", conf().token_command?.trim() ? e.message : "Set one under Settings, Extensions, Gmail: a command that prints an access token", SETTINGS_ACTION, ICON.alert)];
-  if (e instanceof RateLimited) return [hint("limit", "Gmail rate limit reached", `Retry at ${e.until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, [], ICON.alert)];
-  if (e instanceof ApiError && e.auth) return [hint("auth", "Gmail rejected the token", `${e.message}: check the token command's scopes under Settings, Extensions, Gmail`, SETTINGS_ACTION, ICON.alert)];
-  log(e instanceof Error ? e.message : String(e));
-  return [hint("error", "Gmail did not answer", e instanceof Error ? e.message : String(e), [], ICON.alert)];
+  if (e instanceof TokenError) return [hint("token", conf().token_command?.trim() ? "Token command failed" : "Token command is not set", conf().token_command?.trim() ? e.message : "Set one under Settings › Extensions › Gmail: a command that prints an access token", { actions: SETTINGS_ACTION, icon: ICON.alert })];
+  if (e instanceof RateLimited) return [hint("limit", "Gmail rate limit reached", `Retry at ${e.until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, { icon: ICON.alert })];
+  if (e instanceof ApiError && e.auth) return [hint("auth", "Gmail rejected the token", `${e.message}: check the token command's scopes under Settings › Extensions › Gmail`, { actions: SETTINGS_ACTION, icon: ICON.alert })];
+  log(errorMessage(e));
+  return [hint("error", "Gmail did not answer", errorMessage(e), { icon: ICON.alert })];
 }
 // The settings link lands on this instance's token command (`?anchor=`, docs/links.md), so a second account's hint opens its own row.
 const pickHint = (id: string): Effect | void => (id === "hint:token" || id === "hint:auth" ? { open: `pal://settings/extensions?anchor=extensions:${instance().key}:token_command` } : undefined);
 const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
-const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
 
-const short = (s: string, n = 120) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const who = (m: Mail) => displayName(m.from);
 const addrLine = (a: { name: string; email: string }) => (a.name ? `${a.name} <${a.email}>` : a.email);
@@ -95,7 +92,7 @@ function mailRow(m: Mail, section?: string): Item {
   return {
     id: m.id,
     name: m.subject || "(no subject)",
-    subtitle: short([who(m), m.snippet].filter(Boolean).join(" · ")),
+    subtitle: truncate([who(m), m.snippet].filter(Boolean).join(" · "), 120),
     icon: m.icon ?? initialIcon(who(m), m.from.email),
     keywords: [m.from.name, m.from.email, ...userLabels(m), ...(title ? [title] : [])].filter(Boolean),
     section,
@@ -142,28 +139,28 @@ async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise
   switch (action) {
     case "copy": return { copy: threadUrl(await address(), m.threadId, m.inInbox) };
     case "read":
-      try { await markRead(ids); } catch (e) { return failToast("Could not mark read", e); }
+      try { await markRead(ids); } catch (e) { return failed("mark read", e); }
       dropInbox();
-      return { keep: true, toast: { title: "Marked read", message: n > 1 ? plural(n, "message") : m.subject || "(no subject)" } };
+      return toast("Marked read", n > 1 ? plural(n, "message") : m.subject || "(no subject)");
     case "unread":
-      try { await markUnread(ids); } catch (e) { return failToast("Could not mark unread", e); }
+      try { await markUnread(ids); } catch (e) { return failed("mark unread", e); }
       dropInbox();
-      return { keep: true, toast: { title: "Marked unread", message: n > 1 ? plural(n, "message") : m.subject || "(no subject)" } };
+      return toast("Marked unread", n > 1 ? plural(n, "message") : m.subject || "(no subject)");
     case "archive":
-      if (!canSend()) return failToast("Archive is off", "Turn on send for this account under Settings, Extensions, Gmail");
-      try { await archive(ids); } catch (e) { return failToast("Could not archive", e); }
+      if (!canSend()) return toast("Archive is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
+      try { await archive(ids); } catch (e) { return failed("archive", e); }
       dropInbox();
-      return { keep: true, toast: { title: "Archived", message: n > 1 ? plural(n, "message") : m.subject || "(no subject)" } };
+      return toast("Archived", n > 1 ? plural(n, "message") : m.subject || "(no subject)");
     case "star": case "unstar":
-      if (!canSend()) return failToast("Star is off", "Turn on send for this account under Settings, Extensions, Gmail");
-      try { await star([m.id], action === "star"); } catch (e) { return failToast(action === "star" ? "Could not star" : "Could not unstar", e); }
+      if (!canSend()) return toast("Star is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
+      try { await star([m.id], action === "star"); } catch (e) { return failed(action === "star" ? "star" : "unstar", e); }
       dropInbox();
-      return { keep: true, toast: { title: action === "star" ? "Starred" : "Unstarred", message: m.subject || "(no subject)" } };
+      return toast(action === "star" ? "Starred" : "Unstarred", m.subject || "(no subject)");
     case "reply":
-      if (!canSend()) return failToast("Reply is off", "Turn on send for this account under Settings, Extensions, Gmail");
+      if (!canSend()) return toast("Reply is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
       return { form: replyForm(m) };
     case "send": {
-      if (!canSend()) return failToast("Reply is off", "Turn on send for this account under Settings, Extensions, Gmail");
+      if (!canSend()) return toast("Reply is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
       const v = values(ctx);
       const errors: Record<string, string> = {};
       if (!v.to) errors.to = "Required";
@@ -174,8 +171,8 @@ async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise
         const [from, o] = await Promise.all([address(), open(m.id)]);
         const text = `${withSignature(v.body, conf().signature ?? "")}\n\n${quoted(m.dateHeader || new Date(m.date).toUTCString(), addrLine(m.from), messageText(o.text, o.html, m.snippet))}`;
         await apiSend(buildRaw({ from, to: v.to, cc: v.cc, subject: v.subject, text, inReplyTo: m.messageId || undefined, references: [m.references, m.messageId].filter(Boolean).join(" ") || undefined }), m.threadId);
-      } catch (e) { return { form: replyForm(m, { body: e instanceof Error ? e.message : String(e) }, v) }; }
-      return { keep: true, toast: { title: "Sent", message: `Reply to ${who(m)}: ${short(v.subject, 60)}`, style: "success" } };
+      } catch (e) { return { form: replyForm(m, { body: errorMessage(e) }, v) }; }
+      return toast("Sent", `Reply to ${who(m)}: ${truncate(v.subject, 60)}`);
     }
     default: return { open: threadUrl(await address(), m.threadId, m.inInbox) };
   }
@@ -196,14 +193,14 @@ let lastSearch: Item[] = [];
 
 async function searchRows(query = ""): Promise<Item[]> {
   const q = query.trim();
-  if (q.length < 2) return [hint("search", "Search Mail", "Text, from:name, subject:word, has:attachment, newer_than:7d, label:name", [], ICON.search)];
+  if (q.length < 2) return [hint("search", "Search Mail", "Text, from:name, subject:word, has:attachment, newer_than:7d, label:name", { icon: ICON.search })];
   // A newer keystroke supersedes this one: wait a beat, and answer the last rows if one came.
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
   const found = await search(q);
   const names = labelNames();
-  lastSearch = found.length ? found.map((m) => mailRow(m, sectionOf(m.labelIds, names))) : [hint("empty", "No messages found", `Nothing matches "${q}"`, [], ICON.search)];
+  lastSearch = found.length ? found.map((m) => mailRow(m, sectionOf(m.labelIds, names))) : [hint("empty", "No messages found", `Nothing matches "${q}"`, { icon: ICON.search })];
   return lastSearch;
 }
 
@@ -246,7 +243,7 @@ const composeForm = (errors?: Record<string, string>, v: Partial<Record<"to" | "
     { kind: "text", id: "to", label: "To", required: true, default: v.to ?? "", placeholder: "name@example.com, another@example.com" },
     { kind: "text", id: "cc", label: "Cc", default: v.cc ?? "", placeholder: "Comma-separated" },
     { kind: "text", id: "subject", label: "Subject", required: true, default: v.subject ?? "" },
-    { kind: "textarea", id: "body", label: "Message", required: true, default: v.body ?? (conf().signature?.trim() ? `\n\n${conf().signature!.trim()}` : "") },
+    { kind: "textarea", id: "body", label: "Message", required: true, default: v.body ?? withSignature("", conf().signature ?? "") },
   ],
   submit: { id: "send", title: "Send" },
   errors,
@@ -259,7 +256,7 @@ async function composeRows(): Promise<Item[]> {
 }
 
 async function pickCompose(action: string | undefined, ctx?: Ctx): Promise<Effect> {
-  if (!canSend()) return failToast("Compose is off", "Turn on send for this account under Settings, Extensions, Gmail");
+  if (!canSend()) return toast("Compose is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
   if (action !== "send") return { form: composeForm() };
   const v = values(ctx);
   const errors: Record<string, string> = {};
@@ -272,8 +269,8 @@ async function pickCompose(action: string | undefined, ctx?: Ctx): Promise<Effec
     const sig = conf().signature?.trim() ?? "";
     const text = sig && v.body.endsWith(sig) ? v.body : withSignature(v.body, sig);
     await apiSend(buildRaw({ from: await address(), to: v.to, cc: v.cc, subject: v.subject, text }));
-  } catch (e) { return { form: composeForm({ body: e instanceof Error ? e.message : String(e) }, v) }; }
-  return { toast: { title: "Sent", message: `To ${short(v.to, 40)}: ${short(v.subject, 60)}`, style: "success" } };
+  } catch (e) { return { form: composeForm({ body: errorMessage(e) }, v) }; }
+  return { toast: { title: "Sent", message: `To ${truncate(v.to, 40)}: ${truncate(v.subject, 60)}`, style: "success" } };
 }
 
 // ---- drafts ----------------------------------------------------------------------------------
@@ -284,14 +281,14 @@ async function draftRows(): Promise<Item[]> {
   if (!canSend()) return [];
   const list = await drafts();
   draftRows_.clear();
-  if (!list.length) return [hint("none", "No drafts", "Compose writes a message straight away; drafts are Gmail's own", [], ICON.draft)];
+  if (!list.length) return [hint("none", "No drafts", "Compose writes a message straight away; drafts are Gmail's own", { icon: ICON.draft })];
   return list.map((d) => {
     draftRows_.set(d.draftId, d);
     const to = d.mail.to.map(displayName).join(", ");
     return {
       id: d.draftId,
       name: d.mail.subject || "(no subject)",
-      subtitle: short([to ? `To ${to}` : "No recipient", d.mail.snippet].filter(Boolean).join(" · ")),
+      subtitle: truncate([to ? `To ${to}` : "No recipient", d.mail.snippet].filter(Boolean).join(" · "), 120),
       icon: ICON.draft,
       keywords: [...d.mail.to.map((a) => a.email), "draft"],
       accessories: d.mail.date ? [{ date: d.mail.date }] : [],
@@ -305,17 +302,17 @@ async function draftRows(): Promise<Item[]> {
 }
 
 async function pickDraft(id: string, action?: string): Promise<Effect> {
-  if (!canSend()) return failToast("Drafts are off", "Turn on send for this account under Settings, Extensions, Gmail");
+  if (!canSend()) return toast("Drafts are off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
   if (!draftRows_.has(id)) await draftRows();
   const d = draftRows_.get(id);
   if (!d) throw new Error(`no draft ${id}`);
   if (action === "send") {
-    try { await draftSend(id); } catch (e) { return failToast("Could not send", e); }
-    return { keep: true, toast: { title: "Sent", message: d.mail.subject || "(no subject)", style: "success" } };
+    try { await draftSend(id); } catch (e) { return failed("send", e); }
+    return toast("Sent", d.mail.subject || "(no subject)");
   }
   if (action === "discard") {
-    try { await draftDelete(id); } catch (e) { return failToast("Could not discard", e); }
-    return { keep: true, toast: { title: "Discarded", message: d.mail.subject || "(no subject)" } };
+    try { await draftDelete(id); } catch (e) { return failed("discard", e); }
+    return toast("Discarded", d.mail.subject || "(no subject)");
   }
   return { open: draftUrl(await address(), d.mail.threadId) };
 }
@@ -345,10 +342,10 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
       title: "Unread",
       children: i.unread.slice(0, BAR_ROWS).map((m) => ({
         type: "submenu",
-        title: short(`${who(m)}: ${m.subject || "(no subject)"}`, 60),
+        title: truncate(`${who(m)}: ${m.subject || "(no subject)"}`, 60),
         icon: m.icon ?? initialIcon(who(m), m.from.email),
         children: [
-          { type: "item", id: `open:${m.id}`, title: "Open in Gmail", subtitle: short(m.snippet, 70) || undefined, icon: ICON.browser },
+          { type: "item", id: `open:${m.id}`, title: "Open in Gmail", subtitle: truncate(m.snippet, 70) || undefined, icon: ICON.browser },
           { type: "item", id: `read:${m.id}`, title: "Mark as read", icon: ICON.open },
         ],
       })),
@@ -382,7 +379,7 @@ async function unreadAction(action: string): Promise<Effect> {
 // ---- the extension ----------------------------------------------------------------------------
 
 const pickRow = async (id: string, action?: string, ctx?: Ctx): Promise<Effect | void> => (id.startsWith("hint:") ? pickHint(id) : pickMail(await mail(id), action, ctx));
-const paneOf = async (id: string): Promise<Detail | void> => { if (id.startsWith("hint:")) return; try { return await mailPane(id); } catch (e) { return { markdown: `_${e instanceof Error ? e.message : String(e)}_` }; } };
+const paneOf = async (id: string): Promise<Detail | void> => { if (id.startsWith("hint:")) return; try { return await mailPane(id); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } };
 
 export default {
   palettes: {

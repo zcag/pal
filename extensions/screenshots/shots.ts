@@ -25,18 +25,6 @@ export function isScreenshot(name: string, all = false): boolean {
   return all || /^(screen ?shot|screen recording|screencapture|grim-)/i.test(name);
 }
 
-/** Width and height off a PNG's IHDR (the first chunk, bytes 16..24), or nothing for anything else. */
-export function pngSize(head: Uint8Array): { w: number; h: number } | undefined {
-  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  if (head.length < 24 || sig.some((b, i) => head[i] !== b)) return undefined;
-  if (String.fromCharCode(head[12], head[13], head[14], head[15]) !== "IHDR") return undefined;
-  const be = (i: number) => ((head[i] << 24) >>> 0) + (head[i + 1] << 16) + (head[i + 2] << 8) + head[i + 3];
-  const w = be(16), h = be(20);
-  return w > 0 && h > 0 ? { w, h } : undefined;
-}
-
-export const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(2)} GB`);
-
 /** "12 s ago", "3 min ago", for the suggest row. */
 export function ago(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));

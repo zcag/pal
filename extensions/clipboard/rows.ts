@@ -15,8 +15,9 @@
 // the `fetch_titles` setting gates.
 import { basename, dirname, extname } from "node:path";
 import qrcode from "qrcode-generator";
-import type { Action, ClipboardEntry, Item } from "@zcag/pal";
-import { parse as parseColor, toHex, toHslString, toRgb, type RGB } from "../colors/color.ts";
+import { colors, slug, type Action, type ClipboardEntry, type Item } from "@zcag/pal";
+const { parse: parseColor, toHex, toHslString, toRgb } = colors;
+type RGB = colors.RGB;
 
 export const SECTION = "Clipboard";
 /** Every row's last action: the section goes until the clipboard changes. */
@@ -249,7 +250,8 @@ export function analyzeText(entry: ClipboardEntry, text: string, paths: PathInfo
 export type RowOpts = { shortener?: string; ocr?: boolean; qr?: boolean; now?: number };
 
 const clip = (s: string, n = PREVIEW) => { const one = s.replace(/\s+/g, " ").trim(); return one.length > n ? one.slice(0, n - 1) + "…" : one; };
-const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
+/** `512 B`, `3.2 KB`, `1.5 MB`: a size on a row (the SDK's `bytes` rounds KB past 10 and knows GB; the clipboard never holds that much). */
+export const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 const fence = (s: string, lang = "") => "````" + lang + "\n" + s.replace(/````/g, "```​`") + "\n````";
 const swatch = (hex: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="14" fill="${hex}"/></svg>`)}`;
 const wideSwatch = (hex: string) => `![](data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" rx="8" fill="${hex}"/></svg>`)})`;
@@ -282,16 +284,12 @@ export function qrSvg(text: string, cell = 4, size?: number): string | undefined
 /** The size a QR code is drawn at in a `show` level. */
 export const QR_SHOW_PX = 320;
 
-export const KIND_EXT: Record<string, string[]> = {
-  image: ["png", "jpg", "jpeg", "gif", "webp", "heic", "svg", "bmp", "tiff", "avif"],
-  code: ["ts", "tsx", "js", "jsx", "py", "rs", "go", "rb", "sh", "zsh", "c", "h", "cpp", "java", "kt", "swift", "lua", "toml", "json", "yaml", "yml", "html", "css", "sql", "md", "txt"],
-};
-const pathGlyph = (p: PathInfo) => (p.dir && !(MAC && p.path.endsWith(".app")) ? GLYPH.folder : KIND_EXT.image.includes(extname(p.path).slice(1).toLowerCase()) ? GLYPH.image : GLYPH.file);
+const IMAGE_EXT = ["png", "jpg", "jpeg", "gif", "webp", "heic", "svg", "bmp", "tiff", "avif"];
+const pathGlyph = (p: PathInfo) => (p.dir && !(MAC && p.path.endsWith(".app")) ? GLYPH.folder : IMAGE_EXT.includes(extname(p.path).slice(1).toLowerCase()) ? GLYPH.image : GLYPH.file);
 const short = (p: string, home: string) => (p === home ? "~" : p.startsWith(home + "/") ? "~" + p.slice(home.length) : p);
 
 /** "Title Case" as a headline: every word capitalised but short joining words after the first. */
 export const titleCase = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c, i) => (i > 0 && /^(a|an|and|as|at|but|by|for|in|of|on|or|the|to)\b/.test(s.slice(i).toLowerCase()) ? c : c.toUpperCase()));
-export const slug = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 /**
  * The rows for an analysis, the most specific first: what the text is,

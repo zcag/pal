@@ -6,7 +6,7 @@
 // another form when there is one (hex for an integer, a fraction, the
 // reverse conversion). Nothing is listed while the query does not parse,
 // so typing never shows an error.
-import { settings, type Action, type Extension, type Item } from "@zcag/pal";
+import { hint as hintRow, settings, type Action, type Extension, type Item } from "@zcag/pal";
 import { ensureRates, homeCurrency, money, NAMES, parse as parseCurrency, rate, SOURCE } from "./currency.ts";
 import { dates } from "./dates.ts";
 import { normalizeNumbers, num, raw as rawNum } from "./format.ts";
@@ -24,7 +24,7 @@ const ACTIONS: Action[] = [
   { id: "copy_raw", title: "Copy without formatting", shortcut: "cmd+shift+c" },
   { id: "copy_both", title: "Copy expression = result", shortcut: "cmd+shift+e" },
 ];
-const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: ICON, actions: [] });
+const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle, { icon: ICON });
 const HINTS = [
   hint("Type an expression", "2+2 · sqrt 2 · 15% of 240 · 255 to hex"),
   hint("Convert", "12 usd to try · 5 km to miles · 72 f to c"),

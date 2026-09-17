@@ -78,8 +78,8 @@ describe("audio", () => {
     try {
       const items = await h.list("audio", "audio");
       expect(items).toHaveLength(1);
-      expect(items[0]).toMatchObject({ id: "error", name: "No audio devices", subtitle: "neither wpctl nor pactl is installed", actions: [] });
-      expect(await h.pick("audio", "audio", "error")).toEqual({ keep: true });
+      expect(items[0]).toMatchObject({ id: "hint:error", name: "No audio devices", subtitle: "neither wpctl nor pactl is installed", actions: [] });
+      expect(await h.pick("audio", "audio", "hint:error")).toEqual({ keep: true });
     } finally {
       h.kill();
     }

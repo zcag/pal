@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ClipboardEntry, Item } from "../../../sdk/src/index.ts";
-import { analyzeText, decode, evaluate, git, json, parseDate, privateArgv, qrSvg, relative, rows, slug, stats, titleCase, titleOf, tracking, transform, HIDE, SECTION } from "../../../extensions/clipboard/rows.ts";
+import { analyzeText, decode, evaluate, git, json, parseDate, privateArgv, qrSvg, relative, rows, stats, titleCase, titleOf, tracking, transform, HIDE, SECTION } from "../../../extensions/clipboard/rows.ts";
 import { Host, stored } from "../harness.ts";
 
 const entry = (text: string, id = 1): ClipboardEntry => ({ id, kind: "text", text, image: null, files: null, source_app: null, at: 1758000000000, bytes: text.length, pinned: false, width: null, height: null, name: null });
@@ -71,7 +71,6 @@ describe("what the text is", () => {
     expect(relative(new Date(2 * 864e5), 0)).toBe("in 2 days");
     expect(relative(new Date(10), 0)).toBe("just now");
     expect(titleCase("the quick brown fox of the road")).toBe("The Quick Brown Fox of the Road");
-    expect(slug("Héllo, Wörld! 2026")).toBe("hello-world-2026");
     expect(transform("upper", "ab")).toBe("AB");
     expect(transform("trim", "  ab ")).toBe("ab");
     expect(transform("paste-plain", "x")).toBeUndefined();

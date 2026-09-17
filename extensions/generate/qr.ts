@@ -5,8 +5,8 @@
 // what a launcher needs: text in, a module matrix and an SVG out. Nothing
 // is fetched and no dependency is pulled in for it.
 
-export type Ecl = "L" | "M" | "Q" | "H";
-export type QrCode = { version: number; ecl: Ecl; mask: number; size: number; modules: boolean[][] };
+type Ecl = "L" | "M" | "Q" | "H";
+type QrCode = { version: number; ecl: Ecl; mask: number; size: number; modules: boolean[][] };
 
 const ECL_ORDINAL: Record<Ecl, number> = { L: 0, M: 1, Q: 2, H: 3 };
 const ECL_FORMAT: Record<Ecl, number> = { L: 1, M: 0, Q: 3, H: 2 };

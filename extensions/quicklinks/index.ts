@@ -4,14 +4,13 @@
 // with `{selection}` or `{clipboard}` (the SDK's placeholders) is filled
 // without asking; one without opens at once, in the app the link names
 // (`app`, "Open with" in the form) or the default, and with
-// `prefer_existing_tab` in a browser tab already on that page
-// (browser-tabs' `findTab`). The Create form fills its url and name from
-// the tab in front (`activeTab`). The library level offers ready-made
+// `prefer_existing_tab` in a browser tab already on that page (the SDK's
+// `tabs.find`). The Create form fills its url and name from the tab in
+// front (`tabs.active`). The library level offers ready-made
 // searches (library.ts); an `import` file adds read-only links; the
 // Import and Export rows move links in and out as JSON files.
 import { existsSync } from "node:fs";
-import { clipboard, expand, hasPlaceholders, home, selection, settings, storage, type Action, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
-import { activeTab, findTab, focusTab } from "../browser-tabs/index.ts";
+import { clipboard, errorMessage, expand, failed, hasPlaceholders, home, selection, settings, storage, tabs, type Action, type Ctx, type Effect, type Extension, type Form, type FormField, type FormValues, type Item, type LinkParams } from "@zcag/pal";
 import { LIBRARY, LIBRARY_ID, libraryEntry, libraryId } from "./library.ts";
 import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords, type Link } from "./links.ts";
 
@@ -69,7 +68,7 @@ function browsers(): string[] {
 function openWith(url: string, app: string): Effect {
   const argv = process.env.PAL_QUICKLINKS_OPEN ? [process.env.PAL_QUICKLINKS_OPEN, app, url] : MAC ? ["open", "-a", app, url] : [app, url];
   try { Bun.spawn(argv, { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref(); }
-  catch (e) { return { keep: true, toast: { title: `Could not open with ${app}`, message: String((e as Error)?.message ?? e), style: "failure" } }; }
+  catch (e) { return failed(`open with ${app}`, e); }
   return { hide: true };
 }
 
@@ -81,14 +80,14 @@ const fillSilent = (url: string) => expand(url, { clipboard: async () => encodeU
 /**
  * Open the link's url as the link says: a tab already on the page when
  * the setting prefers one and a browser has it (focused through
- * browser-tabs), else the named browser for a web address, else the OS
+ * the SDK's `tabs`), else the named browser for a web address, else the OS
  * opener (a `mailto:` or an app's scheme goes there whatever the field says).
  */
 async function openLink(l: Link, url = l.url): Promise<Effect> {
   if (!/^https?:\/\//i.test(url)) return { open: url };
   if (conf().prefer_existing_tab) {
-    const tab = await findTab(url).catch(() => undefined);
-    if (tab) return focusTab(tab);
+    const tab = await tabs.find(url).catch(() => undefined);
+    if (tab) return tabs.focus(tab);
   }
   return l.app ? openWith(url, l.app) : { open: url };
 }
@@ -104,7 +103,7 @@ async function imported(): Promise<Link[]> {
       .filter((r) => r && typeof r.url === "string" && r.url)
       .map((r) => ({ id: IMPORTED + r.url, name: typeof r.name === "string" && r.name ? r.name : r.url, url: r.url, ...(Array.isArray(r.keywords) ? { keywords: r.keywords.map(String) } : {}) }));
   } catch (e) {
-    console.error(`[quicklinks] import ${file}: ${e instanceof Error ? e.message : e}`);
+    console.error(`[quicklinks] import ${file}: ${errorMessage(e)}`);
     return [];
   }
 }
@@ -168,7 +167,7 @@ function form(l?: Link, errors?: Record<string, string>, prefill?: Create): Form
 async function createForm(ctx?: Ctx): Promise<Form> {
   const given = createArgs(ctx);
   if (given) return form(undefined, undefined, given);
-  const tab = await activeTab().catch(() => undefined);
+  const tab = await tabs.active().catch(() => undefined);
   return form(undefined, undefined, tab && { name: tab.title || undefined, url: tab.url });
 }
 
@@ -189,12 +188,12 @@ async function transfer(id: typeof IMPORT | typeof EXPORT, values: FormValues): 
   const links = await own();
   if (id === EXPORT) {
     try { await Bun.write(path, JSON.stringify(links.map(({ id: _, ...l }) => l), null, 2) + "\n"); }
-    catch (e) { return { form: pathForm(id, raw, { path: `Could not write: ${e instanceof Error ? e.message : e}` }) }; }
+    catch (e) { return { form: pathForm(id, raw, { path: `Could not write: ${errorMessage(e)}` }) }; }
     return { keep: true, toast: { title: `Exported ${links.length} ${links.length === 1 ? "quicklink" : "quicklinks"}`, message: path } };
   }
   let incoming: Link[];
   try { incoming = fromJson(await Bun.file(path).json()); }
-  catch (e) { return { form: pathForm(id, raw, { path: `Could not read: ${e instanceof Error ? e.message : e}` }) }; }
+  catch (e) { return { form: pathForm(id, raw, { path: `Could not read: ${errorMessage(e)}` }) }; }
   const have = new Set(links.map((l) => l.url));
   const fresh: Link[] = [];
   for (const l of incoming) if (!have.has(l.url)) { have.add(l.url); fresh.push(l); }

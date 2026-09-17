@@ -273,7 +273,7 @@ impl Host {
             self.write_line(&json!({ "id": id, "method": method, "params": params })).await?;
             rx.await.unwrap_or_else(|_| Err("host dropped request".into()))
         };
-        let r = tokio::time::timeout(REQUEST_TIMEOUT, exchange).await.unwrap_or_else(|_| Err(format!("host timed out on {method}")));
+        let r = tokio::time::timeout(REQUEST_TIMEOUT, exchange).await.unwrap_or_else(|_| Err(format!("the host did not answer {method} within {} s", REQUEST_TIMEOUT.as_secs())));
         if r.is_err() {
             lock(&self.pending).remove(&id);
         }

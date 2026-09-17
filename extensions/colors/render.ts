@@ -6,10 +6,11 @@
 // the plane are `gradient` nodes, so the app draws the picker with its
 // tokens in both themes. No host imports: the gallery renders a fixture
 // state with this same function.
-import type { Action, HexColor, View, ViewNode } from "@zcag/pal";
-import { BLACK, WHITE, contrast, fromHsl, fromOklchMapped, maxChroma, nameOf, nearestIn, nearestName, toHex, toHsl, toOklchValues, wcag, type RGB } from "./color.ts";
+import { colors, column, keyHint, row, text, type Action, type HexColor, type View, type ViewNode } from "@zcag/pal";
 import { ROWS, previous, rowColors, titleOf, write, type Focus, type Settings, type State } from "./state.ts";
 import type { Row } from "./sets.ts";
+const { BLACK, WHITE, contrast, fromHsl, fromOklchMapped, maxChroma, nameOf, nearestIn, nearestName, toHex, toHsl, toOklchValues, wcag } = colors;
+type RGB = colors.RGB;
 
 /** The swatch's box, the strip and the plane under it take the same width. */
 const SWATCH_W = 160, SWATCH_H = 116, STRIP_H = 10, PLANE_H = 80;
@@ -18,12 +19,6 @@ const TILE = 16, TILE_ON = 22;
 /** The notation column: the label and the value (the longest, display-p3, is 37 characters of 12 px mono). */
 const LABEL_W = 56, VALUE_W = 276;
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
 const hex = (c: RGB): HexColor => toHex(c) as HexColor;
 const opaque = (c: RGB): HexColor => toHex({ ...c, a: 1 }) as HexColor;
 const LEVEL_COLOR = { AAA: "green", AA: "green", "AA large": "amber", fail: "red" } as const;
@@ -73,7 +68,7 @@ export function readout(st: State): string {
 
 const ratio = (c: RGB, on: RGB) => { const r = contrast(c, on); return { text: `${r.toFixed(2)}:1`, level: wcag(r) }; };
 
-function swatchColumn(st: State, s: Settings): ViewNode {
+function swatchColumn(st: State): ViewNode {
   const c = st.color;
   const name = nameOf(c);
   const p = plane(st);
@@ -129,14 +124,14 @@ const ROW_TITLES: Record<Exclude<Focus, "swatch">, string> = { tints: "Tints", s
 
 /** One row of tiles: the highlighted one is taller and the label names its hex while the row has the focus. */
 function scaleRow(st: State, which: Exclude<Focus, "swatch">): ViewNode {
-  const colors = rowColors(st, which);
+  const tiles = rowColors(st, which);
   const on = st.focus === which;
-  const picked = on ? colors[st.index] : undefined;
+  const picked = on ? tiles[st.index] : undefined;
   return column(
     [
       row([text(ROW_TITLES[which], { style: "muted", size: "xs", weight: on ? "semibold" : undefined, color: on ? "accent" : "muted" }), ...(picked ? [text(toHex(picked), { key: `pk-${which}-${toHex(picked)}`, style: "mono", size: "xs", transition: { enter: "fade", exit: "none" } })] : [])], { key: "t", minHeight: 14, gap: 2 }),
       row(
-        colors.map((c, i) => ({ type: "tile", key: `${which}-${i}-${toHex(c)}`, width: on && i === st.index ? TILE_ON : TILE, height: on && i === st.index ? TILE_ON : TILE, color: hex(c), transition: { enter: "fade", exit: "none" } }) as ViewNode),
+        tiles.map((c, i) => ({ type: "tile", key: `${which}-${i}-${toHex(c)}`, width: on && i === st.index ? TILE_ON : TILE, height: on && i === st.index ? TILE_ON : TILE, color: hex(c), transition: { enter: "fade", exit: "none" } }) as ViewNode),
         { key: "r", gap: 1, minHeight: TILE_ON },
       ),
     ],
@@ -179,18 +174,17 @@ export function actions(st: State, s: Settings): Action[] {
 
 /** The line under everything: what the keys do here, which changes with the focus. */
 function hints(st: State): ViewNode {
-  const hint = (keys: string[], what: string): ViewNode[] => [...keys.map(keycap), text(what, { style: "muted", size: "xs" })];
-  if (st.typing !== undefined) return row([text("Type any notation: #ff8800, rgb(255 136 0), hsl(30 100% 50%), oklch(0.75 0.18 60), lab(), color(display-p3 …), a name", { style: "muted", size: "xs" }), { type: "spacer" }, ...hint(["enter"], "apply"), ...hint(["escape"], "close")], { key: "hints-typing", gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
+  if (st.typing !== undefined) return row([text("Type any notation: #ff8800, rgb(255 136 0), hsl(30 100% 50%), oklch(0.75 0.18 60), lab(), color(display-p3 …), a name", { style: "muted", size: "xs" }), { type: "spacer" }, ...keyHint(["enter"], "apply"), ...keyHint(["escape"], "close")], { key: "hints-typing", gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
   const items = st.focus === "swatch"
-    ? [...hint(["left", "right"], "hue"), ...hint(["up", "down"], "lightness"), ...hint(["-", "+"], st.model === "hsl" ? "saturation" : "chroma"), ...hint(["shift"], "big steps"), ...hint(["m"], st.model === "hsl" ? "oklch" : "hsl"), ...hint(["tab"], "rows")]
-    : [...hint(["left", "right"], "tile"), ...hint(["enter"], "use it"), ...hint(["tab", "shift+tab"], "rows"), ...hint(["up", "down"], "row")];
-  return row([...items, { type: "spacer" }, ...hint(["p"], "pick"), ...hint(["0-9", "#"], "type"), ...hint(["c"], "copy")], { key: `hints-${st.focus === "swatch" ? "swatch" : "row"}`, gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
+    ? [...keyHint(["left", "right"], "hue"), ...keyHint(["up", "down"], "lightness"), ...keyHint(["-", "+"], st.model === "hsl" ? "saturation" : "chroma"), ...keyHint(["shift"], "big steps"), ...keyHint(["m"], st.model === "hsl" ? "oklch" : "hsl"), ...keyHint(["tab"], "rows")]
+    : [...keyHint(["left", "right"], "tile"), ...keyHint(["enter"], "use it"), ...keyHint(["tab", "shift+tab"], "rows"), ...keyHint(["up", "down"], "row")];
+  return row([...items, { type: "spacer" }, ...keyHint(["p"], "pick"), ...keyHint(["0-9", "#"], "type"), ...keyHint(["c"], "copy")], { key: `hints-${st.focus === "swatch" ? "swatch" : "row"}`, gap: 1, minHeight: 24, transition: { enter: "fade", exit: "none" } });
 }
 
 export function render(st: State, s: Settings, tokens: { tailwind: Row[]; material: Row[] }): View {
   const scales = column((ROWS.filter((r) => r !== "swatch") as Exclude<Focus, "swatch">[]).map((r) => scaleRow(st, r)), { key: "scales", gap: 1, align: "start" });
   const tree = column(
-    [row([swatchColumn(st, s), notationColumn(st, s, tokens), scales], { key: "main", gap: 4, align: "start" }), { type: "spacer", key: "fill" }, hints(st)],
+    [row([swatchColumn(st), notationColumn(st, s, tokens), scales], { key: "main", gap: 4, align: "start" }), { type: "spacer", key: "fill" }, hints(st)],
     { key: "picker", padding: 4, gap: 2, grow: true },
   );
   const view: View = { tree, actions: actions(st, s), title: titleOf(st.color), id: "picker", keys: "actions" };

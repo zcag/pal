@@ -107,6 +107,7 @@ function unique<T extends { rid: string; bridge: string }>(items: (T & { slugBas
     const n = (seen.get(it.slugBase) ?? 0) + 1;
     seen.set(it.slugBase, n);
     const { slugBase, ...rest } = it;
+    // `Omit` over a generic intersection is not `T` to the checker (and "does not sufficiently overlap"), so the rest goes through `unknown`.
     return { ...rest, id: `${prefix}:${slugBase}${n > 1 ? `-${n}` : ""}` } as unknown as T & { id: string };
   });
 }

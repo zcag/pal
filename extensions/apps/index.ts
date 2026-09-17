@@ -1,13 +1,12 @@
 // Applications: macOS .app bundles under the three usual roots (one level
-// deep so the Utilities folders come along, ported from v1 builtin/apps.rs),
-// or Linux .desktop entries from the XDG data dirs. Same item shape either
-// way; the platform picks the scan and the launch. On macOS the common
-// System Settings panes are rows too, and a running app carries a tag with
-// Quit and Hide in its actions; on Linux a .desktop file's own actions
-// ("New Private Window") are the row's secondary actions.
+// deep so the Utilities folders come along), or Linux .desktop entries from
+// the XDG data dirs. Same item shape either way; the platform picks the
+// scan and the launch. On macOS the common System Settings panes are rows
+// too, and a running app carries a tag with Quit and Hide in its actions;
+// on Linux a .desktop file's own actions ("New Private Window") are the
+// row's secondary actions.
 import { readdir } from "node:fs/promises";
-import { linuxTerminal, linuxTerminalArgv } from "./terminal.ts";
-import { home, settings, type Action, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { exec, failed, home, run, settings, terminal, type Action, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { execArgv, parseDesktop, splitList, type DesktopAction } from "./desktop.ts";
 
 /** `[extensions.apps]`, defaults in pal.json. */
@@ -16,19 +15,8 @@ type Settings = { folders: string[] };
 const HOME = home("~");
 const LINUX = process.platform === "linux";
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
-
-/** Runs to completion or `ms` (then killed, rejecting "timeout"); rejects with stderr (or the exit code) on failure. */
-async function run(argv: string[], ms: number): Promise<void> {
-  const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "ignore", stderr: "pipe" });
-  let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; proc.kill(); }, ms);
-  const [code, err] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-  clearTimeout(timer);
-  if (timedOut) throw new Error("timeout");
-  if (code !== 0) throw new Error(err.trim() || `${argv[0]} exited ${code}`);
-}
-
-const failed = (title: string, e: unknown) => ({ keep: true as const, toast: { title, message: String((e as Error)?.message ?? e), style: "failure" as const } });
+/** An AppleScript ask of an app; a save dialog can hold it up, so short. */
+const OSASCRIPT_MS = 3000;
 
 // ---- macOS ---------------------------------------------------------------
 
@@ -78,7 +66,7 @@ async function runningPids(): Promise<Map<string, number[]>> {
   const byApp = new Map<string, number[]>();
   for (const line of out.split("\n")) {
     const m = line.trim().match(/^(\d+)\s+(.+\.app)\/Contents\/MacOS\/[^/]+$/);
-    if (m) (byApp.get(m[2]) ?? byApp.set(m[2], []).get(m[2])!).push(+m[1]);
+    if (m) byApp.set(m[2], [...(byApp.get(m[2]) ?? []), +m[1]]);
   }
   return byApp;
 }
@@ -174,13 +162,14 @@ const panes = (): Item[] =>
 async function quitMac(path: string, pids: number[]) {
   const app = macApps.get(path);
   if (app?.bundleId) {
-    try { await run(["osascript", "-e", `tell application id ${JSON.stringify(app.bundleId)} to quit`], 3000); return; }
-    catch (e) { if ((e as Error).message === "timeout") return; } // a save dialog is up: the app decides
+    const r = await exec(["osascript", "-e", `tell application id ${JSON.stringify(app.bundleId)} to quit`], { ms: OSASCRIPT_MS });
+    // Timed out: a save dialog is up, the app decides.
+    if (r.timedOut || r.code === 0) return;
   }
   for (const pid of pids) process.kill(pid, "SIGTERM");
 }
 
-const hideMac = (pid: number) => run(["osascript", "-e", `tell application "System Events" to set visible of (first process whose unix id is ${pid}) to false`], 3000);
+const hideMac = (pid: number) => run(["osascript", "-e", `tell application "System Events" to set visible of (first process whose unix id is ${pid}) to false`], { ms: OSASCRIPT_MS });
 
 async function pickMac(id: string, action?: string) {
   if (id.startsWith(PANE)) return action === "copy-url" ? { copy: paneUrl(id.slice(PANE.length)) } : { open: paneUrl(id.slice(PANE.length)) };
@@ -195,7 +184,7 @@ async function pickMac(id: string, action?: string) {
     case "hide": {
       const pids = (await runningPids()).get(id) ?? [];
       if (!pids.length) return { keep: true as const, toast: { title: `${app?.name ?? id} is not running` } };
-      try { action === "quit" ? await quitMac(id, pids) : await hideMac(pids[0]); } catch (e) { return failed(`Could not ${action} ${app?.name ?? id}`, e); }
+      try { action === "quit" ? await quitMac(id, pids) : await hideMac(pids[0]); } catch (e) { return failed(`${action} ${app?.name ?? id}`, e); }
       // The `keep` lists again, and with the cache dropped that listing rescans, so the Running tag follows.
       cache = undefined;
       return { keep: true as const };
@@ -285,10 +274,10 @@ async function scanLinux(extra: string[]): Promise<Item[]> {
   return items;
 }
 
-/** The terminal for a `Terminal=true` entry (terminal.ts: `$TERMINAL`, else the first installed). */
+/** The terminal for a `Terminal=true` entry (`$TERMINAL`, else the first installed). */
 function terminalArgv(cmd: string[]): string[] | undefined {
-  const term = linuxTerminal();
-  return term ? linuxTerminalArgv(term, cmd) : undefined;
+  const term = terminal.linux();
+  return term ? terminal.linuxArgv(term, cmd) : undefined;
 }
 
 // `gio launch` (then `gtk-launch`) gets the desktop file's own semantics:
@@ -300,8 +289,8 @@ function launchLinux(file: string, action?: string) {
   if (!e) throw new Error(`no entry ${file}`);
   const exec = action ? e.actions.find((a) => a.id === action)?.exec : undefined;
   if (action && !exec) throw new Error(`no action ${action} in ${file}`);
-  if (e.terminal || exec) {
-    if (!e.terminal) return spawnDetached(exec!);
+  if (exec && !e.terminal) return spawnDetached(exec);
+  if (e.terminal) {
     const argv = terminalArgv(exec ?? e.exec);
     if (!argv) throw new Error("no terminal: set $TERMINAL");
     return spawnDetached(argv);

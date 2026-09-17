@@ -3,8 +3,7 @@
 // puts on the clipboard, and the date and time words the New event form
 // takes. Everything runs on the local clock through `Date`; nothing here
 // touches the core, so it is tested by import.
-import type { CalendarEvent } from "@zcag/pal";
-import { now as current } from "./clock.ts";
+import { now as current, type CalendarEvent } from "@zcag/pal";
 
 export const DAY = 86_400_000;
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];

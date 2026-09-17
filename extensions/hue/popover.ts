@@ -9,7 +9,7 @@
 // (a tap or a digit plays one), and the key hints. Pure: index.ts hands
 // it the model's shapes and the in-process cursor state; the fixture
 // draws the same tree from the sample home.
-import type { Action, HexColor, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, row, text, type Action, type HexColor, type View, type ViewNode } from "@zcag/pal";
 import { clamp, fromHex, toHex, type RGB } from "./color.ts";
 import { aggregate, lightColor, pct, type Light, type Room, type Scene, type Sensor } from "./model.ts";
 
@@ -34,8 +34,6 @@ export type PopoverData = {
   bridge?: string;
 };
 
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 /** Two tiles a row, a gap between. */
 export const TILE_W = 194, TILE_H = 50, GRID_GAP = 2;
 const SWATCH_H = 20, SCENES_PER_ROW = 5, SCENE_W_MAX = 92;
@@ -45,13 +43,7 @@ const MAX_SCENES = 9;
 const MAX_BADGES = 4;
 export const VIEW_ID = "home";
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string, action?: string): ViewNode => ({ type: "keycap", keys, ...(action && { action }) });
-const hint = (keys: string[], what: string, action?: string): ViewNode[] => [...keys.map((k) => keycap(k, action)), text(what, { style: "muted", size: "xs" })];
+const hint = (keys: string[], what: string, action?: string): ViewNode[] => keyHint(keys, what, { action });
 
 /** The tile's colour for a lit room: its colour shaded by the brightness, gently (a 30% room still reads as its colour). */
 export const shade = (c: RGB, share: number): HexColor => { const k = 0.62 + 0.38 * clamp(share, 0, 1); return toHex({ r: c.r * k, g: c.g * k, b: c.b * k }); };
@@ -109,7 +101,7 @@ function lightRow(l: Light, selected: boolean): ViewNode {
   const unreachable = l.reach === "disconnected" || l.reach === "connectivity_issue";
   return row([
     swatch,
-    text(l.name, { style: "body", size: "sm", weight: selected ? "semibold" : "regular", color: l.on ? undefined : "muted", width: COMPACT_W - 16 - 18 - SLIDER_W - 36 - 26 - 4 * 8 }),
+    text(l.name, { style: "body", size: "sm", weight: selected ? "semibold" : "regular", color: l.on ? undefined : "muted", width: POPOVER_W - 16 - 18 - SLIDER_W - 36 - 26 - 4 * 8 }),
     ...(unreachable ? [{ type: "badge", key: "reach", text: "unreachable", color: "red" } as ViewNode] : []),
     { type: "slider", key: "level", value, width: SLIDER_W, color: l.on ? hex : "grey", action: `level:${l.id}`, label: `${l.name} brightness` },
     text(l.on ? `${bri ?? 100}%` : "off", { key: `v-${value}`, style: "mono", size: "xs", color: "muted", width: 36, align: "end", transition: { enter: "fade", exit: "none" } }),
@@ -142,7 +134,7 @@ function scenesSection(scenes: Scene[], of: string | undefined): ViewNode | unde
   const shown = scenes.slice(0, MAX_SCENES);
   // As wide as the row allows for the count, up to a cap: four scenes get room for their names, nine stay five a row.
   const perRow = Math.min(SCENES_PER_ROW, shown.length);
-  const width = Math.min(SCENE_W_MAX, Math.floor((COMPACT_W - (perRow - 1) * 4) / perRow));
+  const width = Math.min(SCENE_W_MAX, Math.floor((POPOVER_W - (perRow - 1) * 4) / perRow));
   const rows: ViewNode[] = [];
   for (let i = 0; i < shown.length; i += perRow) rows.push(row(shown.slice(i, i + perRow).map((s, j) => sceneTile(s, i + j, width)), { key: `sr-${i / perRow}`, gap: 1, align: "start" }));
   return column([

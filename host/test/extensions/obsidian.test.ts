@@ -115,7 +115,7 @@ describe("Obsidian's files", () => {
 
 describe("search backend helpers", () => {
   test("the ripgrep command and its output parsed to hits with their lines", () => {
-    const argv = rgArgv("caddy", "/v", ["templates/**"]);
+    const argv = rgArgv("caddy", ["templates/**"]);
     expect(argv.slice(0, 2)).toEqual(["rg", "--line-number"]);
     expect(argv.slice(-7)).toEqual(["--glob", "!.*", "--glob", "!templates/**", "--", "caddy", "."]);
     expect(parseRg("./infra/theater.md:8:> Caddy fronts it.\n./infra/theater.md:12:caddy again\n./x.md:1:Caddy\nnoise\n")).toEqual([
@@ -240,7 +240,7 @@ describe("the extension", () => {
     expect((await pick("notes", "note:infra/theater.md")).hud).toMatch(/^Opened theater/);
     host.changeSettings("obsidian", { settings: { ...SETTINGS, editor: "no-such-editor-xyz" } });
     const r = await pick("notes", "note:infra/theater.md", "editor");
-    expect(r.toast).toMatchObject({ title: "no-such-editor-xyz is not on PATH", style: "failure" });
+    expect(r.toast).toMatchObject({ title: "no-such-editor-xyz is not installed", style: "failure" });
     host.changeSettings("obsidian", { settings: SETTINGS });
   });
 
@@ -408,7 +408,7 @@ describe("the extension", () => {
     expect(r.open).toMatch(/^obsidian:\/\/open\?vault=.*&file=/);
     host.changeSettings("obsidian", { settings: { ...SETTINGS, vault: join(scratch, "no-such-vault") } });
     const rows = await list("notes");
-    expect(rows).toEqual([{ id: "hint:vault", name: "The vault folder is missing", subtitle: `${join(scratch, "no-such-vault")} is not there; Settings, Extensions, Obsidian names it`, icon: "\u{f0026}", actions: [{ id: "settings", title: "Open settings" }] }]);
+    expect(rows).toEqual([{ id: "hint:vault", name: "The vault folder is missing", subtitle: `${join(scratch, "no-such-vault")} is not there; Settings › Extensions › Obsidian names it`, icon: "\u{f0026}", actions: [{ id: "settings", title: "Open settings" }] }]);
     expect(await pick("notes", "hint:vault", "settings")).toEqual({ open: "pal://settings/extensions" });
     host.changeSettings("obsidian", { settings: SETTINGS });
     expect((await list("notes")).length).toBeGreaterThan(4);
@@ -446,7 +446,7 @@ describe("the Bun scan and Obsidian's own vault list", () => {
     delete process.env.PAL_OBSIDIAN_CONFIG;
     try {
       const hint = await none.list("obsidian", "notes");
-      expect(hint).toEqual([{ id: "hint:vault", name: "Set the vault folder", subtitle: "Settings, Extensions, Obsidian: the folder Obsidian opens; found by itself once Obsidian has opened one", icon: "\u{f08bb}", actions: [{ id: "settings", title: "Open settings" }] }]);
+      expect(hint).toEqual([{ id: "hint:vault", name: "Set the vault folder", subtitle: "Settings › Extensions › Obsidian: the folder Obsidian opens; found by itself once Obsidian has opened one", icon: "\u{f08bb}", actions: [{ id: "settings", title: "Open settings" }] }]);
     } finally { await none.close(); }
   });
 });

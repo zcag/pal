@@ -9,7 +9,7 @@
 // keycap hints. Replying turns the search row into a text field
 // (`View.input`) and the hints into Send / Cancel. Inbox zero is one
 // calm line.
-import type { Action, HexColor, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, row, text, type Action, type HexColor, type View, type ViewNode } from "@zcag/pal";
 import type { Kind } from "./data.ts";
 
 /** One row of the popover, everything already formatted (the time in the user's locale, the text on one line). */
@@ -45,21 +45,12 @@ export type BarState = {
 };
 
 export const SECTION: Record<Kind, string> = { dm: "Direct messages", mention: "Mentions", thread: "Threads", channel: "Channels" };
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 const AVATAR = 28;
 /** A row's inner width (its own padding of one step a side), and the text column left after the avatar, the time and a badge with their gaps. */
-const ROW_W = COMPACT_W - 8, TIME_W = 58, BADGE_W = 30, TEXT_W = ROW_W - AVATAR - TIME_W - BADGE_W - 3 * 8;
+const ROW_W = POPOVER_W - 8, TIME_W = 58, BADGE_W = 30, TEXT_W = ROW_W - AVATAR - TIME_W - BADGE_W - 3 * 8;
 /** Quiet channels drawn as badges before a "+N" one. */
 export const QUIET_SHOWN = 4;
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
-const hint = (keys: string, what: string): ViewNode[] => [keycap(keys), text(what, { style: "muted", size: "xs" })];
 
 /** Slack's own avatar palette, one picked by the name's hash: the initial's tile while the picture is not loaded. */
 const AVATAR_COLORS: HexColor[] = ["#e01e5a", "#ecb22e", "#2eb67d", "#36c5f0", "#4a154b", "#1264a3", "#e8912d", "#7c3085"];
@@ -106,11 +97,11 @@ function quietRow(st: BarState): ViewNode[] {
 }
 
 function hints(st: BarState, cur: BarRow | undefined): ViewNode {
-  if (st.replying) return row([...hint("enter", "send"), ...hint("escape", "cancel")], { key: "hints", gap: 1, minHeight: 22 });
-  const kids: ViewNode[] = [...hint("enter", "open")];
-  if (cur?.canReply) kids.push(...hint("r", "reply"));
-  if (cur?.canRead) kids.push(...hint("m", "read"));
-  kids.push(...hint("a", "all read"), ...hint("o", "Slack"), ...hint("p", "pal"));
+  if (st.replying) return row([...keyHint("enter", "send"), ...keyHint("escape", "cancel")], { key: "hints", gap: 1, minHeight: 22 });
+  const kids: ViewNode[] = [...keyHint("enter", "open")];
+  if (cur?.canReply) kids.push(...keyHint("r", "reply"));
+  if (cur?.canRead) kids.push(...keyHint("m", "read"));
+  kids.push(...keyHint("a", "all read"), ...keyHint("o", "Slack"), ...keyHint("p", "pal"));
   return row(kids, { key: "hints", gap: 1, minHeight: 22 });
 }
 
@@ -147,7 +138,7 @@ export function render(st: BarState): View {
         text("Inbox zero", { style: "title", key: "zero-t" }),
         text(st.quietTotal ? `Nothing addressed to you; ${st.quietTotal} ${st.quietTotal === 1 ? "channel is" : "channels are"} unread` : "Nothing addressed to you and every channel is read", { style: "muted", size: "sm", align: "center" }),
         ...quietRow(st),
-        row([...hint("o", "Slack"), ...hint("p", "pal")], { key: "hints", gap: 1, minHeight: 22 }),
+        row([...keyHint("o", "Slack"), ...keyHint("p", "pal")], { key: "hints", gap: 1, minHeight: 22 }),
       ],
       { key: "compact", padding: 3, gap: 2, align: "center" },
     );

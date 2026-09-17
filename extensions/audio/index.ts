@@ -4,7 +4,7 @@
 // other actions set a preset volume (a pushed level with 0/25/50/75/100)
 // or toggle mute without leaving the palette. Live: the defaults and
 // volumes are read again on every show.
-import { audio, xdg, type Accessory, type Action, type AudioDevice, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
+import { audio, errorMessage, failed, hint, xdg, type Accessory, type Action, type AudioDevice, type Ctx, type Extension, type Item } from "@zcag/pal";
 
 export const PRESETS = [0, 25, 50, 75, 100];
 
@@ -43,7 +43,6 @@ function item(d: AudioDevice): Item {
   };
 }
 
-const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: String((e as Error)?.message ?? e), style: "failure" } });
 
 /** The preset level: `args.volume` is the row the presets are for. */
 async function presets(row: string): Promise<Item[]> {
@@ -71,7 +70,7 @@ export default {
         try {
           return (await audio.devices()).map(item);
         } catch (e) {
-          return [{ id: "error", name: "No audio devices", subtitle: String((e as Error)?.message ?? e), icon: xdg("dialog-error")!, actions: [] }];
+          return [hint("error", "No audio devices", errorMessage(e), { icon: xdg("dialog-error")! })];
         }
       },
       pick: async (id, action, ctx?: Ctx) => {
@@ -85,7 +84,7 @@ export default {
           }
           return { hud: `Volume ${id}%` };
         }
-        if (id === "error") return { keep: true };
+        if (id === "hint:error") return { keep: true };
         const { kind, id: dev } = parse(id);
         switch (action) {
           case "volume":

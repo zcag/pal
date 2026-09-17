@@ -111,7 +111,5 @@ function remember(id: string, l: Lyrics | null) {
   if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
 }
 
-export const forgetLyrics = () => { cache.clear(); failed.clear(); };
-
 /** lrclib's own search page for a track, for the "No lyrics" row. */
 export const searchUrl = (k: { name: string; artist: string }) => `${LRCLIB}/search?${new URLSearchParams({ q: `${k.artist} ${k.name}` })}`;

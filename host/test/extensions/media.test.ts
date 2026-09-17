@@ -9,7 +9,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Host } from "../harness.ts";
-import { clock, positionAt, progress, trackText } from "../../../extensions/media/index.ts";
+import { positionAt, progress, trackText } from "../../../extensions/media/index.ts";
+import { clock } from "../../../extensions/media/view.ts";
 import { render } from "../../../extensions/media/view.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
@@ -296,11 +297,11 @@ describe("media", () => {
 
   test("nothing running: one inert row, with the install hint when there is no system-wide source", async () => {
     np = { players: [], system_wide: true };
-    expect(await list()).toMatchObject([{ id: "empty", name: "Nothing playing", subtitle: "No player is running", actions: [] }]);
+    expect(await list()).toMatchObject([{ id: "hint:empty", name: "Nothing playing", subtitle: "No player is running", actions: [] }]);
     np = { players: [], system_wide: false };
     // macOS bundles its source (the MediaRemote adapter), so no install hint there: a build without it is what the row says.
     expect((await list())[0].subtitle).toBe(MAC ? "No player is running (this build has no MediaRemote adapter: only Spotify and Music are watched)" : "Install playerctl to control MPRIS players");
-    expect(await pick("empty")).toEqual({ keep: true });
+    expect(await pick("hint:empty")).toEqual({ keep: true });
     np = { players: [spotify, music, idle], system_wide: true };
   });
 });

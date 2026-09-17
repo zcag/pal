@@ -58,7 +58,7 @@ describe("bluetooth", () => {
   test("no adapter: one inert row that says why", async () => {
     const h = await Host.bundled({ core: { "bluetooth.devices": () => { throw new Error("no Bluetooth adapter"); } } });
     try {
-      expect(await h.list("bluetooth", "bluetooth")).toMatchObject([{ id: "error", name: "Bluetooth is not available", subtitle: "no Bluetooth adapter", actions: [] }]);
+      expect(await h.list("bluetooth", "bluetooth")).toMatchObject([{ id: "hint:error", name: "Bluetooth is not available", subtitle: "no Bluetooth adapter", actions: [] }]);
     } finally {
       h.kill();
     }

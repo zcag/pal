@@ -7,29 +7,9 @@
 import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { deflateSync } from "node:zlib";
 import { Host } from "../../host/test/harness.ts";
+import { png } from "../../host/test/png.ts";
 
-// ---- a small PNG writer, so the thumbnails are pictures rather than flat colour ----
-
-const CRC = new Uint32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
-const crc32 = (b: Uint8Array) => { let c = 0xffffffff; for (const x of b) c = CRC[(c ^ x) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
-function chunk(type: string, data: Uint8Array): Uint8Array {
-  const out = new Uint8Array(12 + data.length);
-  const dv = new DataView(out.buffer);
-  dv.setUint32(0, data.length);
-  out.set(new TextEncoder().encode(type), 4);
-  out.set(data, 8);
-  dv.setUint32(8 + data.length, crc32(out.subarray(4, 8 + data.length)));
-  return out;
-}
-function png(w: number, h: number, rgb: (x: number, y: number) => [number, number, number]): Buffer {
-  const raw = new Uint8Array((w * 3 + 1) * h);
-  for (let y = 0; y < h; y++) { raw[y * (w * 3 + 1)] = 0; for (let x = 0; x < w; x++) raw.set(rgb(x, y), y * (w * 3 + 1) + 1 + x * 3); }
-  const ihdr = new Uint8Array(13); const dv = new DataView(ihdr.buffer);
-  dv.setUint32(0, w); dv.setUint32(4, h); ihdr[8] = 8; ihdr[9] = 2;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(raw)), chunk("IEND", new Uint8Array())]);
-}
 const sunset = png(96, 64, (x, y) => [Math.round(240 - y * 1.6), Math.round(120 + x * 0.6 - y), Math.round(80 + y * 2)]);
 const plot = png(96, 64, (x, y) => (Math.abs(y - (32 + 20 * Math.sin(x / 8))) < 2 ? [60, 90, 220] : (x % 16 === 0 || y % 16 === 0 ? [225, 228, 235] : [250, 250, 252])));
 

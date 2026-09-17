@@ -234,7 +234,7 @@ describe("browser-tabs", () => {
     host.changeSettings("browser-tabs", { settings: { ...base, port: 1, firefox: false } });
     const items = await list();
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ id: "none", name: "No browser tabs", actions: [] });
+    expect(items[0]).toMatchObject({ id: "hint:none", name: "No browser tabs", actions: [] });
     expect(items[0].subtitle).toContain(":1");
     writeFileSync(osaState, "ok");
     host.changeSettings("browser-tabs", { settings: base });
@@ -271,9 +271,9 @@ describe.skipIf(!MAC)("browser-tabs over AppleScript", () => {
   test("Automation refused is a hint row that opens the Privacy pane; the other sources still list", async () => {
     writeFileSync(osaState, "denied");
     const items = await list();
-    expect(items[0]).toMatchObject({ id: "automation", name: "Automation permission needed", actions: [{ id: "settings", title: "Open System Settings" }] });
+    expect(items[0]).toMatchObject({ id: "hint:automation", name: "Automation permission needed", actions: [{ id: "settings", title: "Open System Settings" }] });
     expect(ids(items)).toContain("cdp:T1");
-    expect(await pick("automation", "settings")).toEqual({ open: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation" });
+    expect(await pick("hint:automation", "settings")).toEqual({ open: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation" });
     writeFileSync(osaState, "ok");
   });
 });

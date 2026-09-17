@@ -19,8 +19,9 @@ const same = (a: ViewShown, b: ViewShown) => a.palette === b.palette && a.bar ==
 export const views = (extension: string): ViewShown[] => open.get(extension) ?? [];
 
 export function onView(extension: string, cb: Listener): () => void {
-  if (!listeners.has(extension)) listeners.set(extension, new Set());
-  listeners.get(extension)!.add(cb);
+  let set = listeners.get(extension);
+  if (!set) listeners.set(extension, (set = new Set()));
+  set.add(cb);
   return () => listeners.get(extension)?.delete(cb);
 }
 

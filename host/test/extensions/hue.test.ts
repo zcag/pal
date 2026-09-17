@@ -673,7 +673,7 @@ describe("a bridge from the settings, and one that rejects the key", () => {
       h.changeSettings(E, { settings: { bridge: good.ip, application_key: "nope", insecure: true, timeout: 2 } });
       await Bun.sleep(300);
       const hint = await h.list(E, "rooms");
-      expect(hint[0]).toMatchObject({ id: "hint", name: "The bridge rejected the application key", actions: [] });
+      expect(hint[0]).toMatchObject({ id: "hint:error", name: "The bridge rejected the application key", actions: [] });
       expect(hint[0].subtitle).toContain("Set up Hue");
       expect(await h.render(E, "home")).toMatchObject({ stale: true });
       // The certificate: with the check on, a self-signed bridge that was never pinned is refused, and the row says so.
@@ -694,7 +694,7 @@ describe("a bridge from the settings, and one that rejects the key", () => {
       const t0 = Date.now();
       const rows = await h.list(E, "lights");
       expect(Date.now() - t0).toBeLessThan(3000);
-      expect(rows[0]).toMatchObject({ id: "hint", name: expect.stringMatching(/Could not reach|did not answer/) });
+      expect(rows[0]).toMatchObject({ id: "hint:error", name: expect.stringMatching(/Could not reach|did not answer/) });
     } finally {
       h.kill();
     }

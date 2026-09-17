@@ -14,7 +14,7 @@
 // terminal, cmd+r runs it again, cmd+c copies the command. Every run
 // lands in the history palette (storage, the last hundred) with its exit
 // code; `$ ls` at the root lists the Run row inline.
-import { home, settings, storage, view as viewApi, type Action, type Ctx, type Effect, type Extension, type Item, type View, type ViewNode } from "@zcag/pal";
+import { failed, hint, home, oneLine, settings, storage, tilde, toast, truncate, view as viewApi, type Action, type Ctx, type Effect, type Extension, type Item, type View, type ViewNode } from "@zcag/pal";
 import { duration, envTable, looksDestructive, PICK_GRACE_MS, run, shellArgv, terminalArgv, type Run } from "./run.ts";
 
 /** `[extensions.shell]`, defaults in pal.json. */
@@ -25,7 +25,6 @@ const GLYPH = {
   run: "\u{f07b7}", // md-console_line
   history: "\u{f02da}", // md-history
   broom: "\u{f00e2}", // md-broom
-  hint: "\u{f02fd}", // md-information_outline
   alert: "\u{f05d6}", // md-alert_circle_outline
 };
 
@@ -42,8 +41,7 @@ const VIEW_ID = "run";
 
 const S = (): Settings => settings.get<Settings>();
 const cwdOf = (s: Settings) => home(s.cwd?.trim() || "~");
-const short = (text: string, n = 80) => { const one = text.replace(/\s+/g, " ").trim(); return one.length > n ? `${one.slice(0, n - 1)}…` : one; };
-const tidy = (p: string) => p.replace(new RegExp(`^${home("~").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=/|$)`), "~");
+const short = (text: string, n = 80) => truncate(oneLine(text), n);
 
 // ---- history ------------------------------------------------------------------------
 
@@ -82,7 +80,7 @@ export function tree(l: Live, now = Date.now()): ViewNode {
   return {
     type: "stack", direction: "column", gap: 2, padding: 3, children: [
       { type: "stack", direction: "row", gap: 2, align: "center", key: "head", children: [{ type: "text", value: `$ ${l.cmd}`, style: "mono", weight: "semibold" }, { type: "spacer" }, ...badges] },
-      { type: "stack", direction: "row", gap: 2, key: "where", children: [{ type: "text", value: tidy(l.cwd), style: "muted", size: "xs" }] },
+      { type: "stack", direction: "row", gap: 2, key: "where", children: [{ type: "text", value: tilde(l.cwd), style: "muted", size: "xs" }] },
       { type: "stack", direction: "column", gap: 1, padding: 3, surface: "sunken", radius: true, grow: true, key: "output", children: body },
     ],
   };
@@ -129,14 +127,13 @@ viewApi.onShown((ev) => { if (live && ev.palette === live.palette) push(live); }
 
 // ---- rows -------------------------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle: string, icon = GLYPH.hint): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
 
 /** The one row a typed command gets: Run (with a confirm when it looks destructive), Run in terminal, Copy. */
 function runRow(cmd: string, s: Settings): Item {
   const ask = s.confirm && looksDestructive(cmd);
   const runAction: Action = ask ? { ...RUN, confirm: `Run “${short(cmd, 60)}”? It looks like it removes, overwrites or escalates.`, style: "destructive" } : RUN;
   return {
-    id: `run:${cmd}`, name: `Run: ${cmd}`, subtitle: `${shellArgv(s.shell).join(" ")} in ${tidy(cwdOf(s))}, ${s.timeout || 10} s at most${ask ? " · asks first" : ""}`, icon: GLYPH.run, keywords: [cmd],
+    id: `run:${cmd}`, name: `Run: ${cmd}`, subtitle: `${shellArgv(s.shell).join(" ")} in ${tilde(cwdOf(s))}, ${s.timeout || 10} s at most${ask ? " · asks first" : ""}`, icon: GLYPH.run, keywords: [cmd],
     actions: [runAction, TERMINAL, COPY_CMD],
   };
 }
@@ -150,9 +147,9 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   if (!cmd) {
     if (ctx?.inline) return [];
     return [
-      hint("type", "Type a command and press Enter to run it", `${shellArgv(s.shell).join(" ")} in ${tidy(cwdOf(s))}, ${s.timeout || 10} s at most`),
+      hint("type", "Type a command and press Enter to run it", `${shellArgv(s.shell).join(" ")} in ${tilde(cwdOf(s))}, ${s.timeout || 10} s at most`),
       hint("root", "At the root, $ or > before the command", "$ ls -la · > git status"),
-      hint("history", "Past commands are in Shell History", "With their exit codes; Enter runs one again", GLYPH.history),
+      hint("history", "Past commands are in Shell History", "With their exit codes; Enter runs one again", { icon: GLYPH.history }),
     ];
   }
   return [runRow(cmd, s)];
@@ -161,8 +158,8 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
 async function openTerminal(cmd: string): Promise<Effect> {
   const s = S();
   const argv = terminalArgv(cmd, cwdOf(s), shellArgv(s.shell), s.terminal ?? "");
-  if (!argv) return { keep: true, toast: { title: "No terminal to open", message: "Set `terminal` under Settings › Extensions › Shell", style: "failure" } };
-  try { Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref(); } catch (e) { return { keep: true, toast: { title: "Could not open the terminal", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+  if (!argv) return toast("No terminal to open", "Set terminal under Settings › Extensions › Shell, or $TERMINAL", "failure");
+  try { Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref(); } catch (e) { return failed("open the terminal", e); }
   return { hide: true };
 }
 
@@ -197,14 +194,14 @@ async function historyRows(query = ""): Promise<Item[]> {
   const list = await history();
   const q = query.trim().toLowerCase();
   const rows = list.filter((e) => !q || e.cmd.toLowerCase().includes(q)).map((e): Item => ({
-    id: historyId(e), name: e.cmd, subtitle: `${duration(e.ms)} in ${tidy(e.cwd ?? cwdOf(S()))}`, icon: GLYPH.run, keywords: [e.cmd],
+    id: historyId(e), name: e.cmd, subtitle: `${duration(e.ms)} in ${tilde(e.cwd ?? cwdOf(S()))}`, icon: GLYPH.run, keywords: [e.cmd],
     accessories: [e.timedOut ? { tag: "killed", color: "red" } : { tag: `exit ${e.code ?? "?"}`, color: e.code === 0 ? "green" : "red" }, { date: e.at }],
     actions: [
       S().confirm && looksDestructive(e.cmd) ? { ...RUN, title: "Run again", confirm: `Run “${short(e.cmd, 60)}” again? It looks like it removes, overwrites or escalates.`, style: "destructive" } : { ...RUN, title: "Run again" },
       TERMINAL, COPY_CMD, REMOVE,
     ],
   }));
-  if (!list.length) return [hint("empty", "Nothing ran yet", "Commands you run in Shell land here with their exit codes", GLYPH.history)];
+  if (!list.length) return [hint("empty", "Nothing ran yet", "Commands you run in Shell land here with their exit codes", { icon: GLYPH.history })];
   if (!q) rows.push({ id: "clear", name: "Clear history", subtitle: `${list.length} ${list.length === 1 ? "command" : "commands"}`, icon: GLYPH.broom, actions: [CLEAR] });
   return rows;
 }

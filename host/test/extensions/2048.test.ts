@@ -73,9 +73,12 @@ describe("spawning", () => {
     expect(spawn(tiles(Array(16).fill(2)), 9, seq(0, 0))).toBeNull();
   });
   test("over many draws the split is about 90/10", () => {
+    // A seeded LCG in place of Math.random, so the split is the same on every run.
+    let seed = 42;
+    const lcg = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; };
     let fours = 0;
     const n = 5000;
-    for (let i = 0; i < n; i++) if (spawn(tiles([0]), 1, Math.random)!.v === 4) fours++;
+    for (let i = 0; i < n; i++) if (spawn(tiles([0]), 1, lcg)!.v === 4) fours++;
     expect(fours / n).toBeGreaterThan(0.07);
     expect(fours / n).toBeLessThan(0.13);
   });

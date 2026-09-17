@@ -2,17 +2,19 @@
 // notation, tints, shades and harmonies, contrast, the nearest tokens,
 // typing any notation, a screen pick), the named sets as a swatch grid
 // with a filter per set, the history of picked and copied colours, and a
-// converter that opens the picker on Enter. The maths is color.ts, the
+// converter that opens the picker on Enter. The maths is the SDK's `colors`, the
 // picker's state and moves state.ts, its tree render.ts, the sets sets.ts
 // over data.json (build.ts). The picker's colour, model and the history
 // live in storage, so Escape and restarts lose nothing.
-import { color as screen, effects, settings, storage, type Effect, type Extension } from "@zcag/pal";
-import { parse, toHex, type Format, type RGB } from "./color.ts";
+import { color as screen, colors, effects, settings, storage, type Effect, type Extension } from "@zcag/pal";
 import { render } from "./render.ts";
 import { GRID_ACTIONS, HINTS, HISTORY_ACTIONS, PICK_ROW, conversions, detailOf, gridItem, hint, historyRows } from "./rows.ts";
 import { SETS, SET_IDS, sectionOf, token, type Row, type SetId } from "./sets.ts";
 import { DEFAULTS, apply, fresh, write, type Entry, type Settings, type Source, type State } from "./state.ts";
 import data from "./data.json";
+const { parse, toHex } = colors;
+type Format = colors.Format;
+type RGB = colors.RGB;
 
 const NAME = "colors";
 /** Notations the root's inline section shows of a typed colour (hex, rgb, hsl, hwb); the palette lists them all. */

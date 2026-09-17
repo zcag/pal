@@ -1,5 +1,5 @@
-// Markdown to the view tree: what a tela page (or any markdown) draws as
-// inside the panel, with the tokens and never HTML. Headings, paragraphs,
+// Markdown to the view tree: what a page of markdown (tela's, Obsidian's,
+// a README) draws as inside the panel, with the tokens and never HTML. Headings, paragraphs,
 // lists (nested, tasks), callouts (`> [!NOTE]`) as tinted cards, quotes and
 // tela's `:::quote`, code blocks mono on a sunken well, tables as aligned
 // text rows, `<details>` as a titled section, `:::tabs` as headed
@@ -7,7 +7,7 @@
 // `text` node is one run, so bold, italic and code inside a paragraph are
 // flattened to their text; a paragraph that is one such run keeps the
 // weight or the mono. `outline` and `plain` read the same blocks.
-import type { ViewNode } from "@zcag/pal";
+import type { ViewNode } from "./protocol.ts";
 
 export type Link = { label: string; href?: string; page?: string };
 export type Block =
@@ -27,7 +27,7 @@ export type ListItem = { text: string; links: Link[]; task?: boolean; done?: boo
 export const CALLOUT: Record<string, { color: "blue" | "green" | "violet" | "amber" | "red"; label: string }> = {
   NOTE: { color: "blue", label: "Note" }, TIP: { color: "green", label: "Tip" }, IMPORTANT: { color: "violet", label: "Important" }, WARNING: { color: "amber", label: "Warning" }, CAUTION: { color: "red", label: "Caution" },
 };
-/** Nodes a render may take before it stops with a "the rest is in tela" line; well under the host's 2000. */
+/** Nodes a render may take before it stops with a "the rest is in <where>" line; well under the host's 2000. */
 export const MAX_RENDER_NODES = 1200;
 /** Lines of one code block kept; the rest is counted. */
 export const MAX_CODE_LINES = 40;
@@ -228,9 +228,9 @@ function tableRows(t: Extract<Block, { kind: "table" }>, width: number): ViewNod
 /**
  * The tree for a markdown body: a column stack of the blocks. `width` is
  * the room a table may take in px. Stops at `maxNodes` with a muted line
- * saying the rest is in tela; `truncated` says so.
+ * saying the rest is in `where` (the app the page lives in); `truncated` says so.
  */
-export function render(md: string, opts: { width?: number; maxNodes?: number; padding?: 0 | 1 | 2 | 3 | 4 | 5 | 6; /** Headings drawn this many levels smaller: an excerpt inside a card. */ shift?: number; /** A leading `#` heading that repeats this title is left out: the page's header already says it. */ dropTitle?: string } = {}): { tree: ViewNode; truncated: boolean; links: Link[] } {
+export function render(md: string, opts: { width?: number; maxNodes?: number; padding?: 0 | 1 | 2 | 3 | 4 | 5 | 6; /** Headings drawn this many levels smaller: an excerpt inside a card. */ shift?: number; /** A leading `#` heading that repeats this title is left out: the page's header already says it. */ dropTitle?: string; /** The app named on the closing line when the budget cut the page ("… the rest of the page is in tela"); without it the line says the rest is not shown. */ where?: string } = {}): { tree: ViewNode; truncated: boolean; links: Link[] } {
   const width = opts.width ?? 640, max = opts.maxNodes ?? MAX_RENDER_NODES, shift = opts.shift ?? 0;
   const blocks = parseBlocks(frontmatter(md).body);
   const first = blocks[0];
@@ -295,7 +295,7 @@ export function render(md: string, opts: { width?: number; maxNodes?: number; pa
     }
   };
   const children = draw(blocks, 0);
-  if (truncated) children.push(text("… the rest of the page is in tela", { style: "muted", size: "sm" }));
+  if (truncated) children.push(text(opts.where ? `… the rest of the page is in ${opts.where}` : "… the rest of the page is not shown", { style: "muted", size: "sm" }));
   if (!children.length) children.push(text("Nothing on this page yet", { style: "muted" }));
   return { tree: stack(children, { gap: 3, padding: opts.padding ?? 4 }), truncated, links };
 }

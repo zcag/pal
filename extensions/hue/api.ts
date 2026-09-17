@@ -6,6 +6,7 @@
 // clip/v2`, server-sent events parsed by hand) and the certificate peek
 // pairing pins. No pal imports, so the tests drive these against a mock.
 import { connect as tlsConnect } from "node:tls";
+import { errorMessage } from "@zcag/pal";
 import { ROOT_BRIDGE_PEM } from "./cert.ts";
 
 export const SETTINGS_HINT = "Settings › Extensions › Hue";
@@ -34,12 +35,11 @@ export type TlsOptions = { insecure?: boolean; cert?: string };
 export const tlsFor = (o: TlsOptions) => (o.insecure ? { rejectUnauthorized: false } : { ca: [ROOT_BRIDGE_PEM, ...(o.cert ? [o.cert] : [])], checkServerIdentity: () => undefined });
 
 const isTimeout = (e: unknown) => e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
-const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** What went wrong with a `fetch` that threw: a certificate the pin refused reads differently from a host that is not there. */
 function fetchFailure(ip: string, e: unknown, timeoutMs: number): HueError {
   if (isTimeout(e)) return new HueError(`${ip} did not answer in ${timeoutMs / 1000} s`, "Is the bridge on and on this network? The `bridge` setting or a new pairing fixes a moved one");
-  const m = reason(e);
+  const m = errorMessage(e);
   if (/certificate|CERT|self.signed|unable to verify|handshake|SSL|TLS/i.test(m)) return new HueError(`${ip}: the certificate is not the paired bridge's`, `${m}. Pair again to pin the new one, or set insecure = true under ${SETTINGS_HINT}`);
   return new HueError(`Could not reach ${ip}`, `${m}. Check the address under ${SETTINGS_HINT} or run Set up Hue again`);
 }

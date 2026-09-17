@@ -33,8 +33,8 @@
 // popover (`ARTWORK_MAX` bytes at most), since a view's image draws
 // `data:` and `icon://` only; the app's own icon stands in without one.
 import { readFile } from "node:fs/promises";
-import { bar, core, media, settings, view as liveView, xdg, type Accessory, type Action, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
-import { render, type MediaState } from "./view.ts";
+import { bar, core, errorMessage, failed, hint, media, settings, toast, view as liveView, xdg, type Accessory, type Action, type BarItem, type Effect, type Extension, type Item, type MediaPlayer, type NowPlaying } from "@zcag/pal";
+import { clock, render, type MediaState } from "./view.ts";
 
 const MAC = process.platform === "darwin";
 const MUSIC = xdg("multimedia-player")!;
@@ -66,9 +66,6 @@ const STATE: Record<MediaPlayer["state"], { color: string; tag: string }> = {
 
 /** `artist - title`, or whichever there is. */
 export const trackText = (p: MediaPlayer): string => [p.artist, p.title].filter(Boolean).join(" - ");
-
-export { clock } from "./view.ts";
-import { clock } from "./view.ts";
 
 /** `12:34 / 1:06:03`, `12:34`, or nothing when the player gives no position. */
 export const progress = (p: MediaPlayer): string | undefined =>
@@ -105,7 +102,7 @@ async function control(player: string, action?: string): Promise<Effect> {
   try {
     await media.control(player, command);
   } catch (e) {
-    return { keep: true, toast: { title: "Could not control the player", message: String((e as Error)?.message ?? e), style: "failure" } };
+    return failed("control the player", e);
   }
   return { keep: true };
 }
@@ -143,12 +140,11 @@ function empty(systemWide: boolean): Item {
   const subtitle = systemWide
     ? "No player is running"
     : MAC ? "No player is running (this build has no MediaRemote adapter: only Spotify and Music are watched)" : "Install playerctl to control MPRIS players";
-  return { id: "empty", name: "Nothing playing", subtitle, icon: MUSIC, actions: [] };
+  return hint("empty", "Nothing playing", subtitle, { icon: MUSIC });
 }
 
 // ---- the bar item -----------------------------------------------------------
 
-const playing = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing");
 
 /** The players this extension leaves to another (`exclude`, by app name or player id, case-insensitive): the bar item and the Now row skip them, the palette lists them. */
 const excluded = (p: Player) => {
@@ -307,14 +303,14 @@ export default {
           const np = await media.nowPlaying();
           return np.players.length ? Promise.all(np.players.map(item)) : [empty(np.system_wide)];
         } catch (e) {
-          return [{ id: "empty", name: "Now Playing is not available", subtitle: String((e as Error)?.message ?? e), icon: xdg("dialog-error")!, actions: [] }];
+          return [hint("empty", "Now Playing is not available", errorMessage(e), { icon: xdg("dialog-error") })];
         }
       },
       pick: async (id, action) => {
-        if (id === "empty") return { keep: true };
+        if (id === "hint:empty") return { keep: true };
         if (action === "copy" || action === "open") {
           const p = (await media.nowPlaying()).players.find((p) => p.id === id);
-          if (!p) return { keep: true, toast: { title: "That player is gone", style: "failure" } };
+          if (!p) return toast("That player is gone", undefined, "failure");
           if (action === "copy") return { copy: trackText(p) };
           const target = openTarget(p);
           return target ? { open: target } : { keep: true };

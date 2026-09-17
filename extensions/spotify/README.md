@@ -122,7 +122,7 @@ track or the state changes, through the MediaRemote stream).
    `http://127.0.0.1:27182/callback` (the port is the **Redirect port**
    setting; change both together). Spotify requires the loopback
    address written as `127.0.0.1`, not `localhost`.
-2. Put the app's client id under Settings, Extensions, Spotify. No
+2. Put the app's client id under Settings › Extensions › Spotify. No
    secret: pal uses the authorization code flow with PKCE.
 3. Run any Spotify palette: the one row says "Sign in to Spotify"; Enter
    opens Spotify's consent page in the browser while pal listens on

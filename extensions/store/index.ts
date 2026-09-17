@@ -9,7 +9,7 @@
 // HUD says Installing…, the host restarts, the root opens with the name
 // typed), updates a store-installed one that is behind, and opens the
 // store page of a bundled one. The pure parts are in store.ts.
-import { extensions, storage, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, extensions, hint, storage, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
 import { actionsFor, detail, FILTERS, fresh, row, select, staleNote, standing, trimAll, type Cache, type Installed, type Listing } from "./store.ts";
 
 /** The site's list; `PAL_STORE_API` points the tests at a local server. */
@@ -18,7 +18,6 @@ const FETCH_MS = 10_000;
 /** The one storage key: `{ fetched_at, listings }`. */
 const KEY = "cache";
 /** The hint rows' glyph (md-information_outline) and the offline one's (md-cloud_off_outline). */
-const HINT = "\u{f02fd}";
 const OFFLINE = "\u{f0164}";
 
 let cache: Cache | null = null;
@@ -31,7 +30,7 @@ async function fetchListings(): Promise<Cache> {
   const c: Cache = { fetched_at: Date.now(), listings: trimAll(await res.json()) };
   cache = c;
   // The trimmed list is well under the storage cap today; a list that outgrows it stays in memory only.
-  await storage.set(KEY, c).catch((e) => console.error(`[store] cache not stored: ${e instanceof Error ? e.message : e}`));
+  await storage.set(KEY, c).catch((e) => console.error(`[store] cache not stored: ${errorMessage(e)}`));
   return c;
 }
 
@@ -45,7 +44,7 @@ async function listings(force: boolean): Promise<{ cache: Cache | null; error?: 
     inflight ??= fetchListings().finally(() => { inflight = null; });
     return { cache: await inflight };
   } catch (e) {
-    return { cache, error: e instanceof Error ? e.message : String(e) };
+    return { cache, error: errorMessage(e) };
   }
 }
 
@@ -53,7 +52,6 @@ async function installed(): Promise<Installed[]> {
   try { return await extensions.list(); } catch { return []; }
 }
 
-const hint = (id: string, name: string, subtitle: string, icon = HINT): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
 
 const byName = (name: string): Listing | undefined => cache?.listings.find((l) => l.name === name);
 
@@ -66,9 +64,9 @@ export default {
       placeholder: "Search the store",
       list: async (query = "", ctx?: Ctx): Promise<Item[]> => {
         const [{ cache: c, error }, have] = await Promise.all([listings(!!ctx?.refresh), installed()]);
-        if (!c) return [hint("offline", "pal.cagdas.io is not reachable", error ?? "No list yet; try again when online", OFFLINE)];
+        if (!c) return [hint("offline", "pal.cagdas.io is not reachable", error ?? "No list yet; try again when online", { icon: OFFLINE })];
         const rows: Item[] = [];
-        if (error) rows.push(hint("stale", staleNote(c.fetched_at, Date.now()), `pal.cagdas.io is not reachable: ${error}`, OFFLINE));
+        if (error) rows.push(hint("stale", staleNote(c.fetched_at, Date.now()), `pal.cagdas.io is not reachable: ${error}`, { icon: OFFLINE }));
         const filter = ctx?.filter ?? FILTERS[0].id;
         const chosen = select(c.listings, have, filter, query);
         // What is behind leads, under its own heading, unless the filter already narrows to it.

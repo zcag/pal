@@ -57,7 +57,7 @@ const SPLIT = /\s+(?:to|in|as|→|->)\s+/i;
 export const code = (token: string): string => SYMBOLS.find(([s]) => s === token)?.[1] ?? WORDS[token.toLowerCase()];
 
 /** The pieces of a currency query: the amount expression (`1` when absent), the source, the target when given. Undefined when the query is not one. */
-export type CurrencyQuery = { amount: string; from: string; to?: string };
+type CurrencyQuery = { amount: string; from: string; to?: string };
 
 export function parse(q: string): CurrencyQuery | undefined {
   const full = parseFull(q);

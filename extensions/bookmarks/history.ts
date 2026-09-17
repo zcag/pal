@@ -10,7 +10,7 @@
 // first. The rows: the title (the url when it has none), the url under it
 // and as the favicon's source, when it was last visited on the right, the
 // browser as the section; Enter opens it in the browser it came from.
-import { settings, type Action, type Effect, type Item } from "@zcag/pal";
+import { errorMessage, failed, settings, type Action, type Effect, type Item } from "@zcag/pal";
 import { BROWSERS, chromiumProfiles, copied, firefoxProfiles, openIn } from "./browsers.ts";
 
 /** `[extensions.bookmarks]`, the key this palette reads. */
@@ -19,13 +19,13 @@ type Settings = { browsers: string[] };
 /** Rows per profile, and after the merge. */
 export const LIMIT = 50;
 /** A copied database is used for this long before the source's mtime is looked at again (`PAL_BOOKMARKS_COPY_MS` in the tests). */
-export const COPY_MIN_MS = Number(process.env.PAL_BOOKMARKS_COPY_MS ?? 30_000);
+const COPY_MIN_MS = Number(process.env.PAL_BOOKMARKS_COPY_MS ?? 30_000);
 /** Chrome's clock starts at 1601-01-01 and counts microseconds. */
 const CHROME_EPOCH_MS = 11_644_473_600_000;
 
 /** One visit as either database answers it, the time in the browser's own unit. */
-export type VisitRow = { url: string; title: string | null; last: number | null; visits: number | null };
-export type Visit = { url: string; title: string; at: number; visits: number };
+type VisitRow = { url: string; title: string | null; last: number | null; visits: number | null };
+type Visit = { url: string; title: string; at: number; visits: number };
 
 /** Chrome's `last_visit_time` (microseconds since 1601) as unix milliseconds; 0 (never visited) stays 0. */
 export const chromeTime = (us: number | null): number => (us ? Math.round(us / 1000 - CHROME_EPOCH_MS) : 0);
@@ -49,7 +49,7 @@ async function query(db: string, sql: string, q: string, time: (us: number | nul
     const d = new Database(await copied(db, COPY_MIN_MS), { readonly: true });
     try { return visits(d.query<VisitRow, [string]>(sql).all(like(q)), time); } finally { d.close(); }
   } catch (e) {
-    console.error(`[bookmarks] history ${db}: ${e instanceof Error ? e.message : e}`);
+    console.error(`[bookmarks] history ${db}: ${errorMessage(e)}`);
     return [];
   }
 }
@@ -119,7 +119,7 @@ async function pick(id: string, action?: string): Promise<Effect> {
     default: {
       const app = known.get(id);
       if (!app) return { open: id };
-      try { openIn(id, app); } catch (e) { return { keep: true, toast: { title: `Could not open in ${app}`, message: String((e as Error)?.message ?? e), style: "failure" } }; }
+      try { openIn(id, app); } catch (e) { return failed(`open in ${app}`, e); }
       return { hide: true };
     }
   }

@@ -19,12 +19,11 @@
 // running on a card, Join buttons, tomorrow folded; the keys walk the
 // rows and Enter joins or opens; while it shows, a 30 s tick redraws it
 // from the cache so `in 12 min` keeps counting. Every read of the time
-// is clock.ts (`PAL_NOW` pins it for the tests).
-import { calendar, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
-import { now as clock } from "./clock.ts";
+// is the SDK's `now` (`PAL_NOW` pins it for the tests).
+import { calendar, errorMessage, failed, hint, now as clock, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { parseQuick, type Quick } from "./quick.ts";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
-import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, permission, type Loaded, type Settings } from "./source.ts";
+import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, log, permission, type Loaded, type Settings } from "./source.ts";
 import { duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
 import { focusable, freshPopover, listed, popover, rowId as viewRowId, words, type PopoverState } from "./view.ts";
 
@@ -34,7 +33,7 @@ const CLEAR = "\u{f00ef}";
 const NEW = "new";
 const QUICK = "quick";
 const GRANT = "grant";
-const HINT = "hint";
+const HINT = "hint:calendar";
 const NOTHING = "nothing";
 const MAC = process.platform === "darwin";
 /** How old the cache may be for a palette show, and for a bar render on the minute tick. */
@@ -60,12 +59,11 @@ function statusRows(status: CalendarStatus | null): Item[] {
     case "restricted":
       return [{ id: GRANT, name: status === "denied" ? "Calendar access denied" : "Calendar access restricted", subtitle: "Switch pal on under Privacy & Security > Calendars", icon: "\u{f033e}", actions: [{ id: "settings", title: "Open System Settings" }] }];
     default:
-      return [{ id: HINT, name: "No calendar on this machine", subtitle: MAC ? "EventKit did not answer; or add a Google account under Settings > Calendar" : "Install khal, or add a Google account under Settings > Calendar", icon: ICON, actions: [] }];
+      return [hintRow("No calendar on this machine", MAC ? "EventKit did not answer; or add a Google account under Settings › Extensions › Calendar" : "Install khal, or add a Google account under Settings › Extensions › Calendar")];
   }
 }
 
-const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: e instanceof Error ? e.message : String(e), style: "failure" } });
-const hintRow = (name: string, subtitle: string): Item => ({ id: HINT, name, subtitle, icon: ICON, actions: [] });
+const hintRow = (name: string, subtitle: string): Item => hint(HINT, name, subtitle, { icon: ICON });
 
 function actions(e: CalendarEvent): Action[] {
   const out: Action[] = [];
@@ -184,7 +182,7 @@ async function create(values: Record<string, string | boolean>): Promise<Effect>
   try {
     return await add({ title, start, end, allDay, calendar: calendarId, location, notes });
   } catch (e) {
-    return { form: await form(values, { title: e instanceof Error ? e.message : String(e) }) };
+    return { form: await form(values, { title: errorMessage(e) }) };
   }
 }
 
@@ -290,7 +288,7 @@ async function loadFilters(): Promise<{ id: string; title: string }[]> {
     const cals = (await calendars()).filter((c) => !ids || ids.includes(c.id));
     return [...all, ...cals.map((c) => ({ id: c.id, title: c.source && active() === "google" ? `${c.title} (${c.source})` : c.title }))];
   } catch (e) {
-    console.error(`[calendar] filters: ${e instanceof Error ? e.message : e}`);
+    log(`filters: ${errorMessage(e)}`);
     return all;
   }
 }
@@ -313,7 +311,7 @@ async function events(ctx: Ctx | undefined, maxAge: number, withNew = false): Pr
     const l = await load(from, to, chosen, ctx?.refresh ? 0 : maxAge);
     return { events: l.events, stale: l.stale, error: l.error };
   } catch (e) {
-    return { rows: [hintRow("Could not read the calendar", e instanceof Error ? e.message : String(e)), ...(withNew && active() === "system" ? [newRow] : [])] };
+    return { rows: [hintRow("Could not read the calendar", errorMessage(e)), ...(withNew && active() === "system" ? [newRow] : [])] };
   }
 }
 
@@ -442,7 +440,7 @@ async function renderUpcoming(ctx: BarCtx): Promise<BarItem> {
   try { l = await load(from, to, await chosenIds(s, false), maxAge); } catch (e) {
     const c = cached();
     if (!c) throw e;
-    l = { ...c, stale: true, error: e instanceof Error ? e.message : String(e) };
+    l = { ...c, stale: true, error: errorMessage(e) };
   }
   // A click that opened the popover starts it fresh: the ring on the first row, tomorrow folded (open when the day is clear).
   if (ctx.reason === "open") pop = freshPopover(isGoogle());
@@ -469,7 +467,7 @@ function popoverView(now = clock()): ReturnType<typeof popover> | undefined {
 
 function pushPopover() {
   const v = popoverView();
-  if (v) liveView.update(v, { extension: EXTENSION, bar: ITEM }).catch((e) => console.error(`[calendar] popover push: ${e instanceof Error ? e.message : e}`));
+  if (v) liveView.update(v, { extension: EXTENSION, bar: ITEM }).catch((e) => log(`popover push: ${errorMessage(e)}`));
 }
 
 liveView.onShown((ev) => { if (ev.bar !== ITEM) return; if (tick) clearInterval(tick); tick = setInterval(pushPopover, POPOVER_TICK_MS); }, EXTENSION);

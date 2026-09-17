@@ -1,13 +1,13 @@
 // The Gmail API v1 for one account: the token a shell command prints
-// (the calendar extension's pattern: the command owns the secret, pal
-// keeps the access token in memory until its stated expiry, mints again
-// once on a 401), then the handful of calls the palettes need. Every
+// (the SDK's `mintToken`: the command owns the secret, pal keeps the
+// access token in memory until its stated expiry, mints again once on a
+// 401), then the handful of calls the palettes need. Every
 // listing is `messages.list` with `maxResults` 50 and `messages.get` with
 // `format=metadata` for the rows (the four headers a row shows); `full`
 // only for the one message the pane or a reply opens. A 429 (or a 403
 // naming the quota) is remembered and every call until `Retry-After`
 // refused locally. `PAL_GMAIL_API` replaces the API host (the tests).
-import { settings } from "@zcag/pal";
+import { mintToken, settings, TokenError } from "@zcag/pal";
 import type { Message, Part } from "./mail.ts";
 
 export type Conf = { token_command?: string; address?: string; labels?: string[]; send?: boolean; signature?: string };
@@ -17,10 +17,6 @@ export const API = (process.env.PAL_GMAIL_API || "https://gmail.googleapis.com/g
 export const MAX_RESULTS = 50;
 /** The headers a row needs; the pane fetches the message whole. */
 export const ROW_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Message-ID", "Reply-To", "References", "List-Unsubscribe"];
-/** How long a bare token (no `expires_in`) is trusted; Google's last 60 min. */
-const BARE_TOKEN_TTL = 30 * 60_000;
-const EXPIRY_MARGIN = 60_000;
-const TOKEN_CMD_MS = 20_000;
 const HTTP_MS = 15_000;
 /** How many `messages.get` run at once. */
 const CONCURRENCY = 8;
@@ -29,10 +25,6 @@ const DEFAULT_BACKOFF_MS = 60_000;
 
 export const log = (msg: string) => console.error(`[gmail] ${msg}`);
 
-/** The token command is empty, or ran and failed: the account cannot be read. `stderr` is what it printed. */
-export class TokenError extends Error {
-  constructor(message: string, readonly stderr = "") { super(message); }
-}
 /** Gmail refused: `status` and Google's message. `auth` for a 401 that a fresh token did not cure. */
 export class ApiError extends Error {
   constructor(readonly status: number, message: string, readonly auth = false) { super(message); }
@@ -44,51 +36,17 @@ export class RateLimited extends Error {
 
 // ---- tokens ------------------------------------------------------------------------
 
-/** The token a command's output carries and when it stops being good: JSON with `access_token` (`expires_in` seconds, or `expiry`/`expires_at`), else the first non-empty line. */
-export function parseToken(out: string, now = Date.now()): { token: string; until: number } | undefined {
-  const s = out.trim();
-  if (!s) return;
-  if (s.startsWith("{")) {
-    let j: Record<string, unknown>;
-    try { j = JSON.parse(s); } catch { return; }
-    const token = typeof j.access_token === "string" ? j.access_token : typeof j.token === "string" ? j.token : undefined;
-    if (!token) return;
-    const secs = typeof j.expires_in === "number" ? j.expires_in : typeof j.expires_in === "string" ? Number(j.expires_in) : NaN;
-    const at = typeof j.expiry === "string" ? Date.parse(j.expiry) : typeof j.expires_at === "number" ? j.expires_at * (j.expires_at < 1e12 ? 1000 : 1) : NaN;
-    const until = Number.isFinite(secs) ? now + secs * 1000 : Number.isFinite(at) ? at : now + BARE_TOKEN_TTL;
-    return { token, until: until - EXPIRY_MARGIN };
-  }
-  const line = s.split("\n").map((l) => l.trim()).find(Boolean);
-  return line ? { token: line, until: now + BARE_TOKEN_TTL - EXPIRY_MARGIN } : undefined;
-}
-
 let cached: { command: string; token: string; until: number } | undefined;
 let minting: Promise<string> | undefined;
 
-/** The account's token: the cache while it is good and the command unchanged, else one run of the command shared by everyone waiting. */
+/** The account's token: the cache while it is good and the command unchanged, else one run of the command (`mintToken`) shared by everyone waiting; a `TokenError` when the setting is empty or the command failed. */
 export function token(fresh = false): Promise<string> {
   const command = (conf().token_command ?? "").trim();
-  if (!command) return Promise.reject(new TokenError("No token command set for this account"));
+  if (!command) return Promise.reject(new TokenError("Token command is not set for this account"));
   if (cached && cached.command === command && !fresh && Date.now() < cached.until) return Promise.resolve(cached.token);
   if (minting) return minting;
-  minting = mint(command).finally(() => { minting = undefined; });
+  minting = mintToken(command).then((t) => { cached = { command, ...t }; return t.token; }).finally(() => { minting = undefined; });
   return minting;
-}
-
-async function mint(command: string): Promise<string> {
-  const proc = Bun.spawn(["sh", "-c", command], { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: process.env });
-  const kill = setTimeout(() => proc.kill(), TOKEN_CMD_MS);
-  let out: string, err: string, code: number;
-  try {
-    [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-    code = await proc.exited;
-  } finally { clearTimeout(kill); }
-  const last = err.trim().split("\n").filter(Boolean).pop() ?? "";
-  if (code !== 0) throw new TokenError(`Token command exited ${code}${last ? `: ${last}` : ""}`, err.trim());
-  const t = parseToken(out);
-  if (!t) throw new TokenError(`Token command printed no token${last ? `: ${last}` : ""}`, err.trim());
-  cached = { command, ...t };
-  return t.token;
 }
 
 export const forgetToken = () => { cached = undefined; };

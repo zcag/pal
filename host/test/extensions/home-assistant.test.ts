@@ -105,7 +105,7 @@ describe("ha helpers", () => {
     expect(unconfigured(ok)).toBeUndefined();
     expect(unconfigured({ ...ok, url: "" })?.message).toBe("Home Assistant is not set up");
     expect(unconfigured({ ...ok, url: "ha.lan:8123" })?.message).toMatch(/http/);
-    expect(unconfigured({ ...ok, token: "" })?.message).toBe("No token");
+    expect(unconfigured({ ...ok, token: "" })?.message).toBe("Token is not set");
     expect(unconfigured({ ...ok, token: "keychain:pal/ha" })?.hint).toMatch(/keychain:pal\/ha has no value/);
   });
   test("flatFields inlines a group and drops a collapsed one", () => {
@@ -188,7 +188,7 @@ describe("entities", () => {
     host.changeSettings(E, { settings: base });
   });
   test("toggle posts the service with the entity id, then keeps the palette open with the new state in a toast; a bare pick runs the primary", async () => {
-    expect(await pick("light.hall", "toggle")).toEqual({ keep: true, toast: { title: "Hall: on", style: "success" } });
+    expect(await pick("light.hall", "toggle")).toEqual({ keep: true, toast: { title: "Hall: on" } });
     expect(lastCall()).toEqual({ path: "light.toggle", body: { entity_id: "light.hall" } });
     expect((await list()).find((i) => i.id === "light.hall")!.accessories![0]).toEqual({ tag: "on", color: "green" });
     expect(await pick("light.hall")).toMatchObject({ keep: true, toast: { title: "Hall: off" } });
@@ -317,11 +317,11 @@ describe("areas", () => {
 });
 
 describe("when HA is not there", () => {
-  const hintRow = async (palette = "entities") => { const items = await host.list(E, palette); expect(items).toHaveLength(1); expect(items[0]).toMatchObject({ id: "hint", actions: [] }); return items[0]; };
+  const hintRow = async (palette = "entities") => { const items = await host.list(E, palette); expect(items).toHaveLength(1); expect(items[0]).toMatchObject({ id: "hint:setup", actions: [] }); return items[0]; };
   test("no URL: one inert hint row naming the settings page, on every palette; a pick on it does nothing", async () => {
     host.changeSettings(E, { settings: { ...base, url: "" } });
     for (const p of ["entities", "services", "areas"]) expect((await hintRow(p)).subtitle).toContain("Settings › Extensions › Home Assistant");
-    expect(await pick("hint")).toEqual({});
+    expect(await pick("hint:setup")).toEqual({});
     expect(await pick("light.hall", "toggle")).toMatchObject({ keep: true, toast: { style: "failure" } });
   });
   test("a rejected token", async () => {
@@ -331,7 +331,7 @@ describe("when HA is not there", () => {
   test("a host that does not answer: the hint within the timeout; a dead port: the hint at once", async () => {
     host.changeSettings(E, { settings: { ...base, url: `http://127.0.0.1:${slow.port}`, timeout: 1 } });
     const t0 = Date.now();
-    expect((await hintRow()).name).toMatch(/did not answer in 1 s/);
+    expect((await hintRow()).name).toMatch(/did not answer within 1 s/);
     expect(Date.now() - t0).toBeLessThan(2000);
     const dead = Bun.serve({ port: 0, fetch: () => new Response("x") });
     const port = dead.port;

@@ -1,6 +1,9 @@
 // `@zcag/pal`: what an extension imports. The capability objects and
 // helpers from api.ts, the contract's types from protocol.ts, the view,
-// form and bar item checkers, the icon table, the tile and tint helpers. `runtime.ts` is the host's side and is not
+// form and bar item checkers, the icon table, the tile and tint helpers,
+// and the helpers the bundled extensions share (rows.ts, text.ts, exec.ts,
+// token.ts, png.ts, image.ts; `terminal`, `files`, `md`, `colors` and
+// `tabs` as namespaces). `runtime.ts` is the host's side and is not
 // re-exported here (`@zcag/pal/runtime`).
 import type { ExtensionFor, ManifestLike } from "./manifest.ts";
 import type { Extension } from "./protocol.ts";
@@ -15,6 +18,20 @@ export { expand, formatDate, hasPlaceholders, isoDate, isoTime, offsetDate, FORM
 export type { Sources as PlaceholderSources } from "./placeholders.ts";
 export { badged, checkIcon, isTileIcon, isTintedIcon, tile, tinted, MAX_BADGE, MAX_TILE_SVG, TILE_COLORS } from "./icon.ts";
 export type { Tile, TileColor, TileIcon, TileMark, TintedIcon } from "./icon.ts";
+export { column, failed, HINT_GLYPH, hint, keycap, keyHint, POPOVER_W, row, text, toast } from "./rows.ts";
+export { bytes, errorMessage, mdEscape, oneLine, slug, truncate } from "./text.ts";
+export { EXEC_MS, exec, run } from "./exec.ts";
+export type { Exec, ExecOptions } from "./exec.ts";
+export { BARE_TOKEN_TTL, EXPIRY_MARGIN, mintToken, parseToken, TOKEN_CMD_MS, TokenError } from "./token.ts";
+export type { Token } from "./token.ts";
+export { pngSize } from "./png.ts";
+export { now } from "./clock.ts";
+export { forgetImages, IMAGE_MISS_TTL, IMAGE_MS, imageData, MAX_IMAGE } from "./image.ts";
+export * as terminal from "./terminal.ts";
+export * as files from "./files.ts";
+export * as md from "./md.ts";
+export * as colors from "./color.ts";
+export * as tabs from "./tabs.ts";
 
 /**
  * Type-checks an extension's default export where it is written, keeping

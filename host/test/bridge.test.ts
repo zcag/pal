@@ -52,7 +52,7 @@ describe("pending table", () => {
       const id = last().id;
       expect(delay).toBe(5000);
       fire!();
-      await expect(p).rejects.toThrow("core timed out on slow.thing");
+      await expect(p).rejects.toThrow("core slow.thing did not answer within 5 s");
       expect(resolve({ id, result: 1 })).toBe(false);
     } finally {
       globalThis.setTimeout = realTimeout;

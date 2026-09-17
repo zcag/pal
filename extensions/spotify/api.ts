@@ -5,6 +5,7 @@
 // endpoints below normalise Spotify's objects to the few shapes the
 // palettes draw (`Track`, `Artist`, `Album`, `Playlist`, `Show`, `Device`,
 // `Player`). `PAL_SPOTIFY_API` points the tests at a mock.
+import { errorMessage } from "@zcag/pal";
 import { accessToken, NotSignedIn } from "./auth.ts";
 
 export const API = (process.env.PAL_SPOTIFY_API || "https://api.spotify.com").replace(/\/+$/, "");
@@ -22,12 +23,11 @@ export class RateLimited extends Error {
   constructor(public readonly until: number) { super(`Spotify rate limit: try again in ${Math.max(1, Math.ceil((until - Date.now()) / 1000))} s`); }
 }
 export class Offline extends Error {
-  constructor(cause: unknown) { super(`Spotify is unreachable (${cause instanceof Error ? cause.message : String(cause)})`); }
+  constructor(cause: unknown) { super(`Spotify is unreachable (${errorMessage(cause)})`); }
 }
 
 /** When the last 429 said to come back; 0 when the way is clear. */
-export let limitedUntil = 0;
-export const clearLimit = () => { limitedUntil = 0; };
+let limitedUntil = 0;
 
 type Opts = { query?: Record<string, string | number | boolean | undefined>; body?: unknown; retried?: boolean };
 
@@ -169,7 +169,7 @@ export type SearchResult = { tracks: Track[]; artists: Artist[]; albums: Album[]
 export const SEARCH_TYPES = "track,artist,album,playlist,show,episode";
 export async function search(q: string, limit = 5): Promise<SearchResult> {
   const r = await api<any>("GET", "/search", { query: { q, type: SEARCH_TYPES, limit } });
-  const items = (k: string) => ((r?.[k]?.items ?? []) as any[]).filter(Boolean);
+  const items = (k: string): any[] => (r?.[k]?.items ?? []).filter(Boolean);
   return {
     tracks: items("tracks").map(toTrack).filter((t): t is Track => !!t),
     artists: items("artists").map(toArtist),

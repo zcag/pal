@@ -142,7 +142,7 @@ function momentRows(m: Moment, subtitle: string, locale: string, now: number): R
   return rows;
 }
 
-function countRows(a: Moment, b: Moment, unit: string, subtitle: string, locale: string): Row[] {
+function countRows(a: Moment, b: Moment, unit: string, subtitle: string): Row[] {
   const u = unit.toLowerCase().replace(/s$/, "");
   const days = daysBetween(a.t, b.t);
   let n: number;
@@ -286,7 +286,7 @@ export function dates(q: string, locale: string, now = Date.now()): Row[] | unde
     const today = d.dateOnly ? { t: midnight(now), dateOnly: true } : { t: now, dateOnly: false };
     const since = /since|from|after/i.test(m[2]);
     const [a, b] = since ? [d, today] : [today, d];
-    return countRows(a, b, m[1] || "days", `${m[1] || "days"} ${m[2]} ${fmtDate(d, locale)}`, locale);
+    return countRows(a, b, m[1] || "days", `${m[1] || "days"} ${m[2]} ${fmtDate(d, locale)}`);
   }
   // Between: `2026-01-01 - 2025-06-15`, `1 jan to 25 dec`, `weeks between A and B`.
   if ((m = l.match(re(`(?:${COUNT}\\s+)?(?:between\\s+)?(${DATE})\\s*(-|to|until|till|and)\\s*(${DATE})`)))) {
@@ -294,7 +294,7 @@ export function dates(q: string, locale: string, now = Date.now()): Row[] | unde
     if (!a || !b) return [];
     const [from, to] = m[3] === "-" ? [b, a] : [a, b]; // `A - B` is A minus B: the time from B to A
     const unit = m[1] ?? (from.dateOnly && to.dateOnly ? "days" : "hours");
-    return countRows(from, to, unit, `${fmtDate(from, locale)} → ${fmtDate(to, locale)}`, locale);
+    return countRows(from, to, unit, `${fmtDate(from, locale)} → ${fmtDate(to, locale)}`);
   }
 
   // Arithmetic: `today + 3 days`, `now - 2 hours`, `2026-12-25 - 1 week`.

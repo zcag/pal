@@ -30,7 +30,7 @@ export function startMock() {
         const key = url.searchParams.get("key") ?? "";
         requests.push({ path: url.pathname, q, key, filter: url.searchParams.get("contentfilter") ?? undefined });
         if (key !== "good") return Response.json({ error: { code: 403, message: "API key not valid", status: "PERMISSION_DENIED" } }, { status: 403 });
-        const results = pick(Number(url.searchParams.get("limit") ?? 20)).map((title, i) => {
+        const results = pick(Number(url.searchParams.get("limit") ?? 20)).map((title) => {
           const n = TITLES.indexOf(title);
           return { id: `t${n}`, title: "", content_description: title, itemurl: `https://tenor.com/view/${title.replace(/ /g, "-")}-gif-${n}`, url: `https://tenor.com/b${n}.gif`, created: 1700000000 + n, tags: title.split(" "), hasaudio: false, flags: [],
             media_formats: { gif: { url: media(n, "gif"), dims: [498, 373], duration: 1.2, size: 900000 + n * 1000 }, tinygif: { url: media(n, "tinygif"), dims: [220, 165], size: 90000 }, nanogif: { url: media(n, "nanogif"), dims: [120, 90], size: 30000 } } };

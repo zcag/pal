@@ -15,8 +15,8 @@
 // the `show_hidden` setting. A typed path ending in `/` lists that folder
 // the same way inside Files.
 // Every row carries the file actions: open, reveal, Quick Look, open
-// with, copy path or file, open in a terminal (shell's table), rename,
-// move and copy to a folder (forms, ops.ts, shared with Downloads),
+// with, copy path or file, open in a terminal (the SDK's `terminal`), rename,
+// move and copy to a folder (forms, the SDK's `files`, shared with Downloads),
 // compress (one zip, marked rows together), trash. The detail pane adds
 // what Spotlight knows on macOS: an image's pixel size, Finder's tags.
 // Contents too (content.ts): a query starting with `'` or `content:`
@@ -28,12 +28,10 @@
 // `grep` on their temp folder).
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { apps as appsApi, conceal, dialog, home, ocr, settings, thumbnailUrl, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
-import { terminalAt } from "../shell/run.ts";
-import { BROWSE_CAP, SORTS, filterEntries, hintRow, isRoot, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
+import { apps as appsApi, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { BROWSE_CAP, SORTS, UP, filterEntries, isRoot, moreRow, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
-import { archive, copyForm, intoFolderPick, moveForm, renameForm, renamePick, runTool, short } from "./ops.ts";
-import { parseMdls, pngSize } from "./meta.ts";
+import { parseMdls } from "./meta.ts";
 import { parseMdfindRecent, parseXbel, type Recent } from "./recent.ts";
 
 /** `[extensions.files]`, defaults in pal.json. */
@@ -112,7 +110,7 @@ async function contentRows(q: string, paths: string[], skip: Set<string>): Promi
       const row = await item(p, undefined, CONTENT_SECTION);
       if (!row || row.icon === GLYPH.folder) return;
       const line = await firstMatch(q, p);
-      const out: Item = { ...row, subtitle: line ? `${line} · ${short(dirname(p))}` : row.subtitle };
+      const out: Item = { ...row, subtitle: line ? `${line} · ${tilde(dirname(p))}` : row.subtitle };
       return out;
     }));
     rows.push(...batch.filter((r): r is Item => r !== undefined));
@@ -169,12 +167,12 @@ async function readLines(proc: Bun.Subprocess<"ignore", "pipe", "ignore">, limit
 }
 
 /** Paths matching `q`, at most `limit`, in the backend's order; a newer search supersedes this one. */
-async function search(q: string, s: Settings, folders: string[]): Promise<string[]> {
+async function search(backend: Backend, q: string, s: Settings, folders: string[]): Promise<string[]> {
   running?.kill();
-  const proc = Bun.spawn(argv(BACKEND!, q, s, folders), { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+  const proc = Bun.spawn(argv(backend, q, s, folders), { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
   running = proc;
   const timer = setTimeout(() => proc.kill(), SEARCH_MS);
-  const keep = (p: string) => (s.show_hidden || !hidden(p, folders)) && !excluded(p, folders, s.exclude) && (BACKEND !== "locate" || under(p, folders) !== undefined);
+  const keep = (p: string) => (s.show_hidden || !hidden(p, folders)) && !excluded(p, folders, s.exclude) && (backend !== "locate" || under(p, folders) !== undefined);
   const out = await readLines(proc, s.limit, keep);
   clearTimeout(timer);
   proc.kill();
@@ -251,7 +249,7 @@ function entryRow(e: Entry, usedAt?: number, section?: string, thumbs = false, e
   return {
     id: e.path,
     name: e.name,
-    subtitle: short(dirname(e.path)),
+    subtitle: tilde(dirname(e.path)),
     icon: MAC && e.path.endsWith(".app") ? { app: e.path } : thumbs && k === "image" ? { image: thumbnailUrl(e.path, 24) } : GLYPH[k],
     accessories: [...(k === "folder" ? [] : [{ text: size(e.size) }]), { date: usedAt ?? e.mtime }],
     ...(section && { section }),
@@ -262,7 +260,7 @@ function entryRow(e: Entry, usedAt?: number, section?: string, thumbs = false, e
 // ---- browsing a folder -------------------------------------------------------
 
 /** The level "Browse" pushes for `folder`: the `browse` palette, the crumb the folder's short path. */
-const browsePush = (folder: string): Effect => ({ push: { extension: "files", palette: "browse", args: { browse: folder } satisfies Browse, title: short(folder) } });
+const browsePush = (folder: string): Effect => ({ push: { extension: "files", palette: "browse", args: { browse: folder } satisfies Browse, title: tilde(folder) } });
 
 /** Every entry of `folder` stat'ed (one that vanished meanwhile is skipped); empty for a folder that cannot be read. */
 async function entries(folder: string): Promise<Entry[]> {
@@ -286,20 +284,20 @@ async function browseRows(folder: string, query: string, s: Settings, by: Sort =
   const found = sortEntries(filterEntries(await entries(folder), query, s.show_hidden), by);
   const shown = found.slice(0, BROWSE_CAP);
   const hidden = hiddenAction(s);
-  const up = upRow(folder, short, GLYPH.folder);
+  const up = upRow(folder, GLYPH.folder);
   return [
-    ...(isRoot(folder) ? [] : [{ ...up, actions: [...up.actions!, hidden] }]),
+    ...(isRoot(folder) ? [] : [{ ...up, actions: [...(up.actions ?? []), hidden] }]),
     ...shown.map((e) => entryRow(e, undefined, undefined, true, [hidden])),
-    ...(found.length > BROWSE_CAP ? [hintRow(found.length - BROWSE_CAP, GLYPH.folder)] : []),
+    ...(found.length > BROWSE_CAP ? [moreRow(found.length - BROWSE_CAP, GLYPH.folder)] : []),
   ];
 }
 
 /** The `browse` palette's sort from the filter dropdown; the first is the default. */
-const sortOf = (ctx?: Ctx): Sort => (SORTS.some((x) => x.id === ctx?.filter) ? (ctx!.filter as Sort) : SORTS[0].id);
+const sortOf = (ctx?: Ctx): Sort => SORTS.find((x) => x.id === ctx?.filter)?.id ?? SORTS[0].id;
 
 /** The picks a browsed folder's rows share beyond the file actions: the `..` row, Browse on a folder, the hidden toggle. */
 async function browseAction(id: string, action: string | undefined): Promise<Effect | undefined> {
-  if (id.startsWith("up:")) return browsePush(id.slice(3));
+  if (id.startsWith(UP)) return browsePush(id.slice(UP.length));
   if (action === "browse") return browsePush(id);
   if (action === "toggle-hidden") {
     await settings.set("show_hidden", !settings.get<Settings>().show_hidden);
@@ -395,7 +393,7 @@ async function appRows(file: string, query: string): Promise<Item[]> {
 const appRow = (a: App): Item => ({
   id: a.path,
   name: a.name,
-  subtitle: short(dirname(a.path)),
+  subtitle: tilde(dirname(a.path)),
   icon: { app: a.path },
   keywords: a.bundle_id ? [a.bundle_id] : [],
   accessories: a.default ? [{ tag: "default" }] : [],
@@ -433,14 +431,14 @@ async function spotlightMeta(p: string, k: Kind): Promise<Metadata[]> {
  */
 async function detail(p: string): Promise<Detail> {
   // The `..` row describes the folder it leads to; the cap's hint row has nothing to say.
-  if (p.startsWith("up:")) return detail(p.slice(3));
+  if (p.startsWith(UP)) return detail(p.slice(UP.length));
   if (p.startsWith("hint:")) return {};
   const st = await stat(p).catch(() => undefined);
-  if (!st) return { markdown: "This file no longer exists.", metadata: [{ label: "Path", value: short(p) }] };
+  if (!st) return { markdown: "This file no longer exists.", metadata: [{ label: "Path", value: tilde(p) }] };
   const dir = st.isDirectory();
   const k = kind(p, dir);
   const metadata: Metadata[] = [
-    { label: "Path", value: short(p) },
+    { label: "Path", value: tilde(p) },
     ...(dir ? [] : [{ label: "Size", value: size(st.size) }]),
     { label: "Modified", value: new Date(st.mtimeMs).toLocaleString() },
     { label: "Kind", value: k === "file" ? (extname(p).slice(1) || "file") : k },
@@ -461,15 +459,14 @@ async function detail(p: string): Promise<Detail> {
 
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 
-const trash = (p: string) => runTool(MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p]);
-const failure = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: String((e as Error)?.message ?? e), style: "failure" } });
+const trash = (p: string) => run(MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p]);
 
-/** A terminal in the folder (a file's folder), through shell's table; `PAL_FILES_TERMINAL` names a stand-in taking the folder (the tests). */
+/** A terminal in the folder (a file's folder), through the SDK's table; `PAL_FILES_TERMINAL` names a stand-in taking the folder (the tests). */
 async function openTerminal(p: string): Promise<Effect> {
   const st = await stat(p).catch(() => undefined);
   const cwd = st?.isDirectory() ? p : dirname(p);
-  const argv = process.env.PAL_FILES_TERMINAL ? [process.env.PAL_FILES_TERMINAL, cwd] : terminalAt(cwd, settings.get<Settings>().terminal);
-  if (!argv) return failure("No terminal", "Set the terminal setting, or $TERMINAL");
+  const argv = process.env.PAL_FILES_TERMINAL ? [process.env.PAL_FILES_TERMINAL, cwd] : terminal.at(cwd, settings.get<Settings>().terminal);
+  if (!argv) return toast("No terminal to open", "Set terminal under Settings › Extensions › Files, or $TERMINAL", "failure");
   spawnDetached(argv);
   return { hide: true };
 }
@@ -493,25 +490,25 @@ async function fileAction(id: string, action: string | undefined, palette: strin
     case "copy": return { copy: ids.join("\n") };
     case "copy-file": return { copy_files: ids };
     case "terminal": return openTerminal(id);
-    case "rename": return { form: renameForm(id) };
-    case "move": return { form: moveForm(id) };
-    case "copy-to": return { form: copyForm(id) };
-    case "rename-submit": return renamePick(id, values);
-    case "move-submit": return intoFolderPick("move", id, values);
-    case "copy-submit": return intoFolderPick("copy", id, values);
+    case "rename": return { form: files.renameForm(id) };
+    case "move": return { form: files.moveForm(id) };
+    case "copy-to": return { form: files.copyForm(id) };
+    case "rename-submit": return files.renamePick(id, values);
+    case "move-submit": return files.intoFolderPick("move", id, values);
+    case "copy-submit": return files.intoFolderPick("copy", id, values);
     case "compress": {
       let out: string;
-      try { out = await archive(ids); } catch (e) { return failure("Could not compress", e); }
-      return { keep: true, toast: { title: "Compressed", message: short(out) } };
+      try { out = await files.archive(ids); } catch (e) { return failed("compress", e); }
+      return { keep: true, toast: { title: "Compressed", message: tilde(out) } };
     }
     case "copy-text": {
       let text: string;
-      try { text = await ocr.image({ path: id }); } catch (e) { return { keep: true, toast: { title: "Could not read the text", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+      try { text = await ocr.image({ path: id }); } catch (e) { return failed("read the text", e); }
       if (!text) return { keep: true, toast: { title: "No text found", message: basename(id) } };
       return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
     }
     case "trash":
-      try { for (const p of ids) await trash(p); } catch (e) { return failure("Could not move to Trash", e); }
+      try { for (const p of ids) await trash(p); } catch (e) { return failed("move to Trash", e); }
       return { keep: true, toast: { title: "Moved to Trash", message: ids.length === 1 ? basename(id) : `${ids.length} items` } };
     default:
       // Several: every one through the opener; the effect carries one, so the rest go here.
@@ -522,17 +519,17 @@ async function fileAction(id: string, action: string | undefined, palette: strin
 
 /** The "Open with…" level: the apps for `file`, or the pick of one. */
 const openWithPick = async (file: string, id: string) => {
-  try { await appsApi.openWith(file, id); } catch (e) { return { keep: true as const, toast: { title: "Could not open", message: String((e as Error)?.message ?? e), style: "failure" as const } }; }
+  try { await appsApi.openWith(file, id); } catch (e) { return failed("open", e); }
   return { hide: true as const };
 };
-const openWithDetail = (file: string, id: string): Detail => ({ metadata: [{ label: "Application", value: short(id) }, { label: "Opens", value: short(file) }] });
+const openWithDetail = (file: string, id: string): Detail => ({ metadata: [{ label: "Application", value: tilde(id) }, { label: "Opens", value: tilde(file) }] });
 
-const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: ICON, actions: [] });
+const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle, { icon: ICON });
 
 function hints(folders: string[]): Item[] {
-  if (!BACKEND) return [hint("No file search backend", MAC ? "mdfind is missing" : "Install fd (or locate) for this palette")];
+  if (!BACKEND) return [hint("No file search backend", MAC ? "mdfind is not installed" : "fd (or locate) is not installed")];
   return [
-    hint("Type part of a file name", `${LABEL[BACKEND]} in ${folders.map(short).join(", ")}`),
+    hint("Type part of a file name", `${LABEL[BACKEND]} in ${folders.map(tilde).join(", ")}`),
     ...(BACKEND === "find" ? [hint("This will be slow", "Neither fd nor locate is installed: find walks the folders on every keystroke, 3 s at most.")] : []),
   ];
 }
@@ -561,7 +558,7 @@ export default {
         if (PATH_RE.test(query.trim())) return pathRows(query, s.show_hidden, s.limit, s);
         const ask = parseQuery(query);
         if (ask.only) {
-          if (!ask.content) return [hint("Type words to find in file contents", CONTENT ? `${CONTENT} in ${folders.map(short).join(", ")}` : "No content search tool: Spotlight, rg or grep")];
+          if (!ask.content) return [hint("Type words to find in file contents", CONTENT ? `${CONTENT} in ${folders.map(tilde).join(", ")}` : "No content search tool: Spotlight, rg or grep")];
           return contentRows(ask.content, await searchContent(ask.content, s, folders), new Set());
         }
         const q = ask.name;
@@ -572,7 +569,7 @@ export default {
         }
         // Names and contents at once; the content rows come after, minus what the names found.
         const content = s.content_search && CONTENT ? searchContent(q, s, folders) : Promise.resolve([]);
-        const paths = await search(q, s, folders);
+        const paths = await search(BACKEND, q, s, folders);
         const rows = (await Promise.all(paths.map((p) => item(p)))).filter((i): i is Item => i !== undefined);
         const named = rank(rows, q);
         return [...named, ...(await contentRows(q, await content, new Set(named.map((r) => r.id))))];

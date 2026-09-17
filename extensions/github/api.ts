@@ -7,7 +7,7 @@
 // on PATH. Nothing found is `AuthError`, which the palettes turn into one
 // hint row. `PAL_GITHUB_API` replaces `https://api.github.com` (the tests
 // point it at a local server serving fixtures).
-import { settings, storage } from "@zcag/pal";
+import { errorMessage, run, settings, storage } from "@zcag/pal";
 
 export const EXTENSION = "github";
 export const API = (process.env.PAL_GITHUB_API || "https://api.github.com").replace(/\/+$/, "");
@@ -38,20 +38,9 @@ export const hasGh = () => !!Bun.which("gh");
 let cachedToken: { value?: string; at: number } | undefined;
 settings.onChange(() => { cachedToken = undefined; }, EXTENSION);
 
-/** Runs to completion or `ms`; stdout on success, undefined on failure. */
-export async function run(argv: string[], ms: number, cwd?: string): Promise<{ ok: boolean; out: string; err: string }> {
-  const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", cwd });
-  const timer = setTimeout(() => proc.kill(), ms);
-  const [code, out, err] = await Promise.all([proc.exited, new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-  clearTimeout(timer);
-  return { ok: code === 0, out: out.trim(), err: err.trim() || (code !== 0 ? `${argv[0]} exited ${code}` : "") };
-}
-
 async function ghToken(): Promise<string | undefined> {
   if (!hasGh()) return;
-  const r = await run(["gh", "auth", "token"], GH_MS);
-  if (!r.ok) log("gh auth token:", r.err);
-  return r.ok && r.out ? r.out : undefined;
+  try { return (await run(["gh", "auth", "token"], { ms: GH_MS })).trim() || undefined; } catch (e) { log("gh auth token:", errorMessage(e)); }
 }
 
 /** The token to send, or `AuthError`. */
@@ -147,7 +136,7 @@ export async function entry<T>(key: string): Promise<Entry<T> | undefined> {
 
 async function remember<T>(key: string, e: Entry<T>) {
   mem.set(key, e);
-  try { await storage.set(`cache:${key}`, e, EXTENSION); } catch (err) { log(`cache ${key} not stored: ${err instanceof Error ? err.message : err}`); }
+  try { await storage.set(`cache:${key}`, e, EXTENSION); } catch (err) { log(`cache ${key} not stored: ${errorMessage(err)}`); }
 }
 
 /**
@@ -172,7 +161,7 @@ export async function cached<T>(key: string, ttlMs: number, refresh: boolean, lo
       await remember(key, next);
       return next.data;
     } catch (e) {
-      if (have && !(e instanceof AuthError)) { log(`${key}: ${e instanceof Error ? e.message : e}; showing cached rows`); return have.data; }
+      if (have && !(e instanceof AuthError)) { log(`${key}: ${errorMessage(e)}; showing cached rows`); return have.data; }
       throw e;
     } finally { inflight.delete(key); }
   })();

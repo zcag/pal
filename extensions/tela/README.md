@@ -23,7 +23,7 @@ One bar item counts unread mentions and replies and stays hidden otherwise.
 
 ## Signing in
 
-Two settings, under Settings, Extensions, tela: the **Address** of the
+Two settings, under Settings › Extensions › tela: the **Address** of the
 instance (`https://telawiki.com`, or your own) and a **Token**, a personal
 access token made under Settings, API Keys on tela (`tela_pat_...`, kept
 in the OS keychain). A read-scoped token lists, searches and researches;
@@ -74,7 +74,7 @@ row: Open in tela (`Enter`), Read in pal (`⌘Enter`: the page drawn in the
 panel), Copy link (`⌘C`), Outline (`⌘⇧O`, the headings), Backlinks
 (`⌘B`), Comment on page (`⌘⇧M`).
 
-**Read in pal** draws the page's markdown with the view tree (`md.ts`):
+**Read in pal** draws the page's markdown with the view tree (the SDK's `md`):
 headings by level, paragraphs, bullet, numbered and task lists (nested),
 `> [!NOTE]` callouts as tinted cards with a badge (Note blue, Tip green,
 Important violet, Warning amber, Caution red), quotes and tela's

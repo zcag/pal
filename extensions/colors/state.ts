@@ -3,7 +3,13 @@
 // of a scale or harmony row), the typing field, and the history of picked
 // and copied colours (newest first, one entry per colour, capped). No
 // host imports: index.ts persists what `persisted` says, render.ts draws.
-import { BLACK, WHITE, adjust, format, harmony, nameOf, nearestName, parse, shades, tints, toHex, type Axis, type Format, type Harmony, type Model, type RGB } from "./color.ts";
+import { colors } from "@zcag/pal";
+const { BLACK, WHITE, adjust, format, harmony, nameOf, nearestName, parse, shades, tints, toHex } = colors;
+type Axis = colors.Axis;
+type Format = colors.Format;
+type Harmony = colors.Harmony;
+type Model = colors.Model;
+type RGB = colors.RGB;
 
 /** Where a history entry came from. */
 export type Source = "screen" | "typed" | "set" | "picker" | "convert" | "history";
@@ -30,7 +36,7 @@ export type State = {
 };
 
 /** The colour the picker opens on before anything was picked: pal's accent. */
-export const DEFAULT_COLOR = "#4f46d6";
+const DEFAULT_COLOR = "#4f46d6";
 
 export const fresh = (): State => ({ color: parse(DEFAULT_COLOR)!, model: "hsl", focus: "swatch", index: 0, history: [] });
 

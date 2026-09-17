@@ -13,7 +13,7 @@ import type { MathJsInstance } from "mathjs";
 let math: Promise<MathJsInstance> | undefined;
 const mathjs = () => (math ??= import("mathjs").then(({ create, all }) => create(all)));
 
-export type MathResult =
+type MathResult =
   | { kind: "number"; value: number }
   | { kind: "unit"; value: number; unit: string }
   | { kind: "text"; text: string };

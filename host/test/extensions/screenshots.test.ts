@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ago, captureName, grimCommand, isScreenshot, kindOf, markdownImage, pngSize, screencaptureArgv, size, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
+import { ago, captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
@@ -28,7 +28,7 @@ function png(w: number, h: number): Buffer {
 }
 
 describe("shots.ts", () => {
-  test("what counts as a screenshot, the kinds, and the sizes", () => {
+  test("what counts as a screenshot, the kinds, and the age", () => {
     expect(kindOf("Screenshot 2026-09-17 at 14.03.22.png")).toBe("image");
     expect(kindOf("Screen Recording 2026-09-17 at 14.03.22.mov")).toBe("video");
     expect(kindOf("notes.txt")).toBeUndefined();
@@ -39,19 +39,8 @@ describe("shots.ts", () => {
     expect(isScreenshot("holiday.jpg", true)).toBe(true);
     expect(isScreenshot(".Screenshot hidden.png", true)).toBe(false);
     expect(isScreenshot("Screenshot notes.txt")).toBe(false);
-    expect(size(512)).toBe("512 B");
-    expect(size(2.5 * 1024)).toBe("2.5 KB");
-    expect(size(234 * 1024)).toBe("234 KB");
-    expect(size(1.2 * 1024 ** 2)).toBe("1.2 MB");
     expect(ago(12_000)).toBe("12 s ago");
     expect(ago(95_000)).toBe("2 min ago");
-  });
-
-  test("pngSize reads the IHDR and refuses anything else", () => {
-    expect(pngSize(png(1440, 900))).toEqual({ w: 1440, h: 900 });
-    expect(pngSize(new Uint8Array(png(0, 10)))).toBeUndefined();
-    expect(pngSize(Buffer.from("not a png at all, just some bytes"))).toBeUndefined();
-    expect(pngSize(png(1, 1).subarray(0, 10))).toBeUndefined();
   });
 
   test("the command lines: screencapture's flags per mode, destination, delay and sound; grim with slurp on Linux", () => {
@@ -220,8 +209,8 @@ describe("screenshots", () => {
     host.changeSettings("screenshots", { settings: { folder: empty } });
     await host.until(() => true);
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["capture:area", "capture:window", "capture:screen", "hint:No screenshots yet"]);
+    expect(items.map((i) => i.id)).toEqual(["capture:area", "capture:window", "capture:screen", "hint:empty"]);
     expect(items[3].actions).toEqual([]);
-    if (!MAC) expect(items[0].name).toMatch(/Capture area|Install grim/);
+    if (!MAC) expect(items[0].name).toMatch(/Capture area|grim and slurp are not installed/);
   });
 });

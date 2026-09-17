@@ -258,7 +258,7 @@ describe("slack", () => {
       expect(f).toMatchObject({ id: "dm:T1/D_MARA", title: "Reply to mara", submit: { id: "send", title: "Send" } });
       expect(f.fields.map((x) => [x.kind, x.id, x.required])).toEqual([["text", "text", true]]);
       expect(await pick("unreads", "dm:T1/D_MARA", "send", { values: { text: "  " } })).toMatchObject({ form: { errors: { text: "Required" } } });
-      expect(await pick("unreads", "dm:T1/D_MARA", "send", { values: { text: "on it" } })).toMatchObject({ keep: true, toast: { title: "Sent", message: "mara: on it", style: "success" } });
+      expect(await pick("unreads", "dm:T1/D_MARA", "send", { values: { text: "on it" } })).toMatchObject({ keep: true, toast: { title: "Sent", message: "mara: on it" } });
       expect(calls("chat.postMessage").at(-1)!.body).toEqual({ token: TOKEN, channel: "D_MARA", text: "on it", as_user: "true" });
       await pick("unreads", "mention:T1/C_ENG", "send", { values: { text: "looking" } });
       expect(calls("chat.postMessage").at(-1)!.body).toMatchObject({ channel: "C_ENG", text: "looking", thread_ts: "1789580450.000250" });
@@ -533,7 +533,7 @@ describe("slack", () => {
     test("no token set is a hint naming the setting", async () => {
       host.changeSettings("slack", { settings: { ...BASE, auth: "token", token: "" } });
       await Bun.sleep(50);
-      expect((await list("unreads", undefined, { refresh: true }))[0]).toMatchObject({ id: "hint:auth", name: "Slack token missing" });
+      expect((await list("unreads", undefined, { refresh: true }))[0]).toMatchObject({ id: "hint:auth", name: "Slack token is not set" });
       host.changeSettings("slack", { settings: BASE });
       await Bun.sleep(50);
     });

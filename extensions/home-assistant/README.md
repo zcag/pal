@@ -80,7 +80,7 @@ toggles one entity without showing pal:
 ## Setup
 
 In Home Assistant, your profile, Security, create a long-lived access
-token. In pal, Settings, Extensions, Home Assistant: the URL with its
+token. In pal, Settings › Extensions › Home Assistant: the URL with its
 scheme (`http://homeassistant.local:8123`) and the token, which the
 config file keeps as a `keychain:` or `env:` reference, never the value.
 

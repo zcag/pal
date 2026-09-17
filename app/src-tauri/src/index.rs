@@ -966,7 +966,7 @@ pub async fn pick(app: AppHandle, window: tauri::Window, req: PickRequest, host:
     } else if source == fallback::source() {
         fallback::pick(&app, &id, &query).await?
     } else {
-        run_pick_from(&app, &host, &source, &id, action.as_deref(), args.as_ref(), values.as_ref(), ids.as_deref(), window.label()).await?
+        run_pick_from(&app, &host, &source, &Pick { id: &id, action: action.as_deref(), args: args.as_ref(), values: values.as_ref(), ids: ids.as_deref() }, window.label()).await?
     };
     let history_on = settings::config(&app).general.search_history;
     let frecency = app.state::<Mutex<Frecency>>();
@@ -988,17 +988,27 @@ pub async fn pick(app: AppHandle, window: tauri::Window, req: PickRequest, host:
     Ok(r)
 }
 
+/// What a pick names: the row, the action, the args of the push that
+/// opened the level, a form's values, the marked ids of a multi pick.
+#[derive(Default)]
+pub struct Pick<'a> {
+    pub id: &'a str,
+    pub action: Option<&'a str>,
+    pub args: Option<&'a Value>,
+    pub values: Option<&'a Value>,
+    pub ids: Option<&'a [String]>,
+}
+
 /// The pick itself: the host's `pick`, its effects, and the relist a
 /// `keep` asks for. Shared by the `pick` command and an item hotkey
 /// (`hotkey::pressed`), which runs a pick with the panel down.
-pub async fn run_pick(app: &AppHandle, host: &Arc<Host>, source: &Source, id: &str, action: Option<&str>, args: Option<&Value>, values: Option<&Value>) -> Result<Value, String> {
-    run_pick_from(app, host, source, id, action, args, values, None, crate::WINDOW).await
+pub async fn run_pick(app: &AppHandle, host: &Arc<Host>, source: &Source, pick: &Pick<'_>) -> Result<Value, String> {
+    run_pick_from(app, host, source, pick, crate::WINDOW).await
 }
 
-/// [`run_pick`] with the window the pick came from, for its hiding effects,
-/// and the marked ids of a multi pick.
-#[allow(clippy::too_many_arguments)]
-pub async fn run_pick_from(app: &AppHandle, host: &Arc<Host>, source: &Source, id: &str, action: Option<&str>, args: Option<&Value>, values: Option<&Value>, ids: Option<&[String]>, window: &str) -> Result<Value, String> {
+/// [`run_pick`] with the window the pick came from, for its hiding effects.
+pub async fn run_pick_from(app: &AppHandle, host: &Arc<Host>, source: &Source, pick: &Pick<'_>, window: &str) -> Result<Value, String> {
+    let Pick { id, action, args, values, ids } = *pick;
     let mut params = json!({ "extension": source.extension, "palette": source.palette, "id": id, "action": action, "args": args, "values": values, "ids": ids });
     if window == crate::bar::popover::WINDOW {
         params["compact"] = Value::Bool(true);

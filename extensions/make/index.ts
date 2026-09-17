@@ -1,20 +1,17 @@
-// Makefile targets (replaces the v1 `mk` script palette, which wrapped the
-// `mk` shell tool): the `projects` folders are walked two levels deep for a
+// Makefile targets: the `projects` folders are walked two levels deep for a
 // Makefile, makefile or GNUmakefile, and each file's targets become rows,
 // one section per project. Targets are read from the text (no `make -pn`):
 // a line starting with a name and a colon, `.PHONY` names included even
 // when their rule is not literal, a `##` comment on the line or the comment
-// line above the rule as its description. Run opens a
-// terminal in the project folder running `make <target>` (`terminal.ts`),
-// or, with `terminal = "background"`, runs it here and toasts the exit
-// status.
+// line above the rule as its description. Run opens a terminal in the
+// project folder running `make <target>` (the SDK's `terminal`), or, with
+// `terminal = "background"`, runs it here and toasts the exit status.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
-import { home, settings, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
-import { openTerminal, shq, type TerminalChoice } from "./terminal.ts";
+import { errorMessage, home, settings, terminal, tilde, toast, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.make]`, defaults in pal.json. */
-type Settings = { projects: string[]; terminal: TerminalChoice | "background" };
+type Settings = { projects: string[]; terminal: terminal.Choice | "background" };
 const S = () => settings.get<Settings>();
 
 /** md-hammer, the manifest's icon too. */
@@ -24,8 +21,6 @@ const DEPTH = 2;
 /** The core drops a pick unanswered after 10 s: a background make still going by then is left to finish on its own. */
 const WAIT_MS = 8_000;
 const SKIP = new Set(["node_modules", "target", "vendor", "dist", "build"]);
-const HOME = home("~");
-const short = (p: string) => (p === HOME ? "~" : p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p);
 
 // ---- scan ---------------------------------------------------------------------
 
@@ -129,7 +124,7 @@ function list(): Item[] {
       items.push({
         id,
         name: target.name,
-        subtitle: target.description ? `${short(project.dir)}: ${target.description}` : short(project.dir),
+        subtitle: target.description ? `${tilde(project.dir)}: ${target.description}` : tilde(project.dir),
         icon: ICON,
         keywords: [name, ...(target.phony ? ["phony"] : [])],
         section: name,
@@ -148,7 +143,7 @@ function detail(id: string): Detail | undefined {
   return {
     markdown: r.target.recipe ? fence(r.target.recipe, "make") : "_No recipe of its own (dependencies only, or a pattern rule)._",
     metadata: [
-      { label: "Project", value: short(r.project.dir) },
+      { label: "Project", value: tilde(r.project.dir) },
       { label: "Makefile", value: basename(r.project.file) },
       ...(r.target.description ? [{ label: "Description", value: r.target.description }] : []),
       ...(r.target.phony ? [{ label: "Phony", value: "yes" }] : []),
@@ -166,13 +161,13 @@ async function background(dir: string, target: string) {
   const code = await Promise.race([proc.exited, Bun.sleep(WAIT_MS).then(() => undefined)]);
   if (code === undefined) {
     proc.unref();
-    return { keep: true as const, toast: { title: `${cmd} still running`, message: `Not done after ${WAIT_MS / 1000} s in ${short(dir)}; it goes on in the background` } };
+    return { keep: true as const, toast: { title: `${cmd} still running`, message: `Not done after ${WAIT_MS / 1000} s in ${tilde(dir)}; it goes on in the background` } };
   }
   const [out, err] = await Promise.all([outP, errP]);
   const text = (out + (out && err ? "\n" : "") + err).replace(/\n+$/, "");
   const last = text.split("\n").filter(Boolean).slice(-1)[0];
-  if (code === 0) return { keep: true as const, toast: { title: `${cmd}: done`, message: last || short(dir) } };
-  return { keep: true as const, toast: { title: `${cmd}: exit ${code}`, message: last || short(dir), style: "failure" as const }, show: { title: `${cmd} in ${short(dir)}`, markdown: text ? fence(text) : "_No output._" } };
+  if (code === 0) return { keep: true as const, toast: { title: `${cmd}: done`, message: last || tilde(dir) } };
+  return { ...toast(`${cmd}: exit ${code}`, last || tilde(dir), "failure"), show: { title: `${cmd} in ${tilde(dir)}`, markdown: text ? fence(text) : "_No output._" } };
 }
 
 export default {
@@ -184,23 +179,24 @@ export default {
       list,
       pick: async (id, action = "run") => {
         const r = rows.get(id);
-        if (!r) return { keep: true as const, toast: { title: "Target not listed", message: "Refresh the palette with cmd+r", style: "failure" as const } };
+        if (!r) return toast("Target not listed", "Refresh the palette with cmd+r", "failure");
         const { dir } = r.project, { name } = r.target;
         switch (action) {
-          case "copy": return { copy: `make -C ${shq(dir)} ${shq(name)}` };
+          case "copy": return { copy: `make -C ${terminal.quote(dir)} ${terminal.quote(name)}` };
           case "open": return { open: dir };
           case "makefile": {
             let text = "";
-            try { text = readFileSync(r.project.file, "utf8"); } catch (e) { return { keep: true as const, toast: { title: "Could not read the Makefile", message: String((e as Error)?.message ?? e), style: "failure" as const } }; }
-            return { show: { title: `${basename(r.project.file)} in ${short(dir)}`, markdown: fence(text.replace(/\n+$/, ""), "make") } };
+            try { text = readFileSync(r.project.file, "utf8"); } catch (e) { return toast("Could not read the Makefile", errorMessage(e), "failure"); }
+            return { show: { title: `${basename(r.project.file)} in ${tilde(dir)}`, markdown: fence(text.replace(/\n+$/, ""), "make") } };
           }
         }
-        const { terminal } = S();
-        if (terminal === "background") return background(dir, name);
+        const want = S().terminal;
+        if (want === "background") return background(dir, name);
         // The window stays until Enter, so a quick target's output is not gone with it.
-        const script = `make ${shq(name)}; s=$?; printf '\\n[make %s exited %s] Enter closes ' ${shq(name)} "$s"; read -r _`;
-        const why = openTerminal(["sh", "-c", script], terminal, dir);
-        return why ? { keep: true as const, toast: { title: "Could not open a terminal", message: why, style: "failure" as const } } : { hud: `make ${name}` };
+        const q = terminal.quote(name);
+        const script = `make ${q}; s=$?; printf '\\n[make %s exited %s] Enter closes ' ${q} "$s"; read -r _`;
+        const why = terminal.open(["sh", "-c", script], want, dir);
+        return why ? toast("Could not open a terminal", why, "failure") : { hud: `make ${name}` };
       },
       detail,
     },

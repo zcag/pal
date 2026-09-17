@@ -9,9 +9,10 @@
 // nothing. A fetch that fails leaves the last events in place and marks
 // them stale, so a broker that is away costs the strip its freshness, not
 // the meeting.
-import { calendar, settings, type Calendar, type CalendarEvent, type CalendarStatus } from "@zcag/pal";
-import { now } from "./clock.ts";
+import { calendar, errorMessage, now, settings, type Calendar, type CalendarEvent, type CalendarStatus } from "@zcag/pal";
 import * as google from "./google.ts";
+
+export const log = (msg: string) => console.error(`[calendar] ${msg}`);
 
 export type SourceName = "auto" | "system" | "google";
 export type Settings = {
@@ -40,7 +41,7 @@ export async function calendars(refresh = false): Promise<Calendar[]> {
   if (src === "google") {
     // Every account at once: each token command is a process (his is an ssh hop).
     const per = await Promise.allSettled(accounts().map(async (a) => (await google.calendars(a)).filter((c) => a.calendars.includes(c.id.slice(a.name.length + 1)))));
-    list = per.flatMap((r) => (r.status === "fulfilled" ? r.value : (console.error(`[calendar] ${r.reason instanceof Error ? r.reason.message : r.reason}`), [])));
+    list = per.flatMap((r) => (r.status === "fulfilled" ? r.value : (log(errorMessage(r.reason)), [])));
   } else list = await calendar.calendars();
   calendarCache = { at: now(), source: src, list };
   return list;
@@ -86,7 +87,7 @@ export async function load(from: number, to: number, ids: string[] | undefined, 
       last = { key, events, at: now(), stale: false };
       return last;
     } catch (e) {
-      const error = e instanceof Error ? e.message : String(e);
+      const error = errorMessage(e);
       if (last && last.key === key) { last = { ...last, stale: true, error }; return last; }
       throw e;
     } finally { inflight = undefined; }
@@ -117,10 +118,10 @@ async function fetchEvents(from: number, to: number, ids?: string[]): Promise<Ca
     }
     return out;
   }));
-  const errors = per.flatMap((r) => (r.status === "rejected" ? [r.reason instanceof Error ? r.reason.message : String(r.reason)] : []));
-  for (const err of errors) console.error(`[calendar] ${err}`);
+  const errors = per.flatMap((r) => (r.status === "rejected" ? [errorMessage(r.reason)] : []));
+  for (const err of errors) log(err);
   // One account being away is not the other's problem; all of them away is.
-  if (errors.length === per.length) throw new Error(errors.length ? errors.join("; ") : "No Google account configured: add one under Settings > Calendar > Accounts");
+  if (errors.length === per.length) throw new Error(errors.length ? errors.join("; ") : "No Google account is set: add one under Settings › Extensions › Calendar");
   const out = per.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
   return out.sort((a, b) => a.start - b.start || a.end - b.end);
 }

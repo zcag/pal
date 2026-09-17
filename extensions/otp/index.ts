@@ -1,6 +1,5 @@
-// Verification codes out of Messages (ported from v1's `otp` palette, which
-// read a curated `datak` view; this reads `~/Library/Messages/chat.db`
-// itself). One read-only SQLite query per listing over the last `hours` of
+// Verification codes out of Messages, read from `~/Library/Messages/chat.db`
+// itself. One read-only SQLite query per listing over the last `hours` of
 // incoming messages, a code pulled out of each text that names one, newest
 // first, Today then Earlier. Live: listed again on every show, so the code
 // that just arrived is at the top. Enter pastes the code into the app in
@@ -24,7 +23,7 @@ import { Database } from "bun:sqlite";
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CONCEAL_SECONDS, conceal, home, settings, view as liveView, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
+import { CONCEAL_SECONDS, conceal, errorMessage, hint, home, settings, toast, truncate, view as liveView, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 import { PREVIOUS, render } from "./view.ts";
 
 /** `[extensions.otp]`, defaults in pal.json. */
@@ -182,10 +181,7 @@ function senderName(raw: string, names: Map<string, string>): string {
 // ---- rows -----------------------------------------------------------------------
 
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-const hint = (id: string, name: string, subtitle: string, actions: Action[] = [], icon = ICON): Item => ({ id, name, subtitle, icon, actions });
 
 /** What `pick` needs per row, from the last listing. */
 const codes = new Map<string, Code>();
@@ -214,7 +210,7 @@ function item(c: Code, now: Date): Item {
   return {
     id: c.id,
     name: c.name,
-    subtitle: clip(c.text, 140),
+    subtitle: truncate(c.text, 140),
     icon: ICON,
     keywords: [c.code, c.sender, c.name].filter((k, i, a) => a.indexOf(k) === i),
     accessories: [{ tag: c.code, color: "green" }, { date: c.at }],
@@ -242,22 +238,22 @@ function readCodes(s: Settings, hours = s.hours): Code[] {
 
 function list(): Item[] {
   codes.clear();
-  if (!MAC) return [hint("unavailable", "Unavailable", "Verification codes read the Messages database, which only macOS has", [], HINT_ICON.none)];
+  if (!MAC) return [hint("unavailable", "Unavailable", "Verification codes read the Messages database, which only macOS has", { icon: HINT_ICON.none })];
   const s = settings.get<Settings>();
   let found: Code[];
   try {
     found = readCodes(s);
   } catch (e) {
-    const code = sqlite(e), msg = String((e as Error)?.message ?? e);
+    const code = sqlite(e), msg = errorMessage(e);
     if (code === "SQLITE_AUTH" || /authorization denied|not permitted|EPERM/i.test(msg)) {
-      return [hint("fda", "Full Disk Access needed", "Allow pal under Privacy & Security, Full Disk Access, then open the palette again", [{ id: "settings", title: "Open System Settings" }], HINT_ICON.locked)];
+      return [hint("fda", "Full Disk Access needed", "Allow pal under Privacy & Security, Full Disk Access, then open the palette again", { icon: HINT_ICON.locked, actions: [{ id: "settings", title: "Open System Settings" }] })];
     }
-    if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${home(s.db)} is not there: open Messages once, or point the db setting at the file`, [], HINT_ICON.none)];
-    return [hint("error", "Could not read Messages", msg, [], HINT_ICON.locked)];
+    if (code === "SQLITE_CANTOPEN" || /ENOENT|no such file|unable to open/i.test(msg)) return [hint("missing", "No Messages database", `${home(s.db)} is not there: open Messages once, or point the db setting at the file`, { icon: HINT_ICON.none })];
+    return [hint("error", "Could not read Messages", msg, { icon: HINT_ICON.locked })];
   }
   const now = new Date();
   for (const c of found) codes.set(c.id, c);
-  if (found.length === 0) return [hint("none", "No codes", `No message of the last ${s.hours} h names a code; raise Look back in Settings to scan further`, [], HINT_ICON.none)];
+  if (found.length === 0) return [hint("none", "No codes", `No message of the last ${s.hours} h names a code; raise Look back in Settings to scan further`, { icon: HINT_ICON.none })];
   return found.map((c) => item(c, now));
 }
 
@@ -285,7 +281,7 @@ function renderBar(): BarItem {
   const c = inWindow(found[0], now);
   snap = { latest: c, previous: found.slice(1, 1 + PREVIOUS), at: now };
   if (!c) return { hidden: true };
-  return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${clip(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (now - c.at)) / 1000)), menu: { view: popover(now) } };
+  return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${truncate(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (now - c.at)) / 1000)), menu: { view: popover(now) } };
 }
 
 // ---- the popover's tick -------------------------------------------------------
@@ -336,9 +332,9 @@ export default {
       placeholder: "Search codes and senders",
       list,
       pick: (id, action) => {
-        if (id === "fda") return { open: FDA_URL };
+        if (id === "hint:fda") return { open: FDA_URL };
         const c = codes.get(id);
-        if (!c) return { keep: true, toast: { title: "That code is no longer listed", style: "failure" } };
+        if (!c) return toast("That code is no longer listed", undefined, "failure");
         switch (action) {
           case "copy": return copyCode(c.code);
           case "copy-sender": return { copy: c.sender };

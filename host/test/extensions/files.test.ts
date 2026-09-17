@@ -9,12 +9,11 @@ import { tile } from "../../../sdk/src/icon.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { BROWSE_CAP, filterEntries, hintRow, isRoot, parentOf, sortEntries, upRow, type Entry } from "../../../extensions/files/browse.ts";
+import { BROWSE_CAP, filterEntries, isRoot, moreRow, parentOf, sortEntries, upRow, type Entry } from "../../../extensions/files/browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv } from "../../../extensions/files/content.ts";
-import { parseMdls, pngSize } from "../../../extensions/files/meta.ts";
-import { archiveArgv, archiveName, copyForm, moveForm, renameForm } from "../../../extensions/files/ops.ts";
+import { parseMdls } from "../../../extensions/files/meta.ts";
+import { archiveArgv, archiveName, copyForm, moveForm, renameForm } from "../../../sdk/src/files.ts";
 import { parseMdfindRecent, parseXbel } from "../../../extensions/files/recent.ts";
-import { terminalAt } from "../../../extensions/shell/run.ts";
 import type { Item } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
 
@@ -51,7 +50,7 @@ describe("browse helpers", () => {
   const e = (name: string, dir: boolean, size: number, mtime: number): Entry => ({ path: `/x/${name}`, name, dir, size, mtime });
   const entries = [e("b.txt", false, 30, 2), e("Docs", true, 0, 5), e("a.txt", false, 10, 9), e(".hidden", false, 1, 1), e("apps", true, 0, 3), e("C.md", false, 20, 4)];
   test("sorts: name puts folders first then files, case-insensitive; date newest first mixed; size largest first with folders last", () => {
-    expect(sortEntries(entries, "name").map((x) => x.name)).toEqual([".hidden", "a.txt", "apps", "b.txt", "C.md", "Docs"].sort((a, b) => 0) && ["apps", "Docs", ".hidden", "a.txt", "b.txt", "C.md"]);
+    expect(sortEntries(entries, "name").map((x) => x.name)).toEqual(["apps", "Docs", ".hidden", "a.txt", "b.txt", "C.md"]);
     expect(sortEntries(entries, "date").map((x) => x.name)).toEqual(["a.txt", "Docs", "C.md", "apps", "b.txt", ".hidden"]);
     expect(sortEntries(entries, "size").map((x) => x.name)).toEqual(["b.txt", "C.md", "a.txt", ".hidden", "apps", "Docs"]);
     expect(sortEntries(entries).map((x) => x.name)).toEqual(sortEntries(entries, "name").map((x) => x.name));
@@ -74,14 +73,15 @@ describe("browse helpers", () => {
     expect(isRoot("/Users")).toBe(false);
   });
   test("the .. row goes up on Enter, left and backspace; the hint row is inert and counts what was cut", () => {
-    const up = upRow("/Users/x/Downloads", (p) => p.replace("/Users/x", "~"), "F");
-    expect(up).toEqual({ id: "up:/Users/x", name: "..", subtitle: "~", icon: "F", keywords: ["up", "parent"], actions: [{ id: "up", title: "Go up", shortcut: ["left", "backspace"] }] });
-    expect(hintRow(12, "F")).toMatchObject({ id: "hint:more", name: "12 more; type to filter", actions: [] });
+    const home = process.env.HOME!;
+    const up = upRow(`${home}/Downloads`, "F");
+    expect(up).toEqual({ id: `up:${home}`, name: "..", subtitle: "~", icon: "F", keywords: ["up", "parent"], actions: [{ id: "up", title: "Go up", shortcut: ["left", "backspace"] }] });
+    expect(moreRow(12, "F")).toMatchObject({ id: "hint:more", name: "12 more; type to filter", actions: [] });
     expect(BROWSE_CAP).toBe(500);
   });
 });
 
-describe("ops and meta helpers", () => {
+describe("the file ops (the SDK's `files`) and meta", () => {
   test("archive commands: ditto on macOS with every source, zip from the folder on Linux, the stand-in when set", () => {
     expect(archiveArgv(["/a/x.txt", "/a/y"], "/a/x.zip", { PAL_FILES_ZIP: "/t/zip" })).toEqual({ argv: ["/t/zip", "/a/x.zip", "/a/x.txt", "/a/y"] });
     expect(archiveArgv(["/a/x.txt", "/a/y"], "/a/x.zip", {})).toEqual(MAC ? { argv: ["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", "/a/x.txt", "/a/y", "/a/x.zip"] } : { argv: ["zip", "-r", "-q", "/a/x.zip", "x.txt", "y"], cwd: "/a" });
@@ -94,17 +94,6 @@ describe("ops and meta helpers", () => {
     expect(parseMdls('640\u0000480\u0000(\n    "Red\\n6",\n    "Work"\n)')).toEqual({ width: 640, height: 480, tags: ["Red", "Work"] });
     expect(parseMdls("(null)\u0000(null)\u0000(null)")).toEqual({ width: undefined, height: undefined, tags: [] });
     expect(parseMdls("")).toEqual({ width: undefined, height: undefined, tags: [] });
-  });
-  test("a PNG's size off its IHDR; anything else is nothing", () => {
-    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0x02, 0x80, 0, 0, 0x01, 0xe0, 8, 6, 0, 0, 0]);
-    expect(pngSize(png)).toEqual({ width: 640, height: 480 });
-    expect(pngSize(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0]))).toBeUndefined();
-    expect(pngSize(new Uint8Array(30))).toBeUndefined();
-  });
-  test("a terminal at a folder: the shell alone after cd, per terminal (macOS table)", () => {
-    if (!MAC) return;
-    expect(terminalAt("/a/b c", "kitty", ["/bin/zsh"])).toEqual(["open", "-na", "kitty", "--args", "--directory", "/a/b c", "/bin/zsh", "-c", "exec /bin/zsh"]);
-    expect(terminalAt("/a", "", ["/bin/zsh"])).toEqual(["osascript", "-e", 'tell application "Terminal"', "-e", "activate", "-e", `do script "cd '/a' && exec /bin/zsh"`, "-e", "end tell"]);
   });
 });
 

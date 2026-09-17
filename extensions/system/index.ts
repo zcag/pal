@@ -9,7 +9,7 @@
 // ask first unless the setting turns that off. The core hides the panel
 // before running, so the command lands on the desktop, not on pal.
 import { readdir } from "node:fs/promises";
-import { home, settings, system, type Accessory, type Effect, type Extension, type Item, type LinkParams, type SystemCommand } from "@zcag/pal";
+import { errorMessage, home, settings, system, toast, type Accessory, type Effect, type Extension, type Item, type LinkParams, type SystemCommand } from "@zcag/pal";
 
 /** `[extensions.system]`, defaults in pal.json. */
 type Settings = { confirm_destructive: boolean };
@@ -101,7 +101,7 @@ export default {
         try {
           await system.run(id);
         } catch (e) {
-          return { keep: true, toast: { title: "Command failed", message: String((e as Error)?.message ?? e), style: "failure" } };
+          return toast("Command failed", errorMessage(e), "failure");
         }
         return {};
       },

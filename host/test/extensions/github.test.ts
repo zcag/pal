@@ -271,7 +271,7 @@ describe("github", () => {
       expect(await pick("prs", "acme/api#9", "merge")).toMatchObject({ keep: true, toast: { title: "Merged", style: "success" } });
       expect(seen.find((s) => s.method === "PUT" && s.path === "/repos/acme/api/pulls/9/merge")!.body).toEqual({ merge_method: "merge" });
       // The fixture has no merge endpoint for this one: the API's refusal is a failure toast, the listing stands.
-      expect(await pick("prs", "acme/widgets#71", "merge")).toMatchObject({ keep: true, toast: { title: "Merge failed", style: "failure" } });
+      expect(await pick("prs", "acme/widgets#71", "merge")).toMatchObject({ keep: true, toast: { title: "Could not merge", style: "failure" } });
       expect(await pick("prs", "zcag/pal#72", "ready")).toMatchObject({ keep: true, toast: { title: "Ready for review" } });
       expect(ops("MarkReady")[0].body.variables).toEqual({ id: "PR_72" });
       await list("prs");
@@ -357,7 +357,7 @@ describe("github", () => {
       expect(ids(await list("repos", "org"))).toEqual(["create", "acme/widgets", "acme/api"]);
       host.changeSettings("github", { settings: { default_org: "", repos_root: dir } });
       const items = await list("repos", "org");
-      expect(items[1]).toMatchObject({ id: "hint:org", name: "No organisation set", actions: [] });
+      expect(items[1]).toMatchObject({ id: "hint:org", name: "Organisation is not set", actions: [] });
       host.changeSettings("github", { settings: { default_org: "acme", repos_root: dir } });
     });
 

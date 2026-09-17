@@ -15,16 +15,14 @@ export const isMarked = (sel: Selection | null, item: Item): boolean => !!sel &&
 
 /** The row marked, or unmarked when it was; an empty selection is `null`. */
 export function toggle(sel: Selection | null, item: Item): Selection | null {
-  if (isMarked(sel, item)) {
-    const ids = sel!.ids.filter((id) => id !== item.id);
-    return ids.length ? { palette: sel!.palette, ids } : null;
-  }
-  return mark(sel, item);
+  if (!sel || !isMarked(sel, item)) return mark(sel, item);
+  const ids = sel.ids.filter((id) => id !== item.id);
+  return ids.length ? { palette: sel.palette, ids } : null;
 }
 
 /** The row marked (a shifted arrow: never unmarks). */
 export function mark(sel: Selection | null, item: Item): Selection {
-  if (isMarked(sel, item)) return sel!;
+  if (sel && isMarked(sel, item)) return sel;
   const palette = paletteOf(item);
   return sel && sel.palette === palette ? { palette, ids: [...sel.ids, item.id] } : { palette, ids: [item.id] };
 }

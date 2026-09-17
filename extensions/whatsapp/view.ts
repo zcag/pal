@@ -8,7 +8,7 @@
 // the search row into a text field (`View.input`) and the hints into
 // Send / Cancel. Nothing unread is one calm line, with the recent chats
 // as rows when the item stays on the bar (`unread_only_bar` off).
-import type { Action, HexColor, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, row, text, type Action, type HexColor, type View, type ViewNode } from "@zcag/pal";
 
 /** One row of the popover, everything already formatted (the time in the user's locale, the text on one line). */
 export type BarRow = {
@@ -38,21 +38,12 @@ export type BarState = {
   urgent?: boolean;
 };
 
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 const AVATAR = 28;
 /** A row's inner width (its own padding of one step a side), and the text column left after the avatar, the time and a badge with their gaps. */
-const ROW_W = COMPACT_W - 8, TIME_W = 58, BADGE_W = 30, TEXT_W = ROW_W - AVATAR - TIME_W - BADGE_W - 3 * 8;
+const ROW_W = POPOVER_W - 8, TIME_W = 58, BADGE_W = 30, TEXT_W = ROW_W - AVATAR - TIME_W - BADGE_W - 3 * 8;
 /** Rows per section. */
 export const SECTION_ROWS = 5;
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 2, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
-const hint = (keys: string, what: string): ViewNode[] => [keycap(keys), text(what, { style: "muted", size: "xs" })];
 
 /** WhatsApp's own avatar greens and teals plus a few warm ones, one picked by the name's hash: the initial's tile while there is no picture. */
 const AVATAR_COLORS: HexColor[] = ["#25d366", "#128c7e", "#075e54", "#34b7f1", "#e0a800", "#d9534f", "#7b61ff", "#f06292"];
@@ -90,12 +81,12 @@ function section(title: string, key: string, rows: BarRow[], st: BarState, offse
 }
 
 function hints(st: BarState, cur: BarRow | undefined): ViewNode {
-  if (st.replying) return row([...hint("enter", "send"), ...hint("escape", "cancel")], { key: "hints", gap: 1, minHeight: 22 });
-  const kids: ViewNode[] = [...hint("enter", "open")];
-  if (cur && st.canSend) kids.push(...hint("r", "reply"));
-  if (cur && cur.n > 0) kids.push(...hint("m", "read"));
-  if (st.rows.some((r) => r.n > 0)) kids.push(...hint("a", "all read"));
-  kids.push(...hint("o", "WhatsApp"), ...hint("p", "pal"));
+  if (st.replying) return row([...keyHint("enter", "send"), ...keyHint("escape", "cancel")], { key: "hints", gap: 1, minHeight: 22 });
+  const kids: ViewNode[] = [...keyHint("enter", "open")];
+  if (cur && st.canSend) kids.push(...keyHint("r", "reply"));
+  if (cur && cur.n > 0) kids.push(...keyHint("m", "read"));
+  if (st.rows.some((r) => r.n > 0)) kids.push(...keyHint("a", "all read"));
+  kids.push(...keyHint("o", "WhatsApp"), ...keyHint("p", "pal"));
   return row(kids, { key: "hints", gap: 1, minHeight: 22 });
 }
 
@@ -127,7 +118,7 @@ export function render(st: BarState): View {
         { type: "tile", key: "zero", width: 48, height: 48, text: "✓", color: "green", fill: "soft" },
         text("Nothing unread", { style: "title", key: "zero-t" }),
         text("Every chat is read", { style: "muted", size: "sm", align: "center" }),
-        row([...hint("o", "WhatsApp"), ...hint("p", "pal")], { key: "hints", gap: 1, minHeight: 22 }),
+        row([...keyHint("o", "WhatsApp"), ...keyHint("p", "pal")], { key: "hints", gap: 1, minHeight: 22 }),
       ],
       { key: "compact", padding: 3, gap: 2, align: "center" },
     );

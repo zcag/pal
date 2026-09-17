@@ -8,6 +8,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
+import { errorMessage } from "@zcag/pal";
 import { excluded, parseNote, resolve, type Note } from "./notes.ts";
 
 export type Index = {
@@ -104,10 +105,10 @@ function watchRoot(root: string) {
   watcher = undefined;
   try {
     const w = watch(root, { recursive: true }, () => { clearTimeout(settle); settle = setTimeout(() => { dirty = true; }, WATCH_SETTLE_MS); });
-    w.on("error", (e) => { log(`watch: ${e instanceof Error ? e.message : e}`); if (watcher?.w === w) watcher = undefined; });
+    w.on("error", (e) => { log(`watch: ${errorMessage(e)}`); if (watcher?.w === w) watcher = undefined; });
     watcher = { root, w };
   } catch (e) {
-    log(`watch: ${e instanceof Error ? e.message : e}; the index refreshes every ${MAX_AGE_MS / 1000} s instead`);
+    log(`watch: ${errorMessage(e)}; the index refreshes every ${MAX_AGE_MS / 1000} s instead`);
   }
 }
 
@@ -175,7 +176,7 @@ const forced = process.env.PAL_OBSIDIAN_SEARCH as SearchBackend | undefined;
 export const BACKEND: SearchBackend = forced === "scan" ? "scan" : forced === "rg" || Bun.which("rg") ? "rg" : "scan";
 
 /** The ripgrep command: fixed string, case-insensitive, `path:line:text` per match, three per file, markdown only. */
-export const rgArgv = (q: string, root: string, exclude: string[]): string[] => [
+export const rgArgv = (q: string, exclude: string[]): string[] => [
   "rg", "--line-number", "--no-heading", "--with-filename", "--ignore-case", "--fixed-strings", "--color", "never", "--no-messages", "--max-count", String(MATCHES_PER_NOTE),
   "--glob", "*.md", "--glob", "!.*", ...exclude.flatMap((g) => ["--glob", `!${g}`]), "--", q, ".",
 ];
@@ -197,7 +198,7 @@ let running: Bun.Subprocess<"ignore", "pipe", "ignore"> | undefined;
 
 async function rgSearch(q: string, root: string, exclude: string[]): Promise<Hit[]> {
   running?.kill();
-  const proc = Bun.spawn(rgArgv(q, root, exclude), { cwd: root, stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+  const proc = Bun.spawn(rgArgv(q, exclude), { cwd: root, stdin: "ignore", stdout: "pipe", stderr: "ignore" });
   running = proc;
   const timer = setTimeout(() => proc.kill(), SEARCH_BUDGET_MS);
   const out = await new Response(proc.stdout).text().catch(() => "");

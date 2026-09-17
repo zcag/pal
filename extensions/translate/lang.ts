@@ -6,7 +6,7 @@
 // a language is text (`todo: buy milk` translates whole).
 
 /** Google's codes with their English names; DeepL's differ where `DEEPL` says. */
-export const LANGS: Record<string, string> = {
+const LANGS: Record<string, string> = {
   af: "Afrikaans", sq: "Albanian", am: "Amharic", ar: "Arabic", hy: "Armenian", az: "Azerbaijani", eu: "Basque", be: "Belarusian", bn: "Bengali", bs: "Bosnian", bg: "Bulgarian", ca: "Catalan",
   ceb: "Cebuano", "zh-CN": "Chinese (Simplified)", "zh-TW": "Chinese (Traditional)", hr: "Croatian", cs: "Czech", da: "Danish", nl: "Dutch", en: "English", eo: "Esperanto", et: "Estonian",
   fi: "Finnish", fr: "French", gl: "Galician", ka: "Georgian", de: "German", el: "Greek", gu: "Gujarati", ht: "Haitian Creole", ha: "Hausa", he: "Hebrew", hi: "Hindi", hu: "Hungarian",
@@ -50,7 +50,7 @@ export function fromDeepl(code: string): string {
 }
 
 /** What the query said: the ends (`auto` for an unsaid source, undefined for an unsaid target) and the text after the prefix (empty: use the selection or the clipboard). */
-export type Parsed = { from: string; to?: string; text: string; /** A prefix was typed (`tr:`, `>de`, `en>tr`). */ prefixed: boolean };
+type Parsed = { from: string; to?: string; text: string; /** A prefix was typed (`tr:`, `>de`, `en>tr`). */ prefixed: boolean };
 
 const WORD = "[\\p{L}][\\p{L}-]{0,24}";
 const PAIR = new RegExp(`^\\s*(${WORD})\\s*>\\s*(${WORD})(?:\\s+|$)([\\s\\S]*)$`, "u");

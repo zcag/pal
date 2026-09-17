@@ -7,7 +7,7 @@
 // gives. Enter focuses (a `focus` effect: the panel hides, then the window
 // comes up), the rest of the actions close or minimise, one window or the
 // app's whole set, without leaving the palette; Hide app is macOS's hide.
-import { settings, windows, xdg, type Accessory, type Action, type Extension, type Item, type Window } from "@zcag/pal";
+import { failed, settings, windows, xdg, type Accessory, type Action, type Extension, type Item, type Window } from "@zcag/pal";
 
 /** `[extensions.windows]`, defaults in pal.json. */
 type Settings = { include_minimized: boolean };
@@ -41,7 +41,6 @@ function item(w: Window, siblings: number): Item {
   };
 }
 
-const failed = (what: string, e: unknown) => ({ keep: true as const, toast: { title: `Could not ${what}`, message: String((e as Error)?.message ?? e), style: "failure" as const } });
 
 /** The app's windows: the same process, else the same bundle id or class. */
 const sameApp = (w: Window, all: Window[]) => all.filter((x) => (w.pid ? x.pid === w.pid : x.bundle_or_class === w.bundle_or_class));

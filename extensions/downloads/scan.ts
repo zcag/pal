@@ -1,9 +1,10 @@
 // The pure half of Downloads: what a directory entry is (a finished file,
 // a download in progress by its suffix, a folder), which section a
-// modification time falls in, the size and rate spellings, the browsers'
+// modification time falls in, the rate spelling, the browsers'
 // download folders read off their preference files, and a Safari
 // `.download` bundle's progress from its Info.plist.
 import { extname } from "node:path";
+import { bytes } from "@zcag/pal";
 
 export type Kind = "folder" | "image" | "video" | "audio" | "document" | "archive" | "code" | "app" | "disk" | "file";
 
@@ -56,10 +57,8 @@ export function sectionOf(mtime: number, now = Date.now()): Exclude<Section, "Do
   return days <= 0 ? "Today" : days === 1 ? "Yesterday" : days < 7 ? "This week" : "Older";
 }
 
-export const size = (n: number): string => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(2)} GB`);
-
 /** `2.1 MB/s` from a size seen `ms` ago; nothing for no growth or no time. */
-export const rate = (before: number, after: number, ms: number): string | undefined => (ms > 0 && after > before ? `${size(((after - before) * 1000) / ms)}/s` : undefined);
+export const rate = (before: number, after: number, ms: number): string | undefined => (ms > 0 && after > before ? `${bytes(((after - before) * 1000) / ms)}/s` : undefined);
 
 /**
  * Where the browsers put downloads, from their preference files:

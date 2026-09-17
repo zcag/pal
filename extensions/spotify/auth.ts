@@ -9,7 +9,7 @@
 // storage file (`<data dir>/pal/storage/spotify.json`, user-only) holds it
 // as plain JSON; Sign out removes it. `PAL_SPOTIFY_ACCOUNTS` points the
 // tests at a mock of accounts.spotify.com.
-import { bar, effects, settings, storage } from "@zcag/pal";
+import { bar, effects, errorMessage, settings, storage } from "@zcag/pal";
 
 export const EXTENSION = "spotify";
 export const ITEM = "playing";
@@ -74,7 +74,7 @@ export async function loadTokens(): Promise<Tokens | undefined> {
 
 async function saveTokens(t: Tokens | null) {
   tokens = t;
-  await storage.set(STORAGE_KEY, t, EXTENSION).catch((e) => log(`tokens not stored: ${e instanceof Error ? e.message : e}`));
+  await storage.set(STORAGE_KEY, t, EXTENSION).catch((e) => log(`tokens not stored: ${errorMessage(e)}`));
 }
 
 /** Forgets the tokens (Sign out). Spotify has no revoke endpoint for PKCE apps; the user removes the app under spotify.com/account/apps. */
@@ -180,7 +180,7 @@ export async function signIn(clientId: string, port: number, onDone?: (e?: Error
         await saveTokens(await exchange(code, p.verifier, p.uri, p.clientId));
       } catch (e) {
         later(e instanceof Error ? e : new Error(String(e)));
-        return new Response(page("Not signed in", `The code exchange failed: ${e instanceof Error ? e.message : e}`), { status: 502, headers: { "content-type": "text/html" } });
+        return new Response(page("Not signed in", `The code exchange failed: ${errorMessage(e)}`), { status: 502, headers: { "content-type": "text/html" } });
       }
       later();
       return new Response(page("Signed in to Spotify", "pal has what it needs. You can close this tab."), { headers: { "content-type": "text/html" } });

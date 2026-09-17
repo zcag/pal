@@ -700,10 +700,14 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       else push({ kind: "form", palette: item.palette!, args: c?.args, spec: toForm(e.form), from: item, action, key: ++formSeq.current });
     }
   };
+  // A failed pick names what it tried, in the extensions' own voice: "Could not open", "Could not copy URL", "Could not submit".
   const pickItem = (item: Item, action?: string, c: Ctx | undefined = ctx, submit = false) =>
     Promise.resolve(onPick(item, query, action, c)).then(
       (r) => { applyEffect(item, (r ?? {}) as Effect, c, submit, action); setSuggestSeq((n) => n + 1); },
-      (e) => setToast({ style: "failure", title: "Failed", message: String(e) }),
+      (e) => {
+        const title = submit ? "submit" : item.actions?.find((x) => x.id === action)?.title ?? "open";
+        setToast({ style: "failure", title: `Could not ${title[0].toLowerCase()}${title.slice(1)}`, message: String(e) });
+      },
     );
 
   /**
@@ -845,7 +849,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const i = hits.findIndex((h) => !h.item.disabled && h.item.actions?.some((x) => hasShortcut(x, combo)));
     if (i < 0) return undefined;
     cur.set(i);
-    return hits[i].item.actions![0];
+    return hits[i].item.actions?.[0];
   };
   /**
    * A bare `left`, `right` or `backspace` in a list level while nothing is
@@ -864,7 +868,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const i = hits.findIndex((h) => !h.item.disabled && h.item.actions?.some((x) => hasShortcut(x, key)));
     if (i < 0) return false;
     const row = hits[i].item;
-    const a = row.actions!.find((x) => hasShortcut(x, key))!;
+    const a = row.actions?.find((x) => hasShortcut(x, key));
+    if (!a) return false;
     cur.set(i);
     // Not `run`: that reads this render's `current`; the pick is addressed to the row found (a confirm waits for the cursor to land on it).
     if (a.confirm) { setConfirming(a); return; }

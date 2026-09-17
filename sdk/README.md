@@ -78,7 +78,15 @@ comment, `src/protocol.ts` is the contract.
 | `clipboard` | `list()`, `get()`, `pin()`, `delete()`, `clear()`, `copy()`, `imageUrl()`; `ClipboardEntry` |
 | `windows` | `list()`, `close()`, `minimize()`, `frame()`, `setFrame()`, `displays()`, `focused()`, `layout()`; `Window`, `Rect`, `Display`, `WindowLayout` |
 | `system` | `commands()`, `run()`; `SystemCommand` |
-| `home()`, `core.call()` | `~` expansion; the raw bridge |
+| `home()`, `tilde()`, `core.call()` | `~` expansion and its reverse; the raw bridge |
+| `hint()`, `toast()`, `failed()` | an inert row that tells the user something; a toast that keeps the panel open; the "Could not <what>" failure toast |
+| `text()`, `row()`, `column()`, `keycap()`, `keyHint()`, `POPOVER_W` | view node builders, the keycaps-plus-caption line, a bar popover's content width |
+| `bytes()`, `truncate()`, `oneLine()`, `slug()`, `errorMessage()`, `mdEscape()` | small text helpers |
+| `now()` | the clock, in unix ms; `PAL_NOW` pins it for tests |
+| `exec()`, `run()` | a program run with a timeout: the code and both streams, or stdout with stderr as the error |
+| `parseToken()`, `mintToken()`, `TokenError` | a bearer token a shell command prints |
+| `pngSize()`, `imageData()` | a PNG's size off its header; a picture on the web as a data url for a view |
+| `terminal`, `files`, `md`, `colors`, `tabs` | a terminal window; rename/move/copy forms and archives; markdown to a view tree; colour maths; the browsers' open tabs |
 | `xdg()`, `XDG_ICONS` | freedesktop icon names as glyphs |
 | `checkView()`, `checkForm()`, `checkBarItem()`, `checkEffect()`, `MAX_NODES`, `MAX_DEPTH`, `MAX_BAR_*`, `SHELL_PREFIX` | what the host checks a view, form, bar item or effect against, for your tests |
 | `defineExtension()` | type-checks the default export where it is written |

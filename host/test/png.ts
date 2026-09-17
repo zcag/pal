@@ -1,7 +1,6 @@
 // A small PNG writer for fixtures and mocks: a picture from a pixel
 // function, so a thumbnail in a screenshot is a picture rather than flat
-// colour, and a mock's "GIF" is bytes an <img> draws. (The downloads
-// fixture carries the same writer inline; that tree was another pass's.)
+// colour, and a mock's "GIF" is bytes an <img> draws.
 import { deflateSync } from "node:zlib";
 
 const CRC = new Uint32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });

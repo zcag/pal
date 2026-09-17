@@ -1,4 +1,4 @@
-// Bookmarks: the hand-picked JSON file (same data file as v1's palette),
+// Bookmarks: the hand-picked JSON file (rows of `{name, url, subtitle?, icon?, keywords?}`),
 // plus what the installed browsers keep. Chrome and its relatives are one
 // `Bookmarks` JSON per profile; Safari is a binary plist read through
 // `plutil` (and needs Full Disk Access, so a refusal is a hint row);
@@ -8,7 +8,7 @@
 // section is the browser (and profile), the folder path an accessory.
 // A second palette, `history` (history.ts), searches the same browsers'
 // visit history; browsers.ts is what the two share.
-import { home, settings, xdg, type Action, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, failed, hint, home, settings, xdg, type Action, type Extension, type Item } from "@zcag/pal";
 import { BROWSERS, HOME, MAC, chromiumProfiles, copied, exists, firefoxProfiles, openIn, spawnDetached, type Firefox } from "./browsers.ts";
 import { historyPalette } from "./history.ts";
 import { chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks, type FirefoxRow, type Found } from "./sources.ts";
@@ -64,7 +64,7 @@ async function readFirefox(b: Firefox): Promise<Source[]> {
         sources.push({ section: p.section, browser: b.app, found: firefoxBookmarks(rows) });
       } finally { d.close(); }
     } catch (e) {
-      console.error(`[bookmarks] firefox ${db}: ${e instanceof Error ? e.message : e}`);
+      console.error(`[bookmarks] firefox ${db}: ${errorMessage(e)}`);
     }
   }
   return sources;
@@ -93,7 +93,7 @@ async function fileRows(): Promise<{ rows: Row[]; problem?: Problem }> {
     if (!Array.isArray(data)) throw new Error("expected a JSON array of {name, url}");
     return { rows: data };
   } catch (e) {
-    return { rows: [], problem: { name: `Could not read ${file.slice(file.lastIndexOf("/") + 1)}`, subtitle: `${String((e as Error)?.message ?? e).split("\n")[0]}: fix the file or point the file setting elsewhere` } };
+    return { rows: [], problem: { name: `Could not read ${file.slice(file.lastIndexOf("/") + 1)}`, subtitle: `${errorMessage(e).split("\n")[0]}: fix the file or point the file setting elsewhere` } };
   }
 }
 
@@ -110,7 +110,7 @@ async function list(): Promise<Item[]> {
   const file = await fileRows();
   // The file's rows sit under the file's name: a headless group above the browsers' sections read as a mistake.
   const section = s.file.slice(s.file.lastIndexOf("/") + 1);
-  if (file.problem) items.push({ id: `hint:${file.problem.name}`, name: file.problem.name, subtitle: file.problem.subtitle, icon: xdg("dialog-warning")!, section, actions: [] });
+  if (file.problem) items.push(hint(file.problem.name, file.problem.name, file.problem.subtitle, { icon: xdg("dialog-warning")!, section }));
   for (const r of file.rows) {
     if (typeof r.url !== "string" || !r.url || seen.has(r.url)) continue;
     seen.add(r.url);
@@ -136,7 +136,7 @@ async function list(): Promise<Item[]> {
       });
     }
   }
-  for (const p of problems) items.push({ id: `hint:${p.name}`, name: p.name, subtitle: p.subtitle, icon: xdg("dialog-warning")!, section: "Safari", actions: [] });
+  for (const p of problems) items.push(hint(p.name, p.name, p.subtitle, { icon: xdg("dialog-warning")!, section: "Safari" }));
   return items;
 }
 
@@ -160,7 +160,7 @@ export default {
           case "open-in": {
             const app = known.get(id)?.browser;
             if (!app) return { open: id };
-            try { openIn(id, app); } catch (e) { return { keep: true, toast: { title: `Could not open in ${app}`, message: String((e as Error)?.message ?? e), style: "failure" } }; }
+            try { openIn(id, app); } catch (e) { return failed(`open in ${app}`, e); }
             return { hide: true };
           }
           default: return { open: id };

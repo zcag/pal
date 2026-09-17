@@ -1,16 +1,14 @@
-// Docker (replaces the v1 `docker` script palette): three live palettes over
-// the docker CLI's `--format '{{json .}}'` output. Containers, running
+// Docker: three live palettes over the docker CLI's `--format '{{json .}}'` output. Containers, running
 // first (Enter starts a stopped one and stops a running one, after a
 // confirm); images, with a form to run one; Compose projects. Podman works
 // through the same commands (`binary = "podman"`, or its `docker` alias).
 // Without the binary, or with the daemon down, one inert hint row says so.
-// Logs open as a `show` level; Shell opens a terminal (`terminal.ts`).
+// Logs open as a `show` level; Shell opens a terminal (the SDK's `terminal`).
 import { basename, dirname } from "node:path";
-import { home, settings, type Accessory, type Action, type Detail, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
-import { openTerminal, type TerminalChoice } from "./terminal.ts";
+import { hint as hintRow, settings, terminal, tilde, toast, type Accessory, type Action, type Detail, type Extension, type Item, type Metadata, type TagColor } from "@zcag/pal";
 
 /** `[extensions.docker]`, defaults in pal.json. */
-type Settings = { binary: string; ttl: number; terminal: TerminalChoice };
+type Settings = { binary: string; ttl: number; terminal: terminal.Choice };
 const S = () => settings.get<Settings>();
 /** `ttl` is palette meta, read once at load (a change takes effect on the next reload). */
 const TTL = S().ttl;
@@ -24,8 +22,6 @@ const WAIT_MS = 8_000;
 const ACT_MS = 60_000;
 /** `compose up` may pull. */
 const COMPOSE_MS = 600_000;
-const HOME = home("~");
-const short = (p: string) => (p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p);
 
 // ---- cli ------------------------------------------------------------------
 
@@ -57,7 +53,7 @@ function rows<T>(out: string): T[] {
   return t.split("\n").flatMap((l) => { try { return [JSON.parse(l) as T]; } catch { return []; } });
 }
 
-const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: ICON, actions: [] });
+const hint = (name: string, subtitle: string): Item => hintRow(name, name, subtitle, { icon: ICON });
 
 /** The row a failed listing shows instead of nothing: no binary, or a daemon that is not answering. */
 function failed(r: Run): Item[] {
@@ -67,7 +63,7 @@ function failed(r: Run): Item[] {
   return [hint(/cannot connect|is the docker daemon running|connection refused/i.test(line) ? "Docker is not running" : `${bin} failed`, line)];
 }
 
-const fail = (title: string, r: Run) => ({ keep: true as const, toast: { title, message: r.err.split("\n").slice(-1)[0] || `exit ${r.code}`, style: "failure" as const } });
+const fail = (title: string, r: Run) => toast(title, r.err.split("\n").slice(-1)[0] || `exit ${r.code}`, "failure");
 
 /** Four backticks fence the text so a ``` inside cannot end it early. */
 const fence = (s: string) => "````\n" + s.replace(/````/g, "```​`") + "\n````";
@@ -172,8 +168,8 @@ async function pickContainer(id: string, action?: string) {
     case "shell": {
       const bin = S().binary || "docker";
       // bash when the image has it, sh otherwise.
-      const why = openTerminal([bin, "exec", "-it", id, "sh", "-c", "command -v bash >/dev/null 2>&1 && exec bash; exec sh"], S().terminal);
-      return why ? { keep: true as const, toast: { title: "Could not open a terminal", message: why, style: "failure" as const } } : {};
+      const why = terminal.open([bin, "exec", "-it", id, "sh", "-c", "command -v bash >/dev/null 2>&1 && exec bash; exec sh"], S().terminal);
+      return why ? toast("Could not open a terminal", why, "failure") : {};
     }
     case "remove": {
       const r = await docker(["rm", "-f", id], ACT_MS);
@@ -277,11 +273,11 @@ function composeProject(r: ComposeRow): Item {
   return {
     id: r.Name,
     name: r.Name,
-    subtitle: dir ? short(dir) : undefined,
+    subtitle: dir ? tilde(dir) : undefined,
     icon: ICON,
     keywords: [basename(dir)],
     accessories: [{ text: r.Status }, { tag: r.Status.split("(")[0], color: composeColor(r.Status) }],
-    detail: { metadata: [{ label: "Status", value: r.Status }, ...files.map((f) => ({ label: "Config", value: short(f) }))] },
+    detail: { metadata: [{ label: "Status", value: r.Status }, ...files.map((f) => ({ label: "Config", value: tilde(f) }))] },
     actions: COMPOSE_ACTIONS,
   };
 }
@@ -295,7 +291,7 @@ async function listCompose(): Promise<Item[]> {
 
 async function pickCompose(id: string, action = "up") {
   const files = composeFiles.get(id);
-  if (!files?.length) return { keep: true as const, toast: { title: "Project not listed", message: "List again first", style: "failure" as const } };
+  if (!files?.length) return toast("Project not listed", "List again first", "failure");
   const compose = ["compose", ...files.flatMap((f) => ["-f", f])];
   switch (action) {
     case "open": return { open: dirname(files[0]) };

@@ -361,7 +361,7 @@ mod restore_tests {
 #[cfg(not(target_os = "macos"))]
 fn run(bin: &str, args: &[&str]) -> Result<String> {
     let out = std::process::Command::new(bin).args(args).output().map_err(|e| match e.kind() {
-        std::io::ErrorKind::NotFound => Error::Unavailable(format!("{bin} not installed")),
+        std::io::ErrorKind::NotFound => Error::Unavailable(format!("{bin} is not installed")),
         _ => Error::Io(e),
     })?;
     if !out.status.success() {

@@ -22,8 +22,8 @@ export type Gif = {
   size?: number;
 };
 
-export const TENOR = process.env.PAL_GIFS_TENOR ?? "https://tenor.googleapis.com";
-export const GIPHY = process.env.PAL_GIFS_GIPHY ?? "https://api.giphy.com";
+const TENOR = process.env.PAL_GIFS_TENOR ?? "https://tenor.googleapis.com";
+const GIPHY = process.env.PAL_GIFS_GIPHY ?? "https://api.giphy.com";
 export const FETCH_MS = 6000;
 /** Rows per listing: four rows of six in the grid. */
 export const LIMIT = 24;

@@ -93,13 +93,13 @@ describe("menu-bar", () => {
   test("without Accessibility the one row asks; unreadable or off macOS it says why", async () => {
     menu = () => { throw new Error("menu bar search needs Accessibility permission"); };
     let rows = await list();
-    expect(rows).toEqual([{ id: "accessibility", name: "Menu bar search needs Accessibility", subtitle: "Grant pal in System Settings > Privacy & Security > Accessibility", icon: "\u{f0026}", actions: [{ id: "open", title: "Open System Settings" }] }]);
-    expect(await pick("accessibility")).toEqual({ keep: true });
+    expect(rows).toEqual([{ id: "hint:accessibility", name: "Menu bar search needs Accessibility", subtitle: "Grant pal in System Settings > Privacy & Security > Accessibility", icon: "\u{f0026}", actions: [{ id: "open", title: "Open System Settings" }] }]);
+    expect(await pick("hint:accessibility")).toEqual({ keep: true });
     expect(asked).toEqual(["accessibility"]);
     menu = () => { throw new Error("menu bar unavailable: the menu bar is macOS only; no desktop on Linux exposes an app's menus to read"); };
     rows = await list();
-    expect(rows).toEqual([{ id: "unavailable", name: process.platform === "darwin" ? "No menu bar to read" : "Menu bar search is macOS only", subtitle: "the menu bar is macOS only; no desktop on Linux exposes an app's menus to read", icon: "\u{f0029}", actions: [] }]);
-    expect(await pick("unavailable")).toEqual({ keep: true });
+    expect(rows).toEqual([{ id: "hint:unavailable", name: process.platform === "darwin" ? "No menu bar to read" : "Menu bar search is macOS only", subtitle: "the menu bar is macOS only; no desktop on Linux exposes an app's menus to read", icon: "\u{f0029}", actions: [] }]);
+    expect(await pick("hint:unavailable")).toEqual({ keep: true });
     expect(await pick("File > New")).toMatchObject({ keep: true, toast: { title: "That menu is gone" } });
     menu = MENU;
   });

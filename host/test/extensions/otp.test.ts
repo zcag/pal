@@ -138,10 +138,10 @@ describe.skipIf(!MAC)("otp", () => {
     host.changeSettings("otp", { settings: { db: join(dir, "nope.db"), contacts, hours: 48 } });
     const items = await list();
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ id: "missing", name: "No Messages database", icon: "\u{f164d}", actions: [] });
+    expect(items[0]).toMatchObject({ id: "hint:missing", name: "No Messages database", icon: "\u{f164d}", actions: [] });
     expect(items[0].subtitle).not.toMatch(/\.$/);
     host.changeSettings("otp", { settings: { db, contacts, senders: ["spamco"], hours: 48 } });
-    expect(await pick("fda", "settings")).toEqual({ open: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" });
+    expect(await pick("hint:fda", "settings")).toEqual({ open: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" });
   });
 });
 

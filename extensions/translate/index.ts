@@ -10,7 +10,7 @@
 // Google's unofficial web endpoint or DeepL with a key. A picked
 // translation goes to the history palette (storage, the last hundred).
 import { createHash } from "node:crypto";
-import { clipboard, selection, settings, storage, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { clipboard, errorMessage, hint, oneLine, selection, settings, storage, toast, truncate, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { MAX_CHARS, speak, translate, TranslateError, type Backend, type Translation } from "./backends.ts";
 import { langOf, matches, nameOf, otherEnd, parse, systemLanguage } from "./lang.ts";
 
@@ -27,7 +27,6 @@ const GLYPH = {
   swap: "\u{f04e1}", // md-swap_horizontal
   history: "\u{f02da}", // md-history
   broom: "\u{f00e2}", // md-broom
-  hint: "\u{f02fd}", // md-information_outline
   alert: "\u{f05d6}", // md-alert_circle_outline
   wait: "\u{f051f}", // md-timer_sand
 };
@@ -42,7 +41,7 @@ const REMOVE: Action = { id: "remove", title: "Remove from history", shortcut: "
 const CLEAR: Action = { id: "clear", title: "Clear history", style: "destructive", confirm: "Forget every translation in the history?" };
 
 /** Keystrokes settle for this long before a request goes out. */
-export const DEBOUNCE_MS = 350;
+const DEBOUNCE_MS = 350;
 const HISTORY_MAX = 100;
 const CACHE_MAX = 200;
 /** A selection or clipboard read is reused for this long across empty listings (each deletion back to nothing would read again). */
@@ -109,8 +108,7 @@ async function fetchTranslation(text: string, from: string, to: string, s: Setti
 
 // ---- rows -------------------------------------------------------------------------
 
-const hint = (id: string, name: string, subtitle: string, icon = GLYPH.hint): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
-const short = (text: string, n = 120) => { const one = text.replace(/\s+/g, " ").trim(); return one.length > n ? `${one.slice(0, n - 1)}…` : one; };
+const short = (text: string, n = 120) => truncate(oneLine(text), n);
 const pair = (from: string, to: string) => `${nameOf(from)} → ${nameOf(to)}`;
 const BACKEND_NAME: Record<Backend, string> = { google: "Google Translate", deepl: "DeepL" };
 const webUrl = (h: Held) => `https://translate.google.com/?sl=${encodeURIComponent(h.from)}&tl=${encodeURIComponent(h.to)}&text=${encodeURIComponent(h.source)}&op=translate`;
@@ -122,14 +120,14 @@ function textRow(id: string, text: string, lang: string, t: Translation, src: So
 }
 
 /** Letters outside the Latin script: a romanisation row is worth showing for such a text, and an IPA pronunciation of a Latin one is not one. */
-export const nonLatin = (text: string): boolean => /[\p{L}&&[^\p{Script=Latin}]]/v.test(text);
+const nonLatin = (text: string): boolean => /[\p{L}&&[^\p{Script=Latin}]]/v.test(text);
 
 function rows(t: Translation, src: Source, cut: boolean, given: boolean): Item[] {
   const whence = src.where === "typed" ? "" : src.where === "selection" ? " · from the selection" : " · from the clipboard";
   if (t.from === t.to) {
     // Nothing to translate to: the text is in the only language the settings name (an English text, `to` unset on an English system).
     return [
-      hint("same", `Already ${nameOf(t.from)}`, "Set `to` (or `from`) to the other language of your pair, or name a target: tr: …, >de …", GLYPH.earth),
+      hint("same", `Already ${nameOf(t.from)}`, "Set `to` (or `from`) to the other language of your pair, or name a target: tr: …, >de …", { icon: GLYPH.earth }),
       hint("prefix", "Name the target with a prefix", "tr: hello · >de hello · en>tr merhaba · german: hello"),
     ];
   }
@@ -145,7 +143,7 @@ function rows(t: Translation, src: Source, cut: boolean, given: boolean): Item[]
   };
   const out: Item[] = [textRow("translation", t.text, t.to, t, src, { subtitle: `${pair(t.from, t.to)} · ${BACKEND_NAME[t.backend]}${whence}${cut ? " · text cut" : ""}`, detail, keywords: [src.text] })];
   if (t.translit && nonLatin(t.text)) out.push(textRow("translit", t.translit, t.to, t, src, { subtitle: `${nameOf(t.to)} in Latin letters`, icon: GLYPH.latin }));
-  out.push(given ? hint("detected", `From ${nameOf(t.from)}`, `As the prefix says · translated to ${nameOf(t.to)}`, GLYPH.earth) : hint("detected", `${nameOf(t.from)} detected`, t.confidence !== undefined && t.confidence < 0.999 ? `${Math.round(t.confidence * 100)}% sure · translated to ${nameOf(t.to)}` : `Translated to ${nameOf(t.to)}`, GLYPH.earth));
+  out.push(given ? hint("detected", `From ${nameOf(t.from)}`, `As the prefix says · translated to ${nameOf(t.to)}`, { icon: GLYPH.earth }) : hint("detected", `${nameOf(t.from)} detected`, t.confidence !== undefined && t.confidence < 0.999 ? `${Math.round(t.confidence * 100)}% sure · translated to ${nameOf(t.to)}` : `Translated to ${nameOf(t.to)}`, { icon: GLYPH.earth }));
   t.alternatives.forEach((a, i) => out.push(textRow(`alt:${i}`, a, t.to, t, src, { subtitle: "Alternative", icon: GLYPH.alt })));
   if (t.srcTranslit && nonLatin(src.text)) out.push(textRow("src-translit", t.srcTranslit, t.from, t, src, { subtitle: `The ${nameOf(t.from)} text in Latin letters`, icon: GLYPH.latin }));
   t.dictionary.forEach((d, i) => out.push(textRow(`dict:${i}`, d.word, t.to, t, src, { subtitle: `${d.pos ? `${d.pos} · ` : ""}${d.back.join(", ")}`, icon: GLYPH.dict, detail: { markdown: `**${d.word}**${d.pos ? ` *(${d.pos})*` : ""}\n\n${d.back.join(", ")}` } })));
@@ -169,12 +167,12 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   // The root's inline ask is debounced by the host; inside the palette every key would be a request without this wait.
   if (p.text && !ctx?.inline) {
     await Bun.sleep(DEBOUNCE_MS);
-    if (my !== seq) return [hint("wait", "Translating…", short(p.text), GLYPH.wait)];
+    if (my !== seq) return [hint("wait", "Translating…", short(p.text), { icon: GLYPH.wait })];
   }
   if (ctx?.inline && !p.text) return [];
   const src = await source(p.text);
   if (!src) return hints(s);
-  if (my !== seq) return [hint("wait", "Translating…", short(src.text), GLYPH.wait)];
+  if (my !== seq) return [hint("wait", "Translating…", short(src.text), { icon: GLYPH.wait })];
   const { from, to: wanted } = targets(p, s);
   const cut = src.text.length > MAX_CHARS;
   const text = cut ? src.text.slice(0, MAX_CHARS) : src.text;
@@ -183,26 +181,26 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
     // Already in the target (an English text with `to = en`): the other way round, once.
     const other = otherEnd(t.from, wanted, from);
     if (other !== wanted && !p.to) t = await fetchTranslation(text, from, other, s);
-    if (my !== seq && !ctx?.inline) return [hint("wait", "Translating…", short(src.text), GLYPH.wait)];
+    if (my !== seq && !ctx?.inline) return [hint("wait", "Translating…", short(src.text), { icon: GLYPH.wait })];
     held.clear();
     return rows(t, src, cut, from !== "auto");
   } catch (e) {
     const te = e instanceof TranslateError ? e : undefined;
     console.error(`[translate] ${te?.message ?? e}`);
-    return [hint("failed", te ? te.hint : `Could not translate: ${String((e as Error)?.message ?? e)}`, short(src.text), GLYPH.alert)];
+    return [hint("failed", te ? te.hint : `Could not translate: ${errorMessage(e)}`, short(src.text), { icon: GLYPH.alert })];
   }
 }
 
 async function pick(id: string, action?: string): Promise<Effect> {
   const h = held.get(id);
-  if (!h) return { keep: true, toast: { title: "Translation is gone", message: "The listing changed; pick again", style: "failure" } };
+  if (!h) return toast("Translation is gone", "The listing changed; pick again", "failure");
   if (id === "swap") return { push: { extension: "translate", palette: "translate", query: `${h.to}>${h.from} ${h.text}` } };
   switch (action) {
     case "paste": await remember(h); return { paste: { text: h.text } };
     case "speak": {
-      if (!(await speak(h.text, h.lang))) return { keep: true, toast: { title: "Nothing can speak here", message: "Install spd-say or espeak", style: "failure" } };
+      if (!(await speak(h.text, h.lang))) return toast("Nothing can speak here", "Install spd-say or espeak", "failure");
       await remember(h);
-      return { keep: true, toast: { title: "Speaking", message: short(h.text, 60) } };
+      return toast("Speaking", short(h.text, 60));
     }
     case "copy_source": return { copy: h.source };
     case "open": return { open: webUrl(h) };
@@ -221,7 +219,7 @@ const historyId = (e: Entry) => `h:${createHash("sha1").update(`${e.to}|${e.text
 
 async function historyRows(): Promise<Item[]> {
   const list = await history();
-  if (!list.length) return [hint("empty", "Nothing translated yet", "A translation you copy, paste or speak lands here", GLYPH.history)];
+  if (!list.length) return [hint("empty", "Nothing translated yet", "A translation you copy, paste or speak lands here", { icon: GLYPH.history })];
   const rows = list.map((e): Item => ({
     id: historyId(e), name: short(e.result), subtitle: `${short(e.text, 60)} · ${pair(e.from, e.to)}`, icon: GLYPH.translate, keywords: [e.text],
     accessories: [{ date: e.at }], detail: historyDetail(e),
@@ -232,16 +230,16 @@ async function historyRows(): Promise<Item[]> {
 }
 
 async function historyPick(id: string, action?: string): Promise<Effect> {
-  if (id === "clear") { await storage.remove("history"); return { keep: true, toast: { title: "History cleared" } }; }
+  if (id === "clear") { await storage.remove("history"); return toast("History cleared"); }
   const list = await history();
   const e = list.find((x) => historyId(x) === id);
-  if (!e) return { keep: true, toast: { title: "Entry is gone", style: "failure" } };
+  if (!e) return toast("Entry is gone", undefined, "failure");
   switch (action) {
     case "paste": return { paste: { text: e.result } };
-    case "speak": return (await speak(e.result, e.to)) ? { keep: true, toast: { title: "Speaking", message: short(e.result, 60) } } : { keep: true, toast: { title: "Nothing can speak here", message: "Install spd-say or espeak", style: "failure" } };
+    case "speak": return (await speak(e.result, e.to)) ? toast("Speaking", short(e.result, 60)) : toast("Nothing can speak here", "Install spd-say or espeak", "failure");
     case "again": return { push: { extension: "translate", palette: "translate", query: `${e.from === "auto" ? "" : e.from}>${e.to} ${e.text}` } };
     case "copy_source": return { copy: e.text };
-    case "remove": await storage.set("history", list.filter((x) => historyId(x) !== id)); return { keep: true, toast: { title: "Removed", message: short(e.result, 60) } };
+    case "remove": await storage.set("history", list.filter((x) => historyId(x) !== id)); return toast("Removed", short(e.result, 60));
     default: return { copy: e.result };
   }
 }

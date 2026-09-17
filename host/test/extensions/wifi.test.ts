@@ -146,7 +146,7 @@ describe("wifi", () => {
   });
 
   test("forget goes to the core and keeps the palette with a toast", async () => {
-    expect(await pick("known:Cafe Wifi", "forget")).toEqual({ keep: true, toast: { title: "Forgot Cafe Wifi", style: "success" } });
+    expect(await pick("known:Cafe Wifi", "forget")).toEqual({ keep: true, toast: { title: "Forgot Cafe Wifi" } });
     expect(calls.at(-1)).toEqual({ method: "forget", params: { ssid: "Cafe Wifi" } });
   });
 
@@ -165,7 +165,7 @@ describe("wifi", () => {
   test("no interface: one inert row", async () => {
     const h = await Host.bundled({ core: { "wifi.status": () => ({ interface: null, powered: false, current: null }) } });
     try {
-      expect(await h.list("wifi", "wifi")).toMatchObject([{ id: "error", name: "No Wi-Fi interface", actions: [] }]);
+      expect(await h.list("wifi", "wifi")).toMatchObject([{ id: "hint:error", name: "No Wi-Fi interface", actions: [] }]);
     } finally {
       h.kill();
     }

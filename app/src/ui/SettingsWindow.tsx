@@ -76,7 +76,7 @@ export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagno
   const q = query.trim().toLowerCase();
   const words = q.split(/\s+/).filter(Boolean);
   const hits = q ? index.filter((e) => { const hay = `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""} ${pageTitle(e.page)}`.toLowerCase(); return words.every((w) => hay.includes(w)); }).slice(0, 30) : [];
-  const current = settingsPages.find((p) => p.id === page)!;
+  const current = settingsPages.find((p) => p.id === page) ?? settingsPages[0];
 
   // The jump's landing: the page renders on the next commit, so the flash
   // is retried on every render until the row exists (or the page moved on).

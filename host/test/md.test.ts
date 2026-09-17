@@ -1,15 +1,15 @@
-// extensions/tela/md.ts on its own: the block parser, the inline reducer,
-// the tree it draws, the outline and the plain text. No host, no server.
+// sdk/src/md.ts on its own: the block parser, the inline reducer, the
+// tree it draws, the outline and the plain text. No host, no server.
 import { describe, expect, test } from "bun:test";
-import { checkView } from "../../../sdk/src/index.ts";
-import type { ViewNode } from "../../../sdk/src/protocol.ts";
-import { CALLOUT, MAX_CODE_LINES, MAX_TABLE_ROWS, excerpt, frontmatter, inline, outline, parseBlocks, plain, render } from "../../../extensions/tela/md.ts";
+import { checkView } from "../../sdk/src/index.ts";
+import { CALLOUT, MAX_CODE_LINES, MAX_TABLE_ROWS, excerpt, frontmatter, inline, outline, parseBlocks, plain, render } from "../../sdk/src/md.ts";
+import type { ViewNode } from "../../sdk/src/protocol.ts";
 
 const texts = (n: ViewNode): string[] => (n.type === "text" ? [n.value] : n.type === "stack" ? n.children.flatMap(texts) : n.type === "badge" ? [`[${n.text}]`] : []);
 const find = (n: ViewNode, pred: (x: ViewNode) => boolean): ViewNode[] => [...(pred(n) ? [n] : []), ...(n.type === "stack" ? n.children.flatMap((c) => find(c, pred)) : [])];
 const stacks = (n: ViewNode) => find(n, (x) => x.type === "stack") as Extract<ViewNode, { type: "stack" }>[];
 
-describe("tela md", () => {
+describe("md", () => {
   test("front matter: keys as strings, the body after it; a body without one is untouched; a Slidev headmatter counts", () => {
     expect(frontmatter("---\ntitle: X\nsummary: \"y z\"\n---\n# A")).toEqual({ meta: { title: "X", summary: "y z" }, body: "# A" });
     expect(frontmatter("# A\n---\nnot front matter\n---")).toEqual({ meta: {}, body: "# A\n---\nnot front matter\n---" });
@@ -112,7 +112,8 @@ describe("tela md", () => {
     const big = render(Array.from({ length: 900 }, (_, i) => `para ${i}`).join("\n\n"), { maxNodes: 50 });
     expect(big.truncated).toBe(true);
     expect(texts(big.tree)).toHaveLength(51);
-    expect(texts(big.tree).at(-1)).toBe("… the rest of the page is in tela");
+    expect(texts(big.tree).at(-1)).toBe("… the rest of the page is not shown");
+    expect(texts(render("a\n\nb", { maxNodes: 1, where: "tela" }).tree).at(-1)).toBe("… the rest of the page is in tela");
     expect(texts(render("").tree)).toEqual(["Nothing on this page yet"]);
   });
 

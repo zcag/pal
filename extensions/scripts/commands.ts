@@ -8,11 +8,11 @@
 // so an `inline` command's first output line is current on every show.
 import { existsSync, readdirSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, resolve } from "node:path";
-import { effects, home, type Action, type Ctx, type Effect, type Item, type Palette } from "@zcag/pal";
+import { effects, errorMessage, hint, home, tile, TILE_COLORS, toast, type Action, type Ctx, type Effect, type Item, type Palette, type TileColor } from "@zcag/pal";
 import { accessory, detail, glyph, log, parseLines, run, S, toActions, type Raw } from "./shared.ts";
 
 export type Mode = "silent" | "hud" | "show" | "list" | "inline";
-export type Arg = { name: string; label: string; placeholder: string; optional?: boolean };
+type Arg = { name: string; label: string; placeholder: string; optional?: boolean };
 export type Command = {
   /** The file name, the row's id (readable in `item_hotkeys`). */
   id: string;
@@ -31,10 +31,10 @@ export type Command = {
 };
 
 const MODES: Record<string, Mode> = { silent: "silent", hud: "hud", compact: "hud", show: "show", fulloutput: "show", list: "list", inline: "inline" };
-const TILE_COLORS = ["red", "orange", "amber", "green", "teal", "cyan", "blue", "indigo", "violet", "pink", "slate", "ink"];
-/** md-script_text_outline: a command with no icon of its own; md-alert_circle_outline for a hint. */
+/** md-script_text_outline: a command with no icon of its own. */
 const SCRIPT_GLYPH = "\u{f0bc3}";
-const HINT_GLYPH = "\u{f05d6}";
+/** md-alert_circle_outline: a hint row about a command that went wrong. */
+const ALERT_GLYPH = "\u{f05d6}";
 /** A PNG or JPEG icon next to the script is inlined as a data url up to this size; the panel cannot load a file path. */
 const MAX_ICON_BYTES = 64 * 1024;
 const HEADER_LINES = 60;
@@ -82,7 +82,7 @@ function parseArgs(t: Record<string, string[]>): Arg[] {
 function parseIcon(raw: string | undefined, dir: string): Item["icon"] | undefined {
   if (!raw) return;
   const s = raw.trim();
-  if (TILE_COLORS.includes(s)) return { tile: { glyph: SCRIPT_GLYPH, bg: s } } as unknown as Item["icon"];
+  if ((TILE_COLORS as readonly string[]).includes(s)) return tile(s as TileColor, SCRIPT_GLYPH);
   const g = glyph(s);
   if (g) return g;
   if (/^https?:\/\//.test(s)) return { image: s };
@@ -155,7 +155,7 @@ async function runLater(c: Command, values?: Record<string, unknown>): Promise<v
     : c.mode === "silent" ? undefined
     : c.mode === "show" ? { push: { extension: "scripts", palette: "commands", args: { show: c.id, out: r.out } } }
     : { hud: `${c.title}: ${firstLine(r.out) || "Done"}` };
-  if (effect) await effects.run(effect).catch((e) => log(`${c.id}: ${e instanceof Error ? e.message : e}`));
+  if (effect) await effects.run(effect).catch((e) => log(`${c.id}: ${errorMessage(e)}`));
 }
 
 /** A run the pick waits for: Copy output wants the text back in the pick's own effect. */
@@ -199,7 +199,6 @@ function row(c: Command, subtitle: string | undefined): Item {
   };
 }
 
-const hint = (id: string, name: string, subtitle: string): Item => ({ id: `hint:${id}`, name, subtitle, icon: HINT_GLYPH, actions: [] });
 
 /** The rows a `list` command printed: JSON lines or a JSON array of rows, else one row per plain line. */
 function listRows(c: Command, out: string): Item[] {
@@ -257,7 +256,7 @@ export function commands(): { palette: Palette; dispose: () => void } {
       watcher.on("error", () => { watcher = undefined; watched = undefined; });
       watcher.unref?.();
     } catch (e) {
-      log(`watch ${dir} failed: ${e instanceof Error ? e.message : e}`);
+      log(`watch ${dir} failed: ${errorMessage(e)}`);
     }
   }
 
@@ -294,9 +293,9 @@ export function commands(): { palette: Palette; dispose: () => void } {
       }
       if (args?.list !== undefined) {
         const c = byId(args.list);
-        if (!c) return [hint("gone", `${args.list} is gone`, "The file left the commands folder")];
+        if (!c) return [hint("gone", `${args.list} is gone`, "The file left the commands folder", { icon: ALERT_GLYPH })];
         const r = await run(argv(c, args.values), { cwd: c.cwd, timeout: S().timeout, stderr: "pipe" });
-        if (!r.ok) return [hint("failed", failure(c, r), "cmd+r runs it again")];
+        if (!r.ok) return [hint("failed", failure(c, r), "cmd+r runs it again", { icon: ALERT_GLYPH })];
         const rows = listRows(c, r.out);
         listed.set(c.id, new Map(rows.map((row) => [row.id, row as Raw])));
         return rows.length ? rows : [hint("empty", `${c.title} listed nothing`, "The script printed no rows")];
@@ -311,7 +310,7 @@ export function commands(): { palette: Palette; dispose: () => void } {
       if (args?.list !== undefined) {
         const c = byId(args.list);
         const raw = listed.get(args.list)?.get(id);
-        if (!c || !raw) return { keep: true, toast: { title: "Row not found", message: "List again (cmd+r) and retry", style: "failure" } };
+        if (!c || !raw) return toast("Row not found", "List again (cmd+r) and retry", "failure");
         if (action && action !== "pick" && raw.actions) {
           const a = (raw.actions as Raw[]).find((x) => String(x.id ?? x.title) === action) ?? {};
           if (a.action === "copy") return { copy: String(a.value ?? raw[a.key ?? "name"] ?? "") };
@@ -321,22 +320,22 @@ export function commands(): { palette: Palette; dispose: () => void } {
         if (raw.copy !== undefined) return { copy: String(raw.copy) };
         // A picked row runs the script again with the row's id: `PAL_PICK` in the environment, the same arguments.
         const r = await run(argv(c, args.values), { cwd: c.cwd, timeout: Math.min(S().timeout, 8), stderr: "pipe", env: { PAL_PICK: id } });
-        return r.ok ? { hud: `${c.title}: ${firstLine(r.out) || "Done"}` } : { keep: true, toast: { title: failure(c, r), style: "failure" } };
+        return r.ok ? { hud: `${c.title}: ${firstLine(r.out) || "Done"}` } : toast(failure(c, r), undefined, "failure");
       }
       if (id.startsWith("hint:")) return;
       const c = byId(id);
-      if (!c) return { keep: true, toast: { title: "Command not found", message: "The file left the commands folder; cmd+r lists again", style: "failure" } };
+      if (!c) return toast("Command not found", "The file left the commands folder; cmd+r lists again", "failure");
       switch (action) {
         case "open": return { open: c.path };
         case "copy_path": return { copy: c.path };
         case "copy_output": {
           if (c.args.length) return { form: { ...form(c), submit: { id: "copy_args", title: "Copy output" } } };
           const r = await runNow(c);
-          return r.ok ? { copy: r.out.trimEnd() } : { keep: true, toast: { title: failure(c, r), style: "failure" } };
+          return r.ok ? { copy: r.out.trimEnd() } : toast(failure(c, r), undefined, "failure");
         }
         case "copy_args": {
           const r = await runNow(c, ctx?.values);
-          return r.ok ? { copy: r.out.trimEnd() } : { keep: true, toast: { title: failure(c, r), style: "failure" } };
+          return r.ok ? { copy: r.out.trimEnd() } : toast(failure(c, r), undefined, "failure");
         }
         case "run_args": return start(c, ctx?.values);
         default: return start(c);

@@ -392,8 +392,9 @@ is left to the load-time check.
   through untouched (a `section` for the empty root, whatever the
   extension wants to keep on the row) and `pick` does not get it back.
   An accessory is right-aligned on the row: `{ text }`, `{ tag, color? }`
-  (a badge in the tag palette) or `{ date }` (an ISO string or unix ms,
-  shown relative: "3 h ago"). `detail` is `{ markdown?, metadata? }`:
+  (a badge in the tag palette), `{ date }` (an ISO string or unix ms,
+  shown relative: "3 h ago") or `{ keys }` (a shortcut drawn as key
+  caps). `detail` is `{ markdown?, metadata? }`:
   markdown (no raw HTML; `icon://` images work) over a list of
   `{ label, value?, tags?, link? }` lines; `detail(id, ctx)` on the
   palette answers the same lazily. An `Action` has `id`, `title`,
@@ -1136,6 +1137,59 @@ to the core.
   state is one that reports no track, Chrome for one), `playerctl` on
   Linux.
 
+### Shared helpers
+
+The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
+`text.ts`, `exec.ts`, `token.ts`, `png.ts`, `image.ts`, and the namespaces):
+
+- Rows: `hint(id, name, subtitle?, { icon?, actions?, section? })`: an inert
+  row that tells the user something (`hint:` prefixed, no actions, the
+  `HINT_GLYPH` information mark unless an icon is given); `toast(title,
+  message?, style?)` and `failed(what, error)` ("Could not <what>" with the
+  error's message): a pick's answer with the panel kept open. For a view:
+  `text(value, extra?)`, `row(children, extra?)`, `column(children, extra?)`
+  (stacks, two steps of gap), `keycap(keys, action?)`, `keyHint(keys, what,
+  { action?, size? })`: keycaps then a muted caption, the footer line;
+  `POPOVER_W` (396), the width a bar popover's view measures fixed widths
+  against.
+- Text: `bytes(n)` ("3.2 KB", "1.5 MB"), `truncate(s, n)` (an ellipsis as the
+  last character), `oneLine(s)` (whitespace runs as one space), `slug(s)`,
+  `errorMessage(e)` (an Error's message, else the value as text),
+  `mdEscape(text)` (plain text as markdown that reads as the text, links
+  left whole).
+- Paths: `home(path)` above, and `tilde(path)`, its reverse for subtitles.
+- Time: `now()`, unix ms; `PAL_NOW` (`2026-09-16T10:30:00`, local to `TZ`)
+  pins it, so a test fixes the day and the hour. Every read of the time in
+  an extension should go through it.
+- Processes: `exec(argv, { ms?, cwd?, stdin?, env? })`: `{ code, out, err,
+  timedOut }`, killed after `ms` (`EXEC_MS`, 10 s); `run(argv, opts)`:
+  stdout, or a throw with stderr, the exit code, or "<program> did not
+  finish in N s".
+- Tokens: `parseToken(out, now?)`: the bearer token a command printed (a
+  bare line, or JSON with `access_token` and its expiry) and when it stops
+  being good; `mintToken(command, now?)` runs it through `sh -c`, a
+  `TokenError` (`stderr`, `code`) when it printed none. Calendar's and
+  Gmail's accounts are built on it.
+- Pictures: `pngSize(head)`: `{ width, height }` off a PNG's first 24 bytes;
+  `imageData(url)`: a picture on the web as a data url for an `image` node,
+  fetched once and kept (`forgetImages()` for tests).
+- `terminal`: a terminal window: `terminal.open(cmd, want?, cwd?)` /
+  `terminal.argv(...)` run a command in a fresh window (the app by name or
+  found in /Applications, `$TERMINAL` or the first installed on Linux),
+  `terminal.at(cwd, name)` / `terminal.on(tail, ...)` open a shell in a
+  folder; `terminal.linux()`, `terminal.linuxArgv()`, `terminal.quote()`.
+- `files`: the rename, move and copy forms and their submits
+  (`renameForm`, `moveForm`, `copyForm`, `renamePick`, `intoFolderPick`,
+  `moveTo`, `copyTo`), `archive(paths)` (`ditto` / `zip`).
+- `md`: markdown to the view tree: `md.render(text, { width?, maxNodes?,
+  padding?, shift?, dropTitle?, where? })`, `md.parseBlocks`, `md.inline`,
+  `md.frontmatter`, `md.outline`, `md.plain`, `md.excerpt`.
+- `colors`: colour maths (parse any CSS colour, the conversions, tints and
+  shades, harmonies, contrast, the nearest name, a swatch); the sampler is
+  `color`.
+- `tabs`: the browsers' open tabs: `tabs.active()`, `tabs.find(url)`,
+  `tabs.focus(tab)`.
+
 The protocol's types ride along: `Extension`, `Palette`, `Item`,
 `Accessory`, `Metadata`, `Action`, `Icon`, `TileIcon`, `TintedIcon`,
 `TileColor`, `Effect`, `CopyText`, `WindowLayout`, `WindowLayoutRequest`,
@@ -1265,7 +1319,7 @@ The example's full form (three rows, a setting with a description, the
 manifest's `palettes` block) is `examples/hello-extension/`. Install it
 from a checkout with `pal install path/to/pal/examples/hello-extension`,
 or from GitHub with `pal install github:zcag/pal/examples/hello-extension@main`;
-change the greeting under Settings, Extensions, Hello and the row follows.
+change the greeting under Settings › Extensions › Hello and the row follows.
 
 ## Trust
 

@@ -10,7 +10,8 @@ import { settings, storage, XDG_ICONS, type Action, type Detail, type Extension,
 import data from "./data.json";
 import { ACTIONS as ICONIFY_ACTIONS, list as iconifyList, pick as iconifyPick } from "./iconify.ts";
 
-type Data = { version: string; sets: Record<string, [string, string][]> };
+/** data.json: `[name, codepoint]` pairs per set (a JSON import types a pair as `string[]`). */
+type Data = { version: string; sets: Record<string, string[][]> };
 /** `[palettes.icons]`, default in pal.json. */
 type PaletteSettings = { columns: number };
 
@@ -25,7 +26,7 @@ const SETS: Record<string, string> = {
 };
 
 type Glyph = { id: string; set: string; name: string; code: string };
-const { version, sets } = data as unknown as Data;
+const { version, sets }: Data = data;
 const glyphs: Glyph[] = Object.keys(SETS).concat(Object.keys(sets).filter((s) => !(s in SETS))).flatMap((set) => (sets[set] ?? []).map(([name, code]) => ({ id: `nf-${set}-${name}`, set, name, code })));
 const byId = new Map(glyphs.map((g) => [g.id, g]));
 const byCode = new Map(glyphs.map((g) => [g.code, g]));

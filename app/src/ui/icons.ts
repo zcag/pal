@@ -7,10 +7,8 @@
  * Outside Tauri (the gallery in a plain browser) the requests just fail
  * and the icon falls back.
  */
-type Internals = { convertFileSrc?: (path: string, protocol: string) => string };
-
 const base: string = (() => {
-  const i = (window as unknown as { __TAURI_INTERNALS__?: Internals }).__TAURI_INTERNALS__;
+  const i = window.__TAURI_INTERNALS__;
   try {
     return i?.convertFileSrc?.("", "icon") ?? "icon://localhost/";
   } catch {

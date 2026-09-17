@@ -27,7 +27,7 @@ pub struct Item {
     pub subtitle: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub keywords: Vec<String>,
-    /// Opaque for now: a path, a glyph, a URL, whatever the extension sent.
+    /// Opaque here: a path, a glyph, a URL, a tile, whatever the extension sent; the UI resolves it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

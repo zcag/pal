@@ -1,0 +1,36 @@
+// Small text helpers every extension reaches for: a byte count, a cut
+// string, a slug, an error's message. Pure; the platform-free half of the
+// SDK next to placeholders.ts.
+
+/** `512 B`, `3.2 KB`, `24 KB` (whole from 10 KB), `1.5 MB`, `2.25 GB`. */
+export const bytes = (n: number): string =>
+  n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(2)} GB`;
+
+/** `s` cut to `n` characters, an ellipsis as the last when it was longer. */
+export const truncate = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+
+/** Runs of whitespace (newlines included) as one space, trimmed: a subtitle from a body. */
+export const oneLine = (s: string): string => s.replace(/\s+/g, " ").trim();
+
+/** `Hello, Wörld!` as `hello-world`: lowercase ASCII words joined by hyphens, accents stripped. */
+export const slug = (s: string): string => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+/** What a thrown value says: an Error's message, else the value as text. */
+export const errorMessage = (e: unknown): string => String((e as { message?: unknown })?.message ?? e);
+
+const LINK = /https?:\/\/[^\s<>"')\]]+/g;
+/**
+ * Plain text as markdown that reads as the text: the characters markdown
+ * marks up escaped (a bare `<a@b>` would otherwise vanish as HTML, a
+ * leading `#` would be a heading, `- ` a list), bare links left whole so
+ * the renderer links them.
+ */
+export function mdEscape(text: string): string {
+  const esc = (s: string) => s.replace(/[\\`*_{}[\]<>#|~]/g, "\\$&").replace(/^(\s*)([-+])(\s)/gm, "$1\\$2$3").replace(/^(\s*\d+)\.(\s)/gm, "$1\\.$2");
+  let out = "", at = 0;
+  for (const m of text.matchAll(LINK)) {
+    out += esc(text.slice(at, m.index)) + m[0];
+    at = m.index + m[0].length;
+  }
+  return out + esc(text.slice(at));
+}

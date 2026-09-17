@@ -167,6 +167,13 @@ struct Inner {
     fts: bool,
 }
 
+impl Inner {
+    /// The connection; a panic in another thread (the watcher's) mid-statement poisons the lock and must not take every later call down, SQLite's state is consistent per statement.
+    fn db(&self) -> std::sync::MutexGuard<'_, Connection> {
+        self.db.lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
+
 /// The store. Cheap to clone; every clone shares one connection.
 #[derive(Clone)]
 pub struct Clipboard(Arc<Inner>);
@@ -323,7 +330,7 @@ impl Clipboard {
         }
         let hash = content_hash(&content);
         let at_ms = to_millis(at);
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         // Same content again: to the top, keep who copied it first.
         let bumped: Option<i64> = db
             .query_row(
@@ -380,7 +387,7 @@ impl Clipboard {
     /// paths and the entry's name, every word as a prefix (the name as a
     /// substring: it is outside the FTS table); empty lists everything.
     pub fn list(&self, query: &str, kind: Option<Kind>, limit: usize, offset: usize) -> Result<Vec<Entry>> {
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         let kind = kind.map(Kind::as_str);
         let order = "ORDER BY e.pinned DESC, e.at DESC LIMIT ?2 OFFSET ?3";
         let q = query.trim();
@@ -408,12 +415,12 @@ impl Clipboard {
     }
 
     pub fn get(&self, id: i64) -> Result<Entry> {
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         get(&db, id).map(|e| self.resolve(e))
     }
 
     pub fn pin(&self, id: i64, pinned: bool) -> Result<()> {
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         let n = db.execute("UPDATE entries SET pinned = ?1 WHERE id = ?2", params![pinned as i64, id])?;
         if n == 0 {
             return Err(Error::NotFound(id));
@@ -423,7 +430,7 @@ impl Clipboard {
 
     /// Name the entry (its row title, searchable); `None` or blank clears it.
     pub fn rename(&self, id: i64, name: Option<&str>) -> Result<()> {
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         let name = name.map(str::trim).filter(|n| !n.is_empty());
         let n = db.execute("UPDATE entries SET name = ?1 WHERE id = ?2", params![name, id])?;
         if n == 0 {
@@ -433,7 +440,7 @@ impl Clipboard {
     }
 
     pub fn delete(&self, id: i64) -> Result<()> {
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         let image: Option<Option<String>> =
             db.query_row("DELETE FROM entries WHERE id = ?1 RETURNING image", params![id], |r| r.get(0)).optional()?;
         let image = image.ok_or(Error::NotFound(id))?;
@@ -443,7 +450,7 @@ impl Clipboard {
 
     /// Everything, pinned included.
     pub fn clear(&self) -> Result<()> {
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         db.execute("DELETE FROM entries", [])?;
         if self.0.images.is_dir() {
             fs::remove_dir_all(&self.0.images)?;
@@ -464,7 +471,7 @@ impl Clipboard {
     }
 
     fn find_by_hash(&self, hash: &str) -> Result<Option<Entry>> {
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         let e = db.query_row(&format!("SELECT {COLS} FROM entries e WHERE hash = ?1"), params![hash], row_entry).optional()?;
         Ok(e.map(|e| self.resolve(e)))
     }
@@ -473,7 +480,7 @@ impl Clipboard {
     pub fn copy(&self, id: i64) -> Result<()> {
         let content = self.content(id)?;
         platform::write(&content)?;
-        let db = self.0.db.lock().unwrap();
+        let db = self.0.db();
         db.execute("UPDATE entries SET at = ?1 WHERE id = ?2", params![to_millis(SystemTime::now()), id])?;
         Ok(())
     }
@@ -492,7 +499,7 @@ impl Clipboard {
         let e = self.get(id)?;
         Ok(match e.kind {
             Kind::Text => Content::Text(e.text.unwrap_or_default()),
-            Kind::Image => Content::Image(fs::read(e.image.expect("image row has a file"))?),
+            Kind::Image => Content::Image(fs::read(e.image.ok_or(Error::NotFound(id))?)?),
             Kind::Files => Content::Files(e.files.unwrap_or_default()),
         })
     }

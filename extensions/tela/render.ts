@@ -1,9 +1,8 @@
 // The two view levels: a research answer (the grounding tela assembled, its
 // sources as selectable rows, the flags) and a page read inside the panel
-// (its markdown through md.ts under a header). Pure: state in, tree out.
-import type { Action, View, ViewNode } from "@zcag/pal";
+// (its markdown through the SDK's `md` under a header). Pure: state in, tree out.
+import { md, oneLine, text, truncate, type Action, type View, type ViewNode } from "@zcag/pal";
 import { excerpts, iso, type Page, type Research } from "./data.ts";
-import { render as md } from "./md.ts";
 
 /** Characters of the selected source's excerpt drawn under the rows; the page itself is one key away. */
 export const EXCERPT_CHARS = 1600;
@@ -12,10 +11,8 @@ const SNIPPET_CHARS = 180;
 
 export type ResearchState = { r: Research; cursor: number; asking?: boolean; where: Map<number, string> };
 
-type Text = Extract<ViewNode, { type: "text" }>;
-const text = (value: string, more: Partial<Omit<Text, "type" | "value">> = {}): ViewNode => ({ type: "text", value, ...more });
 const stack = (children: ViewNode[], more: Partial<Extract<ViewNode, { type: "stack" }>> = {}): ViewNode => ({ type: "stack", children, ...more });
-const cut = (s: string, n: number) => { const t = s.replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
+const cut = (s: string, n: number) => truncate(oneLine(s), n);
 
 /** `3 min ago`, `2 h ago`, `5 d ago`, else the date. */
 export function ago(t?: string | null, now = Date.now()): string {
@@ -57,7 +54,7 @@ export function researchView(s: ResearchState): View {
         stack([
           text(src.title, { weight: "semibold" }),
           text([where, path, ago(src.updated_at)].filter(Boolean).join(" \u00B7 "), { style: "muted", size: "xs" }),
-          ...(body ? [stack([md(body, { padding: 0, maxNodes: 220, width: 600, shift: 2 }).tree], { surface: "sunken", radius: true, padding: 3 })] : [text(cut(src.snippet, SNIPPET_CHARS), { size: "sm" })]),
+          ...(body ? [stack([md.render(body, { padding: 0, maxNodes: 220, width: 600, shift: 2, where: "tela" }).tree], { surface: "sunken", radius: true, padding: 3 })] : [text(cut(src.snippet, SNIPPET_CHARS), { size: "sm" })]),
         ], { gap: 1, grow: true }),
       ], { key: `s${k}`, direction: "row", gap: 2, padding: 2, align: "start", radius: true, ...(on ? { surface: "elevated" as const } : {}) });
     }), { gap: 1 }));
@@ -89,7 +86,7 @@ export function researchView(s: ResearchState): View {
 export function pageView(p: Page, where: string, crumb: string[] = []): View {
   const words = p.body.split(/\s+/).filter(Boolean).length;
   const line = [[where, ...crumb].join(" › "), `updated ${ago(p.updated_at)}`, `${words} words`, p.props?.deck === true ? "deck" : p.props?.sheet === true ? "sheet" : ""].filter(Boolean).join(" · ");
-  const body = md(p.body, { padding: 0, width: 660, dropTitle: p.title });
+  const body = md.render(p.body, { padding: 0, width: 660, dropTitle: p.title, where: "tela" });
   return {
     id: `page:${p.id}`,
     title: cut(p.title, 60),

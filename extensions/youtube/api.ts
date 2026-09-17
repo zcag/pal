@@ -4,6 +4,7 @@
 // the parsers on canned replies and the palette against a mock
 // (`PAL_YOUTUBE_API` points the Data API host elsewhere; the Invidious
 // host is the setting itself).
+import { errorMessage } from "@zcag/pal";
 
 export type Video = {
   id: string;
@@ -19,8 +20,8 @@ export type Video = {
 };
 export type Channel = { id: string; title: string; avatar?: string; subscribers?: number; description?: string };
 
-export const DATA_API = process.env.PAL_YOUTUBE_API ?? "https://www.googleapis.com/youtube/v3";
-export const FETCH_MS = 6000;
+const DATA_API = process.env.PAL_YOUTUBE_API ?? "https://www.googleapis.com/youtube/v3";
+const FETCH_MS = 6000;
 export const LIMIT = 25;
 
 export class YouTubeError extends Error {
@@ -117,7 +118,7 @@ async function inv<T>(base: string, path: string, params: Record<string, string>
   const q = new URLSearchParams(params).toString();
   let res: Response;
   try { res = await fetch(`${base.replace(/\/+$/, "")}/api/v1/${path}${q ? `?${q}` : ""}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(FETCH_MS) }); }
-  catch (e) { throw new YouTubeError(`invidious ${(e as Error)?.message}`, `Could not reach ${base}: ${(e as Error)?.name === "TimeoutError" ? "no reply in 6 s" : (e as Error)?.message}`); }
+  catch (e) { throw new YouTubeError(`invidious ${errorMessage(e)}`, (e as Error)?.name === "TimeoutError" ? `${new URL(base).host} did not answer within ${FETCH_MS / 1000} s` : `Could not reach ${base}: ${errorMessage(e)}`); }
   if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) throw new YouTubeError(`invidious ${res.status}`, `${new URL(base).host} does not serve the API (${res.status}${res.ok ? ", not JSON" : ""}): most public instances turned it off; run one, or set api_key`);
   return (await res.json()) as T;
 }

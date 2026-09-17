@@ -17,12 +17,11 @@ const who = (extension?: string): string => runtime().caller(extension).extensio
  */
 export const core = { call };
 
+const homeDir = (): string => process.env.HOME || process.env.USERPROFILE || "";
 /** A leading `~` (bare, or `~/...`) replaced by the home directory, as paths from settings and data files carry it. */
-// No `node:os` import: this file is also type-checked by consumers without
-// node types (the app's gallery). Bun and Node both expose the env.
-declare const process: { env: Record<string, string | undefined> } | undefined;
-const homeDir = (): string => (typeof process === "undefined" ? "" : process.env.HOME || process.env.USERPROFILE || "");
 export const home = (path: string): string => path.replace(/^~(?=\/|$)/, homeDir());
+/** The reverse: the home directory (or a path under it) written with `~`, for subtitles and messages. */
+export const tilde = (path: string): string => { const h = homeDir(); return h && (path === h || path.startsWith(h + "/")) ? `~${path.slice(h.length)}` : path; };
 
 /** A setting's value as an extension writes it: what the kind stores, or `null` to unset the key (back to the manifest's default). */
 export type SettingWrite = string | number | boolean | string[] | null;
@@ -466,7 +465,7 @@ export const wifi = {
 
 /** `pal_core::media::Player`: one player and what it is on. */
 export type MediaPlayer = {
-  /** What `control` takes: `spotify`, `music`, `system` (nowplaying-cli), or the playerctl name. */
+  /** What `control` takes: `spotify`, `music`, `system` (the system-wide Now Playing), or the playerctl name. */
   id: string;
   /** `Spotify`, `Music`, `Firefox`. */
   name: string;
@@ -484,11 +483,11 @@ export type MediaPlayer = {
   position: number | null;
   duration: number | null;
 };
-/** `pal_core::media::NowPlaying`: `system_wide` says whether a source beyond Spotify and Music is installed (`playerctl`, `nowplaying-cli`). */
+/** `pal_core::media::NowPlaying`: `system_wide` says whether a source beyond Spotify and Music is there (the bundled MediaRemote adapter or `nowplaying-cli` on macOS, `playerctl` on Linux). */
 export type NowPlaying = { players: MediaPlayer[]; system_wide: boolean };
 export type MediaCommand = "play_pause" | "play" | "pause" | "next" | "previous";
 
-/** Now playing (`pal_core::media`): Spotify and Music over AppleScript plus `nowplaying-cli` on macOS, `playerctl` on Linux. */
+/** Now playing (`pal_core::media`): Spotify and Music over AppleScript plus the system-wide source (the bundled MediaRemote adapter, else `nowplaying-cli`) on macOS, `playerctl` on Linux. */
 export const media = {
   /** Every running player, playing ones first. */
   nowPlaying: () => call<NowPlaying>("media.now_playing"),

@@ -122,9 +122,9 @@ describe("shortcuts", () => {
     const h = await Host.bundled();
     const items = await h.list("shortcuts", "shortcuts");
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ id: "unavailable", name: "Apple Shortcuts is not available", actions: [] });
+    expect(items[0]).toMatchObject({ id: "hint:unavailable", name: "Apple Shortcuts is not available", actions: [] });
     expect(items[0].subtitle).toBe(MAC ? "The shortcuts command line tool ships with macOS 12 and later" : "Shortcuts is a macOS app; there is nothing to run here");
-    expect(await h.pick("shortcuts", "shortcuts", "unavailable")).toEqual({});
+    expect(await h.pick("shortcuts", "shortcuts", "hint:unavailable")).toEqual({});
     h.kill();
     process.env.PAL_SHORTCUTS_BIN = bin;
   });
@@ -137,7 +137,7 @@ describe("shortcuts", () => {
     const h = await Host.bundled();
     const items = await h.list("shortcuts", "shortcuts");
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ id: "error", name: "Could not list shortcuts", subtitle: "Error: no access; cmd+r tries again", actions: [] });
+    expect(items[0]).toMatchObject({ id: "hint:error", name: "Could not list shortcuts", subtitle: "Error: no access; cmd+r tries again", actions: [] });
     h.kill();
     process.env.PAL_SHORTCUTS_BIN = bin;
   });

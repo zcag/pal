@@ -10,7 +10,7 @@
 // says so.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { settings, storage, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { errorMessage, failed, hint, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { age, channels as searchChannels, channelUrl, channelVideos, count, duration, search, thumbUrl, watchUrl, YouTubeError, type Channel, type Source, type Video } from "./api.ts";
 
 /** `[extensions.youtube]`, defaults in pal.json. */
@@ -23,7 +23,6 @@ const GLYPH = {
   channel: "\u{f0009}", // md-account_circle
   later: "\u{f0150}", // md-clock_outline
   trending: "\u{f0238}", // md-fire
-  hint: "\u{f02fd}", // md-information_outline
   alert: "\u{f05d6}", // md-alert_circle_outline
   wait: "\u{f051f}", // md-timer_sand
   broom: "\u{f00e2}", // md-broom
@@ -37,7 +36,7 @@ const CHANNEL: Action = { id: "channel", title: "Open the channel", shortcut: "c
 const REMOVE: Action = { id: "remove", title: "Remove from Watch Later", shortcut: "cmd+d", style: "destructive" };
 const CLEAR: Action = { id: "clear", title: "Clear Watch Later", style: "destructive", confirm: "Forget every saved video?" };
 
-export const DEBOUNCE_MS = 400;
+const DEBOUNCE_MS = 400;
 const CACHE_MAX = 100;
 const LATER_MAX = 200;
 const EXT = "youtube";
@@ -76,9 +75,9 @@ export function playerArgv(player: Player, url: string): { title: string; argv: 
 function play(v: Video): Effect {
   const url = watchUrl(v.id);
   const p = playerArgv(S().player ?? "auto", url);
-  if (!p) return S().player === "browser" || S().player === "auto" ? { open: url } : { keep: true, toast: { title: `${S().player} is not installed`, message: "Set `player` under Settings › Extensions › YouTube", style: "failure" } };
+  if (!p) return S().player === "browser" || S().player === "auto" ? { open: url } : toast(`${S().player} is not installed`, "Set `player` under Settings › Extensions › YouTube", "failure");
   try { Bun.spawn(p.argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref(); }
-  catch (e) { return { keep: true, toast: { title: `Could not start ${p.title}`, message: String((e as Error)?.message ?? e), style: "failure" } }; }
+  catch (e) { return failed(`start ${p.title}`, e); }
   return { hud: `Playing in ${p.title}` };
 }
 
@@ -91,7 +90,6 @@ const later = async (): Promise<Video[]> => ((await storage.get<Video[]>(LATER_K
 // ---- rows ----------------------------------------------------------------------------------
 
 const held = new Map<string, Video>();
-const hint = (id: string, name: string, subtitle = "", icon = GLYPH.hint): Item => ({ id: `hint:${id}`, name, subtitle, icon, actions: [] });
 const VIDEO_ACTIONS = [OPEN, PLAY, COPY_URL, LATER, CHANNEL];
 const LATER_ACTIONS = [OPEN, PLAY, COPY_URL, CHANNEL, REMOVE];
 
@@ -120,7 +118,7 @@ const setupHints = (): Item[] => [
 
 let seq = 0;
 const cache = new Map<string, Video[]>();
-const failed = (e: unknown, q: string): Item => { const ye = e instanceof YouTubeError ? e : undefined; console.error(`[youtube] ${ye?.message ?? e}`); return hint("failed", ye ? ye.hint : `Could not search: ${String((e as Error)?.message ?? e)}`, q, GLYPH.alert); };
+const failedRow = (e: unknown, q: string): Item => { const ye = e instanceof YouTubeError ? e : undefined; console.error(`[youtube] ${ye?.message ?? e}`); return hint("failed", ye ? ye.hint : `Could not search: ${errorMessage(e)}`, q, { icon: GLYPH.alert }); };
 
 async function cached(key: string, fetcher: () => Promise<Video[]>): Promise<Video[]> {
   const hit = cache.get(key);
@@ -140,24 +138,25 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
   if (!src) return ctx?.inline ? [] : setupHints();
   const args = ctx?.args as { channel?: string; title?: string } | undefined;
   // A channel's videos: one fetch, the query filters them here.
-  if (args?.channel) {
+  const channel = args?.channel;
+  if (channel) {
     try {
-      const vids = await cached(`channel|${src.kind}|${args.channel}`, () => channelVideos(src, args.channel!));
+      const vids = await cached(`channel|${src.kind}|${channel}`, () => channelVideos(src, channel));
       const rows = vids.filter((v) => !q || v.title.toLowerCase().includes(q.toLowerCase())).map((v) => item(v, VIDEO_ACTIONS));
-      return rows.length ? rows : [hint("none", q ? `Nothing matches “${q}”` : "No videos", args.title ?? args.channel)];
-    } catch (e) { return [failed(e, args.title ?? args.channel)]; }
+      return rows.length ? rows : [hint("none", q ? `Nothing matches “${q}”` : "No videos", args.title ?? channel)];
+    } catch (e) { return [failedRow(e, args.title ?? channel)]; }
   }
   const my = ++seq;
   if (q && !ctx?.inline) {
     await Bun.sleep(DEBOUNCE_MS);
-    if (my !== seq) return [hint("wait", "Searching…", q, GLYPH.wait)];
+    if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
   }
   try {
     const vids = await cached(`search|${src.kind}|${src.region}|${q}`, () => search(src, q));
-    if (my !== seq) return [hint("wait", "Searching…", q, GLYPH.wait)];
+    if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
     if (!vids.length) return [hint("none", q ? `No videos for “${q}”` : "Nothing trending", src.kind === "api" ? "YouTube Data API" : src.url)];
     return vids.map((v) => item(v, VIDEO_ACTIONS, q ? undefined : "Trending"));
-  } catch (e) { return [failed(e, q)]; }
+  } catch (e) { return [failedRow(e, q)]; }
 }
 
 async function act(v: Video, action: string | undefined): Promise<Effect> {
@@ -168,16 +167,16 @@ async function act(v: Video, action: string | undefined): Promise<Effect> {
     case "later": {
       const list = (await later()).filter((x) => x.id !== v.id);
       await storage.set(LATER_KEY, [v, ...list].slice(0, LATER_MAX));
-      return { keep: true, toast: { title: "Saved for later", message: v.title } };
+      return toast("Saved for later", v.title);
     }
-    case "remove": await storage.set(LATER_KEY, (await later()).filter((x) => x.id !== v.id)); return { keep: true, toast: { title: "Removed", message: v.title } };
+    case "remove": await storage.set(LATER_KEY, (await later()).filter((x) => x.id !== v.id)); return toast("Removed", v.title);
     default: return { open: watchUrl(v.id) };
   }
 }
 
 async function pick(id: string, action?: string): Promise<Effect> {
   const v = held.get(id) ?? (await later()).find((x) => x.id === id);
-  if (!v) return { keep: true, toast: { title: "Video is gone", message: "The listing changed; pick again", style: "failure" } };
+  if (!v) return toast("Video is gone", "The listing changed; pick again", "failure");
   return act(v, action);
 }
 
@@ -191,14 +190,14 @@ async function channelRows(query = ""): Promise<Item[]> {
   const src = sourceOf(s);
   const q = query.trim();
   if (!src) return setupHints();
-  if (!q) return [hint("type", "Type a channel's name", "Enter lists its latest videos, cmd+enter opens it", GLYPH.channel), hint("oauth", "Your subscriptions are not here", "Listing them needs a Google sign-in (OAuth), which pal does not do")];
+  if (!q) return [hint("type", "Type a channel's name", "Enter lists its latest videos, cmd+enter opens it", { icon: GLYPH.channel }), hint("oauth", "Your subscriptions are not here", "Listing them needs a Google sign-in (OAuth), which pal does not do")];
   const my = ++seq;
   await Bun.sleep(DEBOUNCE_MS);
-  if (my !== seq) return [hint("wait", "Searching…", q, GLYPH.wait)];
+  if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
   try {
     let list = channelCache.get(`${src.kind}|${q}`);
     if (!list) { list = await searchChannels(src, q); if (channelCache.size >= CACHE_MAX) channelCache.clear(); channelCache.set(`${src.kind}|${q}`, list); }
-    if (my !== seq) return [hint("wait", "Searching…", q, GLYPH.wait)];
+    if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
     if (!list.length) return [hint("none", `No channels for “${q}”`)];
     return list.map((c): Item => {
       heldChannels.set(c.id, c);
@@ -207,12 +206,12 @@ async function channelRows(query = ""): Promise<Item[]> {
         actions: [{ id: "videos", title: "Latest videos" }, { id: "open", title: "Open the channel" }, { id: "copy_url", title: "Copy URL", shortcut: "cmd+c" }],
       };
     });
-  } catch (e) { return [failed(e, q)]; }
+  } catch (e) { return [failedRow(e, q)]; }
 }
 
 async function channelPick(id: string, action?: string): Promise<Effect> {
   const c = heldChannels.get(id);
-  if (!c) return { keep: true, toast: { title: "Channel is gone", style: "failure" } };
+  if (!c) return toast("Channel is gone", undefined, "failure");
   switch (action) {
     case "open": return { open: channelUrl(c.id) };
     case "copy_url": return { copy: channelUrl(c.id) };
@@ -224,14 +223,14 @@ async function channelPick(id: string, action?: string): Promise<Effect> {
 
 async function laterRows(): Promise<Item[]> {
   const list = await later();
-  if (!list.length) return [hint("empty", "Nothing saved yet", "cmd+s on a video keeps it here", GLYPH.later)];
+  if (!list.length) return [hint("empty", "Nothing saved yet", "cmd+s on a video keeps it here", { icon: GLYPH.later })];
   const rows = list.map((v) => item(v, LATER_ACTIONS));
   rows.push({ id: "clear", name: "Clear Watch Later", subtitle: `${list.length} ${list.length === 1 ? "video" : "videos"}`, icon: GLYPH.broom, actions: [CLEAR] });
   return rows;
 }
 
 async function laterPick(id: string, action?: string): Promise<Effect> {
-  if (id === "clear") { await storage.remove(LATER_KEY); return { keep: true, toast: { title: "Watch Later cleared" } }; }
+  if (id === "clear") { await storage.remove(LATER_KEY); return toast("Watch Later cleared"); }
   return pick(id, action);
 }
 

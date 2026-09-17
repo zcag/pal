@@ -3,10 +3,12 @@
 // set's tile where the token is used), the grid's tiles, the converter's
 // rows and the history's. No host imports: the gallery's fixture builds its
 // rows with these same functions.
-import type { Action, Detail, Item, Metadata } from "@zcag/pal";
-import { BLACK, WHITE, contrast, nameOf, nearestName, parse, swatch, toHex, wcag, type Format, type RGB } from "./color.ts";
+import { colors, hint as sdkHint, type Action, type Detail, type Item, type Metadata } from "@zcag/pal";
 import { setInfo, token, usage, type Row } from "./sets.ts";
 import { ago, write, type Settings, type Source, type State } from "./state.ts";
+const { BLACK, WHITE, contrast, nameOf, nearestName, parse, swatch, toHex, wcag } = colors;
+type Format = colors.Format;
+type RGB = colors.RGB;
 
 // ---- details ----------------------------------------------------------------------------------
 
@@ -33,9 +35,8 @@ export function detailOf(c: RGB, title: string, s: Settings, row?: Row): Detail 
 
 // ---- the converter -----------------------------------------------------------------------------
 
-/** The hint rows' glyph (md-information_outline); it takes the extension's indigo from the manifest's tile. */
-const HINT_ICON = "\u{f02fd}";
-export const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: HINT_ICON, actions: [] });
+/** A hint row (the SDK's information glyph takes the extension's indigo from the manifest's tile), its name as the id. */
+export const hint = (name: string, subtitle: string): Item => sdkHint(name, name, subtitle);
 export const HINTS = [
   hint("Type a colour", "#ff8800, rgb(255 136 0), hsl(30 100% 50%), hwb(), oklch(0.75 0.18 60), oklab(), lab(), color(display-p3 …), or a CSS name"),
   hint("Every row is one notation of it", "Enter opens it in the picker, cmd+enter copies the row; the detail pane (cmd+i) has contrast and the nearest name"),

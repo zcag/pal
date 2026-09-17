@@ -9,7 +9,7 @@
 // day, and the key hints at the bottom. The keys walk the rows with a
 // ring (`selected`); Enter joins or opens the focused one. Every row and
 // button carries `action`, so a click does what its key would.
-import type { Action, CalendarEvent, HexColor, View, ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keycap, keyHint, row, text, type Action, type CalendarEvent, type HexColor, type View, type ViewNode } from "@zcag/pal";
 import { addDays, clock, dayName, people, startOfDay, timeRange } from "./schedule.ts";
 import { span } from "./today.ts";
 
@@ -17,20 +17,11 @@ import { span } from "./today.ts";
 export type PopoverState = { cursor: number; expanded: boolean; google: boolean; mac: boolean };
 export const freshPopover = (google = false, mac = process.platform === "darwin"): PopoverState => ({ cursor: 0, expanded: false, google, mac });
 
-/** The popover's content width: 420 less the view's padding (3 steps a side). */
-export const COMPACT_W = 396;
 /** The row's parts: the time column, the colour bar, the state column at the right, the gaps between (2 steps each) and the row's own padding. */
 const TIME_W = 40, BAR_W = 3, STATE_W = 82, GAP = 8, ROW_PAD = 8;
-const TITLE_W = COMPACT_W - 2 * ROW_PAD - TIME_W - BAR_W - STATE_W - 3 * GAP;
+const TITLE_W = POPOVER_W - 2 * ROW_PAD - TIME_W - BAR_W - STATE_W - 3 * GAP;
 const MIN = 60_000, H = 60 * MIN;
 
-type Text = Extract<ViewNode, { type: "text" }>;
-type Stack = Extract<ViewNode, { type: "stack" }>;
-const text = (value: string, extra: Partial<Text> = {}): ViewNode => ({ type: "text", value, ...extra });
-const row = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "row", align: "center", gap: 2, ...extra, children });
-const column = (children: ViewNode[], extra: Partial<Stack> = {}): ViewNode => ({ type: "stack", direction: "column", gap: 0, ...extra, children });
-const keycap = (keys: string): ViewNode => ({ type: "keycap", keys });
-const hint = (keys: string[], what: string): ViewNode[] => [...keys.map(keycap), text(what, { style: "muted", size: "xs" })];
 
 export const rowId = (e: CalendarEvent) => `${e.id}@${e.start}`;
 /** The calendar's colour as a hex the view may paint, else the accent-ish grey. */
@@ -128,10 +119,10 @@ export function popover(events: CalendarEvent[], now: number, hideDeclined: bool
   }
   const hints: ViewNode[] = [];
   const cur = rows[cursor];
-  if (cur) hints.push(...hint(["enter"], cur.conference_url ? "join" : "open"));
-  if (rows.some((e) => e.conference_url)) hints.push(...hint(["j"], "next call"));
-  if (l.tomorrow.length) hints.push(...hint(["t"], "tomorrow"));
-  hints.push(...hint(["o"], "calendar"), ...hint(["r"], "refresh"), ...hint(["cmd+c"], "copy"));
+  if (cur) hints.push(...keyHint(["enter"], cur.conference_url ? "join" : "open"));
+  if (rows.some((e) => e.conference_url)) hints.push(...keyHint(["j"], "next call"));
+  if (l.tomorrow.length) hints.push(...keyHint(["t"], "tomorrow"));
+  hints.push(...keyHint(["o"], "calendar"), ...keyHint(["r"], "refresh"), ...keyHint(["cmd+c"], "copy"));
   kids.push({ type: "divider", key: "hr" }, row(hints, { key: "hints", gap: 1, minHeight: 22 }));
   return { tree: column(kids, { key: "compact", padding: 3, gap: 2 }), actions: actions(l, st), title: `Today · ${dayName(now)}`, id: "upcoming", keys: "actions" };
 }

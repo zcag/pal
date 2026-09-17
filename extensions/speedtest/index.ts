@@ -7,7 +7,7 @@
 // tool's output). Enter while it runs stops it. A finished run is one line
 // on the clipboard (cmd+Enter) and lands in the History palette (storage),
 // whose first row draws the last runs as bars.
-import { settings, storage, view as viewApi, type Action, type Effect, type Extension, type Item, type View, type ViewNode } from "@zcag/pal";
+import { hint, settings, storage, toast, view as viewApi, type Action, type Effect, type Extension, type Item, type View, type ViewNode } from "@zcag/pal";
 import { argv, detect, feed, finish, INSTALL, ms, speed, start, summary, TITLE, type Run, type Tool, type ToolId } from "./tools.ts";
 
 /** `[extensions.speedtest]`, defaults in pal.json. */
@@ -18,7 +18,6 @@ const GLYPH = {
   history: "\u{f02da}", // md-history
   chart: "\u{f012a}", // md-chart_line
   broom: "\u{f00e2}", // md-broom
-  hint: "\u{f02fd}", // md-information_outline
 };
 
 const EXT = "speedtest", PALETTE = "speedtest", VIEW_ID = "speedtest";
@@ -188,10 +187,10 @@ async function pick(_id: string, action?: string): Promise<Effect> {
     case "stop": if (live) stop(live); return { view: spec(live) };
     case "copy": {
       const l = await lastRun();
-      if (!l || running(l.run)) return { keep: true, toast: { title: l ? "Still measuring" : "No result yet", message: l ? "Copy once it has finished" : "Enter runs a test" } };
+      if (!l || running(l.run)) return toast(l ? "Still measuring" : "No result yet", l ? "Copy once it has finished" : "Enter runs a test");
       return { copy: summary(l.run) };
     }
-    case "open": { const l = await lastRun(); return l?.run.url ? { open: l.run.url } : { keep: true, toast: { title: "No result page", message: "Only Speedtest by Ookla gives one" } }; }
+    case "open": { const l = await lastRun(); return l?.run.url ? { open: l.run.url } : toast("No result page", "Only Speedtest by Ookla gives one"); }
     case "history": return { push: { extension: EXT, palette: "history" } };
     default: {
       if (live && running(live.run)) { stop(live); return { view: spec(live) }; }
@@ -236,7 +235,7 @@ export function trend(list: Run[]): View {
 
 async function historyRows(): Promise<Item[]> {
   const list = await runs();
-  if (!list.length) return [{ id: "hint:empty", name: "No runs yet", subtitle: "A finished test lands here", icon: GLYPH.history, actions: [] }];
+  if (!list.length) return [hint("empty", "No runs yet", "A finished test lands here", { icon: GLYPH.history })];
   const out: Item[] = [{ id: "trend", name: `Trend: the last ${Math.min(20, list.length)} runs`, subtitle: "Download and upload as bars", icon: GLYPH.chart, actions: [{ id: "trend", title: "Show the trend" }] }];
   for (const r of list) out.push({
     id: runId(r), name: `↓ ${speed(r.download)} Mbps  ↑ ${speed(r.upload)} Mbps  ·  ${ms(r.ping)}`, subtitle: [r.server, r.isp, TITLE[r.tool]].filter(Boolean).join(" · "), icon: GLYPH.gauge, accessories: [{ date: r.startedAt }],
@@ -250,12 +249,12 @@ async function historyRows(): Promise<Item[]> {
 async function historyPick(id: string, action?: string): Promise<Effect> {
   const list = await runs();
   if (id === "trend" || action === "copy_all") return action === "copy_all" ? { copy: list.map((r) => `${new Date(r.startedAt).toLocaleString()}  ${summary(r)}`).join("\n") } : { view: trend(list) };
-  if (id === "clear") { await storage.remove(RUNS); return { keep: true, toast: { title: "History cleared" } }; }
+  if (id === "clear") { await storage.remove(RUNS); return toast("History cleared"); }
   const r = list.find((x) => runId(x) === id);
-  if (!r) return { keep: true, toast: { title: "Run is gone", style: "failure" } };
+  if (!r) return toast("Run is gone", undefined, "failure");
   switch (action) {
     case "open": return r.url ? { open: r.url } : { keep: true };
-    case "remove": await storage.set(RUNS, list.filter((x) => x !== r)); return { keep: true, toast: { title: "Removed" } };
+    case "remove": await storage.set(RUNS, list.filter((x) => x !== r)); return toast("Removed");
     default: return { copy: summary(r) };
   }
 }

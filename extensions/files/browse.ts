@@ -1,8 +1,8 @@
 // Folder browsing as data: the order of a listing under each sort, the
-// name filter, the parent of a path, the `..` row and the cap hint. Pure;
+// name filter, the parent of a path, the `..` row and the cap's row. Pure;
 // index.ts reads the folder and turns entries into rows.
 import { basename, dirname } from "node:path";
-import type { Item } from "@zcag/pal";
+import { hint, tilde, type Item } from "@zcag/pal";
 
 /** One entry of a folder as `stat` reports it, before it is a row. */
 export type Entry = { path: string; name: string; dir: boolean; size: number; mtime: number };
@@ -15,7 +15,7 @@ export const SORTS = [
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
 
-/** Rows a browsed folder shows at most; the rest is a hint row (`hintRow`). */
+/** Rows a browsed folder shows at most; the rest is a hint row (`moreRow`). */
 export const BROWSE_CAP = 500;
 
 /** The args of the level the `browse` palette lists: the folder, absolute. */
@@ -55,19 +55,20 @@ export function parentOf(path: string): string {
 export const isRoot = (path: string) => (path.replace(/\/+$/, "") || "/") === "/";
 
 /** The row id of the `..` row for `parent`. */
-export const upId = (parent: string) => `up:${parent}`;
+/** The `..` row's id; index.ts reads the parent back off it. */
+export const UP = "up:";
 
 /**
  * The `..` row that leads the listing of `folder`: Enter (and `←`,
- * Backspace from anywhere in the level) goes up; `short` spells a path
- * for the subtitle. `glyph` is the folder glyph the rows use.
+ * Backspace from anywhere in the level) goes up. `glyph` is the folder
+ * glyph the rows use.
  */
-export function upRow(folder: string, short: (p: string) => string, glyph: string): Item {
+export function upRow(folder: string, glyph: string): Item {
   const parent = parentOf(folder);
   return {
-    id: upId(parent),
+    id: UP + parent,
     name: "..",
-    subtitle: short(parent),
+    subtitle: tilde(parent),
     icon: glyph,
     keywords: ["up", "parent"],
     actions: [{ id: "up", title: "Go up", shortcut: ["left", "backspace"] }],
@@ -75,16 +76,7 @@ export function upRow(folder: string, short: (p: string) => string, glyph: strin
 }
 
 /** An inert row after the cap saying how many entries were left out. */
-export const hintRow = (left: number, glyph: string): Item => ({
-  id: "hint:more",
-  name: `${left} more; type to filter`,
-  subtitle: `A folder shows ${BROWSE_CAP} entries at most`,
-  icon: glyph,
-  actions: [],
-});
-
-/** What a typed path means for browsing: a path ending in `/` names a folder to list whole. */
-export const endsWithSlash = (q: string) => /\/\s*$/.test(q);
+export const moreRow = (left: number, glyph: string): Item => hint("more", `${left} more; type to filter`, `A folder shows ${BROWSE_CAP} entries at most`, { icon: glyph });
 
 /** The last segment, for a crumb (`Downloads`), the path itself at the root. */
 export const leaf = (path: string) => basename(path.replace(/\/+$/, "")) || path;

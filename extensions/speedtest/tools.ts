@@ -8,6 +8,7 @@
 // three binaries (the tests put stand-ins there).
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { exec } from "@zcag/pal";
 
 export type ToolId = "ookla" | "speedtest-cli" | "fast";
 export type Tool = { id: ToolId; bin: string; title: string };
@@ -29,10 +30,7 @@ const which = (name: string): string | undefined => {
 /** `speedtest` is two programs: Ookla's prints "Speedtest by Ookla" for --version, sivel's pip package installs a `speedtest` alias of speedtest-cli. */
 async function versionOf(bin: string): Promise<string> {
   try {
-    const p = Bun.spawn([bin, "--version"], { stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-    const t = setTimeout(() => p.kill(), 3000);
-    const [out, err] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text()]);
-    clearTimeout(t);
+    const { out, err } = await exec([bin, "--version"], { ms: 3000 });
     return out + err;
   } catch { return ""; }
 }

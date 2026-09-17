@@ -30,7 +30,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { bar, effects, home, settings, storage, view as liveView, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { bar, effects, errorMessage, exec, failed, hint, home, settings, storage, toast, view as liveView, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { KEY as POMODORO_KEY, STATS_KEY, asSession, dayOf, describe, minutesOf, nameOf, next as nextPhase, phaseWord, tally, type Config, type Phase, type Session, type Stats } from "./pomodoro.ts";
 import { DEFAULT_RECENT, MAX_RECENT, current, fmt, render, secsLeft as leftAt, type PopoverState, type State, type Timer } from "./view.ts";
 
@@ -103,14 +103,9 @@ async function timer(...args: string[]): Promise<string> {
   const s = conf();
   const cmd = cliPath();
   if (!cmd) throw new Error(`${s.command} is not installed`);
-  const proc = Bun.spawn([cmd, ...args], { env: { ...process.env, TIMER_DIR: home(s.dir) }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
-  const kill = setTimeout(() => proc.kill(), CLI_MS);
-  try {
-    const [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-    const code = await proc.exited;
-    if (code !== 0) throw new Error(err.trim().replace(/^timer: /, "") || out.trim() || `timer exited ${code}`);
-    return out.trim();
-  } finally { clearTimeout(kill); }
+  const { out, err, code } = await exec([cmd, ...args], { env: { ...process.env, TIMER_DIR: home(s.dir) }, ms: CLI_MS });
+  if (code !== 0) throw new Error(err.trim().replace(/^timer: /, "") || out.trim() || `timer exited ${code}`);
+  return out.trim();
 }
 
 // ---- pomodoro -------------------------------------------------------------------
@@ -162,7 +157,7 @@ function switchPhase(s: Session, line: (n: { phase: Phase; round: number }) => s
     } catch (e) {
       session = null;
       await saveSession();
-      await effects.run({ hud: `Pomodoro stopped: ${(e as Error).message}` }).catch(() => {});
+      await effects.run({ hud: `Pomodoro stopped: ${errorMessage(e)}` }).catch(() => {});
     }
   })().finally(() => { advancing = undefined; });
   return advancing;
@@ -187,9 +182,9 @@ const timers = async (): Promise<Timer[]> => advance(await readTimers(dirOf()));
 
 async function startPomodoro(): Promise<Effect> {
   await loadSession();
-  if (session) return { keep: true, toast: { title: "A pomodoro is running", message: describe(session) } };
+  if (session) return toast("A pomodoro is running", describe(session));
   const of = Math.max(1, Math.round(conf().pomodoro_rounds));
-  try { await startPhase("work", 1, of, now()); } catch (e) { return { keep: true, toast: { title: "Could not start the pomodoro", message: (e as Error).message, style: "failure" } }; }
+  try { await startPhase("work", 1, of, now()); } catch (e) { return failed("start the pomodoro", e); }
   pop.cursor = session!.timerId;
   return { keep: true, hud: `Pomodoro. Round 1 of ${of}: ${minutesOf("work", conf())} min` };
 }
@@ -200,7 +195,7 @@ async function skipPomodoro(): Promise<Effect> {
   const s = session;
   if (!s) return { keep: true };
   await switchPhase(s, () => describe(session!));
-  if (!session) return { keep: true, toast: { title: "Could not start the next phase", style: "failure" } };
+  if (!session) return toast("Could not start the next phase", undefined, "failure");
   pop.cursor = session.timerId;
   return { keep: true };
 }
@@ -295,12 +290,11 @@ async function popoverAction(action: string, ctx: { values?: Record<string, stri
   const ts = await timers();
   const st = popoverState(ts);
   const t = current(st);
-  const fail = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: (e as Error).message, style: "failure" } });
   const start = async (input: string): Promise<Effect> => {
     const { duration, name, ring } = parseNew(input);
-    if (!duration) return { keep: true, toast: { title: "A duration is needed", message: "25m tea, 90s, 1h30m, 2:30, or minutes as a number", style: "failure" } };
+    if (!duration) return toast("A duration is needed", "25m tea, 90s, 1h30m, 2:30, or minutes as a number", "failure");
     let out: string;
-    try { out = await timer(duration, ...(name ? [name] : []), ...(ring ? ["--ring"] : [])); } catch (e) { return fail("start the timer", e); }
+    try { out = await timer(duration, ...(name ? [name] : []), ...(ring ? ["--ring"] : [])); } catch (e) { return failed("start the timer", e); }
     await remember(duration);
     pop.field = false;
     pop.cursor = out.replace(/ started$/, "") || undefined;
@@ -324,7 +318,7 @@ async function popoverAction(action: string, ctx: { values?: Record<string, stri
   if (!t) return { keep: true };
   const args = action === "toggle" ? (t.state === "done" ? ["done"] : t.state === "paused" ? ["resume", t.id] : ["pause", t.id]) : action === "add" ? ["add", ADD, t.id] : action === "stop" ? ["stop", t.id] : undefined;
   if (!args) return { keep: true };
-  try { await timer(...args); } catch (e) { return fail(`${args[0]} the timer`, e); }
+  try { await timer(...args); } catch (e) { return failed(`${args[0]} the timer`, e); }
   if (action === "stop" || (action === "toggle" && t.state === "done")) pop.cursor = ts.find((x) => x.id !== t.id)?.id;
   return { keep: true };
 }
@@ -390,7 +384,7 @@ const cliPath = () => { const c = conf().command; return Bun.which(c) ?? (Bun.fi
 
 async function list(): Promise<Item[]> {
   const ts = await timers();
-  if (!cliPath()) return [...ts.map(row), { id: "hint:cli", name: `${conf().command} is not installed`, subtitle: "Set timer command in Settings to the timer CLI; the rows above are read from its state directory", icon: WARN, actions: [] }];
+  if (!cliPath()) return [...ts.map(row), hint("cli", `${conf().command} is not installed`, "Set timer command in Settings › Extensions › Timer to the timer CLI; the rows above are read from its state directory", { icon: WARN })];
   const n = today();
   return [...ts.map(row), newRow, ...(session ? [] : [pomodoroRow(conf())]), ...(n ? [statsRow(n)] : [])];
 }
@@ -406,11 +400,11 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
     const duration = String(v.duration ?? "").trim(), name = String(v.name ?? "").trim();
     if (!duration) return { form: form({ duration: "A duration is needed" }) };
     let out: string;
-    try { out = await timer(duration, ...(name ? [name] : []), ...(v.ring ? ["--ring"] : [])); } catch (e) { return { form: form({ duration: (e as Error).message }) }; }
-    return { keep: true, toast: { title: "Timer started", message: out } };
+    try { out = await timer(duration, ...(name ? [name] : []), ...(v.ring ? ["--ring"] : [])); } catch (e) { return { form: form({ duration: errorMessage(e) }) }; }
+    return toast("Timer started", out);
   }
   const args = action === "add" ? ["add", ADD, id] : action === "done" ? ["done"] : [action ?? "pause", id];
-  try { await timer(...args); } catch (e) { return { keep: true, toast: { title: `Could not ${action ?? "pause"} the timer`, message: (e as Error).message, style: "failure" } }; }
+  try { await timer(...args); } catch (e) { return failed(`${action ?? "pause"} the timer`, e); }
   return { keep: true };
 }
 
