@@ -3,7 +3,7 @@
 // five-swatch strip), sensors, automations, entertainment areas, and the
 // hint rows for a home with nothing paired or a bridge away. Pure: the
 // fixture renders the same rows.
-import { errorMessage, hint as hintRow, type Accessory, type Action, type Item } from "@zcag/pal";
+import { errorMessage, hint as hintRow, tinted, type Accessory, type Action, type Item } from "@zcag/pal";
 import { toHex, dim, lux as _lux } from "./color.ts";
 import { HueError } from "./api.ts";
 import { aggregate, lightColor, lightHex, pct, type Automation, type Entertainment, type Light, type Room, type Scene, type Sensor } from "./model.ts";
@@ -105,7 +105,7 @@ export function lightRow(l: Light, several: boolean, bridgeName: string): Item {
   return {
     id: l.id, name: l.name,
     subtitle: withBridge([l.room?.name ?? "No room", archetypeName(l.archetype), l.on && kelvinText ? kelvinText : undefined].filter(Boolean).join(" · "), bridgeName, several),
-    icon: l.on ? lightHex(l) : G.bulbOff,
+    icon: l.on ? tinted(G.bulb, lightHex(l)) : G.bulbOff,
     section: l.room?.name ?? "No room",
     keywords: [l.id.slice(6), l.room?.name ?? "", "light"].filter(Boolean),
     accessories: acc,

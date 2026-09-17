@@ -33,6 +33,7 @@ describe("front matter and the note", () => {
   test("tags: inline #tag and #a/b, the front matter's, once each, never a heading, a number, a url fragment or code", () => {
     expect(tags("# Heading\n\n#project and #reading/rss, #Project again, #2026 no, http://x.io/a#frag no\n\n```\n#code\n```\n`#inline`", { tags: ["infra", "project"] })).toEqual(["infra", "project", "reading/rss"]);
     expect(tags("(#paren) #türkçe #a-b_c", {})).toEqual(["paren", "türkçe", "a-b_c"]);
+    expect(tags("receipt #2889-5977-7182, issue #286/ and #1/, a #-- rule, #9a ok, #reading/ trailing", {})).toEqual(["9a", "reading"]);
     expect(tags("", { tags: "one, two" })).toEqual(["one", "two"]);
   });
   test("wikilinks: target, #heading, |label, embeds; once each; a non-note embed and code left out", () => {

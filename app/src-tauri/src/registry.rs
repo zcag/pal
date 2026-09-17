@@ -72,6 +72,11 @@ pub struct PaletteMeta {
     /// The ask row's title with `{query}` in it, when the palette names one.
     #[serde(default, rename = "fallbackTitle", skip_serializing_if = "Option::is_none")]
     pub fallback_title: Option<String>,
+    /// Extra words the palette's row at the root answers to (the
+    /// manifest's `keywords`, the extension's and the palette's own):
+    /// `gh` for GitHub, `ha` for Home Assistant.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub keywords: Vec<String>,
     /// Answers `suggest()` for the empty root's "Now" section (the UI asks the host).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub suggest: bool,
@@ -222,6 +227,11 @@ pub fn palette_row(r: &Registered, config: &Config) -> Item {
     if let Some(alias) = p.alias.as_deref().map(str::trim).filter(|a| !a.is_empty()) {
         keywords.push(alias.to_string());
     }
+    for k in &m.keywords {
+        if !keywords.contains(k) {
+            keywords.push(k.clone());
+        }
+    }
     Item {
         id: format!("{}/{}", r.source.extension, r.source.palette),
         name: m.title.clone(),
@@ -349,6 +359,10 @@ mod tests {
         assert_eq!(row.name, "Clipboard History");
         assert_eq!(row.subtitle.as_deref(), Some("Clipboard"));
         assert_eq!(row.keywords, ["history", "clipboard", "cb"], "name, extension, trimmed alias");
+        let mut m = r.meta.clone();
+        m.keywords = vec!["clip".into(), "cb".into()];
+        let r = Registered::new(Source::new("clipboard", "history"), m, "Clipboard".into(), &c);
+        assert_eq!(palette_row(&r, &c).keywords, ["history", "clipboard", "cb", "clip"], "the manifest's keywords after, once each");
         assert_eq!(row.icon, Some(json!("\u{f0a0}")), "the config's icon wins");
         let r = Registered::new(Source::new("clipboard", "history"), r.meta.clone(), "Clipboard".into(), &Config::default());
         assert_eq!(palette_row(&r, &Config::default()).icon, Some(json!({ "tile": { "glyph": "x", "bg": "violet" } })), "the meta's tile rides through whole");

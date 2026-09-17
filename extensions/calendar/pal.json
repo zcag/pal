@@ -2,6 +2,7 @@
   "name": "calendar",
   "title": "Calendar",
   "description": "Your next days of events with the current one tagged: join the call, open it in Calendar, copy its details, delete it; a form adds one, or one typed line (`standup tomorrow 10:00`). EventKit on macOS, khal on Linux.",
+  "keywords": ["cal"],
   "version": "0.1.0",
   "icon": {
     "tile": {

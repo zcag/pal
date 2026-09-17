@@ -9,8 +9,10 @@ export const bytes = (n: number): string =>
 /** `s` cut to `n` characters, an ellipsis as the last when it was longer. */
 export const truncate = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-/** Runs of whitespace (newlines included) as one space, trimmed: a subtitle from a body. */
-export const oneLine = (s: string): string => s.replace(/\s+/g, " ").trim();
+/** The invisible characters a mail preheader is padded with (zero-width spaces and joiners, the combining grapheme joiner, soft hyphens, the byte-order mark): a row would show them as a run of nothing. */
+const INVISIBLE = /[\u200B-\u200D\u2060\uFEFF\u034F\u00AD]/g;
+/** Runs of whitespace (newlines included) as one space, invisible characters out, trimmed: a subtitle from a body. */
+export const oneLine = (s: string): string => s.replace(INVISIBLE, "").replace(/\s+/g, " ").trim();
 
 /** `Hello, Wörld!` as `hello-world`: lowercase ASCII words joined by hyphens, accents stripped. */
 export const slug = (s: string): string => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");

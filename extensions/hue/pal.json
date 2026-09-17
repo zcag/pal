@@ -2,6 +2,7 @@
   "name": "hue",
   "title": "Hue",
   "description": "Philips Hue over the bridge's CLIP v2 API: rooms, lights and scenes at the root, a light or a room under the keys with its colour, brightness and temperature, sensors, automations and entertainment areas, a bar item for the home, and a guided pairing that finds the bridge and waits for its button.",
+  "keywords": ["lights"],
   "version": "0.1.0",
   "icon": {
     "tile": {

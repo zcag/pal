@@ -12,7 +12,7 @@
 // `PAL_SLACK_API` replaces the host for the tests. A 429 is remembered for
 // its `Retry-After` and every call until then fails at once (`RateLimited`),
 // so a refresh never piles requests onto a limit.
-import { settings } from "@zcag/pal";
+import { clock, settings } from "@zcag/pal";
 import { extract, NotSignedIn, type Creds, type Team } from "./auth.ts";
 
 export const EXTENSION = "slack";
@@ -28,7 +28,7 @@ export class ApiError extends Error {
   get auth() { return this.code === "invalid_auth" || this.code === "not_authed" || this.code === "token_revoked" || this.code === "account_inactive"; }
 }
 export class RateLimited extends Error {
-  constructor(public readonly until: Date) { super(`Slack rate limit, retry at ${until.toLocaleTimeString()}`); }
+  constructor(public readonly until: Date) { super(`Slack rate limit, retry at ${clock(until)}`); }
 }
 
 /** One workspace as the calls see it: the app's team, or the token's. */

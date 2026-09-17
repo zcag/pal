@@ -62,8 +62,9 @@ const asList = (v: string | string[] | undefined): string[] => (Array.isArray(v)
 
 // ---- tags and links -----------------------------------------------------------
 
-/** Obsidian's tag: letters, digits, `_`, `-`, `/`, with at least one character that is not a digit. */
-const TAG = /(^|[\s(])#([\p{L}\p{N}_/-]*[\p{L}_/-][\p{L}\p{N}_/-]*)/gu;
+/** Obsidian's tag: letters, digits, `_`, `-`, `/`. Read with at least one letter (`#2889-5977-7182` is a receipt number, `#286/` an issue, `#--` a divider, none of them a tag) and a trailing `/` or `-` off. */
+const TAG = /(^|[\s(])#([\p{L}\p{N}_/-]+)/gu;
+const LETTER = /\p{L}/u;
 const WIKI = /!?\[\[([^\]|#]*)(#[^\]|]*)?(\|[^\]]*)?\]\]/g;
 const FENCE = /```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`/g;
 /** `[[target\|label]]`, the alias pipe escaped as Obsidian writes it inside a table cell, read as `[[target|label]]`. */
@@ -75,7 +76,7 @@ export function tags(body: string, meta: FrontMatter = {}): string[] {
   const seen = new Set<string>();
   const add = (t: string) => { const k = t.replace(/^#/, "").trim(); if (k && !seen.has(k.toLowerCase())) { seen.add(k.toLowerCase()); out.push(k); } };
   for (const t of [...asList(meta.tags), ...asList(meta.tag)]) add(t);
-  for (const m of body.replace(FENCE, " ").matchAll(TAG)) add(m[2]);
+  for (const m of body.replace(FENCE, " ").matchAll(TAG)) { const t = m[2].replace(/[/-]+$/, ""); if (LETTER.test(t)) add(t); }
   return out;
 }
 

@@ -259,10 +259,11 @@ const people = new Map<string, Person>();
 
 function personRow(p: Person): Item {
   people.set(p.id, p);
+  const phone = prettyPhone(p.phone);
   return {
     id: p.id,
     name: p.name,
-    subtitle: prettyPhone(p.phone),
+    ...(p.name !== phone && { subtitle: phone }),
     icon: initialIcon(p.name),
     keywords: [p.phone, prettyPhone(p.phone)],
     actions: [

@@ -2,6 +2,7 @@
   "name": "whatsapp",
   "title": "WhatsApp",
   "description": "Your WhatsApp chats through a self-hosted OpenWA gateway: the chats by recency with the newest message and who sent it, the unread ones at the root and counted on the bar, a full-text search over the whole archive, the contacts with their numbers. Reading and marking read are always on; sending, replying and reacting only where you turn send on.",
+  "keywords": ["wa"],
   "version": "0.1.0",
   "icon": { "tile": { "glyph": "󰖣", "bg": "green" } },
   "author": "pal",

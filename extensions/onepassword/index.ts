@@ -10,7 +10,7 @@
 // for clipboard managers to skip, out of pal's own history, and replaced
 // by the previous clipboard after 30 s; the username is a plain copy.
 import { existsSync } from "node:fs";
-import { CONCEAL_SECONDS, conceal, errorMessage, exec, failed, hint, settings, type Accessory, type Action, type Effect, type Extension, type Item } from "@zcag/pal";
+import { conceal, CONCEAL_SECONDS, errorMessage, exec, failed, hint, settings, when, type Accessory, type Action, type Effect, type Extension, type Item } from "@zcag/pal";
 
 /** `[extensions.onepassword]`, defaults in pal.json. */
 type Settings = { account: string; vaults: string[]; ttl: number };
@@ -108,7 +108,7 @@ function item(i: OpItem): Item {
         ...(i.additional_information ? [{ label: "Username", value: i.additional_information }] : []),
         ...(primary ? [{ label: "Website", link: { text: primary.href, href: primary.href } }] : []),
         ...(i.tags?.length ? [{ label: "Tags", tags: i.tags.map((t) => ({ text: t })) }] : []),
-        ...(i.updated_at ? [{ label: "Updated", value: new Date(i.updated_at).toLocaleString() }] : []),
+        ...(i.updated_at ? [{ label: "Updated", value: when(i.updated_at) }] : []),
       ],
     },
     actions: ACTIONS,

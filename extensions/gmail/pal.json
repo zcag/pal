@@ -2,6 +2,7 @@
   "name": "gmail",
   "title": "Gmail",
   "description": "Your inbox as rows with the sender, the subject and the snippet; open a message in Gmail, mark it read, search with Gmail's own syntax, browse the labels; an unread count on the bar. One instance per account, each with its own token command; sending only where you turn it on.",
+  "keywords": ["email"],
   "version": "0.1.0",
   "multi": true,
   "icon": { "tile": { "glyph": "󰇮", "bg": "red" } },

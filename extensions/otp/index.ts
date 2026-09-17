@@ -23,7 +23,7 @@ import { Database } from "bun:sqlite";
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CONCEAL_SECONDS, conceal, errorMessage, hint, home, settings, toast, truncate, view as liveView, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
+import { conceal, CONCEAL_SECONDS, errorMessage, hint, home, settings, toast, truncate, view as liveView, when as whenAt, type Action, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 import { PREVIOUS, render } from "./view.ts";
 
 /** `[extensions.otp]`, defaults in pal.json. */
@@ -220,7 +220,7 @@ function item(c: Code, now: Date): Item {
       metadata: [
         { label: "Code", tags: [{ text: c.code, color: "green" }] },
         { label: "From", value: c.name === c.sender ? c.sender : `${c.name} (${c.sender})` },
-        { label: "Received", value: when.toLocaleString() },
+        { label: "Received", value: whenAt(when) },
       ],
     },
     actions: ACTIONS,

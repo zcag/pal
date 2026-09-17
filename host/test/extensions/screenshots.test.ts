@@ -175,6 +175,7 @@ describe("screenshots", () => {
     expect(d.metadata!.map((m) => m.label)).toEqual(["Name", "Folder", "Size", "Pixels", "Taken"]);
     expect(d.metadata![3].value).toBe("1440 × 900");
     expect((await host.detail("screenshots", "screenshots", join(folder, "gone.png"))).markdown).toBe("This file is gone.");
+    expect(await host.detail("screenshots", "screenshots", "capture:area")).toEqual({});
   });
 
   test("suggest: a screenshot under two minutes old leads the Now section, an older one does not", async () => {

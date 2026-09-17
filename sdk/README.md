@@ -27,7 +27,7 @@ link)`, then `bun link @zcag/pal` in your extension.
 
 ```ts
 // index.ts, next to a pal.json naming the extension
-import { defineExtension, settings, storage, type Item } from "@zcag/pal";
+import { clock, defineExtension, settings, storage, type Item } from "@zcag/pal";
 
 type Settings = { greeting: string };
 
@@ -45,7 +45,7 @@ export default defineExtension({
         ];
       },
       pick: async (id) => {
-        if (id === "time") return { toast: { title: new Date().toLocaleTimeString() } };
+        if (id === "time") return { toast: { title: clock(Date.now()) } };
         await storage.set("times", ((await storage.get<number>("times")) ?? 0) + 1);
         return { copy: `${settings.get<Settings>().greeting}, world`, keep: true };
       },
@@ -82,7 +82,7 @@ comment, `src/protocol.ts` is the contract.
 | `hint()`, `toast()`, `failed()` | an inert row that tells the user something; a toast that keeps the panel open; the "Could not <what>" failure toast |
 | `text()`, `row()`, `column()`, `keycap()`, `keyHint()`, `POPOVER_W` | view node builders, the keycaps-plus-caption line, a bar popover's content width |
 | `bytes()`, `truncate()`, `oneLine()`, `slug()`, `errorMessage()`, `mdEscape()` | small text helpers |
-| `now()` | the clock, in unix ms; `PAL_NOW` pins it for tests |
+| `now()`, `clock()`, `dayName()`, `dayNameYear()`, `isoDay()`, `when()` | the clock, in unix ms (`PAL_NOW` pins it for tests); a moment written as `14:05`, `Fri 18 Sep`, `Fri 18 Sep 2026`, `2026-09-18`, or the clock today and the day before it otherwise (never `toLocaleString`: the host's locale is not the user's) |
 | `exec()`, `run()` | a program run with a timeout: the code and both streams, or stdout with stderr as the error |
 | `parseToken()`, `mintToken()`, `TokenError` | a bearer token a shell command prints |
 | `pngSize()`, `imageData()` | a PNG's size off its header; a picture on the web as a data url for a view |

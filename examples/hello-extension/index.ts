@@ -1,7 +1,7 @@
 // The smallest extension: one palette with three rows and one setting.
 // `@zcag/pal` is pal's extension API (sdk/ in the repo): the calls into the
 // core and the types of what an extension answers.
-import { defineExtension, settings, type Item } from "@zcag/pal";
+import { clock, defineExtension, settings, type Item } from "@zcag/pal";
 
 /** `[extensions.hello]`, defaults in pal.json. */
 type Settings = { greeting: string };
@@ -24,7 +24,7 @@ export default defineExtension({
       pick: (id) => {
         if (id === "greet") return { copy: `${settings.get<Settings>().greeting}, world` };
         if (id === "docs") return { open: "https://github.com/zcag/pal/blob/main/docs/extensions.md" };
-        return { toast: { title: new Date().toLocaleTimeString(), style: "success" } };
+        return { toast: { title: clock(Date.now()), style: "success" } };
       },
     },
   },

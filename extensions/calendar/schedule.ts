@@ -3,27 +3,20 @@
 // puts on the clipboard, and the date and time words the New event form
 // takes. Everything runs on the local clock through `Date`; nothing here
 // touches the core, so it is tested by import.
-import { now as current, type CalendarEvent } from "@zcag/pal";
+import { clock, dayName, dayNameYear, isoDay, now as current, type CalendarEvent } from "@zcag/pal";
+
+// The clock, day and date words are the SDK's (`clock.ts`): every extension writes a moment the same way.
+export { clock, dayName, dayNameYear, isoDay };
 
 export const DAY = 86_400_000;
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MON_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Local midnight of the day `t` falls on. */
 export const startOfDay = (t: number): number => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
 /** Local midnight `n` days after the one `t` falls on (DST-safe: by calendar day, not by 24 h). */
 export const addDays = (t: number, n: number): number => { const d = new Date(startOfDay(t)); d.setDate(d.getDate() + n); return d.getTime(); };
 const pad = (n: number) => String(n).padStart(2, "0");
-/** `14:05`, 24 h. */
-export const clock = (t: number): string => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-/** `Fri 18 Sep`. */
-export const dayName = (t: number): string => { const d = new Date(t); return `${DAY_SHORT[d.getDay()]} ${d.getDate()} ${MON_SHORT[d.getMonth()]}`; };
-/** `Fri 18 Sep 2026`. */
-export const dayNameYear = (t: number): string => `${dayName(t)} ${new Date(t).getFullYear()}`;
-/** `2026-09-18`, local. */
-export const isoDay = (t: number): string => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 
 /** Today, Tomorrow, This week (within seven days of now), Later. */
 export function section(start: number, now: number): string {

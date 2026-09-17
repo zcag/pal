@@ -89,9 +89,10 @@ export const stripInstance = (title: string): string => title.replace(PLACEHOLDE
  * wire: the core indexes nothing of it and the root keeps only its own
  * row, which is what `input` already means.
  */
-export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallbackIcon?: OwnIcon, inst?: InstanceMeta): PaletteMeta {
+export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallbackIcon?: OwnIcon, inst?: InstanceMeta, extKeywords?: string[]): PaletteMeta {
   const own = p.icon !== undefined;
   const icon = inst ? badged(own ? p.icon : fallbackIcon, own ? { badge: inst.badge } : inst) : (p.icon ?? fallbackIcon);
+  const keywords = wordList([...(extKeywords ?? []), ...(m?.keywords ?? [])]);
   return {
     name,
     title: inst ? instanceTitle(m?.title ?? p.title ?? name, inst) : (m?.title ?? p.title ?? name),
@@ -115,8 +116,22 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     ...(fallbackOf(p, m)),
     ...(typeof p.suggest === "function" && { suggest: true as const }),
     ...(p.multi === true && { multi: true as const }),
+    ...(keywords.length && { keywords }),
   };
 }
+
+/** The strings of a `keywords` list, trimmed, once each (case kept as first seen); anything that is not a string is left out. */
+const wordList = (v: unknown): string[] => {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const w of Array.isArray(v) ? v : []) {
+    const k = typeof w === "string" ? w.trim() : "";
+    if (k && !seen.has(k.toLowerCase())) { seen.add(k.toLowerCase()); out.push(k); }
+  }
+  return out;
+};
+/** A `keywords` entry that is not a list of strings, as a warning line; nothing when it is fine or absent. */
+const checkKeywords = (v: unknown, where: string): string | undefined => (v !== undefined && !(Array.isArray(v) && v.every((w) => typeof w === "string")) ? `${where}: keywords must be a list of strings` : undefined);
 
 /** Whether the palette lists inline at the root: `inline` on either side, and a `match` to gate it (a palette that matches everything would run on every keystroke). */
 const inlineOf = (p: Palette, m?: ManifestPalette) => !!(p.inline ?? m?.inline) && (p.match !== undefined || m?.match !== undefined);
@@ -201,6 +216,8 @@ export function checkPalettes(manifest: Manifest, ext: Extension, inst?: Instanc
   const metas: PaletteMeta[] = [];
   const manifestIcon = checkIcon(manifest.icon, "icon");
   if (manifestIcon) warnings.push(manifestIcon);
+  const badKeywords = checkKeywords(manifest.keywords, "keywords");
+  if (badKeywords) warnings.push(badKeywords);
   if (inst?.tint !== undefined && !TILE_COLORS.includes(inst.tint)) warnings.push(`instance tint "${String(inst.tint)}" is not one of ${TILE_COLORS.join(", ")}; the extension's own colour is kept`);
   const mark = inst && { ...inst, tint: inst.tint !== undefined && TILE_COLORS.includes(inst.tint) ? inst.tint : undefined };
   for (const [name, p] of Object.entries(ext.palettes ?? {})) {
@@ -240,7 +257,9 @@ export function checkPalettes(manifest: Manifest, ext: Extension, inst?: Instanc
     const on = m?.on ?? p.on;
     if (on !== undefined && (!Array.isArray(on) || !on.every((t) => VIEW_TRIGGERS.includes(t)))) warnings.push(`palettes.${name}: on must be a list of ${VIEW_TRIGGERS.join(", ")}`);
     if (!manifest.multi && PLACEHOLDER.test(m?.title ?? p.title ?? "")) warnings.push(`palettes.${name}: the title uses {instance} but pal.json does not declare "multi": true; nothing fills it`);
-    metas.push(paletteMeta(name, badIcon ? { ...p, icon: undefined } : p, m, manifestIcon ? undefined : manifest.icon, mark));
+    const badWords = checkKeywords(m?.keywords, `palettes.${name}`);
+    if (badWords) warnings.push(badWords);
+    metas.push(paletteMeta(name, badIcon ? { ...p, icon: undefined } : p, badWords ? { ...m, keywords: undefined } : m, manifestIcon ? undefined : manifest.icon, mark, badKeywords ? undefined : manifest.keywords));
   }
   for (const name of Object.keys(declared ?? {})) {
     if (!(name in (ext.palettes ?? {}))) warnings.push(`palettes.${name}: in pal.json but not in the code; nothing serves it`);

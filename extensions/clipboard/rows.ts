@@ -15,7 +15,7 @@
 // the `fetch_titles` setting gates.
 import { basename, dirname, extname } from "node:path";
 import qrcode from "qrcode-generator";
-import { colors, slug, type Action, type ClipboardEntry, type Item } from "@zcag/pal";
+import { clock, colors, dayNameYear, slug, when, type Action, type ClipboardEntry, type Item } from "@zcag/pal";
 const { parse: parseColor, toHex, toHslString, toRgb } = colors;
 type RGB = colors.RGB;
 
@@ -305,7 +305,7 @@ export function rows(a: Analysis, o: RowOpts = {}, home = ""): Item[] {
     const dims = e.width && e.height ? `${e.width} × ${e.height}` : "image";
     out.push(item("image", `Image ${dims}`, `${size(e.bytes)} · PNG`, { image: `icon://localhost/clip?id=${e.id}&size=48` }, [
       { id: "save", title: "Save to Desktop" }, { id: "copy-file", title: "Copy as PNG file", shortcut: "cmd+shift+c" }, { id: "paste", title: "Paste" },
-    ], { detail: { markdown: `![](icon://localhost/clip?id=${e.id}&size=0)`, metadata: [{ label: "Size", value: `${dims} px · ${size(e.bytes)}` }, { label: "Copied", value: new Date(e.at).toLocaleString() }] } }));
+    ], { detail: { markdown: `![](icon://localhost/clip?id=${e.id}&size=0)`, metadata: [{ label: "Size", value: `${dims} px · ${size(e.bytes)}` }, { label: "Copied", value: when(e.at) }] } }));
     if (o.ocr) out.push(item("ocr", "Recognise text in the image", "OCR; the text is copied", GLYPH.ocr, [{ id: "ocr", title: "Recognise and copy" }, { id: "ocr-paste", title: "Recognise and paste" }]));
   }
   if (a.url) {
@@ -349,7 +349,7 @@ export function rows(a: Analysis, o: RowOpts = {}, home = ""): Item[] {
   }
   if (a.date) {
     const { at } = a.date;
-    out.push(item("date", at.toLocaleString(), `${relative(at, now)} · ${at.toISOString()}`, a.date.from === "unix" ? GLYPH.clock : GLYPH.date, [
+    out.push(item("date", `${dayNameYear(at)} ${clock(at)}`, `${relative(at, now)} · ${at.toISOString()}`, a.date.from === "unix" ? GLYPH.clock : GLYPH.date, [
       { id: "copy-local", title: "Copy local time" }, { id: "copy-iso", title: "Copy ISO 8601 (UTC)" }, { id: "copy-unix", title: "Copy unix seconds" },
     ]));
   }
@@ -365,7 +365,7 @@ export function rows(a: Analysis, o: RowOpts = {}, home = ""): Item[] {
     out.push(item("text", first, `${s.words} ${s.words === 1 ? "word" : "words"} · ${s.chars} ${s.chars === 1 ? "char" : "chars"}${s.lines > 1 ? ` · ${s.lines} lines` : ""}`, GLYPH.text, [
       { id: "paste-plain", title: "Paste as plain text" }, { id: "snippet", title: "Save as snippet", shortcut: "cmd+s" },
       { id: "title", title: "Copy as Title Case" }, { id: "lower", title: "Copy lowercase" }, { id: "upper", title: "Copy UPPERCASE" }, { id: "slug", title: "Copy as slug" }, { id: "trim", title: "Copy trimmed" },
-    ], { detail: { markdown: fence(a.text.length > 20_000 ? a.text.slice(0, 20_000) + "\n…" : a.text), metadata: [{ label: "Words", value: String(s.words) }, { label: "Characters", value: String(s.chars) }, { label: "Lines", value: String(s.lines) }, { label: "Copied", value: new Date(e.at).toLocaleString() }] } }));
+    ], { detail: { markdown: fence(a.text.length > 20_000 ? a.text.slice(0, 20_000) + "\n…" : a.text), metadata: [{ label: "Words", value: String(s.words) }, { label: "Characters", value: String(s.chars) }, { label: "Lines", value: String(s.lines) }, { label: "Copied", value: when(e.at) }] } }));
   }
   return out;
 }

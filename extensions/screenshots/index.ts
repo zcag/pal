@@ -11,7 +11,7 @@
 // section offers a screenshot taken in the last two minutes (`suggest`).
 import { readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { bytes, conceal, errorMessage, effects, exec, hint, home, ocr, pngSize, run, settings, thumbnailUrl, tilde, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { bytes, conceal, effects, errorMessage, exec, hint, home, ocr, pngSize, run, settings, thumbnailUrl, tilde, toast, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { ago, captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS, type Capture, type Destination, type Kind, type Mode } from "./shots.ts";
 
 /** `[extensions.screenshots]`, defaults in pal.json. */
@@ -141,6 +141,8 @@ async function suggest(): Promise<Item[]> {
 }
 
 async function detail(path: string): Promise<Detail> {
+  // A capture row or a hint has no file behind it: nothing to show, the UI's generic pane stands.
+  if (!path.startsWith("/") && !path.startsWith("~")) return {};
   const st = await stat(path).catch(() => undefined);
   if (!st) return { markdown: "This file is gone.", metadata: [{ label: "Path", value: tilde(path) }] };
   const kind = kindOf(basename(path));
@@ -153,7 +155,7 @@ async function detail(path: string): Promise<Detail> {
       { label: "Folder", value: tilde(dirname(path)) },
       { label: "Size", value: bytes(st.size) },
       ...(dims ? [{ label: "Pixels", value: `${dims.width} × ${dims.height}` }] : []),
-      { label: "Taken", value: new Date(st.mtimeMs).toLocaleString() },
+      { label: "Taken", value: when(st.mtimeMs) },
     ],
   };
 }

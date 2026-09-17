@@ -10,7 +10,7 @@
 // PATH).
 import { readFile } from "node:fs/promises";
 import { hostname } from "node:os";
-import { errorMessage, hint, run as exec, settings, toast, wifi as wifiCore, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCore, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.network]`, default in pal.json. */
 type Settings = { public_ip_url: string };
@@ -210,7 +210,7 @@ function rows(s: Snapshot, withPublic: boolean): Item[] {
     if (p && "ip" in p) {
       const where = [p.city, p.country].filter(Boolean).join(", ");
       out.push(row("public", p.ip, ["Public IP", where, p.org].filter(Boolean).join(" · "), SECTION.internet, ["public", "wan", "external", "ip", ...(p.country ? [p.country] : []), ...(p.org ? [p.org] : [])], {
-        metadata: meta([["Public IP", p.ip], ["City", p.city], ["Region", p.region], ["Country", p.country], ["Organisation", p.org], ["Fetched", new Date(p.at).toLocaleTimeString()]]),
+        metadata: meta([["Public IP", p.ip], ["City", p.city], ["Region", p.region], ["Country", p.country], ["Organisation", p.org], ["Fetched", when(p.at)]]),
       }, GLYPH.public));
     } else out.push(hint("public:none", "Public IP unavailable", p ? `${p.error}; cmd+r tries again` : "no endpoint", { section: SECTION.internet, icon: GLYPH.public }));
   }

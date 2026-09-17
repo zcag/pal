@@ -9,7 +9,7 @@
 // (id and copy time) in storage, and the section stays away until the
 // clipboard changes.
 import { stat } from "node:fs/promises";
-import { clipboard, colors, failed, home, ocr, settings, storage, toast, type ClipboardEntry, type Effect, type Item, type ListPalette } from "@zcag/pal";
+import { clipboard, clock, colors, dayNameYear, failed, home, ocr, settings, storage, toast, type ClipboardEntry, type Effect, type Item, type ListPalette } from "@zcag/pal";
 import { analyzeText, desktopName, fetchTitle, privateArgv, qrSvg, QR_SHOW_PX, rows, transform, type Analysis, type PathInfo } from "./rows.ts";
 const { toHex, toHslString, toRgb } = colors;
 
@@ -184,7 +184,7 @@ export async function pickRow(id: string, action?: string): Promise<Effect> {
       if (!a.date) return changed;
       if (action === "copy-iso") return copy(a.date.at.toISOString());
       if (action === "copy-unix") return copy(String(Math.floor(a.date.at.getTime() / 1000)));
-      return copy(a.date.at.toLocaleString());
+      return copy(`${dayNameYear(a.date.at)} ${clock(a.date.at)}`);
     }
     case "decoded": return !a.decoded ? changed : action === "paste-decoded" ? { paste: { text: a.decoded.text } } : copy(a.decoded.text);
     case "track": return a.tracking ? { open: a.tracking.url } : changed;

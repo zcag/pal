@@ -54,6 +54,8 @@ export type Unread = {
   /** `client.counts`' `latest` and `last_read`, for Mark as read and the memo. */
   latest: string;
   lastRead: string;
+  /** A quiet channel's topic or purpose, from the directory: its row's subtitle, since no run is fetched for it. */
+  about?: string;
   /** The message the row shows (the one naming you, in a channel; the newest, in a DM) and the unread run, oldest first. */
   top?: Msg;
   msgs: Msg[];
@@ -306,7 +308,7 @@ export async function inbox(): Promise<Inbox> {
         runs.set(u.id, { latest: u.latest, top: u.top, msgs: u.msgs, more: u.more, n: u.n });
       } catch (e) { log(`history ${u.cid}: ${errorMessage(e)}`); }
     }));
-    await Promise.all(quiet.filter((q) => q.team === s.id).map(async (q) => { const c = await conversation(s, q.cid); q.where = c.name; q.ckind = c.kind; }));
+    await Promise.all(quiet.filter((q) => q.team === s.id).map(async (q) => { const c = await conversation(s, q.cid); q.where = c.name; q.ckind = c.kind; q.about = c.topic || c.purpose || undefined; }));
     items.push(...hot);
   }
   // The counts after the runs, so a direct message counts its unread messages once they are known.

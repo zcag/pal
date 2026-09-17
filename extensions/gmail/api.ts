@@ -7,7 +7,7 @@
 // only for the one message the pane or a reply opens. A 429 (or a 403
 // naming the quota) is remembered and every call until `Retry-After`
 // refused locally. `PAL_GMAIL_API` replaces the API host (the tests).
-import { mintToken, settings, TokenError } from "@zcag/pal";
+import { clock, mintToken, settings, TokenError } from "@zcag/pal";
 import type { Message, Part } from "./mail.ts";
 
 export type Conf = { token_command?: string; address?: string; labels?: string[]; send?: boolean; signature?: string };
@@ -31,7 +31,7 @@ export class ApiError extends Error {
 }
 /** The quota is spent until `until`. */
 export class RateLimited extends Error {
-  constructor(readonly until: Date) { super(`Gmail rate limit reached, retry at ${until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`); }
+  constructor(readonly until: Date) { super(`Gmail rate limit reached, retry at ${clock(until)}`); }
 }
 
 // ---- tokens ------------------------------------------------------------------------

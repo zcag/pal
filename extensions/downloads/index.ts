@@ -14,7 +14,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { bytes, errorMessage, files, hint as hintRow, home, run, settings, tilde, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { bytes, errorMessage, files, hint as hintRow, home, run, settings, tilde, toast, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { browserDirsFrom, finalName, GLYPH, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, SUGGEST_MS, THUMBABLE, type Kind, type Section } from "./scan.ts";
 
 /** `[extensions.downloads]`, defaults in pal.json. */
@@ -70,7 +70,7 @@ async function scan(folder: string): Promise<Entry[]> {
     const st = await stat(path).catch(() => undefined);
     if (!st) return;
     const partial = inProgress(name);
-    return { path, name, dir: st.isDirectory(), size: st.size, mtime: st.mtimeMs, partial, kind: partial ? "file" : kindOf(name, st.isDirectory()), folder };
+    return { path, name, dir: st.isDirectory(), size: st.size, mtime: Math.round(st.mtimeMs), partial, kind: partial ? "file" : kindOf(name, st.isDirectory()), folder };
   }));
   return out.filter((e): e is Entry => e !== undefined);
 }
@@ -229,7 +229,7 @@ async function detail(path: string): Promise<Detail> {
       { label: "Folder", value: tilde(dirname(path)) },
       ...(st.isDirectory() ? [] : [{ label: "Size", value: bytes(st.size) }]),
       { label: "Kind", value: k === "file" ? extname(path).slice(1).toUpperCase() || "File" : k[0].toUpperCase() + k.slice(1) },
-      { label: "Modified", value: new Date(st.mtimeMs).toLocaleString() },
+      { label: "Modified", value: when(st.mtimeMs) },
       ...(from.length ? [{ label: "From", link: { text: from[0].replace(/^https?:\/\//, "").slice(0, 80), href: from[0] } }] : []),
       ...(from.length > 1 ? [{ label: "Page", link: { text: from[1].replace(/^https?:\/\//, "").slice(0, 80), href: from[1] } }] : []),
     ],

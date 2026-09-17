@@ -5,7 +5,7 @@
 // (an hour in memory, persisted in storage so a restart lists without a
 // call), the address (the setting, else the profile once), a search, the
 // opened message whole, the drafts, and the writes.
-import { errorMessage, storage } from "@zcag/pal";
+import { errorMessage, oneLine, storage } from "@zcag/pal";
 import * as api from "./api.ts";
 import { avatar } from "./avatar.ts";
 import { bodyOf, header, looksAttached, parseAddress, parseAddresses, type Address, type Attachment, type Message } from "./mail.ts";
@@ -68,8 +68,8 @@ export function toMail(m: Message): Mail {
   };
 }
 
-/** Gmail's snippet is HTML-escaped text. */
-const decodeSnippet = (s: string) => s.replace(/&(amp|lt|gt|quot|#39);/g, (_, e: string) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" })[e]!).trim();
+/** Gmail's snippet is HTML-escaped text; a newsletter's preheader pads it with invisible characters (`oneLine` drops them). */
+const decodeSnippet = (s: string) => oneLine(s.replace(/&(amp|lt|gt|quot|#39);/g, (_, e: string) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" })[e]!));
 
 /** The `Mail` for each ref, the cache first, `messages.get` (metadata) for the rest, eight at a time. */
 export async function fetchMails(refs: api.Ref[]): Promise<Mail[]> {

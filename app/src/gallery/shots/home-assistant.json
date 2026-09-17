@@ -65,7 +65,10 @@
           "id": "light.kitchen",
           "name": "Kitchen Light",
           "subtitle": "Light · Kitchen",
-          "icon": "#ffc878",
+          "icon": {
+            "glyph": "󰌵",
+            "color": "#ffc878"
+          },
           "keywords": [
             "light.kitchen",
             "light",
@@ -274,7 +277,10 @@
           "id": "light.living_room",
           "name": "Living Room Lamp",
           "subtitle": "Light · Living Room",
-          "icon": "#2878ff",
+          "icon": {
+            "glyph": "󰌵",
+            "color": "#2878ff"
+          },
           "keywords": [
             "light.living_room",
             "light",
@@ -1644,7 +1650,10 @@
             "id": "light.kitchen",
             "name": "Kitchen Light",
             "subtitle": "Light · Kitchen",
-            "icon": "#ffc878",
+            "icon": {
+              "glyph": "󰌵",
+              "color": "#ffc878"
+            },
             "keywords": [
               "light.kitchen",
               "light",
@@ -1806,7 +1815,10 @@
             "id": "light.living_room",
             "name": "Living Room Lamp",
             "subtitle": "Light · Living Room",
-            "icon": "#2878ff",
+            "icon": {
+              "glyph": "󰌵",
+              "color": "#2878ff"
+            },
             "keywords": [
               "light.living_room",
               "light",
@@ -1862,7 +1874,10 @@
             "id": "light.kitchen",
             "name": "Kitchen Light",
             "subtitle": "Light · Kitchen",
-            "icon": "#ffc878",
+            "icon": {
+              "glyph": "󰌵",
+              "color": "#ffc878"
+            },
             "keywords": [
               "light.kitchen",
               "light",
@@ -2071,7 +2086,10 @@
             "id": "light.living_room",
             "name": "Living Room Lamp",
             "subtitle": "Light · Living Room",
-            "icon": "#2878ff",
+            "icon": {
+              "glyph": "󰌵",
+              "color": "#2878ff"
+            },
             "keywords": [
               "light.living_room",
               "light",
@@ -3012,7 +3030,10 @@
             "id": "current",
             "name": "Kitchen Light",
             "subtitle": "Brightness 75%",
-            "icon": "#ffc878",
+            "icon": {
+              "glyph": "󰌵",
+              "color": "#ffc878"
+            },
             "actions": []
           },
           {
@@ -3225,7 +3246,10 @@
             "id": "light.living_room",
             "name": "Living Room Lamp",
             "subtitle": "Light · Living Room",
-            "icon": "#2878ff",
+            "icon": {
+              "glyph": "󰌵",
+              "color": "#2878ff"
+            },
             "keywords": [
               "light.living_room",
               "light",

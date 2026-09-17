@@ -146,7 +146,7 @@ describe("entities", () => {
     const items = await list();
     const k = items.find((i) => i.id === "light.kitchen")!;
     expect(k).toMatchObject({ name: "Kitchen", subtitle: "Light · Kitchen", keywords: ["light.kitchen", "light", "Kitchen"], accessories: [{ tag: "on", color: "green" }, { date: "2026-09-16T10:00:00+00:00" }] });
-    expect(k.icon).toBe("#ff0000");
+    expect(k.icon).toEqual({ glyph: "\u{f0335}", color: "#ff0000" });
     expect(items.find((i) => i.id === "light.hall")!.icon).toBe("\u{f0335}");
     expect(items.find((i) => i.id === "switch.fan")!.subtitle).toBe("Switch");
     expect(items.find((i) => i.id === "sensor.temp")!.accessories![0]).toEqual({ text: "21.5 °C" });

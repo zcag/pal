@@ -167,7 +167,7 @@ describe("the model over the sample home", () => {
     const wardrobe = lightRow(lights.find((l) => l.id === "light:wardrobe")!, false, "Hue");
     expect(wardrobe).toMatchObject({ section: "Bedroom", accessories: [{ tag: "unreachable", color: "red" }, { tag: "off", color: "grey" }] });
     const strip = lightRow(lights.find((l) => l.id === "light:tv-strip")!, false, "Hue");
-    expect(strip.icon).toMatch(/^#[0-3][0-9a-f]00ff$/);
+    expect(strip.icon).toEqual({ glyph: "\u{f0335}", color: expect.stringMatching(/^#[0-3][0-9a-f]00ff$/) });
     expect(strip.accessories).toEqual([{ tag: "candle", color: "violet" }, { text: "45%" }, { tag: "on", color: "green" }]);
     const savanna = sceneRow(scenes.find((s) => s.id === "scene:living-room/savanna-sunset")!, false, "Hue");
     expect(savanna.accessories).toEqual([{ tag: "dynamic", color: "violet" }]);
@@ -346,7 +346,7 @@ describe("over the wire against the mock bridge", () => {
     expect(items.map((i) => i.section)).toEqual(["Bedroom", "Bedroom", "Hallway", "Living room", "Living room", "Living room"]);
     const sofa = items.find((i) => i.id === "light:sofa-lamp")!;
     expect(sofa.subtitle).toBe("Living room · Table shade · 2732 K");
-    expect(sofa.icon).toMatch(/^#/);
+    expect(sofa.icon).toEqual({ glyph: "\u{f0335}", color: expect.stringMatching(/^#/) });
     expect(items.find((i) => i.id === "light:wardrobe")!.icon).toBe("\u{f0336}");
     const only = await list("lights", { args: { lights: "room:bedroom" } });
     expect(only.map((i) => i.id)).toEqual(["light:bedside", "light:wardrobe"]);

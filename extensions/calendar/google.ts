@@ -15,7 +15,7 @@ export type Account = { name: string; token_command: string; calendars: string[]
 export const API = (process.env.PAL_GOOGLE_API || "https://www.googleapis.com/calendar/v3").replace(/\/+$/, "");
 const HTTP_MS = 10_000;
 const MAX_RESULTS = 250;
-const EVENT_FIELDS = "items(id,status,summary,description,location,start,end,htmlLink,hangoutLink,conferenceData(entryPoints(entryPointType,uri)),attendees(email,displayName,responseStatus,self,resource),organizer(email,displayName),recurringEventId)";
+const EVENT_FIELDS = "items(id,status,eventType,summary,description,location,start,end,htmlLink,hangoutLink,conferenceData(entryPoints(entryPointType,uri)),attendees(email,displayName,responseStatus,self,resource),organizer(email,displayName),recurringEventId)";
 const CALENDAR_FIELDS = "items(id,summary,summaryOverride,backgroundColor,accessRole,primary)";
 
 /**
@@ -90,7 +90,7 @@ type GCalendar = { id: string; summary?: string; summaryOverride?: string; backg
 type GWhen = { date?: string; dateTime?: string };
 type GAttendee = { email?: string; displayName?: string; responseStatus?: string; self?: boolean; resource?: boolean };
 export type GEvent = {
-  id: string; status?: string; summary?: string; description?: string; location?: string; start?: GWhen; end?: GWhen; htmlLink?: string; hangoutLink?: string;
+  id: string; status?: string; eventType?: string; summary?: string; description?: string; location?: string; start?: GWhen; end?: GWhen; htmlLink?: string; hangoutLink?: string;
   conferenceData?: { entryPoints?: { entryPointType?: string; uri?: string }[] };
   attendees?: GAttendee[]; organizer?: { email?: string; displayName?: string }; recurringEventId?: string;
 };
@@ -133,9 +133,9 @@ export async function events(a: Account, id: string, from: number, to: number, c
 
 const STATUS: Record<string, Attendee["status"]> = { accepted: "accepted", declined: "declined", tentative: "tentative", needsAction: "pending" };
 
-/** A Google event as the core's `CalendarEvent`; nothing for a cancelled one or one without times. */
+/** A Google event as the core's `CalendarEvent`; nothing for a cancelled one, one without times, or a working-location chip (`eventType: workingLocation`, "Home" on every day of the week: a setting, not an event to attend). */
 export function toEvent(e: GEvent, account: string, calendar: Calendar): CalendarEvent | undefined {
-  if (e.status === "cancelled") return;
+  if (e.status === "cancelled" || e.eventType === "workingLocation") return;
   const start = when(e.start), end = when(e.end);
   if (start === undefined || end === undefined) return;
   const attendees: Attendee[] = (e.attendees ?? []).filter((a) => !a.resource).map((a) => ({ name: a.displayName || a.email || "?", status: STATUS[a.responseStatus ?? ""] ?? "unknown", me: a.self === true }));

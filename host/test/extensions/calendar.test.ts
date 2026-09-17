@@ -371,12 +371,12 @@ describe("calendar extension", () => {
     expect(items.map((i) => i.section)).toEqual(["Today", "Today", "Tomorrow", "This week", "This week", "Later", undefined]);
     expect(last().params).toEqual({ from: today, to: addDays(now, 14), calendars: undefined });
     const standup = items[0];
-    expect(standup).toMatchObject({ name: "Standup", icon: "#1e4d8c", accessories: [{ tag: "now", color: "green" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
+    expect(standup).toMatchObject({ name: "Standup", icon: { glyph: "\u{f00ee}", color: "#1e4d8c" }, accessories: [{ tag: "now", color: "green" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
     expect(standup.subtitle).toBe(`10:20 – 10:50 · ${ZOOM}`);
     expect(standup.keywords).toContain("Work");
     // Only the first upcoming event carries a tag.
-    expect(items[1]).toMatchObject({ name: "Dentist", icon: "#34aadc", subtitle: "11:12 – 11:42 · Room 4", accessories: [] });
-    expect(items[4]).toMatchObject({ name: "Republic Day", subtitle: "All day", icon: "#16a765" });
+    expect(items[1]).toMatchObject({ name: "Dentist", icon: { glyph: "\u{f00ee}", color: "#34aadc" }, subtitle: "11:12 – 11:42 · Room 4", accessories: [] });
+    expect(items[4]).toMatchObject({ name: "Republic Day", subtitle: "All day", icon: { glyph: "\u{f00ee}", color: "#16a765" } });
     expect(items[6]).toMatchObject({ id: "new", name: "New event" });
   });
 

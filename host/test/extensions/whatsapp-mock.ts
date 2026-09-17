@@ -62,6 +62,8 @@ export const contacts: MockContact[] = [
   { id: "905553334455@c.us", name: "Lina Kova", number: "905553334455", isMyContact: true },
   { id: "905557778899@c.us", name: "Acme Support", number: "905557778899", isMyContact: true },
   { id: "905550001122@c.us", name: "Dana Ruiz", number: "905550001122", isMyContact: true },
+  { id: "905558889900@c.us", name: "?", number: "905558889900", isMyContact: true },
+  { id: "905552223344@c.us", name: "+90 555 222 33 44", number: "905552223344", isMyContact: true },
   { id: "301122334455667@lid", name: "Lina Kova", number: "301122334455667", isMyContact: true },
   { id: "905554445566@c.us", pushName: "someone", number: "905554445566", isMyContact: false },
   { id: "905556667788@c.us", number: "905556667788", isMyContact: false },

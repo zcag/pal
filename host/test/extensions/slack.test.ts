@@ -210,10 +210,10 @@ describe("slack", () => {
       expect(thread.actions!.map((a) => a.id)).toEqual(["open", "browser", "copy"]);
     });
 
-    test("quiet channels: named with the channel's glyph (a lock for a private one), newest first, no count", async () => {
+    test("quiet channels: named with the channel's glyph (a lock for a private one), the topic or purpose as the subtitle (else that there are new messages), newest first, no count", async () => {
       const items = await list("unreads");
-      expect(items[3]).toMatchObject({ name: "#ops", subtitle: "Unread", icon: "\u{f033e}", accessories: [{ date: 1789580700000 }] });
-      expect(items[4]).toMatchObject({ name: "#general", icon: "\u{f0423}" });
+      expect(items[3]).toMatchObject({ name: "#ops", subtitle: "New messages", icon: "\u{f033e}", accessories: [{ date: 1789580700000 }] });
+      expect(items[4]).toMatchObject({ name: "#general", subtitle: "Company wide", icon: "\u{f0423}" });
     });
 
     test("a re-list within 30 s shares the inbox; refresh fetches counts again but the runs are memoised by latest", async () => {

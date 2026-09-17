@@ -42,6 +42,8 @@ describe("whatsapp helpers", () => {
     expect(mediaLabel("revoked", "")).toBe("[message deleted]");
     expect(mediaLabel("poll_creation", "")).toBe("[poll]");
     expect(mediaLabel("some_new_kind", "")).toBe("[some new kind]");
+    expect(mediaLabel("unknown", "")).toBe("[message]");
+    expect(mediaLabel("unknown", "a template")).toBe("a template");
   });
 
   test("msgOf: the live shape with the archive's row over it (name, quote); msgOfDb: the archive alone; You for what is ours", () => {
@@ -326,15 +328,15 @@ describe("whatsapp", () => {
     } finally { mock.searchDown = false; }
   });
 
-  test("contacts: the saved ones by name with the number, one per number (the LID twin folded), the pushName-only and nameless left out; open, copy number, copy vCard", async () => {
+  test("contacts: the saved ones by name with the number, one per number (the LID twin folded), the pushName-only and nameless left out, a name without a letter or digit or that is the number itself as the number alone; open, copy number, copy vCard", async () => {
     const rows = await list("contacts");
-    expect(rows.map((r) => [r.name, r.subtitle])).toEqual([["Acme Support", "+90 555 777 88 99"], ["Dana Ruiz", "+90 555 000 11 22"], ["Lina Kova", "+90 555 333 44 55"], ["Mara Lind", "+90 555 123 45 67"], ["Ola Berg", "+90 555 111 22 33"], ["Tomas Ruiz", "+90 555 987 65 43"]]);
-    expect(rows[3]).toMatchObject({ id: "905551234567@c.us", icon: initialIcon("Mara Lind"), keywords: ["905551234567", "+90 555 123 45 67"] });
-    expect(rows[3].actions!.map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["copy-number", "cmd+c"], ["copy-vcard", "cmd+shift+c"], ["web", "cmd+shift+o"]]);
+    expect(rows.map((r) => [r.name, r.subtitle])).toEqual([["+90 555 222 33 44", undefined], ["+90 555 888 99 00", undefined], ["Acme Support", "+90 555 777 88 99"], ["Dana Ruiz", "+90 555 000 11 22"], ["Lina Kova", "+90 555 333 44 55"], ["Mara Lind", "+90 555 123 45 67"], ["Ola Berg", "+90 555 111 22 33"], ["Tomas Ruiz", "+90 555 987 65 43"]]);
+    expect(rows[5]).toMatchObject({ id: "905551234567@c.us", icon: initialIcon("Mara Lind"), keywords: ["905551234567", "+90 555 123 45 67"] });
+    expect(rows[5].actions!.map((a) => [a.id, a.shortcut])).toEqual([["open", undefined], ["copy-number", "cmd+c"], ["copy-vcard", "cmd+shift+c"], ["web", "cmd+shift+o"]]);
     expect(mock.calls(`/api/sessions/${SESSION_ID}/contacts`).map((c) => c.query)).toEqual([{ limit: "1000", offset: "0" }]);
-    expect(await host.pick(X, "contacts", rows[3].id)).toEqual({ open: "https://web.whatsapp.com/send?phone=905551234567" });
-    expect(await host.pick(X, "contacts", rows[3].id, "copy-number")).toEqual({ copy: "+905551234567" });
-    expect(await host.pick(X, "contacts", rows[3].id, "copy-vcard")).toEqual({ copy: vcard("Mara Lind", "905551234567"), hud: "Copied Mara Lind as a vCard" });
+    expect(await host.pick(X, "contacts", rows[5].id)).toEqual({ open: "https://web.whatsapp.com/send?phone=905551234567" });
+    expect(await host.pick(X, "contacts", rows[5].id, "copy-number")).toEqual({ copy: "+905551234567" });
+    expect(await host.pick(X, "contacts", rows[5].id, "copy-vcard")).toEqual({ copy: vcard("Mara Lind", "905551234567"), hud: "Copied Mara Lind as a vCard" });
   });
 
   test("the bar item: the count of unread chats, urgent for a direct one, the popover's rows with the pictures as data urls; one list shared with the palettes", async () => {

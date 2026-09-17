@@ -28,7 +28,7 @@
 // `grep` on their temp folder).
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { apps as appsApi, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, when, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { BROWSE_CAP, SORTS, UP, filterEntries, isRoot, moreRow, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
 import { parseMdls } from "./meta.ts";
@@ -440,7 +440,7 @@ async function detail(p: string): Promise<Detail> {
   const metadata: Metadata[] = [
     { label: "Path", value: tilde(p) },
     ...(dir ? [] : [{ label: "Size", value: size(st.size) }]),
-    { label: "Modified", value: new Date(st.mtimeMs).toLocaleString() },
+    { label: "Modified", value: when(st.mtimeMs) },
     { label: "Kind", value: k === "file" ? (extname(p).slice(1) || "file") : k },
     ...(dir ? [] : await spotlightMeta(p, k)),
   ];

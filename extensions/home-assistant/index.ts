@@ -2,7 +2,7 @@
 // current), services as forms, areas as drill-ins. Everything is the REST
 // API in ha.ts with the settings' URL, token and timeout; a request that
 // fails is one hint row with the fix, never an error.
-import { errorMessage, hint, settings, toast, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { errorMessage, hint, settings, toast, when, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { actions, asText, attributeRows, Client, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, icon, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
 
 const EXTENSION = "home-assistant";
@@ -189,7 +189,7 @@ export default {
           metadata: [
             { label: "Entity", value: s.entity_id },
             { label: "State", value: stateText(s) },
-            { label: "Changed", value: new Date(s.last_changed).toLocaleString() },
+            { label: "Changed", value: when(s.last_changed) },
             ...shown.map(([k, v]) => ({ label: titleCase(k), value: asText(v).slice(0, 80) })),
           ],
         };

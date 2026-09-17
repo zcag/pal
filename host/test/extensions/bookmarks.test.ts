@@ -19,7 +19,7 @@ const CHROME = {
   roots: {
     bookmark_bar: { type: "folder", name: "Bookmarks bar", children: [
       { type: "url", name: "GitHub", url: "https://github.com" },
-      { type: "folder", name: "Dev", children: [{ type: "url", name: "Bun", url: "https://bun.sh" }, { type: "url", name: "js", url: "javascript:void(0)" }] },
+      { type: "folder", name: "Dev", children: [{ type: "url", name: "Bun", url: "https://bun.sh" }, { type: "url", name: "js", url: "javascript:void(0)" }, { type: "url", name: "", url: "https://www.keep.google.com/" }] },
     ] },
     other: { type: "folder", name: "Other bookmarks", children: [{ type: "url", name: "Archive link", url: "https://old.example" }] },
     synced: { type: "folder", name: "Mobile bookmarks", children: [] },
@@ -101,6 +101,7 @@ describe("sources", () => {
     expect(chromeBookmarks(CHROME)).toEqual([
       { name: "GitHub", url: "https://github.com", folder: ["Bookmarks Bar"] },
       { name: "Bun", url: "https://bun.sh", folder: ["Bookmarks Bar", "Dev"] },
+      { name: "keep.google.com", url: "https://www.keep.google.com/", folder: ["Bookmarks Bar", "Dev"] },
       { name: "Archive link", url: "https://old.example", folder: ["Other Bookmarks"] },
     ]);
     expect(chromeBookmarks(null)).toEqual([]);
@@ -241,6 +242,10 @@ describe("bookmarks", () => {
     expect(bun).toMatchObject({ name: "Bun", subtitle: "https://bun.sh", url: "https://bun.sh", keywords: ["Bookmarks Bar", "Dev"], accessories: [{ text: "Bookmarks Bar / Dev" }], section: "Chrome (Default)" });
     expect(bun.icon).toBeUndefined();
     expect(bun.actions!.map((a) => [a.id, a.title])).toEqual([["open", "Open in browser"], ["copy", "Copy link"], ["copy-markdown", "Copy as markdown"], ["open-in", "Open in Chrome"]]);
+    // A bookmark saved without a name is named by its bare address, and the address is not said again under it.
+    const keep = items.find((i) => i.id === "https://www.keep.google.com/")!;
+    expect(keep.name).toBe("keep.google.com");
+    expect(keep.subtitle).toBeUndefined();
     expect(items.find((i) => i.id === "https://wiki.example")!.section).toBe("Chrome (Work)");
     expect(ids).not.toContain("https://gone.example");
     const sections = [...new Set(items.map((i) => i.section))];

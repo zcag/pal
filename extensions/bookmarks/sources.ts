@@ -7,6 +7,11 @@
 /** One bookmark: `folder` is its path of folder names, root first (`["Bookmarks Bar", "Dev"]`). */
 export type Found = { name: string; url: string; folder: string[] };
 
+/** `calendar.google.com` for `https://calendar.google.com/`: the address without its scheme, `www.` and a trailing slash, the name of a bookmark saved without one (Chrome's bar keeps those nameless). */
+export const bareUrl = (url: string): string => url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
+/** The bookmark's title, else its bare address. */
+export const titleOf = (name: unknown, url: string): string => (typeof name === "string" && name.trim() ? name.trim() : bareUrl(url));
+
 const isHttp = (u: unknown): u is string => typeof u === "string" && /^[a-z][a-z0-9+.-]*:/i.test(u) && !u.startsWith("javascript:") && !u.startsWith("place:");
 
 // ---- Chrome ----------------------------------------------------------------
@@ -21,7 +26,7 @@ export function chromeBookmarks(json: unknown): Found[] {
   if (!roots || typeof roots !== "object") return [];
   const out: Found[] = [];
   const walk = (n: ChromeNode, folder: string[]) => {
-    if (n.type === "url") { if (isHttp(n.url)) out.push({ name: n.name || n.url, url: n.url, folder }); return; }
+    if (n.type === "url") { if (isHttp(n.url)) out.push({ name: titleOf(n.name, n.url), url: n.url, folder }); return; }
     for (const c of n.children ?? []) walk(c, [...folder, n.name ?? ""]);
   };
   for (const [key, title] of CHROME_ROOTS) {
@@ -106,7 +111,7 @@ export function safariBookmarks(plist: Plist | undefined): Found[] {
     if (kind === "WebBookmarkTypeLeaf") {
       const url = n.URLString;
       const title = (n.URIDictionary as { title?: Plist } | undefined)?.title;
-      if (isHttp(url)) out.push({ name: typeof title === "string" && title ? title : url, url, folder });
+      if (isHttp(url)) out.push({ name: titleOf(title, url), url, folder });
       return;
     }
     if (kind !== "WebBookmarkTypeList" || !Array.isArray(n.Children)) return;
@@ -148,7 +153,7 @@ export function firefoxBookmarks(rows: FirefoxRow[]): Found[] {
   for (const r of rows) {
     if (r.type !== 1 || !isHttp(r.url)) continue;
     const folder = path(r.parent);
-    if (folder) out.push({ name: r.title || r.url, url: r.url, folder });
+    if (folder) out.push({ name: titleOf(r.title, r.url), url: r.url, folder });
   }
   return out;
 }

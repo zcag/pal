@@ -679,6 +679,18 @@ fn dedupe(hits: Vec<HitView>, frequent: &[HitView]) -> Vec<HitView> {
     hits.into_iter().filter(|h| !frequent.iter().any(|f| f.hit.source == h.hit.source && f.hit.id == h.hit.id)).collect()
 }
 
+/// One row for one thing at the root: a palette that lists what another
+/// palette of its extension lists too (Today beside My Schedule, Recent
+/// Notes beside Notes, Unread beside Chats, Decks beside Pages: the same
+/// ids, since a pick lands on the same thing) would put the item under
+/// two sections. The first hit stays (the hits come grouped by source,
+/// the best-ranked section first), the later copies go. Never a "more"
+/// row (`MORE_ID` is one id for every capped source).
+fn dedupe_across_palettes(hits: Vec<HitView>) -> Vec<HitView> {
+    let mut seen: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
+    hits.into_iter().filter(|h| h.hit.id == MORE_ID || seen.insert((h.hit.source.extension.clone(), h.hit.id.clone()))).collect()
+}
+
 /// One source for the UI: the meta as the host gave it, plus the count and
 /// whether a listing is pending (`stale`, see the module docs).
 #[derive(Serialize)]
@@ -821,6 +833,9 @@ pub fn query(
     let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps };
     let ranked = ix.query(&q, opts);
     let mut hits = views(&ix, ranked, &titles);
+    if sources.is_none() {
+        hits = dedupe_across_palettes(hits);
+    }
     for lead in [attention, frequent] {
         if lead.is_empty() {
             continue;
@@ -1192,6 +1207,34 @@ mod tests {
         assert!(palette_row + max_frecency < exact, "{palette_row} + {max_frecency} vs {exact}");
         assert!(palette_row > Tier::Primary.bonus() + pal_core::index::WORD_BONUS, "a palette row that has the word over a primary row that does");
         assert!(PALETTE_BONUS + Tier::Primary.bonus() < Tier::Primary.bonus() + pal_core::index::WORD_BONUS, "a palette row that scatters the letters under a primary row that has the word");
+    }
+
+    #[test]
+    fn one_row_for_one_thing_across_two_palettes_of_an_extension() {
+        let mut ix = Index::new();
+        // Today and My Schedule list the same event under the same id; Recent Notes and Notes the same note.
+        ix.replace(Source::new("calendar", "schedule"), vec![row("standup@1", "Standup", &[]), row("dentist@1", "Dentist", &[])]);
+        ix.replace(Source::new("calendar", "today"), vec![row("standup@1", "Standup", &[])]);
+        ix.replace(Source::new("obsidian", "recent"), vec![row("note:a.md", "Standup notes", &[])]);
+        ix.replace(Source::new("obsidian", "notes"), vec![row("note:a.md", "Standup notes", &[]), row("note:b.md", "Standup agenda", &[])]);
+        // Another extension's row with the same id is another thing.
+        ix.replace(Source::new("other", "p"), vec![row("standup@1", "Standup (other)", &[])]);
+        let ranked = ix.query("standup", QueryOpts::default());
+        let all = views(&ix, ranked, &[]);
+        let keys = |hits: &[HitView]| hits.iter().map(|h| format!("{}/{}:{}", h.hit.source.extension, h.hit.source.palette, h.hit.id)).collect::<Vec<_>>();
+        assert_eq!(all.iter().filter(|h| h.hit.id == "standup@1" && h.hit.source.extension == "calendar").count(), 2, "the index answers both");
+        let once = dedupe_across_palettes(all);
+        let k = keys(&once);
+        assert_eq!(k.iter().filter(|k| k.starts_with("calendar/") && k.ends_with(":standup@1")).count(), 1);
+        assert_eq!(k.iter().filter(|k| k.starts_with("obsidian/") && k.ends_with(":note:a.md")).count(), 1);
+        assert!(k.contains(&"other/p:standup@1".to_string()), "another extension's id is not the same thing");
+        assert!(k.contains(&"obsidian/notes:note:b.md".to_string()));
+        // The kept copy is the first: the better-ranked section's.
+        let first_calendar = once.iter().find(|h| h.hit.source.extension == "calendar" && h.hit.id == "standup@1").unwrap();
+        assert_eq!(first_calendar.hit.source.palette, "schedule", "sections come in the order of their best hit; equal scores keep insertion order");
+        // "more" rows share one id across sources and are never folded.
+        let more = vec![more_row(&Source::new("a", "x"), "X", 2), more_row(&Source::new("a", "y"), "Y", 3)];
+        assert_eq!(dedupe_across_palettes(more).len(), 2);
     }
 
     #[test]

@@ -93,13 +93,16 @@ function row(e: CalendarEvent, now: number, tagged: boolean): Item {
     id,
     name: e.title || "(no title)",
     subtitle: [timeRange(e), e.location].filter(Boolean).join(" · "),
-    icon: e.calendar.color ?? ICON,
+    icon: rowIcon(e),
     section: section(e.start, now),
     keywords: [e.calendar.title, ...(e.location ? [e.location] : []), section(e.start, now).toLowerCase(), dayName(e.start)],
     accessories,
     actions: actions(e),
   };
 }
+
+/** The row's glyph in the calendar's colour (a hex the source gave), else plain: one shape for My Schedule, Today and Quick Add. */
+const rowIcon = (e: Pick<CalendarEvent, "calendar">) => { const c = e.calendar.color; return c && /^#[0-9a-f]{6}$/i.test(c) ? tinted(ROW, c as `#${string}`) : ROW; };
 
 /** A Today row: the time and how long, the state as the first tag, the calendar's colour on the glyph. */
 function todayRow(e: CalendarEvent, now: number, sec: string): Item {
@@ -110,12 +113,11 @@ function todayRow(e: CalendarEvent, now: number, sec: string): Item {
   const n = people(e.attendees.length);
   if (n) accessories.push({ text: n });
   if (e.conference_url) accessories.push({ tag: "Join", color: "green" });
-  const color = e.calendar.color && /^#[0-9a-f]{6}$/i.test(e.calendar.color) ? (e.calendar.color as `#${string}`) : undefined;
   return {
     id,
     name: e.title || "(no title)",
     subtitle: [e.all_day ? "All day" : `${timeRange(e)} · ${duration(e)}`, e.location].filter(Boolean).join(" · "),
-    icon: color ? tinted(ROW, color) : ROW,
+    icon: rowIcon(e),
     section: sec,
     keywords: [e.calendar.title, ...(e.location ? [e.location] : []), s.kind, sec.toLowerCase()],
     accessories,
@@ -413,7 +415,7 @@ async function detail(id: string): Promise<Detail | void> {
   ];
   if (e.location) metadata.push({ label: "Location", value: e.location });
   if (e.conference_url) metadata.push({ label: "Call", link: { text: e.conference_url.replace(/^https?:\/\//, "").slice(0, 60), href: e.conference_url } });
-  else if (e.url) metadata.push({ label: "Link", link: { text: e.url.replace(/^https?:\/\//, "").slice(0, 60), href: e.url } });
+  else if (e.url) metadata.push({ label: "Link", link: { text: /google\.com\/calendar/.test(e.url) ? "Open in Google Calendar" : e.url.replace(/^https?:\/\//, "").slice(0, 60), href: e.url } });
   if (e.organizer) metadata.push({ label: "Organizer", value: e.organizer });
   if (e.attendees.length) metadata.push({ label: `Attendees (${e.attendees.length})`, tags: e.attendees.slice(0, 12).map((a) => ({ text: a.me ? `${a.name} (you)` : a.name, color: STATUS_COLOR[a.status] })) });
   if (e.my_status) metadata.push({ label: "Your reply", tags: [{ text: e.my_status, color: STATUS_COLOR[e.my_status] }] });

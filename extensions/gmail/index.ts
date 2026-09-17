@@ -6,7 +6,7 @@
 // hourly catalog; Compose and Drafts exist only where `send` is on for
 // the account. Every row id is the message id, so a pick after a restart
 // still finds it with one `messages.get`.
-import { errorMessage, failed, hint, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { clock, dayNameYear, errorMessage, failed, hint, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
 import { address, addressNow, archive, drafts, inbox, labelNames, labels, mail, markRead, markUnread, open, reset, search, star, type DraftRow, type Inbox, type Mail } from "./data.ts";
@@ -46,7 +46,7 @@ const SETTINGS_ACTION: Action[] = [{ id: "settings", title: "Open Gmail settings
 /** What a failed listing shows instead of rows: the token command's complaint, when the limit lifts, or what went wrong. */
 function failure(e: unknown): Item[] {
   if (e instanceof TokenError) return [hint("token", conf().token_command?.trim() ? "Token command failed" : "Token command is not set", conf().token_command?.trim() ? e.message : "Set one under Settings › Extensions › Gmail: a command that prints an access token", { actions: SETTINGS_ACTION, icon: ICON.alert })];
-  if (e instanceof RateLimited) return [hint("limit", "Gmail rate limit reached", `Retry at ${e.until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`, { icon: ICON.alert })];
+  if (e instanceof RateLimited) return [hint("limit", "Gmail rate limit reached", `Retry at ${clock(e.until)}`, { icon: ICON.alert })];
   if (e instanceof ApiError && e.auth) return [hint("auth", "Gmail rejected the token", `${e.message}: check the token command's scopes under Settings › Extensions › Gmail`, { actions: SETTINGS_ACTION, icon: ICON.alert })];
   log(errorMessage(e));
   return [hint("error", "Gmail did not answer", errorMessage(e), { icon: ICON.alert })];
@@ -109,7 +109,7 @@ async function mailPane(id: string): Promise<Detail> {
     { label: "From", value: addrLine(m.from) },
     ...(m.to.length ? [{ label: "To", value: m.to.map(addrLine).join(", ") }] : []),
     ...(m.cc.length ? [{ label: "Cc", value: m.cc.map(addrLine).join(", ") }] : []),
-    { label: "Date", value: m.date ? new Date(m.date).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : m.dateHeader },
+    { label: "Date", value: m.date ? `${dayNameYear(m.date)} ${clock(m.date)}` : m.dateHeader },
     ...(userLabels(m).length || m.starred ? [{ label: "Labels", tags: [...userLabels(m).map((l) => ({ text: l })), ...(m.starred ? [{ text: "starred", color: "amber" }] : [])] }] : []),
     ...(o.attachments.length ? [{ label: plural(o.attachments.length, "Attachment"), value: o.attachments.map((a) => `${a.filename} (${size(a.size)})`).join(", ") }] : []),
     { label: "Thread", link: { text: "Open in Gmail", href: threadUrl(await address(), m.threadId, m.inInbox) } },

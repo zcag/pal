@@ -19,7 +19,8 @@ thirty channels is never at zero unread, so a list or a count of those
 would be permanently lit and say nothing. A direct message, an @-mention
 (`@you`, `@here`, `@channel`) or a reply in a thread you follow is
 someone asking you for something: those are the rows and the count.
-Channels that are only unread come last, named, without a count. The
+Channels that are only unread come last, named, without a count, their
+topic or purpose as the subtitle (else "New messages"). The
 sections are Direct messages, Mentions, Threads, Channels, newest first
 in each. A row is the conversation (the person, `#channel`, the people of
 a group message) with the sender's avatar, the message (in a channel, the

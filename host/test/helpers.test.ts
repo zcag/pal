@@ -27,6 +27,7 @@ describe("text", () => {
     expect(truncate("abcdef", 4)).toBe("abc…");
     expect(truncate("abcd", 4)).toBe("abcd");
     expect(oneLine("  a \n\n b\tc ")).toBe("a b c");
+    expect(oneLine("1 item was shared\u034F\u200C \u034F\u200C \u200B\uFEFF\u00ADto you")).toBe("1 item was shared to you");
   });
   test("slug", () => {
     expect(slug("Héllo, Wörld! 2026")).toBe("hello-world-2026");

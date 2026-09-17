@@ -72,8 +72,15 @@ whose code fails to load.
   (`options`, each `{ id, title }`), `hotkey`, `path` (`pick`: `file` or
   `folder`, `placeholder`), `list` (`placeholder`; the default a list of
   strings).
+- `keywords`: words every palette's row at the root answers to, on top
+  of its title and key: the short names people type for the product
+  (`["gh"]` on GitHub, `["ha", "hass"]` on Home Assistant, `["1p", "op"]`
+  on 1Password). Typing one lists the extension's palettes first; without
+  it `gh` scatters across `GitHub` and loses to rows that start a word
+  with it.
 - `palettes.<key>`: the palette's static description: `title`,
-  `description`, `kind`, `ttl`, `lazy`, `tier`, `keys`, `rank`, `settings`,
+  `description`, `kind`, `ttl`, `lazy`, `tier`, `keys`, `keywords` (the
+  palette's own, on top of the extension's), `rank`, `settings`,
   `match`, `inline`, `fallback`, and for a view palette `refresh` and `on`
   (`[palettes.<id>].settings` in the file). The key is the palette's key
   in the code's `palettes` object; what goes here and what goes in the
@@ -159,8 +166,9 @@ A palette is described in two files, and each fact has one home:
 
 - **`pal.json` holds what is static and author-facing**: `title`,
   `description`, `kind`, `ttl`, `lazy`, `tier` (below), `keys` (what each key
-  does, as `[{ "keys": "cmd+c", "title": "Copy the link" }]`), `rank`,
-  `settings`, and the extension's `icon`. The store and the settings
+  does, as `[{ "keys": "cmd+c", "title": "Copy the link" }]`), `keywords`
+  (the words the palette's root row answers to), `rank`, `settings`, and
+  the extension's `icon` and `keywords`. The store and the settings
   window read these without running the code.
 - **The code holds the behaviour and what only it can know**: `list`,
   `pick`, `detail`, `view`, `filters`, `placeholder`, `showDetail`,
@@ -226,7 +234,10 @@ history") by up to a tier and a third, so a much-used glyph passes the
 normal rows but never a primary one that has the word (the boost's
 ceiling is 200 points against a tier's 150). The rows a cap
 leaves out are behind a muted "12 more in Emoji" row at the end of the
-section; `Enter` on it opens the palette, where nothing is capped. The
+section; `Enter` on it opens the palette, where nothing is capped. One
+row for one thing: two palettes of one extension that list the same item
+under the same id (Today beside My Schedule, Recent Notes beside Notes,
+Unread beside Chats) put it under the better-ranked section only. The
 constants and the measurements are in `core/src/index.rs` under
 `EXACT_BONUS` and in `notes/decisions.md` ("Root ordering").
 
@@ -1153,14 +1164,23 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   `POPOVER_W` (396), the width a bar popover's view measures fixed widths
   against.
 - Text: `bytes(n)` ("3.2 KB", "1.5 MB"), `truncate(s, n)` (an ellipsis as the
-  last character), `oneLine(s)` (whitespace runs as one space), `slug(s)`,
+  last character), `oneLine(s)` (whitespace runs as one space, invisible
+  characters such as a mail preheader's zero-width joiners out), `slug(s)`,
   `errorMessage(e)` (an Error's message, else the value as text),
   `mdEscape(text)` (plain text as markdown that reads as the text, links
   left whole).
 - Paths: `home(path)` above, and `tilde(path)`, its reverse for subtitles.
 - Time: `now()`, unix ms; `PAL_NOW` (`2026-09-16T10:30:00`, local to `TZ`)
   pins it, so a test fixes the day and the hour. Every read of the time in
-  an extension should go through it.
+  an extension should go through it. Writing a moment: `clock(t)` (`14:05`,
+  24 h), `dayName(t)` (`Fri 18 Sep`), `dayNameYear(t)`, `isoDay(t)`
+  (`2026-09-18`) and `when(t)` (the clock alone today, the day before it
+  on another day, the year in another year), all local and hand-formatted:
+  the host runs under whatever locale launchd gave it (`en-US` on a
+  machine set to `en_TR`), so `toLocaleString` puts the month first and an
+  AM/PM on a user whose clock says 14:05. Use these for a row's subtitle
+  and a pane's metadata; a `{ date }` accessory stays a raw instant (the
+  UI draws it relative).
 - Processes: `exec(argv, { ms?, cwd?, stdin?, env? })`: `{ code, out, err,
   timedOut }`, killed after `ms` (`EXEC_MS`, 10 s); `run(argv, opts)`:
   stdout, or a throw with stderr, the exit code, or "<program> did not
@@ -1284,7 +1304,7 @@ below is what `examples/hello-extension/` is, step by step.
 
    ```ts
    // index.ts
-   import { defineExtension, settings, type Item } from "@zcag/pal";
+   import { clock, defineExtension, settings, type Item } from "@zcag/pal";
 
    type Settings = { greeting: string };
 
@@ -1297,7 +1317,7 @@ below is what `examples/hello-extension/` is, step by step.
            { id: "greet", name: `${settings.get<Settings>().greeting}, world`, icon: "👋", actions: [{ id: "copy", title: "Copy greeting" }] },
            { id: "time", name: "What time is it", icon: "🕰", actions: [{ id: "tell", title: "Tell me" }] },
          ],
-         pick: (id) => (id === "greet" ? { copy: `${settings.get<Settings>().greeting}, world` } : { toast: { title: new Date().toLocaleTimeString() } }),
+         pick: (id) => (id === "greet" ? { copy: `${settings.get<Settings>().greeting}, world` } : { toast: { title: clock(Date.now()) } }),
        },
      },
    });

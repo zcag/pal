@@ -2,6 +2,7 @@
   "name": "onepassword",
   "title": "1Password",
   "description": "Your 1Password items through the op CLI. Enter copies the password; username, one-time code and the app are in the action panel.",
+  "keywords": ["1p", "op"],
   "version": "0.1.0",
   "icon": { "tile": { "glyph": "󰯄", "bg": "blue" } },
   "author": "pal",

@@ -11,7 +11,7 @@
 // could be and is the root's Clipboard section.
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { clipboard, conceal, errorMessage, failed, home, ocr, settings, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { rowsPalette } from "./now.ts";
 import { fileNameFor, qrSvg, QR_SHOW_PX, size } from "./rows.ts";
 
@@ -104,7 +104,7 @@ function detail(e: ClipboardEntry, color?: string): Detail {
       { label: "Kind", value: e.kind },
       { label: "Size", value: e.kind === "image" ? `${size(e.bytes)} · ${e.width} x ${e.height} px` : e.kind === "text" ? `${size(e.bytes)} · ${e.text!.length} chars` : size(e.bytes) },
       ...(e.source_app ? [{ label: "Source", value: appName(e.source_app) }] : []),
-      { label: "Copied", value: new Date(e.at).toLocaleString() },
+      { label: "Copied", value: when(e.at) },
       ...(e.pinned ? [{ label: "Pinned", tags: [{ text: "pinned", color: "amber" }] }] : []),
     ],
   };

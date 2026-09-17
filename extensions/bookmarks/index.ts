@@ -11,7 +11,7 @@
 import { errorMessage, failed, hint, home, settings, xdg, type Action, type Extension, type Item } from "@zcag/pal";
 import { BROWSERS, HOME, MAC, chromiumProfiles, copied, exists, firefoxProfiles, openIn, spawnDetached, type Firefox } from "./browsers.ts";
 import { historyPalette } from "./history.ts";
-import { chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks, type FirefoxRow, type Found } from "./sources.ts";
+import { bareUrl, chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks, titleOf, type FirefoxRow, type Found } from "./sources.ts";
 
 /** `[extensions.bookmarks]`, defaults in pal.json. */
 type Settings = { file: string; browsers: string[]; exclude_folders: string[] };
@@ -114,9 +114,10 @@ async function list(): Promise<Item[]> {
   for (const r of file.rows) {
     if (typeof r.url !== "string" || !r.url || seen.has(r.url)) continue;
     seen.add(r.url);
-    known.set(r.url, { name: r.name ?? r.url });
-    // The file's rows take the palette's three actions (said once); a browser's rows below add "Open in <browser>" and so say their own.
-    items.push({ id: r.url, name: r.name ?? r.url, subtitle: r.subtitle ?? r.url, icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, section });
+    const name = titleOf(r.name, r.url);
+    known.set(r.url, { name });
+    // The file's rows take the palette's three actions (said once); a browser's rows below add "Open in <browser>" and so say their own. A nameless bookmark is named by its address and says nothing twice.
+    items.push({ id: r.url, name, subtitle: r.subtitle ?? (name === bareUrl(r.url) ? undefined : r.url), icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, section });
   }
   const { sources, problems } = await browserSources(s.browsers);
   for (const src of sources) {
@@ -127,7 +128,7 @@ async function list(): Promise<Item[]> {
       items.push({
         id: f.url,
         name: f.name,
-        subtitle: f.url,
+        subtitle: f.name === bareUrl(f.url) ? undefined : f.url,
         keywords: [...new Set(f.folder.filter(Boolean))],
         url: f.url,
         accessories: f.folder.length ? [{ text: f.folder.join(" / ") }] : [],

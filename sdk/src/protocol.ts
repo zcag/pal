@@ -852,6 +852,8 @@ export type ManifestPalette = {
   inline?: boolean;
   /** See `Palette.fallback`: `true` for an "Ask" row, a string for its title. */
   fallback?: boolean | string;
+  /** Extra words the palette's row at the root answers to (`gh`, `hass`), on top of its title, key and the extension's `keywords`. */
+  keywords?: string[];
 };
 
 /**
@@ -870,6 +872,8 @@ export type Manifest = {
   author?: string;
   /** `bundled` for the ones that ship with pal, else a repo like `github.com/zcag/pal-github`. */
   repo?: string;
+  /** Words every palette's row at the root answers to, on top of its title and key: the short names people type for the product (`gh`, `ha`, `1p`). */
+  keywords?: string[];
   /** Extension-level settings, `[extensions.<name>]` in the file. */
   settings?: SettingSpec[];
   /** Per-palette settings, `[palettes.<id>].settings` in the file, keyed by the palette's key in `Extension.palettes`. */
@@ -940,6 +944,8 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   suggest?: true;
   /** Tab (and a bare `x` with nothing typed) marks rows (`Palette.multi`). */
   multi?: true;
+  /** Extra words the palette's row at the root answers to: the manifest's `keywords` and the palette's own, once each. */
+  keywords?: string[];
   /** The first listing of a run waits for the first panel show (`Palette.lazy`); the cached rows restore either way. */
   lazy?: true;
   /** A view palette: seconds between re-asks of `view(ctx)` while its level is open (`Palette.refresh`, the manifest's first). */

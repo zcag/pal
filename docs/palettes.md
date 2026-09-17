@@ -281,7 +281,9 @@ tags and `place:` queries left out). Every source is read on every list.
   Browser rows sit in a section per browser and profile (`Chrome`,
   `Chrome (Work)`, `Safari`, `Firefox`), carry the folder path as an
   accessory (`Bookmarks Bar / Dev`) and as keywords, and get the site's
-  favicon.
+  favicon. A bookmark saved without a name (Chrome's bar keeps those) is
+  named by its bare address (`calendar.google.com`) and says nothing
+  twice under it.
 - Actions: **Open in browser** (`Enter`), **Copy link** (`⌘C`), **Copy as
   markdown** (`⌘⇧C`, `[name](url)`), and on a browser row **Open in
   Chrome/Safari/...** (`open -a` on macOS, the browser's binary on Linux).
@@ -2781,8 +2783,9 @@ extension's settings.
 **Unreads.** Addressed versus merely unread: direct messages, mentions
 (`@you`, `@here`, `@channel`) and replies in followed threads are the
 rows and the count; channels that are only unread are named last, no
-count. Sections Direct messages, Mentions, Threads, Channels, newest
-first in each. The row: the conversation's name, the sender's avatar, the
+count, their topic or purpose as the subtitle (else "New messages": no
+run is fetched for them). Sections Direct messages, Mentions, Threads,
+Channels, newest first in each. The row: the conversation's name, the sender's avatar, the
 message (in a channel the one naming you, not the last), a count badge
 (red; blue for thread replies; `1+` past a page), the time. The pane is
 the unread run, oldest first, up to eight messages. One `client.counts`
@@ -3912,7 +3915,8 @@ come from `/messages/<chat>/history` (live, `fromMe`, oldest first) laid
 over `/messages?chatId=` (the archive: the sender's saved name, the
 quoted reply), merged by message id, so the row says who said what and
 a media message is named (`[photo]`, `[voice message]`, `[document]
-name`); the other rows carry the gateway's one-line summary. The row:
+name`; what the gateway cannot classify is its text, else `[message]`);
+the other rows carry the gateway's one-line summary. The row:
 the profile picture (else the initial on a tile; a group the group
 glyph), the name, the line, a `group` tag, the unread count in green,
 the time. The pane: the last twenty messages as a conversation (the
@@ -3944,8 +3948,9 @@ contacts), when; `Enter` opens the chat, `⌘C` copies the message, the
 pane is the chat's conversation; a provider that is down is one hint
 row with the status and the gateway's message. **Contacts**: `/contacts`
 a thousand a page (the first page, then five in parallel), the saved
-ones (`isMyContact` with a name) one per number, an hour in memory;
-`Enter` opens a chat, `⌘C` copies `+<number>`, `⌘⇧C` a vCard 3.0.
+ones (`isMyContact` with a name) one per number, an hour in memory; a
+name without a letter or digit, or that is the number itself, reads as
+the number alone; `Enter` opens a chat, `⌘C` copies `+<number>`, `⌘⇧C` a vCard 3.0.
 
 **`send`, off by default.** Off is read and mark-read only: no Send a
 message, no React, no reply field in the popover; every write path

@@ -5,7 +5,7 @@
 // `chatLink`, `vcard` take no network), the loaders memoised so the bar
 // item and the palettes share one chat list within `CHATS_FRESH_MS`.
 import { existsSync } from "node:fs";
-import { errorMessage, forgetImages, mdEscape, oneLine, storage } from "@zcag/pal";
+import { errorMessage, forgetImages, mdEscape, oneLine, storage, when } from "@zcag/pal";
 import { archived, chats as apiChats, conf, contact, contactsPage, history, log, pictures as apiPictures, resolvePhone, search as apiSearch, type ChatSummary, type Contact, type DbMessage, type LiveMessage, type SearchHit, PAGE } from "./api.ts";
 
 export type Chat = {
@@ -75,11 +75,18 @@ export const phoneOfId = (id: string): string | undefined => (id.endsWith("@c.us
 
 // ---- message shapes --------------------------------------------------------------------------
 
-/** What a media message reads as on a row and in the pane: the kind in brackets, the caption or file name after it. */
+/**
+ * What a media message reads as on a row and in the pane: the kind in
+ * brackets, the caption or file name after it. The gateway answers
+ * `unknown` for what it cannot classify (a contact card in a group, a
+ * business template, a reaction): its text alone when it has some, else
+ * `[message]`, never the word "unknown" on a row.
+ */
 export function mediaLabel(type: string, body: string): string {
   const kind: Record<string, string> = { image: "photo", video: "video", gif: "GIF", ptt: "voice message", voice: "voice message", audio: "audio", document: "document", sticker: "sticker", location: "location", vcard: "contact card", multi_vcard: "contact cards", contact: "contact card", poll_creation: "poll", poll: "poll", revoked: "message deleted", ciphertext: "waiting for the message", call_log: "call", e2e_notification: "security notice", notification_template: "notice", groups_v4_invite: "group invite" };
-  const label = kind[type] ?? (type === "chat" || type === "text" ? "" : type.replace(/_/g, " "));
   const text = body.trim();
+  if (type === "unknown") return text || "[message]";
+  const label = kind[type] ?? (type === "chat" || type === "text" ? "" : type.replace(/_/g, " "));
   if (!label) return text;
   return text ? `[${label}] ${text}` : `[${label}]`;
 }
@@ -106,8 +113,8 @@ export function msgOfDb(d: DbMessage, nameOf: (jid: string) => string, chatName:
 export const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 export { oneLine };
-/** A time today as the clock, else the day and the clock. */
-export const clock = (ms: number) => { const d = new Date(ms); return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
+/** A moment as the SDK writes it: the clock today, the day before it otherwise. */
+export const clock = (ms: number) => when(ms);
 
 /** The pane: one paragraph per message, `**who** · time`, the quoted reply under it as a blockquote, then the text (a media label in italics), markup escaped for marked. */
 export function conversationMarkdown(msgs: Msg[]): string {
@@ -364,10 +371,12 @@ async function fetchContacts(): Promise<Person[]> {
   }
   const seen = new Map<string, Person>();
   for (const c of pages.flat()) {
-    const name = contactName(c);
-    if (!c.isMyContact || !name) continue;
+    const saved = contactName(c);
+    if (!c.isMyContact || !saved) continue;
     const phone = (phoneOfId(c.id) ?? c.number ?? "").replace(/\D/g, "");
     if (!phone || isLid(c.id)) continue;
+    // A contact saved as "?" or as its own number reads as the number.
+    const name = /[\p{L}\p{N}]/u.test(saved) ? saved : prettyPhone(phone);
     if (!seen.has(phone)) seen.set(phone, { id: c.id, name, phone });
     names.set(c.id, name);
   }

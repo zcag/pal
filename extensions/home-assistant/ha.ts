@@ -3,7 +3,7 @@
 // state into a row: domain glyph, state tone, accessories, the per-domain
 // actions, and a service's field descriptions into a form. No pal imports,
 // so the tests can drive these without a host.
-import { errorMessage, type Accessory, type Action, type FormField, type Item, type TagColor } from "@zcag/pal";
+import { errorMessage, tinted, type Accessory, type Action, type FormField, type Icon, type Item, type TagColor } from "@zcag/pal";
 
 /** `[extensions.home-assistant]`, defaults in pal.json. */
 export type Settings = { url: string; token: string; domains: string[]; favorites: string[]; timeout: number };
@@ -109,6 +109,7 @@ const GLYPH: Record<string, string> = {
 export const HOUSE = "\u{f02dc}";
 const UNLOCKED = "\u{f033f}";
 /** The dot an `on` light draws: its colour when it reports one, else warm white. */
+/** A lit light's glyph carries its colour (`rgb_color`), amber when the light reports none. */
 const LIT = "#f5b642";
 
 const TONE: Record<string, TagColor> = {
@@ -116,11 +117,11 @@ const TONE: Record<string, TagColor> = {
   off: "grey", idle: "grey", not_home: "grey", closed: "grey", paused: "grey", standby: "grey", docked: "grey", unlocked: "amber", unavailable: "red", unknown: "red",
 };
 
-export const icon = (s: State): string => {
+export const icon = (s: State): Icon => {
   const d = domainOf(s.entity_id);
   if (d === "light" && s.state === "on") {
     const rgb = s.attributes.rgb_color;
-    return Array.isArray(rgb) && rgb.length === 3 ? "#" + rgb.map((c) => Math.max(0, Math.min(255, Number(c) || 0)).toString(16).padStart(2, "0")).join("") : LIT;
+    return tinted(GLYPH.light, Array.isArray(rgb) && rgb.length === 3 ? `#${rgb.map((c) => Math.max(0, Math.min(255, Number(c) || 0)).toString(16).padStart(2, "0")).join("")}` : LIT);
   }
   if (d === "lock" && s.state === "unlocked") return UNLOCKED;
   return GLYPH[d] ?? HOUSE;

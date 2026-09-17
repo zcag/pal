@@ -2,6 +2,7 @@
   "name": "github",
   "title": "GitHub",
   "description": "Your pull requests, issues, repositories and notifications, and a search over all of GitHub. Signs in through the gh CLI or a token.",
+  "keywords": ["gh"],
   "version": "0.1.0",
   "multi": true,
   "icon": {

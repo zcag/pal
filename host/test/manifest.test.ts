@@ -126,6 +126,17 @@ describe("checkPalettes", () => {
     expect(checkPalettes(man({ p: {} }), ext({ p: list })).metas[0].tier).toBeUndefined();
   });
 
+  test("keywords: the manifest's and the palette's reach the meta once each, trimmed; a list that is not strings is a warning and left off", () => {
+    const r = checkPalettes({ ...man({ p: { keywords: [" hass ", "ha"] }, q: {} }), keywords: ["ha", "home"] }, ext({ p: list, q: list }));
+    expect(r.warnings).toEqual([]);
+    expect(r.metas[0].keywords).toEqual(["ha", "home", "hass"]);
+    expect(r.metas[1].keywords).toEqual(["ha", "home"]);
+    expect(checkPalettes(man({ p: {} }), ext({ p: list })).metas[0]).not.toHaveProperty("keywords");
+    const bad = checkPalettes({ ...man({ p: { keywords: "gh" as unknown as string[] } }), keywords: [1] as unknown as string[] }, ext({ p: list }));
+    expect(bad.warnings).toEqual(["keywords: keywords must be a list of strings", "palettes.p: keywords must be a list of strings"]);
+    expect(bad.metas[0]).not.toHaveProperty("keywords");
+  });
+
   test("lazy on either side reaches the meta; the manifest's wins, a difference is a warning; never on the wire when unset", () => {
     expect(checkPalettes(man({ p: { lazy: true } }), ext({ p: list })).metas[0].lazy).toBe(true);
     expect(checkPalettes(man({ p: {} }), ext({ p: { ...list, lazy: true } })).metas[0].lazy).toBe(true);

@@ -25,7 +25,7 @@ item over one source and one cache:
 | `source` | what | where |
 | --- | --- | --- |
 | `system` | the core's calendar capability: EventKit on macOS (every account Calendar.app has: iCloud, Google, Exchange; one store, one permission), `khal` on Linux | `core/src/calendar.rs` |
-| `google` | Google Calendar API v3 read directly, per account, `events.list` with `singleEvents` and the `conferenceData` join links | `google.ts` |
+| `google` | Google Calendar API v3 read directly, per account, `events.list` with `singleEvents` and the `conferenceData` join links; a working-location chip (`eventType: workingLocation`, "Home" on every weekday) is not an event and is left out | `google.ts` |
 | `auto` (default) | `google` once an account is listed, else `system` | `source.ts` |
 
 **Google needs a token, and the command is the secret's owner.** Each

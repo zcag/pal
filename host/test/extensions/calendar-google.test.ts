@@ -94,7 +94,7 @@ describe("google helpers", () => {
     expect(text("line one<br>line two<br/>\n\n\n\nthree")).toBe("line one\nline two\n\nthree");
     expect(text("a &amp; b\r\nc")).toBe("a & b\nc");
   });
-  test("toEvent: the core's shape, all-day as local midnights, cancelled dropped", () => {
+  test("toEvent: the core's shape, all-day as local midnights, cancelled and working-location chips dropped", () => {
     const cal = { id: "p:primary", title: "Personal", color: "#9fe1e7", source: "p", writable: true };
     const e = toEvent(fixture.events.personal.items[0] as any, "p", cal)!;
     expect(e).toMatchObject({ id: "p:standup_20260916T093000Z", occurrence: Date.parse("2026-09-16T09:30:00Z"), recurring: true, title: "Daily standup", start: Date.parse("2026-09-16T09:30:00Z"), end: Date.parse("2026-09-16T09:45:00Z"), all_day: false, location: null, notes: null, url: "https://www.google.com/calendar/event?eid=c3RhbmR1cA", calendar: cal, organizer: "Mara Lind", conference_url: "https://us02web.zoom.us/j/85712227948?pwd=abc", my_status: "accepted" });
@@ -103,6 +103,8 @@ describe("google helpers", () => {
     expect(allDay).toMatchObject({ all_day: true, start: new Date(2026, 8, 18).getTime(), end: new Date(2026, 8, 20).getTime(), attendees: [], my_status: null, conference_url: null });
     expect(toEvent(fixture.events.personal.items[3] as any, "p", cal)).toBeUndefined();
     expect(toEvent({ id: "x", summary: "no times" }, "p", cal)).toBeUndefined();
+    expect(toEvent({ ...(fixture.events.personal.items[6] as any), eventType: "workingLocation", summary: "Home" }, "p", cal)).toBeUndefined();
+    expect(toEvent({ ...(fixture.events.personal.items[6] as any), eventType: "outOfOffice" }, "p", cal)).toBeDefined();
   });
 });
 
@@ -119,10 +121,10 @@ describe("google source", () => {
     expect(items.map((i) => i.name)).toEqual(["Weekly sync", "Design review: settings window", "Dentist", "1:1 with Mara", "Team offsite"]);
     expect(items.map((i) => i.section)).toEqual(["Today", "Today", "Today", "Tomorrow", "This week"]);
     const sync = items[0];
-    expect(sync).toMatchObject({ id: rid("work:sync", "2026-09-16T10:12:00Z"), icon: "#4986e7", accessories: [{ tag: "in 12 min", color: "blue" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
+    expect(sync).toMatchObject({ id: rid("work:sync", "2026-09-16T10:12:00Z"), icon: { glyph: "\u{f00ee}", color: "#4986e7" }, accessories: [{ tag: "in 12 min", color: "blue" }, { text: "2 people" }, { tag: "Join", color: "green" }] });
     expect(sync.actions).toEqual([{ id: "join", title: "Join call" }, { id: "open", title: "Open in Google Calendar" }, { id: "copy_link", title: "Copy conference link", shortcut: "cmd+shift+c" }, { id: "copy_details", title: "Copy event details", shortcut: "cmd+c" }]);
     expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "copy_details"]);
-    expect(items[1]).toMatchObject({ icon: "#9fe1e7", subtitle: "11:00 – 12:00 · Room 4", accessories: [{ tag: "maybe", color: "amber" }, { text: "4 people" }, { tag: "Join", color: "green" }] });
+    expect(items[1]).toMatchObject({ icon: { glyph: "\u{f00ee}", color: "#9fe1e7" }, subtitle: "11:00 – 12:00 · Room 4", accessories: [{ tag: "maybe", color: "amber" }, { text: "4 people" }, { tag: "Join", color: "green" }] });
     expect(items[2]).toMatchObject({ name: "Dentist", subtitle: "15:30 – 16:15 · Kadıköy", accessories: [] });
     expect(items[4]).toMatchObject({ name: "Team offsite", subtitle: "All day, until Sat 19 Sep", section: "This week" });
     // The token commands ran once per account for the filter list and once more is not needed: the events read reused the token.
@@ -130,6 +132,7 @@ describe("google source", () => {
     expect(runs("work")).toBe(1);
     expect(seen.filter((s) => s.path === "/calendars/primary/events").map((s) => s.query.singleEvents)).toEqual(["true", "true"]);
     expect(seen.find((s) => s.path === "/calendars/primary/events")!.query.fields).toContain("conferenceData(entryPoints(entryPointType,uri))");
+    expect(seen.find((s) => s.path === "/calendars/primary/events")!.query.fields).toContain("eventType");
   });
 
   test("picks: join from conferenceData, from hangoutLink, from a Teams link in the description; open is the browser", async () => {

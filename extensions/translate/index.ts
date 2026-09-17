@@ -10,7 +10,7 @@
 // Google's unofficial web endpoint or DeepL with a key. A picked
 // translation goes to the history palette (storage, the last hundred).
 import { createHash } from "node:crypto";
-import { clipboard, errorMessage, hint, oneLine, selection, settings, storage, toast, truncate, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { clipboard, errorMessage, hint, oneLine, selection, settings, storage, toast, truncate, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { MAX_CHARS, speak, translate, TranslateError, type Backend, type Translation } from "./backends.ts";
 import { langOf, matches, nameOf, otherEnd, parse, systemLanguage } from "./lang.ts";
 
@@ -213,7 +213,7 @@ async function pick(id: string, action?: string): Promise<Effect> {
 
 // ---- history palette -----------------------------------------------------------------
 
-const historyDetail = (e: Entry): Detail => ({ markdown: `${e.result}\n\n---\n\n${e.text}`, metadata: [{ label: "From", value: nameOf(e.from) }, { label: "To", value: nameOf(e.to) }, { label: "Backend", value: BACKEND_NAME[e.backend] ?? e.backend }, { label: "When", value: new Date(e.at).toLocaleString() }] });
+const historyDetail = (e: Entry): Detail => ({ markdown: `${e.result}\n\n---\n\n${e.text}`, metadata: [{ label: "From", value: nameOf(e.from) }, { label: "To", value: nameOf(e.to) }, { label: "Backend", value: BACKEND_NAME[e.backend] ?? e.backend }, { label: "When", value: when(e.at) }] });
 /** One row per (target, text, result), which is also what `remember` dedupes on; a hash, since the texts can be long. */
 const historyId = (e: Entry) => `h:${createHash("sha1").update(`${e.to}|${e.text}|${e.result}`).digest("hex").slice(0, 16)}`;
 

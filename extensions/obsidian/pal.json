@@ -2,6 +2,7 @@
   "name": "obsidian",
   "title": "Obsidian",
   "description": "Your Obsidian vault in the panel: every note by title at the root, full-text search, today's daily note and a line appended to it, new notes from a template, tags, backlinks; a note opens in Obsidian or your editor, or reads inside pal.",
+  "keywords": ["vault", "wiki"],
   "version": "0.1.0",
   "icon": { "tile": { "glyph": "󰩪", "bg": "violet" } },
   "author": "pal",

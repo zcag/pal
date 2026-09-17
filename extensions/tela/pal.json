@@ -2,6 +2,7 @@
   "name": "tela",
   "title": "tela",
   "description": "Your tela wiki in the panel: full-text search, semantic research with sources, recent pages and favourites, spaces, decks, sheets, mentions and replies, backlinks; new pages from what you selected.",
+  "keywords": ["wiki"],
   "version": "0.1.0",
   "icon": {
     "tile": {

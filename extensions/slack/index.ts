@@ -6,7 +6,7 @@
 // palette over `search.messages`; Status is live and lists what is set now
 // before the presets. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
-import { errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { clock, errorMessage, failed, hint, imageData, settings, toast, truncate, when, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
@@ -48,7 +48,7 @@ const rowId = (u: Unread) => `${u.kind}:${u.id}`;
 /** What a failed listing shows instead of rows: how to sign in, when the limit lifts, or what went wrong. */
 function failure(e: unknown): Item[] {
   if (e instanceof NotSignedIn) return [hint("auth", conf().auth === "token" ? "Slack token is not set" : "Slack is not signed in", e.message, { actions: [{ id: "settings", title: "Open Slack settings" }] })];
-  if (e instanceof RateLimited) return [hint("limit", "Slack rate limit reached", `Retry at ${e.until.toLocaleTimeString()}`)];
+  if (e instanceof RateLimited) return [hint("limit", "Slack rate limit reached", `Retry at ${clock(e.until)}`)];
   if (e instanceof ApiError && e.auth) return [hint("auth", "Slack rejected the session", "Open Slack and sign in again, or set a token under Settings › Extensions › Slack", { actions: [{ id: "settings", title: "Open Slack settings" }] })];
   log(errorMessage(e));
   return [hint("error", "Slack did not answer", errorMessage(e))];
@@ -58,7 +58,8 @@ const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { retur
 
 const ms = (ts: string) => Math.round(Number(ts) * 1000);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-const clock = (ts: string) => { const d = new Date(ms(ts)); return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
+/** A Slack `ts` as the SDK writes a moment: the clock today, the day before it otherwise. */
+const at = (ts: string) => when(ms(ts));
 const convIcon = (kind: Conversation["kind"]) => (kind === "private" ? ICON.private : kind === "im" ? ICON.im : kind === "mpim" ? ICON.mpim : ICON.channel);
 
 // ---- unreads --------------------------------------------------------------------
@@ -68,8 +69,8 @@ const unreadIcon = (u: Unread) => (u.top?.avatar ? { image: u.top.avatar } : u.k
 
 function unreadSubtitle(u: Unread): string {
   if (u.kind === "thread") return `${plural(u.n, "new reply", "new replies")}${u.teamName ? ` · ${u.teamName}` : ""}`;
-  // In a direct message the sender is the row's name already; a channel row says who.
-  const line = u.top ? (u.top.who && u.top.who !== u.where ? `${u.top.who}: ${u.top.text}` : u.top.text) : u.kind === "channel" ? "Unread" : "";
+  // In a direct message the sender is the row's name already; a channel row says who. A quiet channel (no run fetched) says what it is for, else that there is something new.
+  const line = u.top ? (u.top.who && u.top.who !== u.where ? `${u.top.who}: ${u.top.text}` : u.top.text) : u.kind === "channel" ? u.about || "New messages" : "";
   return [line || "(no text)", u.teamName].filter(Boolean).join(" · ");
 }
 
@@ -118,7 +119,7 @@ async function unreadPane(u: Unread): Promise<Detail> {
     { label: "Kind", value: u.kind === "dm" ? "Direct message" : u.kind === "mention" ? "Mention" : u.kind === "thread" ? "Thread" : "Channel" },
     ...(u.kind !== "channel" ? [{ label: "Unread", value: String(u.n) + (u.more ? " or more" : "") }] : []),
     ...(u.teamName ? [{ label: "Workspace", value: u.teamName }] : []),
-    ...(u.latest ? [{ label: "Latest", value: clock(u.latest) }] : []),
+    ...(u.latest ? [{ label: "Latest", value: at(u.latest) }] : []),
   ];
   if (u.kind === "thread") return { markdown: `_${plural(u.n, "new reply", "new replies")} in threads you follow in ${u.where}; open Slack to read them._`, metadata };
   let msgs: Msg[] = u.msgs;
@@ -129,7 +130,7 @@ async function unreadPane(u: Unread): Promise<Detail> {
     u.msgs = msgs;
   }
   if (!msgs.length) return { markdown: "_Nothing unread here any more._", metadata };
-  const parts = msgs.map((m) => `**${m.who || "app"}** · ${clock(m.ts)}\n\n${m.text || "_(no text)_"}`);
+  const parts = msgs.map((m) => `**${m.who || "app"}** · ${at(m.ts)}\n\n${m.text || "_(no text)_"}`);
   if (u.more) parts.push("_…and more before these._");
   return { markdown: parts.join("\n\n---\n\n"), metadata };
 }
@@ -240,7 +241,7 @@ const pickHit = (h: SearchHit, action?: string): Effect => (action === "browser"
 
 // ---- status ------------------------------------------------------------------------
 
-const until = (unix: number) => `until ${new Date(unix * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+const until = (unix: number) => `until ${clock(unix * 1000)}`;
 
 async function statusRows(): Promise<Item[]> {
   const [st, d, p] = await Promise.all([status(), dnd(), presence()]);
@@ -251,7 +252,7 @@ async function statusRows(): Promise<Item[]> {
     d.snoozing
       ? { id: "dnd:current", name: "Do Not Disturb", subtitle: `Notifications paused ${until(d.until)}`, icon: ICON.dndOn, section: "Now", keywords: ["dnd", "snooze"], actions: [{ id: "dnd:end", title: "End Do Not Disturb" }] }
       : { id: "dnd:current", name: "Notifications on", subtitle: "Do Not Disturb is off", icon: ICON.dndOff, section: "Now", keywords: ["dnd"], actions: [] },
-    { id: "presence:current", name: p.presence === "away" ? "Away" : "Active", subtitle: p.presence === "away" ? (p.manual ? "Set away by hand" : "Away") : "Shown as active", icon: p.presence === "away" ? ICON.away : ICON.active, section: "Now", keywords: ["presence", "away", "active"], actions: [{ id: "presence:toggle", title: p.presence === "away" ? "Set active" : "Set away" }] },
+    { id: "presence:current", name: p.presence === "away" ? "Away" : "Active", subtitle: p.presence === "away" ? (p.manual ? "Set away by hand" : "Shown as away") : "Shown as active", icon: p.presence === "away" ? ICON.away : ICON.active, section: "Now", keywords: ["presence", "away", "active"], actions: [{ id: "presence:toggle", title: p.presence === "away" ? "Set active" : "Set away" }] },
   ];
   const presets = (conf().statuses ?? []).flatMap((line, i) => { const preset = parsePreset(line); return preset ? [{ preset, i }] : []; });
   const set: Item[] = presets.map(({ preset, i }) => ({
@@ -328,7 +329,7 @@ async function barState(i: Inbox): Promise<BarState> {
   const rows: BarRow[] = await Promise.all(picked.map(async (u) => {
     const ts = u.top?.ts ?? u.latest;
     return {
-      id: rowId(u), kind: u.kind, where: u.where, who: u.top?.who || undefined, text: u.top?.text ?? (u.kind === "channel" ? "Unread" : ""), time: ts ? clock(ts) : undefined, n: u.n, more: u.more,
+      id: rowId(u), kind: u.kind, where: u.where, who: u.top?.who || undefined, text: u.top?.text ?? (u.kind === "channel" ? u.about || "New messages" : ""), time: ts ? at(ts) : undefined, n: u.n, more: u.more,
       avatar: u.top?.avatar ? await imageData(u.top.avatar) : undefined,
       canReply: u.kind !== "thread", canRead: u.kind !== "thread" && !!u.latest, teamName: u.teamName || undefined,
     };

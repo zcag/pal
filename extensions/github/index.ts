@@ -8,7 +8,7 @@
 // item, `notifications`: the unread count as a badge over the same cache.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { errorMessage, failed, hint, home, run, tinted, toast, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { clock, errorMessage, failed, hint, home, run, tinted, toast, truncate, when, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
@@ -42,7 +42,7 @@ function failure(e: unknown): Item[] {
       ? hint("auth", "Sign in to GitHub", "Run `gh auth login` in a terminal, or set a token under Settings › Extensions › GitHub", { actions: [{ id: "open", title: "Open token settings" }] })
       : hint("auth", "Sign in to GitHub", "Install the gh CLI and run `gh auth login`, or set a token under Settings › Extensions › GitHub", { actions: [{ id: "open", title: "Open token settings" }] })];
   }
-  if (e instanceof ApiError && e.rateLimited) return [hint("limit", "GitHub rate limit reached", `Resets at ${e.resetAt!.toLocaleTimeString()}`)];
+  if (e instanceof ApiError && e.rateLimited) return [hint("limit", "GitHub rate limit reached", `Resets at ${clock(e.resetAt!)}`)];
   if (e instanceof ApiError && e.status === 401) return [hint("auth", "GitHub rejected the token", e.message, { actions: [{ id: "open", title: "Open token settings" }] })];
   log(errorMessage(e));
   return [hint("error", "GitHub did not answer", errorMessage(e))];
@@ -52,7 +52,6 @@ const TOKEN_URL = "https://github.com/settings/tokens/new?scopes=repo,notificati
 const pickHint = (id: string): Effect | void => (id.startsWith("hint:auth") ? { open: TOKEN_URL } : undefined);
 
 
-const when = (iso: string) => new Date(iso).toLocaleDateString();
 const repoLink = (repo: string): Metadata => ({ label: "Repository", link: { text: repo, href: `https://github.com/${repo}` } });
 const labelTags = (labels: { name: string }[]) => labels.map((l) => ({ text: l.name, color: "grey" }));
 
@@ -521,7 +520,7 @@ function notifRow(n: Notification): Item {
     url: n.url,
     section: reason,
     accessories: [{ tag: n.type === "PullRequest" ? "PR" : n.type.toLowerCase(), color: "grey" }, { date: n.updatedAt }],
-    detail: { markdown: `# ${n.title}`, metadata: [repoLink(n.repo), { label: "Reason", value: reason }, { label: "Type", value: n.type }, { label: "Updated", value: new Date(n.updatedAt).toLocaleString() }] },
+    detail: { markdown: `# ${n.title}`, metadata: [repoLink(n.repo), { label: "Reason", value: reason }, { label: "Type", value: n.type }, { label: "Updated", value: when(n.updatedAt) }] },
     actions: NOTIF_ACTIONS,
   };
 }
@@ -711,7 +710,7 @@ const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { retur
 /** The pane for a PR or issue row, asked lazily; the failure is the text of the pane. */
 const pane = async (f: () => Promise<Detail>): Promise<Detail> => { try { return await f(); } catch (e) { return { markdown: `_${errorMessage(e)}_` }; } };
 
-const limitHint = (): Item[] => (rateLimit && rateLimit.remaining === 0 && rateLimit.resetAt.getTime() > Date.now() ? [hint("limit", "GitHub rate limit reached", `Resets at ${rateLimit.resetAt.toLocaleTimeString()}; showing what was cached`)] : []);
+const limitHint = (): Item[] => (rateLimit && rateLimit.remaining === 0 && rateLimit.resetAt.getTime() > Date.now() ? [hint("limit", "GitHub rate limit reached", `Resets at ${clock(rateLimit.resetAt)}; showing what was cached`)] : []);
 
 export default {
   palettes: {
