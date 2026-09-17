@@ -46,11 +46,12 @@ describe("audio", () => {
 
   test("bar: volume controls the default output directly, scroll adjusts it, and the mic appears only while muted", async () => {
     // 56%: the middle of the ramp, and no number — the level is not furniture.
-    expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f0580}", icon_size: 18, icon_width: 31, click: "open", scroll: { up: "up", down: "down" } });
+    // No `click: "open"`: a click on the strip only opens the popover, it never toggles mute on its own.
+    expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f0580}", icon_size: 18, icon_width: 31, scroll: { up: "up", down: "down" } });
+    expect((await host.render("audio", "volume")).click).toBeUndefined();
     expect((await host.render("audio", "volume")).title).toBeUndefined();
     expect(await host.render("audio", "microphone")).toEqual({ hidden: true });
     expect(await host.barAction("audio", "volume", "up")).toEqual({ keep: true, hud: "MacBook Pro Speakers 61%" });
-    expect(await host.request<any>("bar/open", { extension: "audio", id: "volume" })).toEqual({ keep: true, hud: "MacBook Pro Speakers muted" });
     devices = devices.map((d) => d.kind === "input" ? { ...d, muted: true } : d);
     expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", color: "red", click: "open" });
     expect(await host.request<any>("bar/open", { extension: "audio", id: "microphone" })).toEqual({ keep: true, hud: "MacBook Pro Microphone at 75%" });

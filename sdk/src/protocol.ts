@@ -751,7 +751,7 @@ export type InstanceInfo = { key: string; name: string; title?: string; isDefaul
 
 export type BarSource = {
   render(ctx: BarCtx): BarItem | Promise<BarItem>;
-  /** A menu node was picked (its `action`), or a segment clicked (`segment:<id>`). Any Effect; `keep` re-renders the item. */
+  /** A menu node was picked, its `action`. Any Effect; `keep` re-renders the item. A segment click opens the popover, like the rest of the item — it never reaches `onAction`. */
   onAction?(action: string, ctx: BarCtx): Effect | void | Promise<Effect | void>;
   /** A click on an item without `menu`, or one whose rendered item says `click: "open"`. */
   onOpen?(ctx: BarCtx): Effect | void | Promise<Effect | void>;

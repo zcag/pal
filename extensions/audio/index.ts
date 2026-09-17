@@ -118,7 +118,6 @@ function outputBar(d: AudioDevice | undefined, menu: View): BarItem {
     icon_size: 18,
     icon_width: 31,
     tooltip: `${d.name}${muted ? ", muted" : d.volume === null ? "" : ` · ${d.volume}%`}`,
-    click: "open",
     scroll: { up: "up", down: "down" },
     menu: { view: menu },
   };
@@ -273,7 +272,7 @@ export default {
     },
   },
   bar: {
-    volume: { render: renderVolume, onOpen: () => volumeAction("toggle"), onAction: volumeAction },
+    volume: { render: renderVolume, onAction: volumeAction },
     microphone: { render: renderMic, onOpen: micAction, onAction: micBarAction },
   },
 } satisfies Extension;

@@ -207,7 +207,10 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         if look.font == BarFont::Mono {
             set(&mut p, "label.font.family", "Menlo");
         }
-        set(&mut p, "click_script", format!("{pal_bin} bar action {key} segment:{}", name.rsplit('.').next().unwrap_or_default()));
+        // A segment is part of the item, not its own control: the click opens
+        // the same popover the icon does, rather than firing a `segment:<id>`
+        // action the extension likely has no handler for.
+        set(&mut p, "click_script", format!("{pal_bin} bar click {key} --anchor sketchybar"));
         out.order.push(name.clone());
         out.props.insert(name, p);
     }
@@ -584,7 +587,7 @@ mod tests {
         assert_eq!(s.props["pal.x.y.block"]["icon.color"], "0xffff8a82");
         assert_eq!(s.props["pal.x.y.oss"]["label.color"], "0x80a3a4ae", "a segment without a colour takes the item's (muted, at dim)");
         assert_eq!(s.props["pal.x.y.oss"]["label.padding_right"], "8", "the last one carries the trailing padding");
-        assert_eq!(s.props["pal.x.y.block"]["click_script"], "pal bar action x/y segment:block");
+        assert_eq!(s.props["pal.x.y.block"]["click_script"], "pal bar click x/y --anchor sketchybar", "a segment click opens the popover, same as the icon");
         let st = props("x/y", &draw(json!({ "stale": true, "segments": [{ "id": "a", "text": "1", "color": "red" }] }), "right", false), &pal(), "pal");
         assert_eq!(st.props["pal.x.y.a"]["label.color"], "0x80a3a4ae", "stale mutes the segments too, at dim");
         assert_eq!(st.props["pal.x.y"]["label.color"], "0x80a3a4ae");

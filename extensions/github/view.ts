@@ -34,7 +34,6 @@ const OUTER_PAD = 12, RAIL_W = 4, RAIL_H = 30, AGE_W = 36, ROW_PAD = 8, GAP = 8;
 const INNER_W = POPOVER_W - 2 * OUTER_PAD - ROW_PAD;
 const TITLE_W = INNER_W - RAIL_W - GAP - AGE_W - GAP;
 const BAR_ROWS = 6;
-const STATUS_W = 96, GH_TEXT_W = INNER_W - STATUS_W - AGE_W - 2 * GAP;
 
 const allPrs = (st: PrState) => st.buckets.flatMap((b) => b.rows);
 export const shownPrs = (st: PrState): PR[] => allPrs(st).slice(0, BAR_ROWS);
@@ -62,7 +61,10 @@ function prNode(pr: PR, focused: boolean, st: PrState): ViewNode {
   const s = status(pr);
   return row(
     [
-      column([text(pr.title, { size: "md", weight: focused ? "semibold" : "medium", width: GH_TEXT_W }), text(`${pr.repo}#${pr.number}`, { size: "xs", color: "muted", width: GH_TEXT_W, style: "mono" })], { key: "t", gap: 0 }),
+      // Grows to whatever the badge (its width varies with the state text) and the age
+      // column leave, so the two trailing bits always sit flush at the right edge
+      // instead of trailing right after a badge of a different width each row.
+      column([text(pr.title, { size: "md", weight: focused ? "semibold" : "medium", minWidth: 0 }), text(`${pr.repo}#${pr.number}`, { size: "xs", color: "muted", minWidth: 0, style: "mono" })], { key: "t", gap: 0, grow: true }),
       { type: "badge", key: "state", text: s.text, color: s.color },
       text(ago(pr.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
@@ -77,7 +79,7 @@ function issueNode(x: IssueBucketed, focused: boolean, st: IssueState): ViewNode
   if (i.comments) meta.push(text(`${i.comments} ${i.comments === 1 ? "comment" : "comments"}`, { size: "xs", color: "faint" }));
   return row(
     [
-      column([text(i.title, { size: "md", weight: focused ? "semibold" : "medium", width: GH_TEXT_W }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "t", gap: 0 }),
+      column([text(i.title, { size: "md", weight: focused ? "semibold" : "medium", minWidth: 0 }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "t", gap: 0, grow: true }),
       text(ago(i.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
     { key: i.id, padding: 1, minHeight: 42, radius: true, action: `focus:${i.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },

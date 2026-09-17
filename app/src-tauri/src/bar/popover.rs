@@ -642,7 +642,7 @@ pub fn bar_size(app: AppHandle, height: f64) {
     set_height(&app, height);
 }
 
-/// A row picked in the popover's menu level (or a segment), a view action,
+/// A row picked in the popover's menu level, a view action,
 /// a form's submit: `bar/action`. `values` is what a control read (the
 /// view's text field, a form's fields, a slider's fraction), on the ctx.
 #[tauri::command]

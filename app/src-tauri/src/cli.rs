@@ -339,7 +339,7 @@ pub enum BarCmd {
         #[arg(long)]
         state: String,
     },
-    /// Run one of the item's actions (a menu node's `action`, or `segment:<id>`).
+    /// Run one of the item's actions: a menu node's `action`.
     Action { key: String, action: String },
     /// Render the item again now.
     Render { key: String },
