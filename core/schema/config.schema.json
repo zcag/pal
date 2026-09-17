@@ -69,7 +69,7 @@
             "dim": 50,
             "font": "system",
             "max_chars": 32,
-            "open_on_hover": true,
+            "open_on_hover": false,
             "position": "right",
             "show_icon": true,
             "show_title": true,
@@ -286,7 +286,7 @@
     },
     "BarSketchybar": {
       "additionalProperties": false,
-      "description": "`[bar.sketchybar]`: the sketchybar target.",
+      "description": "`[bar.sketchybar]`: the sketchybar target. Hover off too: a popover opens on a click, its hotkey, or a hover the owner asks for.",
       "properties": {
         "badge_style": {
           "$ref": "#/$defs/BadgeStyle",
@@ -324,8 +324,8 @@
           "type": "integer"
         },
         "open_on_hover": {
-          "default": true,
-          "description": "A hover peeks the item's popover. On: sketchybar popups open on hover.",
+          "default": false,
+          "description": "A hover peeks the item's popover. Off: a click opens and closes, like the menu bar; the owner's sketchybar may turn it on.",
           "type": "boolean"
         },
         "position": {
@@ -700,7 +700,7 @@
           "dim": 50,
           "font": "system",
           "max_chars": 32,
-          "open_on_hover": true,
+          "open_on_hover": false,
           "position": "right",
           "show_icon": true,
           "show_title": true,
