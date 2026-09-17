@@ -90,6 +90,7 @@ const rec = join(folder, "Screen Recording 2026-09-15 at 12.00.00.mov");
 const stray = join(folder, "holiday.jpg");
 const huds: string[] = [];
 
+let PATH0: string | undefined;
 beforeAll(async () => {
   writeFileSync(one, png(1440, 900));
   writeFileSync(two, png(800, 600));
@@ -104,6 +105,10 @@ beforeAll(async () => {
   utimesSync(stray, at(60_000), at(60_000));
   process.env.PAL_SCREENCAPTURE_BIN = join(bin, "screencapture");
   process.env.PAL_SCREENSHOTS_TRASH = join(bin, "trash");
+  // Off macOS the capture rows need grim and slurp on PATH; stand-ins keep the three rows on a Linux runner.
+  for (const t of ["grim", "slurp", "wl-copy"]) { writeFileSync(join(bin, t), "#!/bin/sh\nexit 0\n"); chmodSync(join(bin, t), 0o755); }
+  PATH0 = process.env.PATH;
+  process.env.PATH = `${bin}:${process.env.PATH}`;
   host = await Host.bundled({
     settings: { screenshots: { settings: { folder } } },
     core: {
@@ -112,7 +117,7 @@ beforeAll(async () => {
     },
   });
 });
-afterAll(() => { host?.kill(); delete process.env.PAL_SCREENCAPTURE_BIN; delete process.env.PAL_SCREENSHOTS_TRASH; rmSync(root, { recursive: true, force: true }); });
+afterAll(() => { host?.kill(); if (PATH0 !== undefined) process.env.PATH = PATH0; delete process.env.PAL_SCREENCAPTURE_BIN; delete process.env.PAL_SCREENSHOTS_TRASH; rmSync(root, { recursive: true, force: true }); });
 
 const list = () => host.list("screenshots", "screenshots");
 const pick = (id: string, action?: string, ctx?: { ids?: string[] }) => host.pick("screenshots", "screenshots", id, action, ctx);
