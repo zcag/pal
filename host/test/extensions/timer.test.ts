@@ -55,7 +55,7 @@ describe("timer", () => {
   test("meta: the palette is live, the bar entry refreshes every 10 s and on wake", () => {
     const l = host.loaded().find((l) => l.extension === "timer")!;
     expect(l.palettes).toMatchObject([{ name: "timers", title: "Timers", live: true, input: false }]);
-    expect(l.bar).toEqual([{ id: "timer", title: "Timer", description: expect.any(String), refresh: { every: 10, on: ["wake"] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }, { keys: "n", title: expect.any(String) }]), source: true }]);
+    expect(l.bar).toEqual([{ id: "timer", title: "Timer", description: expect.any(String), refresh: { every: 10, on: ["wake"] }, mocks: { running: { title: "Running timer", item: expect.objectContaining({ progress: 0.58 }) }, paused: { title: "Paused timer", item: expect.objectContaining({ color: "muted" }) }, landed: { title: "Timer landed", item: expect.objectContaining({ urgent: true }) } }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }, { keys: "n", title: expect.any(String) }]), source: true }]);
   });
 
   test("the state directory is made on the first render; no timers is hidden, and the palette has only the New and Start Pomodoro rows", async () => {

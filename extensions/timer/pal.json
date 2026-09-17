@@ -120,6 +120,38 @@
     "timer": {
       "title": "Timer",
       "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running. The popover: a card per timer with the time left and a bar, pause, add five minutes, stop, a field to start one, a pomodoro's phase and round on its card.",
+      "mocks": {
+        "running": {
+          "title": "Running timer",
+          "item": {
+            "icon": "󰔛",
+            "title": "12:34 · 2/4",
+            "progress": 0.58,
+            "color": "blue",
+            "tooltip": "Pomodoro: Round 2 of 4"
+          }
+        },
+        "paused": {
+          "title": "Paused timer",
+          "item": {
+            "icon": "󰔛",
+            "title": "41:05",
+            "progress": 0.32,
+            "color": "muted",
+            "tooltip": "Tea, paused"
+          }
+        },
+        "landed": {
+          "title": "Timer landed",
+          "item": {
+            "icon": "󰔛",
+            "title": "Tea",
+            "urgent": true,
+            "progress": 1,
+            "tooltip": "Tea landed just now"
+          }
+        }
+      },
       "refresh": {
         "every": 10,
         "on": [
