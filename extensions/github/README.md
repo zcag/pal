@@ -100,6 +100,24 @@ Settings, `[extensions.github]`:
 | `merged_days` | number (days) | `7` | How far back the Merged list reaches. |
 | `merge_method` | `merge` / `squash` / `rebase` | `merge` | How the Merge action merges. |
 
+The bar item **Pull requests** is hidden at zero. When it has work, the
+strip is the bucket summary: red blocked (conflicts, failing checks or
+changes requested), amber active (checks running or review required),
+green ready to merge, muted waiting. Its popover opens the same story:
+sections in that order, each row the PR title, `owner/repo#n`, the
+specific state badge and age. Six rows fit; the rest is "and N more in
+pal". `↑`/`↓` (or `k`/`j`) move the cursor, a click focuses a row,
+`Enter` opens it on GitHub, `c` copies its URL, `r` refreshes, and `p`
+opens the full Pull Requests palette.
+
+The bar item **Issues** is hidden at zero. The strip counts assigned,
+mentioned and issues opened by you; the popover uses the same buckets in
+that order. Rows show the issue title, `owner/repo#n`, labels, comment
+count when present, and age. Six rows fit; the rest is "and N more in
+pal". `↑`/`↓` (or `k`/`j`) move the cursor, a click focuses a row,
+`Enter` opens it on GitHub, `c` copies its URL, `r` refreshes, and `p`
+opens the full Issues palette.
+
 The bar item **Notifications** shows the unread count as a badge (hidden at
 zero), refreshed every five minutes and on show, wake and a network
 change. Its popover is the inbox at a glance: the unread threads grouped

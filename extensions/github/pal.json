@@ -240,7 +240,7 @@
   "bar": {
     "prs": {
       "title": "Pull requests",
-      "description": "Separate PR status item: red needs attention, amber is awaiting review or checks, green is ready to merge, muted is waiting. Click opens Pull Requests.",
+      "description": "Separate PR status item: red needs attention, amber is awaiting review or checks, green is ready to merge, muted is waiting. The popover shows those buckets with the PR title, repo, state and age.",
       "mocks": {
         "attention": {
           "title": "Needs attention",
@@ -255,11 +255,33 @@
           "item": { "hidden": true }
         }
       },
-      "refresh": { "every": 300, "on": ["show", "wake", "network"] }
+      "refresh": { "every": 300, "on": ["show", "wake", "network"] },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the focused pull request on GitHub"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the focused pull request's URL"
+        },
+        {
+          "keys": "r",
+          "title": "Refresh pull requests"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Pull Requests palette"
+        },
+        {
+          "keys": "up",
+          "title": "Move between pull requests (or j and k)"
+        }
+      ]
     },
     "issues": {
       "title": "Issues",
-      "description": "Separate Issues status item: assigned, mentioned, and your own open issues use distinct colours. Click opens Issues.",
+      "description": "Separate Issues status item: assigned, mentioned, and your own open issues use distinct colours. The popover shows those buckets with the issue title, repo, labels, comments and age.",
       "mocks": {
         "assigned": {
           "title": "Assigned and mentioned",
@@ -274,7 +296,29 @@
           "item": { "hidden": true }
         }
       },
-      "refresh": { "every": 300, "on": ["show", "wake", "network"] }
+      "refresh": { "every": 300, "on": ["show", "wake", "network"] },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the focused issue on GitHub"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the focused issue's URL"
+        },
+        {
+          "keys": "r",
+          "title": "Refresh issues"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Issues palette"
+        },
+        {
+          "keys": "up",
+          "title": "Move between issues (or j and k)"
+        }
+      ]
     },
     "notifications": {
       "title": "Notifications",

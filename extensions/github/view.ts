@@ -1,14 +1,20 @@
-// The Notifications bar popover as a tree (`View` in `@zcag/pal`), pure:
-// the fixture renders a made-up inbox with this same function. 420 wide
-// (`ctx.compact`): the unread threads grouped by repository, newest
-// repository first, each thread a row with a colour rail for its
-// subject's type, the title cut to the width, a reason badge and the age;
-// the row the keys are on wears the accent ring and a click on a row
-// moves the ring there. `ROWS` threads at most, then one muted line
-// saying how many more the palette lists. Under everything a row of key
-// hints; nothing unread is "All caught up".
+// GitHub's bar popovers as render trees (`View` in `@zcag/pal`), pure:
+// index.ts fetches and classifies, this module only draws the state the
+// tests pass in. Pull Requests and Issues show the same buckets their
+// strip segments count, capped to six rows with a muted "and N more in
+// pal"; the focused row wears the accent ring and row clicks move it.
+// Notifications keeps its repository-grouped inbox: unread threads with
+// a type rail, reason badge and age, capped by a height budget. All three
+// use the popover width constant and the same key-hint row pattern.
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
-import type { Notification } from "./data.ts";
+import type { Issue, Notification, PR } from "./data.ts";
+
+export type PrBucket = "blocked" | "active" | "ready" | "waiting";
+export type PrBucketed = { key: PrBucket; title: string; color: TagColor; rows: PR[] };
+export type PrState = { buckets: PrBucketed[]; focus: number; now: number };
+export type IssueKind = "assigned" | "mentioned" | "created";
+export type IssueBucketed = { issue: Issue; kind: IssueKind };
+export type IssueState = { rows: IssueBucketed[]; focus: number; now: number };
 
 export type NotifState = {
   /** Unread, in the order GitHub gave (any order: the view sorts). */
@@ -23,9 +29,123 @@ export type NotifState = {
 
 /** What fits under the popover's 480 px cap, in rows: a thread is one, a repository header `HEADER` of one; six threads of one repository, five over five. The rest is one line and the palette. */
 export const ROWS = 6.5, HEADER = 0.45;
-/** A row's inside: its padding (2 steps a side), the type rail, the age column and the gaps between them. */
-const RAIL_W = 4, RAIL_H = 30, AGE_W = 36, ROW_PAD = 8, GAP = 8;
-const TITLE_W = POPOVER_W - ROW_PAD - RAIL_W - GAP - AGE_W - GAP;
+/** A row's inside: the outer column's `padding: 3` (12px a side), a row's own `padding: 1`, the type rail, the age column and the gaps between them. */
+const OUTER_PAD = 12, RAIL_W = 4, RAIL_H = 30, AGE_W = 36, ROW_PAD = 8, GAP = 8;
+const INNER_W = POPOVER_W - 2 * OUTER_PAD - ROW_PAD;
+const TITLE_W = INNER_W - RAIL_W - GAP - AGE_W - GAP;
+const BAR_ROWS = 6;
+const STATUS_W = 96, GH_TEXT_W = INNER_W - STATUS_W - AGE_W - 2 * GAP;
+
+const allPrs = (st: PrState) => st.buckets.flatMap((b) => b.rows);
+export const shownPrs = (st: PrState): PR[] => allPrs(st).slice(0, BAR_ROWS);
+export const shownIssues = (st: IssueState): IssueBucketed[] => st.rows.slice(0, BAR_ROWS);
+
+function barHints(): ViewNode {
+  return row([...keyHint("enter", "open"), ...keyHint("c", "copy"), ...keyHint("r", "refresh"), ...keyHint("p", "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
+}
+
+function status(pr: PR): { text: string; color: TagColor } {
+  if (pr.mergeable === "CONFLICTING") return { text: "conflicting", color: "red" };
+  if (pr.checks === "FAILURE" || pr.checks === "ERROR") return { text: "checks failing", color: "red" };
+  if (pr.review === "CHANGES_REQUESTED") return { text: "changes requested", color: "red" };
+  if (pr.checks === "PENDING" || pr.checks === "EXPECTED") return { text: "checks running", color: "amber" };
+  if (pr.review === "REVIEW_REQUIRED" && !pr.draft) return { text: "review required", color: "amber" };
+  if (pr.checks === "SUCCESS" && pr.review === "APPROVED" && pr.mergeable === "MERGEABLE") return { text: "approved", color: "green" };
+  return { text: pr.draft ? "draft" : "waiting", color: "grey" };
+}
+
+function sectionHeader(key: string, title: string, n: number, color: TagColor = "grey"): ViewNode {
+  return row([text(title, { size: "xs", weight: "semibold", color: "muted" }), { type: "badge", key: "n", text: String(n), color }], { key: `h-${key}`, gap: 1, minHeight: 22 });
+}
+
+function prNode(pr: PR, focused: boolean, st: PrState): ViewNode {
+  const s = status(pr);
+  return row(
+    [
+      column([text(pr.title, { size: "md", weight: focused ? "semibold" : "medium", width: GH_TEXT_W }), text(`${pr.repo}#${pr.number}`, { size: "xs", color: "muted", width: GH_TEXT_W, style: "mono" })], { key: "t", gap: 0 }),
+      { type: "badge", key: "state", text: s.text, color: s.color },
+      text(ago(pr.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
+    ],
+    { key: pr.id, padding: 1, minHeight: 42, radius: true, action: `focus:${pr.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
+  );
+}
+
+function issueNode(x: IssueBucketed, focused: boolean, st: IssueState): ViewNode {
+  const i = x.issue;
+  const meta: ViewNode[] = [text(`${i.repo}#${i.number}`, { size: "xs", color: "muted", style: "mono" })];
+  for (const l of i.labels.slice(0, 2)) meta.push({ type: "badge", key: `l-${l.name}`, text: l.name, color: "grey" });
+  if (i.comments) meta.push(text(`${i.comments} ${i.comments === 1 ? "comment" : "comments"}`, { size: "xs", color: "faint" }));
+  return row(
+    [
+      column([text(i.title, { size: "md", weight: focused ? "semibold" : "medium", width: GH_TEXT_W }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "t", gap: 0 }),
+      text(ago(i.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
+    ],
+    { key: i.id, padding: 1, minHeight: 42, radius: true, action: `focus:${i.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
+  );
+}
+
+function prActions(st: PrState): Action[] {
+  const rows = shownPrs(st);
+  return [
+    { id: "open", title: "Open on GitHub", shortcut: "enter" },
+    { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"] },
+    { id: "refresh", title: "Refresh", shortcut: "r" },
+    { id: "pal", title: "Open Pull Requests palette", shortcut: "p" },
+    { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
+    { id: "up", title: "Previous row", shortcut: ["up", "k"], hidden: true },
+    ...rows.map((pr): Action => ({ id: `focus:${pr.id}`, title: `Focus ${pr.title}`, hidden: true })),
+  ];
+}
+
+function issueActions(st: IssueState): Action[] {
+  const rows = shownIssues(st);
+  return [
+    { id: "open", title: "Open on GitHub", shortcut: "enter" },
+    { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"] },
+    { id: "refresh", title: "Refresh", shortcut: "r" },
+    { id: "pal", title: "Open Issues palette", shortcut: "p" },
+    { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
+    { id: "up", title: "Previous row", shortcut: ["up", "k"], hidden: true },
+    ...rows.map((x): Action => ({ id: `focus:${x.issue.id}`, title: `Focus ${x.issue.title}`, hidden: true })),
+  ];
+}
+
+export function renderPrs(st: PrState): View {
+  const rows = shownPrs(st);
+  const focus = Math.min(Math.max(0, st.focus), Math.max(0, rows.length - 1));
+  const kids: ViewNode[] = [];
+  let seen = 0;
+  for (const b of st.buckets) {
+    const shown = b.rows.filter((pr) => rows.includes(pr));
+    if (!shown.length) continue;
+    kids.push(sectionHeader(b.key, b.title, b.rows.length, b.color), ...shown.map((pr) => prNode(pr, seen++ === focus, st)));
+  }
+  const more = allPrs(st).length - rows.length;
+  if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
+  kids.push({ type: "divider", key: "rule" }, barHints());
+  const n = allPrs(st).length;
+  return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: prActions(st), title: `${n} open ${n === 1 ? "pull request" : "pull requests"}`, id: "prs", keys: "actions" };
+}
+
+export function renderIssues(st: IssueState): View {
+  const rows = shownIssues(st);
+  const focus = Math.min(Math.max(0, st.focus), Math.max(0, rows.length - 1));
+  const label: Record<IssueKind, string> = { assigned: "Assigned to you", mentioned: "Mentioning you", created: "Opened by you" };
+  const color: Record<IssueKind, TagColor> = { assigned: "blue", mentioned: "amber", created: "grey" };
+  const kids: ViewNode[] = [];
+  let seen = 0;
+  for (const kind of ["assigned", "mentioned", "created"] as const) {
+    const bucket = st.rows.filter((x) => x.kind === kind);
+    const shown = bucket.filter((x) => rows.includes(x));
+    if (!shown.length) continue;
+    kids.push(sectionHeader(kind, label[kind], bucket.length, color[kind]), ...shown.map((x) => issueNode(x, seen++ === focus, st)));
+  }
+  const more = st.rows.length - rows.length;
+  if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
+  kids.push({ type: "divider", key: "rule" }, barHints());
+  const n = st.rows.length;
+  return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: issueActions(st), title: `${n} open ${n === 1 ? "issue" : "issues"}`, id: "issues", keys: "actions" };
+}
 
 /** The subject's type as a colour rail at the row's edge (GitHub's colours for the open state, since the inbox does not say the state) and a word in the meta row. */
 const TYPES: Record<string, { color: TagColor; tag: string }> = {

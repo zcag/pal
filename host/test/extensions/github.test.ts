@@ -9,10 +9,10 @@ import { chmodSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tinted } from "../../../sdk/src/icon.ts";
-import type { Form, View } from "../../../sdk/src/protocol.ts";
+import type { Form, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { REASONS, render, shown } from "../../../extensions/github/view.ts";
-import type { Notification } from "../../../extensions/github/data.ts";
+import { REASONS, render as renderNotifs, renderIssues, renderPrs, shown, shownIssues, shownPrs } from "../../../extensions/github/view.ts";
+import type { Issue as GhIssue, Notification, PR as GhPR } from "../../../extensions/github/data.ts";
 import { Host, stored } from "../harness.ts";
 
 // ---- fixtures ---------------------------------------------------------------
@@ -66,6 +66,19 @@ const REPOS = {
   starred: [restRepo("oven-sh/bun", { stargazers_count: 80000, language: "Zig" }), restRepo("zcag/pal", { private: true })],
   org: [restRepo("acme/widgets"), restRepo("acme/api", { archived: true })],
 };
+
+const barPr = (number: number, o: Partial<GhPR> = {}): GhPR => ({
+  kind: "pr", id: `acme/repo#${number}`, nodeId: `PR_${number}`, repo: "acme/repo", number, title: `PR ${number}`, url: `https://github.com/acme/repo/pull/${number}`,
+  author: "mara", avatar: "", state: "open", draft: false, head: `b${number}`, base: "main", additions: 1, deletions: 1,
+  review: null, mergeable: "MERGEABLE", checks: undefined, labels: [], reviewers: [], updatedAt: "2026-09-16T12:00:00Z", createdAt: "2026-09-10T12:00:00Z", mergedAt: null,
+  ...o,
+});
+
+const barIssue = (number: number, o: Partial<GhIssue> = {}): GhIssue => ({
+  kind: "issue", id: `acme/repo#${number}`, nodeId: `I_${number}`, repo: "acme/repo", number, title: `Issue ${number}`, url: `https://github.com/acme/repo/issues/${number}`,
+  author: "mara", avatar: "", state: "open", labels: [], assignees: [], comments: 0, updatedAt: "2026-09-16T12:00:00Z", createdAt: "2026-09-10T12:00:00Z",
+  ...o,
+});
 
 // ---- the mock server ----------------------------------------------------------
 
@@ -164,6 +177,15 @@ const list = (palette: string, filter?: string, query?: string, refresh?: boolea
 const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("github", palette, id, action, ctx);
 const ids = (items: { id: string }[]) => items.map((i) => i.id);
 const tags = (i: any) => (i.accessories as any[]).filter((a) => "tag" in a).map((a) => a.tag);
+const nodes = (n: ViewNode): ViewNode[] => [n, ...("children" in n ? n.children.flatMap(nodes) : [])];
+const texts = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "text" ? [n.value] : []));
+const keycaps = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "keycap" ? [n.keys] : []));
+const viewOf = (x: unknown): View => {
+  const o = x as { view?: View; menu?: { view?: View } };
+  const v = o.view ?? o.menu?.view;
+  if (!v) throw new Error("no view");
+  return v;
+};
 
 describe("github", () => {
   test("meta: five palettes, ttl on the indexed ones, notifications live, search input, lazy detail where there is a pane", () => {
@@ -472,8 +494,8 @@ describe("github", () => {
   describe("bar: notifications", () => {
     test("meta: the manifest entry with its refresh, backed by the code", () => {
       expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual(expect.arrayContaining([
-        { id: "prs", title: "Pull requests", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ attention: expect.any(Object), ready: expect.any(Object), clear: expect.any(Object) }), source: true },
-        { id: "issues", title: "Issues", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ assigned: expect.any(Object), mine: expect.any(Object), clear: expect.any(Object) }), source: true },
+        { id: "prs", title: "Pull requests", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ attention: expect.any(Object), ready: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
+        { id: "issues", title: "Issues", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ assigned: expect.any(Object), mine: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
         { id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: { unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, clear: { title: "All caught up", item: { hidden: true } } }, keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true },
       ]));
     });
@@ -508,13 +530,13 @@ describe("github", () => {
       expect(shown(Array.from({ length: 9 }, (_, i) => n(String(i), "a/one", i))).map((x) => x.id)).toEqual(["thread:0", "thread:1", "thread:2", "thread:3", "thread:4", "thread:5"]);
       expect(shown(Array.from({ length: 7 }, (_, i) => n(String(i), `a/r${i % 5}`, i))).map((x) => x.repo)).toEqual(["a/r0", "a/r0", "a/r1", "a/r1", "a/r2"]);
       const many = Array.from({ length: 9 }, (_, i) => n(String(i), "a/one", i));
-      const v = render({ list: many, cursor: 2, now, account: "Work" });
+      const v = renderNotifs({ list: many, cursor: 2, now, account: "Work" });
       expect(checkView(v)).toBe(v);
       expect(v.title).toBe("9 unread (Work)");
       expect(JSON.stringify(v.tree)).toContain('"value":"and 3 more in pal"');
       expect(JSON.stringify(v.tree)).toContain('"action":"focus:thread:2","selected":true');
       for (const r of ["mention", "team_mention", "review_requested", "assign", "author", "comment", "subscribed", "state_change", "ci_activity", "security_alert", "manual", "invitation", "member_feature_requested", "security_advisory_credit", "approval_requested"]) expect(REASONS[r]).toBeDefined();
-      const empty = render({ list: [], cursor: 0, now });
+      const empty = renderNotifs({ list: [], cursor: 0, now });
       expect(checkView(empty)).toBe(empty);
       expect(JSON.stringify(empty.tree)).toContain('"value":"All caught up"');
       expect(empty.actions.map((a) => a.id)).toEqual(["pal", "site"]);
@@ -570,15 +592,112 @@ describe("github", () => {
   });
 
   describe("bar: pull requests and issues", () => {
-    test("each is an independent compact status item over its existing palette cache", async () => {
-      expect(await host.render("github", "prs", { reason: "load" })).toMatchObject({
-        icon: "\uf407", tooltip: "3 open pull requests", menu: { palette: "prs" },
+    test("render: PRs and issues are compact status items whose popovers show the same buckets as the strip", async () => {
+      const prs = await host.render("github", "prs", { reason: "load" });
+      expect(prs).toMatchObject({
+        icon: "\uf407", tooltip: "3 open pull requests",
         segments: [{ id: "blocked", text: "×2", color: "red" }, { id: "waiting", text: "·1", color: "muted" }],
       });
-      expect(await host.render("github", "issues", { reason: "load" })).toMatchObject({
-        icon: "\uf41b", tooltip: "2 open issues", menu: { palette: "issues" },
+      const prView = viewOf(prs);
+      expect(checkView(prView)).toBe(prView);
+      expect(prView).toMatchObject({ title: "3 open pull requests", id: "prs", keys: "actions" });
+      expect(prView.actions.map((a) => a.id)).toEqual(["open", "copy", "refresh", "pal", "down", "up", "focus:acme/widgets#71", "focus:acme/api#9", "focus:zcag/pal#72"]);
+      expect(prView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "copy", "refresh", "pal"]);
+      expect(keycaps(prView)).toEqual(["enter", "c", "r", "p", "up", "down"]);
+      expect(texts(prView)).toEqual(expect.arrayContaining(["Needs attention", "Waiting", "Directory readiness", "acme/widgets#71", "Fix the parser", "acme/api#9", "Draft thing", "zcag/pal#72"]));
+      const ps = JSON.stringify(prView.tree);
+      expect(ps.indexOf('"value":"Needs attention"')).toBeLessThan(ps.indexOf('"value":"Waiting"'));
+      expect(ps).toContain('"text":"conflicting","color":"red"');
+      expect(ps).toContain('"text":"checks failing","color":"red"');
+      expect(ps).toContain('"text":"draft","color":"grey"');
+      expect(ps).toContain('"action":"focus:acme/widgets#71","selected":true');
+
+      const issues = await host.render("github", "issues", { reason: "load" });
+      expect(issues).toMatchObject({
+        icon: "\uf41b", tooltip: "2 open issues",
         segments: [{ id: "assigned", text: "@1", color: "blue" }, { id: "mentioned", text: "@1", color: "amber" }],
       });
+      const issueView = viewOf(issues);
+      expect(checkView(issueView)).toBe(issueView);
+      expect(issueView).toMatchObject({ title: "2 open issues", id: "issues", keys: "actions" });
+      expect(issueView.actions.map((a) => a.id)).toEqual(["open", "copy", "refresh", "pal", "down", "up", "focus:acme/widgets#5", "focus:acme/api#8"]);
+      expect(issueView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "copy", "refresh", "pal"]);
+      expect(keycaps(issueView)).toEqual(["enter", "c", "r", "p", "up", "down"]);
+      expect(texts(issueView)).toEqual(expect.arrayContaining(["Assigned to you", "Mentioning you", "Crash on start", "acme/widgets#5", "Slow endpoint", "acme/api#8", "3 comments", "1 comment"]));
+      const is = JSON.stringify(issueView.tree);
+      expect(is.indexOf('"value":"Assigned to you"')).toBeLessThan(is.indexOf('"value":"Mentioning you"'));
+      expect(is).toContain('"text":"bug","color":"grey"');
+      expect(is).toContain('"text":"p1","color":"grey"');
+      expect(is).toContain('"action":"focus:acme/widgets#5","selected":true');
+    });
+
+    test("view helpers: bucket order, row cap, more line and all PR states", () => {
+      const now = Date.parse("2026-09-16T14:00:00Z");
+      const blocked = [barPr(1, { mergeable: "CONFLICTING", title: "Conflicts" }), barPr(2, { checks: "FAILURE", title: "Bad checks" })];
+      const active = [barPr(3, { checks: "PENDING", title: "Running checks" }), barPr(4, { review: "REVIEW_REQUIRED", title: "Needs review" })];
+      const ready = [barPr(5, { checks: "SUCCESS", review: "APPROVED", title: "Approved" }), barPr(6, { checks: "SUCCESS", review: "APPROVED", title: "Ready too" })];
+      const waiting = [barPr(7, { draft: true, title: "Draft" }), barPr(8, { title: "Waiting" })];
+      const buckets = [
+        { key: "blocked", title: "Needs attention", color: "red", rows: blocked },
+        { key: "active", title: "Active", color: "amber", rows: active },
+        { key: "ready", title: "Ready to merge", color: "green", rows: ready },
+        { key: "waiting", title: "Waiting", color: "grey", rows: waiting },
+      ] satisfies Parameters<typeof renderPrs>[0]["buckets"];
+      const v = renderPrs({ now, focus: 4, buckets });
+      expect(checkView(v)).toBe(v);
+      expect(shownPrs({ now, focus: 0, buckets }).map((x) => x.id)).toEqual(["acme/repo#1", "acme/repo#2", "acme/repo#3", "acme/repo#4", "acme/repo#5", "acme/repo#6"]);
+      const s = JSON.stringify(v.tree);
+      expect(s.indexOf('"value":"Needs attention"')).toBeLessThan(s.indexOf('"value":"Active"'));
+      expect(s.indexOf('"value":"Active"')).toBeLessThan(s.indexOf('"value":"Ready to merge"'));
+      expect(s).toContain('"value":"and 2 more in pal"');
+      expect(s).toContain('"action":"focus:acme/repo#5","selected":true');
+      expect(s).toContain('"text":"conflicting","color":"red"');
+      expect(s).toContain('"text":"checks running","color":"amber"');
+      expect(s).toContain('"text":"review required","color":"amber"');
+      expect(s).toContain('"text":"approved","color":"green"');
+    });
+
+    test("view helpers: issue bucket order, row cap, more line and labels/comments", () => {
+      const now = Date.parse("2026-09-16T14:00:00Z");
+      const rows = [
+        { kind: "assigned" as const, issue: barIssue(1, { labels: [{ name: "bug", color: "" }], comments: 2 }) },
+        { kind: "assigned" as const, issue: barIssue(2) },
+        { kind: "mentioned" as const, issue: barIssue(3) },
+        { kind: "mentioned" as const, issue: barIssue(4) },
+        { kind: "created" as const, issue: barIssue(5) },
+        { kind: "created" as const, issue: barIssue(6) },
+        { kind: "created" as const, issue: barIssue(7) },
+      ];
+      const v = renderIssues({ rows, focus: 5, now });
+      expect(checkView(v)).toBe(v);
+      expect(shownIssues({ rows, focus: 0, now }).map((x) => x.issue.id)).toEqual(["acme/repo#1", "acme/repo#2", "acme/repo#3", "acme/repo#4", "acme/repo#5", "acme/repo#6"]);
+      expect(texts(v)).toEqual(expect.arrayContaining(["Assigned to you", "Mentioning you", "Opened by you", "Issue 1", "acme/repo#1", "2 comments", "and 1 more in pal"]));
+      const s = JSON.stringify(v.tree);
+      expect(s.indexOf('"value":"Assigned to you"')).toBeLessThan(s.indexOf('"value":"Mentioning you"'));
+      expect(s.indexOf('"value":"Mentioning you"')).toBeLessThan(s.indexOf('"value":"Opened by you"'));
+      expect(s).toContain('"text":"bug","color":"grey"');
+      expect(s).toContain('"action":"focus:acme/repo#6","selected":true');
+    });
+
+    test("actions: a click and arrows move focus; Enter opens the focused URL, c copies it, r refreshes, p opens the palette", async () => {
+      const ctx = { reason: "open" as const, compact: true as const };
+      const tree = (r: Record<string, unknown>) => JSON.stringify(viewOf(r).tree);
+      expect(tree(await host.barAction("github", "prs", "down", ctx))).toContain('"action":"focus:acme/api#9","selected":true');
+      expect(tree(await host.barAction("github", "prs", "focus:zcag/pal#72", ctx))).toContain('"action":"focus:zcag/pal#72","selected":true');
+      expect(await host.barAction("github", "prs", "copy", ctx)).toEqual({ copy: "https://github.com/zcag/pal/pull/72" });
+      expect(await host.barAction("github", "prs", "open", ctx)).toEqual({ open: "https://github.com/zcag/pal/pull/72" });
+      const prsBefore = ops("PRs").length;
+      expect(checkView(viewOf(await host.barAction("github", "prs", "refresh", ctx)))).toBeTruthy();
+      expect(ops("PRs")).toHaveLength(prsBefore + 1);
+      expect(await host.barAction("github", "prs", "pal", ctx)).toEqual({ push: { extension: "github", palette: "prs" } });
+
+      expect(tree(await host.barAction("github", "issues", "down", ctx))).toContain('"action":"focus:acme/api#8","selected":true');
+      expect(await host.barAction("github", "issues", "copy", ctx)).toEqual({ copy: "https://github.com/acme/api/issues/8" });
+      expect(await host.barAction("github", "issues", "open", ctx)).toEqual({ open: "https://github.com/acme/api/issues/8" });
+      const issuesBefore = ops("Issues").length;
+      expect(checkView(viewOf(await host.barAction("github", "issues", "refresh", ctx)))).toBeTruthy();
+      expect(ops("Issues")).toHaveLength(issuesBefore + 1);
+      expect(await host.barAction("github", "issues", "pal", ctx)).toEqual({ push: { extension: "github", palette: "issues" } });
     });
   });
 

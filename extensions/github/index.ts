@@ -16,7 +16,7 @@ import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type IssueLists, type Notification, type PR, type PRDetail, type PRLists, type Repo, type SearchKind, type User,
 } from "./data.ts";
-import { render as renderNotifs, shown as shownNotifs, type NotifState } from "./view.ts";
+import { render as renderNotifs, renderIssues, renderPrs, shown as shownNotifs, shownIssues, shownPrs, type IssueState, type NotifState, type PrBucketed, type PrState } from "./view.ts";
 
 /** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, plus. */
 const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
@@ -220,6 +220,33 @@ const failedChecks = (pr: PR) => pr.checks === "FAILURE" || pr.checks === "ERROR
 const runningChecks = (pr: PR) => pr.checks === "PENDING" || pr.checks === "EXPECTED";
 const blockedPr = (pr: PR) => pr.mergeable === "CONFLICTING" || failedChecks(pr) || pr.review === "CHANGES_REQUESTED";
 
+function prBuckets(lists: PRLists): { list: PR[]; buckets: PrBucketed[] } {
+  const list = uniquePrs(lists);
+  const blocked = list.filter(blockedPr);
+  const active = list.filter((pr) => !blockedPr(pr) && (runningChecks(pr) || pr.review === "REVIEW_REQUIRED"));
+  const ready = list.filter((pr) => !blockedPr(pr) && pr.checks === "SUCCESS" && pr.review === "APPROVED" && pr.mergeable === "MERGEABLE");
+  const waiting = list.filter((pr) => !blocked.includes(pr) && !active.includes(pr) && !ready.includes(pr));
+  return {
+    list,
+    buckets: [
+      { key: "blocked", title: "Needs attention", color: "red", rows: blocked },
+      { key: "active", title: "Active", color: "amber", rows: active },
+      { key: "ready", title: "Ready to merge", color: "green", rows: ready },
+      { key: "waiting", title: "Waiting", color: "grey", rows: waiting },
+    ],
+  };
+}
+
+function prBarState(lists: PRLists): PrState {
+  const bucketed = prBuckets(lists);
+  const st: PrState = { buckets: bucketed.buckets, focus: 0, now: Date.now() };
+  const rows = shownPrs(st);
+  st.focus = Math.max(0, rows.findIndex((pr) => pr.id === barFocus.prs));
+  barFocus.prs = rows[st.focus]?.id;
+  for (const pr of bucketed.list) prTable.set(pr.id, pr);
+  return st;
+}
+
 /** A small, stateful PR strip: red needs intervention, amber is active, green can merge, muted is waiting. */
 async function prsItem(ctx: BarCtx): Promise<BarItem> {
   let lists: PRLists;
@@ -227,25 +254,41 @@ async function prsItem(ctx: BarCtx): Promise<BarItem> {
     if (e instanceof AuthError) return { hidden: true };
     throw e;
   }
-  const list = uniquePrs(lists);
+  const { list, buckets } = prBuckets(lists);
   if (!list.length) return { hidden: true };
-  const blocked = list.filter(blockedPr);
-  const active = list.filter((pr) => !blockedPr(pr) && (runningChecks(pr) || pr.review === "REVIEW_REQUIRED"));
-  const ready = list.filter((pr) => !blockedPr(pr) && pr.checks === "SUCCESS" && pr.review === "APPROVED" && pr.mergeable === "MERGEABLE");
-  const waiting = list.length - blocked.length - active.length - ready.length;
+  const [blocked, active, ready, waiting] = buckets.map((b) => b.rows);
   const segments = [
     ...(blocked.length ? [{ id: "blocked", text: `×${blocked.length}`, color: "red" as const, tooltip: `${blocked.length} PR${blocked.length === 1 ? "" : "s"} needs attention` }] : []),
     ...(active.length ? [{ id: "active", text: `…${active.length}`, color: "amber" as const, tooltip: `${active.length} PR${active.length === 1 ? "" : "s"} awaiting review or checks` }] : []),
     ...(ready.length ? [{ id: "ready", text: `✓${ready.length}`, color: "green" as const, tooltip: `${ready.length} PR${ready.length === 1 ? "" : "s"} ready to merge` }] : []),
-    ...(waiting ? [{ id: "waiting", text: `·${waiting}`, color: "muted" as const, tooltip: `${waiting} PR${waiting === 1 ? "" : "s"} waiting` }] : []),
+    ...(waiting.length ? [{ id: "waiting", text: `·${waiting.length}`, color: "muted" as const, tooltip: `${waiting.length} PR${waiting.length === 1 ? "" : "s"} waiting` }] : []),
   ];
   return {
     icon: ICON.prs,
     segments,
     tooltip: `${list.length} open pull request${list.length === 1 ? "" : "s"}`,
-    menu: { palette: "prs" },
+    menu: { view: renderPrs(prBarState(lists)) },
     ...(list.some(runningChecks) ? { refresh: 60 } : {}),
   };
+}
+
+async function prsAction(action: string): Promise<Effect> {
+  if (action === "pal") return { push: { extension: "github", palette: "prs" } };
+  const lists = await prs(action === "refresh");
+  const st = prBarState(lists);
+  const rows = shownPrs(st);
+  const redraw = (): Effect => ({ ...(action === "refresh" ? { keep: true } : {}), view: renderPrs(prBarState(lists)) });
+  if (action.startsWith("focus:")) { barFocus.prs = action.slice(6); return redraw(); }
+  if (action === "down" || action === "up") {
+    if (!rows.length) return { keep: true };
+    barFocus.prs = rows[(st.focus + (action === "down" ? 1 : rows.length - 1)) % rows.length].id;
+    return redraw();
+  }
+  if (action === "refresh") return redraw();
+  const focused = rows[st.focus];
+  if (!focused) return { keep: true };
+  if (action === "copy") return { copy: focused.url };
+  return pickPR(focused);
 }
 
 // ---- issues ---------------------------------------------------------------
@@ -388,6 +431,16 @@ function uniqueIssues(lists: IssueLists): { issue: Issue; kind: "assigned" | "me
   return out;
 }
 
+function issueBarState(lists: IssueLists): IssueState {
+  const rows = uniqueIssues(lists);
+  for (const { issue } of rows) issueTable.set(issue.id, issue);
+  const st: IssueState = { rows, focus: 0, now: Date.now() };
+  const shown = shownIssues(st);
+  st.focus = Math.max(0, shown.findIndex((x) => x.issue.id === barFocus.issues));
+  barFocus.issues = shown[st.focus]?.issue.id;
+  return st;
+}
+
 /** Assigned, mentioned, and authored are separate colours, while this remains a single independent Issues item. */
 async function issuesItem(ctx: BarCtx): Promise<BarItem> {
   let lists: IssueLists;
@@ -407,8 +460,27 @@ async function issuesItem(ctx: BarCtx): Promise<BarItem> {
       ...(created ? [{ id: "created", text: `·${created}`, color: "muted" as const, tooltip: `${created} issue${created === 1 ? "" : "s"} opened by you` }] : []),
     ],
     tooltip: `${list.length} open issue${list.length === 1 ? "" : "s"}`,
-    menu: { palette: "issues" },
+    menu: { view: renderIssues(issueBarState(lists)) },
   };
+}
+
+async function issuesAction(action: string): Promise<Effect> {
+  if (action === "pal") return { push: { extension: "github", palette: "issues" } };
+  const lists = await issues(action === "refresh");
+  const st = issueBarState(lists);
+  const rows = shownIssues(st);
+  const redraw = (): Effect => ({ ...(action === "refresh" ? { keep: true } : {}), view: renderIssues(issueBarState(lists)) });
+  if (action.startsWith("focus:")) { barFocus.issues = action.slice(6); return redraw(); }
+  if (action === "down" || action === "up") {
+    if (!rows.length) return { keep: true };
+    barFocus.issues = rows[(st.focus + (action === "down" ? 1 : rows.length - 1)) % rows.length].issue.id;
+    return redraw();
+  }
+  if (action === "refresh") return redraw();
+  const focused = rows[st.focus]?.issue;
+  if (!focused) return { keep: true };
+  if (action === "copy") return { copy: focused.url };
+  return pickIssue(focused);
 }
 
 // ---- repositories --------------------------------------------------------
@@ -656,15 +728,15 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
  * cached. Signed out is hidden, not an error: the strip has no room for a
  * hint.
  */
-let barFocus: string | undefined;
+let barFocus: Partial<Record<"notifications" | "prs" | "issues", string>> = {};
 let barAccount: string | undefined;
 
 /** The popover's state over `list`: the cursor on the focused thread, else the first row. */
 function notifState(list: Notification[]): NotifState {
   for (const n of list) notifTable.set(n.id, n);
   const rows = shownNotifs(list);
-  const cursor = Math.max(0, rows.findIndex((n) => n.id === barFocus));
-  barFocus = rows[cursor]?.id;
+  const cursor = Math.max(0, rows.findIndex((n) => n.id === barFocus.notifications));
+  barFocus.notifications = rows[cursor]?.id;
   return { list, cursor, now: Date.now(), account: barAccount };
 }
 
@@ -704,10 +776,10 @@ async function notifAction(action: string): Promise<Effect> {
   const rows = shownNotifs(list);
   const focused = rows[st.cursor];
   const redraw = (next: NotifState): Effect => ({ view: renderNotifs(next) });
-  if (action.startsWith("focus:")) { barFocus = action.slice(6); return redraw(notifState(list)); }
+  if (action.startsWith("focus:")) { barFocus.notifications = action.slice(6); return redraw(notifState(list)); }
   if (action === "down" || action === "up") {
     if (!rows.length) return { keep: true };
-    barFocus = rows[(st.cursor + (action === "down" ? 1 : rows.length - 1)) % rows.length].id;
+    barFocus.notifications = rows[(st.cursor + (action === "down" ? 1 : rows.length - 1)) % rows.length].id;
     return redraw(notifState(list));
   }
   if (!focused) return { keep: true };
@@ -719,7 +791,7 @@ async function notifAction(action: string): Promise<Effect> {
       // The cursor stays at its index: the next thread slides under it.
       const next = notifState(await notifications());
       const at = Math.min(st.cursor, Math.max(0, shownNotifs(next.list).length - 1));
-      barFocus = shownNotifs(next.list)[at]?.id;
+      barFocus.notifications = shownNotifs(next.list)[at]?.id;
       return { keep: true, view: renderNotifs({ ...next, cursor: at }) };
     }
     default: return pickNotif(focused.id);
@@ -841,7 +913,7 @@ export default {
   },
   bar: {
     notifications: { render: notifItem, onAction: notifAction },
-    prs: { render: prsItem },
-    issues: { render: issuesItem },
+    prs: { render: prsItem, onAction: prsAction },
+    issues: { render: issuesItem, onAction: issuesAction },
   },
 } satisfies Extension;
