@@ -364,6 +364,8 @@ export const nerdGlyphs: Item[] = [
  * (`tint`) as its rows carry it.
  */
 const manifests = import.meta.glob<{ default: { name: string; title: string; icon?: unknown } }>("../../../extensions/*/pal.json", { eager: true });
+/** One bundled extension's manifest title and icon, for a level keyed on the extension without a source of its own (a bar item's popover in bar-shot.tsx). */
+export const manifestOf = (name: string) => Object.values(manifests).map((m) => m.default).find((m) => m.name === name);
 export const tileRows: Item[] = Object.values(manifests)
   .map((m) => m.default)
   .sort((a, b) => a.name.localeCompare(b.name))

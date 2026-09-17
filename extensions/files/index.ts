@@ -224,7 +224,7 @@ async function refreshDialog(): Promise<void> {
 }
 const DIALOG_ACTION = (d: Dialog): Action => ({ id: "dialog", title: `Use in ${d.app}'s ${d.kind} panel`, shortcut: "cmd+g" });
 const actionsFor = (p: string, k: Kind): Action[] => {
-  const base = k === "folder" ? [BROWSE, ...ACTIONS] : ocrable(p, k) ? [...ACTIONS.slice(0, 6), OCR_ACTION, ACTIONS[6]] : ACTIONS;
+  const base = k === "folder" ? [BROWSE, ...ACTIONS] : ocrable(p, k) ? [...ACTIONS.slice(0, -1), OCR_ACTION, ACTIONS[ACTIONS.length - 1]] : ACTIONS;
   return dialogUp ? [DIALOG_ACTION(dialogUp), ...base] : base;
 };
 
@@ -388,7 +388,7 @@ const appRow = (a: App): Item => ({
   subtitle: short(dirname(a.path)),
   icon: { app: a.path },
   keywords: a.bundle_id ? [a.bundle_id] : [],
-  accessories: a.default ? [{ tag: "Default" }] : [],
+  accessories: a.default ? [{ tag: "default" }] : [],
   actions: [{ id: "open-with", title: "Open" }],
 });
 
@@ -452,7 +452,7 @@ async function fileAction(id: string, action: string | undefined, palette: strin
     case "dialog": return { dialog: id };
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
     case "quick-look": spawnDetached(["qlmanage", "-p", id]); return { hide: true };
-    case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith } };
+    case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith, title: `Open ${basename(id)} with` } };
     case "copy": return { copy: ids.join("\n") };
     case "copy-file": return { copy_files: ids };
     case "copy-text": {

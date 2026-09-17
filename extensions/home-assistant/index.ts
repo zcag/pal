@@ -134,6 +134,8 @@ async function pickEntity(id: string, action: string | undefined, ctx: Ctx | und
   if (args.volume) return id === "current" ? undefined : call(c, args.volume, "volume_set", { volume_level: Number(id) / 100 });
   // No action id (an item hotkey, a bare pick): the row's primary action.
   const act = action ?? actions(await c.state(id))[0].id;
+  /** A drill-in level, its crumb the entity's name. */
+  const drill = async (args: Args, suffix = "") => ({ push: { extension: EXTENSION, palette: "entities", args, title: `${name(await c.state(id))}${suffix}` } });
   switch (act) {
     case "set_temperature": {
       const v = ctx?.values ?? {};
@@ -142,9 +144,9 @@ async function pickEntity(id: string, action: string | undefined, ctx: Ctx | und
       return call(c, id, "set_temperature", { temperature: t, ...(v.hvac_mode ? { hvac_mode: v.hvac_mode } : {}) });
     }
     case "temperature": return { form: temperatureForm(await c.state(id)) };
-    case "brightness": return { push: { extension: EXTENSION, palette: "entities", args: { brightness: id } } };
-    case "volume": return { push: { extension: EXTENSION, palette: "entities", args: { volume: id } } };
-    case "attributes": return { push: { extension: EXTENSION, palette: "entities", args: { attributes: id } } };
+    case "brightness": return drill({ brightness: id }, " brightness");
+    case "volume": return drill({ volume: id }, " volume");
+    case "attributes": return drill({ attributes: id });
     case "copy_id": return { copy: id };
     case "copy_value": return { copy: (await c.state(id)).state };
     case "open_ha": { const s = await c.state(id); return { open: haUrl(c.url, s) }; }
@@ -230,7 +232,7 @@ export default {
           return hint(e);
         }
       },
-      pick: (id): Effect | void => (id === "hint" ? undefined : { push: { extension: EXTENSION, palette: "entities", args: { area: id } } }),
+      pick: (id): Effect | void => (id === "hint" ? undefined : { push: { extension: EXTENSION, palette: "entities", args: { area: id }, title: id } }),
     },
   },
 } satisfies Extension;

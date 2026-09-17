@@ -22,7 +22,7 @@ const rows: Item[] = [
   { id: "a", name: "Alpha", subtitle: "one", palette: "apps/apps", source: { extension: "apps", palette: "apps" }, detail: { markdown: "# Alpha" } },
   { id: "b", name: "Beta", subtitle: "two", palette: "apps/apps", source: { extension: "apps", palette: "apps" } },
 ];
-const search = async (): Promise<Hit[]> => rows.map((item) => ({ item }));
+const search = async (q: string): Promise<Hit[]> => rows.filter((r) => !q || r.name.toLowerCase().includes(q.toLowerCase())).map((item) => ({ item }));
 const prefs = (compact: boolean): Prefs => ({ aliasSpace: true, fallbacksAlways: false, searchHistory: true, now: [], compact });
 const mount = async (compact: boolean) => {
   await act(async () => {
@@ -60,6 +60,12 @@ describe("compact mode", () => {
     await key("i", { metaKey: true, ctrlKey: true });
     await flush();
     expect(el.querySelector(".pal-detail")).not.toBeNull();
+  });
+  it("the empty state spells the actions key for the platform (happy-dom is not a Mac: Ctrl+K)", async () => {
+    await mount(false);
+    await act(() => { launcher.current!.type("zzz-nothing"); });
+    await flush();
+    expect(el.querySelector(".pal-empty__hint")?.textContent).toBe("Try a different word, or Ctrl+K for actions");
   });
   it("cmd+shift+m and the pal action ask the shell to flip the key, worded for the mode", async () => {
     await mount(true);

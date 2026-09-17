@@ -220,7 +220,7 @@ describe("entities", () => {
   });
   test("show attributes drills in: the state then every attribute, each copying its value or name", async () => {
     const r = await pick("light.kitchen", "attributes");
-    expect(r).toEqual({ push: { extension: E, palette: "entities", args: { attributes: "light.kitchen" } } });
+    expect(r).toEqual({ push: { extension: E, palette: "entities", args: { attributes: "light.kitchen" }, title: "Kitchen" } });
     const rows = await list({ args: { attributes: "light.kitchen" } });
     expect(rows.map((i) => [i.id, i.subtitle])).toEqual([["state", "on"], ["friendly_name", "Kitchen"], ["brightness", "128"], ["rgb_color", "[255,0,0]"]]);
     expect(await pick("rgb_color", "copy", { args: { attributes: "light.kitchen" } })).toEqual({ copy: "[255,0,0]" });
@@ -228,7 +228,7 @@ describe("entities", () => {
     expect(await pick("brightness", "copy_key", { args: { attributes: "light.kitchen" } })).toEqual({ copy: "brightness" });
   });
   test("brightness and volume drill into presets; a preset posts the level", async () => {
-    expect(await pick("light.kitchen", "brightness")).toEqual({ push: { extension: E, palette: "entities", args: { brightness: "light.kitchen" } } });
+    expect(await pick("light.kitchen", "brightness")).toEqual({ push: { extension: E, palette: "entities", args: { brightness: "light.kitchen" }, title: "Kitchen brightness" } });
     const rows = await list({ args: { brightness: "light.kitchen" } });
     expect(rows.map((i) => i.id)).toEqual(["current", "10", "25", "50", "75", "100"]);
     expect(rows[0]).toMatchObject({ name: "Kitchen", subtitle: "Brightness 50%", actions: [] });
@@ -311,7 +311,7 @@ describe("areas", () => {
   test("rows: every area with its entity count; Enter lists the area's entities", async () => {
     const items = await host.list(E, "areas");
     expect(items.map((i) => [i.id, i.subtitle])).toEqual([["Hall", "1 entity"], ["Kitchen", "2 entities"]]);
-    expect(await host.pick(E, "areas", "Kitchen")).toEqual({ push: { extension: E, palette: "entities", args: { area: "Kitchen" } } });
+    expect(await host.pick(E, "areas", "Kitchen")).toEqual({ push: { extension: E, palette: "entities", args: { area: "Kitchen" }, title: "Kitchen" } });
     expect((await list({ args: { area: "Kitchen" } })).map((i) => [i.id, i.subtitle])).toEqual([["light.kitchen", "Light · Kitchen"], ["sensor.temp", "Sensor · Kitchen"]]);
   });
 });

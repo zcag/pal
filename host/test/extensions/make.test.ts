@@ -49,6 +49,8 @@ const bare = proj("bare", "makefile", "# Everything\n.PHONY: all\nall:\n\techo a
 const PATH = process.env.PATH;
 let host: Host;
 beforeAll(async () => {
+  // Linux: the chooser takes $TERMINAL as given (nothing is spawned under PAL_TERMINAL_LOG), so a box without one (the CI runner) still answers an argv.
+  if (process.platform !== "darwin") process.env.TERMINAL ||= "kitty";
   process.env.PAL_TERMINAL_LOG = join(root, "terminal");
   host = await Host.bundled({ settings: { make: { settings: { projects: [root, root] } } } });
 });

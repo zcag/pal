@@ -55,8 +55,11 @@ actions take the keys, so here it re-runs.
 `terminal` setting names the app: `Terminal` (default) and `iTerm` are
 driven over AppleScript; `kitty`, `Alacritty`, `WezTerm` and `Ghostty` by
 their own flags through `open -na`; any other name is `open -na <name>
---args -e <shell> -c ...`. On Linux `$TERMINAL`, else `x-terminal-emulator`,
-with `-e`.
+--args -e <shell> -c ...`. On Linux the setting is a command name, else
+`$TERMINAL`, else the first installed of `x-terminal-emulator`, kitty, foot,
+Alacritty, WezTerm, Ghostty, GNOME Terminal, Konsole, xfce4-terminal and
+xterm, each handed the command the way it takes one (kitty and foot as
+trailing arguments, WezTerm after `start --`, the rest after `-e`).
 
 ## Shell History
 

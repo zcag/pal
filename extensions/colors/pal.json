@@ -3,7 +3,7 @@
   "title": "Colors",
   "description": "A colour picker for the keyboard: pick a pixel off the screen with the system's loupe, type any notation, or walk hue, saturation and lightness with the arrows (HSL or OKLCH), and read the colour in every notation with its tints, shades, harmonies, contrast and nearest tokens. Named sets as swatch grids (CSS, Tailwind, Material 3, Material, Apple, Catppuccin, Rosé Pine, Nord, Solarized), a history of what was picked and copied, and a converter.",
   "version": "0.2.0",
-  "icon": "#4F46D6",
+  "icon": { "tile": { "glyph": "󰏘", "bg": "indigo" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",

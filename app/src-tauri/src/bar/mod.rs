@@ -437,7 +437,7 @@ pub fn install(app: &AppHandle) {
     app.manage(Bar::default());
     popover::install(app);
     if !SUPPORTED {
-        eprintln!("bar\tnot on Linux yet; [bar] is read, items are registered, none is drawn");
+        eprintln!("bar\tnot on Linux yet; [bar] is read, items are registered, none is drawn, no popover window is built");
         return;
     }
     menubar::install(app);

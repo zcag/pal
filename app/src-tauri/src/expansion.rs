@@ -24,6 +24,9 @@
 //! Linux has no portable keyboard tap: `install` logs that and does
 //! nothing.
 
+// Off macOS `install` says so and returns; the matcher, the cache and the plan runner below are the monitor's alone, and the tests still cover them.
+#![cfg_attr(not(target_os = "macos"), allow(dead_code))]
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::SystemTime;

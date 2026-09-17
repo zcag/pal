@@ -152,12 +152,14 @@ async function list(): Promise<Item[]> {
   const items: Item[] = [];
   known.clear();
   const file = await fileRows();
-  if (file.problem) items.push({ id: `hint:${file.problem.name}`, name: file.problem.name, subtitle: file.problem.subtitle, icon: xdg("dialog-warning")!, actions: [] });
+  // The file's rows sit under the file's name: a headless group above the browsers' sections read as a mistake.
+  const section = s.file.slice(s.file.lastIndexOf("/") + 1);
+  if (file.problem) items.push({ id: `hint:${file.problem.name}`, name: file.problem.name, subtitle: file.problem.subtitle, icon: xdg("dialog-warning")!, section, actions: [] });
   for (const r of file.rows) {
     if (typeof r.url !== "string" || !r.url || seen.has(r.url)) continue;
     seen.add(r.url);
     known.set(r.url, { name: r.name ?? r.url });
-    items.push({ id: r.url, name: r.name ?? r.url, subtitle: r.subtitle ?? r.url, icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, actions: [OPEN, COPY, COPY_MD] });
+    items.push({ id: r.url, name: r.name ?? r.url, subtitle: r.subtitle ?? r.url, icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, section, actions: [OPEN, COPY, COPY_MD] });
   }
   const { sources, problems } = await browserSources(s.browsers);
   for (const src of sources) {

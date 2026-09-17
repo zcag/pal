@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { BROWSE_CAP, filterEntries, hintRow, isRoot, parentOf, sortEntries, upRow, type Entry } from "../../../extensions/files/browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv } from "../../../extensions/files/content.ts";
 import { parseMdfindRecent, parseXbel } from "../../../extensions/files/recent.ts";
@@ -196,7 +196,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(rows[0].actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
     const p = join(dir, "Report-Beta.md");
     expect(await host.pick("files", "recent", p, "copy")).toEqual({ copy: p });
-    expect(await host.pick("files", "recent", p, "open-with")).toEqual({ push: { extension: "files", palette: "recent", args: { open_with: p } } });
+    expect(await host.pick("files", "recent", p, "open-with")).toEqual({ push: { extension: "files", palette: "recent", args: { open_with: p }, title: `Open ${basename(p)} with` } });
     expect((await host.list("files", "recent", "", { args: { open_with: p } })).map((r) => r.name)).toEqual(APPS.map((a) => a.name));
     expect((await host.detail("files", "recent", p)).metadata!.map((m) => m.label)).toEqual(["Path", "Size", "Modified", "Kind"]);
   });
@@ -340,7 +340,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
 
   test("open with: pushes a level on the same palette with the file as args", async () => {
     const p = join(dir, "report-alpha.txt");
-    expect(await pick(p, "open-with")).toEqual({ push: { extension: "files", palette: "files", args: { open_with: p } } });
+    expect(await pick(p, "open-with")).toEqual({ push: { extension: "files", palette: "files", args: { open_with: p }, title: `Open ${basename(p)} with` } });
   });
 
   test("open with level: the core's apps in its order, the default tagged, app icons, bundle id as keyword; the query narrows by name or id", async () => {
@@ -349,7 +349,7 @@ describe.skipIf(!HAS_FIND)("files", () => {
     const rows = await host.list("files", "files", "", ctx);
     expect(host.coreCalls.filter((c) => c.method === "apps.for_file").at(-1)!.params).toEqual({ path: p });
     expect(rows.map((r) => r.id)).toEqual(APPS.map((a) => a.path));
-    expect(rows[0]).toEqual({ id: "/System/Applications/TextEdit.app", name: "TextEdit", subtitle: "/System/Applications", icon: { app: "/System/Applications/TextEdit.app" }, keywords: ["com.apple.TextEdit"], accessories: [{ tag: "Default" }], actions: [{ id: "open-with", title: "Open" }] });
+    expect(rows[0]).toEqual({ id: "/System/Applications/TextEdit.app", name: "TextEdit", subtitle: "/System/Applications", icon: { app: "/System/Applications/TextEdit.app" }, keywords: ["com.apple.TextEdit"], accessories: [{ tag: "default" }], actions: [{ id: "open-with", title: "Open" }] });
     expect(rows[2]).toMatchObject({ name: "Notes", keywords: [], accessories: [] });
     expect((await host.list("files", "files", "kit", ctx)).map((r) => r.name)).toEqual(["kitty"]);
     expect((await host.list("files", "files", "apple", ctx)).map((r) => r.name)).toEqual(["TextEdit"]);
@@ -465,7 +465,7 @@ describe.skipIf(!HAS_FIND)("browsing folders", () => {
 
   test("open with from a browsed row pushes the browse palette with the file as args, and that level lists the apps", async () => {
     const p = join(dir, "notes.md");
-    expect(await host.pick("files", "browse", p, "open-with", { args: { browse: dir } })).toEqual({ push: { extension: "files", palette: "browse", args: { open_with: p } } });
+    expect(await host.pick("files", "browse", p, "open-with", { args: { browse: dir } })).toEqual({ push: { extension: "files", palette: "browse", args: { open_with: p }, title: "Open notes.md with" } });
     expect((await host.list("files", "browse", "", { args: { open_with: p } })).map((r) => r.name)).toEqual(APPS.map((a) => a.name));
   });
 });

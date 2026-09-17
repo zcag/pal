@@ -75,7 +75,7 @@
                 "color": "blue"
               },
               {
-                "tag": "Update to 0.1.0",
+                "tag": "update to 0.1.0",
                 "color": "amber"
               },
               {
@@ -891,7 +891,7 @@
                 "color": "violet"
               },
               {
-                "tag": "Installed",
+                "tag": "installed",
                 "color": "green"
               },
               {

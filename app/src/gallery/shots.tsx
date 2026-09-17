@@ -11,12 +11,14 @@
  * is what `pick` returns; `details[id]` what `detail(id)` answers; `view` the
  * tree a view palette opens with; `levels[args]` the rows of a `push` with
  * that string as its args; `byQuery[q]` an input palette's rows for a query
- * and `byFilter[id]` a palette's rows under a filter.
+ * and `byFilter[id]` a palette's rows under a filter. `inline[q]` is the
+ * root's inline answer for a typed query (`{ palette, items }`, drawn under
+ * that palette's title above the hits, as the app draws Calculator's).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Fzf } from "fzf";
 import { Launcher, type LauncherHandle } from "../Launcher";
-import { PALETTES, sourceKey, toItem, toView, type Ctx, type Effect, type SourceInfo, type WireItem } from "../items";
+import { ASK_ID, PALETTES, sourceKey, toItem, toView, type Ctx, type Effect, type SourceInfo, type WireItem } from "../items";
 import type { Hit } from "../ui";
 import type { Detail, FilterOption, Item, ViewSpec } from "../ui/types";
 import { svgIcon } from "./data";
@@ -39,8 +41,10 @@ type Palette = {
   levels?: Record<string, WireItem[]>;
   details?: Record<string, Detail>;
   tree?: ViewSpec;
+  /** The manifest's `fallback`: an "Ask <title>" row (or the template, `{query}` filled) under "Use “q” with" when nothing matched, as fallback.rs builds it. */
+  fallback?: true | string;
 };
-export type Fixture = { palettes: Record<string, Palette>; effects?: Record<string, Effect> };
+export type Fixture = { palettes: Record<string, Palette>; effects?: Record<string, Effect>; inline?: Record<string, { palette: string; items: WireItem[] }> };
 
 const fixtures = import.meta.glob<{ default: Fixture }>("./shots/*.json");
 
@@ -93,6 +97,19 @@ function Shot({ fixture, palette: open, theme }: { fixture: Fixture; palette?: s
     return new Fzf(pool, { selector: haystack }).find(q).map((r) => ({ item: r.item.item }));
   }, [fixture, paletteRows, indexed]);
 
+  const inline = useCallback(async (q: string): Promise<Hit[]> => {
+    const a = fixture.inline?.[q];
+    return a && fixture.palettes[a.palette] ? rows(a.palette, fixture.palettes[a.palette], a.items) : [];
+  }, [fixture]);
+  // The shell's rows for a query nothing matched (fallback.rs): Search the web, then the palettes that asked.
+  const fallback = useCallback(async (q: string): Promise<Hit[]> => {
+    const group = `Use “${q.length > 32 ? q.slice(0, 32) + "…" : q}” with`;
+    const hit = (source: { extension: string; palette: string }, item: WireItem, title: string): Hit => ({ item: toItem({ source, id: item.id, score: 0, name_positions: [], item, group }, { title }) });
+    return [
+      hit({ extension: "pal", palette: "fallback" }, { id: "web", name: "Search the web", subtitle: "google.com", icon: "\u{f0349}", actions: [{ id: "open", title: "Search" }] }, "Fallback"),
+      ...Object.entries(fixture.palettes).filter(([, p]) => p.fallback).map(([key, p]) => hit({ extension: "", palette: key }, { id: ASK_ID, name: typeof p.fallback === "string" ? p.fallback.replace("{query}", q) : `Ask ${p.title}`, subtitle: `Open ${p.title} with “${q}” typed`, icon: p.icon as WireItem["icon"] }, p.title)),
+    ];
+  }, [fixture]);
   const detail = useCallback(async (item: Item) => fixture.palettes[item.palette!]?.details?.[item.id] ?? item.detail ?? {}, [fixture]);
   const view = useCallback(async (scope: SourceInfo) => {
     const t = fixture.palettes[sourceKey(scope)]?.tree;
@@ -109,7 +126,7 @@ function Shot({ fixture, palette: open, theme }: { fixture: Fixture; palette?: s
   return (
     <div className="g-shot" data-theme={theme}>
       <div className="g-frame">
-        <Launcher ref={launcher} sources={sources} search={search} detail={detail} view={view} onPick={onPick} onHide={() => {}} onRefresh={() => {}} onSettings={() => {}} />
+        <Launcher ref={launcher} sources={sources} search={search} inline={fixture.inline && inline} fallback={fixture.inline && fallback} detail={detail} view={view} onPick={onPick} onHide={() => {}} onRefresh={() => {}} onSettings={() => {}} />
       </div>
     </div>
   );

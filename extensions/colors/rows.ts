@@ -33,8 +33,9 @@ export function detailOf(c: RGB, title: string, s: Settings, row?: Row): Detail 
 
 // ---- the converter -----------------------------------------------------------------------------
 
-export const ICON = "#4F46D6";
-export const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: ICON, actions: [] });
+/** The hint rows' glyph (md-information_outline); it takes the extension's indigo from the manifest's tile. */
+const HINT_ICON = "\u{f02fd}";
+export const hint = (name: string, subtitle: string): Item => ({ id: `hint:${name}`, name, subtitle, icon: HINT_ICON, actions: [] });
 export const HINTS = [
   hint("Type a colour", "#ff8800, rgb(255 136 0), hsl(30 100% 50%), hwb(), oklch(0.75 0.18 60), oklab(), lab(), color(display-p3 …), or a CSS name"),
   hint("Every row is one notation of it", "Enter opens it in the picker, cmd+enter copies the row; the detail pane (cmd+i) has contrast and the nearest name"),

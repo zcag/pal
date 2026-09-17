@@ -7,9 +7,12 @@
 //   node app/scripts/shots.mjs [extension ...]     # all fixtures when none named
 //   node app/scripts/shots.mjs bar [extension ...] # bar items (below)
 //   SHOTS_URL=http://127.0.0.1:1430 (a Vite dev server: `npx vite --port 1430`)
+//   SHOTS_THEME=dark SHOTS_OUT=dir      # the same shots on the dark panel, saved as
+//                                       # <dir>/<extension>-<file>.png (the landing page's)
 //
-// A fixture's `shots` maps a file name to { palette?, keys?, caption?, raw? }:
-// `palette` opens that palette first; `keys` are pressed in order, each
+// A fixture's `shots` maps a file name to { palette?, keys?, caption?, raw?, theme? }:
+// `palette` opens that palette first; `theme: "dark"` renders that shot on
+// the dark panel (spotify's lyrics pair); `keys` are pressed in order, each
 // "type:<text>", "down", "up", "down*3", "tab", "enter", "escape",
 // "cmd+i", "cmd+k", "cmd+shift+c", or "wait:<ms>". The captions go to
 // pal.json's store.screenshots by hand. Each PNG is then quantised to 256
@@ -33,6 +36,8 @@ const fixtures = join(root, "app/src/gallery/shots");
 const base = process.env.SHOTS_URL ?? "http://127.0.0.1:1430";
 const pw = process.env.PLAYWRIGHT ?? "/Users/cagdas/.npm/_npx/9833c18b2d85bc59/node_modules/playwright-core/index.mjs";
 const chrome = process.env.CHROME ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const theme = process.env.SHOTS_THEME === "dark" ? "dark" : "light";
+const outDir = process.env.SHOTS_OUT; // set: every shot lands here, the manifest untouched
 
 const { chromium } = await import(pw);
 const args = process.argv.slice(2);
@@ -80,7 +85,7 @@ function listInManifest(name, entries) {
 
 const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars"] });
 const context = await browser.newContext({
-  viewport: barMode ? { width: 720, height: 60 } : { width: 960, height: 600 }, deviceScaleFactor: barMode ? 2 : 1.5, colorScheme: "light",
+  viewport: barMode ? { width: 720, height: 60 } : { width: 960, height: 600 }, deviceScaleFactor: barMode ? 2 : 1.5, colorScheme: theme,
 });
 const page = await context.newPage();
 page.on("pageerror", (e) => console.error("  page error:", e.message));
@@ -88,12 +93,13 @@ let failed = 0;
 for (const name of names) {
   const fx = JSON.parse(readFileSync(join(fixtures, `${fixtureOf(name)}.json`), "utf8"));
   const shots = fx.shots ?? {};
-  const out = join(root, "extensions", name, "screenshots");
-  if (!existsSync(join(root, "extensions", name))) { console.error(`${name}: no extension directory`); failed++; continue; }
+  if (!args.length && !Object.keys(shots).length) continue; // a fixture that plans no shots (hero.json is the landing page's, app/scripts/hero.mjs)
+  const out = outDir ?? join(root, "extensions", name, "screenshots");
+  if (!outDir && !existsSync(join(root, "extensions", name))) { console.error(`${name}: no extension directory`); failed++; continue; }
   mkdirSync(out, { recursive: true });
   const done = [];
   for (const [file, shot] of Object.entries(shots)) {
-    const url = barMode ? barUrl(fx.key, shot) : `${base}/?gallery&shot=${name}${shot.palette ? `&palette=${encodeURIComponent(shot.palette)}` : ""}`;
+    const url = barMode ? barUrl(fx.key, shot) : `${base}/?gallery&shot=${name}${shot.palette ? `&palette=${encodeURIComponent(shot.palette)}` : ""}${(shot.theme ?? theme) === "dark" ? "&theme=dark" : ""}`;
     try {
       // A fresh document per shot: the same URL twice would keep the previous shot's state.
       await page.goto("about:blank");
@@ -108,7 +114,7 @@ for (const name of names) {
       }
       for (const step of shot.keys ?? []) await press(page, step);
       await page.waitForTimeout(shot.settle ?? 450);
-      const path = join(out, `${file}.png`);
+      const path = join(out, outDir ? `${name}-${file}.png` : `${file}.png`);
       await page.screenshot({ path, type: "png" });
       const q = quant(path, shot.raw);
       console.log(`${name}/${file}.png${shot.raw ? " (raw)" : q.status === 0 ? "" : " (not quantised: no Pillow)"}`);
@@ -118,7 +124,7 @@ for (const name of names) {
       console.error(`${name}/${file}: ${e.message.split("\n")[0]}`);
     }
   }
-  if (barMode && done.length) {
+  if (barMode && done.length && !outDir) {
     const added = listInManifest(name, done);
     if (added) console.log(`${name}/pal.json: ${added} bar screenshot${added === 1 ? "" : "s"} listed`);
   }

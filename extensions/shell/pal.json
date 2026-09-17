@@ -13,7 +13,7 @@
     { "kind": "number", "id": "timeout", "label": "Timeout", "description": "A command still running after this is killed (SIGTERM, then SIGKILL) and the view says so; what it printed until then is kept.", "min": 1, "max": 600, "unit": "seconds", "default": 10 },
     { "kind": "list", "id": "env", "label": "Environment", "description": "`KEY=VALUE` lines set for every command, on top of the host's environment.", "placeholder": "PAGER=cat", "default": [] },
     { "kind": "boolean", "id": "confirm", "label": "Confirm destructive commands", "text": "Ask before running a command that removes, overwrites or escalates (rm, sudo, mv, dd, git reset --hard, ...)", "default": true },
-    { "kind": "text", "id": "terminal", "label": "Terminal", "description": "What cmd+Enter opens: `Terminal` (default), `iTerm`, `kitty`, `Alacritty`, `WezTerm`, `Ghostty`, or any app name (`open -na <name> --args -e ...`); on Linux `$TERMINAL`, else `x-terminal-emulator`.", "placeholder": "Terminal", "default": "" }
+    { "kind": "text", "id": "terminal", "label": "Terminal", "description": "What cmd+Enter opens: `Terminal` (default), `iTerm`, `kitty`, `Alacritty`, `WezTerm`, `Ghostty`, or any app name (`open -na <name> --args -e ...`); on Linux a command name (`kitty`, `foot`, `alacritty`, `wezterm`, `ghostty`, ...), else `$TERMINAL`, else the first of those installed.", "placeholder": "Terminal", "default": "" }
   ],
   "store": {
     "tagline": "Run a command, read its output in the panel, run it again",

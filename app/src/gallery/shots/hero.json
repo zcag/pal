@@ -1,0 +1,4355 @@
+{
+  "_comment": "The landing page's hero loop (app/scripts/hero.mjs): the root with the apps of apps.json, Calculator's `12 usd to try` and Convert Colour's `#ff8800` as inline answers, Enter on the colour opening the picker of colors.json. Every row is copied from those fixtures.",
+  "palettes": {
+    "apps": {
+      "title": "Applications",
+      "icon": {
+        "tile": {
+          "glyph": "󰀻",
+          "bg": "slate"
+        }
+      },
+      "items": [
+        {
+          "id": "/System/Applications/Utilities/Activity Monitor.app",
+          "name": "Activity Monitor",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Utilities/Activity Monitor.app"
+          },
+          "keywords": [
+            "com.apple.ActivityMonitor"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Calendar.app",
+          "name": "Calendar",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Calendar.app"
+          },
+          "keywords": [
+            "com.apple.iCal"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Google Chrome.app",
+          "name": "Google Chrome",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Google Chrome.app"
+          },
+          "keywords": [
+            "com.google.Chrome",
+            "Chrome"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/System/Library/CoreServices/Finder.app",
+          "name": "Finder",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Library/CoreServices/Finder.app"
+          },
+          "keywords": [
+            "com.apple.finder"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/kitty.app",
+          "name": "kitty",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/kitty.app"
+          },
+          "keywords": [
+            "net.kovidgoyal.kitty"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Mail.app",
+          "name": "Mail",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Mail.app"
+          },
+          "keywords": [
+            "com.apple.mail"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Messages.app",
+          "name": "Messages",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Messages.app"
+          },
+          "keywords": [
+            "com.apple.MobileSMS"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Music.app",
+          "name": "Music",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Music.app"
+          },
+          "keywords": [
+            "com.apple.Music"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Notes.app",
+          "name": "Notes",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Notes.app"
+          },
+          "keywords": [
+            "com.apple.Notes"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Obsidian.app",
+          "name": "Obsidian",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Obsidian.app"
+          },
+          "keywords": [
+            "md.obsidian"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Preview.app",
+          "name": "Preview",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Preview.app"
+          },
+          "keywords": [
+            "com.apple.Preview"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Safari.app",
+          "name": "Safari",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Safari.app"
+          },
+          "keywords": [
+            "com.apple.Safari"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Slack.app",
+          "name": "Slack",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Slack.app"
+          },
+          "keywords": [
+            "com.tinyspeck.slackmacgap"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Spotify.app",
+          "name": "Spotify",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Spotify.app"
+          },
+          "keywords": [
+            "com.spotify.client"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/System Settings.app",
+          "name": "System Settings",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/System Settings.app"
+          },
+          "keywords": [
+            "com.apple.systempreferences"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/System/Applications/Utilities/Terminal.app",
+          "name": "Terminal",
+          "subtitle": "macOS",
+          "icon": {
+            "app": "/System/Applications/Utilities/Terminal.app"
+          },
+          "keywords": [
+            "com.apple.Terminal"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Visual Studio Code.app",
+          "name": "Visual Studio Code",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Visual Studio Code.app"
+          },
+          "keywords": [
+            "com.microsoft.VSCode",
+            "Code"
+          ],
+          "accessories": [
+            {
+              "tag": "Running",
+              "color": "green"
+            }
+          ],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            }
+          ]
+        },
+        {
+          "id": "/Applications/Zed.app",
+          "name": "Zed",
+          "subtitle": "Applications",
+          "icon": {
+            "app": "/Applications/Zed.app"
+          },
+          "keywords": [
+            "dev.zed.Zed"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open"
+            },
+            {
+              "id": "reveal",
+              "title": "Reveal in Finder",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "copy-path",
+              "title": "Copy path",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "copy-id",
+              "title": "Copy bundle id",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "quit",
+              "title": "Quit",
+              "shortcut": "cmd+q"
+            },
+            {
+              "id": "hide",
+              "title": "Hide",
+              "shortcut": "cmd+h"
+            }
+          ]
+        }
+      ]
+    },
+    "calc": {
+      "title": "Calculator",
+      "icon": {
+        "tile": {
+          "glyph": "󰃬",
+          "bg": "indigo"
+        }
+      },
+      "input": true,
+      "placeholder": "An expression, a conversion, a date or a time",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint:Type an expression",
+            "name": "Type an expression",
+            "subtitle": "2+2 · sqrt 2 · 15% of 240 · 255 to hex",
+            "icon": "󰇼",
+            "actions": []
+          },
+          {
+            "id": "hint:Convert",
+            "name": "Convert",
+            "subtitle": "12 usd to try · 5 km to miles · 72 f to c",
+            "icon": "󰇼",
+            "actions": []
+          },
+          {
+            "id": "hint:Dates and time",
+            "name": "Dates and time",
+            "subtitle": "today + 3 days · days until 2026-12-25 · 10:00 in tokyo",
+            "icon": "󰇼",
+            "actions": []
+          }
+        ],
+        "12 usd to try": [
+          {
+            "id": "result",
+            "name": "583.67 TRY",
+            "subtitle": "12 USD to TRY",
+            "icon": "󰇼",
+            "accessories": [
+              {
+                "text": "1 USD = 48.6395 TRY"
+              },
+              {
+                "text": "rates 2026-09-15"
+              }
+            ],
+            "detail": {
+              "markdown": "**12.00 USD** = **583.67 TRY**",
+              "metadata": [
+                {
+                  "label": "Rate",
+                  "value": "1 USD = 48.6395 TRY"
+                },
+                {
+                  "label": "Inverse",
+                  "value": "1 TRY = 0.0205594 USD"
+                },
+                {
+                  "label": "From",
+                  "value": "US Dollar (USD)"
+                },
+                {
+                  "label": "To",
+                  "value": "Turkish Lira (TRY)"
+                },
+                {
+                  "label": "Rates",
+                  "value": "2026-09-15"
+                },
+                {
+                  "label": "Source",
+                  "link": {
+                    "text": "European Central Bank via frankfurter.dev",
+                    "href": "https://www.frankfurter.dev"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          },
+          {
+            "id": "reverse",
+            "name": "0.25 USD",
+            "subtitle": "12 TRY to USD",
+            "icon": "󰇼",
+            "accessories": [
+              {
+                "text": "1 TRY = 0.0205594 USD"
+              },
+              {
+                "text": "rates 2026-09-15"
+              }
+            ],
+            "detail": {
+              "markdown": "**12.00 USD** = **583.67 TRY**",
+              "metadata": [
+                {
+                  "label": "Rate",
+                  "value": "1 USD = 48.6395 TRY"
+                },
+                {
+                  "label": "Inverse",
+                  "value": "1 TRY = 0.0205594 USD"
+                },
+                {
+                  "label": "From",
+                  "value": "US Dollar (USD)"
+                },
+                {
+                  "label": "To",
+                  "value": "Turkish Lira (TRY)"
+                },
+                {
+                  "label": "Rates",
+                  "value": "2026-09-15"
+                },
+                {
+                  "label": "Source",
+                  "link": {
+                    "text": "European Central Bank via frankfurter.dev",
+                    "href": "https://www.frankfurter.dev"
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "id": "copy",
+                "title": "Copy result"
+              },
+              {
+                "id": "paste",
+                "title": "Paste result"
+              },
+              {
+                "id": "copy_raw",
+                "title": "Copy without formatting",
+                "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "copy_both",
+                "title": "Copy expression = result",
+                "shortcut": "cmd+shift+e"
+              }
+            ]
+          }
+        ]
+      },
+      "fallback": true
+    },
+    "convert": {
+      "title": "Convert Colour",
+      "icon": "#4F46D6",
+      "input": true,
+      "placeholder": "#ff8800, rgb(255 136 0), hsl(30 100% 50%), lab(), a name",
+      "byQuery": {
+        "": [],
+        "#ff8800": [
+          {
+            "id": "#ff8800",
+            "name": "#ff8800",
+            "subtitle": "hex",
+            "icon": {
+              "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Picker"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              }
+            ]
+          },
+          {
+            "id": "rgb(255, 136, 0)",
+            "name": "rgb(255, 136, 0)",
+            "subtitle": "rgb",
+            "icon": {
+              "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Picker"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              }
+            ]
+          },
+          {
+            "id": "hsl(32, 100%, 50%)",
+            "name": "hsl(32, 100%, 50%)",
+            "subtitle": "hsl",
+            "icon": {
+              "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Picker"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              }
+            ]
+          },
+          {
+            "id": "oklch(0.744 0.181 56.5)",
+            "name": "oklch(0.744 0.181 56.5)",
+            "subtitle": "oklch",
+            "icon": {
+              "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Picker"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              }
+            ]
+          },
+          {
+            "id": "darkorange (nearest)",
+            "name": "darkorange (nearest)",
+            "subtitle": "name",
+            "icon": {
+              "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "actions": [
+              {
+                "id": "open",
+                "title": "Open in Picker"
+              },
+              {
+                "id": "copy",
+                "title": "Copy"
+              }
+            ]
+          }
+        ]
+      },
+      "fallback": true
+    },
+    "picker": {
+      "title": "Colour Picker",
+      "icon": "#4F46D6",
+      "view": "view",
+      "tree": {
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "picker",
+          "padding": 4,
+          "grow": true,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "start",
+              "gap": 4,
+              "key": "main",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 2,
+                  "key": "left",
+                  "align": "start",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 2,
+                      "key": "well",
+                      "surface": "sunken",
+                      "radius": true,
+                      "padding": 2,
+                      "align": "center",
+                      "children": [
+                        {
+                          "type": "tile",
+                          "key": "swatch-#ff8800",
+                          "width": 160,
+                          "height": 116,
+                          "color": "#ff8800",
+                          "transition": {
+                            "enter": "fade"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "gradient",
+                      "key": "hue",
+                      "width": 176,
+                      "height": 10,
+                      "layers": [
+                        {
+                          "stops": [
+                            "#ff0000",
+                            "#ffff00",
+                            "#00ff00",
+                            "#00ffff",
+                            "#0000ff",
+                            "#ff00ff",
+                            "#ff0000"
+                          ]
+                        }
+                      ],
+                      "marker": {
+                        "x": 0.08888888888888886,
+                        "y": 0.5
+                      }
+                    },
+                    {
+                      "type": "gradient",
+                      "key": "plane",
+                      "width": 176,
+                      "height": 80,
+                      "fill": "#ff8800",
+                      "layers": [
+                        {
+                          "stops": [
+                            "#ffffff",
+                            "#ffffff00"
+                          ],
+                          "direction": "right"
+                        },
+                        {
+                          "stops": [
+                            "#000000",
+                            "#00000000"
+                          ],
+                          "direction": "up"
+                        }
+                      ],
+                      "marker": {
+                        "x": 1,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "readout",
+                      "minHeight": 20,
+                      "children": [
+                        {
+                          "type": "badge",
+                          "key": "model-hsl",
+                          "text": "HSL",
+                          "color": "violet",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "value": "32° 100% 50%",
+                          "style": "mono",
+                          "size": "xs",
+                          "width": 112
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 1,
+                  "key": "notations",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-hex",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Hex",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "#ff8800",
+                          "key": "n-hex",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-rgb",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "RGB",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "rgb(255, 136, 0)",
+                          "key": "n-rgb",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-hsl",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "HSL",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "hsl(32, 100%, 50%)",
+                          "key": "n-hsl",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-hwb",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "HWB",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "hwb(32 0% 0%)",
+                          "key": "n-hwb",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-oklch",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "OKLCH",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "oklch(0.744 0.181 56.5)",
+                          "key": "n-oklch",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-oklab",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "OKLab",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "oklab(0.744 0.1 0.151)",
+                          "key": "n-oklab",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-lab",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Lab",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "lab(69.4 41.7 75.66)",
+                          "key": "n-lab",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-p3",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "P3",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "color(display-p3 0.939 0.558 0.206)",
+                          "key": "n-p3",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-name",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Name",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "darkorange (nearest)",
+                          "key": "n-name",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "divider",
+                      "key": "d1"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "Tailwind",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Tailwind",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "tile",
+                          "width": 12,
+                          "height": 12,
+                          "color": "#fb923c"
+                        },
+                        {
+                          "type": "text",
+                          "value": "orange-400",
+                          "key": "Tailwind-tw/orange-400",
+                          "style": "mono",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "value": "near",
+                          "style": "muted",
+                          "size": "xs"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "Material",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Material",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "tile",
+                          "width": 12,
+                          "height": 12,
+                          "color": "#fb8c00"
+                        },
+                        {
+                          "type": "text",
+                          "value": "orange-600",
+                          "key": "Material-md/orange-600",
+                          "style": "mono",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "value": "close",
+                          "style": "muted",
+                          "size": "xs"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "divider",
+                      "key": "d2"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "cw",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "On white",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "2.39:1",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56
+                        },
+                        {
+                          "type": "badge",
+                          "key": "cw-fail",
+                          "text": "fail",
+                          "color": "red",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "cb",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "On black",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "8.77:1",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56
+                        },
+                        {
+                          "type": "badge",
+                          "key": "cb-AAA",
+                          "text": "AAA",
+                          "color": "green",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "cp",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Previous",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "tile",
+                          "width": 12,
+                          "height": 12,
+                          "color": "#64748b"
+                        },
+                        {
+                          "type": "text",
+                          "value": "1.99:1",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56
+                        },
+                        {
+                          "type": "badge",
+                          "key": "cp-fail",
+                          "text": "fail",
+                          "color": "red",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 1,
+                  "key": "scales",
+                  "align": "start",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "tints",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Tints",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "tints-0-#ff941a",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ff941a",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-1-#ffa033",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffa033",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-2-#ffac4d",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffac4d",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-3-#ffb866",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffb866",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-4-#ffc380",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffc380",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-5-#ffcf99",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffcf99",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-6-#ffdbb3",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffdbb3",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-7-#ffe7cc",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffe7cc",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-8-#fff3e5",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#fff3e5",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "shades",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Shades",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "shades-0-#e67a00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#e67a00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-1-#cc6d00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#cc6d00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-2-#b35f00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#b35f00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-3-#995200",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#995200",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-4-#804400",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#804400",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-5-#663600",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#663600",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-6-#4d2900",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#4d2900",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-7-#331b00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#331b00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-8-#190e00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#190e00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "complementary",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Complementary",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "complementary-0-#0077ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#0077ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "analogous",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Analogous",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "analogous-0-#ff0800",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ff0800",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "analogous-1-#f7ff00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#f7ff00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "triadic",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Triadic",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "triadic-0-#00ff88",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#00ff88",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "triadic-1-#8800ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#8800ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "split",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Split",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "split-0-#00f7ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#00f7ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "split-1-#0800ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#0800ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "tetradic",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Tetradic",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "tetradic-0-#00ff08",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#00ff08",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tetradic-1-#0077ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#0077ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tetradic-2-#ff00f7",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ff00f7",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "spacer",
+              "key": "fill"
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints-swatch",
+              "minHeight": 24,
+              "transition": {
+                "enter": "fade",
+                "exit": "none"
+              },
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "left"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "right"
+                },
+                {
+                  "type": "text",
+                  "value": "hue",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "up"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "down"
+                },
+                {
+                  "type": "text",
+                  "value": "lightness",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "-"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "+"
+                },
+                {
+                  "type": "text",
+                  "value": "saturation",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "shift"
+                },
+                {
+                  "type": "text",
+                  "value": "big steps",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "m"
+                },
+                {
+                  "type": "text",
+                  "value": "oklch",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "tab"
+                },
+                {
+                  "type": "text",
+                  "value": "rows",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "p"
+                },
+                {
+                  "type": "text",
+                  "value": "pick",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "0-9"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "#"
+                },
+                {
+                  "type": "text",
+                  "value": "type",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "c"
+                },
+                {
+                  "type": "text",
+                  "value": "copy",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "copy",
+            "title": "Copy #ff8800",
+            "shortcut": "c"
+          },
+          {
+            "id": "copy:hex",
+            "title": "Copy hex",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "pick",
+            "title": "Pick Colour from Screen",
+            "shortcut": "p"
+          },
+          {
+            "id": "history",
+            "title": "History",
+            "shortcut": "h"
+          },
+          {
+            "id": "names",
+            "title": "Named Colours",
+            "shortcut": "n"
+          },
+          {
+            "id": "model",
+            "title": "Edit in OKLCH",
+            "shortcut": "m"
+          },
+          {
+            "id": "undo",
+            "title": "Back to the previous colour",
+            "shortcut": "u"
+          },
+          {
+            "id": "random",
+            "title": "Random colour",
+            "shortcut": "r"
+          },
+          {
+            "id": "focus:next",
+            "title": "Focus the next row",
+            "shortcut": "tab"
+          },
+          {
+            "id": "focus:prev",
+            "title": "Focus the previous row",
+            "shortcut": "shift+tab"
+          },
+          {
+            "id": "copy:rgb",
+            "title": "Copy rgb",
+            "shortcut": "cmd+shift+r"
+          },
+          {
+            "id": "copy:hsl",
+            "title": "Copy hsl",
+            "shortcut": "cmd+shift+h"
+          },
+          {
+            "id": "copy:oklch",
+            "title": "Copy oklch",
+            "shortcut": "cmd+shift+o"
+          },
+          {
+            "id": "copy:lab",
+            "title": "Copy lab",
+            "shortcut": "cmd+shift+l"
+          },
+          {
+            "id": "copy:p3",
+            "title": "Copy display-p3",
+            "shortcut": "cmd+shift+p"
+          },
+          {
+            "id": "copy:name",
+            "title": "Copy the CSS name",
+            "shortcut": "cmd+shift+n"
+          },
+          {
+            "id": "copy:hwb",
+            "title": "Copy hwb"
+          },
+          {
+            "id": "copy:oklab",
+            "title": "Copy oklab"
+          },
+          {
+            "id": "h+",
+            "title": "Hue +5°",
+            "shortcut": "right",
+            "hidden": true
+          },
+          {
+            "id": "h-",
+            "title": "Hue -5°",
+            "shortcut": "left",
+            "hidden": true
+          },
+          {
+            "id": "h++",
+            "title": "Hue +15°",
+            "shortcut": "shift+right",
+            "hidden": true
+          },
+          {
+            "id": "h--",
+            "title": "Hue -15°",
+            "shortcut": "shift+left",
+            "hidden": true
+          },
+          {
+            "id": "l+",
+            "title": "Lighter",
+            "shortcut": "up",
+            "hidden": true
+          },
+          {
+            "id": "l-",
+            "title": "Darker",
+            "shortcut": "down",
+            "hidden": true
+          },
+          {
+            "id": "l++",
+            "title": "Much lighter",
+            "shortcut": "shift+up",
+            "hidden": true
+          },
+          {
+            "id": "l--",
+            "title": "Much darker",
+            "shortcut": "shift+down",
+            "hidden": true
+          },
+          {
+            "id": "s+",
+            "title": "More saturated",
+            "shortcut": [
+              "+",
+              "="
+            ],
+            "hidden": true
+          },
+          {
+            "id": "s-",
+            "title": "Less saturated",
+            "shortcut": "-",
+            "hidden": true
+          },
+          {
+            "id": "type:0",
+            "title": "Type 0",
+            "shortcut": "0",
+            "hidden": true
+          },
+          {
+            "id": "type:1",
+            "title": "Type 1",
+            "shortcut": "1",
+            "hidden": true
+          },
+          {
+            "id": "type:2",
+            "title": "Type 2",
+            "shortcut": "2",
+            "hidden": true
+          },
+          {
+            "id": "type:3",
+            "title": "Type 3",
+            "shortcut": "3",
+            "hidden": true
+          },
+          {
+            "id": "type:4",
+            "title": "Type 4",
+            "shortcut": "4",
+            "hidden": true
+          },
+          {
+            "id": "type:5",
+            "title": "Type 5",
+            "shortcut": "5",
+            "hidden": true
+          },
+          {
+            "id": "type:6",
+            "title": "Type 6",
+            "shortcut": "6",
+            "hidden": true
+          },
+          {
+            "id": "type:7",
+            "title": "Type 7",
+            "shortcut": "7",
+            "hidden": true
+          },
+          {
+            "id": "type:8",
+            "title": "Type 8",
+            "shortcut": "8",
+            "hidden": true
+          },
+          {
+            "id": "type:9",
+            "title": "Type 9",
+            "shortcut": "9",
+            "hidden": true
+          },
+          {
+            "id": "type:#",
+            "title": "Type #",
+            "shortcut": "#",
+            "hidden": true
+          },
+          {
+            "id": "apply",
+            "title": "Apply",
+            "hidden": true,
+            "shortcut": "enter"
+          },
+          {
+            "id": "cancel",
+            "title": "Stop typing",
+            "hidden": true,
+            "shortcut": "escape"
+          }
+        ],
+        "title": "#ff8800",
+        "id": "picker",
+        "keys": "actions"
+      }
+    }
+  },
+  "inline": {
+    "12 usd to try": {
+      "palette": "calc",
+      "items": [
+        {
+          "id": "result",
+          "name": "583.67 TRY",
+          "subtitle": "12 USD to TRY",
+          "icon": "󰇼",
+          "accessories": [
+            {
+              "text": "1 USD = 48.6395 TRY"
+            },
+            {
+              "text": "rates 2026-09-15"
+            }
+          ],
+          "detail": {
+            "markdown": "**12.00 USD** = **583.67 TRY**",
+            "metadata": [
+              {
+                "label": "Rate",
+                "value": "1 USD = 48.6395 TRY"
+              },
+              {
+                "label": "Inverse",
+                "value": "1 TRY = 0.0205594 USD"
+              },
+              {
+                "label": "From",
+                "value": "US Dollar (USD)"
+              },
+              {
+                "label": "To",
+                "value": "Turkish Lira (TRY)"
+              },
+              {
+                "label": "Rates",
+                "value": "2026-09-15"
+              },
+              {
+                "label": "Source",
+                "link": {
+                  "text": "European Central Bank via frankfurter.dev",
+                  "href": "https://www.frankfurter.dev"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "paste",
+              "title": "Paste result"
+            },
+            {
+              "id": "copy_raw",
+              "title": "Copy without formatting",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_both",
+              "title": "Copy expression = result",
+              "shortcut": "cmd+shift+e"
+            }
+          ]
+        },
+        {
+          "id": "reverse",
+          "name": "0.25 USD",
+          "subtitle": "12 TRY to USD",
+          "icon": "󰇼",
+          "accessories": [
+            {
+              "text": "1 TRY = 0.0205594 USD"
+            },
+            {
+              "text": "rates 2026-09-15"
+            }
+          ],
+          "detail": {
+            "markdown": "**12.00 USD** = **583.67 TRY**",
+            "metadata": [
+              {
+                "label": "Rate",
+                "value": "1 USD = 48.6395 TRY"
+              },
+              {
+                "label": "Inverse",
+                "value": "1 TRY = 0.0205594 USD"
+              },
+              {
+                "label": "From",
+                "value": "US Dollar (USD)"
+              },
+              {
+                "label": "To",
+                "value": "Turkish Lira (TRY)"
+              },
+              {
+                "label": "Rates",
+                "value": "2026-09-15"
+              },
+              {
+                "label": "Source",
+                "link": {
+                  "text": "European Central Bank via frankfurter.dev",
+                  "href": "https://www.frankfurter.dev"
+                }
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "copy",
+              "title": "Copy result"
+            },
+            {
+              "id": "paste",
+              "title": "Paste result"
+            },
+            {
+              "id": "copy_raw",
+              "title": "Copy without formatting",
+              "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "copy_both",
+              "title": "Copy expression = result",
+              "shortcut": "cmd+shift+e"
+            }
+          ]
+        }
+      ]
+    },
+    "#ff8800": {
+      "palette": "convert",
+      "items": [
+        {
+          "id": "#ff8800",
+          "name": "#ff8800",
+          "subtitle": "hex",
+          "icon": {
+            "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Picker"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            }
+          ]
+        },
+        {
+          "id": "rgb(255, 136, 0)",
+          "name": "rgb(255, 136, 0)",
+          "subtitle": "rgb",
+          "icon": {
+            "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Picker"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            }
+          ]
+        },
+        {
+          "id": "hsl(32, 100%, 50%)",
+          "name": "hsl(32, 100%, 50%)",
+          "subtitle": "hsl",
+          "icon": {
+            "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Picker"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            }
+          ]
+        },
+        {
+          "id": "oklch(0.744 0.181 56.5)",
+          "name": "oklch(0.744 0.181 56.5)",
+          "subtitle": "oklch",
+          "icon": {
+            "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Picker"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            }
+          ]
+        },
+        {
+          "id": "darkorange (nearest)",
+          "name": "darkorange (nearest)",
+          "subtitle": "name",
+          "icon": {
+            "image": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%3E%3Crect%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ff8800%22%2F%3E%3C%2Fsvg%3E"
+          },
+          "actions": [
+            {
+              "id": "open",
+              "title": "Open in Picker"
+            },
+            {
+              "id": "copy",
+              "title": "Copy"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "effects": {
+    "convert/#ff8800": {
+      "view": {
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "picker",
+          "padding": 4,
+          "grow": true,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "start",
+              "gap": 4,
+              "key": "main",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 2,
+                  "key": "left",
+                  "align": "start",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 2,
+                      "key": "well",
+                      "surface": "sunken",
+                      "radius": true,
+                      "padding": 2,
+                      "align": "center",
+                      "children": [
+                        {
+                          "type": "tile",
+                          "key": "swatch-#ff8800",
+                          "width": 160,
+                          "height": 116,
+                          "color": "#ff8800",
+                          "transition": {
+                            "enter": "fade"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "gradient",
+                      "key": "hue",
+                      "width": 176,
+                      "height": 10,
+                      "layers": [
+                        {
+                          "stops": [
+                            "#ff0000",
+                            "#ffff00",
+                            "#00ff00",
+                            "#00ffff",
+                            "#0000ff",
+                            "#ff00ff",
+                            "#ff0000"
+                          ]
+                        }
+                      ],
+                      "marker": {
+                        "x": 0.08888888888888886,
+                        "y": 0.5
+                      }
+                    },
+                    {
+                      "type": "gradient",
+                      "key": "plane",
+                      "width": 176,
+                      "height": 80,
+                      "fill": "#ff8800",
+                      "layers": [
+                        {
+                          "stops": [
+                            "#ffffff",
+                            "#ffffff00"
+                          ],
+                          "direction": "right"
+                        },
+                        {
+                          "stops": [
+                            "#000000",
+                            "#00000000"
+                          ],
+                          "direction": "up"
+                        }
+                      ],
+                      "marker": {
+                        "x": 1,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "readout",
+                      "minHeight": 20,
+                      "children": [
+                        {
+                          "type": "badge",
+                          "key": "model-hsl",
+                          "text": "HSL",
+                          "color": "violet",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "value": "32° 100% 50%",
+                          "style": "mono",
+                          "size": "xs",
+                          "width": 112
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 1,
+                  "key": "notations",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-hex",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Hex",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "#ff8800",
+                          "key": "n-hex",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-rgb",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "RGB",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "rgb(255, 136, 0)",
+                          "key": "n-rgb",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-hsl",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "HSL",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "hsl(32, 100%, 50%)",
+                          "key": "n-hsl",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-hwb",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "HWB",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "hwb(32 0% 0%)",
+                          "key": "n-hwb",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-oklch",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "OKLCH",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "oklch(0.744 0.181 56.5)",
+                          "key": "n-oklch",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-oklab",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "OKLab",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "oklab(0.744 0.1 0.151)",
+                          "key": "n-oklab",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-lab",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Lab",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "lab(69.4 41.7 75.66)",
+                          "key": "n-lab",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-p3",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "P3",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "color(display-p3 0.939 0.558 0.206)",
+                          "key": "n-p3",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "n-name",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Name",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "darkorange (nearest)",
+                          "key": "n-name",
+                          "style": "mono",
+                          "width": 276,
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "divider",
+                      "key": "d1"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "Tailwind",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Tailwind",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "tile",
+                          "width": 12,
+                          "height": 12,
+                          "color": "#fb923c"
+                        },
+                        {
+                          "type": "text",
+                          "value": "orange-400",
+                          "key": "Tailwind-tw/orange-400",
+                          "style": "mono",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "value": "near",
+                          "style": "muted",
+                          "size": "xs"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "Material",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Material",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "tile",
+                          "width": 12,
+                          "height": 12,
+                          "color": "#fb8c00"
+                        },
+                        {
+                          "type": "text",
+                          "value": "orange-600",
+                          "key": "Material-md/orange-600",
+                          "style": "mono",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "value": "close",
+                          "style": "muted",
+                          "size": "xs"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "divider",
+                      "key": "d2"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "cw",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "On white",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "2.39:1",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56
+                        },
+                        {
+                          "type": "badge",
+                          "key": "cw-fail",
+                          "text": "fail",
+                          "color": "red",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "cb",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "On black",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "text",
+                          "value": "8.77:1",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56
+                        },
+                        {
+                          "type": "badge",
+                          "key": "cb-AAA",
+                          "text": "AAA",
+                          "color": "green",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "cp",
+                      "minHeight": 18,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Previous",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 56
+                        },
+                        {
+                          "type": "tile",
+                          "width": 12,
+                          "height": 12,
+                          "color": "#64748b"
+                        },
+                        {
+                          "type": "text",
+                          "value": "1.99:1",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 56
+                        },
+                        {
+                          "type": "badge",
+                          "key": "cp-fail",
+                          "text": "fail",
+                          "color": "red",
+                          "transition": {
+                            "enter": "fade",
+                            "exit": "none"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 1,
+                  "key": "scales",
+                  "align": "start",
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "tints",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Tints",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "tints-0-#ff941a",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ff941a",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-1-#ffa033",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffa033",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-2-#ffac4d",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffac4d",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-3-#ffb866",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffb866",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-4-#ffc380",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffc380",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-5-#ffcf99",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffcf99",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-6-#ffdbb3",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffdbb3",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-7-#ffe7cc",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ffe7cc",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tints-8-#fff3e5",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#fff3e5",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "shades",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Shades",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "shades-0-#e67a00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#e67a00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-1-#cc6d00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#cc6d00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-2-#b35f00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#b35f00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-3-#995200",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#995200",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-4-#804400",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#804400",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-5-#663600",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#663600",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-6-#4d2900",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#4d2900",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-7-#331b00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#331b00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "shades-8-#190e00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#190e00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "complementary",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Complementary",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "complementary-0-#0077ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#0077ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "analogous",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Analogous",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "analogous-0-#ff0800",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ff0800",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "analogous-1-#f7ff00",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#f7ff00",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "triadic",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Triadic",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "triadic-0-#00ff88",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#00ff88",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "triadic-1-#8800ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#8800ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "split",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Split",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "split-0-#00f7ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#00f7ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "split-1-#0800ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#0800ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "tetradic",
+                      "children": [
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 2,
+                          "key": "t",
+                          "minHeight": 14,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Tetradic",
+                              "style": "muted",
+                              "size": "xs",
+                              "color": "muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "row",
+                          "align": "center",
+                          "gap": 1,
+                          "key": "r",
+                          "minHeight": 22,
+                          "children": [
+                            {
+                              "type": "tile",
+                              "key": "tetradic-0-#00ff08",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#00ff08",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tetradic-1-#0077ff",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#0077ff",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            },
+                            {
+                              "type": "tile",
+                              "key": "tetradic-2-#ff00f7",
+                              "width": 16,
+                              "height": 16,
+                              "color": "#ff00f7",
+                              "transition": {
+                                "enter": "fade",
+                                "exit": "none"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "spacer",
+              "key": "fill"
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints-swatch",
+              "minHeight": 24,
+              "transition": {
+                "enter": "fade",
+                "exit": "none"
+              },
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "left"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "right"
+                },
+                {
+                  "type": "text",
+                  "value": "hue",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "up"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "down"
+                },
+                {
+                  "type": "text",
+                  "value": "lightness",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "-"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "+"
+                },
+                {
+                  "type": "text",
+                  "value": "saturation",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "shift"
+                },
+                {
+                  "type": "text",
+                  "value": "big steps",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "m"
+                },
+                {
+                  "type": "text",
+                  "value": "oklch",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "tab"
+                },
+                {
+                  "type": "text",
+                  "value": "rows",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "p"
+                },
+                {
+                  "type": "text",
+                  "value": "pick",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "0-9"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "#"
+                },
+                {
+                  "type": "text",
+                  "value": "type",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "c"
+                },
+                {
+                  "type": "text",
+                  "value": "copy",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "copy",
+            "title": "Copy #ff8800",
+            "shortcut": "c"
+          },
+          {
+            "id": "copy:hex",
+            "title": "Copy hex",
+            "shortcut": "cmd+c"
+          },
+          {
+            "id": "pick",
+            "title": "Pick Colour from Screen",
+            "shortcut": "p"
+          },
+          {
+            "id": "history",
+            "title": "History",
+            "shortcut": "h"
+          },
+          {
+            "id": "names",
+            "title": "Named Colours",
+            "shortcut": "n"
+          },
+          {
+            "id": "model",
+            "title": "Edit in OKLCH",
+            "shortcut": "m"
+          },
+          {
+            "id": "undo",
+            "title": "Back to the previous colour",
+            "shortcut": "u"
+          },
+          {
+            "id": "random",
+            "title": "Random colour",
+            "shortcut": "r"
+          },
+          {
+            "id": "focus:next",
+            "title": "Focus the next row",
+            "shortcut": "tab"
+          },
+          {
+            "id": "focus:prev",
+            "title": "Focus the previous row",
+            "shortcut": "shift+tab"
+          },
+          {
+            "id": "copy:rgb",
+            "title": "Copy rgb",
+            "shortcut": "cmd+shift+r"
+          },
+          {
+            "id": "copy:hsl",
+            "title": "Copy hsl",
+            "shortcut": "cmd+shift+h"
+          },
+          {
+            "id": "copy:oklch",
+            "title": "Copy oklch",
+            "shortcut": "cmd+shift+o"
+          },
+          {
+            "id": "copy:lab",
+            "title": "Copy lab",
+            "shortcut": "cmd+shift+l"
+          },
+          {
+            "id": "copy:p3",
+            "title": "Copy display-p3",
+            "shortcut": "cmd+shift+p"
+          },
+          {
+            "id": "copy:name",
+            "title": "Copy the CSS name",
+            "shortcut": "cmd+shift+n"
+          },
+          {
+            "id": "copy:hwb",
+            "title": "Copy hwb"
+          },
+          {
+            "id": "copy:oklab",
+            "title": "Copy oklab"
+          },
+          {
+            "id": "h+",
+            "title": "Hue +5°",
+            "shortcut": "right",
+            "hidden": true
+          },
+          {
+            "id": "h-",
+            "title": "Hue -5°",
+            "shortcut": "left",
+            "hidden": true
+          },
+          {
+            "id": "h++",
+            "title": "Hue +15°",
+            "shortcut": "shift+right",
+            "hidden": true
+          },
+          {
+            "id": "h--",
+            "title": "Hue -15°",
+            "shortcut": "shift+left",
+            "hidden": true
+          },
+          {
+            "id": "l+",
+            "title": "Lighter",
+            "shortcut": "up",
+            "hidden": true
+          },
+          {
+            "id": "l-",
+            "title": "Darker",
+            "shortcut": "down",
+            "hidden": true
+          },
+          {
+            "id": "l++",
+            "title": "Much lighter",
+            "shortcut": "shift+up",
+            "hidden": true
+          },
+          {
+            "id": "l--",
+            "title": "Much darker",
+            "shortcut": "shift+down",
+            "hidden": true
+          },
+          {
+            "id": "s+",
+            "title": "More saturated",
+            "shortcut": [
+              "+",
+              "="
+            ],
+            "hidden": true
+          },
+          {
+            "id": "s-",
+            "title": "Less saturated",
+            "shortcut": "-",
+            "hidden": true
+          },
+          {
+            "id": "type:0",
+            "title": "Type 0",
+            "shortcut": "0",
+            "hidden": true
+          },
+          {
+            "id": "type:1",
+            "title": "Type 1",
+            "shortcut": "1",
+            "hidden": true
+          },
+          {
+            "id": "type:2",
+            "title": "Type 2",
+            "shortcut": "2",
+            "hidden": true
+          },
+          {
+            "id": "type:3",
+            "title": "Type 3",
+            "shortcut": "3",
+            "hidden": true
+          },
+          {
+            "id": "type:4",
+            "title": "Type 4",
+            "shortcut": "4",
+            "hidden": true
+          },
+          {
+            "id": "type:5",
+            "title": "Type 5",
+            "shortcut": "5",
+            "hidden": true
+          },
+          {
+            "id": "type:6",
+            "title": "Type 6",
+            "shortcut": "6",
+            "hidden": true
+          },
+          {
+            "id": "type:7",
+            "title": "Type 7",
+            "shortcut": "7",
+            "hidden": true
+          },
+          {
+            "id": "type:8",
+            "title": "Type 8",
+            "shortcut": "8",
+            "hidden": true
+          },
+          {
+            "id": "type:9",
+            "title": "Type 9",
+            "shortcut": "9",
+            "hidden": true
+          },
+          {
+            "id": "type:#",
+            "title": "Type #",
+            "shortcut": "#",
+            "hidden": true
+          },
+          {
+            "id": "apply",
+            "title": "Apply",
+            "hidden": true,
+            "shortcut": "enter"
+          },
+          {
+            "id": "cancel",
+            "title": "Stop typing",
+            "hidden": true,
+            "shortcut": "escape"
+          }
+        ],
+        "title": "#ff8800",
+        "id": "picker",
+        "keys": "actions"
+      }
+    }
+  }
+}

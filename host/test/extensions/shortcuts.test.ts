@@ -65,10 +65,10 @@ describe("shortcuts", () => {
     expect(l.palettes[0].icon as unknown).toEqual({ tile: { svg: expect.stringMatching(/^M8 1\.5/), bg: "violet" } });
   });
 
-  test.skipIf(!MAC)("rows: the ones in no folder first without a section, then folder by folder with the folder as section and keyword; a repeated name gets its identifier; a line without an identifier is dropped", async () => {
+  test.skipIf(!MAC)("rows: the ones in no folder first under \"No folder\", then folder by folder with the folder as section and keyword; a repeated name gets its identifier; a line without an identifier is dropped", async () => {
     const items = await list();
     expect(items.map((i) => [i.id, i.section])).toEqual([
-      ["Open App", undefined], ["Adjust Clipboard", undefined],
+      ["Open App", "No folder"], ["Adjust Clipboard", "No folder"],
       ["Lights on", "Home"], ["Open App (11111111-2222-3333-4444-555555555555)", "Home"],
       ["Standup notes", "Work"],
     ]);

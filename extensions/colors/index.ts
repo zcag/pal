@@ -9,7 +9,7 @@
 import { color as screen, effects, settings, storage, type Effect, type Extension } from "@zcag/pal";
 import { parse, toHex, type Format, type RGB } from "./color.ts";
 import { render } from "./render.ts";
-import { GRID_ACTIONS, HINTS, HISTORY_ACTIONS, ICON, PICK_ROW, conversions, detailOf, gridItem, hint, historyRows } from "./rows.ts";
+import { GRID_ACTIONS, HINTS, HISTORY_ACTIONS, PICK_ROW, conversions, detailOf, gridItem, hint, historyRows } from "./rows.ts";
 import { SETS, SET_IDS, sectionOf, token, type Row, type SetId } from "./sets.ts";
 import { DEFAULTS, apply, fresh, write, type Entry, type Settings, type Source, type State } from "./state.ts";
 import data from "./data.json";
@@ -120,7 +120,6 @@ export default {
   palettes: {
     picker: {
       title: "Colour Picker",
-      icon: ICON,
       view: async (ctx) => {
         const args = ctx?.args as { color?: string; from?: Source; name?: string } | undefined;
         const c = args?.color ? parse(args.color) : undefined;
@@ -176,7 +175,6 @@ export default {
     },
     colors: {
       title: "Named Colours",
-      icon: ICON,
       view: "grid",
       // Palette meta is read once at load (see emoji).
       columns: settings.palette<PaletteSettings>("colors", NAME).columns,
@@ -207,7 +205,6 @@ export default {
     },
     history: {
       title: "Colour History",
-      icon: ICON,
       // Live: the rows change with every pick and copy, and a show relists them, so the root's rows are current.
       live: true,
       list: async () => historyRows(await load(), current(), Date.now()),
@@ -230,7 +227,6 @@ export default {
     },
     convert: {
       title: "Convert Colour",
-      icon: ICON,
       input: true,
       // At the root a hex, an rgb()/hsl()/... notation or a CSS name answers inline: the first notations, Enter opens the picker on it.
       match: (q) => parse(q) !== undefined,

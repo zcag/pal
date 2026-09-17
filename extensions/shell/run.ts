@@ -4,6 +4,7 @@
 // helpers around it (what looks destructive, the `env` list as a table,
 // the argv that opens a terminal on the command).
 import { home } from "@zcag/pal";
+import { linuxTerminal, linuxTerminalArgv } from "../apps/terminal.ts";
 
 export type Run = {
   cmd: string;
@@ -127,25 +128,27 @@ const keepOpen = (cmd: string, shell: string[]) => `${cmd}; exec ${shell[0]}`;
 /**
  * What opens a terminal on the command in `cwd` (the `terminal` setting
  * names the app; macOS: Terminal and iTerm over AppleScript, kitty,
- * Alacritty, WezTerm and Ghostty by their command-line flags; Linux:
- * `$TERMINAL`, else `x-terminal-emulator`, each with `-e`). The line is
- * quoted for the shell it lands in.
+ * Alacritty, WezTerm and Ghostty by their command-line flags; Linux: the
+ * name, else `$TERMINAL`, else the first installed terminal, each the way
+ * it takes a command: `../apps/terminal.ts`). The line is quoted for the
+ * shell it lands in; undefined when Linux has no terminal to name.
  */
-export function terminalArgv(cmd: string, cwd: string, shell: string[], terminal: string, env: Record<string, string | undefined> = process.env): string[] | undefined {
+export function terminalArgv(cmd: string, cwd: string, shell: string[], terminal: string, env: Record<string, string | undefined> = process.env, has?: (name: string) => string | null): string[] | undefined {
   const line = `cd ${q(cwd)} && ${keepOpen(cmd, shell)}`;
-  const name = (terminal || (MAC ? "Terminal" : env.TERMINAL || "x-terminal-emulator")).trim();
-  if (MAC) {
-    switch (name.toLowerCase()) {
-      case "terminal": case "terminal.app": return ["osascript", "-e", `tell application "Terminal"`, "-e", "activate", "-e", `do script ${JSON.stringify(line)}`, "-e", "end tell"];
-      case "iterm": case "iterm2": case "iterm.app": return ["osascript", "-e", `tell application "iTerm"`, "-e", "activate", "-e", `set w to (create window with default profile)`, "-e", `tell current session of w to write text ${JSON.stringify(line)}`, "-e", "end tell"];
-      case "kitty": return ["open", "-na", "kitty", "--args", "--directory", cwd, shell[0], "-c", keepOpen(cmd, shell)];
-      case "alacritty": return ["open", "-na", "Alacritty", "--args", "--working-directory", cwd, "-e", shell[0], "-c", keepOpen(cmd, shell)];
-      case "wezterm": return ["open", "-na", "WezTerm", "--args", "start", "--cwd", cwd, "--", shell[0], "-c", keepOpen(cmd, shell)];
-      case "ghostty": return ["open", "-na", "Ghostty", "--args", `--working-directory=${cwd}`, `--command=${shell[0]} -c ${q(keepOpen(cmd, shell))}`];
-      default: return ["open", "-na", name, "--args", "-e", shell[0], "-c", line];
-    }
+  if (!MAC) {
+    const term = terminal.trim() || linuxTerminal(env, has);
+    return term ? linuxTerminalArgv(term, [shell[0], "-c", line]) : undefined;
   }
-  return [name, "-e", shell[0], "-c", line];
+  const name = (terminal || "Terminal").trim();
+  switch (name.toLowerCase()) {
+    case "terminal": case "terminal.app": return ["osascript", "-e", `tell application "Terminal"`, "-e", "activate", "-e", `do script ${JSON.stringify(line)}`, "-e", "end tell"];
+    case "iterm": case "iterm2": case "iterm.app": return ["osascript", "-e", `tell application "iTerm"`, "-e", "activate", "-e", `set w to (create window with default profile)`, "-e", `tell current session of w to write text ${JSON.stringify(line)}`, "-e", "end tell"];
+    case "kitty": return ["open", "-na", "kitty", "--args", "--directory", cwd, shell[0], "-c", keepOpen(cmd, shell)];
+    case "alacritty": return ["open", "-na", "Alacritty", "--args", "--working-directory", cwd, "-e", shell[0], "-c", keepOpen(cmd, shell)];
+    case "wezterm": return ["open", "-na", "WezTerm", "--args", "start", "--cwd", cwd, "--", shell[0], "-c", keepOpen(cmd, shell)];
+    case "ghostty": return ["open", "-na", "Ghostty", "--args", `--working-directory=${cwd}`, `--command=${shell[0]} -c ${q(keepOpen(cmd, shell))}`];
+    default: return ["open", "-na", name, "--args", "-e", shell[0], "-c", line];
+  }
 }
 
 /** Single-quoted for a POSIX shell. */

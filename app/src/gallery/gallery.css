@@ -53,6 +53,9 @@
     repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 44px),
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 44px);
 }
+/* `theme=dark`: the site's dark desk (pal-site's --site-desk, dark), the grid lifted instead of multiplied */
+.g-shot[data-theme="dark"] { background: linear-gradient(135deg, #2A3352 0%, #3C2C4D 38%, #4A3330 72%, #223A34 100%); }
+.g-shot[data-theme="dark"]::before { mix-blend-mode: screen; opacity: 0.35; }
 .g-shot .g-frame { max-width: none; }
 
 /* Bar shot (bar-shot.tsx): the popover and the HUD over the strip; the band itself is ui/bar-strip.css. */

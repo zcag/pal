@@ -30,6 +30,24 @@ pub fn install(window: &WebviewWindow) {
     let _ = window.hide();
 }
 
+/// The panel's logical size (compact mode). GTK pins a non-resizable
+/// toplevel to the size it was mapped with: `set_size`, a size request on
+/// the webview and `set_default_size` all took effect only on the next
+/// map (measured on marko with a bare GTK probe and the app; the toggle
+/// with the panel up left the page drawn at the new width in the old
+/// window). What moves a mapped window is a resizable one whose min and
+/// max hints are the size: GTK sends the new geometry, Hyprland resizes
+/// the floating window in place, and min == max still means fixed size
+/// to the compositor (it floats it as before, nothing to drag) and to the
+/// user. So the panel is resizable from the first resize on, with the
+/// hints doing what `resizable: false` did.
+pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result<()> {
+    w.set_resizable(true)?;
+    w.set_min_size(Some(size))?;
+    w.set_max_size(Some(size))?;
+    w.set_size(size)
+}
+
 pub fn is_visible(app: &AppHandle) -> bool {
     app.get_webview_window(WINDOW).and_then(|w| w.is_visible().ok()).unwrap_or(false)
 }

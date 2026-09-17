@@ -67,6 +67,11 @@ pub fn install(window: &WebviewWindow) {
     panel.show();
 }
 
+/// The panel's logical size: `set_size` is enough on AppKit.
+pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result<()> {
+    w.set_size(size)
+}
+
 pub fn is_visible(app: &AppHandle) -> bool {
     app.get_webview_panel(WINDOW).is_ok_and(|p| p.as_panel().alphaValue() > 0.0)
 }

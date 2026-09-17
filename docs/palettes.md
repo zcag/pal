@@ -702,7 +702,7 @@ Folder") it lists the home folder.
 
 **Open with…** drills into a level of the applications the OS registers
 for the file, each with its own icon: the default (what `Enter` would use)
-first with a `Default` tag, the rest by name; typing narrows them by name
+first with a `default` tag, the rest by name; typing narrows them by name
 or bundle id, and `Enter` opens the file with that app (`open -a` on
 macOS, `gio launch` on Linux) and hides the panel. On macOS the list is
 Launch Services' (`NSWorkspace`, every role); on Linux the file's MIME
@@ -835,7 +835,7 @@ dropdown (`Tab`) filters to **Installed**, **Updates**, or one of the
 site's shelves (Productivity, Developer, System, Media, Reference, Fun,
 Integration). Every row is one extension with its tile, its tagline as
 the subtitle, chips for what it brings (`menu bar`, `links`, `accounts`),
-an `Installed` or `bundled` tag, or `Update to x.y.z` when the site has
+an `installed` or `bundled` tag, or `update to x.y.z` when the site has
 a newer version of one installed from the store; the category on the
 right. What is behind leads the list under an **Updates** heading. The
 detail pane (`⌘I`) shows the description, "What it does", the
@@ -1963,7 +1963,7 @@ section above.
 
 ### Applications
 
-- A running app carries a green `Running` tag (as of the last listing:
+- A running app carries a green `running` tag (as of the last listing:
   the palette is indexed, so the tag is refreshed by `⌘R`, a settings
   change, and after a Quit or Hide from the panel) and its actions are
   Open, **Quit** (`⌘Q`), **Hide** (`⌘H`), **Reveal in Finder** (`⌘⇧R`),

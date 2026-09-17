@@ -174,12 +174,12 @@ describe("bookmarks", () => {
   test("the file's rows first: url as id, keywords, icon only when set, three actions", async () => {
     const items = await list();
     expect(items[0]).toEqual({
-      id: "http://ha.lan", name: "Home Assistant", subtitle: "http://ha.lan", icon: "🏠", keywords: ["ha", "home"], url: "http://ha.lan",
+      id: "http://ha.lan", name: "Home Assistant", subtitle: "http://ha.lan", icon: "🏠", keywords: ["ha", "home"], url: "http://ha.lan", section: "bookmarks.json",
       actions: [{ id: "open", title: "Open in browser", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }, { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c" }],
     });
     expect(items[1]).toMatchObject({ subtitle: "code", url: "https://github.com" });
     expect(items[1].icon).toBeUndefined();
-    expect(items[1].section).toBeUndefined();
+    expect(items[1].section).toBe("bookmarks.json");
     expect(items[2].keywords).toBeUndefined();
   });
 
@@ -195,7 +195,7 @@ describe("bookmarks", () => {
     expect(items.find((i) => i.id === "https://wiki.example")!.section).toBe("Chrome (Work)");
     expect(ids).not.toContain("https://gone.example");
     const sections = [...new Set(items.map((i) => i.section))];
-    expect(sections).toEqual([undefined, "Chrome (Default)", "Chrome (Work)", ...(MAC ? ["Safari"] : []), "Firefox"]);
+    expect(sections).toEqual(["bookmarks.json", "Chrome (Default)", "Chrome (Work)", ...(MAC ? ["Safari"] : []), "Firefox"]);
     if (MAC) expect(items.find((i) => i.id === "https://www.apple.com/")).toMatchObject({ name: "Apple & Co", section: "Safari", accessories: [{ text: "Favorites" }] });
     expect(items.find((i) => i.id === "https://deep.example")).toMatchObject({ name: "Deep", section: "Firefox", accessories: [{ text: "Bookmarks Toolbar / Reading" }] });
     expect(items.find((i) => i.id === "https://deep.example")!.actions!.at(-1)!.title).toBe("Open in Firefox");
@@ -224,7 +224,7 @@ describe("bookmarks", () => {
     expect(items.map((i) => i.id)).not.toContain("https://bun.sh");
     expect(items.map((i) => i.id)).not.toContain("https://old.example");
     // Default's only other row is GitHub, which the file already has: no section of its own is left.
-    expect([...new Set(items.map((i) => i.section))]).toEqual([undefined, "Firefox", "Chrome (Work)"]);
+    expect([...new Set(items.map((i) => i.section))]).toEqual(["bookmarks.json", "Firefox", "Chrome (Work)"]);
     host.changeSettings("bookmarks", { settings: { file } });
   });
 
@@ -242,13 +242,13 @@ describe("bookmarks", () => {
 
   test("the file is read on every list, so an edit shows without a reload", async () => {
     writeFileSync(file, JSON.stringify([{ name: "Only", url: "http://only" }]));
-    expect((await list()).filter((i) => !i.section).map((i) => i.name)).toEqual(["Only"]);
+    expect((await list()).filter((i) => i.section === "bookmarks.json").map((i) => i.name)).toEqual(["Only"]);
   });
 
   test("a missing file is no rows, the browsers still list; a broken one is a hint row naming the file", async () => {
     host.changeSettings("bookmarks", { settings: { file: join(dir, "nope.json") } });
     const items = await list();
-    expect(items.every((i) => i.section)).toBe(true);
+    expect(items.every((i) => i.section && i.section !== "nope.json")).toBe(true);
     expect(items.length).toBeGreaterThan(0);
     writeFileSync(join(dir, "broken.json"), "{ not json");
     host.changeSettings("bookmarks", { settings: { file: join(dir, "broken.json") } });

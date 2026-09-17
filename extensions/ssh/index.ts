@@ -6,6 +6,7 @@
 // terminal running `ssh <host>`; the other actions copy the name or the
 // command (the `-J` form for a host behind a jump), or ping the host.
 import { readFileSync } from "node:fs";
+import { linuxTerminal, linuxTerminalArgv } from "../apps/terminal.ts";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { home, settings, xdg, type Accessory, type Action, type Extension, type Item, type Metadata } from "@zcag/pal";
 
@@ -181,9 +182,8 @@ function macArgv(name: string, app: string, cmd: string[]): string[] {
 /** The terminal to run `cmd` in, or undefined with a reason. */
 function terminalArgv(cmd: string[]): string[] | string {
   if (LINUX) {
-    const term = process.env.TERMINAL || ["kitty", "foot", "alacritty", "xterm"].find((t) => Bun.which(t));
-    if (!term) return "no terminal: set $TERMINAL";
-    return /(^|\/)(kitty|foot)$/.test(term) ? [term, ...cmd] : [term, "-e", ...cmd];
+    const term = linuxTerminal();
+    return term ? linuxTerminalArgv(term, cmd) : "no terminal: set $TERMINAL";
   }
   const want = settings.get<Settings>().terminal;
   const name = want === "auto" ? MAC_APPS.find(macApp) : want;

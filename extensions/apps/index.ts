@@ -6,6 +6,7 @@
 // Quit and Hide in its actions; on Linux a .desktop file's own actions
 // ("New Private Window") are the row's secondary actions.
 import { readdir } from "node:fs/promises";
+import { linuxTerminal, linuxTerminalArgv } from "./terminal.ts";
 import { home, settings, type Action, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { execArgv, parseDesktop, splitList, type DesktopAction } from "./desktop.ts";
 
@@ -103,7 +104,7 @@ async function scanMac(extra: string[]): Promise<Item[]> {
         subtitle: source,
         icon: { app: path },
         keywords,
-        ...(isRunning && { accessories: [{ tag: "Running", color: "green" }] }),
+        ...(isRunning && { accessories: [{ tag: "running", color: "green" }] }),
         ...(actions && { actions }),
       });
     }
@@ -284,12 +285,10 @@ async function scanLinux(extra: string[]): Promise<Item[]> {
   return items;
 }
 
-/** A terminal that takes the command as trailing args (kitty, foot) or after `-e`. */
+/** The terminal for a `Terminal=true` entry (terminal.ts: `$TERMINAL`, else the first installed). */
 function terminalArgv(cmd: string[]): string[] | undefined {
-  const term = process.env.TERMINAL || ["kitty", "foot", "xterm"].find((t) => Bun.which(t));
-  if (!term) return;
-  const direct = /(^|\/)(kitty|foot)$/.test(term);
-  return direct ? [term, ...cmd] : [term, "-e", ...cmd];
+  const term = linuxTerminal();
+  return term ? linuxTerminalArgv(term, cmd) : undefined;
 }
 
 // `gio launch` (then `gtk-launch`) gets the desktop file's own semantics:

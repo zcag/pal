@@ -19,7 +19,7 @@ const SHORTCUTS: [string, string | undefined][] = [
 ];
 const identifier = (i: number) => `${(0x1a2b3c4d + i * 0x1111).toString(16).toUpperCase().padStart(8, "0")}-4F1E-4C3B-9A2D-${(0x5a6b7c8d9e0f + i).toString(16).toUpperCase()}`;
 const items = SHORTCUTS.map(([name, folder], i) => ({
-  id: name, name, icon: ICON, section: folder, keywords: folder ? [folder] : undefined,
+  id: name, name, icon: ICON, section: folder || "No folder", keywords: folder ? [folder] : undefined,
   detail: { metadata: [{ label: "Name", value: name }, ...(folder ? [{ label: "Folder", value: folder }] : []), { label: "Identifier", value: identifier(i) }] },
   actions: ACTIONS,
 }));

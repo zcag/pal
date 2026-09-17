@@ -6,6 +6,7 @@
 import { writeFileSync } from "node:fs";
 import { DEFAULTS, apply, type Board, type State } from "./game.ts";
 import { render } from "./render.ts";
+import manifest from "./pal.json";
 
 let id = 1;
 const tiles = (vs: number[]): Board => vs.map((v) => (v ? { id: id++, v } : null));
@@ -31,17 +32,17 @@ const nearWon = state([
 ], { score: 19348, best: 19348, moves: 1102 });
 const won = apply(nearWon, "right", DEFAULTS, rng);
 
-// One move from the end: up merges the last pair and the spawn fills the board.
+// One move from the end: up slides the last column and the spawn (a 4, rng 0.99) fills the board with no pair left.
 const nearOver = state([
-  0, 4, 2, 8,
-  2, 16, 4, 2,
-  8, 2, 128, 64,
-  2, 8, 16, 2,
+  2, 4, 2, 0,
+  4, 2, 4, 4,
+  2, 4, 2, 2,
+  4, 2, 32, 16,
 ], { score: 1560, best: 12876, moves: 214 });
 const over = apply(nearOver, "up", DEFAULTS, () => 0.99);
 
 const fixture = {
-  palettes: { "2048": { title: "2048", icon: "🔢", view: "view", tree: render(mid, DEFAULTS) } },
+  palettes: { "2048": { title: "2048", icon: manifest.icon, view: "view", tree: render(mid, DEFAULTS) } },
   effects: {
     "2048/view:right": { view: render(won, DEFAULTS) },
     "2048/view:up": { view: render(over, DEFAULTS) },

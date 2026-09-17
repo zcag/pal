@@ -8,9 +8,25 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execArgv, parseDesktop } from "../../../extensions/apps/desktop.ts";
+import { linuxTerminal, linuxTerminalArgv } from "../../../extensions/apps/terminal.ts";
 import { Host } from "../harness.ts";
 
 const mac = process.platform === "darwin";
+
+describe("the Linux terminal (shared with ssh and shell)", () => {
+  test("$TERMINAL wins, else the first installed in order, else nothing; each program takes the command its own way", () => {
+    const only = (...names: string[]) => (n: string) => (names.includes(n) ? `/usr/bin/${n}` : null);
+    expect(linuxTerminal({ TERMINAL: " ghostty " }, only("kitty"))).toBe("ghostty");
+    expect(linuxTerminal({}, only("xterm", "foot"))).toBe("foot");
+    expect(linuxTerminal({}, only("kitty", "x-terminal-emulator"))).toBe("x-terminal-emulator");
+    expect(linuxTerminal({ TERMINAL: "" }, () => null)).toBeUndefined();
+    expect(linuxTerminalArgv("/usr/bin/kitty", ["htop"])).toEqual(["/usr/bin/kitty", "htop"]);
+    expect(linuxTerminalArgv("foot", ["htop"])).toEqual(["foot", "htop"]);
+    expect(linuxTerminalArgv("wezterm", ["htop"])).toEqual(["wezterm", "start", "--", "htop"]);
+    expect(linuxTerminalArgv("gnome-terminal", ["htop"])).toEqual(["gnome-terminal", "--", "htop"]);
+    expect(linuxTerminalArgv("alacritty", ["htop"])).toEqual(["alacritty", "-e", "htop"]);
+  });
+});
 
 describe("desktop files", () => {
   test("the entry, its actions in Actions= order (only complete ones), localised keys skipped", () => {
@@ -117,9 +133,9 @@ describe.skipIf(!mac)("apps", () => {
     expect(await pick(kb.id, "copy-url")).toEqual({ copy: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension" });
   });
 
-  test("a running app: the Running tag, Quit and Hide right after Open, display and bundle names as keywords", async () => {
+  test("a running app: the running tag, Quit and Hide right after Open, display and bundle names as keywords", async () => {
     const fake = (await list()).find((i) => i.id === fakeApp)!;
-    expect(fake).toMatchObject({ name: "Pal Fake", subtitle: dir, accessories: [{ tag: "Running", color: "green" }] });
+    expect(fake).toMatchObject({ name: "Pal Fake", subtitle: dir, accessories: [{ tag: "running", color: "green" }] });
     expect(fake.keywords).toEqual(["io.pal.test.fake", "Fake Display"]);
     expect(fake.actions!.map((a) => a.id)).toEqual(["open", "quit", "hide", "reveal", "copy-path", "copy-id"]);
     const chrome = (await list()).find((i) => i.name === "Google Chrome")!;

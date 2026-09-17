@@ -35,7 +35,8 @@
           "keywords": [
             "ha",
             "home"
-          ]
+          ],
+          "section": "bookmarks.json"
         },
         {
           "id": "https://grafana.example.com",
@@ -61,7 +62,8 @@
           "icon": "📈",
           "keywords": [
             "metrics"
-          ]
+          ],
+          "section": "bookmarks.json"
         },
         {
           "id": "https://github.com",
@@ -84,7 +86,8 @@
               "shortcut": "cmd+shift+c"
             }
           ],
-          "icon": "🐙"
+          "icon": "🐙",
+          "section": "bookmarks.json"
         },
         {
           "id": "https://developer.mozilla.org",

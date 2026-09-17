@@ -7,7 +7,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, Toast, View,
-  groupBySection, domId, graphemePositions, hasShortcut, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
+  groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
   isMarked, mark as markRow, markable, multiActions, pickIds, toggle, type Selection,
 } from "./ui";
 import { Fzf } from "fzf";
@@ -125,7 +125,7 @@ export function rootHits(query: string, found: Hit[], inline: Hit[], fallback: H
 export type Level =
   | { kind: "root" }
   | { kind: "palette"; palette: string; args?: unknown; /** The crumb, when the push named one (`Effect.push.title`: the folder being browsed). */ title?: string }
-  | { kind: "show"; detail: DetailSpec; title?: string }
+  | { kind: "show"; detail: DetailSpec; title?: string; /** The palette the shown item came from: its tile in the crumb and the footer. */ palette?: string }
   | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec; /** The crumb, when `palette` is not a source (a bar item's key). */ title?: string }
   | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number }
   | { kind: "menu"; key: string; title: string; rows: Item[]; submenus: Record<string, BarMenuNode[]>; pick?: { token: number; multi: boolean } };
@@ -685,7 +685,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (submit && !e.form && top.kind === "form") pop();
     if (e.toast) setToast({ style: e.toast.style ?? "success", title: e.toast.title, message: e.toast.message });
     if (e.push) enter(sourceKey(e.push), e.push.args, e.push.query, e.push.title);
-    if (e.show) push({ kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title });
+    if (e.show) push({ kind: "show", detail: { markdown: e.show.markdown, metadata: e.show.metadata }, title: e.show.title, palette: item.palette });
     if (e.view) {
       // The next tree of the view it came from, if that is still the level on top; else a fresh level.
       if (top.kind === "view" && top.palette === item.palette) nav.replace({ ...top, spec: e.view });
@@ -934,7 +934,13 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const isShow = view.kind === "show";
   const showTitle = view.kind === "show" ? view.title ?? "Output" : "";
   const viewTitle = isView ? spec?.title ?? titleOf(view.palette) : form ? form.spec.title : "";
-  const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: scope?.icon ? iconOf(scope.icon, scope.title) : undefined } : isShow ? { title: showTitle } : isMenu ? { title: view.title } : undefined;
+  /** A source's tile, or for a key that is no source (a bar item's view or menu level, a shown item's palette) the tile of any palette of its extension: every palette wears the manifest's. */
+  const iconFor = (key: string | undefined) => {
+    const s = key ? byKey.get(key) ?? sources.find((x) => x.extension === key.split("/")[0] && x.icon) : undefined;
+    return s?.icon ? iconOf(s.icon, s.title) : undefined;
+  };
+  const levelIcon = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? iconFor(view.palette) : view.kind === "show" ? iconFor(view.palette) : isMenu ? iconFor(view.key) : undefined;
+  const crumb = view.kind === "palette" || view.kind === "view" || view.kind === "form" ? { title: ((view.kind === "view" || view.kind === "palette") && view.title) || titleOf(view.palette), icon: levelIcon } : isShow ? { title: showTitle, icon: levelIcon } : isMenu ? { title: view.title, icon: levelIcon } : undefined;
   // The bottom level has nothing under it to go back to: its crumb is a title, not a button.
   const back = crumb && { ...crumb, onBack: nav.depth > 1 ? pop : undefined };
   const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" ? "" : isMenu ? `Search ${view.title}…` : scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
@@ -954,8 +960,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       ? <Empty
           icon={{ kind: "glyph", value: "⌕" }}
           title={query ? `No results for “${query}”` : loading ? "Loading…" : "Nothing here"}
-          hint={query && !scope?.input ? "Try a different word, or ⌘K for actions" : undefined}
-          note={query && view.kind === "root" && sources.length > 0 && extensions < 2 ? `${extensions === 0 ? "No extensions are" : "Only one extension is"} loaded, so there is little to find. Settings (⌘,) › Extensions lists them; the Welcome tips link the guide to adding more.` : undefined}
+          hint={query && !scope?.input ? `Try a different word, or ${isMac ? "⌘K" : "Ctrl+K"} for actions` : undefined}
+          note={query && view.kind === "root" && sources.length > 0 && extensions < 2 ? `${extensions === 0 ? "No extensions are" : "Only one extension is"} loaded, so there is little to find. Settings (${isMac ? "⌘," : "Ctrl+,"}) › Extensions lists them; the Welcome tips link the guide to adding more.` : undefined}
         />
       : isGrid
         ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} columns={columns} />
@@ -970,7 +976,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       aside={!compact && showDetail && !isShow && !isView && !isForm && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={compact ? undefined :
         <Footer
-          icon={isShow ? undefined : isView || isForm ? (scope?.icon ? iconOf(scope.icon, scope.title) : undefined) : current?.icon}
+          icon={isShow || isView || isForm ? levelIcon : current?.icon}
           title={view.kind === "root" ? `${hits.length}${hits.length === LIMIT ? "+" : ""} of ${total}` : isShow ? showTitle : isView || isForm ? viewTitle : current?.name}
           note={updating && !isShow && !isView && !isForm && !isMenu ? "updating…" : undefined}
           count={sel?.ids.length}

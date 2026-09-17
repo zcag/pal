@@ -32,14 +32,15 @@ const s = DEFAULTS;
 const gridItems = [...["tw/slate-500", "ctp/mocha/mauve", "apple/dark/green"].map((id) => gridItem(rows.find((r) => r.id === id)!, "Recent")), ...rows.map((r) => gridItem(r, sectionOf(r)))];
 const historyItems = historyRows(base, s, NOW);
 
+const TILE = { tile: { glyph: "\u{f03d8}", bg: "indigo" } };
 const fixture = {
   palettes: {
-    picker: { title: "Colour Picker", icon: "#4F46D6", view: "view", tree: render(base, s, tokens) },
-    "picker-shades": { title: "Colour Picker", icon: "#4F46D6", view: "view", tree: render(shades, s, tokens) },
-    "picker-typing": { title: "Colour Picker", icon: "#4F46D6", view: "view", tree: render(typing, s, tokens) },
-    colors: { title: "Named Colours", icon: "#4F46D6", view: "grid", columns: 8, filters: [{ id: "all", title: "All sets" }, ...SETS.map((x) => ({ id: x.id, title: x.title }))], items: gridItems.map((i) => ({ ...i, actions: GRID_ACTIONS })), byFilter: { catppuccin: bySet("catppuccin").map((r) => ({ ...gridItem(r, sectionOf(r)), actions: GRID_ACTIONS })) } },
-    history: { title: "Colour History", icon: "#4F46D6", items: historyItems.map((i) => (i.actions ? i : { ...i, actions: HISTORY_ACTIONS })) },
-    convert: { title: "Convert Colour", icon: "#4F46D6", input: true, placeholder: "#ff8800, rgb(255 136 0), hsl(30 100% 50%), lab(), a name", byQuery: { "": [], "hsl(30 100% 50%)": conversions(parse("hsl(30 100% 50%)")!, s) } },
+    picker: { title: "Colour Picker", icon: TILE, view: "view", tree: render(base, s, tokens) },
+    "picker-shades": { title: "Colour Picker", icon: TILE, view: "view", tree: render(shades, s, tokens) },
+    "picker-typing": { title: "Colour Picker", icon: TILE, view: "view", tree: render(typing, s, tokens) },
+    colors: { title: "Named Colours", icon: TILE, view: "grid", columns: 8, filters: [{ id: "all", title: "All sets" }, ...SETS.map((x) => ({ id: x.id, title: x.title }))], items: gridItems.map((i) => ({ ...i, actions: GRID_ACTIONS })), byFilter: { catppuccin: bySet("catppuccin").map((r) => ({ ...gridItem(r, sectionOf(r)), actions: GRID_ACTIONS })) } },
+    history: { title: "Colour History", icon: TILE, items: historyItems.map((i) => (i.actions ? i : { ...i, actions: HISTORY_ACTIONS })) },
+    convert: { title: "Convert Colour", icon: TILE, input: true, placeholder: "#ff8800, rgb(255 136 0), hsl(30 100% 50%), lab(), a name", byQuery: { "": [], "hsl(30 100% 50%)": conversions(parse("hsl(30 100% 50%)")!, s) } },
   },
   effects: {
     "picker/picker:h+": { view: render({ ...base, color: parse("hsl(37 100% 50%)")! }, s, tokens) },

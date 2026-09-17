@@ -414,6 +414,9 @@ fn payload(app: &AppHandle, key: &str, engaged: bool, effect: Option<&Value>) ->
 }
 
 fn show(app: &AppHandle, key: &str, engaged: bool, effect: Option<Value>) {
+    if !super::SUPPORTED {
+        return eprintln!("bar\tpopover\t{key}\tnot on Linux: no bar draws the item, so there is no window to open it in");
+    }
     let st = app.state::<Popover>();
     let anchor = lock(&st.anchors).get(key).map(|(r, _)| *r);
     let Some(p) = payload(app, key, engaged, effect.as_ref()) else { return };

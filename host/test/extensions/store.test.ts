@@ -121,7 +121,7 @@ describe("store", () => {
     const timer = rows[0];
     expect(timer.section).toBe("Updates");
     expect(timer.name).toBe("Timer");
-    expect(tags(timer)).toEqual(["menu bar", "links", "Update to 0.1.0", "Productivity"]);
+    expect(tags(timer)).toEqual(["menu bar", "links", "update to 0.1.0", "Productivity"]);
     expect(timer.actions!.map((a) => a.id)).toEqual(["update", "page", "remove", "copy-command"]);
     expect(timer.actions![0].confirm).toContain("Update Timer");
     const calc = rows[1];
@@ -130,7 +130,7 @@ describe("store", () => {
     expect(calc.actions!.map((a) => a.id)).toEqual(["page", "copy-command"]);
     expect(tags(rows[2])).toEqual(["menu bar", "accounts", "Developer"]);
     expect(rows[2].actions![0]).toMatchObject({ id: "install", confirm: "Install GitHub from pal.cagdas.io?" });
-    expect(tags(rows[4])).toEqual(["Installed", "Fun"]);
+    expect(tags(rows[4])).toEqual(["installed", "Fun"]);
     expect(rows[4].icon).toEqual(expect.objectContaining({ tile: expect.any(Object) }));
     expect(rows[4].keywords).toContain("pal");
   });

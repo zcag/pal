@@ -16,7 +16,8 @@ import { Launcher, menuLevel, type Level } from "../Launcher";
 import type { BarMenu, BarMenuNode } from "../bar";
 import { Hud } from "../ui";
 import { BarStrip, MENUBAR_H, SKETCHYBAR_H, type BarStripItem } from "../ui/BarStrip";
-import { iconOf, toView } from "../items";
+import { iconOf, toView, type SourceInfo } from "../items";
+import { manifestOf } from "./data";
 import type { Item } from "../ui/types";
 
 export type BarItem = BarStripItem & { menu?: BarMenu };
@@ -63,6 +64,11 @@ function Popover({ fx, item, x, onHeight }: { fx: BarFixture; item: BarItem; x: 
   const key = kind === "palette" ? fx.palette?.title.toLowerCase() ?? "rows" : fx.key;
   const start = useMemo<Level>(() => (kind === "nodes" ? menuLevel(fx.key, fx.title, item.menu as BarMenuNode[]) : kind === "view" ? { kind: "view", palette: fx.key, title: fx.title, spec: toView((item.menu as { view: never }).view) } : { kind: "palette", palette: key }), [fx, item, kind, key]);
   const rows = useMemo<Item[] | undefined>(() => (kind === "palette" ? fx.palette?.rows.map((r) => ({ ...r, icon: iconOf(r.icon, r.name), palette: key })) : undefined), [fx, kind, key]);
+  // The extension's manifest as the one source: the crumb and the footer draw its tile, as the app's popover does from the extension's palettes.
+  const sources = useMemo<SourceInfo[]>(() => {
+    const ext = fx.key.split("/")[0], m = manifestOf(ext);
+    return m ? [{ extension: ext, palette: "manifest", title: m.title, icon: m.icon, live: false, input: false, count: 0, stale: false }] : [];
+  }, [fx]);
   const el = useRef<HTMLDivElement>(null);
   const [h, setH] = useState(120);
   // The height follows the content as BarPage.tsx measures it: the rows land after the Launcher's first search, so watch the tree.
@@ -83,7 +89,7 @@ function Popover({ fx, item, x, onHeight }: { fx: BarFixture; item: BarItem; x: 
   }, [onHeight]);
   return (
     <div ref={el} className="g-bar__popover pal-bar-page" data-urgent={item.urgent || undefined} title={item.tooltip} style={{ left: x, width: POPOVER_W, height: h }}>
-      <Launcher key={key} start={start} items={rows} sources={rows ? undefined : []} search={rows ? undefined : async () => []} onPick={() => ({ keep: true })} onHide={() => {}} />
+      <Launcher key={key} start={start} items={rows} sources={rows ? undefined : sources} search={rows ? undefined : async () => []} onPick={() => ({ keep: true })} onHide={() => {}} />
     </div>
   );
 }

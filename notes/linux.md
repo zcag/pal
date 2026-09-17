@@ -603,3 +603,255 @@ in `app/` before every release build, or the binary carries yesterday's
   (PATH is now the fakes plus bun's dir, the heredocs call `/bin/cat`); the
   processes tests compared two listings taken seconds apart while a cargo
   build churned pids (they key on `process.pid` now). vitest green.
+
+## The last 12 hours on Linux (marko, 2026-09-17 02:50 to 04:10, main at 91534c9 plus the fixes below)
+
+Setup: `git pull --ff-only` to 91534c9 in `~/proj/pali` (the rsync leftovers
+of the evening pass discarded first), `bun install` at the root, `bun run
+build` in `sdk/`, `npm run build` in `app/`, then `cargo build --release
+--features tauri/custom-protocol` in the main `target/` with `TAURI_CONFIG`
+baking the scratch identifier `io.cagdas.pal.scratch`, the scheme
+`palscratch` and the three windows retitled `pal scratch`, `pal scratch
+HUD`, `pal scratch Large Type` (`/tmp/pal-scratch/tauri.json`; 3m55s, 22.8
+MB). Scratch instance: `PAL_CONFIG=~/.config/pal/scratch.toml` (`hotkey =
+""`, `menu_bar_icon = false`, `launch_at_login = false`, `[bar] target =
+"off"`, `extension_dirs = ["/tmp/pal-scratch/ext"]`, `[extensions.snippets]
+expand = true`, `[instances.github] title = "Personal"`, the network
+extensions pointed at his real accounts read-only: calendar and gmail
+through `ssh archer "curl -s 'http://127.0.0.1:8776/token?aud=…'"` (the
+broker answers from marko over ssh, tested by hand first), tela and
+WhatsApp through `env:` secret references carried in the launch env),
+`XDG_DATA_HOME=/tmp/pal-scratch/data` (the log lands at
+`$XDG_DATA_HOME/pal/pal.log`, `core/src/log.rs`, not under `XDG_STATE_HOME`),
+`XDG_STATE_HOME` and `XDG_CACHE_HOME` under the same dir, the handover
+marker written before every hand start. Driven from the Mac over ssh with
+`hyprctl`, `ydotool` and `grim` on the window found by title. Nothing of
+the daily instance was restarted; see "The daily instance" below for what
+the pull did to it.
+
+Two things the clone needed that the notes did not say: the extensions
+with a `package.json` of their own (spotify's `jpeg-js`, clipboard's
+`qrcode-generator`; calc and scripts were installed already) fail to load
+from the repo until `bun install` runs in each directory (`bun install
+--frozen-lockfile` refuses the 1.4.2 lockfiles on bun 1.3.14, plain `bun
+install` then `git checkout -- extensions` for the rewritten locks); and an
+edit to a submodule of an extension (`shell/run.ts`) is not seen by the
+host's per-extension reload (the `?t=` query busts the entry only), so it
+took `pal reload`.
+
+### What was verified, per item
+
+1. **Live views: works.** A `counter` fixture under `extension_dirs`
+   (`/tmp/pal-scratch/ext/counter`, a view palette whose `view.onShown`
+   starts a 500 ms `view.update` loop, `@zcag/pal` linked from
+   `node_modules/@zcag/pal -> ~/proj/pali/sdk` next to it) loaded from the
+   user root, `pal open counter/counter` logged `view counter/counter
+   view shown`, two grim shots 1.2 s apart read 3 and 6 with the keyed
+   progress bar moving, `pal hide` logged `view … hidden` and the fixture's
+   `onHidden` cleared its timer. Speedtest's live view did the same with a
+   real tool (below). One thing learned writing the fixture: a `{ tree }`
+   object alone is refused by the SDK (`actions must be an array`); push the
+   bare `ViewNode` or a whole `View`, as `docs/extensions.md` says.
+2. **Popover views: not on Linux, and the log says so.** `bar::install`
+   logs `bar not on Linux yet; [bar] is read, items are registered, none is
+   drawn, no popover window is built` (extended), and `popover::show` now
+   returns with `bar popover <key> not on Linux: no bar draws the item, so
+   there is no window to open it in` instead of emitting to a window that
+   does not exist (`bar/popover.rs`); `pal bar click github/notifications`
+   from a shell logs the machine's `Gone(…) Hidden -> Hidden []` and
+   nothing else. Eleven items registered `not drawn on Linux`; Settings >
+   Bar says "Not on Linux yet … 11 declared by extensions, none rendered"
+   (shot 45).
+3. **Theme file: works.** Settings > General seeded `~/.config/pal/themes`
+   with the two examples on its first look (`theme seeded 2 examples`),
+   the picker's native select listed "pal's own", "Catppuccin Frappé
+   (catppuccin-frappe)" and "Rosé Pine Dawn (rose-pine-dawn)" (shot 05),
+   `theme_file = "catppuccin-frappe"` in the file logged `theme
+   …/catppuccin-frappe.toml Catppuccin Frappé 47 light, 47 dark` with `0
+   diagnostics`, the panel took Latte under the system scheme and Frappé
+   under `theme = "dark"` (shot 07), the Settings window with it (shot 08).
+   The seeded dir was removed afterwards (the daily will seed its own).
+4. **Compact mode: fixed** (`app/src-tauri/src/panel/linux.rs::resize`,
+   `compact.rs` calls `panel::resize`, macOS's is `set_size`). Before: the
+   size took effect only on the next map, so a toggle with the panel up
+   (the file or ctrl+shift+m) left the page drawn at the new width in the
+   old window (shot 10: full-mode rows clipped at 560). Measured with a
+   bare GTK3 probe (`gtkprobe*.py` in the session scratchpad) and
+   `WAYLAND_DEBUG`: on a non-resizable toplevel GTK keeps sending
+   `set_min_size/set_max_size/set_window_geometry(760, 480)` whatever
+   `gtk_window_resize`, a child size request or `set_default_size` say
+   once mapped; a resizable one with min == max hints sends the new
+   geometry and Hyprland resizes the floating window in place, and stays
+   floating (fixed size to the compositor). So the panel becomes
+   resizable with min = max = the size from the first resize on. After:
+   file on/off and the key on/off with the panel showing: 760x480 ->
+   680,300 560x480 -> 580,300 760x480, Hyprland re-centring each time
+   (`place` does nothing here), shots 43 and 44. Seen, not Linux's: with
+   the cursor on a Welcome row the compact search-row hint reads "Refresh
+   everything" (Show details is unlisted in compact, so the first listed
+   action is the shell's) where the full footer says "Show details".
+5. **Store palette: works.** `https://pal.cagdas.io/api/extensions` from
+   marko: 200, 512 KB, 0.64 s; 44 rows with tiles, the bundled tag and
+   the category (shot 11), the detail pane with the description and the
+   feature bullets (shot 12).
+6. **Screenshots: works with grim.** `grim` and `slurp` are installed here
+   (`which`), so the three capture rows list ("Drag a selection with
+   slurp"), the folder is `~/Pictures` (no `~/Pictures/Screenshots`), the
+   Recent section said "No screenshots yet"; `pal run
+   screenshots/screenshots/capture:screen` (the row ids are `capture:<mode>`;
+   a bare `screen` is taken as a file path and `xdg-open`ed) wrote
+   `~/Pictures/Screenshot 2026-09-17 at 03.03.12.png`, the relist showed it
+   `1920×1080 · 143 KB · now` with its `icon://localhost/file` thumbnail and
+   the detail pane drew it (shots 14, 15); `core/effects.run` carried the
+   HUD line. The file was deleted afterwards. `slurp` needs a hand on the
+   mouse, so area and window were not driven; without grim/slurp the
+   palette lists the "Install grim and slurp" hint (`index.ts:113`).
+7. **Snippet expansion: not on Linux, spawns nothing.** With `expand =
+   true` the log says `expansion not available off macOS (no portable
+   keyboard tap)` at startup and the process's children are WebKit's, the
+   host and `wl-paste --watch` only; no monitor, no permission ask. The
+   manifest and README already say macOS only. Off macOS the whole
+   `expansion.rs` module is `allow(dead_code)` now (eight warnings on the
+   Linux build, which `-D warnings` would have failed).
+8. **Instances: works.** `pal instance list` -> `github	Personal	default`;
+   `pal instance add github work --title Work` wrote `[instances."github@work"]`
+   and the log read `instances added github@work`, `config applied …
+   instances=[github]`, `loaded github@work … in a worker … in 9.0ms
+   (23.7ms with the worker's start)`, `bar github@work/notifications
+   registered not drawn on Linux`, `index github@work/prs 14 items`
+   (his real PRs through `gh`), `index/github@work/` next to
+   `index/github/`; `pal instance remove github@work` logged `instances
+   removed github@work instances."github@work"` and `instances cleaned
+   github@work files=[storage,index] frecency=0`, the file clean. The
+   root shot for "pull req" (16) is not usable: the panel was still inside
+   the Screenshots level (a hide keeps the level), so the query went there.
+9. **The new extensions' Linux paths.**
+   - Downloads: works; thumbnails through `magick` (no `sips`), `Reveal`
+     is `xdg-open <dir>`. Two fixes in `extensions/downloads/index.ts`: a
+     PDF's first page came out as a black square (the JPEG dropped the
+     page's alpha), now `-background white -alpha remove -alpha off`; and
+     the thumbnails were made one after another (`await item()` in a for
+     loop: the daily instance logged `index downloads/downloads 33 items
+     5017.7ms` on its cold pass), now every row at once with the spawns
+     through a pool of four and `-define jpeg:size=128x128` (libjpeg's DCT
+     scaling: a 9.6 MB photo 316 -> 105 ms). Cold on marko under a running
+     cargo build: 15 thumbnails (five of them 60 MB PNGs at ~0.8 s each)
+     in 2.8 s; warm 7 to 9 ms. No `kMDItemWhereFroms` off macOS: the
+     detail's From/Page links are empty (his files carry no
+     `user.xdg.origin.url` xattr to read instead).
+   - Images (uncommitted on hornet at the time, another agent's tree;
+     copied over for the check and removed after): `identify` reads the
+     size (`4024×6024`, "JPEG, 8 bits"), Compress on a 9.6 MB JPEG wrote
+     `DSC02178-compressed.jpg` (4.7 MB) in 1.3 s through `cjpeg` (present
+     here; `pngquant`, `oxipng`, `cwebp`, `exiftool` are not).
+   - Shell: `Run in terminal` was "Executable not found in $PATH:
+     x-terminal-emulator" on Arch (`$TERMINAL` is unset in the session and
+     the Debian alternatives name does not exist here). Fixed, and the
+     three terminal choosers folded into one: `extensions/apps/terminal.ts`
+     (`linuxTerminal`: the setting, else `$TERMINAL`, else the first
+     installed of `x-terminal-emulator`, kitty, foot, alacritty, wezterm,
+     ghostty, gnome-terminal, konsole, xfce4-terminal, xterm;
+     `linuxTerminalArgv`: kitty and foot take the command as trailing
+     arguments, WezTerm after `start --`, GNOME Terminal after `--`, the
+     rest after `-e`), used by apps' `Terminal=true` entries, ssh and
+     shell. Verified: `echo hello from pal` + ctrl+Enter opened a kitty
+     with the output and his zsh kept open (shot 24). The kitty inherited
+     the scratch `XDG_CACHE_HOME`, hence the antidote clone lines in it.
+   - Translate: Google's `dict-chrome-ex` endpoint answered from marko
+     (`tr: good morning` -> Günaydın, the detected row, an alternative,
+     the dictionary row, Swap; shot 25); Speak with no `spd-say`,
+     `espeak-ng` or `espeak` installed is the toast "Nothing can speak
+     here: Install spd-say or espeak" (shot 26).
+   - Obsidian: no `~/.config/obsidian/obsidian.json` here, so the hint row
+     "Set the vault folder" leads (shot 27); with `vault = "~/Sync/vault"`
+     (read-only: listings, the view) `[obsidian] indexed 244 notes in 205
+     ms`, `soul` found Soul first, Read in pal (ctrl+shift+r) rendered the
+     note with its headings and lists (shots 28, 29). `rg` is on PATH for
+     the search.
+   - Gmail: the inbox listed 12 unread rows through the archer broker
+     (initial tiles, the labels; shot 30), Compose and Drafts empty with
+     `send` off. WhatsApp: 7 unread chats with pictures over `wp.lan`
+     (shot 31). Slack: "Slack is not signed in: The Slack desktop app is
+     not installed here; set auth to token instead" (`/usr/bin/slack`
+     exists, `~/.config/Slack` does not; shot 32). tela: `onboarding` gave
+     rows in Personal and Agent research (shot 33). Nothing was written to
+     any of them.
+   - Speedtest: `detect` told marko's `speedtest` (the pip alias) from
+     Ookla's and chose `speedtest-cli`; Enter ran it live in the view
+     (`uploading`, 898 Mbps down, then `done` 72.5 Mbps up, 6.6 ms; shots
+     38, 39). YouTube without a key: the two hint rows. GIFs without a
+     key: the hint tile in the grid. Maps: Search and Directions rows with
+     the travel-mode filter (shot 34-37).
+10. **Media stream: gated.** `core/media.now_playing` answers through
+    `playerctl` in 7 to 20 ms ("No players found" -> "Nothing playing: No
+    player is running", shot 40); no `mediaremote-adapter` or
+    `nowplaying-cli` process exists (`pgrep`), `media::install` does
+    nothing off macOS.
+11. **Wi-Fi and Location: no-ops.** `permissions Status { …, location:
+    Unavailable }` at startup, no ask, no Overview row; `core/wifi.status`
+    is `nmcli` in 40 to 65 ms and marko's wired box lists "No Wi-Fi
+    interface" (shot 41).
+12. **Dialog jump: works on the GTK path.** `zenity --file-selection`
+    (which opened xdg-desktop-portal-gtk's chooser, a GTK file chooser
+    all the same) in front, `pal run
+    'files/files//home/cagdas/proj/pali/README.md' -a dialog` ran the
+    blind plan (ctrl+L through `ydotool`, the path pasted, Enter) and
+    zenity printed `/home/cagdas/proj/pali/README.md`; `detect` is `None`
+    here so the HUD names no app.
+13. **`pal pick`: works.** `printf 'main\nfeature/x\nfix/y\n' | pal pick -t
+    Branch --select feature/x` printed `feature/x` (`pick 3 rows selected
+    feature/x without the panel`); the real one with `-q fi` showed the
+    level (shot 42: the crumb, `fi`, the one row, "Pick ↵"), Enter printed
+    `fix/y`, exit 0, the socket gone.
+14. **Screenshots of the shell**: root (01), the counter view (02), the
+    Settings Overview (03) and General (04), the Frappé panel (07),
+    compact (09, 43) and the Bar page (45), all looked at.
+
+### Also fixed on the way
+
+- `app/src/Launcher.tsx`: the empty state said "⌘K for actions" and the
+  extensions note "Settings (⌘,)" on Linux (the footer says Ctrl K);
+  both spell the modifier through `isMac` now (exported from `ui/index.ts`;
+  `compact.test.tsx` pins the non-Mac spelling, happy-dom is not a Mac).
+
+- `extensions/files/index.ts:227`: an image or PDF row's actions were
+  `[...ACTIONS.slice(0, 6), OCR_ACTION, ACTIONS[6]]`, and off macOS ACTIONS
+  has six entries (no Quick Look), so the last action was `undefined` (the
+  CI failure `null is not an object (evaluating 'a.id')` in `files >
+  Copy text (OCR)`); now the slice is relative to the end.
+- CI's `check (ubuntu-24.04)` had been red on every push since 8d15ef6
+  (his inbox on marko showed the "Run failed" mails): the eight expansion
+  dead-code errors under `-D warnings` on 91534c9 (fixed above), and
+  before them four host tests that assumed macOS or a terminal on the
+  runner: the files OCR slot (above); `downloads > picks` waited for a
+  stub `open` while Linux spawns `xdg-open` for the rest of a multi pick
+  (the test stubs both now); `make > run` and `docker > shell` asked for a
+  terminal on a runner with none and `$TERMINAL` unset (the tests set
+  `TERMINAL=kitty` off macOS: nothing is spawned under `PAL_TERMINAL_LOG`,
+  and the chooser takes `$TERMINAL` as given). make's and docker's
+  `terminal.ts` (a copy of each other) use the shared Linux chooser too;
+  their macOS halves stay duplicated.
+
+### The daily instance
+
+The daily marko `pal` (`~/.local/share/pal/bin/pal`, built 2026-09-16
+16:55) runs the host and extensions from the clone, so the pull at 02:47
+reloaded every extension file as it changed, before the SDK files landed:
+~20 extensions failed with `Export named 'view' | 'selection' | 'effects'
+| 'permissions' | 'extensions' | 'CONCEAL_SECONDS' | 'instance' not found
+in …/sdk/src/index.ts` (timer, shell, media, tela, translate, obsidian,
+store, otp, onepassword, hue, wifi, speedtest, screenshots, snippets,
+shortcuts, scripts, menu-bar, github's worker path, …) and stayed so; the
+ones the host reloaded after the SDK arrived (apps, bookmarks, calc,
+emoji, …) came back. A `pal reload` would not repair it: that binary's
+core has none of tonight's routes (`core/instances.get`, `view.update`,
+`extensions.*`, `permissions`), so the new host cannot run on it. Left
+alone as asked. A release binary with the real identifier is staged as
+`~/.local/share/pal/bin/pal.new` (+ the matching `pal-bun` is the same
+sidecar): `pal quit`, `mv pal.new pal`, `pal` from a session shell (or
+log out and in: `exec-once = pal`) puts the daily on tonight's tree. The
+scratch run also removed `~/.config/autostart/pal.desktop` again (the
+systemd path does that unconditionally); put back from the copy.
+
+### Suites on marko
+

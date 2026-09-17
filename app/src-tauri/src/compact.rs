@@ -27,7 +27,7 @@ pub fn size(compact: bool, full: (f64, f64)) -> (f64, f64) {
 fn apply(app: &AppHandle, compact: bool) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let (width, height) = size(compact, configured(app));
-    if let Err(e) = w.set_size(LogicalSize::new(width, height)) {
+    if let Err(e) = panel::resize(&w, LogicalSize::new(width, height)) {
         return eprintln!("compact\tresize failed\t{e}");
     }
     eprintln!("compact\t{}\t{width}x{height}", if compact { "on" } else { "off" });

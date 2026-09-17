@@ -3842,14 +3842,16 @@
       "push": {
         "extension": "",
         "palette": "entities",
-        "args": "brightness"
+        "args": "brightness",
+        "title": "Kitchen Light brightness"
       }
     },
     "entities/climate.living_room:attributes": {
       "push": {
         "extension": "",
         "palette": "entities",
-        "args": "attributes"
+        "args": "attributes",
+        "title": "Living Room Thermostat"
       }
     },
     "entities/climate.living_room:temperature": {
@@ -3972,7 +3974,8 @@
       "push": {
         "extension": "",
         "palette": "entities",
-        "args": "Living Room"
+        "args": "Living Room",
+        "title": "Living Room"
       }
     }
   },

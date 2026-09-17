@@ -74,9 +74,10 @@ const trashDir = join(root, "trash");
 const cache = join(root, "cache");
 const openLog = join(root, "open.log");
 mkdirSync(folder); mkdirSync(bin); mkdirSync(trashDir);
-writeFileSync(join(bin, "open"), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`);
+// The opener the extension spawns for the rest of a multi pick: `open` on macOS, `xdg-open` on Linux.
+for (const opener of ["open", "xdg-open"]) { writeFileSync(join(bin, opener), `#!/bin/sh\nprintf '%s\\n' "$*" >> "${openLog}"\n`); chmodSync(join(bin, opener), 0o755); }
 writeFileSync(join(bin, "trash"), `#!/bin/sh\nmv -- "$1" "${trashDir}/" || exit 1\n`);
-chmodSync(join(bin, "open"), 0o755); chmodSync(join(bin, "trash"), 0o755);
+chmodSync(join(bin, "trash"), 0o755);
 // A 1 by 1 red PNG, for the thumbnail.
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==", "base64");
 const DAY = 86400e3;

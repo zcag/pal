@@ -1,12 +1,15 @@
-// A terminal window running a command: the same rule as the ssh extension's
-// Connect (`extensions/ssh/index.ts`), carried here as a copy because a
-// bundled extension may not import a sibling's file (each is installable on
-// its own). Differences: the words are shell-quoted for the AppleScript
-// terminals (ssh passes one bare host name; a path here may carry spaces),
-// and `cwd` runs the command from a directory. The same file sits in
+// A terminal window running a command: the macOS half is the same rule as
+// the ssh extension's Connect (`extensions/ssh/index.ts`), carried here as a
+// copy; the Linux half is the shared `extensions/apps/terminal.ts` (a
+// sibling import is inlined by `bun build` when the extension is bundled,
+// as clipboard's `../colors/color.ts` is). Differences from ssh: the words
+// are shell-quoted for the AppleScript terminals (ssh passes one bare host
+// name; a path here may carry spaces), and `cwd` runs the command from a
+// directory. The same file sits in
 // `extensions/docker/`; a shared helper in `@zcag/pal` would replace both.
 import { appendFileSync } from "node:fs";
 import { home } from "@zcag/pal";
+import { linuxTerminal, linuxTerminalArgv } from "../apps/terminal.ts";
 
 export type TerminalChoice = "auto" | "kitty" | "Terminal" | "iTerm2" | "Ghostty" | "Alacritty";
 
@@ -35,9 +38,8 @@ export function terminalArgv(cmd: string[], want: TerminalChoice = "auto", cwd?:
   // Every terminal takes an argv, none a directory the same way: a `cd` in front covers them all.
   if (cwd) cmd = ["sh", "-c", `cd ${shq(cwd)} && exec ${cmd.map(shq).join(" ")}`];
   if (LINUX) {
-    const term = process.env.TERMINAL || ["kitty", "foot", "alacritty", "xterm"].find((t) => Bun.which(t));
-    if (!term) return "no terminal: set $TERMINAL";
-    return /(^|\/)(kitty|foot)$/.test(term) ? [term, ...cmd] : [term, "-e", ...cmd];
+    const term = linuxTerminal();
+    return term ? linuxTerminalArgv(term, cmd) : "no terminal: set $TERMINAL";
   }
   const name = want === "auto" ? MAC_APPS.find(macApp) : want;
   const app = name && macApp(name);

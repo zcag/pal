@@ -162,9 +162,9 @@ export function row(l: Listing, s: Standing, section?: string): Item {
   if (l.bar) accessories.push({ tag: "menu bar", color: "blue" });
   if (l.links) accessories.push({ tag: "links", color: "violet" });
   if (l.multi) accessories.push({ tag: "accounts", color: "teal" });
-  if (s.behind) accessories.push({ tag: `Update to ${l.version}`, color: "amber" });
+  if (s.behind) accessories.push({ tag: `update to ${l.version}`, color: "amber" });
   else if (s.installed?.bundled) accessories.push({ tag: "bundled", color: "grey" });
-  else if (s.installed) accessories.push({ tag: "Installed", color: "green" });
+  else if (s.installed) accessories.push({ tag: "installed", color: "green" });
   if (l.category) accessories.push({ text: categoryTitle(l.category) });
   return {
     id: l.name,

@@ -30,7 +30,7 @@ export function Footer({ icon, title, note, count, primary, actions, onActions, 
       <div className="pal-footer__hints">
         {primary && (
           <button type="button" className="pal-footer__hint" onClick={onPrimary} tabIndex={-1}>
-            {primary.title} <Kbd shortcut={primary.shortcut ?? "enter"} />
+            <span className="pal-footer__hint-title">{primary.title}</span> <Kbd shortcut={primary.shortcut ?? "enter"} />
           </button>
         )}
         {actions && (

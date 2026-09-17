@@ -894,7 +894,8 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-bar-defaults__groups { padding: 0 var(--pal-space-4, 16px) var(--pal-space-4, 16px); }
 .pal-bar-defaults__look.pal-setting { padding-bottom: var(--pal-space-2, 8px); }
 .pal-bar-group { min-width: 0; margin: 0; padding: var(--pal-space-2, 8px) var(--pal-space-3, 12px) var(--pal-space-3, 12px); border: 0; border-radius: var(--pal-radius-tile, 10px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }
-.pal-bar-group__title { padding: 0; margin-bottom: var(--pal-space-1, 4px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-semibold, 600); text-transform: uppercase; letter-spacing: 0.04em; }
+/* A section header, as the panel draws one (11px medium, sentence case: the brief has no all-caps labels); muted rather than faint, since the group is a sunken surface. */
+.pal-bar-group__title { padding: 0; margin-bottom: var(--pal-space-1, 4px); color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-xs, 11px); font-weight: var(--pal-weight-medium, 500); letter-spacing: 0.01em; }
 .pal-bar-field.pal-setting { padding: var(--pal-space-2, 8px) 0 0; }
 /* Nested under the Defaults card's row-layout setting, so the row rule's right alignment is undone here. */
 .pal-bar-field.pal-setting[data-layout="stack"] .pal-setting__label { display: flex; align-items: baseline; justify-content: flex-start; gap: var(--pal-space-2, 8px); min-height: 0; color: var(--pal-fg, #ececf0); font-size: var(--pal-text-sm, 12px); text-align: left; }

@@ -48,8 +48,11 @@ describe("run.ts", () => {
       expect(terminalArgv("ls", "/tmp", sh, "Ghostty")![4]).toBe("--working-directory=/tmp");
       expect(terminalArgv("ls", "/tmp", sh, "Warp")).toEqual(["open", "-na", "Warp", "--args", "-e", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
     } else {
-      expect(terminalArgv("ls", "/tmp", sh, "", { TERMINAL: "foot" })).toEqual(["foot", "-e", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
-      expect(terminalArgv("ls", "/tmp", sh, "", {})![0]).toBe("x-terminal-emulator");
+      // foot takes the command as trailing arguments, alacritty after -e, wezterm after `start --`; the setting wins over $TERMINAL, which wins over what is installed.
+      expect(terminalArgv("ls", "/tmp", sh, "", { TERMINAL: "foot" })).toEqual(["foot", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
+      expect(terminalArgv("ls", "/tmp", sh, "alacritty", { TERMINAL: "foot" })).toEqual(["alacritty", "-e", "/bin/zsh", "-c", "cd '/tmp' && ls; exec /bin/zsh"]);
+      expect(terminalArgv("ls", "/tmp", sh, "", {}, (n) => (n === "wezterm" ? "/usr/bin/wezterm" : null))!.slice(0, 3)).toEqual(["wezterm", "start", "--"]);
+      expect(terminalArgv("ls", "/tmp", sh, "", {}, () => null)).toBeUndefined();
     }
     expect(q("it's")).toBe(`'it'\\''s'`);
   });

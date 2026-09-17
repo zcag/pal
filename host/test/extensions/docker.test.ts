@@ -48,6 +48,8 @@ const PATH = process.env.PATH;
 let host: Host;
 beforeAll(async () => {
   process.env.PATH = `${dir}:${PATH}`;
+  // Linux: the chooser takes $TERMINAL as given (nothing is spawned under PAL_TERMINAL_LOG), so a box without one (the CI runner) still answers an argv.
+  if (process.platform !== "darwin") process.env.TERMINAL ||= "kitty";
   process.env.PAL_TERMINAL_LOG = join(dir, "terminal");
   host = await Host.bundled({ settings: { docker: { settings: { ttl: 7 } } } });
 });

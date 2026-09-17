@@ -30,6 +30,8 @@ const HINT = "\u{f02fd}"; // md-information_outline
 const THUMBS_PER_LISTING = 24;
 const THUMB_PX = 64;
 const THUMB_MS = 4000;
+/** Thumbnail processes at once: ImageMagick takes 0.1 to 0.8 s per camera-sized file on Linux (sips 20 ms), so a cold listing of 24 ran 5 s in a row. */
+const THUMB_JOBS = 4;
 const TRASH_MS = 10_000;
 
 const S = () => settings.get<Settings>();
@@ -106,8 +108,24 @@ const CACHE = process.env.PAL_DOWNLOADS_CACHE || (MAC ? `${HOME}/Library/Caches/
 const thumbs = new Map<string, string>();
 const THUMB_TOOL: string[] | undefined = MAC && Bun.which("sips") ? ["sips"] : Bun.which("magick") ? ["magick"] : Bun.which("convert") ? ["convert"] : undefined;
 
+/**
+ * ImageMagick decodes a JPEG at a fraction of its size when told the
+ * target up front (`jpeg:size`, libjpeg's DCT scaling: 316 to 105 ms on a
+ * 9.6 MB photo on marko), and a transparent page or PNG is laid on white
+ * before the JPEG drops the alpha (a PDF's first page came out as a black
+ * square without it).
+ */
 const thumbArgv = (tool: string, src: string, out: string): string[] =>
-  tool === "sips" ? ["sips", "-Z", String(THUMB_PX), "-s", "format", "jpeg", "-s", "formatOptions", "70", src, "--out", out] : [tool, `${src}[0]`, "-thumbnail", `${THUMB_PX}x${THUMB_PX}`, "-quality", "70", out];
+  tool === "sips" ? ["sips", "-Z", String(THUMB_PX), "-s", "format", "jpeg", "-s", "formatOptions", "70", src, "--out", out] : [tool, "-define", `jpeg:size=${THUMB_PX * 2}x${THUMB_PX * 2}`, `${src}[0]`, "-thumbnail", `${THUMB_PX}x${THUMB_PX}`, "-background", "white", "-alpha", "remove", "-alpha", "off", "-quality", "70", out];
+
+let running = 0;
+const waiting: (() => void)[] = [];
+/** Runs `f` with at most THUMB_JOBS in flight. */
+async function pooled<T>(f: () => Promise<T>): Promise<T> {
+  if (running >= THUMB_JOBS) await new Promise<void>((r) => waiting.push(r));
+  running++;
+  try { return await f(); } finally { running--; waiting.shift()?.(); }
+}
 
 /** A 64 px JPEG of the file as a data url, made once per (path, size, mtime) into the cache directory; undefined when it cannot be made. */
 async function thumbnail(e: Entry): Promise<string | undefined> {
@@ -119,10 +137,12 @@ async function thumbnail(e: Entry): Promise<string | undefined> {
   let bytes = await readFile(file).catch(() => undefined);
   if (!bytes) {
     await mkdir(CACHE, { recursive: true });
-    const proc = Bun.spawn(thumbArgv(THUMB_TOOL[0], e.path, file), { stdin: "ignore", stdout: "ignore", stderr: "ignore" });
-    const timer = setTimeout(() => proc.kill(), THUMB_MS);
-    await proc.exited;
-    clearTimeout(timer);
+    await pooled(async () => {
+      const proc = Bun.spawn(thumbArgv(THUMB_TOOL[0], e.path, file), { stdin: "ignore", stdout: "ignore", stderr: "ignore" });
+      const timer = setTimeout(() => proc.kill(), THUMB_MS);
+      await proc.exited;
+      clearTimeout(timer);
+    });
     bytes = await readFile(file).catch(() => undefined);
     if (!bytes) return;
   }
@@ -168,9 +188,8 @@ async function list(): Promise<Item[]> {
   const s = S();
   const { entries, folders: fs } = await all(s);
   const several = fs.length > 1;
-  const rows: Item[] = [];
-  let made = 0;
-  for (const e of entries) rows.push(await item(e, several, s.thumbnails !== false && made++ < THUMBS_PER_LISTING));
+  // Every row at once: the thumbnails (the newest THUMBS_PER_LISTING) go through the pool.
+  const rows = await Promise.all(entries.map((e, i) => item(e, several, s.thumbnails !== false && i < THUMBS_PER_LISTING)));
   // Downloading first, then the sections as the newest-first order lays them out.
   rows.sort((a, b) => Number(b.section === "Downloading") - Number(a.section === "Downloading"));
   const old = olderThan(entries.filter((e) => !e.partial), s.clear_days || 30);

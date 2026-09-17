@@ -72,7 +72,7 @@ function row(s: Shortcut): Item {
     id: s.id,
     name: s.name,
     icon: ICON,
-    section: s.folder,
+    section: s.folder || "No folder",
     keywords: s.folder ? [s.folder] : undefined,
     detail: { metadata: [{ label: "Name", value: s.name }, ...(s.folder ? [{ label: "Folder", value: s.folder }] : []), { label: "Identifier", value: s.identifier }] },
     actions: [RUN, RUN_CLIPBOARD, RUN_TEXT, OPEN, COPY_NAME],

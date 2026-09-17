@@ -15,6 +15,7 @@
           "id": "Open Today's Note",
           "name": "Open Today's Note",
           "icon": "󰐋",
+          "section": "No folder",
           "detail": {
             "metadata": [
               {
@@ -57,6 +58,7 @@
           "id": "Adjust Clipboard",
           "name": "Adjust Clipboard",
           "icon": "󰐋",
+          "section": "No folder",
           "detail": {
             "metadata": [
               {
@@ -99,6 +101,7 @@
           "id": "Text to Speech",
           "name": "Text to Speech",
           "icon": "󰐋",
+          "section": "No folder",
           "detail": {
             "metadata": [
               {
