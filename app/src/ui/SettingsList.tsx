@@ -12,6 +12,10 @@ export type SettingsListItem = {
   accessory?: ReactNode;
   /** Greyed: not loaded, disabled. */
   dim?: boolean;
+  /** `data-anchor` for the settings search to scroll to and light. */
+  anchor?: string;
+  /** Draw a rule under this row: what follows is a different kind of thing. */
+  divider?: boolean;
 };
 
 /**
@@ -43,8 +47,10 @@ export function SettingsList({ items, selected, onSelect, label }: { items: Sett
           role="option"
           aria-selected={it.id === selected}
           data-item={it.id}
+          data-anchor={it.anchor}
           data-active={it.id === selected || undefined}
           data-dim={it.dim || undefined}
+          data-divider={it.divider || undefined}
           tabIndex={it.id === selected || (!selected && i === 0) ? 0 : -1}
           className="pal-settings-list__row"
           onClick={() => onSelect(it.id)}

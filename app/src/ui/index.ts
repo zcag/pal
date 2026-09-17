@@ -37,10 +37,10 @@ export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
 export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileStatus } from "./SettingsTheme";
 export { SettingsPalettes, palettesIndex, paletteIcon, type PaletteItem } from "./SettingsPalettes";
 export { SettingsExtensions, extensionsIndex, byName } from "./SettingsExtensions";
-export { SettingsBar, barIndex } from "./SettingsBar";
+export { SettingsBar, barIndex, BAR_DEFAULTS } from "./SettingsBar";
 export { SettingsAbout, aboutIndex, copyText, installing, progressLine, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 export { SettingsList, type SettingsListItem } from "./SettingsList";
-export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
+export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsDisclosure, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
 export { SettingsDiagnostics } from "./SettingsDiagnostics";
 export { describeDefault, hotkeyList, isModified, leavesFile, needsSetup, permissionRows } from "./SettingsTypes";
 export type {

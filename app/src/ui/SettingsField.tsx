@@ -318,6 +318,30 @@ export function SettingsGroup({ title, note, children }: { title: string; note?:
   );
 }
 
+/**
+ * A section folded away behind its own title. `count` is how many things
+ * inside are set: it shows as a badge and opens the section on arrival, so
+ * a departure from the defaults is never hidden by the fold. Native
+ * `<details>`, so the keyboard and the accessibility tree come free.
+ */
+export function SettingsDisclosure({ title, hint, count, children, anchor, aside }: { title: string; hint?: string; count?: number; children: ReactNode; anchor?: string; aside?: ReactNode }) {
+  const [open, setOpen] = useState(!!count);
+  return (
+    <details className="pal-disclosure" open={open} data-anchor={anchor} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary className="pal-disclosure__summary">
+        <span className="pal-disclosure__chevron" aria-hidden>
+          <svg viewBox="0 0 10 14"><path d="M3.5 2.5L7 7l-3.5 4.5" /></svg>
+        </span>
+        <span className="pal-disclosure__title">{title}</span>
+        {count ? <span className="pal-disclosure__count">{count}</span> : null}
+        {hint && <span className="pal-disclosure__hint">{hint}</span>}
+      </summary>
+      {aside && <div className="pal-disclosure__aside">{aside}</div>}
+      <div className="pal-disclosure__body">{children}</div>
+    </details>
+  );
+}
+
 /** The rule between what pal provides and what an extension declared. */
 export function SettingsDivider({ text, note }: { text: string; note?: string }) {
   return (
