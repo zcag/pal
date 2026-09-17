@@ -93,9 +93,10 @@ a dying device.
 
 ### Next, in order
 
-1. **Nothing queued.** The three surfaces are tuned against the live bar. The
-   remaining named polish is on other items: Network's home hiding, hotspot/public
-   and RSSI glyph variants (E11), and Audio's volume-level flash (E9).
+1. **Nothing queued on Weather, Power or Bluetooth.** Network is now at parity too
+   (`icon_only`, `networks` with `hide`/`hotspot`/`public`, the signal ramp). What
+   is left across the bar: Network's compact kv popover in place of the full
+   palette, and Audio's volume-level flash (E9).
 
 ### Explicitly deferred
 
@@ -276,7 +277,7 @@ as parallel agents.
 | E8 | `power/battery` | **done:** macOS `pmset` / Linux `upower` gauge plus optional fresh watcher state for measured draw, warning rules, wake locks and top consumers; configurable healthy hide thresholds, direct Battery Settings action, palette and compact diagnostic popover, Settings mocks. Polished on the live bar: his 6-step ramp glyph instead of the duplicated `progress` rule, and a `16% · 1:04 · 9.5W` title with his ETA-before-amber ordering and the `0:00` fallback. Native source events remain deferred; the item polls. | M | — |
 | E9 | `audio/volume` + `audio/microphone` | **done:** output glyph/level, direct mute, wheel ±5, 18 pt / 31 pt stable glyph slot, Audio palette popover and 5 s poll; mic hidden while healthy, direct 75% restore when muted or absent. Remaining polish: temporary volume-level flash, Sound Settings action and a native audio event. | M | ∥ |
 | E10 | `bluetooth/battery` | **done:** extends the existing Bluetooth core source; connected devices that report at or below a configurable threshold surface as an amber/red interruption, otherwise hidden. It opens Bluetooth Settings directly, uses the Bluetooth palette as its popover and has Settings mocks. Tuned to his numbers: alert at 25%, red at 20%. The glyph stays single — a pair would be menu-bar tofu, and the device name already says which battery it is. | S | — |
-| E11 | `network/status` | **done:** active SSID / wired label, optional friendly SSID map, red no-route state, direct Network Settings action, Network palette popover, `refresh: 5` plus wake/network and mocks. Remaining polish: home hiding, hotspot/public/RSSI variants and compact kv popover. | M | ∥ |
+| E11 | `network/status` | **done:** active SSID / wired label, optional friendly SSID map, red no-route state, direct Network Settings action, Network palette popover, `refresh: 5` plus wake/network and mocks. Polished to parity: `icon_only` drops the name and lets the glyph carry a four-step signal ramp, a hotspot, an open network, wired or offline; `networks` maps an SSID *or* a gateway to `hide` / `hotspot` / `public`, so home is gone rather than dimmed. Signal now comes from the core on macOS and `iw dev <dev> link` on Linux. Remaining: a compact kv popover instead of the full palette. | M | ∥ |
 | E12 | `weather/weather` | **done:** standalone Open-Meteo location search/current forecast, no Home Assistant dependency; configurable place, comfort thresholds and extra WMO codes; condition glyph/tint mapping, quiet hidden state, visible failure diagnosis, compact current-conditions popover and Settings mocks. Fixed on the live bar: the geocoder takes one bare name, so `Istanbul, Turkey` matched nothing; qualifiers now rank rather than filter. | S-M | — |
 | E13 | `system/privacy` (media_use) | assertions + `pgrep`, glyph list, hidden when clear, `background: "orange"` (B2), `refresh: 2` (min `every` is 10, so a `setInterval` + `bar.update` inside the extension). | S-M | after B2 |
 | E14 | `tan` (new extension, `multi`) | instance → port map (`tan` 8793, `tan@work` 8803, a `url` setting), `state.json` + headers for "ran 5 m ago", `quiet_buckets` setting, count / red rule, popover per bucket (`id` semibold coloured by urgency, title muted), Enter opens `links[0]` else `https://tan.lan`; Open tan; a palette of the same rows. `when = "working"` on `tan@work/items`. | M | ∥ |

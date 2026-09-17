@@ -32,12 +32,27 @@ resolver order for a DNS server.
 ## Bar item
 
 **Network status** reads the interface carrying the default route every five
-seconds (and on wake/network events). It shows the Wi-Fi SSID or wired
-interface; no default route is a red Offline item. Click opens Network
-Settings, while the popover opens this palette. `ssid_labels` lets a user give
-the strip a friendlier name with entries such as `Cafe Wifi = Cafe`; the full
-palette always retains the real SSID. Settings includes Wi-Fi, wired and
-offline preview states.
+seconds (and on wake/network events). The glyph is the whole message on Wi-Fi:
+four levels of signal strength, or its own mark for a hotspot, an open network
+or a wired link, and a red one when there is no default route. Beside it the
+network's name, unless **Icon only** is set — then the glyph stands alone and
+hovering gives the name, the address, the signal and the gateway. Click opens
+Network Settings, while the popover opens this palette.
+
+`networks` says what a network *is*, keyed on its SSID or on its gateway —
+neither alone is enough, since macOS redacts the name (see below) and a cable
+into the same router has no name at all:
+
+| kind | what it does |
+| --- | --- |
+| `hide` | The item is not drawn. For the network you are on almost all the time: it can tell you nothing you do not already know from the room you are in, so its *absence* is what carries information — the item appearing at all means you are somewhere else. |
+| `hotspot` | Marks a link whose data costs money. A name containing `iphone`, `android`, `hotspot` or `tether` is taken as one without being configured. |
+| `public` | Marks one not to be trusted. A network with no security is marked that way on its own. |
+
+`ssid_labels` gives the strip a friendlier name with entries such as
+`Cafe Wifi = Cafe`; the full palette always retains the real SSID. Settings
+includes Wi-Fi, weak, hotspot, open, icon-only, wired and offline preview
+states.
 
 ## Keyboard
 
@@ -56,10 +71,11 @@ PATH (or Tailscale.app) adds the Tailscale rows.
 **The SSID on macOS**: since Sonoma the system redacts the network name
 for a process without Location Services access (`ipconfig getsummary`
 prints `<redacted>`, `networksetup -getairportnetwork` says not
-associated), and pal's own grant does not reach the tools it runs, so a
-redacted summary is followed by a read through the core's wifi
-capability (CoreWLAN, in-process), which has the name once pal holds
-Location access: the Wi-Fi palette asks for it the first time it lists,
+associated), and pal's own grant does not reach the tools it runs, so the
+summary is followed by a read through the core's wifi capability
+(CoreWLAN, in-process). That read also carries the signal strength, which
+needs no grant at all; the name it has only once pal holds Location
+access: the Wi-Fi palette asks for it the first time it lists,
 and Settings > General > Permissions has the button. Without it the Wi-Fi
 row is labelled by kind (`en0 · Wi-Fi`) and the detail pane says what is
 missing; everything else works without it.
@@ -73,6 +89,8 @@ Settings, `[extensions.network]`:
 | --- | --- | --- | --- |
 | `public_ip_url` | text | `https://ipinfo.io/json` | The endpoint the public IP row asks. Empty: no Internet section. `https://api.ipify.org` (a bare address) and `http://ip-api.com/json` work too. |
 | `ssid_labels` | list | `[]` | Friendly strip names as `SSID = label`; only the bar uses the label. |
+| `networks` | list | `[]` | `SSID = kind` or `gateway = kind`, where kind is `hide`, `hotspot` or `public`. |
+| `icon_only` | boolean | `false` | Drop the name from the bar item and let the glyph speak. |
 
 ## What it does not do
 

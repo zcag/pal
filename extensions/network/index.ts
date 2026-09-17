@@ -13,13 +13,21 @@ import { hostname } from "node:os";
 import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCore, type Action, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.network]`, default in pal.json. */
-type Settings = { public_ip_url: string; ssid_labels?: unknown[] };
+type Settings = { public_ip_url: string; icon_only: boolean; ssid_labels?: unknown[]; networks?: unknown[] };
 
 const OS = process.env.PAL_NETWORK_OS ?? process.platform;
 const MAC = OS === "darwin";
 /** The tests point this at a fixture. */
 const RESOLV_CONF = process.env.PAL_NETWORK_RESOLV ?? "/etc/resolv.conf";
 const GLYPH = { wifi: "\u{f05a9}", wired: "\u{f0200}", tailscale: "\u{f0582}", host: "\u{f0322}", public: "\u{f01e7}", gateway: "\u{f1087}", dns: "\u{f01d6}" }; // md-wifi, md-ethernet, md-vpn, md-laptop, md-earth, md-router_network, md-dns
+/** What the strip draws instead: off, a phone's hotspot, an open network. */
+const BAR_GLYPH = { off: "\u{f092d}", hotspot: "\u{f011c}", open: "\u{f0176}" }; // md-wifi_off, md-cellphone_wireless, md-coffee
+/** Signal as a percentage, the core's `(dBm + 100) * 2`: -55, -67 and -75 dBm. */
+const SIGNAL: [number, string][] = [[90, "\u{f0928}"], [66, "\u{f0925}"], [50, "\u{f0922}"], [0, "\u{f091f}"]];
+/** `core/src/wifi.rs`'s scale, so a Linux reading and a macOS one mean the same thing. */
+const percentOf = (dbm: number) => Math.max(0, Math.min(100, (dbm + 100) * 2));
+/** A phone's hotspot is usually named after the phone; an entry in `networks` names the rest. */
+const HOTSPOT_RE = /iphone|android|hotspot|tether/i;
 const TOOL_MS = 3000;
 const FETCH_MS = 3000;
 const PUBLIC_TTL_MS = 10 * 60 * 1000;
@@ -33,7 +41,7 @@ const run = (argv: string[], ms = TOOL_MS): Promise<string> => (Bun.which(argv[0
 
 // ---- what is gathered ------------------------------------------------------
 
-type Iface = { name: string; kind?: string; v4: string[]; v6: string[]; mac?: string; ssid?: string; /** macOS gave `<redacted>` and the core had no name either: pal lacks Location Services. */ ssidHidden?: boolean; security?: string; up?: boolean };
+type Iface = { name: string; kind?: string; v4: string[]; v6: string[]; mac?: string; ssid?: string; /** macOS gave `<redacted>` and the core had no name either: pal lacks Location Services. */ ssidHidden?: boolean; security?: string; /** 0-100, the core's scale. */ signal?: number; up?: boolean };
 type Public = { ip: string; city?: string; region?: string; country?: string; org?: string; at: number };
 type Snapshot = { ifaces: Iface[]; gateway?: { ip: string; dev?: string }; dns: string[]; tailscale: string[]; host: string; localHost?: string; public?: Public | { error: string } };
 
@@ -87,11 +95,14 @@ async function macSnapshot(): Promise<Omit<Snapshot, "public" | "tailscale" | "h
   const wifi = ifaces.find((i) => i.kind === "Wi-Fi");
   if (wifi) {
     Object.assign(wifi, parseSummary(await run(["ipconfig", "getsummary", wifi.name])));
-    // `<redacted>` for a process without Location Services, and pal's own grant does not reach the tools it runs: the core reads the name in-process (CoreWLAN), which the grant covers.
-    if (wifi.ssidHidden) {
-      const ssid = await wifiCore.status().then((s) => s?.current?.ssid ?? null).catch(() => null);
-      if (ssid) Object.assign(wifi, { ssid, ssidHidden: false });
-    }
+    // The core reads CoreWLAN in-process, which is the only way to two things the
+    // tools will not give: the signal, and the name when macOS has redacted it
+    // for a process without Location Services (pal's own grant does not reach
+    // the tools it runs, but does cover an in-process read).
+    const current = await wifiCore.status().then((s) => s?.current).catch(() => undefined);
+    // `null` is the core's "no reading", and it is not a weak one.
+    if (typeof current?.signal === "number") wifi.signal = current.signal;
+    if (wifi.ssidHidden && current?.ssid) Object.assign(wifi, { ssid: current.ssid, ssidHidden: false });
   }
   const gw = /gateway: (\S+)/.exec(route)?.[1];
   const dev = /interface: (\S+)/.exec(route)?.[1];
@@ -121,6 +132,12 @@ async function linuxSnapshot(): Promise<Omit<Snapshot, "public" | "tailscale" | 
   }
   let gateway: Snapshot["gateway"];
   try { const r = JSON.parse(route || "[]")[0]; if (r?.gateway) gateway = { ip: r.gateway, dev: r.dev }; } catch {}
+  // `iw dev` stops at the association; the strength is one call further in.
+  const wifi = ifaces.find((i) => i.kind === "Wi-Fi");
+  if (wifi) {
+    const dbm = Number(/^\s*signal:\s*(-?\d+)/m.exec(await run(["iw", "dev", wifi.name, "link"]))?.[1]);
+    if (Number.isFinite(dbm) && dbm < 0) wifi.signal = percentOf(dbm);
+  }
   let dns = [...resolv.matchAll(/^nameserver\s+(\S+)/gm)].map((m) => m[1]);
   // systemd-resolved's stub: ask it for the real upstreams.
   if (dns.length && dns.every((d) => d.startsWith("127.0.0.53"))) {
@@ -189,7 +206,7 @@ function row(id: string, value: string, subtitle: string, section: string, keywo
 }
 
 const ifaceDetail = (i: Iface): Detail => ({
-  metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid ?? (i.ssidHidden ? "hidden by macOS until pal has Location access (the Wi-Fi palette asks)" : undefined)], ["Security", i.security], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac], ["Status", i.up === undefined ? undefined : i.up ? "active" : "inactive"]]),
+  metadata: meta([["Interface", i.name], ["Kind", i.kind], ["SSID", i.ssid ?? (i.ssidHidden ? "hidden by macOS until pal has Location access (the Wi-Fi palette asks)" : undefined)], ["Security", i.security], ["Signal", i.signal === undefined ? undefined : `${i.signal}%`], ["IPv4", i.v4.join(", ") || undefined], ["IPv6", i.v6.join(", ") || undefined], ["MAC", i.mac], ["Status", i.up === undefined ? undefined : i.up ? "active" : "inactive"]]),
 });
 
 function rows(s: Snapshot, withPublic: boolean): Item[] {
@@ -228,15 +245,51 @@ async function snapshot(ctx?: Ctx, includePublic = true): Promise<{ s: Snapshot;
   return { s: { ...base, ifaces, tailscale, host: hostname(), public: pub }, withPublic: !!url };
 }
 
+/** `X = Y` entries of a list setting, both sides trimmed and non-empty. */
+function* pairsOf(list: unknown[] | undefined): Generator<[string, string]> {
+  for (const value of list ?? []) {
+    if (typeof value !== "string") continue;
+    const [key, val] = value.split(/\s*=\s*/, 2).map((s) => s.trim());
+    if (key && val) yield [key, val];
+  }
+}
+
 /** `SSID = familiar name` entries turn an unwieldy router name into what its owner calls it. */
 function ssidLabel(ssid: string | undefined): string | undefined {
   if (!ssid) return;
-  for (const value of settings.get<Settings>().ssid_labels ?? []) {
-    if (typeof value !== "string") continue;
-    const [name, label] = value.split(/\s*=\s*/, 2).map((s) => s.trim());
-    if (name === ssid && label) return label;
-  }
+  for (const [name, label] of pairsOf(settings.get<Settings>().ssid_labels)) if (name === ssid) return label;
 }
+
+type Kind = "hide" | "hotspot" | "public";
+const KINDS = new Set<string>(["hide", "hotspot", "public"]);
+
+/**
+ * What the configured `networks` say this one is. An entry keys on the SSID *or*
+ * on the gateway, because neither alone covers home: macOS redacts the name from
+ * a process without Location Services, and a cable into the same router has no
+ * name at all.
+ */
+function classify(i: Iface | undefined, gateway: string | undefined): Kind | undefined {
+  for (const [key, kind] of pairsOf(settings.get<Settings>().networks)) {
+    if (KINDS.has(kind) && (key === i?.ssid || key === gateway)) return kind as Kind;
+  }
+  if (i?.ssid && HOTSPOT_RE.test(i.ssid)) return "hotspot";
+}
+
+const isOpen = (i: Iface) => !!i.security && /^(none|open)$/i.test(i.security);
+const signalText = (i: Iface) => i.signal === undefined ? undefined : `Signal ${i.signal}%`;
+
+/** The link in one glyph: a marked kind first, then an open network — being told is the point — then how strong it is. */
+function glyph(i: Iface, kind: Kind | undefined): string {
+  if (i.kind !== "Wi-Fi") return GLYPH.wired;
+  if (kind === "hotspot") return BAR_GLYPH.hotspot;
+  if (kind === "public" || isOpen(i)) return BAR_GLYPH.open;
+  if (i.signal === undefined) return GLYPH.wifi;
+  return SIGNAL.find(([floor]) => i.signal! >= floor)![1];
+}
+
+/** Icon only: the glyph already says wired, hotspot, untrusted or how strong the link is, and the name is one hover away. */
+const strip = (icon: string, title: string) => settings.get<Settings>().icon_only ? { icon } : { icon, title };
 
 /** The one interface the compact strip speaks for: default-route first. */
 function active(s: Snapshot): Iface | undefined {
@@ -247,12 +300,19 @@ async function statusBar(): Promise<BarItem> {
   try {
     const { s } = await snapshot(undefined, false);
     const i = active(s);
-    if (!s.gateway) return { icon: GLYPH.wifi, title: "Offline", color: "red", tooltip: "No default route", click: "open", menu: { palette: "network" } };
-    if (!i) return { icon: GLYPH.wired, title: "Connected", tooltip: `Gateway ${s.gateway.ip}`, click: "open", menu: { palette: "network" } };
-    const wifi = i.kind === "Wi-Fi";
-    const title = wifi ? (ssidLabel(i.ssid) ?? i.ssid ?? "Wi-Fi") : (i.kind ?? i.name);
+    const kind = classify(i, s.gateway?.ip);
+    // Nothing to say about the network he is on almost all the time: gone, not
+    // dimmed, so the item's mere presence is the message.
+    if (kind === "hide") return { hidden: true };
+    const base = { click: "open", menu: { palette: "network" } } as const;
+    if (!s.gateway) return { ...base, ...strip(BAR_GLYPH.off, "Offline"), color: "red", tooltip: "No default route" };
+    if (!i) return { ...base, ...strip(GLYPH.wired, "Connected"), tooltip: `Gateway ${s.gateway.ip}` };
+    const name = i.kind === "Wi-Fi" ? (ssidLabel(i.ssid) ?? i.ssid ?? "Wi-Fi") : (i.kind ?? i.name);
     const address = i.v4[0] ?? i.v6[0];
-    return { icon: wifi ? GLYPH.wifi : GLYPH.wired, title, tooltip: [i.name, i.ssid && ssidLabel(i.ssid), address, `Gateway ${s.gateway.ip}`].filter(Boolean).join(" · "), click: "open", menu: { palette: "network" } };
+    // The name goes in whether or not it was relabelled: with Icon only the
+    // tooltip is the one place left that can say which network this is.
+    const tooltip = [i.name, name, address, signalText(i), `Gateway ${s.gateway.ip}`].filter(Boolean).join(" · ");
+    return { ...base, ...strip(glyph(i, kind), name), tooltip };
   } catch { return { hidden: true }; }
 }
 

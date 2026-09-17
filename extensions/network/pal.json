@@ -22,6 +22,21 @@
       "label": "SSID labels",
       "description": "Optional friendly names as `SSID = label`, for example `Cafe Wifi = Cafe`. The Network bar uses the label; the palette still shows the real SSID.",
       "default": []
+    },
+    {
+      "kind": "list",
+      "id": "networks",
+      "label": "Known networks",
+      "description": "What a network is, as `SSID = kind` or `gateway = kind`; the gateway form also covers a cable into the same router and a Wi-Fi name macOS declines to reveal. `hide` drops the bar item entirely — the network you are on almost all the time can tell you nothing, so its absence is the point. `hotspot` marks one that costs data, `public` one to distrust. For example `eldiven = hide`, `192.168.1.1 = hide`, `marvin = hotspot`.",
+      "placeholder": "eldiven = hide",
+      "default": []
+    },
+    {
+      "kind": "boolean",
+      "id": "icon_only",
+      "label": "Icon only",
+      "text": "Drop the name from the bar item; the glyph still says wired, hotspot, open or how strong the signal is, and hovering gives the name.",
+      "default": false
     }
   ],
   "store": {
@@ -32,7 +47,7 @@
       "Internet: the public IP with the city, country and organisation the endpoint gives, fetched once and kept ten minutes",
       "Network: the default gateway with its interface, the DNS servers in resolver order",
       "The value is the row's name, so it reads at a glance; `enter` copies it, `cmd+enter` opens the Network settings",
-      "Opens with the detail pane: interface, kind, SSID, security, MAC and status for an address; city, region and organisation for the public IP",
+      "Opens with the detail pane: interface, kind, SSID, security, signal, MAC and status for an address; city, region and organisation for the public IP",
       "Live: listed again when the panel shows and the last listing is over a minute old; `cmd+r` fetches the public IP again"
     ],
     "permissions": [
@@ -94,12 +109,16 @@
   "bar": {
     "status": {
       "title": "Network status",
-      "description": "The active Wi-Fi name or wired interface. Click opens Network Settings; the popover opens the Network palette.",
+      "description": "The active network, as its name or — with Icon only — as a glyph alone: signal strength on Wi-Fi, its own mark for a hotspot or an open network, wired, or offline. A network set to `hide` in Known networks draws nothing. Click opens Network Settings; the popover opens the Network palette.",
       "refresh": { "every": 5, "on": ["network", "wake"] },
       "mocks": {
-        "wifi": { "title": "Named Wi-Fi", "item": { "icon": "󰖩", "title": "Cafe", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Gateway 192.168.1.1" } },
+        "wifi": { "title": "Named Wi-Fi", "item": { "icon": "󰤥", "title": "Cafe", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" } },
+        "weak": { "title": "Weak signal", "item": { "icon": "󰤟", "title": "Cafe", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 38% · Gateway 192.168.1.1" } },
+        "hotspot": { "title": "Phone hotspot", "item": { "icon": "󰄜", "title": "marvin", "tooltip": "en0 · marvin · 172.20.10.3 · Signal 88% · Gateway 172.20.10.1" } },
+        "open": { "title": "Open network", "item": { "icon": "󰅶", "title": "Kronotrop", "tooltip": "en0 · Kronotrop · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1" } },
+        "icon_only": { "title": "Icon only", "item": { "icon": "󰤨", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1" } },
         "wired": { "title": "Wired", "item": { "icon": "󰈀", "title": "Ethernet", "tooltip": "en5 · 10.0.0.7 · Gateway 10.0.0.1" } },
-        "offline": { "title": "No route", "item": { "icon": "󰖪", "title": "Offline", "color": "red", "tooltip": "No default route" } }
+        "offline": { "title": "No route", "item": { "icon": "󰤭", "title": "Offline", "color": "red", "tooltip": "No default route" } }
       }
     }
   }

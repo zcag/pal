@@ -245,6 +245,61 @@ describe("network on macOS with the SSID redacted", () => {
   });
 });
 
+describe("network status: what the strip says about the network", () => {
+  const boot = (settings: Record<string, unknown>, opts: { ssid?: string; security?: string; signal?: number | null; route?: boolean } = {}) => {
+    const summary = SUMMARY.replace("SSID : Cafe Wifi", `SSID : ${opts.ssid ?? "Cafe Wifi"}`).replace("Security : WPA2_PSK", `Security : ${opts.security ?? "WPA2_PSK"}`);
+    const bin = fakeBin({
+      ifconfig: heredoc(IFCONFIG),
+      networksetup: heredoc(PORTS),
+      ipconfig: heredoc(summary),
+      route: opts.route === false ? "exit 1" : heredoc(ROUTE),
+      scutil: `case "$1" in --dns) ${heredoc(SCUTIL_DNS)}\n;; --get) echo fakehost;; esac`,
+    });
+    dirs.push(bin);
+    return withPath(bin, "darwin", {}, { public_ip_url: "", ...settings }, { "wifi.status": () => ({ interface: "en0", powered: true, current: { ssid: opts.ssid ?? "Cafe Wifi", signal: opts.signal === undefined ? 72 : opts.signal, channel: "44", security: opts.security ?? "WPA2 Personal", ip: "192.168.1.131" } }) });
+  };
+  const bar = async (settings: Record<string, unknown>, opts?: Parameters<typeof boot>[1]) => {
+    const host = await boot(settings, opts);
+    try { return await host.render("network", "status"); } finally { host.kill(); }
+  };
+
+  test("the signal picks the glyph, and the tooltip carries the number", async () => {
+    expect(await bar({})).toMatchObject({ icon: "\u{f0925}", title: "Cafe Wifi", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" });
+    expect(await bar({}, { signal: 94 })).toMatchObject({ icon: "\u{f0928}" });
+    expect(await bar({}, { signal: 55 })).toMatchObject({ icon: "\u{f0922}" });
+    expect(await bar({}, { signal: 20 })).toMatchObject({ icon: "\u{f091f}" });
+    // No reading at all is not a weak one: the plain glyph rather than one bar.
+    expect(await bar({}, { signal: null })).toMatchObject({ icon: "\u{f05a9}" });
+  }, 20000);
+
+  test("a network marked hide draws nothing, by its name or by its gateway", async () => {
+    expect(await bar({ networks: ["Cafe Wifi = hide"] })).toEqual({ hidden: true });
+    // The gateway is the half that still works when macOS redacts the name.
+    expect(await bar({ networks: ["192.168.1.1 = hide"] }, { ssid: "<redacted>" })).toEqual({ hidden: true });
+    expect(await bar({ networks: ["elsewhere = hide"] })).toMatchObject({ title: "Cafe Wifi" });
+  }, 20000);
+
+  test("hotspot and open networks get their own glyph; a phone's name is recognised without configuring it", async () => {
+    expect(await bar({ networks: ["Cafe Wifi = hotspot"] })).toMatchObject({ icon: "\u{f011c}" });
+    expect(await bar({ networks: ["Cafe Wifi = public"] })).toMatchObject({ icon: "\u{f0176}" });
+    expect(await bar({}, { ssid: "Nazli's iPhone" })).toMatchObject({ icon: "\u{f011c}", title: "Nazli's iPhone" });
+    // Nothing configured, but an unsecured network is worth saying so on its own.
+    expect(await bar({}, { security: "NONE" })).toMatchObject({ icon: "\u{f0176}" });
+    // A kind that is not one of the three is ignored rather than obeyed.
+    expect(await bar({ networks: ["Cafe Wifi = nonsense"] })).toMatchObject({ icon: "\u{f0925}" });
+  }, 20000);
+
+  test("icon only drops the title from every state, and keeps the tooltip that now carries the name", async () => {
+    const wifi = await bar({ icon_only: true });
+    expect(wifi.title).toBeUndefined();
+    expect(wifi).toMatchObject({ icon: "\u{f0925}", tooltip: "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" });
+    const offline = await bar({ icon_only: true }, { route: false });
+    expect(offline.title).toBeUndefined();
+    expect(offline).toMatchObject({ icon: "\u{f092d}", color: "red" });
+    expect(await bar({}, { route: false })).toMatchObject({ icon: "\u{f092d}", title: "Offline", color: "red" });
+  }, 20000);
+});
+
 describe("network on Linux tools", () => {
   let host: Host;
   beforeAll(async () => {
