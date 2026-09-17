@@ -164,7 +164,8 @@
           "keys": "cmd+c",
           "title": "Copy link"
         }
-      ]
+      ],
+      "lazy": true
     },
     "library": {
       "title": "Library",
@@ -196,7 +197,8 @@
           "keys": "cmd+c",
           "title": "Copy link"
         }
-      ]
+      ],
+      "lazy": true
     },
     "devices": {
       "title": "Spotify Devices",
@@ -215,7 +217,8 @@
           "keys": "cmd+up, cmd+down",
           "title": "Volume of the active device"
         }
-      ]
+      ],
+      "lazy": true
     },
     "queue": {
       "title": "Queue",
@@ -238,7 +241,8 @@
           "keys": "cmd+c",
           "title": "Copy link"
         }
-      ]
+      ],
+      "lazy": true
     },
     "commands": {
       "title": "Spotify",
