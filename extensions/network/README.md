@@ -29,6 +29,16 @@ security, IPv4, IPv6, MAC and status for an address; city, region,
 country, organisation and when it was fetched for the public IP; the
 resolver order for a DNS server.
 
+## Bar item
+
+**Network status** reads the interface carrying the default route every five
+seconds (and on wake/network events). It shows the Wi-Fi SSID or wired
+interface; no default route is a red Offline item. Click opens Network
+Settings, while the popover opens this palette. `ssid_labels` lets a user give
+the strip a friendlier name with entries such as `Cafe Wifi = Cafe`; the full
+palette always retains the real SSID. Settings includes Wi-Fi, wired and
+offline preview states.
+
 ## Keyboard
 
 | keys | action |
@@ -62,6 +72,7 @@ Settings, `[extensions.network]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `public_ip_url` | text | `https://ipinfo.io/json` | The endpoint the public IP row asks. Empty: no Internet section. `https://api.ipify.org` (a bare address) and `http://ip-api.com/json` work too. |
+| `ssid_labels` | list | `[]` | Friendly strip names as `SSID = label`; only the bar uses the label. |
 
 ## What it does not do
 

@@ -10,10 +10,10 @@
 // PATH).
 import { readFile } from "node:fs/promises";
 import { hostname } from "node:os";
-import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCore, type Action, type Ctx, type Detail, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCore, type Action, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 
 /** `[extensions.network]`, default in pal.json. */
-type Settings = { public_ip_url: string };
+type Settings = { public_ip_url: string; ssid_labels?: unknown[] };
 
 const OS = process.env.PAL_NETWORK_OS ?? process.platform;
 const MAC = OS === "darwin";
@@ -220,12 +220,48 @@ function rows(s: Snapshot, withPublic: boolean): Item[] {
   return out;
 }
 
-async function snapshot(ctx?: Ctx): Promise<{ s: Snapshot; withPublic: boolean }> {
+async function snapshot(ctx?: Ctx, includePublic = true): Promise<{ s: Snapshot; withPublic: boolean }> {
   const url = settings.get<Settings>().public_ip_url?.trim();
-  const [base, tailscale, pub] = await Promise.all([MAC ? macSnapshot() : linuxSnapshot(), tailscaleIps(), url ? publicIp(url, !!ctx?.refresh) : undefined]);
+  const [base, tailscale, pub] = await Promise.all([MAC ? macSnapshot() : linuxSnapshot(), tailscaleIps(), includePublic && url ? publicIp(url, !!ctx?.refresh) : undefined]);
   // The tunnel interface carrying the Tailscale addresses (utun4, tailscale0) says nothing the Tailscale rows do not.
   const ifaces = base.ifaces.filter((i) => !tailscale.length || [...i.v4, ...i.v6].some((a) => !tailscale.includes(a)));
   return { s: { ...base, ifaces, tailscale, host: hostname(), public: pub }, withPublic: !!url };
+}
+
+/** `SSID = familiar name` entries turn an unwieldy router name into what its owner calls it. */
+function ssidLabel(ssid: string | undefined): string | undefined {
+  if (!ssid) return;
+  for (const value of settings.get<Settings>().ssid_labels ?? []) {
+    if (typeof value !== "string") continue;
+    const [name, label] = value.split(/\s*=\s*/, 2).map((s) => s.trim());
+    if (name === ssid && label) return label;
+  }
+}
+
+/** The one interface the compact strip speaks for: default-route first. */
+function active(s: Snapshot): Iface | undefined {
+  return s.ifaces.find((i) => i.name === s.gateway?.dev) ?? s.ifaces.find((i) => i.kind === "Wi-Fi" && i.up) ?? s.ifaces.find((i) => i.up) ?? s.ifaces[0];
+}
+
+async function statusBar(): Promise<BarItem> {
+  try {
+    const { s } = await snapshot(undefined, false);
+    const i = active(s);
+    if (!s.gateway) return { icon: GLYPH.wifi, title: "Offline", color: "red", tooltip: "No default route", click: "open", menu: { palette: "network" } };
+    if (!i) return { icon: GLYPH.wired, title: "Connected", tooltip: `Gateway ${s.gateway.ip}`, click: "open", menu: { palette: "network" } };
+    const wifi = i.kind === "Wi-Fi";
+    const title = wifi ? (ssidLabel(i.ssid) ?? i.ssid ?? "Wi-Fi") : (i.kind ?? i.name);
+    const address = i.v4[0] ?? i.v6[0];
+    return { icon: wifi ? GLYPH.wifi : GLYPH.wired, title, tooltip: [i.name, i.ssid && ssidLabel(i.ssid), address, `Gateway ${s.gateway.ip}`].filter(Boolean).join(" · "), click: "open", menu: { palette: "network" } };
+  } catch { return { hidden: true }; }
+}
+
+async function openNetworkSettings(): Promise<Effect> {
+  if (MAC) return { open: MAC_SETTINGS_URL };
+  const tool = LINUX_SETTINGS.find((t) => Bun.which(t[0]));
+  if (!tool) return toast("No network settings app", "None of gnome-control-center, systemsettings, nm-connection-editor is installed", "failure");
+  spawnDetached(tool);
+  return { hide: true };
 }
 
 /** A row's value and detail; after a restart the panel shows the restored listing before this extension has listed, so gather once more for an id not seen. */
@@ -249,17 +285,14 @@ export default {
         return rows(s, withPublic);
       },
       pick: async (id, action) => {
-        if (action === "settings") {
-          if (MAC) return { open: MAC_SETTINGS_URL };
-          const tool = LINUX_SETTINGS.find((t) => Bun.which(t[0]));
-          if (!tool) return toast("No network settings app", "None of gnome-control-center, systemsettings, nm-connection-editor is installed", "failure");
-          spawnDetached(tool);
-          return { hide: true };
-        }
+        if (action === "settings") return openNetworkSettings();
         const value = (await lookup(id))?.value;
         return value === undefined ? toast("Row is gone", "The rows were listed again", "failure") : { copy: value };
       },
       detail: async (id) => (await lookup(id))?.detail,
     },
+  },
+  bar: {
+    status: { render: statusBar, onOpen: openNetworkSettings },
   },
 } satisfies Extension;

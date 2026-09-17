@@ -15,6 +15,13 @@
       "description": "Fetched with a 3 s timeout and kept 10 minutes; JSON with `ip` (and `city`, `country`, `org` when it has them) or a bare address. Empty: no public IP row.",
       "placeholder": "https://ipinfo.io/json",
       "default": "https://ipinfo.io/json"
+    },
+    {
+      "kind": "list",
+      "id": "ssid_labels",
+      "label": "SSID labels",
+      "description": "Optional friendly names as `SSID = label`, for example `Cafe Wifi = Cafe`. The Network bar uses the label; the palette still shows the real SSID.",
+      "default": []
     }
   ],
   "store": {
@@ -82,6 +89,18 @@
           "title": "Open Network settings"
         }
       ]
+    }
+  },
+  "bar": {
+    "status": {
+      "title": "Network status",
+      "description": "The active Wi-Fi name or wired interface. Click opens Network Settings; the popover opens the Network palette.",
+      "refresh": { "every": 5, "on": ["network", "wake"] },
+      "mocks": {
+        "wifi": { "title": "Named Wi-Fi", "item": { "icon": "󰖩", "title": "Cafe", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Gateway 192.168.1.1" } },
+        "wired": { "title": "Wired", "item": { "icon": "󰈀", "title": "Ethernet", "tooltip": "en5 · 10.0.0.7 · Gateway 10.0.0.1" } },
+        "offline": { "title": "No route", "item": { "icon": "󰖪", "title": "Offline", "color": "red", "tooltip": "No default route" } }
+      }
     }
   }
 }

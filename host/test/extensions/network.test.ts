@@ -131,13 +131,20 @@ describe("network on macOS tools", () => {
       tailscale: `[ "$1" = ip ] && printf '100.67.72.103\\nfd7a:115c:a1e0::503b:4868\\n'`,
     });
     dirs.push(bin);
-    host = await withPath(bin, "darwin", {}, { public_ip_url: url("/json") });
+    host = await withPath(bin, "darwin", {}, { public_ip_url: url("/json"), ssid_labels: ["Cafe Wifi = Cafe"] });
   });
   afterAll(() => host.kill());
   const list = (ctx?: { refresh?: boolean }) => host.list("network", "network", undefined, ctx);
 
   test("meta: live with a minute's ttl, opens with the detail pane, lazy detail", () => {
-    expect(host.loaded().find((l) => l.extension === "network")!.palettes).toEqual([{ name: "network", title: "Network", live: true, input: false, icon: tile("cyan", "\u{f0317}"), showDetail: true, placeholder: "Address, interface, DNS", detail: "lazy", ttl: 60 }]);
+    const loaded = host.loaded().find((l) => l.extension === "network")!;
+    expect(loaded.palettes).toEqual([{ name: "network", title: "Network", live: true, input: false, icon: tile("cyan", "\u{f0317}"), showDetail: true, placeholder: "Address, interface, DNS", detail: "lazy", ttl: 60 }]);
+    expect(loaded.bar).toMatchObject([{ id: "status", title: "Network status", refresh: { every: 5, on: ["network", "wake"] }, mocks: { offline: { item: { color: "red" } } }, source: true }]);
+  });
+
+  test("bar: uses a friendly SSID label and opens Network Settings directly", async () => {
+    expect(await host.render("network", "status")).toMatchObject({ icon: "\u{f05a9}", title: "Cafe", tooltip: "en0 · Cafe · 192.168.1.131 · Gateway 192.168.1.1", click: "open", menu: { palette: "network" } });
+    expect(await host.request<any>("bar/open", { extension: "network", id: "status" })).toEqual({ open: "x-apple.systempreferences:com.apple.Network-Settings.extension" });
   });
 
   test("rows: the value is the name, the label the subtitle, three sections; the tunnel carrying the Tailscale addresses is folded into the Tailscale rows", async () => {
