@@ -39,11 +39,17 @@ but do not revive rows that conflict with it.
 - **B2 runtime appearance:** an item can dynamically supply a background, separate
   icon/label sizes, icon width and sketchybar position. Menu bar uses the separate
   sizes where it can; background, icon width and placement are sketchybar-only.
+- **GitHub Pull requests and Issues:** now two independent items using their existing
+  cached palette queries. PRs show red attention, amber active, green ready and muted
+  waiting counts; Issues distinguish assigned, mentioned and authored. Each hides at
+  zero, has Settings mock states, and opens its existing palette on click. No brackets,
+  separators, combined GitHub item or parallel data path.
 
 ### Next, in order
 
-1. **Actual extension rows:** start with existing Timer/Audio/Network/GitHub surfaces;
-   Spotify already uses B6 scroll for next/previous.
+1. **Remaining extension rows:** weather and a future battery/power and Bluetooth
+   battery extension are the next substantive candidates. Spotify already uses B6
+   scroll for next/previous.
 
 ### Explicitly deferred
 
@@ -214,8 +220,8 @@ as parallel agents.
 
 | # | extension, item | what to add | size | ∥ |
 | --- | --- | --- | --- | --- |
-| E1 | `github/prs` (new bar item) | `data.ts`: `viewerPermission`, `latestReviews`, `reviews(CHANGES_REQUESTED)`, `reviewThreads`, `mergeStateStatus`, per-context checks; port `klass` (`gh-prs:122-155`), `lane` / `sect` / `why` (`gh-prs:162-225`), the `oss_since` watermark and archived-repo drop as settings; `render`: lead glyph `\u{f062c}` muted, segments in the fixed order with a `│` segment only when both lanes have rows, hidden only with nothing open, `refresh: 60` while any `run`, `stale`; popover `view.ts`: the seven sections, `repo #N title` / `why · age`, Enter opens, Open GitHub with "checked 3 m ago"; `prs` palette reuses the same classification for its tags. Off-clock filter through `ctx.gates.working` (B5) or a `work_repos` + `dek` setting meanwhile. | L | ∥ |
-| E2 | `github/issues` (new bar item) | `data.ts`: notifications filtered to `subject.type == "Issue"`, `skip_reasons` setting (`subscribed ci_activity`), the author-only `issues_since` watermark, the assigned search partitioned; `render`: `\u{f041b}` muted + segments [`@ n` red, `n` text], hidden at 0; popover NEW / ASSIGNED rows, Enter marks read (PATCH) and opens, then `bar.refresh`. Same off-clock filter as E1. | M | ∥ |
+| E1 | `github/prs` (new bar item) | **done:** independent PR item over the existing `prs` cache and palette, with deduped open PRs; red attention / amber active / green ready / muted waiting segments, hidden at zero, refreshes at 60 seconds only while checks run, Settings mocks. No combined cluster or separators. Deeper Sketchybar-era workflow classification can be considered separately if it proves useful. | M | — |
+| E2 | `github/issues` (new bar item) | **done:** independent Issues item over the existing `issues` cache and palette, deduped into assigned / mentioned / authored segments, hidden at zero, Settings mocks. No combined cluster or separators. | S | — |
 | E3 | `slack/unreads` | `dm_urgent` gains a `mention` case (red on `dm + mention`); `when = "working"` is config once B5 lands. | S | ∥ |
 | E4 | `gmail/unread` | nothing in code; config: `show_title = false` for `gmail@work/unread`, `when = "working"` (B5). Optional `badge_style = "title"` idea dropped: his count-in-label look is section 5's `[bar.sketchybar.colors]` + `badge_style`. | 0 | |
 | E5 | `timer/timer` | `background: "destructive-soft"` on done (B2), `click: "open"` + `onOpen` dismissing a done timer (B1), `bar_name` setting adding `  tea  +1`, `escalation = "seconds"` setting (60 s peach / 10 s red) or leave his fraction rule; rule size via `icon_size` (B2). | S | after B1, B2 |

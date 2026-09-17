@@ -238,6 +238,44 @@
     }
   },
   "bar": {
+    "prs": {
+      "title": "Pull requests",
+      "description": "Separate PR status item: red needs attention, amber is awaiting review or checks, green is ready to merge, muted is waiting. Click opens Pull Requests.",
+      "mocks": {
+        "attention": {
+          "title": "Needs attention",
+          "item": { "icon": "", "segments": [{ "id": "blocked", "text": "×2", "color": "red" }, { "id": "waiting", "text": "·1", "color": "muted" }], "tooltip": "3 open pull requests" }
+        },
+        "ready": {
+          "title": "Ready to merge",
+          "item": { "icon": "", "segments": [{ "id": "ready", "text": "✓1", "color": "green" }], "tooltip": "1 open pull request" }
+        },
+        "clear": {
+          "title": "No open pull requests",
+          "item": { "hidden": true }
+        }
+      },
+      "refresh": { "every": 300, "on": ["show", "wake", "network"] }
+    },
+    "issues": {
+      "title": "Issues",
+      "description": "Separate Issues status item: assigned, mentioned, and your own open issues use distinct colours. Click opens Issues.",
+      "mocks": {
+        "assigned": {
+          "title": "Assigned and mentioned",
+          "item": { "icon": "", "segments": [{ "id": "assigned", "text": "@2", "color": "blue" }, { "id": "mentioned", "text": "@1", "color": "amber" }], "tooltip": "3 open issues" }
+        },
+        "mine": {
+          "title": "Your open issues",
+          "item": { "icon": "", "segments": [{ "id": "created", "text": "·1", "color": "muted" }], "tooltip": "1 open issue" }
+        },
+        "clear": {
+          "title": "No open issues",
+          "item": { "hidden": true }
+        }
+      },
+      "refresh": { "every": 300, "on": ["show", "wake", "network"] }
+    },
     "notifications": {
       "title": "Notifications",
       "description": "The unread count as a badge, hidden at zero; the popover lists the unread threads by repository with their reason, opens or marks them read, marks all read.",

@@ -471,7 +471,11 @@ describe("github", () => {
 
   describe("bar: notifications", () => {
     test("meta: the manifest entry with its refresh, backed by the code", () => {
-      expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual([{ id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: { unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, clear: { title: "All caught up", item: { hidden: true } } }, keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true }]);
+      expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual(expect.arrayContaining([
+        { id: "prs", title: "Pull requests", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ attention: expect.any(Object), ready: expect.any(Object), clear: expect.any(Object) }), source: true },
+        { id: "issues", title: "Issues", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ assigned: expect.any(Object), mine: expect.any(Object), clear: expect.any(Object) }), source: true },
+        { id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: { unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, clear: { title: "All caught up", item: { hidden: true } } }, keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true },
+      ]));
     });
 
     test("render: the unread count as the badge, the popover a view of the threads by repository with a reason badge, the age and the key hints", async () => {
@@ -562,6 +566,19 @@ describe("github", () => {
         // Mark all read forgot the cache, so this render fetches.
         expect(await host.render("github", "notifications", { reason: "every" })).toEqual({ hidden: true });
       } finally { NOTIFICATIONS.forEach((n, i) => { n.unread = unread[i]; }); }
+    });
+  });
+
+  describe("bar: pull requests and issues", () => {
+    test("each is an independent compact status item over its existing palette cache", async () => {
+      expect(await host.render("github", "prs", { reason: "load" })).toMatchObject({
+        icon: "\uf407", tooltip: "3 open pull requests", menu: { palette: "prs" },
+        segments: [{ id: "blocked", text: "×2", color: "red" }, { id: "waiting", text: "·1", color: "muted" }],
+      });
+      expect(await host.render("github", "issues", { reason: "load" })).toMatchObject({
+        icon: "\uf41b", tooltip: "2 open issues", menu: { palette: "issues" },
+        segments: [{ id: "assigned", text: "@1", color: "blue" }, { id: "mentioned", text: "@1", color: "amber" }],
+      });
     });
   });
 

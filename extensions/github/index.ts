@@ -6,13 +6,15 @@
 // knows what it is about: the row table is in memory, the cache behind it
 // on disk, and a PR or issue no table knows is fetched by its id. One bar
 // item, `notifications`: the unread count as a badge over the same cache.
+// `prs` and `issues` are separate semantic status items over their palette
+// caches; they deliberately do not make a combined GitHub cluster.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { clock, errorMessage, failed, hint, home, run, tinted, toast, truncate, when, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
-  type Issue, type IssueDetail, type Notification, type PR, type PRDetail, type Repo, type SearchKind, type User,
+  type Issue, type IssueDetail, type IssueLists, type Notification, type PR, type PRDetail, type PRLists, type Repo, type SearchKind, type User,
 } from "./data.ts";
 import { render as renderNotifs, shown as shownNotifs, type NotifState } from "./view.ts";
 
@@ -208,6 +210,44 @@ async function prRows(ctx?: Ctx): Promise<Item[]> {
   return rows;
 }
 
+/** Open PRs occur in both searches when they overlap; a bar count must count a PR once. */
+function uniquePrs(lists: PRLists): PR[] {
+  const seen = new Set<string>();
+  return [...lists.mine, ...lists.reviews].filter((pr) => pr.state === "open" && !seen.has(pr.id) && (seen.add(pr.id), true));
+}
+
+const failedChecks = (pr: PR) => pr.checks === "FAILURE" || pr.checks === "ERROR";
+const runningChecks = (pr: PR) => pr.checks === "PENDING" || pr.checks === "EXPECTED";
+const blockedPr = (pr: PR) => pr.mergeable === "CONFLICTING" || failedChecks(pr) || pr.review === "CHANGES_REQUESTED";
+
+/** A small, stateful PR strip: red needs intervention, amber is active, green can merge, muted is waiting. */
+async function prsItem(ctx: BarCtx): Promise<BarItem> {
+  let lists: PRLists;
+  try { lists = await prs(ctx.reason === "show" || ctx.reason === "wake" || ctx.reason === "network"); } catch (e) {
+    if (e instanceof AuthError) return { hidden: true };
+    throw e;
+  }
+  const list = uniquePrs(lists);
+  if (!list.length) return { hidden: true };
+  const blocked = list.filter(blockedPr);
+  const active = list.filter((pr) => !blockedPr(pr) && (runningChecks(pr) || pr.review === "REVIEW_REQUIRED"));
+  const ready = list.filter((pr) => !blockedPr(pr) && pr.checks === "SUCCESS" && pr.review === "APPROVED" && pr.mergeable === "MERGEABLE");
+  const waiting = list.length - blocked.length - active.length - ready.length;
+  const segments = [
+    ...(blocked.length ? [{ id: "blocked", text: `×${blocked.length}`, color: "red" as const, tooltip: `${blocked.length} PR${blocked.length === 1 ? "" : "s"} needs attention` }] : []),
+    ...(active.length ? [{ id: "active", text: `…${active.length}`, color: "amber" as const, tooltip: `${active.length} PR${active.length === 1 ? "" : "s"} awaiting review or checks` }] : []),
+    ...(ready.length ? [{ id: "ready", text: `✓${ready.length}`, color: "green" as const, tooltip: `${ready.length} PR${ready.length === 1 ? "" : "s"} ready to merge` }] : []),
+    ...(waiting ? [{ id: "waiting", text: `·${waiting}`, color: "muted" as const, tooltip: `${waiting} PR${waiting === 1 ? "" : "s"} waiting` }] : []),
+  ];
+  return {
+    icon: ICON.prs,
+    segments,
+    tooltip: `${list.length} open pull request${list.length === 1 ? "" : "s"}`,
+    menu: { palette: "prs" },
+    ...(list.some(runningChecks) ? { refresh: 60 } : {}),
+  };
+}
+
 // ---- issues ---------------------------------------------------------------
 
 const issueTable = new Map<string, Issue>();
@@ -336,6 +376,39 @@ async function issueRows(ctx?: Ctx): Promise<Item[]> {
   if (filter === "all" || filter === "created") add(lists.created, "Created");
   if (rows.length === 1) rows.push(hint("none", "No open issues", filter === "all" ? "None assigned to you, mentioning you, or opened by you" : undefined));
   return rows;
+}
+
+/** Each open issue appears once, in its most direct relationship category. */
+function uniqueIssues(lists: IssueLists): { issue: Issue; kind: "assigned" | "mentioned" | "created" }[] {
+  const seen = new Set<string>();
+  const out: { issue: Issue; kind: "assigned" | "mentioned" | "created" }[] = [];
+  for (const [kind, list] of [["assigned", lists.assigned], ["mentioned", lists.mentioned], ["created", lists.created]] as const) {
+    for (const issue of list) if (issue.state === "open" && !seen.has(issue.id)) { seen.add(issue.id); out.push({ issue, kind }); }
+  }
+  return out;
+}
+
+/** Assigned, mentioned, and authored are separate colours, while this remains a single independent Issues item. */
+async function issuesItem(ctx: BarCtx): Promise<BarItem> {
+  let lists: IssueLists;
+  try { lists = await issues(ctx.reason === "show" || ctx.reason === "wake" || ctx.reason === "network"); } catch (e) {
+    if (e instanceof AuthError) return { hidden: true };
+    throw e;
+  }
+  const list = uniqueIssues(lists);
+  if (!list.length) return { hidden: true };
+  const count = (kind: "assigned" | "mentioned" | "created") => list.filter((x) => x.kind === kind).length;
+  const assigned = count("assigned"), mentioned = count("mentioned"), created = count("created");
+  return {
+    icon: ICON.issues,
+    segments: [
+      ...(assigned ? [{ id: "assigned", text: `@${assigned}`, color: "blue" as const, tooltip: `${assigned} issue${assigned === 1 ? "" : "s"} assigned to you` }] : []),
+      ...(mentioned ? [{ id: "mentioned", text: `@${mentioned}`, color: "amber" as const, tooltip: `${mentioned} issue${mentioned === 1 ? "" : "s"} mentioning you` }] : []),
+      ...(created ? [{ id: "created", text: `·${created}`, color: "muted" as const, tooltip: `${created} issue${created === 1 ? "" : "s"} opened by you` }] : []),
+    ],
+    tooltip: `${list.length} open issue${list.length === 1 ? "" : "s"}`,
+    menu: { palette: "issues" },
+  };
 }
 
 // ---- repositories --------------------------------------------------------
@@ -768,5 +841,7 @@ export default {
   },
   bar: {
     notifications: { render: notifItem, onAction: notifAction },
+    prs: { render: prsItem },
+    issues: { render: issuesItem },
   },
 } satisfies Extension;
