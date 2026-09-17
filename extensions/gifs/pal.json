@@ -1,24 +1,19 @@
 {
   "name": "gifs",
   "title": "GIFs",
-  "description": "Search Tenor or Giphy from the panel: a grid of animated previews, trending while nothing is typed. Enter puts the GIF file on the clipboard (it pastes as a picture), cmd+Enter copies its url, cmd+o opens the page, cmd+s saves it to Downloads, cmd+f keeps it in a Favourites grid.",
+  "description": "Search Giphy from the panel: a grid of animated previews, trending while nothing is typed. Enter puts the GIF file on the clipboard (it pastes as a picture), cmd+Enter copies its url, cmd+o opens the page, cmd+s saves it to Downloads, cmd+f keeps it in a Favourites grid.",
   "version": "0.1.0",
   "icon": { "tile": { "glyph": "󰵸", "bg": "pink" } },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
   "settings": [
-    { "kind": "select", "id": "backend", "label": "Backend", "description": "Where the GIFs come from; each needs its own free key.", "options": [
-      { "id": "tenor", "title": "Tenor (Google)" },
-      { "id": "giphy", "title": "Giphy" }
-    ], "default": "tenor" },
-    { "kind": "secret", "id": "tenor_api_key", "label": "Tenor API key", "description": "A Google Cloud API key with the Tenor API enabled on its project (console.cloud.google.com › APIs & Services › Enable APIs › Tenor API › Credentials). Free, no billing.", "placeholder": "AIza…", "default": "" },
-    { "kind": "secret", "id": "giphy_api_key", "label": "Giphy API key", "description": "From developers.giphy.com › Create an App (API, not SDK). Free; only read when the backend is Giphy.", "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "default": "" },
-    { "kind": "select", "id": "content_filter", "label": "Content filter", "description": "Tenor's `contentfilter` / Giphy's `rating`: what the results may show.", "options": [
-      { "id": "off", "title": "Off (Tenor off, Giphy R)" },
-      { "id": "low", "title": "Low (Giphy PG-13)" },
-      { "id": "medium", "title": "Medium (Giphy PG)" },
-      { "id": "high", "title": "High (Giphy G)" }
+    { "kind": "secret", "id": "giphy_api_key", "label": "Giphy API key", "description": "From developers.giphy.com › Create an App (API, not SDK). Free, with a rate limit.", "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "default": "" },
+    { "kind": "select", "id": "content_filter", "label": "Content filter", "description": "Giphy's `rating`: what the results may show.", "options": [
+      { "id": "off", "title": "Off (R)" },
+      { "id": "low", "title": "Low (PG-13)" },
+      { "id": "medium", "title": "Medium (PG)" },
+      { "id": "high", "title": "High (G)" }
     ], "default": "medium" },
     { "kind": "path", "id": "save_to", "label": "Save to", "pick": "folder", "description": "Where cmd+s writes the GIF, named after its title.", "placeholder": "~/Downloads", "default": "~/Downloads" }
   ],
@@ -26,7 +21,7 @@
     "tagline": "Search GIFs, paste the file",
     "category": "fun",
     "features": [
-      "A grid of animated previews from Tenor (or Giphy), searched 300 ms after the last key; the trending list while nothing is typed",
+      "A grid of animated previews from Giphy, searched 300 ms after the last key; the trending list while nothing is typed",
       "`enter` downloads the GIF and puts the file on the clipboard, so it pastes as a picture into Slack, Messages or a document; `cmd+enter` copies the url instead",
       "`cmd+o` opens the GIF's page, `cmd+s` saves the file to Downloads (or `save_to`) named after its title, `cmd+f` keeps it in Favourites",
       "Favourite GIFs is a grid of its own with the same actions and Remove; its rows are at the root, so a favourite is found by name",
@@ -36,7 +31,7 @@
     "permissions": ["network"],
     "platforms": ["macos", "linux"],
     "screenshots": [
-      { "file": "1-trending.png", "caption": "Nothing typed: Tenor's trending GIFs as a grid" },
+      { "file": "1-trending.png", "caption": "Nothing typed: Giphy's trending GIFs as a grid" },
       { "file": "2-search.png", "caption": "cat typing: the results, the detail pane with the preview and the size" },
       { "file": "3-actions.png", "caption": "What a GIF can do: copy the file, copy the url, open, save, favourite" },
       { "file": "4-favourites.png", "caption": "Favourite GIFs: what cmd+f kept" },
@@ -45,7 +40,7 @@
     "actions": [
       { "title": "Copy GIF", "description": "Downloads the GIF into the cache and puts the file on the clipboard.", "keys": "enter" },
       { "title": "Copy URL", "description": "The GIF file's url.", "keys": "cmd+enter" },
-      { "title": "Open in browser", "description": "The GIF's page on tenor.com or giphy.com.", "keys": "cmd+o" },
+      { "title": "Open in browser", "description": "The GIF's page on giphy.com.", "keys": "cmd+o" },
       { "title": "Save to Downloads", "description": "The file written to `save_to`, named after its title.", "keys": "cmd+s" },
       { "title": "Add to favourites", "keys": "cmd+f" },
       { "title": "Remove from favourites", "description": "In the Favourites grid.", "keys": "cmd+d" }

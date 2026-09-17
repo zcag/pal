@@ -1,7 +1,7 @@
-// GIFs: an input grid over Tenor (or Giphy): trending while nothing is
-// typed, a search 300 ms after the last key, each tile the GIF's small
-// animated preview (downloaded once into the cache directory and sent as
-// a data url, so the grid animates and the second look costs nothing).
+// GIFs: an input grid over Giphy: trending while nothing is typed, a
+// search 300 ms after the last key, each tile the GIF's small animated
+// preview (downloaded once into the cache directory and sent as a data
+// url, so the grid animates and the second look costs nothing).
 // Enter downloads the GIF into the cache and puts the file on the
 // clipboard (`copy_files`: it pastes as a picture), cmd+Enter copies the
 // url, cmd+o opens the page, cmd+s saves it to Downloads, cmd+f keeps it
@@ -11,10 +11,10 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { errorMessage, hint, home, settings, storage, toast, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
-import { BACKEND_NAME, FETCH_MS, fileName, GifError, mimeOf, search, type Backend, type Filter, type Gif } from "./backends.ts";
+import { BACKEND_NAME, FETCH_MS, fileName, GifError, mimeOf, search, type Filter, type Gif } from "./backends.ts";
 
 /** `[extensions.gifs]`, defaults in pal.json. */
-type Settings = { backend: Backend; tenor_api_key: string; giphy_api_key: string; content_filter: Filter; save_to: string };
+type Settings = { giphy_api_key: string; content_filter: Filter; save_to: string };
 type PaletteSettings = { columns: number };
 
 /** Material Design glyphs from the bundled Nerd Font; the tile's pink tints them. */
@@ -44,7 +44,7 @@ const HOME = home("~");
 const CACHE = process.env.PAL_GIFS_CACHE || (MAC ? `${HOME}/Library/Caches/pal/gifs` : `${process.env.XDG_CACHE_HOME || `${HOME}/.cache`}/pal/gifs`);
 
 const S = () => settings.get<Settings>();
-const keyOf = (s: Settings) => (s.backend === "giphy" ? s.giphy_api_key : s.tenor_api_key) ?? "";
+const SOURCE = BACKEND_NAME.giphy;
 
 // ---- files -----------------------------------------------------------------------
 
@@ -130,23 +130,23 @@ async function list(query = "", ctx?: Ctx): Promise<Item[]> {
     await Bun.sleep(DEBOUNCE_MS);
     if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
   }
-  const key = `${s.backend}|${s.content_filter}|${q}`;
+  const key = `${s.content_filter}|${q}`;
   try {
     let gifs = cache.get(key);
     if (!gifs) {
-      gifs = await search(s.backend, q, keyOf(s), s.content_filter ?? "medium");
+      gifs = await search(q, s.giphy_api_key ?? "", s.content_filter ?? "medium");
       if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
       cache.set(key, gifs);
     }
     if (my !== seq) return [hint("wait", "Searching…", q, { icon: GLYPH.wait })];
-    if (!gifs.length) return [hint("none", `No GIFs for “${q}”`, BACKEND_NAME[s.backend])];
+    if (!gifs.length) return [hint("none", `No GIFs for “${q}”`, SOURCE)];
     const rows = await Promise.all(gifs.map((g) => item(g, RESULT_ACTIONS)));
     if (!q) for (const r of rows) r.section = "Trending";
     return rows;
   } catch (e) {
     const ge = e instanceof GifError ? e : undefined;
     console.error(`[gifs] ${ge?.message ?? e}`);
-    return [hint("failed", ge ? ge.hint : `Could not search: ${errorMessage(e)}`, q || BACKEND_NAME[s.backend], { icon: GLYPH.alert })];
+    return [hint("failed", ge ? ge.hint : `Could not search: ${errorMessage(e)}`, q || SOURCE, { icon: GLYPH.alert })];
   }
 }
 

@@ -1,5 +1,5 @@
 // Writes app/src/gallery/shots/gifs.json, the store screenshots' fixture:
-// the grid listed through the host harness against the Tenor mock
+// the grid listed through the host harness against the Giphy mock
 // (host/test/extensions/gifs-mock.ts), whose "GIFs" are generated
 // pictures, with a favourites list of two. Nothing is the owner's.
 // `bun run extensions/gifs/fixture.ts`, then `node app/scripts/shots.mjs gifs`.
@@ -12,10 +12,10 @@ import type { Item } from "../../sdk/src/protocol.ts";
 
 const { server, base } = startMock();
 const cache = mkdtempSync(join(tmpdir(), "pal-gifs-fixture-"));
-process.env.PAL_GIFS_TENOR = base;
+process.env.PAL_GIFS_GIPHY = base;
 process.env.PAL_GIFS_CACHE = cache;
 stored.clear();
-const host = await Host.bundled({ settings: { gifs: { settings: { tenor_api_key: "good" } } } });
+const host = await Host.bundled({ settings: { gifs: { settings: { giphy_api_key: "good" } } } });
 try {
   const l = host.loaded().find((l) => l.extension === "gifs")!;
   const [gifs, favourites] = l.palettes;
@@ -26,7 +26,7 @@ try {
   await host.pick("gifs", "gifs", cat[0].id, "fav");
   await host.pick("gifs", "gifs", trending[2].id, "fav");
   const favs = inline(await host.list("gifs", "favourites"));
-  host.changeSettings("gifs", { settings: { tenor_api_key: "" } });
+  host.changeSettings("gifs", { settings: { giphy_api_key: "" } });
   const noKey = await host.list("gifs", "gifs", "");
   const meta = { icon: gifs.icon, input: true, view: "grid", columns: gifs.columns, placeholder: gifs.placeholder };
   const fixture = {

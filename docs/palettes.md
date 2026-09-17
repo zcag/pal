@@ -3644,11 +3644,11 @@ Settings, `[extensions.downloads]`:
 
 ## GIFs (`gifs`, `gifs-favourites`)
 
-Tenor (or Giphy) searched from the panel, from `extensions/gifs/`. An
-input grid: what is typed is searched 300 ms after the last key, nothing
-typed lists what is trending under a Trending section, and every tile is
-the GIF's small animated preview (Tenor's `nanogif`, Giphy's
-`fixed_height_small`), fetched once into the cache directory
+Giphy searched from the panel, from `extensions/gifs/`. An input grid:
+what is typed is searched 300 ms after the last key, nothing typed lists
+what is trending under a Trending section, and every tile is the GIF's
+small animated preview (Giphy's `fixed_height_small`), fetched once into
+the cache directory
 (`~/Library/Caches/pal/gifs`, `$XDG_CACHE_HOME/pal/gifs`) and sent as a
 data url. `Enter` downloads the GIF into the cache, named after its
 title, and puts the **file** on the clipboard (`copy_files`), so it
@@ -3662,17 +3662,16 @@ what `⌘F` kept, newest first, the last 200 in `storage`, with the same
 actions and `⌘D` to remove; the last row clears it after a confirm
 card.
 
-Backends: Tenor v2 with a Google Cloud API key that has the Tenor API
-enabled (free, no billing), or Giphy with a key from developers.giphy.com;
-without one the grid is one row saying which setting to fill and where
-the key comes from. `content_filter` is Tenor's `contentfilter` and
-Giphy's `rating` in one setting.
+The key is a Giphy app key from developers.giphy.com (Create an App,
+API); without one the grid is one row saying which setting to fill and
+where the key comes from. `content_filter` is Giphy's `rating`: `off`
+(R), `low` (PG-13), `medium` (PG), `high` (G).
 
 | keys | action |
 | --- | --- |
 | `enter` | Copy the GIF file |
 | `cmd+enter` | Copy the url |
-| `cmd+o` | Open the page on tenor.com or giphy.com |
+| `cmd+o` | Open the page on giphy.com |
 | `cmd+s` | Save to Downloads (`save_to`) |
 | `cmd+f` | Add to favourites |
 | `cmd+d` | Favourites: remove |
@@ -3681,15 +3680,13 @@ Settings, `[extensions.gifs]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `backend` | `tenor`, `giphy` | `tenor` | Where the GIFs come from. |
-| `tenor_api_key` | secret | empty | The Google Cloud key with the Tenor API enabled. |
-| `giphy_api_key` | secret | empty | The Giphy key. |
+| `giphy_api_key` | secret | empty | The Giphy app key. |
 | `content_filter` | `off`, `low`, `medium`, `high` | `medium` | What the results may show. |
 | `save_to` | folder | `~/Downloads` | Where `cmd+s` writes the file. |
 
 `[palettes.gifs.settings] columns` (3 to 10, default 6) is the tiles per
-row of both grids. For the tests, `PAL_GIFS_TENOR` and `PAL_GIFS_GIPHY`
-replace the hosts and `PAL_GIFS_CACHE` the cache directory.
+row of both grids. For the tests, `PAL_GIFS_GIPHY` replaces the host and
+`PAL_GIFS_CACHE` the cache directory.
 
 ## Maps (`maps`)
 

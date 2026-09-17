@@ -18,7 +18,7 @@ line says what the Raycast one does and how it would fit pal. Status:
 | [Image Modification](https://www.raycast.com/HelloImSteven/sips) | Rotate, flip, resize, convert, strip EXIF via sips | todo | Same `images` extension as TinyPNG |
 | [Shell](https://www.raycast.com/asubbotin/shell) | Run a shell command, show output | todo | `shell` palette: input mode, output as a view, history, run in terminal |
 | [Downloads Manager](https://www.raycast.com/thomas/downloads-manager) | Latest downloads, open/reveal/delete, copy | partial | Files has recents; a Downloads palette newest first with size and quick actions |
-| [GIF Search](https://www.raycast.com/josephschmitt/gif-search) | Giphy/Tenor search, copy GIF | todo | Grid palette over Tenor (free key), copy file or URL |
+| [GIF Search](https://www.raycast.com/josephschmitt/gif-search) | Giphy/Tenor search, copy GIF | todo | Grid palette over Giphy (free key), copy file or URL; Tenor is gone (API shut down 2026-06-30) |
 | [YouTube](https://www.raycast.com/tonka3000/youtube) | Search videos and channels | todo | Search rows with thumbnails, open; needs an API key or Invidious |
 | [Pomodoro](https://www.raycast.com/asubbotin/pomodoro) | Focus intervals with a menu bar countdown | have | Timer's pomodoro mode (2026-09-17): work/break/long-break cycle on the CLI's timers, skip and stop, a per-day count |
 | [Timers](https://www.raycast.com/ThatNerd/timers) | Named timers, presets, alarms | have | Timer extension |
