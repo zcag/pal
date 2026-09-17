@@ -482,7 +482,7 @@ describe("spotify, signed in", () => {
     test("the strip shows the lyric line playing, the popover is the compact view, and the render asks to come back at the next line; hidden while paused; the track name without bar_lyrics", async () => {
       await pick("now-playing", "now", "retry");
       const item = await h.render("spotify", "playing", { reason: "show" });
-      expect(item).toMatchObject({ icon: "\u{f04c7}", title: "Your eyes", tooltip: "Radiohead - Weird Fishes/ Arpeggi (hornet)" });
+      expect(item).toMatchObject({ icon: "\u{f04c7}", title: "Your eyes", tooltip: "Radiohead - Weird Fishes/ Arpeggi (hornet)", scroll: { up: "next", down: "previous" } });
       expect(item.refresh).toBeGreaterThanOrEqual(1);
       expect(item.refresh).toBeLessThanOrEqual(7);
       const view = (item.menu as { view: any }).view;

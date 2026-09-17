@@ -75,6 +75,8 @@ export type BarItem = {
   icon_width?: number;
   /** A per-render sketchybar position, overriding the item's configured one. */
   position?: string;
+  /** Up/down actions from the item's sketchybar scroll wheel event. */
+  scroll?: { up: string; down: string };
   /** Run `onOpen` on a click or item hotkey even when this item also has a menu. Hover still opens the menu. */
   click?: "open";
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */
@@ -239,6 +241,7 @@ re-renders an extension's items as it relists its palettes.
 | `tooltip` | `set_tooltip` | none (no tooltips); shown in the popover title | `tooltip` |
 | `menu` (nodes, palette, view), none | `show_menu_on_left_click(false)`, no `tauri::menu`; `on_tray_icon_event` Click with `rect` opens the popover under it / sends `bar/open` | `click_script="<pal binary> bar click <ext>/<id> --anchor sketchybar"` (absolute path: sketchybar's PATH is launchd's), the popover under the item's `bounding_rects`; no sketchybar popups | `on-click: pal bar click …`, popover |
 | hover (peek) | `TrayIconEvent::Enter` / `Leave` with `rect` (tray-icon 0.24.2 `src/lib.rs:583-608`, `Move` between them unused); off unless `open_on_hover` | `--subscribe pal.<ext>.<id> mouse.entered mouse.exited`; its script gives the item a subtle 8-tick animated tint, restores any declared background on leave, then calls `pal bar hover <ext>/<id>`; on by default | none (waybar's `custom` module has no hover event) |
+| scroll | unavailable from a status item | `scroll: { up, down }` subscribes `mouse.scrolled`; `SCROLL_DELTA` dispatches either action to `onAction` without opening the popover | unavailable |
 | position, order | `order` among pal's icons (macOS places the rest) | `--add item NAME <position>`, `--move NAME before\|after REF` for `before:clock` | the module's place in waybar's config |
 
 ### Menu bar renderer (`bar/menubar.rs`)

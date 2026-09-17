@@ -93,6 +93,13 @@ pub enum Click {
     Open,
 }
 
+/// `BarItem.scroll`: actions emitted by sketchybar's wheel event.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Scroll {
+    pub up: String,
+    pub down: String,
+}
+
 /// `BarItem` in sdk/src/protocol.ts: the item's whole state as `render`
 /// answered it. `menu` stays opaque here (nodes, `{ palette }` or
 /// `{ view }`): the popover page draws it.
@@ -130,6 +137,8 @@ pub struct BarItem {
     pub icon_width: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scroll: Option<Scroll>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub click: Option<Click>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1110,6 +1119,8 @@ mod tests {
         let dynamic: BarItem = serde_json::from_value(json!({ "background": "amber", "icon_size": 18, "label_size": 11, "icon_width": 31, "position": "q" })).unwrap();
         assert_eq!(dynamic.background.as_deref(), Some("amber"));
         assert_eq!((dynamic.icon_size, dynamic.label_size, dynamic.icon_width, dynamic.position.as_deref()), (Some(18.0), Some(11.0), Some(31.0), Some("q")));
+        let scroll: BarItem = serde_json::from_value(json!({ "scroll": { "up": "next", "down": "previous" } })).unwrap();
+        assert_eq!(scroll.scroll.as_ref().map(|s| (s.up.as_str(), s.down.as_str())), Some(("next", "previous")));
     }
 
     #[test]

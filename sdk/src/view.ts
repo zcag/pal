@@ -211,6 +211,13 @@ export function checkBarItem(v: unknown, where = "bar"): BarItem {
     if (value !== undefined && !(typeof value === "number" && Number.isFinite(value) && value > 0)) throw new Error(`${where}: ${key} must be a positive number`);
   }
   if (item.position !== undefined && (typeof item.position !== "string" || !item.position.trim())) throw new Error(`${where}: position must be a non-empty string`);
+  if (item.scroll !== undefined) {
+    if (!item.scroll || typeof item.scroll !== "object") throw new Error(`${where}: scroll must have up and down actions`);
+    for (const direction of ["up", "down"] as const) {
+      const action = item.scroll[direction];
+      if (typeof action !== "string" || !/^[a-zA-Z0-9:_-]+$/.test(action)) throw new Error(`${where}: scroll ${direction} must be an action id`);
+    }
+  }
   if (item.click !== undefined && item.click !== "open") throw new Error(`${where}: click must be "open"`);
   if (item.segments !== undefined) {
     if (!Array.isArray(item.segments)) throw new Error(`${where}: segments must be an array`);

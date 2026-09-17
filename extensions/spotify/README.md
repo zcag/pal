@@ -2,9 +2,11 @@
 
 Spotify from the panel over the Web API: search as you type, play, queue
 and like; your playlists and library; the devices and the queue; a
-lyrics view that follows the song; a bar item with the line playing. It
-needs a Spotify app of your own (two minutes at developer.spotify.com,
-below) and signs in with PKCE, so there is no secret anywhere.
+lyrics view that follows the song; a bar item with the line playing. On
+sketchybar, scrolling that item skips next/previous like the existing lirik
+item. It needs a Spotify app of your own (two minutes at
+developer.spotify.com, below) and signs in with PKCE, so there is no secret
+anywhere.
 
 ## Palettes
 

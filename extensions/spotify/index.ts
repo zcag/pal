@@ -338,7 +338,7 @@ function barItem(l: Live, st: NowState): BarItem {
     const nextAt = synced.find((x) => x.at > st.position)?.at;
     if (nextAt !== undefined) refresh = Math.max(1, Math.ceil(nextAt - st.position));
   }
-  return { icon: G.spotify, title, tooltip: `${trackText(t)}${p.device ? ` (${p.device.name})` : ""}`, menu: { view: render(st) }, ...(refresh ? { refresh } : {}) };
+  return { icon: G.spotify, title, tooltip: `${trackText(t)}${p.device ? ` (${p.device.name})` : ""}`, scroll: { up: "next", down: "previous" }, menu: { view: render(st) }, ...(refresh ? { refresh } : {}) };
 }
 
 const stopLyricTick = () => { clearTimeout(lyricTick); lyricTick = undefined; };

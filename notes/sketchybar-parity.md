@@ -42,7 +42,8 @@ but do not revive rows that conflict with it.
 
 ### Next, in order
 
-1. **B6:** scroll input, then use it for lyric seeking where appropriate.
+1. **Actual extension rows:** start with existing Timer/Audio/Network/GitHub surfaces;
+   Spotify already uses B6 scroll for next/previous.
 
 ### Explicitly deferred
 

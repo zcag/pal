@@ -699,6 +699,8 @@ export type BarItem = {
   icon_width?: number;
   /** Per-render sketchybar placement; wins over the item's configured position. */
   position?: string;
+  /** Actions for an upward/downward sketchybar scroll; each reaches `onAction`. */
+  scroll?: { up: string; down: string };
   /** Run `onOpen` on a click or item hotkey even when this item also has a menu. Hover still opens the menu. */
   click?: "open";
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */

@@ -81,15 +81,17 @@ fn set(p: &mut Props, k: &str, v: impl Into<String>) {
     p.insert(k.to_string(), v.into());
 }
 
-/// Native hover feedback stays local to sketchybar, then lets pal run the
-/// popover state machine. Leaving restores the item's own dynamic background.
-fn hover_script(key: &str, item: &BarItem, palette: &Palette, pal_bin: &str) -> String {
+/// Native pointer feedback and wheel input stay local to sketchybar before
+/// their semantic event reaches pal. Leaving restores a dynamic background.
+fn input_script(key: &str, item: &BarItem, hover: bool, palette: &Palette, pal_bin: &str) -> String {
     let name = name_of(key);
     let restore = match item.background.as_deref().and_then(|c| palette.hex_of(c)) {
         Some(color) => format!("background.drawing=on background.color={color}"),
         None => "background.drawing=off".into(),
     };
-    format!("case $SENDER in mouse.entered) sketchybar --animate sin 8 --set {name} background.drawing=on background.color={};; mouse.exited) sketchybar --animate sin 8 --set {name} {restore};; esac; {pal_bin} bar hover {key} --anchor sketchybar --state $SENDER", palette.hover_hex())
+    let scroll = item.scroll.as_ref().map(|s| format!("mouse.scrolled) if [ \"${{SCROLL_DELTA:-0}}\" -gt 0 ]; then {pal_bin} bar action {key} {}; else {pal_bin} bar action {key} {}; fi;;", s.up, s.down)).unwrap_or_default();
+    let pointer = if hover { format!("mouse.entered) sketchybar --animate sin 8 --set {name} background.drawing=on background.color={}; {pal_bin} bar hover {key} --anchor sketchybar --state $SENDER;; mouse.exited) sketchybar --animate sin 8 --set {name} {restore}; {pal_bin} bar hover {key} --anchor sketchybar --state $SENDER;;", palette.hover_hex()) } else { String::new() };
+    if scroll.is_empty() && pointer.is_empty() { String::new() } else { format!("case $SENDER in {scroll}{pointer} esac") }
 }
 
 /// The items for `key` as drawn: the model mapped to sketchybar's
@@ -171,7 +173,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         set(&mut p, "label.align", "left");
     }
     set(&mut p, "click_script", format!("{pal_bin} bar click {key} --anchor sketchybar"));
-    set(&mut p, "script", if draw.hover { hover_script(key, item, palette, pal_bin) } else { String::new() });
+    set(&mut p, "script", input_script(key, item, draw.hover, palette, pal_bin));
     out.props.insert(main.clone(), p);
     let extras: Vec<(String, Option<String>, Option<String>, String)> = item
         .segments
@@ -268,7 +270,7 @@ pub fn diff(prev: Option<&Rendered>, next: Option<&Rendered>, rtl: bool, placed:
                 argv.push("--set".into());
                 argv.push(name.clone());
                 argv.extend(p.iter().map(|(k, v)| format!("{k}={v}")));
-                argv.extend(["--subscribe".into(), name.clone(), "mouse.entered".into(), "mouse.exited".into()]);
+                argv.extend(["--subscribe".into(), name.clone(), "mouse.entered".into(), "mouse.exited".into(), "mouse.scrolled".into()]);
                 added.push(name.clone());
             }
             Some(old) => {
@@ -567,13 +569,15 @@ mod tests {
         assert_eq!(m["icon.padding_right"], "4", "a badge follows, so no trailing padding");
         assert_eq!(m["click_script"], "/Applications/pal.app/Contents/MacOS/pal bar click github/prs --anchor sketchybar");
         assert!(m["script"].contains("mouse.entered) sketchybar --animate sin 8 --set pal.github.prs background.drawing=on"));
-        assert!(m["script"].ends_with("bar hover github/prs --anchor sketchybar --state $SENDER"));
+        assert!(m["script"].contains("bar hover github/prs --anchor sketchybar --state $SENDER"));
         let b = &r.props["pal.github.prs.badge"];
         assert_eq!((b["label"].as_str(), b["label.color"].as_str(), b["icon.drawing"].as_str()), ("3", "0xffff8a82", "off"));
         // Hidden: drawing off everywhere, the item stays.
         let h = props("x/y", &draw(json!({ "hidden": true, "segments": [{ "id": "a", "text": "1" }] }), "left", false), &pal(), "pal");
         assert!(h.props.values().all(|p| p["drawing"] == "off"));
         assert_eq!(h.props["pal.x.y"]["script"], "", "no hover script when the item does not peek");
+        let wheel = props("spotify/playing", &draw(json!({ "icon": "\u{f04c7}", "scroll": { "up": "next", "down": "previous" } }), "q", false), &pal(), "pal");
+        assert!(wheel.props["pal.spotify.playing"]["script"].contains("mouse.scrolled) if [ \"${SCROLL_DELTA:-0}\" -gt 0 ]; then pal bar action spotify/playing next; else pal bar action spotify/playing previous; fi"));
         // Segments: one item each, own colour, stale mutes all.
         let s = props("x/y", &draw(json!({ "icon": "\u{f062c}", "color": "muted", "segments": [{ "id": "block", "icon": "\u{f0159}", "text": "2", "color": "red" }, { "id": "sep", "text": "│", "color": "muted" }, { "id": "oss", "text": "1" }] }), "right", false), &pal(), "pal");
         assert_eq!(s.order, ["pal.x.y", "pal.x.y.block", "pal.x.y.sep", "pal.x.y.oss"]);
