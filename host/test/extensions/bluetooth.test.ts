@@ -1,6 +1,6 @@
 // bluetooth against canned core/bluetooth.* replies.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { BluetoothDevice } from "../../../sdk/src/index.ts";
+import { checkView, type BluetoothDevice, type View, type ViewNode } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
 import { XDG_ICONS } from "../../../sdk/src/icons.ts";
 
@@ -25,28 +25,57 @@ afterAll(() => host.kill());
 
 const list = () => host.list("bluetooth", "bluetooth");
 const pick = (id: string, action?: string) => host.pick("bluetooth", "bluetooth", id, action);
+const nodes = (n: ViewNode): ViewNode[] => [n, ...("children" in n ? n.children.flatMap(nodes) : [])];
+const texts = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "text" ? [n.value] : []));
+const keycaps = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "keycap" ? [n.keys] : []));
+const viewOf = (x: unknown): View => {
+  const o = x as { view?: View; menu?: { view?: View } };
+  const v = o.view ?? o.menu?.view;
+  if (!v) throw new Error("no view");
+  return checkView(v);
+};
 
 describe("bluetooth", () => {
   test("meta: live", () => {
     const loaded = host.loaded().find((l) => l.extension === "bluetooth")!;
     expect(loaded.palettes).toMatchObject([{ name: "bluetooth", title: "Bluetooth", live: true, input: false }]);
-    expect(loaded.bar).toMatchObject([{ id: "battery", title: "Bluetooth Battery", refresh: { every: 60, on: ["wake"] }, mocks: { clear: { item: { hidden: true } } }, source: true }]);
+    expect(loaded.bar).toMatchObject([{ id: "battery", title: "Bluetooth Battery", refresh: { every: 60, on: ["wake"] }, keys: expect.any(Array), mocks: { clear: { item: { hidden: true } } }, source: true }]);
   });
 
-  test("bar: only connected low batteries interrupt, with the lowest device and every low level in its tooltip", async () => {
+  test("bar: only connected low batteries interrupt; the popover shows low first, then the rest, with keys and actions", async () => {
     const original = devices;
     try {
       expect(await host.render("bluetooth", "battery")).toEqual({ hidden: true });
       host.changeSettings("bluetooth", { settings: { low_threshold: 100 } });
-      expect(await host.render("bluetooth", "battery")).toMatchObject({ icon: "\u{f0083}", title: "2 low", color: "amber", tooltip: "Bluetooth battery · Pebble M350s 55% · AirPods Pro 75% (L 80% · R 75% · Case 90%)", click: "open", menu: { extension: "bluetooth", palette: "bluetooth" } });
+      devices = devices.map((d) => d.name === "Corne" ? { ...d, connected: true } : d);
+      const item = await host.render("bluetooth", "battery");
+      expect(item).toMatchObject({ icon: "\u{f0083}", title: "2 low", color: "amber", tooltip: "Bluetooth battery · Pebble M350s 55% · AirPods Pro 75% (L 80% · R 75% · Case 90%)", click: "open" });
+      const v = viewOf(item);
+      expect(v).toMatchObject({ id: "battery", title: "2 low Bluetooth batteries", keys: "actions" });
+      const all = nodes(v.tree);
+      expect(texts(v).filter((t) => ["Low battery", "Connected, no battery reading", "Pebble M350s", "AirPods Pro", "Corne", "L 80% · R 75% · Case 90%"].includes(t))).toEqual(["Low battery", "Pebble M350s", "AirPods Pro", "L 80% · R 75% · Case 90%", "Connected, no battery reading", "Corne"]);
+      const rows = all.filter((n): n is Extract<ViewNode, { type: "stack" }> => n.type === "stack" && !!n.action?.startsWith("focus:"));
+      expect(rows.map((r) => r.action)).toEqual(["focus:D4:83:5A:8E:D0:B9", "focus:14:28:76:8B:AE:C8", "focus:E6:E6:EA:DB:E7:18"]);
+      expect(rows.map((r) => !!r.selected)).toEqual([true, false, false]);
+      expect(all.filter((n): n is Extract<ViewNode, { type: "progress" }> => n.type === "progress").map((p) => [p.value, p.color])).toEqual([[0.55, "amber"], [0.75, "amber"]]);
+      expect(keycaps(v)).toEqual(["enter", "c", "s", "r", "up", "down"]);
+      expect(v.actions!.filter((a) => !a.hidden).map((a) => [a.id, a.shortcut, a.confirm])).toEqual([["disconnect", "enter", "Disconnect Pebble M350s?"], ["copy", "c", undefined], ["settings", "s", undefined], ["refresh", "r", undefined]]);
+      expect(v.actions!.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["focus:D4:83:5A:8E:D0:B9", "focus:14:28:76:8B:AE:C8", "focus:E6:E6:EA:DB:E7:18"]);
+      expect(viewOf(await host.barAction("bluetooth", "battery", "focus:14:28:76:8B:AE:C8"))).toMatchObject({ id: "battery" });
+      const before = calls.length;
+      expect(await host.barAction("bluetooth", "battery", "disconnect")).toMatchObject({ keep: true, hud: "Disconnected AirPods Pro", view: { id: "battery" } });
+      expect(calls.slice(before)).toEqual(["disconnect 14:28:76:8B:AE:C8"]);
       host.changeSettings("bluetooth", { settings: { low_threshold: 60 } });
       expect(await host.render("bluetooth", "battery")).toMatchObject({ title: "Pebble M350s 55%", color: "amber", tooltip: "Bluetooth battery · Pebble M350s 55%" });
-      devices = devices.map((d) => d.address === "14:28:76:8B:AE:C8" ? { ...d, battery: 12, battery_detail: "L 16% · R 12% · Case 90%" } : d);
-      expect(await host.render("bluetooth", "battery")).toMatchObject({ title: "2 low", color: "red", tooltip: "Bluetooth battery · AirPods Pro 12% (L 16% · R 12% · Case 90%) · Pebble M350s 55%" });
+      devices = original.map((d) => d.address === "14:28:76:8B:AE:C8" ? { ...d, battery: 12, battery_detail: "L 16% · R 12% · Case 90%" } : d);
+      const critical = await host.render("bluetooth", "battery");
+      expect(critical).toMatchObject({ title: "2 low", color: "red", tooltip: "Bluetooth battery · AirPods Pro 12% (L 16% · R 12% · Case 90%) · Pebble M350s 55%" });
+      expect(nodes(viewOf(critical).tree).filter((n): n is Extract<ViewNode, { type: "progress" }> => n.type === "progress").map((p) => [p.value, p.color])).toEqual([[0.12, "red"], [0.55, "amber"]]);
       devices = devices.map((d) => ({ ...d, connected: false }));
       expect(await host.render("bluetooth", "battery")).toEqual({ hidden: true });
     } finally {
       devices = original;
+      calls.length = 0;
       host.changeSettings("bluetooth", { settings: { low_threshold: 25 } });
     }
   });
@@ -81,6 +110,7 @@ describe("bluetooth", () => {
   });
 
   test("Enter toggles on the state read back from the core, with a HUD line", async () => {
+    calls.length = 0;
     expect(await pick("E6:E6:EA:DB:E7:18")).toEqual({ hud: "Connected to Corne" });
     expect(await pick("E6:E6:EA:DB:E7:18", "toggle")).toEqual({ hud: "Disconnected Corne" });
     expect(calls).toEqual(["connect E6:E6:EA:DB:E7:18", "disconnect E6:E6:EA:DB:E7:18"]);

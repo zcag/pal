@@ -4,6 +4,7 @@
 // ⌘C copies the address. Live: the connected state is read again on
 // every show; the list is the OS's, connected first then by name.
 import { bluetooth, errorMessage, failed, hint, settings, toast, truncate, xdg, type Accessory, type Action, type BarItem, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
+import { GLYPH, KIND, batteries, levelColor, render as renderBattery, rows as batteryRows, type BarState } from "./view.ts";
 
 type Settings = { low_threshold: number };
 const EXTENSION = "bluetooth";
@@ -11,20 +12,7 @@ const MAC = process.platform === "darwin";
 const MAC_SETTINGS_URL = "x-apple.systempreferences:com.apple.BluetoothSettings";
 const LINUX_SETTINGS: string[][] = [["gnome-control-center", "bluetooth"], ["systemsettings", "kcm_bluetooth"], ["blueman-manager"]];
 const BATTERY = "\u{f0083}"; // md-battery-alert
-const BAR_MENU = { palette: "bluetooth" } as const;
-
-const GLYPH: Record<string, string> = {
-  headphones: xdg("audio-headphones")!,
-  speaker: xdg("audio-speakers")!,
-  keyboard: xdg("input-keyboard")!,
-  mouse: xdg("input-mouse")!,
-  gamepad: xdg("applications-games")!,
-  phone: xdg("phone")!,
-  computer: xdg("computer")!,
-  watch: "\u{f0589}", // md-watch
-};
-
-const KIND: Record<string, string> = { headphones: "Headphones", speaker: "Speaker", keyboard: "Keyboard", mouse: "Mouse", gamepad: "Game controller", phone: "Phone", watch: "Watch", computer: "Computer" };
+let barFocus: string | undefined;
 
 function item(d: BluetoothDevice): Item {
   const accessories: Accessory[] = [];
@@ -45,18 +33,20 @@ function item(d: BluetoothDevice): Item {
   };
 }
 
-/** Connected devices with an OS-reported main level, low first for the alert. */
-const batteries = (devices: BluetoothDevice[]) => devices.filter((d) => d.connected && d.battery !== null).sort((a, b) => a.battery! - b.battery! || a.name.localeCompare(b.name));
-
-/** Below this fixed floor the low alert is red. Lowering the configured threshold lowers this floor too. */
-const RED_PERCENT = 20;
-const levelColor = (level: number, threshold: number): "amber" | "red" => level <= Math.min(RED_PERCENT, threshold) ? "red" : "amber";
+function barState(devices: BluetoothDevice[], threshold: number): BarState {
+  const st = { devices, threshold, focus: 0 };
+  const rows = batteryRows(st);
+  st.focus = Math.max(0, rows.findIndex((d) => d.address === barFocus));
+  barFocus = rows[st.focus]?.address;
+  return st;
+}
 
 /** An interruption-only Bluetooth battery strip: the lowest connected device, or hidden. */
 async function batteryBar(): Promise<BarItem> {
   try {
     const threshold = settings.get<Settings>(EXTENSION).low_threshold;
-    const low = batteries(await bluetooth.devices()).filter((d) => d.battery! <= threshold);
+    const devices = await bluetooth.devices();
+    const low = batteries(devices).filter((d) => d.battery! <= threshold);
     if (!low.length) return { hidden: true };
     const first = low[0];
     const detail = low.map((d) => `${d.name} ${d.battery}%${d.battery_detail ? ` (${d.battery_detail})` : ""}`).join(" · ");
@@ -66,7 +56,7 @@ async function batteryBar(): Promise<BarItem> {
       color: levelColor(first.battery!, threshold),
       tooltip: `Bluetooth battery · ${detail}`,
       click: "open",
-      menu: BAR_MENU,
+      menu: { view: renderBattery(barState(devices, threshold)) },
     };
   } catch { return { hidden: true }; }
 }
@@ -77,6 +67,34 @@ async function openBluetoothSettings(): Promise<Effect> {
   if (!command) return toast("No Bluetooth settings app", "None of gnome-control-center, systemsettings or blueman-manager is installed", "failure");
   Bun.spawn(command, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
   return { hide: true };
+}
+
+const redraw = async (): Promise<Effect> => {
+  const threshold = settings.get<Settings>(EXTENSION).low_threshold;
+  return { view: renderBattery(barState(await bluetooth.devices(), threshold)) };
+};
+
+async function batteryAction(action: string): Promise<Effect> {
+  if (action === "settings") return openBluetoothSettings();
+  if (action === "refresh") return { keep: true, ...(await redraw()) };
+  const threshold = settings.get<Settings>(EXTENSION).low_threshold;
+  const devices = await bluetooth.devices().catch(() => [] as BluetoothDevice[]);
+  const st = barState(devices, threshold);
+  const rows = batteryRows(st);
+  const cur = rows[st.focus];
+  if (action.startsWith("focus:")) { barFocus = action.slice(6); return { view: renderBattery(barState(devices, threshold)) }; }
+  if (action === "down" || action === "up") {
+    if (!rows.length) return { keep: true };
+    barFocus = rows[(st.focus + (action === "down" ? 1 : rows.length - 1)) % rows.length].address;
+    return { view: renderBattery(barState(devices, threshold)) };
+  }
+  if (!cur) return { keep: true };
+  if (action === "copy") return { copy: cur.address };
+  if (action === "disconnect") {
+    try { await bluetooth.disconnect(cur.address); } catch (e) { return failed(`disconnect ${cur.name}`, e); }
+    return { keep: true, hud: `Disconnected ${cur.name}`, ...(await redraw()) };
+  }
+  return { keep: true };
 }
 
 
@@ -109,6 +127,6 @@ export default {
     },
   },
   bar: {
-    battery: { render: batteryBar, onOpen: openBluetoothSettings },
+    battery: { render: batteryBar, onOpen: openBluetoothSettings, onAction: batteryAction },
   },
 } satisfies Extension;

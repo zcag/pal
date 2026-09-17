@@ -13,14 +13,17 @@ says so.
 
 It also has one interruption-only bar item, **Bluetooth Battery**
 (`bluetooth/battery`). It stays out of the bar until a *connected* device
-whose battery the OS reports is at or below **Low battery alert** (30% by
+whose battery the OS reports is at or below **Low battery alert** (25% by
 default). It names the lowest device and level; amber means low and red
-means 15% or below (or the configured level when that is lower). With
+means 20% or below (or the configured level when that is lower). With
 several low devices it says `2 low`, while its tooltip carries every name,
 level, and AirPods-style per-part detail. Click opens the system Bluetooth
-settings; hover opens this Bluetooth palette, so the same complete device
-list is available without another scanner. Settings can preview Low,
-Critical, and All healthy states without changing the live item.
+settings; hover opens a compact battery popover: low devices first with
+progress bars and per-part detail, then the other connected battery
+readings, then connected devices with no reading. Enter disconnects the
+focused device (after confirmation), `c` copies its address, `s` opens
+Bluetooth Settings and `r` refreshes. Settings can preview Low, Critical,
+and All healthy states without changing the live item.
 
 ## Rows
 

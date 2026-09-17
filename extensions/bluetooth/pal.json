@@ -79,8 +79,26 @@
   },
   "bar": {
     "battery": {
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Disconnect the focused device"
+        },
+        {
+          "keys": "c",
+          "title": "Copy the focused device address"
+        },
+        {
+          "keys": "s",
+          "title": "Open Bluetooth Settings"
+        },
+        {
+          "keys": "r",
+          "title": "Refresh the battery readings"
+        }
+      ],
       "title": "Bluetooth Battery",
-      "description": "Visible only when a connected device with a reported battery reaches the low alert level. Click opens Bluetooth Settings; the popover lists paired devices and their levels.",
+      "description": "Visible only when a connected device with a reported battery reaches the low alert level. Click opens Bluetooth Settings; the popover shows the low devices first, then the other connected battery readings and connected devices with no reading.",
       "refresh": { "every": 60, "on": ["wake"] },
       "mocks": {
         "low": { "title": "Low headphones", "item": { "icon": "󰂃", "title": "AirPods Pro 24%", "color": "amber", "tooltip": "Bluetooth battery · AirPods Pro 24% (L 28% · R 24% · Case 62%)" } },
