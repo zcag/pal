@@ -1,6 +1,7 @@
 # CAGDAS COMMENTS START
 * upcoming. should be part of the today / calendar whatever extension probably. with bunch of customizations around urgency cutoff, size color etc, time cutoff and so on
 * lirik. we have this already in spotify ext., but sometimes its not as real time as the lirik, not sure why, after thats fixed this can be considered done.
+  * (claude, 10:10) why: `lirik --watch` reads the Spotify Web API and pushes every lyric line into `sketchybar --trigger lyric_line` as it plays (`plugins/lirik-stream.sh`), and the track comes from Spotify's `spotify_change` notification; no polling. pal's item re-renders on its `every` and on the MediaRemote stream (track changes only), so the line lags up to one interval. Fix: the extension runs its own synced-lyrics ticker (lrclib timestamps against `progress_ms`, resynced on each poll or MediaRemote event) and pushes each line with `bar.update`.
 * mail. this can be part of the mail extension, popover should show unreads and have easy way of marking them as read or open in browser etc
 * battery, we can have a battery/power usage extension, thatll show bunch of data about the battery draw, biggest culprits etc. and a bar item with tons of options on when to hide/show usage and/or the battery itself, so i can have a similar thing
 * bt-battery, lets do this as a nice polished extension, and accompanying bar item
