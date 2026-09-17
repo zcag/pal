@@ -44,12 +44,18 @@ but do not revive rows that conflict with it.
   waiting counts; Issues distinguish assigned, mentioned and authored. Each hides at
   zero, has Settings mock states, and opens its existing palette on click. No brackets,
   separators, combined GitHub item or parallel data path.
+- **Weather, Power and Bluetooth Battery:** Weather is a Home Assistant bar surface
+  with configured entity IDs, condition-led glyphs, comfort thresholds and current
+  conditions popover; Power reads the OS gauge and enriches it from the existing fresh
+  `power` watcher state; Bluetooth extends the existing device source with an
+  interruption-only low-battery alert. All three have useful Settings mocks and their
+  own palettes/popovers rather than becoming a generic status cluster.
 
 ### Next, in order
 
-1. **Remaining extension rows:** weather and a future battery/power and Bluetooth
-   battery extension are the next substantive candidates. Spotify already uses B6
-   scroll for next/previous.
+1. **Live polish pass:** use the Settings previews and real bar to tune thresholds,
+   placement and the density of the three new surfaces before extending scope. Spotify
+   already uses B6 scroll for next/previous.
 
 ### Explicitly deferred
 
@@ -227,11 +233,11 @@ as parallel agents.
 | E5 | `timer/timer` | `background: "destructive-soft"` on done (B2), `click: "open"` + `onOpen` dismissing a done timer (B1), `bar_name` setting adding `  tea  +1`, `escalation = "seconds"` setting (60 s peach / 10 s red) or leave his fraction rule; rule size via `icon_size` (B2). | S | after B1, B2 |
 | E6 | `calendar/upcoming` | `position: "q"` and `size: 14` under `warn_minutes` (B2), `click: "open"` + `onOpen` joining the next call (B1); config `show_icon = false`, `size = 10`, `color` muted far off is already there. | S | after B1, B2 |
 | E7 | `spotify/playing` | `scroll:up|down` → next / previous (B6), `click: "open"` + `onOpen` play / pause (B1); config `position = "q"` (done), `color = "muted"`, `size = 10`, `icon_size = 15`, `order` above calendar so a near meeting takes the notch edge. | S | after B1, B6 |
-| E8 | `power` (new extension, or a `system/battery` item) | `pmset -g batt` parser, `fs.watch` on `~/.local/share/power/state.json` (stale past 120 s), the rules of `battery.sh:174-310` verbatim (`show_drain` 50, `show_charge` 20, `low` 20, `eta` 25, `bar_w` 15 as settings), `title`, colour, `loud` on battery only, `click: "open"` → Battery Settings URL, popover `{ view }` with the kv sections and per-process `progress` bars, Battery Settings action; a `battery` palette for free. | M | ∥ |
+| E8 | `power/battery` | **done:** macOS `pmset` / Linux `upower` gauge plus optional fresh watcher state for measured draw, warning rules, wake locks and top consumers; configurable healthy hide thresholds, direct Battery Settings action, palette and compact diagnostic popover, Settings mocks. Native source events remain deferred; the item polls. | M | — |
 | E9 | `audio/volume` + `audio/microphone` | **done:** output glyph/level, direct mute, wheel ±5, 18 pt / 31 pt stable glyph slot, Audio palette popover and 5 s poll; mic hidden while healthy, direct 75% restore when muted or absent. Remaining polish: temporary volume-level flash, Sound Settings action and a native audio event. | M | ∥ |
-| E10 | `bluetooth/battery` | hidden unless a connected device reports 1..`low` (25), `󰋋 󰁺` + `NN%`, amber, red at 20, `refresh: 120`; the volume popover's device row shows the same number. | S | ∥ |
+| E10 | `bluetooth/battery` | **done:** extends the existing Bluetooth core source; connected devices that report at or below a configurable threshold surface as an amber/red interruption, otherwise hidden. It opens Bluetooth Settings directly, uses the Bluetooth palette as its popover and has Settings mocks. | S | — |
 | E11 | `network/status` | **done:** active SSID / wired label, optional friendly SSID map, red no-route state, direct Network Settings action, Network palette popover, `refresh: 5` plus wake/network and mocks. Remaining polish: home hiding, hotspot/public/RSSI variants and compact kv popover. | M | ∥ |
-| E12 | `home-assistant/weather` | settings `temperature_entity`, `weather_entity`, `lo` 10, `hi` 30; the condition → glyph / colour map of `weather.sh:45-57`; hidden unless notable; popover kv (condition, feels like, humidity, wind); `refresh: 600`; `stale`. | S-M | ∥ |
+| E12 | `home-assistant/weather` | **done:** per-instance temperature/weather entity IDs, configurable comfort thresholds and notable conditions; condition glyph/tint mapping, quiet hidden state, stale visible diagnosis, compact current-conditions popover, Home Assistant history action and Settings mocks. | S-M | — |
 | E13 | `system/privacy` (media_use) | assertions + `pgrep`, glyph list, hidden when clear, `background: "orange"` (B2), `refresh: 2` (min `every` is 10, so a `setInterval` + `bar.update` inside the extension). | S-M | after B2 |
 | E14 | `tan` (new extension, `multi`) | instance → port map (`tan` 8793, `tan@work` 8803, a `url` setting), `state.json` + headers for "ran 5 m ago", `quiet_buckets` setting, count / red rule, popover per bucket (`id` semibold coloured by urgency, title muted), Enter opens `links[0]` else `https://tan.lan`; Open tan; a palette of the same rows. `when = "working"` on `tan@work/items`. | M | ∥ |
 | E15 | `claude` (sessions, new extension) | `claude-state ls` (local) + `ssh marko cldd ls` (remote, `hosts` setting), segments [`yours` amber, `working` blue], hidden at 0, `on: ["show"]` with a 10 s remote ttl on `show`, a long-lived `ssh marko inotifywait` the extension owns (restart with backoff, `dispose()`), `bar.update` per burst; hook line in `claude-state` → `pal bar render claude/sessions`; popover: HORNET rows (Enter focuses the kitty window, the `cldd-focus` logic over `kitten @ ls`), MARKO rows (Enter copies the attach line, HUD "copied"), Shell on marko; `click: "open"` copying `ssh -t marko` (B1). Retire `cldd-stream.sh` when it lands. | M-L | ∥ |
