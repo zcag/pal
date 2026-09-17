@@ -7,6 +7,18 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
+  "settings": [
+    {
+      "kind": "number",
+      "id": "low_threshold",
+      "label": "Low battery alert",
+      "description": "Show the Bluetooth Battery bar item when a connected device at or below this level reports a battery. At 15% or below (or this level when lower), the alert is red.",
+      "min": 1,
+      "max": 100,
+      "unit": "%",
+      "default": 30
+    }
+  ],
   "store": {
     "tagline": "Connect and disconnect paired devices, battery in view",
     "category": "system",
@@ -63,6 +75,18 @@
           "title": "Copy the address"
         }
       ]
+    }
+  },
+  "bar": {
+    "battery": {
+      "title": "Bluetooth Battery",
+      "description": "Visible only when a connected device with a reported battery reaches the low alert level. Click opens Bluetooth Settings; the popover lists paired devices and their levels.",
+      "refresh": { "every": 60, "on": ["wake"] },
+      "mocks": {
+        "low": { "title": "Low headphones", "item": { "icon": "󰂃", "title": "AirPods Pro 24%", "color": "amber", "tooltip": "Bluetooth battery · AirPods Pro 24% (L 28% · R 24% · Case 62%)" } },
+        "critical": { "title": "Critical devices", "item": { "icon": "󰂃", "title": "2 low", "color": "red", "tooltip": "Bluetooth battery · Corne 8% · AirPods Pro 14%" } },
+        "clear": { "title": "All healthy", "item": { "hidden": true } }
+      }
     }
   }
 }

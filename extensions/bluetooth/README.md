@@ -11,6 +11,17 @@ are on before you press anything.
 One palette, **Bluetooth** (`bluetooth`). With no adapter the one row
 says so.
 
+It also has one interruption-only bar item, **Bluetooth Battery**
+(`bluetooth/battery`). It stays out of the bar until a *connected* device
+whose battery the OS reports is at or below **Low battery alert** (30% by
+default). It names the lowest device and level; amber means low and red
+means 15% or below (or the configured level when that is lower). With
+several low devices it says `2 low`, while its tooltip carries every name,
+level, and AirPods-style per-part detail. Click opens the system Bluetooth
+settings; hover opens this Bluetooth palette, so the same complete device
+list is available without another scanner. Settings can preview Low,
+Critical, and All healthy states without changing the live item.
+
 ## Rows
 
 | part | what |
@@ -47,7 +58,9 @@ row's id (the address):
 
 ## Setup
 
-Nothing to configure and nothing to install.
+Nothing to install. **Low battery alert** is the only setting; it is the
+percentage at which connected, battery-reporting devices become visible on
+the bar. The palette itself always lists every paired device.
 
 - **macOS**: the list is `system_profiler SPBluetoothDataType -json`, the
   one unprivileged source with the device type and the battery levels

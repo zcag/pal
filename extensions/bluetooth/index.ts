@@ -3,7 +3,15 @@
 // as an accessory. Enter toggles the connection (Disconnect asks first),
 // ⌘C copies the address. Live: the connected state is read again on
 // every show; the list is the OS's, connected first then by name.
-import { bluetooth, errorMessage, failed, hint, xdg, type Accessory, type Action, type BluetoothDevice, type Extension, type Item } from "@zcag/pal";
+import { bluetooth, errorMessage, failed, hint, settings, toast, truncate, xdg, type Accessory, type Action, type BarItem, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
+
+type Settings = { low_threshold: number };
+const EXTENSION = "bluetooth";
+const MAC = process.platform === "darwin";
+const MAC_SETTINGS_URL = "x-apple.systempreferences:com.apple.BluetoothSettings";
+const LINUX_SETTINGS: string[][] = [["gnome-control-center", "bluetooth"], ["systemsettings", "kcm_bluetooth"], ["blueman-manager"]];
+const BATTERY = "\u{f0083}"; // md-battery-alert
+const BAR_MENU = { palette: "bluetooth" } as const;
 
 const GLYPH: Record<string, string> = {
   headphones: xdg("audio-headphones")!,
@@ -37,6 +45,39 @@ function item(d: BluetoothDevice): Item {
   };
 }
 
+/** Connected devices with an OS-reported main level, low first for the alert. */
+const batteries = (devices: BluetoothDevice[]) => devices.filter((d) => d.connected && d.battery !== null).sort((a, b) => a.battery! - b.battery! || a.name.localeCompare(b.name));
+
+/** Below this fixed floor the low alert is red. Lowering the configured threshold lowers this floor too. */
+const levelColor = (level: number, threshold: number): "amber" | "red" => level <= Math.min(15, threshold) ? "red" : "amber";
+
+/** An interruption-only Bluetooth battery strip: the lowest connected device, or hidden. */
+async function batteryBar(): Promise<BarItem> {
+  try {
+    const threshold = settings.get<Settings>(EXTENSION).low_threshold;
+    const low = batteries(await bluetooth.devices()).filter((d) => d.battery! <= threshold);
+    if (!low.length) return { hidden: true };
+    const first = low[0];
+    const detail = low.map((d) => `${d.name} ${d.battery}%${d.battery_detail ? ` (${d.battery_detail})` : ""}`).join(" · ");
+    return {
+      icon: BATTERY,
+      title: low.length === 1 ? truncate(`${first.name} ${first.battery}%`, 64) : `${low.length} low`,
+      color: levelColor(first.battery!, threshold),
+      tooltip: `Bluetooth battery · ${detail}`,
+      click: "open",
+      menu: BAR_MENU,
+    };
+  } catch { return { hidden: true }; }
+}
+
+async function openBluetoothSettings(): Promise<Effect> {
+  if (MAC) return { open: MAC_SETTINGS_URL };
+  const command = LINUX_SETTINGS.find(([bin]) => Bun.which(bin));
+  if (!command) return toast("No Bluetooth settings app", "None of gnome-control-center, systemsettings or blueman-manager is installed", "failure");
+  Bun.spawn(command, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
+  return { hide: true };
+}
+
 
 export default {
   palettes: {
@@ -65,5 +106,8 @@ export default {
         return { hud: `Connected to ${name}` };
       },
     },
+  },
+  bar: {
+    battery: { render: batteryBar, onOpen: openBluetoothSettings },
   },
 } satisfies Extension;

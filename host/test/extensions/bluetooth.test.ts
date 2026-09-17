@@ -28,7 +28,27 @@ const pick = (id: string, action?: string) => host.pick("bluetooth", "bluetooth"
 
 describe("bluetooth", () => {
   test("meta: live", () => {
-    expect(host.loaded().find((l) => l.extension === "bluetooth")!.palettes).toMatchObject([{ name: "bluetooth", title: "Bluetooth", live: true, input: false }]);
+    const loaded = host.loaded().find((l) => l.extension === "bluetooth")!;
+    expect(loaded.palettes).toMatchObject([{ name: "bluetooth", title: "Bluetooth", live: true, input: false }]);
+    expect(loaded.bar).toMatchObject([{ id: "battery", title: "Bluetooth Battery", refresh: { every: 60, on: ["wake"] }, mocks: { clear: { item: { hidden: true } } }, source: true }]);
+  });
+
+  test("bar: only connected low batteries interrupt, with the lowest device and every low level in its tooltip", async () => {
+    const original = devices;
+    try {
+      expect(await host.render("bluetooth", "battery")).toEqual({ hidden: true });
+      host.changeSettings("bluetooth", { settings: { low_threshold: 100 } });
+      expect(await host.render("bluetooth", "battery")).toMatchObject({ icon: "\u{f0083}", title: "2 low", color: "amber", tooltip: "Bluetooth battery · Pebble M350s 55% · AirPods Pro 75% (L 80% · R 75% · Case 90%)", click: "open", menu: { extension: "bluetooth", palette: "bluetooth" } });
+      host.changeSettings("bluetooth", { settings: { low_threshold: 60 } });
+      expect(await host.render("bluetooth", "battery")).toMatchObject({ title: "Pebble M350s 55%", color: "amber", tooltip: "Bluetooth battery · Pebble M350s 55%" });
+      devices = devices.map((d) => d.address === "14:28:76:8B:AE:C8" ? { ...d, battery: 12, battery_detail: "L 16% · R 12% · Case 90%" } : d);
+      expect(await host.render("bluetooth", "battery")).toMatchObject({ title: "2 low", color: "red", tooltip: "Bluetooth battery · AirPods Pro 12% (L 16% · R 12% · Case 90%) · Pebble M350s 55%" });
+      devices = devices.map((d) => ({ ...d, connected: false }));
+      expect(await host.render("bluetooth", "battery")).toEqual({ hidden: true });
+    } finally {
+      devices = original;
+      host.changeSettings("bluetooth", { settings: { low_threshold: 30 } });
+    }
   });
 
   test("rows in the core's order with kind glyphs, battery and the connected tag", async () => {
