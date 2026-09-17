@@ -1154,3 +1154,21 @@ Per item, the appearance overrides are folded into **"Override defaults"**, a ne
 Two layout things worth keeping: `repeat(auto-fit, minmax(220px, 1fr))` is wrong for a settings form — extra width buys *more* skinny columns (three 171 px ones at 1440), not wider ones; fixed columns with a `max-width` is the shape. And the four appearance fieldsets are a **multi-column**, not a grid: a grid row is as tall as its tallest cell, which left 250-300 px of dead card under the shorter column; `columns: 2` with `break-inside: avoid` packs them to a 0 px gap. The `--flat` variant stays a grid — it holds bare fields, of even height, that should read across.
 
 Also killed: the `<code>` chip when the key is just the label lowercased ("Spacing `spacing`", "Font `font`"), 22 lines of dead `.pal-btable*` CSS, and a specificity bug where `.pal-setting__control > .pal-field__input` (0,2,0) beat `.pal-bar__position` (0,1,0) and stretched every stacked text input the full width of the pane.
+
+## Decided: what a bar popover owes its item (2026-09-17)
+
+Nineteen bar items across sixteen extensions, each audited against the `menu`-form table in `docs/design/bar.md:108-122`. That table is the standard, and all three forms are legitimate: nodes for "up to a screenful of commands and toggles", `{ palette }` for "search, a detail pane, filters, more than a screenful", `{ view }` for "a dashboard or card". So the question per item is **fit**, not "is it a view yet".
+
+Left alone on that reading: `audio/volume`, `github/issues`, `github/prs` and `bluetooth/battery` are palette-backed, and the doc names "a PR queue" as the palette's own example. `hue/home` is a nodes menu of room toggles, which is exactly "toggles".
+
+Converted, because both were inbox-like lists that a flat menu could not serve: **gmail/unread** buried Open and the snippet behind a per-message submenu — two hops to read one line — and had no "mark all read"; **tela/inbox** was a flat list with no cursor and no keys. Both are now `view.ts` modules on the shape whatsapp and slack already used (`rowNode`/`hints`/`actions`/`render`, widths off `POPOVER_W`, the cursor a module-level `barFocus` in `index.ts`, hidden `focus:<id>`/`down`/`up` actions). Gmail's conversion hit a real constraint on the way: **a view's `image` src must be `icon://` or `data:`**, while a *menu node's* icon may load a URL — so gravatars that worked as nodes broke as a view, and `barState` had to become async and go through `imageData`, as whatsapp's does.
+
+`network/status`, `power/battery` and `weather/weather` were already views but carried no `keys` table, so the popover could not say what its keys did; they have one now, and network's description still claimed it opened a palette, which it has not done for some time.
+
+Two real overflow defects, both in `extensions/calendar/view.ts`: the all-day line is a single row of badges and **cannot wrap**, yet took every all-day event at full title — capped at three badges of 18 chars plus a `+N`; and the stale line carried a magic `width: 200` beside a wide badge in a 396 px popover, now computed off `POPOVER_W` with the message truncated.
+
+Looked at and left, with the reason. **Media and network do not truncate wrongly** — both already pass an explicit `width` computed off `POPOVER_W` (`media/view.ts:45`, `network/view.ts:26`) and the renderer cuts at it; the audit's "truncation risk" there was unfounded. **Slack, whatsapp and weather do not need `view.update`**: `app/src/BarPage.tsx:57-61` restarts the same item's level **in place** with the new tree when it renders again while its popover shows, so their scheduled refresh already reaches an open popover. Calendar's extra 30 s tick is not the baseline everyone is missing — it exists because calendar shows *relative* time ("in 12 min") finer than its own 300 s refresh.
+
+One thing that is not a repo bug: `pal bar json hue/home` reports a nodes menu while `extensions/hue/index.ts:588` says `menu: { view: popoverView() }`. There is an **older hue installed** at `~/Library/Application Support/pal/extensions/hue`, shadowing the bundled one. Worth remembering when a live item disagrees with its source.
+
+Tests after: host `bun test` 1227 pass, 1 skip (77 files); vitest 37 files, 240 pass; host `tsc` at its 23-line baseline.
