@@ -13,11 +13,11 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { ASPECTS, cropped, fmtOf, geomFormat, ICONSET, isImage, outputFor, outputFmt, parseExiftool, parseIdentify, parseResize, parseSips, percent, plan, resized, size, strip, stripJpeg, stripPng, suffixFor, TOOL_ORDER, type Avail, type Job, type Plan } from "../../../extensions/images/ops.ts";
+import { ASPECTS, cropped, fmtOf, geomFormat, ICONSET, isImage, outputFor, outputFmt, parseExiftool, parseIdentify, parseResize, parseSips, percent, plan, resized, size, strip, stripJpeg, stripPng, suffixFor, TOOL_ORDER, type Avail, type Plan } from "../../../extensions/images/ops.ts";
 import type { Item, View, ViewNode } from "../../../sdk/src/index.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import { Host } from "../harness.ts";
-import { chunk, concat, flat, gradient, png, text } from "./images-png.ts";
+import { chunk, flat, gradient, png, text } from "./images-png.ts";
 
 const MAC = process.platform === "darwin";
 const REAL_SIPS = MAC && Bun.which("sips") !== null;
@@ -527,7 +527,9 @@ describe("images: the palette (stand-in tools)", () => {
     const e = await pick(P("photo.png"), "icons");
     expect(e.copy).toBe(P("photo-icons"));
     expect(e.hud).toMatch(/^Icon set photo\.png: [\d.]+ [KM]B in photo-icons, sips · path copied$/);
-    expect(readdirSync(P("photo-icons")).sort()).toEqual(["android-chrome-192.png", "android-chrome-512.png", "apple-touch-icon.png", "favicon-16.png", "favicon-32.png", "favicon.ico", "photo.icns", "photo.iconset"]);
+    // The .icns comes from iconutil, which the plan asks for on macOS only.
+    const files = ["android-chrome-192.png", "android-chrome-512.png", "apple-touch-icon.png", "favicon-16.png", "favicon-32.png", "favicon.ico", ...(process.platform === "darwin" ? ["photo.icns"] : []), "photo.iconset"];
+    expect(readdirSync(P("photo-icons")).sort()).toEqual(files);
     expect(readdirSync(P("photo-icons/photo.iconset")).sort()).toEqual(ICONSET.map(([, n]) => n).sort());
   });
 
@@ -598,7 +600,7 @@ describe("images: the palette (stand-in tools)", () => {
       expect(hints[0]).toMatchObject({ id: "hint:how", actions: [] });
       expect(hints[0].name).toBe(MAC ? "Select images in Finder, copy one, or type a path" : "Copy images, or type a path");
       expect(hints[1]).toMatchObject({ id: "hint:none", name: "Nothing here resizes or converts" });
-      expect(hints.slice(2).map((h) => h.name)).toEqual(["Install pngquant", "Install oxipng", "Install cjpeg"]);
+      expect(hints.slice(2).map((h) => h.name)).toEqual(["pngquant is not installed", "oxipng is not installed", "cjpeg is not installed"]);
       for (const h of hints) { expect(h.subtitle).not.toMatch(/\.$/); expect(h.actions).toEqual([]); }
     } finally { bare.kill(); process.env.PAL_IMAGES_SELECTION = sel; }
     host.changeSettings("images", { settings: { tinypng_api_key: "test-key" } });
