@@ -11,8 +11,8 @@
 // section offers a screenshot taken in the last two minutes (`suggest`).
 import { readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { bytes, conceal, effects, errorMessage, exec, hint, home, ocr, pngSize, run, settings, thumbnailUrl, tilde, toast, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
-import { ago, captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS, type Capture, type Destination, type Kind, type Mode } from "./shots.ts";
+import { ago, bytes, conceal, effects, errorMessage, exec, hint, home, ocr, pngSize, run, settings, thumbnailUrl, tilde, toast, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS, type Capture, type Destination, type Kind, type Mode } from "./shots.ts";
 
 /** `[extensions.screenshots]`, defaults in pal.json. */
 type Settings = { destination: Destination; folder: string; timer: number; sound: boolean; all_files: boolean; limit: number; ocr_concealed: boolean };
@@ -137,7 +137,7 @@ async function suggest(): Promise<Item[]> {
   const e = entries[0];
   if (!e || Date.now() - e.mtime >= SUGGEST_MS) return [];
   const r = row(e);
-  return [{ ...r, name: `Screenshot taken ${ago(Date.now() - e.mtime)}`, subtitle: `${e.name} · ${r.subtitle}`, section: undefined, actions: e.kind === "image" ? [OPEN, COPY_IMAGE, COPY_MARKDOWN, COPY_PATH, COPY_TEXT, REVEAL] : VIDEO_ACTIONS }];
+  return [{ ...r, name: `Screenshot taken ${ago(e.mtime)}`, subtitle: `${e.name} · ${r.subtitle}`, section: undefined, actions: e.kind === "image" ? [OPEN, COPY_IMAGE, COPY_MARKDOWN, COPY_PATH, COPY_TEXT, REVEAL] : VIDEO_ACTIONS }];
 }
 
 async function detail(path: string): Promise<Detail> {

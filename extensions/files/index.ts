@@ -28,7 +28,7 @@
 // `grep` on their temp folder).
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { apps as appsApi, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, when, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, bytes, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, when, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { BROWSE_CAP, SORTS, UP, filterEntries, isRoot, moreRow, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
 import { parseMdls } from "./meta.ts";
@@ -196,8 +196,6 @@ function kind(p: string, dir: boolean): Kind {
   return (Object.keys(EXT) as (keyof typeof EXT)[]).find((k) => EXT[k].includes(ext)) ?? "file";
 }
 
-const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(2)} GB`);
-
 /** A folder's primary action: its contents as a pushed level (the `browse` palette); `→` runs it from anywhere in a listing while nothing is typed. */
 const BROWSE: Action = { id: "browse", title: "Browse", shortcut: "right" };
 /** On every row of a browsed folder: flips the `show_hidden` setting, so the listing (every listing) shows or hides dot entries. */
@@ -251,7 +249,7 @@ function entryRow(e: Entry, usedAt?: number, section?: string, thumbs = false, e
     name: e.name,
     subtitle: tilde(dirname(e.path)),
     icon: MAC && e.path.endsWith(".app") ? { app: e.path } : thumbs && k === "image" ? { image: thumbnailUrl(e.path, 24) } : GLYPH[k],
-    accessories: [...(k === "folder" ? [] : [{ text: size(e.size) }]), { date: usedAt ?? e.mtime }],
+    accessories: [...(k === "folder" ? [] : [{ text: bytes(e.size) }]), { date: usedAt ?? e.mtime }],
     ...(section && { section }),
     actions: [...actionsFor(e.path, k), ...extra],
   };
@@ -439,7 +437,7 @@ async function detail(p: string): Promise<Detail> {
   const k = kind(p, dir);
   const metadata: Metadata[] = [
     { label: "Path", value: tilde(p) },
-    ...(dir ? [] : [{ label: "Size", value: size(st.size) }]),
+    ...(dir ? [] : [{ label: "Size", value: bytes(st.size) }]),
     { label: "Modified", value: when(st.mtimeMs) },
     { label: "Kind", value: k === "file" ? (extname(p).slice(1) || "file") : k },
     ...(dir ? [] : await spotlightMeta(p, k)),

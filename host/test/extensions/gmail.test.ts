@@ -11,7 +11,7 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gravatarUrl, initialIcon } from "../../../extensions/gmail/avatar.ts";
-import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, size, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
+import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
 import type { Item, PaletteMeta } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 import { GmailMock, personal } from "./gmail-mock.ts";
@@ -85,9 +85,6 @@ describe("mail helpers", () => {
     expect(sectionOf(["INBOX", "UNREAD"], names)).toBe("Inbox");
     expect(sectionOf(["SENT"], names)).toBe("Sent");
     expect(sectionOf([], names)).toBe("Archive");
-    expect(size(500)).toBe("500 B");
-    expect(size(48213)).toBe("47 KB");
-    expect(size(1_500_000)).toBe("1.4 MB");
   });
 
   test("bodyOf walks the MIME tree; looksAttached reads the top-level type", () => {

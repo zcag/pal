@@ -5,7 +5,7 @@ import { BLACK, CSS_NAMES, WHITE, adjust, complementary, contrast, format, fromL
 import { actions, hueStops, plane, readout, render, vivid } from "../../../extensions/colors/render.ts";
 import { conversions, detailOf, gridItem, historyRows } from "../../../extensions/colors/rows.ts";
 import { SETS, handKept, sectionOf, token, usage, type Row } from "../../../extensions/colors/sets.ts";
-import { DEFAULTS, ago, apply, fresh, previous, remember, type State } from "../../../extensions/colors/state.ts";
+import { DEFAULTS, apply, fresh, previous, remember, type State } from "../../../extensions/colors/state.ts";
 import data from "../../../extensions/colors/data.json";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
@@ -277,15 +277,6 @@ describe("picker state", () => {
     expect(apply(st, { kind: "clear" }, max).history).toEqual([]);
     expect(toHslString(apply(st, { kind: "random", hue: 200, sat: 70, light: 50 }, max).color)).toBe("hsl(200, 70%, 50%)");
   });
-
-  test("ago reads as people say it", () => {
-    const now = 1_000_000_000;
-    expect(ago(now, now)).toBe("just now");
-    expect(ago(now - 4 * 60_000, now)).toBe("4 min ago");
-    expect(ago(now - 2 * 3_600_000, now)).toBe("2 h ago");
-    expect(ago(now - 26 * 3_600_000, now)).toBe("yesterday");
-    expect(ago(now - 3 * 86_400_000, now)).toBe("3 d ago");
-  });
 });
 
 describe("picker tree", () => {
@@ -364,7 +355,7 @@ describe("rows", () => {
     const r = historyRows(st, DEFAULTS, 100_000 + 5 * 60_000);
     expect(r[0]).toMatchObject({ id: "pick", name: "Pick Colour from Screen", section: "Pick" });
     expect(r[1]).toMatchObject({ id: "#663399", name: "#663399", subtitle: "typed · 5 min ago", accessories: [{ text: "rebeccapurple" }] });
-    expect(r[2]).toMatchObject({ id: "#64748b", subtitle: "slate-500 · from a set · yesterday", accessories: [{ text: "≈ slategray" }] });
+    expect(r[2]).toMatchObject({ id: "#64748b", subtitle: "slate-500 · from a set · 1 d ago", accessories: [{ text: "≈ slategray" }] });
     expect(historyRows(st, { ...DEFAULTS, format: "rgb" }, 0)[1].accessories).toEqual([{ text: "rgb(102, 51, 153)" }]);
   });
 });

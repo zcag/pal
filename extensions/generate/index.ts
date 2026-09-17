@@ -7,8 +7,8 @@
 // copies on Enter and pastes on cmd+Enter; the shell's Refresh (cmd+r)
 // lists again, which is how a value is regenerated. The values are made in
 // `gen.ts`, the QR code in `qr.ts`; this file is the rows.
-import { clipboard, errorMessage, hint, settings, toast, truncate, type Accessory, type Action, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
-import { base64, base64Decode, base64url, CHARSET_TITLES, CHARSETS, entropy, hash, HASHES, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randomBase64, randomColor, randomHex, randomNumber, relative, rgbOf, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid4, uuid7, WORDS, type Charset, type HashAlgo } from "./gen.ts";
+import { ago, clipboard, errorMessage, hint, settings, toast, truncate, type Accessory, type Action, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { base64, base64Decode, base64url, CHARSET_TITLES, CHARSETS, entropy, hash, HASHES, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randomBase64, randomColor, randomHex, randomNumber, rgbOf, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid4, uuid7, WORDS, type Charset, type HashAlgo } from "./gen.ts";
 import { encode as encodeQr, toDataUrl, toSvg } from "./qr.ts";
 
 /** `[extensions.generate]`, defaults in pal.json. */
@@ -212,17 +212,17 @@ function jwtRows(src: Source): Item[] {
   const claims = jwt.payload;
   const times: Item[] = [];
   const exp = typeof claims.exp === "number" ? claims.exp : undefined;
-  const expiry: Accessory[] = exp === undefined ? [] : exp * 1000 < Date.now() ? [{ tag: `expired ${relative(exp)}`, color: "red" }] : [{ tag: `expires ${relative(exp)}`, color: "green" }];
+  const expiry: Accessory[] = exp === undefined ? [] : exp * 1000 < Date.now() ? [{ tag: `expired ${ago(exp * 1000)}`, color: "red" }] : [{ tag: `expires ${ago(exp * 1000)}`, color: "green" }];
   for (const [claim, label] of [["exp", "Expires"], ["iat", "Issued"], ["nbf", "Not before"]] as const) {
     const v = claims[claim];
     if (typeof v !== "number") continue;
-    times.push(row(`jwt-${claim}`, stamp(v), { subtitle: `${label} (${claim}), ${relative(v)}`, icon: GLYPH.clock, kind: label, all, accessories: [{ text: String(v) }] }));
+    times.push(row(`jwt-${claim}`, stamp(v), { subtitle: `${label} (${claim}), ${ago(v * 1000)}`, icon: GLYPH.clock, kind: label, all, accessories: [{ text: String(v) }] }));
   }
   const alg = typeof jwt.header.alg === "string" ? jwt.header.alg : "no alg";
   const who = ["sub", "email", "name", "iss"].map((k) => claims[k]).find((v) => typeof v === "string") as string | undefined;
   return [
     row("jwt-header", headerJson, { name: `Header: ${alg}${typeof jwt.header.typ === "string" ? `, ${jwt.header.typ}` : ""}${typeof jwt.header.kid === "string" ? `, kid ${jwt.header.kid}` : ""}`, subtitle: JSON.stringify(jwt.header), icon: GLYPH.jwt, all, kind: "JWT header", accessories: [{ text: `${Object.keys(jwt.header).length} fields` }], detail: { markdown: `\`\`\`json\n${headerJson}\n\`\`\``, metadata: [{ label: "Algorithm", value: alg }, { label: "Signature", value: jwt.signature ? `${jwt.signature.length} characters, not verified` : "none" }] } }),
-    row("jwt-payload", payloadJson, { name: `Payload${who ? `: ${short(who, 40)}` : ""}`, subtitle: JSON.stringify(jwt.payload), icon: GLYPH.jwt, all, kind: "JWT payload", accessories: [...expiry, { text: `${Object.keys(claims).length} claims` }], detail: { markdown: `\`\`\`json\n${payloadJson}\n\`\`\``, metadata: Object.entries(claims).slice(0, 12).map(([k, v]) => ({ label: k, value: typeof v === "number" && ["exp", "iat", "nbf"].includes(k) ? `${stamp(v)} (${relative(v)})` : typeof v === "string" ? v : JSON.stringify(v) })) } }),
+    row("jwt-payload", payloadJson, { name: `Payload${who ? `: ${short(who, 40)}` : ""}`, subtitle: JSON.stringify(jwt.payload), icon: GLYPH.jwt, all, kind: "JWT payload", accessories: [...expiry, { text: `${Object.keys(claims).length} claims` }], detail: { markdown: `\`\`\`json\n${payloadJson}\n\`\`\``, metadata: Object.entries(claims).slice(0, 12).map(([k, v]) => ({ label: k, value: typeof v === "number" && ["exp", "iat", "nbf"].includes(k) ? `${stamp(v)} (${ago(v * 1000)})` : typeof v === "string" ? v : JSON.stringify(v) })) } }),
     ...times,
     hint("jwt-unverified", "Signature not verified", "pal only decodes the token; whether it is genuine is for the issuer's key to say", { icon: GLYPH.alert }),
   ];

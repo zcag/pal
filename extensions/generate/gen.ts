@@ -180,14 +180,3 @@ export function jwtDecode(token: string): Jwt | undefined {
   if (!header || !payload) return;
   return { header, payload, signature: parts[2], raw: [parts[0], parts[1], parts[2]] };
 }
-
-/** "in 2 h", "3 d ago", "now": a unix-seconds claim relative to `now` (ms). */
-export function relative(seconds: number, now = Date.now()): string {
-  const diff = seconds * 1000 - now;
-  const abs = Math.abs(diff);
-  const units: [number, string][] = [[365 * 86400e3, "y"], [30 * 86400e3, "mo"], [86400e3, "d"], [3600e3, "h"], [60e3, "min"], [1e3, "s"]];
-  const [size, name] = units.find(([s]) => abs >= s) ?? [1e3, "s"];
-  const n = Math.round(abs / size);
-  if (n === 0) return "now";
-  return diff > 0 ? `in ${n} ${name}` : `${n} ${name} ago`;
-}

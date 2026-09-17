@@ -66,7 +66,7 @@ describe("clipboard", () => {
     expect(text.section).toBeUndefined();
     // A named entry (fixture 2, "Deploy notes") is titled by its name; the text stays in the subtitle.
     expect(multi).toMatchObject({ name: "Deploy notes", subtitle: "3 lines · line one line two line three", section: "Pinned", accessories: [{ text: "kitty" }, { date: 1758000001000 }, { tag: "pinned", color: "amber" }] });
-    expect(image).toMatchObject({ name: "Image 640 x 480", icon: { image: "icon://localhost/clip?id=3&size=48" }, accessories: [{ text: "12.1 KB" }, { date: 1758000002000 }] });
+    expect(image).toMatchObject({ name: "Image 640 x 480", icon: { image: "icon://localhost/clip?id=3&size=48" }, accessories: [{ text: "12 KB" }, { date: 1758000002000 }] });
     expect(image.subtitle).toBeUndefined();
     expect(files).toMatchObject({ name: "a.txt, b.txt", subtitle: "2 files", icon: "\u{f1032}", accessories: [{ text: "Finder" }, { date: 1758000003000 }] });
     expect(url).toMatchObject({ name: "https://example.com/page", url: "https://example.com/page", accessories: [{ text: "Safari" }, { date: 1758000004000 }] });
@@ -96,7 +96,7 @@ describe("clipboard", () => {
       { label: "Copied", value: expect.stringMatching(/2025/) }, // local time in the host; bun test itself runs in UTC
     ]);
     expect(image.detail!.markdown).toBe("![](icon://localhost/clip?id=3&size=0)");
-    expect(image.detail!.metadata).toContainEqual({ label: "Size", value: "12.1 KB · 640 x 480 px" });
+    expect(image.detail!.metadata).toContainEqual({ label: "Size", value: "12 KB · 640 x 480 px" });
     expect(files.detail!.markdown).toBe("- `/Users/x/a.txt`\n- `/Users/x/b.txt`");
     const pinned = (await list())[1].detail!.metadata!;
     expect(pinned[0]).toEqual({ label: "Name", value: "Deploy notes" });

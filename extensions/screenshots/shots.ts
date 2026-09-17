@@ -25,12 +25,6 @@ export function isScreenshot(name: string, all = false): boolean {
   return all || /^(screen ?shot|screen recording|screencapture|grim-)/i.test(name);
 }
 
-/** "12 s ago", "3 min ago", for the suggest row. */
-export function ago(ms: number): string {
-  const s = Math.max(0, Math.round(ms / 1000));
-  return s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`;
-}
-
 const two = (n: number) => String(n).padStart(2, "0");
 /** The name macOS gives a capture, so the recent list and Finder agree: `Screenshot 2026-09-17 at 14.03.22.png`. */
 export const captureName = (d: Date, video = false) => `${video ? "Screen Recording" : "Screenshot"} ${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} at ${two(d.getHours())}.${two(d.getMinutes())}.${two(d.getSeconds())}.${video ? "mov" : "png"}`;

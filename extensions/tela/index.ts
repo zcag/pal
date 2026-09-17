@@ -7,13 +7,13 @@
 // (`render.ts` over the SDK's `md`), the form that comments on it. Editing a
 // page's body is not the panel's job (tela's MCP does that). One bar
 // item, `inbox`: unread mentions and replies, hidden at zero.
-import { clipboard, dayNameYear, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
+import { ago, clipboard, dayNameYear, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, EXTENSION, askUrl, baseUrl, conf, keysUrl, log, notesUrl, pageUrl, researchOn, searchUrl, spaceUrl } from "./api.ts";
 import {
   RESEARCH_LIMIT, RESEARCH_MAX, addComment, addressed, backlinks, catalog, createPage, deckCover, describe, favorites, findSpace, iso, markAllRead, markRead, notifications, page, pageCounts, recent, research, search, spaceName, spaceTree, spaces,
   type Notification, type Page, type PageRef, type Space,
 } from "./data.ts";
-import { ago, pageView, researchView, type ResearchState } from "./render.ts";
+import { pageView, researchView, type ResearchState } from "./render.ts";
 
 /** Nerd Font `md-` glyphs: page, search, lightbulb (research), space (earth / lock), deck, sheet, comment, mention, reply, backlink, plus, note, star, alert, key, inbox, check, history. */
 const ICON = {
@@ -115,7 +115,7 @@ async function pageDetail(id: number): Promise<Detail> {
     { label: "Space", link: { text: ref.space_name ?? String(p.space_id), href: spaceUrl(p.space_id) } },
     ...(ref.breadcrumb?.length ? [{ label: "Under", value: ref.breadcrumb.join(" › ") }] : []),
     ...(p.props?.deck === true ? [{ label: "Kind", tags: [{ text: "deck", color: "violet" }] }] : p.props?.sheet === true ? [{ label: "Kind", tags: [{ text: "sheet", color: "teal" }] }] : []),
-    { label: "Updated", value: `${ago(p.updated_at)}` },
+    { label: "Updated", value: ago(iso(p.updated_at) ?? p.updated_at) },
     { label: "Created", value: dayNameYear(iso(p.created_at) ?? p.created_at) },
     { label: "Words", value: String(p.body.split(/\s+/).filter(Boolean).length) },
     ...(typeof p.props?.summary === "string" ? [{ label: "Summary", value: truncate(p.props.summary, 300) }] : []),

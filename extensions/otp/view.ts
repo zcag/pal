@@ -6,7 +6,7 @@
 // (ticking while the popover shows), the keys as hints, and the two codes
 // before it small under a hairline. A click on the code or a row copies
 // that code (concealed, as the palette does).
-import { POPOVER_W, column, keyHint, oneLine, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
+import { POPOVER_W, ago, column, keyHint, oneLine, row, text, type Action, type View, type ViewNode } from "@zcag/pal";
 
 /** One code as the reader found it (index.ts `Code`, the fields the view draws). */
 export type ShownCode = { id: string; code: string; name: string; sender: string; text: string; at: number };
@@ -28,17 +28,6 @@ const DIGIT_H = 52;
 const MESSAGE = "\u{f0369}";
 
 const hint = (keys: string[], what: string, action: string): ViewNode[] => keyHint(keys, what, { action });
-
-/** `just now`, `23 s ago`, `5 min ago`, `2 h ago`. */
-export const ago = (at: number, now: number): string => {
-  const s = Math.max(0, Math.round((now - at) / 1000));
-  if (s < 5) return "just now";
-  if (s < 60) return `${s} s ago`;
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  return `${h} h ago`;
-};
 
 /** The digits in groups: threes for six (and nine), fours for four and eight, halves otherwise; a code with letters is one group. */
 export function groups(code: string): string[] {
@@ -69,7 +58,7 @@ function latest(st: OtpState): ViewNode {
   return column(
     [
       digits(c.code),
-      row([text(c.name, { key: "from", size: "sm", weight: "semibold" }), text(ago(c.at, st.now), { key: "when", style: "muted", size: "xs" })], { key: "sender", gap: 2, minHeight: 18 }),
+      row([text(c.name, { key: "from", size: "sm", weight: "semibold" }), text(ago(c.at, { now: st.now }), { key: "when", style: "muted", size: "xs" })], { key: "sender", gap: 2, minHeight: 18 }),
       text(oneLine(c.text), { key: "text", style: "muted", size: "xs", width: POPOVER_W }),
       row([{ type: "progress", key: "left", value: st.window > 0 ? left / st.window : 0, color: "amber" }, text(`${Math.ceil(left / 1000)}s`, { key: "left-s", style: "mono", size: "xs", color: "muted", width: 28, align: "end" })], { key: "countdown", gap: 2 }),
     ],
@@ -89,7 +78,7 @@ function earlier(st: OtpState): ViewNode[] {
     { type: "divider", key: "rule" },
     text("Earlier", { key: "earlier", size: "xs", weight: "semibold", color: "muted" }),
     ...list.map((c): ViewNode => row(
-      [text(c.code, { key: "code", style: "mono", size: "sm", weight: "semibold", color: "green", width: 84 }), text(c.name, { key: "name", size: "sm", width: 200 }), { type: "spacer", key: "sp" }, text(ago(c.at, st.now), { key: "when", style: "muted", size: "xs" })],
+      [text(c.code, { key: "code", style: "mono", size: "sm", weight: "semibold", color: "green", width: 84 }), text(c.name, { key: "name", size: "sm", width: 200 }), { type: "spacer", key: "sp" }, text(ago(c.at, { now: st.now }), { key: "when", style: "muted", size: "xs" })],
       { key: `prev-${c.id}`, gap: 2, minHeight: 22, action: `copy:${c.id}` },
     )),
   ];

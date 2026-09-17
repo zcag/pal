@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { tinted } from "../../../sdk/src/icon.ts";
 import type { Form, View } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
-import { REASONS, ago, render, shown } from "../../../extensions/github/view.ts";
+import { REASONS, render, shown } from "../../../extensions/github/view.ts";
 import type { Notification } from "../../../extensions/github/data.ts";
 import { Host, stored } from "../harness.ts";
 
@@ -509,7 +509,6 @@ describe("github", () => {
       expect(v.title).toBe("9 unread (Work)");
       expect(JSON.stringify(v.tree)).toContain('"value":"and 3 more in pal"');
       expect(JSON.stringify(v.tree)).toContain('"action":"focus:thread:2","selected":true');
-      expect([ago(new Date(now - 20_000).toISOString(), now), ago(new Date(now - 5 * 60_000).toISOString(), now), ago(new Date(now - 3 * 3600_000).toISOString(), now), ago(new Date(now - 2 * 86400_000).toISOString(), now), ago(new Date(now - 10 * 86400_000).toISOString(), now), ago(new Date(now - 90 * 86400_000).toISOString(), now)]).toEqual(["now", "5m", "3h", "2d", "1w", "3mo"]);
       for (const r of ["mention", "team_mention", "review_requested", "assign", "author", "comment", "subscribed", "state_change", "ci_activity", "security_alert", "manual", "invitation", "member_feature_requested", "security_advisory_credit", "approval_requested"]) expect(REASONS[r]).toBeDefined();
       const empty = render({ list: [], cursor: 0, now });
       expect(checkView(empty)).toBe(empty);

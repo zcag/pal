@@ -11,9 +11,9 @@
 // could be and is the root's Clipboard section.
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { bytes, clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { rowsPalette } from "./now.ts";
-import { fileNameFor, qrSvg, QR_SHOW_PX, size } from "./rows.ts";
+import { fileNameFor, qrSvg, QR_SHOW_PX } from "./rows.ts";
 
 /** `[extensions.clipboard]`, defaults in pal.json. `max_entries` and `max_age_days` are the recorder's (app clipboard.rs); this side never reads them. */
 type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy"; ocr_concealed: boolean };
@@ -102,7 +102,7 @@ function detail(e: ClipboardEntry, color?: string): Detail {
     metadata: [
       ...(e.name ? [{ label: "Name", value: e.name }] : []),
       { label: "Kind", value: e.kind },
-      { label: "Size", value: e.kind === "image" ? `${size(e.bytes)} · ${e.width} x ${e.height} px` : e.kind === "text" ? `${size(e.bytes)} · ${e.text!.length} chars` : size(e.bytes) },
+      { label: "Size", value: e.kind === "image" ? `${bytes(e.bytes)} · ${e.width} x ${e.height} px` : e.kind === "text" ? `${bytes(e.bytes)} · ${e.text!.length} chars` : bytes(e.bytes) },
       ...(e.source_app ? [{ label: "Source", value: appName(e.source_app) }] : []),
       { label: "Copied", value: when(e.at) },
       ...(e.pinned ? [{ label: "Pinned", tags: [{ text: "pinned", color: "amber" }] }] : []),
@@ -140,7 +140,7 @@ function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
     url,
     accessories: [
       ...(e.source_app ? [{ text: appName(e.source_app) }] : []),
-      ...(e.kind === "image" ? [{ text: size(e.bytes) }] : []),
+      ...(e.kind === "image" ? [{ text: bytes(e.bytes) }] : []),
       { date: e.at },
       ...(e.pinned ? [{ tag: "pinned", color: "amber" }] : []),
     ],

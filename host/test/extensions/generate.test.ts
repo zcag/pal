@@ -5,7 +5,7 @@
 // decoded by Apple's Vision framework by hand (versions 1 to 39); the
 // golden matrix below is one of those.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { base64, base64Decode, base64url, entropy, hash, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randInt, randomColor, randomNumber, relative, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid7, WORDS } from "../../../extensions/generate/gen.ts";
+import { base64, base64Decode, base64url, entropy, hash, hexDecode, jwtDecode, loremParagraphs, loremWords, nanoid, passphrase, password, randInt, randomColor, randomNumber, strength, ulid, urlDecode, urlEncode, utf8Hex, uuid7, WORDS } from "../../../extensions/generate/gen.ts";
 import { capacity, encode, toDataUrl, toSvg, versionFor } from "../../../extensions/generate/qr.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
@@ -98,7 +98,7 @@ describe("gen", () => {
     expect(loremWords(1)).toBe("Lorem.");
   });
 
-  test("a JWT decodes to its header and payload, never verified; junk and a two-part token are not JWTs; relative times", () => {
+  test("a JWT decodes to its header and payload, never verified; junk and a two-part token are not JWTs", () => {
     const j = jwtDecode(JWT)!;
     expect(j.header).toEqual({ alg: "HS256", typ: "JWT" });
     expect(j.payload).toMatchObject({ sub: "1234567890", name: "John Doe", iat: 1516239022, exp: 1900000000 });
@@ -106,11 +106,6 @@ describe("gen", () => {
     expect(jwtDecode("a.b")).toBeUndefined();
     expect(jwtDecode("not.a.jwt")).toBeUndefined();
     expect(jwtDecode(`${JWT.split(".")[0]}.${Buffer.from("[1]").toString("base64url")}.x`)).toBeUndefined();
-    const now = Date.UTC(2026, 8, 16, 12, 0, 0);
-    expect(relative(now / 1000 + 7200, now)).toBe("in 2 h");
-    expect(relative(now / 1000 - 3 * 86400, now)).toBe("3 d ago");
-    expect(relative(now / 1000, now)).toBe("now");
-    expect(relative(now / 1000 + 90, now)).toBe("in 2 min");
   });
 });
 

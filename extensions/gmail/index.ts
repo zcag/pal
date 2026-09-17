@@ -6,11 +6,11 @@
 // hourly catalog; Compose and Drafts exist only where `send` is on for
 // the account. Every row id is the message id, so a pick after a restart
 // still finds it with one `messages.get`.
-import { clock, dayNameYear, errorMessage, failed, hint, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { bytes, clock, dayNameYear, errorMessage, failed, hint, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
 import { address, addressNow, archive, drafts, inbox, labelNames, labels, mail, markRead, markUnread, open, reset, search, star, type DraftRow, type Inbox, type Mail } from "./data.ts";
-import { buildRaw, displayName, draftUrl, gmailBase, labelQuery, labelTitle, labelUrl, mdEscape, messageText, quoted, replySubject, sectionOf, size, threadUrl, withSignature } from "./mail.ts";
+import { buildRaw, displayName, draftUrl, gmailBase, labelQuery, labelTitle, labelUrl, mdEscape, messageText, quoted, replySubject, sectionOf, threadUrl, withSignature } from "./mail.ts";
 
 /** Glyphs from the bundled Nerd Font's `md-` set: email, email-open, email-edit, file-send-outline, label, label-outline, inbox, star, alert, magnify, tag, send, trash-can-outline, open-in-new, alert-circle-outline, flag, tag-multiple-outline. */
 const ICON = { mail: "\u{f01ee}", open: "\u{f01ef}", compose: "\u{f0ee3}", draft: "\u{f1039}", label: "\u{f0315}", labelOutline: "\u{f0316}", inbox: "\u{f0687}", star: "\u{f04ce}", alert: "\u{f0026}", search: "\u{f0349}", tag: "\u{f04f9}", send: "\u{f048a}", trash: "\u{f0a7a}", browser: "\u{f03cc}", sent: "\u{f048a}", spam: "\u{f05d6}", important: "\u{f023b}", category: "\u{f12f7}" } as const;
@@ -111,7 +111,7 @@ async function mailPane(id: string): Promise<Detail> {
     ...(m.cc.length ? [{ label: "Cc", value: m.cc.map(addrLine).join(", ") }] : []),
     { label: "Date", value: m.date ? `${dayNameYear(m.date)} ${clock(m.date)}` : m.dateHeader },
     ...(userLabels(m).length || m.starred ? [{ label: "Labels", tags: [...userLabels(m).map((l) => ({ text: l })), ...(m.starred ? [{ text: "starred", color: "amber" }] : [])] }] : []),
-    ...(o.attachments.length ? [{ label: plural(o.attachments.length, "Attachment"), value: o.attachments.map((a) => `${a.filename} (${size(a.size)})`).join(", ") }] : []),
+    ...(o.attachments.length ? [{ label: plural(o.attachments.length, "Attachment"), value: o.attachments.map((a) => `${a.filename} (${bytes(a.size)})`).join(", ") }] : []),
     { label: "Thread", link: { text: "Open in Gmail", href: threadUrl(await address(), m.threadId, m.inInbox) } },
   ];
   const text = messageText(o.text, o.html, m.snippet);

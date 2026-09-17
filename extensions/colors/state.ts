@@ -125,16 +125,4 @@ export const write = (c: RGB, s: Settings, f: Format = s.format) => format(c, f,
 /** The title of the picker: the hex, and the CSS name when it has one exactly. */
 export const titleOf = (c: RGB): string => { const n = nameOf(c); return n ? `${toHex(c)} · ${n}` : toHex(c); };
 
-/** "just now", "4 min ago", "2 h ago", "yesterday", "3 d ago". */
-export function ago(at: number, now: number): string {
-  const s = Math.max(0, Math.round((now - at) / 1000));
-  if (s < 45) return "just now";
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h} h ago`;
-  const d = Math.round(h / 24);
-  return d === 1 ? "yesterday" : `${d} d ago`;
-}
-
 export { BLACK, WHITE, nearestName };

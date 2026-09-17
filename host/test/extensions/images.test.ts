@@ -13,9 +13,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { ASPECTS, cropped, fmtOf, geomFormat, ICONSET, isImage, outputFor, outputFmt, parseExiftool, parseIdentify, parseResize, parseSips, percent, plan, resized, size, strip, stripJpeg, stripPng, suffixFor, TOOL_ORDER, type Avail, type Plan } from "../../../extensions/images/ops.ts";
+import { ASPECTS, cropped, fmtOf, geomFormat, ICONSET, isImage, outputFor, outputFmt, parseExiftool, parseIdentify, parseResize, parseSips, percent, plan, resized, strip, stripJpeg, stripPng, suffixFor, TOOL_ORDER, type Avail, type Plan } from "../../../extensions/images/ops.ts";
 import type { Item, View, ViewNode } from "../../../sdk/src/index.ts";
 import { tile } from "../../../sdk/src/icon.ts";
+import { bytes } from "../../../sdk/src/text.ts";
 import { Host } from "../harness.ts";
 import { chunk, flat, gradient, png, text } from "./images-png.ts";
 
@@ -115,12 +116,7 @@ describe("formats and naming", () => {
     expect(ASPECTS).toContain("3:2");
   });
 
-  test("size and percent as the rows print them", () => {
-    expect(size(895)).toBe("895 B");
-    expect(size(5 * 1024 + 900)).toBe("5.9 KB");
-    expect(size(217 * 1024)).toBe("217 KB");
-    expect(size(1.44 * 1024 * 1024)).toBe("1.44 MB");
-    expect(size(25 * 1024 * 1024)).toBe("25.0 MB");
+  test("percent as the rows print it", () => {
     expect(percent(1000, 280)).toBe("−72%");
     expect(percent(1000, 1020)).toBe("+2%");
     expect(percent(1000, 1000)).toBe("0%");
@@ -358,7 +354,7 @@ describe("images: the palette (stand-in tools)", () => {
     const photo = rows[1];
     expect(photo.section).toBe("Finder selection");
     expect(photo.name).toBe("photo.png");
-    expect(photo.accessories).toEqual([{ text: size(statSync(P("photo.png")).size) }, { text: "1200×900" }]);
+    expect(photo.accessories).toEqual([{ text: bytes(statSync(P("photo.png")).size) }, { text: "1200×900" }]);
     expect(photo.icon).toEqual({ image: `icon://localhost/file?path=${encodeURIComponent(P("photo.png"))}&size=64` });
     expect(photo.keywords).toEqual(["png"]);
     expect(photo.actions!.map((a) => a.id)).toEqual(["compress", "web", "lossless", "tinypng", "resize", "convert", "rotate", "crop", "strip", "gray", "icons", "ocr", "info", "copy", "copy-image", "open", "reveal"]);
@@ -398,7 +394,7 @@ describe("images: the palette (stand-in tools)", () => {
     const d = await host.detail("images", "images", P("photo.jpg"));
     expect(d.markdown).toBe(`![](icon://localhost/file?path=${encodeURIComponent(P("photo.jpg"))}&size=256)`);
     expect(d.metadata).toEqual([
-      { label: "Path", value: P("photo.jpg") }, { label: "Size", value: size(statSync(P("photo.jpg")).size) }, { label: "Dimensions", value: "1200 × 900 px" },
+      { label: "Path", value: P("photo.jpg") }, { label: "Size", value: bytes(statSync(P("photo.jpg")).size) }, { label: "Dimensions", value: "1200 × 900 px" },
       { label: "Format", value: "PNG, 8 bits, alpha" }, { label: "Colour", value: "RGB · sRGB IEC61966-2.1" }, { label: "Camera", value: "Canon EOS R5" },
     ]);
   });
@@ -409,16 +405,16 @@ describe("images: the palette (stand-in tools)", () => {
     expect(e.copy).toBe(P("photo-compressed.png"));
     const after = statSync(P("photo-compressed.png")).size;
     expect(after).toBe(Math.floor(before * 6 / 10));
-    expect(e.hud).toBe(`Compressed photo.png: ${size(before)} → ${size(after)} (${percent(before, after)}), pngquant · path copied`);
+    expect(e.hud).toBe(`Compressed photo.png: ${bytes(before)} → ${bytes(after)} (${percent(before, after)}), pngquant · path copied`);
     const rows = await list();
     const r = rows.find((x) => x.id === P("photo-compressed.png"))!;
     expect(r.section).toBe("Results");
-    expect(r.subtitle).toBe(`Compressed with pngquant · ${size(before)} → ${size(after)}`);
-    expect(r.accessories).toEqual([{ tag: percent(before, after), color: "green" }, { text: size(after) }, { text: "1200×900" }]);
+    expect(r.subtitle).toBe(`Compressed with pngquant · ${bytes(before)} → ${bytes(after)}`);
+    expect(r.accessories).toEqual([{ tag: percent(before, after), color: "green" }, { text: bytes(after) }, { text: "1200×900" }]);
     expect(r.actions!.map((a) => a.id)).toContain("trash");
     expect(r.actions!.map((a) => a.id)).not.toContain("restore");
     const d = await host.detail("images", "images", P("photo-compressed.png"));
-    expect(d.metadata!.slice(0, 3)).toEqual([{ label: "Made by", value: "Compressed with pngquant" }, { label: "From", value: `${P("photo.png")}, ${size(before)}, 1200×900` }, { label: "Saving", tags: [{ text: percent(before, after), color: "green" }] }]);
+    expect(d.metadata!.slice(0, 3)).toEqual([{ label: "Made by", value: "Compressed with pngquant" }, { label: "From", value: `${P("photo.png")}, ${bytes(before)}, 1200×900` }, { label: "Saving", tags: [{ text: percent(before, after), color: "green" }] }]);
     expect((await pick(P("photo.png"), "compress")).copy).toBe(P("photo-compressed-2.png"));
     // Lossless names the lossless tool; a JPEG goes through cjpeg (lossy) and jpegtran (lossless).
     expect((await pick(P("photo.png"), "lossless")).hud).toContain("(−40%), oxipng · path copied");
@@ -581,7 +577,7 @@ describe("images: the palette (stand-in tools)", () => {
     expect(await pick(P("flat.png"), "ocr")).toEqual({ copy: "text of flat.png", hud: "Copied text" });
     const info = await pick(P("flat.png"), "info");
     expect(info.hud).toBe("Copied info");
-    expect(info.copy).toBe(`Path: ${P("flat.png")}\nSize: ${size(statSync(P("flat.png")).size)}\nDimensions: 64 × 64 px\nFormat: PNG, 8 bits, alpha\nColour: RGB · sRGB IEC61966-2.1\nCamera: Canon EOS R5`);
+    expect(info.copy).toBe(`Path: ${P("flat.png")}\nSize: ${bytes(statSync(P("flat.png")).size)}\nDimensions: 64 × 64 px\nFormat: PNG, 8 bits, alpha\nColour: RGB · sRGB IEC61966-2.1\nCamera: Canon EOS R5`);
     expect(await pick(P("flat.png"), "copy")).toEqual({ copy: P("flat.png") });
     expect(await pick(P("flat.png"), "open")).toEqual({ open: P("flat.png") });
   });
@@ -627,7 +623,7 @@ describe.skipIf(!MAGICK && !REAL_SIPS)("images: the real tools", () => {
 
   test("the drawn PNG's size and pixels are read by sips or identify", async () => {
     const rows = await real.list("images", "images", "");
-    expect(rows[0].accessories).toEqual([{ text: size(statSync(R("photo.png")).size) }, { text: "1200×900" }]);
+    expect(rows[0].accessories).toEqual([{ text: bytes(statSync(R("photo.png")).size) }, { text: "1200×900" }]);
   });
 
   test.skipIf(!MAGICK)("compress through ImageMagick (or pngquant/oxipng when installed) writes a smaller, still-readable PNG", async () => {

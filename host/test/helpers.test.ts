@@ -1,9 +1,11 @@
 // The helpers the bundled extensions share through `@zcag/pal`: text.ts,
-// rows.ts, api.ts's tilde, png.ts, exec.ts, token.ts, image.ts. The
+// clock.ts's ago, rows.ts, api.ts's tilde, png.ts, exec.ts, token.ts,
+// image.ts. The
 // expectations are the ones the extensions' own copies carried before the
 // helpers moved here (polish round 3), so a move is proven equivalent.
 import { afterAll, describe, expect, test } from "bun:test";
 import { tilde } from "../../sdk/src/api.ts";
+import { ago } from "../../sdk/src/clock.ts";
 import { EXEC_MS, exec, run } from "../../sdk/src/exec.ts";
 import { IMAGE_MISS_TTL, forgetImages, imageData } from "../../sdk/src/image.ts";
 import { pngSize } from "../../sdk/src/png.ts";
@@ -43,6 +45,18 @@ describe("text", () => {
     expect(mdEscape("see <a@b> and #1 *now*")).toBe("see \\<a@b\\> and \\#1 \\*now\\*");
     expect(mdEscape("go https://x.example/a_b?c=1 now")).toBe("go https://x.example/a_b?c=1 now");
     expect(mdEscape("- item\n1. one\n+ plus")).toBe("\\- item\n1\\. one\n\\+ plus");
+  });
+});
+
+describe("clock", () => {
+  test("ago: just now, then s / min / h / d / w / mo / y, a future moment as in; short is the column form", () => {
+    const now = Date.UTC(2026, 8, 16, 12, 0, 0);
+    const back = (ms: number, short = false) => ago(now - ms, { now, short });
+    expect([back(2_000), back(23_000), back(4 * 60_000), back(2 * 3_600_000), back(26 * 3_600_000), back(3 * 86_400_000), back(10 * 86_400_000), back(90 * 86_400_000), back(400 * 86_400_000)]).toEqual(["just now", "23 s ago", "4 min ago", "2 h ago", "1 d ago", "3 d ago", "1 w ago", "3 mo ago", "1 y ago"]);
+    expect([back(20_000, true), back(5 * 60_000, true), back(3 * 3_600_000, true), back(2 * 86_400_000, true), back(10 * 86_400_000, true), back(90 * 86_400_000, true)]).toEqual(["now", "5m", "3h", "2d", "1w", "3mo"]);
+    expect([ago(now + 7_200_000, { now }), ago(now + 90_000, { now }), ago(now + 7_200_000, { now, short: true })]).toEqual(["in 2 h", "in 2 min", "in 2h"]);
+    expect([back(59.6 * 60_000), back(23.6 * 3_600_000)]).toEqual(["1 h ago", "1 d ago"]);
+    expect(ago(new Date(now - 5 * 60_000).toISOString(), { now })).toBe("5 min ago");
   });
 });
 

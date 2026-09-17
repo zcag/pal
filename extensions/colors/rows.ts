@@ -3,9 +3,9 @@
 // set's tile where the token is used), the grid's tiles, the converter's
 // rows and the history's. No host imports: the gallery's fixture builds its
 // rows with these same functions.
-import { colors, hint as sdkHint, type Action, type Detail, type Item, type Metadata } from "@zcag/pal";
+import { ago, colors, hint as sdkHint, type Action, type Detail, type Item, type Metadata } from "@zcag/pal";
 import { setInfo, token, usage, type Row } from "./sets.ts";
-import { ago, write, type Settings, type Source, type State } from "./state.ts";
+import { write, type Settings, type Source, type State } from "./state.ts";
 const { BLACK, WHITE, contrast, nameOf, nearestName, parse, swatch, toHex, wcag } = colors;
 type Format = colors.Format;
 type RGB = colors.RGB;
@@ -76,7 +76,7 @@ export function historyRows(st: State, s: Settings, now: number): Item[] {
   return [head, ...st.history.map((e): Item => {
     const c = parse(e.c) ?? BLACK;
     return {
-      id: e.c, name: write(c, s, "hex"), subtitle: `${e.name ? `${e.name} · ` : ""}${FROM[e.from] ?? e.from} · ${ago(e.at, now)}`,
+      id: e.c, name: write(c, s, "hex"), subtitle: `${e.name ? `${e.name} · ` : ""}${FROM[e.from] ?? e.from} · ${ago(e.at, { now })}`,
       icon: { image: swatch(e.c) }, keywords: [e.c, ...(e.name ? [e.name] : []), e.from, nameOf(c) ?? nearestName(c).name], section: "History",
       // The chosen notation when it adds to the hex in the name; else the CSS name, approximate when not exact.
       accessories: [{ text: s.format === "hex" ? (nameOf(c) ?? `≈ ${nearestName(c).name}`) : write(c, s) }],

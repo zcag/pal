@@ -468,7 +468,6 @@ const clean = (o: Info): Info => Object.fromEntries(Object.entries(o).filter(([,
 
 // ---- text ----------------------------------------------------------------------------
 
-export const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB` : `${(n / 1024 ** 2).toFixed(n < 10 * 1024 ** 2 ? 2 : 1)} MB`);
 export const dims = (d: Dims | undefined) => (d ? `${d.width}×${d.height}` : "");
 /** `−72%` for a saving, `+3%` for a growth, `0%` for none. */
 export const percent = (before: number, after: number) => { const p = Math.round((after / before - 1) * 100); return `${p < 0 ? "−" : p > 0 ? "+" : ""}${Math.abs(p)}%`; };

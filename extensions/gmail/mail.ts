@@ -239,6 +239,3 @@ export function sectionOf(labelIds: string[] | undefined, names: Map<string, str
   for (const id of ["INBOX", "SENT", "DRAFT", "SPAM", "TRASH"]) if (ids.includes(id)) return labelTitle(id, id);
   return "Archive";
 }
-
-/** Bytes for a row: `12 KB`, `1.4 MB`. */
-export const size = (n: number): string => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${Math.round(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);

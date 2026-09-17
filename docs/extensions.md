@@ -1174,8 +1174,12 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   pins it, so a test fixes the day and the hour. Every read of the time in
   an extension should go through it. Writing a moment: `clock(t)` (`14:05`,
   24 h), `dayName(t)` (`Fri 18 Sep`), `dayNameYear(t)`, `isoDay(t)`
-  (`2026-09-18`) and `when(t)` (the clock alone today, the day before it
-  on another day, the year in another year), all local and hand-formatted:
+  (`2026-09-18`), `when(t)` (the clock alone today, the day before it
+  on another day, the year in another year) and `ago(t)` (`just now`,
+  `23 s ago`, `5 min ago`, `2 h ago`, `3 d ago`, `2 w ago`, `5 mo ago`,
+  `1 y ago`, `in 2 h`; `ago(t, { short: true })` is `now`, `5m`, `2h` for a
+  narrow column or the bar; `{ now }` fixes the reference), all local and
+  hand-formatted:
   the host runs under whatever locale launchd gave it (`en-US` on a
   machine set to `en_TR`), so `toLocaleString` puts the month first and an
   AM/PM on a user whose clock says 14:05. Use these for a row's subtitle

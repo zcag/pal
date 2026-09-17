@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Host } from "../harness.ts";
-import { ago, groups, render } from "../../../extensions/otp/view.ts";
+import { groups, render } from "../../../extensions/otp/view.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 
@@ -250,12 +250,6 @@ describe("the popover's tree (view.ts)", () => {
     expect(nodes(none.tree).find((n) => n.type === "text")).toMatchObject({ style: "glyph", value: "\u{f0369}" });
     expect(texts(none)[1]).toBe("No recent code");
     expect(none.actions.map((a) => a.id)).toEqual(["open"]);
-  });
-  test("ago: just now, seconds, minutes, hours", () => {
-    expect(ago(1000, 3000)).toBe("just now");
-    expect(ago(0, 23_000)).toBe("23 s ago");
-    expect(ago(0, 5 * 60_000)).toBe("5 min ago");
-    expect(ago(0, 2 * 3600_000)).toBe("2 h ago");
   });
 });
 

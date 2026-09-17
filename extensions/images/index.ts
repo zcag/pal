@@ -11,9 +11,9 @@
 // after. ops.ts plans the steps (pure), exec.ts runs them.
 import { readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { clipboard, effects, errorMessage, hint, home, ocr, settings, tilde, toast, view as views, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata, type View, type ViewNode } from "@zcag/pal";
+import { bytes as size, clipboard, effects, errorMessage, hint, home, ocr, settings, tilde, toast, view as views, type Action, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata, type View, type ViewNode } from "@zcag/pal";
 import { available, copyImage, dimsOf, dir, execute, exists, finderSelection, infoOf, keepOriginal, MAC, restoreOriginal, sizeOf, thumbnail, tinypng, tmpPath, trash, which } from "./exec.ts";
-import { ASPECTS, cropped, dims as dimsText, FMT_TITLE, fmtOf, isImage, isMissing, LOSSY, outputFor, parseResize, percent, plan, resized, size, suffixFor, TARGETS, TOOL_HINT, type Aspect, type Avail, type Dims, type Fmt, type Info, type Job, type ResizeSpec, type ToolName } from "./ops.ts";
+import { ASPECTS, cropped, dims as dimsText, FMT_TITLE, fmtOf, isImage, isMissing, LOSSY, outputFor, parseResize, percent, plan, resized, suffixFor, TARGETS, TOOL_HINT, type Aspect, type Avail, type Dims, type Fmt, type Info, type Job, type ResizeSpec, type ToolName } from "./ops.ts";
 
 /** `[extensions.images]`, defaults in pal.json. */
 type Settings = { replace: boolean; quality: number; web_format: "keep" | "webp" | "avif"; web_max: number; thumbnails: boolean; pad_color: string; tinypng_api_key: string; tools: string[] };

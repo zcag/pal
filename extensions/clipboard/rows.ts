@@ -15,7 +15,7 @@
 // the `fetch_titles` setting gates.
 import { basename, dirname, extname } from "node:path";
 import qrcode from "qrcode-generator";
-import { clock, colors, dayNameYear, slug, when, type Action, type ClipboardEntry, type Item } from "@zcag/pal";
+import { ago, bytes, clock, colors, dayNameYear, slug, when, type Action, type ClipboardEntry, type Item } from "@zcag/pal";
 const { parse: parseColor, toHex, toHslString, toRgb } = colors;
 type RGB = colors.RGB;
 
@@ -148,18 +148,6 @@ export function parseDate(t: string): Analysis["date"] {
   return Number.isNaN(at.getTime()) ? undefined : { at, from: "iso" };
 }
 
-/** `in 3 h`, `2 days ago`, `just now`. */
-export function relative(at: Date, now = Date.now()): string {
-  const d = at.getTime() - now;
-  const abs = Math.abs(d);
-  const units: [number, string][] = [[365 * 864e5, "year"], [30 * 864e5, "month"], [7 * 864e5, "week"], [864e5, "day"], [36e5, "hour"], [6e4, "minute"]];
-  if (abs < 6e4) return "just now";
-  const [ms, name] = units.find(([ms]) => abs >= ms) ?? [6e4, "minute"];
-  const n = Math.round(abs / ms);
-  const span = `${n} ${name}${n === 1 ? "" : "s"}`;
-  return d < 0 ? `${span} ago` : `in ${span}`;
-}
-
 const printable = (s: string) => { const bad = (s.match(/[\u0000-\u0008\u000b\u000e-\u001f\ufffd]/g) ?? []).length; return s.length > 0 && bad / s.length < 0.05; };
 
 /** Hex (`48656c6c6f`, `0x…`) or base64 that decodes to readable UTF-8; the decoded text. */
@@ -250,8 +238,6 @@ export function analyzeText(entry: ClipboardEntry, text: string, paths: PathInfo
 export type RowOpts = { shortener?: string; ocr?: boolean; qr?: boolean; now?: number };
 
 const clip = (s: string, n = PREVIEW) => { const one = s.replace(/\s+/g, " ").trim(); return one.length > n ? one.slice(0, n - 1) + "…" : one; };
-/** `512 B`, `3.2 KB`, `1.5 MB`: a size on a row (the SDK's `bytes` rounds KB past 10 and knows GB; the clipboard never holds that much). */
-export const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 const fence = (s: string, lang = "") => "````" + lang + "\n" + s.replace(/````/g, "```​`") + "\n````";
 const swatch = (hex: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="14" fill="${hex}"/></svg>`)}`;
 const wideSwatch = (hex: string) => `![](data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" rx="8" fill="${hex}"/></svg>`)})`;
@@ -303,9 +289,9 @@ export function rows(a: Analysis, o: RowOpts = {}, home = ""): Item[] {
   const now = o.now ?? Date.now();
   if (e.kind === "image") {
     const dims = e.width && e.height ? `${e.width} × ${e.height}` : "image";
-    out.push(item("image", `Image ${dims}`, `${size(e.bytes)} · PNG`, { image: `icon://localhost/clip?id=${e.id}&size=48` }, [
+    out.push(item("image", `Image ${dims}`, `${bytes(e.bytes)} · PNG`, { image: `icon://localhost/clip?id=${e.id}&size=48` }, [
       { id: "save", title: "Save to Desktop" }, { id: "copy-file", title: "Copy as PNG file", shortcut: "cmd+shift+c" }, { id: "paste", title: "Paste" },
-    ], { detail: { markdown: `![](icon://localhost/clip?id=${e.id}&size=0)`, metadata: [{ label: "Size", value: `${dims} px · ${size(e.bytes)}` }, { label: "Copied", value: when(e.at) }] } }));
+    ], { detail: { markdown: `![](icon://localhost/clip?id=${e.id}&size=0)`, metadata: [{ label: "Size", value: `${dims} px · ${bytes(e.bytes)}` }, { label: "Copied", value: when(e.at) }] } }));
     if (o.ocr) out.push(item("ocr", "Recognise text in the image", "OCR; the text is copied", GLYPH.ocr, [{ id: "ocr", title: "Recognise and copy" }, { id: "ocr-paste", title: "Recognise and paste" }]));
   }
   if (a.url) {
@@ -330,15 +316,15 @@ export function rows(a: Analysis, o: RowOpts = {}, home = ""): Item[] {
     out.push(item(`path:${i}`, basename(p.path) || p.path, short(dirname(p.path), home), pathGlyph(p), [
       { id: "open", title: "Open" }, { id: "reveal", title: reveal, shortcut: "cmd+enter" }, { id: "open-with", title: "Open with…", shortcut: "cmd+o" },
       { id: "copy-name", title: "Copy name", shortcut: "cmd+shift+c" }, { id: "copy", title: "Copy path", shortcut: "cmd+c" },
-    ], { accessories: p.dir ? [{ text: "folder" }] : [{ text: size(p.bytes) }], detail: { metadata: [{ label: "Path", value: short(p.path, home) }, ...(p.dir ? [] : [{ label: "Size", value: size(p.bytes) }])] } }));
+    ], { accessories: p.dir ? [{ text: "folder" }] : [{ text: bytes(p.bytes) }], detail: { metadata: [{ label: "Path", value: short(p.path, home) }, ...(p.dir ? [] : [{ label: "Size", value: bytes(p.bytes) }])] } }));
   });
   if (a.fileList && a.fileList.count > 0) {
     const n = a.fileList.count;
-    out.push(item("files", `${n} ${n === 1 ? "file" : "files"} on the clipboard`, `${size(a.fileList.bytes)} in all`, GLYPH.files, [{ id: "reveal-all", title: MAC ? "Reveal in Finder" : "Show in file manager" }, { id: "copy-paths", title: "Copy paths, one per line" }, { id: "copy-names", title: "Copy names" }], { detail: { markdown: a.paths.map((p) => `- \`${short(p.path, home)}\``).join("\n") } }));
+    out.push(item("files", `${n} ${n === 1 ? "file" : "files"} on the clipboard`, `${bytes(a.fileList.bytes)} in all`, GLYPH.files, [{ id: "reveal-all", title: MAC ? "Reveal in Finder" : "Show in file manager" }, { id: "copy-paths", title: "Copy paths, one per line" }, { id: "copy-names", title: "Copy names" }], { detail: { markdown: a.paths.map((p) => `- \`${short(p.path, home)}\``).join("\n") } }));
   }
   if (a.email) out.push(item("email", a.email, "Compose a message", GLYPH.email, [{ id: "compose", title: "Compose" }, { id: "copy", title: "Copy address", shortcut: "cmd+c" }]));
   if (a.phone) out.push(item("phone", a.phone.typed, `Call ${a.phone.digits}`, GLYPH.phone, [{ id: "call", title: "Call" }, { id: "copy-digits", title: "Copy digits", shortcut: "cmd+c" }, { id: "facetime", title: "FaceTime" }]));
-  if (a.json) out.push(item("json", `JSON · ${a.json.what}`, `${size(a.json.minified.length)} minified, ${a.json.pretty.split("\n").length} lines pretty`, GLYPH.json, [{ id: "pretty", title: "Pretty-print to clipboard" }, { id: "minify", title: "Minify to clipboard", shortcut: "cmd+shift+m" }], { detail: { markdown: fence(a.json.pretty.length > 20_000 ? a.json.pretty.slice(0, 20_000) + "\n…" : a.json.pretty, "json") } }));
+  if (a.json) out.push(item("json", `JSON · ${a.json.what}`, `${bytes(a.json.minified.length)} minified, ${a.json.pretty.split("\n").length} lines pretty`, GLYPH.json, [{ id: "pretty", title: "Pretty-print to clipboard" }, { id: "minify", title: "Minify to clipboard", shortcut: "cmd+shift+m" }], { detail: { markdown: fence(a.json.pretty.length > 20_000 ? a.json.pretty.slice(0, 20_000) + "\n…" : a.json.pretty, "json") } }));
   if (a.expr) out.push(item("calc", `${a.expr.expr} = ${fmt(a.expr.value)}`, "Copy the answer", GLYPH.calc, [{ id: "copy-answer", title: "Copy answer" }, { id: "paste-answer", title: "Paste answer", shortcut: "cmd+enter" }, { id: "copy-both", title: "Copy expression = answer" }]));
   if (a.number) {
     const v = a.number.value;
@@ -349,7 +335,7 @@ export function rows(a: Analysis, o: RowOpts = {}, home = ""): Item[] {
   }
   if (a.date) {
     const { at } = a.date;
-    out.push(item("date", `${dayNameYear(at)} ${clock(at)}`, `${relative(at, now)} · ${at.toISOString()}`, a.date.from === "unix" ? GLYPH.clock : GLYPH.date, [
+    out.push(item("date", `${dayNameYear(at)} ${clock(at)}`, `${ago(at, { now })} · ${at.toISOString()}`, a.date.from === "unix" ? GLYPH.clock : GLYPH.date, [
       { id: "copy-local", title: "Copy local time" }, { id: "copy-iso", title: "Copy ISO 8601 (UTC)" }, { id: "copy-unix", title: "Copy unix seconds" },
     ]));
   }

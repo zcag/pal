@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ago, captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
+import { captureName, grimCommand, isScreenshot, kindOf, markdownImage, screencaptureArgv, SUGGEST_MS } from "../../../extensions/screenshots/shots.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Item } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
@@ -39,8 +39,6 @@ describe("shots.ts", () => {
     expect(isScreenshot("holiday.jpg", true)).toBe(true);
     expect(isScreenshot(".Screenshot hidden.png", true)).toBe(false);
     expect(isScreenshot("Screenshot notes.txt")).toBe(false);
-    expect(ago(12_000)).toBe("12 s ago");
-    expect(ago(95_000)).toBe("2 min ago");
   });
 
   test("the command lines: screencapture's flags per mode, destination, delay and sound; grim with slurp on Linux", () => {

@@ -7,7 +7,7 @@
 // moves the ring there. `ROWS` threads at most, then one muted line
 // saying how many more the palette lists. Under everything a row of key
 // hints; nothing unread is "All caught up".
-import { POPOVER_W, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
+import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Notification } from "./data.ts";
 
 export type NotifState = {
@@ -58,22 +58,6 @@ export const REASONS: Record<string, { text: string; color: TagColor }> = {
   approval_requested: { text: "approval", color: "violet" },
 };
 
-
-/** `now`, `4m`, `2h`, `3d`, `2w`, `5mo`: the age of an ISO time at `now`. */
-export function ago(iso: string, now: number): string {
-  const s = Math.max(0, Math.floor((now - Date.parse(iso)) / 1000));
-  if (s < 60) return "now";
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  if (d < 30) return `${Math.floor(d / 7)}w`;
-  if (d < 365) return `${Math.floor(d / 30)}mo`;
-  return `${Math.floor(d / 365)}y`;
-}
-
 /**
  * The threads the popover shows, in order: newest first, grouped by
  * repository in the order of each repository's newest thread, cut where
@@ -105,7 +89,7 @@ function threadRow(n: Notification, focused: boolean, st: NotifState): ViewNode 
     [
       { type: "tile", key: "rail", width: RAIL_W, height: RAIL_H, color: t.color, fill: "solid" },
       column([text(n.title, { size: "md", weight: focused ? "semibold" : "medium", width: TITLE_W }), row(meta, { key: "meta", gap: 1, minHeight: 16 })], { key: "body", gap: 0, grow: true }),
-      text(ago(n.updatedAt, st.now), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
+      text(ago(n.updatedAt, { now: st.now, short: true }), { style: "mono", size: "xs", color: "muted", width: AGE_W, align: "end" }),
     ],
     { key: n.id, padding: 1, radius: true, action: `focus:${n.id}`, ...(focused && { selected: true }), transition: { enter: "fade", exit: "fade" } },
   );
