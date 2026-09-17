@@ -7,9 +7,9 @@ lists rows, says what happens when one is picked, and can declare settings
 the settings window renders and the config file keeps. An extension can
 also put items on the bar ("Bar items", below).
 
-The shapes below are provisional: `sdk/src/protocol.ts` (the types of
-`@zcag/pal`, every one with a doc comment) is the contract and moves ahead
-of this page until the first release.
+`sdk/src/protocol.ts` (the types of `@zcag/pal`, every one with a doc
+comment) is the contract; this page follows it, and where the two differ
+the code is right.
 
 ## Where they live
 
@@ -63,18 +63,27 @@ whose code fails to load.
   mark; every palette wears it at the root unless the code gives the
   palette one of its own.
 - `settings`: extension-level settings, `[extensions.<name>]` in the config
-  file. Kinds: `text`, `secret`, `number`, `boolean`, `select`, `hotkey`,
-  `path`, `list`; each with `id`, `label`, optional `description` and a
-  `default`; `"scope": "instance"` on one that identifies the account
-  (below, "Instances").
+  file (`SettingSpec`). Every one has `id`, `label`, an optional
+  `description` and a `default`; `"scope": "instance"` marks one that
+  identifies the account (below, "Instances"). The kinds and what each
+  adds: `text` and `secret` (`placeholder`; a secret goes to the OS
+  keychain, [Config](config.md#secrets)), `number` (`min`, `max`, `step`,
+  `unit`), `boolean` (`text`, the line beside the switch), `select`
+  (`options`, each `{ id, title }`), `hotkey`, `path` (`pick`: `file` or
+  `folder`, `placeholder`), `list` (`placeholder`; the default a list of
+  strings).
 - `palettes.<key>`: the palette's static description: `title`,
   `description`, `kind`, `ttl`, `lazy`, `tier`, `keys`, `rank`, `settings`,
-  `match`, `inline`, `fallback`
+  `match`, `inline`, `fallback`, and for a view palette `refresh` and `on`
   (`[palettes.<id>].settings` in the file). The key is the palette's key
   in the code's `palettes` object; what goes here and what goes in the
   code is the next section.
-- `bar.<id>`: a bar item's `title`, `description` and `refresh` schedule
-  (below, "Bar items"). The id is the key in the code's `bar` object.
+- `bar.<id>`: a bar item's `title`, `description`, `refresh` schedule and
+  `keys` (below, "Bar items"). The id is the key in the code's `bar`
+  object.
+- `links.<route>`: a deep link route the code answers, with its
+  `description`, `params` and `confirm` (below, "Links: routes of your
+  own").
 - `multi`: `true` when the extension can run as several configured
   instances (two accounts, two homes; below, "Instances"). Without it a
   `[instances."<name>@<suffix>"]` in the config file is not loaded.
@@ -104,11 +113,11 @@ in `api.ts` is one instance's alone. What changes for the author:
   `workspace`); it is then never inherited from the default instance,
   like a `secret` never is. Everything else inherits: `[extensions.gmail]
   signature` is `gmail@work`'s signature until set there.
-- Palette titles: with two or more instances every palette title gets
-  ` (<instance title>)` appended ("Inbox (Work)"), unless the manifest's
-  `title` contains `{instance}`, which is substituted instead (`"{instance}
-  Inbox"` gives "Work Inbox"). With one instance, or for a default the
-  user has not named, `{instance}` and one surrounding pair of parentheses
+- Palette titles: with two or more instances every palette title gets the
+  instance's title in parentheses appended ("Inbox (Work)"), unless the
+  manifest's `title` contains `{instance}`, which is substituted instead
+  (`"{instance} Inbox"` gives "Work Inbox"). With one instance, or for a default
+  the user has not named, `{instance}` and one surrounding pair of parentheses
   or a flanking space are stripped ("Inbox ({instance})" is "Inbox").
   `{instance}` in a manifest without `multi` is a load warning.
 - Tile: the extension's tile wears the instance's `tint` and a `badge`
@@ -169,7 +178,7 @@ the code implies it, and they must agree:
 | `list` | none of those |
 
 Read top down: the first row that fits is the kind. `title`, `ttl`, `lazy`
-and `tier` may appear on both sides for now; the manifest's value is the
+and `tier` may appear on both sides; the manifest's value is the
 one served, and a code value that differs is a warning. A code value with
 no manifest counterpart serves silently (the key stands in for a missing
 title). `lazy` is the one of these a code side may want on purpose: the
@@ -206,15 +215,16 @@ what a palette's rows are next to everyone else's:
 | --- | --- | --- |
 | `primary` | what is reached by name: apps, windows, bookmarks, quicklinks, snippets, recent files, browser tabs, system commands, SSH hosts | ranked up (+150), at most 8 rows per palette |
 | `normal` | what is browsed: containers, pull requests, devices, services, timers; the default | as matched, at most 6 rows |
-| `catalog` | a big static list where any query matches dozens of rows: emoji, unicode, icons, colours, a v1 data file of 100 rows or more | ranked down (-150), at most 3 rows; an exact name (`git` the glyph) sits under the primary rows that have the word and above the normal ones |
+| `catalog` | a big static list where any query matches dozens of rows: emoji, unicode, icons, colours, a scripts data file of 100 rows or more | ranked down (-150), at most 3 rows; an exact name (`git` the glyph) sits under the primary rows that have the word and above the normal ones |
 
 A row whose name or keyword has the typed word (every query word starts a
 word of it) is ranked above one that only collects the letters (`chr`
 across `Clipboard History`), by two tiers' worth; a row named what was
 typed leads outright, whatever the tier (a catalog's only above the
 normal tier); what the user picks a lot climbs (`docs/config.md`, "Search
-history") by up to a tier and a half, so a much-used glyph passes the
-normal rows but never a primary one that has the word. The rows a cap
+history") by up to a tier and a third, so a much-used glyph passes the
+normal rows but never a primary one that has the word (the boost's
+ceiling is 200 points against a tier's 150). The rows a cap
 leaves out are behind a muted "12 more in Emoji" row at the end of the
 section; `Enter` on it opens the palette, where nothing is capped. The
 constants and the measurements are in `core/src/index.rs` under
@@ -229,7 +239,7 @@ the listing order, no caps.
 ## The code, `index.ts`
 
 The default export is `{ palettes: { <key>: Palette } }`. A palette
-(provisional shape, `Palette` in `@zcag/pal`):
+(`Palette` in `@zcag/pal`):
 
 ```ts
 import { defineExtension, settings, type Item } from "@zcag/pal";
@@ -261,20 +271,27 @@ is left to the load-time check.
 - `list(query?, ctx?)` returns `Item[]`, sync or async. Without `input:
   true` the host lists once, the core indexes the rows, and the root search
   matches them like everything else; the palette is listed again when its
-  settings change, on `cmd+r`, or after `ttl` seconds at the next start.
+  settings change, on `⌘R` (`ctx.refresh` is then `true`, so a cache of
+  the extension's own steps aside), or after `ttl` seconds at the next
+  start.
   With `input: true` it runs on every keystroke inside the palette and the
   root has only the palette's own row (a calculator).
 - `pick(id, action?, ctx?)` returns an `Effect`: `copy` (text, or a
   `CopyText` for a secret, see the note below), `copy_files` (a
   list of paths: the files themselves, see the note below), `open` (url or
-  path), `paste`, `focus` (a window id), `hide`, `toast`, `hud` (a line in
+  path), `paste` (`{ text }`, or `{ entry }` for a clipboard history id),
+  `focus` (a window id), `layout` (a `WindowLayoutRequest`: `name` one of
+  the window layouts, `id` a window from `windows.list()`, else the
+  focused one; the panel hides first and the HUD names the layout),
+  `hide`, `toast` (`{ title, message?, style? }`, `style` `success` or
+  `destructive`), `hud` (a line in
   the HUD capsule after the panel hides; `copy` alone shows "Copied" there),
   `large_type` (the text across the screen, below), `dialog` (a path typed
   into the open or save panel in front, below),
   `keep` (stay open and list again), `push` (drill into a palette with
   `args`; `title` names the level's crumb, the folder being browsed
   rather than the palette's title; `query` is typed into it), `show` (a
-  detail-only level), `view` (a render tree, below),
+  detail-only level: a `Detail` plus a `title`), `view` (a render tree, below),
   `form` (a prompt with fields, below). `ctx` carries `filter`, the `args`
   of the `push` that opened the level, on a form's submit its `values`,
   and on a multi pick `ids` (below).
@@ -283,19 +300,18 @@ is left to the load-time check.
   `["left", "backspace"]`); `←` and `backspace` also reach such an action
   on any row of the level, so a `..` row's Go up works from anywhere in a
   browsed folder. With text in the box the keys keep their native effect.
-- Several rows at once: an action with `multi: true` is offered while
-  rows are marked (`⇧↓`, `⌘`-click, and `Tab` or, with nothing typed, a
-  bare `x` in a palette that declares `multi: true` itself), and `Enter` runs it as one
-  `pick(id, action, ctx)` where `id` is the first marked row and
-  `ctx.ids` every marked one, in order. An action without `multi` is
-  single-row only and is not listed while rows are marked. Frecency
-  records nothing for a multi pick. The bundled Files (open, reveal, the
-  copies, trash), Windows (close, minimize), Clipboard (copy joined,
-  delete) and Bookmarks (open) do this; the pattern is
+- Several rows at once: an action with `multi: true` is offered while rows are
+  marked (`⇧↓`, `⌘`-click, and `Tab` or, with nothing typed, a bare `x` in a
+  palette that declares `multi: true` itself), and `Enter` runs it as one
+  `pick(id, action, ctx)` where `id` is the first marked row and `ctx.ids` every
+  marked one, in order. An action without `multi` is single-row only and is not
+  listed while rows are marked. Frecency records nothing for a multi pick. The
+  bundled Files (open, reveal, the copies, trash), Windows (close, minimize),
+  Clipboard (copy joined, delete) and Bookmarks (open) do this; the pattern is
   `const ids = ctx?.ids ?? [id]` and a loop.
 - `dialog`: the path is typed into the open or save panel the app in
-  front has up (macOS: its Go to Folder sheet, `cmd+shift+g`, the path
-  pasted, Return; GTK: `ctrl+l`), the panel hidden first; the HUD says
+  front has up (macOS: its Go to Folder sheet, `⌘⇧G`, the path
+  pasted, Return; GTK: `Ctrl+L`), the panel hidden first; the HUD says
   which panel took it or that none was up. `dialog.current()` from
   `@zcag/pal` answers `{ app, pid, kind: "open" | "save", title? }` or
   `null`, read once per panel show and cached (a `list` may ask it on
@@ -349,7 +365,7 @@ is left to the load-time check.
     empty query returns `[]` when `ctx.inline` is set and nothing matched.
     Make the match tight: it decides how often the list runs.
   - **Fallback rows** (`fallback`): what a query the index has nothing
-    for can still do. `fallback: true` adds an "Ask <title>" row that
+    for can still do. `fallback: true` adds an "Ask `<title>`" row that
     opens the palette with the query typed; a string is that row's title
     with `{query}` filled in (`"Search Files for “{query}”"`); a function
     `(query) => Item[]` answers the rows itself (quicklinks lists every
@@ -368,7 +384,18 @@ is left to the load-time check.
   search box (a fallback row hands the root query in this way).
 - An `Item` has `id` (stable), `name`, `subtitle`, `icon`, `keywords`,
   `url`, `accessories`, `detail`, `actions` (first is Enter, second
-  cmd+Enter; an empty list is an inert hint row). Rows that all do the
+  ⌘Enter; an empty list is an inert hint row). Any other key rides
+  through untouched (a `section` for the empty root, whatever the
+  extension wants to keep on the row) and `pick` does not get it back.
+  An accessory is right-aligned on the row: `{ text }`, `{ tag, color? }`
+  (a badge in the tag palette) or `{ date }` (an ISO string or unix ms,
+  shown relative: "3 h ago"). `detail` is `{ markdown?, metadata? }`:
+  markdown (no raw HTML; `icon://` images work) over a list of
+  `{ label, value?, tags?, link? }` lines; `detail(id, ctx)` on the
+  palette answers the same lazily. An `Action` has `id`, `title`,
+  `shortcut` (below), `style: "destructive"` (drawn red), `confirm` (a
+  question asked first, the action's title as the go-ahead), `multi` and
+  `hidden`. Rows that all do the
   same things declare `actions` once on the palette instead: a row without
   its own gets those (the icons catalog's eleven thousand rows carried
   four copies of `Copy glyph` each, half the listing on the wire).
@@ -384,7 +411,7 @@ item's menu rows) takes the same forms:
 
 | Form | Draws as | For |
 | --- | --- | --- |
-| `{ tile: { glyph, bg } }` or `{ tile: { svg, bg } }`, or `tile(bg, mark)` from `@zcag/pal` | a rounded square in the brand colour `bg`, the mark white: one Nerd Font glyph, or SVG path data (`d` only, no markup, under 400 bytes) drawn in a 16 by 16 box | the extension's own icon: `icon` in `pal.json`, which every palette wears at the root, in the crumb, in Settings and on the store |
+| `{ tile: { glyph, bg } }` or `{ tile: { svg, bg } }`, or `tile(bg, mark)` from `@zcag/pal` | a rounded square in the brand colour `bg`, the mark white: one Nerd Font glyph, or SVG path data (`d` only, no markup, 400 bytes at most) drawn in a 16 by 16 box; `badge` puts one or two characters in its corner (`badged(icon, { tint, badge })`) | the extension's own icon: `icon` in `pal.json`, which every palette wears at the root, in the crumb, in Settings and on the store |
 | `{ glyph, color }`, or `tinted(glyph, color)` | the glyph in a brand colour or a hex of your own | a state on a row: an open pull request's octicon in green, a merged one's in violet |
 | a Nerd Font codepoint (`"\u{f0868}"`, or `xdg("dialog-error")`) | the glyph, tinted in the palette's tile colour; the text colour on a palette without a tile | most rows |
 | an emoji | the platform's colour emoji | rows whose content is the emoji |
@@ -450,7 +477,8 @@ export default {
   of alternatives (`["up", "k"]`): any of them runs the action, ⌘K draws
   the first and the rest faintly. `hidden: true` keeps an action out of
   ⌘K, the footer and the Enter / ⌘Enter pair; its key still runs it
-  (Wordle's 26 letters), so it must have one.
+  (Wordle's 26 letters), so it must have one, or a node that runs it on a
+  click (`action`, below).
 - **A line of text**: `input: { value?, placeholder?, submit, cancel? }`
   on the view turns the search row into a text field (the caret at the
   end of `value`, focused) for as long as trees carry it. Typing goes to
@@ -723,17 +751,19 @@ diffs it against the last one:
 - `hidden`: the rule. An item earns its slot by having something to say;
   `hidden: true` takes no space on any target, and `render` keeps
   running so it can come back.
-- `icon` (a glyph from the bundled Nerd Font, an emoji, `{ image }`,
-  `{ app }`), `title` (short: 64 characters at most, the menu bar does not
-  truncate), `segments` (up to 8 extra runs after the title, each with its
-  own `color`), `badge` (a count, or `"dot"`), `color` (the tag palette
-  plus `text`, `muted`, `accent`, `destructive`), `urgent` (drawn as an
-  alarm), `stale` (muted, "could not refresh"), `progress` (0..1, a thin
-  fill), `tooltip`, `refresh` (seconds until the next `render`, this once).
+- `icon` (a glyph from the bundled Nerd Font, an emoji, `{ image }`, `{ app }`),
+  `title` (short: 64 characters at most, the menu bar does not truncate),
+  `segments` (up to 8 extra runs after the title, each `{ id, icon?, text?,
+  color?, tooltip? }`; a click on one is the `segment:<id>` action), `badge` (a
+  count, or `"dot"`), `color` (the tag palette plus `text`, `muted`, `accent`,
+  `destructive`), `urgent` (drawn as an alarm), `stale` (muted, "could not
+  refresh"), `progress` (0..1, a thin fill), `tooltip`, `refresh` (seconds until
+  the next `render`, this once).
 - `menu`: what a click, the item's hotkey or a hover peek opens, always in
   pal's own popover. An array of `BarMenuNode` is a **menu level**: rows
   (`{ type: "item", id, title, subtitle?, icon?, shortcut?, checked?,
-  disabled?, style?, action? }`), `section`s, `submenu`s (3 deep at most),
+  disabled?, style?, action? }`), `section`s (`{ title?, children }`),
+  `submenu`s (`{ title, icon?, children }`, 3 deep at most),
   `separator`s; 64 nodes at most. `{ palette: "name", extension?, args? }`
   opens that **palette level**, the panel machinery unchanged.
   `{ view: View }` draws the tree as a **view level**: the same level
@@ -895,16 +925,16 @@ last argument.
 
 ## The `@zcag/pal` package
 
-`import { ... } from "@zcag/pal"` is pal's extension API: the calls into
-the core and the types of everything above. It lives in `sdk/` in the repo
-and is the package of that name on npm (not yet published; see "Writing
-one"). The host links it into `<root>/node_modules/@zcag/pal` in the store
-and in every `extension_dirs` root, so the name resolves for an extension
-there without a fetch (the host runs Bun with `--no-install`). An
-extension that carries its own copy in `node_modules` (a `bun add`) gets
-that one instead, which works the same: the package reaches the host
-through a process-wide slot, not a shared module, so the version in your
-`node_modules` only has to speak the same wire. Every call is one request
+`import { ... } from "@zcag/pal"` is pal's extension API: the calls into the
+core and the types of everything above. It lives in `sdk/` in the repo and is
+the package of that name on npm (not published as of this writing; "Writing one"
+below links it from a checkout). The host links it into
+`<root>/node_modules/@zcag/pal` in the store and in every `extension_dirs` root,
+so the name resolves for an extension there without a fetch (the host runs Bun
+with `--no-install`). An extension that carries its own copy in `node_modules`
+(a `bun add`) gets that one instead, which works the same: the package reaches
+the host through a process-wide slot, not a shared module, so the version in
+your `node_modules` only has to speak the same wire. Every call is one request
 to the core.
 
 - `settings.get<T>()`: the extension's values, `[extensions.<name>]`
@@ -930,7 +960,8 @@ to the core.
 - `instance()`: which instance of the extension this code runs as,
   `{ key, name, title, isDefault }` ("Instances" above); the bare name as
   `key` and `isDefault: true` for an extension without `multi`.
-- `clipboard.list({ query, kind, limit, offset })`, `get(id)`, `pin(id)`,
+- `clipboard.list({ query, kind, limit, offset })`, `get(id)`,
+  `current()` (the newest entry, or null), `pin(id, pinned = true)`,
   `delete(id)`, `clear()`, `copy(id)` (back onto the clipboard),
   `imageUrl(id, size)` for an image entry.
 - `thumbnailUrl(path, size)`: an image file on disk as the webview loads
@@ -938,9 +969,15 @@ to the core.
   file itself for 0 (a PNG or a JPEG). PNG, JPEG and GIF by extension,
   absolute paths only; anything else is a 404 and the row keeps its
   glyph. A screenshot's row, a browsed folder's pictures.
-- `windows.list()` (every window, front to back, with `id`, `app`, `title`,
-  `minimized`, `on_screen`), `close(id)`, `minimize(id)`. Focus is the
-  `{ focus: id }` effect from `pick`, so the panel hides first.
+- `windows.list()` (every window, front to back, `Window`: `id`, `app`,
+  `title`, `bundle_or_class`, `pid`, `minimized`, `on_screen`, `monitor`,
+  `workspace`, `icon`), `focused()` (the window with keyboard focus, the
+  app behind the panel), `close(id)`, `minimize(id)`, `frame(id)` (a
+  `Rect`: `x`, `y`, `w`, `h`), `setFrame(id, rect)`, `displays()`
+  (`Display[]`: `id`, `frame`, `visible_frame`, `primary`), `layout(req)`
+  (a `WindowLayoutRequest` run now, the panel up; from `pick` prefer the
+  `layout` effect). Focus is the `{ focus: id }` effect from `pick`, so
+  the panel hides first.
 - `system.commands()` (sleep, lock, dark mode, volume, and so on, with
   `available` per machine), `system.run(id)` (hides the panel, then runs).
 - `apps.forFile(path)`: the applications the OS registers for a file
@@ -987,12 +1024,31 @@ to the core.
   prompt is shown once per run). Reading it from `pick` works: the panel
   does not take the selection from the app behind it. The Snippets
   palette fills `{selection}` with it.
+- `permissions.status()` (`Permissions`: `accessibility`, `calendar`,
+  `full_disk_access`, `input_monitoring`, `location`; a boolean or a
+  `granted` / `denied` / `not_determined` / `restricted` / `unavailable`
+  state) and `permissions.request(which)`: the system prompt while the OS
+  still has one to show, else the System Settings pane; only while a pal
+  window is in front. Ask lazily, from the listing that needs it, and
+  only while `not_determined`: the prompt is modal. What the Wi-Fi palette
+  does for `location`.
+- `calendar.permission()`, `request()` (the Calendars prompt on macOS),
+  `openSettings()`, `calendars()` (`Calendar[]`: `id`, `title`, `color`,
+  `source`, `writable`), `events(from, to, calendars?)` (unix ms;
+  `CalendarEvent[]` with `start`, `end`, `all_day`, `location`, `notes`,
+  `url`, `calendar`, `attendees`, `organizer`, `conference_url`,
+  `recurring`, `my_status`, and `occurrence` on a recurring one),
+  `create(event)` (a `NewCalendarEvent`; resolves with the id),
+  `delete(id, occurrence?)`, `open(id, occurrence?)`. EventKit on macOS,
+  `khal` on Linux (no delete or open there). What the Calendar extension
+  is built on.
 - `ocr.image({ path })` or `ocr.image({ data })` (base64 bytes): the text
   in an image, lines top to bottom, an empty string for none; a PDF is
   its first page (`pdftoppm` when installed, else `sips` on macOS). The
   Vision framework on macOS (accurate level, language detected),
   `tesseract` on Linux when installed; `ocr.available()` says, and
-  `image` rejects with "OCR unavailable" otherwise. Waits up to 30 s.
+  `image` rejects with "OCR unavailable" otherwise. Waits up to 30 s
+  (`OCR_TIMEOUT_MS`).
   The Clipboard History and Files palettes offer it on images.
 - `conceal(text, clearAfter?)`: the `CopyText` for a secret (above);
   `CONCEAL_SECONDS` (30) is the default clear.
@@ -1006,13 +1062,23 @@ to the core.
   view level (above, "Live views"); `view.onShown(cb)` / `view.onHidden(cb)`:
   a level of yours came on top or left; `view.open()`: the levels open now;
   `VIEW_UPDATE_MIN_MS` (33): the coalescing window.
-- `checkView(view)`, `checkForm(form)`, `checkBarItem(item)`: what the
-  host runs on every answer (the limits above), for an extension's own
-  tests; `shortcutsOf(action)`: an action's keys as a list.
-  `checkPalettes(manifest, ext)`: the manifest against the code
-  ("Where a palette is described"), `{ metas, warnings }`; `kindOf(p)`:
-  the kind a palette implies. `defineExtension(ext)` and
+- `checkView(view)`, `checkForm(form)`, `checkBarItem(item)`,
+  `checkEffect(effect)`, `checkIcon(icon)`: what the host runs on every
+  answer (the limits above: `MAX_NODES`, `MAX_DEPTH`, `MAX_BAR_TITLE`,
+  `MAX_BAR_SEGMENTS`, `MAX_BAR_MENU_NODES`, `MAX_BAR_SUBMENU_DEPTH`,
+  `MAX_TILE_SVG`, `MAX_BADGE`; `SHELL_PREFIX` is the reserved `pal:`),
+  for an extension's own tests; `shortcutsOf(action)`: an action's keys
+  as a list. `checkPalettes(manifest, ext)`: the manifest against the
+  code ("Where a palette is described"), `{ metas, warnings }`;
+  `kindOf(p)`: the kind a palette implies (`PALETTE_KINDS` lists them,
+  `isViewPalette(p)` tests one); `paletteMeta(name, p, manifest)`: what
+  the host announces for a palette; `instanceTitle(title, instance)` and
+  `stripInstance(title)`: the `{instance}` rule above. `checkLinks`,
+  `checkLinkParams`, `checkLinkEffect` and the tables `LINK_PARAM_TYPES`,
+  `LINK_EFFECT_REFUSED` are the links' ("Links: routes of your own");
+  `VIEW_TRIGGERS` the `on` names. `defineExtension(ext)` and
   `defineExtension(manifest, ext)`: the typed default export.
+  `storage.LIMIT` is the 256 KB cap; `XDG_ICONS` the table `xdg` reads.
 - `audio.devices()` (every output and input, `AudioDevice[]`: `id`,
   `name`, `kind`, `default`, `volume`, `muted`, `transport`),
   `setDefault(id, kind)`, `setVolume(id, kind, percent)`,
@@ -1028,8 +1094,8 @@ to the core.
   scan under a minute old, `fresh` scans now; `networks` strongest first
   plus `hidden`, the count of nameless ones), `join(ssid, password?)`,
   `forget(ssid)`, `password(ssid)` (the keychain prompts on macOS),
-  `setPower(on)`. `networksetup`/`ipconfig`/`system_profiler` on macOS,
-  `nmcli` on Linux.
+  `setPower(on)`. CoreWLAN in-process, `ipconfig` and `networksetup` on
+  macOS, `nmcli` on Linux.
 - `media.nowPlaying()` (`players`: `MediaPlayer[]` with `id`, `name`,
   `state`, `title`, `artist`, `album`, `artwork`, `url`, `app`,
   `position`, `duration`, playing first; `system_wide`: whether a
@@ -1041,14 +1107,22 @@ to the core.
   state is one that reports no track, Chrome for one), `playerctl` on
   Linux.
 
-The protocol's types ride along: `Extension`, `Palette`, `Item`, `Action`,
-`Icon`, `Effect`, `CopyText`, `Ctx`, `Detail`, `View`, `ViewNode`, `Form`,
-`FormField`, `FormValues`, `BarItem`, `BarMenu`, `BarMenuNode`,
-`BarSegment`, `BarColor`, `BarCtx`, `BarSource`, `Manifest`,
-`SettingSpec`, and the API's own
-(`ClipboardEntry`, `Window`, `WindowLayout`, `SystemCommand`, `App`,
-`AudioDevice`, `BluetoothDevice`, `WifiStatus`, `WifiNetwork`, `WifiScan`,
-`MediaPlayer`, `NowPlaying`).
+The protocol's types ride along: `Extension`, `Palette`, `Item`,
+`Accessory`, `Metadata`, `Action`, `Icon`, `TileIcon`, `TintedIcon`,
+`TileColor`, `Effect`, `CopyText`, `WindowLayout`, `WindowLayoutRequest`,
+`WindowLayoutOptions`, `Ctx`, `Detail`, `View`, `ViewNode`, `ViewInput`,
+`ViewTrigger`, `ViewShown`, `Transition`, `Form`, `FormField`,
+`FormValues`, `BarItem`, `BarMenu`, `BarMenuNode`, `BarSegment`,
+`BarColor`, `BarCtx`, `BarSource`, `InstanceInfo`, `Manifest`,
+`ManifestPalette`, `ManifestBar`, `ManifestLink`, `SettingSpec`, and the
+API's own (`ClipboardEntry`, `ClipboardListOpts`, `Window`, `Rect`,
+`Display`, `Applied`, `SystemCommand`, `App`, `InstalledExtension`,
+`AudioDevice`, `BluetoothDevice`, `WifiStatus`, `WifiCurrent`,
+`WifiKnown`, `WifiNetwork`, `WifiScan`, `WifiScanMode`, `MediaPlayer`,
+`NowPlaying`, `MediaCommand`, `Permissions`, `PermissionId`,
+`PermissionStatus`, `Calendar`, `CalendarEvent`, `CalendarStatus`,
+`Attendee`, `NewCalendarEvent`, `Color`, `Dialog`, `SettingWrite`,
+`ViewUpdateOptions`).
 
 Dependencies: a `package.json` next to `index.ts` is honoured; `pal
 install` runs `bun install --production` in the copy it makes. List
@@ -1108,7 +1182,7 @@ below is what `examples/hello-extension/` is, step by step.
    EOF
    ```
 
-2. The API, for the editor. `@zcag/pal` is not on npm yet, so link it from
+2. The API, for the editor. `@zcag/pal` is not on npm, so link it from
    a checkout of pal (once: `bun run build` in `sdk/` produces the `.d.ts`
    the editor reads, `bun link` registers the package under its name):
 
@@ -1155,7 +1229,7 @@ below is what `examples/hello-extension/` is, step by step.
    store is watched, a changed file reloads its extension in place. For a
    real edit loop skip the copy: add the directory you are editing to
    `general.extension_dirs` ([Config](config.md)) and every save reloads
-   it, the rows in the panel following on the next open. `cmd+r` in the
+   it, the rows in the panel following on the next open. `⌘R` in the
    panel lists it again by hand.
 
 The example's full form (three rows, a setting with a description, the
@@ -1167,5 +1241,5 @@ change the greeting under Settings, Extensions, Hello and the row follows.
 ## Trust
 
 An extension is code that runs with your user's rights inside the host.
-There is no signing and no registry yet: install what you would run from
-a terminal. `bun install` also runs the dependencies' install scripts.
+There is no signing and no vetting: install what you would run from a
+terminal. `bun install` also runs the dependencies' install scripts.

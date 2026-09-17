@@ -1,7 +1,9 @@
 # Keyboard
 
 The grammar, as the panel resolves it (`app/src/ui/keys.ts`). `cmd` is the
-platform's primary modifier: `⌘` on macOS, `Ctrl` on Linux.
+platform's primary modifier: `⌘` on macOS, `Ctrl` on Linux. Keys are
+spelled `⌘K` in prose and `cmd+k` where a file or a manifest names them
+(a hotkey in the config file, an action's `shortcut`).
 
 | keys | does |
 | --- | --- |
@@ -16,7 +18,8 @@ platform's primary modifier: `⌘` on macOS, `Ctrl` on Linux.
 | `cmd+1` | Jump to row 1..9 (cmd+1 to cmd+9) |
 | `home`, `end`, `pageup`, `pagedown` | Scroll the list |
 | `cmd+c` | Any other modifier combo runs the action carrying that shortcut |
-| `shift+↓`, `shift+↑` | In a list, mark the row under the cursor and move (a view's own action first); `escape` clears the marks before the query |
+| `h`, `space`, `backspace` | In a view level with bare-key actions (`keys: "actions"`), a bare key runs the action carrying it; with a text field up it is typing |
+| `shift+↑`, `shift+↓` | A shifted arrow runs the action carrying it (a view's big step); in a list it marks the row under the cursor and moves |
 | `cmd`-click | Mark or unmark one row |
 | `tab`, `x` | In a palette that opts in (`multi`: Files, Windows, `pal pick --multi`; none has a filter dropdown), mark the row and step down; `x` only while nothing is typed, so a name can still be searched |
 | `→`, `←`, `backspace` | In a list while nothing is typed: the row's action carrying that key (a folder's Browse on `→`; `←` and `backspace` also reach the `..` row's Go up from anywhere in a browsed folder). With text in the box the arrows move the caret as usual |
@@ -34,22 +37,46 @@ Notes from the same file:
   the search box.
 - In a `show` level (a read-only detail pushed by a pick), Enter and
   Escape go back; arrows and PageUp/PageDown scroll.
+- In a form level, Enter submits (⌘Enter from a textarea), Escape leaves,
+  Tab moves between fields.
+- At the top of the empty root, `↑` recalls the last query that led to a
+  pick, `↑` again the one before, `↓` walks forward, Escape clears
+  (`general.search_history`).
 
 ## Shortcuts the shell adds
 
 These ride on the last row of the grammar: actions the panel itself puts in
-the action panel, with a shortcut (`app/src/Launcher.tsx`).
+the action panel, with a shortcut (`app/src/Launcher.tsx`). The ones
+without a key are reached through ⌘K.
 
 | keys | action | where |
 | --- | --- | --- |
 | `cmd+,` | Open Settings | the root |
-| `cmd+r` | Refresh everything (root) or Refresh (palette) | the root, or an indexed palette |
+| `cmd+r` | Refresh everything (root) or Refresh (palette, or a bar menu) | the root, an indexed palette, a bar popover's menu |
 | `cmd+shift+b` | Browse (palette): drill into the palette a result came from | the root |
 | `cmd+i` | Show details / Hide details | everywhere but compact mode |
 | `cmd+shift+m` | Compact panel / Full panel: flips `general.compact` ([Config](config.md#general)) | the root, a palette |
+| `cmd+shift+c` | Copy deep link: the `pal://` link for what is under the cursor ([Links](links.md)) | every row, palette, view and form |
+| | Reset ranking for this item: its picks and the queries that found it are forgotten | an indexed or palette row |
+| | Clear selection | while rows are marked |
+| | Show tips again | the root, once the Welcome tips are hidden |
 
-Palette actions carry their own (`cmd+c` Copy link in bookmarks, `cmd+p`
-Pin in clipboard history, ...); the action panel lists them next to each
-action. See [Palettes](palettes.md).
+Palette actions carry their own (`⌘C` Copy link in bookmarks, `⌘P` Pin in
+clipboard history, ...); the action panel lists them next to each action.
+See [Palettes](palettes.md).
 
-In the Settings window, `escape` and `⌘W` hide it (the Meta key on Linux, not Ctrl).
+## Other windows
+
+- **The picker** (`pal pick`, [CLI](cli.md#pal-pick)) is a level of the
+  panel, so the grammar above applies: Enter prints the row, Escape prints
+  nothing.
+- **Large Type** (the `large_type` effect, [Extensions](extensions.md))
+  closes on any key, a click, or after 8 s.
+- **A confirm card** (a link that acts, Quit pal, a kill): Enter runs,
+  Escape does not, Tab moves between the two buttons; a link's card
+  answers no by itself after 30 s.
+- **The Settings window**: `escape` and `⌘W` (`Ctrl+W` on Linux) hide it;
+  `/` focuses its search, `⌘1` to `⌘6` switch pages, arrows move along the
+  tabs and the search hits.
+- **A bar popover** takes the same grammar as the panel for its menu, view
+  and palette levels ([Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)).

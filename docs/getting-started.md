@@ -2,11 +2,21 @@
 
 pal is a keyboard launcher for macOS and Linux. One hotkey opens a panel with
 one search box over your apps, bookmarks, clipboard history, emoji, windows,
-system commands and a calculator. Each of those is a palette.
+system commands and a calculator. Each of those is a palette, and every
+palette is an extension: the bundled ones and the ones you install or
+write are the same kind of thing.
+
+This page walks from install to a first extension, in the order things
+come up. Every section points at the page with the detail.
 
 ## Install
 
-Download from the [Releases page](https://github.com/zcag/pal/releases):
+Download from the [Releases page](https://github.com/zcag/pal/releases).
+The builds there today are the previous pal's (`v0.1.x` to `v0.2.1`, a
+different program); this pal's first release is not published yet. Until
+it is, build from source
+([README](https://github.com/zcag/pal#building-from-source)). The files
+a release will carry:
 
 | platform | file |
 | --- | --- |
@@ -41,39 +51,6 @@ dialog. Any one of these gets past it, once per download:
 
 A signed and notarised release would install without any of this; what
 that takes is in [Releasing](releasing.md#macos-signing-later).
-
-pal has no Dock icon. It lives in the menu bar, and the hotkey brings up the
-panel from anywhere.
-
-Three palettes need the Accessibility permission: clipboard history
-(pasting into the app in front sends a synthesised Cmd+V), windows (raise,
-close, minimise) and window management (move and resize); so does
-`pal action type`. macOS lists an app under Privacy &
-Security > Accessibility only once the app has asked, so pal asks: the
-first time the panel opens on a new profile (the system prompt, and System
-Settings opened on that pane; `ask_permissions_on_start = false` in the
-config turns that off), from the first row of the Welcome section, from
-Settings > General > Permissions (a granted / not granted dot and a Grant
-button), and the first time a paste, a window switch or a layout is refused (a
-toast says so). Flip the switch next to pal in that pane; pal sees it within a
-couple of seconds, no restart.
-
-Four more are asked for only by what needs them, never at first run: the
-Calendar extension asks for Calendars from its own row; the Wi-Fi palette
-asks for Location Services the first time it lists, because macOS 15 and
-later show Wi-Fi network names only to an app with it (the prompt says so;
-say no and the palette still works, with the names hidden and a row that
-opens the pane); the OTP palette needs Full Disk Access, which has no prompt
-(its row opens the pane, where pal is added by hand); a bar peek's
-close-on-keypress needs Input Monitoring. Settings > General > Permissions
-lists all five with what each is for, and the Overview shows the missing
-ones that something installed needs, each with its Grant button.
-
-The grant is tied to the app's code signature, and pal's releases are
-ad-hoc signed, so every build carries a new one. After installing a rebuilt
-pal.app the switch can look on and still do nothing: remove pal from the
-list (the minus button) and grant it again. A Developer ID signature is
-what keeps a grant across updates; releases do not have one yet.
 
 ### Linux
 
@@ -118,28 +95,52 @@ hand-started pal moves itself under the unit at startup. Without systemd
 the setting writes `~/.config/autostart/pal.desktop` and nothing relaunches
 a crashed pal. See [Config](config.md#crash-relaunch).
 
-## Updates
+## First run
 
-pal looks for a newer release 20 s after it starts and once a day while
-`general.check_updates` is on (the check reads `latest.json` from the
-latest GitHub release; nothing is downloaded by it). A found release
-shows in three places, and installing is always your click: Settings ›
-About, where the Version row gets an "Install <version>" button; the
-Overview, where it is a row with Install inline; and the root, where an
-"Install Update" row appears under the `pal` section until it is
-installed (Check for Updates, on the About page, the menu bar icon or the
-root row, runs a check any time).
+pal has no Dock icon. It lives in the menu bar (the system tray on Linux)
+and the hotkey brings up the panel from anywhere. The icon's menu has Open
+pal, Settings…, Restart extension host, Check for updates… and Quit pal;
+`general.menu_bar_icon = false` removes the icon and the hotkey and
+`pal settings` still work.
 
-Install downloads the signed bundle, verifies it against the key built
-into pal, puts it in place and relaunches pal: the HUD says where it is
-("Downloading pal 0.2.0: 40%", "Installing", "installed, restarting")
-and the About row says the same. macOS replaces `pal.app` where it is
-(the Accessibility grant is lost with the ad-hoc signature, as above).
-Linux replaces the AppImage where it is; the `.deb` and `.rpm` are the
-package manager's, so on those builds the row says so and points at the
-releases page (download the new package, `dpkg -i` or `rpm -U` it), and a
-bare binary you built yourself is not updated either. A development build
-never is.
+The first panel leads with a Welcome section: a few rows that explain the
+panel, open Settings and ask for the one permission most palettes need.
+The last row hides them ("Show tips again" in the ⌘K panel brings them
+back).
+
+### Permissions on macOS
+
+Three palettes need the Accessibility permission: clipboard history
+(pasting into the app in front sends a synthesised ⌘V), windows (raise,
+close, minimise) and window management (move and resize); so does
+`pal action type`. macOS lists an app under Privacy &
+Security > Accessibility only once the app has asked, so pal asks: the
+first time the panel opens on a new profile (the system prompt, and System
+Settings opened on that pane; `ask_permissions_on_start = false` in the
+config turns that off), from the first row of the Welcome section, from
+Settings > General > Permissions (a granted / not granted dot and a Grant
+button), and the first time a paste, a window switch or a layout is refused (a
+toast says so). Flip the switch next to pal in that pane; pal sees it within a
+couple of seconds, no restart.
+
+Four more are asked for only by what needs them, never at first run: the
+Calendar extension asks for Calendars from its own row; the Wi-Fi palette
+asks for Location Services the first time it lists, because macOS 15 and
+later show Wi-Fi network names only to an app with it (the prompt says so;
+say no and the palette still works, with the names hidden and a row that
+opens the pane); the OTP palette needs Full Disk Access, which has no prompt
+(its row opens the pane, where pal is added by hand); a bar peek's
+close-on-keypress and Snippets' expansion need Input Monitoring. Settings >
+General > Permissions lists all five with what each is for, and the
+Overview shows the missing ones that something installed needs, each with
+its Grant button.
+
+The grant is tied to the app's code signature, and pal's releases are
+ad-hoc signed, so every build carries a new one. After installing a rebuilt
+pal.app the switch can look on and still do nothing: remove pal from the
+list (the minus button) and grant it again. A Developer ID signature is
+what keeps a grant across updates; releases do not have one.
+[Troubleshooting](troubleshooting.md#permissions-on-macos) has the rest.
 
 ## The hotkey
 
@@ -162,6 +163,11 @@ preset). Set it, and Settings says "Spotlight uses ⌘Space" with a button
 to System Settings > Keyboard > Keyboard Shortcuts, where unticking
 Spotlight's "Show Spotlight search" frees it; pal registers the key
 within a couple of seconds of that, nothing to restart.
+
+A palette can have a hotkey of its own (`[palettes.<id>] hotkey`), which
+opens pal inside it, and one row of a palette can too
+(`item_hotkeys`), which runs it without showing the panel: a window layout
+on `ctrl+alt+left`, for one ([Config](config.md#palettesid)).
 
 ## Ten-second tour
 
@@ -192,32 +198,26 @@ within a couple of seconds of that, nothing to restart.
 11. Several rows at once: `⇧↓` and `⇧↑` mark the row under the cursor as
     they move, `⌘`-click marks or unmarks one, and in a palette that opts
     in (Files, Windows, `pal pick --multi`) `Tab` marks and steps down, as
-    does a bare `x` while nothing is typed. Marked rows carry a check and a tint, the footer counts them,
-    and `⌘K` lists only what works on several: Open, Reveal, Copy paths,
-    Copy files and Move to Trash for files; Close and Minimize for
-    windows; Delete and Copy (the texts joined) for clipboard entries;
-    Open in browser for bookmarks (every one in a tab). `Enter` runs the
-    first over all of them as one pick. `Esc` clears the marks first.
+    does a bare `x` while nothing is typed. Marked rows carry a check and a
+    tint, the footer counts them, and `⌘K` lists only what works on
+    several: Open, Reveal, Copy paths, Copy files and Move to Trash for
+    files; Close and Minimize for windows; Delete and Copy (the texts
+    joined) for clipboard entries; Open in browser for bookmarks (every one
+    in a tab). `Enter` runs the first over all of them as one pick. `Esc`
+    clears the marks first.
 12. Dialog jump: with an app's Open or Save panel up, the empty root leads
     with a "Dialog" hint and every Files or Recent Files row leads with
     "Use in TextEdit's open panel" (`⌘G`): pal hides and types the path
-    into the panel through its Go to Folder sheet (`ctrl+L` on a GTK
+    into the panel through its Go to Folder sheet (`Ctrl+L` on a GTK
     chooser), so a search in pal points the dialog anywhere.
-
 13. Folders: `Enter` (or `→`) on a folder row in Files browses it as a
     level (the crumb is the folder, `..` first, `←` or `⌫` goes up, the
     dropdown sorts by name, date or size, `⌘.` shows hidden files); `~/`
     or `/` typed in Files lists that folder the same way.
+14. `⌘⇧C` on anything copies its `pal://` link ([Links](links.md)).
 
 On Linux, `⌘` in the above is `Ctrl`. The whole grammar is in
 [Keyboard](keyboard.md).
-
-Two ways to make the panel yours: a theme file (`general.theme_file`,
-Settings > General > Theme file; two examples ship, Catppuccin Frappé and
-Rosé Pine Dawn) recolours every window from a TOML of tokens, and
-Snippets' expansion (`expand = true`, macOS) replaces a keyword typed in
-any app with its snippet. Both in [Config](config.md#theme-file) and
-[Palettes](palettes.md#snippets-snippets).
 
 ## The root: inline answers, fallbacks, and the empty list
 
@@ -238,7 +238,7 @@ The root list is more than the index's hits.
   what the query can still do: Search the web (the engine in
   `general.search_engine`), Open as URL when it reads as one, every
   quicklink with a `{query}` filled in, Ask Calculator, Search Files, and
-  "Ask <palette>" for any palette that opted in. Enter on an Ask row
+  "Ask `<palette>`" for any palette that opted in. Enter on an Ask row
   opens the palette with the query already typed. `general.fallbacks`
   orders them; `general.fallbacks_always` shows them under the hits too
   ([Config](config.md#general)).
@@ -273,6 +273,117 @@ The root list is more than the index's hits.
   at the root. `general.pop_to_root` is `"always"`, `"never"` or `"after
   <seconds>s"`.
 
+## Palettes
+
+A palette is one list with its own actions: Applications, Clipboard
+History, Emoji, Files, Windows, Calculator and a hundred more ship with
+pal, in fifty-five extensions.
+[Palettes](palettes.md) describes each with its keys and settings. Three
+kinds, which matter for what the root shows: an **indexed** palette is
+listed once and searched from the index (apps, bookmarks, emoji); a
+**live** one is listed again on every show (windows, processes); an
+**input** one answers each keystroke inside it and puts only its own row
+at the root (the calculator, Files, a web search). At the root every
+palette has a tier that says how many rows it may take for a typed query
+([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)).
+
+Every palette has an id (`apps`, `clipboard-history`, `github-prs`) and
+a table `[palettes.<id>]` in the config file for what pal provides
+without the extension's say: `enabled`, `alias`, `hotkey`,
+`item_hotkeys`, `icon`, `tier`, and the palette's own `settings`
+([Config](config.md#palettesid)). Settings > Palettes edits the same.
+
+Two ways to make the panel yours: a theme file (`general.theme_file`,
+Settings > General > Theme file; two examples ship, Catppuccin Frappé and
+Rosé Pine Dawn) recolours every window from a TOML of tokens, and
+Snippets' expansion (`expand = true`, macOS) replaces a keyword typed in
+any app with its snippet. Both in [Config](config.md#theme-file) and
+[Palettes](palettes.md#snippets-snippets).
+
+## The bar
+
+An extension can put an item on the macOS menu bar, or on sketchybar
+when one is running (`[bar] target`, `auto` by default): a glyph, a short
+title, a badge, and a popover on a click, a hover or a hotkey. The
+bundled ones are the running timer, today's next event, what is playing,
+the newest verification code, and the unread counts of GitHub, Slack,
+Gmail and WhatsApp once those are signed in; an item takes no space
+while it has nothing to say, so a fresh install shows none. Settings >
+Bar lists every item with its target, position, hotkey and appearance
+(`[bar]` in [Config](config.md#bar)). Not drawn on Linux: the table is
+read and the items are listed by `pal bar list`, but no item renders.
+
+## Settings
+
+`⌘,` in the panel, `pal settings`, or Settings… in the menu bar icon's
+menu opens the Settings window: six pages across the top. **Overview**
+is what needs attention (a hotkey that did not register, a missing
+permission, an extension that needs a token, a config file problem, an
+update) and the counts; **General** the hotkeys, permissions, theme,
+position, startup, the config file and maintenance (reset the search
+history, restart the extension host, list everything again);
+**Palettes** every palette with its switch, alias, hotkey, icon, tier,
+item hotkeys and declared settings; **Extensions** every extension with
+its settings, its instances, load errors and warnings, and a box that
+installs one; **Bar** the bar items; **About** the version, the updater
+and the last crash. `/` focuses the window's search, which finds any
+setting on any page; `Esc` hides the window.
+
+Every change the window makes is a write to the config file, and every
+hand edit shows in the window at once.
+
+## The config file
+
+`~/.config/pal/config.toml` on both platforms
+(`$XDG_CONFIG_HOME/pal/config.toml` when that variable is set;
+`PAL_CONFIG=<path>` overrides both). The first launch creates it from a two-line
+template whose first line points an editor with TOML schema support at the
+published schema, so it validates and completes the file; nothing else is
+written into that directory. A config file from the previous pal found there is
+migrated first: kept whole as `config.v1.toml` and run through the `scripts`
+extension ([Config](config.md#coming-from-the-previous-pal)).
+
+The window's General page has an Open file button for the editor of your
+choice; edits are picked up live, keeping your comments and formatting.
+Every key, with its default, is in [Config](config.md).
+
+## Extensions and the store
+
+Every palette is an extension: a directory with a `pal.json` and an
+`index.ts` that runs inside one long-lived Bun process, the extension
+host. The bundled ones ship with pal; more are at
+[pal.cagdas.io/extensions](https://pal.cagdas.io/extensions), and the
+**Store** palette lists the same in the panel, tagged by what is
+installed, with the description, screenshots and keys in the detail
+pane; Enter installs ([Palettes](palettes.md#store-store)). From the
+shell, `pal install wordle` (a store name), `pal install
+github:user/repo` or `pal install ~/src/my-extension`; `pal update`,
+`pal remove` and `pal list` do the rest ([CLI](cli.md)). Installed
+extensions live in the store directory under pal's data directory; a
+directory you keep in dotfiles is loaded through `general.extension_dirs`.
+
+An extension with several accounts (GitHub, Slack, Gmail, Home Assistant)
+runs as instances: Settings > Extensions has "Add another account", and
+`[instances."github@work"]` in the file is the same thing
+([Config](config.md#instances)).
+
+Writing one is a directory with two files; the walkthrough is in
+[Extensions](extensions.md#writing-one), and the zero-code tier, a
+palette from a data file or a shell script, in
+[Scripts and data files](scripts.md).
+
+## The CLI and links
+
+The `pal` binary is the app: `pal toggle`, `pal show`, `pal settings`,
+`pal open emoji/emoji -q smile`, `pal copy`, `pal paste`, `pal hud`, `pal
+pick` (the panel as a picker for a script) and the store commands reach
+the running pal ([CLI](cli.md)). Every one of them is also a `pal://`
+link (`pal://open/emoji/emoji?q=smile`) that works from a browser, a
+bookmark, a Shortcuts action or a keybind, and extensions declare routes
+of their own (`pal://timer/start?duration=25m`); a link that acts asks
+first, a command never does ([Links](links.md)). `⌘⇧C` on any row copies
+its link.
+
 ## pal's own commands
 
 pal's own housekeeping is in the root search too, as rows of a `pal`
@@ -290,27 +401,31 @@ first), Restart pal, and pal Version (Enter copies it). Every
 row answers to `pal`, so `pal set` finds Settings and `pal quit` Quit. They
 are searched and ranked like any other row; `⌘,`, `⌘R` and the action
 panel's "Open Settings", "Refresh everything" and "Show tips again" run the
-same code. The store itself is a palette too: **Store** lists
-pal.cagdas.io's extensions in the panel, tagged by what is installed, and
-Enter installs ([Palettes](palettes.md#store-store)).
+same code. Each has a link too, `pal://commands/<id>`
+([Links](links.md#the-routes)).
 
-## The config file
+## Updates
 
-`~/.config/pal/config.toml` on both platforms (`$XDG_CONFIG_HOME/pal/config.toml`
-when that variable is set; `PAL_CONFIG=<path>` overrides both). The first
-launch creates it from a two-line template whose first line points an
-editor with TOML schema support at the published schema, so it validates
-and completes the file; nothing else is written into that directory. A pal
-v1 config found there is migrated first: kept whole as `config.v1.toml`
-and run through the `scripts` extension ([Config](config.md)).
+pal looks for a newer release 20 s after it starts and once a day while
+`general.check_updates` is on (the check reads `latest.json` from the
+latest GitHub release; nothing is downloaded by it). A found release
+shows in three places, and installing is always your click: Settings ›
+About, where the Version row gets an "Install `<version>`" button; the
+Overview, where it is a row with Install inline; and the root, where an
+"Install Update" row appears under the `pal` section until it is
+installed (Check for Updates, on the About page, the menu bar icon or the
+root row, runs a check any time).
 
-The Settings window (`⌘,` in the panel, `pal settings`, or Settings... in
-the menu) is a front for that file: every change it makes is a write to the
-file, and every hand edit is picked up live, keeping your comments and
-formatting. The window's General page has an Open file button for the
-editor of your choice.
-
-Every key, with its default, is in [Config](config.md).
+Install downloads the signed bundle, verifies it against the key built
+into pal, puts it in place and relaunches pal: the HUD says where it is
+("Downloading pal 0.2.0: 40%", "Installing", "installed, restarting")
+and the About row says the same. macOS replaces `pal.app` where it is
+(the Accessibility grant is lost with the ad-hoc signature, as above).
+Linux replaces the AppImage where it is; the `.deb` and `.rpm` are the
+package manager's, so on those builds the row says so and points at the
+releases page (download the new package, `dpkg -i` or `rpm -U` it), and a
+bare binary you built yourself is not updated either. A development build
+never is.
 
 ## Where the rest lives
 
@@ -323,7 +438,13 @@ Every key, with its default, is in [Config](config.md).
 - Installed extensions: `extensions/<name>/`, next to `clipboard.db`. Your
   own can also live anywhere `general.extension_dirs` names, see
   [Extensions](extensions.md).
+- Extension storage (quicklinks, snippets, tokens some extensions keep):
+  `storage/<extension>.json`, next to `clipboard.db`.
 - The log: every line pal and its extension host print, when pal was not
   started from a terminal: `~/Library/Logs/pal/pal.log` on macOS,
   `~/.local/state/pal/pal.log` on Linux (`$XDG_STATE_HOME/pal/` when set).
-  Rotated to `pal.log.1` past 5 MB. Copy Diagnostics names it.
+  Rotated to `pal.log.1` past 5 MB at startup. Copy Diagnostics names it.
+
+When something does not work, [Troubleshooting](troubleshooting.md) goes
+through the log, the permissions, the hotkey, PATH, the extension host and
+a palette that lists nothing.

@@ -42,7 +42,7 @@ pal call EXT/ROUTE [KEY=VALUE ...]   a route an extension declares
 pal pick            the panel as a picker over the lines on stdin; the choice on stdout (see below)
 open pal://...      deep links: the same, from a URL (see Links)
 pal --version
-pal --help
+pal --help          every subcommand takes --help too
 ```
 
 The block from `link` down are the `pal://` links as commands, one per
@@ -212,7 +212,8 @@ deep link" (⌘⇧C) on any row, palette, view or form copies its link.
 ## Actions for scripts
 
 `pal action NAME` reads a value on stdin and acts on it, with no running
-instance needed (script palettes call it from the host). `copy` puts it on
+instance needed (script palettes call it from the host,
+[Scripts and data files](scripts.md)). `copy` puts it on
 the clipboard, `paste` prints the clipboard (the value is ignored), `open`
 opens it, `type` pastes it into the app in front (a synthesised Cmd+V, so
 Accessibility on macOS), `cmd` runs it with `bash -c`. `copy` and `open`
@@ -222,6 +223,6 @@ action script: `plugins/actions/NAME/plugin.toml` next to the config file,
 else under the `scripts` extension's plugin repo, run as `<command> run`
 from its directory with the value on stdin.
 
-pal v1's own subcommands (`pick`, `meta`, `prompt`, ...) do not exist
-here; v1 is retired, not forwarded to. `pal run` is the link twin above,
-not v1's.
+The previous pal's subcommands (`meta`, `prompt`, ...) do not exist here,
+and `pal pick` and `pal run` are the commands above, not the old ones
+([Config](config.md#coming-from-the-previous-pal)).

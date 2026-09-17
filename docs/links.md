@@ -41,7 +41,7 @@ is one line in the HUD (`pal: unknown link`, `pal: text is required`).
 | `pal://settings/<page>` | `pal settings <page>` | On `overview`, `general`, `palettes`, `extensions`, `bar` or `about` |
 | `pal://reload` | `pal reload` | Restart the extension host |
 | `pal://quit` | `pal quit` | Quit pal |
-| `pal://commands/<id>` | `pal command <id>` | One of pal's own rows, by id (below) |
+| `pal://commands/<id>` | `pal command <id>` | One of pal's own rows, by id (below); `pal://run/pal/commands/<id>` spells the same |
 | `pal://open/<ext>/<palette>` | `pal open <ext>/<palette>` | The panel inside that palette |
 | `...?q=<text>` | `-q <text>` | With that typed in the search box (never run) |
 | `...?filter=<id>` | `--filter <id>` | With that filter chosen |
@@ -51,13 +51,15 @@ is one line in the HUD (`pal: unknown link`, `pal: text is required`).
 | `pal://form/<ext>/<palette>/<id>?<field>=<value>` | `pal form <ext>/<palette>/<id> field=value` | The form that row opens, those fields filled in, nothing submitted |
 | `pal://copy?text=<text>` | `pal copy <text>` | Text onto the clipboard ("Copied" in the HUD); the command reads stdin without an argument |
 | `pal://paste?text=<text>` | `pal paste <text>` | Text pasted into the app in front (Accessibility on macOS) |
-| `pal://open?url=<url>` | `pal open --url <url>` | A url, path or app given to the OS opener |
+| `pal://open?url=<url>` | `pal open --url <url>` | A url, path or app given to the OS opener (`?path=` is read too) |
 | `pal://hud?text=<text>` | `pal hud <text>` | One line in the HUD |
 | `pal://toast?title=<t>&message=<m>` | `pal toast <t> [<m>]` | A toast in the panel while it is up, else the HUD |
 | `pal://confetti` | `pal confetti [<text>]` | A celebration in the HUD (`?text=` for its line) |
 | `pal://install/<spec>` | `pal install <spec>` | Install an extension (a store name or a source, see [CLI](cli.md)) |
 | `pal://update/<name>`, `pal://update` | `pal update [<name>]` | Fetch one or every installed extension again |
 | `pal://remove/<name>` | `pal remove <name>` | Remove an installed extension |
+| `pal://instance/add/<name>/<suffix>` | `pal instance add <name> <suffix>` | Add an instance of a `multi` extension: `[instances."<name>@<suffix>"]` written (`?title=` its name, `?tint=` its tile colour; `--title`, `--tint`) |
+| `pal://instance/remove/<key>` | `pal instance remove <key>` | Remove an instance (`gmail@work`): its tables, storage, cache and ranking; the keychain items stay |
 | `pal://bar/<ext>/<id>` | `pal bar click <ext>/<id>` | A bar item's popover |
 | `...?action=<id>` | `pal bar action <ext>/<id> <action>` | One of the item's actions instead |
 | `pal://<ext>/<route>?<params>` | `pal call <ext>/<route> key=value ...` | A route the extension declares (below) |
@@ -71,9 +73,10 @@ the extension's own, so a link keeps working across restarts.
 pal's own rows (`pal://commands/<id>`): `settings`, `settings-extensions`,
 `settings-palettes`, `settings-about`, `store`, `install` (the install
 form), `reload`, `refresh` (list every palette again), `updates` (check
-for updates), `config-open`, `config-reveal`, `tips`, `docs`, `bug`,
-`diagnostics` (copies them), `theme` (cycles it), `quit`, `restart`,
-`version` (copies it).
+for updates), `install-update` (install the release the check found),
+`config-open`, `config-reveal`, `tips`, `docs`, `bug`, `diagnostics`
+(copies them), `theme` (cycles it), `history-clear` (the search history),
+`quit`, `restart`, `version` (copies it).
 
 ## Extension routes
 
@@ -87,6 +90,14 @@ An extension can declare routes of its own; the bundled ones:
 | `pal://system/run?id=<command>` | A system command: `sleep`, `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`, `volume-up`, `volume-down`, `volume-mute`, `brightness-up`, `brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake` (always asks first) |
 | `pal://timer/start?duration=25m&name=tea` | Start a timer (`&ring=1` rings the phone when it lands) |
 | `pal://clipboard/copy?index=0` | Put a history entry back on the clipboard, `0` the newest |
+| `pal://hue/toggle?room=<room>` | Toggle a room's lights (`&on=1` or `&on=0` sets them instead) |
+| `pal://hue/scene?name=<scene>` | Play a scene (`&room=<room>` when the name is in several; `&dynamic=1` for its dynamic form) |
+| `pal://hue/off` | Every light off |
+| `pal://obsidian/open?path=<note>` | Open a note in Obsidian, or in the editor |
+| `pal://obsidian/new?title=<title>` | Create a note and open it (`&body=`, `&folder=`) |
+| `pal://obsidian/append-today?text=<text>` | Append a line to today's daily note, created when missing |
+| `pal://whatsapp/open?chat=<name>` | Open a chat |
+| `pal://whatsapp/search?q=<text>` | Search the message archive |
 
 A route an extension declares shows on its store page and in Settings >
 Extensions. `pal call timer/start duration=25m name=tea` is the command
@@ -112,18 +123,19 @@ before it runs (Enter runs, Escape does not, 30 seconds then no):
   timer/start duration=25m");
 - `paste` and `open?url=` ask too: a page must not type into the app in
   front or launch a file through pal unasked;
-- `install`, `update` and `remove` always ask: they fetch or delete code.
+- `install`, `update`, `remove` and `instance/add`, `instance/remove`
+  always ask: they fetch or delete code, or edit the config file.
 
 What only shows something (`open` a palette, `settings`, `hud`, `toast`,
 `confetti`, `copy`, a bar popover) never asks.
 
-`deeplink_confirm` under `[general]` ([Configuration](config.md)) tunes
-it: `false` turns every card off but the store's (a machine that scripts
-pal by link); a list of extension names, `deeplink_confirm = ["timer",
-"quicklinks"]`, keeps the cards on except for links into those extensions
-(their `run`, `form` and routes; a name covers every instance of the
-extension, a key like `"gmail@work"` one instance). A route the extension declares with
-`confirm: true` (system's `run`) asks whatever the setting says.
+`deeplink_confirm` under `[general]` ([Configuration](config.md)) tunes it:
+`false` turns every card off but the store's (a machine that scripts pal by
+link); a list of extension names, `deeplink_confirm = ["timer", "quicklinks"]`,
+keeps the cards on except for links into those extensions (their `run`, `form`
+and routes; a name covers every instance of the extension, a key like
+`"gmail@work"` one instance). A route the extension declares with `confirm:
+true` (system's `run`) asks whatever the setting says.
 
 The `pal` commands never ask: typing the command is the consent. So a
 keybind that runs `pal call window-management/layout name=left_half` just

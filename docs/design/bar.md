@@ -179,10 +179,10 @@ re-renders an extension's items as it relists its palettes.
 
 `app/src-tauri/src/bar/mod.rs`, a registry keyed `extension/id`:
 
-- `Entry { source, manifest: ManifestBar, config, last: Option<BarItem>, rendered_at, stale, timer }`,
-  filled from `extension/loaded` (the host adds `bar: ManifestBar[]`; a
-  manifest id with no `BarSource` in the code is an error row in Settings),
-  removed with the extension.
+- `Entry { source, manifest: ManifestBar, config, last: Option<BarItem>,
+  rendered_at, stale, timer }`, filled from `extension/loaded` (the host adds
+  `bar: ManifestBar[]`; a manifest id with no `BarSource` in the code is an
+  error row in Settings), removed with the extension.
 - Render loop: one `tokio` interval per item from `refresh.every` (or the
   item's own `refresh`), reset on a push. `show` runs on `pal://shown` and
   when the item's popover opens; `wake` is `NSWorkspaceDidWakeNotification`
@@ -193,10 +193,10 @@ re-renders an extension's items as it relists its palettes.
   `stale: true` and logs `bar\t<key>\tfailed`. A trigger during a render
   marks it due again (no queue); pushes debounce 100 ms per item; the diff
   against `last` keeps a 1 Hz push at one `--set` per second.
-- `trait Target { apply(key, item, cfg); remove(key); anchor(key) -> Option<Rect> }`
-  with `MenuBar`, `Sketchybar`, `Feed`; removal on quit and `enabled = false`.
-  A target draws the strip and reports `Click`, `Enter` and `Exit` for a
-  key with the anchor rect; it builds no menus.
+- `trait Target { apply(key, item, cfg); remove(key); anchor(key) ->
+  Option<Rect> }` with `MenuBar`, `Sketchybar`, `Feed`; removal on quit and
+  `enabled = false`. A target draws the strip and reports `Click`, `Enter` and
+  `Exit` for a key with the anchor rect; it builds no menus.
 - `bar/popover.rs` owns the peek/engage state (Hover, above): a click opens
   engaged or sends `bar/open`; `Enter` arms `hover_delay`, `Exit` (the item's
   or the popover's own pointer tracking) arms `hover_grace`. Popover picks
@@ -213,14 +213,14 @@ re-renders an extension's items as it relists its palettes.
 | `icon` `{ image }` / `{ app }` | decoded by `pal_core::icons` to 36 px, non-template; `{ image, template: true }` honoured | `background.image=<cached png>`, `icon.drawing=off` | dropped |
 | `title` | the button title (`ImageLeft` of it) | `label=`; empty: `label.drawing=off` and the icon takes the label's right padding (the owner's `icon_only`, lib.sh:45) | `text` |
 | `segments` | joined into the title as `glyph text` runs, two spaces apart; colour lost, so the glyph must carry the state | one item per segment (`pal.<ext>.<id>.<seg>`) with its own `icon.color`/`label.color`, in one bracket | joined into `text` |
-| `badge` | count appended as ` ·3`; `dot` a 6 px red disc drawn into the icon's corner (`badge_style` in the look maps one to the other or drops it) | count as ` <n>` in red on the label; `dot` = `icon.color=red` | `text` suffix, `class: badge` |
+| `badge` | count appended as `·3` after the title; `dot` a 6 px red disc drawn into the icon's corner (`badge_style` in the look maps one to the other or drops it) | count as the number in red on the label; `dot` = `icon.color=red` | `text` suffix, `class: badge` |
 | `color`, `urgent` | the glyph PNG drawn in that colour, non-template; `text`/none stays template | `icon.color`/`label.color` from the map; `urgent` also eases `background.color` once (`--animate sin 8`) | `class: <color>`, `urgent` |
 | `stale` | the template icon at `dim` (50%), tooltip "(stale)" | icon, label and segments at the `muted` colour at `dim` (the owner's `stale_mark`, symmetric) | `class: stale` |
 | `progress` | a 2 px bar drawn into the bottom of the icon | `━━━───` (8 cells of heavy/light box drawing, the owner's timer rule) before the glyph | `percentage` |
 | `tooltip` | `set_tooltip` | none (no tooltips); shown in the popover title | `tooltip` |
 | `menu` (nodes, palette, view), none | `show_menu_on_left_click(false)`, no `tauri::menu`; `on_tray_icon_event` Click with `rect` opens the popover under it / sends `bar/open` | `click_script="<pal binary> bar click <ext>/<id> --anchor sketchybar"` (absolute path: sketchybar's PATH is launchd's), the popover under the item's `bounding_rects`; no sketchybar popups | `on-click: pal bar click …`, popover |
 | hover (peek) | `TrayIconEvent::Enter` / `Leave` with `rect` (tray-icon 0.24.2 `src/lib.rs:583-608`, `Move` between them unused); off unless `open_on_hover` | `--subscribe pal.<ext>.<id> mouse.entered mouse.exited` with `script="<pal binary> bar hover <ext>/<id> --anchor sketchybar --state $SENDER"` (`man 5 sketchybar-events`, EVENTS: `mouse.entered` "when the mouse enters over an item", `mouse.exited` "when the mouse leaves an item"; both in `sketchybar --query events` on hornet, 2.24.0); on by default | none (waybar's `custom` module has no hover event) |
-| position, order | `order` among pal's icons (macOS places the rest) | `--add item NAME <position>`, `--move NAME before|after <ref>` for `before:clock` | the module's place in waybar's config |
+| position, order | `order` among pal's icons (macOS places the rest) | `--add item NAME <position>`, `--move NAME before\|after REF` for `before:clock` | the module's place in waybar's config |
 
 ### Menu bar renderer (`bar/menubar.rs`)
 
@@ -251,16 +251,17 @@ where a Linux tray wants the same PNG). Not probed; `Font::try_from_slice`,
 ### sketchybar renderer (`bar/sketchybar.rs`)
 
 Detection: `sketchybar --query bar` exits 0 (verified on hornet; the JSON
-carries the item list). Probed while the target is on at start, on a
-`[bar]` config change, on wake and on a Space change (a fork per probe,
-no timer: the 30 s poll it replaced was a process every half minute at
-idle), the answer cached, so a bar restarted by its own `sketchybarrc`
-reload (which wipes every item) gets pal's items re-added at the next of
-those; `pal bar sync` at the end of a `sketchybarrc` does it at once. Items are named `pal.<ext>.<id>` (segments `pal.<ext>.<id>.<seg>`,
-grouped by `--add bracket pal.<ext>.<id>.group`); pal creates, sets, moves
-and removes only names under `pal.`, and `--remove /pal\..*/` on quit. Every
-change is one batched `sketchybar` invocation (the owner measured 3 ms per
-call and 10 ms per `--add`; a diff keeps `--add` to first appearance).
+carries the item list). Probed while the target is on at start, on a `[bar]`
+config change, on wake and on a Space change (a fork per probe, no timer: the 30
+s poll it replaced was a process every half minute at idle), the answer cached,
+so a bar restarted by its own `sketchybarrc` reload (which wipes every item)
+gets pal's items re-added at the next of those; `pal bar sync` at the end of a
+`sketchybarrc` does it at once. Items are named `pal.<ext>.<id>` (segments
+`pal.<ext>.<id>.<seg>`, grouped by `--add bracket pal.<ext>.<id>.group`); pal
+creates, sets, moves and removes only names under `pal.`, and `--remove
+/pal\..*/` on quit. Every change is one batched `sketchybar` invocation (the
+owner measured 3 ms per call and 10 ms per `--add`; a diff keeps `--add` to
+first appearance).
 
 Colours: `BarColor` to `0xAARRGGBB` from pal's tokens for `general.theme`
 (`app/src/ui/tokens.css`, exported once into `bar/colors.rs`), overridable
@@ -273,15 +274,15 @@ gap, so no `mouse.exited.global` guard is needed.
 
 ### Linux feed (`bar/feed.rs`, phase 3)
 
-`~/.local/state/pal/bar.json` (`{ "items": { "<ext>/<id>": BarItem & { text, class, percentage } } }`,
-atomic write on every change) and `pal bar follow <ext>/<id>` printing one
-waybar `custom` JSON line (`text`, `tooltip`, `class` from colour/urgent/
-stale, `percentage` from progress) per change for a module with
-`"exec": "pal bar follow github/notifications"`, `"return-type": "json"`,
+`~/.local/state/pal/bar.json` (`{ "items": { "<ext>/<id>": BarItem & { text,
+class, percentage } } }`, atomic write on every change) and `pal bar follow
+<ext>/<id>` printing one waybar `custom` JSON line (`text`, `tooltip`, `class`
+from colour/urgent/ stale, `percentage` from progress) per change for a module
+with `"exec": "pal bar follow github/notifications"`, `"return-type": "json"`,
 `"on-click": "pal bar click github/notifications"`. A hidden item prints an
-empty `text` (waybar collapses it). The tray icon path stays the Linux
-default where a StatusNotifier host exists (`tray.rs`'s dlopen). Click
-only (the feed carries no hover); it opens the same popover.
+empty `text` (waybar collapses it). The tray icon path stays the Linux default
+where a StatusNotifier host exists (`tray.rs`'s dlopen). Click only (the feed
+carries no hover); it opens the same popover.
 
 ## Config
 
@@ -349,28 +350,28 @@ renderers. The keys, and what each target makes of them:
 | `show_icon`, `show_title` | true | `BarItem::shaped` drops the icon, or the title and the segments, before either renderer sees the item; nothing left to draw is `hidden` (no slot) | the same |
 | `color` | unset | the glyph's ink (a name through `Palette::resolve`, or hex); the title text keeps the bar's colour unless prerendered | `icon.color` and `label.color`, segments without a colour of their own included |
 | `urgent_color` | `destructive` | the ink of an urgent item | the same |
-| `badge_style` | `count` | `count` is ` ·3` in the title text, `dot` the red disc in the image's corner (a count becomes the dot), `none` drops the badge (`shaped`) | `count` the red `.badge` item, `dot` a red icon, `none` nothing |
+| `badge_style` | `count` | `count` is `·3` in the title text, `dot` the red disc in the image's corner (a count becomes the dot), `none` drops the badge (`shaped`) | `count` the red `.badge` item, `dot` a red icon, `none` nothing |
 | `width` (pt) | 0 = natural | a fixed prerendered image width (the tray keeps the aspect of an image scaled to 18 pt, so 2x pixels are half as many points); the text is clipped to it | `label.width` with `label.align=left` |
 | `font` | `system` | `mono` prerenders the text in SF Mono | `label.font.family=Menlo` |
 | `max_chars` | 32 | `menubar::clip`, an ellipsis on a word edge | `label.max_chars` |
 
-**Prerendering on the menu bar.** The title is a plain `NSString`
-(tray-icon 0.24.2 `set_title` is `button.setTitle`, `src/platform_impl/macos/mod.rs:179-191`,
-no attributed string, no font), so `size`, `font` and `width` cannot be
-title attributes. `menubar::prerendered` then puts the whole item into the
-image: `glyph::strip` draws the glyph square as before, the gap, and the
-text in the system's own face read from disk (`/System/Library/Fonts/SFNS.ttf`
-or `SFNSMono.ttf`; Helvetica and Menlo as fallbacks; a Nerd glyph inside
-the text, a segment's icon, from the bundled symbols font), at 2x into an
-image 36 px tall and as wide as the text; the tray scales any image to 18 pt
-high and keeps its aspect (`set_icon_for_ns_status_item_button`,
-`mod.rs:296-297`), so the width lands at half its pixels in points. The
-image stays a template (black ink) unless a colour is set, so the system
-tints text and glyph alike for a light or dark bar, and `dim` fades both.
-An emoji icon cannot be rasterised (Apple Color Emoji is a bitmap font)
-and stays the first run of the title text, which the tray puts right of
-the image; an image icon keeps its picture and its title text. `Draw` and
-`same_image` compare the look too, so a look change redraws.
+**Prerendering on the menu bar.** The title is a plain `NSString` (tray-icon
+0.24.2 `set_title` is `button.setTitle`,
+`src/platform_impl/macos/mod.rs:179-191`, no attributed string, no font), so
+`size`, `font` and `width` cannot be title attributes. `menubar::prerendered`
+then puts the whole item into the image: `glyph::strip` draws the glyph square
+as before, the gap, and the text in the system's own face read from disk
+(`/System/Library/Fonts/SFNS.ttf` or `SFNSMono.ttf`; Helvetica and Menlo as
+fallbacks; a Nerd glyph inside the text, a segment's icon, from the bundled
+symbols font), at 2x into an image 36 px tall and as wide as the text; the tray
+scales any image to 18 pt high and keeps its aspect
+(`set_icon_for_ns_status_item_button`, `mod.rs:296-297`), so the width lands at
+half its pixels in points. The image stays a template (black ink) unless a
+colour is set, so the system tints text and glyph alike for a light or dark bar,
+and `dim` fades both. An emoji icon cannot be rasterised (Apple Color Emoji is a
+bitmap font) and stays the first run of the title text, which the tray puts
+right of the image; an image icon keeps its picture and its title text. `Draw`
+and `same_image` compare the look too, so a look change redraws.
 
 **sketchybar has no unset.** A property the bar has that the look no
 longer sets (a size back to the bar's own) cannot be reverted to the bar's
@@ -427,7 +428,8 @@ to the built-in leaves the file, an item key equal to its target's does.
 
 ## Examples
 
-GitHub notifications: a badge, a menu level of the last five in the popover, the palette from its "Open" row.
+GitHub notifications: a badge, a menu level of the last five in the popover, the
+palette from its "Open" row.
 
 ```ts
 import { defineExtension, type BarItem, type BarMenuNode } from "@zcag/pal";
@@ -456,7 +458,8 @@ export default defineExtension({
 });
 ```
 
-Now Playing: the track as the title, play/pause from the menu level (a peek on sketchybar shows it without a click).
+Now Playing: the track as the title, play/pause from the menu level (a peek on
+sketchybar shows it without a click).
 
 ```ts
 bar: { now: {
@@ -534,11 +537,12 @@ or gone; `hover_guard`'s open-on-hover survives as the popover's peek.
 | cldd / claude sessions (`cldd.sh`, `cldd-stream.sh`, `claude-state`) | two counts (your turn in yellow, working in blue); hidden at zero; local sessions from `claude-state ls`, marko's over ssh with a short cache when opened; focus a local session, copy the ssh line for a remote one | `segments: [{ text: yours, color: "amber" }, { text: working, color: "blue" }]`; `refresh: { every: 120, on: ["show"] }` and `ctx.reason` picks the ttl; the inotify stream moves into the extension (a long-lived `ssh marko inotifywait` it owns, `bar.update` per line), `claude-state`'s hook runs `pal bar render claude/sessions` instead of `--trigger cldd_change`; `menu: { palette: "sessions" }` with a section per host, `focus` and `copy` as row actions, "copied" as the HUD | the strip's click used to copy `ssh -t marko` without opening anything: with a `menu` the click opens; the copy is the first action inside |
 
 What the catalogue added to the model: `segments`, `progress`, `stale`,
-`urgent`, `BarItem.refresh`, `on: ["show"]` with `ctx.reason`, popover content replaced in place on a push, colour eases in
-the sketchybar renderer, `tooltip` on a segment, the hover peek. Left to the extensions:
-work hours (a setting; the file-first config also lets a `dek` hook write
-`enabled = false` under `[bar.items."slack/unread"]` and pal follows live),
-caches, and every data source.
+`urgent`, `BarItem.refresh`, `on: ["show"]` with `ctx.reason`, popover content
+replaced in place on a push, colour eases in the sketchybar renderer, `tooltip`
+on a segment, the hover peek. Left to the extensions: work hours (a setting; the
+file-first config also lets a `dek` hook write `enabled = false` under
+`[bar.items."slack/unread"]` and pal follows live), caches, and every data
+source.
 
 ## Open questions
 
@@ -571,20 +575,55 @@ native NSMenu is out (popover only, the why in Goals). Still open:
 Phase 1, the strip on both targets and the popover with menu and palette
 levels (click and hotkey only):
 
-- `sdk/src/protocol.ts` (`BarItem`, `BarSegment`, `BarMenu*`, `BarRefresh`, `ManifestBar`, `BarCtx`, `BarSource`, `Extension.bar`, `Manifest.bar`), `sdk/src/api.ts` (`bar.update/refresh`), `sdk/src/view.ts` (`checkBarItem`), `sdk/src/index.ts`.
-- `host/src/host.ts`: `bar/render`, `bar/action`, `bar/open`, `bar/shown`; `extension/loaded` and `hello` carry `bar: ManifestBar[]` merged with the code's keys; `settings/changed` re-renders.
-- `core/src/config/mod.rs` + `core/schema/config.schema.json`: `[bar]`, `[bar.menubar]`, `[bar.sketchybar]`, `[bar.items.<key>]` (the hover keys parsed now, used in phase 2).
-- `app/src-tauri/src/bar/{mod,menubar,sketchybar,glyph,colors,popover}.rs`; `bridge.rs` (`core/bar.update`, `core/bar.refresh`); `index.rs` `on_notification` (register on `extension/loaded`, drop on error/removed; `push`/`keep` scoped to the popover's level; a `bar.update` while open relists its palette); `hotkey.rs` (`Target::Bar`); `cli.rs` (`pal bar list|click|action|render|sync`); `lib.rs` (install, `RunEvent::Exit` removal); `tray.rs` (the id scheme shared); `app/src-tauri/Cargo.toml` (`ab_glyph`), `tauri.conf.json` resources (the TTF), `app/scripts/` (fetch the TTF at the pinned Nerd Fonts release like `icons/build.ts` does its json).
-- The popover: `app/src/main.tsx` (`?bar`), `app/src/BarPage.tsx` (the Launcher on one level, no root, the menu level built from nodes in `app/src/items.ts`), `app/src/ui/keys.ts` unchanged; `panel/macos.rs` (a third `tauri_panel!` module like `hud`), `panel/linux.rs`, `bar/popover.rs` (place under the anchor, show engaged, hide on resign key, `pal://bar` event with the item and its menu), `effects.rs` (hide the window the pick came from).
-- Settings: `app/src/ui/SettingsBar.tsx`, a tab in `SettingsWindow.tsx`, `settings.rs` `settings_get` carrying the items and their live state, `SettingsTypes.ts`.
-- Docs: `docs/extensions.md` (a Bar items section), `docs/config.md` (`[bar]`), `docs/cli.md`.
-- Tests: host harness renders/actions on a fixture extension; Rust tests on the sketchybar batch builder (pure: item to argv), the diff, the colour map, the glyph rasteriser, the popover placement. A `{ view }` item opens an empty level with its title until phase 2.
+- `sdk/src/protocol.ts` (`BarItem`, `BarSegment`, `BarMenu*`, `BarRefresh`,
+  `ManifestBar`, `BarCtx`, `BarSource`, `Extension.bar`, `Manifest.bar`),
+  `sdk/src/api.ts` (`bar.update/refresh`), `sdk/src/view.ts` (`checkBarItem`),
+  `sdk/src/index.ts`.
+- `host/src/host.ts`: `bar/render`, `bar/action`, `bar/open`, `bar/shown`;
+  `extension/loaded` and `hello` carry `bar: ManifestBar[]` merged with the
+  code's keys; `settings/changed` re-renders.
+- `core/src/config/mod.rs` + `core/schema/config.schema.json`: `[bar]`,
+  `[bar.menubar]`, `[bar.sketchybar]`, `[bar.items.<key>]` (the hover keys
+  parsed now, used in phase 2).
+- `app/src-tauri/src/bar/{mod,menubar,sketchybar,glyph,colors,popover}.rs`;
+  `bridge.rs` (`core/bar.update`, `core/bar.refresh`); `index.rs`
+  `on_notification` (register on `extension/loaded`, drop on error/removed;
+  `push`/`keep` scoped to the popover's level; a `bar.update` while open relists
+  its palette); `hotkey.rs` (`Target::Bar`); `cli.rs` (`pal bar
+  list|click|action|render|sync`); `lib.rs` (install, `RunEvent::Exit` removal);
+  `tray.rs` (the id scheme shared); `app/src-tauri/Cargo.toml` (`ab_glyph`),
+  `tauri.conf.json` resources (the TTF), `app/scripts/` (fetch the TTF at the
+  pinned Nerd Fonts release like `icons/build.ts` does its json).
+- The popover: `app/src/main.tsx` (`?bar`), `app/src/BarPage.tsx` (the Launcher
+  on one level, no root, the menu level built from nodes in `app/src/items.ts`),
+  `app/src/ui/keys.ts` unchanged; `panel/macos.rs` (a third `tauri_panel!`
+  module like `hud`), `panel/linux.rs`, `bar/popover.rs` (place under the
+  anchor, show engaged, hide on resign key, `pal://bar` event with the item and
+  its menu), `effects.rs` (hide the window the pick came from).
+- Settings: `app/src/ui/SettingsBar.tsx`, a tab in `SettingsWindow.tsx`,
+  `settings.rs` `settings_get` carrying the items and their live state,
+  `SettingsTypes.ts`.
+- Docs: `docs/extensions.md` (a Bar items section), `docs/config.md` (`[bar]`),
+  `docs/cli.md`.
+- Tests: host harness renders/actions on a fixture extension; Rust tests on the
+  sketchybar batch builder (pure: item to argv), the diff, the colour map, the
+  glyph rasteriser, the popover placement. A `{ view }` item opens an empty
+  level with its title until phase 2.
 
 Phase 2, the view level and hover:
 
-- `app/src/BarPage.tsx` draws `{ view }` as a view level; `index.rs` replaces it in place on a `bar.update`.
-- Hover: `bar/popover.rs` gains the peek state machine (`hover_delay`, `hover_grace`, engage on click/hotkey/key, the popover's own pointer tracking); `bar/menubar.rs` forwards `TrayIconEvent::Enter`/`Leave`; `bar/sketchybar.rs` adds the `mouse.entered mouse.exited` subscription and `script`; `cli.rs` (`pal bar hover`); the `open_on_hover` keys take effect. Tests: the state machine as a pure table (events in, show/engage/hide out).
+- `app/src/BarPage.tsx` draws `{ view }` as a view level; `index.rs` replaces it
+  in place on a `bar.update`.
+- Hover: `bar/popover.rs` gains the peek state machine (`hover_delay`,
+  `hover_grace`, engage on click/hotkey/key, the popover's own pointer
+  tracking); `bar/menubar.rs` forwards `TrayIconEvent::Enter`/`Leave`;
+  `bar/sketchybar.rs` adds the `mouse.entered mouse.exited` subscription and
+  `script`; `cli.rs` (`pal bar hover`); the `open_on_hover` keys take effect.
+  Tests: the state machine as a pure table (events in, show/engage/hide out).
 
 Phase 3, Linux:
 
-- `bar/feed.rs` (`~/.local/state/pal/bar.json`), `cli.rs` (`pal bar json|follow`), `notes/linux.md` (the waybar module), the `network` trigger on both platforms, tray-icon `title` for the StatusNotifier path where the host shows it.
+- `bar/feed.rs` (`~/.local/state/pal/bar.json`), `cli.rs` (`pal bar
+  json|follow`), `notes/linux.md` (the waybar module), the `network` trigger on
+  both platforms, tray-icon `title` for the StatusNotifier path where the host
+  shows it.

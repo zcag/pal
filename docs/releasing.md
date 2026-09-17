@@ -6,20 +6,20 @@ is what makes it public and what the in-app updater sees.
 
 ## Steps
 
-1. On a clean tree: `make release VERSION=x.y.z DRY_RUN=1` prints the
-   steps; without `DRY_RUN` it sets the version in
-   `app/src-tauri/tauri.conf.json`, `app/src-tauri/Cargo.toml`,
-   `app/package.json`, `core/Cargo.toml`, `sdk/package.json` and the three
-   lockfiles, commits that alone as `vx.y.z`, tags `vx.y.z` and pushes the
-   branch and the tag. It refuses a dirty tree and a tag that already exists
-   here or on origin (the v1 tags `v0.1.2` to `v0.2.1` are on origin).
+1. On a clean tree: `make release VERSION=x.y.z DRY_RUN=1` prints the steps;
+   without `DRY_RUN` it sets the version in `app/src-tauri/tauri.conf.json`,
+   `app/src-tauri/Cargo.toml`, `app/package.json`, `core/Cargo.toml`,
+   `sdk/package.json` and the three lockfiles, commits that alone as `vx.y.z`,
+   tags `vx.y.z` and pushes the branch and the tag. It refuses a dirty tree and
+   a tag that already exists here or on origin (the previous pal's tags `v0.1.2`
+   to `v0.2.1` are on origin).
 2. The tag push starts `release.yml`, which refuses a tag that does not match
    `tauri.conf.json`'s version.
 3. Three jobs run (`macos-latest` for aarch64 and, cross-compiled, x86_64;
    `ubuntu-24.04` for x86_64) and upload to one draft release named after the
    tag, one bullet per commit subject since the previous `v*` tag reachable
-   from it (every commit while the branch shares no history with the v1
-   tags). ~15 to 25 min cold; the release profile is LTO with one codegen
+   from it (every commit while the branch shares no history with the previous
+   pal's tags). ~15 to 25 min cold; the release profile is LTO with one codegen
    unit. A fourth job, `manifest`, then reads `latest.json` back from the
    draft and fails if any of the three platforms or any bundle is missing:
    the three jobs merge into that one file in parallel, and a platform can
@@ -29,25 +29,31 @@ is what makes it public and what the in-app updater sees.
    - `pal_x.y.z_aarch64.dmg`, `pal_x.y.z_x64.dmg`
    - `pal_x.y.z_amd64.AppImage`, `pal_x.y.z_amd64.deb`
    - with the updater key set: `pal_x.y.z_aarch64.app.tar.gz` (+ `.sig`),
-     `..._x64.app.tar.gz` (+ `.sig`), `..._amd64.AppImage.sig`, and `latest.json`
+     `..._x64.app.tar.gz` (+ `.sig`), `..._amd64.AppImage.sig`, and
+     `latest.json`
    - the notes; edit them, the draft is yours until published.
    Install one dmg and the AppImage somewhere real before publishing:
    ad-hoc signed, so on macOS Gatekeeper refuses the first launch
    ([Getting started](getting-started.md#macos) has the three ways past it).
 5. Publish the draft, with **Set as the latest release** ticked: the repo's
-   older v1 releases (`v0.2.1` is the current "latest") sort above `v0.1.0`
-   by version, and `https://github.com/zcag/pal/releases/latest/download/latest.json`
-   follows whatever GitHub calls latest. Once it resolves to this release's
-   manifest, every running pal finds it on its next check.
+   older releases of the previous pal (`v0.2.1` is the current "latest") sort
+   above `v0.1.0` by version, and
+   `https://github.com/zcag/pal/releases/latest/download/latest.json` follows
+   whatever GitHub calls latest. Once it resolves to this release's manifest,
+   every running pal finds it on its next check.
 
 ## The updater
 
 `tauri-plugin-updater` (`app/src-tauri/src/updater.rs`) checks the manifest
 above once 20 s after startup and then daily while `general.check_updates`
-is on (default), and on demand through the `check_updates` command (`{
-available, version?, notes? }`), which the tray's "Check for updates…" will
-call. Today a found update is a log line (`updater\tavailable\t<version>`);
-download and install are not wired. Debug builds skip the periodic check.
+is on (default), and on demand from the menu bar's "Check for updates…",
+Settings › About and the "Check for Updates" row. A found release is
+offered in three places and installed only on a click: the plugin
+downloads the signed bundle (the progress on the HUD and on the About
+row), verifies it against the public key, replaces the `.app` or the
+AppImage in place and relaunches pal ([Getting
+started](getting-started.md#updates)). A debug build skips the periodic
+check and cannot be installed over.
 
 `latest.json` is written by `tauri-action` from the `.sig` files of every
 job (`uploadUpdaterJson`), platform keys `darwin-aarch64`, `darwin-x86_64`,
@@ -57,8 +63,9 @@ at update time, so the key pair is load-bearing: **lose the private key and
 no installed pal can update to a build signed with a new one** (they would
 need a manual reinstall).
 
-The Linux updater only handles AppImages; a `.deb` install sees the update
-and cannot apply it (the plugin's limitation, not ours).
+The Linux updater only handles AppImages; a `.deb` or `.rpm` install sees
+the update and is pointed at the releases page instead (the manifest
+carries the AppImage only; the package manager updates those).
 
 ## Secrets
 
@@ -82,9 +89,9 @@ with the updater artifacts off:
 ## macOS signing, later
 
 Today: ad-hoc (`bundle.macOS.signingIdentity: "-"`, `hardenedRuntime: false`).
-Gatekeeper refuses the first launch of the downloaded app once per install
-(the dialogs and the ways past them: [Getting started](getting-started.md#macos));
-no notarisation. For a signed and notarised build:
+Gatekeeper refuses the first launch of the downloaded app once per install (the
+dialogs and the ways past them: [Getting started](getting-started.md#macos)); no
+notarisation. For a signed and notarised build:
 
 1. A Developer ID Application certificate (Apple Developer Program). Export
    it as `.p12`; base64 of the file is `APPLE_CERTIFICATE`, its password
@@ -104,10 +111,10 @@ no notarisation. For a signed and notarised build:
 4. Uncomment the `APPLE_*` lines in `release.yml`. tauri-bundler then signs
    the sidecar and the app inside out, submits to notarytool and staples.
 
-Cost: the Apple Developer Program is USD 99 a year (developer.apple.com/programs);
-notarisation itself is free within it, takes a few minutes per build in
-`notarytool`, and needs the sidecar's entitlements to hold up under the
-hardened runtime, which is the part to test first with a local
+Cost: the Apple Developer Program is USD 99 a year
+(developer.apple.com/programs); notarisation itself is free within it, takes a
+few minutes per build in `notarytool`, and needs the sidecar's entitlements to
+hold up under the hardened runtime, which is the part to test first with a local
 `npm run tauri build` and `spctl -a -vv` on the result.
 
 Until then, the dmg is what `README.md` says: ad-hoc signed, refused once by

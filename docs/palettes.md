@@ -14,43 +14,138 @@ palette that is neither is indexed: listed once, searched from the index,
 refreshed with `⌘R`; a `scripts` palette keeps its listing across restarts
 for the extension's `ttl` (an hour by default) unless it sets its own.
 
-At the root every palette also has a **tier** ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)):
-`primary` for what is reached by name (Applications, Windows, Menu Bar
-Items, Bookmarks, Quicklinks, Snippets, Recent Files, Browser Tabs, System,
-SSH Hosts),
-ranked up and capped at 8 rows per palette; `catalog` for the big static
-lists (Emoji, Unicode Characters, Colors, both Icons palettes, a v1 data
-file of 100 rows or more), ranked down and capped at 3, the rest behind a
-"12 more in Emoji" row; `normal` for everything else, capped at 6.
-`[palettes.<id>] tier` overrides it.
+At the root every palette also has a **tier**
+([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)): `primary` for
+what is reached by name (Applications, Windows, Menu Bar Items, Bookmarks,
+Quicklinks, Snippets, Recent Files, Browser Tabs, System, SSH Hosts), ranked up
+and capped at 8 rows per palette; `catalog` for the big static lists (Emoji,
+Unicode Characters, Colors, both Icons palettes, a data file of 100 rows or
+more), ranked down and capped at 3, the rest behind a "12 more in Emoji" row;
+`normal` for everything else, capped at 6. `[palettes.<id>] tier` overrides it.
 
-| palette | id | kind | what `Enter` does |
+Every palette that ships, by extension. The id is the config key
+(`[palettes.<id>]`) and the heading of its section; a `multi` extension's
+second account gets the same palettes under `<name>@<suffix>-<palette>`
+([Config](config.md#instances)).
+
+| palette | id | kind, tier | what `Enter` does |
 | --- | --- | --- | --- |
-| Applications | `apps` | indexed | launches the app |
-| Blackjack | `blackjack` | view | deals, hits, or the next hand |
-| Bookmarks | `bookmarks` | indexed | opens the link |
-| Calculator | `calc` | input | copies the result |
-| Clipboard History | `clipboard-history` | live, input | pastes into the app in front |
-| Clipboard | `clipboard-rows` | input | what the row is for: opens the address, the picker, the file; pastes as plain |
-| Emoji | `emoji` | indexed, grid | copies the emoji |
-| Files | `files` | input | opens the file |
-| Processes | `processes` | live, input | kills the process (after a confirm) |
-| Quicklinks | `quicklinks` | indexed | opens the link, or asks for its `{query}` first |
-| Snippets | `snippets` | indexed | pastes the text into the app in front |
-| SSH Hosts | `ssh` | indexed | opens a terminal running `ssh` |
-| System | `system` | live | runs the command |
-| Windows | `windows` | live | focuses the window |
-| Window Management | `window-management` | indexed | moves, resizes, minimises or full-screens the focused window |
-| Menu Bar Items | `menu-bar` | live | presses the front app's menu item |
-| Arrange Window | `window-management-arrange` | input | picks a window, then a layout for it |
-| Scripts and data files | `scripts-<name>` | as configured | as configured |
-| Script Commands | `scripts-commands` | live | runs the script command as its header says |
-| Generate | `generate` | input | copies the value |
-| Shortcuts | `shortcuts` | indexed | runs the Apple Shortcut |
-| Search tela | `tela-search` | input | opens the page in tela |
-| Ask tela | `tela-research` | input | asks the wiki; on a source, opens it |
-| Pages | `tela-pages` | indexed | opens the page in tela |
-| Spaces | `tela-spaces` | indexed | lists the space's pages |
+| [2048](#2048-2048) | `2048` | view, normal | New game (asks mid-game); Keep going after the first 2048 |
+| [Applications](#applications-apps) | `apps` | indexed, primary | Open the app |
+| [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
+| [Blackjack](#blackjack-blackjack) | `blackjack` | view, normal | Deal, or the next hand; declines insurance |
+| [Bluetooth](#bluetooth-bluetooth) | `bluetooth` | live, normal | Connect or disconnect |
+| [Bookmarks](#bookmarks-bookmarks) | `bookmarks` | indexed, primary | Open in the browser |
+| [Browser Tabs](#browser-tabs-browser-tabs-tabs) | `browser-tabs-tabs` | live, primary | Switch to the tab |
+| [Calculator](#calculator-calc) | `calc` | input, normal | Copy the result |
+| [My Schedule](#calendar-calendar-today-calendar-schedule-calendarupcoming) | `calendar-schedule` | live, normal | Join the call, else open in Calendar |
+| [Today](#calendar-calendar-today-calendar-schedule-calendarupcoming) | `calendar-today` | live, normal | Join the call, else open in Calendar |
+| [Clipboard](#clipboard-clipboard-rows) | `clipboard-rows` | input, normal | What the row is for: open, call, paste as plain, copy the answer |
+| [Clipboard History](#clipboard-history-clipboard-history) | `clipboard-history` | input, normal | Paste into the app in front |
+| [Colour Picker](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-picker` | view, normal | |
+| [Named Colours](#colors-colors-picker-colors-colors-history-colors-convert) | `colors` | indexed, grid, catalog | Open in Picker |
+| [Colour History](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-history` | live, normal | Open in Picker (on the top row: pick from the screen) |
+| [Convert Colour](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-convert` | input, normal | Open in Picker |
+| [Docker Containers](#docker-docker-docker-images-docker-compose) | `docker` | live, normal | Stop a running container, start a stopped one |
+| [Docker Images](#docker-docker-docker-images-docker-compose) | `docker-images` | live, normal | Run, after a form for the name and ports |
+| [Compose Projects](#docker-docker-docker-images-docker-compose) | `docker-compose` | live, normal | Up |
+| [Downloads](#downloads-downloads) | `downloads` | live, primary | Open the file |
+| [Emoji](#emoji-emoji) | `emoji` | indexed, grid, catalog | Copy emoji |
+| [Files](#files-files-files-browse-files-recent) | `files` | input, normal | Open the file, browse a folder |
+| [Browse Folder](#files-files-files-browse-files-recent) | `files-browse` | input, normal | Browse a folder, open a file |
+| [Recent Files](#files-files-files-browse-files-recent) | `files-recent` | live, primary | Open the file |
+| [Generate](#generate-generate) | `generate` | input, normal | Copy the value (show the QR code on its row) |
+| [GIFs](#gifs-gifs-gifs-favourites) | `gifs` | indexed, grid, normal | Copy the GIF file |
+| [Favourite GIFs](#gifs-gifs-gifs-favourites) | `gifs-favourites` | indexed, grid, normal | Copy the GIF file |
+| [Pull Requests](#github-github-prs-github-issues-github-repos-github-notifications-github-search) | `github-prs` | indexed, normal | Open the pull request |
+| [Issues](#github-github-prs-github-issues-github-repos-github-notifications-github-search) | `github-issues` | indexed, normal | Open the issue |
+| [Repositories](#github-github-prs-github-issues-github-repos-github-notifications-github-search) | `github-repos` | indexed, normal | Open on GitHub |
+| [Notifications](#github-github-prs-github-issues-github-repos-github-notifications-github-search) | `github-notifications` | live, normal | Mark read and open |
+| [Search GitHub](#github-github-prs-github-issues-github-repos-github-notifications-github-search) | `github-search` | input, normal | Open what was found |
+| [Inbox](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-inbox` | live, normal | Open the message in Gmail |
+| [Search Mail](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-search` | input, normal | Open the message in Gmail |
+| [Labels](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-labels` | indexed, catalog | Open the label in Gmail |
+| [Compose](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-compose` | indexed, normal | Open the form; on the form, send |
+| [Drafts](#gmail-gmail-inbox-gmail-search-gmail-labels-gmail-compose-gmail-drafts-gmailunread) | `gmail-drafts` | live, normal | Open the draft in Gmail |
+| [Home Assistant](#home-assistant-home-assistant-entities-home-assistant-services-home-assistant-areas) | `home-assistant-entities` | live, normal | The domain's first action: toggle, activate, run, copy value |
+| [Home Assistant Services](#home-assistant-home-assistant-entities-home-assistant-services-home-assistant-areas) | `home-assistant-services` | indexed, normal | Open the form, then call |
+| [Home Assistant Areas](#home-assistant-home-assistant-entities-home-assistant-services-home-assistant-areas) | `home-assistant-areas` | indexed, normal | List the area's entities |
+| [Hue Rooms](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-rooms` | live, primary | Toggle the room |
+| [Hue Lights](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-lights` | live, normal | Toggle the light |
+| [Hue Scenes](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-scenes` | live, primary | Play the scene |
+| [Hue Light](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-light` | view, normal | Toggle, or apply the chosen preset, scene or effect |
+| [Set up Hue](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-setup` | view, normal | Pair with a bridge |
+| [Hue Sensors](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-sensors` | live, normal | Copy the reading |
+| [Hue Automations](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-automations` | live, normal | Enable or disable |
+| [Hue Entertainment](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-entertainment` | live, normal | Start streaming |
+| [Nerd Font icons](#icons-icons-icons-freedesktop) | `icons` | indexed, grid, catalog | Copy glyph |
+| [Freedesktop icon names](#icons-icons-icons-freedesktop) | `icons-freedesktop` | indexed, grid, catalog | Copy name |
+| [Images](#images-images) | `images` | input, normal | Compress |
+| [Makefile Targets](#makefile-targets-make) | `make` | indexed, normal | Run the target |
+| [Maps](#maps-maps) | `maps` | input, normal | Open the place or the route |
+| [Now Playing](#now-playing-media) | `media` | live, normal | Play or pause |
+| [Menu Bar Items](#menu-bar-items-menu-bar) | `menu-bar` | live, primary | Press the menu item |
+| [Network](#network-network) | `network` | live, normal | Copy the value |
+| [Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-notes` | indexed, primary | Open in Obsidian (or the editor, per the setting) |
+| [Search Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-search` | input, normal | Open in Obsidian (or the editor, per the setting) |
+| [Daily Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-daily` | live, normal | Open the note; on Create today's note, create it (asks first); on the forms, open them |
+| [Tags](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-tags` | indexed, catalog | The notes with the tag |
+| [Recent Notes](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-recent` | live, normal | Open in Obsidian (or the editor, per the setting) |
+| [Backlinks](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-backlinks` | indexed, normal | Open the linking note |
+| [Outgoing Links](#obsidian-obsidian-notes-obsidian-search-obsidian-daily-obsidian-tags-obsidian-recent-obsidian-backlinks-obsidian-outgoing) | `obsidian-outgoing` | indexed, normal | Open the linked note; on a link to nothing, create it |
+| [1Password](#1password-onepassword-items) | `onepassword-items` | indexed, normal | Copy the password |
+| [Verification Codes](#verification-codes-otp) | `otp` | live, normal | Paste the code |
+| [Processes](#processes-processes) | `processes` | input, normal | Kill (asks first) |
+| [Quicklinks](#quicklinks-quicklinks) | `quicklinks` | indexed, primary | Open, or fill in the {query} |
+| [Screenshots](#screenshots-screenshots) | `screenshots` | live, primary | Capture, or open the screenshot |
+| [Services](#services-services) | `services` | live, normal | Stop or start (unload or load on macOS) |
+| [Shell](#shell-shell-shell-history) | `shell` | input, normal | Run the command (in the view: copy the output) |
+| [Shell History](#shell-shell-shell-history) | `shell-history` | input, normal | Run the command again |
+| [Shortcuts](#shortcuts-shortcuts) | `shortcuts` | indexed, primary | Run the shortcut |
+| [Unreads](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-unreads` | live, normal | Open the conversation in Slack |
+| [Channels](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-channels` | indexed, catalog | Open in Slack |
+| [Search Slack](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-search` | input, normal | Open the message in Slack |
+| [Status](#slack-slack-unreads-slack-channels-slack-search-slack-status) | `slack-status` | live, normal | Set it |
+| [Snippets](#snippets-snippets) | `snippets` | indexed, primary | Paste into the app in front |
+| [Speedtest](#speedtest-speedtest-speedtest-history) | `speedtest` | view, normal | Start the test (stop it while it runs) |
+| [Speedtest History](#speedtest-speedtest-speedtest-history) | `speedtest-history` | live, normal | Copy the run (on Trend: show the bars) |
+| [Lyrics](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-now-playing` | view, normal | Play or pause |
+| [Search Spotify](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-search` | input, normal | Play |
+| [Playlists](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-playlists` | indexed, normal | Play |
+| [Library](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-library` | indexed, normal | Play |
+| [Spotify Devices](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-devices` | live, normal | Play here (a device); volume up, down, mute (the volume rows) |
+| [Queue](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-queue` | live, normal | Skip to the row (play or pause on the first) |
+| [Spotify](#spotify-spotify-now-playing-spotify-search-spotify-playlists-spotify-library-spotify-devices-spotify-queue-spotify-commands-spotifyplaying) | `spotify-commands` | indexed, primary | Run |
+| [SSH Hosts](#ssh-hosts-ssh) | `ssh` | indexed, primary | Connect in a terminal |
+| [Store](#store-store) | `store` | input, primary | Install, update, or open the store page |
+| [System](#system-system) | `system` | live, primary | Run the command |
+| [Search tela](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-search` | input, normal | Open the page in tela |
+| [Ask tela](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-research` | input, normal | Ask; on a source, open it in tela |
+| [Pages](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-pages` | indexed, normal | Open the page in tela |
+| [Spaces](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-spaces` | indexed, normal | The space's pages |
+| [New Page](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-new-page` | indexed, normal | The form |
+| [Decks](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-decks` | indexed, normal | Open the deck in tela |
+| [Sheets](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-sheets` | indexed, normal | Open the sheet in tela |
+| [Comments](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-comments` | live, normal | Mark read and open the page |
+| [Backlinks](#tela-tela-search-tela-research-tela-pages-tela-spaces-tela-new-page-tela-decks-tela-sheets-tela-comments-tela-backlinks) | `tela-backlinks` | indexed, normal | Open the linking page in tela |
+| [Timers](#timer-timer-timers) | `timer-timers` | live, normal | Pause, resume or dismiss |
+| [Translate](#translate-translate-translate-history) | `translate` | input, normal | Copy the translation (on Swap: translate it back) |
+| [Translation History](#translate-translate-translate-history) | `translate-history` | live, normal | Copy the translation |
+| [Unicode Characters](#unicode-characters-unicode) | `unicode` | indexed, grid, catalog | Copy character |
+| [Chats](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-chats` | live, primary | Open the chat (a group opens WhatsApp at the top) |
+| [Unread](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-unread` | live, normal | Open the chat |
+| [Search WhatsApp](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-search` | input, normal | Open the chat |
+| [Contacts](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-contacts` | indexed, catalog | Open a chat with the contact |
+| [Wi-Fi](#wi-fi-wifi) | `wifi` | live, normal | Join, scan, or turn the radio off or on |
+| [Window Management](#window-management-window-management-window-management-arrange) | `window-management` | indexed, normal | Apply to the focused window |
+| [Arrange Window](#window-management-window-management-window-management-arrange) | `window-management-arrange` | input, normal | Pick the window, then its layout |
+| [Windows](#windows-windows) | `windows` | live, primary | Focus the window |
+| [Wordle](#wordle-wordle) | `wordle` | view, normal | Submit the guess |
+| [YouTube](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-search` | input, normal | Open in the browser |
+| [YouTube Channels](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-channels` | input, normal | Latest videos |
+| [Watch Later](#youtube-youtube-search-youtube-channels-youtube-later) | `youtube-later` | live, normal | Open in the browser |
+| [Scripts and data files](#scripts-and-data-files-scripts) | `scripts-<name>` | as configured | as configured |
+| [Script Commands](#script-commands-scripts-commands) | `scripts-commands` | live, normal | runs the script command as its header says |
 
 ## Applications (`apps`)
 
@@ -71,7 +166,35 @@ Installed applications with their own icons.
   `Terminal=true` entries run in `$TERMINAL`, else the first of kitty,
   foot, xterm found on PATH.
 
-Actions: one, Open.
+### Running apps, System Settings panes and actions
+
+- A running app carries a green `running` tag (as of the last listing:
+  the palette is indexed, so the tag is refreshed by `⌘R`, a settings
+  change, and after a Quit or Hide from the panel) and its actions are
+  Open, **Quit** (`⌘Q`), **Hide** (`⌘H`), **Reveal in Finder** (`⌘⇧R`),
+  **Copy path** (`⌘C`), **Copy bundle id** (`⌘⇧C`); an app that is not
+  running has Quit and Hide last, and both answer "is not running" as a
+  toast rather than launching it. Quit asks the app through AppleScript
+  (so it can ask you to save; a save dialog left up is the app's to
+  finish) and falls back to `SIGTERM` for a bundle Launch Services does
+  not know. Hide goes through System Events (an Automation prompt for pal
+  once).
+- Keywords: the bundle id as before, plus `CFBundleDisplayName` and
+  `CFBundleName` when they differ from the folder name (`Chrome` finds
+  Google Chrome). Localised names (`InfoPlist.strings`) are not read: they
+  are binary plists in most system apps and would cost a spawn per app.
+- **System Settings panes** are rows: 35 common panes (Keyboard,
+  Displays, Privacy & Security, Wi-Fi, ...) with the System Settings icon,
+  `System Settings` as subtitle, `settings`/`preferences` and a few words
+  per pane as keywords. Enter opens the pane
+  (`x-apple.systempreferences:<id>`), `⌘C` copies that url. A curated
+  table (macOS 13+ ids), not a scan of `/System/Library/ExtensionKit`:
+  the extensions there mix panes with intents and widgets and carry no
+  display names.
+- Linux: a `.desktop` file's `[Desktop Action …]` groups ("New Window",
+  "New Private Window") are the row's secondary actions, run from their
+  own `Exec` (there is no launcher CLI for an action); **Copy path** too.
+  The parser is `extensions/apps/desktop.ts`.
 
 Settings, `[extensions.apps]`:
 
@@ -100,8 +223,8 @@ Rules: dealer stands on 17 (soft 17 too unless `dealer_hits_soft_17`),
 blackjack pays 3:2, a dealer blackjack is checked at once, doubling after a
 split is allowed, no surrender. The shoe is `decks` decks and is
 reshuffled before a deal once under a quarter of it is left (the status
-line's bar). Insurance is offered on an ace only with `insurance = true`,
-costs half the bet and pays 2:1.
+line's bar). Insurance is offered on an ace only with `insurance = true`
+(`i` takes it; Enter declines), costs half the bet and pays 2:1.
 
 Cards are drawn by the extension as SVG (rank and suit indices, pips laid
 out as on a real deck) so nothing is loaded from disk; they sit on a
@@ -122,7 +245,8 @@ insurance = false
 Hand-picked links from a JSON file: a JSON array of objects with `name` and
 `url`, plus optional `subtitle` (the url when absent), `icon` (a glyph,
 emoji or hex colour; a row with a url and no icon gets the site's favicon)
-and `keywords` (a list of strings). Same file as v1's bookmarks palette.
+and `keywords` (a list of strings); the previous pal's bookmarks file
+reads as is.
 
 ```json
 [
@@ -137,6 +261,37 @@ Actions:
 | --- | --- | --- |
 | Open in browser | `Enter` | opens the url; over marked rows (`⇧↓`, `⌘`-click), every one in a tab |
 | Copy link | `⌘C` | copies the url |
+
+### Browser bookmarks
+
+The browsers' bookmarks join the JSON file: Chrome, Brave, Edge,
+Chromium, Vivaldi and Arc (every profile's `Bookmarks` JSON, the profile
+name from `Local State` when there is more than one), Safari
+(`~/Library/Safari/Bookmarks.plist`, read through `plutil -convert xml1`
+since the JSON form refuses the Reading List's dates; the Reading List
+itself is left out) and Firefox (every profile's `places.sqlite`, copied
+first because the running browser holds it locked, then `bun:sqlite`;
+tags and `place:` queries left out). Every source is read on every list.
+
+- The file's rows come first, then each browser in the `browsers`
+  setting's order; a url two sources have is listed once, the first wins.
+  Browser rows sit in a section per browser and profile (`Chrome`,
+  `Chrome (Work)`, `Safari`, `Firefox`), carry the folder path as an
+  accessory (`Bookmarks Bar / Dev`) and as keywords, and get the site's
+  favicon.
+- Actions: **Open in browser** (`Enter`), **Copy link** (`⌘C`), **Copy as
+  markdown** (`⌘⇧C`, `[name](url)`), and on a browser row **Open in
+  Chrome/Safari/...** (`open -a` on macOS, the browser's binary on Linux).
+- Safari's file needs Full Disk Access: without it the Safari section is
+  one inert row saying so (System Settings > Privacy & Security > Full
+  Disk Access, add pal).
+
+Settings, `[extensions.bookmarks]`, in addition to `file`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `browsers` | list | `["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"]` | Whose bookmarks to list, in order. A browser with no profile on the machine lists nothing. `[]` is the file alone. |
+| `exclude_folders` | list | `[]` | Bookmark folders skipped, by name (`Archive`) or a short path (`Bookmarks Bar/Old`), case-insensitive. |
 
 Settings, `[extensions.bookmarks]`:
 
@@ -305,6 +460,24 @@ Retention runs after every copy: unpinned entries older than
 Pinned entries never expire. A search lists at most 200 rows of what is
 left, newest first after the pinned ones; type more to narrow it.
 
+**Link**: `pal://clipboard/copy?index=0` puts a history entry back on the
+clipboard, `0` (the default) the newest ([Links](links.md#extension-routes)).
+
+### Pinned, filters and more actions
+
+- Pinned entries sit in a **Pinned** section at the top; the rest follow
+  without a header.
+- A filter dropdown (`Tab`) by kind: All, Text, Images, Files (the core's
+  kinds), **Links** (text that is one url) and **Colors** (text that is one
+  `#hex` or `rgb()`/`rgba()` colour).
+- A colour entry's icon is the colour itself (a tinted dot); an image row
+  shows its size next to its dimensions.
+- More actions: **Open link** (`⌘O`) on a url, **Paste as plain text**
+  (`⌘⇧V`) on text (the entry's text pasted as text), **Copy image file**
+  (`⌘⇧C`) on an image (the PNG the core keeps, as a file), **Delete all
+  unpinned** (asks first; every unpinned entry deleted one by one, since
+  the core's only bulk operation is Clear).
+
 Settings, `[extensions.clipboard]`:
 
 | key | type | default | what |
@@ -386,6 +559,32 @@ Settings, per palette, `[palettes.emoji.settings]`:
 | --- | --- | --- | --- |
 | `columns` | number, 4 to 16 | `10` | Tiles per row in the grid. Read once when the extension loads: after a change, Settings > Restart extension host. |
 
+### Sections, skin tone and shortcodes
+
+- Sections: **Recently used** first (the last 24 you copied or pasted,
+  kept in the extension's storage), then Unicode's groups in order
+  (Smileys & Emotion, People & Body, ..., Flags). `data.json` now carries
+  `category` and `skin` per emoji (from unicode-emoji-json; the names and
+  keywords are emojilib's as before).
+- The palette is `live` with a 30 s `ttl`: the order is the sections'
+  own, never frecency's, and a show more than 30 s after the last listing
+  lists again so the recents follow what you used.
+- Search by shortcode: `:thumbs_up:` is a keyword next to `thumbs_up`.
+- Actions: **Copy emoji** (`Enter`), **Paste emoji** (`⌘Enter`), **Copy
+  shortcode** (`⌘⇧C`); `paste_by_default` swaps the first two.
+- Skin tone: `skin_tone` (none by default) is applied to the emoji that
+  take one (329 of them: hands, people) in the tile, on copy and on
+  paste. The modifier goes after the first code point, which tones a
+  single person and the first person of a family or profession sequence;
+  a two-person sequence gets one tone, on its first person.
+
+Settings, `[extensions.emoji]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `skin_tone` | `none`, `light`, `medium-light`, `medium`, `medium-dark`, `dark` | `"none"` | The Fitzpatrick modifier applied where an emoji takes one. |
+| `paste_by_default` | bool | `false` | `Enter` pastes into the app in front (needs Accessibility on macOS), `⌘Enter` copies. |
+
 ## Processes (`processes`)
 
 What is running, from `ps`, listed again on every keystroke because the
@@ -416,6 +615,19 @@ Actions:
 
 A kill that fails (a process of another user, a pid that is gone) keeps
 the panel open with a toast carrying the OS's message.
+
+### Ports and Activity Monitor
+
+- **Kill by port**: a query of `:` and digits lists what listens on TCP
+  ports instead of processes: `:3000` that port, `:30` every port
+  starting with 30, `:` alone every listener. One row per process and
+  port with the port as a blue tag and the address as subtitle; a process
+  `ps` knows gets its usual numbers and icon. `ss -ltnp` on Linux, else
+  `lsof -iTCP -sTCP:LISTEN` (macOS ships it). Rows have the same kill and
+  copy actions; a row's id is `pid:port`.
+- **Open in Activity Monitor** (`⌘O`, macOS): brings Activity Monitor up
+  and types the pid into its search field (`⌘F`, then the digits, through
+  System Events; needs Accessibility, else the app just comes up).
 
 Settings, `[extensions.processes]`:
 
@@ -449,6 +661,23 @@ matches, space or comma separated.
 | Copy URL | `⌘C` | copies the url as stored |
 | Edit | `⌘E` | the form, filled in |
 | Delete | `⌃X` | removes it, after a confirm |
+
+**Link**: `pal://quicklinks/open?name=<name>` opens a quicklink by name or
+keyword; a `{query}` link opens the panel to fill it, or `&query=<text>`
+fills it from the link ([Links](links.md#extension-routes)).
+
+### Import and export
+
+- **Import Quicklinks** / **Export Quicklinks** and **Import Snippets** /
+  **Export Snippets** are rows after the list: each opens a form with one
+  path field (`~` expanded; export defaults to
+  `~/Downloads/pal-quicklinks.json` and `~/Downloads/pal-snippets.json`).
+  Export writes your own rows as a JSON array (`{name, url, keywords?}`,
+  `{name, text, keyword?}`; no ids), replacing the file. Import reads such
+  a file (Raycast's `{name, link}` quicklink export is read too), skips
+  what you already have (a quicklink by url, a snippet by name and text),
+  and says how many came in. A path that cannot be read or written is
+  refused with the message under the field.
 
 Settings, `[extensions.quicklinks]`:
 
@@ -495,6 +724,10 @@ The root row **Create snippet** opens a form (name, keyword, text);
 | Edit | `⌘E` | the form, filled in |
 | Delete | `⌃X` | removes it, after a confirm |
 
+**Link**: `pal://snippets/paste?name=sig` pastes the snippet by name or
+keyword with the placeholders filled; `&copy=1` copies it instead
+([Links](links.md#extension-routes)).
+
 The snippets live in `<data dir>/pal/storage/snippets.json`, shared by
 every config profile.
 
@@ -534,10 +767,10 @@ HUD says "Expanded Signature".
   keyword is being typed is the keyword.
 - A snippet saved or edited in the panel expands on the next keystroke:
   the storage file is re-read when its mtime moves.
-- Linux: not available. Wayland hands key events to the focused client
-  only and X11 has no portable tap either, so nothing watches the keys;
-  the palette's Enter is the way to paste a snippet, and `pal://snippets/paste?name=sig`
-  binds one to a compositor key.
+- Linux: not available. Wayland hands key events to the focused client only and
+  X11 has no portable tap either, so nothing watches the keys; the palette's
+  Enter is the way to paste a snippet, and `pal://snippets/paste?name=sig` binds
+  one to a compositor key.
 
 Settings, `[extensions.snippets]`:
 
@@ -546,7 +779,7 @@ Settings, `[extensions.snippets]`:
 | `expand` | bool | `false` | Expand keywords typed in other apps (macOS). Needs Accessibility and Input Monitoring for pal. |
 | `expand_prefix` | `";"`, `":"`, `"none"` | `";"` | What comes before the keyword. |
 | `expand_exclude_apps` | list of bundle ids | terminals and password managers | Apps where nothing expands. |
-| `expand_hud` | bool | `true` | "Expanded <name>" in the HUD after an expansion. |
+| `expand_hud` | bool | `true` | "Expanded `<name>`" in the HUD after an expansion. |
 
 ## SSH Hosts (`ssh`)
 
@@ -584,6 +817,18 @@ Which terminal Connect opens:
   on PATH; kitty and foot take the command as arguments, the others after
   `-e`. Same rule as the Applications palette's terminal entries.
 
+### Sections, ProxyJump and Ping
+
+- The section is the file a host came from, relative to the config's
+  directory (`.ssh/config`, `.ssh/conf.d/work.conf`); known hosts stay a
+  last `Known hosts` section.
+- `ProxyJump` is read: the row carries a `via <jump>` tag and the jump as
+  a keyword, and **Copy ssh -J command** (`⌘⇧J`) copies
+  `ssh -J <jump> <host>` (the plain command already goes through the
+  config's ProxyJump; the `-J` form is for a machine without it).
+- **Ping** (`⌘P`): one echo to the HostName (else the name), the round
+  trip as a toast (`marko.lan: 3 ms`), or why it did not answer.
+
 Settings, `[extensions.ssh]`:
 
 | key | type | default | what |
@@ -592,7 +837,7 @@ Settings, `[extensions.ssh]`:
 | `include_known_hosts` | bool | `false` | List the names in `known_hosts` too, in a second section. |
 | `terminal` | `auto`, `kitty`, `Terminal`, `iTerm2`, `Ghostty`, `Alacritty` | `auto` | macOS only: which terminal Connect opens. |
 
-## Files (`files`)
+## Files (`files`, `files-browse`, `files-recent`)
 
 An input palette over the operating system's own file index: what you type
 is a name search on every keystroke, never a walk pal indexes itself. A
@@ -663,9 +908,9 @@ Actions:
 | Move to Trash | `⌘D` | asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
 | Use in TextEdit's open panel | `⌘G` | only while the app in front has an Open or Save panel up: pal hides and types the path into it through its Go to Folder sheet (`ctrl+L` on a GTK chooser); listed first then, and the empty root leads with a "Dialog" hint into Files |
 
-Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Open, Reveal, Copy path (the
-paths one per line), Copy file and Move to Trash run over all of them as
-one pick; Quick Look and Open with… stay one file's.
+Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Open,
+Reveal, Copy path (the paths one per line), Copy file and Move to Trash run over
+all of them as one pick; Quick Look and Open with… stay one file's.
 
 ### Browsing folders
 
@@ -717,6 +962,20 @@ row.
 it gets a toast saying so). The clipboard history records it as a files
 entry like any copy.
 
+### Recent files and Quick Look
+
+- Before you type, the Files palette lists the **recently used files**
+  (a `Recently used` section) instead of the hints: on macOS Spotlight's
+  `kMDItemLastUsedDate` over the last seven days within the configured
+  folders (`mdfind -attr`, so the rows sort newest first), on Linux GTK's
+  `~/.local/share/recently-used.xbel`. Folders, hidden and excluded paths
+  and files that are gone are left out; the date on the right is when the
+  file was last used.
+- **Recent Files** (`files-recent`) lists the same rows as a palette of
+  its own: live (newest first is the order), listed again on a show once
+  the listing is a minute old, with the same actions and detail pane.
+- **Quick Look** (`⌘Y`) on macOS opens the file in `qlmanage -p`.
+
 Settings, `[extensions.files]`:
 
 | key | type | default | what |
@@ -760,6 +1019,23 @@ Log Out, Restart, Shut Down and Empty Trash are destructive: with
 `confirm_destructive` on, `Enter` asks "(command) now?" first. A command
 that fails keeps the panel open with a toast carrying the tool's message.
 
+**Link**: `pal://system/run?id=<command>` runs one by its id (`sleep`,
+`lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`,
+`volume-up`, `volume-down`, `volume-mute`, `brightness-up`,
+`brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`);
+the route is declared with `confirm`, so a link always asks first
+([Links](links.md#extension-routes)).
+
+### Trash count and dark mode
+
+- **Empty Trash** shows what is in the Trash on the right (`3 items`,
+  `empty`); `~/.Trash` itself is readable only with Full Disk Access, and
+  without it the row simply has no count. Linux reads
+  `~/.local/share/Trash/files`.
+- **Toggle Dark Mode** carries the current appearance as a tag (`dark`
+  violet, `light` amber), from `defaults read -g AppleInterfaceStyle` on
+  macOS and GNOME's `color-scheme` on Linux.
+
 Settings, `[extensions.system]`:
 
 | key | type | default | what |
@@ -783,8 +1059,8 @@ Actions:
 | Close | `⌘W` | closes the window; the palette stays open and lists again |
 | Minimize | `⌘M` | minimises; not offered on a window that already is |
 
-Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Close and Minimize run over all
-of them; Focus is one window.
+Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Close and
+Minimize run over all of them; Focus is one window.
 
 - **macOS**: the list comes from CoreGraphics merged with the Accessibility
   API for the parts CoreGraphics does not give (another app's window title,
@@ -802,13 +1078,23 @@ of them; Focus is one window.
   `move scratchpad`; X11 minimise needs `xdotool`. With none of the three
   the palette reports "no Hyprland, Sway or X11 (wmctrl) session".
 
+### Grouping and app actions
+
+- Rows are grouped by app (a section per app, in the order the front
+  window of each gives); the app name is a keyword as well as the
+  subtitle.
+- More actions: **Hide app** (`⌘H`, macOS: System Events hides the
+  window's process), and on an app with more than one window **Minimize
+  all of this app** (`⌘⇧M`) and **Close all of this app** (`⌘⇧W`, asks
+  first).
+
 Settings, `[extensions.windows]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `include_minimized` | bool | `true` | List minimised windows too (focusing one restores it). |
 
-## Window Management (`window-management`)
+## Window Management (`window-management`, `window-management-arrange`)
 
 Move and resize windows from the keyboard, Raycast's set: one row per
 layout (halves, thirds, quarters, the maximize family, larger and smaller,
@@ -824,8 +1110,23 @@ to restore", "Next Display: only one display").
 | Left Third, Center Third, Right Third | `left_third` `center_third` `right_third` | a third |
 | Left Two Thirds, Right Two Thirds | `left_two_thirds` `right_two_thirds` | two thirds |
 | Top Left, Top Right, Bottom Left, Bottom Right Quarter | `top_left_quarter` `top_right_quarter` `bottom_left_quarter` `bottom_right_quarter` | a quarter |
-| `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills. |
-| `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
+| Maximize, Almost Maximize | `maximize` `almost_maximize` | the whole screen; `almost_maximize_percent` of it, centred |
+| Maximize Height, Maximize Width | `maximize_height` `maximize_width` | the full height or width, the other side kept |
+| Center, Reasonable Size | `center` `reasonable_size` | centred as it is; `reasonable_size_percent` of the screen, centred |
+| Larger, Smaller | `larger` `smaller` | 10% bigger or smaller about the centre |
+| Move Left, Right, Up, Down | `move_left` `move_right` `move_up` `move_down` | nudged by `step` pixels |
+| Next Display, Previous Display | `next_display` `previous_display` | the same place on the other display |
+| Toggle Fullscreen, Minimize, Unminimize | `fullscreen` `minimize` `unminimize` | window state, not a frame (below) |
+| Restore | `restore` | the frame the window had before the run of layouts |
+
+These ids are what `item_hotkeys` (below) and the
+`pal://window-management/layout?name=<id>` route take
+([Links](links.md#extension-routes)).
+
+### What it does not do
+
+No custom layouts: the thirty-one above are the set; `gap`, `step` and
+the two percentages are the knobs. Larger and Smaller are a fixed 10%.
 
 ## Store (`store`)
 
@@ -868,10 +1169,6 @@ min ago" note; with no list at all, one row says the site is not
 reachable. `PAL_STORE_API` points the palette at another server (the
 tests serve a fixture). No settings.
 
-## What it does not do
-
-- No custom layouts: the thirty-one above are the set; `gap`, `step` and
-  the two percentages are the knobs. Larger and Smaller are a fixed 10%.
 "The screen" is the display the window's centre is on (the one it overlaps
 most when the centre is off every display), minus the menu bar, Dock, or
 bars, minus `gap` on every side; the halves, thirds and quarters are equal
@@ -945,13 +1242,13 @@ Settings, `[extensions.window-management]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `gap` | number (px) | `0` | Pixels between a window and the screen edge, and between two windows of a split. |
-| `almost_maximize_percent` | number (%) | `90` | How much of the screen Almost Maximize fills. |
-| `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills. |
+| `almost_maximize_percent` | number (%) | `90` | How much of the screen Almost Maximize fills, centred. |
+| `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills, centred. |
 | `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
 
 ## Scripts and data files (`scripts`)
 
-The zero-code tier: every `[palette.<name>]` table of a pal v1 config
+The zero-code tier: every `[palette.<name>]` table of a scripts config file
 becomes a palette, backed by a shell script speaking JSON lines or by a
 json / jsonl / toml data file. Each such palette has the id
 `scripts-<name>`. Its settings and the whole format are in
@@ -962,8 +1259,9 @@ unless the table sets `tier` itself.
 ## Home Assistant (`home-assistant-entities`, `home-assistant-services`, `home-assistant-areas`)
 
 Home Assistant over its REST API (`/api/states`, `/api/services`, one
-`/api/template` render for areas), with a long-lived access token.
-Replaces the v1 `ha-states` and `ha-services` script palettes.
+`/api/template` render for areas), with a long-lived access token;
+`multi`, so a second home is `[instances."home-assistant@cabin"]` with
+its own `url` and `token` ([Config](config.md#instances)).
 
 **Home Assistant** (`home-assistant-entities`) is live: every entity of
 the `domains` setting, listed again whenever the panel shows, so a light's
@@ -975,7 +1273,7 @@ id, domain and area are keywords; the accessories are the state (a
 coloured tag for `on`/`off`/`open`/`locked`/`playing` and the other known
 states, the value with its unit otherwise) and when it last changed. The
 icon is the domain's glyph; a light that is on is a dot in its colour
-(`rgb_color`, else warm white). The filter scopes it: All entities (the
+(`rgb_color`, else warm white). The filter (`Tab`) scopes it: All entities (the
 `domains` setting), Every domain (the rest after those), then Lights,
 Switches, Sensors, Binary sensors, Climate, Media players, People, Scripts,
 Automations, Scenes; a domain filter shows its domain whether or not it is
@@ -999,7 +1297,8 @@ Actions, by domain (`Enter` is the first; `⌘K` has them all):
 | vacuum | Start, Return to dock |
 | anything else (sensor, binary_sensor, person, ...) | Copy value |
 
-Every row also has Copy entity id (`⌘C`), Show attributes (`⌘I`: a level
+Every row also has the domain's second action on `⌘Enter` (turn on or
+off, set, pause), Copy entity id (`⌘C`), Show attributes (`⌘⇧A`: a level
 with the state and every attribute as rows, each copying its value, `⌘C`
 its name) and Open in Home Assistant (`⌘O`: the automation or script
 editor, the history page for the rest). A service call keeps the panel
@@ -1095,6 +1394,16 @@ The bar item `otp/latest-code` puts the newest code on the strip, green,
 for a minute after it arrived (hidden otherwise); a click copies it. The
 same reader, the same permission.
 
+Popover keys of `otp/latest-code` (rendered every 10 s; the arrows move the
+cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `enter` | Copy the code (concealed, clears after 30 s) |
+| `p` | Paste the code into the app in front |
+| `s` | Copy the sender |
+| `o` | Open the Verification Codes palette |
+
 Settings, `[extensions.otp]`:
 
 | key | type | default | what |
@@ -1104,7 +1413,7 @@ Settings, `[extensions.otp]`:
 | `db` | path | `~/Library/Messages/chat.db` | The database to read. |
 | `contacts` | path | `` | An `AddressBook-v22.abcddb` for names; empty reads every source under `~/Library/Application Support/AddressBook`. |
 
-## 1Password (`onepassword`)
+## 1Password (`onepassword-items`)
 
 Your 1Password items through the `op` CLI. One `op item list --format
 json` per listing, kept for `ttl` seconds so the vault filters and a
@@ -1154,7 +1463,7 @@ Settings, `[extensions.onepassword]`:
 | `vaults` | list | `[]` | Only these vaults are listed, and each is a filter in the palette (All vaults first). Empty lists every vault with no filter. The filters are read when the extension loads, so a change shows after the host restarts. |
 | `ttl` | number (seconds) | `300` | How long the item list is kept before `op` is asked again. |
 
-## Browser Tabs (`browser-tabs`)
+## Browser Tabs (`browser-tabs-tabs`)
 
 Every open tab of your browsers, in the browsers' own order, never ranked.
 A live palette: listed again on every show, so tab titles are root
@@ -1225,11 +1534,11 @@ Settings, `[extensions.browser-tabs]`:
 | `firefox` | bool | `true` | List Firefox tabs from its session file. |
 | `firefox_session` | path | `` | A `recovery.jsonlz4` to read; empty finds the most recently written profile's. |
 
-## GitHub (`github-prs`, `github-issues`, and three more)
+## GitHub (`github-prs`, `github-issues`, `github-repos`, `github-notifications`, `github-search`)
 
-One extension, five palettes, one sign-in. It replaces the v1 script
-palettes `repos` and `gh-reviews` for the general case; the personal
-sketchybar-shaped `prs` and `issues` scripts stay in the scripts tier.
+One extension, five palettes, one sign-in; `multi`, so a second account is
+`[instances."github@work"]` with its own `token` under
+`[extensions."github@work"]` ([Config](config.md#instances)).
 
 | palette | id | kind | what `Enter` does |
 | --- | --- | --- | --- |
@@ -1258,7 +1567,7 @@ exhausted a hint row at the top says when it resets.
 
 **Pull Requests.** Yours (`is:open author:@me`), the ones waiting on
 your review (`review-requested:@me`), and yours merged within
-`merged_days`; filters All, Mine, Review requested, Merged; the row is
+`merged_days`; filters (`Tab`) All, Mine, Review requested, Merged; the row is
 the title with `owner/repo #n` under it, a state dot (green open, grey
 draft, violet merged, red closed), tags for the checks (`checks ✓` /
 `✗` / `…` from the status rollup), the review decision (approved,
@@ -1273,7 +1582,7 @@ cursor rests on the row).
 | Open | `Enter` | |
 | Copy URL | `⌘C` | |
 | Checkout branch | `⌘⇧O` | open, gh on PATH, a clone under `repos_root` (`gh pr checkout` there) |
-| Copy branch name | `⌘⇧B` | |
+| Copy branch name | `⌘B` | |
 | Open checks | `⌘⇧K` | |
 | Open files changed | `⌘⇧F` | |
 | Copy reference | | `owner/repo#n` |
@@ -1281,7 +1590,7 @@ cursor rests on the row).
 | Merge | `⌘⇧M` | open, not a draft, GitHub says mergeable; asks first; `merge_method` |
 
 **Issues.** Assigned to you, mentioning you, opened by you (open ones);
-filters All, Assigned, Mentioned, Created; an issue in two lists is
+filters (`Tab`) All, Assigned, Mentioned, Created; an issue in two lists is
 listed once, in the first. Rows carry the first two labels, the comment
 count and the updated date; the pane the body, the latest comments and
 the milestone. Actions: Open, Copy URL (`⌘C`), Copy reference, Close
@@ -1292,7 +1601,7 @@ issue.
 
 **Repositories.** Yours (owner or collaborator, by push date), your
 `default_org`'s recently pushed, and your starred ones, in that order and
-sectioned so; filters All, Mine, Starred, Organisation. Rows: name,
+sectioned so; filters (`Tab`) All, Mine, Starred, Organisation. Rows: name,
 description, tags for private, archived and the language, stars, the
 push date; the pane adds forks, open issues, the default branch, the
 clone url and the local clone when one sits under `repos_root`
@@ -1314,6 +1623,18 @@ Mark all as read (`⌘⇧A`) asks first. The bar item `github/notifications`
 shows the unread count as a badge (hidden at zero) over the same cache;
 its popover has the newest five, Open all (this palette) and Mark all
 read.
+
+Popover keys of `github/notifications` (rendered every 300 s and on show, wake,
+network; the arrows move the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `enter` | Mark the thread read and open it on GitHub |
+| `m` | Mark the thread read |
+| `a` | Mark all read |
+| `p` | Open the Notifications palette |
+| `cmd+c` | Copy the thread's URL |
+| `up` | Move between threads (or j and k) |
 
 **Search GitHub.** GitHub's own search syntax, typed: free text,
 `repo:owner/name`, `is:pr`, `author:login`, `label:bug`. Filters
@@ -1403,7 +1724,7 @@ The OS's service manager, one live palette. What it lists depends on the
 platform; `ttl` is the same "list again on show once older than" as
 Docker's.
 
-**Linux, systemd.** Filters: User (`systemctl --user`), System, Failed
+**Linux, systemd.** Filters (`Tab`): User (`systemctl --user`), System, Failed
 and Running (the last two span both managers, in a User and a System
 section). The row is the unit without `.service`, its description the
 subtitle; on the right the unit file's state (`enabled`, `disabled`;
@@ -1464,7 +1785,7 @@ Settings, `[extensions.services]`:
 | `confirm_user` | bool | `false` | Ask before stopping, restarting or disabling a user unit too. |
 | `agent_dirs` | list | `~/Library/LaunchAgents`, `/Library/LaunchAgents` | macOS only: where agent plists are read from. |
 
-## Makefile targets (`make`)
+## Makefile Targets (`make`)
 
 Every target of every Makefile under the `projects` folders, one section
 per project. A folder is scanned two levels deep for a `Makefile`,
@@ -1607,19 +1928,18 @@ No settings.
 
 ## Now Playing (`media`)
 
-The playing track is also the empty root's Now section's row (nothing
-while nothing plays). One row per running player over the core's media capability: the track
-as the title, artist and album as the subtitle, the cover (the system's
-Now Playing artwork on macOS, else the player's artwork url, else the
-app's icon), the position as `12:34 / 1:06:03`, the player's name and a
-`playing` / `paused` / `stopped` tag, playing ones first. A player with
-nothing loaded reads "Nothing playing" with the player's name; one
-playing without a track (Chrome with YouTube on macOS reports the
-position and nothing else) is its app's name with the position as the
-subtitle. Live: read again on every show, and the position is the core's
-estimate at that moment (it advances from the last report and the clock
-while playing). With no player running the one row says so; on Linux
-without `playerctl` it says to install it.
+The playing track is also the empty root's Now section's row (nothing while
+nothing plays). One row per running player over the core's media capability: the
+track as the title, artist and album as the subtitle, the cover (the system's
+Now Playing artwork on macOS, else the player's artwork url, else the app's
+icon), the position as `12:34 / 1:06:03`, the player's name and a `playing` /
+`paused` / `stopped` tag, playing ones first. A player with nothing loaded reads
+"Nothing playing" with the player's name; one playing without a track (Chrome
+with YouTube on macOS reports the position and nothing else) is its app's name
+with the position as the subtitle. Live: read again on every show, and the
+position is the core's estimate at that moment (it advances from the last report
+and the clock while playing). With no player running the one row says so; on
+Linux without `playerctl` it says to install it.
 
 - **macOS**: Spotify and Music through AppleScript, only while the app is
   running (the check is `NSRunningApplication`, so pal never launches one
@@ -1652,6 +1972,17 @@ item's `media` trigger the moment the track, the state or the cover
 changes, so the strip follows a skip at once; on Linux the extension
 polls the players every 5 s while one plays and pushes a track change
 itself.
+
+Popover keys of `media/now-playing` (rendered every 30 s and on show, wake,
+media; the arrows move the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `space` | Pause or play |
+| `right` | Next track (cmd+right too) |
+| `left` | Previous track (cmd+left too) |
+| `c` | Copy artist - title (cmd+c too) |
+| `o` | Open the track in its player (cmd+o too) |
 
 | setting | default | what |
 | --- | --- | --- |
@@ -1706,38 +2037,36 @@ Settings, per palette, `[palettes.unicode.settings]`:
 | --- | --- | --- | --- |
 | `columns` | number, 4 to 16 | `10` | Tiles per row in the grid. Read once when the extension loads, like Emoji's. |
 
-## Colors (`picker`, `colors`, `history`, `convert`)
+## Colors (`colors-picker`, `colors`, `colors-history`, `colors-convert`)
 
 Four palettes over one colour maths (`extensions/colors/color.ts`) and one
-history. At the root a hex, an `rgb()`/`hsl()`/`oklch()`… notation or a
-CSS name answers inline under a Convert Colour section (the first four
-notations; Enter opens the picker on it). **Colour Picker** is a view level: a large swatch on a sunken
-well over a hue strip and a saturation/value plane (both drawn by the
-app from the colour, the ring marking where it sits), the colour in hex,
-rgb, hsl, hwb, oklch, oklab, lab and display-p3 with its CSS name (or the
-nearest, in OKLab), the nearest Tailwind and Material tokens, the
-contrast on white, on black and against the previous colour with the
-WCAG level as a badge, and to the right nine tints, nine shades and the
-complementary, analogous, triadic, split and tetradic harmonies as tiles.
-The keys edit the colour in place: `←`/`→` turn the hue 5°, `↑`/`↓` move
-the lightness 2 points, `-`/`+` the saturation 5 points, `⇧` makes an arrow
-step three to five times bigger, `m` switches to OKLCH (lightness, chroma
-and hue; a chroma step stops at the sRGB gamut edge instead of clipping)
-and back. `⇥` moves the focus from the swatch to the tints, the shades and
-each harmony row in turn (`⇧⇥` back): the arrows then walk the row, the
-label names the tile and `Enter` takes it. A digit or `#` opens a text
-field in the search row with that character; type any notation and
-`Enter` applies it, `Escape` closes the field (a notation that does not
-parse stays in the field with a toast). `c` (and `Enter` on the swatch)
-copies in the notation the `format` setting names, `⌘C` always the hex,
-`⌘⇧R` rgb, `⌘⇧H` hsl, `⌘⇧O` oklch, `⌘⇧L` lab, `⌘⇧P` display-p3, `⌘⇧N` the
-CSS name, hwb and oklab from ⌘K. `p` picks from the screen: the panel
-hides, the system's loupe appears (`NSColorSampler` on macOS, the
-screenshot portal on Linux), and the panel comes back in the picker on the
-picked colour (unchanged after Escape). `h` opens the history, `n` the
-named sets, `u` goes back to the previous colour, `r` makes a random one.
-The colour, the model and the history live in the extension's storage,
-so Escape and a restart lose nothing.
+history. At the root a hex, an `rgb()`/`hsl()`/`oklch()`… notation or a CSS name
+answers inline under a Convert Colour section (the first four notations; Enter
+opens the picker on it). **Colour Picker** is a view level: a large swatch on a
+sunken well over a hue strip and a saturation/value plane (both drawn by the app
+from the colour, the ring marking where it sits), the colour in hex, rgb, hsl,
+hwb, oklch, oklab, lab and display-p3 with its CSS name (or the nearest, in
+OKLab), the nearest Tailwind and Material tokens, the contrast on white, on
+black and against the previous colour with the WCAG level as a badge, and to the
+right nine tints, nine shades and the complementary, analogous, triadic, split
+and tetradic harmonies as tiles. The keys edit the colour in place: `←`/`→` turn
+the hue 5°, `↑`/`↓` move the lightness 2 points, `-`/`+` the saturation 5
+points, `⇧` makes an arrow step three to five times bigger, `m` switches to
+OKLCH (lightness, chroma and hue; a chroma step stops at the sRGB gamut edge
+instead of clipping) and back. `⇥` moves the focus from the swatch to the tints,
+the shades and each harmony row in turn (`⇧⇥` back): the arrows then walk the
+row, the label names the tile and `Enter` takes it. A digit or `#` opens a text
+field in the search row with that character; type any notation and `Enter`
+applies it, `Escape` closes the field (a notation that does not parse stays in
+the field with a toast). `c` (and `Enter` on the swatch) copies in the notation
+the `format` setting names, `⌘C` always the hex, `⌘⇧R` rgb, `⌘⇧H` hsl, `⌘⇧O`
+oklch, `⌘⇧L` lab, `⌘⇧P` display-p3, `⌘⇧N` the CSS name, hwb and oklab from ⌘K.
+`p` picks from the screen: the panel hides, the system's loupe appears
+(`NSColorSampler` on macOS, the screenshot portal on Linux), and the panel comes
+back in the picker on the picked colour (unchanged after Escape). `h` opens the
+history, `n` the named sets, `u` goes back to the previous colour, `r` makes a
+random one. The colour, the model and the history live in the extension's
+storage, so Escape and a restart lose nothing.
 
 **Named Colours** is a grid of 995 swatch tiles (a `catalog` at the root:
 three rows there, the rest behind the "more" row), one section per set,
@@ -1807,7 +2136,7 @@ Per palette, `[palettes.colors.settings]`:
 | --- | --- | --- | --- |
 | `columns` | number, 4 to 16 | `8` | Tiles per row in the grid. Read once when the extension loads. |
 
-## Icons (`icons`, `freedesktop`)
+## Icons (`icons`, `icons-freedesktop`)
 
 Both palettes are `catalog`s at the root: three rows each there, the rest
 behind the "more" row, and a glyph named exactly what was typed (`git`)
@@ -1826,21 +2155,20 @@ picked lead in a **Recent** section.
 | --- | --- | --- |
 | Copy glyph | `Enter` | the character itself, as an `icon` for a script or a bar |
 | Copy code point | `⌘Enter` | `U+F0009` |
-| Copy name | | `nf-md-account_circle` |
-| Copy CSS class | | `nf nf-md-account_circle` |
+| Copy name | `⌘⇧N` | `nf-md-account_circle` |
+| Copy CSS class | `⌘⇧C` | `nf nf-md-account_circle` |
 
 The detail pane names the set and the Nerd Fonts version, the code point,
 the CSS class and the `\u{f0009}` escape; it does not draw the glyph large,
 since the pane's text is the UI font and only the icon box uses the
 bundled symbols font.
 
-**Freedesktop icon names** is a second grid: the 114 freedesktop names the
-SDK's `xdg()` maps to a glyph (`sdk/src/icons.ts`, what a script's
-`icon_xdg` may say), each drawn with its glyph and its Nerd Font name as
-the subtitle. `Enter` copies the name; the glyph and the code point are
-the other actions. v1's larger freedesktop list is not carried over: pal
-draws only the names in that table, so listing more would list names that
-render as nothing.
+**Freedesktop icon names** is a second grid: the 114 freedesktop names the SDK's
+`xdg()` maps to a glyph (`sdk/src/icons.ts`, what a script's `icon_xdg` may
+say), each drawn with its glyph and its Nerd Font name as the subtitle. `Enter`
+copies the name; the glyph (`⌘Enter`) and the code point (`⌘⇧U`) are the other
+actions. Only the names in that table are listed: pal draws no other, so a
+longer list would show names that render as nothing.
 
 The glyph table is generated: `bun run extensions/icons/build.ts` fetches
 `glyphnames.json` at the pinned release and writes `data.json` (282 KB,
@@ -1914,9 +2242,9 @@ owner's dotfiles): the CLI keeps the timers, one detached process per
 timer that fires on its own (confetti, a chime, a phone ping) and one KV
 file per timer under its state directory. pal is a view of that directory
 and asks the CLI for every change, so a timer started from a terminal and
+one started here are the same thing. Live: listed again on every show;
 the empty root's Now section shows the most urgent one (running, paused
-or just landed) with its own actions; nothing when there is none.
-one started here are the same thing. Live: listed again on every show.
+or just landed) with its own actions, nothing when there is none.
 
 One row per timer, most urgent first (landed, then running soonest first,
 then paused): the name, what is left and when it lands (or "Paused at
@@ -1925,10 +2253,12 @@ form: a duration (`25m`, `90s`, `1h30m`, `2:30`, a bare number is minutes;
 the CLI parses it and its complaint comes back under the field), an
 optional name (the duration otherwise; a name already taken restarts that
 timer), and a checkbox to ring the phone out loud when it lands (`--ring`).
+The same from a link: `pal://timer/start?duration=25m&name=tea`
+(`&ring=1` rings; [Links](links.md#extension-routes)).
 
 Actions, by state:
 
-| row | `Enter` | `⌘+` | `⌘⌫` |
+| row | `Enter` | `⌘+` | `⌘D` |
 | --- | --- | --- | --- |
 | running | Pause | Add 5 minutes | Stop |
 | paused | Resume | Add 5 minutes | Stop |
@@ -1938,15 +2268,27 @@ Every pick runs the CLI (`timer pause <id>`, `resume`, `add 5m <id>`,
 `stop <id>`, `done`) with the state directory as `TIMER_DIR` and lists
 again; a refusal is a toast with the CLI's words.
 
-**The bar item** (`timer/timer`, [Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)):
-the soonest timer's remaining time as the title with a fill for how far
-along it is, blue, then amber past two thirds, red past nine tenths,
-muted while paused; a landed timer is the alarm (its name, or "Done" for
-an unnamed one, in red) until the CLI's badge ttl (5 minutes) or a
-Dismiss removes it. Hidden with no timer at all. A click opens this
-palette. The second-level countdown is pushed by the extension itself
-(a watch on the state directory plus a 1 Hz tick while a timer runs);
-the core asks every 10 s and on wake besides.
+**The bar item** (`timer/timer`,
+[Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)): the soonest
+timer's remaining time as the title with a fill for how far along it is, blue,
+then amber past two thirds, red past nine tenths, muted while paused; a landed
+timer is the alarm (its name, or "Done" for an unnamed one, in red) until the
+CLI's badge ttl (5 minutes) or a Dismiss removes it. Hidden with no timer at
+all. A click opens this palette. The second-level countdown is pushed by the
+extension itself (a watch on the state directory plus a 1 Hz tick while a timer
+runs); the core asks every 10 s and on wake besides.
+
+Popover keys of `timer/timer` (rendered every 10 s and on wake; the arrows move
+the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `space` | Pause, resume or dismiss the timer with the ring |
+| `+` | Add five minutes |
+| `backspace` | Stop |
+| `up` | Move the ring to another timer (or click a card) |
+| `n` | Start one: type 25m tea in the field, Enter |
+| `o` | Open the Timers palette |
 
 Settings, `[extensions.timer]`:
 
@@ -1955,202 +2297,7 @@ Settings, `[extensions.timer]`:
 | `command` | path | `timer` | The CLI, a name on PATH or a path. |
 | `dir` | path | `~/.local/share/timer` | Its state directory (`TIMER_DIR`); made if missing. `~` is expanded. |
 
-## Raycast parity pass on the bundled palettes (2026-09-16)
-
-What the built-in palettes gained to match what a Raycast user reaches
-for, per palette. Each item below adds to, or corrects, the palette's own
-section above.
-
-### Applications
-
-- A running app carries a green `running` tag (as of the last listing:
-  the palette is indexed, so the tag is refreshed by `⌘R`, a settings
-  change, and after a Quit or Hide from the panel) and its actions are
-  Open, **Quit** (`⌘Q`), **Hide** (`⌘H`), **Reveal in Finder** (`⌘⇧R`),
-  **Copy path** (`⌘C`), **Copy bundle id** (`⌘⇧C`); an app that is not
-  running has Quit and Hide last, and both answer "is not running" as a
-  toast rather than launching it. Quit asks the app through AppleScript
-  (so it can ask you to save; a save dialog left up is the app's to
-  finish) and falls back to `SIGTERM` for a bundle Launch Services does
-  not know. Hide goes through System Events (an Automation prompt for pal
-  once).
-- Keywords: the bundle id as before, plus `CFBundleDisplayName` and
-  `CFBundleName` when they differ from the folder name (`Chrome` finds
-  Google Chrome). Localised names (`InfoPlist.strings`) are not read: they
-  are binary plists in most system apps and would cost a spawn per app.
-- **System Settings panes** are rows: 35 common panes (Keyboard,
-  Displays, Privacy & Security, Wi-Fi, ...) with the System Settings icon,
-  `System Settings` as subtitle, `settings`/`preferences` and a few words
-  per pane as keywords. Enter opens the pane
-  (`x-apple.systempreferences:<id>`), `⌘C` copies that url. A curated
-  table (macOS 13+ ids), not a scan of `/System/Library/ExtensionKit`:
-  the extensions there mix panes with intents and widgets and carry no
-  display names.
-- Linux: a `.desktop` file's `[Desktop Action …]` groups ("New Window",
-  "New Private Window") are the row's secondary actions, run from their
-  own `Exec` (there is no launcher CLI for an action); **Copy path** too.
-  The parser is `extensions/apps/desktop.ts`.
-- Fixed: two roots with an app of the same name both listed (a `Set.add`
-  was read as a boolean); the first root wins now, as intended.
-
-### Bookmarks
-
-The browsers' bookmarks join the JSON file: Chrome, Brave, Edge,
-Chromium, Vivaldi and Arc (every profile's `Bookmarks` JSON, the profile
-name from `Local State` when there is more than one), Safari
-(`~/Library/Safari/Bookmarks.plist`, read through `plutil -convert xml1`
-since the JSON form refuses the Reading List's dates; the Reading List
-itself is left out) and Firefox (every profile's `places.sqlite`, copied
-first because the running browser holds it locked, then `bun:sqlite`;
-tags and `place:` queries left out). Every source is read on every list.
-
-- The file's rows come first, then each browser in the `browsers`
-  setting's order; a url two sources have is listed once, the first wins.
-  Browser rows sit in a section per browser and profile (`Chrome`,
-  `Chrome (Work)`, `Safari`, `Firefox`), carry the folder path as an
-  accessory (`Bookmarks Bar / Dev`) and as keywords, and get the site's
-  favicon.
-- Actions: **Open in browser** (`Enter`), **Copy link** (`⌘C`), **Copy as
-  markdown** (`⌘⇧C`, `[name](url)`), and on a browser row **Open in
-  Chrome/Safari/...** (`open -a` on macOS, the browser's binary on Linux).
-- Safari's file needs Full Disk Access: without it the Safari section is
-  one inert row saying so (System Settings > Privacy & Security > Full
-  Disk Access, add pal).
-
-Settings, `[extensions.bookmarks]`, in addition to `file`:
-
-| key | type | default | what |
-| --- | --- | --- | --- |
-| `browsers` | list | `["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"]` | Whose bookmarks to list, in order. A browser with no profile on the machine lists nothing. `[]` is the file alone. |
-| `exclude_folders` | list | `[]` | Bookmark folders skipped, by name (`Archive`) or a short path (`Bookmarks Bar/Old`), case-insensitive. |
-
-### Emoji
-
-- Sections: **Recently used** first (the last 24 you copied or pasted,
-  kept in the extension's storage), then Unicode's groups in order
-  (Smileys & Emotion, People & Body, ..., Flags). `data.json` now carries
-  `category` and `skin` per emoji (from unicode-emoji-json; the names and
-  keywords are emojilib's as before).
-- The palette is `live` with a 30 s `ttl`: the order is the sections'
-  own, never frecency's, and a show more than 30 s after the last listing
-  lists again so the recents follow what you used.
-- Search by shortcode: `:thumbs_up:` is a keyword next to `thumbs_up`.
-- Actions: **Copy emoji** (`Enter`), **Paste emoji** (`⌘Enter`), **Copy
-  shortcode** (`⌘⇧C`); `paste_by_default` swaps the first two.
-- Skin tone: `skin_tone` (none by default) is applied to the emoji that
-  take one (329 of them: hands, people) in the tile, on copy and on
-  paste. The modifier goes after the first code point, which tones a
-  single person and the first person of a family or profession sequence;
-  a two-person sequence gets one tone, on its first person.
-
-Settings, `[extensions.emoji]`:
-
-| key | type | default | what |
-| --- | --- | --- | --- |
-| `skin_tone` | `none`, `light`, `medium-light`, `medium`, `medium-dark`, `dark` | `"none"` | The Fitzpatrick modifier applied where an emoji takes one. |
-| `paste_by_default` | bool | `false` | `Enter` pastes into the app in front (needs Accessibility on macOS), `⌘Enter` copies. |
-
-### Clipboard History
-
-- Pinned entries sit in a **Pinned** section at the top; the rest follow
-  without a header.
-- A filter dropdown by kind: All, Text, Images, Files (the core's kinds),
-  **Links** (text that is one url) and **Colors** (text that is one
-  `#hex` or `rgb()`/`rgba()` colour).
-- A colour entry's icon is the colour itself (a tinted dot); an image row
-  shows its size next to its dimensions.
-- Actions added: **Open link** (`⌘O`) on a url, **Paste as plain text**
-  (`⌘⇧V`) on text (the entry's text pasted as text), **Copy image file**
-  (`⌘⇧C`) on an image (the PNG the core keeps, as a file), **Delete all
-  unpinned** (asks first; every unpinned entry deleted one by one, since
-  the core's only bulk operation is Clear).
-
-### Windows
-
-- Rows are grouped by app (a section per app, in the order the front
-  window of each gives); the app name is a keyword as well as the
-  subtitle.
-- Actions added: **Hide app** (`⌘H`, macOS: System Events hides the
-  window's process), and on an app with more than one window **Minimize
-  all of this app** (`⌘⇧M`) and **Close all of this app** (`⌘⇧W`, asks
-  first).
-
-### System
-
-- **Empty Trash** shows what is in the Trash on the right (`3 items`,
-  `empty`); `~/.Trash` itself is readable only with Full Disk Access, and
-  without it the row simply has no count. Linux reads
-  `~/.local/share/Trash/files`.
-- **Toggle Dark Mode** carries the current appearance as a tag (`dark`
-  violet, `light` amber), from `defaults read -g AppleInterfaceStyle` on
-  macOS and GNOME's `color-scheme` on Linux.
-- Do Not Disturb was already hidden unless available; nothing changed.
-  No "Restart pal" row: the tray has it.
-
-### Files
-
-- Before you type, the Files palette lists the **recently used files**
-  (a `Recently used` section) instead of the hints: on macOS Spotlight's
-  `kMDItemLastUsedDate` over the last seven days within the configured
-  folders (`mdfind -attr`, so the rows sort newest first), on Linux GTK's
-  `~/.local/share/recently-used.xbel`. Folders, hidden and excluded paths
-  and files that are gone are left out; the date on the right is when the
-  file was last used.
-- **Recent Files** (`files-recent`) lists the same rows as a palette of
-  its own: live (newest first is the order), listed again on a show once
-  the listing is a minute old, with the same actions and detail pane.
-- **Quick Look** (`⌘Y`) on macOS opens the file in `qlmanage -p`.
-
-### SSH Hosts
-
-- The section is the file a host came from, relative to the config's
-  directory (`.ssh/config`, `.ssh/conf.d/work.conf`); known hosts stay a
-  last `Known hosts` section.
-- `ProxyJump` is read: the row carries a `via <jump>` tag and the jump as
-  a keyword, and **Copy ssh -J command** (`⌘⇧J`) copies
-  `ssh -J <jump> <host>` (the plain command already goes through the
-  config's ProxyJump; the `-J` form is for a machine without it).
-- **Ping** (`⌘P`): one echo to the HostName (else the name), the round
-  trip as a toast (`marko.lan: 3 ms`), or why it did not answer.
-
-### Processes
-
-- **Kill by port**: a query of `:` and digits lists what listens on TCP
-  ports instead of processes: `:3000` that port, `:30` every port
-  starting with 30, `:` alone every listener. One row per process and
-  port with the port as a blue tag and the address as subtitle; a process
-  `ps` knows gets its usual numbers and icon. `ss -ltnp` on Linux, else
-  `lsof -iTCP -sTCP:LISTEN` (macOS ships it). Rows have the same kill and
-  copy actions; a row's id is `pid:port`.
-- **Open in Activity Monitor** (`⌘O`, macOS): brings Activity Monitor up
-  and types the pid into its search field (`⌘F`, then the digits, through
-  System Events; needs Accessibility, else the app just comes up).
-- The CPU tag's colour for 10..50% is the token palette's `amber` (it
-  named `orange`, which is not a token).
-
-### Quicklinks and Snippets
-
-- **Import Quicklinks** / **Export Quicklinks** and **Import Snippets** /
-  **Export Snippets** are rows after the list: each opens a form with one
-  path field (`~` expanded; export defaults to
-  `~/Downloads/pal-quicklinks.json` and `~/Downloads/pal-snippets.json`).
-  Export writes your own rows as a JSON array (`{name, url, keywords?}`,
-  `{name, text, keyword?}`; no ids), replacing the file. Import reads such
-  a file (Raycast's `{name, link}` quicklink export is read too), skips
-  what you already have (a quicklink by url, a snippet by name and text),
-  and says how many came in. A path that cannot be read or written is
-  refused with the message under the field.
-- Snippets: `{selection}` (Raycast's spelling for the selected text,
-  which pal cannot read) is filled from the clipboard like `{clipboard}`,
-  the documented fallback. `{cursor}` is **not supported**: pal pastes
-  the text whole and cannot place the caret, so it is left in the text as
-  typed.
-
-### Window Management, Blackjack
-
-Reviewed, nothing changed: no bug found.
-
-## Calendar: Today, My Schedule, the Upcoming bar item (`calendar-today`, `calendar-schedule`, `calendar/upcoming`)
+## Calendar (`calendar-today`, `calendar-schedule`, `calendar/upcoming`)
 
 Two live palettes and a bar item over one source and one cache; Today
 also suggests the empty root's Now section its first row: the current
@@ -2216,25 +2363,38 @@ its account, the location, the call or link, the organizer, every
 attendee with their reply as a coloured tag, your own reply, and whether
 it repeats.
 
-**The bar item** (`calendar/upcoming`, [Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)):
-the next event as `Standup in 12m` (`Standup now` while it runs, the
-title cut to 36 characters), hidden when nothing timed starts within
-`horizon_hours` (10), so a clear evening is a clear strip. The event is
-the first that has not ended, timed unless `hide_all_day` is off, not
-declined unless `hide_declined` is off, starting inside the horizon; a
-running one counts until it ends. Colour by escalation, the boundaries
-inclusive: `muted` far off, `amber` from `warn_minutes` (15) before the
-start, `red` from `urgent_minutes` (5), `green` while it runs; sketchybar
-draws the same names through the bar module's colour map. A `dot` badge
-says there is a call. The tooltip is the title, the time range and the
-calendar. A click opens Today in the popover (the rest of today and
-tomorrow, Enter joins). The core asks every five minutes and on wake, the
-network coming back and the minute tick; a minute tick renders from the
-cache (0.1 ms through the host in the tests; the count-down needs no
-fetch), every other reason fetches (about 80 ms for a week from EventKit
-on hornet, 250 to 350 ms for two Google accounts whose token commands
-hop over ssh). A failed fetch keeps the last item as `stale`; no cache
-and no source is hidden.
+**The bar item** (`calendar/upcoming`,
+[Extensions](extensions.md#bar-items-glanceable-state-on-the-bar)): the next
+event as `Standup in 12m` (`Standup now` while it runs, the title cut to 36
+characters), hidden when nothing timed starts within `horizon_hours` (10), so a
+clear evening is a clear strip. The event is the first that has not ended, timed
+unless `hide_all_day` is off, not declined unless `hide_declined` is off,
+starting inside the horizon; a running one counts until it ends. Colour by
+escalation, the boundaries inclusive: `muted` far off, `amber` from
+`warn_minutes` (15) before the start, `red` from `urgent_minutes` (5), `green`
+while it runs; sketchybar draws the same names through the bar module's colour
+map. A `dot` badge says there is a call. The tooltip is the title, the time
+range and the calendar. A click opens Today in the popover (the rest of today
+and tomorrow, Enter joins). The core asks every five minutes and on wake, the
+network coming back and the minute tick; a minute tick renders from the cache
+(0.1 ms through the host in the tests; the count-down needs no fetch), every
+other reason fetches (about 80 ms for a week from EventKit on hornet, 250 to 350
+ms for two Google accounts whose token commands hop over ssh). A failed fetch
+keeps the last item as `stale`; no cache and no source is hidden.
+
+Popover keys of `calendar/upcoming` (rendered every 300 s and on minute, wake,
+network; the arrows move the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `enter` | Join the focused event's call, else open it in Calendar (Google Calendar for a Google account) |
+| `j` | Join the next call |
+| `t` | Show or fold tomorrow |
+| `o` | Open Calendar (the day's page on calendar.google.com for a Google account) |
+| `r` | Refresh |
+| `cmd+c` | Copy the focused event's details |
+| `cmd+shift+c` | Copy the focused event's conference link |
+| `up, down` | Move between the rows; a click on a row focuses it, a click on Join joins it |
 
 **Google.** Each account is one entry of `accounts`, `name = command`:
 the command prints an access token for the Calendar API on stdout (a
@@ -2349,7 +2509,7 @@ letters route without being listed).
 - Daily (`daily`, on by default): one puzzle a day seeded from the local
   date, started when the palette opens on a new day. Once it is over, `N`
   starts a practice game on a random word; with `daily` off every game is
-  one and `cmd+n` starts another mid-game.
+  one and `⌘N` starts another mid-game.
 - Hard mode (`hard_mode`): greens stay in place, ambers must be used; a
   slip is named in the badge. A game keeps the mode it started with.
 - The result view: the praise or the answer, played, win %, streak and
@@ -2370,9 +2530,10 @@ hard_mode = false
 
 ## Slack (`slack-unreads`, `slack-channels`, `slack-search`, `slack-status`)
 
-One extension, four palettes and a bar item, signed in through the Slack
-desktop app's own session (or a user token). It replaces the v1 `slack`
-script and the sketchybar `slack` item.
+One extension, four palettes and a bar item (`multi`: a second workspace
+is `[instances."slack@work"]`, its `workspace` set for that instance,
+[Config](config.md#instances)), signed in through the Slack
+desktop app's own session (or a user token).
 
 | palette | id | kind | what `Enter` does |
 | --- | --- | --- | --- |
@@ -2437,10 +2598,26 @@ away / Set active. `users.profile.set`, `dnd.setSnooze` / `endSnooze`,
 **The bar item** `slack/unreads`: the count of what is addressed (DMs +
 mentions + thread replies) as the badge, hidden at zero, urgent while a
 direct message waits (`dm_urgent`); every `refresh` seconds and on show,
-wake, network. The popover is a menu: a section per kind with the newest
-five (a row opens the conversation), "Also unread" naming the quiet
-channels, then Open in pal, Mark all read (`⌘⇧A`), Open Slack. A failed
-refresh leaves it stale; not signed in hides it.
+wake, network. The popover is a view: a section per kind with the newest
+rows (avatars, the latest line, a count badge; Enter opens one), the
+quiet channels as badges, a reply field on `r`, mark read on `m`, all
+read on `a`, the palette on `p`. A failed refresh leaves it stale; not
+signed in hides it.
+
+Popover keys of `slack/unreads` (rendered every 120 s and on show, wake,
+network; the arrows move the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `enter` | Open the row in Slack |
+| `up` | Move the cursor (down, j, k too; a click sets it) |
+| `r` | Reply: the search row becomes the field, Enter sends |
+| `m` | Mark the row read |
+| `a` | Mark all read (cmd+shift+a too) |
+| `o` | Open Slack |
+| `p` | Open the Unreads palette |
+| `cmd+shift+o` | Open the row in the browser |
+| `cmd+c` | Copy the row's link |
 
 Settings, `[extensions.slack]`:
 
@@ -2508,7 +2685,7 @@ No settings.
 Identifiers, secrets, random values, hashes, encodings, lorem ipsum, a
 random colour, a QR code and a JWT taken apart, from `extensions/generate/`.
 An input palette: the rows come from what is typed, and every value
-copies on `enter`, pastes on `cmd+enter`; `cmd+r` (Refresh) lists again
+copies on `Enter`, pastes on `⌘Enter`; `⌘R` (Refresh) lists again
 with fresh values, which is how a value is regenerated.
 
 The empty query lists one fresh value of every generator: UUID v4, UUID
@@ -2518,7 +2695,7 @@ bits of entropy, weak under 36, fair under 60, good under 80, strong
 under 128), a passphrase (`passphrase_words` words from a list of 2551
 common five-letter words, about 11 bits each), a random number (1 to
 100), 16 random bytes as hex and as base64, a lorem ipsum paragraph, a
-random colour (the swatch as its icon, `cmd+o` opens it in the Colour
+random colour (the swatch as its icon, `⌘O` opens it in the Colour
 Picker). A mode word narrows and parameterises: `password 32 alnum`,
 `passphrase 7`, `number 1-6` (or `dice`), `hex 32`, `bytes 32`, `lorem
 3 paragraphs`, `colour` (five). Anything else filters the generators by
@@ -2526,12 +2703,12 @@ name and keyword.
 
 A transform mode works on the text after it, or on the newest clipboard
 text when nothing follows (the subtitle says which): `sha256`, `md5`,
-`sha1`, `sha512`, `hash` (all four, `cmd+shift+c` copies them as lines),
+`sha1`, `sha512`, `hash` (all four, `⌘⇧C` copies them as lines),
 `base64`, `b64url`, `url`, `hex` (each decoding first when the text is
 already that), `encode` (every form), `decode` (whatever the text turns
 out to be: base64, URL escapes, hex, a JWT). `qr <text>` is one row
-wearing the code as its icon, drawn large in the detail pane; `enter`
-shows it full width, `cmd+c` copies the SVG. The encoder is the
+wearing the code as its icon, drawn large in the detail pane; `Enter`
+shows it full width, `⌘C` copies the SVG. The encoder is the
 extension's own (`qr.ts`, byte mode, versions 1 to 40, after Nayuki's
 qrcodegen). `jwt <token>` is the header, the payload with its expiry as a
 tag, a row per time claim (`exp`, `iat`, `nbf`) as a date with the
@@ -2560,14 +2737,14 @@ Settings, `[extensions.generate]`:
 Every shortcut from the Shortcuts app, from `extensions/shortcuts/`, over
 the `shortcuts` command line tool (macOS 12 and later): indexed and
 primary, so a shortcut's name at the root finds it; the folder is the
-section inside the palette and a keyword. `enter` runs the shortcut and
+section inside the palette and a keyword. `Enter` runs the shortcut and
 the panel hides; when the run ends, however long it took, the HUD shows
 `<name>: Done`, the first line of what the shortcut output, or the tool's
-message when it failed. `cmd+enter` runs it with the newest clipboard
+message when it failed. `⌘Enter` runs it with the newest clipboard
 text as its input (a temporary file handed to `shortcuts run -i`),
-`cmd+t` asks for the input in a form, `cmd+o` opens the shortcut in the
-Shortcuts app, `cmd+c` copies its name. The listing is kept five minutes
-(`ttl`); `cmd+r` lists again now.
+`⌘T` asks for the input in a form, `⌘O` opens the shortcut in the
+Shortcuts app, `⌘C` copies its name. The listing is kept five minutes
+(`ttl`); `⌘R` lists again now.
 
 | keys | action |
 | --- | --- |
@@ -2595,7 +2772,7 @@ output as a level; `list`: the output's JSON lines as rows, a row with
 `url` opening, one with `copy` copying, any other running the script again
 with `PAL_PICK`; `inline`: the first output line as the row's subtitle,
 refreshed every `@pal.refresh`), the arguments (`@pal.args`, a form on
-`enter`), `@pal.confirm`, `@pal.keyword`, `@pal.section`, `@pal.cwd` and
+`Enter`), `@pal.confirm`, `@pal.keyword`, `@pal.section`, `@pal.cwd` and
 `@pal.icon` (an emoji, a glyph, a hex, a brand colour, an image next to
 the script, a url). Raycast's `@raycast.*` headers are read as aliases,
 so a Raycast script command drops in unchanged. The row's id is the file
@@ -2705,15 +2882,16 @@ TLS pinning (Signify's `root-bridge` CA plus the certificate pinned at
 pairing; `insecure` skips it) and every key.
 
 **Set up Hue** (`hue-setup`, a view) finds the bridges (the cloud endpoint
-and mDNS), asks each its name and id with no key, and `1`..`9` starts
-press-link: "Press the round button on the bridge" with a thirty-second
-countdown while a background task asks the bridge every second; Escape
-leaves and the panel comes back on its own once the key is in. The key and
-the client key go to pal's storage with the certificate pinned; `c` copies
-the key for the keychain (Settings › Extensions › Hue › Application key
-with the `bridge` address, which then wins for that address). Until a
-bridge is paired every other palette is one "Set up Hue" row and the bar
-item is hidden.
+and mDNS; `r` scans again, `i` takes an address typed), asks each its
+name and id with no key, and `1`..`9` (or Enter) starts press-link: "Press
+the round button on the bridge" with a thirty-second countdown while a
+background task asks the bridge every second; `x` stops a pairing (or
+forgets a bridge), `b` goes back to the bridges, Escape leaves and the
+panel comes back on its own once the key is in. The key lands in the
+keychain and the address in the config file through `settings.set`
+(Settings › Extensions › Hue shows both); `c` copies the key once paired.
+Until a bridge is paired every other palette is one "Set up Hue" row and
+the bar item is hidden.
 
 **Hue Rooms** (`hue-rooms`, live, primary) lists rooms then zones with a
 tile of the lit lights' colours as stripes (faded by the brightness, an
@@ -2730,21 +2908,20 @@ palette dynamically, `⌘O` opens the room. Rooms and scenes are primary at
 the root: `living room` and Enter toggles the room, `relax` and Enter
 plays the scene.
 
-**Hue Light** (`hue-light`, a view, opened from a row) puts a light or a
-room under the keys: the tile in its colour with the brightness, the
-brightness bar, the temperature on a warm-to-cool strip with a marker
-across the light's mirek range, the hue/saturation plane with a marker
-(the same `gradient` node as the colour picker), then the presets (Relax,
-Read, Concentrate, Energize, Bright, Dimmed, Nightlight), the room's
-scenes as strips, the effects the light supports and the options. `←`/`→`
-brightness (5 %, `⇧` 20 %), `↑`/`↓` cooler/warmer (20 mirek, `⇧` 80),
-`1`..`9` and `0`, `t`/`space` toggle, `⇥` walks light, colour (the arrows
-become hue and saturation, clamped into the gamut), presets, scenes,
-effects (`←`/`→` choose, Enter applies), `a` this light or the whole room,
-`d` the transition (instant, 400 ms, 1 s, 4 s), `s` scenes, `o` the room,
-`i` blink, `c` copy, `r` re-read. The view follows the bridge: a change
-from a switch or the Hue app reaches it through the event stream while
-it is open (the tree pushed, `view.update`), no key needed.
+**Hue Light** (`hue-light`, a view, opened from a row) puts a light or a room
+under the keys: the tile in its colour with the brightness, the brightness bar,
+the temperature on a warm-to-cool strip with a marker across the light's mirek
+range, the hue/saturation plane with a marker (the same `gradient` node as the
+colour picker), then the presets (Relax, Read, Concentrate, Energize, Bright,
+Dimmed, Nightlight), the room's scenes as strips, the effects the light supports
+and the options. `←`/`→` brightness (5 %, `⇧` 20 %), `↑`/`↓` cooler/warmer (20
+mirek, `⇧` 80), `1`..`9` and `0`, `t`/`space` toggle, `⇥` (`⇧⇥` back) walks
+light, colour (the arrows become hue and saturation, clamped into the gamut),
+presets, scenes, effects (`←`/`→` choose, Enter applies), `a` this light or the
+whole room, `d` the transition (instant, 400 ms, 1 s, 4 s), `s` scenes, `o` the
+room, `i` blink, `c` copy, `r` re-read. The view follows the bridge: a change
+from a switch or the Hue app reaches it through the event stream while it is
+open (the tree pushed, `view.update`), no key needed.
 
 **Hue Sensors** (`hue-sensors`, live): motion, temperature, light level
 (lux), buttons and dials with their last event, contact sensors, by
@@ -2760,6 +2937,22 @@ streaming, `⌘Enter` stops.
 popover toggles every room, plays the scenes (`bar_scenes`, else the main
 room's), opens pal, turns everything off. Rendered every 60 s and on show,
 wake and network, pushed on every stream event (at most every 300 ms).
+
+Popover keys of `hue/home` (rendered every 60 s and on show, wake, network; the
+arrows move the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `up` | Move over the rooms; walk an opened room's lights |
+| `enter` | Open the room under the cursor; toggle the light under it |
+| `space` | Toggle the room (or the light) under the cursor |
+| `right` | Brighter by 5 (shift: 20); left dims |
+| `backspace` | Close the opened room |
+| `1` | Play the scene with that digit (1 to 9) |
+| `e` | Everything on |
+| `x` | All off |
+| `p` | Open Rooms in pal |
+| `r` | Read the bridge again |
 
 **Links**: `pal://hue/toggle?room=living-room` (`on=1` sets),
 `pal://hue/scene?name=relax&room=living-room` (`dynamic=1`),
@@ -2797,17 +2990,19 @@ deletes it.
 | Library | `spotify-library` | indexed, 5 min, filters | plays the track |
 | Spotify Devices | `spotify-devices` | live | transfers playback there |
 | Queue | `spotify-queue` | live | skips to the row |
-| Spotify | `spotify-commands` | indexed, primary | play or pause, next, previous, like, lyrics, sign out, "Play <pinned playlist>" |
+| Spotify | `spotify-commands` | indexed, primary | play or pause, next, previous, like, lyrics, sign out, "Play `<pinned playlist>`" |
 
 **Search** lists Tracks, Artists, Albums, Playlists, Podcasts and
-Episodes as sections with the cover as the icon. A track: `enter` plays,
-`cmd+enter` queues, `cmd+l` likes or unlikes, `cmd+o` opens in Spotify,
-`cmd+c` copies the link; a playlist or album: `enter` plays it as the
-context, `cmd+enter` its tracks as a level (a row there plays from that
-point inside it), `cmd+s` shuffled. **Library**'s filters: Liked Songs
+Episodes as sections with the cover as the icon. A track: `Enter` plays,
+`⌘Enter` queues, `⌘L` likes or unlikes, `⌘O` opens in Spotify,
+`⌘C` copies the link; a playlist or album: `Enter` plays it as the
+context, `⌘Enter` its tracks as a level (a row there plays from that
+point inside it), `⌘S` shuffled. **Library**'s filters (`Tab`): Liked Songs
 (newest first), Recently played, Top tracks, Top artists (the last
 weeks). **Devices**: a row per device with its glyph, volume and
-`active` tag, plus Volume up, down and Mute for the active one.
+`active` tag (Enter plays there, `⌘Enter` transfers without playing),
+plus Volume up, down and Mute rows for the active one (`⌘↑`/`⌘↓` from
+any row).
 **Queue**: what plays now, then the queue numbered; the Web API cannot
 remove a queued track, so Enter skips to the row (one Next per row).
 The **Spotify** rows are root results (`pause`, `next`, `like`, `Play
@@ -2822,7 +3017,7 @@ the position; "No lyrics on lrclib" with `f` to search there. The
 cover's dominant colour is a band under the art and the progress bar's
 colour. Keys: `space` play or pause, `left`/`right` seek 10 s,
 `up`/`down` volume, `l` like, `s` shuffle, `r` repeat, `q` queue, `d`
-devices, `cmd+right`/`cmd+left` skip, `cmd+c` copy the line, `cmd+o`
+devices, `⌘→`/`⌘←` skip, `⌘C` copy the line, `⌘O`
 open in Spotify. Every key answers with the next tree at once from a
 locally patched state, and the view follows the song while it is open:
 the tree is pushed every second while something plays (the lines slide
@@ -2838,6 +3033,26 @@ minutes after the last action as the fallback; Spotify read every 5 s,
 the clock between reads), and outside that window the item asks to be
 rendered again when the next line starts. Rendered every 30 s, on show,
 wake, network and the `media` trigger.
+
+Popover keys of `spotify/playing` (rendered every 30 s and on show, wake,
+network, media; the arrows move the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `space` | Pause or play |
+| `cmd+right` | Next track |
+| `cmd+left` | Previous track |
+| `right` | Seek 10 s forward |
+| `left` | Seek 10 s back |
+| `up` | Volume up |
+| `down` | Volume down |
+| `l` | Like or unlike |
+| `s` | Shuffle on or off |
+| `r` | Repeat all, one, off |
+| `q` | Open the queue |
+| `d` | Open the devices |
+| `cmd+c` | Copy the current line (or the track) |
+| `cmd+o` | Open in Spotify |
 
 Settings, `[extensions.spotify]`: `client_id` (text), `redirect_port`
 (number, `27182`), `bar_lyrics` (boolean, `true`), `pinned` (list of
@@ -2961,7 +3176,7 @@ paperclip when the top-level MIME type is `multipart/mixed` (a guess:
 (`format=full`, the last twenty kept): the text body with the quoted
 replies folded (`On ... wrote:` and `>` runs; Gmail's `gmail_quote`,
 `blockquote`, Outlook's `divRplyFwdMsg` in HTML), else the HTML as text
-(lists as `- `, links as `text (url)`), markdown-escaped so a `<a@b>`
+(lists as a `-` bullet, links as `text (url)`), markdown-escaped so a `<a@b>`
 survives; From, To, Cc, Date, Labels, Attachments (name and size),
 Open in Gmail. The unread count is the list's length under a page,
 `labels.get INBOX` past it. The inbox is shared with the bar item for
@@ -3027,9 +3242,9 @@ For the tests, `PAL_GMAIL_API` replaces the API host and
 
 Text translated as it is typed, from `extensions/translate/`. An input
 palette: 350 ms after the last key the text goes to the backend and the
-rows come back: the translation first (`enter` copies, `cmd+enter`
-pastes, `cmd+shift+s` speaks it aloud, `cmd+shift+c` copies the source,
-`cmd+o` opens the pair in the Google Translate web app), then the
+rows come back: the translation first (`Enter` copies, `⌘Enter`
+pastes, `⌘⇧S` speaks it aloud, `⌘⇧C` copies the source,
+`⌘O` opens the pair in the Google Translate web app), then the
 translation in Latin letters when its script is not Latin, the detected
 language with the detector's confidence, the alternatives Google offers,
 the source romanised, dictionary entries for a word, and a Swap row that
@@ -3037,17 +3252,17 @@ translates the result back the other way (a push with the pair
 reversed). The detail pane holds both texts, the pair, the backend and
 the confidence.
 
-The target is the `to` setting, else the system language; the source is
-detected unless `from` names one. A prefix names the ends once, at the
-root too (`inline`): `tr: hello`, `>de hello`, `german: hello` (the
-target), `en>tr merhaba`, `turkish>english merhaba` (both); a word only
-counts as a language when it is one (`todo: buy milk` is text), and
-`>de` takes no space (`> ` is the Shell palette's root prefix). Nothing
-typed: the selection in the app in front, else the newest clipboard
-text, the subtitle saying which; `tr:` alone does the same to Turkish. A
-text already in the target goes the other way: to `from` when it names a
-language, else to English, else to the system language; with nothing
-else to go to (an English text on an English system) the row says so.
+The target is the `to` setting, else the system language; the source is detected
+unless `from` names one. A prefix names the ends once, at the root too
+(`inline`): `tr: hello`, `>de hello`, `german: hello` (the target), `en>tr
+merhaba`, `turkish>english merhaba` (both); a word only counts as a language
+when it is one (`todo: buy milk` is text), and `>de` takes no space (`>` and a
+space is the Shell palette's root prefix). Nothing typed: the selection in the
+app in front, else the newest clipboard text, the subtitle saying which; `tr:`
+alone does the same to Turkish. A text already in the target goes the other way:
+to `from` when it names a language, else to English, else to the system
+language; with nothing else to go to (an English text on an English system) the
+row says so.
 
 Backends: Google's web endpoint (`translate.googleapis.com/translate_a/single`,
 `client=dict-chrome-ex`), no key and unofficial (it may refuse a network
@@ -3059,8 +3274,8 @@ macOS (Yelda for Turkish), `spd-say` or `espeak` on Linux.
 
 Translation History (`translate-history`, live, its rows at the root):
 what was copied, pasted or spoken, newest first, once each, the last
-hundred in `storage`; `enter` copies again, `cmd+t` translates the entry
-afresh with the detected source pinned, `cmd+d` removes it, the last row
+hundred in `storage`; `Enter` copies again, `⌘T` translates the entry
+afresh with the detected source pinned, `⌘D` removes it, the last row
 clears the history after a confirm card.
 
 | keys | action |
@@ -3090,9 +3305,9 @@ the hosts and `PAL_TRANSLATE_SAY` the speaker.
 
 One command run in the login shell, its output read in the panel, from
 `extensions/shell/`. An input palette: the typed command is one row,
-`Run: <command>`, and nothing runs until `enter`; `$ ls` or `> git
-status` at the root lists the same row inline. `cmd+enter` on the row
-opens the command in a terminal window instead, `cmd+c` copies it. A
+`Run: <command>`, and nothing runs until `Enter`; `$ ls` or `> git
+status` at the root lists the same row inline. `⌘Enter` on the row
+opens the command in a terminal window instead, `⌘C` copies it. A
 command that looks destructive (`rm`, `sudo`, `mv`, `dd`, `git reset
 --hard`, `kill -9`, a package manager's uninstall, a redirect onto a disk
 device, and so on, judged on the command word of every simple command
@@ -3106,14 +3321,14 @@ The answer is a view level: the command as the title, the folder under
 it, `exit 0` (green) or `exit N` (red) and the duration as badges,
 `killed after N s` on a timeout and `output cut` past 256 KB per stream,
 stdout in monospace on a sunken surface with stderr under it in red,
-scrolling past the panel. A command still running 2.5 s after `enter`
+scrolling past the panel. A command still running 2.5 s after `Enter`
 gets the view with a `running` badge and the elapsed time, and the
 result lands in place through `view.update` when it ends, so a command
-may outlast the panel's own wait for a pick. In the view `enter` copies
-the output (stderr when there was none), `cmd+enter` opens a terminal on
-the command, `cmd+r` runs it again (the view's own action: a view level
-takes the keys the shell's Refresh would), `cmd+c` copies the command,
-`cmd+shift+e` copies stderr.
+may outlast the panel's own wait for a pick. In the view `Enter` copies
+the output (stderr when there was none), `⌘Enter` opens a terminal on
+the command, `⌘R` runs it again (the view's own action: a view level
+takes the keys the shell's Refresh would), `⌘C` copies the command,
+`⌘⇧E` copies stderr.
 
 The terminal is the `terminal` setting: Terminal (default) and iTerm over
 AppleScript, kitty, Alacritty, WezTerm and Ghostty by their flags through
@@ -3123,11 +3338,11 @@ AppleScript, kitty, Alacritty, WezTerm and Ghostty by their flags through
 
 Shell History (`shell-history`): every command that ran, newest first,
 once each, the last hundred in `storage`, with its exit code as a tag
-(`killed` for a timeout), the duration and the folder; `enter` runs it
-again (the same confirm), `cmd+enter` opens it in a terminal, `cmd+c`
-copies it, `cmd+d` removes the entry, the last row clears the history.
+(`killed` for a timeout), the duration and the folder; `Enter` runs it
+again (the same confirm), `⌘Enter` opens it in a terminal, `⌘C`
+copies it, `⌘D` removes the entry, the last row clears the history.
 It is an input palette rather than live: listed on every keystroke so a
-command just run is there, and never at the root, where an `enter` would
+command just run is there, and never at the root, where an `Enter` would
 run one.
 
 | keys | action |
@@ -3209,16 +3424,16 @@ typed lists what is trending under a Trending section, and every tile is
 the GIF's small animated preview (Tenor's `nanogif`, Giphy's
 `fixed_height_small`), fetched once into the cache directory
 (`~/Library/Caches/pal/gifs`, `$XDG_CACHE_HOME/pal/gifs`) and sent as a
-data url. `enter` downloads the GIF into the cache, named after its
+data url. `Enter` downloads the GIF into the cache, named after its
 title, and puts the **file** on the clipboard (`copy_files`), so it
-pastes as a picture; `cmd+enter` copies the url; `cmd+o` opens the page;
-`cmd+s` writes the file to `save_to`; `cmd+f` keeps it. The detail pane
-(`cmd+i`) shows the preview larger, the size in pixels and bytes, the
+pastes as a picture; `⌘Enter` copies the url; `⌘O` opens the page;
+`⌘S` writes the file to `save_to`; `⌘F` keeps it. The detail pane
+(`⌘I`) shows the preview larger, the size in pixels and bytes, the
 page. A root query nothing matched offers "Search GIFs for …".
 
 Favourite GIFs (`gifs-favourites`, a live grid, its rows at the root):
-what `cmd+f` kept, newest first, the last 200 in `storage`, with the same
-actions and `cmd+d` to remove; the last row clears it after a confirm
+what `⌘F` kept, newest first, the last 200 in `storage`, with the same
+actions and `⌘D` to remove; the last row clears it after a confirm
 card.
 
 Backends: Tenor v2 with a Google Cloud API key that has the Tenor API
@@ -3307,8 +3522,8 @@ from the elapsed time that stops short of full), the ping tiles (latency,
 jitter, loss when reported), the server and the ISP in the head, the
 elapsed time in the foot with a tick between the tool's lines. Enter
 while it runs stops it (SIGTERM to the group, SIGKILL a second later);
-a test past two minutes is stopped. `cmd+enter` copies the result as
-one line, `cmd+o` opens Ookla's result page, `cmd+h` opens the history;
+a test past two minutes is stopped. `⌘Enter` copies the result as
+one line, `⌘O` opens Ookla's result page, `⌘H` opens the history;
 Escape leaves and a running test keeps running, the view catching up
 when reopened (`on: ["show"]` re-asks it, and a push lands when the
 level reports itself).
@@ -3316,7 +3531,7 @@ level reports itself).
 Speedtest History (`speedtest-history`, live): every finished run,
 newest first, the last `keep` in `storage`, the figures and the ping as
 the name, the server, ISP and tool as the subtitle, the date on the
-right; `enter` copies the line, `cmd+o` opens the result page, `cmd+d`
+right; `Enter` copies the line, `⌘O` opens the result page, `⌘D`
 removes it, the last row clears after a confirm card. The first row,
 Trend, is a view of the last twenty runs as bars, download in blue and
 upload in green, each against the best of its own, the ping beside;
@@ -3341,7 +3556,7 @@ Settings, `[extensions.speedtest]`:
 For the tests, `PAL_SPEEDTEST_PATH` names a directory searched first for
 the three binaries.
 
-## YouTube (`youtube`, `youtube-channels`, `youtube-later`)
+## YouTube (`youtube-search`, `youtube-channels`, `youtube-later`)
 
 YouTube searched from the panel, from `extensions/youtube/`. An input
 palette: 400 ms after the last key the videos come back with the
@@ -3349,23 +3564,23 @@ thumbnail (`i.ytimg.com`, no key) as the icon and `channel · length ·
 views · age` as the subtitle (`live now` for a stream); nothing typed is
 the trending list for `region` under a Trending section; `yt: lofi` at
 the root answers inline, and a root query nothing matched offers "Search
-YouTube for …". `enter` opens the video in the browser, `cmd+enter` plays
+YouTube for …". `Enter` opens the video in the browser, `⌘Enter` plays
 it in IINA, mpv or VLC (`player`; `auto` takes the first installed, the
-browser when none is; mpv and VLC need `yt-dlp`), `cmd+c` copies the url,
-`cmd+s` keeps it, `cmd+shift+o` opens the channel; the detail pane shows
+browser when none is; mpv and VLC need `yt-dlp`), `⌘C` copies the url,
+`⌘S` keeps it, `⌘⇧O` opens the channel; the detail pane shows
 the bigger thumbnail, the channel as a link, the exact views and the
 date.
 
 YouTube Channels (`youtube-channels`, input): channels by name with the
-avatar, the subscriber count and the description; `enter` lists the
+avatar, the subscriber count and the description; `Enter` lists the
 channel's latest videos as a level of the search palette (what is typed
-there filters them), `cmd+enter` opens the channel. Subscriptions are not
+there filters them), `⌘Enter` opens the channel. Subscriptions are not
 listed: they need a Google sign-in (OAuth), which pal does not do, and
 the empty palette says so.
 
-Watch Later (`youtube-later`, live, its rows at the root): what `cmd+s`
+Watch Later (`youtube-later`, live, its rows at the root): what `⌘S`
 kept, newest first, the last 200 in `storage`, the same actions and
-`cmd+d` to remove; the last row clears it after a confirm card.
+`⌘D` to remove; the last row clears it after a confirm card.
 
 Backends: the Data API v3 with `api_key` (a Google Cloud key with the
 API enabled; 10,000 units a day, a search 100, so about a hundred
@@ -3397,6 +3612,7 @@ Settings, `[extensions.youtube]`:
 For the tests, `PAL_YOUTUBE_API` replaces the Data API host (the
 Invidious host is the setting) and `PAL_YOUTUBE_PATH` a directory
 searched first for the players.
+
 ## Screenshots (`screenshots`)
 
 Take a screenshot from the panel, then find the ones you took. A live,
@@ -3414,8 +3630,8 @@ screen) on macOS; `grim -g "$(slurp)"` and `grim` on Linux, where both
 tools must be on PATH (and `wl-copy` for the clipboard) or the section is
 one hint row. Enter sends the shot where the `destination` setting says,
 a file named the way macOS names its own (`Screenshot 2026-09-17 at
-14.03.22.png`) in the folder, or the clipboard; `cmd+c` on the row takes
-the other destination for that one shot; `cmd+enter` waits `timer`
+14.03.22.png`) in the folder, or the clipboard; `⌘C` on the row takes
+the other destination for that one shot; `⌘Enter` waits `timer`
 seconds first (`-T`). The HUD then says `Screenshot saved: <name>` or
 `Copied to the clipboard`; a cancelled capture says nothing. The shutter
 is silent unless `sound` is on.
@@ -3432,7 +3648,7 @@ is silent unless `sound` is on.
 | `tab`, `x`, `shift+↓`, `cmd+click` | Mark rows |
 
 Open, Reveal, Copy image, Copy path and the trash take marked rows
-(`multi`). The detail pane (`cmd+i`) shows the picture itself over its
+(`multi`). The detail pane (`⌘I`) shows the picture itself over its
 name, folder, size, pixels and the time it was taken. The root's Now
 section offers a screenshot taken in the last two minutes as
 `Screenshot taken 40 s ago` with Open, Copy image and the markdown tag.
@@ -3450,6 +3666,55 @@ Settings, `[extensions.screenshots]`:
 | `all_files` | boolean | `false` | Every image and recording in the folder, not only the ones named like macOS's captures (`Screenshot`, `Screen Shot`, `Screen Recording`, `grim-`). |
 | `limit` | 1 to 500 | `50` | At most this many recent rows. |
 | `ocr_concealed` | boolean | `false` | Text copied by OCR is concealed. |
+
+## Images (`images`)
+
+Compress, resize, convert, rotate, crop, strip metadata, make an icon
+set, read the text: the images selected in Finder, on the clipboard or at
+a typed path, with the tools on the machine (sips, pngquant, oxipng,
+mozjpeg, cwebp, avifenc, ImageMagick) and TinyPNG when you give it a key.
+An input palette: before you type it lists the images at hand (the Finder
+selection, a folder's images, an image or files on the clipboard); a
+typed path lists a file, a folder or the entries that complete it. Every
+result is written next to its source with a suffix (`-compressed`,
+`@0.5x`, `.webp`) and its path copied; `replace` writes over the source
+and keeps the original for Restore. Several at once: mark rows (`Tab`, or
+`x` while nothing is typed) or pick a folder.
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Compress | `Enter` | the first tool in `tools` that takes the format; the row says which and the sizes |
+| Optimise for web | `⌘Enter` | the long side capped at `web_max`, encoded at `quality` as `web_format`, stripped; a view with before and after |
+| Compress losslessly | `⌘L` | |
+| Compress with TinyPNG | `⌘T` | with `tinypng_api_key` set |
+| Resize… | `⌘⇧R` | width, height, fit, percent, @2x and @1x |
+| Convert… | `⌘⇧V` | PNG, JPEG, WebP, AVIF, HEIC, PDF, TIFF, GIF |
+| Rotate or flip… | `⌘⇧O` | |
+| Crop or pad… | `⌘⇧A` | crop to an aspect, centred, or pad to a square in `pad_color` |
+| Strip metadata | `⌘⇧M` | lossless for PNG and JPEG |
+| Grayscale | `⌘G` | |
+| Make an icon set | `⌘⇧F` | the `.iconset`, the `.icns`, `favicon.ico`, the touch and Android sizes, in a folder next to the image |
+| Copy text (OCR) | `⌘⇧T` | Vision on macOS, `tesseract` on Linux |
+| Copy info | `⌘⇧I` | dimensions, format, colour profile, camera, exposure, date, location (`exiftool` when installed) |
+| Copy path | `⌘C` | |
+| Copy image | `⌘⇧P` | |
+| Open | `⌘O` | |
+| Reveal in Finder | `⌘⇧E` | |
+| Restore original | `⌘⇧Z` | a replaced result |
+| Move result to Trash | `⌘D` | |
+
+Settings, `[extensions.images]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `replace` | bool | `false` | Write over the original (kept for Restore) instead of next to it. |
+| `quality` | number | `80` | For the lossy encoders (JPEG, WebP, AVIF, HEIC; pngquant's floor is 25 below it). |
+| `web_format` | `keep`, `webp`, `avif` | `"keep"` | What Optimise for web writes: the source's format, or WebP or AVIF. |
+| `web_max` | number | `2000` | Optimise for web shrinks the long side to at most this many pixels; smaller images are left at their size. |
+| `thumbnails` | bool | `true` | Thumbnails on the rows. |
+| `pad_color` | text | `"#ffffff"` | What Pad to a square fills with, as hex. |
+| `tinypng_api_key` | secret | unset | From tinypng.com/developers (500 compressions a month free). Adds Compress with TinyPNG to every row. |
+| `tools` | list | `["pngquant", "oxipng", "optipng", "cjpeg", "jpegtran", "cwebp", "avifenc", "gifsicle", "exiftool", "magick", "sips"]` | The encoders in the order they are tried; one left out is never used. sips (macOS) and ImageMagick are the fallbacks for everything. |
 
 ## WhatsApp (`whatsapp-chats`, `whatsapp-unread`, `whatsapp-search`, `whatsapp-contacts`, `whatsapp/unread`)
 
@@ -3523,6 +3788,20 @@ picture as a data url, the newest message and the time, a cursor the
 arrows move and a click sets; `Enter` opens, `m` marks read, `a` all,
 `r` (send on) a message field whose `Enter` sends, `o` WhatsApp, `p` the
 Unread palette, `⌘⇧O` the web client.
+
+Popover keys of `whatsapp/unread` (rendered every 120 s and on show, wake,
+network; the arrows move the cursor, a click sets it):
+
+| keys | does |
+| --- | --- |
+| `enter` | Open the row's chat |
+| `up` | Move the cursor (down, j, k too; a click sets it) |
+| `r` | Reply: the search row becomes the field, Enter sends (send on) |
+| `m` | Mark the row read |
+| `a` | Mark all read (cmd+shift+a too) |
+| `o` | Open WhatsApp |
+| `p` | Open the Unread palette |
+| `cmd+shift+o` | Open the row's chat in the web client |
 
 Links: `pal://whatsapp/open?chat=<id | phone | name>` (a chat id, a
 number, or a name from the chats then the contacts, exact then prefix)

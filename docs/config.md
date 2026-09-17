@@ -73,7 +73,7 @@ writes those two header lines and nothing else into the config directory.
 | `ask_permissions_on_start` | bool | `true` | macOS: ask for the Accessibility permission (the system prompt, and System Settings opened on that pane) the first time the panel shows on a profile that has not hidden the Welcome tips yet. Paste and window switching need it. `false` leaves the ask to the Welcome row and to Settings > General > Permissions. Nothing on Linux. |
 | `selection_snapshot` | bool | `true` | When an app does not expose its selected text to the accessibility API (`selection.text()`, `{selection}` in a snippet), send the copy shortcut and read the clipboard, then put it back as it was; pal's own history records none of it. `false` keeps pal off the clipboard: the selection is then only what the API reports. macOS needs Accessibility for either. |
 | `root_caps` | table | `{ primary = 8, normal = 6, catalog = 3 }` | How many rows one palette may show at the root for a typed query, by its tier ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)); the rest is a "12 more in Emoji" row that opens the palette. Inline, `root_caps = { catalog = 5 }` keeps the other two at their defaults. The empty query and a palette's own level are never capped. |
-| `fallbacks` | list of strings | `["web", "url", "quicklinks", "calc", "files"]` | The rows offered when a typed query matches nothing, in this order ([Getting started](getting-started.md#the-root-inline-answers-fallbacks-and-the-empty-list)): `web` is Search the web (through `search_engine`), `url` is Open as URL (only when the query reads as one: a scheme, or `docs.rs/serde`, `localhost:8080`), and the rest are palette ids that opted in (`quicklinks` lists every `{query}` link filled in, `calc` and `files` open with the query typed, any other input palette that declared it as "Ask <name>"). A fallback palette not named here comes after these, in load order; an id that names nothing is skipped. |
+| `fallbacks` | list of strings | `["web", "url", "quicklinks", "calc", "files"]` | The rows offered when a typed query matches nothing, in this order ([Getting started](getting-started.md#the-root-inline-answers-fallbacks-and-the-empty-list)): `web` is Search the web (through `search_engine`), `url` is Open as URL (only when the query reads as one: a scheme, or `docs.rs/serde`, `localhost:8080`), and the rest are palette ids that opted in (`quicklinks` lists every `{query}` link filled in, `calc` and `files` open with the query typed, any other input palette that declared it as "Ask `<name>`"). A fallback palette not named here comes after these, in load order; an id that names nothing is skipped. |
 | `fallbacks_always` | bool | `false` | Show the fallback rows under the hits as well, not only when nothing matched. |
 | `search_engine` | string | `"https://www.google.com/search?q={query}"` | The Search the web fallback's URL; `{query}` is percent-encoded into it (`https://duckduckgo.com/?q={query}`, `https://kagi.com/search?q={query}`). Without the placeholder the query is appended. |
 | `alias_space` | bool | `true` | Typing a palette's alias (or its palette name, or its one-word title) and a space at the root jumps into that palette with whatever follows typed there: `em cat`, `calc 2+2`, `files report`. Only a word typed forward jumps (a deletion never does), and only when exactly one palette answers to it. `false` leaves the space as a character. |
@@ -135,7 +135,7 @@ one). Settings > General > Theme file lists the files in
 first time that page looks for it; "Open themes folder" seeds an empty
 one), sets `theme_file` to the chosen name, and "Edit theme file" opens
 the file in the editor. Its diagnostics show under the picker and in the
-log (`theme	...`).
+log (lines starting `theme`).
 
 Every key is checked: an unknown key is a warning naming its dotted path
 (`light.accnet: not a theme token`), a value of the wrong shape is
@@ -181,9 +181,9 @@ them. A palette absent from the file gets the defaults.
 | `enabled` | bool | `true` | `false` removes the palette's rows from the index and its row from the root. The palette stays known, so re-enabling is immediate. The settings view unsets the key rather than writing `true`. |
 | `alias` | string | unset | A short name for the palette. It is added as a keyword on the palette's row at the root, so typing it finds the palette; `Enter` opens it. |
 | `hotkey` | string | unset | A global hotkey that opens pal directly in this palette. Same syntax as `general.hotkey`; the root hotkey wins a clash. Registered once the palette exists. |
-| `item_hotkeys` | table of strings | `{}` | Global hotkeys that run one item of the palette without showing the panel, keyed by the item's id: the item's primary action runs as if you had pressed `Enter` on it, and whatever it shows after hiding (the HUD) still shows. `[palettes.window-management.item_hotkeys]` with `left_half = "ctrl+alt+left"` is the case it exists for ([Window Management](palettes.md#window-management-window-management)); any palette's item ids work, an indexed palette's being the stable ones. Same syntax and registration as `hotkey`; in a clash the root hotkey wins, then a palette's, then an item's. Settings › Palettes edits them too: the selected palette's pane has an Item hotkeys table (the id typed, or picked from the palette's indexed rows; a recorder per row; Remove), written one key at a time so a hand-written table keeps its other lines, and the Overview counts them. |
+| `item_hotkeys` | table of strings | `{}` | Global hotkeys that run one item of the palette without showing the panel, keyed by the item's id: the item's primary action runs as if you had pressed `Enter` on it, and whatever it shows after hiding (the HUD) still shows. `[palettes.window-management.item_hotkeys]` with `left_half = "ctrl+alt+left"` is the case it exists for ([Window Management](palettes.md#window-management-window-management-window-management-arrange)); any palette's item ids work, an indexed palette's being the stable ones. Same syntax and registration as `hotkey`; in a clash the root hotkey wins, then a palette's, then an item's. Settings › Palettes edits them too: the selected palette's pane has an Item hotkeys table (the id typed, or picked from the palette's indexed rows; a recorder per row; Remove), written one key at a time so a hand-written table keeps its other lines, and the Overview counts them. |
 | `icon` | string | unset | Icon override for the palette's row; the extension's own icon when unset. A glyph, an emoji or a hex colour. |
-| `tier` | `primary`, `normal`, `catalog` | unset | The palette's tier at the root over what its manifest says: `primary` is ranked up and capped at `root_caps.primary` rows, `catalog` ranked down and capped at `root_caps.catalog` ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)). `tier = "catalog"` on a data-file palette whose rows flood the root; `tier = "primary"` on one you reach for by name. Config-only for now. |
+| `tier` | `primary`, `normal`, `catalog` | unset | The palette's tier at the root over what its manifest says: `primary` is ranked up and capped at `root_caps.primary` rows, `catalog` ranked down and capped at `root_caps.catalog` ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)). `tier = "catalog"` on a data-file palette whose rows flood the root; `tier = "primary"` on one you reach for by name; Settings › Palettes has it as "At the root". |
 | `settings` | table | `{}` | Settings the extension declared for this palette, from `palettes.<key>.settings` in its `pal.json`. `[palettes.emoji.settings]` or inline `settings.columns = 8`. |
 
 The id is the extension's name when the palette is named like it (`apps`,
@@ -196,7 +196,7 @@ is `scripts-otp`). Bare keys, no quoting.
 Bar items: what extensions put on the macOS menu bar or on sketchybar
 (the design in `docs/design/bar.md`; what an extension declares in
 [Extensions](extensions.md)). Every item is keyed `<extension>/<id>`.
-Not on Linux yet: the table is read and kept there, declared items are
+Not drawn on Linux: the table is read and kept there, declared items are
 listed by `pal bar list`, but nothing is drawn and no item renders
 (Settings > Bar says so).
 
@@ -225,7 +225,7 @@ target's caveat).
 | `show_title` | bool | `true` | Draw the title and the segments; off is a glyph-only item. An item with nothing left to draw takes no slot. |
 | `color` | string | unset | The tint: a colour name (`grey`, `blue`, `green`, `amber`, `red`, `violet`, `pink`, `teal`, `accent`, `text`, `muted`) or `#rrggbb`, drawn in place of the colour the extension answers (`muted` from the extension stays: it is a state). Unset keeps the extension's: a coloured item its own, the rest the bar's text colour. Menu bar: the glyph's ink; the title text keeps the bar's colour unless prerendered. |
 | `urgent_color` | string | `"destructive"` | The colour of an urgent item, a name or `#rrggbb`. |
-| `badge_style` | `"count"`, `"dot"`, `"none"` | `"count"` | How a count badge is drawn: the number (` ·3` on the menu bar, in red on sketchybar's label), a dot whatever the number, or nothing (the count stays in the tooltip). |
+| `badge_style` | `"count"`, `"dot"`, `"none"` | `"count"` | How a count badge is drawn: the number (`·3` after the title on the menu bar, in red on sketchybar's label), a dot whatever the number, or nothing (the count stays in the tooltip). |
 | `width` | int, points | `0` | A fixed width, so a ticking timer does not move its neighbours; `0` is the natural width. Text past it is cut. Menu bar: the prerendered image's width. sketchybar: `label.width`. |
 | `font` | `"system"`, `"mono"` | `"system"` | The text's face; `mono` for codes and times (SF Mono on the menu bar, prerendered; Menlo on sketchybar). |
 | `max_chars` | int | `32` | The longest title an item draws; longer text ends in an ellipsis, since Apple's bar hides whatever runs under the notch or off the left edge (sketchybar: `label.max_chars`). |
@@ -310,6 +310,13 @@ hotkey = "ctrl+alt+w"
 [bar.items."github@work/notifications"]   # bar items, per instance
 order = 30
 ```
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `title` | string | the suffix capitalised | The display name ("Work"), what palette titles and bar tooltips carry. The default instance has none until you name it under `[instances.<name>]`. |
+| `tint` | string | picked from the suffix | The tile's colour, one of the twelve brand names (`red`, `orange`, `amber`, `green`, `teal`, `cyan`, `blue`, `indigo`, `violet`, `pink`, `slate`, `ink`). The default instance keeps the extension's own tile. |
+| `badge` | string | the title's first letter | One or two characters in the tile's corner. |
+| `enabled` | bool | `true` | `false` parks the instance: not loaded, its rows and bar items gone, its settings kept. |
 
 The suffix is lowercase letters, digits, `-` and `_` (up to 32, starting
 with a letter or digit), and never `default`; the key needs quotes in
@@ -490,11 +497,12 @@ go to the real file, so a write never replaces the link with a plain file.
 The watch follows the link once, at startup; re-pointing it later is not
 seen.
 
-## Coming from pal v1
+## Coming from the previous pal
 
-v1 kept its config at the same path in another shape (`[palette.<name>]`
-tables, `general.default_frontend`). The first launch that finds one there
-migrates it, and logs each step as a `migrate` line:
+The previous pal (the `v0.1.x` and `v0.2.x` releases on GitHub, "v1"
+below and in the code) kept its config at the same path in another shape
+(`[palette.<name>]` tables, `general.default_frontend`). The first launch
+that finds one there migrates it, and logs each step as a `migrate` line:
 
 - the v1 file is kept whole as `config.v1.toml` next to it (written and
   read back before the original is touched);

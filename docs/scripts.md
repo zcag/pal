@@ -2,11 +2,11 @@
 
 The zero-code tier. A palette can be a data file (json, jsonl or toml) or a
 shell script that prints JSON lines, described by a small TOML table. No
-TypeScript. The `scripts` extension reads those tables from a pal v1 style
-config file and turns each into a palette named after its table, with the
-config id `scripts-<name>`. The same extension also runs **script
-commands**: single executable files with a `# @pal.title` header, one row
-each, in one Script Commands palette ("Script commands", at the end).
+TypeScript. The `scripts` extension reads those tables from a config file in the
+previous pal's format and turns each into a palette named after its table, with
+the config id `scripts-<name>`. The same extension also runs **script
+commands**: single executable files with a `# @pal.title` header, one row each,
+in one Script Commands palette ("Script commands", at the end).
 
 ## Where the tables live
 
@@ -26,7 +26,8 @@ config = "~/.config/pal/scripts.toml"
 Relative paths inside that file (`data`, `base`, `general.env_file`) are
 resolved against the file's directory. `~` is expanded.
 
-Coming from v1, the first launch does this for you: the v1 config is kept
+Coming from the previous pal, the first launch does this for you: the old
+config is kept
 as `config.v1.toml` next to pal's, and `config` is set to it (the
 migration is described in [Config](config.md)).
 
@@ -111,7 +112,7 @@ carry the same keys; the table's values win where set.
 
 | key | what |
 | --- | --- |
-| `base` | The plugin directory. `~/...`, absolute, relative to the config file, or `github:<user>/<repo>/<path>[@ref]` (looked up in v1's plugin cache under `~/.local/share/pal/plugins/github.com/...`; for `zcag/pal` the `v1_repo` checkout). `builtin/...` bases from v1 have no equivalent and show one inert row. |
+| `base` | The plugin directory. `~/...`, absolute, relative to the config file, or `github:<user>/<repo>/<path>[@ref]` (looked up in the previous pal's plugin cache under `~/.local/share/pal/plugins/github.com/...`; for `zcag/pal` the `v1_repo` checkout). `builtin/...` bases from the previous pal have no equivalent and show one inert row. |
 | `command` | The script, a string or an argv list, resolved in `base`. Default: `run.sh` in `base`. |
 | `data` | The data file, used when `auto_list` is true. |
 | `auto_list` | Read `data` instead of running `command list`. |
@@ -131,7 +132,7 @@ carry the same keys; the table's values win where set.
 | `requires` | Binaries that must be on PATH, a vertical bar between alternatives (`["jq", "gh\|glab"]`). The palette is skipped when one is missing. |
 | `os` | `"macos"` or `"linux"`: skipped elsewhere. |
 
-The v1 file's `[general] env_file = "..."` names a `.env`-style file whose
+The scripts file's `[general] env_file = "..."` names a `.env`-style file whose
 variables every script gets.
 
 ## The script protocol
@@ -187,7 +188,7 @@ An entry of the palette's `actions` or a row's:
 | --- | --- |
 | `id` | Name the script sees as `PAL_ACTION`. `title` when absent. |
 | `title` | What the action panel shows. |
-| `action` | `pick` (run `command pick`), `copy`, `open`, `cmd` (run the value with `bash -c`, the row's variables set), `type` (paste the value into the app in front; Accessibility on macOS, see [Palettes](palettes.md)), or the name of a v1 action plugin under `plugins/actions/<name>` next to the config or in `v1_repo`. Default `pick`. |
+| `action` | `pick` (run `command pick`), `copy`, `open`, `cmd` (run the value with `bash -c`, the row's variables set), `type` (paste the value into the app in front; Accessibility on macOS, see [Palettes](palettes.md)), or the name of an action plugin under `plugins/actions/<name>` next to the config or in `v1_repo`. Default `pick`. |
 | `value` | The literal value for `copy`, `open`, `cmd`, `type`. |
 | `key` | Take the value from this row field instead; falls back to the palette's `action_key`. |
 | `primary` | This one goes first, so `Enter` runs it. Otherwise the first listed is primary and the second is `⌘Enter`. |
@@ -316,21 +317,20 @@ The row's id is the file name, so a global hotkey for one command is
 "ctrl+alt+d"` ([Config](config.md)). The mode sits on the right of the
 row unless it is `hud`. A run that exceeds the extension's `timeout`
 (30 s) is killed with its process group; `inline` lines and Copy output
-get 8 s at most. Scripts get the same PATH as the v1 tables (the app's
+get 8 s at most. Scripts get the same PATH as the table palettes (the app's
 plus `~/.local/bin`, `~/.cargo/bin`, `/opt/homebrew/bin`,
 `/usr/local/bin`).
 
 ### `list` mode
 
-Enter pushes a level whose rows are what the script printed: JSON lines
-(the row fields of "The script protocol" above: `name`, `id`, `subtitle`,
-`keywords`, `section`, `url`, `icon_utf`, `accessories`, `detail`,
-`actions`), a JSON array of them, or, when no line is JSON, one row per
-plain line. A row with `url` opens it on Enter, one with `copy` copies
-that string; any other row runs the script again with `PAL_PICK` set to
-the row's id (and the same arguments), and the HUD shows the first line it
-prints. A row's own `actions` (the v1 shape, `copy` and `open` with `key`
-or `value`) are honoured.
+Enter pushes a level whose rows are what the script printed: JSON lines (the row
+fields of "The script protocol" above: `name`, `id`, `subtitle`, `keywords`,
+`section`, `url`, `icon_utf`, `accessories`, `detail`, `actions`), a JSON array
+of them, or, when no line is JSON, one row per plain line. A row with `url`
+opens it on Enter, one with `copy` copies that string; any other row runs the
+script again with `PAL_PICK` set to the row's id (and the same arguments), and
+the HUD shows the first line it prints. A row's own `actions` (the table shape
+above, `copy` and `open` with `key` or `value`) are honoured.
 
 ```bash
 #!/usr/bin/env bash
@@ -365,7 +365,7 @@ more, in `hud` mode.
 | --- | --- | --- | --- |
 | `config` | path | `~/.config/pal/config.toml` | The file whose `[palette.<name>]` tables become palettes. |
 | `skip` | list | `["combine", "pals", "apps", "bookmarks", "calc", "emoji", "clipboard"]` | Table names not to load, because a bundled extension covers them. |
-| `v1_repo` | path | `~/proj/pal-v1` | Where `github:zcag/pal/...` bases resolve when v1's plugin cache has no copy. |
+| `v1_repo` | path | `~/proj/pal-v1` | A checkout of the previous pal: where `github:zcag/pal/...` bases resolve when its plugin cache has no copy. |
 | `commands` | path | `~/.config/pal/commands` | The folder of single-file script commands ("Script commands", above). Read on every listing, and watched. |
 | `timeout` | seconds, 1 to 300 | `30` | A `list` or `pick` still running after this is killed. |
 | `preview_max` | 0 to 32 | `4` | How many `preview` commands run at the same time. 0 turns previews off. |
