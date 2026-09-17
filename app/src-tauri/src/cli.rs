@@ -79,14 +79,14 @@ pub enum Cmd {
     Update { name: Option<String> },
     /// Remove an installed extension (its settings stay in the config file).
     Remove { name: String },
-    /// List the extensions in the store.
+    /// List the installed extensions: name, version and source, one per line.
     List,
     /// Instances of a multi extension (a second account): list, add or remove one.
     Instance {
         #[command(subcommand)]
         cmd: InstanceCmd,
     },
-    /// Run a pal v1 action on the value on stdin: copy, paste, open, type, cmd, or a plugins/actions/NAME script.
+    /// Act on the value on stdin: copy, paste, open, type, cmd, or a plugins/actions/NAME script (the script tier).
     Action { name: String },
     /// Bar items: list them, click or hover one, run an action, render again, re-apply sketchybar.
     Bar {

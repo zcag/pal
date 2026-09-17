@@ -131,11 +131,11 @@ const page = (title: string, body: string) =>
 /** How long after answering the browser the listener goes away: the reply has to leave first. */
 const LINGER_MS = 250;
 
-/** Stops the listener (gracefully: a reply on its way is delivered); a pending sign-in is dropped (its timer cleared). */
+/** Stops the listener and closes its connections (the reply left LINGER_MS ago; on bun 1.3 a graceful stop kept a keep-alive connection answering); a pending sign-in is dropped (its timer cleared). */
 export function stopListener() {
   if (pending) clearTimeout(pending.timer);
   pending = undefined;
-  server?.stop();
+  server?.stop(true);
   server = undefined;
 }
 

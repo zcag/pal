@@ -832,6 +832,14 @@ took `pal reload`.
   `terminal.ts` (a copy of each other) use the shared Linux chooser too;
   their macOS halves stay duplicated.
 
+- Two more from the marko run: `spotify > sign-in` expected the loopback
+  listener gone after the exchange, and on bun 1.3.14 a graceful
+  `server.stop()` kept the keep-alive connection answering (1.4.2 on
+  hornet closed it); `stopListener` is `stop(true)` now (the reply left
+  `LINGER_MS` earlier, nothing is cut). `calendar > the bar item hides
+  without permission…` spawns seven hosts in a row and ran past bun's 5 s
+  default here (5001 ms); it has 20 s.
+
 ### The daily instance
 
 The daily marko `pal` (`~/.local/share/pal/bin/pal`, built 2026-09-16
@@ -841,17 +849,35 @@ reloaded every extension file as it changed, before the SDK files landed:
 | 'permissions' | 'extensions' | 'CONCEAL_SECONDS' | 'instance' not found
 in …/sdk/src/index.ts` (timer, shell, media, tela, translate, obsidian,
 store, otp, onepassword, hue, wifi, speedtest, screenshots, snippets,
-shortcuts, scripts, menu-bar, github's worker path, …) and stayed so; the
-ones the host reloaded after the SDK arrived (apps, bookmarks, calc,
-emoji, …) came back. A `pal reload` would not repair it: that binary's
-core has none of tonight's routes (`core/instances.get`, `view.update`,
-`extensions.*`, `permissions`), so the new host cannot run on it. Left
-alone as asked. A release binary with the real identifier is staged as
-`~/.local/share/pal/bin/pal.new` (+ the matching `pal-bun` is the same
-sidecar): `pal quit`, `mv pal.new pal`, `pal` from a session shell (or
-log out and in: `exec-once = pal`) puts the daily on tonight's tree. The
-scratch run also removed `~/.config/autostart/pal.desktop` again (the
-systemd path does that unconditionally); put back from the copy.
+shortcuts, scripts, menu-bar, …) and stayed so, and that binary's core has
+none of tonight's routes (`core/instances.get`, `view.update`,
+`extensions.*`, `permissions`), so a `pal reload` could not have repaired
+it either. It was then quit by mistake at 04:06: after the last rebuild
+`target/release/pal` carried the real identifier again, and the scratch
+helper's `pal quit` went over `io.cagdas.pal.SingleInstance` to the daily
+instead (a scratch helper must pin the binary it was built with, not
+`target/release/pal`). Restored at 04:07 with tonight's build installed
+as the daily: the old binary is `~/.local/share/pal/bin/pal.old`, the new
+`pal` (real identifier, 22.8 MB) was started from a session shell the way
+`exec-once` does, wrote and enabled `~/.config/systemd/user/pal.service`
+(`launch_at_login = true`), handed itself over (`autostart supervised
+pal.service pid 93477`), and its log is `~/.local/state/pal/pal.log`
+(stderr is not a tty under the unit; the journal has only "Started pal"):
+`hotkey registered super+Space`, tray created, `cache loaded 88 sources
+31142 items`, host ready 1.19 s, no extension failed. The XDG autostart
+entry was put back from a copy (the unit removes it on every start;
+Hyprland reads neither). The clone `~/proj/pali` is left with tonight's
+fixes as working-tree changes (the daily's host runs them); `git checkout
+-- . && git pull --ff-only` once they are on main.
 
 ### Suites on marko
+
+With the fixes above: `cargo clippy --workspace --all-targets -- -D
+warnings` clean (clippy 1.98), `cargo test --workspace` 163 + 243 pass (4
++ 1 ignored), vitest 35 files / 223 pass, `bun test` 1061 pass, 31 skip,
+0 fail across 71 files in 207 s (bun 1.3.14; the skips are the macOS-only
+cases). hornet the same evening: clippy clean, cargo 166 + 239, vitest
+223, bun 1091 pass, 1 skip, 0 fail in 145 s. `target/` on marko reached
+5.4 GB with the debug profile and was removed after the daily binary was
+staged; the release build alone is 1.3 GB.
 

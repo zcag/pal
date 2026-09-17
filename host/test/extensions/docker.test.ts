@@ -45,6 +45,7 @@ writeFileSync(join(dir, "images.jsonl"), IMAGES.map((r) => JSON.stringify(r)).jo
 writeFileSync(join(dir, "compose.json"), JSON.stringify(COMPOSE) + "\n");
 
 const PATH = process.env.PATH;
+const TERMINAL = process.env.TERMINAL;
 let host: Host;
 beforeAll(async () => {
   process.env.PATH = `${dir}:${PATH}`;
@@ -53,7 +54,7 @@ beforeAll(async () => {
   process.env.PAL_TERMINAL_LOG = join(dir, "terminal");
   host = await Host.bundled({ settings: { docker: { settings: { ttl: 7 } } } });
 });
-afterAll(() => { host?.kill(); process.env.PATH = PATH; delete process.env.PAL_TERMINAL_LOG; rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host?.kill(); process.env.PATH = PATH; if (TERMINAL === undefined) delete process.env.TERMINAL; else process.env.TERMINAL = TERMINAL; delete process.env.PAL_TERMINAL_LOG; rmSync(dir, { recursive: true, force: true }); });
 
 const called = () => { try { return readFileSync(calls, "utf8").trim().split("\n"); } catch { return []; } };
 const list = (palette = "docker") => host.list("docker", palette);

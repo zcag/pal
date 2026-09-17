@@ -47,6 +47,7 @@ proj("node_modules/dep", "Makefile", "skipped:\n\ttrue\n");
 const bare = proj("bare", "makefile", "# Everything\n.PHONY: all\nall:\n\techo all\n\nfail:\n\techo boom >&2; exit 3\n");
 
 const PATH = process.env.PATH;
+const TERMINAL = process.env.TERMINAL;
 let host: Host;
 beforeAll(async () => {
   // Linux: the chooser takes $TERMINAL as given (nothing is spawned under PAL_TERMINAL_LOG), so a box without one (the CI runner) still answers an argv.
@@ -54,7 +55,7 @@ beforeAll(async () => {
   process.env.PAL_TERMINAL_LOG = join(root, "terminal");
   host = await Host.bundled({ settings: { make: { settings: { projects: [root, root] } } } });
 });
-afterAll(() => { host?.kill(); process.env.PATH = PATH; delete process.env.PAL_TERMINAL_LOG; rmSync(root, { recursive: true, force: true }); });
+afterAll(() => { host?.kill(); process.env.PATH = PATH; if (TERMINAL === undefined) delete process.env.TERMINAL; else process.env.TERMINAL = TERMINAL; delete process.env.PAL_TERMINAL_LOG; rmSync(root, { recursive: true, force: true }); });
 
 const list = () => host.list("make", "make");
 const pick = (id: string, action?: string) => host.pick("make", "make", id, action);

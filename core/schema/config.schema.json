@@ -438,7 +438,7 @@
         },
         "check_updates": {
           "default": true,
-          "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded).\nToday a found update is a log line: download and install are not\nwired, and the menu's \"Check for updates\" is a disabled placeholder\nuntil they are.",
+          "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded\nby the check). A found release shows on the Overview, the About\npage and as an \"Install Update\" row at the root; installing is\nalways your click. `false` turns the automatic check off; \"Check\nfor Updates\" still runs one on demand.",
           "type": "boolean"
         },
         "compact": {
@@ -485,7 +485,7 @@
         },
         "launch_at_login": {
           "default": false,
-          "description": "Start pal when you sign in: a LaunchAgent on macOS, an XDG autostart\nentry on Linux (the app registers it when this changes).",
+          "description": "Start pal when you sign in: a LaunchAgent on macOS, a `pal.service`\nuser unit on Linux (an XDG autostart entry without systemd). The\nsame agent relaunches pal after a crash, on or off.",
           "type": "boolean"
         },
         "menu_bar_icon": {

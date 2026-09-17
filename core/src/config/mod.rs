@@ -91,8 +91,9 @@ pub struct General {
     /// action's hint on its right). `cmd+shift+m` in the panel flips it
     /// and writes it here, so it is remembered per profile.
     pub compact: bool,
-    /// Start pal when you sign in: a LaunchAgent on macOS, an XDG autostart
-    /// entry on Linux (the app registers it when this changes).
+    /// Start pal when you sign in: a LaunchAgent on macOS, a `pal.service`
+    /// user unit on Linux (an XDG autostart entry without systemd). The
+    /// same agent relaunches pal after a crash, on or off.
     pub launch_at_login: bool,
     /// Show pal's icon in the menu bar (macOS) or system tray (Linux). The
     /// app has no Dock icon, so this is the visible way to reach Settings
@@ -101,10 +102,11 @@ pub struct General {
     /// Where the panel appears on the screen with the pointer.
     pub position: Position,
     /// Look for a newer release 20 s after startup and once a day, in
-    /// release builds (the GitHub release manifest; nothing is downloaded).
-    /// Today a found update is a log line: download and install are not
-    /// wired, and the menu's "Check for updates" is a disabled placeholder
-    /// until they are.
+    /// release builds (the GitHub release manifest; nothing is downloaded
+    /// by the check). A found release shows on the Overview, the About
+    /// page and as an "Install Update" row at the root; installing is
+    /// always your click. `false` turns the automatic check off; "Check
+    /// for Updates" still runs one on demand.
     pub check_updates: bool,
     /// Extra directories of extensions (one subdirectory per extension,
     /// like the store), for a dotfiles-managed set. Loaded after the

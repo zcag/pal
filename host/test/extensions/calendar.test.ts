@@ -646,5 +646,5 @@ describe("today palette and the upcoming bar item", () => {
       host.changeSettings(E, { settings: { days: 14 } });
       await Bun.sleep(50);
     }
-  });
+  }, 20_000); // seven hosts in a row: past bun's 5 s on marko
 });
