@@ -1,7 +1,8 @@
 //! The theme file (`[general] theme_file`, `pal_core::theme`): loaded at
 //! startup and on every config reload that changes the key, watched for
 //! saves (an mtime poll every [`POLL`] while a file is set: one `stat` a
-//! second, no second notify watcher), and handed to every window as
+//! second, no second notify watcher; with no file set nothing ticks), and
+//! handed to every window as
 //! [`events::THEME`] (`{ name, light, dark, diagnostics }`), which
 //! `theme.ts` applies as CSS variables on `:root` for the scheme in force.
 //! The window asks for the current one at load (`theme_current`), and
@@ -44,6 +45,8 @@ pub struct State {
     current: Mutex<Current>,
     /// The file's mtime as last seen by the poll.
     seen: Mutex<Option<SystemTime>>,
+    /// Wakes the poll when a file is set (`load`); it sleeps without one.
+    wake: tokio::sync::Notify,
 }
 
 fn mtime(p: &Path) -> Option<SystemTime> {
@@ -77,20 +80,30 @@ fn load(app: &AppHandle, file: Option<PathBuf>) {
     *lock(&st.seen) = file.as_deref().and_then(mtime);
     *lock(&st.current) = current.clone();
     events::emit(app, events::THEME, current);
+    if file.is_some() {
+        st.wake.notify_one();
+    }
 }
 
-/// Startup: the file the config names, and the poll.
+/// Startup: the file the config names, and the poll. The poll reads the
+/// file `load` remembered (no config lookup per tick) and, with none set,
+/// waits to be woken by a `load` that sets one rather than ticking for
+/// nothing.
 pub fn install(app: &AppHandle) {
-    app.manage(State { current: Mutex::new(Current::default()), seen: Mutex::new(None) });
+    app.manage(State { current: Mutex::new(Current::default()), seen: Mutex::new(None), wake: tokio::sync::Notify::new() });
     load(app, wanted(app));
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         loop {
+            let st = app.state::<State>();
+            let Some(file) = lock(&st.current).file.clone() else {
+                st.wake.notified().await;
+                continue;
+            };
             tokio::time::sleep(POLL).await;
-            let Some(file) = wanted(&app) else { continue };
             let now = mtime(&file);
-            let seen = *lock(&app.state::<State>().seen);
-            if now != seen {
+            let seen = *lock(&st.seen);
+            if now != seen && lock(&st.current).file.as_deref() == Some(file.as_path()) {
                 load(&app, Some(file));
             }
         }

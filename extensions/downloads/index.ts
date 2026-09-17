@@ -180,7 +180,8 @@ async function item(e: Entry, several: boolean, thumb: boolean, section?: Sectio
     id: e.path, name: e.name, subtitle: `${kind}${where}`, icon: typeof icon === "string" && icon.startsWith("data:") ? { image: icon } : icon, keywords: [e.name],
     section: section ?? sectionOf(e.mtime),
     accessories: [...(e.dir ? [] : [{ text: size(e.size) }]), { date: e.mtime }],
-    actions: FILE_ACTIONS,
+    // No actions of its own: the palette's (`FILE_ACTIONS`, said once), so
+    // eight objects do not ride on every row of every listing and show.
   };
 }
 
@@ -325,6 +326,7 @@ export default {
       live: true,
       multi: true,
       placeholder: "Search downloads",
+      actions: FILE_ACTIONS,
       list,
       pick,
       detail,

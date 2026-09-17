@@ -171,12 +171,14 @@ const list = () => host.list("bookmarks", "bookmarks");
 const pick = (id: string, action?: string) => host.pick("bookmarks", "bookmarks", id, action);
 
 describe("bookmarks", () => {
-  test("the file's rows first: url as id, keywords, icon only when set, three actions", async () => {
+  test("the file's rows first: url as id, keywords, icon only when set, the palette's three actions (said once, not per row)", async () => {
     const items = await list();
     expect(items[0]).toEqual({
       id: "http://ha.lan", name: "Home Assistant", subtitle: "http://ha.lan", icon: "🏠", keywords: ["ha", "home"], url: "http://ha.lan", section: "bookmarks.json",
-      actions: [{ id: "open", title: "Open in browser", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }, { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c" }],
     });
+    expect(host.loaded().find((l) => l.extension === "bookmarks")!.palettes[0].actions).toEqual([
+      { id: "open", title: "Open in browser", multi: true }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }, { id: "copy-markdown", title: "Copy as markdown", shortcut: "cmd+shift+c" },
+    ]);
     expect(items[1]).toMatchObject({ subtitle: "code", url: "https://github.com" });
     expect(items[1].icon).toBeUndefined();
     expect(items[1].section).toBe("bookmarks.json");
@@ -213,7 +215,7 @@ describe("bookmarks", () => {
     expect(await pick("http://ha.lan", "open-in")).toEqual({ open: "http://ha.lan" });
     // Marked rows: the first is the effect, the rest go through the opener here (a lone id opens nothing extra). Open is the one multi action.
     expect(await host.pick("bookmarks", "bookmarks", "http://ha.lan", "open", { ids: ["http://ha.lan"] })).toEqual({ open: "http://ha.lan" });
-    expect((await list()).find((i) => i.id === "http://ha.lan")!.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open"]);
+    expect(host.loaded().find((l) => l.extension === "bookmarks")!.palettes[0].actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open"]);
   });
 
   test("browsers and exclude_folders settings: an empty browser list is the file alone; a folder name drops its rows", async () => {

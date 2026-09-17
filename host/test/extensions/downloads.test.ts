@@ -121,6 +121,11 @@ describe("downloads", () => {
     const l = host.loaded().find((l) => l.extension === "downloads")!;
     expect(l.warnings).toEqual([]);
     expect(l.palettes[0]).toMatchObject({ name: "downloads", title: "Downloads", live: true, input: false, multi: true, suggest: true, tier: "primary", detail: "lazy", icon: tile("cyan", "\u{f01da}") });
+    // The file rows' actions once, on the palette (2026-09-17: eight per row were 40% of the listing).
+    const actions = l.palettes[0].actions!;
+    expect(actions.map((a) => a.id)).toEqual(FILE_ACTIONS);
+    expect(actions.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy-file", "copy-path", "trash"]);
+    expect(actions.at(-1)).toMatchObject({ id: "trash", shortcut: "cmd+d", style: "destructive", confirm: expect.any(String) });
   });
 
   test("the listing: downloads in progress first, then newest first under Today, Yesterday, This week, Older; size and date on the right; the dotfile skipped; the Clear and Open rows last", async () => {
@@ -132,9 +137,7 @@ describe("downloads", () => {
     ]);
     const r = byName(items, "report.pdf");
     expect(r).toMatchObject({ id: report, subtitle: "Document", keywords: ["report.pdf"], accessories: [{ text: "2.0 KB" }, { date: expect.any(Number) }] });
-    expect(r.actions!.map((a) => a.id)).toEqual(FILE_ACTIONS);
-    expect(r.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy-file", "copy-path", "trash"]);
-    expect(r.actions!.at(-1)).toMatchObject({ id: "trash", shortcut: "cmd+d", style: "destructive", confirm: expect.any(String) });
+    expect(r.actions).toBeUndefined();
     expect(byName(items, "ancient.dmg").subtitle).toBe("Disk");
     expect(byName(items, "notes.txt").subtitle).toBe("Document");
     expect(byName(items, "big.iso").subtitle).toBe("Disk");

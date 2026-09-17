@@ -7,16 +7,19 @@
 #   resources/sdk/{package.json,src/*.ts}  the SDK (`@zcag/pal`): the host
 #                                          imports it by relative path and
 #                                          links it into every user root
-#   resources/extensions/<name>/index.js   each extension bundled to one file
+#   resources/extensions/<name>/index.js   each extension bundled (a dynamic
+#                                          import is its own chunk beside it)
 #   resources/extensions/<name>/pal.json   its manifest: the host reads the
 #                                          settings defaults and title from it
 #
-# `bun build` inlines an extension's dependencies (calc's mathjs, emoji's
-# data.json) and its import of `@zcag/pal` (resolved through the root
-# workspace, so `bun install` at the repo root first), so no node_modules
-# ships and nothing in the bundle needs a node_modules link. A copy of the
-# SDK per extension is fine: it reaches the host through a process-wide
-# slot (sdk/src/runtime.ts), not a shared module instance.
+# `bun build` inlines an extension's dependencies (emoji's data.json) and
+# its import of `@zcag/pal` (resolved through the root workspace, so `bun
+# install` at the repo root first), so no node_modules ships and nothing in
+# the bundle needs a node_modules link. A copy of the SDK per extension is
+# fine: it reaches the host through a process-wide slot (sdk/src/runtime.ts),
+# not a shared module instance. `--splitting` keeps a dynamic import (calc's
+# mathjs, 1.3 MB) in a chunk of its own, loaded on first use rather than
+# parsed with the entry.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
@@ -39,7 +42,7 @@ cp "$root"/sdk/package.json "$tmp/sdk/"
 cp "$root"/sdk/src/*.ts "$tmp/sdk/src/"
 for entry in "$root"/extensions/*/index.ts; do
   name=$(basename "$(dirname "$entry")")
-  "$bun" build "$entry" --target bun --outdir "$tmp/extensions/$name" >/dev/null
+  "$bun" build "$entry" --target bun --splitting --outdir "$tmp/extensions/$name" >/dev/null
   cp "$(dirname "$entry")/pal.json" "$tmp/extensions/$name/"
 done
 mkdir -p "$out"

@@ -28,7 +28,7 @@
 #![cfg_attr(not(target_os = "macos"), allow(dead_code))]
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 use pal_core::config::{spec_defaults, Config};
@@ -79,14 +79,16 @@ static MATCHER: Mutex<Option<Matcher>> = Mutex::new(None);
 /// and must not feed them back.
 static INJECTING: AtomicBool = AtomicBool::new(false);
 
-/// The snippets as last read, with the storage file's mtime.
+/// The snippets as last read, with the storage file's mtime. Shared, not
+/// cloned, per key: the monitor's handler runs on every keystroke typed
+/// anywhere.
 #[derive(Default)]
 struct Cache {
     loaded: bool,
     mtime: Option<SystemTime>,
-    snippets: Vec<Snippet>,
+    snippets: Arc<Vec<Snippet>>,
 }
-static CACHE: Mutex<Cache> = Mutex::new(Cache { loaded: false, mtime: None, snippets: Vec::new() });
+static CACHE: Mutex<Option<Cache>> = Mutex::new(None);
 
 /// The stored list (`storage/snippets.json`, key `snippets`, the palette's
 /// `{ id, name, keyword?, text }` rows) as the matcher's snippets: only
@@ -103,15 +105,16 @@ fn parse_snippets(v: &Value) -> Vec<Snippet> {
         .collect()
 }
 
-/// The snippets, re-read when the storage file changed since.
-fn snippets(app: &AppHandle) -> Vec<Snippet> {
+/// The snippets, re-read when the storage file changed since (one `stat` per key typed).
+fn snippets(app: &AppHandle) -> Arc<Vec<Snippet>> {
     let store = app.state::<Storage>();
     let mtime = std::fs::metadata(store.dir().join("snippets.json")).and_then(|m| m.modified()).ok();
-    let mut c = lock(&CACHE);
+    let mut guard = lock(&CACHE);
+    let c = guard.get_or_insert_with(Cache::default);
     if !c.loaded || c.mtime != mtime {
         c.loaded = true;
         c.mtime = mtime;
-        c.snippets = store.get("snippets", "snippets").map(|v| parse_snippets(&v)).unwrap_or_default();
+        c.snippets = Arc::new(store.get("snippets", "snippets").map(|v| parse_snippets(&v)).unwrap_or_default());
         eprintln!("expansion\tsnippets\t{} with a keyword", c.snippets.len());
     }
     c.snippets.clone()
@@ -172,7 +175,7 @@ fn on_key(app: &AppHandle, key: Key, front: Option<String>, secure: bool) {
     if !conf.expand {
         return;
     }
-    let snippets = if matches!(key, Key::Text(_)) { snippets(app) } else { Vec::new() };
+    let snippets = if matches!(key, Key::Text(_)) { snippets(app) } else { Arc::default() };
     let hit = {
         let mut guard = lock(&MATCHER);
         let Some(m) = guard.as_mut() else { return };

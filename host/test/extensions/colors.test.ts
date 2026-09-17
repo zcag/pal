@@ -113,10 +113,12 @@ describe("color.ts", () => {
     expect(toHex(lighten(BLACK, -0.3))).toBe("#000000");
   });
 
-  test("the swatch is an SVG data url filled with the colour", () => {
+  test("the swatch is an SVG data url filled with the colour, with only the hash escaped", () => {
     const s = swatch("#ff8800");
-    expect(s.startsWith("data:image/svg+xml,")).toBe(true);
-    expect(decodeURIComponent(s)).toContain('fill="#ff8800"');
+    expect(s.startsWith("data:image/svg+xml,<svg ")).toBe(true);
+    expect(s).toContain("fill='%23ff8800'");
+    expect(s).not.toContain("#");
+    expect(s.length).toBeLessThan(130);
   });
 
   test("lab() is CIE Lab against D50 as CSS means it, display-p3 goes through XYZ: the spec's reference points, and both parse back", () => {

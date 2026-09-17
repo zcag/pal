@@ -159,7 +159,8 @@ async function list(): Promise<Item[]> {
     if (typeof r.url !== "string" || !r.url || seen.has(r.url)) continue;
     seen.add(r.url);
     known.set(r.url, { name: r.name ?? r.url });
-    items.push({ id: r.url, name: r.name ?? r.url, subtitle: r.subtitle ?? r.url, icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, section, actions: [OPEN, COPY, COPY_MD] });
+    // The file's rows take the palette's three actions (said once); a browser's rows below add "Open in <browser>" and so say their own.
+    items.push({ id: r.url, name: r.name ?? r.url, subtitle: r.subtitle ?? r.url, icon: r.icon?.trim() || undefined, keywords: r.keywords, url: r.url, section });
   }
   const { sources, problems } = await browserSources(s.browsers);
   for (const src of sources) {
@@ -197,6 +198,7 @@ export default {
     bookmarks: {
       title: "Bookmarks",
       placeholder: "A name, a folder or a keyword",
+      actions: [OPEN, COPY, COPY_MD],
       list,
       pick: async (id, action, ctx) => {
         // A pick on a row restored from the persisted index, before this run has listed.

@@ -587,7 +587,7 @@ fn display_name(playerctl: &str) -> String {
 mod platform {
     use super::*;
     use crate::fs::on_path;
-    use crate::tool::{osascript, run};
+    use crate::tool::{osascript, run, run_timeout, OSASCRIPT_SECS};
     use objc2_app_kit::NSRunningApplication;
     use objc2_foundation::NSString;
 
@@ -637,13 +637,16 @@ end tell"#,
         Some((app.bundleURL()?.path()?.to_string(), app.localizedName().map(|n| n.to_string())))
     }
 
-    /// `/usr/bin/perl <adapter.pl> <framework> args..`; None until [`configure`] found the adapter.
+    /// `/usr/bin/perl <adapter.pl> <framework> args..`, within
+    /// [`OSASCRIPT_SECS`] like the AppleScripts (a `get` while the stream
+    /// is down asks MediaRemote once and may not be answered behind a
+    /// locked screen); None until [`configure`] found the adapter.
     fn adapter(args: &[&str]) -> Option<Result<String>> {
         let dir = ADAPTER.get()?;
         let (script, framework) = (dir.join("mediaremote-adapter.pl"), dir.join("MediaRemoteAdapter.framework"));
         let mut all = vec![script.to_str()?, framework.to_str()?];
         all.extend_from_slice(args);
-        Some(run("/usr/bin/perl", &all))
+        Some(run_timeout(OSASCRIPT_SECS, "/usr/bin/perl", &all))
     }
 
     /// The adapter's row from the stream (started here on the first call;

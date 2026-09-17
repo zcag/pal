@@ -3,11 +3,15 @@
 // `72 f to c`, `12 gb to mb`, `100 kph to mph`). Base conversions
 // (`255 to hex`) are answered here without mathjs.
 
-// mathjs takes ~130 ms to import; started at load, awaited by the first
-// evaluation, so the host reports the palette loaded right away. A failed
-// import surfaces from that evaluation, not as an unhandled rejection.
-const math = import("mathjs").then(({ create, all }) => create(all));
-math.catch(() => {});
+import type { MathJsInstance } from "mathjs";
+
+// mathjs costs ~80 ms and ~65 MB to create (`create(all)` builds every
+// function and unit table), so it is made on the first evaluation, not at
+// load: most sessions never type a sum, and the root's `match` keeps
+// ordinary queries away from here. A failed import surfaces from that
+// evaluation.
+let math: Promise<MathJsInstance> | undefined;
+const mathjs = () => (math ??= import("mathjs").then(({ create, all }) => create(all)));
 
 export type MathResult =
   | { kind: "number"; value: number }
@@ -57,7 +61,7 @@ export function rewrite(q: string): string {
 const unitName = (u: string) => u.replace(/\s*\/\s*/g, "/").replace(/^mi\/h$/, "mph").replace(/^degC$/, "°C").replace(/^degF$/, "°F");
 
 export async function evaluate(q: string): Promise<MathResult | undefined> {
-  const m = await math;
+  const m = await mathjs();
   let r: any;
   try {
     r = m.evaluate(rewrite(q));
@@ -90,7 +94,7 @@ export async function evaluate(q: string): Promise<MathResult | undefined> {
 /** `p/q` for a non-integer the continued fraction lands on within 1e-9, with a small denominator; else nothing. */
 export async function fraction(x: number): Promise<string | undefined> {
   if (!Number.isFinite(x) || Number.isInteger(x)) return;
-  const m = await math;
+  const m = await mathjs();
   try {
     const f = m.fraction(x);
     if (Number(f.d) > 10000 || Math.abs(f.valueOf() - x) > 1e-9 * Math.abs(x)) return;
