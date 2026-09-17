@@ -47,7 +47,23 @@ describe("bluetooth", () => {
       expect(await host.render("bluetooth", "battery")).toEqual({ hidden: true });
     } finally {
       devices = original;
-      host.changeSettings("bluetooth", { settings: { low_threshold: 30 } });
+      host.changeSettings("bluetooth", { settings: { low_threshold: 25 } });
+    }
+  });
+
+  test("bar: amber is a reminder, red is act-now at 20%", async () => {
+    const original = devices;
+    try {
+      const at = async (battery: number) => {
+        devices = [{ address: "14:28:76:8B:AE:C8", name: "AirPods Pro", connected: true, kind: "headphones", battery, battery_detail: null }];
+        return await host.render<any>("bluetooth", "battery");
+      };
+      expect(await at(26)).toEqual({ hidden: true });
+      expect(await at(25)).toMatchObject({ title: "AirPods Pro 25%", color: "amber" });
+      expect(await at(21)).toMatchObject({ color: "amber" });
+      expect(await at(20)).toMatchObject({ color: "red" });
+    } finally {
+      devices = original;
     }
   });
 

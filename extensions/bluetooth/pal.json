@@ -12,11 +12,11 @@
       "kind": "number",
       "id": "low_threshold",
       "label": "Low battery alert",
-      "description": "Show the Bluetooth Battery bar item when a connected device at or below this level reports a battery. At 15% or below (or this level when lower), the alert is red.",
+      "description": "Show the Bluetooth Battery bar item when a connected device at or below this level reports a battery. At 20% or below (or this level when lower), the alert is red.",
       "min": 1,
       "max": 100,
       "unit": "%",
-      "default": 30
+      "default": 25
     }
   ],
   "store": {

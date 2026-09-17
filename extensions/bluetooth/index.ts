@@ -49,7 +49,8 @@ function item(d: BluetoothDevice): Item {
 const batteries = (devices: BluetoothDevice[]) => devices.filter((d) => d.connected && d.battery !== null).sort((a, b) => a.battery! - b.battery! || a.name.localeCompare(b.name));
 
 /** Below this fixed floor the low alert is red. Lowering the configured threshold lowers this floor too. */
-const levelColor = (level: number, threshold: number): "amber" | "red" => level <= Math.min(15, threshold) ? "red" : "amber";
+const RED_PERCENT = 20;
+const levelColor = (level: number, threshold: number): "amber" | "red" => level <= Math.min(RED_PERCENT, threshold) ? "red" : "amber";
 
 /** An interruption-only Bluetooth battery strip: the lowest connected device, or hidden. */
 async function batteryBar(): Promise<BarItem> {
