@@ -108,7 +108,6 @@ const GLYPH: Record<string, string> = {
 };
 export const HOUSE = "\u{f02dc}";
 const UNLOCKED = "\u{f033f}";
-/** The dot an `on` light draws: its colour when it reports one, else warm white. */
 /** A lit light's glyph carries its colour (`rgb_color`), amber when the light reports none. */
 const LIT = "#f5b642";
 
