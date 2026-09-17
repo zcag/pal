@@ -261,7 +261,7 @@ describe("the popover's tree (view.ts)", () => {
 
 describe.skipIf(MAC)("otp on linux", () => {
   test("one Unavailable row; the bar item is hidden", async () => {
-    expect(await list()).toEqual([expect.objectContaining({ id: "unavailable", name: "Unavailable", actions: [] })]);
+    expect(await list()).toEqual([expect.objectContaining({ id: "hint:unavailable", name: "Unavailable", actions: [] })]);
     expect(await host.render("otp", "latest-code")).toEqual({ hidden: true });
   });
 });
