@@ -27,6 +27,13 @@ const pick = (palette: string, id: string, action?: string, ctx?: Parameters<Hos
 const ids = (items: { id: string }[]) => items.map((i) => i.id);
 const texts = (n: ViewNode): string[] => (n.type === "text" ? [n.value] : n.type === "stack" ? n.children.flatMap(texts) : n.type === "badge" ? [`[${n.text}]`] : n.type === "tile" ? [`(${n.text})`] : []);
 const nodes = (n: ViewNode, type: string): ViewNode[] => [...(n.type === type ? [n] : []), ...(n.type === "stack" ? n.children.flatMap((c) => nodes(c, type)) : [])];
+const keycaps = (v: View) => nodes(v.tree, "keycap").flatMap((n) => (n.type === "keycap" ? [n.keys] : []));
+const viewOf = (x: unknown): View => {
+  const o = x as { view?: View; menu?: { view?: View } };
+  const v = o.view ?? o.menu?.view;
+  if (!v) throw new Error("no view");
+  return v;
+};
 
 describe("tela", () => {
   test("meta: nine palettes (search and research input, comments live, the rest indexed with the manifest's ttl), the bar item, the four settings", () => {
@@ -37,7 +44,7 @@ describe("tela", () => {
       ["decks", false, false, 3600], ["sheets", false, false, 3600], ["comments", false, true, 60], ["backlinks", false, false, 300],
     ]);
     expect(l.palettes.find((m) => m.name === "search")!.detail).toBe("lazy");
-    expect(l.bar).toEqual([{ id: "inbox", title: "Inbox", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, source: true }]);
+    expect(l.bar).toEqual([{ id: "inbox", title: "Inbox", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, keys: expect.any(Array), source: true }]);
     expect(host.manifests.get("tela")!.settings!.map((s) => [s.id, s.kind])).toEqual([["base_url", "text"], ["token", "secret"], ["default_space", "text"], ["research", "boolean"]]);
   });
 
@@ -316,20 +323,26 @@ describe("tela", () => {
   });
 
   describe("bar item", () => {
-    test("the badge counts unread mentions and replies, never the noise; the popover has the rows, Open in pal and Mark all read; hidden at zero", async () => {
+    test("the badge counts unread mentions and replies, never the noise; the popover is a view of them with a cursor and its keys; hidden at zero", async () => {
       setRead((n) => n.id === 901 || n.id === 902, false);
       const item = await host.render("tela", "inbox", { reason: "cli" });
       expect(item).toMatchObject({ icon: "\u{f05da}", badge: 2, tooltip: "1 mention, 1 reply" });
-      expect(item.menu).toEqual([
-        { type: "section", title: "Unread", children: [
-          { type: "item", id: "notif:901", title: "mara mentioned you in “Indexing”", subtitle: "@cagdas is the 2 s budget still right?", icon: "\u{f0065}" },
-          { type: "item", id: "notif:902", title: "tomas replied to your comment in “How we ship”", subtitle: "agreed, weekly it is", icon: "\u{f0f20}" },
-        ] },
-        { type: "separator" },
-        { type: "item", id: "open", title: "Open in pal", subtitle: "2 in Comments", icon: "\u{f0687}" },
-        { type: "item", id: "read-all", title: "Mark all read", icon: "\u{f012d}", shortcut: "cmd+shift+a", style: "destructive" },
-      ]);
-      expect(await host.barAction("tela", "inbox", "open")).toEqual({ push: { extension: "tela", palette: "comments" } });
+      // The popover is a view of the item's own: what happened and the comment's snippet per row, the first focused.
+      const v = viewOf(item);
+      expect(v).toMatchObject({ id: "inbox", title: "2 addressed to you", keys: "actions" });
+      const t = texts(v.tree);
+      expect(t).toContain("mara mentioned you in “Indexing”");
+      expect(t).toContain("@cagdas is the 2 s budget still right?");
+      expect(t).toContain("tomas replied to your comment in “How we ship”");
+      // Two unread and two rows, so nothing is left to count.
+      expect(t.some((x) => x.startsWith("and "))).toBe(false);
+      expect(keycaps(v)).toEqual(["enter", "m", "a", "o", "p"]);
+      expect(v.actions!.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "read", "read-all", "open-tela", "open-pal"]);
+      expect(v.actions!.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["focus:901", "focus:902"]);
+      expect(await host.barAction("tela", "inbox", "open-pal")).toEqual({ push: { extension: "tela", palette: "comments" } });
+      // Enter opens whatever the cursor is on, and the cursor moves.
+      expect(await host.barAction("tela", "inbox", "open")).toEqual({ open: `${BASE}/spaces/2/pages/10/indexing` });
+      expect(viewOf(await host.barAction("tela", "inbox", "focus:902"))).toMatchObject({ id: "inbox" });
       expect(await host.barAction("tela", "inbox", "notif:901")).toEqual({ open: `${BASE}/spaces/2/pages/10/indexing` });
       expect(await host.barAction("tela", "inbox", "read-all")).toEqual({ keep: true, hud: "Marked read" });
       expect(calls("POST", "/api/notifications/read-all")).toHaveLength(1);

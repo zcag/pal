@@ -344,7 +344,7 @@
   "bar": {
     "inbox": {
       "title": "Inbox",
-      "description": "Unread mentions and replies as a badge, hidden at zero; the newest five, Open in pal and Mark all read in the popover.",
+      "description": "Unread mentions and replies as a badge, hidden at zero; the popover lists the newest five as rows — the kind's glyph, what happened, the comment's snippet, the time — with a cursor the arrows move and a click sets.",
       "refresh": {
         "every": 300,
         "on": [
@@ -352,7 +352,33 @@
           "wake",
           "network"
         ]
-      }
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the focused comment in tela"
+        },
+        {
+          "keys": "m",
+          "title": "Mark the focused one read"
+        },
+        {
+          "keys": "a",
+          "title": "Mark every mention and reply read"
+        },
+        {
+          "keys": "o",
+          "title": "Open tela"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Comments palette in pal"
+        },
+        {
+          "keys": "up, down",
+          "title": "Move between the rows; a click on a row focuses it"
+        }
+      ]
     }
   },
   "license": "MIT",

@@ -7,12 +7,13 @@
 // (`render.ts` over the SDK's `md`), the form that comments on it. Editing a
 // page's body is not the panel's job (tela's MCP does that). One bar
 // item, `inbox`: unread mentions and replies, hidden at zero.
-import { ago, clipboard, dayNameYear, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
+import { ago, clipboard, dayNameYear, errorMessage, failed, hint, md, selection, storage, tinted, toast, truncate, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, EXTENSION, askUrl, baseUrl, conf, keysUrl, log, notesUrl, pageUrl, researchOn, searchUrl, spaceUrl } from "./api.ts";
 import {
   RESEARCH_LIMIT, RESEARCH_MAX, addComment, addressed, backlinks, catalog, createPage, deckCover, describe, favorites, findSpace, iso, markAllRead, markRead, notifications, page, pageCounts, recent, research, search, spaceName, spaceTree, spaces,
   type Notification, type Page, type PageRef, type Space,
 } from "./data.ts";
+import { BAR_ROWS, render as renderBar, type BarRow, type BarState } from "./view.ts";
 import { pageView, researchView, type ResearchState } from "./render.ts";
 
 /** Nerd Font `md-` glyphs: page, search, lightbulb (research), space (earth / lock), deck, sheet, comment, mention, reply, backlink, plus, note, star, alert, key, inbox, check, history. */
@@ -22,7 +23,6 @@ const ICON = {
 } as const;
 /** The bar's glyph (md-book_open_page_variant). */
 const BAR_GLYPH = "\u{f05da}";
-const BAR_ROWS = 5;
 const SEARCH_WAIT_MS = 250;
 const QUESTIONS_KEPT = 12;
 /** Characters of a page body the detail pane gets; the view level draws the whole page. */
@@ -498,7 +498,34 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
   }
 }
 
-/** The bar item: unread mentions and replies as the badge, hidden at zero; the newest five in the popover with Open in pal and Mark all read under them. */
+/** The row the keys act on, across renders. */
+let barFocus: string | undefined;
+
+/** The popover's rows from the notifications at hand: the newest `BAR_ROWS` addressed to you. */
+function barState(list: Notification[]): BarState {
+  const rows: BarRow[] = list.slice(0, BAR_ROWS).map((n) => {
+    notifTable.set(n.id, n);
+    return {
+      id: String(n.id),
+      title: truncate(describe(n), 60),
+      snippet: typeof n.data.snippet === "string" ? truncate(n.data.snippet, 70) : undefined,
+      mention: n.type === "mention",
+      time: ago(iso(n.created_at) ?? n.created_at, { short: true }),
+    };
+  });
+  const focus = Math.max(0, rows.findIndex((r) => r.id === barFocus));
+  return { rows, focus, total: list.length };
+}
+
+/**
+ * The bar item: unread mentions and replies as the badge, hidden at
+ * zero; the popover is a view of its own (view.ts): the newest five as
+ * rows — the kind's glyph, what happened, the comment's snippet, the
+ * time — with a cursor the arrows move and a click sets. Enter opens
+ * the focused comment in tela, `m` marks it read, `a` marks them all,
+ * `o` opens tela, `p` the Comments palette. The cursor lives here
+ * between renders.
+ */
 async function inboxItem(ctx: BarCtx): Promise<BarItem> {
   let list: Notification[];
   try { list = await addressed(ctx.reason === "show" || ctx.reason === "wake" || ctx.reason === "network" || ctx.reason === "cli" || ctx.reason === "open"); } catch (e) {
@@ -506,27 +533,42 @@ async function inboxItem(ctx: BarCtx): Promise<BarItem> {
     throw e;
   }
   if (!list.length) return { hidden: true };
-  const rows: BarMenuNode[] = list.slice(0, BAR_ROWS).map((n) => { notifTable.set(n.id, n); return { type: "item", id: `notif:${n.id}`, title: truncate(describe(n), 60), subtitle: typeof n.data.snippet === "string" ? truncate(n.data.snippet, 70) : undefined, icon: n.type === "mention" ? ICON.mention : ICON.reply }; });
   const mentions = list.filter((n) => n.type === "mention").length, replies = list.length - mentions;
   return {
     icon: BAR_GLYPH,
     badge: list.length,
     tooltip: [mentions ? `${mentions} mention${mentions === 1 ? "" : "s"}` : "", replies ? `${replies} repl${replies === 1 ? "y" : "ies"}` : ""].filter(Boolean).join(", "),
-    menu: [
-      { type: "section", title: "Unread", children: rows },
-      { type: "separator" },
-      { type: "item", id: "open", title: "Open in pal", subtitle: `${list.length} in Comments`, icon: ICON.inbox },
-      { type: "item", id: "read-all", title: "Mark all read", icon: ICON.check, shortcut: "cmd+shift+a", style: "destructive" },
-    ],
+    menu: { view: renderBar(barState(list)) },
   };
 }
 
+/** The popover drawn again from the notifications at hand (no fetch): what a key that only moves the cursor answers. */
+const redrawBar = async (): Promise<Effect> => ({ view: renderBar(barState(await addressed())) });
+
 async function inboxAction(action: string): Promise<Effect> {
-  if (action === "open") return { push: { extension: EXTENSION, palette: "comments" } };
+  if (action === "open-pal") return { push: { extension: EXTENSION, palette: "comments" } };
   if (action === "read-all") {
     const r = await pickNotif("", "read-all");
     return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };
   }
+  if (action.startsWith("focus:")) { barFocus = action.slice(6); return redrawBar(); }
+  const st = barState(await addressed());
+  const cur = st.rows[st.focus];
+  switch (action) {
+    case "down": case "up": {
+      if (!st.rows.length) return redrawBar();
+      barFocus = st.rows[(st.focus + (action === "down" ? 1 : st.rows.length - 1)) % st.rows.length]!.id;
+      return redrawBar();
+    }
+    case "open-tela": return { open: baseUrl() || "https://telawiki.com" };
+    case "read": {
+      if (!cur) return { keep: true };
+      const r = await pickNotif(`notif:${cur.id}`, "read");
+      return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };
+    }
+    case "open": return cur ? pickNotif(`notif:${cur.id}`) : { open: baseUrl() || "https://telawiki.com" };
+  }
+  // A click on a row's own action, from an older render.
   return pickNotif(action);
 }
 
