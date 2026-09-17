@@ -3828,3 +3828,87 @@ meanwhile), a session name nobody has, a 429 (refused locally for
 `Retry-After`, 60 s without), the search provider down. Not shown: muted
 and pinned chats and a group's member count (the gateway's chat summary
 has none of them).
+
+## Images (`images`)
+
+Compress, resize, convert, rotate, crop, strip metadata, make an icon
+set, read the text, from `extensions/images/`: what Raycast's TinyPNG and
+Image Modification do, local first. An input palette whose rows are the
+images at hand: before you type, the Finder selection (a selected folder's
+images too), an image or a copied file list on the clipboard, and the
+Results of this session; a typed path lists a file, a folder's images or
+the completions of the last segment; anything else filters by name. With
+more than one image an "All N images" row leads, and rows mark with `tab`
+(or `x` with nothing typed). Each row shows a thumbnail (the core's own
+for PNG, JPEG and GIF, `sips -Z` or ImageMagick into the cache for the
+rest), the size and the pixel size; the detail pane (open by default) is
+the picture at 256 px over the info: dimensions, format, colour space and
+profile, camera, lens, exposure, date and location (`sips -g all`, or
+`identify`; `exiftool` for the photo fields when installed).
+
+Every operation writes next to the source with a suffix (`-compressed`,
+`-web`, `@0.5x`, `-800w`, `-rotated90`, `-square`, `-padded`, `-stripped`,
+`-gray`; a convert swaps the extension; `@2x` strips an existing `@Nx`
+and half of a `@2x` stem is the bare name; a taken name gets `-2`), then
+copies the result's path (the paths one per line for a batch; the image
+itself when the input was the clipboard, whose result goes to the cache's
+`clipboard/` folder), hides and says in the HUD what it did and with
+which tool: "Compressed photo.png: 1.4 MB → 312 KB (−78%), pngquant ·
+path copied". A file no encoder can shrink writes nothing and says so. A
+batch past eight seconds answers with a progress toast and finishes behind
+the panel. With `replace` on the result takes the source's place and the
+source is copied to `~/Library/Caches/pal/images/originals/` first;
+Restore original puts it back. Nothing is ever deleted: a result written
+next to its source can go to the Trash, the source stays.
+
+The encoders, in the `tools` order (one left out is never used; every
+result names the one that made it): `pngquant` (lossy PNG) and `oxipng`
+or `optipng` (lossless), `cjpeg` (mozjpeg's or libjpeg-turbo's, through
+`djpeg`) and `jpegtran`, `cwebp`, `avifenc`, `gifsicle`, `exiftool`, then
+sips and ImageMagick. sips (in every macOS) does the geometry whenever it
+is listed and writes PNG, JPEG, TIFF, GIF, BMP, PDF, HEIC, AVIF and ICO;
+it never compresses a PNG (it re-encodes a palette PNG as RGBA). ImageMagick
+is the fallback for everything and the whole of it on Linux. Strip
+metadata is pal's own for PNG and JPEG (lossless: the APPn and COM
+segments, the text, time, EXIF and ICC chunks). The empty listing names
+up to three encoders worth installing. Optimise for web (`cmd+enter`) caps
+the long side at `web_max`, encodes at `quality` (as `web_format`), strips,
+and opens a view with a row per image (thumbnail, before → after, the
+saving as a tag, a bar) and the total at the foot, following a long batch
+as it lands. Make an icon set writes `name-icons/` with the `.iconset`,
+the `.icns` (iconutil), `favicon.ico` and the touch and Android sizes.
+TinyPNG (`tinypng_api_key`) adds `cmd+t` for PNG, JPEG, WebP and AVIF.
+
+| keys | action |
+| --- | --- |
+| `enter` | Compress |
+| `cmd+enter` | Optimise for web |
+| `cmd+l` | Compress losslessly |
+| `cmd+t` | Compress with TinyPNG (with a key) |
+| `cmd+shift+r` | Resize… (presets; or type `800`, `x600`, `800x600`, `50%`, `2x`) |
+| `cmd+shift+v` | Convert… (PNG, JPEG, WebP, AVIF, HEIC, PDF, TIFF, GIF; a missing tool named) |
+| `cmd+shift+o` | Rotate or flip… |
+| `cmd+shift+a` | Crop or pad… (1:1, 16:9, 4:3, 3:2, 9:16 centred; pad to a square) |
+| `cmd+shift+m` | Strip metadata |
+| `cmd+g` | Grayscale |
+| `cmd+shift+f` | Make an icon set |
+| `cmd+shift+t` | Copy text (OCR) |
+| `cmd+shift+i` | Copy info |
+| `cmd+c` | Copy path |
+| `cmd+shift+p` | Copy image (PNG and JPEG onto the pasteboard; other formats as a file) |
+| `cmd+o`, `cmd+shift+e` | Open, Reveal in Finder |
+| `cmd+shift+z` | Restore original (a replaced result) |
+| `cmd+d` | Move result to Trash (asks; the source stays) |
+
+Settings, `[extensions.images]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `replace` | boolean | `false` | Write over the source; a copy is kept for Restore original. |
+| `quality` | 1 to 100 | `80` | For the lossy encoders (pngquant's floor is 25 under it). |
+| `web_format` | `keep`, `webp`, `avif` | `keep` | What Optimise for web writes. |
+| `web_max` | 100 to 10000 | `2000` | Optimise for web caps the long side at this many pixels. |
+| `thumbnails` | boolean | `true` | Thumbnails on the rows and in the pane. |
+| `pad_color` | hex | `#ffffff` | What Pad to a square fills with. |
+| `tinypng_api_key` | secret | (none) | Adds Compress with TinyPNG. |
+| `tools` | list | every tool | The order the encoders are tried. |

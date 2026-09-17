@@ -1,0 +1,97 @@
+{
+  "name": "images",
+  "title": "Images",
+  "description": "Compress, resize, convert, rotate, crop, strip metadata, make an icon set, read the text: the images selected in Finder, on the clipboard or at a typed path, with the tools on the machine (sips, pngquant, oxipng, mozjpeg, cwebp, avifenc, ImageMagick) and TinyPNG when you give it a key. Every result lands next to its source with a suffix, its path copied.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰋩", "bg": "pink" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "boolean", "id": "replace", "label": "Replace the original", "text": "Write the result over the source instead of next to it (a copy is kept for Restore original)", "default": false },
+    { "kind": "number", "id": "quality", "label": "Quality", "description": "For the lossy encoders (JPEG, WebP, AVIF, HEIC, pngquant's floor is 25 below it).", "min": 1, "max": 100, "default": 80 },
+    { "kind": "select", "id": "web_format", "label": "Web format", "description": "What Optimise for web writes: the source's format, or WebP or AVIF.", "options": [
+      { "id": "keep", "title": "Keep the format" },
+      { "id": "webp", "title": "WebP" },
+      { "id": "avif", "title": "AVIF" }
+    ], "default": "keep" },
+    { "kind": "number", "id": "web_max", "label": "Web size cap", "description": "Optimise for web shrinks the long side to at most this many pixels; smaller images are left at their size.", "min": 100, "max": 10000, "unit": "px", "default": 2000 },
+    { "kind": "boolean", "id": "thumbnails", "label": "Thumbnails", "text": "Show a thumbnail on each row and in the detail pane (sips or ImageMagick, cached)", "default": true },
+    { "kind": "text", "id": "pad_color", "label": "Pad colour", "description": "What Pad to a square fills with, as hex.", "placeholder": "#ffffff", "default": "#ffffff" },
+    { "kind": "secret", "id": "tinypng_api_key", "label": "TinyPNG API key", "description": "From tinypng.com/developers (500 compressions a month free). Adds Compress with TinyPNG to every row.", "placeholder": "your key" },
+    { "kind": "list", "id": "tools", "label": "Tools", "description": "The encoders in the order they are tried; one left out is never used. Resizing and the other geometry are sips's on macOS whenever it is listed; ImageMagick is the fallback for everything.", "placeholder": "pngquant", "default": ["pngquant", "oxipng", "optipng", "cjpeg", "jpegtran", "cwebp", "avifenc", "gifsicle", "exiftool", "sips", "magick"] }
+  ],
+  "store": {
+    "tagline": "Compress, resize, convert and strip images, local first",
+    "category": "media",
+    "features": [
+      "The images at hand before you type: the Finder selection (a folder's images too), an image or files on the clipboard; a typed path lists a file, a folder or completions",
+      "Compress with pngquant, oxipng, mozjpeg (cjpeg), cwebp, avifenc, gifsicle, ImageMagick or sips, whichever the machine has, in the order you set; the row says which tool did it and the size before and after",
+      "Optimise for web: cap the long side, encode at the quality, strip what is left, as a view with the before and after of every image and the total saved",
+      "Resize (width, height, fit, percent, @2x and @1x), Convert (PNG, JPEG, WebP, AVIF, HEIC, PDF, TIFF, GIF), Rotate and flip, Crop to an aspect centred or pad to a square, Grayscale, Strip metadata (lossless for PNG and JPEG)",
+      "Make an icon set: the .iconset, the .icns (iconutil), favicon.ico, and the touch and Android sizes, in a folder next to the image",
+      "Get info in the detail pane: dimensions, format, colour profile, camera, lens, exposure, date, location (exiftool when installed); Copy text (OCR) through the Vision framework or tesseract",
+      "Every result is written next to the source with a suffix (-compressed, @0.5x, .webp) and its path copied; the image itself when the input was the clipboard. Replace writes over the source and keeps the original for Restore",
+      "Several at once: the All row, marked rows, a folder; a long batch reports in the HUD when it lands. TinyPNG with an API key for the strongest compression"
+    ],
+    "permissions": ["automation"],
+    "platforms": ["macos", "linux"],
+    "screenshots": [
+      { "file": "1-images.png", "caption": "The images at hand: the Finder selection and the clipboard, each with its size and dimensions, the result of a compression under Results" },
+      { "file": "2-actions.png", "caption": "Every operation on a row: compress, optimise for web, resize, convert, rotate, crop, strip, grayscale, icon set, OCR, info" },
+      { "file": "3-detail.png", "caption": "The detail pane: the picture, dimensions, format, colour, camera and exposure" },
+      { "file": "4-resize.png", "caption": "Resize: the presets and a typed size, each row saying the pixels it lands on" },
+      { "file": "5-convert.png", "caption": "Convert: the formats, each row naming the tool that writes it, a missing tool named" },
+      { "file": "6-web.png", "caption": "Optimise for web: the before and after of every image, the saving as a tag, the total at the bottom" }
+    ],
+    "actions": [
+      { "title": "Compress", "description": "Lossy at the quality; the smaller of the encoders' results, or nothing when the file is already small.", "keys": "enter" },
+      { "title": "Optimise for web", "description": "Cap the long side, encode, strip; a view with the before and after.", "keys": "cmd+enter" },
+      { "title": "Compress losslessly", "description": "oxipng, jpegtran, cwebp -lossless, gifsicle: the pixels untouched.", "keys": "cmd+l" },
+      { "title": "Compress with TinyPNG", "description": "With an API key set.", "keys": "cmd+t" },
+      { "title": "Resize…", "description": "Presets, or a typed size: 800, x600, 800x600, 50%, 2x.", "keys": "cmd+shift+r" },
+      { "title": "Convert…", "description": "PNG, JPEG, WebP, AVIF, HEIC, PDF, TIFF, GIF.", "keys": "cmd+shift+v" },
+      { "title": "Rotate or flip…", "description": "90° either way, 180°, mirror.", "keys": "cmd+shift+o" },
+      { "title": "Crop or pad…", "description": "Square, 16:9, 4:3, 3:2, 9:16 centred; pad to a square.", "keys": "cmd+shift+a" },
+      { "title": "Strip metadata", "description": "EXIF, XMP, comments, the ICC profile; lossless for PNG and JPEG.", "keys": "cmd+shift+m" },
+      { "title": "Grayscale", "keys": "cmd+g" },
+      { "title": "Make an icon set", "description": "A folder with the .iconset, .icns, favicon.ico and the web sizes.", "keys": "cmd+shift+f" },
+      { "title": "Copy text (OCR)", "keys": "cmd+shift+t" },
+      { "title": "Copy info", "description": "The detail pane's lines as text.", "keys": "cmd+shift+i" },
+      { "title": "Copy path", "keys": "cmd+c" },
+      { "title": "Copy image", "description": "The picture onto the clipboard (PNG and JPEG); other formats as a file.", "keys": "cmd+shift+p" },
+      { "title": "Open", "keys": "cmd+o" },
+      { "title": "Reveal in Finder", "keys": "cmd+shift+e" },
+      { "title": "Restore original", "description": "On a result that replaced its source.", "keys": "cmd+shift+z" },
+      { "title": "Move result to Trash", "description": "Asks first; the source stays.", "keys": "cmd+d" }
+    ]
+  },
+  "palettes": {
+    "images": {
+      "kind": "input",
+      "description": "The images selected in Finder, on the clipboard or at a typed path; every operation an action on a row, the results next to their sources.",
+      "keys": [
+        { "keys": "enter", "title": "Compress" },
+        { "keys": "cmd+enter", "title": "Optimise for web" },
+        { "keys": "cmd+l", "title": "Compress losslessly" },
+        { "keys": "cmd+t", "title": "Compress with TinyPNG (with a key)" },
+        { "keys": "cmd+shift+r", "title": "Resize…" },
+        { "keys": "cmd+shift+v", "title": "Convert…" },
+        { "keys": "cmd+shift+o", "title": "Rotate or flip…" },
+        { "keys": "cmd+shift+a", "title": "Crop or pad…" },
+        { "keys": "cmd+shift+m", "title": "Strip metadata" },
+        { "keys": "cmd+g", "title": "Grayscale" },
+        { "keys": "cmd+shift+f", "title": "Make an icon set" },
+        { "keys": "cmd+shift+t", "title": "Copy text (OCR)" },
+        { "keys": "cmd+shift+i", "title": "Copy info" },
+        { "keys": "cmd+c", "title": "Copy path" },
+        { "keys": "cmd+shift+p", "title": "Copy image" },
+        { "keys": "cmd+o", "title": "Open" },
+        { "keys": "cmd+shift+e", "title": "Reveal in Finder" },
+        { "keys": "cmd+shift+z", "title": "Restore original (a replaced result)" },
+        { "keys": "cmd+d", "title": "Move result to Trash" },
+        { "keys": "tab", "title": "Mark a row; x too while nothing is typed" }
+      ]
+    }
+  }
+}
