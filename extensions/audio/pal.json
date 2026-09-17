@@ -3,7 +3,12 @@
   "title": "Audio",
   "description": "Output and input devices: switch the default, set the volume, mute.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰕾", "bg": "violet" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰕾",
+      "bg": "violet"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -14,9 +19,18 @@
       "label": "Volume level in the bar",
       "description": "The percentage changes only when you change it, so as a permanent fixture it is a number you stop reading. After a change it appears for three seconds as feedback and then collapses back to the glyph alone; the standing answer is the popover, where it sits against the device it applies to. Always keeps it on screen, Never leaves the glyph to speak.",
       "options": [
-        { "id": "flash", "title": "For a moment after a change" },
-        { "id": "always", "title": "Always" },
-        { "id": "never", "title": "Never" }
+        {
+          "id": "flash",
+          "title": "For a moment after a change"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        },
+        {
+          "id": "never",
+          "title": "Never"
+        }
       ],
       "default": "flash"
     }
@@ -49,6 +63,31 @@
       {
         "file": "3-volume.png",
         "caption": "The volume presets for one device, the current level tagged"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: just after a change, the speaker glyph with the new level",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: the output in use on a card with a slider and mute, the other outputs as rows, the input in one line",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The same popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: just after a change, the speaker glyph with the level as the label",
+        "kind": "bar"
       }
     ],
     "actions": [
@@ -119,13 +158,60 @@
           "title": "Move between the other outputs; a click on one focuses it"
         }
       ],
-      "refresh": { "every": 5, "on": ["wake"] },
+      "refresh": {
+        "every": 5,
+        "on": [
+          "wake"
+        ]
+      },
       "mocks": {
-        "speakers": { "title": "Built-in speakers", "item": { "icon": "󰖀", "icon_size": 18, "icon_width": 31, "tooltip": "MacBook Pro Speakers · 38%" } },
-        "flash": { "title": "Just after a change", "item": { "icon": "󰕾", "title": "72%", "icon_size": 18, "icon_width": 31, "tooltip": "MacBook Pro Speakers · 72%" } },
-        "quiet": { "title": "Turned right down", "item": { "icon": "󰕿", "icon_size": 18, "icon_width": 31, "tooltip": "MacBook Pro Speakers · 12%" } },
-        "headphones": { "title": "Bluetooth headphones", "item": { "icon": "󰣃", "icon_size": 18, "icon_width": 31, "tooltip": "Px8 · 62%" } },
-        "muted": { "title": "Muted", "item": { "icon": "󰝟", "color": "muted", "icon_size": 18, "icon_width": 31, "tooltip": "MacBook Pro Speakers, muted" } }
+        "speakers": {
+          "title": "Built-in speakers",
+          "item": {
+            "icon": "󰖀",
+            "icon_size": 18,
+            "icon_width": 31,
+            "tooltip": "MacBook Pro Speakers · 38%"
+          }
+        },
+        "flash": {
+          "title": "Just after a change",
+          "item": {
+            "icon": "󰕾",
+            "title": "72%",
+            "icon_size": 18,
+            "icon_width": 31,
+            "tooltip": "MacBook Pro Speakers · 72%"
+          }
+        },
+        "quiet": {
+          "title": "Turned right down",
+          "item": {
+            "icon": "󰕿",
+            "icon_size": 18,
+            "icon_width": 31,
+            "tooltip": "MacBook Pro Speakers · 12%"
+          }
+        },
+        "headphones": {
+          "title": "Bluetooth headphones",
+          "item": {
+            "icon": "󰣃",
+            "icon_size": 18,
+            "icon_width": 31,
+            "tooltip": "Px8 · 62%"
+          }
+        },
+        "muted": {
+          "title": "Muted",
+          "item": {
+            "icon": "󰝟",
+            "color": "muted",
+            "icon_size": 18,
+            "icon_width": 31,
+            "tooltip": "MacBook Pro Speakers, muted"
+          }
+        }
       }
     },
     "microphone": {
@@ -157,11 +243,35 @@
           "title": "Move between the other inputs; a click on one focuses it"
         }
       ],
-      "refresh": { "every": 5, "on": ["wake"] },
+      "refresh": {
+        "every": 5,
+        "on": [
+          "wake"
+        ]
+      },
       "mocks": {
-        "muted": { "title": "Muted microphone", "item": { "icon": "󰍭", "color": "red", "tooltip": "MacBook Pro Microphone, muted" } },
-        "missing": { "title": "No input device", "item": { "icon": "󰍮", "color": "red", "tooltip": "No input device" } },
-        "normal": { "title": "Input available", "item": { "hidden": true } }
+        "muted": {
+          "title": "Muted microphone",
+          "item": {
+            "icon": "󰍭",
+            "color": "red",
+            "tooltip": "MacBook Pro Microphone, muted"
+          }
+        },
+        "missing": {
+          "title": "No input device",
+          "item": {
+            "icon": "󰍮",
+            "color": "red",
+            "tooltip": "No input device"
+          }
+        },
+        "normal": {
+          "title": "Input available",
+          "item": {
+            "hidden": true
+          }
+        }
       }
     }
   }

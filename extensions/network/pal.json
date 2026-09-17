@@ -3,7 +3,12 @@
   "title": "Network",
   "description": "This machine's addresses: every interface's IPs (the Wi-Fi one with its SSID), the public IP with its country and ISP, the default gateway, the DNS servers, the Tailscale IP, the hostname. Enter copies the value.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰌗", "bg": "cyan" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰌗",
+      "bg": "cyan"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -74,6 +79,31 @@
       {
         "file": "4-actions.png",
         "caption": "Copy the value, or open the Network settings"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the Wi-Fi glyph and the network's label",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: the connection, interface, address, gateway, signal and DNS, with keys for settings and all addresses",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The same popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the Wi-Fi glyph and the network's label",
+        "kind": "bar"
       }
     ],
     "actions": [
@@ -110,15 +140,70 @@
     "status": {
       "title": "Network status",
       "description": "The active network, as its name or — with Icon only — as a glyph alone: signal strength on Wi-Fi, its own mark for a hotspot or an open network, wired, or offline. A network set to `hide` in Known networks draws nothing. Click opens Network Settings; the popover names the connection and its kind, then the interface, the address, the gateway, the signal and security, and the DNS servers.",
-      "refresh": { "every": 5, "on": ["network", "wake"] },
+      "refresh": {
+        "every": 5,
+        "on": [
+          "network",
+          "wake"
+        ]
+      },
       "mocks": {
-        "wifi": { "title": "Named Wi-Fi", "item": { "icon": "󰤥", "title": "Cafe", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" } },
-        "weak": { "title": "Weak signal", "item": { "icon": "󰤟", "title": "Cafe", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 38% · Gateway 192.168.1.1" } },
-        "hotspot": { "title": "Phone hotspot", "item": { "icon": "󰄜", "title": "marvin", "tooltip": "en0 · marvin · 172.20.10.3 · Signal 88% · Gateway 172.20.10.1" } },
-        "open": { "title": "Open network", "item": { "icon": "󰅶", "title": "Kronotrop", "tooltip": "en0 · Kronotrop · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1" } },
-        "icon_only": { "title": "Icon only", "item": { "icon": "󰤨", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1" } },
-        "wired": { "title": "Wired", "item": { "icon": "󰈀", "title": "Ethernet", "tooltip": "en5 · 10.0.0.7 · Gateway 10.0.0.1" } },
-        "offline": { "title": "No route", "item": { "icon": "󰤭", "title": "Offline", "color": "red", "tooltip": "No default route" } }
+        "wifi": {
+          "title": "Named Wi-Fi",
+          "item": {
+            "icon": "󰤥",
+            "title": "Cafe",
+            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1"
+          }
+        },
+        "weak": {
+          "title": "Weak signal",
+          "item": {
+            "icon": "󰤟",
+            "title": "Cafe",
+            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 38% · Gateway 192.168.1.1"
+          }
+        },
+        "hotspot": {
+          "title": "Phone hotspot",
+          "item": {
+            "icon": "󰄜",
+            "title": "marvin",
+            "tooltip": "en0 · marvin · 172.20.10.3 · Signal 88% · Gateway 172.20.10.1"
+          }
+        },
+        "open": {
+          "title": "Open network",
+          "item": {
+            "icon": "󰅶",
+            "title": "Kronotrop",
+            "tooltip": "en0 · Kronotrop · 10.0.1.44 · Signal 61% · Gateway 10.0.1.1"
+          }
+        },
+        "icon_only": {
+          "title": "Icon only",
+          "item": {
+            "icon": "󰤨",
+            "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1"
+          }
+        },
+        "wired": {
+          "title": "Wired",
+          "item": {
+            "icon": "󰈀",
+            "title": "Ethernet",
+            "tooltip": "en5 · 10.0.0.7 · Gateway 10.0.0.1"
+          }
+        },
+        "offline": {
+          "title": "No route",
+          "item": {
+            "icon": "󰤭",
+            "title": "Offline",
+            "color": "red",
+            "tooltip": "No default route"
+          }
+        }
       },
       "keys": [
         {

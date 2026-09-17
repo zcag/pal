@@ -1,0 +1,172 @@
+{
+  "palettes": {
+    "power": {
+      "title": "Battery & Power",
+      "live": true,
+      "icon": {
+        "tile": {
+          "glyph": "󰁹",
+          "bg": "green"
+        }
+      },
+      "placeholder": "Battery, draw, or a process",
+      "showDetail": true,
+      "items": [
+        {
+          "id": "battery",
+          "name": "31%",
+          "subtitle": "Battery Power · Discharging · 2:57 remaining",
+          "icon": "󰁽",
+          "accessories": [
+            {
+              "text": "2:57"
+            },
+            {
+              "tag": "discharging",
+              "color": "amber"
+            }
+          ],
+          "section": "Battery",
+          "detail": {
+            "metadata": [
+              {
+                "label": "Level",
+                "value": "31%"
+              },
+              {
+                "label": "Power source",
+                "value": "Battery Power"
+              },
+              {
+                "label": "State",
+                "value": "Discharging"
+              },
+              {
+                "label": "Time remaining",
+                "value": "2:57 remaining"
+              },
+              {
+                "label": "Temperature",
+                "value": "30.4 °C"
+              }
+            ]
+          },
+          "actions": [
+            {
+              "id": "settings",
+              "title": "Open Battery settings"
+            }
+          ]
+        },
+        {
+          "id": "draw",
+          "name": "7.2 W",
+          "subtitle": "Measured draw from the power watcher",
+          "icon": "󰤄",
+          "section": "Power",
+          "detail": {
+            "metadata": [
+              {
+                "label": "Draw",
+                "value": "7.21 W"
+              },
+              {
+                "label": "Sample",
+                "value": "10:37:43 PM"
+              },
+              {
+                "label": "Temperature",
+                "value": "30.4 °C"
+              }
+            ]
+          },
+          "actions": []
+        },
+        {
+          "id": "alert:0",
+          "name": "background-burn",
+          "subtitle": "Chrome is using power in the background",
+          "icon": "󰂃",
+          "section": "Attention",
+          "accessories": [
+            {
+              "tag": "warn",
+              "color": "amber"
+            }
+          ],
+          "actions": [
+            {
+              "id": "settings",
+              "title": "Open Battery settings"
+            }
+          ]
+        },
+        {
+          "id": "blame:0",
+          "name": "Google Chrome",
+          "subtitle": "Background process",
+          "icon": "󰓃",
+          "section": "Power",
+          "accessories": [
+            {
+              "text": "29%"
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "blame:1",
+          "name": "WindowServer",
+          "subtitle": "Front app",
+          "icon": "󰓃",
+          "section": "Power",
+          "accessories": [
+            {
+              "text": "11%"
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "blame:2",
+          "name": "backupd",
+          "subtitle": "System process",
+          "icon": "󰓃",
+          "section": "Power",
+          "accessories": [
+            {
+              "text": "8%"
+            }
+          ],
+          "actions": []
+        },
+        {
+          "id": "lock:0",
+          "name": "Google Chrome",
+          "subtitle": "PreventUserIdleSystemSleep",
+          "icon": "󰌾",
+          "section": "Wake locks",
+          "actions": []
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-overview": {
+      "palette": "power",
+      "keys": []
+    },
+    "2-draw": {
+      "palette": "power",
+      "keys": [
+        "down"
+      ]
+    },
+    "3-actions": {
+      "palette": "power",
+      "keys": [
+        "cmd+k"
+      ]
+    }
+  }
+}

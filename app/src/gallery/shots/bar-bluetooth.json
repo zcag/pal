@@ -1,0 +1,414 @@
+{
+  "key": "bluetooth/battery",
+  "title": "Bluetooth Battery",
+  "item": {
+    "icon": "󰂃",
+    "title": "2 low",
+    "color": "red",
+    "tooltip": "Bluetooth battery · AirPods Pro 12% (L 16% · R 12% · Case 64%) · Pebble M350s 55%",
+    "click": "open",
+    "menu": {
+      "view": {
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "compact",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 0,
+              "key": "s-low",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "h-low",
+                  "minHeight": 22,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Low battery",
+                      "size": "xs",
+                      "weight": "semibold",
+                      "color": "red"
+                    },
+                    {
+                      "type": "badge",
+                      "text": "2",
+                      "color": "red"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "14:28:76:8B:AE:C8",
+                  "padding": 1,
+                  "minHeight": 48,
+                  "radius": true,
+                  "surface": "elevated",
+                  "selected": true,
+                  "action": "focus:14:28:76:8B:AE:C8",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "tile",
+                      "key": "glyph",
+                      "width": 28,
+                      "height": 28,
+                      "text": "󰋋",
+                      "color": "red",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "body",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "AirPods Pro",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 196
+                        },
+                        {
+                          "type": "text",
+                          "value": "L 16% · R 12% · Case 64%",
+                          "size": "sm",
+                          "color": "muted",
+                          "width": 196
+                        }
+                      ]
+                    },
+                    {
+                      "type": "progress",
+                      "key": "level",
+                      "value": 0.12,
+                      "width": 82,
+                      "color": "red"
+                    },
+                    {
+                      "type": "text",
+                      "value": "12%",
+                      "key": "pct",
+                      "style": "number",
+                      "size": "sm",
+                      "color": "red",
+                      "width": 34,
+                      "align": "end"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "D4:83:5A:8E:D0:B9",
+                  "padding": 1,
+                  "minHeight": 48,
+                  "radius": true,
+                  "action": "focus:D4:83:5A:8E:D0:B9",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "tile",
+                      "key": "glyph",
+                      "width": 28,
+                      "height": 28,
+                      "text": "󰍽",
+                      "color": "amber",
+                      "fill": "soft"
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "body",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Pebble M350s",
+                          "size": "md",
+                          "weight": "semibold",
+                          "width": 196
+                        },
+                        {
+                          "type": "text",
+                          "value": "Mouse",
+                          "size": "sm",
+                          "color": "muted",
+                          "width": 196
+                        }
+                      ]
+                    },
+                    {
+                      "type": "progress",
+                      "key": "level",
+                      "value": 0.55,
+                      "width": 82,
+                      "color": "amber"
+                    },
+                    {
+                      "type": "text",
+                      "value": "55%",
+                      "key": "pct",
+                      "style": "number",
+                      "size": "sm",
+                      "color": "amber",
+                      "width": 34,
+                      "align": "end"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 0,
+              "key": "s-unknown",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "h-unknown",
+                  "minHeight": 22,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Connected, no battery reading",
+                      "size": "xs",
+                      "weight": "semibold",
+                      "color": "muted"
+                    },
+                    {
+                      "type": "badge",
+                      "text": "1",
+                      "color": "grey"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "E6:E6:EA:DB:E7:18",
+                  "padding": 1,
+                  "minHeight": 30,
+                  "radius": true,
+                  "action": "focus:E6:E6:EA:DB:E7:18",
+                  "transition": {
+                    "enter": "fade",
+                    "exit": "fade"
+                  },
+                  "children": [
+                    {
+                      "type": "tile",
+                      "key": "glyph",
+                      "width": 22,
+                      "height": 22,
+                      "text": "󰌌",
+                      "color": "grey",
+                      "fill": "outline"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Corne",
+                      "size": "sm",
+                      "weight": "medium",
+                      "width": 250
+                    },
+                    {
+                      "type": "text",
+                      "value": "Keyboard",
+                      "size": "xs",
+                      "color": "faint",
+                      "width": 76,
+                      "align": "end"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "divider",
+              "key": "rule"
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints",
+              "minHeight": 22,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "enter"
+                },
+                {
+                  "type": "text",
+                  "value": "disconnect",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "c"
+                },
+                {
+                  "type": "text",
+                  "value": "copy address",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "s"
+                },
+                {
+                  "type": "text",
+                  "value": "settings",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "r"
+                },
+                {
+                  "type": "text",
+                  "value": "refresh",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "up"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "down"
+                },
+                {
+                  "type": "text",
+                  "value": "move",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "disconnect",
+            "title": "Disconnect AirPods Pro",
+            "shortcut": "enter",
+            "style": "destructive",
+            "confirm": "Disconnect AirPods Pro?"
+          },
+          {
+            "id": "copy",
+            "title": "Copy address",
+            "shortcut": "c"
+          },
+          {
+            "id": "settings",
+            "title": "Open Bluetooth Settings",
+            "shortcut": "s"
+          },
+          {
+            "id": "refresh",
+            "title": "Refresh",
+            "shortcut": "r"
+          },
+          {
+            "id": "down",
+            "title": "Next row",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "up",
+            "title": "Previous row",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:14:28:76:8B:AE:C8",
+            "title": "Focus AirPods Pro",
+            "hidden": true
+          },
+          {
+            "id": "focus:D4:83:5A:8E:D0:B9",
+            "title": "Focus Pebble M350s",
+            "hidden": true
+          },
+          {
+            "id": "focus:E6:E6:EA:DB:E7:18",
+            "title": "Focus Corne",
+            "hidden": true
+          }
+        ],
+        "title": "2 low Bluetooth batteries",
+        "id": "battery",
+        "keys": "actions"
+      }
+    }
+  },
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the Bluetooth battery alert, red when one reading is critical"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: the low batteries first, then the connected device with no reading, with disconnect and copy on the keys"
+    },
+    "bar-menubar-popover-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "popover": true,
+      "caption": "The same popover in the dark theme"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the Bluetooth battery alert and the low count"
+    }
+  }
+}

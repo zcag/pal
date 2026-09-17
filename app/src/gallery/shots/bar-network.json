@@ -1,0 +1,250 @@
+{
+  "key": "network/status",
+  "title": "Network status",
+  "item": {
+    "icon": "󰤥",
+    "title": "Cafe",
+    "tooltip": "en0 · Cafe · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1",
+    "click": "open",
+    "menu": {
+      "view": {
+        "title": "Connection",
+        "id": "network",
+        "keys": "actions",
+        "actions": [
+          {
+            "id": "settings",
+            "title": "Open Network settings",
+            "shortcut": "enter"
+          },
+          {
+            "id": "addresses",
+            "title": "All addresses",
+            "shortcut": "cmd+a"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "network",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "head",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Cafe",
+                  "key": "name",
+                  "style": "body",
+                  "size": "lg",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "badge",
+                  "key": "kind",
+                  "text": "connected",
+                  "color": "green"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "interface",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "interface",
+                  "key": "interface-k",
+                  "style": "muted",
+                  "size": "xs",
+                  "width": 76
+                },
+                {
+                  "type": "text",
+                  "value": "en0 · Wi-Fi",
+                  "key": "interface-v",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 296
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "ip",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "ip",
+                  "key": "ip-k",
+                  "style": "muted",
+                  "size": "xs",
+                  "width": 76
+                },
+                {
+                  "type": "text",
+                  "value": "192.168.1.131",
+                  "key": "ip-v",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 296
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "gateway",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "gateway",
+                  "key": "gateway-k",
+                  "style": "muted",
+                  "size": "xs",
+                  "width": 76
+                },
+                {
+                  "type": "text",
+                  "value": "192.168.1.1",
+                  "key": "gateway-v",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 296
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "signal",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "signal",
+                  "key": "signal-k",
+                  "style": "muted",
+                  "size": "xs",
+                  "width": 76
+                },
+                {
+                  "type": "text",
+                  "value": "72% · WPA2_PSK",
+                  "key": "signal-v",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 296
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "dns",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "dns",
+                  "key": "dns-k",
+                  "style": "muted",
+                  "size": "xs",
+                  "width": 76
+                },
+                {
+                  "type": "text",
+                  "value": "100.100.100.100, fd7a:115c:a1e0::53, 192.168.1.1",
+                  "key": "dns-v",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 296
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "footer",
+              "minHeight": 20,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "enter",
+                  "action": "settings"
+                },
+                {
+                  "type": "text",
+                  "value": "Network Settings",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "cmd+a",
+                  "action": "addresses"
+                },
+                {
+                  "type": "text",
+                  "value": "All addresses",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the Wi-Fi glyph and the network's label"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: the connection, interface, address, gateway, signal and DNS, with keys for settings and all addresses"
+    },
+    "bar-menubar-popover-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "popover": true,
+      "caption": "The same popover in the dark theme"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the Wi-Fi glyph and the network's label"
+    }
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "key": "power/battery",
+  "title": "Battery",
+  "item": {
+    "icon": "󰁽",
+    "title": "31% · 7.2W · background-burn",
+    "color": "amber",
+    "tooltip": "Battery Power · Discharging · 2:57 remaining · 7.2 W draw · Chrome is using power in the background",
+    "click": "open",
+    "menu": {
+      "view": {
+        "title": "Battery",
+        "id": "power",
+        "keys": "actions",
+        "actions": [
+          {
+            "id": "settings",
+            "title": "Open Battery settings",
+            "shortcut": "enter"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "power",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "head",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "31%",
+                  "key": "percent",
+                  "style": "title",
+                  "size": "xl",
+                  "width": 66
+                },
+                {
+                  "type": "text",
+                  "value": "Battery",
+                  "key": "title",
+                  "style": "body",
+                  "weight": "semibold"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "badge",
+                  "key": "source",
+                  "text": "on battery",
+                  "color": "amber"
+                }
+              ]
+            },
+            {
+              "type": "progress",
+              "key": "level",
+              "value": 0.31,
+              "color": "amber"
+            },
+            {
+              "type": "text",
+              "value": "Battery Power · Discharging · 2:57 remaining · 7.2 W draw",
+              "key": "details",
+              "style": "muted",
+              "size": "sm"
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "alerts",
+              "minHeight": 20,
+              "children": [
+                {
+                  "type": "badge",
+                  "key": "alert-background-burn",
+                  "text": "Chrome is using power in the background",
+                  "color": "amber"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "value": "Top consumers right now",
+              "key": "blame-title",
+              "style": "muted",
+              "size": "xs",
+              "weight": "semibold"
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "blame-0",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Google Chrome",
+                  "key": "blame-name-0",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 324
+                },
+                {
+                  "type": "text",
+                  "value": "29%",
+                  "key": "blame-share-0",
+                  "style": "number",
+                  "size": "xs",
+                  "width": 36,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "blame-1",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "WindowServer",
+                  "key": "blame-name-1",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 324
+                },
+                {
+                  "type": "text",
+                  "value": "11%",
+                  "key": "blame-share-1",
+                  "style": "number",
+                  "size": "xs",
+                  "width": 36,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "blame-2",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "backupd",
+                  "key": "blame-name-2",
+                  "style": "body",
+                  "size": "sm",
+                  "width": 324
+                },
+                {
+                  "type": "text",
+                  "value": "8%",
+                  "key": "blame-share-2",
+                  "style": "number",
+                  "size": "xs",
+                  "width": 36,
+                  "align": "end"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "footer",
+              "minHeight": 20,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "enter",
+                  "action": "settings"
+                },
+                {
+                  "type": "text",
+                  "value": "Battery Settings",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the battery level, live draw and the watcher rule that made it surface"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: the level bar, source, time left, watcher warning and the top consumers"
+    },
+    "bar-menubar-popover-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "popover": true,
+      "caption": "The same popover in the dark theme"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the battery, draw and watcher rule as one strip"
+    }
+  }
+}

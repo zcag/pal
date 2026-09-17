@@ -1,0 +1,61 @@
+{
+  "palettes": {
+    "weather": {
+      "title": "Weather",
+      "live": true,
+      "icon": {
+        "tile": {
+          "glyph": "󰖙",
+          "bg": "cyan"
+        }
+      },
+      "items": [
+        {
+          "id": "current",
+          "name": "14°C",
+          "subtitle": "Rain · Istanbul, Republic of Türkiye",
+          "icon": "󰖗",
+          "actions": [
+            {
+              "id": "map",
+              "title": "Open map"
+            }
+          ]
+        },
+        {
+          "id": "feels",
+          "name": "12°C",
+          "subtitle": "Feels like",
+          "icon": "󰖗",
+          "actions": []
+        },
+        {
+          "id": "humidity",
+          "name": "82%",
+          "subtitle": "Humidity",
+          "icon": "󰖗",
+          "actions": []
+        },
+        {
+          "id": "wind",
+          "name": "18 km/h",
+          "subtitle": "Wind",
+          "icon": "󰖗",
+          "actions": []
+        }
+      ]
+    }
+  },
+  "shots": {
+    "1-current": {
+      "palette": "weather",
+      "keys": []
+    },
+    "2-actions": {
+      "palette": "weather",
+      "keys": [
+        "cmd+k"
+      ]
+    }
+  }
+}

@@ -1,12 +1,183 @@
 {
-  "name": "weather", "title": "Weather", "description": "Current local weather from Open-Meteo: quiet when ordinary, present for rain, fog, wind and uncomfortable temperatures.", "version": "0.1.0", "icon": { "tile": { "glyph": "󰖙", "bg": "cyan" } }, "author": "pal", "repo": "bundled", "license": "MIT",
+  "name": "weather",
+  "title": "Weather",
+  "description": "Current local weather from Open-Meteo: quiet when ordinary, present for rain, fog, wind and uncomfortable temperatures.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "glyph": "󰖙",
+      "bg": "cyan"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
   "settings": [
-    { "kind": "text", "id": "location", "label": "Location", "description": "A place name, optionally narrowed by region or country: “Istanbul”, “London, Ontario”, “Paris, Texas”. Only the first part is searched; the rest choose between same-named places. Resolved privately by Open-Meteo's location search.", "placeholder": "Istanbul, Turkey", "default": "" },
-    { "kind": "number", "id": "low", "label": "Cold below", "min": -50, "max": 50, "unit": "°C", "default": 10 },
-    { "kind": "number", "id": "high", "label": "Hot above", "min": -20, "max": 60, "unit": "°C", "default": 30 },
-    { "kind": "list", "id": "notable_conditions", "label": "Additional notable weather codes", "description": "Optional WMO weather codes that should surface even within the temperature band.", "default": [] }
+    {
+      "kind": "text",
+      "id": "location",
+      "label": "Location",
+      "description": "A place name, optionally narrowed by region or country: “Istanbul”, “London, Ontario”, “Paris, Texas”. Only the first part is searched; the rest choose between same-named places. Resolved privately by Open-Meteo's location search.",
+      "placeholder": "Istanbul, Turkey",
+      "default": ""
+    },
+    {
+      "kind": "number",
+      "id": "low",
+      "label": "Cold below",
+      "min": -50,
+      "max": 50,
+      "unit": "°C",
+      "default": 10
+    },
+    {
+      "kind": "number",
+      "id": "high",
+      "label": "Hot above",
+      "min": -20,
+      "max": 60,
+      "unit": "°C",
+      "default": 30
+    },
+    {
+      "kind": "list",
+      "id": "notable_conditions",
+      "label": "Additional notable weather codes",
+      "description": "Optional WMO weather codes that should surface even within the temperature band.",
+      "default": []
+    }
   ],
-  "palettes": { "weather": { "kind": "live", "description": "Current temperature, condition, feels-like temperature, humidity and wind for the configured place." } },
-  "bar": { "weather": { "title": "Weather", "description": "A quiet condition-led weather signal: hidden in ordinary weather, visible for rain, fog, wind or temperatures outside your comfort band. The popover is the forecast: the reading now with feels-like, humidity, wind and rain, the next eight hours from this one, then four days of high, low and the chance of rain, with sunrise and sunset.", "refresh": { "every": 600, "on": ["wake", "network"] }, "mocks": { "rain": { "title": "Rain", "item": { "icon": "󰖗", "title": "14°C", "color": "blue", "tooltip": "Rain in Istanbul" } }, "heat": { "title": "Hot", "item": { "icon": "󰖙", "title": "34°C", "color": "red", "tooltip": "Clear in Istanbul" } }, "fog": { "title": "Fog", "item": { "icon": "󰖝", "title": "12°C", "color": "teal", "tooltip": "Fog in Istanbul" } }, "quiet": { "title": "Ordinary weather", "item": { "hidden": true } }, "unavailable": { "title": "Weather unavailable", "item": { "icon": "󰖪", "title": "Weather", "color": "red", "stale": true, "tooltip": "Weather service did not answer" } } }, "keys": [{ "keys": "o", "title": "Open the place in Maps" }, { "keys": "r", "title": "Read the forecast again now" }] } },
-  "store": { "tagline": "A quiet local weather signal", "category": "system", "features": ["A named city or postal code resolved through Open-Meteo—no account, token or Home Assistant", "Current condition, temperature, feels-like, humidity and wind", "The bar is deliberately hidden in ordinary weather and returns for a condition or temperature worth noticing", "Settings previews cover rain, heat, fog, quiet and unavailable states"], "permissions": ["network"], "platforms": ["macos", "linux"], "screenshots": [], "actions": [{ "title": "Open map", "description": "Open the configured place in Maps.", "keys": "o" }] }
+  "palettes": {
+    "weather": {
+      "kind": "live",
+      "description": "Current temperature, condition, feels-like temperature, humidity and wind for the configured place."
+    }
+  },
+  "bar": {
+    "weather": {
+      "title": "Weather",
+      "description": "A quiet condition-led weather signal: hidden in ordinary weather, visible for rain, fog, wind or temperatures outside your comfort band. The popover is the forecast: the reading now with feels-like, humidity, wind and rain, the next eight hours from this one, then four days of high, low and the chance of rain, with sunrise and sunset.",
+      "refresh": {
+        "every": 600,
+        "on": [
+          "wake",
+          "network"
+        ]
+      },
+      "mocks": {
+        "rain": {
+          "title": "Rain",
+          "item": {
+            "icon": "󰖗",
+            "title": "14°C",
+            "color": "blue",
+            "tooltip": "Rain in Istanbul"
+          }
+        },
+        "heat": {
+          "title": "Hot",
+          "item": {
+            "icon": "󰖙",
+            "title": "34°C",
+            "color": "red",
+            "tooltip": "Clear in Istanbul"
+          }
+        },
+        "fog": {
+          "title": "Fog",
+          "item": {
+            "icon": "󰖝",
+            "title": "12°C",
+            "color": "teal",
+            "tooltip": "Fog in Istanbul"
+          }
+        },
+        "quiet": {
+          "title": "Ordinary weather",
+          "item": {
+            "hidden": true
+          }
+        },
+        "unavailable": {
+          "title": "Weather unavailable",
+          "item": {
+            "icon": "󰖪",
+            "title": "Weather",
+            "color": "red",
+            "stale": true,
+            "tooltip": "Weather service did not answer"
+          }
+        }
+      },
+      "keys": [
+        {
+          "keys": "o",
+          "title": "Open the place in Maps"
+        },
+        {
+          "keys": "r",
+          "title": "Read the forecast again now"
+        }
+      ]
+    }
+  },
+  "store": {
+    "tagline": "A quiet local weather signal",
+    "category": "system",
+    "features": [
+      "A named city or postal code resolved through Open-Meteo—no account, token or Home Assistant",
+      "Current condition, temperature, feels-like, humidity and wind",
+      "The bar is deliberately hidden in ordinary weather and returns for a condition or temperature worth noticing",
+      "Settings previews cover rain, heat, fog, quiet and unavailable states"
+    ],
+    "permissions": [
+      "network"
+    ],
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "screenshots": [
+      {
+        "file": "1-current.png",
+        "caption": "The current temperature, condition, feels-like, humidity and wind for the configured place"
+      },
+      {
+        "file": "2-actions.png",
+        "caption": "The current reading can open the place in Maps"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the current notable condition and temperature",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: the reading now, the next eight hours, four days of forecast, sunrise and sunset",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The same popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the weather glyph and the temperature",
+        "kind": "bar"
+      }
+    ],
+    "actions": [
+      {
+        "title": "Open map",
+        "description": "Open the configured place in Maps.",
+        "keys": "o"
+      }
+    ]
+  }
 }

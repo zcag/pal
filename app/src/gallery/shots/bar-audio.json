@@ -1,0 +1,524 @@
+{
+  "key": "audio/volume",
+  "title": "Volume",
+  "item": {
+    "icon": "󰖀",
+    "icon_size": 18,
+    "icon_width": 31,
+    "tooltip": "MacBook Pro Speakers · 56%",
+    "scroll": {
+      "up": "up",
+      "down": "down"
+    },
+    "menu": {
+      "view": {
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 2,
+          "key": "compact",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "lead",
+              "padding": 2,
+              "surface": "elevated",
+              "radius": true,
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "who",
+                  "minHeight": 30,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "󰓃",
+                      "key": "g",
+                      "style": "glyph",
+                      "size": "lg",
+                      "width": 22
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "name",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "MacBook Pro Speakers",
+                          "key": "n",
+                          "style": "title",
+                          "size": "sm",
+                          "width": 342
+                        },
+                        {
+                          "type": "text",
+                          "value": "builtin · 56%",
+                          "key": "s",
+                          "style": "muted",
+                          "size": "xs",
+                          "width": 342
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 2,
+                  "key": "level-row",
+                  "minHeight": 26,
+                  "children": [
+                    {
+                      "type": "slider",
+                      "key": "level",
+                      "value": 0.56,
+                      "width": 120,
+                      "color": "green",
+                      "action": "set",
+                      "label": "MacBook Pro Speakers volume"
+                    },
+                    {
+                      "type": "text",
+                      "value": "56%",
+                      "key": "v-56",
+                      "style": "mono",
+                      "size": "xs",
+                      "color": "muted",
+                      "width": 50,
+                      "align": "end",
+                      "transition": {
+                        "enter": "fade",
+                        "exit": "none"
+                      }
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "switch",
+                      "key": "mute",
+                      "on": true,
+                      "action": "mute",
+                      "label": "MacBook Pro Speakers sound"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "other-devices",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "oh",
+                  "minHeight": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Other outputs",
+                      "key": "h",
+                      "style": "muted",
+                      "size": "xs",
+                      "weight": "semibold"
+                    },
+                    {
+                      "type": "spacer"
+                    },
+                    {
+                      "type": "keycap",
+                      "keys": "up"
+                    },
+                    {
+                      "type": "keycap",
+                      "keys": "down"
+                    },
+                    {
+                      "type": "text",
+                      "value": "move",
+                      "style": "muted",
+                      "size": "xs"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "others",
+                  "surface": "sunken",
+                  "radius": true,
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 1,
+                      "key": "dev-20-18-5B:output",
+                      "padding": 1,
+                      "radius": true,
+                      "minHeight": 26,
+                      "action": "focus:20-18-5B:output",
+                      "selected": true,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "󰝟",
+                          "key": "g",
+                          "style": "glyph",
+                          "size": "sm",
+                          "color": "muted",
+                          "width": 22
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "key": "name",
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "HK Aura Studio 4",
+                              "key": "n",
+                              "style": "body",
+                              "size": "sm",
+                              "weight": "semibold",
+                              "width": 262
+                            },
+                            {
+                              "type": "text",
+                              "value": "bluetooth",
+                              "key": "t",
+                              "style": "muted",
+                              "size": "xs",
+                              "width": 262
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "value": "25%",
+                          "key": "v",
+                          "style": "mono",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 38,
+                          "align": "end"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 1,
+                      "key": "dev-Digital",
+                      "padding": 1,
+                      "radius": true,
+                      "minHeight": 26,
+                      "action": "focus:Digital",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "󰓃",
+                          "key": "g",
+                          "style": "glyph",
+                          "size": "sm",
+                          "color": "muted",
+                          "width": 22
+                        },
+                        {
+                          "type": "stack",
+                          "direction": "column",
+                          "gap": 0,
+                          "key": "name",
+                          "grow": true,
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Optical Out",
+                              "key": "n",
+                              "style": "body",
+                              "size": "sm",
+                              "weight": "regular",
+                              "width": 262
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "value": "",
+                          "key": "v",
+                          "style": "mono",
+                          "size": "xs",
+                          "color": "muted",
+                          "width": 38,
+                          "align": "end"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "divider",
+              "key": "div"
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "other",
+              "minHeight": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "value": "󰍬",
+                  "key": "g",
+                  "style": "glyph",
+                  "size": "sm",
+                  "color": "muted",
+                  "width": 22
+                },
+                {
+                  "type": "text",
+                  "value": "Input: MacBook Pro Microphone",
+                  "key": "n",
+                  "style": "muted",
+                  "size": "xs",
+                  "width": 278
+                },
+                {
+                  "type": "spacer"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints",
+              "minHeight": 22,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "enter"
+                },
+                {
+                  "type": "text",
+                  "value": "use",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "m"
+                },
+                {
+                  "type": "text",
+                  "value": "mute",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "-"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "+"
+                },
+                {
+                  "type": "text",
+                  "value": "volume",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "0…4"
+                },
+                {
+                  "type": "text",
+                  "value": "preset",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "spacer"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "p"
+                },
+                {
+                  "type": "text",
+                  "value": "pal",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "id": "use",
+            "title": "Use HK Aura Studio 4 as output"
+          },
+          {
+            "id": "mute",
+            "title": "Mute MacBook Pro Speakers",
+            "shortcut": [
+              "m",
+              "cmd+m"
+            ]
+          },
+          {
+            "id": "up",
+            "title": "Louder",
+            "shortcut": [
+              "+",
+              "="
+            ]
+          },
+          {
+            "id": "down",
+            "title": "Quieter",
+            "shortcut": "-"
+          },
+          {
+            "id": "open-pal",
+            "title": "Open in pal",
+            "shortcut": "p"
+          },
+          {
+            "id": "set",
+            "title": "Set the volume",
+            "hidden": true
+          },
+          {
+            "id": "preset:0",
+            "title": "Set 0%",
+            "shortcut": "0",
+            "hidden": true
+          },
+          {
+            "id": "preset:25",
+            "title": "Set 25%",
+            "shortcut": "1",
+            "hidden": true
+          },
+          {
+            "id": "preset:50",
+            "title": "Set 50%",
+            "shortcut": "2",
+            "hidden": true
+          },
+          {
+            "id": "preset:75",
+            "title": "Set 75%",
+            "shortcut": "3",
+            "hidden": true
+          },
+          {
+            "id": "preset:100",
+            "title": "Set 100%",
+            "shortcut": "4",
+            "hidden": true
+          },
+          {
+            "id": "next",
+            "title": "Next device",
+            "shortcut": [
+              "down",
+              "j"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "prev",
+            "title": "Previous device",
+            "shortcut": [
+              "up",
+              "k"
+            ],
+            "hidden": true
+          },
+          {
+            "id": "focus:20-18-5B:output",
+            "title": "Go to HK Aura Studio 4",
+            "hidden": true
+          },
+          {
+            "id": "focus:Digital",
+            "title": "Go to Optical Out",
+            "hidden": true
+          }
+        ],
+        "title": "Output: MacBook Pro Speakers",
+        "id": "volume",
+        "keys": "actions"
+      }
+    }
+  },
+  "states": [
+    {
+      "id": "flash",
+      "item": {
+        "title": "56%"
+      }
+    }
+  ],
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "state": "flash",
+      "caption": "On the menu bar: just after a change, the speaker glyph with the new level"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "state": "flash",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: the output in use on a card with a slider and mute, the other outputs as rows, the input in one line"
+    },
+    "bar-menubar-popover-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "popover": true,
+      "caption": "The same popover in the dark theme"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "state": "flash",
+      "caption": "On sketchybar: just after a change, the speaker glyph with the level as the label"
+    }
+  }
+}

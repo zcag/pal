@@ -1,0 +1,813 @@
+{
+  "key": "weather/weather",
+  "title": "Weather",
+  "item": {
+    "icon": "󰖗",
+    "title": "14°C",
+    "color": "blue",
+    "tooltip": "Rain in Istanbul",
+    "menu": {
+      "view": {
+        "title": "Istanbul, Republic of Türkiye",
+        "id": "weather",
+        "keys": "actions",
+        "actions": [
+          {
+            "id": "map",
+            "title": "Open map",
+            "shortcut": "o"
+          },
+          {
+            "id": "refresh",
+            "title": "Refresh",
+            "shortcut": "r"
+          }
+        ],
+        "tree": {
+          "type": "stack",
+          "direction": "column",
+          "gap": 3,
+          "key": "weather",
+          "padding": 3,
+          "children": [
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 3,
+              "key": "now",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "󰖗",
+                  "key": "glyph",
+                  "style": "glyph",
+                  "size": "xl"
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "reading",
+                  "grow": true,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "14°C",
+                      "key": "temp",
+                      "style": "number",
+                      "size": "xl"
+                    },
+                    {
+                      "type": "text",
+                      "value": "Rain",
+                      "key": "condition",
+                      "style": "muted",
+                      "size": "sm"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "stats",
+              "children": [
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "Feels like",
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 2,
+                  "grow": true,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Feels like",
+                      "key": "Feels like-label",
+                      "style": "muted",
+                      "size": "xs"
+                    },
+                    {
+                      "type": "text",
+                      "value": "12°C",
+                      "key": "Feels like-value",
+                      "style": "number",
+                      "size": "sm"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "Humidity",
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 2,
+                  "grow": true,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Humidity",
+                      "key": "Humidity-label",
+                      "style": "muted",
+                      "size": "xs"
+                    },
+                    {
+                      "type": "text",
+                      "value": "82%",
+                      "key": "Humidity-value",
+                      "style": "number",
+                      "size": "sm"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "Wind",
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 2,
+                  "grow": true,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Wind",
+                      "key": "Wind-label",
+                      "style": "muted",
+                      "size": "xs"
+                    },
+                    {
+                      "type": "text",
+                      "value": "18 km/h",
+                      "key": "Wind-value",
+                      "style": "number",
+                      "size": "sm"
+                    }
+                  ]
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "Rain",
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 2,
+                  "grow": true,
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Rain",
+                      "key": "Rain-label",
+                      "style": "muted",
+                      "size": "xs"
+                    },
+                    {
+                      "type": "text",
+                      "value": "1.2 mm",
+                      "key": "Rain-value",
+                      "style": "number",
+                      "size": "sm"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "hourly",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Next hours",
+                  "size": "xs",
+                  "weight": "semibold",
+                  "color": "muted"
+                },
+                {
+                  "type": "stack",
+                  "direction": "row",
+                  "align": "center",
+                  "gap": 1,
+                  "key": "hourly-strip",
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 2,
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T09:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "09:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖗",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "14°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "80%",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T10:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "10:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖗",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "15°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "35%",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T11:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "11:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖗",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "16°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T12:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "12:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖕",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "17°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T13:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "13:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖕",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "18°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T14:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "14:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖕",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "19°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T15:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "15:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖕",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "20°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "column",
+                      "gap": 0,
+                      "key": "h-2026-09-17T16:00",
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "16:00",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖕",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "21°C",
+                          "style": "number",
+                          "size": "sm",
+                          "align": "center",
+                          "width": 41
+                        },
+                        {
+                          "type": "text",
+                          "value": "",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "center",
+                          "width": 41
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "column",
+              "gap": 1,
+              "key": "daily",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Forecast",
+                  "size": "xs",
+                  "weight": "semibold",
+                  "color": "muted"
+                },
+                {
+                  "type": "stack",
+                  "direction": "column",
+                  "gap": 0,
+                  "key": "daily-rows",
+                  "surface": "sunken",
+                  "radius": true,
+                  "padding": 1,
+                  "children": [
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "d-2026-09-17",
+                      "minHeight": 26,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Today",
+                          "size": "sm",
+                          "weight": "semibold",
+                          "width": 176
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖗",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 24
+                        },
+                        {
+                          "type": "text",
+                          "value": "17 / 11°C",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 96
+                        },
+                        {
+                          "type": "text",
+                          "value": "80%",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "end",
+                          "width": 44
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "d-2026-09-18",
+                      "minHeight": 26,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Fri 18 Sep",
+                          "size": "sm",
+                          "weight": "semibold",
+                          "width": 176
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖕",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 24
+                        },
+                        {
+                          "type": "text",
+                          "value": "20 / 12°C",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 96
+                        },
+                        {
+                          "type": "text",
+                          "value": "15%",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "end",
+                          "width": 44
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "d-2026-09-19",
+                      "minHeight": 26,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Sat 19 Sep",
+                          "size": "sm",
+                          "weight": "semibold",
+                          "width": 176
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖙",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 24
+                        },
+                        {
+                          "type": "text",
+                          "value": "24 / 14°C",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 96
+                        },
+                        {
+                          "type": "text",
+                          "value": "0%",
+                          "size": "xs",
+                          "color": "muted",
+                          "align": "end",
+                          "width": 44
+                        }
+                      ]
+                    },
+                    {
+                      "type": "stack",
+                      "direction": "row",
+                      "align": "center",
+                      "gap": 2,
+                      "key": "d-2026-09-20",
+                      "minHeight": 26,
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Sun 20 Sep",
+                          "size": "sm",
+                          "weight": "semibold",
+                          "width": 176
+                        },
+                        {
+                          "type": "text",
+                          "value": "󰖘",
+                          "style": "glyph",
+                          "size": "md",
+                          "align": "center",
+                          "width": 24
+                        },
+                        {
+                          "type": "text",
+                          "value": "18 / 10°C",
+                          "style": "number",
+                          "size": "sm",
+                          "width": 96
+                        },
+                        {
+                          "type": "text",
+                          "value": "65%",
+                          "size": "xs",
+                          "color": "blue",
+                          "align": "end",
+                          "width": 44
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 2,
+              "key": "sun",
+              "minHeight": 20,
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Sun",
+                  "size": "xs",
+                  "weight": "semibold",
+                  "color": "muted"
+                },
+                {
+                  "type": "text",
+                  "value": "Rise 06:47",
+                  "size": "xs",
+                  "color": "muted"
+                },
+                {
+                  "type": "text",
+                  "value": "Set 19:08",
+                  "size": "xs",
+                  "color": "muted"
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "direction": "row",
+              "align": "center",
+              "gap": 1,
+              "key": "hints",
+              "minHeight": 22,
+              "children": [
+                {
+                  "type": "keycap",
+                  "keys": "o",
+                  "action": "map"
+                },
+                {
+                  "type": "text",
+                  "value": "map",
+                  "style": "muted",
+                  "size": "xs"
+                },
+                {
+                  "type": "keycap",
+                  "keys": "r",
+                  "action": "refresh"
+                },
+                {
+                  "type": "text",
+                  "value": "refresh",
+                  "style": "muted",
+                  "size": "xs"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "shots": {
+    "bar-menubar-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "caption": "On the menu bar: the current notable condition and temperature"
+    },
+    "bar-menubar-light": {
+      "target": "menubar",
+      "theme": "light",
+      "caption": "The same item on a light menu bar"
+    },
+    "bar-menubar-popover": {
+      "target": "menubar",
+      "theme": "light",
+      "popover": true,
+      "caption": "A click opens the popover: the reading now, the next eight hours, four days of forecast, sunrise and sunset"
+    },
+    "bar-menubar-popover-dark": {
+      "target": "menubar",
+      "theme": "dark",
+      "popover": true,
+      "caption": "The same popover in the dark theme"
+    },
+    "bar-sketchybar": {
+      "target": "sketchybar",
+      "theme": "dark",
+      "caption": "On sketchybar: the weather glyph and the temperature"
+    }
+  }
+}

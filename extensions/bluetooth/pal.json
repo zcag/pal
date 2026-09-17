@@ -3,7 +3,12 @@
   "title": "Bluetooth",
   "description": "Paired devices: connect, disconnect, see the battery.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰂯", "bg": "blue" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰂯",
+      "bg": "blue"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -47,6 +52,31 @@
       {
         "file": "3-disconnect.png",
         "caption": "Disconnect asks first"
+      },
+      {
+        "file": "bar-menubar-dark.png",
+        "caption": "On the menu bar: the Bluetooth battery alert, red when one reading is critical",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-light.png",
+        "caption": "The same item on a light menu bar",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover.png",
+        "caption": "A click opens the popover: the low batteries first, then the connected device with no reading, with disconnect and copy on the keys",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-dark.png",
+        "caption": "The same popover in the dark theme",
+        "kind": "bar"
+      },
+      {
+        "file": "bar-sketchybar.png",
+        "caption": "On sketchybar: the Bluetooth battery alert and the low count",
+        "kind": "bar"
       }
     ],
     "actions": [
@@ -99,11 +129,37 @@
       ],
       "title": "Bluetooth Battery",
       "description": "Visible only when a connected device with a reported battery reaches the low alert level. Click opens Bluetooth Settings; the popover shows the low devices first, then the other connected battery readings and connected devices with no reading.",
-      "refresh": { "every": 60, "on": ["wake"] },
+      "refresh": {
+        "every": 60,
+        "on": [
+          "wake"
+        ]
+      },
       "mocks": {
-        "low": { "title": "Low headphones", "item": { "icon": "󰂃", "title": "AirPods Pro 24%", "color": "amber", "tooltip": "Bluetooth battery · AirPods Pro 24% (L 28% · R 24% · Case 62%)" } },
-        "critical": { "title": "Critical devices", "item": { "icon": "󰂃", "title": "2 low", "color": "red", "tooltip": "Bluetooth battery · Corne 8% · AirPods Pro 14%" } },
-        "clear": { "title": "All healthy", "item": { "hidden": true } }
+        "low": {
+          "title": "Low headphones",
+          "item": {
+            "icon": "󰂃",
+            "title": "AirPods Pro 24%",
+            "color": "amber",
+            "tooltip": "Bluetooth battery · AirPods Pro 24% (L 28% · R 24% · Case 62%)"
+          }
+        },
+        "critical": {
+          "title": "Critical devices",
+          "item": {
+            "icon": "󰂃",
+            "title": "2 low",
+            "color": "red",
+            "tooltip": "Bluetooth battery · Corne 8% · AirPods Pro 14%"
+          }
+        },
+        "clear": {
+          "title": "All healthy",
+          "item": {
+            "hidden": true
+          }
+        }
       }
     }
   }
