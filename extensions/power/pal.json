@@ -1,0 +1,52 @@
+{
+  "name": "power",
+  "title": "Battery & Power",
+  "description": "Battery level and time remaining, plus measured power draw and culprits when the optional power watcher is installed.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰁹", "bg": "green" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    { "kind": "number", "id": "show_below", "label": "Show on battery below", "description": "Hide the bar item while discharging at or above this level, unless the power watcher has a warning or reports a high draw.", "min": 1, "max": 100, "unit": "%", "default": 50 },
+    { "kind": "number", "id": "show_charging_below", "label": "Show while charging below", "description": "Hide the bar item on external power above this level.", "min": 1, "max": 100, "unit": "%", "default": 20 },
+    { "kind": "number", "id": "show_draw_watts", "label": "Show draw above", "description": "While on battery, show when the optional power watcher measures at least this many watts.", "min": 1, "max": 100, "unit": "W", "default": 15 },
+    { "kind": "boolean", "id": "always_show", "label": "Always show battery", "text": "Keep the battery item visible even when it is healthy.", "default": false },
+    { "kind": "path", "id": "power_state_file", "label": "Power watcher state", "description": "Optional state.json written by the `power` watcher. It adds measured draw, warnings and top consumers; a stale file is ignored.", "pick": "file", "default": "~/.local/share/power/state.json" }
+  ],
+  "store": {
+    "tagline": "Battery level, remaining time, and what is drawing it",
+    "category": "system",
+    "features": [
+      "Battery percentage, source, state and time remaining from macOS `pmset` or Linux `upower`",
+      "Optional measured draw, warnings, wake locks and top consumers from the existing `power` watcher state file",
+      "The bar stays quiet while healthy by default, then returns for a low battery, a warning, or unusual draw on battery",
+      "Click opens Battery settings; hover opens a compact explanation of level, draw, warnings and consumers"
+    ],
+    "permissions": [],
+    "platforms": ["macos", "linux"],
+    "screenshots": [],
+    "actions": [{ "title": "Open Battery settings", "description": "Battery settings on macOS; the available power settings application on Linux.", "keys": "enter" }]
+  },
+  "palettes": {
+    "power": {
+      "kind": "live",
+      "description": "The live battery gauge and, when available, the `power` watcher's measured draw, warnings, consumers and wake locks.",
+      "keys": [{ "keys": "enter", "title": "Open Battery settings" }]
+    }
+  },
+  "bar": {
+    "battery": {
+      "title": "Battery",
+      "description": "Battery percentage with a low-power/warning state. Click opens Battery Settings; its popover explains the live draw and culprits when the power watcher is available.",
+      "refresh": { "every": 30, "on": ["wake"] },
+      "mocks": {
+        "healthy": { "title": "Healthy, hidden", "item": { "hidden": true } },
+        "draining": { "title": "Low battery", "item": { "icon": "󰁹", "title": "31%", "progress": 0.31, "tooltip": "Battery Power · Discharging · 2h 57m remaining · 7.2 W draw" } },
+        "charging": { "title": "Charging", "item": { "icon": "󰂄", "title": "14%", "color": "green", "progress": 0.14, "tooltip": "Power Adapter · Charging · 48m remaining" } },
+        "warning": { "title": "Power warning", "item": { "icon": "󰂃", "title": "31%", "color": "amber", "progress": 0.31, "tooltip": "Battery Power · background-burn: copilot is using power in the background" } },
+        "critical": { "title": "Critical battery", "item": { "icon": "󰂃", "title": "8%", "color": "red", "progress": 0.08, "tooltip": "Battery Power · 22m remaining" } }
+      }
+    }
+  }
+}
