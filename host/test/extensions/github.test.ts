@@ -471,7 +471,7 @@ describe("github", () => {
 
   describe("bar: notifications", () => {
     test("meta: the manifest entry with its refresh, backed by the code", () => {
-      expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual([{ id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true }]);
+      expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual([{ id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: { unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, clear: { title: "All caught up", item: { hidden: true } } }, keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true }]);
     });
 
     test("render: the unread count as the badge, the popover a view of the threads by repository with a reason badge, the age and the key hints", async () => {

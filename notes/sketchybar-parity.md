@@ -31,7 +31,7 @@ but do not revive rows that conflict with it.
 - **Settings mock states:** an extension may expose stable named `bar.<item>.mocks`
   scenarios. Settings shows a `Preview state` selector and renders the selected item
   only in its configuration strip — never in the real bar and never by mutating
-  configuration. Spotify, Calendar and Timer provide useful initial scenarios.
+  configuration. Spotify, Calendar, Timer, Audio, Network and GitHub provide useful initial scenarios.
 - **Spotify lyrics:** timestamped LRC lines now tick at lyric boundaries while playing,
   including when the bar is closed; polling/MediaRemote resynchronises the ticker.
 - **Calendar Upcoming:** has far/near/warning/critical/running presentation states,

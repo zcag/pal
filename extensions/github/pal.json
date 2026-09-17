@@ -241,6 +241,28 @@
     "notifications": {
       "title": "Notifications",
       "description": "The unread count as a badge, hidden at zero; the popover lists the unread threads by repository with their reason, opens or marks them read, marks all read.",
+      "mocks": {
+        "unread": {
+          "title": "Unread notifications",
+          "item": {
+            "icon": "",
+            "badge": 4,
+            "tooltip": "4 unread notifications"
+          }
+        },
+        "one": {
+          "title": "One notification",
+          "item": {
+            "icon": "",
+            "badge": 1,
+            "tooltip": "1 unread notification"
+          }
+        },
+        "clear": {
+          "title": "All caught up",
+          "item": { "hidden": true }
+        }
+      },
       "refresh": {
         "every": 300,
         "on": [
