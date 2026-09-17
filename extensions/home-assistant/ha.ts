@@ -6,7 +6,11 @@
 import { errorMessage, tinted, type Accessory, type Action, type FormField, type Icon, type Item, type TagColor } from "@zcag/pal";
 
 /** `[extensions.home-assistant]`, defaults in pal.json. */
-export type Settings = { url: string; token: string; domains: string[]; favorites: string[]; timeout: number };
+export type Settings = {
+  url: string; token: string; domains: string[]; favorites: string[]; timeout: number;
+  /** Optional weather bar inputs. Empty entity ids deliberately disable that item. */
+  temperature_entity?: string; weather_entity?: string; temperature_low?: number; temperature_high?: number; notable_conditions?: unknown[];
+};
 
 /** One entry of `/api/states`. */
 export type State = { entity_id: string; state: string; attributes: Record<string, unknown>; last_changed: string; last_updated: string };

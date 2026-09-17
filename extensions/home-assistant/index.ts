@@ -2,8 +2,9 @@
 // current), services as forms, areas as drill-ins. Everything is the REST
 // API in ha.ts with the settings' URL, token and timeout; a request that
 // fails is one hint row with the fix, never an error.
-import { errorMessage, hint, settings, toast, when, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { errorMessage, hint, settings, toast, when, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type View } from "@zcag/pal";
 import { actions, asText, attributeRows, Client, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, icon, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
+import { colorOf as weatherColor, notable as weatherNotable, weatherEntities, weatherOf, weatherView } from "./weather.ts";
 
 const EXTENSION = "home-assistant";
 /** `ctx.args` of the entities palette's drill-ins. */
@@ -111,6 +112,61 @@ async function callService(c: Client, id: string, ctx?: Ctx): Promise<Effect> {
     return { toast: { title: `Called ${id}`, message: changed.length ? `${changed.length} ${changed.length === 1 ? "entity" : "entities"} changed: ${changed.map(name).join(", ").slice(0, 120)}` : undefined, style: "success" } };
   } catch (e) {
     return failed(`call ${id}`, e);
+  }
+}
+
+const WEATHER_GLYPH = "󰖪";
+
+/** A configured weather failure stays visible and says why; an intentionally disabled item remains silent. */
+function weatherFailure(e: unknown): BarItem {
+  const message = e instanceof HaError ? e.message : `Weather: ${errorMessage(e)}`;
+  const view: View = {
+    title: "Weather unavailable",
+    actions: [],
+    tree: { type: "stack", direction: "column", key: "weather-error", padding: 3, gap: 1, children: [
+      { type: "text", key: "title", value: "Weather could not refresh", style: "title" },
+      { type: "text", key: "message", value: message, style: "muted", size: "sm" },
+      ...(e instanceof HaError ? [{ type: "text", key: "hint", value: e.hint, style: "muted", size: "xs" } as const] : []),
+    ] },
+  };
+  return { icon: WEATHER_GLYPH, title: "Weather", color: "red", stale: true, tooltip: message, menu: { view } };
+}
+
+/** Current weather sourced from the two explicit HA entities, never from an external service. */
+async function weatherBar(_ctx: BarCtx): Promise<BarItem> {
+  const s = settings.get<Settings>();
+  const entities = weatherEntities(s);
+  if (!entities) return { hidden: true };
+  try {
+    const c = client();
+    const [temperature, report] = await Promise.all([c.state(entities.temperature), c.state(entities.weather)]);
+    const weather = weatherOf(temperature, report);
+    if (!weather) throw new HaError(`Weather temperature ${entities.temperature} is unavailable`, "Choose a sensor with a numeric outdoor temperature under Settings › Extensions › Home Assistant");
+    const color = weatherColor(weather, s);
+    const updated = when(weather.updated);
+    return {
+      hidden: !weatherNotable(weather, s),
+      icon: weather.glyph,
+      title: `${Number.isInteger(weather.temperature) ? weather.temperature : weather.temperature.toFixed(1).replace(/\.0$/, "")}${weather.unit}`,
+      color,
+      tooltip: `${weather.conditionLabel} · ${updated}`,
+      menu: { view: weatherView(weather, color, updated) },
+    };
+  } catch (e) {
+    return weatherFailure(e);
+  }
+}
+
+/** The one popover action opens the weather entity's history in the configured HA. */
+async function weatherAction(action: string): Promise<Effect | void> {
+  if (action !== "open_ha") return;
+  try {
+    const entities = weatherEntities(settings.get<Settings>());
+    if (!entities) return;
+    const c = client();
+    return { open: haUrl(c.url, await c.state(entities.weather)) };
+  } catch (e) {
+    return failed("open weather in Home Assistant", e);
   }
 }
 
@@ -228,5 +284,8 @@ export default {
       },
       pick: (id): Effect | void => (id === "hint:setup" ? undefined : { push: { extension: EXTENSION, palette: "entities", args: { area: id }, title: id } }),
     },
+  },
+  bar: {
+    weather: { render: weatherBar, onAction: weatherAction },
   },
 } satisfies Extension;

@@ -7,6 +7,7 @@
 // redirecting one.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { coerce, flatFields, serviceFormField, targets, unconfigured, type ServiceDomain, type Settings, type State } from "../../../extensions/home-assistant/ha.ts";
+import { colorOf, notable, weatherEntities, weatherOf } from "../../../extensions/home-assistant/weather.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
 
@@ -32,6 +33,10 @@ const states: State[] = [
   st("input_boolean.guest", "off", attrs("Guest mode")),
   st("vacuum.robo", "docked", attrs("Robo")),
   st("update.core", "off", attrs("Core update")),
+];
+const weatherStates: State[] = [
+  st("sensor.outdoor_temperature", "14", attrs("Outdoor temperature", { unit_of_measurement: "°C" }), "2026-09-16T10:02:00+00:00"),
+  st("weather.forecast_home", "rainy", attrs("Forecast home", { apparent_temperature: 13, humidity: 82, wind_speed: 18, wind_speed_unit: "km/h" }), "2026-09-16T10:03:00+00:00"),
 ];
 const areas: Record<string, string> = { "light.kitchen": "Kitchen", "sensor.temp": "Kitchen", "light.hall": "Hall" };
 const services: ServiceDomain[] = [
@@ -60,7 +65,7 @@ const server = Bun.serve({
     if (req.headers.get("authorization") !== `Bearer ${TOKEN}`) return new Response("401: Unauthorized", { status: 401 });
     if (u.pathname === "/api/states") return Response.json(states);
     const one = u.pathname.match(/^\/api\/states\/(.+)$/);
-    if (one) { const s = states.find((x) => x.entity_id === one[1]); return s ? Response.json(s) : new Response("not found", { status: 404 }); }
+    if (one) { const s = [...states, ...weatherStates].find((x) => x.entity_id === one[1]); return s ? Response.json(s) : new Response("not found", { status: 404 }); }
     if (u.pathname === "/api/services" && req.method === "GET") return Response.json(services);
     if (u.pathname === "/api/template") return Response.json(areas);
     const call = u.pathname.match(/^\/api\/services\/([^/]+)\/(.+)$/);
@@ -94,7 +99,7 @@ describe("manifest", () => {
   test("multi: a home is an instance; `url` and the token never inherit from the default", () => {
     const m = host.manifests.get(E)!;
     expect(m.multi).toBe(true);
-    expect(m.settings!.filter((s) => s.kind === "secret" || s.scope === "instance").map((s) => s.id)).toEqual(["url", "token"]);
+    expect(m.settings!.filter((s) => s.kind === "secret" || s.scope === "instance").map((s) => s.id)).toEqual(["url", "token", "temperature_entity", "weather_entity", "temperature_low", "temperature_high", "notable_conditions"]);
     expect((host.loaded().find((l) => l.extension === E) as any).instance).toEqual({ key: E, isDefault: true });
   });
 });
@@ -132,6 +137,46 @@ describe("ha helpers", () => {
     expect(targets(services[0].services.turn_on, states)!.map((s) => s.entity_id)).toEqual(["light.kitchen", "light.hall"]);
     expect(targets(services[2].services.turn_on, states)).toHaveLength(states.length);
     expect(targets(services[1].services.create, states)).toBeUndefined();
+  });
+  test("weather: HA's states become a condition, measurements and threshold-aware bar colour", () => {
+    const weather = weatherOf(weatherStates[0], weatherStates[1])!;
+    expect(weather).toMatchObject({ temperature: 14, unit: "°C", condition: "rainy", conditionLabel: "Rainy", glyph: "󰖗", feelsLike: "13°C", humidity: "82%", wind: "18 km/h" });
+    expect(notable(weather, {})).toBe(true);
+    expect(colorOf(weather, {})).toBe("blue");
+    expect(notable({ ...weather, condition: "cloudy", temperature: 19 }, { notable_conditions: [] })).toBe(false);
+    expect(colorOf({ ...weather, condition: "sunny", temperature: 34 }, {})).toBe("red");
+    expect(weatherEntities({ temperature_entity: "", weather_entity: "weather.home" })).toBeUndefined();
+    expect(weatherOf({ ...weatherStates[0], state: "unavailable" }, weatherStates[1])).toBeUndefined();
+  });
+});
+
+describe("weather bar", () => {
+  test("notable weather has a compact, useful popover and opens its HA history", async () => {
+    const item = await host.render(E, "weather");
+    expect(item).toMatchObject({ icon: "󰖗", title: "14°C", color: "blue", hidden: false, tooltip: expect.stringContaining("Rainy") });
+    const view = (item.menu as { view: any }).view;
+    expect(view.title).toBe("Weather now");
+    expect(view.actions).toEqual([{ id: "open_ha", title: "Open in Home Assistant", shortcut: "o" }]);
+    expect(JSON.stringify(view.tree)).toContain("Feels like");
+    expect(JSON.stringify(view.tree)).toContain("Humidity");
+    expect(await host.barAction(E, "weather", "open_ha")).toEqual({ open: `${URL_}/history?entity_id=weather.forecast_home` });
+  });
+  test("ordinary weather hides, while a bad configured sensor surfaces a stale diagnosis", async () => {
+    weatherStates[1].state = "cloudy";
+    host.changeSettings(E, { settings: { ...base, notable_conditions: [] } });
+    expect(await host.render(E, "weather")).toMatchObject({ hidden: true, title: "14°C" });
+    weatherStates[0].state = "unavailable";
+    const unavailable = await host.render(E, "weather");
+    expect(unavailable).toMatchObject({ icon: "󰖪", title: "Weather", color: "red", stale: true });
+    expect((unavailable.menu as { view: any }).view.title).toBe("Weather unavailable");
+    weatherStates[0].state = "14";
+    weatherStates[1].state = "rainy";
+    host.changeSettings(E, { settings: base });
+  });
+  test("empty weather entities intentionally disable the bar item", async () => {
+    host.changeSettings(E, { settings: { ...base, temperature_entity: "", weather_entity: "" } });
+    expect(await host.render(E, "weather")).toEqual({ hidden: true });
+    host.changeSettings(E, { settings: base });
   });
 });
 

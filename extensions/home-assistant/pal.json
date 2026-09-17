@@ -59,6 +59,55 @@
       "default": []
     },
     {
+      "kind": "text",
+      "id": "temperature_entity",
+      "scope": "instance",
+      "label": "Outdoor temperature entity",
+      "description": "A numeric outdoor-temperature sensor for the Weather bar. Empty disables the item for this Home Assistant instance.",
+      "placeholder": "sensor.outdoor_temperature",
+      "default": "sensor.outdoor_temperature"
+    },
+    {
+      "kind": "text",
+      "id": "weather_entity",
+      "scope": "instance",
+      "label": "Weather entity",
+      "description": "The weather.* entity supplying the condition, feels-like temperature, humidity and wind. Empty disables the Weather bar item.",
+      "placeholder": "weather.forecast_home",
+      "default": "weather.forecast_home"
+    },
+    {
+      "kind": "number",
+      "id": "temperature_low",
+      "scope": "instance",
+      "label": "Weather low threshold",
+      "description": "Show Weather when the outdoor temperature falls below this value. Use the unit reported by the temperature entity.",
+      "min": -100,
+      "max": 100,
+      "step": 1,
+      "default": 10
+    },
+    {
+      "kind": "number",
+      "id": "temperature_high",
+      "scope": "instance",
+      "label": "Weather high threshold",
+      "description": "Show Weather when the outdoor temperature rises above this value. Use the unit reported by the temperature entity.",
+      "min": -100,
+      "max": 100,
+      "step": 1,
+      "default": 30
+    },
+    {
+      "kind": "list",
+      "id": "notable_conditions",
+      "scope": "instance",
+      "label": "Notable weather conditions",
+      "description": "Show Weather for these Home Assistant condition values even at a comfortable temperature. Empty means only the temperature thresholds show it.",
+      "placeholder": "rainy",
+      "default": ["rainy", "pouring", "lightning", "lightning-rainy", "snowy", "snowy-rainy", "fog", "windy", "windy-variant", "hail", "exceptional"]
+    },
+    {
       "kind": "number",
       "id": "timeout",
       "label": "Timeout",
@@ -79,6 +128,7 @@
       "`cmd+c` copies the entity id, `cmd+shift+a` lists its attributes, `cmd+o` opens it in Home Assistant",
       "Every service as a form: the target entity as a select, then the service's fields from its description",
       "Areas as drill-ins: `enter` on an area lists its entities",
+      "Weather bar: the configured outdoor-temperature and weather entities, with a condition glyph and a compact current-conditions popover; hidden in comfortable, ordinary weather",
       "Entity ids are row ids, so an item hotkey can toggle the kitchen light without showing pal"
     ],
     "permissions": [
@@ -190,6 +240,38 @@
         "keys": "enter"
       }
     ]
+  },
+  "bar": {
+    "weather": {
+      "title": "Weather",
+      "description": "Current outdoor conditions from Home Assistant. It stays out of the way in comfortable, ordinary weather; precipitation, fog, wind and temperatures outside the configured band bring it into view.",
+      "refresh": { "every": 600, "on": ["show", "wake", "network"] },
+      "keys": [
+        { "keys": "o", "title": "Open the weather entity in Home Assistant" }
+      ],
+      "mocks": {
+        "rain": {
+          "title": "Rain now",
+          "item": { "icon": "󰖗", "title": "14°C", "color": "blue", "tooltip": "Rainy · updated 2 minutes ago" }
+        },
+        "hot": {
+          "title": "Above the high threshold",
+          "item": { "icon": "󰖙", "title": "34°C", "color": "red", "tooltip": "Sunny · above the configured high threshold" }
+        },
+        "fog": {
+          "title": "Fog",
+          "item": { "icon": "󰖝", "title": "18°C", "color": "teal", "tooltip": "Fog · updated just now" }
+        },
+        "quiet": {
+          "title": "Comfortable and clear",
+          "item": { "hidden": true }
+        },
+        "unavailable": {
+          "title": "Home Assistant unavailable",
+          "item": { "icon": "󰖪", "title": "Weather", "color": "red", "stale": true, "tooltip": "Home Assistant did not answer" }
+        }
+      }
+    }
   },
   "palettes": {
     "entities": {
