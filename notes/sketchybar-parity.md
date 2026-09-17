@@ -51,11 +51,51 @@ but do not revive rows that conflict with it.
   interruption-only low-battery alert. All three have useful Settings mocks and their
   own palettes/popovers rather than becoming a generic status cluster.
 
+### Landed — live polish pass
+
+Ran against the real bar on hornet, which is where all three defects showed up;
+none of them were visible in the Settings previews, because a preview renders the
+mock rather than the extension.
+
+- **Weather was dead on his bar, showing a red `󰖪 Weather`.** Open-Meteo's geocoder
+  takes one bare place name, so the configured `Istanbul, Turkey` — the manifest's
+  own placeholder — matched nothing. The first comma-separated segment is now the
+  query and the rest only *rank* the answers: the index stores endonyms
+  (`Republic of Türkiye`) that a written exonym (`Turkey`) never equals, so a hard
+  filter would turn a good answer into no answer. Unmatched qualifiers fall through
+  to population, which is what a bare `Istanbul` should resolve to anyway. This also
+  buys `London, Ontario` and `Paris, Texas`. The old test could not catch it: its
+  fake geocoder answered every query, so it now matches on the name like the real one.
+- **Power drew the level twice.** `progress` makes the sketchybar renderer prefix an
+  8-cell rule to the icon (`sketchybar.rs:122`), so a 23% battery read
+  `━━────── 󰁺 23%` — the timer's signature look, spent saying what the label already
+  said. The rule is gone and the glyph now carries the level as his 6-step ramp does
+  (`battery.sh:161-169`); severity stays the colour's job, so an alert at 80% still
+  reads as "battery fine, something else is wrong".
+- **Power never said how long.** The title is now `16% · 1:04 · 9.5W`, in his order
+  and never four fields wide: the ETA appears five points *above* the amber
+  threshold so the number that explains the colour is already on screen when the
+  colour arrives, and it takes the slot the culprit would have had, since at 15% the
+  question is how long, not who. A recalculating pmset `0:00` now defers to the
+  watcher's estimate instead of displacing it (his `battery.sh:225-239` warning).
+- **Bluetooth Battery** moved to his numbers: alert at 25%, red at 20%.
+
+Two of his workarounds were deliberately *not* copied, because pal does not have the
+limitation they answer. His `󰋋 󰁺` glyph pair cannot be used: `icon_kind`
+(`bar/mod.rs:222-236`) classifies any multi-character icon as `Text`, which the menu
+bar draws as status-item text in the system font (`menubar.rs:114`) — tofu for two
+private-use glyphs — and `target` defaults to `auto`, so the menu bar is a real
+target. The pair is unnecessary anyway: pal's item leads with the device name, so it
+never needs a glyph to say which battery it is. Likewise his `''|0` guard exists
+because a shell cannot tell an empty read from a zero; `battery` is `Option<u8>` in
+`core/src/bluetooth.rs:29`, so `null` already means unknown and hiding a 0 would hide
+a dying device.
+
 ### Next, in order
 
-1. **Live polish pass:** use the Settings previews and real bar to tune thresholds,
-   placement and the density of the three new surfaces before extending scope. Spotify
-   already uses B6 scroll for next/previous.
+1. **Nothing queued.** The three surfaces are tuned against the live bar. The
+   remaining named polish is on other items: Network's home hiding, hotspot/public
+   and RSSI glyph variants (E11), and Audio's volume-level flash (E9).
 
 ### Explicitly deferred
 
@@ -233,11 +273,11 @@ as parallel agents.
 | E5 | `timer/timer` | `background: "destructive-soft"` on done (B2), `click: "open"` + `onOpen` dismissing a done timer (B1), `bar_name` setting adding `  tea  +1`, `escalation = "seconds"` setting (60 s peach / 10 s red) or leave his fraction rule; rule size via `icon_size` (B2). | S | after B1, B2 |
 | E6 | `calendar/upcoming` | `position: "q"` and `size: 14` under `warn_minutes` (B2), `click: "open"` + `onOpen` joining the next call (B1); config `show_icon = false`, `size = 10`, `color` muted far off is already there. | S | after B1, B2 |
 | E7 | `spotify/playing` | `scroll:up|down` → next / previous (B6), `click: "open"` + `onOpen` play / pause (B1); config `position = "q"` (done), `color = "muted"`, `size = 10`, `icon_size = 15`, `order` above calendar so a near meeting takes the notch edge. | S | after B1, B6 |
-| E8 | `power/battery` | **done:** macOS `pmset` / Linux `upower` gauge plus optional fresh watcher state for measured draw, warning rules, wake locks and top consumers; configurable healthy hide thresholds, direct Battery Settings action, palette and compact diagnostic popover, Settings mocks. Native source events remain deferred; the item polls. | M | — |
+| E8 | `power/battery` | **done:** macOS `pmset` / Linux `upower` gauge plus optional fresh watcher state for measured draw, warning rules, wake locks and top consumers; configurable healthy hide thresholds, direct Battery Settings action, palette and compact diagnostic popover, Settings mocks. Polished on the live bar: his 6-step ramp glyph instead of the duplicated `progress` rule, and a `16% · 1:04 · 9.5W` title with his ETA-before-amber ordering and the `0:00` fallback. Native source events remain deferred; the item polls. | M | — |
 | E9 | `audio/volume` + `audio/microphone` | **done:** output glyph/level, direct mute, wheel ±5, 18 pt / 31 pt stable glyph slot, Audio palette popover and 5 s poll; mic hidden while healthy, direct 75% restore when muted or absent. Remaining polish: temporary volume-level flash, Sound Settings action and a native audio event. | M | ∥ |
-| E10 | `bluetooth/battery` | **done:** extends the existing Bluetooth core source; connected devices that report at or below a configurable threshold surface as an amber/red interruption, otherwise hidden. It opens Bluetooth Settings directly, uses the Bluetooth palette as its popover and has Settings mocks. | S | — |
+| E10 | `bluetooth/battery` | **done:** extends the existing Bluetooth core source; connected devices that report at or below a configurable threshold surface as an amber/red interruption, otherwise hidden. It opens Bluetooth Settings directly, uses the Bluetooth palette as its popover and has Settings mocks. Tuned to his numbers: alert at 25%, red at 20%. The glyph stays single — a pair would be menu-bar tofu, and the device name already says which battery it is. | S | — |
 | E11 | `network/status` | **done:** active SSID / wired label, optional friendly SSID map, red no-route state, direct Network Settings action, Network palette popover, `refresh: 5` plus wake/network and mocks. Remaining polish: home hiding, hotspot/public/RSSI variants and compact kv popover. | M | ∥ |
-| E12 | `weather/weather` | **done:** standalone Open-Meteo location search/current forecast, no Home Assistant dependency; configurable place, comfort thresholds and extra WMO codes; condition glyph/tint mapping, quiet hidden state, visible failure diagnosis, compact current-conditions popover and Settings mocks. | S-M | — |
+| E12 | `weather/weather` | **done:** standalone Open-Meteo location search/current forecast, no Home Assistant dependency; configurable place, comfort thresholds and extra WMO codes; condition glyph/tint mapping, quiet hidden state, visible failure diagnosis, compact current-conditions popover and Settings mocks. Fixed on the live bar: the geocoder takes one bare name, so `Istanbul, Turkey` matched nothing; qualifiers now rank rather than filter. | S-M | — |
 | E13 | `system/privacy` (media_use) | assertions + `pgrep`, glyph list, hidden when clear, `background: "orange"` (B2), `refresh: 2` (min `every` is 10, so a `setInterval` + `bar.update` inside the extension). | S-M | after B2 |
 | E14 | `tan` (new extension, `multi`) | instance → port map (`tan` 8793, `tan@work` 8803, a `url` setting), `state.json` + headers for "ran 5 m ago", `quiet_buckets` setting, count / red rule, popover per bucket (`id` semibold coloured by urgency, title muted), Enter opens `links[0]` else `https://tan.lan`; Open tan; a palette of the same rows. `when = "working"` on `tan@work/items`. | M | ∥ |
 | E15 | `claude` (sessions, new extension) | `claude-state ls` (local) + `ssh marko cldd ls` (remote, `hosts` setting), segments [`yours` amber, `working` blue], hidden at 0, `on: ["show"]` with a 10 s remote ttl on `show`, a long-lived `ssh marko inotifywait` the extension owns (restart with backoff, `dispose()`), `bar.update` per burst; hook line in `claude-state` → `pal bar render claude/sessions`; popover: HORNET rows (Enter focuses the kitty window, the `cldd-focus` logic over `kitten @ ls`), MARKO rows (Enter copies the attach line, HUD "copied"), Shell on marko; `click: "open"` copying `ssh -t marko` (B1). Retire `cldd-stream.sh` when it lands. | M-L | ∥ |
