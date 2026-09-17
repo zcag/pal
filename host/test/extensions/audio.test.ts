@@ -35,7 +35,9 @@ describe("audio", () => {
   });
 
   test("bar: volume controls the default output directly, scroll adjusts it, and the mic appears only while muted", async () => {
-    expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f075d}", title: "56%", icon_size: 18, icon_width: 31, click: "open", scroll: { up: "up", down: "down" }, menu: { palette: "audio" } });
+    // 56%: the middle of the ramp, and no number — the level is not furniture.
+    expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f0580}", icon_size: 18, icon_width: 31, click: "open", scroll: { up: "up", down: "down" }, menu: { palette: "audio" } });
+    expect((await host.render("audio", "volume")).title).toBeUndefined();
     expect(await host.render("audio", "microphone")).toEqual({ hidden: true });
     expect(await host.barAction("audio", "volume", "up")).toEqual({ keep: true, hud: "MacBook Pro Speakers 61%" });
     expect(await host.request<any>("bar/open", { extension: "audio", id: "volume" })).toEqual({ keep: true, hud: "MacBook Pro Speakers muted" });
@@ -43,6 +45,38 @@ describe("audio", () => {
     expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", color: "red", click: "open" });
     expect(await host.request<any>("bar/open", { extension: "audio", id: "microphone" })).toEqual({ keep: true, hud: "MacBook Pro Microphone at 75%" });
     devices = devices.map((d) => d.kind === "input" ? { ...d, muted: false } : d);
+  });
+
+  test("the level is feedback, not furniture: Always keeps it, Never refuses it, and a flash collapses on its own", async () => {
+    // Never: not even straight after a change.
+    host.changeSettings("audio", { settings: { level: "never" } });
+    await host.barAction("audio", "volume", "up");
+    expect((await host.render("audio", "volume")).title).toBeUndefined();
+    host.changeSettings("audio", { settings: { level: "always" } });
+    expect((await host.render("audio", "volume")).title).toBe("56%");
+    // Flash: quiet again once an earlier one has lapsed, up on a change, gone by itself after.
+    host.changeSettings("audio", { settings: { level: "flash" } });
+    await Bun.sleep(4500);
+    expect((await host.render("audio", "volume")).title).toBeUndefined();
+    await host.barAction("audio", "volume", "down");
+    expect((await host.render("audio", "volume")).title).toBe("56%");
+    await Bun.sleep(4500);
+    expect((await host.render("audio", "volume")).title).toBeUndefined();
+  }, 20000);
+
+  test("the glyph says where the sound goes, and only falls through to the ramp when nothing else does", async () => {
+    const glyph = async (patch: Partial<AudioDevice>) => {
+      const saved = devices;
+      devices = devices.map((d) => d.default && d.kind === "output" ? { ...d, ...patch } : d);
+      try { return (await host.render("audio", "volume")).icon; } finally { devices = saved; }
+    };
+    expect(await glyph({ volume: 80 })).toBe("\u{f057e}");
+    expect(await glyph({ volume: 12 })).toBe("\u{f057f}");
+    // Silent is the same fact as muted, not the bottom of the ramp.
+    expect(await glyph({ volume: 0 })).toBe("\u{f075f}");
+    expect(await glyph({ muted: true, volume: 80 })).toBe("\u{f075f}");
+    expect(await glyph({ transport: "bluetooth", volume: 80 })).toBe("\u{f08c3}");
+    expect(await glyph({ transport: "hdmi", volume: 80 })).toBe("\u{f04c3}");
   });
 
   test("rows per direction with default and muted tags, the volume, and the actions", async () => {

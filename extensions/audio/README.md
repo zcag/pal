@@ -14,13 +14,36 @@ which tool is missing.
 
 ## Bar items
 
-**Volume** shows the default output's route glyph and level. Click mutes or
-unmutes it; on sketchybar, the wheel moves in 5% steps. Its popover is the
-Audio palette, so switching to another output is one move away. **Microphone**
-stays out of the way while the default input is usable; it appears red when
-that input is muted or absent, and a click restores an available input to 75%.
-Both poll every five seconds until the core has a native audio-change event.
-Their Bar settings offer representative mock states.
+**Volume** shows where the sound is going: headphones for a Bluetooth output, a
+speaker for HDMI or AirPlay, and otherwise a three-step loudness ramp — one more
+arc on the same cone each step, with silence drawn as muted, since zero is the
+same fact rather than the bottom of the ramp. The glyph slot is a fixed width, so
+the arcs appear into space already reserved instead of shoving the neighbours
+along.
+
+The level is **not** in the bar by default. It changes only when you change it,
+so a percentage sitting there permanently is a number you stop reading; instead
+it appears for three seconds after a change as feedback for the thing you just
+did, then collapses back to one glyph. `level` picks between that (`flash`),
+`always` and `never`; the standing answer either way is the popover, where the
+level sits against the device it applies to. Only a change *you* made through the
+item flashes it — a poll or a device change must not, or it would be permanent
+again by another route. A change made with the keyboard's own volume keys is not
+seen until the next poll, and does not flash: that needs a native audio event,
+which the core does not have yet.
+
+Click mutes or unmutes; on sketchybar, the wheel moves in 5% steps. The popover
+is the Audio palette, so switching to another output is one move away.
+**Microphone** stays out of the way while the default input is usable; it appears
+red when that input is muted or absent, and a click restores an available input
+to 75%. Both poll every five seconds until the core has a native audio-change
+event. Their Bar settings offer representative mock states.
+
+Settings, `[extensions.audio]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `level` | select | `flash` | Where the percentage lives: `flash` for three seconds after a change, `always`, or `never`. |
 
 ## Rows
 

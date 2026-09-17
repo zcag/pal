@@ -4,7 +4,7 @@
 // other actions set a preset volume (a pushed level with 0/25/50/75/100)
 // or toggle mute without leaving the palette. Live: the defaults and
 // volumes are read again on every show.
-import { audio, errorMessage, failed, hint, xdg, type Accessory, type Action, type AudioDevice, type BarItem, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
+import { audio, bar, errorMessage, failed, hint, settings, xdg, type Accessory, type Action, type AudioDevice, type BarItem, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
 
 export const PRESETS = [0, 25, 50, 75, 100];
 
@@ -18,9 +18,40 @@ const parse = (row: string): { kind: AudioDevice["kind"]; id: string } => {
 const MIC = "\u{f036c}"; // md-microphone
 const MIC_MUTED = "\u{f036d}";
 const MIC_OFF = "\u{f036e}";
-const VOLUME = { low: "\u{f057f}", high: "\u{f075d}", muted: "\u{f075f}", headphones: "\u{f08c3}" };
+const VOLUME = { muted: "\u{f075f}", headphones: "\u{f08c3}", speaker: "\u{f04c3}" };
+/**
+ * The loudness ramp: one more arc on the same cone each step. Zero is not the
+ * bottom of it — it is the same fact as muted, and takes the muted glyph.
+ */
+const RAMP: [number, string][] = [[67, "\u{f057e}"], [34, "\u{f0580}"], [1, "\u{f057f}"], [0, VOLUME.muted]];
 const BAR_MENU = { palette: "audio" } as const;
 const VOLUME_STEP = 5;
+const VOLUME_ITEM = "volume";
+/** How long the level stays up after a change, his `VOL_FLASH_SEC`. */
+const FLASH_MS = 3000;
+
+/** `[extensions.audio]`, default in pal.json. */
+type Settings = { level: "flash" | "always" | "never" };
+
+let flashUntil = 0;
+let collapse: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Hold the level up for a moment, then take it away again. Every change
+ * rearms the timer, so a run of scroll ticks keeps the number up throughout
+ * and clears it once, at the end.
+ *
+ * It is a timer and a push rather than `BarItem.refresh` because the core
+ * floors a poll at `MIN_EVERY` (10 s), which would leave the number up three
+ * times as long as it should be.
+ */
+function flash(): void {
+  if (settings.get<Settings>().level !== "flash") return;
+  flashUntil = Date.now() + FLASH_MS;
+  clearTimeout(collapse);
+  collapse = setTimeout(() => { flashUntil = 0; bar.refresh(VOLUME_ITEM).catch(() => {}); }, FLASH_MS);
+  collapse.unref?.();
+}
 
 function icon(d: AudioDevice): string {
   if (d.kind === "input") return MIC;
@@ -50,13 +81,26 @@ function item(d: AudioDevice): Item {
 
 const defaultDevice = async (kind: AudioDevice["kind"]) => (await audio.devices()).find((d) => d.kind === kind && d.default);
 
+/** The glyph says where the sound goes; only a device with nowhere else to say it falls through to the ramp. */
+function outputGlyph(d: AudioDevice): string {
+  if (d.muted === true) return VOLUME.muted;
+  if (d.transport === "bluetooth") return VOLUME.headphones;
+  if (d.transport === "hdmi" || d.transport === "airplay") return VOLUME.speaker;
+  return RAMP.find(([floor]) => (d.volume ?? 0) >= floor)![1];
+}
+
 function outputBar(d: AudioDevice | undefined): BarItem {
   if (!d) return { hidden: true };
   const muted = d.muted === true;
-  const icon = muted ? VOLUME.muted : d.transport === "bluetooth" ? VOLUME.headphones : (d.volume ?? 0) < 34 ? VOLUME.low : VOLUME.high;
+  // The number changes only when you change it, so it is feedback rather than a
+  // reading: permanently on screen it is one you stop seeing. It appears for the
+  // moment after a change and then collapses back to a one-glyph item; the
+  // standing answer is the popover, against the device it applies to.
+  const level = settings.get<Settings>().level;
+  const showLevel = d.volume !== null && (level === "always" || (level === "flash" && Date.now() < flashUntil));
   return {
-    icon,
-    title: d.volume === null ? undefined : `${d.volume}%`,
+    icon: outputGlyph(d),
+    title: showLevel ? `${d.volume}%` : undefined,
     color: muted ? "muted" : undefined,
     icon_size: 18,
     icon_width: 31,
@@ -90,9 +134,13 @@ async function volumeAction(action: string): Promise<Effect> {
       if (d.volume === null) return { keep: true };
       const volume = Math.max(0, Math.min(100, d.volume + (action === "up" ? VOLUME_STEP : -VOLUME_STEP)));
       await audio.setVolume(d.id, "output", volume);
+      // Only what he just did puts the number up; a poll or a device change must
+      // not, or it would be permanent again by another route.
+      flash();
       return { keep: true, hud: `${d.name} ${volume}%` };
     }
     const muted = await audio.setMute(d.id, "output");
+    flash();
     return { keep: true, hud: muted ? `${d.name} muted` : `${d.name} unmuted` };
   } catch (e) { return failed("change volume", e); }
 }
