@@ -5,18 +5,17 @@ development and gets written down as it stabilises. Platform detail is in
 `notes/linux.md` (marko, Hyprland, bundle) and `notes/matching.md` (nucleo vs
 fzf-for-js benchmarks); this file links to them instead of repeating.
 
-## State at 2026-09-16 morning
+## State at 2026-09-17 morning
 
-- Shell: Tauri v2, Rust core + React UI in the system webview; panel pre-painted at startup, page alive while hidden; `pal toggle|show|hide|settings|quit` over single-instance (`app/src-tauri/src/cli.rs`); HUD window for after-hide feedback (`hud.rs`); one link grammar, `pal://` and its CLI twins, with extension routes and Copy deep link everywhere (`deeplink.rs`, `docs/design/links.md`).
-- Core `pal-core` (`core/`): file-first TOML config (round-trip edits, watch, schema, secrets), index with per-field matching + frecency, icons, clipboard history (SQLite+FTS), windows, system commands, `ax`.
-- Host: one long-lived Bun sidecar `pal-bun` over stdio with a reverse-RPC bridge. Extensions: apps, blackjack (a view palette), bookmarks, calc, clipboard, emoji, files, processes, scripts (v1 zero-code tier), ssh, system, windows, window-management.
-- UI: `app/src/ui` (List, Grid, Detail, View, Form, ActionPanel, Search, Footer, Hud, Confirm, Empty, Kbd), grammar in `keys.ts`, gallery, brief + tokens in `app/design/`; Settings window live.
-- Settings: manifests with declared settings, per-palette defaults, one watcher, secrets to the OS store, launch at login, tray menu, first-run Welcome.
-- Packaging: binary `pal`, host + extensions as resources; Linux AppImage 137 MB / deb 44 MB / rpm 44 MB; `ci.yml` (macos-latest, ubuntu-24.04), `release.yml`, updater behind `general.check_updates`, `make release VERSION=x.y.z`.
-- Docs: `docs/` 8 files (getting started, config, palettes, scripts, keyboard, CLI, releasing, README).
-- Tests: `make test` = 127 Rust `#[test]`, 10 vitest, 91 bun host tests.
-- Hotkey to paint: hornet release 1.7 ms first, 1.5-3 ms after (1-4 ms with two live palettes); marko release 12-20 ms first, 0.1-1 ms after. Keystroke to painted list over 14.7k rows: 9-26 ms hornet, 24-76 ms marko.
-- Index restore answers the first query at ~400 ms cold (was ~10 s after host spawn). Host feed of 14.7k rows 25 ms hornet / 57 ms marko; `pal-app toggle` round trip 52-54 ms on marko (45 ms is loading 144 shared libraries).
+- Branch: `main` is the rewrite (v1 is `v1`); 64 commits between 716a53d (Tuesday evening) and 8ec4e65 (Wednesday 09:00), 1,002 files, +194k lines. The daily app on hornet is the head, rebuilt from the clean worktree `~/proj/pal-build` (`CARGO_TARGET_DIR=~/proj/pal-build/target make app`); marko runs the head too.
+- Shell: Tauri v2, panel pre-painted, `pal://` links = CLI twins with extension routes and Copy deep link; the bar: menu bar and sketchybar renderers, appearance defaults with per-item overrides, rich popovers as compact views, live pushes (`view.update`) and pulls (`refresh`/`on`); instances (`gmail@work`) with one Bun worker per instance; lazy palettes; concealed copy; selection text; OCR; Large Type; snippet expansion; dialog jump; `pal pick`; multi-select; compact mode; a theme file; pal's own commands; the log file.
+- Core: config with `[instances]` inheritance, ranking tiers and caps with "more in" rows, inline results and fallbacks at the root, search history, the Now/Frequent/Clipboard sections, every tool call under a deadline, the login shell's PATH, MediaRemote stream, CoreWLAN with Location, menu bar AX, window verbs.
+- Host and SDK: `@zcag/pal` with shared helpers (rows, text, exec, token, clock, png, terminal, files, md, colors, tabs), manifest as the source of truth (`checkPalettes`, `checkLinks`, `checkIcon`), workers, live views.
+- Extensions (55): the 34 of Tuesday plus 2048, wordle, colors (rebuilt), calendar Today with Google, slack, tela, hue, spotify, gmail (multi), obsidian, images, translate, shell, downloads, gifs, maps, speedtest, youtube, whatsapp, menu-bar, generate, shortcuts, store, screenshots; every one with a brand tile, keys table, store fields, screenshots in both themes, tests.
+- Site: https://pal.cagdas.io with a real landing page, the store (tiles, links, bar items, multi), the docs (11 pages incl. troubleshooting).
+- Tests: cargo 414, vitest 239, host 1199; clippy clean; CI green on both runners once the last Linux-only expectations were fixed.
+- Numbers (hornet, 55 extensions, warm): cold start to first paint 380-390 ms, host ready ~400 ms, hotkey to paint 1.5-4 ms, app idle 171 MB, pal-bun 224 MB, per keystroke ~1.1 ms, 4 processes at idle.
+- Open: the release (his: version, secrets, tag), pit 13 (skipped), the "Left" lists in the polish rounds, the `ago`/`size` format unification, a Linux popover story.
 
 ## Decided
 
