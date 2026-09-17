@@ -11,6 +11,7 @@
 import { readFile } from "node:fs/promises";
 import { hostname } from "node:os";
 import { errorMessage, hint, run as exec, settings, toast, when, wifi as wifiCore, type Action, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { renderNetworkPopover, type NetworkPopover } from "./view.ts";
 
 /** `[extensions.network]`, default in pal.json. */
 type Settings = { public_ip_url: string; icon_only: boolean; ssid_labels?: unknown[]; networks?: unknown[] };
@@ -304,15 +305,17 @@ async function statusBar(): Promise<BarItem> {
     // Nothing to say about the network he is on almost all the time: gone, not
     // dimmed, so the item's mere presence is the message.
     if (kind === "hide") return { hidden: true };
-    const base = { click: "open", menu: { palette: "network" } } as const;
-    if (!s.gateway) return { ...base, ...strip(BAR_GLYPH.off, "Offline"), color: "red", tooltip: "No default route" };
-    if (!i) return { ...base, ...strip(GLYPH.wired, "Connected"), tooltip: `Gateway ${s.gateway.ip}` };
+    const face = (p: NetworkPopover, item: Omit<BarItem, "menu" | "click">): BarItem =>
+      ({ ...item, click: "open", menu: { view: renderNetworkPopover({ ...p, interface: i && [i.name, i.kind].filter(Boolean).join(" · "), gateway: s.gateway?.ip, dns: s.dns }) } });
+    if (!s.gateway) return face({ name: "Offline", kind: "offline" }, { ...strip(BAR_GLYPH.off, "Offline"), color: "red", tooltip: "No default route" });
+    if (!i) return face({ name: "Connected" }, { ...strip(GLYPH.wired, "Connected"), tooltip: `Gateway ${s.gateway.ip}` });
     const name = i.kind === "Wi-Fi" ? (ssidLabel(i.ssid) ?? i.ssid ?? "Wi-Fi") : (i.kind ?? i.name);
     const address = i.v4[0] ?? i.v6[0];
     // The name goes in whether or not it was relabelled: with Icon only the
     // tooltip is the one place left that can say which network this is.
     const tooltip = [i.name, name, address, signalText(i), `Gateway ${s.gateway.ip}`].filter(Boolean).join(" · ");
-    return { ...base, ...strip(glyph(i, kind), name), tooltip };
+    const badge = i.kind !== "Wi-Fi" ? "wired" as const : kind === "hotspot" ? "hotspot" as const : kind === "public" || isOpen(i) ? "public" as const : undefined;
+    return face({ name, kind: badge, address, signal: i.signal, security: i.security }, { ...strip(glyph(i, kind), name), tooltip });
   } catch { return { hidden: true }; }
 }
 
@@ -353,6 +356,10 @@ export default {
     },
   },
   bar: {
-    status: { render: statusBar, onOpen: openNetworkSettings },
+    status: {
+      render: statusBar,
+      onOpen: openNetworkSettings,
+      onAction: (action) => action === "settings" ? openNetworkSettings() : action === "addresses" ? { push: { extension: "network", palette: "network" } } : { keep: true },
+    },
   },
 } satisfies Extension;

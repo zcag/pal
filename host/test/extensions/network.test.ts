@@ -143,7 +143,7 @@ describe("network on macOS tools", () => {
   });
 
   test("bar: uses a friendly SSID label and opens Network Settings directly", async () => {
-    expect(await host.render("network", "status")).toMatchObject({ icon: "\u{f05a9}", title: "Cafe", tooltip: "en0 · Cafe · 192.168.1.131 · Gateway 192.168.1.1", click: "open", menu: { palette: "network" } });
+    expect(await host.render("network", "status")).toMatchObject({ icon: "\u{f05a9}", title: "Cafe", tooltip: "en0 · Cafe · 192.168.1.131 · Gateway 192.168.1.1", click: "open", menu: { view: { title: "Connection", id: "network" } } });
     expect(await host.request<any>("bar/open", { extension: "network", id: "status" })).toEqual({ open: "x-apple.systempreferences:com.apple.Network-Settings.extension" });
   });
 
@@ -297,6 +297,30 @@ describe("network status: what the strip says about the network", () => {
     expect(offline.title).toBeUndefined();
     expect(offline).toMatchObject({ icon: "\u{f092d}", color: "red" });
     expect(await bar({}, { route: false })).toMatchObject({ icon: "\u{f092d}", title: "Offline", color: "red" });
+  }, 20000);
+
+  test("the popover answers what this link is, not what every address is", async () => {
+    const host = await boot({});
+    try {
+      const view = (await host.render("network", "status") as any).menu.view;
+      expect(view.title).toBe("Connection");
+      const kv = Object.fromEntries(view.tree.children.filter((c: any) => c.type === "stack" && c.key !== "head" && c.key !== "footer").map((c: any) => [c.key, c.children[1].value]));
+      // Strength and what secures it share a row: both answer "how good is this link".
+      expect(kv).toEqual({ interface: "en0 · Wi-Fi", ip: "192.168.1.131", gateway: "192.168.1.1", signal: "72% · WPA2_PSK", dns: "100.100.100.100, fd7a:115c:a1e0::53, 192.168.1.1" });
+      expect(view.tree.children[0].children[2]).toMatchObject({ type: "badge", text: "connected" });
+      expect(view.actions.map((a: any) => a.id)).toEqual(["settings", "addresses"]);
+      // The address book is still one key away rather than gone.
+      expect(await host.request("bar/action", { extension: "network", id: "status", action: "addresses" })).toEqual({ push: { extension: "network", palette: "network" } });
+      expect(await host.request("bar/action", { extension: "network", id: "status", action: "settings" })).toEqual({ open: "x-apple.systempreferences:com.apple.Network-Settings.extension" });
+    } finally { host.kill(); }
+  }, 20000);
+
+  test("the badge names the kind, and offline says so with no rows to show", async () => {
+    const hotspot = (await bar({ networks: ["Cafe Wifi = hotspot"] }) as any).menu.view;
+    expect(hotspot.tree.children[0].children[2]).toMatchObject({ text: "hotspot", color: "amber" });
+    const offline = (await bar({}, { route: false }) as any).menu.view;
+    expect(offline.tree.children[0]).toMatchObject({ children: [{ value: "Offline" }, { type: "spacer" }, { text: "no route", color: "red" }] });
+    expect(offline.tree.children.some((c: any) => c.key === "gateway")).toBe(false);
   }, 20000);
 });
 
