@@ -18,6 +18,40 @@
 * also lets leave out any auto them hide/show work etc out as well for now.
 # CAGDAS COMMENTS END
 
+## Current build handoff (2026-09-17)
+
+This is the active scope; the inventory and larger plan below remain useful research,
+but do not revive rows that conflict with it.
+
+### Landed — `cde7c26`
+
+- **B1 direct action:** a bar item can declare `click: "open"`. Calendar uses it to
+  join the current meeting when it has a conference URL, otherwise open Calendar;
+  hover still opens its popover.
+- **Settings mock states:** an extension may expose stable named `bar.<item>.mocks`
+  scenarios. Settings shows a `Preview state` selector and renders the selected item
+  only in its configuration strip — never in the real bar and never by mutating
+  configuration. Spotify and Calendar provide useful initial scenarios.
+- **Spotify lyrics:** timestamped LRC lines now tick at lyric boundaries while playing,
+  including when the bar is closed; polling/MediaRemote resynchronises the ticker.
+- **Calendar Upcoming:** has far/near/warning/critical/running presentation states,
+  configurable colours and sensible mocks. Its configured label/icon size and
+  position are stored but deliberately await B2's render model.
+
+### Next, in order
+
+1. **B2:** add the per-render appearance contract for background, label/icon sizing,
+   position and icon width; wire Calendar's already-present sizing/position controls.
+2. **B3:** hover tint, colour animation, and word-safe clipping.
+3. **B6:** scroll input, then use it for lyric seeking where appropriate.
+
+### Explicitly deferred
+
+- No automatic theme switching, work-hours visibility, native power/audio event
+  sources, tan/stan, cldd, or `clock`/`media_use` work in this pass.
+- Do not add grouped-item brackets or separators. A future GitHub PR/issue surface is
+  independent semantic bar items, not a cluster.
+
 
 
 # sketchybar parity: what pal's bar needs to match his bar
