@@ -74,5 +74,27 @@
         }
       ]
     }
+  },
+  "bar": {
+    "volume": {
+      "title": "Volume",
+      "description": "The default output's route and volume. Click mutes, scroll adjusts by 5%, and the popover opens Audio to switch devices.",
+      "refresh": { "every": 5, "on": ["wake"] },
+      "mocks": {
+        "speakers": { "title": "Built-in speakers", "item": { "icon": "󰕾", "title": "38%", "icon_size": 18, "icon_width": 31, "tooltip": "MacBook Pro Speakers · 38%" } },
+        "headphones": { "title": "Bluetooth headphones", "item": { "icon": "󰋋", "title": "62%", "icon_size": 18, "icon_width": 31, "tooltip": "Px8 · 62%" } },
+        "muted": { "title": "Muted", "item": { "icon": "󰝟", "title": "38%", "color": "muted", "icon_size": 18, "icon_width": 31, "tooltip": "MacBook Pro Speakers, muted" } }
+      }
+    },
+    "microphone": {
+      "title": "Microphone",
+      "description": "Visible only when the default input is muted or absent. Click restores it to 75%; the popover opens Audio.",
+      "refresh": { "every": 5, "on": ["wake"] },
+      "mocks": {
+        "muted": { "title": "Muted microphone", "item": { "icon": "󰍭", "color": "red", "tooltip": "MacBook Pro Microphone, muted" } },
+        "missing": { "title": "No input device", "item": { "icon": "󰍮", "color": "red", "tooltip": "No input device" } },
+        "normal": { "title": "Input available", "item": { "hidden": true } }
+      }
+    }
   }
 }

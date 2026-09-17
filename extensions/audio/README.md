@@ -12,6 +12,16 @@ so `airpods` at the root finds the row with its current volume.
 One palette, **Audio** (`audio`). With no audio backend the one row says
 which tool is missing.
 
+## Bar items
+
+**Volume** shows the default output's route glyph and level. Click mutes or
+unmutes it; on sketchybar, the wheel moves in 5% steps. Its popover is the
+Audio palette, so switching to another output is one move away. **Microphone**
+stays out of the way while the default input is usable; it appears red when
+that input is muted or absent, and a click restores an available input to 75%.
+Both poll every five seconds until the core has a native audio-change event.
+Their Bar settings offer representative mock states.
+
 ## Rows
 
 | part | what |

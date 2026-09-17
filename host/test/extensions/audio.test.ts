@@ -29,7 +29,20 @@ const pick = (id: string, action?: string, args?: unknown) => host.pick("audio",
 
 describe("audio", () => {
   test("meta: live", () => {
-    expect(host.loaded().find((l) => l.extension === "audio")!.palettes).toEqual([{ name: "audio", title: "Audio", live: true, input: false, icon: tile("violet", "\u{f057e}"), placeholder: "Switch output or input, set the volume" }]);
+    const loaded = host.loaded().find((l) => l.extension === "audio")!;
+    expect(loaded.palettes).toEqual([{ name: "audio", title: "Audio", live: true, input: false, icon: tile("violet", "\u{f057e}"), placeholder: "Switch output or input, set the volume" }]);
+    expect(loaded.bar).toMatchObject([{ id: "volume", title: "Volume", refresh: { every: 5, on: ["wake"] }, mocks: { muted: { item: { color: "muted" } } }, source: true }, { id: "microphone", title: "Microphone", refresh: { every: 5, on: ["wake"] }, mocks: { normal: { item: { hidden: true } } }, source: true }]);
+  });
+
+  test("bar: volume controls the default output directly, scroll adjusts it, and the mic appears only while muted", async () => {
+    expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f075d}", title: "56%", icon_size: 18, icon_width: 31, click: "open", scroll: { up: "up", down: "down" }, menu: { palette: "audio" } });
+    expect(await host.render("audio", "microphone")).toEqual({ hidden: true });
+    expect(await host.barAction("audio", "volume", "up")).toEqual({ keep: true, hud: "MacBook Pro Speakers 61%" });
+    expect(await host.request<any>("bar/open", { extension: "audio", id: "volume" })).toEqual({ keep: true, hud: "MacBook Pro Speakers muted" });
+    devices = devices.map((d) => d.kind === "input" ? { ...d, muted: true } : d);
+    expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", color: "red", click: "open" });
+    expect(await host.request<any>("bar/open", { extension: "audio", id: "microphone" })).toEqual({ keep: true, hud: "MacBook Pro Microphone at 75%" });
+    devices = devices.map((d) => d.kind === "input" ? { ...d, muted: false } : d);
   });
 
   test("rows per direction with default and muted tags, the volume, and the actions", async () => {
