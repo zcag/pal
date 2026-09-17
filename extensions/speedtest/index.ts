@@ -8,7 +8,7 @@
 // on the clipboard (cmd+Enter) and lands in the History palette (storage),
 // whose first row draws the last runs as bars.
 import { hint, settings, storage, toast, view as viewApi, type Action, type Effect, type Extension, type Item, type View, type ViewNode } from "@zcag/pal";
-import { argv, detect, feed, finish, INSTALL, ms, speed, start, summary, TITLE, type Run, type Tool, type ToolId } from "./tools.ts";
+import { argv, detect, feed, finish, INSTALL, ms, speed, start, summary, TITLE, type Run, type Tool, type ToolId, noteLine } from "./tools.ts";
 
 /** `[extensions.speedtest]`, defaults in pal.json. */
 type Settings = { tool: ToolId | "auto"; server: string; keep: number };
@@ -52,7 +52,9 @@ function launch(t: Tool): Live {
     for await (const chunk of stream) {
       if (run.endedAt) return;
       const before = run.phase;
-      feed(run, new TextDecoder().decode(chunk));
+      const text = new TextDecoder().decode(chunk);
+      feed(run, text);
+      noteLine(run, text);
       if (run.phase !== before) l.phaseAt = Date.now();
       if (live === l) push(spec(l));
     }

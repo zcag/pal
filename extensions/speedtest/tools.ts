@@ -82,6 +82,8 @@ export type Run = {
   /** The result page (Ookla). */
   url?: string;
   error?: string;
+  /** The last thing the tool wrote that was not a figure, for a failure with no recognised error line (a dyld complaint, a stack trace). */
+  lastLine?: string;
   endedAt?: number;
 };
 
@@ -153,7 +155,13 @@ export function finish(r: Run, code: number | null, now = Date.now()): void {
   if (r.phase === "done") return;
   if (r.tool === "fast" && r.download !== undefined && r.upload !== undefined && code === 0) { r.phase = "done"; r.progress = 1; return; }
   r.phase = "failed";
-  r.error ??= code === null ? "stopped" : `exit ${code}`;
+  r.error ??= code === null ? "stopped" : r.lastLine ? `${r.lastLine} (exit ${code})` : `exit ${code}`;
+}
+
+/** Remembers the tool's last non-empty line as the failure's reason when nothing better is recognised. */
+export function noteLine(r: Run, text: string): void {
+  const line = text.split("\n").map((l) => l.trim()).filter((l) => l && !/^\s*[\d.]+\s*Mbps/i.test(l) && !/^TROUBLESHOOTING/.test(l)).pop();
+  if (line) r.lastLine = line.length > 160 ? `${line.slice(0, 159)}…` : line;
 }
 
 // ---- formatting -------------------------------------------------------------------------

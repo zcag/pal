@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { argv, detect, feed, finish, ms, speed, start, summary } from "../../../extensions/speedtest/tools.ts";
+import { argv, detect, feed, finish, ms, speed, start, summary, noteLine } from "../../../extensions/speedtest/tools.ts";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Effect, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { checkView } from "../../../sdk/src/view.ts";
@@ -245,4 +245,12 @@ describe("speedtest", () => {
     expect(await host.pick("speedtest", "history", "clear", "clear")).toMatchObject({ keep: true, toast: { title: "History cleared" } });
     expect(await host.list("speedtest", "history")).toEqual([expect.objectContaining({ id: "hint:empty", actions: [] })]);
   });
+  test("a tool that dies before any figure names its last line (a broken fast-cli's dyld complaint), not just the exit code", () => {
+    const r = start("fast");
+    noteLine(r, "dyld[123]: Library not loaded: Google Chrome for Testing Framework\nTROUBLESHOOTING: https://pptr.dev/troubleshooting\n");
+    finish(r, 0);
+    expect(r.phase).toBe("failed");
+    expect(r.error).toBe("dyld[123]: Library not loaded: Google Chrome for Testing Framework (exit 0)");
+  });
+
 });
