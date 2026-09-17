@@ -107,7 +107,9 @@ jobs:
 
       - name: app typecheck and tests
         working-directory: app
+        # The gallery imports extension modules, which import `@zcag/pal`; its types come from sdk/dist, so the SDK builds first.
         run: |
+          npm --prefix ../sdk run build
           npx tsc --noEmit
           npx vitest run
       # The root `bun install` links the workspace: host/, sdk/ and the
