@@ -664,12 +664,12 @@ pub struct BarMenubar {
     pub extra: BTreeMap<String, toml::Value>,
 }
 
-/// `[bar.sketchybar]`: the sketchybar target.
+/// `[bar.sketchybar]`: the sketchybar target. Hover off too: a popover opens on a click, its hotkey, or a hover the owner asks for.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
 pub struct BarSketchybar {
-    /// A hover peeks the item's popover. On: sketchybar popups open on hover.
+    /// A hover peeks the item's popover. Off: a click opens and closes, like the menu bar; the owner's sketchybar may turn it on.
     pub open_on_hover: bool,
     /// Default position of pal's items: `left`, `right`, `center`, `q`,
     /// `e`, `before:<item>` or `after:<item>`.
@@ -687,7 +687,7 @@ pub struct BarSketchybar {
 
 impl Default for BarSketchybar {
     fn default() -> Self {
-        Self { open_on_hover: true, position: "right".into(), colors: BTreeMap::new(), look: BarLook::default(), extra: BTreeMap::new() }
+        Self { open_on_hover: false, position: "right".into(), colors: BTreeMap::new(), look: BarLook::default(), extra: BTreeMap::new() }
     }
 }
 
@@ -1164,11 +1164,11 @@ token = "keychain:pal/github-token"
         assert_eq!(c.bar.target, BarTarget::Auto);
         assert_eq!((c.bar.hover_delay, c.bar.hover_grace), (250, 400));
         assert!(!c.bar.menubar.open_on_hover, "Apple's bar has no hover convention");
-        assert!(c.bar.sketchybar.open_on_hover, "sketchybar popups open on hover");
+        assert!(!c.bar.sketchybar.open_on_hover, "click to open and close on every target; hover is opt-in");
         assert_eq!(c.bar.sketchybar.position, "right");
         assert!(c.bar.item("github/notifications").enabled);
         assert_eq!(c.bar.target_of("github/notifications"), BarTarget::Auto);
-        assert!(c.bar.open_on_hover("x/y", BarTarget::Sketchybar));
+        assert!(!c.bar.open_on_hover("x/y", BarTarget::Sketchybar));
         assert!(!c.bar.open_on_hover("x/y", BarTarget::Menubar));
         let (c, d) = parse(
             r#"

@@ -447,7 +447,7 @@ export default function Settings() {
     }
   };
 
-  const rawBar = config.bar ?? { target: "auto" as const, hover_delay: 250, hover_grace: 400, menubar: { open_on_hover: false }, sketchybar: { open_on_hover: true, position: "right" }, items: {} };
+  const rawBar = config.bar ?? { target: "auto" as const, hover_delay: 250, hover_grace: 400, menubar: { open_on_hover: false }, sketchybar: { open_on_hover: false, position: "right" }, items: {} };
   const bar: BarConfig = {
     target: rawBar.target, hoverDelay: rawBar.hover_delay, hoverGrace: rawBar.hover_grace, menubarHover: rawBar.menubar.open_on_hover, sketchybarHover: rawBar.sketchybar.open_on_hover, sketchybarPosition: rawBar.sketchybar.position,
     // The file's keys over the built-in look: a target table missing a key is at its default.
@@ -463,7 +463,7 @@ export default function Settings() {
     if (next.hoverDelay !== bar.hoverDelay) write(["bar", "hover_delay"], next.hoverDelay === 250 ? undefined : next.hoverDelay);
     if (next.hoverGrace !== bar.hoverGrace) write(["bar", "hover_grace"], next.hoverGrace === 400 ? undefined : next.hoverGrace);
     if (next.menubarHover !== bar.menubarHover) write(["bar", "menubar", "open_on_hover"], next.menubarHover ? true : undefined);
-    if (next.sketchybarHover !== bar.sketchybarHover) write(["bar", "sketchybar", "open_on_hover"], next.sketchybarHover ? undefined : false);
+    if (next.sketchybarHover !== bar.sketchybarHover) write(["bar", "sketchybar", "open_on_hover"], next.sketchybarHover ? true : undefined);
     if (next.sketchybarPosition !== bar.sketchybarPosition) write(["bar", "sketchybar", "position"], next.sketchybarPosition === "right" ? undefined : next.sketchybarPosition);
     writeLook(["bar", "menubar"], bar.menubar, next.menubar, lookDefaults);
     writeLook(["bar", "sketchybar"], bar.sketchybar, next.sketchybar, lookDefaults);

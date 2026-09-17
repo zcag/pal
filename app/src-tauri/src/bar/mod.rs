@@ -1160,8 +1160,8 @@ mod tests {
         assert!(draw_for(&config, "x/y", &none, Kind::Menubar).is_none(), "nothing to draw before the first render");
         let (config, _) = pal_core::config::parse("").unwrap();
         let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None };
-        assert!(draw_for(&config, "x/y", &entry, Kind::Sketchybar).unwrap().hover, "sketchybar peeks by default");
-        assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap().hover, "the menu bar does not");
+        assert!(!draw_for(&config, "x/y", &entry, Kind::Sketchybar).unwrap().hover, "no target peeks by default");
+        assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap().hover);
         let no_menu = Entry { last: Some(BarItem::default()), ..entry };
         assert!(!draw_for(&config, "x/y", &no_menu, Kind::Sketchybar).unwrap().hover, "an item with no menu never peeks");
     }

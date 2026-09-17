@@ -124,9 +124,10 @@ for `hover_grace` ms (400), so crossing the gap is inside the grace.
 **Engage**: a click on the item, its hotkey, or any key pressed while a peek
 is up makes the popover key; it then stays until Escape, a hiding effect, or
 a click outside, the usual panel rules. An item with no `menu` never peeks.
-`open_on_hover` defaults on for sketchybar (the owner's popups open on
-hover) and off for the macOS menu bar (Apple's bar has no hover convention),
-each overridable per item. Focus safety: a peek never steals key focus. The
+`open_on_hover` defaults off on both targets (Cagdas, 2026-09-17 09:30:
+a click opens and closes; the peek on the way across the bar was in the
+way, and Apple's bar has no hover convention), each overridable per target
+and per item. Focus safety: a peek never steals key focus. The
 panel is a non-activating NSPanel (`panel/macos.rs:34`); shown without
 `show_and_make_key` (`macos.rs:93`, the engage path) it leaves the front app
 key and typing where it was, and over a full-screen app it follows the main

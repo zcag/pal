@@ -309,7 +309,7 @@ any app with its snippet. Both in [Config](config.md#theme-file) and
 
 An extension can put an item on the macOS menu bar, or on sketchybar
 when one is running (`[bar] target`, `auto` by default): a glyph, a short
-title, a badge, and a popover on a click, a hover or a hotkey. The
+title, a badge, and a popover on a click or a hotkey (a hover, if you turn it on). The
 bundled ones are the running timer, today's next event, what is playing,
 the newest verification code, and the unread counts of GitHub, Slack,
 Gmail and WhatsApp once those are signed in; an item takes no space

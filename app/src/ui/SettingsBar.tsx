@@ -232,7 +232,7 @@ function Defaults({ config, onChange, sketchybar }: { config: BarConfig; onChang
                 <label className="pal-number"><input className="pal-field__input" type="number" min={0} step={50} aria-label="Hover grace" value={config.hoverGrace} onChange={(e) => set("hoverGrace", Math.round(num(e.target.value, 400)))} /><span className="pal-number__unit">ms grace</span></label>
               </span>
             </div>
-            <p className="pal-setting__desc">A peek is the popover opened by resting the pointer on an item. Off on the menu bar by default (Apple's bar has no hover convention), on for sketchybar; an item can say otherwise. Delay before it opens, grace after the pointer has left both before it closes.</p>
+            <p className="pal-setting__desc">A peek is the popover opened by resting the pointer on an item. Off on both targets by default: a click opens and closes a popover (Apple's bar has no hover convention, and a peek on the way across the bar gets in the way); an item can say otherwise. Delay before it opens, grace after the pointer has left both before it closes.</p>
           </div>
         </div>
         <div className="pal-setting" data-layout="row" data-anchor="bar:position">

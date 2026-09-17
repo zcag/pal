@@ -207,7 +207,7 @@ listed by `pal bar list`, but nothing is drawn and no item renders
 | `hover_delay` | integer, ms | `250` | How long the pointer rests on an item before its popover peeks. |
 | `hover_grace` | integer, ms | `400` | How long after the pointer has left both the item and the popover a peek stays. |
 | `menubar.open_on_hover` | bool | `false` | A hover peeks on the menu bar (Apple's bar has no hover convention, so off). |
-| `sketchybar.open_on_hover` | bool | `true` | A hover peeks on sketchybar. |
+| `sketchybar.open_on_hover` | bool | `false` | A hover peeks on sketchybar; off, a click opens and closes, like the menu bar. |
 | `sketchybar.position` | string | `"right"` | Where pal's items go: `left`, `right`, `center`, `q`, `e`, or `before:<item>` / `after:<item>` next to one of the bar's own items. |
 | `sketchybar.colors` | table of strings | `{}` | Overrides of the colour names the model uses (`red`, `amber`, `muted`, `text`, ...) as `0xAARRGGBB` or `#rrggbb`, so a themed bar keeps its own palette. |
 
