@@ -379,6 +379,10 @@ describe("today helpers", () => {
     expect(checkView(popover([gone, tmr1], t0, true, st)).actions[0]).toEqual({ id: "open-calendar", title: "Open Calendar" });
     expect(texts(checkView(popover([gone], t0, true, st)))).toContain("Nothing further in the days ahead");
     expect(texts(checkView(popover([allDay], t0, true, st)))).toContain("Nothing else today");
+    // The all-day line is one row and cannot wrap: long titles are cut, and past three the rest is a count.
+    const many = [1, 2, 3, 4, 5].map((i) => ev(`ad${i}`, `An all-day event with a very long title ${i}`, startOfDay(t0), addDays(t0, 1), { all_day: true }));
+    const ad = nodes(checkView(popover(many, t0, true, st)).tree).filter((n) => n.type === "badge").map((n) => (n as { text: string }).text);
+    expect(ad).toEqual(["An all-day event …", "An all-day event …", "An all-day event …", "+2"]);
     // The hints follow what there is.
     const hints = (x: View) => nodes(x.tree).filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys);
     expect(hints(v)).toEqual(["t", "enter", "j", "t", "o", "r", "cmd+c"]);

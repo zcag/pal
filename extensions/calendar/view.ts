@@ -9,7 +9,7 @@
 // day, and the key hints at the bottom. The keys walk the rows with a
 // ring (`selected`); Enter joins or opens the focused one. Every row and
 // button carries `action`, so a click does what its key would.
-import { POPOVER_W, column, keycap, keyHint, row, text, type Action, type CalendarEvent, type HexColor, type View, type ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keycap, keyHint, row, text, truncate, type Action, type CalendarEvent, type HexColor, type View, type ViewNode } from "@zcag/pal";
 import { addDays, clock, dayName, people, startOfDay, timeRange } from "./schedule.ts";
 import { span } from "./today.ts";
 
@@ -20,6 +20,10 @@ export const freshPopover = (google = false, mac = process.platform === "darwin"
 /** The row's parts: the time column, the colour bar, the state column at the right, the gaps between (2 steps each) and the row's own padding. */
 const TIME_W = 40, BAR_W = 3, STATE_W = 82, GAP = 8, ROW_PAD = 8;
 const TITLE_W = POPOVER_W - 2 * ROW_PAD - TIME_W - BAR_W - STATE_W - 3 * GAP;
+/** The all-day line is one row of badges, so it cannot wrap: cap the titles and the count, and say how many are left over. */
+const ALLDAY_LABEL_W = 48, ALLDAY_MAX = 3, ALLDAY_CHARS = 18;
+/** What is left of the stale line once the "showing the last events read" badge has its share. */
+const STALE_W = POPOVER_W - 2 * ROW_PAD - 172 - GAP;
 const MIN = 60_000, H = 60 * MIN;
 
 
@@ -103,9 +107,15 @@ export function popover(events: CalendarEvent[], now: number, hideDeclined: bool
   const rows = focusable(l, st);
   const cursor = Math.max(0, Math.min(st.cursor, rows.length - 1));
   const kids: ViewNode[] = [];
-  if (stale !== undefined) kids.push(row([{ type: "badge", text: "showing the last events read", color: "amber" }, text(stale, { size: "xs", color: "muted", width: 200 })], { key: "stale", gap: 2, minHeight: 20 }));
+  if (stale !== undefined) kids.push(row([{ type: "badge", text: "showing the last events read", color: "amber" }, text(truncate(stale, 64), { size: "xs", color: "muted", width: STALE_W })], { key: "stale", gap: 2, minHeight: 20 }));
   // The day is the level's title; all-day events are a line of badges over the rows.
-  if (l.allDay.length) kids.push(row([text("All day", { size: "xs", weight: "semibold", color: "muted", width: 48 }), ...l.allDay.map((e) => ({ type: "badge", key: rowId(e), text: e.title || "(no title)", color: "grey" }) as ViewNode)], { key: "all-day", gap: 1, minHeight: 22 }));
+  if (l.allDay.length) {
+    const shown = l.allDay.slice(0, ALLDAY_MAX);
+    const over = l.allDay.length - shown.length;
+    const badges: ViewNode[] = shown.map((e) => ({ type: "badge", key: rowId(e), text: truncate(e.title || "(no title)", ALLDAY_CHARS), color: "grey" }));
+    if (over > 0) badges.push({ type: "badge", key: "all-day-more", text: `+${over}`, color: "grey" });
+    kids.push(row([text("All day", { size: "xs", weight: "semibold", color: "muted", width: ALLDAY_LABEL_W }), ...badges], { key: "all-day", gap: 1, minHeight: 22 }));
+  }
   if (l.today.length) kids.push(column(l.today.map((e, i) => eventRow(e, now, i === cursor, false)), { key: "today", gap: 0 }));
   else {
     const n = l.next;
