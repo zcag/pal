@@ -32,12 +32,25 @@ again by another route. A change made with the keyboard's own volume keys is not
 seen until the next poll, and does not flash: that needs a native audio event,
 which the core does not have yet.
 
-Click mutes or unmutes; on sketchybar, the wheel moves in 5% steps. The popover
-is the Audio palette, so switching to another output is one move away.
+Click mutes or unmutes; on sketchybar, the wheel moves in 5% steps.
+
+The popover leads with the device in use, on a card: its glyph, its name and what
+it is, then a slider a click sets anywhere along it, the level beside it and a
+mute switch. Under it the other outputs are rows — a click or Enter makes one the
+default — and under those, the input in a single line, muted in red when it is,
+so one popover is the whole picture rather than half of it. The cursor opens on
+the first row rather than on the card, because the card is already the device you
+are on and the rows are the only thing to choose between. `m` mutes, `-` and `+`
+move by 5%, the digits `0`–`4` are the 0/25/50/75/100 presets, `p` opens the
+Audio palette for the searchable list. A device the backend reports no level for
+(an optical out, some interfaces) gets no slider rather than a dead one at zero.
+
 **Microphone** stays out of the way while the default input is usable; it appears
 red when that input is muted or absent, and a click restores an available input
-to 75%. Both poll every five seconds until the core has a native audio-change
-event. Their Bar settings offer representative mock states.
+to 75%. Its popover is the same shape the other way round: the microphone in use
+on the card, the other inputs as rows, the output in the line beneath. Both poll
+every five seconds until the core has a native audio-change event. Their Bar
+settings offer representative mock states.
 
 Settings, `[extensions.audio]`:
 

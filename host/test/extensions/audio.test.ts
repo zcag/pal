@@ -2,7 +2,17 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { AudioDevice } from "../../../sdk/src/index.ts";
+import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
+
+const walk = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(walk) : [])];
+const texts = (v: View) => walk(v.tree).flatMap((n) => (n.type === "text" ? [n.value] : n.type === "badge" ? [`[${n.text}]`] : []));
+const keycaps = (v: View) => walk(v.tree).flatMap((n) => (n.type === "keycap" ? [n.keys] : []));
+const viewOf = (x: unknown): View => {
+  const v = (x as { view?: View; menu?: { view?: View } }).view ?? (x as { menu?: { view?: View } }).menu?.view;
+  if (!v) throw new Error("no view");
+  return v;
+};
 
 let devices: AudioDevice[] = [
   { id: "BuiltInSpeakerDevice", name: "MacBook Pro Speakers", kind: "output", default: true, volume: 56, muted: false, transport: "builtin" },
@@ -31,12 +41,12 @@ describe("audio", () => {
   test("meta: live", () => {
     const loaded = host.loaded().find((l) => l.extension === "audio")!;
     expect(loaded.palettes).toEqual([{ name: "audio", title: "Audio", live: true, input: false, icon: tile("violet", "\u{f057e}"), placeholder: "Switch output or input, set the volume" }]);
-    expect(loaded.bar).toMatchObject([{ id: "volume", title: "Volume", refresh: { every: 5, on: ["wake"] }, mocks: { muted: { item: { color: "muted" } } }, source: true }, { id: "microphone", title: "Microphone", refresh: { every: 5, on: ["wake"] }, mocks: { normal: { item: { hidden: true } } }, source: true }]);
+    expect(loaded.bar).toMatchObject([{ id: "volume", title: "Volume", refresh: { every: 5, on: ["wake"] }, keys: expect.any(Array), mocks: { muted: { item: { color: "muted" } } }, source: true }, { id: "microphone", title: "Microphone", refresh: { every: 5, on: ["wake"] }, keys: expect.any(Array), mocks: { normal: { item: { hidden: true } } }, source: true }]);
   });
 
   test("bar: volume controls the default output directly, scroll adjusts it, and the mic appears only while muted", async () => {
     // 56%: the middle of the ramp, and no number — the level is not furniture.
-    expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f0580}", icon_size: 18, icon_width: 31, click: "open", scroll: { up: "up", down: "down" }, menu: { palette: "audio" } });
+    expect(await host.render("audio", "volume")).toMatchObject({ icon: "\u{f0580}", icon_size: 18, icon_width: 31, click: "open", scroll: { up: "up", down: "down" } });
     expect((await host.render("audio", "volume")).title).toBeUndefined();
     expect(await host.render("audio", "microphone")).toEqual({ hidden: true });
     expect(await host.barAction("audio", "volume", "up")).toEqual({ keep: true, hud: "MacBook Pro Speakers 61%" });
@@ -45,6 +55,66 @@ describe("audio", () => {
     expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", color: "red", click: "open" });
     expect(await host.request<any>("bar/open", { extension: "audio", id: "microphone" })).toEqual({ keep: true, hud: "MacBook Pro Microphone at 75%" });
     devices = devices.map((d) => d.kind === "input" ? { ...d, muted: false } : d);
+  });
+
+  test("the popover: the output in use on a card with a slider and a mute switch, the others as rows, the input in a line; the keys act on the default, the cursor on a row", async () => {
+    const v = viewOf(await host.render("audio", "volume"));
+    expect(v).toMatchObject({ id: "volume", title: "Output: MacBook Pro Speakers", keys: "actions" });
+    const t = texts(v);
+    // The card: the device in use, what it is, its level.
+    expect(t).toContain("MacBook Pro Speakers");
+    expect(t).toContain("builtin · 56%");
+    expect(t).toContain("56%");
+    // The rows: the outputs you could switch to, not the one you are on.
+    expect(t).toContain("HK Aura Studio 4");
+    expect(t).toContain("Optical Out");
+    // The other direction gets one line, so the popover is the whole picture.
+    expect(t).toContain("Input: MacBook Pro Microphone");
+    const slider = walk(v.tree).find((n) => n.type === "slider")!;
+    expect(slider).toMatchObject({ value: 0.56, color: "green", action: "set" });
+    expect(walk(v.tree).find((n) => n.type === "switch")).toMatchObject({ on: true, action: "mute" });
+    expect(keycaps(v)).toEqual(["up", "down", "enter", "m", "-", "+", "0…4", "p"]);
+    expect(v.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["use", "mute", "up", "down", "open-pal"]);
+    expect(v.actions.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["20-18-5B:output", "Digital"].map((x) => `focus:${x}`));
+
+    // A click anywhere along the slider sets that point: the fraction rides in ctx.values.
+    expect(await host.barAction("audio", "volume", "set", { reason: "open", values: { value: "0.25" } })).toMatchObject({ view: { id: "volume" } });
+    expect(calls.at(-1)).toEqual({ method: "set_volume", params: { id: "BuiltInSpeakerDevice", kind: "output", volume: 25 } });
+    // A digit is a preset, and it redraws rather than leaving an HUD, because the popover is up.
+    expect(await host.barAction("audio", "volume", "preset:75")).toMatchObject({ view: { id: "volume" } });
+    expect(calls.at(-1)).toEqual({ method: "set_volume", params: { id: "BuiltInSpeakerDevice", kind: "output", volume: 75 } });
+
+    // The cursor opens on the first row rather than on the card, so Enter already means "use this instead".
+    expect(v.actions[0]).toEqual({ id: "use", title: "Use HK Aura Studio 4 as output" });
+    expect(viewOf(await host.barAction("audio", "volume", "next")).actions[0]).toEqual({ id: "use", title: "Use Optical Out as output" });
+    expect(await host.barAction("audio", "volume", "prev")).toMatchObject({ view: { id: "volume" } });
+    expect(await host.barAction("audio", "volume", "use")).toMatchObject({ hud: "Output: HK Aura Studio 4" });
+    expect(calls.at(-1)).toEqual({ method: "set_default", params: { id: "20-18-5B:output", kind: "output" } });
+    expect(await host.barAction("audio", "volume", "open-pal")).toEqual({ push: { extension: "audio", palette: "audio" } });
+    devices = devices.map((d) => d.kind === "output" ? { ...d, default: d.id === "BuiltInSpeakerDevice" } : d);
+  });
+
+  test("the microphone popover is the same shape the other way round, and a device with no level gets no dead slider", async () => {
+    devices = devices.map((d) => d.kind === "input" ? { ...d, muted: true } : d);
+    const v = viewOf(await host.render("audio", "microphone"));
+    expect(v).toMatchObject({ id: "microphone", title: "Input: MacBook Pro Microphone" });
+    expect(texts(v)).toContain("builtin · muted · 57%");
+    // Muted: the slider reads empty and the switch is off, whatever the level underneath.
+    expect(walk(v.tree).find((n) => n.type === "slider")).toMatchObject({ value: 0, color: "grey" });
+    expect(walk(v.tree).find((n) => n.type === "switch")).toMatchObject({ on: false });
+    expect(texts(v)).toContain("Output: MacBook Pro Speakers");
+    expect(await host.barAction("audio", "microphone", "mute")).toMatchObject({ hud: "MacBook Pro Microphone muted" });
+    expect(calls.at(-1)).toEqual({ method: "set_mute", params: { id: "BuiltInMicrophoneDevice", kind: "input" } });
+    devices = devices.map((d) => d.kind === "input" ? { ...d, muted: false } : d);
+
+    // Optical Out reports no level at all; its card is the switch alone rather than a slider stuck at zero.
+    const saved = devices;
+    devices = devices.map((d) => d.kind === "output" ? { ...d, default: d.id === "Digital" } : d);
+    const noLevel = viewOf(await host.render("audio", "volume"));
+    expect(walk(noLevel.tree).some((n) => n.type === "slider")).toBe(false);
+    expect(walk(noLevel.tree).some((n) => n.type === "switch")).toBe(false);
+    expect(keycaps(noLevel)).toEqual(["up", "down", "enter", "p"]);
+    devices = saved;
   });
 
   test("the level is feedback, not furniture: Always keeps it, Never refuses it, and a flash collapses on its own", async () => {

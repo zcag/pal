@@ -92,7 +92,33 @@
   "bar": {
     "volume": {
       "title": "Volume",
-      "description": "The default output's route, and its level for a moment after you change it (see Volume level in the bar). Click mutes, scroll adjusts by 5%, and the popover opens Audio to switch devices.",
+      "description": "The default output's route, and its level for a moment after you change it (see Volume level in the bar). Click mutes, scroll adjusts by 5%. The popover leads with the device in use — a slider a click sets anywhere along it, the level and a mute switch — then the other outputs as rows a click makes default, and the input in one line under them.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Use the focused device as the output"
+        },
+        {
+          "keys": "m",
+          "title": "Mute or unmute the output in use"
+        },
+        {
+          "keys": "-, +",
+          "title": "Quieter or louder by 5%"
+        },
+        {
+          "keys": "0 … 4",
+          "title": "Set 0, 25, 50, 75 or 100%; a click anywhere on the slider sets that point"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Audio palette in pal"
+        },
+        {
+          "keys": "up, down",
+          "title": "Move between the other outputs; a click on one focuses it"
+        }
+      ],
       "refresh": { "every": 5, "on": ["wake"] },
       "mocks": {
         "speakers": { "title": "Built-in speakers", "item": { "icon": "󰖀", "icon_size": 18, "icon_width": 31, "tooltip": "MacBook Pro Speakers · 38%" } },
@@ -104,7 +130,33 @@
     },
     "microphone": {
       "title": "Microphone",
-      "description": "Visible only when the default input is muted or absent. Click restores it to 75%; the popover opens Audio.",
+      "description": "Visible only when the default input is muted or absent. Click restores it to 75%. The popover leads with the microphone in use — a slider, its level and a mute switch — then the other inputs as rows a click makes default, and the output in one line under them.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Use the focused device as the input"
+        },
+        {
+          "keys": "m",
+          "title": "Mute or unmute the microphone"
+        },
+        {
+          "keys": "-, +",
+          "title": "Quieter or louder by 5%"
+        },
+        {
+          "keys": "0 … 4",
+          "title": "Set 0, 25, 50, 75 or 100%; a click anywhere on the slider sets that point"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Audio palette in pal"
+        },
+        {
+          "keys": "up, down",
+          "title": "Move between the other inputs; a click on one focuses it"
+        }
+      ],
       "refresh": { "every": 5, "on": ["wake"] },
       "mocks": {
         "muted": { "title": "Muted microphone", "item": { "icon": "󰍭", "color": "red", "tooltip": "MacBook Pro Microphone, muted" } },

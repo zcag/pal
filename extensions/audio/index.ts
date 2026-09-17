@@ -4,9 +4,10 @@
 // other actions set a preset volume (a pushed level with 0/25/50/75/100)
 // or toggle mute without leaving the palette. Live: the defaults and
 // volumes are read again on every show.
-import { audio, bar, errorMessage, failed, hint, settings, xdg, type Accessory, type Action, type AudioDevice, type BarItem, type Ctx, type Effect, type Extension, type Item } from "@zcag/pal";
+import { audio, bar, errorMessage, failed, hint, settings, xdg, type Accessory, type Action, type AudioDevice, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+import { PRESETS as VIEW_PRESETS, render as renderBar, type BarKind, type BarState } from "./view.ts";
 
-export const PRESETS = [0, 25, 50, 75, 100];
+export const PRESETS = VIEW_PRESETS;
 
 /** A row id is `kind:id`, since a headset is one device in both directions. */
 const rowId = (d: Pick<AudioDevice, "kind" | "id">) => `${d.kind}:${d.id}`;
@@ -24,7 +25,6 @@ const VOLUME = { muted: "\u{f075f}", headphones: "\u{f08c3}", speaker: "\u{f04c3
  * bottom of it — it is the same fact as muted, and takes the muted glyph.
  */
 const RAMP: [number, string][] = [[67, "\u{f057e}"], [34, "\u{f0580}"], [1, "\u{f057f}"], [0, VOLUME.muted]];
-const BAR_MENU = { palette: "audio" } as const;
 const VOLUME_STEP = 5;
 const VOLUME_ITEM = "volume";
 /** How long the level stays up after a change, his `VOL_FLASH_SEC`. */
@@ -35,6 +35,19 @@ type Settings = { level: "flash" | "always" | "never" };
 
 let flashUntil = 0;
 let collapse: ReturnType<typeof setTimeout> | undefined;
+/** Which device the popover's keys act on, per direction, between renders: the device's id, not an index, so a list that changes under it keeps its place. */
+const barFocus: Record<BarKind, string | undefined> = { output: undefined, input: undefined };
+
+/** The popover's state for one direction: that direction's devices, the other's default for the line at the foot, and where the cursor sits. */
+async function barState(kind: BarKind): Promise<BarState> {
+  const all = await audio.devices();
+  const devices = all.filter((d) => d.kind === kind);
+  // The device in use is the card, not a row, so the cursor lands on the first one you could switch to: Enter then means "use this instead", which is the only thing the rows are for.
+  const at = devices.findIndex((d) => d.id === barFocus[kind]);
+  const first = devices.findIndex((d) => !d.default);
+  return { kind, devices, other: all.find((d) => d.kind !== kind && d.default), focus: at < 0 ? Math.max(0, first) : at };
+}
+
 
 /**
  * Hold the level up for a moment, then take it away again. Every change
@@ -89,7 +102,7 @@ function outputGlyph(d: AudioDevice): string {
   return RAMP.find(([floor]) => (d.volume ?? 0) >= floor)![1];
 }
 
-function outputBar(d: AudioDevice | undefined): BarItem {
+function outputBar(d: AudioDevice | undefined, menu: View): BarItem {
   if (!d) return { hidden: true };
   const muted = d.muted === true;
   // The number changes only when you change it, so it is feedback rather than a
@@ -107,44 +120,89 @@ function outputBar(d: AudioDevice | undefined): BarItem {
     tooltip: `${d.name}${muted ? ", muted" : d.volume === null ? "" : ` · ${d.volume}%`}`,
     click: "open",
     scroll: { up: "up", down: "down" },
-    menu: BAR_MENU,
+    menu: { view: menu },
   };
 }
 
 /** The main volume strip, or hidden when the audio backend is unavailable. */
 async function renderVolume(): Promise<BarItem> {
-  try { return outputBar(await defaultDevice("output")); } catch { return { hidden: true }; }
+  try { const st = await barState("output"); return outputBar(st.devices.find((d) => d.default), renderBar(st)); } catch { return { hidden: true }; }
 }
 
 /** Mic only interrupts the bar when it needs attention: muted or absent. */
 async function renderMic(): Promise<BarItem> {
   try {
-    const d = await defaultDevice("input");
-    if (!d) return { icon: MIC_OFF, color: "red", tooltip: "No input device", click: "open", menu: BAR_MENU };
+    const st = await barState("input");
+    const d = st.devices.find((x) => x.default);
+    if (!d) return { icon: MIC_OFF, color: "red", tooltip: "No input device", click: "open", menu: { view: renderBar(st) } };
     if (!d.muted) return { hidden: true };
-    return { icon: MIC_MUTED, color: "red", tooltip: `${d.name}, muted`, click: "open", menu: BAR_MENU };
+    return { icon: MIC_MUTED, color: "red", tooltip: `${d.name}, muted`, click: "open", menu: { view: renderBar(st) } };
   } catch { return { hidden: true }; }
 }
 
-async function volumeAction(action: string): Promise<Effect> {
+/**
+ * The scroll keys and the popover's, for either direction. The scroll on
+ * the strip arrives here too (`up`/`down` with no popover up), so a
+ * volume change answers with `keep` and an HUD; everything the popover
+ * sends answers with a fresh tree instead, which is what `fromPopover`
+ * distinguishes. The device acted on is the default one, read again
+ * rather than trusted from the last render.
+ */
+async function deviceAction(kind: BarKind, action: string, ctx?: BarCtx): Promise<Effect> {
+  const redraw = async (): Promise<Effect> => ({ view: renderBar(await barState(kind)) });
   try {
-    const d = await defaultDevice("output");
+    // The cursor moves without touching a device, so it answers from the cache of this render alone.
+    if (action.startsWith("focus:")) { barFocus[kind] = action.slice(6); return redraw(); }
+    if (action === "next" || action === "prev") {
+      const st = await barState(kind);
+      // The cursor walks the rows, which are the devices not in use.
+      const rows = st.devices.filter((d) => !d.default);
+      if (!rows.length) return { keep: true };
+      const here = Math.max(0, rows.findIndex((d) => d.id === st.devices[st.focus]?.id));
+      barFocus[kind] = rows[(here + (action === "next" ? 1 : -1) + rows.length) % rows.length].id;
+      return redraw();
+    }
+    if (action === "open-pal") return { push: { extension: "audio", palette: "audio" } };
+
+    const st = await barState(kind);
+    const d = st.devices.find((x) => x.default);
+    if (action === "use") {
+      const pick = st.devices[st.focus];
+      if (!pick || pick.default) return { keep: true };
+      await audio.setDefault(pick.id, kind);
+      barFocus[kind] = pick.id;
+      return { ...(await redraw()), hud: `${kind === "output" ? "Output" : "Input"}: ${pick.name}` };
+    }
     if (!d) return { keep: true };
+
+    // Everything below acts on the default device's level or its mute.
+    const fromPopover = action === "set" || action.startsWith("preset:");
+    const level = async (volume: number): Promise<Effect> => {
+      await audio.setVolume(d.id, kind, Math.max(0, Math.min(100, Math.round(volume))));
+      flash();
+      return fromPopover || ctx?.values?.value !== undefined ? redraw() : { keep: true, hud: `${d.name} ${Math.round(volume)}%` };
+    };
+    if (action === "set") { const v = Number(ctx?.values?.value); return Number.isFinite(v) ? level(v * 100) : { keep: true }; }
+    if (action.startsWith("preset:")) return level(Number(action.slice(7)));
     if (action === "up" || action === "down") {
       if (d.volume === null) return { keep: true };
       const volume = Math.max(0, Math.min(100, d.volume + (action === "up" ? VOLUME_STEP : -VOLUME_STEP)));
-      await audio.setVolume(d.id, "output", volume);
+      await audio.setVolume(d.id, kind, volume);
       // Only what he just did puts the number up; a poll or a device change must
       // not, or it would be permanent again by another route.
       flash();
       return { keep: true, hud: `${d.name} ${volume}%` };
     }
-    const muted = await audio.setMute(d.id, "output");
+    const muted = await audio.setMute(d.id, kind);
     flash();
     return { keep: true, hud: muted ? `${d.name} muted` : `${d.name} unmuted` };
-  } catch (e) { return failed("change volume", e); }
+  } catch (e) { return failed(kind === "output" ? "change volume" : "change the microphone", e); }
 }
 
+const volumeAction = (action: string, ctx?: BarCtx) => deviceAction("output", action, ctx);
+const micBarAction = (action: string, ctx?: BarCtx) => deviceAction("input", action, ctx);
+
+/** A direct click on the muted-microphone strip: bring it back, which is the only reason that strip is there. */
 async function micAction(): Promise<Effect> {
   try {
     const d = await defaultDevice("input");
@@ -216,6 +274,6 @@ export default {
   },
   bar: {
     volume: { render: renderVolume, onOpen: () => volumeAction("toggle"), onAction: volumeAction },
-    microphone: { render: renderMic, onOpen: micAction },
+    microphone: { render: renderMic, onOpen: micAction, onAction: micBarAction },
   },
 } satisfies Extension;
