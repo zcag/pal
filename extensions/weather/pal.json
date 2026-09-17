@@ -1,7 +1,7 @@
 {
   "name": "weather", "title": "Weather", "description": "Current local weather from Open-Meteo: quiet when ordinary, present for rain, fog, wind and uncomfortable temperatures.", "version": "0.1.0", "icon": { "tile": { "glyph": "󰖙", "bg": "cyan" } }, "author": "pal", "repo": "bundled", "license": "MIT",
   "settings": [
-    { "kind": "text", "id": "location", "label": "Location", "description": "City, region, country or postal code. Resolved privately by Open-Meteo's location search; no Home Assistant setup is used.", "placeholder": "Istanbul, Turkey", "default": "" },
+    { "kind": "text", "id": "location", "label": "Location", "description": "A place name, optionally narrowed by region or country: “Istanbul”, “London, Ontario”, “Paris, Texas”. Only the first part is searched; the rest choose between same-named places. Resolved privately by Open-Meteo's location search.", "placeholder": "Istanbul, Turkey", "default": "" },
     { "kind": "number", "id": "low", "label": "Cold below", "min": -50, "max": 50, "unit": "°C", "default": 10 },
     { "kind": "number", "id": "high", "label": "Hot above", "min": -20, "max": 60, "unit": "°C", "default": 30 },
     { "kind": "list", "id": "notable_conditions", "label": "Additional notable weather codes", "description": "Optional WMO weather codes that should surface even within the temperature band.", "default": [] }
