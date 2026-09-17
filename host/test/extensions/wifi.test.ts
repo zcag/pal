@@ -94,7 +94,7 @@ describe("wifi", () => {
       expect(hint).toMatchObject({ name: "Wi-Fi names need Location access", subtitle: "Switch pal on under Privacy & Security > Location Services", section: "Wi-Fi", actions: [{ id: "location", title: "Open System Settings" }] });
       expect(items.indexOf(hint)).toBe(items.length - 2);
       expect(await pick("location")).toEqual({ keep: true });
-      expect(calls.at(-1)).toEqual({ method: "permission", params: { which: "location" } });
+      expect(calls.at(-1)).toEqual({ method: "permission", params: { which: "location", extension: "wifi" } });
       location = "restricted";
       expect((await list()).find((i) => i.id === "location")).toMatchObject({ subtitle: "A profile on this Mac forbids it", actions: [] });
     } finally {
@@ -113,9 +113,11 @@ describe("wifi", () => {
       expect(cur.actions!.map((a) => a.id)).toEqual(["copy_ip"]);
       await list();
       expect(calls.filter((c) => c.method === "permission").length - before).toBe(MAC ? 2 : 0);
-      if (MAC) expect(calls.find((c) => c.method === "permission")).toEqual({ method: "permission", params: { which: "location" } });
-      // Not yet answered: no hint row, the prompt is up (or the app held it back for a listing the user looks at).
-      expect((await list()).find((i) => i.id === "location")).toBeUndefined();
+      if (MAC) expect(calls.find((c) => c.method === "permission")).toEqual({ method: "permission", params: { which: "location", extension: "wifi" } });
+      // Not yet answered (the app holds a listing's ask until the user is inside the palette): the hint row's Enter asks, and says what the prompt is for.
+      const hint = (await list()).find((i) => i.id === "location");
+      if (MAC) expect(hint).toMatchObject({ subtitle: "Enter shows the system prompt; pal reads no location, only the names", actions: [{ id: "location", title: "Allow Location Access" }] });
+      else expect(hint).toBeUndefined();
     } finally {
       status = saved;
       location = "granted";

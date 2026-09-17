@@ -3,7 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 // Icon glyphs read `window` at import; no DOM is needed for markup checks.
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
-import { SettingsGeneral, comboLabel, hotkeyPresets } from "../SettingsGeneral";
+import { SettingsGeneral, comboLabel, generalIndex, hotkeyPresets } from "../SettingsGeneral";
+import type { ThemeFileStatus } from "../SettingsTheme";
+
+const settingsThemeFile: ThemeFileStatus = { setting: "", diagnostics: [], dir: "~/.config/pal/themes", themes: [] };
 import { permissionRows, type GeneralConfig, type HotkeyStatus } from "../SettingsTypes";
 import { allGranted, nothingGranted } from "./settings-fixtures";
 
@@ -110,5 +113,19 @@ describe("SettingsGeneral permissions", () => {
     const html = page({ hotkey: status({ wanted: "cmd+space", registered: true }), onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop });
     for (const a of ["general:hotkey", "general:theme", "general:position", "general:login", "general:menubar", "general:file", "general:frecency", "general:host", "general:refresh"]) expect(html).toContain(`data-anchor="${a}"`);
     expect(html).toContain("Refresh All");
+  });
+  it("is found by any word of a row's description, not only its label, and every indexed anchor is on the page", () => {
+    const find = (q: string) => generalIndex.filter((e) => `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""}`.toLowerCase().includes(q)).map((e) => e.label);
+    expect(find("dock")).toEqual(["Menu bar icon"]);
+    expect(find("crash")).toEqual(["Launch at login"]);
+    expect(find("welcome tips")).toEqual(["Ask on first launch"]);
+    expect(find("comments")).toEqual(["Config file"]);
+    expect(find("catppuccin")).toEqual(["Theme file"]);
+    const html = page({ hotkey: status({ wanted: "cmd+space", registered: true }), permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
+    for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
+  });
+  it("Reset Ranking asks once before it forgets everything", () => {
+    const html = page({ onResetFrecency: noop });
+    expect(html).toMatch(/data-destructive[^>]*aria-live="polite"[^>]*>Reset Ranking</);
   });
 });

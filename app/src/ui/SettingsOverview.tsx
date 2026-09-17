@@ -92,13 +92,21 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
   const names = new Set(v.extensions.map((e) => e.name));
   // Snippet expansion watches the keys typed in other apps: Input Monitoring matters once it is on.
   const expand = v.extensions.some((e) => e.name === "snippets" && e.values?.expand === true);
+  // A permission is a row when it is refused and nothing else will ask for
+  // it: Accessibility (asked on the first show; the one every paste needs),
+  // Full Disk Access (no prompt exists, so this row is the only telling),
+  // Input Monitoring once expansion is on (pal asked when it was switched
+  // on; a bar peek only degrades without it), and Calendars or Location
+  // once the prompt was answered no. One the OS has not asked about yet
+  // (`not_determined`) is not: the extension prompts from its own row the
+  // first time it is used, and a fresh install must not open on a list of
+  // grants for palettes never opened.
   for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0, wifi: names.has("wifi"), expand })) {
     if (p.state !== "missing") continue;
-    // A permission only an absent extension needs is not something to do.
     if (p.id === "full_disk_access" && !names.has("otp")) continue;
-    if (p.id === "calendar" && !names.has("calendar")) continue;
-    if (p.id === "input_monitoring" && !(v.bar?.length ?? 0) && !expand) continue;
-    if (p.id === "location" && !names.has("wifi")) continue;
+    if (p.id === "calendar" && (!names.has("calendar") || v.permissions?.calendar === "not_determined")) continue;
+    if (p.id === "input_monitoring" && !expand) continue;
+    if (p.id === "location" && (!names.has("wifi") || v.permissions?.location === "not_determined")) continue;
     items.push({ id: `permission:${p.id}`, level: "attention", title: p.title, detail: `${p.needs}. ${p.where.startsWith("Privacy") ? `Switch it on under ${p.where}` : `Granted in ${p.where}`}.`, action: { label: p.id === "full_disk_access" ? "Open the pane" : "Grant…", permission: p.id } });
   }
 
@@ -108,8 +116,15 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
       items.push({ id: `failed:${e.key}`, level: "attention", icon: e.icon, title: `${e.title} failed to load`, detail: e.error, action: { label: "Open", go: { page: "extensions", anchor: `extensions:${e.key}` } } });
     }
   }
+  // Nothing to work with: a row for an extension the user chose (installed
+  // from the store, or a second instance they added), not for a bundled
+  // one never touched: fifty ship with pal, a dozen of them want a token,
+  // and a fresh install must not open on "11 things to look at" for
+  // services it may never use. A bundled one says so in its own palette
+  // and on its Extensions page.
   for (const e of v.extensions) {
     if (e.loaded === false) continue;
+    if ((e.bundled ?? e.repo === "bundled") && (!e.instance || e.instance.isDefault)) continue;
     const missing = needsSetup(e);
     if (missing.length) {
       items.push({ id: `setup:${e.key}`, level: "attention", icon: e.icon, title: `${e.title} needs ${missing.map((s) => s.label.toLowerCase()).join(" and ")}`, detail: missing[0].description ?? `Its palettes list nothing until ${missing.map((s) => s.label.toLowerCase()).join(" and ")} ${missing.length === 1 ? "is" : "are"} set.`, action: { label: "Set up", go: { page: "extensions", anchor: `extensions:${e.key}:${missing[0].id}` } } });

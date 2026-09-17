@@ -18,13 +18,16 @@ export type ConfirmProps = {
  * A yes/no card over the list for an action that asks first. Enter goes
  * ahead, Escape backs out, Tab moves between the two buttons and nothing
  * else leaves the card: every other command is swallowed so the launcher
- * behind it cannot move or run anything while the question is up.
+ * behind it cannot move or run anything while the question is up, wherever
+ * focus is (`modal`: a key that lands on the search box behind is the
+ * card's too, so Enter never runs the row's Open under a "Quit Slack?").
  */
 export function Confirm({ title, message, action, destructive, onConfirm, onCancel }: ConfirmProps) {
   const root = useRef<HTMLDivElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   const go = useRef<HTMLButtonElement>(null);
-  useEffect(() => go.current?.focus({ preventScroll: true }), []);
+  // The go-ahead button takes focus when the card opens, and again when a new question replaces the last one mid-exit (the same card instance is kept through the exit motion).
+  useEffect(() => go.current?.focus({ preventScroll: true }), [title, action]);
   const other = () => (document.activeElement === cancel.current ? go : cancel).current?.focus({ preventScroll: true });
   const swallow = () => {};
   useKeys(
@@ -36,7 +39,7 @@ export function Confirm({ title, message, action, destructive, onConfirm, onCanc
       move: ({ dir }) => (dir === "left" || dir === "right" ? other() : undefined),
       jump: swallow, jumpTo: swallow, secondary: swallow, back: swallow, detail: swallow, shortcut: swallow, key: swallow,
     },
-    { scope: root },
+    { scope: root, modal: true },
   );
   return (
     <>

@@ -152,11 +152,14 @@ pub fn install(app: &AppHandle, file: ConfigFile) {
 /// A restored size under the minimum is the default from before the
 /// window grew (720 by 520 until 2026-09-16), not a choice: it gets the
 /// new default once, and the next hide saves that.
-fn create(app: &AppHandle, page: Option<&str>) -> tauri::Result<WebviewWindow> {
-    let url = match page {
-        Some(p) => format!("index.html?settings&page={p}"),
-        None => "index.html?settings".into(),
-    };
+fn create(app: &AppHandle, page: Option<&str>, anchor: Option<&str>) -> tauri::Result<WebviewWindow> {
+    let mut url = "index.html?settings".to_string();
+    if let Some(p) = page {
+        url.push_str(&format!("&page={p}"));
+    }
+    if let Some(a) = anchor {
+        url.push_str(&format!("&anchor={}", url::form_urlencoded::byte_serialize(a.as_bytes()).collect::<String>()));
+    }
     let builder = WebviewWindowBuilder::new(app, WINDOW, WebviewUrl::App(url.into()))
         .title("pal Settings")
         .inner_size(SIZE.0, SIZE.1)
@@ -534,20 +537,28 @@ pub fn open(app: &AppHandle) {
 /// open` in the log is the clock the page's `settings paint` mark reads
 /// against.
 pub fn open_page(app: &AppHandle, page: Option<&str>) {
+    open_at(app, page, None);
+}
+
+/// [`open_page`] landing on `anchor`, a row's `data-anchor` on that page
+/// (`extensions:hello`): the page selects what it names and lights the
+/// row, as a search hit does.
+pub fn open_at(app: &AppHandle, page: Option<&str>, anchor: Option<&str>) {
     let handle = app.clone();
     let page = page.map(str::to_string);
+    let anchor = anchor.map(str::to_string);
     let _ = app.run_on_main_thread(move || {
         let t0 = Instant::now();
         let (w, fresh) = match handle.get_webview_window(WINDOW) {
             Some(w) => (w, false),
-            None => match create(&handle, page.as_deref()) {
+            None => match create(&handle, page.as_deref(), anchor.as_deref()) {
                 Ok(w) => (w, true),
                 Err(e) => return eprintln!("settings\twindow failed\t{e}"),
             },
         };
         panel::hide(&handle);
         if let (Some(page), false) = (page.as_deref(), fresh) {
-            events::emit_to(&handle, WINDOW, events::SETTINGS, json!({ "page": page }));
+            events::emit_to(&handle, WINDOW, events::SETTINGS, json!({ "page": page, "anchor": anchor }));
         }
         let _ = w.show();
         let _ = w.set_focus();
@@ -636,6 +647,11 @@ pub fn remember_app_check(app: &AppHandle, result: &Result<UpdateInfo, String>) 
     if let Some(st) = app.try_state::<Settings>() {
         lock(&st.checks).app = Some(Checked::now(result.clone()));
     }
+}
+
+/// What the last app check found, when one ran and answered.
+pub fn last_app_check(app: &AppHandle) -> Option<UpdateInfo> {
+    app.try_state::<Settings>().and_then(|st| lock(&st.checks).app.as_ref().and_then(|c| c.value.clone()))
 }
 
 /// The store's check, remembered.

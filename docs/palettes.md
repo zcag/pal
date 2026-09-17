@@ -1899,14 +1899,16 @@ signal and an `in range` tag; an available one shows its security
   macOS 15 and later show network names only to an app with **Location
   Services** (CoreWLAN answers nil, the CLIs `<redacted>`; `wdutil info`
   would say, but needs sudo), so the first time the palette lists with
-  the names withheld it asks, once: the system prompt, the same as
-  Calendars. Say yes and the next listing has the names; until then the
-  current row reads "Connected network" with its IP and channel, and the
-  Scan row counts the nearby networks whose names are hidden. A refusal
-  is a row in the palette (**Wi-Fi names need Location access**, `Enter`
-  opens Privacy & Security > Location Services) and a Grant button in
-  Settings > General > Permissions and on the Overview. Nothing asks at
-  first run.
+  the names withheld while you are inside it, it asks, once: the system
+  prompt, the same as Calendars (a listing at startup or on a show is
+  held back, so nothing asks at first run or next to another prompt; the
+  **Wi-Fi names need Location access** row asks on `Enter` meanwhile).
+  Say yes and the next listing has the names; until then the current row
+  reads "Connected network" with its IP and channel, and the Scan row
+  counts the nearby networks whose names are hidden. A refusal keeps
+  that row (`Enter` opens Privacy & Security > Location Services) and
+  puts a Grant button in Settings > General > Permissions and on the
+  Overview.
 - **Linux**: NetworkManager over `nmcli -t` (`device wifi list`, which
   answers from NetworkManager's own scan cache, so Available lists at
   once; `connection show` for the saved ones; `device wifi connect`;
@@ -1922,7 +1924,7 @@ signal and an `in range` tag; an available one shows its security
 | Forget | `⌃X` | removes the saved network, after a confirm |
 | Scan | `Enter` on the Scan row | a fresh scan, then the list again |
 | Turn Wi-Fi Off / On | `Enter` on the Wi-Fi row | the radio; off, only that row is listed |
-| Open System Settings | `Enter` on the Location row (macOS, access refused) | the Location Services pane |
+| Allow Location Access / Open System Settings | `Enter` on the Location row (macOS) | the system prompt while unasked, the Location Services pane once refused |
 
 No settings.
 

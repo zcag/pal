@@ -106,7 +106,7 @@ async function readFirefox(b: Browser & { kind: "firefox" }): Promise<Source[]> 
         sources.push({ section: dirs.length > 1 ? `${b.title} (${dir.replace(/^[^.]*\./, "")})` : b.title, browser: b.app, found: firefoxBookmarks(rows) });
       } finally { d.close(); }
     } catch (e) {
-      console.error(`bookmarks: firefox ${db}: ${e instanceof Error ? e.message : e}`);
+      console.error(`[bookmarks] firefox ${db}: ${e instanceof Error ? e.message : e}`);
     } finally {
       await unlink(copy).catch(() => {});
     }

@@ -41,7 +41,7 @@ async function imported(): Promise<Link[]> {
       .filter((r) => r && typeof r.url === "string" && r.url)
       .map((r) => ({ id: IMPORTED + r.url, name: typeof r.name === "string" && r.name ? r.name : r.url, url: r.url, ...(Array.isArray(r.keywords) ? { keywords: r.keywords.map(String) } : {}) }));
   } catch (e) {
-    console.error(`quicklinks: import ${file}: ${e instanceof Error ? e.message : e}`);
+    console.error(`[quicklinks] import ${file}: ${e instanceof Error ? e.message : e}`);
     return [];
   }
 }

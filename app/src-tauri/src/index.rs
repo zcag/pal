@@ -251,6 +251,8 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             let name = params["name"].as_str().unwrap_or(pal_core::config::instance::name_of(&ext));
             let title = params["manifest"]["title"].as_str().unwrap_or(name).to_string();
             settings::register(app, &ext, params, true);
+            // A fixed extension's "failed to load" row goes.
+            commands::sync_failed_rows(app);
             // Its bar items: the manifest's `bar` merged with the code's keys by the host; the instance's label rides on the tooltip.
             crate::bar::on_extension_loaded(app, &ext, crate::bar::manifest_bars(&params["bar"]), settings::instance_label(app, &ext));
             // A reloaded module hears about its levels already open (a lyrics view up while its file was saved).
@@ -261,6 +263,8 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             let ext = params["extension"].as_str().unwrap_or_default();
             settings::register(app, ext, params, false);
             remove_extension(app, ext);
+            // Said once, as a row at the root (and in Settings): never a toast on a show.
+            commands::sync_failed_rows(app);
         }
         // Its directory went away while the host was up: nothing to keep.
         "extension/removed" => {
@@ -285,6 +289,7 @@ pub fn on_notification(app: &AppHandle, host: &Arc<Host>, method: &str, params: 
             // `known`, not `live`: a failed extension stays listed in
             // Settings, where its error is shown.
             settings::retain(app, &known);
+            commands::sync_failed_rows(app);
             let (app, host, dir) = (app.clone(), host.clone(), cache_dir(app));
             tauri::async_runtime::spawn(async move {
                 // File removals off the reader task.
@@ -655,7 +660,21 @@ fn frequent(ix: &Index, fre: &Frecency, now: SystemTime) -> Vec<HitView> {
         .collect()
 }
 
-/// The rest of the empty root without the rows the Frequent section already shows.
+/// The "Needs attention" rows of the empty root: the failed extensions'
+/// rows of the commands source (`commands::failed_rows`), under
+/// [`commands::ATTENTION`] and dropped from the pal section (`dedupe`).
+fn attention(ix: &Index) -> Vec<HitView> {
+    let source = commands::source();
+    commands::failed_ids(ix)
+        .into_iter()
+        .filter_map(|id| {
+            let item = ix.get(&source, &id).cloned()?;
+            Some(HitView { hit: Hit { source: source.clone(), id, score: 0.0, name_positions: Vec::new() }, item, group: Some(commands::ATTENTION.into()) })
+        })
+        .collect()
+}
+
+/// The rest of the empty root without the rows a leading section already shows.
 fn dedupe(hits: Vec<HitView>, frequent: &[HitView]) -> Vec<HitView> {
     hits.into_iter().filter(|h| !frequent.iter().any(|f| f.hit.source == h.hit.source && f.hit.id == h.hit.id)).collect()
 }
@@ -741,6 +760,26 @@ fn more_row(source: &Source, title: &str, count: usize) -> HitView {
 /// The welcome rows are for the unscoped empty query only, where they lead
 /// whatever frecency says; a query with text is answered from every other
 /// source.
+/// What the panel's page last searched: one source inside a palette,
+/// none at the root. Read by `permissions::attended`: an extension's ask
+/// from a listing is honoured only while its palette is what is showing.
+static SHOWING: Mutex<Option<Source>> = Mutex::new(None);
+
+/// The palette the page is inside, as of its last query; `None` at the root.
+pub fn showing() -> Option<Source> {
+    lock(&SHOWING).clone()
+}
+
+/// Picks in flight, by extension: an ask from a pick is the user's own
+/// doing (Enter on the row that offered it) and is honoured wherever the
+/// panel is.
+static PICKING: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// Whether a pick of `extension`'s is being answered right now.
+pub fn picking(extension: &str) -> bool {
+    lock(&PICKING).iter().any(|e| e == extension)
+}
+
 #[tauri::command(async)]
 pub fn query(
     app: AppHandle,
@@ -752,6 +791,7 @@ pub fn query(
     palettes: State<'_, Palettes>,
 ) -> Vec<HitView> {
     static FIRST: Once = Once::new();
+    *lock(&SHOWING) = sources.as_ref().and_then(|s| (s.len() == 1).then(|| s[0].clone()));
     // The registry first, then frecency, then the index (the module docs on lock order); nothing held across.
     // Tiers and titles in one pass: the titles serve the "more" rows, and
     // taking the registry again under the index guard would invert the order
@@ -774,15 +814,20 @@ pub fn query(
         None if !q.is_empty() => Some(ix.sources().into_iter().map(|s| s.source).filter(|s| *s != welcome).collect()),
         s => s,
     };
-    // The empty unscoped root leads with the Frequent section (after the welcome rows, which outscore everything).
-    let frequent = if sources.is_none() && q.trim().is_empty() { frequent(&ix, &fre, SystemTime::now()) } else { Vec::new() };
+    // The empty unscoped root leads with what needs attention (a failed extension's row) and the Frequent section, after the welcome rows, which outscore everything.
+    let empty_root = sources.is_none() && q.trim().is_empty();
+    let frequent = if empty_root { frequent(&ix, &fre, SystemTime::now()) } else { Vec::new() };
+    let attention = if empty_root { attention(&ix) } else { Vec::new() };
     let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps };
     let ranked = ix.query(&q, opts);
     let mut hits = views(&ix, ranked, &titles);
-    if !frequent.is_empty() {
-        hits = dedupe(hits, &frequent);
-        let at = hits.iter().position(|h| h.hit.source != welcome).unwrap_or(hits.len());
-        hits.splice(at..at, frequent);
+    for lead in [attention, frequent] {
+        if lead.is_empty() {
+            continue;
+        }
+        hits = dedupe(hits, &lead);
+        let at = hits.iter().position(|h| h.hit.source != welcome && h.group.as_deref() != Some(commands::ATTENTION)).unwrap_or(hits.len());
+        hits.splice(at..at, lead);
     }
     FIRST.call_once(|| eprintln!("query\tfirst answer\t{q:?} {} hits of {} items\t{:.1}ms since start", hits.len(), ix.len(), crate::since_start_ms()));
     hits
@@ -959,7 +1004,15 @@ pub async fn run_pick_from(app: &AppHandle, host: &Arc<Host>, source: &Source, i
         params["compact"] = Value::Bool(true);
     }
     let t0 = Instant::now();
-    let r = host.request("pick", params).await?;
+    lock(&PICKING).push(source.extension.clone());
+    let r = host.request("pick", params).await;
+    {
+        let mut picking = lock(&PICKING);
+        if let Some(i) = picking.iter().position(|e| *e == source.extension) {
+            picking.remove(i);
+        }
+    }
+    let r = r?;
     eprintln!("pick\t{}/{}\t{id}\t{:.1}ms", source.extension, source.palette, ms(t0));
     let r = effects::apply_from(app, r, window).await?;
     if r.get("keep").is_some() && args.is_none() {

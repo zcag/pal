@@ -135,6 +135,8 @@ export const WELCOME = "pal/welcome";
 export const FALLBACK = "pal/fallback";
 /** The empty root's sections that are not a palette's: the Frequent rows (`FREQUENT` in index.rs) and the extensions' `suggest()` rows. */
 export const FREQUENT = "Frequent";
+/** The empty root's "Needs attention" rows (`commands::ATTENTION`): a failed extension's row, right after the tips. */
+export const ATTENTION = "Needs attention";
 export const NOW = "Now";
 /** The palette whose section follows Frequent at the empty root: the recently used files. */
 export const RECENT_FILES = "files/recent";

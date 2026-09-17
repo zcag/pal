@@ -17,8 +17,11 @@
 //! `general.ask_permissions_on_start`), the Welcome row (every time), an
 //! effect refused for want of it (once per run, `effects.rs`), an
 //! extension over `core/permissions.request` (the wifi palette asks for
-//! Location from a listing the user is looking at, never from the startup
-//! load: [`call`]) and the Settings window's Grant buttons. Nothing polls the OS for
+//! Location from a listing the user is looking at, inside the palette,
+//! or from its hint row's pick; never from the startup load or a relist on
+//! a show: [`call`], [`attended`]) and the Settings window's Grant
+//! buttons. One prompt at a time: the first show asks for Accessibility
+//! alone, since no palette is on screen then. Nothing polls the OS for
 //! a change; a grant is seen by [`watch`], which checks every [`POLL`]
 //! while a window is open and something was missing, and emits
 //! [`events::PERMISSIONS`] on a change (the Welcome row goes, Settings
@@ -333,24 +336,47 @@ pub fn watch(app: &AppHandle) {
     });
 }
 
+/// Whether the user is looking at `extension`: the panel is up inside one
+/// of its palettes (`index::showing`), or a pick of its is being answered
+/// (`index::picking`: Enter on its row). Without a caller (an older SDK)
+/// any pal window in front counts, as it used to.
+fn attended(app: &AppHandle, extension: Option<&str>) -> Result<(), String> {
+    let Some(ext) = extension else {
+        return if window_open(app) { Ok(()) } else { Err("no pal window in front".into()) };
+    };
+    if crate::index::picking(ext) {
+        return Ok(());
+    }
+    if !panel::is_visible(app) {
+        return Err("the panel is down".into());
+    }
+    match crate::index::showing() {
+        Some(s) if s.extension == ext => Ok(()),
+        Some(s) => Err(format!("the panel is inside {}/{}", s.extension, s.palette)),
+        None => Err("the panel is at the root".into()),
+    }
+}
+
 /// The bridge's `core/permissions.{status, request}` for an extension:
-/// `request { which }` is [`request`] (the prompt, or the pane), answered
-/// with the state as of now. An extension asks from a listing, and a
-/// listing also runs at startup (every palette, for the cache) and on a
-/// background refresh, so the ask is honoured only while a pal window is
-/// in front of the user and skipped otherwise: the extension asks again on
-/// its next listing, and the first one the user looks at is the one that
-/// prompts.
+/// `request { which, extension? }` is [`request`] (the prompt, or the
+/// pane), answered with the state as of now. An extension asks from a
+/// listing, and a listing also runs at startup (every palette, for the
+/// cache), on every show (a live palette) and on a background refresh, so
+/// the ask is honoured only while the user is looking at that extension
+/// ([`attended`]) and skipped otherwise: the extension asks again on its
+/// next listing, and the one the user is inside of is the one that
+/// prompts. A pick's ask (Enter on the row that offered it) always is.
 pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     let s = match func {
         "status" => status(),
         "request" => {
             let which = params["which"].as_str().ok_or("permissions.request: no which")?;
-            if window_open(app) {
-                request(app, which)?
-            } else {
-                eprintln!("permissions\t{which}\tskipped\tno pal window in front");
-                status()
+            match attended(app, params["extension"].as_str()) {
+                Ok(()) => request(app, which)?,
+                Err(why) => {
+                    eprintln!("permissions\t{which}\tskipped\t{why}");
+                    status()
+                }
             }
         }
         _ => return Err(format!("unknown permissions.{func}")),

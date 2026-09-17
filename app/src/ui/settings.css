@@ -410,6 +410,8 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-number { display: inline-flex; align-items: center; gap: var(--pal-space-2, 8px); }
 .pal-number .pal-field__input { width: 88px; font-variant-numeric: tabular-nums; }
 .pal-number__unit { color: var(--pal-fg-muted, #a3a4ae); font-size: var(--pal-text-sm, 12px); white-space: nowrap; }
+.pal-number[data-invalid] .pal-field__input { border-color: var(--pal-destructive, #ff6e66); }
+.pal-number .pal-field__error { white-space: nowrap; }
 
 .pal-path { display: flex; align-items: center; gap: var(--pal-space-2, 8px); width: 100%; }
 .pal-path__input { flex: 1; min-width: 0; font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); }

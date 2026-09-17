@@ -27,7 +27,7 @@ const CONCURRENCY = 8;
 /** A 429 without a Retry-After is refused for this long. */
 const DEFAULT_BACKOFF_MS = 60_000;
 
-export const log = (msg: string) => console.error(`gmail: ${msg}`);
+export const log = (msg: string) => console.error(`[gmail] ${msg}`);
 
 /** The token command is empty, or ran and failed: the account cannot be read. `stderr` is what it printed. */
 export class TokenError extends Error {

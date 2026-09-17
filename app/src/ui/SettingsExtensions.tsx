@@ -3,7 +3,7 @@ import { Empty } from "./Empty";
 import { Icon } from "./Icon";
 import { BRAND } from "./icons";
 import { Tag } from "./Row";
-import { SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
+import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
 import { SettingsList } from "./SettingsList";
 import { badgedIcon, instanceBadge, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
 import type { Brand } from "./types";
@@ -201,31 +201,6 @@ type PaneProps = {
   onInstanceEnabled?: SettingsExtensionsProps["onInstanceEnabled"];
 };
 
-/**
- * A button that asks once: the first press arms it for five seconds
- * ("Remove? Click again (5)"), the second press within them is the answer.
- * Blur disarms.
- */
-function ArmedButton({ label, arm, busy, disabled, onConfirm, ...rest }: { label: string; arm: string; busy?: string; disabled?: boolean; onConfirm: () => void; "aria-label"?: string; "data-small"?: boolean; "data-destructive"?: boolean }) {
-  const [left, setLeft] = useState(0);
-  const arming = left > 0;
-  useEffect(() => {
-    if (!arming) return;
-    const t = setTimeout(() => setLeft(left - 1), 1000);
-    return () => clearTimeout(t);
-  }, [arming, left]);
-  const press = () => {
-    if (!arming) return setLeft(5);
-    setLeft(0);
-    onConfirm();
-  };
-  return (
-    <button type="button" className="pal-button" data-small data-destructive disabled={disabled} onClick={press} onBlur={() => setLeft(0)} aria-live="polite" {...rest}>
-      {busy ?? (arming ? `${arm} (${left})` : label)}
-    </button>
-  );
-}
-
 function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, busy, failed, onChange, onUpdate, onRemove, onOpenLink, onOpenPalette, onInstanceAdd, onInstanceRename, onInstanceRemove, onInstanceEnabled }: PaneProps) {
   const multi = !!ext.multi;
   // The instance whose settings show: the selected one when it is of this extension, else the default (or the first).
@@ -346,7 +321,7 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
           ) : (
             <span className="pal-pane__note">Up to date</span>
           ))}
-          {onRemove && <ArmedButton label="Remove" arm="Remove? Click again" busy={busy === "removing" ? "Removing…" : undefined} disabled={!!busy} onConfirm={onRemove} />}
+          {onRemove && <ArmedButton label="Remove" arm="Remove? Click again" busy={busy === "removing" ? "Removing…" : undefined} disabled={!!busy} onConfirm={onRemove} data-small />}
         </footer>
       )}
     </>
@@ -416,7 +391,7 @@ function Instances({ ext, instances, selected, onSelect, onAdd, onRename, onRemo
               </button>
               {onEnabled && <SettingsSwitch checked={inst.enabled} onChange={(v) => onEnabled(i.key, v)} label={`${i.title} enabled`} disabled={busy === i.key} />}
               {onRename && !renamingThis && <button type="button" className="pal-button" data-small disabled={busy === i.key} onClick={() => setRenaming(i.key)}>Rename</button>}
-              {onRemove && !inst.isDefault && <ArmedButton label="Remove" arm="Remove? Click again" busy={busy === i.key ? "Removing…" : undefined} disabled={!!busy} onConfirm={() => run(i.key, () => onRemove(i.key))} aria-label={`Remove ${i.title}`} />}
+              {onRemove && !inst.isDefault && <ArmedButton label="Remove" arm="Remove? Click again" busy={busy === i.key ? "Removing…" : undefined} disabled={!!busy} onConfirm={() => run(i.key, () => onRemove(i.key))} aria-label={`Remove ${i.title}`} data-small />}
             </li>
           );
         })}

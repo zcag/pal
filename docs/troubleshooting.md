@@ -56,14 +56,16 @@ means the service manager brought it back ([Config](config.md#crash-relaunch)).
 ## Permissions on macOS
 
 Settings › General › Permissions lists all five with a dot and a Grant
-button; the Overview lists the missing ones that something installed
-needs. Each is a switch under System Settings › Privacy & Security.
+button; the Overview lists the missing ones nothing else will ask for
+(Accessibility, Full Disk Access, Input Monitoring once expansion is on,
+Calendars and Location once refused). Each is a switch under System
+Settings › Privacy & Security.
 
 | permission | what needs it | how pal asks | when it is missing |
 | --- | --- | --- | --- |
 | Accessibility | paste into the app in front (Clipboard History, Snippets, `pal paste`, `pal action type`), window focus, close, minimise and layouts, the selected text, Menu Bar Items, "Use in dialog", snippet expansion | the system prompt on the first panel show (`ask_permissions_on_start`), the Welcome row, Settings, and once per run when a paste or a layout is refused | a toast "Paste needs Accessibility" (or "Window layout", "Use in dialog"); focus falls back to activating the app with "Switched to `<app>`; per-window switching needs Accessibility" on the HUD; Menu Bar Items is one row saying so |
 | Input Monitoring | a bar peek closing on the next key press; snippet expansion (`[extensions.snippets] expand`) | when expansion is switched on, or from Settings; the bar never asks | the peek stays until the pointer leaves; expansion does not see keys |
-| Location Services | Wi-Fi network names (macOS 15 and later show them only to an app with it) | the first time the Wi-Fi palette lists, while a pal window is in front | rows read "name hidden by macOS without Location access" and a "Wi-Fi names need Location access" row opens the pane |
+| Location Services | Wi-Fi network names (macOS 15 and later show them only to an app with it) | the first time the Wi-Fi palette lists while you are inside it (a listing at startup or on a show is held back: `permissions<TAB>location<TAB>skipped` in the log), or Enter on its "Wi-Fi names need Location access" row | rows read "name hidden by macOS without Location access" and that row opens the pane |
 | Calendars | the Calendar extension | the extension's "Grant calendar access" row | "Calendar access denied" with a row that opens the pane |
 | Full Disk Access | Verification Codes (Messages' database), Safari bookmarks, the Trash count on Empty Trash | there is no prompt: the row opens the pane and you add pal by hand | "Full Disk Access needed" as the palette's one row; the Safari section is one inert row |
 
@@ -142,9 +144,10 @@ the root (`pal reload`, `pal://reload`), "Restart extension host" in the
 menu bar icon's menu and under Settings › General › Maintenance, and
 after every install, update and remove; a host that exits is respawned
 after half a second (`host<TAB>exit`). During the gap a pick fails with
-a "Failed" toast ("host not running", "host exited"), and the footer
-says "updating…" while listings are pending. A request the host does
-not answer within 10 s fails with "host timed out on `<method>`".
+a "Failed" toast ("the extension host is restarting; try again in a
+moment"), and the footer says "updating…" while listings are pending. A
+request the host does not answer within 10 s fails with "host timed out
+on `<method>`".
 
 An edited extension file is re-imported in place, no restart: the host
 watches every root. What does want a restart: `general.extension_dirs`,
@@ -154,9 +157,14 @@ watches every root. What does want a restart: `general.extension_dirs`,
 
 An extension that fails to load keeps its place in Settings › Extensions
 with a red `failed` tag and the error ("Failed to load. `<error>` Fix
-the code and pal reloads it, or restart the host under General"); its
-palettes are gone from the root meanwhile. A manifest that disagrees
-with the code is a `warning` tag and loads anyway
+the code and pal reloads it, or restart the host under General"), is one
+row on the Overview, and is one row at the root: "`<title>` failed to
+load" with the error's first line, under "Needs attention" at the top of
+the empty list and found by `failed` or its name; Enter opens its
+Extensions page. Nothing is announced on a show: the row is the telling,
+and it goes when the extension loads. Its palettes are gone from the
+root meanwhile. A manifest that disagrees with the code is a `warning`
+tag and loads anyway
 ([Extensions](extensions.md#where-a-palette-is-described)).
 
 ## A palette that lists nothing

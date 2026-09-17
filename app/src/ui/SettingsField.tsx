@@ -1,10 +1,37 @@
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Kbd } from "./Kbd";
 import { comboOf } from "./keys";
 import { describeDefault, isModified, type SettingOption, type SettingSpec, type SettingValue } from "./SettingsTypes";
 
 /* Controls. Each is a plain accessible widget sized by the tokens; the
    field renderer below picks one per declared setting kind. */
+
+/**
+ * A destructive button that asks once: the first press arms it for five
+ * seconds ("Remove? Click again (5)"), the second press within them is the
+ * answer. Blur disarms. Every destructive action in the window goes through
+ * it (Remove an extension or an instance, Reset Ranking), so none runs on a
+ * stray click.
+ */
+export function ArmedButton({ label, arm, busy, disabled, onConfirm, ...rest }: { label: string; arm: string; busy?: string; disabled?: boolean; onConfirm: () => void; "aria-label"?: string; "data-small"?: boolean; "data-destructive"?: boolean }) {
+  const [left, setLeft] = useState(0);
+  const arming = left > 0;
+  useEffect(() => {
+    if (!arming) return;
+    const t = setTimeout(() => setLeft(left - 1), 1000);
+    return () => clearTimeout(t);
+  }, [arming, left]);
+  const press = () => {
+    if (!arming) return setLeft(5);
+    setLeft(0);
+    onConfirm();
+  };
+  return (
+    <button type="button" className="pal-button" data-destructive disabled={disabled} onClick={press} onBlur={() => setLeft(0)} aria-live="polite" {...rest}>
+      {busy ?? (arming ? `${arm} (${left})` : label)}
+    </button>
+  );
+}
 
 /** On/off. A button with role=switch: Space and Enter toggle. */
 export function SettingsSwitch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label?: string; disabled?: boolean }) {
@@ -156,6 +183,40 @@ function SecretControl({ value, onChange, placeholder, id }: { value: string; on
   );
 }
 
+/**
+ * Why a typed number cannot be written, or nothing: the same rule as the
+ * core's `specs::check` for a write from code (a number within `min` and
+ * `max`), said the way the field says it.
+ */
+export function numberProblem(spec: Extract<SettingSpec, { kind: "number" }>, text: string): string | undefined {
+  if (text.trim() === "") return undefined;
+  const n = Number(text);
+  if (!Number.isFinite(n)) return "Not a number";
+  if (spec.min !== undefined && n < spec.min) return spec.max !== undefined ? `Between ${spec.min} and ${spec.max}` : `At least ${spec.min}`;
+  if (spec.max !== undefined && n > spec.max) return spec.min !== undefined ? `Between ${spec.min} and ${spec.max}` : `At most ${spec.max}`;
+  return undefined;
+}
+
+/** A number: what is typed stays in the box while it is out of range or not a number, with the reason under it, and nothing is written until it is fine (an empty box unsets). */
+function NumberControl({ spec, value, onChange, id }: { spec: Extract<SettingSpec, { kind: "number" }>; value: SettingValue; onChange: (v: SettingValue) => void; id: string }) {
+  const shown = value === undefined ? "" : String(value);
+  const [draft, setDraft] = useState<string | null>(null);
+  const text = draft ?? shown;
+  const problem = numberProblem(spec, text);
+  const change = (t: string) => {
+    if (numberProblem(spec, t)) return setDraft(t);
+    setDraft(null);
+    onChange(t.trim() === "" ? undefined : Number(t));
+  };
+  return (
+    <span className="pal-number" data-invalid={problem ? "" : undefined}>
+      <input id={id} className="pal-field__input" type="number" value={text} min={spec.min} max={spec.max} step={spec.step} aria-invalid={problem ? true : undefined} aria-describedby={problem ? `${id}-problem` : undefined} onChange={(e) => change(e.target.value)} onBlur={() => setDraft(null)} />
+      {spec.unit && <span className="pal-number__unit">{spec.unit}</span>}
+      {problem && <span id={`${id}-problem`} className="pal-field__error" role="alert">{problem}</span>}
+    </span>
+  );
+}
+
 function Control({ spec, value, onChange, id }: { spec: SettingSpec; value: SettingValue; onChange: (v: SettingValue) => void; id: string }) {
   switch (spec.kind) {
     case "text":
@@ -163,12 +224,7 @@ function Control({ spec, value, onChange, id }: { spec: SettingSpec; value: Sett
     case "secret":
       return <SecretControl id={id} value={(value as string) ?? ""} placeholder={spec.placeholder} onChange={onChange} />;
     case "number":
-      return (
-        <span className="pal-number">
-          <input id={id} className="pal-field__input" type="number" value={value === undefined ? "" : (value as number)} min={spec.min} max={spec.max} step={spec.step} onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} />
-          {spec.unit && <span className="pal-number__unit">{spec.unit}</span>}
-        </span>
-      );
+      return <NumberControl spec={spec} value={value} onChange={onChange} id={id} />;
     case "boolean":
       return (
         <span className="pal-field__check">

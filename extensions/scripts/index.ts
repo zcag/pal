@@ -345,7 +345,7 @@ function discover(): Record<string, Palette> {
     };
     report.push(`${name}: ${cfg.auto_list && data ? `data ${data}` : `script ${exec![0]}`}`);
   }
-  log(report.join("\n  "));
+  if (report.length) log(report.join("\n  "));
   return palettes;
 }
 

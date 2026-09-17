@@ -17,9 +17,16 @@
 //! by frecency like any other row's (Settings is a daily row), except the
 //! inert version row's (`inert`).
 //!
-//! One row comes and goes: "Install Update" is in the index only while
-//! the last check found a newer release (`sync_update_row`, called by
-//! `updater::check`); its pick is `updater::install`.
+//! Two kinds of row come and go: "Install Update" is in the index only
+//! while the last check found a newer release (`sync_update_row`, called
+//! by `updater::check`), its pick `updater::install`; and one row per
+//! extension the host could not load ("hello failed to load", the error
+//! as its subtitle, `sync_failed_rows` on every `extension/loaded`,
+//! `extension/error` and `host/ready`), listed under "Needs attention"
+//! at the empty root (`index::query`) and found by `failed` or the
+//! extension's name; its pick opens Settings › Extensions on it. A load
+//! error is said there, once, and in Settings: never as a toast on a
+//! show.
 //!
 //! `plan` is the pure half (a row id and action to what should happen),
 //! `pick` the half that touches the app; the tests cover the rows, the
@@ -61,6 +68,10 @@ pub const QUIT: &str = "quit";
 pub const RESTART: &str = "restart";
 pub const VERSION: &str = "version";
 pub const HISTORY_CLEAR: &str = "history-clear";
+/// The id prefix of a failed extension's row: `failed:<instance key>`.
+pub const FAILED: &str = "failed:";
+/// The root section the failed rows go under (`index::query` sets it as the hit's `group`).
+pub const ATTENTION: &str = "Needs attention";
 
 /// The install form's one field and its submit action.
 const SPEC: &str = "spec";
@@ -99,16 +110,62 @@ fn row(id: &str, name: &str, subtitle: &str, keywords: &[&str], icon: &Value) ->
     }
 }
 
+/// An extension the host could not load, as its row needs it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Failed {
+    /// The instance key (`gmail@work`), what the row's pick opens Settings on.
+    pub key: String,
+    /// The manifest's title, else the name.
+    pub title: String,
+    /// The host's message; the row shows its first line.
+    pub error: String,
+    /// The manifest's icon, when it has one; the pal mark otherwise.
+    pub icon: Option<Value>,
+}
+
+impl Failed {
+    /// From the registry's record of the extension (`settings::Ext`).
+    pub fn of(e: &settings::Ext) -> Option<Self> {
+        if e.loaded {
+            return None;
+        }
+        let title = e.manifest["title"].as_str().filter(|t| !t.is_empty()).unwrap_or(&e.name);
+        // A non-default instance says which: "Gmail (Work) failed to load".
+        let title = match e.instance.title.as_deref().filter(|_| !e.instance.is_default) {
+            Some(t) => format!("{title} ({t})"),
+            None => title.to_string(),
+        };
+        Some(Self { key: e.key.clone(), title, error: e.error.clone().unwrap_or_else(|| "failed to load".into()), icon: e.manifest.get("icon").filter(|i| !i.is_null()).cloned() })
+    }
+}
+
+/// The failed extensions' rows, in the order given: "hello failed to
+/// load", the error's first line under it, found by `failed`, `error`
+/// and the extension's name; Enter opens Settings › Extensions on it.
+pub fn failed_rows(failed: &[Failed]) -> Vec<Item> {
+    let mark = mark();
+    failed
+        .iter()
+        .map(|f| {
+            let line = f.error.lines().next().unwrap_or_default().trim();
+            let mut r = row(&format!("{FAILED}{}", f.key), &format!("{} failed to load", f.title), line, &["failed", "error", "extension", "load", &f.key, &f.title], f.icon.as_ref().unwrap_or(&mark));
+            r.extra.insert("actions".into(), json!([{ "id": "open", "title": "Open in Settings" }]));
+            r
+        })
+        .collect()
+}
+
 /// The rows, top to bottom. Quit asks first (`confirm` on its one action);
 /// the version row's one action is a copy, and it is the only row the
 /// frecency store skips. With `update` (a newer release the last check
 /// found), "Install Update" leads: installable here, it installs and
 /// relaunches; not installable (a deb, a development build), it opens the
-/// releases page and the subtitle says why.
-pub fn rows(version: &str, update: Option<&updater::UpdateInfo>) -> Vec<Item> {
+/// releases page and the subtitle says why. `failed` extensions lead
+/// everything ([`failed_rows`]).
+pub fn rows(version: &str, update: Option<&updater::UpdateInfo>, failed: &[Failed]) -> Vec<Item> {
     let icon = mark();
     let reveal = if cfg!(target_os = "macos") { "Show config.toml in Finder" } else { "Show config.toml in the file manager" };
-    let mut rows = Vec::new();
+    let mut rows = failed_rows(failed);
     if let Some(u) = update.filter(|u| u.available) {
         let v = u.version.as_deref().unwrap_or("?");
         let subtitle = match (u.installable, &u.install_note) {
@@ -148,16 +205,21 @@ pub fn rows(version: &str, update: Option<&updater::UpdateInfo>) -> Vec<Item> {
 
 /// Put the rows in the index; once, at startup, after the cached palettes.
 pub fn install(app: &AppHandle) {
-    let rows = rows(&app.package_info().version.to_string(), None);
+    let rows = rows(&app.package_info().version.to_string(), None, &[]);
     let n = rows.len();
     index::with_index(app, |ix| ix.replace(source(), rows));
     eprintln!("commands\t{n} rows");
 }
 
+/// The failed extensions as the registry has them now.
+fn failed_now(app: &AppHandle) -> Vec<Failed> {
+    settings::extensions(app).iter().filter_map(Failed::of).collect()
+}
+
 /// The rows again with or without "Install Update", after a check
 /// (`updater::check`): the page re-queries on the index event.
 pub fn sync_update_row(app: &AppHandle, update: Option<&updater::UpdateInfo>) {
-    let rows = rows(&app.package_info().version.to_string(), update);
+    let rows = rows(&app.package_info().version.to_string(), update, &failed_now(app));
     let had = index::with_index(app, |ix| ix.get(&source(), INSTALL_UPDATE).is_some());
     let has = rows.iter().any(|r| r.id == INSTALL_UPDATE);
     if had == has {
@@ -168,6 +230,30 @@ pub fn sync_update_row(app: &AppHandle, update: Option<&updater::UpdateInfo>) {
     crate::events::emit(app, crate::events::INDEX, ());
 }
 
+/// The rows again with one per failed extension, after the host reported
+/// an extension (`extension/loaded` clears its row, `extension/error`
+/// adds one) or came up (`host/ready`): the page re-queries on the index
+/// event when the set changed. The update row is kept as it was.
+pub fn sync_failed_rows(app: &AppHandle) {
+    let failed = failed_now(app);
+    let want: Vec<String> = failed.iter().map(|f| format!("{FAILED}{}", f.key)).collect();
+    let (have, update): (Vec<String>, bool) = index::with_index(app, |ix| (ix.snapshot(&source()).iter().filter(|r| r.id.starts_with(FAILED)).map(|r| r.id.clone()).collect(), ix.get(&source(), INSTALL_UPDATE).is_some()));
+    if have == want {
+        return;
+    }
+    let update = update.then(|| settings::last_app_check(app)).flatten();
+    let rows = rows(&app.package_info().version.to_string(), update.as_ref(), &failed);
+    index::with_index(app, |ix| ix.replace(source(), rows));
+    eprintln!("commands\tfailed rows\t{}", if want.is_empty() { "none".into() } else { want.join(",") });
+    crate::events::emit(app, crate::events::INDEX, ());
+}
+
+/// The failed extensions' rows in the index now, for the empty root's
+/// "Needs attention" section (`index::query`).
+pub fn failed_ids(ix: &pal_core::index::Index) -> Vec<String> {
+    ix.snapshot(&source()).iter().filter(|r| r.id.starts_with(FAILED)).map(|r| r.id.clone()).collect()
+}
+
 // ---- the plan ----------------------------------------------------------------
 
 /// What a pick on a row does; `pick` runs it.
@@ -175,6 +261,8 @@ pub fn sync_update_row(app: &AppHandle, update: Option<&updater::UpdateInfo>) {
 pub enum Plan {
     /// Settings, on `page` when one is named.
     Settings(Option<&'static str>),
+    /// Settings › Extensions on the extension the key names (a failed one's row).
+    SettingsExtension(String),
     /// A URL in the browser.
     Open(&'static str),
     /// The store palette (`extensions/store`) as a pushed level; the website when it is not loaded.
@@ -210,6 +298,7 @@ pub fn plan(id: &str, action: Option<&str>, values: Option<&Value>) -> Plan {
         SETTINGS_EXTENSIONS => Plan::Settings(Some("extensions")),
         SETTINGS_PALETTES => Plan::Settings(Some("palettes")),
         SETTINGS_ABOUT => Plan::Settings(Some("about")),
+        _ if id.starts_with(FAILED) => Plan::SettingsExtension(id[FAILED.len()..].to_string()),
         STORE_ROW => Plan::Store,
         INSTALL if action == Some(SPEC) => Plan::Install(values.and_then(|v| v[SPEC].as_str()).unwrap_or_default().trim().to_string()),
         INSTALL => Plan::InstallForm,
@@ -427,6 +516,10 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             settings::open_page(app, page);
             hide()
         }
+        Plan::SettingsExtension(key) => {
+            settings::open_at(app, Some("extensions"), Some(&format!("extensions:{key}")));
+            hide()
+        }
         Plan::Open(url) => effects::apply(app, json!({ "open": url })).await,
         Plan::Store => {
             if settings::extensions(app).iter().any(|e| e.name == "store" && e.loaded) {
@@ -512,7 +605,7 @@ mod tests {
 
     #[test]
     fn rows_are_unique_named_and_all_find_pal() {
-        let rows = rows("1.2.3", None);
+        let rows = rows("1.2.3", None, &[]);
         let ids: Vec<&str> = rows.iter().map(|r| r.id.as_str()).collect();
         assert_eq!(ids.len(), ids.iter().collect::<HashSet<_>>().len(), "no duplicate ids: {ids:?}");
         assert_eq!(ids[0], SETTINGS, "Settings leads");
@@ -550,23 +643,23 @@ mod tests {
     #[test]
     fn install_update_leads_the_rows_only_while_a_release_is_known() {
         let up = |installable: Option<bool>, note: Option<&str>| updater::UpdateInfo { available: true, version: Some("0.2.0".into()), notes: None, status: None, installable, install_note: note.map(str::to_string) };
-        let with = rows("0.1.0", Some(&up(Some(true), None)));
+        let with = rows("0.1.0", Some(&up(Some(true), None)), &[]);
         assert_eq!(with[0].id, INSTALL_UPDATE);
         assert_eq!(with[0].name, "Install Update");
         assert_eq!(with[0].subtitle.as_deref(), Some("pal 0.2.0 is available; downloads, installs and relaunches"));
-        assert_eq!(with.len(), rows("0.1.0", None).len() + 1);
+        assert_eq!(with.len(), rows("0.1.0", None, &[]).len() + 1);
         assert_eq!(with[1].id, SETTINGS, "Settings is next");
-        let deb = rows("0.1.0", Some(&up(Some(false), Some("installed from the .deb: download the new package from the releases page and install it with dpkg"))));
+        let deb = rows("0.1.0", Some(&up(Some(false), Some("installed from the .deb: download the new package from the releases page and install it with dpkg"))), &[]);
         assert_eq!(deb[0].subtitle.as_deref(), Some("pal 0.2.0 is available; installed from the .deb: download the new package from the releases page and install it with dpkg"));
         let none = updater::UpdateInfo { available: false, version: None, notes: None, status: None, installable: None, install_note: None };
-        assert_eq!(rows("0.1.0", Some(&none))[0].id, SETTINGS, "a check that found nothing lists no row");
+        assert_eq!(rows("0.1.0", Some(&none), &[])[0].id, SETTINGS, "a check that found nothing lists no row");
         assert_eq!(plan(INSTALL_UPDATE, None, None), Plan::InstallUpdate);
         assert!(!inert(&source(), INSTALL_UPDATE), "a remembered pick, like any row");
     }
 
     #[test]
     fn every_row_has_a_plan_and_a_stale_id_none() {
-        for r in rows("0", None) {
+        for r in rows("0", None, &[]) {
             assert_ne!(plan(&r.id, None, None), Plan::Nothing, "{}", r.id);
         }
         assert_eq!(plan("gone", None, None), Plan::Nothing);
@@ -589,6 +682,49 @@ mod tests {
         assert_eq!(plan(CONFIG_REVEAL, None, None), Plan::RevealConfig);
         assert_eq!(plan(BUG, None, None), Plan::ReportBug);
         assert_eq!(plan(DIAGNOSTICS, None, None), Plan::CopyDiagnostics);
+    }
+
+    #[test]
+    fn a_failed_extension_is_one_row_that_leads_and_opens_settings_on_it() {
+        let icon = json!({ "tile": { "glyph": "h", "bg": "blue" } });
+        let failed = [
+            Failed { key: "hello".into(), title: "Hello".into(), error: "SyntaxError: Unexpected token\n    at index.ts:3".into(), icon: Some(icon.clone()) },
+            Failed { key: "gmail@work".into(), title: "Gmail (Work)".into(), error: "no such module".into(), icon: None },
+        ];
+        let rows = rows("0.1.0", None, &failed);
+        assert_eq!(rows[0].id, "failed:hello");
+        assert_eq!(rows[0].name, "Hello failed to load");
+        assert_eq!(rows[0].subtitle.as_deref(), Some("SyntaxError: Unexpected token"), "the error's first line");
+        assert_eq!(rows[0].icon.as_ref(), Some(&icon), "the manifest's icon");
+        assert!(rows[1].icon.as_ref().unwrap()["image"].is_string(), "the mark without one");
+        assert_eq!(rows[1].name, "Gmail (Work) failed to load");
+        assert_eq!(rows[2].id, SETTINGS);
+        for r in &rows[..2] {
+            for k in ["pal", "failed", "error"] {
+                assert!(r.keywords.iter().any(|x| x == k), "{}: found by {k}", r.id);
+            }
+            assert_eq!(r.extra["actions"][0]["title"], "Open in Settings");
+        }
+        assert_eq!(plan("failed:hello", None, None), Plan::SettingsExtension("hello".into()));
+        assert_eq!(plan("failed:gmail@work", Some("open"), None), Plan::SettingsExtension("gmail@work".into()));
+        // The registry's record: only a failed one makes a row; a non-default instance says which.
+        let ext = |key: &str, loaded: bool, title: Option<&str>| settings::Ext {
+            key: key.into(),
+            name: pal_core::config::instance::name_of(key).into(),
+            instance: settings::InstanceInfo { key: key.into(), title: title.map(str::to_string), tint: None, badge: None, is_default: !key.contains('@') },
+            manifest: json!({ "name": "gmail", "title": "Gmail", "icon": icon }),
+            root: "/r".into(),
+            loaded,
+            error: (!loaded).then(|| "boom".to_string()),
+            palettes: Vec::new(),
+            warnings: Vec::new(),
+            installed: None,
+            record: None,
+        };
+        assert_eq!(Failed::of(&ext("gmail", true, None)), None);
+        let f = Failed::of(&ext("gmail@work", false, Some("Work"))).unwrap();
+        assert_eq!((f.key.as_str(), f.title.as_str(), f.error.as_str()), ("gmail@work", "Gmail (Work)", "boom"));
+        assert_eq!(Failed::of(&ext("gmail", false, Some("Personal"))).unwrap().title, "Gmail", "the default instance is the extension");
     }
 
     #[test]

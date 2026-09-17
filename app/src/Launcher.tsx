@@ -12,7 +12,7 @@ import {
 } from "./ui";
 import { Fzf } from "fzf";
 import type { Action, Detail as DetailSpec, FormSpec, FormValues, Item, Match, ViewNode, ViewSpec } from "./ui/types";
-import { ASK_ID, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toForm, toView, type Ctx, type Effect, type SourceInfo } from "./items";
+import { ASK_ID, ATTENTION, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME, iconOf, sourceKey, toForm, toView, type Ctx, type Effect, type SourceInfo } from "./items";
 import { linkFor } from "./links";
 import { SUBMENU, menuRows, type BarMenuNode } from "./bar";
 import { paletteTitle } from "./fixtures";
@@ -87,9 +87,10 @@ export function aliasTarget(sources: SourceInfo[], word: string): SourceInfo | u
  * The root's rows in order. Typed: the inline sections (each under its
  * palette's title), the index's hits (under their palettes), then the
  * fallback rows (only with nothing else, unless `always`). Empty: the
- * welcome tips, the extensions' suggestions ("Now", "Clipboard"), the
- * Frequent rows, the recently used files, then the rest as the core
- * ordered it. A row's `group` is its section; else its palette's title.
+ * welcome tips, what needs attention (a failed extension), the
+ * extensions' suggestions ("Now", "Clipboard"), the Frequent rows, the
+ * recently used files, then the rest as the core ordered it. A row's
+ * `group` is its section; else its palette's title.
  */
 export function rootHits(query: string, found: Hit[], inline: Hit[], fallback: Hit[], suggested: Hit[], always: boolean, titleOf: (key: string) => string): Hit[] {
   const label = (h: Hit): Hit => ({ ...h, item: { ...h.item, section: h.item.group ?? titleOf(h.item.palette!) } });
@@ -99,10 +100,11 @@ export function rootHits(query: string, found: Hit[], inline: Hit[], fallback: H
   }
   const welcome = found.filter((h) => h.item.palette === WELCOME);
   const rest = found.filter((h) => h.item.palette !== WELCOME);
+  const attention = rest.filter((h) => h.item.group === ATTENTION);
   const frequent = rest.filter((h) => h.item.group === FREQUENT);
   const recent = rest.filter((h) => h.item.group !== FREQUENT && h.item.palette === RECENT_FILES);
-  const others = rest.filter((h) => h.item.group !== FREQUENT && h.item.palette !== RECENT_FILES);
-  return [...welcome, ...suggested, ...frequent, ...recent, ...others].map(label);
+  const others = rest.filter((h) => h.item.group !== FREQUENT && h.item.group !== ATTENTION && h.item.palette !== RECENT_FILES);
+  return [...welcome, ...attention, ...suggested, ...frequent, ...recent, ...others].map(label);
 }
 
 /**
@@ -659,11 +661,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       a.push(...(current.actions ?? [isPalette ? { ...OPEN, title: `Open ${current.name}` } : isAsk ? { ...OPEN, title: current.name } : OPEN]));
       if (view.kind === "root" && !isPalette && !isTip && !isAsk && current.palette !== FALLBACK) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
       if (!compact) a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
-      // A ranking to reset: a row frecency could have remembered (an indexed or palette row; not a tip, a fallback, a "more" row or a suggestion).
-      if (onForget && current.source && (view.kind === "root" || (view.kind === "palette" && args === undefined)) && !isTip && !isAsk && !current.muted && current.palette !== FALLBACK && current.id !== ASK_ID && (!current.group || current.group === FREQUENT))
-        a.push({ id: FORGET, title: "Reset ranking for this item", icon: { kind: "glyph", value: "↺" }, section: "pal" });
     }
     if (linkable) a.push(link);
+    // The shell's own, one "pal" section: a ranking to reset (a row frecency could have remembered: an indexed or palette row; not a tip, a fallback, a "more" row or a suggestion), the refresh, the panel's shape, Settings, the tips.
+    if (current && onForget && current.source && (view.kind === "root" || (view.kind === "palette" && args === undefined)) && current.palette !== WELCOME && !current.push && !current.muted && current.palette !== FALLBACK && current.id !== ASK_ID && (!current.group || current.group === FREQUENT))
+      a.push({ id: FORGET, title: "Reset ranking for this item", icon: { kind: "glyph", value: "↺" }, section: "pal" });
     // An indexed level only: an input palette or a drill-in lists per keystroke anyway. A menu level's refresh renders its bar item again.
     if (onRefresh && (view.kind === "root" || (view.kind === "palette" && !scope?.input && args === undefined) || view.kind === "menu"))
       a.push({ id: REFRESH, title: view.kind === "root" ? "Refresh everything" : `Refresh ${view.kind === "menu" ? view.title : titleOf(view.palette)}`, icon: { kind: "glyph", value: "↻" }, shortcut: "cmd+r", section: "pal" });

@@ -72,7 +72,7 @@ export function ActionPanel({ actions: all, onRun, onClose, title }: ActionPanel
       // Typing into the panel's own field; never a bare-key action of the level behind.
       key: () => "native",
     },
-    { scope: root },
+    { scope: root, modal: true },
   );
 
   return (

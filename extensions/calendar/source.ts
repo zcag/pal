@@ -40,7 +40,7 @@ export async function calendars(refresh = false): Promise<Calendar[]> {
   if (src === "google") {
     // Every account at once: each token command is a process (his is an ssh hop).
     const per = await Promise.allSettled(accounts().map(async (a) => (await google.calendars(a)).filter((c) => a.calendars.includes(c.id.slice(a.name.length + 1)))));
-    list = per.flatMap((r) => (r.status === "fulfilled" ? r.value : (console.error(`calendar: ${r.reason instanceof Error ? r.reason.message : r.reason}`), [])));
+    list = per.flatMap((r) => (r.status === "fulfilled" ? r.value : (console.error(`[calendar] ${r.reason instanceof Error ? r.reason.message : r.reason}`), [])));
   } else list = await calendar.calendars();
   calendarCache = { at: now(), source: src, list };
   return list;
@@ -118,7 +118,7 @@ async function fetchEvents(from: number, to: number, ids?: string[]): Promise<Ca
     return out;
   }));
   const errors = per.flatMap((r) => (r.status === "rejected" ? [r.reason instanceof Error ? r.reason.message : String(r.reason)] : []));
-  for (const err of errors) console.error(`calendar: ${err}`);
+  for (const err of errors) console.error(`[calendar] ${err}`);
   // One account being away is not the other's problem; all of them away is.
   if (errors.length === per.length) throw new Error(errors.length ? errors.join("; ") : "No Google account configured: add one under Settings > Calendar > Accounts");
   const out = per.flatMap((r) => (r.status === "fulfilled" ? r.value : []));

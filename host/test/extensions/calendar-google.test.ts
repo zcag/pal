@@ -208,7 +208,7 @@ describe("google source", () => {
     try {
       const rows = await host.list(E, "schedule", "", { refresh: true });
       expect(rows.map((r) => r.name)).toEqual(["Design review: settings window", "Dentist", "1:1 with Mara", "Team offsite"]);
-      expect(host.stderr).toContain("calendar: work: 503 Backend Error");
+      expect(host.stderr).toContain("[calendar] work: 503 Backend Error");
       personalToken = "nope";
       const none = await host.list(E, "today", "", { refresh: true });
       expect(none[0]).toMatchObject({ id: "hint", name: "Showing the last events read", section: "Today" });

@@ -24,7 +24,7 @@ export const PAGE = 1000;
 export const PICTURE_BATCH = 50;
 const DEFAULT_BACKOFF_MS = 60_000;
 
-export const log = (msg: string) => console.error(`whatsapp: ${msg}`);
+export const log = (msg: string) => console.error(`[whatsapp] ${msg}`);
 
 /** No API key set: nothing can be asked. */
 export class NoKey extends Error { constructor() { super("No API key set"); } }

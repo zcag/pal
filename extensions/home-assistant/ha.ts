@@ -66,7 +66,7 @@ export class Client {
       const target = new URL(location, `${this.url}/api/${path}`);
       const base = target.href.replace(/\/api\/.*$/, "");
       if (base !== this.url) {
-        if (!warned.has(this.url)) { warned.add(this.url); console.error(`home-assistant: ${this.url} redirects to ${base}; set that as the URL`); }
+        if (!warned.has(this.url)) { warned.add(this.url); console.error(`[home-assistant] ${this.url} redirects to ${base}; set that as the URL`); }
         this.url = base;
       }
       return this.request(method, path, body, hop + 1);

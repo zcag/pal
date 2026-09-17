@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
-import { SettingsGroup, SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { ArmedButton, SettingsGroup, SettingsHotkey, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { SettingsThemeFile, type ThemeFileProps } from "./SettingsTheme";
 import { MAX_ROOT_HOTKEYS, permissionRows, type ConfigFileInfo, type GeneralConfig, type HotkeyStatus, type PermissionId, type PermissionsStatus, type RootHotkeyStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
@@ -58,21 +58,38 @@ const positions = [
   { id: "last", title: "Where it was last" },
 ];
 
-/** What the search field finds on this page. */
-export const generalIndex: SettingsIndexEntry[] = [
-  { page: "general", label: "Hotkey", hint: "Show pal from any app", anchor: "general:hotkey", keywords: "shortcut keys spotlight cmd space several second another" },
-  { page: "general", label: "Permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", anchor: "general:permissions", keywords: "grant privacy" },
-  { page: "general", label: "Ask on first launch", hint: "Permissions", anchor: "general:ask" },
-  { page: "general", label: "Theme", hint: "Appearance", anchor: "general:theme", keywords: "dark light system" },
-  { page: "general", label: "Theme file", hint: "Appearance", anchor: "general:theme-file", keywords: "colours colors tokens catppuccin rose pine toml accent font" },
-  { page: "general", label: "Window position", hint: "Appearance", anchor: "general:position", keywords: "top centre last" },
-  { page: "general", label: "Launch at login", hint: "Startup", anchor: "general:login", keywords: "autostart" },
-  { page: "general", label: "Menu bar icon", hint: "Startup", anchor: "general:menubar", keywords: "tray" },
-  { page: "general", label: "Config file", hint: "~/.config/pal/config.toml", anchor: "general:file", keywords: "toml edit reveal" },
-  { page: "general", label: "Reset ranking", hint: "Maintenance", anchor: "general:frecency", keywords: "search history frecency" },
-  { page: "general", label: "Restart extension host", hint: "Maintenance", anchor: "general:host", keywords: "reload bun" },
-  { page: "general", label: "Refresh listings", hint: "Maintenance", anchor: "general:refresh", keywords: "cache relist" },
-];
+/**
+ * Every row of the page, once: its label and description as drawn, and
+ * what the search field finds it by. The index below is built from this,
+ * so a setting is found by any word of its description, not only its
+ * label ("dock" finds Menu bar icon, "crash" Launch at login); `keywords`
+ * add what the prose does not say.
+ */
+const text = {
+  hotkey: { anchor: "general:hotkey", hint: "Show pal from any app", label: "Show pal", description: isMac
+    ? "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly."
+    : "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. On Wayland the registration goes through X11 and fires only while an X11 window has focus: bind pal toggle in the compositor instead and set hotkey = \"\" in the config file.", keywords: "hotkey shortcut keys spotlight cmd space several second another" },
+  permissions: { anchor: "general:permissions", hint: "Accessibility, Calendars, Full Disk Access, Input Monitoring, Location", label: "Status", description: "Each is a switch under System Settings > Privacy & Security.", keywords: "permissions grant privacy" },
+  ask: { anchor: "general:ask", hint: "Permissions", label: "Ask on first launch", description: "Show the Accessibility prompt the first time the panel opens on a new profile, while the Welcome tips are up.", keywords: "" },
+  theme: { anchor: "general:theme", hint: "Appearance", label: "Theme", description: "System follows the OS appearance as it changes.", keywords: "dark light" },
+  themeFile: { anchor: "general:theme-file", hint: "Appearance", label: "Theme file", description: "Colours, radii and fonts from a TOML file, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.", keywords: "tokens accent" },
+  position: { anchor: "general:position", hint: "Appearance", label: "Window position", description: "On the screen with the pointer.", keywords: "top centre center last" },
+  login: { anchor: "general:login", hint: "Startup", label: "Launch at login", description: "The hotkey works from the moment you sign in. Either way pal relaunches itself after a crash; the report shows under About.", keywords: "autostart" },
+  menubar: { anchor: "general:menubar", hint: "Startup", label: "Menu bar icon", description: "pal has no Dock icon. Without this, the hotkey and pal settings are the ways in.", keywords: "tray" },
+  file: { anchor: "general:file", hint: "~/.config/pal/config.toml", label: "File", description: "Every setting in this window is a key in this file. Changing one here rewrites only that key, so your comments and formatting stay. Edit it by hand any time; pal picks the change up as you save.", keywords: "config toml edit reveal open editor" },
+  frecency: { anchor: "general:frecency", hint: "Maintenance", label: "Search history", description: "What you picked, and for which query, ranks results. Forget all of it.", keywords: "reset ranking frecency" },
+  host: { anchor: "general:host", hint: "Maintenance", label: "Extension host", description: "Every extension runs in one process. Restart it to reload them all from scratch.", keywords: "bun" },
+  refresh: { anchor: "general:refresh", hint: "Maintenance", label: "Listings", description: "Every indexed palette is listed again now, whatever its cache says.", keywords: "refresh relist" },
+} as const;
+
+/** What the search field finds on this page: every row above, by its label, its description and its keywords. The search's own label is the row's, except where the group names it better (Hotkey, Permissions, Config file, Reset ranking). */
+export const generalIndex: SettingsIndexEntry[] = (Object.entries(text) as [keyof typeof text, (typeof text)[keyof typeof text]][]).map(([id, r]) => ({
+  page: "general",
+  label: id === "hotkey" ? "Hotkey" : id === "permissions" ? "Permissions" : id === "file" ? "Config file" : id === "frecency" ? "Reset ranking" : id === "host" ? "Restart extension host" : id === "refresh" ? "Refresh listings" : r.label,
+  hint: r.hint,
+  anchor: r.anchor,
+  keywords: `${r.label} ${r.description} ${r.keywords}`,
+}));
 
 /**
  * Under a recorder: registered, or not and why. A wanted ⌘Space that
@@ -161,22 +178,14 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
   return (
     <div className="pal-settings-page">
       <SettingsGroup title="Hotkey">
-        <SettingsRow
-          anchor="general:hotkey"
-          label="Show pal"
-          description={
-            isMac
-              ? "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. ⌘Space cannot be recorded (Spotlight opens on the press); its preset writes it directly."
-              : "Opens pal from any app. Press the new combination while the control is recording, or pick one of the presets; Add another gives pal a second combination that does the same. On Wayland the registration goes through X11 and fires only while an X11 window has focus: bind pal toggle in the compositor instead and set hotkey = \"\" in the config file."
-          }
-        >
+        <SettingsRow anchor={text.hotkey.anchor} label={text.hotkey.label} description={text.hotkey.description}>
           <HotkeyRows value={value.hotkeys} onChange={(v) => set("hotkeys", v)} status={hotkey} onOpenKeyboardShortcuts={onOpenKeyboardShortcuts} />
         </SettingsRow>
       </SettingsGroup>
 
       {permissions && (
         <SettingsGroup title="Permissions">
-          <SettingsRow anchor="general:permissions" label="Status" description={<>{missing.length ? `${missing.map((r) => r.title).join(", ")} ${missing.length === 1 ? "is" : "are"} not granted; the Overview says what each is for and has the Grant button.` : "Every permission pal can use is granted."} Each is a switch under System Settings &gt; Privacy &amp; Security.</>}>
+          <SettingsRow anchor={text.permissions.anchor} label={text.permissions.label} description={<>{missing.length ? `${missing.map((r) => r.title).join(", ")} ${missing.length === 1 ? "is" : "are"} not granted; the Overview says what each is for and has the Grant button.` : "Every permission pal can use is granted."} {text.permissions.description}</>}>
             <span className="pal-permissions__wrap">
             <ul className="pal-permissions" aria-label="Permissions">
               {rows.map((r) => (
@@ -192,43 +201,33 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
             {onOpenOverview && missing.length > 0 && <button type="button" className="pal-button" data-small onClick={onOpenOverview}>What each is for: Overview</button>}
             </span>
           </SettingsRow>
-          <SettingsRow anchor="general:ask" label="Ask on first launch" description="Show the Accessibility prompt the first time the panel opens on a new profile, while the Welcome tips are up.">
+          <SettingsRow anchor={text.ask.anchor} label={text.ask.label} description={text.ask.description}>
             <SettingsSwitch checked={value.askPermissionsOnStart} onChange={(v) => set("askPermissionsOnStart", v)} label="Ask on first launch" />
           </SettingsRow>
         </SettingsGroup>
       )}
 
       <SettingsGroup title="Appearance">
-        <SettingsRow anchor="general:theme" label="Theme" description="System follows the OS appearance as it changes.">
+        <SettingsRow anchor={text.theme.anchor} label={text.theme.label} description={text.theme.description}>
           <SettingsSegment value={value.theme} options={themes} onChange={(v) => set("theme", v as GeneralConfig["theme"])} label="Theme" />
         </SettingsRow>
         {themeFile && <SettingsThemeFile {...themeFile} />}
-        <SettingsRow anchor="general:position" label="Window position" description="On the screen with the pointer." htmlFor="pal-general-position">
+        <SettingsRow anchor={text.position.anchor} label={text.position.label} description={text.position.description} htmlFor="pal-general-position">
           <SettingsSelect id="pal-general-position" value={value.position} options={positions} onChange={(v) => set("position", v as GeneralConfig["position"])} />
         </SettingsRow>
       </SettingsGroup>
 
       <SettingsGroup title="Startup">
-        <SettingsRow anchor="general:login" label="Launch at login" description="The hotkey works from the moment you sign in. Either way pal relaunches itself after a crash; the report shows under About.">
+        <SettingsRow anchor={text.login.anchor} label={text.login.label} description={text.login.description}>
           <SettingsSwitch checked={value.launchAtLogin} onChange={(v) => set("launchAtLogin", v)} label="Launch at login" />
         </SettingsRow>
-        <SettingsRow anchor="general:menubar" label="Menu bar icon" description="pal has no Dock icon. Without this, the hotkey and pal settings are the ways in.">
+        <SettingsRow anchor={text.menubar.anchor} label={text.menubar.label} description={text.menubar.description}>
           <SettingsSwitch checked={value.menuBarIcon} onChange={(v) => set("menuBarIcon", v)} label="Menu bar icon" />
         </SettingsRow>
       </SettingsGroup>
 
       <SettingsGroup title="Config file">
-        <SettingsRow
-          anchor="general:file"
-          label="File"
-          description={
-            <>
-              Every setting in this window is a key in this file. Changing one here rewrites only that key, so your comments and
-              formatting stay. Edit it by hand any time; pal picks the change up as you save.
-              {file.changed && <> Last picked up {relativeDate(file.changed)} ago.</>}
-            </>
-          }
-        >
+        <SettingsRow anchor={text.file.anchor} label={text.file.label} description={<>{text.file.description}{file.changed && <> Last picked up {relativeDate(file.changed)} ago.</>}</>}>
           <span className="pal-settings-file">
             <code className="pal-settings-file__path">{file.path}</code>
             <span className="pal-button-row">
@@ -242,17 +241,17 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
       {(onResetFrecency || onRestartHost || onRefreshListings) && (
         <SettingsGroup title="Maintenance">
           {onResetFrecency && (
-            <SettingsRow anchor="general:frecency" label="Search history" description="What you picked, and for which query, ranks results. Forget all of it.">
-              <button type="button" className="pal-button" data-destructive onClick={onResetFrecency}>Reset Ranking</button>
+            <SettingsRow anchor={text.frecency.anchor} label={text.frecency.label} description={text.frecency.description}>
+              <ArmedButton label="Reset Ranking" arm="Forget it all? Click again" onConfirm={onResetFrecency} />
             </SettingsRow>
           )}
           {onRestartHost && (
-            <SettingsRow anchor="general:host" label="Extension host" description="Every extension runs in one process. Restart it to reload them all from scratch.">
+            <SettingsRow anchor={text.host.anchor} label={text.host.label} description={text.host.description}>
               <button type="button" className="pal-button" onClick={onRestartHost}>Restart</button>
             </SettingsRow>
           )}
           {onRefreshListings && (
-            <SettingsRow anchor="general:refresh" label="Listings" description="Every indexed palette is listed again now, whatever its cache says.">
+            <SettingsRow anchor={text.refresh.anchor} label={text.refresh.label} description={text.refresh.description}>
               <button type="button" className="pal-button" onClick={onRefreshListings}>Refresh All</button>
             </SettingsRow>
           )}

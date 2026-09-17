@@ -123,17 +123,22 @@ button), and the first time a paste, a window switch or a layout is refused (a
 toast says so). Flip the switch next to pal in that pane; pal sees it within a
 couple of seconds, no restart.
 
-Four more are asked for only by what needs them, never at first run: the
-Calendar extension asks for Calendars from its own row; the Wi-Fi palette
-asks for Location Services the first time it lists, because macOS 15 and
-later show Wi-Fi network names only to an app with it (the prompt says so;
-say no and the palette still works, with the names hidden and a row that
-opens the pane); the OTP palette needs Full Disk Access, which has no prompt
-(its row opens the pane, where pal is added by hand); a bar peek's
-close-on-keypress and Snippets' expansion need Input Monitoring. Settings >
-General > Permissions lists all five with what each is for, and the
-Overview shows the missing ones that something installed needs, each with
-its Grant button.
+Four more are asked for only by what needs them, never at first run, and
+never two at once: the Calendar extension asks for Calendars from its own
+row; the Wi-Fi palette asks for Location Services the first time it lists
+while you are inside it (its "Wi-Fi names need Location access" row asks
+too), because macOS 15 and later show Wi-Fi network names only to an app
+with it (the prompt says so; say no and the palette still works, with the
+names hidden and that row opening the pane); the OTP palette needs Full
+Disk Access, which has no prompt (its row opens the pane, where pal is
+added by hand); Snippets' expansion asks for Input Monitoring when it is
+switched on (a bar peek's close-on-keypress wants it too, and does without:
+the peek closes when the pointer leaves). Settings > General > Permissions
+lists all five with what each is for. The Overview lists a permission only
+when nothing else will ask for it: Accessibility while it is missing, Full
+Disk Access, Input Monitoring once expansion is on, and Calendars or
+Location once their prompt was answered no; one the OS has not asked about
+yet is not a thing to fix.
 
 The grant is tied to the app's code signature, and pal's releases are
 ad-hoc signed, so every build carries a new one. After installing a rebuilt
@@ -338,10 +343,12 @@ hand edit shows in the window at once.
 (`$XDG_CONFIG_HOME/pal/config.toml` when that variable is set;
 `PAL_CONFIG=<path>` overrides both). The first launch creates it from a two-line
 template whose first line points an editor with TOML schema support at the
-published schema, so it validates and completes the file; nothing else is
-written into that directory. A config file from the previous pal found there is
-migrated first: kept whole as `config.v1.toml` and run through the `scripts`
-extension ([Config](config.md#coming-from-the-previous-pal)).
+published schema, so it validates and completes the file. The only other
+thing written into that directory is a `themes/` folder with the two example
+theme files, the first time the Settings window opens
+([Config](config.md#theme-file)). A config file from the previous pal found
+there is migrated first: kept whole as `config.v1.toml` and run through the
+`scripts` extension ([Config](config.md#coming-from-the-previous-pal)).
 
 The window's General page has an Open file button for the editor of your
 choice; edits are picked up live, keeping your comments and formatting.

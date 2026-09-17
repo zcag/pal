@@ -44,29 +44,40 @@ describe("overviewItems", () => {
     expect(both.map((i) => i.id)).toEqual(["hotkey", "hotkey:2"]);
     expect(both.every((i) => !i.detail.includes("still opens"))).toBe(true);
   });
-  it("lists a missing permission only when something installed needs it", () => {
+  it("lists a missing permission only when something installed needs it and nothing else will ask", () => {
     const none = overviewItems({ ...ok, permissions: nothingGranted });
     expect(none.map((i) => i.id)).toEqual(["permission:accessibility"]);
-    const withOtp = overviewItems({ ...ok, permissions: nothingGranted, extensions: [...quiet, otp], bar: barItems });
-    expect(withOtp.map((i) => i.id)).toEqual(expect.arrayContaining(["permission:accessibility", "permission:full_disk_access", "permission:input_monitoring"]));
+    // A fresh install with every bundled extension: Accessibility and Full Disk Access (no prompt exists for it), nothing the extensions prompt for themselves.
+    const withOtp = overviewItems({ ...ok, permissions: nothingGranted, extensions: [...quiet, otp, { ...otp, name: "calendar" }, { ...otp, name: "wifi" }], bar: barItems });
+    expect(withOtp.map((i) => i.id).filter((i) => i.startsWith("permission:"))).toEqual(["permission:accessibility", "permission:full_disk_access"]);
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.action).toEqual({ label: "Open the pane", permission: "full_disk_access" });
     expect(withOtp.find((i) => i.id === "permission:full_disk_access")?.detail).toContain("Switch it on under Privacy & Security > Full Disk Access");
-    expect(withOtp.find((i) => i.id === "permission:input_monitoring")?.detail).toContain("Input Monitoring");
-    // Location is the wifi extension's: listed with it, with the prompt as the first step.
-    expect(withOtp.map((i) => i.id)).not.toContain("permission:location");
-    const withWifi = overviewItems({ ...ok, permissions: nothingGranted, extensions: [...quiet, { ...otp, name: "wifi" }] });
+    // Input Monitoring: a row once expansion is on (pal asked then), never for the bar's peeks alone.
+    const snippets = { ...otp, name: "snippets", values: { expand: true } };
+    const expanding = overviewItems({ ...ok, permissions: nothingGranted, extensions: [...quiet, snippets] });
+    expect(expanding.find((i) => i.id === "permission:input_monitoring")?.detail).toContain("Snippet expansion");
+    // Location is the wifi extension's, and a row only once the prompt was answered no; the same for Calendars.
+    const denied = { ...nothingGranted, location: "denied" as const, calendar: "denied" as const };
+    expect(overviewItems({ ...ok, permissions: denied, extensions: [...quiet, otp] }).map((i) => i.id)).not.toContain("permission:location");
+    const withWifi = overviewItems({ ...ok, permissions: denied, extensions: [...quiet, { ...otp, name: "wifi" }, { ...otp, name: "calendar" }] });
     expect(withWifi.find((i) => i.id === "permission:location")).toMatchObject({ action: { label: "Grant…", permission: "location" } });
-    expect(withWifi.find((i) => i.id === "permission:location")?.detail).toContain("Wi-Fi network names");
-    expect(overviewItems({ ...ok, permissions: { ...nothingGranted, location: "denied" }, extensions: [...quiet, { ...otp, name: "wifi" }] }).find((i) => i.id === "permission:location")?.detail).toContain("Switch it on under Privacy & Security > Location Services");
+    expect(withWifi.find((i) => i.id === "permission:location")?.detail).toContain("Switch it on under Privacy & Security > Location Services");
+    expect(withWifi.find((i) => i.id === "permission:calendar")?.detail).toContain("Switch it on under Privacy & Security > Calendars");
   });
-  it("flags an extension with nothing to work with, and what to fill in", () => {
+  it("flags an installed extension with nothing to work with, and what to fill in; a bundled one never touched is not a thing to fix", () => {
     expect(needsSetup(homeAssistant).map((s) => s.id)).toEqual(["url", "token"]);
     // GitHub's token says "Leave empty to use the gh CLI's login": not required.
     expect(needsSetup({ ...settingsExtensions[2], values: {}, settings: [{ kind: "secret", id: "token", label: "Token", description: "Leave empty to use the gh CLI's login." }] })).toEqual([]);
-    const [item] = overviewItems({ ...ok, extensions: [homeAssistant] });
+    // The fixture ships with pal: a fresh install lists no row for it.
+    expect(overviewItems({ ...ok, extensions: [homeAssistant] })).toEqual([]);
+    const installed = { ...homeAssistant, bundled: false, repo: "github.com/x/ha" };
+    const [item] = overviewItems({ ...ok, extensions: [installed] });
     expect(item.id).toBe("setup:home-assistant");
     expect(item.title).toBe("Home Assistant needs url and token");
     expect(item.action?.go).toEqual({ page: "extensions", anchor: "extensions:home-assistant:url" });
+    // A second instance the user added is theirs to set up, bundled or not.
+    const work = { ...homeAssistant, key: "home-assistant@work", title: "Home Assistant (Work)", instance: { key: "home-assistant@work", suffix: "work", title: "Work", isDefault: false, enabled: true } };
+    expect(overviewItems({ ...ok, extensions: [homeAssistant, work] }).map((i) => i.id)).toEqual(["setup:home-assistant@work"]);
   });
   it("lists load errors, manifest warnings, config problems, stale bar items and updates, in that order after setup", () => {
     const items = overviewItems({
@@ -134,7 +145,7 @@ describe("SettingsOverview", () => {
     expect(overviewFacts({ ...ok, barSupported: false }).map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes"]);
   });
   it("lists what needs attention with the action inline", () => {
-    const html = renderToStaticMarkup(<SettingsOverview {...ok} permissions={nothingGranted} extensions={[homeAssistant]} onGo={noop} onRequestPermission={noop} />);
+    const html = renderToStaticMarkup(<SettingsOverview {...ok} permissions={nothingGranted} extensions={[{ ...homeAssistant, bundled: false, repo: "github.com/x/ha" }]} onGo={noop} onRequestPermission={noop} />);
     expect(html).toContain("2 things to look at");
     expect(html).toContain('data-anchor="overview:permission:accessibility"');
     expect(html).toContain(">Grant…</button>");

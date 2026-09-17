@@ -243,10 +243,14 @@ function startPage(): SettingsPage {
   const p = new URLSearchParams(location.search).get("page");
   return settingsPages.some((x) => x.id === p) ? (p as SettingsPage) : "overview";
 }
+/** The row the window was opened on (`settings::open_at`: a failed extension's root row), landed once the view is in. */
+const startAnchor = (): string | null => new URLSearchParams(location.search).get("anchor");
 
 export default function Settings() {
   const [view, setView] = useState<View | null>(null);
   const [page, setPage] = useState<SettingsPage>(startPage);
+  /** An anchor to land on once the view (and so the row) exists: from the URL at start, or a later `pal://settings`. */
+  const [landing, setLanding] = useState<string | null>(startAnchor);
   const [palette, setPalette] = useState<string | undefined>(undefined);
   /** The Extensions page's selection: an extension name (one row per name, every instance in its pane), and the instance whose settings its pane shows. */
   const [ext, setExt] = useState<string | undefined>(undefined);
@@ -290,8 +294,8 @@ export default function Settings() {
     // The hotkey's registration outcome and a permission grant land in the view too (settings.rs `View`).
     const c = listen("pal://hotkey", refresh);
     const d = listen("pal://permissions", refresh);
-    // A root command opened the window on a page (settings.rs `open_page`).
-    const e = listen<{ page: SettingsPage }>("pal://settings", (ev) => setPage(ev.payload.page));
+    // A root command opened the window on a page (settings.rs `open_page`), on a row of it when it named one (`open_at`).
+    const e = listen<{ page: SettingsPage; anchor?: string | null }>("pal://settings", (ev) => { setPage(ev.payload.page); if (ev.payload.anchor) setLanding(ev.payload.anchor); });
     const onBlur = () => { if (held.current) refresh(); };
     window.addEventListener("focusout", onBlur);
     return () => { for (const u of [a, b, c, d, e]) u.then((f) => f()); window.removeEventListener("focusout", onBlur); clearTimeout(timer.current); };
@@ -393,6 +397,9 @@ export default function Settings() {
     const hits = await invoke<{ id: string; item: { name: string } }[]>("query", { q: "", limit: 5000, sources: [{ extension: e.key, palette: m.name }] });
     return hits.map((h) => ({ id: h.id, name: h.item.name }));
   }, [view]);
+
+  // The landing waits for the view: `go` (below) selects the extension the anchor names out of it. Before the early returns, as every hook must be.
+  useEffect(() => { if (landing && view) { setLanding(null); go(page, landing); } }); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error && !view) return <div className="pal-settings" style={{ padding: 16 }}>{error}</div>;
   if (!view) return null;

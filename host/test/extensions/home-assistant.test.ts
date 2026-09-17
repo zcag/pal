@@ -342,7 +342,7 @@ describe("when HA is not there", () => {
   test("a URL that redirects (http behind a proxy that answers 301 to https) is followed with the token kept, and the log says which URL to set", async () => {
     host.changeSettings(E, { settings: { ...base, url: `http://127.0.0.1:${redirecting.port}/` } });
     expect((await list()).map((i) => i.id)).toContain("light.kitchen");
-    await host.untilStderr(`home-assistant: http://127.0.0.1:${redirecting.port} redirects to ${URL_}; set that as the URL`);
+    await host.untilStderr(`[home-assistant] http://127.0.0.1:${redirecting.port} redirects to ${URL_}; set that as the URL`);
     host.changeSettings(E, { settings: base });
   });
 });

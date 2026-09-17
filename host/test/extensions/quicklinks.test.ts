@@ -189,6 +189,6 @@ describe("quicklinks", () => {
   test("a broken import file lists the stored links alone and says so on stderr", async () => {
     host.changeSettings("quicklinks", { settings: { import: join(dir, "nope.json") } });
     expect((await list()).map((i) => i.id).some((id) => id.startsWith("import:"))).toBe(false);
-    await host.untilStderr("quicklinks: import");
+    await host.untilStderr("[quicklinks] import");
   });
 });

@@ -35,7 +35,7 @@ const failed = (what: string, e: unknown): Effect => ({ keep: true, toast: { tit
 async function areas(c: Client, refresh = false): Promise<Record<string, string>> {
   if (!refresh && areaCache && Date.now() - areaCache.at < AREAS_TTL) return areaCache.map;
   let map: Record<string, string> = {};
-  try { map = await c.areas(); } catch (e) { console.error(`home-assistant: areas: ${e instanceof Error ? e.message : e}`); }
+  try { map = await c.areas(); } catch (e) { console.error(`[home-assistant] areas: ${e instanceof Error ? e.message : e}`); }
   areaCache = { at: Date.now(), map };
   return map;
 }

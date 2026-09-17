@@ -508,13 +508,23 @@ export type PermissionId = "accessibility" | "calendar" | "full_disk_access" | "
  * shows the system prompt while the OS still has one to show (the answer
  * lands later; the state as of now comes back) or opens the pane once it
  * was answered no. Ask lazily, from the listing that needs it, and only
- * while `not_determined`: the prompt is modal. The wifi extension asks
- * for `location` the first time it lists with the names withheld.
+ * while `not_determined`: the prompt is modal. The app honours an ask
+ * only while the user is looking at the extension (inside one of its
+ * palettes, or on a pick of its row) and skips it otherwise, so a
+ * listing at startup or a relist on a show never prompts; the caller
+ * rides along as `extension` for that. The wifi extension asks for
+ * `location` the first time it lists with the names withheld, and its
+ * hint row asks again on Enter.
  */
 export const permissions = {
   status: () => call<Permissions>("permissions.status"),
-  request: (which: PermissionId) => call<Permissions>("permissions.request", { which }),
+  request: (which: PermissionId) => call<Permissions>("permissions.request", { which, extension: caller() }),
 };
+
+/** The calling extension when the host can tell (inside `list`/`pick`), else nothing. */
+function caller(): string | undefined {
+  try { return who(); } catch { return undefined; }
+}
 
 /** `pal_core::calendar::Calendar`: `id` is what `events` filters on and `create` takes. */
 export type Calendar = {

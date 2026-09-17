@@ -131,9 +131,11 @@ type Options = {
   scope?: RefObject<HTMLElement | null>;
   /** Where typing goes when nothing editable has focus. */
   input?: RefObject<HTMLInputElement | null>;
+  /** A scope that owns the keys while it is up (a confirm card, the action panel): a keydown landing outside it, because focus wandered back to the search box behind, is handled here first and never reaches the page's own listener. */
+  modal?: boolean;
 };
 
-export function useKeys(handlers: Handlers, { scope, input }: Options = {}) {
+export function useKeys(handlers: Handlers, { scope, input, modal }: Options = {}) {
   const ref = useRef(handlers);
   ref.current = handlers;
   useEffect(() => {
@@ -160,8 +162,11 @@ export function useKeys(handlers: Handlers, { scope, input }: Options = {}) {
       if (typing && !isEditable(document.activeElement) && !document.querySelector("[data-keyscope]")) field.focus();
     };
     target.addEventListener("keydown", onKey);
-    return () => target.removeEventListener("keydown", onKey);
-  }, [scope, input]);
+    // Capture at the window: a stray key (its target outside the modal scope) is resolved as if it had landed inside, and a handled one stops there. Not once the scope is on its way out (Presence keeps it mounted through the exit motion): the keys are the page's again.
+    const onStray = modal && local ? (ev: Event) => { const el = target as HTMLElement; if (!el.contains(ev.target as Node) && !el.closest("[data-exiting]")) onKey(ev); } : undefined;
+    if (onStray) window.addEventListener("keydown", onStray, true);
+    return () => { target.removeEventListener("keydown", onKey); if (onStray) window.removeEventListener("keydown", onStray, true); };
+  }, [scope, input, modal]);
 }
 
 /** True while the platform's primary modifier is held (for cmd+N row hints). */

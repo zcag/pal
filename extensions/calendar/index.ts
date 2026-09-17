@@ -226,7 +226,7 @@ async function loadFilters(): Promise<{ id: string; title: string }[]> {
     const cals = (await calendars()).filter((c) => !ids || ids.includes(c.id));
     return [...all, ...cals.map((c) => ({ id: c.id, title: c.source && active() === "google" ? `${c.title} (${c.source})` : c.title }))];
   } catch (e) {
-    console.error(`calendar: filters: ${e instanceof Error ? e.message : e}`);
+    console.error(`[calendar] filters: ${e instanceof Error ? e.message : e}`);
     return all;
   }
 }
@@ -405,7 +405,7 @@ function popoverView(now = clock()): ReturnType<typeof popover> | undefined {
 
 function pushPopover() {
   const v = popoverView();
-  if (v) liveView.update(v, { extension: EXTENSION, bar: ITEM }).catch((e) => console.error(`calendar: popover push: ${e instanceof Error ? e.message : e}`));
+  if (v) liveView.update(v, { extension: EXTENSION, bar: ITEM }).catch((e) => console.error(`[calendar] popover push: ${e instanceof Error ? e.message : e}`));
 }
 
 liveView.onShown((ev) => { if (ev.bar !== ITEM) return; if (tick) clearInterval(tick); tick = setInterval(pushPopover, POPOVER_TICK_MS); }, EXTENSION);

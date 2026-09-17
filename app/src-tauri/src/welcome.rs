@@ -154,9 +154,9 @@ pub fn rows(env: &Env) -> Vec<Item> {
         row(
             HOTKEY,
             "Change the hotkey",
-            &format!("{hk} now, set in Settings"),
+            &format!("{hk} now; Enter opens the recorder in Settings"),
             "\u{f030c}",
-            format!("# Change the hotkey\n\npal opens with **{hk}**. Settings › General has a recorder for another one; every palette can have its own hotkey too, on its row under Settings › Palettes."),
+            format!("# Change the hotkey\n\npal opens with **{hk}**. Enter opens the recorder under Settings › General: press another combination, or pick a preset. Every palette can have its own hotkey too, on its row under Settings › Palettes."),
         ),
         row(
             EXTENSIONS,
@@ -221,8 +221,9 @@ pub fn sync(app: &AppHandle) {
 pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
     let data = data_dir(app);
     match id {
+        // Straight to the recorder, not the Overview: the row promised the hotkey.
         HOTKEY => {
-            settings::open(app);
+            settings::open_at(app, Some("general"), Some("general:hotkey"));
             Ok(json!({ "hide": true }))
         }
         EXTENSIONS => effects::apply(app, json!({ "open": EXTENSIONS_GUIDE })).await,

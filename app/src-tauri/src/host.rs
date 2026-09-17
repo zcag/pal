@@ -35,6 +35,15 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long `stop` waits for the host to exit on EOF before quitting
 /// anyway: an extension's own shutdown (a file flush) gets this long.
 const STOP_TIMEOUT: Duration = Duration::from_secs(2);
+/// A core call the host made is logged from this long: the ones worth a
+/// look (a window list, a scan), not the settings reads.
+const SLOW_CALL: Duration = Duration::from_millis(10);
+/// What a request gets while the host is down (between an exit and the
+/// respawn, or during "Reload Extensions"): the panel's "Failed" toast
+/// shows it, so it says what to do.
+pub const HOST_DOWN: &str = "the extension host is restarting; try again in a moment";
+/// What a request in flight gets when the host exits under it.
+pub const HOST_EXITED: &str = "the extension host exited before it answered; try again in a moment";
 
 type Reply = oneshot::Sender<Result<Value, String>>;
 
@@ -114,7 +123,7 @@ impl Host {
                     Ok(status) => eprintln!("host\texit\t{status}"),
                     Err(e) => eprintln!("host\tspawn failed\t{e}"),
                 }
-                host.fail_pending("host exited");
+                host.fail_pending(HOST_EXITED);
                 events::emit(&host.app, events::HOST, json!({ "method": "host/exit" }));
                 if host.stopping.load(Ordering::SeqCst) {
                     return;
@@ -187,7 +196,10 @@ impl Host {
     }
 
     /// A host request for a core capability: runs off this task (the reader
-    /// must keep draining stdout) and writes the reply back.
+    /// must keep draining stdout) and writes the reply back. Logged when it
+    /// failed or took [`SLOW_CALL`] or longer: every extension reads its
+    /// settings at load, and sixty `core/settings.get 0.05ms` lines buried
+    /// the first run's log.
     fn serve(self: &Arc<Self>, id: u64, method: String, params: Value) {
         let host = self.clone();
         tauri::async_runtime::spawn(async move {
@@ -197,7 +209,10 @@ impl Host {
             let r = tauri::async_runtime::spawn_blocking(move || crate::bridge::call(&app, &m, params))
                 .await
                 .unwrap_or_else(|e| Err(format!("core handler panicked: {e}")));
-            eprintln!("core\t{method}\t{:.2}ms{}", t0.elapsed().as_secs_f64() * 1000.0, r.as_ref().err().map(|e| format!("\t{e}")).unwrap_or_default());
+            let took = t0.elapsed();
+            if r.is_err() || took >= SLOW_CALL {
+                eprintln!("core\t{method}\t{:.2}ms{}", took.as_secs_f64() * 1000.0, r.as_ref().err().map(|e| format!("\t{e}")).unwrap_or_default());
+            }
             let reply = match r {
                 Ok(result) => json!({ "id": id, "result": result }),
                 Err(error) => json!({ "id": id, "error": error }),
@@ -211,7 +226,7 @@ impl Host {
     async fn write_line(&self, msg: &Value) -> Result<(), String> {
         let line = format!("{msg}\n");
         let mut stdin = self.stdin.lock().await;
-        let stdin = stdin.as_mut().ok_or("host not running")?;
+        let stdin = stdin.as_mut().ok_or(HOST_DOWN)?;
         stdin.write_all(line.as_bytes()).await.map_err(|e| e.to_string())
     }
 

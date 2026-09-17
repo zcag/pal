@@ -1028,10 +1028,15 @@ to the core.
   `full_disk_access`, `input_monitoring`, `location`; a boolean or a
   `granted` / `denied` / `not_determined` / `restricted` / `unavailable`
   state) and `permissions.request(which)`: the system prompt while the OS
-  still has one to show, else the System Settings pane; only while a pal
-  window is in front. Ask lazily, from the listing that needs it, and
-  only while `not_determined`: the prompt is modal. What the Wi-Fi palette
-  does for `location`.
+  still has one to show, else the System Settings pane. Honoured only
+  while the user is looking at your extension: inside one of its palettes
+  (a listing at startup, a relist on a show or a background refresh never
+  prompts; the ask is skipped and logged, `permissions<TAB>location<TAB>
+  skipped`), or from a `pick` (Enter on a row that offers it, wherever
+  the panel is). Ask lazily, from the listing that needs it, only while
+  `not_determined`, and give the palette a hint row whose pick asks too,
+  so a user who lands in the palette after the held-back listing has a
+  way in: the prompt is modal. What the Wi-Fi palette does for `location`.
 - `calendar.permission()`, `request()` (the Calendars prompt on macOS),
   `openSettings()`, `calendars()` (`Calendar[]`: `id`, `title`, `color`,
   `source`, `writable`), `events(from, to, calendars?)` (unix ms;

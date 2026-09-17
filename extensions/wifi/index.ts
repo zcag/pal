@@ -134,14 +134,15 @@ export default {
             section: "Available",
           });
         }
-        if (withheld && location !== "not_determined") {
+        // The names are withheld: a row that says why and asks. Not yet asked (the app holds a listing's ask until the user is inside this palette): Enter shows the prompt; answered no: Enter opens the pane; a profile forbids it: nothing to do.
+        if (withheld) {
           items.push({
             id: "location",
             name: "Wi-Fi names need Location access",
-            subtitle: location === "restricted" ? "A profile on this Mac forbids it" : "Switch pal on under Privacy & Security > Location Services",
+            subtitle: location === "restricted" ? "A profile on this Mac forbids it" : location === "not_determined" ? "Enter shows the system prompt; pal reads no location, only the names" : "Switch pal on under Privacy & Security > Location Services",
             icon: xdg("dialog-warning")!,
             keywords: ["location", "permission", "names"],
-            actions: location === "restricted" ? [] : [{ id: "location", title: "Open System Settings" }],
+            actions: location === "restricted" ? [] : [{ id: "location", title: location === "not_determined" ? "Allow Location Access" : "Open System Settings" }],
             section: "Wi-Fi",
           });
         }

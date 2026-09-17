@@ -80,7 +80,7 @@ async function connect(b: Bridge): Promise<void> {
     startStream(b);
   } catch (e) {
     down.set(b.id, e instanceof HueError ? e : new HueError(String((e as Error)?.message ?? e), "cmd+r tries again"));
-    console.error(`hue: ${b.ip}: ${(e as Error).message}`);
+    console.error(`[hue] ${b.ip}: ${(e as Error).message}`);
   }
 }
 
@@ -100,7 +100,7 @@ async function load(force = false): Promise<void> {
     // record without a key is that address's certificate and client key, not
     // a bridge of its own (its key went to the settings, since replaced).
     const rest = stored.filter((b): b is Bridge => (!fromSettings || b.ip !== fromSettings.ip) && typeof b.key === "string");
-    for (const b of stored) if (b.key === undefined && b.ip !== fromSettings?.ip) console.error(`hue: ${b.ip} has no key any more (the settings name ${s.bridge || "no bridge"}); pair it again`);
+    for (const b of stored) if (b.key === undefined && b.ip !== fromSettings?.ip) console.error(`[hue] ${b.ip} has no key any more (the settings name ${s.bridge || "no bridge"}); pair it again`);
     bridges = [...(fromSettings ? [fromSettings] : []), ...rest];
     for (const id of [...clients.keys()]) if (!bridges.some((b) => b.id === id)) { stopStream(id); clients.delete(id); home.forget(id); }
     await Promise.all(bridges.map(connect));
@@ -134,7 +134,7 @@ async function adopt(b: Bridge): Promise<void> {
       await load();
       return;
     } catch (e) {
-      console.error(`hue: the key stays in storage, the settings refused it: ${(e as Error).message}`);
+      console.error(`[hue] the key stays in storage, the settings refused it: ${(e as Error).message}`);
     }
   }
   keep(b);
@@ -160,7 +160,7 @@ function startStream(b: Bridge) {
         for await (const ev of c.events(ctl.signal, () => { failures = 0; })) onEvent(b.id, ev);
       } catch (e) {
         if (ctl.signal.aborted) return;
-        if (failures === 0) console.error(`hue: stream ${b.ip}: ${(e as Error).message}`);
+        if (failures === 0) console.error(`[hue] stream ${b.ip}: ${(e as Error).message}`);
       }
       if (ctl.signal.aborted) return;
       await Bun.sleep(STREAM_BACKOFF[Math.min(failures++, STREAM_BACKOFF.length - 1)]);
@@ -180,7 +180,7 @@ function pushViews() {
   for (const ev of liveView.open(NAME)) {
     if (ev.palette !== "light") continue;
     const t = targetOf(ev.id.startsWith("light:") ? { light: ev.id } : { room: ev.id });
-    if (t) liveView.update(draw(t), { extension: NAME, palette: "light", id: ev.id }).catch((e) => console.error(`hue: view push: ${(e as Error).message}`));
+    if (t) liveView.update(draw(t), { extension: NAME, palette: "light", id: ev.id }).catch((e) => console.error(`[hue] view push: ${(e as Error).message}`));
   }
 }
 
@@ -215,7 +215,7 @@ function put(bridge: string, type: string, rid: string, body: Record<string, unk
       entry.timer = setTimeout(() => {
         const next = entry.next;
         entry.next = undefined;
-        if (next) void send(next).catch((e) => console.error(`hue: ${type}/${rid}: ${(e as Error).message}`));
+        if (next) void send(next).catch((e) => console.error(`[hue] ${type}/${rid}: ${(e as Error).message}`));
         else inflight.delete(key);
       }, gap);
     }
@@ -350,7 +350,7 @@ let pairing: AbortController | undefined;
 async function discover(force = false): Promise<Found[]> {
   if (!force && discovered && Date.now() - discovered.at < DISCOVERY_TTL) return discovered.found;
   const url = process.env.PAL_HUE_DISCOVERY ?? undefined;
-  const [cloud, mdns] = await Promise.all([discoverCloud(url).catch((e) => { console.error(`hue: discovery: ${(e as Error).message}`); return [] as Found[]; }), discoverMdns().catch(() => [] as Found[])]);
+  const [cloud, mdns] = await Promise.all([discoverCloud(url).catch((e) => { console.error(`[hue] discovery: ${(e as Error).message}`); return [] as Found[]; }), discoverMdns().catch(() => [] as Found[])]);
   const found: Found[] = [];
   const s = current();
   if (s.bridge?.trim()) found.push({ id: "", ip: s.bridge.trim(), name: "Hue Bridge (settings)", via: "setting" });
@@ -444,7 +444,7 @@ async function setupPick(action: string | undefined, ctx?: Ctx): Promise<Effect>
       bridges = bridges.filter((x) => x !== b);
       await saveBridges(bridges);
       if (b.from_settings) {
-        try { await settings.set({ application_key: null, bridge: null }, NAME); } catch (e) { console.error(`hue: could not clear the settings: ${(e as Error).message}`); }
+        try { await settings.set({ application_key: null, bridge: null }, NAME); } catch (e) { console.error(`[hue] could not clear the settings: ${(e as Error).message}`); }
       }
       discovered = undefined;
       scheduleBar();
@@ -805,4 +805,4 @@ export default {
 // on (the bridge, its key, insecure, timeout) reads them again and
 // reconnects; any other change (the bar's scenes, the main room) keeps the
 // streams and re-renders the bar.
-settings.onChange(() => { load().then(scheduleBar).catch((e) => console.error(`hue: ${(e as Error).message}`)); }, NAME);
+settings.onChange(() => { load().then(scheduleBar).catch((e) => console.error(`[hue] ${(e as Error).message}`)); }, NAME);

@@ -43,9 +43,10 @@ describe("rootHits", () => {
     expect(names(rootHits("x", [], inline, fallback, [], false, titleOf))).toEqual(["Calculator:4"]);
     expect(names(rootHits("x", found, [], fallback, [], true, titleOf))).toEqual(["Applications:Slack", "Emoji:smile", "Use “x” with:Search the web", "Use “x” with:Ask Calculator"]);
   });
-  it("empty: welcome, the suggestions, Frequent, Recent Files, then the rest as the core ordered it", () => {
+  it("empty: welcome, what needs attention, the suggestions, Frequent, Recent Files, then the rest as the core ordered it", () => {
     const empty = [
       hit("pal/welcome", "about", "You are in pal"),
+      hit("pal/commands", "failed:hello", "Hello failed to load", { group: "Needs attention" }),
       hit("apps/apps", "b", "B", { group: "Frequent" }),
       hit("pal/palettes", "apps/apps", "Applications"),
       hit("apps/apps", "a", "A"),
@@ -54,7 +55,7 @@ describe("rootHits", () => {
     ];
     const suggested = [hit("calendar/today", "ev", "Standup", { group: "Now" }), hit("clipboard/rows", "url", "example.com", { group: "Clipboard" })];
     expect(names(rootHits("", empty, inline, fallback, suggested, true, titleOf))).toEqual([
-      "Welcome:You are in pal", "Now:Standup", "Clipboard:example.com", "Frequent:B", "Recent Files:report.pdf", "Palettes:Applications", "Applications:A", "Emoji:smile",
+      "Welcome:You are in pal", "Needs attention:Hello failed to load", "Now:Standup", "Clipboard:example.com", "Frequent:B", "Recent Files:report.pdf", "Palettes:Applications", "Applications:A", "Emoji:smile",
     ]);
   });
 });

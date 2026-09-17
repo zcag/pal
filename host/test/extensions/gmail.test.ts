@@ -181,7 +181,7 @@ describe("gmail", () => {
     expect(rows[3].actions!.find((a) => a.id === "unstar")).toEqual({ id: "unstar", title: "Unstar", shortcut: "cmd+s" });
     expect(rows[4].actions![1]).toEqual({ id: "unread", title: "Mark as unread", shortcut: "cmd+enter", multi: true });
     expect(runs("personal")).toBe(1);
-    expect(host.stderr).toContain('gmail: no label "Nope" on this account');
+    expect(host.stderr).toContain('[gmail] no label "Nope" on this account');
     const lists = mock.calls("/users/me/messages").filter((c) => c.auth === "Bearer tok-personal");
     expect(lists.map((c) => [c.query.labelIds, c.query.maxResults?.[0]])).toEqual([[["INBOX", "UNREAD"], "50"], [["INBOX"], "50"], [["Label_2", "UNREAD"], "50"]]);
     const gets = mock.calls(/^\/users\/me\/messages\/m/).filter((c) => c.auth === "Bearer tok-personal");
