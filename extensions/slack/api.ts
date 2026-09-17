@@ -18,7 +18,7 @@ import { extract, NotSignedIn, type Creds, type Team } from "./auth.ts";
 export const EXTENSION = "slack";
 export const REQUEST_MS = 10_000;
 /** `[extensions.slack]`, defaults in pal.json. */
-export type Settings = { auth: "app" | "token"; token: string; workspace: string; statuses: string[]; dm_urgent: boolean; refresh: number };
+export type Settings = { auth: "app" | "token"; token: string; workspace: string; statuses: string[]; dm_urgent: boolean; presence: boolean; refresh: number };
 export const conf = () => settings.get<Settings>(EXTENSION);
 export const log = (...a: unknown[]) => console.error("[slack]", ...a);
 
@@ -76,14 +76,14 @@ export async function sessions(force = false): Promise<Session[]> {
 /** The first workspace, for what is per user rather than per conversation (status, presence, DND). */
 export const primary = async () => (await sessions())[0];
 
-async function post<T>(s: Session, method: string, params: Record<string, string | number | boolean | undefined>): Promise<T & { ok: boolean; error?: string }> {
+async function post<T>(s: Session, method: string, params: Record<string, string | number | boolean | undefined>, ms: number): Promise<T & { ok: boolean; error?: string }> {
   if (Date.now() < limitedUntil) throw new RateLimited(new Date(limitedUntil));
   const body = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v !== undefined) body.set(k, String(v));
   const headers: Record<string, string> = { "content-type": "application/x-www-form-urlencoded" };
   // The app's token rides in the body with the `d` cookie beside it (sent as stored: it is percent-encoded already, quoting it again is `invalid_auth`); a user token is a bearer.
   if (s.mode === "app") { body.set("token", s.token); headers.cookie = `d=${s.d}`; } else headers.authorization = `Bearer ${s.token}`;
-  const res = await fetch(`${host(s)}/api/${method}`, { method: "POST", headers, body, signal: AbortSignal.timeout(REQUEST_MS) });
+  const res = await fetch(`${host(s)}/api/${method}`, { method: "POST", headers, body, signal: AbortSignal.timeout(ms) });
   if (res.status === 429) {
     const after = Number(res.headers.get("retry-after")) || 30;
     limitedUntil = Date.now() + after * 1000;
@@ -97,13 +97,14 @@ async function post<T>(s: Session, method: string, params: Record<string, string
  * One Slack call. `invalid_auth` on an app session means the app signed in
  * again since the extraction: the session is extracted afresh and the call
  * retried once; a second refusal is the error, so a dead session never
- * loops on the keychain.
+ * loops on the keychain. `ms` is the request's timeout (`REQUEST_MS`
+ * unless a caller can afford less, as a presence lookup can).
  */
-export async function call<T = Record<string, unknown>>(s: Session, method: string, params: Record<string, string | number | boolean | undefined> = {}): Promise<T> {
-  let r = await post<T>(s, method, params);
+export async function call<T = Record<string, unknown>>(s: Session, method: string, params: Record<string, string | number | boolean | undefined> = {}, ms = REQUEST_MS): Promise<T> {
+  let r = await post<T>(s, method, params, ms);
   if (!r.ok && s.mode === "app" && new ApiError(r.error ?? "", method).auth) {
     const fresh = (await appSessions(true)).find((x) => x.id === s.id);
-    if (fresh) { Object.assign(s, fresh); r = await post<T>(s, method, params); }
+    if (fresh) { Object.assign(s, fresh); r = await post<T>(s, method, params, ms); }
   }
   if (!r.ok) throw new ApiError(r.error ?? "unknown_error", method);
   return r;

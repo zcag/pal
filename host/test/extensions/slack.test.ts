@@ -29,7 +29,10 @@ const USERS: Record<string, { name: string; real: string; avatar: string }> = {
   U_ME: { name: "cagdas", real: "Cagdas", avatar: `http://127.0.0.1:${avatars.port}/me.png` },
   U_MARA: { name: "mara", real: "Mara Lindqvist", avatar: `http://127.0.0.1:${avatars.port}/mara.png` },
   U_TOM: { name: "tomas", real: "Tomas Reyes", avatar: `http://127.0.0.1:${avatars.port}/tomas.png` },
+  U_ERR: { name: "erin", real: "Erin Vale", avatar: `http://127.0.0.1:${avatars.port}/erin.png` },
 };
+/** `users.getPresence` per person: Mara is active, Tomas away, Erin is one Slack refuses to answer for; the signed-in user follows `away` (the Status palette flips it). */
+const PRESENCE: Record<string, string> = { U_MARA: "active", U_TOM: "away" };
 const rawUser = (id: string) => ({ id, name: USERS[id].name, real_name: USERS[id].real, profile: { display_name: USERS[id].name, real_name: USERS[id].real, image_48: USERS[id].avatar } });
 const CONVS = [
   { id: "C_GEN", name: "general", is_channel: true, topic: { value: "Company wide" }, num_members: 40 },
@@ -39,8 +42,11 @@ const CONVS = [
   { id: "G_1", name: "mpdm-mara--tomas--cagdas-1", is_mpim: true, num_members: 3 },
   { id: "D_MARA", is_im: true, user: "U_MARA" },
   { id: "D_TOM", is_im: true, user: "U_TOM" },
+  { id: "D_ERR", is_im: true, user: "U_ERR" },
 ];
 const HISTORY: Record<string, unknown[]> = {
+  D_TOM: [{ ts: "1789580900.000100", user: "U_TOM", text: "ping" }],
+  D_ERR: [{ ts: "1789580800.000100", user: "U_ERR", text: "are you around?" }],
   D_MARA: [
     { ts: "1789580400.000200", user: "U_MARA", text: "and the <https://example.com/doc|doc> is up" },
     { ts: "1789580300.000100", user: "U_MARA", text: "hey <@U_ME>, can you look at the parser &amp; the tests?" },
@@ -118,7 +124,9 @@ const server = Bun.serve({
       case "dnd.info": return Response.json({ ok: true, snooze_enabled: snoozeUntil > 0, snooze_endtime: snoozeUntil });
       case "dnd.setSnooze": { snoozeUntil = Math.floor(Date.now() / 1000) + Number(body.num_minutes) * 60; return Response.json({ ok: true, snooze_enabled: true, snooze_endtime: snoozeUntil }); }
       case "dnd.endSnooze": { snoozeUntil = 0; return Response.json({ ok: true }); }
-      case "users.getPresence": return Response.json({ ok: true, presence: away ? "away" : "active", manual_away: away });
+      case "users.getPresence":
+        if (body.user === "U_ME") return Response.json({ ok: true, presence: away ? "away" : "active", manual_away: away });
+        return PRESENCE[body.user] ? Response.json({ ok: true, presence: PRESENCE[body.user] }) : Response.json({ ok: false, error: "user_not_visible" });
       case "users.setPresence": { away = body.presence === "away"; return Response.json({ ok: true }); }
       default: return Response.json({ ok: false, error: `unknown_method ${method}` });
     }
@@ -171,7 +179,7 @@ describe("slack", () => {
     expect(loaded.palettes[3]).toMatchObject({ title: "Status", live: true });
     expect(loaded.bar).toEqual([{ id: "unreads", title: "Unreads", description: expect.any(String), refresh: { every: 120, on: ["show", "wake", "network"] }, keys: expect.any(Array), source: true }]);
     expect(loaded.bar[0].keys!.map((k) => k.keys)).toEqual(["enter", "up", "r", "m", "a", "o", "p", "cmd+shift+o", "cmd+c"]);
-    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["dm_urgent", "boolean"], ["refresh", "number"]]);
+    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["dm_urgent", "boolean"], ["presence", "boolean"], ["refresh", "number"]]);
   });
 
   test("multi: a workspace is an instance; `workspace` and the token never inherit from the default", () => {
@@ -194,10 +202,10 @@ describe("slack", () => {
       expect(calls("conversations.history")[0].body).toMatchObject({ oldest: expect.any(String), inclusive: "false", limit: "60" });
     });
 
-    test("a DM row: the person, the newest unread rendered (link label, entities) without the sender the name already says, their avatar, the count of the run, the time", async () => {
+    test("a DM row: the person, the newest unread rendered (link label, entities) without the sender the name already says, their avatar, the count of the run, the presence dot, the time", async () => {
       const [dm] = await list("unreads");
       expect(dm).toMatchObject({ name: "mara", subtitle: "and the doc is up", icon: { image: USERS.U_MARA.avatar } });
-      expect(dm.accessories).toEqual([{ tag: "2", color: "red" }, { date: 1789580400000 }]);
+      expect(dm.accessories).toEqual([{ tag: "2", color: "red" }, { tag: "●", color: "green" }, { date: 1789580400000 }]);
       expect(dm.actions!.map((a) => a.id)).toEqual(["open", "reply", "read", "browser", "copy"]);
       expect(dm.keywords).toEqual(expect.arrayContaining(["mara", "dm"]));
     });
@@ -271,6 +279,58 @@ describe("slack", () => {
         expect(items).toHaveLength(1);
         expect(items[0]).toMatchObject({ id: "hint:none", name: "Nothing addressed to you", actions: [] });
       } finally { counts = QUIET; }
+    });
+  });
+
+  describe("presence", () => {
+    /** Three direct messages waiting: Mara (active), Tomas (away) and Erin, whom Slack will not answer for. */
+    const THREE: Counts = { ...QUIET, ims: [
+      { id: "D_MARA", last_read: "1789580200.000000", latest: "1789580400.000200", mention_count: 0, has_unreads: true },
+      { id: "D_TOM", last_read: "1789580200.000000", latest: "1789580900.000100", mention_count: 0, has_unreads: true },
+      { id: "D_ERR", last_read: "1789580200.000000", latest: "1789580800.000100", mention_count: 0, has_unreads: true },
+    ] };
+    const dot = (i: { accessories?: unknown[] }) => (i.accessories ?? []).find((a) => (a as { tag?: string }).tag === "●") as { tag: string; color: string } | undefined;
+
+    test("one users.getPresence per person among the DM rows: green for active, grey for away, none for the one Slack refuses (the row still lists), none on a channel", async () => {
+      counts = THREE;
+      const before = calls("users.getPresence").length;
+      const items = await list("unreads", undefined, { refresh: true });
+      expect(ids(items)).toEqual(["dm:T1/D_TOM", "dm:T1/D_ERR", "dm:T1/D_MARA", "channel:T1/C_GEN"]);
+      expect(dot(items[2])).toEqual({ tag: "●", color: "green" });
+      expect(dot(items[0])).toEqual({ tag: "●", color: "grey" });
+      expect(items[1]).toMatchObject({ name: "erin", subtitle: "are you around?" });
+      expect(dot(items[1])).toBeUndefined();
+      expect(dot(items[3])).toBeUndefined();
+      // Mara was asked on the first listing of the file (inside the minute); Tomas and Erin now, once each.
+      expect(calls("users.getPresence").slice(before).map((c) => c.body.user).sort()).toEqual(["U_ERR", "U_TOM"]);
+      expect(calls("users.getPresence").filter((c) => c.body.user === "U_MARA")).toHaveLength(1);
+    });
+
+    test("a second listing within the minute makes no call, the refused one included; the popover carries the same dot on the avatar", async () => {
+      const n = calls("users.getPresence").length;
+      const items = await list("unreads", undefined, { refresh: true });
+      expect(items.map(dot)).toEqual([{ tag: "●", color: "grey" }, undefined, { tag: "●", color: "green" }, undefined]);
+      const item = await host.render("slack", "unreads", { reason: "cli" });
+      const view = checkView((item as { menu: { view: View } }).menu.view);
+      const all = (function walk(node: ViewNode): ViewNode[] { return [node, ...(node.type === "stack" ? node.children.flatMap(walk) : [])]; })(view.tree);
+      const images = all.filter((x): x is Extract<ViewNode, { type: "image" }> => x.type === "image");
+      expect(images.map((i) => [i.alt, i.dot])).toEqual([["tomas", "grey"], ["erin", undefined], ["mara", "green"]]);
+      expect(calls("users.getPresence")).toHaveLength(n);
+    });
+
+    test("presence off: no users.getPresence at all and no dot; back on, the lookup resumes", async () => {
+      host.changeSettings("slack", { settings: { ...BASE, presence: false } });
+      await Bun.sleep(50);
+      const n = calls("users.getPresence").length;
+      const items = await list("unreads", undefined, { refresh: true });
+      expect(items.map(dot)).toEqual([undefined, undefined, undefined, undefined]);
+      await host.render("slack", "unreads", { reason: "cli" });
+      expect(calls("users.getPresence")).toHaveLength(n);
+      host.changeSettings("slack", { settings: BASE });
+      await Bun.sleep(50);
+      expect(dot((await list("unreads", undefined, { refresh: true }))[2])).toEqual({ tag: "●", color: "green" });
+      expect(calls("users.getPresence").length).toBeGreaterThan(n);
+      counts = QUIET;
     });
   });
 
@@ -448,11 +508,11 @@ describe("slack", () => {
       expect(items[0]).toMatchObject({ name: "#eng", subtitle: "Engineering", accessories: [{ text: "12 members" }] });
       await list("channels");
       expect(calls("conversations.info").slice(before)).toHaveLength(1);
-      expect(ids(items)).toEqual(["T1/C_ENG", "T1/C_GEN", "T1/C_OPS", "T1/G_1", "T1/D_MARA", "T1/D_TOM"]);
+      expect(ids(items)).toEqual(["T1/C_ENG", "T1/C_GEN", "T1/C_OPS", "T1/G_1", "T1/D_ERR", "T1/D_MARA", "T1/D_TOM"]);
       expect(items[1]).toMatchObject({ name: "#general", subtitle: "Company wide", icon: "\u{f0423}", accessories: [{ text: "40 members" }] });
       expect(items[2]).toMatchObject({ name: "#ops", icon: "\u{f033e}", accessories: [{ tag: "private", color: "amber" }, { text: "4 members" }] });
       expect(items[3]).toMatchObject({ name: "mara, tomas, cagdas", subtitle: "Group message", accessories: [{ tag: "group", color: "grey" }, { text: "3 members" }] });
-      expect(items[4]).toMatchObject({ name: "mara", subtitle: "Direct message", icon: "\u{f0004}", accessories: [{ tag: "DM", color: "grey" }] });
+      expect(items[5]).toMatchObject({ name: "mara", subtitle: "Direct message", icon: "\u{f0004}", accessories: [{ tag: "DM", color: "grey" }] });
       expect(items.every((i) => i.section === undefined)).toBe(true);
       expect(await pick("channels", "T1/C_GEN")).toEqual({ open: "slack://channel?team=T1&id=C_GEN" });
       expect(await pick("channels", "T1/C_GEN", "browser")).toEqual({ open: "https://acme.slack.com/archives/C_GEN" });

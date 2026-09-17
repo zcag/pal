@@ -10,8 +10,8 @@ import { clock, errorMessage, failed, hint, imageData, settings, toast, truncate
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
 import { emojiFor } from "./emoji.ts";
 import {
-  MAX_MSGS, MAX_QUIET, conversations, deepLink, dnd, endSnooze, expiresAt, inbox, markRead, parsePreset, post, presence, reset as resetData, search, sessionOf, setPresence, setStatus, snooze, status, toMsg, unreadSince, webLink,
-  type Conversation, type Inbox, type Msg, type SearchHit, type Unread,
+  MAX_MSGS, MAX_QUIET, conversations, deepLink, dnd, endSnooze, expiresAt, inbox, markRead, parsePreset, post, presence, presenceOf, reset as resetData, search, sessionOf, setPresence, setStatus, snooze, status, toMsg, unreadSince, webLink,
+  type Conversation, type Inbox, type Msg, type Presence, type SearchHit, type Unread,
 } from "./data.ts";
 import { SECTION, render as renderBar, type BarRow, type BarState } from "./view.ts";
 
@@ -41,6 +41,11 @@ settings.onChange(() => { dropInbox(); rows.clear(); convs.clear(); resetData();
 
 /** A conversation can be a mention and a thread at once: the kind is part of the row id. */
 const rowId = (u: Unread) => `${u.kind}:${u.id}`;
+
+/** The presence behind the direct message rows among `all` (by `Unread.id`), unless the `presence` setting is off: then no call and no dot. */
+const dots = (all: Unread[]): Promise<Map<string, Presence>> => (conf().presence === false ? Promise.resolve(new Map()) : presenceOf(all));
+/** A presence as a tag colour: green while the person is active, grey away. */
+const dotColor = (p: Presence) => (p === "active" ? "green" : "grey");
 
 // ---- rows the palettes share ------------------------------------------------------
 
@@ -74,9 +79,11 @@ function unreadSubtitle(u: Unread): string {
   return [line || "(no text)", u.teamName].filter(Boolean).join(" · ");
 }
 
-function unreadAccessories(u: Unread): Accessory[] {
+/** The count first (the one tag a narrow row keeps), then a direct message's presence dot, then the time. */
+function unreadAccessories(u: Unread, dot?: Presence): Accessory[] {
   const a: Accessory[] = [];
   if (u.kind !== "channel") a.push({ tag: String(u.n) + (u.more ? "+" : ""), color: u.kind === "thread" ? "blue" : "red" });
+  if (dot) a.push({ tag: "●", color: dotColor(dot) });
   const ts = u.top?.ts ?? u.latest;
   if (ts) a.push({ date: ms(ts) });
   return a;
@@ -92,7 +99,7 @@ function unreadActions(u: Unread): Action[] {
   ];
 }
 
-function unreadRow(u: Unread): Item {
+function unreadRow(u: Unread, dot?: Presence): Item {
   return {
     id: rowId(u),
     name: u.where,
@@ -100,7 +107,7 @@ function unreadRow(u: Unread): Item {
     icon: unreadIcon(u),
     keywords: [u.where.replace(/^#/, ""), u.top?.who ?? "", u.kind === "dm" ? "dm" : u.kind].filter(Boolean),
     section: SECTION[u.kind],
-    accessories: unreadAccessories(u),
+    accessories: unreadAccessories(u, dot),
     actions: unreadActions(u),
   };
 }
@@ -109,7 +116,8 @@ async function unreadRows(ctx?: Ctx): Promise<Item[]> {
   const i = await loadInbox(!!ctx?.refresh);
   const all = [...i.items, ...i.quiet];
   if (!all.length) return [hint("none", "Nothing addressed to you", "No unread direct messages, mentions or threads, and every channel is read")];
-  return all.map(unreadRow);
+  const p = await dots(all);
+  return all.map((u) => unreadRow(u, p.get(u.id)));
 }
 
 /** The unread run as the pane: one paragraph per message, oldest first; a thread names the count; a row whose run was not fetched fetches it now. */
@@ -323,14 +331,16 @@ const refreshSecs = () => Math.max(10, Number(conf().refresh) || 120);
 /** The row the keys act on, and the one a reply is being typed for, across renders. */
 let barFocus: string | undefined, barReplying: string | undefined, barDraft: string | undefined;
 
-/** The popover's rows from the inbox: the newest `BAR_ROWS` per kind, the avatars fetched once each (a miss is the initial's tile). */
+/** The popover's rows from the inbox: the newest `BAR_ROWS` per kind, the avatars fetched once each (a miss is the initial's tile), a direct message's presence on its avatar. */
 async function barState(i: Inbox): Promise<BarState> {
   const picked = (["dm", "mention", "thread"] as const).flatMap((kind) => i.items.filter((u) => u.kind === kind).slice(0, BAR_ROWS));
+  const p = await dots(picked);
   const rows: BarRow[] = await Promise.all(picked.map(async (u) => {
     const ts = u.top?.ts ?? u.latest;
     return {
       id: rowId(u), kind: u.kind, where: u.where, who: u.top?.who || undefined, text: u.top?.text ?? (u.kind === "channel" ? u.about || "New messages" : ""), time: ts ? at(ts) : undefined, n: u.n, more: u.more,
       avatar: u.top?.avatar ? await imageData(u.top.avatar) : undefined,
+      dot: p.has(u.id) ? dotColor(p.get(u.id)!) : undefined,
       canReply: u.kind !== "thread", canRead: u.kind !== "thread" && !!u.latest, teamName: u.teamName || undefined,
     };
   }));

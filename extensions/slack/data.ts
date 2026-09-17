@@ -32,11 +32,13 @@ export const PREVIEW = 160;
 /** Quiet channels named in the bar's popover. */
 export const MAX_QUIET = 8;
 const DIRECTORY_PAGES = 5;
-/** `conversations.info` calls in flight at once while counting members. */
-const MEMBERS_BATCH = 8;
+/** `conversations.info` calls in flight at once while counting members, and `users.getPresence` calls while looking up presence. */
+const MEMBERS_BATCH = 8, PRESENCE_BATCH = 8;
+/** How long a person's presence is remembered, and how long one lookup may take before the row goes without its dot. */
+export const PRESENCE_TTL = 60_000, PRESENCE_MS = 2_000;
 
 export type Kind = "dm" | "mention" | "thread" | "channel";
-export type Msg = { who: string; avatar: string; text: string; ts: string; thread_ts?: string };
+export type Msg = { who: string; avatar: string; text: string; ts: string; thread_ts?: string; /** The sender's user id, when a person (not an app) wrote it. */ uid?: string };
 export type Unread = {
   kind: Kind;
   /** `<team>/<conversation>`: the row id. */
@@ -49,6 +51,8 @@ export type Unread = {
   where: string;
   /** What the conversation is, from the directory. */
   ckind: Conversation["kind"];
+  /** The other person of a direct message (`im`), whose presence the row shows. */
+  user?: string;
   /** How many: mentions in a channel, unread messages in a DM, replies in threads. */
   n: number;
   /** `client.counts`' `latest` and `last_read`, for Mark as read and the memo. */
@@ -222,7 +226,7 @@ export async function describe(s: Session, m: RawMsg): Promise<string> {
 
 export async function toMsg(s: Session, m: RawMsg): Promise<Msg> {
   const u = m.user ? await user(s, m.user) : undefined;
-  return { who: u?.name ?? m.username ?? m.bot_profile?.name ?? (m.bot_id ? "app" : ""), avatar: u?.avatar ?? m.bot_profile?.icons?.image_48 ?? "", text: await describe(s, m), ts: m.ts, thread_ts: m.thread_ts };
+  return { who: u?.name ?? m.username ?? m.bot_profile?.name ?? (m.bot_id ? "app" : ""), avatar: u?.avatar ?? m.bot_profile?.icons?.image_48 ?? "", text: await describe(s, m), ts: m.ts, thread_ts: m.thread_ts, uid: u ? m.user : undefined };
 }
 
 /** A join or a leave counts (Slack counts them) but is never the line worth previewing when a real message exists. */
@@ -293,6 +297,7 @@ export async function inbox(): Promise<Inbox> {
       const c = await conversation(s, u.cid);
       u.where = c.name;
       u.ckind = c.kind;
+      if (c.kind === "im") u.user = c.user;
       if (u.kind === "thread" || i >= MAX_DETAIL || !u.lastRead) return;
       const have = runs.get(u.id);
       if (have && have.latest === u.latest) { Object.assign(u, { top: have.top, msgs: have.msgs, more: have.more, n: have.n }); return; }
@@ -380,6 +385,33 @@ export async function presence(): Promise<{ presence: Presence; manual: boolean 
 }
 export const setPresence = async (p: "auto" | "away") => call(await primary(), "users.setPresence", { presence: p });
 
+/** Whose presence a direct message row shows: the other person of a DM, in a group message whoever wrote the message shown; a channel row shows none. */
+const counterpart = (u: Unread): string | undefined => (u.kind !== "dm" ? undefined : u.ckind === "im" ? u.user : u.ckind === "mpim" ? u.top?.uid : undefined);
+
+/** Presence per person (`<team>:<user>`), remembered `PRESENCE_TTL`; a refusal is remembered as none for as long, so a person Slack will not answer for is not asked every listing. */
+const presences = new Map<string, { at: number; presence?: Presence }>();
+
+/**
+ * The presence behind each direct message row, by row id: one
+ * `users.getPresence` per person not remembered within the minute
+ * (`PRESENCE_BATCH` in flight at once, `PRESENCE_MS` each), so a re-list
+ * inside it makes no call. A lookup that fails or runs late is left out
+ * and its row has no dot; the inbox is never held for it past that timeout.
+ */
+export async function presenceOf(rows: Unread[]): Promise<Map<string, Presence>> {
+  const wanted = rows.flatMap((u) => { const user = counterpart(u); return user ? [{ id: u.id, key: `${u.team}:${user}`, team: u.team, user }] : []; });
+  const ask = [...new Map(wanted.filter((w) => { const have = presences.get(w.key); return !have || Date.now() - have.at >= PRESENCE_TTL; }).map((w) => [w.key, w])).values()];
+  for (let i = 0; i < ask.length; i += PRESENCE_BATCH) {
+    await Promise.all(ask.slice(i, i + PRESENCE_BATCH).map(async ({ key, team, user }) => {
+      try {
+        const r = await call<{ presence: string }>(await sessionOf(team), "users.getPresence", { user }, PRESENCE_MS);
+        presences.set(key, { at: Date.now(), presence: r.presence === "away" ? "away" : "active" });
+      } catch (e) { log(`users.getPresence ${user}: ${errorMessage(e)}`); presences.set(key, { at: Date.now() }); }
+    }));
+  }
+  return new Map(wanted.flatMap((w): [string, Presence][] => { const p = presences.get(w.key)?.presence; return p ? [[w.id, p]] : []; }));
+}
+
 /** A preset as the `statuses` setting spells it: `:emoji: text (1h)`, the expiry `Nm`, `Nh`, `Nd` or `today`; without an emoji `:speech_balloon:`. */
 export function parsePreset(line: string): { emoji: string; text: string; expiry?: string } | undefined {
   const m = line.trim().match(/^(:[\w+-]+:)?\s*(.*?)(?:\s*\((\d+[mhd]|today)\))?$/);
@@ -395,5 +427,5 @@ export function expiresAt(expiry: string | undefined, now = new Date()): number 
   return Math.floor(now.getTime() / 1000) + n * (unit === "m" ? 60 : unit === "h" ? 3600 : 86400);
 }
 
-/** For the tests: forget every directory and run. */
-export const reset = () => { dirs.clear(); runs.clear(); };
+/** For the tests: forget every directory, run and presence. */
+export const reset = () => { dirs.clear(); runs.clear(); presences.clear(); };

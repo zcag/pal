@@ -26,7 +26,9 @@ in each. A row is the conversation (the person, `#channel`, the people of
 a group message) with the sender's avatar, the message (in a channel, the
 one that names you, not whatever was said last), a count badge (red for
 a direct message or mention, blue for thread replies, `1+` when the run
-is longer than a page) and how long ago. The detail pane (`⌘I`, or rest
+is longer than a page), a presence dot for a direct message (green while
+the person is active, grey while away; in a group message, whoever wrote
+the message shown) and how long ago. The detail pane (`⌘I`, or rest
 on the row) is the unread run itself, oldest first, up to eight
 messages. Actions: Open in Slack (`Enter`), Reply (`⌘Enter`, a
 one-field form that posts to the conversation, or into the thread for a
@@ -97,6 +99,11 @@ call. The inbox is shared between the bar item and the palette for 30 s,
 so the panel showing and the bar refreshing on it cost one fetch. Names
 and avatars come from `users.list` and `users.conversations`, kept an
 hour, with `users.info` / `conversations.info` for an id they lack.
+The presence dots are one `users.getPresence` per person among the
+direct messages listed (the inbox carries no presence), eight in flight
+at once, each remembered a minute so a re-list inside it asks nothing;
+a lookup that fails or takes over 2 s leaves its row without the dot and
+never holds the listing longer. `presence = false` makes none of them.
 Every request has a 10 s timeout; a 429 is remembered for its
 `Retry-After` and every call until then fails at once (a hint row, a
 stale bar item) instead of piling onto the limit.
@@ -124,6 +131,7 @@ stale bar item) instead of piling onto the limit.
 | `workspace` | text | (none) | The workspace when the app is signed in to several, by id (`T...`) or domain; empty lists every one (status and search on the first). |
 | `statuses` | list | five presets | One per line as `:emoji: text (expiry)`; the expiry is `30m`, `2h`, `1d` or `today`, or left out. Common Slack shortcodes are drawn as the emoji. |
 | `dm_urgent` | boolean | `true` | Draw the bar item as urgent (red) while a direct message is unread. |
+| `presence` | boolean | `true` | A presence dot on each direct message row (green active, grey away), one `users.getPresence` per person, remembered a minute; off makes no such call. |
 | `refresh` | number (s) | `120` | Seconds between refreshes of the bar item (10 at least). |
 
 ## The bar item
@@ -136,7 +144,8 @@ back. The popover is a view of the item's own: a section per kind with
 the newest five rows, each the sender's picture (an initial in a colour
 while it is not fetched), the conversation, the message on one line,
 the time and a count (red for a direct message or a mention, blue for
-thread replies); the channels that are only unread as a row of badges
+thread replies), a direct message's presence as a dot on the picture;
+the channels that are only unread as a row of badges
 under them (a click opens one), then the keys. A cursor marks the row
 the keys act on: the arrows (or `j`/`k`) move it, a click on a row sets
 it.

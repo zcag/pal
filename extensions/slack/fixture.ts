@@ -10,8 +10,8 @@ import { render, type BarRow, type BarState } from "./view.ts";
 const avatar = (bg: string, letter: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${bg}"/><text x="32" y="42" font-family="system-ui" font-size="32" font-weight="700" fill="#fff" text-anchor="middle">${letter}</text></svg>`)}`;
 
 const rows: BarRow[] = [
-  { id: "dm:T1/D_MARA", kind: "dm", where: "Mara", text: "can you look at the parser before standup? the tests are green now", time: "09:41", n: 3, more: false, avatar: avatar("#8b5cf6", "M"), canReply: true, canRead: true },
-  { id: "dm:T1/D_TOMAS", kind: "dm", where: "Tomas", text: "📎 release-notes-0.4.md", time: "09:12", n: 1, more: false, avatar: avatar("#0ea5e9", "T"), canReply: true, canRead: true },
+  { id: "dm:T1/D_MARA", kind: "dm", where: "Mara", text: "can you look at the parser before standup? the tests are green now", time: "09:41", n: 3, more: false, avatar: avatar("#8b5cf6", "M"), dot: "green", canReply: true, canRead: true },
+  { id: "dm:T1/D_TOMAS", kind: "dm", where: "Tomas", text: "📎 release-notes-0.4.md", time: "09:12", n: 1, more: false, avatar: avatar("#0ea5e9", "T"), dot: "grey", canReply: true, canRead: true },
   { id: "mention:T1/C_ENG", kind: "mention", where: "#eng", who: "Lina", text: "@cagdas the build on #ops is red since the runner image bump", time: "08:55", n: 1, more: false, avatar: avatar("#f59e0b", "L"), canReply: true, canRead: true },
   { id: "mention:T1/C_DESIGN", kind: "mention", where: "#design", who: "Ola", text: "@channel review the new empty states by Friday", time: "Yesterday", n: 2, more: true, canReply: true, canRead: true },
   { id: "thread:T1/C_PRODUCT", kind: "thread", where: "#product", text: "", time: "08:30", n: 4, more: false, canReply: false, canRead: false },

@@ -9,7 +9,7 @@
 // keycap hints. Replying turns the search row into a text field
 // (`View.input`) and the hints into Send / Cancel. Inbox zero is one
 // calm line.
-import { POPOVER_W, column, keyHint, row, text, type Action, type HexColor, type View, type ViewNode } from "@zcag/pal";
+import { POPOVER_W, column, keyHint, row, text, type Action, type HexColor, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Kind } from "./data.ts";
 
 /** One row of the popover, everything already formatted (the time in the user's locale, the text on one line). */
@@ -27,6 +27,8 @@ export type BarRow = {
   more: boolean;
   /** The sender's picture as a data url. */
   avatar?: string;
+  /** A direct message's presence dot on the picture: green while the person is active, grey away; none when unknown. */
+  dot?: TagColor;
   canReply: boolean;
   canRead: boolean;
   teamName?: string;
@@ -57,9 +59,9 @@ const AVATAR_COLORS: HexColor[] = ["#e01e5a", "#ecb22e", "#2eb67d", "#36c5f0", "
 export const avatarColor = (name: string): HexColor => { let h = 5381; for (const ch of name) h = ((h * 33) ^ ch.codePointAt(0)!) >>> 0; return AVATAR_COLORS[h % AVATAR_COLORS.length]; };
 const initial = (name: string) => { const n = name.replace(/^#/, "").trim(); return n ? [...n][0]!.toUpperCase() : "?"; };
 
-/** The row's mark: the picture, else the initial in its colour; a channel row with no sender takes a hash. */
+/** The row's mark: the picture (with the presence dot on its corner), else the initial in its colour; a channel row with no sender takes a hash. */
 function avatar(r: BarRow): ViewNode {
-  if (r.avatar) return { type: "image", key: "av", src: r.avatar, width: AVATAR, height: AVATAR, mask: "circle", alt: r.who ?? r.where };
+  if (r.avatar) return { type: "image", key: "av", src: r.avatar, width: AVATAR, height: AVATAR, mask: "circle", alt: r.who ?? r.where, dot: r.dot };
   const name = r.who ?? r.where;
   return { type: "tile", key: "av", width: AVATAR, height: AVATAR, text: r.kind === "thread" ? "#" : initial(name), color: avatarColor(name), fill: "solid" };
 }

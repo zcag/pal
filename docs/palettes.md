@@ -2787,7 +2787,9 @@ count, their topic or purpose as the subtitle (else "New messages": no
 run is fetched for them). Sections Direct messages, Mentions, Threads,
 Channels, newest first in each. The row: the conversation's name, the sender's avatar, the
 message (in a channel the one naming you, not the last), a count badge
-(red; blue for thread replies; `1+` past a page), the time. The pane is
+(red; blue for thread replies; `1+` past a page), a presence dot on a
+direct message (green active, grey away; `users.getPresence` per person,
+a minute; the `presence` setting turns it off), the time. The pane is
 the unread run, oldest first, up to eight messages. One `client.counts`
 per refresh; `conversations.history` only for an addressed conversation,
 the newest twelve, once per change of its `latest`; the inbox is shared
@@ -2824,7 +2826,8 @@ away / Set active. `users.profile.set`, `dnd.setSnooze` / `endSnooze`,
 mentions + thread replies) as the badge, hidden at zero, urgent while a
 direct message waits (`dm_urgent`); every `refresh` seconds and on show,
 wake, network. The popover is a view: a section per kind with the newest
-rows (avatars, the latest line, a count badge; Enter opens one), the
+rows (avatars with a direct message's presence dot, the latest line, a
+count badge; Enter opens one), the
 quiet channels as badges, a reply field on `r`, mark read on `m`, all
 read on `a`, the palette on `p`. A failed refresh leaves it stale; not
 signed in hides it.
@@ -2853,6 +2856,7 @@ Settings, `[extensions.slack]`:
 | `workspace` | text | (none) | The workspace when the app is signed in to several (id or domain); empty lists every one. |
 | `statuses` | list | five presets | `:emoji: text (expiry)` per line; expiry `30m`, `2h`, `1d`, `today`, or none. |
 | `dm_urgent` | boolean | `true` | The bar item red while a direct message is unread. |
+| `presence` | boolean | `true` | A presence dot on each direct message row (green active, grey away): one `users.getPresence` per person, remembered a minute; off makes no such call. |
 | `refresh` | number (s) | `120` | Seconds between bar refreshes, 10 at least. |
 
 For the tests, `PAL_SLACK_API` replaces the API host, `PAL_SLACK_APP_DIR`
