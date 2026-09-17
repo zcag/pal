@@ -233,12 +233,12 @@ re-renders an extension's items as it relists its palettes.
 | `title` | the button title (`ImageLeft` of it) | `label=`; empty: `label.drawing=off` and the icon takes the label's right padding (the owner's `icon_only`, lib.sh:45) | `text` |
 | `segments` | joined into the title as `glyph text` runs, two spaces apart; colour lost, so the glyph must carry the state | one item per segment (`pal.<ext>.<id>.<seg>`) with its own `icon.color`/`label.color`, in one bracket | joined into `text` |
 | `badge` | count appended as `·3` after the title; `dot` a 6 px red disc drawn into the icon's corner (`badge_style` in the look maps one to the other or drops it) | count as the number in red on the label; `dot` = `icon.color=red` | `text` suffix, `class: badge` |
-| `color`, `urgent` | the glyph PNG drawn in that colour, non-template; `text`/none stays template | `icon.color`/`label.color` from the map; `urgent` also eases `background.color` once (`--animate sin 8`) | `class: <color>`, `urgent` |
+| `color`, `urgent` | the glyph PNG drawn in that colour, non-template; `text`/none stays template | `icon.color`/`label.color` from the map; every changed colour eases with `--animate sin 10` | `class: <color>`, `urgent` |
 | `stale` | the template icon at `dim` (50%), tooltip "(stale)" | icon, label and segments at the `muted` colour at `dim` (the owner's `stale_mark`, symmetric) | `class: stale` |
 | `progress` | a 2 px bar drawn into the bottom of the icon | `━━━───` (8 cells of heavy/light box drawing, the owner's timer rule) before the glyph | `percentage` |
 | `tooltip` | `set_tooltip` | none (no tooltips); shown in the popover title | `tooltip` |
 | `menu` (nodes, palette, view), none | `show_menu_on_left_click(false)`, no `tauri::menu`; `on_tray_icon_event` Click with `rect` opens the popover under it / sends `bar/open` | `click_script="<pal binary> bar click <ext>/<id> --anchor sketchybar"` (absolute path: sketchybar's PATH is launchd's), the popover under the item's `bounding_rects`; no sketchybar popups | `on-click: pal bar click …`, popover |
-| hover (peek) | `TrayIconEvent::Enter` / `Leave` with `rect` (tray-icon 0.24.2 `src/lib.rs:583-608`, `Move` between them unused); off unless `open_on_hover` | `--subscribe pal.<ext>.<id> mouse.entered mouse.exited` with `script="<pal binary> bar hover <ext>/<id> --anchor sketchybar --state $SENDER"` (`man 5 sketchybar-events`, EVENTS: `mouse.entered` "when the mouse enters over an item", `mouse.exited` "when the mouse leaves an item"; both in `sketchybar --query events` on hornet, 2.24.0); on by default | none (waybar's `custom` module has no hover event) |
+| hover (peek) | `TrayIconEvent::Enter` / `Leave` with `rect` (tray-icon 0.24.2 `src/lib.rs:583-608`, `Move` between them unused); off unless `open_on_hover` | `--subscribe pal.<ext>.<id> mouse.entered mouse.exited`; its script gives the item a subtle 8-tick animated tint, restores any declared background on leave, then calls `pal bar hover <ext>/<id>`; on by default | none (waybar's `custom` module has no hover event) |
 | position, order | `order` among pal's icons (macOS places the rest) | `--add item NAME <position>`, `--move NAME before\|after REF` for `before:clock` | the module's place in waybar's config |
 
 ### Menu bar renderer (`bar/menubar.rs`)
@@ -372,7 +372,7 @@ renderers. The keys, and what each target makes of them:
 | `badge_style` | `count` | `count` is `·3` in the title text, `dot` the red disc in the image's corner (a count becomes the dot), `none` drops the badge (`shaped`) | `count` the red `.badge` item, `dot` a red icon, `none` nothing |
 | `width` (pt) | 0 = natural | a fixed prerendered image width (the tray keeps the aspect of an image scaled to 18 pt, so 2x pixels are half as many points); the text is clipped to it | `label.width` with `label.align=left` |
 | `font` | `system` | `mono` prerenders the text in SF Mono | `label.font.family=Menlo` |
-| `max_chars` | 32 | `menubar::clip`, an ellipsis on a word edge | `label.max_chars` |
+| `max_chars` | 32 | `menubar::clip`, an ellipsis on a word edge | the same word-edge clipping before `label.max_chars` |
 
 **Prerendering on the menu bar.** The title is a plain `NSString` (tray-icon
 0.24.2 `set_title` is `button.setTitle`,

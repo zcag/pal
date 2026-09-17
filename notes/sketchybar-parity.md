@@ -42,8 +42,7 @@ but do not revive rows that conflict with it.
 
 ### Next, in order
 
-1. **B3:** hover tint, colour animation, and word-safe clipping.
-2. **B6:** scroll input, then use it for lyric seeking where appropriate.
+1. **B6:** scroll input, then use it for lyric seeking where appropriate.
 
 ### Explicitly deferred
 

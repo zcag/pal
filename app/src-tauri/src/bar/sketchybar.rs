@@ -38,7 +38,7 @@ use tauri::{AppHandle, Manager};
 use pal_core::config::BarFont;
 
 use super::colors::Palette;
-use super::{glyph, Bar, Draw, IconKind, Rect, Target};
+use super::{glyph, Bar, BarItem, Draw, IconKind, Rect, Target};
 use crate::{lock, settings};
 
 /// Every name pal owns starts with this.
@@ -79,6 +79,17 @@ pub fn rule(progress: f64, cells: usize) -> String {
 /// needs quoting; only `=` in a key would break `k=v`, and keys are ours.
 fn set(p: &mut Props, k: &str, v: impl Into<String>) {
     p.insert(k.to_string(), v.into());
+}
+
+/// Native hover feedback stays local to sketchybar, then lets pal run the
+/// popover state machine. Leaving restores the item's own dynamic background.
+fn hover_script(key: &str, item: &BarItem, palette: &Palette, pal_bin: &str) -> String {
+    let name = name_of(key);
+    let restore = match item.background.as_deref().and_then(|c| palette.hex_of(c)) {
+        Some(color) => format!("background.drawing=on background.color={color}"),
+        None => "background.drawing=off".into(),
+    };
+    format!("case $SENDER in mouse.entered) sketchybar --animate sin 8 --set {name} background.drawing=on background.color={};; mouse.exited) sketchybar --animate sin 8 --set {name} {restore};; esac; {pal_bin} bar hover {key} --anchor sketchybar --state $SENDER", palette.hover_hex())
 }
 
 /// The items for `key` as drawn: the model mapped to sketchybar's
@@ -128,7 +139,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         }
     }
     set(&mut p, "icon.color", if item.dot() { palette.hex("red").unwrap_or_default() } else { item_color.clone() });
-    let title = item.title.clone().unwrap_or_default();
+    let title = super::menubar::clip(item.title.as_deref().unwrap_or_default(), look.max_chars);
     set(&mut p, "label", title.clone());
     set(&mut p, "label.drawing", if title.is_empty() { "off" } else { "on" });
     set(&mut p, "label.color", item_color.clone());
@@ -160,7 +171,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         set(&mut p, "label.align", "left");
     }
     set(&mut p, "click_script", format!("{pal_bin} bar click {key} --anchor sketchybar"));
-    set(&mut p, "script", if draw.hover { format!("{pal_bin} bar hover {key} --anchor sketchybar --state $SENDER") } else { String::new() });
+    set(&mut p, "script", if draw.hover { hover_script(key, item, palette, pal_bin) } else { String::new() });
     out.props.insert(main.clone(), p);
     let extras: Vec<(String, Option<String>, Option<String>, String)> = item
         .segments
@@ -263,6 +274,9 @@ pub fn diff(prev: Option<&Rendered>, next: Option<&Rendered>, rtl: bool, placed:
             Some(old) => {
                 let changed: Vec<String> = p.iter().filter(|(k, v)| old.get(*k) != Some(*v)).map(|(k, v)| format!("{k}={v}")).collect();
                 if !changed.is_empty() {
+                    if changed.iter().any(|p| p.starts_with("background.color=") || p.ends_with(".color") || p.starts_with("icon.color=") || p.starts_with("label.color=")) {
+                        argv.extend(["--animate".into(), "sin".into(), "10".into()]);
+                    }
                     argv.push("--set".into());
                     argv.push(name.clone());
                     argv.extend(changed);
@@ -552,6 +566,7 @@ mod tests {
         assert_eq!(m["label.drawing"], "off", "no title: no label");
         assert_eq!(m["icon.padding_right"], "4", "a badge follows, so no trailing padding");
         assert_eq!(m["click_script"], "/Applications/pal.app/Contents/MacOS/pal bar click github/prs --anchor sketchybar");
+        assert!(m["script"].contains("mouse.entered) sketchybar --animate sin 8 --set pal.github.prs background.drawing=on"));
         assert!(m["script"].ends_with("bar hover github/prs --anchor sketchybar --state $SENDER"));
         let b = &r.props["pal.github.prs.badge"];
         assert_eq!((b["label"].as_str(), b["label.color"].as_str(), b["icon.drawing"].as_str()), ("3", "0xffff8a82", "off"));
@@ -633,6 +648,8 @@ mod tests {
         assert!(diff(Some(&a), Some(&a), false, None).is_empty(), "an identical push touches nothing");
         let b = props("x/y", &draw(json!({ "icon": "\u{f09b}", "title": "2", "segments": [{ "id": "s", "text": "a" }] }), "before:clock", false), &pal(), "pal");
         assert_eq!(diff(Some(&a), Some(&b), false, None), ["--set", "pal.x.y", "label=2"], "only what changed");
+        let tinted = props("x/y", &draw(json!({ "icon": "\u{f09b}", "title": "2", "color": "red", "segments": [{ "id": "s", "text": "a" }] }), "before:clock", false), &pal(), "pal");
+        assert_eq!(diff(Some(&b), Some(&tinted), false, None), ["--animate", "sin", "10", "--set", "pal.x.y", "icon.color=0xffff8a82", "label.color=0xffff8a82", "--animate", "sin", "10", "--set", "pal.x.y.s", "icon.color=0xffff8a82", "label.color=0xffff8a82"], "colour changes ease in place");
         let c = props("x/y", &draw(json!({ "icon": "\u{f09b}", "title": "2" }), "before:clock", false), &pal(), "pal");
         let d = diff(Some(&b), Some(&c), false, None);
         assert!(d.starts_with(&["--remove".to_string(), "pal.x.y.s".into()]), "{d:?}");

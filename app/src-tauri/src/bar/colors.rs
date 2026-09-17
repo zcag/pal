@@ -16,6 +16,8 @@ const DARK: [u32; 12] = [0xA3A4AE, 0x7FB0FF, 0x5CCB8E, 0xF0B25A, 0xFF8A82, 0xB39
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Palette {
     map: BTreeMap<&'static str, u32>,
+    /// A subtle neutral hover wash, not an extension-facing colour role.
+    hover: u32,
 }
 
 impl Palette {
@@ -27,7 +29,10 @@ impl Palette {
                 map.insert(n, v);
             }
         }
-        Self { map }
+        // Alpha composited over the owner's bar: dark gets a white lift,
+        // light a black shade. The target's own palette remains in charge
+        // of every semantic item colour.
+        Self { map, hover: if dark { 0x26FF_FFFF } else { 0x1400_0000 } }
     }
 
     /// `0xAARRGGBB` for a colour name; `None` for a name the model does not have.
@@ -64,6 +69,11 @@ impl Palette {
     /// The sketchybar spelling, `0xffrrggbb`.
     pub fn hex(&self, name: &str) -> Option<String> {
         self.argb(name).map(|c| format!("0x{c:08x}"))
+    }
+
+    /// The sketchybar spelling of the transient hover wash.
+    pub fn hover_hex(&self) -> String {
+        format!("0x{:08x}", self.hover)
     }
 
 }
