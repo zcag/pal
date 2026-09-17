@@ -38,14 +38,14 @@
   "bar": {
     "battery": {
       "title": "Battery",
-      "description": "Battery percentage with a low-power/warning state. Click opens Battery Settings; its popover explains the live draw and culprits when the power watcher is available.",
+      "description": "Battery level, and the time left once that is the question being asked. Click opens Battery Settings; its popover explains the live draw and culprits when the power watcher is available.",
       "refresh": { "every": 30, "on": ["wake"] },
       "mocks": {
         "healthy": { "title": "Healthy, hidden", "item": { "hidden": true } },
-        "draining": { "title": "Low battery", "item": { "icon": "󰁹", "title": "31%", "progress": 0.31, "tooltip": "Battery Power · Discharging · 2h 57m remaining · 7.2 W draw" } },
-        "charging": { "title": "Charging", "item": { "icon": "󰂄", "title": "14%", "color": "green", "progress": 0.14, "tooltip": "Power Adapter · Charging · 48m remaining" } },
-        "warning": { "title": "Power warning", "item": { "icon": "󰂃", "title": "31%", "color": "amber", "progress": 0.31, "tooltip": "Battery Power · background-burn: copilot is using power in the background" } },
-        "critical": { "title": "Critical battery", "item": { "icon": "󰂃", "title": "8%", "color": "red", "progress": 0.08, "tooltip": "Battery Power · 22m remaining" } }
+        "draining": { "title": "Low battery", "item": { "icon": "󰁽", "title": "31% · 2:57", "tooltip": "Battery Power · Discharging · 2:57 remaining · 7.2 W draw" } },
+        "charging": { "title": "Charging", "item": { "icon": "󰂄", "title": "14%", "color": "green", "tooltip": "Power Adapter · Charging · 48m remaining" } },
+        "warning": { "title": "Power warning", "item": { "icon": "󰁽", "title": "42% · 18.9W · background-burn", "color": "amber", "tooltip": "Battery Power · background-burn: copilot is using power in the background" } },
+        "critical": { "title": "Critical battery", "item": { "icon": "󰁺", "title": "8% · 0:22", "color": "red", "tooltip": "Battery Power · 22m remaining" } }
       }
     }
   }

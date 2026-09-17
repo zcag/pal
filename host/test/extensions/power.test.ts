@@ -6,16 +6,19 @@ import { tmpdir } from "node:os";
 import { tile } from "../../../sdk/src/icon.ts";
 import { Host } from "../harness.ts";
 
-const PMSET = `Now drawing from 'Battery Power'\n -InternalBattery-0 (id=1)\t31%; discharging; 2:57 remaining present: true\n`;
+// `printf` and not `cat`: the fake binaries run with a PATH of just this bin
+// directory and bun's, so anything in /bin is unreachable and only builtins work.
+const script = (line: string, source = "Battery Power") => `#!/bin/sh\nprintf '%s' "Now drawing from '${source}'\n -InternalBattery-0 (id=1)\t${line} present: true\n"\n`;
 const STATE = { ts: Math.floor(Date.now() / 1000), w: 7.21, ext: false, chg: false, eta: 10_934, level: "warn", temp: 30.4, alerts: [{ rule: "background-burn", level: "warn", msg: "copilot is using power in the background" }], blame: [["copilot", 28.9, "bg"], ["kitty", 11.4, "front"]], locks: [["Google Chrome", "PreventUserIdleSystemSleep"]] };
-let host: Host, dir: string, state: string;
+let host: Host, dir: string, state: string, pmset: string;
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "pal-power-"));
   const bin = join(dir, "bin");
   Bun.spawnSync(["mkdir", "-p", bin]);
-  writeFileSync(join(bin, "pmset"), `#!/bin/sh\nprintf '%s' '${PMSET.replace(/'/g, "'\\''")}'\n`);
-  chmodSync(join(bin, "pmset"), 0o755);
+  pmset = join(bin, "pmset");
+  writeFileSync(pmset, script("31%; discharging; 2:57 remaining"));
+  chmodSync(pmset, 0o755);
   state = join(dir, "state.json");
   writeFileSync(state, JSON.stringify(STATE));
   const saved = process.env.PATH;
@@ -34,8 +37,28 @@ describe("power", () => {
   });
 
   test("bar: low battery uses the watcher warning and opens Battery Settings", async () => {
-    expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f0083}", title: "31%", color: "amber", progress: 0.31, click: "open", tooltip: "Battery Power · Discharging · 2:57 remaining · 7.2 W draw · copilot is using power in the background" });
+    expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f007d}", title: "31% · 7.2W · background-burn", color: "amber", click: "open", tooltip: "Battery Power · Discharging · 2:57 remaining · 7.2 W draw · copilot is using power in the background" });
+    expect(await host.render("power", "battery")).not.toHaveProperty("progress");
     expect(await host.request<any>("bar/open", { extension: "power", id: "battery" })).toEqual({ open: "x-apple.systempreferences:com.apple.Battery-Settings.extension" });
+  });
+
+  test("bar: the glyph ramps with the level, and time left takes the slot the culprit had", async () => {
+    // 31% is above the ETA cutoff, so the strip above names the culprit instead.
+    // Below it the answer is how long, and four fields do not fit a bar.
+    writeFileSync(pmset, script("23%; discharging; 2:59 remaining"));
+    expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f007b}", title: "23% · 2:59 · 7.2W" });
+    writeFileSync(pmset, script("8%; discharging; 0:22 remaining"));
+    expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f007a}", title: "8% · 0:22 · 7.2W", color: "red" });
+    writeFileSync(pmset, script("96%; charging; 1:12 remaining", "AC Power"));
+    expect(await host.render("power", "battery")).toMatchObject({ icon: "\u{f0084}", title: "96% · 7.2W · background-burn" });
+  });
+
+  test("bar: a recalculating 0:00 defers to the watcher rather than showing a zero", async () => {
+    // pmset answers 0:00 for minutes after a plug change and whenever the load
+    // swings; the watcher's 10934s is the estimate worth printing.
+    writeFileSync(pmset, script("18%; discharging; 0:00 remaining"));
+    expect(await host.render("power", "battery")).toMatchObject({ title: "18% · 3:02 · 7.2W", tooltip: expect.stringContaining("3h 02m remaining") });
+    writeFileSync(pmset, script("31%; discharging; 2:57 remaining"));
   });
 
   test("palette: gauge, draw, warning, attribution and wake lock are separate useful rows", async () => {

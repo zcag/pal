@@ -2,16 +2,24 @@
 // when it is present.  The watcher is authoritative for measured draw and
 // alerts; this extension never tries to reconstruct its process attribution.
 import { readFile } from "node:fs/promises";
-import { errorMessage, exec, hint, home, settings, toast, type Accessory, type BarItem, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { errorMessage, exec, hint, home, settings, toast, truncate, type Accessory, type BarItem, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { renderPowerPopover, type PowerPopover } from "./view.ts";
 
 type Settings = { show_below: number; show_charging_below: number; show_draw_watts: number; always_show: boolean; power_state_file: string };
-type Battery = { percent: number; source: "Battery Power" | "Power Adapter"; status: "charging" | "discharging" | "charged" | "unknown"; remaining?: string };
+type Battery = { percent: number; source: "Battery Power" | "Power Adapter"; status: "charging" | "discharging" | "charged" | "unknown"; remaining?: string; eta?: string };
 type WatchState = { ts?: number; w?: number; ext?: boolean; chg?: boolean; eta?: number; level?: string; alerts?: unknown; blame?: unknown; temp?: number; locks?: unknown; today?: unknown };
 type Snapshot = Battery & { watch?: WatchState; alerts: PowerPopover["alerts"]; blame: PowerPopover["blame"] };
 
 const MAC = process.env.PAL_POWER_OS ?? process.platform;
-const GLYPH = { full: "\u{f0079}", charging: "\u{f0084}", low: "\u{f0080}", alert: "\u{f0083}", settings: "\u{f0493}", draw: "\u{f0904}", process: "\u{f04c3}", lock: "\u{f033e}" };
+const GLYPH = { full: "\u{f0079}", charging: "\u{f0084}", alert: "\u{f0083}", settings: "\u{f0493}", draw: "\u{f0904}", process: "\u{f04c3}", lock: "\u{f033e}" };
+/** Level lives in the glyph, so the strip never spends width saying it twice. */
+const RAMP: [number, string][] = [[90, GLYPH.full], [70, "\u{f0081}"], [50, "\u{f007f}"], [30, "\u{f007d}"], [20, "\u{f007b}"], [0, "\u{f007a}"]];
+/**
+ * Amber at 20%, red at 10%, but the time left appears five points earlier: the
+ * number that explains the colour should already be on screen by the time the
+ * colour arrives, never the other way round.
+ */
+const LOW_PERCENT = 20, CRITICAL_PERCENT = 10, ETA_PERCENT = LOW_PERCENT + 5;
 const MAC_SETTINGS = "x-apple.systempreferences:com.apple.Battery-Settings.extension";
 const LINUX_SETTINGS = [["gnome-control-center", "power"], ["systemsettings", "kcm_powerdevilprofilesconfig"]];
 const CMD_MS = 3000;
@@ -20,6 +28,8 @@ const run = async (argv: string[]) => Bun.which(argv[0]) ? (await exec(argv, { m
 const settingsOf = () => settings.get<Settings>();
 const asNum = (x: unknown) => typeof x === "number" && Number.isFinite(x) ? x : undefined;
 const duration = (seconds: number | undefined) => seconds && seconds > 0 ? `${Math.floor(seconds / 3600)}h ${Math.max(0, Math.round(seconds / 60) % 60).toString().padStart(2, "0")}m remaining` : undefined;
+/** `3:02`, the compact form the strip has room for. */
+const clock = (seconds: number | undefined) => seconds && seconds > 0 ? `${Math.floor(seconds / 3600)}:${Math.max(0, Math.round(seconds / 60) % 60).toString().padStart(2, "0")}` : undefined;
 
 /** `pmset -g batt`; Apple's compact line has stayed stable across recent macOS releases. */
 export function parsePmset(text: string): Battery | undefined {
@@ -30,7 +40,11 @@ export function parsePmset(text: string): Battery | undefined {
   const source: Battery["source"] = /battery power/i.test(text) ? "Battery Power" : "Power Adapter";
   const status: Battery["status"] = /discharging/.test(lower) ? "discharging" : /charging/.test(lower) ? "charging" : /charged|finishing/.test(lower) ? "charged" : "unknown";
   const left = /(\d+:\d+) remaining/.exec(line)?.[1];
-  return { percent: Number(percent), source, status, remaining: left ? `${left} remaining` : undefined };
+  // pmset answers 0:00 while it recalculates -- for minutes after a plug change,
+  // and whenever the load swings -- so treat that as no estimate and let the
+  // watcher's own figure stand in rather than showing a zero or nothing at all.
+  const eta = left && left !== "0:00" ? left : undefined;
+  return { percent: Number(percent), source, status, eta, remaining: eta ? `${eta} remaining` : undefined };
 }
 
 /** `upower -i`: use the display device/battery key-value form, ignoring history lines. */
@@ -81,20 +95,46 @@ async function watchState(): Promise<WatchState | undefined> {
 async function snapshot(): Promise<Snapshot | undefined> {
   const [gauge, watch] = await Promise.all([battery(), watchState()]);
   if (!gauge) return;
-  const eta = duration(asNum(watch?.eta));
-  return { ...gauge, remaining: gauge.remaining ?? eta, watch, alerts: alerts(watch?.alerts), blame: blame(watch?.blame) };
+  const seconds = asNum(watch?.eta);
+  return { ...gauge, eta: gauge.eta ?? clock(seconds), remaining: gauge.remaining ?? duration(seconds), watch, alerts: alerts(watch?.alerts), blame: blame(watch?.blame) };
 }
-const severity = (s: Snapshot) => s.alerts.some((a) => a.level === "crit") || (s.source === "Battery Power" && s.percent <= 10) ? "red" as const
-  : s.alerts.length || (s.source === "Battery Power" && s.percent <= 20) ? "amber" as const : undefined;
-const glyph = (s: Snapshot) => severity(s) ? GLYPH.alert : s.status === "charging" ? GLYPH.charging : s.percent <= 25 ? GLYPH.low : GLYPH.full;
+const severity = (s: Snapshot) => s.alerts.some((a) => a.level === "crit") || (s.source === "Battery Power" && s.percent <= CRITICAL_PERCENT) ? "red" as const
+  : s.alerts.length || (s.source === "Battery Power" && s.percent <= LOW_PERCENT) ? "amber" as const : undefined;
+/** His ramp, and charging is its own shape; severity is the colour's job, so an
+ *  alert at 80% still reads as "battery fine, something else is wrong". */
+const glyph = (s: Snapshot) => s.status === "charging" || s.status === "charged" ? GLYPH.charging : RAMP.find(([floor]) => s.percent >= floor)![1];
 const stateLabel = (s: Snapshot) => s.status === "charging" ? "Charging" : s.status === "discharging" ? "Discharging" : s.status === "charged" ? "Charged" : "Battery status unavailable";
 const watchFresh = (s: Snapshot) => s.watch?.w === undefined ? undefined : `${s.watch.w.toFixed(1)} W draw`;
+/** Waste interrupts whatever the level is; a bare draw only counts on battery. */
+const loud = (s: Snapshot) => !!s.alerts.length || (s.source === "Battery Power" && (s.watch?.w ?? 0) >= settingsOf().show_draw_watts);
+
+/** When a rule fired it named the culprit; otherwise only a dominant background process is worth the width. */
+function cause(s: Snapshot): string | undefined {
+  const worst = s.alerts.some((a) => a.level === "crit") ? "crit" : "warn";
+  const rule = s.alerts.find((a) => a.level === worst)?.rule;
+  if (rule) return rule;
+  const top = s.blame[0];
+  return top && top[2] === "bg" && top[1] >= 33 ? truncate(top[0], 14) : undefined;
+}
+/** `31% · 2:57 · 7.2W · background-burn`, and never a fourth field: at 15% the
+ *  question is how long, not who, so the ETA takes the slot and the popover
+ *  keeps the name. */
+function title(s: Snapshot): string {
+  const parts = [`${s.percent}%`];
+  const eta = s.status === "discharging" && s.percent <= ETA_PERCENT ? s.eta : undefined;
+  if (eta) parts.push(eta);
+  if (loud(s)) {
+    if (s.watch?.w !== undefined) parts.push(`${s.watch.w.toFixed(1)}W`);
+    const why = eta ? undefined : cause(s);
+    if (why) parts.push(why);
+  }
+  return parts.join(" · ");
+}
 
 function shouldShow(s: Snapshot): boolean {
   const c = settingsOf();
-  if (c.always_show || s.alerts.length) return true;
-  if (s.source === "Battery Power") return s.percent < c.show_below || (s.watch?.w ?? 0) >= c.show_draw_watts;
-  return s.percent <= c.show_charging_below;
+  if (c.always_show || loud(s)) return true;
+  return s.source === "Battery Power" ? s.percent < c.show_below : s.percent <= c.show_charging_below;
 }
 function popover(s: Snapshot) {
   return renderPowerPopover({ percent: s.percent, source: s.source, status: stateLabel(s), remaining: s.remaining, watts: s.watch?.w, alerts: s.alerts, blame: s.blame });
@@ -103,7 +143,7 @@ async function barItem(): Promise<BarItem> {
   const s = await snapshot().catch(() => undefined);
   if (!s || !shouldShow(s)) return { hidden: true };
   const tooltip = [s.source, stateLabel(s), s.remaining, watchFresh(s), s.alerts[0]?.message].filter(Boolean).join(" · ");
-  return { icon: glyph(s), title: `${s.percent}%`, color: severity(s), progress: s.percent / 100, tooltip, click: "open", menu: { view: popover(s) } };
+  return { icon: glyph(s), title: title(s), color: severity(s), tooltip, click: "open", menu: { view: popover(s) } };
 }
 
 const meta = (pairs: [string, string | undefined][]): Metadata[] => pairs.filter((x): x is [string, string] => !!x[1]).map(([label, value]) => ({ label, value }));
