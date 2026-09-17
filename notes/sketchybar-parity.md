@@ -1,3 +1,24 @@
+# CAGDAS COMMENTS START
+* upcoming. should be part of the today / calendar whatever extension probably. with bunch of customizations around urgency cutoff, size color etc, time cutoff and so on
+* lirik. we have this already in spotify ext., but sometimes its not as real time as the lirik, not sure why, after thats fixed this can be considered done.
+* mail. this can be part of the mail extension, popover should show unreads and have easy way of marking them as read or open in browser etc
+* battery, we can have a battery/power usage extension, thatll show bunch of data about the battery draw, biggest culprits etc. and a bar item with tons of options on when to hide/show usage and/or the battery itself, so i can have a similar thing
+* bt-battery, lets do this as a nice polished extension, and accompanying bar item
+* volume. lets handle this as a bar item of the existing audio source extension. we can have the mic bar item as volume's bar item as well as extra.
+* network, we have an ext already, we can use the same data to constuct the nice bar item as well. we can have a way of users adding a mapping to they can mark their ssid's
+* weather. lets add a nice ext for weather and super polished one. also goes for its bar item.
+* cldd, lets leave this last, if theres a way to cleanly implement this as an extension without any of the claude specific things i did as a hack, we can create the ext, othwerwise lets discuss
+* prs, this should be an additional bar item of the github ext. current func. is nice so you can check its deisng etc to get ideas, popover should show the prs nicely
+* issues, same as prs, extra bar item of github ext.
+* timer. we have this already i think
+
+* tan/stan lets not do rn. maybe later
+* also clock and media_use. these will be as-is in sketchybar for now outside of any pal thing.
+* also lets leave out any auto them hide/show work etc out as well for now.
+# CAGDAS COMMENTS END
+
+
+
 # sketchybar parity: what pal's bar needs to match his bar
 
 2026-09-17. Asked: "check all my existing sketchybar items and functionalities
