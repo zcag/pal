@@ -16,6 +16,7 @@ fzf-for-js benchmarks); this file links to them instead of repeating.
 - Tests: cargo 414, vitest 239, host 1199; clippy clean; CI green on both runners once the last Linux-only expectations were fixed.
 - Numbers (hornet, 55 extensions, warm): cold start to first paint 380-390 ms, host ready ~400 ms, hotkey to paint 1.5-4 ms, app idle 171 MB, pal-bun 224 MB, per keystroke ~1.1 ms, 4 processes at idle.
 - Open: the release (his: version, secrets, tag), pit 13 (skipped), the "Left" lists in the polish rounds, a Linux popover story. Done 2026-09-17: the `ago`/`size` format unification (below).
+- Morning 09:15-09:55 (with Cagdas): speedtest names the tool's last line on a failure (fast-cli's Chrome was incomplete on hornet, reinstalled); Spotify's network palettes lazy; bar popovers open on click by default on both targets (hover is opt-in); Tenor retired (API shut down 2026-06-30), gifs on Giphy with his key in the keychain; Slack presence dots on DM rows; one `ago`/`bytes` in the SDK; `notes/sketchybar-parity.md` maps his 22 sketchybar items onto pal's bar (have 1, partial 6, missing 11, not-for-pal 4; 13 gaps in the bar model, work hours and click-acts first). Daily app at e195a4a. Next: the parity plan's B1-B4 in parallel, then E-rows.
 
 ## Decided
 
