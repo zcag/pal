@@ -31,8 +31,10 @@ describe("SettingsBar", () => {
     // The menu bar's defaults are shown first (sketchybar is not running); every field carries its file key and an anchor.
     for (const k of ["spacing", "width", "font", "size", "max_chars", "show_icon", "show_title", "color", "urgent_color", "dim", "badge_style"]) {
       expect(html).toContain(`data-anchor="bar:menubar:${k}"`);
-      expect(html).toContain(`<code class="pal-bar-field__key">${k}</code>`);
     }
+    // Only a key you could not have guessed from the label earns a chip: "Spacing" does not print `spacing`.
+    for (const k of ["max_chars", "show_icon", "show_title", "color", "urgent_color", "badge_style"]) expect(html).toContain(`<code class="pal-bar-field__key">${k}</code>`);
+    for (const k of ["spacing", "width", "font", "size", "dim"]) expect(html).not.toContain(`<code class="pal-bar-field__key">${k}</code>`);
     expect(html).toContain("Points between the icon, the title and the segments.");
     expect(html).toContain("Apple sets the gap otherwise.");
     expect(html).toContain('aria-label="Dim (menu bar)" value="50"');
@@ -43,25 +45,26 @@ describe("SettingsBar", () => {
     expect(sb).toContain('aria-label="Spacing (sketchybar)" value="6"');
     expect(sb).toContain("Mono is Menlo.");
   });
-  it("lists every item as a master row with a badged tile, the extension, the title, on, target and the state line", () => {
+  it("lists the defaults row and then every item, each with only the state worth a tag", () => {
     const html = page();
-    expect(html.match(/data-bar-row=/g)?.length).toBe(3);
+    // The pinned Defaults row and the three items, in the shared list.
+    expect(html.match(/data-item=/g)?.length).toBe(4);
+    expect(html).toContain('data-item="__defaults__" data-anchor="bar:defaults" data-active="true" data-divider="true"');
     expect(html).toContain('data-anchor="bar:github/notifications"');
-    expect(html).toContain('<span class="pal-btable__name-ext">GitHub</span>Notifications');
-    expect(html).toContain('<span class="pal-btable__badge">3</span>');
-    expect(html).toContain("badge 3, every 5 min, rendered 2m ago.");
-    expect(html).toContain("Stale: the last render failed.");
-    expect(html).toContain('data-stale="true"');
-    expect(html).toContain("Declared, but the code has no render for it; never drawn.");
-    expect(html).toContain('data-bar-row="docker/containers" data-anchor="bar:docker/containers" data-disabled="true"');
-    expect(html).toContain('aria-label="Notifications enabled"');
-    expect(html).toMatch(/aria-label="Running timers target"[^>]*>(?:(?!<\/select>).)*<option value="sketchybar" selected="">/s);
-    expect(html).not.toContain('aria-label="Running timers position"');
+    expect(html).toContain('<span class="pal-settings-list__sub">GitHub</span>');
+    // A healthy item wears nothing; only what is off, stale or missing gets a tag.
+    expect(html).toContain(">stale</span>");
+    expect(html).toContain(">no code</span>");
+    expect(html).toContain('data-item="docker/containers" data-anchor="bar:docker/containers" data-dim="true"');
+    // The switch and the target moved into the pane, so a row carries neither.
+    expect(html).not.toContain('aria-label="Notifications enabled"');
+    expect(html).not.toContain('aria-label="Running timers target"');
   });
-  it("opens the first item's pane: description, preview in both themes, placement, appearance, hotkey, peek, Reset", () => {
-    const html = page();
-    expect(html).toContain('aria-label="Selected item"');
-    expect(html).toContain('data-bar-row="github/notifications" data-anchor="bar:github/notifications" data-active="true"');
+  it("opens a selected item's pane: description, preview in both themes, placement, popover, Reset", () => {
+    const html = page({ selected: "github/notifications" });
+    expect(html).toContain('data-item="github/notifications" data-anchor="bar:github/notifications" data-active="true"');
+    expect(html).toContain("badge 3, every 5 min, rendered 2m ago.");
+    expect(html).toContain('aria-label="Notifications enabled"');
     expect(html).toContain("The unread count as a badge, hidden at zero.");
     expect(html).toContain("the last render, as the strip draws it");
     expect(html.match(/class="g-bar" data-theme="dark" data-target="menubar"/g)?.length).toBe(1);
@@ -78,9 +81,16 @@ describe("SettingsBar", () => {
   });
   it("marks inherited appearance fields with the target they come from and offers Reset on an overridden one", () => {
     const html = page({ selected: "timer/running" });
-    expect(html).toContain('data-bar-row="timer/running" data-anchor="bar:timer/running" data-active="true"');
-    // The timer draws on sketchybar (its own target), so the notes name that default.
-    expect(html).toContain("this item&#x27;s own keys over the sketchybar default");
+    expect(html).toContain('data-item="timer/running" data-anchor="bar:timer/running" data-active="true"');
+    // The overrides are folded away, and the fold says how many and over which default.
+    expect(html).toContain(">Override defaults</span>");
+    expect(html).toContain('<span class="pal-disclosure__count">2</span>');
+    // Two keys are set, so the fold is open on arrival: a departure from the defaults is never hidden by it.
+    expect(html).toMatch(/<details class="pal-disclosure" open=""/);
+    // Nothing set, and it stays shut.
+    expect(page({ selected: "github/notifications" })).toMatch(/<details class="pal-disclosure"(?! open)/);
+    expect(page({ selected: "github/notifications" })).toContain("all from the menu bar default");
+    expect(html).toContain("over the sketchybar default");
     expect(html).toMatch(/data-inherited="true" data-anchor="bar:timer\/running:spacing"/);
     expect(html).toContain('aria-label="Spacing (sketchybar)" value="6"');
     expect(html.match(/from the sketchybar default/g)?.length).toBe(9);
@@ -117,6 +127,7 @@ describe("SettingsBar", () => {
   });
   it("has an empty state and an index with an anchor for every field", () => {
     expect(page({ items: [] })).toContain("No bar items");
+    expect(page({ items: [] })).toContain("nothing inherits the defaults above");
     const idx = barIndex(barItems);
     expect(idx.find((e) => e.anchor === "bar:target")).toBeTruthy();
     expect(idx.find((e) => e.anchor === "bar:menubar:dim")?.label).toBe("Dim (menu bar)");

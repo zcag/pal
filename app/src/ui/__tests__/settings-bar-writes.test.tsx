@@ -84,18 +84,23 @@ describe("SettingsBar writes", () => {
     click([...el.querySelectorAll("button")].find((b) => b.textContent === "Reset to defaults"));
     expect(writes.at(-1)).toEqual(["timer/running", { enabled: true, look: {} }]);
   });
-  it("writes the on switch and the target from a row, and a click selects it", async () => {
+  it("writes the on switch from the pane, and a list row selects what the pane shows", async () => {
     const writes: [string, BarItemConfig][] = [];
     const selected: string[] = [];
-    await show({ onItem: (k, c) => writes.push([k, c]), onSelect: (k) => selected.push(k) });
+    await show({ selected: "github/notifications", onItem: (k, c) => writes.push([k, c]), onSelect: (k) => selected.push(k) });
+    // The switch and the target are the pane's now, not a row's.
     click(el.querySelector('button[aria-label="Notifications enabled"]'));
     expect(writes.at(-1)).toEqual(["github/notifications", { enabled: false, look: {} }]);
-    set(el.querySelector<HTMLSelectElement>('select[aria-label="Running timers target"]')!, "menubar");
-    expect(writes.at(-1)?.[1].target).toBe("menubar");
-    click(el.querySelector('[data-bar-row="docker/containers"]'));
+    click(el.querySelector('[data-item="docker/containers"]'));
     expect(selected).toEqual(["docker/containers"]);
-    expect(el.querySelector('[data-bar-row="docker/containers"]')?.getAttribute("data-active")).toBe("true");
-    expect(el.querySelector('[aria-label="Selected item"]')?.textContent).toContain("the code has no render for it");
+    await show({ selected: "docker/containers", onItem: (k, c) => writes.push([k, c]) });
+    expect(el.querySelector('[data-item="docker/containers"]')?.getAttribute("data-active")).toBe("true");
+    expect(el.querySelector(".pal-split__pane")?.textContent).toContain("the code has no render for it");
+  });
+  it("lands on the defaults, not on an item", async () => {
+    await show({});
+    expect(el.querySelector('[data-item="__defaults__"]')?.getAttribute("data-active")).toBe("true");
+    expect(el.querySelector(".pal-split__pane")?.textContent).toContain("3 items inherit these");
   });
   it("turns a moved look into the file's keys, unsetting what is back at the base", () => {
     expect(lookWrites({}, { dim: 30, font: "mono" }, lookDefaults)).toEqual([["dim", 30], ["font", "mono"]]);

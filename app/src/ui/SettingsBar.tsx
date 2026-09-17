@@ -1,8 +1,10 @@
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { BarStrip, type BarLook, type BarStripItem, type BarStripTarget } from "./BarStrip";
 import { Empty } from "./Empty";
 import { Icon } from "./Icon";
-import { SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsDisclosure, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsList, type SettingsListItem } from "./SettingsList";
+import { Tag } from "./Row";
 import { lookDefaults, resolveLook, type BarConfig, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarTarget, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate } from "./format";
 
@@ -24,6 +26,17 @@ export type SettingsBarProps = {
 
 type Target = "menubar" | "sketchybar";
 type Group = "placement" | "text" | "colour" | "behaviour";
+
+/** The list row that selects the defaults rather than an item; never an item key, which is always `ext/item`. */
+export const BAR_DEFAULTS = "__defaults__";
+
+/**
+ * The config key worth printing next to a label. For most fields the key is
+ * the label lowercased ("Spacing" / `spacing`), and printing both reads as a
+ * stutter; the section header already names the table it lives in. Only a key
+ * you could not have guessed earns the space.
+ */
+const keyChip = (label: string, key: string): string | undefined => (key === label.toLowerCase().replace(/ /g, "_") ? undefined : key);
 
 const targets: { id: BarTarget; title: string; explain: (sketchybar: boolean) => string }[] = [
   { id: "auto", title: "Automatic", explain: (s) => (s ? "sketchybar is running, so items go there." : "sketchybar is not running, so items go to the menu bar.") },
@@ -161,7 +174,7 @@ function LookControl({ field, value, inherited, from, onChange, target, anchor }
   }
   return (
     <div className="pal-setting pal-bar-field" data-layout="stack" data-inherited={inherited || undefined} data-anchor={`${anchor}:${field.key}`}>
-      <span className="pal-setting__label">{c.kind === "switch" ? field.label : <label htmlFor={id}>{field.label}</label>}<code className="pal-bar-field__key">{field.key}</code></span>
+      <span className="pal-setting__label">{c.kind === "switch" ? field.label : <label htmlFor={id}>{field.label}</label>}{keyChip(field.label, field.key) && <code className="pal-bar-field__key">{field.key}</code>}</span>
       <div className="pal-setting__body">
         <div className="pal-setting__control">
           {control}
@@ -202,7 +215,7 @@ function LookGroups({ target, look, over, base, onChange, anchor, from }: { targ
 }
 
 /** The Defaults card: the target, the peeks, sketchybar's position, then each target's appearance under a segmented switch. */
-function Defaults({ config, onChange, sketchybar }: { config: BarConfig; onChange: (c: BarConfig) => void; sketchybar: boolean }) {
+function Defaults({ config, onChange, sketchybar, items }: { config: BarConfig; onChange: (c: BarConfig) => void; sketchybar: boolean; items: BarItem[] }) {
   const set = <K extends keyof BarConfig>(k: K, v: BarConfig[K]) => onChange({ ...config, [k]: v });
   const target = targets.find((t) => t.id === config.target) ?? targets[0];
   // The probe runs only while a target wants sketchybar (sketchybar.rs `probe`), so the dot means nothing under `menubar` or `off`.
@@ -211,7 +224,7 @@ function Defaults({ config, onChange, sketchybar }: { config: BarConfig; onChang
   const setLook = (t: Target, id: keyof BarLookConfig, v: unknown) => onChange({ ...config, [t]: { ...config[t], [id]: v === undefined ? lookDefaults[id] : v } });
   return (
     <section className="pal-settings-group pal-bar-defaults" aria-label="Defaults">
-      <h3 className="pal-settings-group__title">Defaults<span className="pal-settings-group__note">every item, unless it says otherwise</span></h3>
+      <h3 className="pal-settings-group__title">Defaults<span className="pal-settings-group__note">{items.length ? `${items.length} items inherit these` : "every item, unless it says otherwise"}</span></h3>
       <div className="pal-settings-group__rows">
         <div className="pal-setting pal-bar-defaults__target" data-layout="row" data-anchor="bar:target">
           <label className="pal-setting__label" htmlFor="pal-bar-target">Target</label>
@@ -261,29 +274,20 @@ function Defaults({ config, onChange, sketchybar }: { config: BarConfig; onChang
         <div className="pal-bar-defaults__groups">
           <LookGroups target={shown} look={config[shown]} onChange={(id, v) => setLook(shown, id, v)} anchor={`bar:${shown}`} />
         </div>
+        {items.length === 0 && <div className="pal-settings-group__rows"><Empty title="No bar items" hint="An extension declares them in its pal.json under bar; GitHub's unread count is one. None of the installed extensions does, so nothing inherits the defaults above." /></div>}
       </div>
     </section>
   );
 }
 
-/** One row of the master list: the badged tile, the extension, the item title, the on switch, the target, the live state line. */
-function ItemRow({ b, active, config, onSelect, onItem }: { b: BarItem; active: boolean; config: BarConfig; onSelect: () => void; onItem: (c: BarItemConfig) => void }) {
-  const st = itemState(b);
-  const badge = b.state?.hidden ? undefined : b.state?.badge !== undefined ? String(b.state.badge) : b.state?.dot ? "" : undefined;
-  return (
-    <div role="row" tabIndex={active ? 0 : -1} aria-selected={active} data-bar-row={b.key} data-anchor={`bar:${b.key}`} data-active={active || undefined} data-disabled={!b.config.enabled || !b.source || undefined} data-stale={b.stale || undefined} className="pal-btable__row" onClick={onSelect} onFocus={(e) => { if (e.target === e.currentTarget) onSelect(); }}>
-      <span className="pal-btable__tile" data-urgent={b.state?.urgent || undefined}>
-        <Icon icon={b.extIcon} />
-        {badge !== undefined && <span className="pal-btable__badge" data-dot={badge === "" || undefined}>{badge}</span>}
-      </span>
-      <span className="pal-btable__text">
-        <span className="pal-btable__name"><span className="pal-btable__name-ext">{b.extTitle}</span>{b.title}</span>
-        <span className="pal-btable__state" data-level={st.level}>{st.text}</span>
-      </span>
-      <span className="pal-btable__cell" onClick={(e) => e.stopPropagation()}><SettingsSwitch checked={b.config.enabled} disabled={!b.source} onChange={(v) => onItem({ ...b.config, enabled: v })} label={`${b.title} enabled`} /></span>
-      <span className="pal-btable__cell" onClick={(e) => e.stopPropagation()}><SettingsSelect label={`${b.title} target`} value={b.config.target ?? ""} options={itemTargets.map((t) => (t.id === "" ? { id: "", title: `Default (${targets.find((x) => x.id === config.target)?.title ?? "Automatic"})` } : t))} onChange={(v) => onItem({ ...b.config, target: (v || undefined) as BarTarget | undefined })} /></span>
-    </div>
-  );
+/** The short state a list row wears on its right: only what is wrong or off, so a healthy list is quiet. */
+function rowTag(b: BarItem): ReactNode {
+  if (!b.source) return <Tag text="no code" color="red" />;
+  if (!b.config.enabled) return <Tag text="off" color="grey" />;
+  if (b.stale) return <Tag text="stale" color="amber" />;
+  if (b.state?.urgent) return <Tag text="urgent" color="red" />;
+  if (b.state?.hidden) return <Tag text="hidden" color="grey" />;
+  return undefined;
 }
 
 const hovers = [{ id: "", title: "Default" }, { id: "on", title: "On" }, { id: "off", title: "Off" }];
@@ -300,7 +304,8 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
   const [mockId, setMockId] = useState("");
   const mock = b.mocks?.find((m) => m.id === mockId);
   const item = mock ? previewState(mock.item, b.title) : previewItem(b);
-  const overridden = Object.values(c.look).some((v) => v !== undefined);
+  const overrides = Object.values(c.look).filter((v) => v !== undefined).length;
+  const overridden = overrides > 0;
   const st = itemState(b);
   const anchor = `bar:${b.key}`;
   return (
@@ -311,6 +316,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
           <span className="pal-ppane__crumb">{onOpenExtension ? <button type="button" className="pal-link" onClick={() => onOpenExtension(b.extension)}>{b.extTitle}</button> : b.extTitle} ›</span>
           <h3 className="pal-ppane__title">{b.title}</h3>
         </div>
+        <SettingsSwitch checked={c.enabled} disabled={!b.source} onChange={(v) => put({ enabled: v })} label={`${b.title} enabled`} />
       </header>
       {b.description && <p className="pal-ppane__desc">{b.description}</p>}
       <p className="pal-bpane__state" data-level={st.level}>{st.text}</p>
@@ -338,7 +344,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
         <h4 className="pal-ppane__h">Placement <span className="pal-ppane__h-note">bar.items."{b.key}"</span></h4>
         <div className="pal-bar-groups pal-bar-groups--flat">
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:target`}>
-            <label className="pal-setting__label" htmlFor={`${anchor}-target`}>Target<code className="pal-bar-field__key">target</code></label>
+            <label className="pal-setting__label" htmlFor={`${anchor}-target`}>Target</label>
             <div className="pal-setting__body">
               <div className="pal-setting__control"><SettingsSelect id={`${anchor}-target`} value={c.target ?? ""} options={itemTargets} onChange={(v) => put({ target: (v || undefined) as BarTarget | undefined })} /></div>
               <p className="pal-setting__desc">{c.target ? "This item's own target." : `The default, ${targets.find((t) => t.id === config.target)?.title.toLowerCase()}: ${eff === "both" ? "both bars" : eff === "off" ? "nowhere" : `the ${targetTitle[eff]}`} now.`}</p>
@@ -352,7 +358,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
             </div>
           </div>
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:order`}>
-            <label className="pal-setting__label" htmlFor={`${anchor}-order`}>Order<code className="pal-bar-field__key">order</code></label>
+            <label className="pal-setting__label" htmlFor={`${anchor}-order`}>Order</label>
             <div className="pal-setting__body">
               <div className="pal-setting__control"><input id={`${anchor}-order`} className="pal-field__input pal-bar__order" type="number" placeholder="0" value={c.order ?? ""} onChange={(e) => put({ order: e.target.value === "" ? undefined : Number(e.target.value) })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
               <p className="pal-setting__desc">Among pal's own items: ascending left to right on the menu bar and within a sketchybar position.</p>
@@ -361,16 +367,12 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
         </div>
       </section>
 
-      <section className="pal-ppane__section" aria-label="Appearance">
-        <h4 className="pal-ppane__h">Appearance <span className="pal-ppane__h-note">{overridden ? "this item's own keys over the" : "all from the"} {targetTitle[lookTarget]} default</span></h4>
-        <LookGroups target={lookTarget} look={look} over={c.look} base={base} onChange={(id, v) => put({ look: { ...c.look, [id]: v } })} anchor={anchor} from={targetTitle[lookTarget]} />
-      </section>
 
       <section className="pal-ppane__section" aria-label="Popover">
         <h4 className="pal-ppane__h">Popover</h4>
         <div className="pal-bar-groups pal-bar-groups--flat">
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:hotkey`}>
-            <span className="pal-setting__label">Hotkey<code className="pal-bar-field__key">hotkey</code></span>
+            <span className="pal-setting__label">Hotkey</span>
             <div className="pal-setting__body">
               <div className="pal-setting__control"><SettingsHotkey value={c.hotkey} onChange={(v) => put({ hotkey: v })} label={`${b.title} hotkey`} /></div>
               <p className="pal-setting__desc">Opens the item's popover engaged from any app (or runs its open action). The root and palette hotkeys win a clash.</p>
@@ -386,6 +388,16 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
         </div>
       </section>
 
+      <SettingsDisclosure
+        title="Override defaults"
+        anchor={`${anchor}:look`}
+        count={overrides}
+        hint={overrides ? `over the ${targetTitle[lookTarget]} default` : `all from the ${targetTitle[lookTarget]} default`}
+        aside={<p className="pal-bpane__override-note">Every key here is set once on the Defaults row and inherited by every item. Change one below and this item alone departs from it.</p>}
+      >
+        <LookGroups target={lookTarget} look={look} over={c.look} base={base} onChange={(id, v) => put({ look: { ...c.look, [id]: v } })} anchor={anchor} from={targetTitle[lookTarget]} />
+      </SettingsDisclosure>
+
       <div className="pal-button-row pal-bpane__reset">
         <button type="button" className="pal-button" data-small disabled={!overridden && c.target === undefined && c.position === undefined && c.order === undefined && c.hotkey === undefined && c.openOnHover === undefined} onClick={() => onItem({ enabled: c.enabled, look: {} })}>Reset to defaults</button>
         <span className="pal-pane__note">Drops every key of this item but on/off; the defaults above apply again.</span>
@@ -395,29 +407,17 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
 }
 
 /**
- * Where bar items go and how they look by default (the Defaults card), then
- * every declared item as a master list with the selected one's pane: the
- * description, a preview strip from its last render in both themes, its
- * placement, its appearance with "from the default" notes where inherited,
- * the hotkey, the peek setting, Reset. Arrows move between rows.
+ * One list, one pane, like Extensions and Palettes. The list is the
+ * defaults row and then every declared item; the pane is whichever is
+ * selected — the defaults form, or an item's description, a preview strip
+ * of its last render in both themes, its placement, its popover, and its
+ * departures from the defaults folded away until it has some.
  */
 export function SettingsBar({ config, onChange, items, onItem, sketchybar, supported = true, selected, onSelect, onOpenExtension }: SettingsBarProps) {
   const [local, setLocal] = useState<string | undefined>(undefined);
-  const table = useRef<HTMLDivElement>(null);
-  const key = selected ?? local;
-  const current = items.find((b) => b.key === key) ?? items[0];
+  const key = selected ?? local ?? BAR_DEFAULTS;
+  const current = items.find((b) => b.key === key);
   const select = (k: string) => { setLocal(k); onSelect?.(k); };
-  const onTableKey = (e: KeyboardEvent) => {
-    const dir = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
-    if (!dir || !items.length) return;
-    const t = e.target as HTMLElement;
-    if (t.tagName === "INPUT" || t.tagName === "SELECT") return;
-    e.preventDefault();
-    const i = items.findIndex((b) => b.key === current?.key);
-    const next = items[Math.max(0, Math.min(items.length - 1, i + dir))];
-    select(next.key);
-    table.current?.querySelector<HTMLElement>(`[data-bar-row="${CSS.escape(next.key)}"]`)?.focus();
-  };
   if (!supported) {
     return (
       <div className="pal-settings-page pal-bar">
@@ -429,25 +429,20 @@ export function SettingsBar({ config, onChange, items, onItem, sketchybar, suppo
     );
   }
 
+  const rows: SettingsListItem[] = [
+    { id: BAR_DEFAULTS, icon: { kind: "glyph", value: "\u{f0493}", tint: "slate" }, title: "Defaults", sub: "every item, unless it says otherwise", anchor: "bar:defaults", divider: true },
+    ...items.map((b) => ({ id: b.key, icon: b.extIcon, title: b.title, sub: b.extTitle, accessory: rowTag(b), dim: !b.config.enabled || !b.source, anchor: `bar:${b.key}` })),
+  ];
+
   return (
     <div className="pal-split pal-bar">
       <datalist id="pal-bar-colors">{colorNames.map((c) => <option key={c} value={c} />)}</datalist>
-      <div className="pal-bar__left">
-        <Defaults config={config} onChange={onChange} sketchybar={sketchybar} />
-        <section className="pal-settings-group pal-bar-items" aria-label="Items">
-          <h3 className="pal-settings-group__title">Items<span className="pal-settings-group__note">{items.length ? `${items.length} declared by extensions` : ""}</span></h3>
-          {items.length === 0 ? (
-            <div className="pal-settings-group__rows"><Empty title="No bar items" hint="An extension declares them in its pal.json under bar; GitHub's unread count is one. None of the installed extensions does." /></div>
-          ) : (
-            <div className="pal-btable" role="grid" aria-label="Bar items" ref={table} onKeyDown={onTableKey}>
-              {items.map((b) => <ItemRow key={b.key} b={b} active={b.key === current?.key} config={config} onSelect={() => select(b.key)} onItem={(c) => onItem(b.key, c)} />)}
-            </div>
-          )}
-        </section>
+      <SettingsList label="Bar items" items={rows} selected={key} onSelect={select} />
+      <div className="pal-split__pane">
+        {current
+          ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onOpenExtension={onOpenExtension} />
+          : <Defaults config={config} onChange={onChange} sketchybar={sketchybar} items={items} />}
       </div>
-      <aside className="pal-bar__pane" aria-label="Selected item">
-        {current ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onOpenExtension={onOpenExtension} /> : <Empty title="No item selected" hint="Every bar item an extension declares lists on the left; pick one to see how it draws and to set it apart from the defaults." />}
-      </aside>
     </div>
   );
 }

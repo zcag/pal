@@ -11,7 +11,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsWindow,
-  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages,
+  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages, BAR_DEFAULTS,
   resolveLook, lookDefaults, lookOf, lookWrites, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
@@ -491,7 +491,8 @@ export default function Settings() {
     if (anchor?.startsWith("palettes:")) { const id = anchor.split(":")[1]; if (id !== "ext" && extensions.some((e) => e.palettes.some((x) => x.id === id))) setPalette(id); }
     // `extensions:<key>[:<setting>]`: the key's extension is the row, its instance the pane's settings.
     if (anchor?.startsWith("extensions:")) { const key = anchor.split(":")[1]; const hit = extensions.find((e) => e.key === key); const name = hit?.name ?? nameOf(key); if (extensions.some((e) => e.name === name)) { setExt(name); if (hit) setExtInstance(hit.key); } }
-    if (anchor?.startsWith("bar:")) { const rest = anchor.slice(4); const key = barItems.find((b) => rest === b.key || rest.startsWith(`${b.key}:`))?.key; if (key) setBarKey(key); }
+    // `bar:<ext>/<item>[:<key>]` is an item's row; every other bar anchor lives on the Defaults pane, which the list selects the same way.
+    if (anchor?.startsWith("bar:")) { const rest = anchor.slice(4); const key = barItems.find((b) => rest === b.key || rest.startsWith(`${b.key}:`))?.key; setBarKey(key ?? BAR_DEFAULTS); }
     if (anchor) requestAnimationFrame(() => { if (!flashAnchor(anchor)) setTimeout(() => flashAnchor(anchor), 120); });
   };
   const requestPermission = (which: PermissionId) => invoke("permissions_request", { which }).then(refresh, fail);
