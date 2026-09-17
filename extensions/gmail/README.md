@@ -18,9 +18,12 @@ palettes and a bar item over the Gmail API, one instance per account:
   an account with `send` on (below).
 - **Unread** (`gmail/unread`, the bar item): the inbox's unread count as
   a badge, hidden at zero, the account's title beside the glyph; every
-  two minutes and on show, wake and network. The popover lists the
-  newest five, each with Open in Gmail and Mark as read, then Open in
-  pal and Open Gmail.
+  two minutes and on show, wake and network. The popover is a view of
+  its own: the newest five as rows — the sender's mark, who wrote it,
+  the subject and its snippet, the time, a star or a paperclip — with a
+  cursor the arrows move and a click sets. Enter opens the focused
+  message in Gmail, `m` marks it read, `s` stars it, `a` marks every
+  listed message read, `o` opens Gmail, `p` the Inbox palette.
 
 ## Two accounts
 

@@ -6,9 +6,10 @@
 // hourly catalog; Compose and Drafts exist only where `send` is on for
 // the account. Every row id is the message id, so a pick after a restart
 // still finds it with one `messages.get`.
-import { bytes, clock, dayNameYear, errorMessage, failed, hint, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type BarMenuNode, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { bytes, clock, dayNameYear, errorMessage, failed, hint, imageData, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
+import { BAR_ROWS, render as renderBar, type BarRow, type BarState } from "./view.ts";
 import { address, addressNow, archive, drafts, inbox, labelNames, labels, mail, markRead, markUnread, open, reset, search, star, type DraftRow, type Inbox, type Mail } from "./data.ts";
 import { buildRaw, displayName, draftUrl, gmailBase, labelQuery, labelTitle, labelUrl, mdEscape, messageText, quoted, replySubject, sectionOf, threadUrl, withSignature } from "./mail.ts";
 
@@ -19,7 +20,6 @@ const SYSTEM_GLYPH: Record<string, string> = { INBOX: ICON.inbox, STARRED: ICON.
 const INBOX_FRESH_MS = 30_000;
 const SEARCH_WAIT_MS = 300;
 /** Rows in the bar's popover. */
-const BAR_ROWS = 5;
 const MAX_CHIPS = 2;
 
 // ---- the inbox, shared ------------------------------------------------------------
@@ -319,13 +319,45 @@ async function pickDraft(id: string, action?: string): Promise<Effect> {
 
 // ---- the bar item ----------------------------------------------------------------------------
 
+/** The row the keys act on, across renders. */
+let barFocus: string | undefined;
+
+/**
+ * The popover's rows from the inbox: the newest `BAR_ROWS` unread, each
+ * with the sender's mark. A view's `image` takes a data url only, so a
+ * gravatar is fetched into one and a miss falls back to the initial's
+ * tile (already a data url), as WhatsApp's rows do.
+ */
+async function barState(i: Inbox): Promise<BarState> {
+  const rows: BarRow[] = await Promise.all(i.unread.slice(0, BAR_ROWS).map(async (m) => {
+    const src = m.icon?.image;
+    const data = src && !src.startsWith("data:") ? await imageData(src) : src;
+    return {
+      id: m.id,
+      who: who(m),
+      subject: m.subject,
+      snippet: truncate(m.snippet, 90),
+      time: m.date ? clock(m.date) : undefined,
+      starred: m.starred || undefined,
+      attached: m.attached || undefined,
+      avatar: data ? { image: data } : initialIcon(who(m), m.from.email),
+    };
+  }));
+  const focus = Math.max(0, rows.findIndex((r) => r.id === barFocus));
+  return { rows, focus, total: i.count, address: addressNow() || undefined };
+}
 /**
  * The inbox's unread count as the badge, hidden at zero, the account's
  * title beside the glyph when it has one (two accounts read apart on
- * the strip); the popover: the newest five unread, each a submenu with
- * Open in Gmail and Mark as read, then Open in pal (the Inbox palette)
- * and Open Gmail. No token is hidden, not an error: the strip has no
- * room for a hint. A failed fetch throws, which the core draws as stale.
+ * the strip); the popover is a view of the item's own (view.ts): the
+ * newest five unread as rows — the sender's mark, who wrote it, the
+ * subject and its snippet, the time, a star or a paperclip — a cursor
+ * the arrows move and a click sets, the keys as hints. Enter opens the
+ * focused message in Gmail, `m` marks it read, `s` stars it, `a` marks
+ * every listed message read, `o` opens Gmail, `p` the Inbox palette.
+ * The cursor lives here between renders. No token is hidden, not an
+ * error: the strip has no room for a hint. A failed fetch throws,
+ * which the core draws as stale.
  */
 async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   let i: Inbox;
@@ -336,39 +368,56 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   if (i.count === 0) return { hidden: true };
   const title = ctx.instance?.title?.trim();
   const addr = addressNow();
-  const menu: BarMenuNode[] = [
-    {
-      type: "section",
-      title: "Unread",
-      children: i.unread.slice(0, BAR_ROWS).map((m) => ({
-        type: "submenu",
-        title: truncate(`${who(m)}: ${m.subject || "(no subject)"}`, 60),
-        icon: m.icon ?? initialIcon(who(m), m.from.email),
-        children: [
-          { type: "item", id: `open:${m.id}`, title: "Open in Gmail", subtitle: truncate(m.snippet, 70) || undefined, icon: ICON.browser },
-          { type: "item", id: `read:${m.id}`, title: "Mark as read", icon: ICON.open },
-        ],
-      })),
-    },
-    { type: "separator" },
-    { type: "item", id: "open-pal", title: "Open in pal", subtitle: `${plural(i.count, "unread message")}, Mark as read and more`, icon: ICON.inbox },
-    { type: "item", id: "open-gmail", title: "Open Gmail", subtitle: addr || undefined, icon: ICON.mail },
-  ];
   return {
     icon: ICON.mail,
     ...(title && { title }),
     badge: i.count,
     tooltip: `${plural(i.count, "unread message")}${addr ? ` in ${addr}` : ""}`,
-    menu,
+    menu: { view: renderBar(await barState(i)) },
   };
 }
+
+/** The popover drawn again from the inbox at hand (no fetch): what a key that only moves the cursor answers. */
+const redrawBar = async (): Promise<Effect> => ({ view: renderBar(await barState(await loadInbox())) });
 
 async function unreadAction(action: string): Promise<Effect> {
   if (action === "open-pal") return { push: { extension: "gmail", palette: "inbox" } };
   if (action === "open-gmail") return { open: `${gmailBase(await address())}#inbox` };
+  if (action.startsWith("focus:")) { barFocus = action.slice(6); return redrawBar(); }
+  if (action === "read-all") {
+    const i = await loadInbox();
+    const ids = i.unread.slice(0, BAR_ROWS).map((m) => m.id);
+    if (!ids.length) return { keep: true };
+    try { await markRead(ids); } catch (e) { return failed("mark read", e); }
+    dropInbox();
+    return { keep: true, hud: "Marked read" };
+  }
+  const st = await barState(await loadInbox());
+  const cur = st.rows[st.focus];
+  switch (action) {
+    case "down": case "up": {
+      if (!st.rows.length) return redrawBar();
+      barFocus = st.rows[(st.focus + (action === "down" ? 1 : st.rows.length - 1)) % st.rows.length]!.id;
+      return redrawBar();
+    }
+    case "star": {
+      if (!cur) return { keep: true };
+      try { await star([cur.id], !cur.starred); } catch (e) { return failed(cur.starred ? "remove the star" : "star", e); }
+      dropInbox();
+      return redrawBar();
+    }
+    case "read": {
+      if (!cur) return { keep: true };
+      const r = await pickMail(await mail(cur.id), "read");
+      return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };
+    }
+    case "copy": return cur ? pickMail(await mail(cur.id), "copy") : { keep: true };
+    case "open": return cur ? pickMail(await mail(cur.id), "open") : { open: `${gmailBase(await address())}#inbox` };
+  }
+  // A click on a row's own action, from an older render.
   const m = action.match(/^(open|read):(.+)$/);
   if (!m) throw new Error(`no action ${action}`);
-  const row = await mail(m[2]);
+  const row = await mail(m[2]!);
   if (m[1] === "read") {
     const r = await pickMail(row, "read");
     return r.toast?.style === "failure" ? r : { keep: true, hud: "Marked read" };

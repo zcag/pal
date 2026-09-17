@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gravatarUrl, initialIcon } from "../../../extensions/gmail/avatar.ts";
 import { QUOTE_FOLD, bodyOf, buildRaw, displayName, foldTextQuotes, htmlToText, labelQuery, labelTitle, labelUrl, looksAttached, mdEscape, messageText, parseAddress, parseAddresses, quoted, replySubject, sectionOf, threadUrl, withSignature } from "../../../extensions/gmail/mail.ts";
-import type { Item, PaletteMeta } from "../../../sdk/src/protocol.ts";
+import type { Item, PaletteMeta, View, ViewNode } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 import { GmailMock, personal } from "./gmail-mock.ts";
 
@@ -22,6 +22,15 @@ const W = "gmail@work";
 const decodeRaw = (raw: string) => Buffer.from(raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
 const bodyText = (raw: string) => Buffer.from(decodeRaw(raw).split("\r\n\r\n")[1].replace(/\r\n/g, ""), "base64").toString("utf8");
 const tags = (i: Item) => (i.accessories ?? []).flatMap((a) => ("tag" in a ? [a.tag] : []));
+const nodes = (n: ViewNode): ViewNode[] => [n, ...("children" in n ? n.children.flatMap(nodes) : [])];
+const texts = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "text" ? [n.value] : []));
+const keycaps = (v: View) => nodes(v.tree).flatMap((n) => (n.type === "keycap" ? [n.keys] : []));
+const viewOf = (x: unknown): View => {
+  const o = x as { view?: View; menu?: { view?: View } };
+  const v = o.view ?? o.menu?.view;
+  if (!v) throw new Error("no view");
+  return v;
+};
 
 describe("mail helpers", () => {
   test("addresses: name and email, a bare address, a list with a quoted comma", () => {
@@ -348,21 +357,26 @@ describe("gmail", () => {
     expect(mock.calls("/users/me/drafts").filter((c) => c.auth === "Bearer tok-work")).toHaveLength(0);
   });
 
-  test("the bar item: the count as the badge with the instance's title, the popover's five with Open and Mark as read; per instance; shared with the palette", async () => {
+  test("the bar item: the count as the badge with the instance's title, the popover a view of the unread with a cursor and its keys; per instance; shared with the palette", async () => {
     const n = mock.calls("/users/me/messages").length;
     await list(P, "inbox", "", { refresh: true });
     const item = await host.render(P, "unread", { reason: "show", instance: { key: P, name: P, title: "Personal", isDefault: true } });
     expect(item).toMatchObject({ icon: "\u{f01ee}", title: "Personal", badge: 4, tooltip: "4 unread messages in someone@gmail.com" });
-    const menu = item.menu as Extract<typeof item.menu, unknown[]>;
-    expect(menu[0]).toMatchObject({ type: "section", title: "Unread" });
-    const subs = (menu[0] as { children: unknown[] }).children as { type: string; title: string; children: { id: string; title: string }[] }[];
-    expect(subs.map((s) => [s.type, s.title])).toEqual([["submenu", "Mara Lind: Parser review before standup?"], ["submenu", "GitHub: [zcag/pal] Instances phase 2 (PR #81)"], ["submenu", "Acme Billing: Your September invoice"], ["submenu", "Ola Berg: Trip: cabin booked for October"]]);
-    expect(subs[0].children.map((c) => [c.id, c.title])).toEqual([["open:m1", "Open in Gmail"], ["read:m1", "Mark as read"]]);
-    expect(menu.slice(1)).toEqual([
-      { type: "separator" },
-      { type: "item", id: "open-pal", title: "Open in pal", subtitle: "4 unread messages, Mark as read and more", icon: "\u{f0687}" },
-      { type: "item", id: "open-gmail", title: "Open Gmail", subtitle: "someone@gmail.com", icon: "\u{f01ee}" },
-    ]);
+    // The popover is a view of the item's own: a row per unread with the sender, the subject and its snippet, the first focused.
+    const v = viewOf(item);
+    expect(v).toMatchObject({ id: "unread", title: "4 unread", keys: "actions" });
+    const t = texts(v);
+    expect(t).toContain("Mara Lind");
+    expect(t).toContain("Parser review before standup?");
+    expect(t).toContain("GitHub");
+    expect(t).toContain("[zcag/pal] Instances phase 2 (PR #81)");
+    // Four unread and four rows, so nothing is left to count.
+    expect(t.some((x) => x.startsWith("and "))).toBe(false);
+    // The keys the popover offers, as its hints and its actions.
+    expect(keycaps(v)).toEqual(["enter", "m", "s", "a", "o", "p"]);
+    expect(v.actions!.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "read", "star", "read-all", "open-gmail", "open-pal", "copy"]);
+    // Every row is clickable: a hidden focus action each.
+    expect(v.actions!.filter((a) => a.id.startsWith("focus:")).map((a) => a.id)).toEqual(["focus:m1", "focus:m2", "focus:m3", "focus:m4"]);
     // The render right after the listing shared its inbox: three list calls for the refresh, none for the render.
     expect(mock.calls("/users/me/messages").length).toBe(n + 3);
     const w = await host.render(W, "unread", { reason: "every", instance: { key: W, name: P, title: "Work", isDefault: false } });
@@ -372,6 +386,10 @@ describe("gmail", () => {
     expect(await host.barAction(W, "unread", "open:w2")).toEqual({ open: "https://mail.google.com/mail/u/someone%40example.org/#inbox/wt2" });
     expect(await host.barAction(W, "unread", "read:w2")).toEqual({ keep: true, hud: "Marked read" });
     expect(modifies().at(-1)).toEqual({ ids: ["w2"], removeLabelIds: ["UNREAD"] });
+    // The cursor moves and redraws, and the keys act on the row it is on.
+    expect(viewOf(await host.barAction(W, "unread", "focus:w1"))).toMatchObject({ id: "unread" });
+    expect(await host.barAction(W, "unread", "star")).toMatchObject({ view: { id: "unread" } });
+    expect(modifies().at(-1)).toEqual({ ids: ["w1"], addLabelIds: ["STARRED"] });
     await host.barAction(W, "unread", "read:w1");
     expect(await host.render(W, "unread", { reason: "update" })).toEqual({ hidden: true });
     await host.pick(W, "inbox", "w1", "unread", { ids: ["w1", "w2"] });

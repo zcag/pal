@@ -119,8 +119,42 @@
   "bar": {
     "unread": {
       "title": "Unread",
-      "description": "The unread count of the inbox as a badge, hidden at zero, the account's title beside the glyph when it has one; the popover lists the newest five with Open and Mark as read, then Open in pal and Open Gmail.",
-      "refresh": { "every": 120, "on": ["show", "wake", "network"] }
+      "description": "The unread count of the inbox as a badge, hidden at zero, the account's title beside the glyph when it has one; the popover lists the newest five as rows — the sender's mark, who wrote it, the subject and its snippet, the time, a star or a paperclip — with a cursor the arrows move and a click sets.",
+      "refresh": { "every": 120, "on": ["show", "wake", "network"] },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the focused message in Gmail"
+        },
+        {
+          "keys": "m",
+          "title": "Mark the focused message read"
+        },
+        {
+          "keys": "s",
+          "title": "Star the focused message, or take its star off"
+        },
+        {
+          "keys": "a",
+          "title": "Mark every listed message read"
+        },
+        {
+          "keys": "o",
+          "title": "Open Gmail"
+        },
+        {
+          "keys": "p",
+          "title": "Open the Inbox palette in pal"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy a link to the focused message"
+        },
+        {
+          "keys": "up, down",
+          "title": "Move between the rows; a click on a row focuses it"
+        }
+      ]
     }
   },
   "store": {
