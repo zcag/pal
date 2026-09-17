@@ -722,6 +722,9 @@ pub struct BarItemView {
     /// The last rendered state, what the strip shows.
     #[serde(skip_serializing_if = "Option::is_none")]
     state: Option<BarItemState>,
+    /// Named static states an extension declared for this item's Settings-only preview.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    mocks: Vec<BarMockView>,
 }
 
 /// The last render's strip: what the page's state line reads and what its
@@ -748,6 +751,30 @@ pub struct BarItemState {
     tooltip: Option<String>,
 }
 
+/// One `bar.<id>.mocks.<id>` entry, reduced to exactly what the Settings
+/// strip can draw. It never affects the bar registry's live state.
+#[derive(Serialize)]
+pub struct BarMockView {
+    id: String,
+    title: String,
+    item: BarItemState,
+}
+
+fn bar_item_state(item: &crate::bar::BarItem) -> BarItemState {
+    BarItemState {
+        title: item.title.clone(),
+        hidden: item.hidden,
+        badge: item.count(),
+        dot: item.dot(),
+        urgent: item.urgent,
+        icon: item.icon.clone(),
+        segments: item.segments.clone(),
+        color: item.color.clone(),
+        progress: item.progress,
+        tooltip: item.tooltip.clone(),
+    }
+}
+
 #[derive(Serialize)]
 pub struct BarView {
     /// This platform draws bar items (`bar::SUPPORTED`); the page says "not on Linux yet" otherwise.
@@ -767,7 +794,8 @@ fn bar_view(app: &AppHandle) -> BarView {
             .map(|(key, e)| {
                 let (extension, id) = crate::bar::split_key(&key).map(|(a, b)| (a.to_string(), b.to_string())).unwrap_or_default();
                 BarItemView {
-                    state: e.last.as_ref().map(|i| BarItemState { title: i.title.clone(), hidden: i.hidden, badge: i.count(), dot: i.dot(), urgent: i.urgent, icon: i.icon.clone(), segments: i.segments.clone(), color: i.color.clone(), progress: i.progress, tooltip: i.tooltip.clone() }),
+                    state: e.last.as_ref().map(bar_item_state),
+                    mocks: e.manifest.mocks.iter().map(|(id, mock)| BarMockView { id: id.clone(), title: mock.title.clone(), item: bar_item_state(&mock.item) }).collect(),
                     key,
                     extension,
                     id,

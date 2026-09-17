@@ -51,7 +51,8 @@ type Checked<T> = { at: number; value?: T; error?: string };
 /** settings.rs `Checks`: the app's release check and the store's, as last run this process. */
 type Checks = { app?: Checked<UpdateInfo>; extensions?: Checked<Update[]> };
 /** settings.rs `BarItemView`. */
-type RawBarView = { key: string; extension: string; id: string; title: string; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; state?: { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean } };
+type RawBarState = NonNullable<BarItem["state"]>;
+type RawBarView = { key: string; extension: string; id: string; title: string; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[] };
 type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; store: string; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
 type About = { docs: string; repo: string; report?: CrashReport; panic?: PanicReport };
@@ -185,6 +186,7 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
     renderedAt: b.rendered_at,
     stale: b.stale,
     state: b.state,
+    mocks: b.mocks,
     config: { enabled: raw.enabled ?? true, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, look: lookOf(raw) },
   };
 }

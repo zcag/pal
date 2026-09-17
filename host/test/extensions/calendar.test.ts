@@ -16,7 +16,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
-import { barTitle, escalation, nextEvent, nextWords, onDay, shortSpan, span, state, upcomingItem } from "../../../extensions/calendar/today.ts";
+import { barTitle, barRules, escalation, nextEvent, nextWords, onDay, shortSpan, span, state, upcomingItem, upcomingPresentation } from "../../../extensions/calendar/today.ts";
 import { parseLength, parseQuick, type Quick } from "../../../extensions/calendar/quick.ts";
 import { actions as popoverActions, focusable, freshPopover, listed, popover } from "../../../extensions/calendar/view.ts";
 import type { BarItem, Calendar, CalendarEvent, Form, View, ViewNode } from "../../../sdk/src/index.ts";
@@ -275,7 +275,7 @@ describe("today helpers", () => {
     expect(upcomingItem([], t0, s)).toEqual({ hidden: true });
     const soon = ev("s", "Standup", t0 + 12 * MIN, t0 + 42 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const item = upcomingItem([soon], t0, s);
-    expect(item).toMatchObject({ title: "Standup in 12m", color: "amber", badge: "dot", tooltip: `Standup, ${timeRange(soon)} (Work), Enter joins`, menu: { view: { id: "upcoming", keys: "actions" } } });
+    expect(item).toMatchObject({ title: "Standup in 12m", color: "amber", badge: "dot", tooltip: `Standup, ${timeRange(soon)} (Work), Enter joins`, click: "open", menu: { view: { id: "upcoming", keys: "actions" } } });
     expect(item.stale).toBeUndefined();
     expect(upcomingItem([ev("n", "Review", t0 + 3 * H, t0 + 4 * H)], t0, s)).toMatchObject({ title: "Review in 3h", color: "muted" });
     expect((upcomingItem([ev("n", "Review", t0 + 3 * H, t0 + 4 * H)], t0, s) as BarItem).badge).toBeUndefined();
@@ -283,6 +283,31 @@ describe("today helpers", () => {
     expect(upcomingItem([soon], t0 + 20 * MIN, s, "archer is away")).toMatchObject({ title: "Standup now", color: "green", stale: true });
     expect(JSON.stringify((upcomingItem([soon], t0 + 20 * MIN, s, "archer is away").menu as { view: View }).view.tree)).toContain("showing the last events read");
     expect(upcomingItem([soon], t0, { ...s, warn_minutes: 10 })).toMatchObject({ color: "muted" });
+  });
+
+  test("upcoming presentation: far, near, warning, critical and running keep their own configurable appearance", () => {
+    const s: Settings = {
+      source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true,
+      horizon_hours: 10, near_minutes: 60, warn_minutes: 15, urgent_minutes: 5, default_length: 30,
+      bar_far_color: "grey", bar_near_color: "blue", bar_warning_color: "amber", bar_critical_color: "red", bar_running_color: "green",
+      bar_far_size: 9, bar_near_size: 11, bar_attention_size: 14,
+      bar_far_position: "left", bar_near_position: "center", bar_attention_position: "q",
+    };
+    const at = (minutes: number) => ev(`at-${minutes}`, "Review", t0 + minutes * MIN, t0 + (minutes + 30) * MIN);
+    expect(upcomingPresentation(at(120), t0, s)).toEqual({ phase: "far", color: "grey", size: 9, position: "left" });
+    expect(upcomingPresentation(at(45), t0, s)).toEqual({ phase: "near", color: "blue", size: 11, position: "center" });
+    expect(upcomingPresentation(at(12), t0, s)).toEqual({ phase: "warning", color: "amber", size: 14, position: "q" });
+    expect(upcomingPresentation(at(4), t0, s)).toEqual({ phase: "critical", color: "red", size: 14, position: "q" });
+    expect(upcomingPresentation(at(-1), t0, s)).toEqual({ phase: "running", color: "green", size: 14, position: "q" });
+    // Existing defaults stay exactly as the original item: no dynamic look,
+    // muted before warning, amber then red, green once the event started.
+    const defaults: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
+    expect(barRules(defaults)).toMatchObject({ near_minutes: 60, horizon_hours: 10 });
+    expect(upcomingPresentation(at(120), t0, defaults)).toEqual({ phase: "far", color: "muted", size: undefined, position: undefined });
+    expect(upcomingPresentation(at(45), t0, defaults)).toEqual({ phase: "near", color: "muted", size: undefined, position: undefined });
+    expect(upcomingPresentation(at(12), t0, defaults)).toEqual({ phase: "warning", color: "amber", size: undefined, position: undefined });
+    expect(upcomingPresentation(at(4), t0, defaults)).toEqual({ phase: "critical", color: "red", size: undefined, position: undefined });
+    expect(upcomingPresentation(at(-1), t0, defaults)).toEqual({ phase: "running", color: "green", size: undefined, position: undefined });
   });
 
   /** Every node of a tree, depth first. */
@@ -563,7 +588,18 @@ describe("today palette and the upcoming bar item", () => {
     expect(l.palettes.map((p) => p.name)).toEqual(["schedule", "today", "quick"]);
     expect(l.palettes[2]).toMatchObject({ title: "Quick Add Event", input: true, placeholder: "standup tomorrow 10:00", fallback: "ask", fallbackTitle: "Add “{query}” to the calendar" });
     expect(l.palettes[1]).toMatchObject({ title: "Today", live: true, ttl: 60, detail: "lazy" });
-    expect(l.bar).toEqual([{ id: "upcoming", title: "Upcoming", description: expect.any(String), refresh: { every: 300, on: ["minute", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "j", title: "Join the next call" }, { keys: "t", title: "Show or fold tomorrow" }]), source: true }]);
+    expect(l.bar).toHaveLength(1);
+    expect(l.bar[0]).toMatchObject({
+      id: "upcoming", title: "Upcoming", description: expect.any(String), refresh: { every: 300, on: ["minute", "wake", "network"] },
+      keys: expect.arrayContaining([{ keys: "j", title: "Join the next call" }, { keys: "t", title: "Show or fold tomorrow" }]), source: true,
+      mocks: {
+        far: { title: "Starts in 3 hours", item: { title: "Project review in 3h", color: "muted" } },
+        near: { title: "Starts in 45 minutes", item: { title: "Project review in 45m", color: "muted" } },
+        warning: { title: "Starts in 12 minutes", item: { title: "Project review in 12m", color: "amber" } },
+        critical: { title: "Starts in 4 minutes", item: { title: "Project review in 4m", color: "red" } },
+        running: { title: "In progress", item: { title: "Project review now", color: "green" } },
+      },
+    });
   });
 
   test("rows: the day in order with over, now and in N min, the duration, the tinted glyph; tomorrow waits", async () => {
@@ -605,7 +641,7 @@ describe("today palette and the upcoming bar item", () => {
 
   test("the bar item: the running call as now with a dot, a minute tick from the cache in under 5 ms, the rest fetch", async () => {
     const first = await host.render(E, "upcoming", { reason: "load" });
-    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup now", color: "green", badge: "dot", tooltip: "Standup, 10:20 – 10:50 (Work), Enter joins", menu: { view: { id: "upcoming", keys: "actions", title: "Today · Wed 16 Sep" } } });
+    expect(first).toMatchObject({ icon: "\u{f00ed}", title: "Standup now", color: "green", badge: "dot", click: "open", tooltip: "Standup, 10:20 – 10:50 (Work), Enter joins", menu: { view: { id: "upcoming", keys: "actions", title: "Today · Wed 16 Sep" } } });
     expect(first.stale).toBeUndefined();
     const before = eventsCalls();
     const t = performance.now();
@@ -619,6 +655,17 @@ describe("today palette and the upcoming bar item", () => {
     expect(eventsCalls()).toBe(before + 1);
     await host.render(E, "upcoming", { reason: "every" });
     expect(eventsCalls()).toBe(before + 2);
+  });
+
+  test("a direct bar click joins the next call, or opens Calendar when it has none", async () => {
+    const withCall = await Host.bundled({ core: core([events[0]]) });
+    const withoutCall = await Host.bundled({ core: core([events[2]]) });
+    try {
+      await withCall.render(E, "upcoming", { reason: "load" });
+      expect(await withCall.barOpen(E, "upcoming")).toEqual({ open: ZOOM, hud: "Standup, 10:20 – 10:50" });
+      await withoutCall.render(E, "upcoming", { reason: "load" });
+      expect(await withoutCall.barOpen(E, "upcoming")).toEqual(MAC ? { open: "/System/Applications/Calendar.app" } : { hide: true });
+    } finally { withCall.kill(); withoutCall.kill(); }
   });
 
   test("the popover's keys through bar/action: arrows move the ring, t opens tomorrow, Enter joins or opens, a click on a row or its Join, copy, the calendar, refresh", async () => {

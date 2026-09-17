@@ -82,9 +82,20 @@
     },
     {
       "kind": "number",
+      "id": "near_minutes",
+      "label": "Near from",
+      "description": "Inside this many minutes, Upcoming uses its near appearance. Warning and critical cutoffs below still take precedence.",
+      "min": 1,
+      "max": 720,
+      "step": 1,
+      "unit": "min",
+      "default": 60
+    },
+    {
+      "kind": "number",
       "id": "warn_minutes",
-      "label": "Amber from",
-      "description": "The bar item turns amber this many minutes before the event.",
+      "label": "Warning from",
+      "description": "The bar item uses its warning appearance this many minutes before the event.",
       "min": 1,
       "max": 120,
       "step": 1,
@@ -94,13 +105,107 @@
     {
       "kind": "number",
       "id": "urgent_minutes",
-      "label": "Red from",
-      "description": "The bar item turns red this many minutes before the event.",
+      "label": "Critical from",
+      "description": "The bar item uses its critical appearance this many minutes before the event.",
       "min": 0,
       "max": 60,
       "step": 1,
       "unit": "min",
       "default": 5
+    },
+    {
+      "kind": "select",
+      "id": "bar_far_color",
+      "label": "Far colour",
+      "description": "The item colour outside the near window, but still inside the bar horizon.",
+      "options": [{ "id": "muted", "title": "Muted" }, { "id": "text", "title": "Text" }, { "id": "grey", "title": "Grey" }, { "id": "blue", "title": "Blue" }, { "id": "teal", "title": "Teal" }],
+      "default": "muted"
+    },
+    {
+      "kind": "select",
+      "id": "bar_near_color",
+      "label": "Near colour",
+      "description": "The item colour after Near from, before the warning cutoff.",
+      "options": [{ "id": "muted", "title": "Muted" }, { "id": "text", "title": "Text" }, { "id": "grey", "title": "Grey" }, { "id": "blue", "title": "Blue" }, { "id": "teal", "title": "Teal" }],
+      "default": "muted"
+    },
+    {
+      "kind": "select",
+      "id": "bar_warning_color",
+      "label": "Warning colour",
+      "description": "The item colour from Warning from until the critical cutoff.",
+      "options": [{ "id": "amber", "title": "Amber" }, { "id": "violet", "title": "Violet" }, { "id": "red", "title": "Red" }, { "id": "text", "title": "Text" }],
+      "default": "amber"
+    },
+    {
+      "kind": "select",
+      "id": "bar_critical_color",
+      "label": "Critical colour",
+      "description": "The item colour from Critical from until the event starts.",
+      "options": [{ "id": "red", "title": "Red" }, { "id": "amber", "title": "Amber" }, { "id": "destructive", "title": "Destructive" }, { "id": "text", "title": "Text" }],
+      "default": "red"
+    },
+    {
+      "kind": "select",
+      "id": "bar_running_color",
+      "label": "Running colour",
+      "description": "The item colour while the event is under way.",
+      "options": [{ "id": "green", "title": "Green" }, { "id": "blue", "title": "Blue" }, { "id": "amber", "title": "Amber" }, { "id": "text", "title": "Text" }],
+      "default": "green"
+    },
+    {
+      "kind": "number",
+      "id": "bar_far_size",
+      "label": "Far size",
+      "description": "Point size outside the near window. Zero keeps the item's normal bar appearance until dynamic sizing is available.",
+      "min": 0,
+      "max": 24,
+      "step": 0.5,
+      "unit": "pt",
+      "default": 0
+    },
+    {
+      "kind": "number",
+      "id": "bar_near_size",
+      "label": "Near size",
+      "description": "Point size from Near from until warning. Zero keeps the item's normal bar appearance until dynamic sizing is available.",
+      "min": 0,
+      "max": 24,
+      "step": 0.5,
+      "unit": "pt",
+      "default": 0
+    },
+    {
+      "kind": "number",
+      "id": "bar_attention_size",
+      "label": "Attention size",
+      "description": "Point size while warning, critical or running. Zero keeps the item's normal bar appearance until dynamic sizing is available.",
+      "min": 0,
+      "max": 24,
+      "step": 0.5,
+      "unit": "pt",
+      "default": 0
+    },
+    {
+      "kind": "text",
+      "id": "bar_far_position",
+      "label": "Far position",
+      "description": "A sketchybar position outside the near window, such as left or right. Empty keeps the item's Bar settings position until dynamic placement is available.",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "bar_near_position",
+      "label": "Near position",
+      "description": "A sketchybar position after Near from, before warning. Empty keeps the item's Bar settings position until dynamic placement is available.",
+      "default": ""
+    },
+    {
+      "kind": "text",
+      "id": "bar_attention_position",
+      "label": "Attention position",
+      "description": "A sketchybar position while warning, critical or running, such as q. Empty keeps the item's Bar settings position until dynamic placement is available.",
+      "default": ""
     },
     {
       "kind": "boolean",
@@ -127,7 +232,7 @@
     "features": [
       "Today: the day's events in order with the time and how long, each tagged `in 12 min`, `now, 25 min left` or `over`; tomorrow's once today is done; the next event's day when the day is clear",
       "My Schedule: Today, Tomorrow, This week and Later as sections; the current event tagged `now`, the next one `in 12 min`",
-      "The bar item: the next event as `Standup in 12m` on the menu bar or sketchybar, `now` while it runs, hidden when nothing starts within 10 hours; muted far off, amber inside 15 minutes, red inside 5; a dot when there is a call. A click opens Today; Enter joins",
+      "The bar item: the next event as `Standup in 12m` on the menu bar or sketchybar, `now` while it runs, hidden when nothing starts within 10 hours; muted far off, amber inside 15 minutes, red inside 5; a dot when there is a call. A click joins it, or opens Calendar; a hover peek opens Today",
       "Three sources: every account Calendar.app has (iCloud, Google, Exchange) through EventKit on macOS; `khal` on Linux; Google Calendar directly, per account, through a command that prints an access token (`gcloud auth application-default print-access-token`, a broker, a keychain lookup), so no secret ever sits in the config",
       "`enter` joins the call when the event has a Zoom, Meet, Teams or Webex link (Google's conferenceData first, then the location and the description), else opens it in Calendar or Google Calendar",
       "The calendar's colour on the row, the head count and a `Join` tag on the right; a filter per calendar",
@@ -177,7 +282,7 @@
       },
       {
         "file": "bar-menubar-popover.png",
-        "caption": "A click opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header",
+        "caption": "A hover peek opens the day: what is still to come with the time, the place and the people, Join on the calls, tomorrow folded under its header",
         "kind": "bar"
       },
       {
@@ -303,7 +408,14 @@
   "bar": {
     "upcoming": {
       "title": "Upcoming",
-      "description": "The next event as `Standup in 12m`, `now` while it runs; hidden when nothing starts within the horizon; amber then red as it nears, a dot when there is a call to join. A click opens the day: what is still to come with Join on the calls, the running event on a card, tomorrow folded.",
+      "description": "The next event as `Standup in 12m`, `now` while it runs; hidden when nothing starts within the horizon; far, near, warning, critical and running appearances are configurable, a dot when there is a call to join. A click joins the call, or opens Calendar; a hover peek opens the day with Join on the calls, the running event on a card, tomorrow folded.",
+      "mocks": {
+        "far": { "title": "Starts in 3 hours", "item": { "icon": "󰃭", "title": "Project review in 3h", "color": "muted", "badge": "dot" } },
+        "near": { "title": "Starts in 45 minutes", "item": { "icon": "󰃭", "title": "Project review in 45m", "color": "muted", "badge": "dot" } },
+        "warning": { "title": "Starts in 12 minutes", "item": { "icon": "󰃭", "title": "Project review in 12m", "color": "amber", "badge": "dot" } },
+        "critical": { "title": "Starts in 4 minutes", "item": { "icon": "󰃭", "title": "Project review in 4m", "color": "red", "badge": "dot" } },
+        "running": { "title": "In progress", "item": { "icon": "󰃭", "title": "Project review now", "color": "green", "badge": "dot" } }
+      },
       "refresh": {
         "every": 300,
         "on": [

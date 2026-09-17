@@ -313,6 +313,10 @@ async function act(action: string, layout: Layout): Promise<Effect> {
 // ---- the bar item ------------------------------------------------------------
 
 let tick: ReturnType<typeof setInterval> | undefined;
+/** The next lrclib timestamp for the strip itself; unlike `tick`, it runs with no popover open. */
+let lyricTick: ReturnType<typeof setTimeout> | undefined;
+/** Tracks whose already-in-flight lrclib lookup has a publish callback. */
+const lyricLookup = new Set<string>();
 /** Until when the popover is fed (`Date.now()` past it: not at all). */
 let tickUntil = 0;
 /** The panel's lyrics view is on top (`view/shown` of `now-playing`). */
@@ -327,20 +331,72 @@ function barItem(l: Live, st: NowState): BarItem {
   const synced = st.lyrics?.synced;
   const line = synced?.length && conf().bar_lyrics !== false ? currentLine(synced, st.position) : undefined;
   const title = (line ?? `${t.name} · ${t.artist}`).slice(0, 64);
-  // The next lyric line's time, so the strip changes line on time without a tick: the core renders again then.
+  // The extension-owned ticker below is primary; this remains a safety net if
+  // the worker restarts or a scheduled callback is lost.
   let refresh: number | undefined;
-  if (synced?.length && !tick) {
+  if (synced?.length) {
     const nextAt = synced.find((x) => x.at > st.position)?.at;
     if (nextAt !== undefined) refresh = Math.max(1, Math.ceil(nextAt - st.position));
   }
   return { icon: G.spotify, title, tooltip: `${trackText(t)}${p.device ? ` (${p.device.name})` : ""}`, menu: { view: render(st) }, ...(refresh ? { refresh } : {}) };
 }
 
+const stopLyricTick = () => { clearTimeout(lyricTick); lyricTick = undefined; };
+
+/**
+ * Arms one callback at the next LRC timestamp. The local player clock keeps
+ * it aligned between Spotify's 30 s polls; every poll and MediaRemote render
+ * calls this again, replacing the old deadline with Spotify's latest one.
+ */
+function followLyrics(l: Live, st: NowState) {
+  if (live !== l) return;
+  stopLyricTick();
+  const p = l.player, t = p?.track, lines = st.lyrics?.synced;
+  if (!p?.playing || !t || t.kind !== "track" || conf().bar_lyrics === false || !lines?.length) return;
+  const next = lines.find((line) => line.at * 1000 > positionOf(p));
+  if (!next) return;
+  // A small margin avoids landing just before a fractional LRC timestamp.
+  const after = Math.max(0, next.at * 1000 - positionOf(p)) + 20;
+  lyricTick = setTimeout(() => { pushLyric(t.id).catch((e) => log(`lyrics ticker: ${errorMessage(e)}`)); }, after);
+}
+
+/** Pushes precisely on a lyric boundary, then arms the next one. */
+async function pushLyric(trackId: string) {
+  lyricTick = undefined;
+  const l = live, p = l?.player, t = p?.track;
+  if (!l || !p?.playing || !t || t.id !== trackId) return;
+  const st = stateOf(l, "compact");
+  followLyrics(l, st);
+  await bar.update(ITEM, barItem(l, st), EXTENSION);
+}
+
+/**
+ * lrclib commonly finishes after the first bar paint. Once it does, publish
+ * the first lyric line immediately and start its timestamped ticker, without
+ * waiting for the next 30 s bar poll.
+ */
+function followLyricsWhenReady(l: Live, st: NowState) {
+  if (live !== l) return;
+  followLyrics(l, st);
+  const t = l.player?.track;
+  if (!t || t.kind !== "track" || st.lyrics !== undefined || lyricLookup.has(t.id)) return;
+  lyricLookup.add(t.id);
+  askLyrics(t).then(() => {
+    const current = live, p = current?.player;
+    if (!current || !p?.playing || p.track?.id !== t.id) return;
+    const next = stateOf(current, "compact");
+    followLyrics(current, next);
+    bar.update(ITEM, barItem(current, next), EXTENSION).catch((e) => log(`lyrics ready: ${errorMessage(e)}`));
+  }).catch(() => {}).finally(() => lyricLookup.delete(t.id));
+}
+
 async function renderBar(ctx: BarCtx): Promise<BarItem> {
   // The timer reads the clock; a `keep` after an action (`update`) takes the patched state; anything else (a show, a wake, the media trigger) asks the API afresh.
   const l = await readLive(ctx.reason === "every" ? SYNC_MS : 0, ctx.reason !== "update" && ctx.reason !== "every");
-  if (!l.player?.playing) { stopTick(); return { hidden: true }; }
-  return barItem(l, await fullState(l, "compact", ctx.reason === "load" ? FIRST_PAINT_MS : 400));
+  if (!l.player?.playing) { stopTick(); stopLyricTick(); return { hidden: true }; }
+  const st = await fullState(l, "compact", ctx.reason === "load" ? FIRST_PAINT_MS : 400);
+  followLyricsWhenReady(l, st);
+  return barItem(l, st);
 }
 
 function stopTick() { clearInterval(tick); tick = undefined; }
@@ -354,8 +410,12 @@ function startTick() {
     try {
       const l = await readLive(SYNC_MS);
       if (popover) {
-        if (!l.player?.playing) { tickUntil = 0; await bar.update(ITEM, { hidden: true }, EXTENSION); }
-        else await bar.update(ITEM, barItem(l, await fullState(l, "compact", 200)), EXTENSION);
+        if (!l.player?.playing) { tickUntil = 0; stopLyricTick(); await bar.update(ITEM, { hidden: true }, EXTENSION); }
+        else {
+          const st = await fullState(l, "compact", 200);
+          followLyrics(l, st);
+          await bar.update(ITEM, barItem(l, st), EXTENSION);
+        }
       }
       if (viewOpen) {
         const v = render(await fullState(l, "wide", 200));
@@ -776,5 +836,5 @@ export default {
       onShown: async () => { startPopover(); },
     },
   },
-  dispose: () => { stopTick(); tickUntil = 0; viewOpen = false; stopListener(); },
+  dispose: () => { stopTick(); stopLyricTick(); tickUntil = 0; viewOpen = false; stopListener(); },
 } satisfies Extension;

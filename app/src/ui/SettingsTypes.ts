@@ -331,6 +331,18 @@ export type BarItemConfig = {
   look: BarLookOverride;
 };
 
+/** One static state an extension declared for its Settings-only bar preview. */
+export type BarItemMock = {
+  /** Stable manifest key, never shown to the user. */
+  id: string;
+  /** A condition label such as "Starts in 4 min". */
+  title: string;
+  item: BarItemState;
+};
+
+/** The compact render state settings.rs exposes for the live and mock strips. */
+export type BarItemState = { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean; icon?: unknown; segments?: { id: string; icon?: string; text?: string; color?: string }[]; color?: string; progress?: number; tooltip?: string };
+
 /** One declared bar item (settings.rs `BarItemView`) with its extension and its config. */
 export type BarItem = {
   /** `extension/id`. */
@@ -348,7 +360,9 @@ export type BarItem = {
   renderedAt?: number;
   stale: boolean;
   /** The last render's strip (settings.rs `BarItemState`): the state line and the preview read it. */
-  state?: { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean; icon?: unknown; segments?: { id: string; icon?: string; text?: string; color?: string }[]; color?: string; progress?: number; tooltip?: string };
+  state?: BarItemState;
+  /** Optional, extension-declared states that replace only this pane's strip. */
+  mocks?: BarItemMock[];
   config: BarItemConfig;
 };
 

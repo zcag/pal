@@ -205,6 +205,7 @@ export function checkBarItem(v: unknown, where = "bar"): BarItem {
   if (item.color !== undefined && !BAR_COLORS.has(item.color)) throw new Error(`${where}: unknown color "${item.color}"`);
   if (item.progress !== undefined && !(typeof item.progress === "number" && item.progress >= 0 && item.progress <= 1)) throw new Error(`${where}: progress must be 0..1`);
   if (item.refresh !== undefined && !(typeof item.refresh === "number" && item.refresh > 0)) throw new Error(`${where}: refresh must be seconds > 0`);
+  if (item.click !== undefined && item.click !== "open") throw new Error(`${where}: click must be "open"`);
   if (item.segments !== undefined) {
     if (!Array.isArray(item.segments)) throw new Error(`${where}: segments must be an array`);
     if (item.segments.length > MAX_BAR_SEGMENTS) throw new Error(`${where}: more than ${MAX_BAR_SEGMENTS} segments`);

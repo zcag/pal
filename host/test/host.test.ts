@@ -330,7 +330,7 @@ export default {
   },
   dispose: () => { clearInterval(tick); console.log("disposed"); },
 };`,
-        "pal.json": manifest("ext", { settings: [{ kind: "text", id: "greeting", label: "G", default: "hi" }], bar: { a: { title: "A", description: "the a", refresh: { every: 60, on: ["show"] } }, ghost: { title: "Ghost" } } }),
+        "pal.json": manifest("ext", { settings: [{ kind: "text", id: "greeting", label: "G", default: "hi" }], bar: { a: { title: "A", description: "the a", refresh: { every: 60, on: ["show"] }, mocks: { warning: { title: "3 unread", item: { icon: "x", badge: 3, color: "amber" } } } }, ghost: { title: "Ghost" } } }),
       },
       plain: { "index.ts": simpleExt("plain") },
     });
@@ -340,7 +340,7 @@ export default {
 
   test("hello and extension/loaded carry the manifest's bar entries merged with the code's keys; a manifest-only id has source: false", async () => {
     const expected: BarMeta[] = [
-      { id: "a", title: "A", description: "the a", refresh: { every: 60, on: ["show"] }, source: true },
+      { id: "a", title: "A", description: "the a", refresh: { every: 60, on: ["show"] }, mocks: { warning: { title: "3 unread", item: { icon: "x", badge: 3, color: "amber" } } }, source: true },
       { id: "ghost", title: "Ghost", source: false },
       { id: "b", title: "b", source: true },
       { id: "echo", title: "echo", source: true },
@@ -427,7 +427,7 @@ export default {
   test("hot reload disposes the resident module first and announces the bar entries again", async () => {
     const reloaded = host.next("extension/loaded", (p) => p.extension === "ext");
     root.write("ext", "index.ts", `export default { palettes: { p: { list: () => [], pick: () => {} } }, bar: { a: { render: () => ({ title: "again" }) } } };`);
-    expect(((await reloaded).params as any).bar).toEqual([{ id: "a", title: "A", description: "the a", refresh: { every: 60, on: ["show"] }, source: true }, { id: "ghost", title: "Ghost", source: false }]);
+    expect(((await reloaded).params as any).bar).toEqual([{ id: "a", title: "A", description: "the a", refresh: { every: 60, on: ["show"] }, mocks: { warning: { title: "3 unread", item: { icon: "x", badge: 3, color: "amber" } } }, source: true }, { id: "ghost", title: "Ghost", source: false }]);
     expect(host.stderr).toContain("disposed");
     expect(await host.render("ext", "a")).toEqual({ title: "again" });
     expect((await host.call("bar/render", { extension: "ext", id: "b", ctx: { reason: "load" } })).error).toBe("no bar item ext/b");

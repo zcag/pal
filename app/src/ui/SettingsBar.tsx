@@ -103,8 +103,12 @@ export function effectiveTarget(b: BarItem, config: BarConfig, sketchybar: boole
 
 /** The last render as the strip draws it; a placeholder from the manifest while it never has. */
 export function previewItem(b: BarItem): BarStripItem {
-  const s = b.state;
-  if (!s) return { icon: "\u{f0a9c}", title: b.title, stale: b.stale };
+  return previewState(b.state, b.title, b.stale);
+}
+
+/** A live or declared mock state, as the strip draws it. Mocks are never stale: they are static examples. */
+export function previewState(s: BarItem["state"] | undefined, fallback: string, stale = false): BarStripItem {
+  if (!s) return { icon: "\u{f0a9c}", title: fallback, stale };
   return {
     hidden: s.hidden,
     icon: typeof s.icon === "string" ? s.icon : s.icon ? "\u{f0976}" : undefined,
@@ -113,7 +117,7 @@ export function previewItem(b: BarItem): BarStripItem {
     badge: s.dot ? "dot" : s.badge,
     color: s.color,
     urgent: s.urgent,
-    stale: b.stale,
+    stale,
     progress: s.progress,
     tooltip: s.tooltip,
   };
@@ -293,7 +297,9 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
   const lookTarget: Target = eff === "sketchybar" ? "sketchybar" : "menubar";
   const base = config[lookTarget];
   const look: BarLook = resolveLook(base, c.look);
-  const item = previewItem(b);
+  const [mockId, setMockId] = useState("");
+  const mock = b.mocks?.find((m) => m.id === mockId);
+  const item = mock ? previewState(mock.item, b.title) : previewItem(b);
   const overridden = Object.values(c.look).some((v) => v !== undefined);
   const st = itemState(b);
   const anchor = `bar:${b.key}`;
@@ -311,7 +317,13 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
       {!b.source && <p className="pal-ppane__note">The manifest declares this item but the code has no render for it, so nothing is drawn and the switch is locked.</p>}
 
       <section className="pal-ppane__section pal-bpane__preview" aria-label="Preview">
-        <h4 className="pal-ppane__h">Preview <span className="pal-ppane__h-note">{b.state ? "the last render, as the strip draws it" : "not rendered yet: the manifest's title"}</span></h4>
+        <h4 className="pal-ppane__h">Preview <span className="pal-ppane__h-note">{mock ? mock.title : b.state ? "the last render, as the strip draws it" : "not rendered yet: the manifest's title"}</span></h4>
+        {!!b.mocks?.length && (
+          <div className="pal-bpane__preview-state">
+            <SettingsSelect id={`${anchor}-preview-state`} label="Preview state" value={mockId} options={[{ id: "", title: "Live state" }, ...b.mocks.map((m) => ({ id: m.id, title: m.title }))]} onChange={setMockId} />
+            <span>Settings only; this never changes the live bar.</span>
+          </div>
+        )}
         {previewTargets.length === 0 ? (
           <p className="pal-ppane__none">Off: no strip draws it.</p>
         ) : previewTargets.flatMap((t) => (["dark", "light"] as const).map((theme) => (
@@ -434,7 +446,7 @@ export function SettingsBar({ config, onChange, items, onItem, sketchybar, suppo
         </section>
       </div>
       <aside className="pal-bar__pane" aria-label="Selected item">
-        {current ? <ItemPane b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onOpenExtension={onOpenExtension} /> : <Empty title="No item selected" hint="Every bar item an extension declares lists on the left; pick one to see how it draws and to set it apart from the defaults." />}
+        {current ? <ItemPane key={current.key} b={current} config={config} sketchybar={sketchybar} onItem={(c) => onItem(current.key, c)} onOpenExtension={onOpenExtension} /> : <Empty title="No item selected" hint="Every bar item an extension declares lists on the left; pick one to see how it draws and to set it apart from the defaults." />}
       </aside>
     </div>
   );

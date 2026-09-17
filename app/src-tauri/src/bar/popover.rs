@@ -524,11 +524,12 @@ fn hoverable(app: &AppHandle, key: &str) -> bool {
 }
 
 /// A click on the item: opens its popover engaged, or `bar/open` when it
-/// has no `menu`. `anchor` names the target for the extension's ctx.
+/// has no `menu` or explicitly says `click: "open"`. `anchor` names the
+/// target for the extension's ctx.
 pub fn on_click(app: &AppHandle, key: &str, rect: Option<Rect>, anchor: &'static str) {
     remember(app, key, rect, anchor);
     let Some(e) = entry(app, key) else { return eprintln!("bar\tclick\t{key}\tunknown item") };
-    if e.last.as_ref().is_some_and(|i| i.has_menu()) {
+    if e.last.as_ref().is_some_and(|i| i.has_menu() && !i.opens_directly()) {
         feed(app, Input::Click(key.to_string()));
     } else {
         let (app, key) = (app.clone(), key.to_string());
@@ -554,14 +555,15 @@ pub fn on_hover(app: &AppHandle, key: &str, rect: Option<Rect>, entered: bool, a
 
 /// The item's hotkey: engaged on its level, under the icon when a target
 /// draws it (sketchybar first: an auto-hidden menu bar's items sit above
-/// the screen), else at the panel's place; `bar/open` for an item with no menu.
+/// the screen), else at the panel's place; `bar/open` for an item with no
+/// menu or one that explicitly opens directly.
 pub fn on_hotkey(app: &AppHandle, key: &str) {
     let rect = [super::Kind::Sketchybar, super::Kind::Menubar].iter().find_map(|k| super::target(*k).anchor(app, key));
     if let Some(r) = rect {
         remember(app, key, Some(r), "hotkey");
     }
     let Some(e) = entry(app, key) else { return };
-    if e.last.as_ref().is_some_and(|i| i.has_menu()) {
+    if e.last.as_ref().is_some_and(|i| i.has_menu() && !i.opens_directly()) {
         feed(app, Input::Hotkey(key.to_string()));
     } else {
         let (app, key) = (app.clone(), key.to_string());

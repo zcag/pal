@@ -178,7 +178,10 @@ describe("spotify", () => {
     expect(l.palettes.find((m) => m.name === "commands")).toMatchObject({ tier: "primary", title: "Spotify" });
     expect(l.palettes.find((m) => m.name === "library")!.filters!.map((f) => f.id)).toEqual(["liked", "recent", "top-tracks", "top-artists"]);
     expect(l.palettes.find((m) => m.name === "now-playing")).toMatchObject({ title: "Lyrics", suggest: true });
-    expect(l.bar).toEqual([{ id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }]), source: true }]);
+    expect(l.bar).toEqual([expect.objectContaining({
+      id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }]), source: true,
+      mocks: expect.objectContaining({ lyrics: expect.objectContaining({ title: "Synced lyric line" }), track: expect.objectContaining({ title: "No synced lyrics" }), paused: expect.objectContaining({ item: { hidden: true } }) }),
+    })]);
     expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["pinned", "list"]]);
   });
 
@@ -512,6 +515,25 @@ describe("spotify, signed in", () => {
       h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_lyrics: true } });
       await Bun.sleep(50);
     });
+
+    test("the strip owns a timestamped lyric ticker while closed, and a media render resynchronises its next boundary", async () => {
+      state.player = { ...state.player, is_playing: true, progress_ms: 68_500 };
+      state.advanceFrom = Date.now();
+      const before = h.updates("spotify", "playing").length;
+      expect((await h.render("spotify", "playing", { reason: "media" as never })).title).toBe("The bottom of the sea");
+      const line = await h.nextUpdate("spotify", "playing", (i) => i.title === "Your eyes", 2500);
+      expect(h.updates("spotify", "playing").indexOf(line)).toBeGreaterThanOrEqual(before);
+
+      // MediaRemote has a newer position than our local clock: replace the
+      // pending deadline, then follow its next LRC timestamp instead.
+      state.advanceFrom = undefined;
+      state.player = { ...state.player, progress_ms: 75_500 };
+      expect((await h.render("spotify", "playing", { reason: "media" as never })).title).toBe("Your eyes");
+      await h.nextUpdate("spotify", "playing", (i) => i.title === "They turn me", 1500);
+
+      state.player = { ...state.player, progress_ms: 70_000 };
+      await h.render("spotify", "playing", { reason: "media" as never });
+    }, 10_000);
 
     test("the popover: bar/shown starts a 1 Hz push of the view with the position moving, an action answers keep and the state follows at once, and the pushes stop after the window", async () => {
       const t0 = Date.now();

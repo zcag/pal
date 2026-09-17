@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
-import { SettingsBar, barIndex, effectiveTarget, previewItem } from "../SettingsBar";
+import { SettingsBar, barIndex, effectiveTarget, previewItem, previewState } from "../SettingsBar";
 import { clipText, shapeItem } from "../BarStrip";
 import { lookDefaults, resolveLook, type BarConfig, type BarItemConfig } from "../SettingsTypes";
 import { barItems } from "./settings-fixtures";
@@ -93,6 +93,9 @@ describe("SettingsBar", () => {
     expect(html).toContain("Menlo, ui-monospace, monospace");
     expect(html).toContain("sketchybar, dark");
     expect(html).not.toContain("menu bar, dark");
+    expect(html).toContain('aria-label="Preview state"');
+    expect(html).toContain("Timer finished");
+    expect(html).toContain("Settings only; this never changes the live bar.");
   });
   it("writes a changed item key through onItem and an appearance default through onChange", () => {
     // The page's handlers are exercised by shape: the pane's put merges a patch over the config, the Defaults card's setLook over the target's look.
@@ -105,6 +108,7 @@ describe("SettingsBar", () => {
     expect(shapeItem({ icon: "x", color: "muted" }, { ...lookDefaults, color: "blue" }).color).toBe("muted");
     expect(clipText("With a coat that smells of rain and the radio playing", 32)).toBe("With a coat that smells of rain…");
     expect(previewItem(barItems[1])).toMatchObject({ icon: "\u{f0954}", title: "tea 12:00", progress: 0.4, color: "amber", stale: true });
+    expect(previewState(barItems[1].mocks?.[0].item, barItems[1].title)).toMatchObject({ icon: "\u{f0954}", title: "tea done", urgent: true, color: "red" });
     expect(previewItem(barItems[2])).toMatchObject({ title: "Containers" });
     expect(effectiveTarget(barItems[0], config, false)).toBe("menubar");
     expect(effectiveTarget(barItems[0], config, true)).toBe("sketchybar");

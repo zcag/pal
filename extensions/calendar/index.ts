@@ -15,16 +15,17 @@
 // inside `warn_minutes`, red inside `urgent_minutes`, a dot when there is
 // a call to join. The core asks every five minutes and on wake, the
 // network and the minute tick; a tick renders from the cache, the rest
-// fetch. A click opens the popover (view.ts): today's rows with the one
-// running on a card, Join buttons, tomorrow folded; the keys walk the
-// rows and Enter joins or opens; while it shows, a 30 s tick redraws it
-// from the cache so `in 12 min` keeps counting. Every read of the time
+// fetch. A click joins the next call (or opens Calendar); a hover peek
+// opens the popover (view.ts): today's rows with the one running on a
+// card, Join buttons, tomorrow folded; the keys walk the rows and Enter
+// joins or opens; while it shows, a 30 s tick redraws it from the cache
+// so `in 12 min` keeps counting. Every read of the time
 // is the SDK's `now` (`PAL_NOW` pins it for the tests).
 import { calendar, errorMessage, failed, hint, now as clock, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { parseQuick, type Quick } from "./quick.ts";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
 import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, log, permission, type Loaded, type Settings } from "./source.ts";
-import { duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
+import { barRules, duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
 import { focusable, freshPopover, listed, popover, rowId as viewRowId, words, type PopoverState } from "./view.ts";
 
 /** nf-md-calendar_check for a Today row, tinted with the calendar's colour; nf-md-calendar_blank for a clear day. */
@@ -377,7 +378,7 @@ async function suggest(): Promise<Item[]> {
   const { from, to } = window(s, now);
   let l: Loaded;
   try { l = await load(from, to, await chosenIds(s, false), PALETTE_AGE); } catch { const c = cached(); if (!c) return []; l = { ...c, stale: true }; }
-  const rules = { horizon_hours: Number(s.horizon_hours) || 10, warn_minutes: Number(s.warn_minutes) || 15, urgent_minutes: Number(s.urgent_minutes) || 5, hide_declined: s.hide_declined !== false, hide_all_day: s.hide_all_day !== false };
+  const rules = barRules(s);
   const e = nextEvent(l.events, now, rules);
   return e ? [todayRow(e, now, "Now")] : [];
 }
@@ -444,11 +445,23 @@ async function renderUpcoming(ctx: BarCtx): Promise<BarItem> {
     if (!c) throw e;
     l = { ...c, stale: true, error: errorMessage(e) };
   }
-  // A click that opened the popover starts it fresh: the ring on the first row, tomorrow folded (open when the day is clear).
+  // A hover peek starts its popover fresh: the ring on the first row, tomorrow folded (open when the day is clear).
   if (ctx.reason === "open") pop = freshPopover(isGoogle());
   pop.google = isGoogle();
   if (!listed(l.events, now, s.hide_declined !== false).today.length) pop.expanded = true;
   return upcomingItem(l.events, now, s, l.stale ? l.error ?? "The source did not answer" : undefined, pop);
+}
+
+/** A direct bar click: join the event it currently speaks for, else open the day's calendar. Its menu still serves hover peeks. */
+async function openUpcoming(_ctx: BarCtx): Promise<Effect> {
+  const now = clock();
+  if ((await permission()) !== "granted") return calendarHome(now);
+  const s = conf();
+  const { from, to } = window(s, now);
+  let l: Loaded;
+  try { l = cached() ?? await load(from, to, await chosenIds(s, false), 0); } catch { return calendarHome(now); }
+  const e = nextEvent(l.events, now, barRules(s));
+  return e?.conference_url ? { open: e.conference_url, hud: words(e) } : calendarHome(now);
 }
 
 // ---- the popover ---------------------------------------------------------------------
@@ -556,7 +569,7 @@ export default {
     },
   },
   bar: {
-    [ITEM]: { render: renderUpcoming, onAction: popoverAction },
+    [ITEM]: { render: renderUpcoming, onOpen: openUpcoming, onAction: popoverAction },
   },
   dispose: () => { if (tick) clearInterval(tick); tick = undefined; },
 } satisfies Extension;

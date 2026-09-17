@@ -17,8 +17,8 @@ item over one source and one cache:
   `Standup in 12m` on the menu bar or sketchybar, `now` while it runs,
   hidden when nothing starts within ten hours; muted far off, amber inside
   fifteen minutes, red inside five; a dot when there is a call to join. A
-  click opens the day in the popover: the rows still to come, Join on the
-  calls, tomorrow folded; Enter joins.
+  click joins that call (or opens Calendar); a hover peek opens the day:
+  the rows still to come, Join on the calls, tomorrow folded; Enter joins.
 
 ## Sources
 
@@ -135,11 +135,15 @@ source; a Google source refuses the write as the form does.
 `calendar/upcoming` speaks for the first event that has not ended, timed
 (all-day ones skipped unless `hide_all_day` is off), not declined, and
 starting within `horizon_hours`; a running one counts and reads `now`
-until it ends. Colour: `muted` far off, `amber` from `warn_minutes`
-before the start, `red` from `urgent_minutes`, `green` while it runs
-(the boundaries inclusive). `badge: "dot"` when there is a call. The
-tooltip is the title, the time range and the calendar. sketchybar draws
-the same colours through the bar module's map.
+until it ends. Its state is `far` (outside `near_minutes`), `near`,
+`warning` (from `warn_minutes`), `critical` (from `urgent_minutes`) or
+`running`; the boundaries are inclusive. The default colours retain the
+original behaviour: `muted`, `muted`, `amber`, `red`, then `green`.
+Each state has a configurable colour. The matching size and sketchybar
+position settings are prepared too; zero/empty preserve the normal bar
+appearance until pal's per-render appearance fields land. `badge: "dot"`
+when there is a call. The tooltip is the title, the time range and the
+calendar. sketchybar draws the same colours through the bar module's map.
 
 The core asks every five minutes and on wake, the network coming back
 and the minute tick (`refresh: { every: 300, on: ["minute", "wake",
@@ -178,8 +182,8 @@ redraws it from the cache (no fetch), so the minutes keep counting.
 | `cmd+shift+c` | Copy the focused event's conference link |
 | a click on **Join** | Join that row's call, whatever the ring is on |
 
-A click that opens the popover starts it fresh: the ring on the first
-row, tomorrow folded.
+A hover peek or hotkey that opens the popover starts it fresh: the ring on
+the first row, tomorrow folded.
 
 ## Setup
 
@@ -200,8 +204,12 @@ Settings, `[extensions.calendar]`:
 | `days` | number | `7` | How many days from today My Schedule lists (two at least, so Today has tomorrow). |
 | `hide_declined` | boolean | `true` | Leave out invitations you declined, everywhere. |
 | `horizon_hours` | number | `10` | The bar item shows the next event only when it starts within this many hours. |
-| `warn_minutes` | number | `15` | The bar item turns amber this many minutes before the event. |
-| `urgent_minutes` | number | `5` | The bar item turns red this many minutes before the event. |
+| `near_minutes` | number | `60` | The near state starts here; warning and critical still take precedence. |
+| `warn_minutes` | number | `15` | The bar item enters its warning state this many minutes before the event. |
+| `urgent_minutes` | number | `5` | The bar item enters its critical state this many minutes before the event. |
+| `bar_{far,near,warning,critical,running}_color` | select | `muted`, `muted`, `amber`, `red`, `green` | Colour for each Upcoming state. |
+| `bar_{far,near,attention}_size` | number | `0` | Desired point size for far, near, or warning/critical/running; zero keeps the normal item size until dynamic sizing is available. |
+| `bar_{far,near,attention}_position` | text | empty | Desired sketchybar position for the same states; empty keeps the normal item position until dynamic placement is available. |
 | `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
 | `default_length` | number | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
 

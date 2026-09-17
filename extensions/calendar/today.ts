@@ -61,6 +61,35 @@ export function state(e: Pick<CalendarEvent, "start" | "end" | "all_day">, now: 
 export const stateColor = (s: State): "green" | "blue" | "grey" => (s.kind === "now" ? "green" : s.kind === "over" ? "grey" : "blue");
 
 export type BarRules = { horizon_hours: number; warn_minutes: number; urgent_minutes: number; hide_declined: boolean; hide_all_day: boolean };
+type PresentationRules = BarRules & { near_minutes: number };
+
+/** The strip's time-state vocabulary, also used by Settings' mock picker. */
+export type UpcomingPhase = "far" | "near" | "warning" | "critical" | "running";
+
+/**
+ * The appearance Calendar wants for one time state. `color` is part of the
+ * current protocol; the bar will map `size` and `position` once those become
+ * per-render fields. Keeping the decision here makes that mapping mechanical.
+ */
+export type UpcomingPresentation = { phase: UpcomingPhase; color: BarColor; size?: number; position?: string };
+
+const COLORS = new Set<BarColor>(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal", "text", "muted", "accent", "destructive"]);
+const number = (value: unknown, fallback: number) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const size = (value: unknown) => { const n = number(value, 0); return n > 0 ? n : undefined; };
+const position = (value: unknown) => typeof value === "string" && value.trim() ? value.trim() : undefined;
+const color = (value: unknown, fallback: BarColor): BarColor => typeof value === "string" && COLORS.has(value as BarColor) ? value as BarColor : fallback;
+
+/** Settings normalised once, so the root suggestion and the bar share every eligibility boundary. */
+export function barRules(s: Settings): PresentationRules {
+  return {
+    horizon_hours: number(s.horizon_hours, 10),
+    near_minutes: number(s.near_minutes, 60),
+    warn_minutes: number(s.warn_minutes, 15),
+    urgent_minutes: number(s.urgent_minutes, 5),
+    hide_declined: s.hide_declined !== false,
+    hide_all_day: s.hide_all_day !== false,
+  };
+}
 
 /**
  * The event the strip speaks for: the first (by start) that has not
@@ -91,6 +120,24 @@ export function escalation(e: Pick<CalendarEvent, "start" | "end">, now: number,
   return "muted";
 }
 
+/**
+ * The calendar's whole visual decision for an event. Defaults deliberately
+ * match the existing item: muted until warning, amber, red, then green; no
+ * dynamic size or placement until the bar can draw those fields.
+ */
+export function upcomingPresentation(e: Pick<CalendarEvent, "start" | "end">, now: number, s: Settings): UpcomingPresentation {
+  const r = barRules(s);
+  const mins = (e.start - now) / MIN;
+  const phase: UpcomingPhase = e.start <= now ? "running" : mins <= r.urgent_minutes ? "critical" : mins <= r.warn_minutes ? "warning" : mins <= r.near_minutes ? "near" : "far";
+  switch (phase) {
+    case "far": return { phase, color: color(s.bar_far_color, "muted"), size: size(s.bar_far_size), position: position(s.bar_far_position) };
+    case "near": return { phase, color: color(s.bar_near_color, "muted"), size: size(s.bar_near_size), position: position(s.bar_near_position) };
+    case "warning": return { phase, color: color(s.bar_warning_color, "amber"), size: size(s.bar_attention_size), position: position(s.bar_attention_position) };
+    case "critical": return { phase, color: color(s.bar_critical_color, "red"), size: size(s.bar_attention_size), position: position(s.bar_attention_position) };
+    case "running": return { phase, color: color(s.bar_running_color, "green"), size: size(s.bar_attention_size), position: position(s.bar_attention_position) };
+  }
+}
+
 /** `Standup in 12m`, `Standup now`, the title cut to fit the strip. */
 export function barTitle(e: Pick<CalendarEvent, "title" | "start" | "end">, now: number): string {
   const title = (e.title || "(no title)").trim();
@@ -118,17 +165,19 @@ export function nextWords(e: CalendarEvent | undefined, now: number): string {
  * cache kept past a failed fetch (the strip muted, the popover says so).
  */
 export function upcomingItem(events: CalendarEvent[], now: number, s: Settings, stale?: string | false, st: PopoverState = freshPopover()): BarItem {
-  const rules = { horizon_hours: Number(s.horizon_hours) || 10, warn_minutes: Number(s.warn_minutes) || 15, urgent_minutes: Number(s.urgent_minutes) || 5, hide_declined: s.hide_declined !== false, hide_all_day: s.hide_all_day !== false };
+  const rules = barRules(s);
   const e = nextEvent(events, now, rules);
   if (!e) return { hidden: true };
   const cal = e.calendar.title ? ` (${e.calendar.title})` : "";
+  const presentation = upcomingPresentation(e, now, s);
   return {
     icon: ICON,
     title: barTitle(e, now),
-    color: escalation(e, now, rules.warn_minutes, rules.urgent_minutes),
+    color: presentation.color,
     badge: e.conference_url ? "dot" : undefined,
     stale: stale ? true : undefined,
     tooltip: `${e.title || "(no title)"}, ${timeRange(e)}${cal}${e.conference_url ? ", Enter joins" : ""}`,
+    click: "open",
     menu: { view: popover(events, now, rules.hide_declined, st, typeof stale === "string" ? stale : undefined) },
   };
 }

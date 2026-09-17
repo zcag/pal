@@ -943,6 +943,8 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 .pal-bpane__state { margin: var(--pal-space-2, 8px) 0 0; color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); line-height: var(--pal-leading-prose, 1.55); }
 .pal-bpane__state[data-level="warning"] { color: var(--pal-tag-amber, #f0b25a); }
 .pal-bpane__state[data-level="error"] { color: var(--pal-destructive, #ff6e66); }
+.pal-bpane__preview-state { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pal-space-2, 8px); color: var(--pal-fg-faint, #868794); font-size: var(--pal-text-xs, 11px); }
+.pal-bpane__preview-state .pal-select__input { height: var(--pal-icon-box, 24px); font-size: var(--pal-text-xs, 11px); }
 .pal-bpane__strip { margin-top: var(--pal-space-2, 8px); }
 .pal-bpane__strip .g-bar { border-radius: var(--pal-radius-control, 6px); box-shadow: 0 0 0 1px var(--pal-line, rgba(255, 255, 255, 0.08)); }
 .pal-bpane__strip[data-hidden] .g-bar { opacity: 0.6; }

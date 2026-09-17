@@ -85,6 +85,14 @@ pub enum DotTag {
     Dot,
 }
 
+/// `BarItem.click`: an item's click uses `onOpen` even when it also has a
+/// popover menu. A hover still peeks the menu.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Click {
+    Open,
+}
+
 /// `BarItem` in sdk/src/protocol.ts: the item's whole state as `render`
 /// answered it. `menu` stays opaque here (nodes, `{ palette }` or
 /// `{ view }`): the popover page draws it.
@@ -112,6 +120,8 @@ pub struct BarItem {
     pub tooltip: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refresh: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub click: Option<Click>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub menu: Option<Value>,
 }
@@ -182,6 +192,12 @@ impl BarItem {
     pub fn has_menu(&self) -> bool {
         self.menu.as_ref().is_some_and(|m| !m.is_null())
     }
+
+    /// Whether a click/hotkey runs the extension's open action rather than
+    /// opening this item's menu. The menu remains available to a hover peek.
+    pub fn opens_directly(&self) -> bool {
+        self.click == Some(Click::Open)
+    }
 }
 
 pub fn icon_kind(v: &Value) -> Option<IconKind> {
@@ -225,6 +241,18 @@ pub struct ManifestBar {
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refresh: Option<Refresh>,
+    /// Named, static states for the Settings preview only. The registry
+    /// never renders these to a real bar.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub mocks: BTreeMap<String, ManifestBarMock>,
+}
+
+/// One `ManifestBar.mocks.<id>` entry. `item` is the same complete state an
+/// extension's render returns, but exists only for Settings to preview.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ManifestBarMock {
+    pub title: String,
+    pub item: BarItem,
 }
 
 fn yes() -> bool {
@@ -233,7 +261,7 @@ fn yes() -> bool {
 
 impl Default for ManifestBar {
     fn default() -> Self {
-        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None }
+        Self { id: String::new(), title: String::new(), source: true, description: None, refresh: None, mocks: BTreeMap::new() }
     }
 }
 
@@ -1040,6 +1068,7 @@ mod tests {
         assert_eq!(a.count(), Some(3));
         assert!(!a.dot());
         assert!(a.has_menu());
+        assert!(!a.opens_directly());
         assert_eq!(a.icon_kind(), Some(IconKind::Glyph('\u{f09b}')));
         let b: BarItem = serde_json::from_value(json!({ "icon": "🔔", "badge": "dot", "title": "x", "segments": [{ "id": "a", "text": "1", "color": "red" }] })).unwrap();
         assert!(b.dot());
@@ -1054,6 +1083,9 @@ mod tests {
         let hidden: BarItem = serde_json::from_value(json!({ "hidden": true })).unwrap();
         assert!(hidden.hidden && !hidden.has_menu());
         assert_eq!(serde_json::to_value(&hidden).unwrap(), json!({ "hidden": true }), "unset fields are not written");
+        let direct: BarItem = serde_json::from_value(json!({ "click": "open", "menu": [] })).unwrap();
+        assert!(direct.has_menu() && direct.opens_directly(), "a direct item keeps its menu for hover");
+        assert_eq!(serde_json::to_value(&direct).unwrap(), json!({ "click": "open", "menu": [] }));
     }
 
     #[test]
@@ -1109,9 +1141,11 @@ mod tests {
         assert!(list[0].source, "the host says the code has a render");
         assert!(!list[1].source, "declared with no render: registered, never rendered");
         assert!(list[0].wants("show") && !list[0].wants("wake"));
-        let map = manifest_bars(&json!({ "otp": { "title": "Latest code", "refresh": { "every": 10 } } }));
+        let map = manifest_bars(&json!({ "otp": { "title": "Latest code", "refresh": { "every": 10 }, "mocks": { "copied": { "title": "Code copied", "item": { "icon": "󰢬", "title": "123 456", "color": "green" } } } } }));
         assert_eq!(map[0].id, "otp");
         assert_eq!(map[0].refresh.as_ref().unwrap().every, Some(10.0));
+        assert_eq!(map[0].mocks["copied"].title, "Code copied");
+        assert_eq!(map[0].mocks["copied"].item.title.as_deref(), Some("123 456"));
         assert!(manifest_bars(&Value::Null).is_empty());
     }
 

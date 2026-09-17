@@ -689,6 +689,8 @@ export type BarItem = {
   tooltip?: string;
   /** Seconds until the next `render`, this once (prs: 60 while checks run, else the manifest's `every`). */
   refresh?: number;
+  /** Run `onOpen` on a click or item hotkey even when this item also has a menu. Hover still opens the menu. */
+  click?: "open";
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */
   menu?: BarMenu;
 };
@@ -712,8 +714,11 @@ export type BarMenuNode =
 /** When the core asks `render` again. `every` is seconds (min 10, like Raycast's interval); `on` adds triggers. */
 export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "focus" | "minute")[] };
 
+/** One named, static state Settings can put through an item's preview strip. It never reaches the live bar. */
+export type ManifestBarMock = { title: string; item: BarItem };
+
 /** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
-export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[] };
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; /** Named Settings-only preview states; `title` describes the condition, `item` is an ordinary render state. */ mocks?: Record<string, ManifestBarMock>; /** The popover's key table, as a palette's: what each key does in the item's own `{ view }` level. */ keys?: ManifestKey[] };
 
 /**
  * Why `render` runs, and what a popover-opening click carried. `compact`:
@@ -736,7 +741,7 @@ export type BarSource = {
   render(ctx: BarCtx): BarItem | Promise<BarItem>;
   /** A menu node was picked (its `action`), or a segment clicked (`segment:<id>`). Any Effect; `keep` re-renders the item. */
   onAction?(action: string, ctx: BarCtx): Effect | void | Promise<Effect | void>;
-  /** A click on an item without `menu`. */
+  /** A click on an item without `menu`, or one whose rendered item says `click: "open"`. */
   onOpen?(ctx: BarCtx): Effect | void | Promise<Effect | void>;
   /** The popover opened on the item (a peek counts; `bar/shown`): warm the cache the palette or view will read. */
   onShown?(ctx: BarCtx): void | Promise<void>;

@@ -269,6 +269,30 @@
     "playing": {
       "title": "Spotify",
       "description": "The track playing (or the lyric line, with \"Lyrics on the bar\"), hidden while nothing plays; the popover is the lyrics view in a compact layout with the transport keys and the queue's next two, ticking while it is up.",
+      "mocks": {
+        "lyrics": {
+          "title": "Synced lyric line",
+          "item": {
+            "icon": "󰓇",
+            "title": "Your eyes",
+            "tooltip": "Radiohead - Weird Fishes/ Arpeggi (hornet)"
+          }
+        },
+        "track": {
+          "title": "No synced lyrics",
+          "item": {
+            "icon": "󰓇",
+            "title": "Weird Fishes/ Arpeggi · Radiohead",
+            "tooltip": "Radiohead - Weird Fishes/ Arpeggi (hornet)"
+          }
+        },
+        "paused": {
+          "title": "Paused or nothing playing",
+          "item": {
+            "hidden": true
+          }
+        }
+      },
       "refresh": {
         "every": 30,
         "on": [

@@ -85,9 +85,9 @@ whose code fails to load.
   (`[palettes.<id>].settings` in the file). The key is the palette's key
   in the code's `palettes` object; what goes here and what goes in the
   code is the next section.
-- `bar.<id>`: a bar item's `title`, `description`, `refresh` schedule and
-  `keys` (below, "Bar items"). The id is the key in the code's `bar`
-  object.
+- `bar.<id>`: a bar item's `title`, `description`, `refresh` schedule,
+  `keys`, and optional Settings-only `mocks` (below, "Bar items"). The id
+  is the key in the code's `bar` object.
 - `links.<route>`: a deep link route the code answers, with its
   `description`, `params` and `confirm` (below, "Links: routes of your
   own").
@@ -788,7 +788,8 @@ diffs it against the last one:
   480 px and the tree scrolling inside past that. A `{ palette }` naming a
   view palette opens as a view level too (`view(ctx)` asked with
   `ctx.compact`). Without a `menu` the click is `onOpen` and the extension
-  answers an Effect; `{ view }`, `{ push }` or `{ show }` in it opens the
+  answers an Effect. `click: "open"` takes that direct path even when the
+  item has a menu (a hover peek still opens the menu); `{ view }`, `{ push }` or `{ show }` in it opens the
   popover on that level.
 
 **The manifest.** `bar.<id>` next to `palettes`, so the settings window
@@ -828,7 +829,7 @@ export default defineExtension({
         if (action === "read-all") { await markAllRead(); return { keep: true, hud: "Marked read" }; }
         return { open: urlOf(action) };
       },
-      onOpen: async (ctx) => ({ copy: code }),    // the click on an item that has no `menu`
+      onOpen: async (ctx) => ({ copy: code }),    // no `menu`, or `click: "open"`
       onShown: async (ctx) => { /* the popover opened (a peek counts): warm a cache */ },
     },
   },

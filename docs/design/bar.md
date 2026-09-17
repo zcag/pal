@@ -66,6 +66,8 @@ export type BarItem = {
   tooltip?: string;
   /** Seconds until the next `render`, this once (prs: 60 while checks run, else the manifest's `every`). */
   refresh?: number;
+  /** Run `onOpen` on a click or item hotkey even when this item also has a menu. Hover still opens the menu. */
+  click?: "open";
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */
   menu?: BarMenu;
 };
@@ -93,7 +95,7 @@ submenu, action ids not `pal:`, a `{ view }` through `checkView`.
 
 ### What a click opens
 
-A click, the item's hotkey and a hover peek open the same thing on every target:
+By default, a click, the item's hotkey and a hover peek open the same thing on every target:
 
 | `menu` | the popover shows | use for |
 | --- | --- | --- |
@@ -101,6 +103,10 @@ A click, the item's hotkey and a hover peek open the same thing on every target:
 | `{ palette }` | that **palette level**, the panel machinery unchanged; a view palette opens as its view level (`view(ctx)` with `ctx.compact`), live like any view (`view.update`, `refresh`) | anything with search, a detail pane, filters, forms, more than a screenful: the notifications list, a PR queue, sessions |
 | `{ view }` | a **view level** drawing the tree, the same level as the panel's (`keys: "actions"`, the text field, the keyed `move` transitions), sized to the popover's width (`compact: true` on every `BarCtx`; `ctx.compact` on a `view`/`list`/`pick` reached from the popover). Live: `view.update(tree, { bar: id })` replaces its tree in place, `view.onShown`/`onHidden` fire for it with `{ bar, compact: true }` on open (a peek counts) and close (`app/src-tauri/src/views.rs`). Every key and click is `bar/action` with the action's id; a node carrying `action` runs it on a click, and what a control read (the text field on Enter, a form's fields, a slider's fraction) rides as `ctx.values` (`bar_action` carries them from the page) | a dashboard or card: Hue's rooms as colour tiles with switches and sliders, a timer with a big countdown and a field, Spotify's lyrics with the queue |
 | none | nothing: `bar/open` to the extension, its `Effect` runs (`open` a url, `hud`, a `push`); hover does nothing | a single-purpose item: OTP copies its code, prs opens github.com/pulls |
+
+Set `click: "open"` on an item that has a menu when its click and hotkey
+should run `onOpen` directly (joining the next meeting, toggling playback).
+Its menu remains available to an opt-in hover peek.
 
 The popover is a fourth window, `bar` (`index.html?bar`): an NSPanel like
 the main one (`panel/macos.rs:34-37`: `nonactivating_panel`, floating,
@@ -139,8 +145,11 @@ panel's Space rules (`full_screen_auxiliary`, `macos.rs:37`).
 /** When the core asks `render` again. `every` is seconds (min 10, like Raycast's interval); `on` adds triggers. */
 export type BarRefresh = { every?: number; on?: ("show" | "wake" | "network" | "focus" | "minute")[] };
 
+/** One named, static state Settings can put through an item's preview strip. It never reaches the live bar. */
+export type ManifestBarMock = { title: string; item: BarItem };
+
 /** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
-export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh };
+export type ManifestBar = { title: string; description?: string; refresh?: BarRefresh; mocks?: Record<string, ManifestBarMock> };
 // Manifest gains: bar?: Record<string, ManifestBar>
 
 /** Why `render` runs, and what a popover-opening click carried. */
@@ -150,7 +159,7 @@ export type BarSource = {
   render(ctx: BarCtx): BarItem | Promise<BarItem>;
   /** A menu node was picked (its `action`), or a segment clicked (`segment:<id>`). Any Effect; `keep` re-renders the item. */
   onAction?(action: string, ctx: BarCtx): Effect | void | Promise<Effect | void>;
-  /** A click on an item without `menu`. */
+  /** A click on an item without `menu`, or one whose rendered item says `click: "open"`. */
   onOpen?(ctx: BarCtx): Effect | void | Promise<Effect | void>;
 };
 // Extension gains: bar?: Record<string, BarSource>
@@ -405,6 +414,31 @@ which drops every key of the item but on/off. Every field has a search
 anchor (`bar:<target>:<key>`, `bar:<item key>:<key>`), and a hit selects
 the item. Writes go one key at a time (`lookWrites`): a target default equal
 to the built-in leaves the file, an item key equal to its target's does.
+
+An item may declare `mocks` in its `pal.json` when its important conditions
+are hard to catch live. It is a record keyed by a stable internal id; each
+value has a reader-facing `title` such as "Starts in 4 min" and an ordinary
+`BarItem` as `item`. Settings adds a compact **Preview state** select above
+that item's strips. Its selected mock replaces only those strips, after the
+current appearance settings are applied; it never writes config, calls the
+extension, or changes the live bar. Items without mocks keep the last-render
+preview alone.
+
+```json
+{
+  "bar": {
+    "upcoming": {
+      "title": "Upcoming",
+      "mocks": {
+        "warning": {
+          "title": "Starts in 4 min",
+          "item": { "icon": "󰃭", "title": "Design review · 4m", "color": "amber" }
+        }
+      }
+    }
+  }
+}
+```
 
 ## Keyboard
 
