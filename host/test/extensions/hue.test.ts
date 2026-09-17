@@ -291,7 +291,8 @@ describe("over the wire against the mock bridge", () => {
     // The button.
     mock.press();
     await host.until(() => Array.isArray(stored.get(`${E}\0bridges`)), 4000, "the record stored");
-    // The address and the key went to the settings through `settings.set`: the key to the keychain, the file gets the reference.
+    // The address and the key went to the settings through `settings.set` (a separate call after the record: wait for it on a slow runner): the key to the keychain, the file gets the reference.
+    await host.until(() => host.written.get(E) !== undefined, 4000, "the settings written");
     expect(host.written.get(E)).toEqual({ bridge: mock.ip, application_key: `keychain:pal/${E}-application_key` });
     expect(host.secrets.get(`pal/${E}-application_key`)).toBe(SAMPLE_KEY);
     // Storage keeps the rest of the record (the pinned certificate, the entertainment client key), never the key.
