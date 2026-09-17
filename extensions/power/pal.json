@@ -46,7 +46,13 @@
         "charging": { "title": "Charging", "item": { "icon": "󰂄", "title": "14%", "color": "green", "tooltip": "Power Adapter · Charging · 48m remaining" } },
         "warning": { "title": "Power warning", "item": { "icon": "󰁽", "title": "42% · 18.9W · background-burn", "color": "amber", "tooltip": "Battery Power · background-burn: copilot is using power in the background" } },
         "critical": { "title": "Critical battery", "item": { "icon": "󰁺", "title": "8% · 0:22", "color": "red", "tooltip": "Battery Power · 22m remaining" } }
-      }
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open Battery settings"
+        }
+      ]
     }
   }
 }

@@ -109,7 +109,7 @@
   "bar": {
     "status": {
       "title": "Network status",
-      "description": "The active network, as its name or — with Icon only — as a glyph alone: signal strength on Wi-Fi, its own mark for a hotspot or an open network, wired, or offline. A network set to `hide` in Known networks draws nothing. Click opens Network Settings; the popover opens the Network palette.",
+      "description": "The active network, as its name or — with Icon only — as a glyph alone: signal strength on Wi-Fi, its own mark for a hotspot or an open network, wired, or offline. A network set to `hide` in Known networks draws nothing. Click opens Network Settings; the popover names the connection and its kind, then the interface, the address, the gateway, the signal and security, and the DNS servers.",
       "refresh": { "every": 5, "on": ["network", "wake"] },
       "mocks": {
         "wifi": { "title": "Named Wi-Fi", "item": { "icon": "󰤥", "title": "Cafe", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 72% · Gateway 192.168.1.1" } },
@@ -119,7 +119,17 @@
         "icon_only": { "title": "Icon only", "item": { "icon": "󰤨", "tooltip": "en0 · Cafe Wifi · 192.168.1.131 · Signal 94% · Gateway 192.168.1.1" } },
         "wired": { "title": "Wired", "item": { "icon": "󰈀", "title": "Ethernet", "tooltip": "en5 · 10.0.0.7 · Gateway 10.0.0.1" } },
         "offline": { "title": "No route", "item": { "icon": "󰤭", "title": "Offline", "color": "red", "tooltip": "No default route" } }
-      }
+      },
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open Network settings"
+        },
+        {
+          "keys": "cmd+a",
+          "title": "All addresses"
+        }
+      ]
     }
   }
 }
