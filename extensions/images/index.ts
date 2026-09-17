@@ -370,8 +370,11 @@ async function land(input: string, job: Job, output: string, target: string, too
   const folder = job.kind === "icons";
   const after = folder ? await folderSize(target) : await sizeOf(target);
   if (!after) throw new Error(`${toolLabel(tool)} wrote nothing for ${basename(input)}`);
-  const gain = folder || job.kind !== "compress" || after < before;
-  if (!gain && (job.kind === "compress")) {
+  const to = folder ? undefined : await dimsOf(target);
+  const resized = !!(from && to && (from.width !== to.width || from.height !== to.height));
+  // A compress (or a web pass that changed no pixels) that did not shrink the file is no gain: nothing is written.
+  const gain = folder || !(job.kind === "compress" || (job.kind === "web" && !resized)) || after < before;
+  if (!gain) {
     if (target !== input) await Bun.file(target).unlink().catch(() => {});
     const r: Result = { source: input, output: input, job, tool, before, after, from, to: from, lossless, gain: false, at: Date.now() };
     results.set(input, r);
@@ -384,7 +387,7 @@ async function land(input: string, job: Job, output: string, target: string, too
     await Bun.file(target).unlink().catch(() => {});
     if (replace && output !== input) await Bun.file(input).unlink().catch(() => {});
   }
-  const r: Result = { source: input, output, job, tool, before, after, from, to: folder ? undefined : await dimsOf(output), lossless, gain, kept, at: Date.now(), ...(clipPaths.has(input) && { clip: true as const }) };
+  const r: Result = { source: input, output, job, tool, before, after, from, to, lossless, gain, kept, at: Date.now(), ...(clipPaths.has(input) && { clip: true as const }) };
   results.set(output, r);
   if (r.clip) clipPaths.add(output);
   return r;

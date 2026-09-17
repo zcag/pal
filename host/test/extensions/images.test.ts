@@ -3,8 +3,12 @@
 // the palette over the wire on pictures drawn here (images-png.ts): the
 // sources, the rows, compress and the other operations writing next to
 // the source, replace and restore, the levels, the web view, the batch,
-// TinyPNG against a mock, and the hints for missing tools. The operations
-// that need sips (macOS) or ImageMagick are skipped where neither is.
+// TinyPNG against a mock, and the hints for missing tools. The wire tests
+// run against stand-in tools (a temp bin on `PAL_IMAGES_PATH`: each
+// script copies its input to its output, a compressor a smaller copy, the
+// stand-in sips answers `-g` from the PNG header), so the argv, the
+// naming, the HUD text and the Results section read the same on every
+// box; the real tools get a few extras at the end, skipped where absent.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,9 +20,8 @@ import { Host } from "../harness.ts";
 import { chunk, concat, flat, gradient, png, text } from "./images-png.ts";
 
 const MAC = process.platform === "darwin";
-const SIPS = MAC && Bun.which("sips") !== null;
+const REAL_SIPS = MAC && Bun.which("sips") !== null;
 const MAGICK = Bun.which("magick") ?? Bun.which("convert");
-const CAN_GEOM = SIPS || !!MAGICK;
 const ALL: Avail = [...TOOL_ORDER, "djpeg", "avifdec", "dwebp", "heif-convert", "identify", "iconutil"];
 const DIMS = { width: 1200, height: 900 };
 const opts = (avail: Avail, output = "/out/x.png", platform = "darwin") => ({ avail, quality: 80, tmp: (ext: string) => `/tmp/t.${ext}`, output, dims: DIMS, platform });
@@ -247,24 +250,61 @@ describe("the info parsers", () => {
 
 // ---- over the wire -----------------------------------------------------------------
 
+/**
+ * The stand-in for every tool the plans name: the input is the last
+ * positional argument that exists, the output the argument after
+ * `--out`/`--output`/`-outfile`/`-o`/`-out`, else the last positional; a
+ * compressor writes the first 60% of the input (over 400 bytes: below
+ * that a copy, so a small file is "already small"), anything else a copy;
+ * `sips -g` prints the PNG header's size and a few properties. POSIX sh
+ * with `od`, `wc`, `head` and `cp` only, so it runs with `PATH=/usr/bin:/bin`.
+ */
+const STAND_IN = `#!/bin/sh
+tool=$(basename "$0")
+out=""; in=""; last=""; props=""; want=""; shrink=""
+for a in "$@"; do
+  if [ -n "$want" ]; then out="$a"; want=""; continue; fi
+  case "$a" in
+    --out|--output|-outfile|-o|-out) want=1 ;;
+    -g) props=1 ;;
+    -quality|-define) shrink=1 ;;
+    -*) ;;
+    *) if [ -e "$a" ]; then in="$a"; else last="$a"; fi ;;
+  esac
+done
+case "$tool" in pngquant|oxipng|optipng|cjpeg|jpegtran|cwebp|avifenc|gifsicle) shrink=1 ;; sips) shrink="" ;; esac
+if [ -n "$props" ]; then
+  set -- $(od -An -tu1 -j16 -N8 "$in")
+  w=$(( $1 * 16777216 + $2 * 65536 + $3 * 256 + $4 )); h=$(( $5 * 16777216 + $6 * 65536 + $7 * 256 + $8 ))
+  echo "$in"; echo "  pixelWidth: $w"; echo "  pixelHeight: $h"; echo "  format: png"; echo "  bitsPerSample: 8"; echo "  hasAlpha: yes"; echo "  space: RGB"; echo "  profile: sRGB IEC61966-2.1"; echo "  make: Canon"; echo "  model: EOS R5"; echo "  creation: <nil>"
+  exit 0
+fi
+[ -z "$out" ] && out="$last"
+[ -z "$out" ] && exit 0
+[ -z "$in" ] && { echo "no input" >&2; exit 1; }
+if [ -d "$in" ]; then printf icns > "$out"; exit 0; fi
+size=$(wc -c < "$in")
+if [ -n "$shrink" ] && [ "$size" -gt 400 ]; then head -c $(( size * 6 / 10 )) "$in" > "$out"; else cp "$in" "$out"; fi
+`;
+const TOOLS = ["pngquant", "oxipng", "cjpeg", "djpeg", "jpegtran", "cwebp", "avifenc", "gifsicle", "exiftool", "magick", "sips", "iconutil"];
+
 let host: Host;
 let dir: string;
+let bin: string;
 let clip: { kind: string; image?: string; files?: string[] } | null = null;
 const effectsRun: unknown[] = [];
 let tinyCalls = 0;
 let server: ReturnType<typeof Bun.serve> | undefined;
 const P = (p: string) => join(dir, p);
 
-/** A JPEG from the drawn PNG through sips or ImageMagick; undefined where neither is. */
-function toJpeg(src: string, out: string): boolean {
-  const argv = SIPS ? ["sips", "-s", "format", "jpeg", "-s", "formatOptions", "90", src, "--out", out] : MAGICK ? [MAGICK, src, "-quality", "90", out] : undefined;
-  if (!argv) return false;
-  return Bun.spawnSync(argv).exitCode === 0 && existsSync(out);
-}
-
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), "pal-images-"));
+  bin = join(dir, "bin");
+  mkdirSync(bin);
+  for (const t of TOOLS) writeFileSync(join(bin, t), STAND_IN, { mode: 0o755 });
   writeFileSync(P("photo.png"), png(1200, 900, gradient));
+  // The "JPEG" is the same PNG bytes under a .jpg name: the stand-ins read the header, the plans read the extension.
+  writeFileSync(P("photo.jpg"), png(1200, 900, gradient));
   writeFileSync(P("flat.png"), png(64, 64, flat));
   writeFileSync(P("noted.png"), png(32, 32, flat, [text("Comment", "a note nobody needs")]));
   writeFileSync(P("notes.txt"), "not an image\n");
@@ -274,8 +314,8 @@ beforeAll(async () => {
   writeFileSync(P("shots/readme.md"), "# shots\n");
   mkdirSync(P("clipdir"));
   writeFileSync(P("clipdir/pasted.png"), png(200, 100, gradient));
-  if (CAN_GEOM) toJpeg(P("photo.png"), P("photo.jpg"));
-  process.env.PAL_IMAGES_SELECTION = `${P("photo.png")}\n${CAN_GEOM ? P("photo.jpg") : P("flat.png")}\n${P("notes.txt")}\n${P("shots")}`;
+  process.env.PAL_IMAGES_PATH = bin;
+  process.env.PAL_IMAGES_SELECTION = `${P("photo.png")}\n${P("photo.jpg")}\n${P("notes.txt")}\n${P("shots")}`;
   process.env.PAL_IMAGES_CACHE = P("cache");
   // TinyPNG: a mock that answers a 1000-byte "compressed" file for anything posted.
   server = Bun.serve({ port: 0, fetch: async (req) => {
@@ -302,7 +342,7 @@ const list = (q = "", ctx?: object) => host.list("images", "images", q, ctx);
 const pick = (id: string, action?: string, ctx?: object) => host.pick("images", "images", id, action, ctx);
 const ids = (rows: Item[]) => rows.map((r) => r.id);
 
-describe("images: the palette", () => {
+describe("images: the palette (stand-in tools)", () => {
   test("loads with the manifest's tile and no warnings; one input palette with multi and the detail pane", () => {
     const l = host.loaded().find((l) => l.extension === "images")!;
     expect(l.warnings).toEqual([]);
@@ -314,11 +354,11 @@ describe("images: the palette", () => {
     const rows = await list();
     expect(rows[0]).toMatchObject({ id: "all", name: "All 4 images", subtitle: "Finder selection" });
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["compress", "web", "lossless", "tinypng", "resize", "convert", "rotate", "crop", "strip", "gray", "icons"]);
-    expect(ids(rows).slice(1)).toEqual([P("photo.png"), CAN_GEOM ? P("photo.jpg") : P("flat.png"), P("shots/one.png"), P("shots/two.png")]);
+    expect(ids(rows).slice(1)).toEqual([P("photo.png"), P("photo.jpg"), P("shots/one.png"), P("shots/two.png")]);
     const photo = rows[1];
     expect(photo.section).toBe("Finder selection");
     expect(photo.name).toBe("photo.png");
-    expect(photo.accessories).toEqual(CAN_GEOM ? [{ text: size(statSync(P("photo.png")).size) }, { text: "1200×900" }] : [{ text: size(statSync(P("photo.png")).size) }]);
+    expect(photo.accessories).toEqual([{ text: size(statSync(P("photo.png")).size) }, { text: "1200×900" }]);
     expect(photo.icon).toEqual({ image: `icon://localhost/file?path=${encodeURIComponent(P("photo.png"))}&size=64` });
     expect(photo.keywords).toEqual(["png"]);
     expect(photo.actions!.map((a) => a.id)).toEqual(["compress", "web", "lossless", "tinypng", "resize", "convert", "rotate", "crop", "strip", "gray", "icons", "ocr", "info", "copy", "copy-image", "open", "reveal"]);
@@ -335,75 +375,75 @@ describe("images: the palette", () => {
     const folder = await list(P("shots") + "/");
     expect(folder[0]).toMatchObject({ id: `folder:${P("shots")}`, name: "All 2 images in shots" });
     expect(ids(folder).slice(1)).toEqual([P("shots/one.png"), P("shots/two.png")]);
-    const comp = await list(P("ph"));
-    expect(ids(comp)).toEqual(CAN_GEOM ? [P("photo.jpg"), P("photo.png")] : [P("photo.png")]);
+    expect(ids(await list(P("ph")))).toEqual([P("photo.jpg"), P("photo.png")]);
     expect((await list(P("sh")))[0]).toMatchObject({ id: `hint:dir:${P("shots")}`, actions: [] });
     expect((await list(P("notes.txt")))[0].name).toBe("notes.txt is not an image");
     expect((await list(P("zzz")))[0].name).toBe("No image or folder there");
   });
 
-  test("the clipboard: an image entry is a Clipboard image row, a file list its images; nothing at hand is the how-to hint and the install hints without periods", async () => {
+  test("the clipboard: an image entry is a Clipboard image row, a file list its images, a path already selected counted once; a query nothing matches is empty", async () => {
     clip = { kind: "image", image: P("clipdir/pasted.png") };
     let rows = await list("", { refresh: true });
     const c = rows.find((r) => r.section === "Clipboard")!;
     expect(c).toMatchObject({ id: P("clipdir/pasted.png"), name: "Clipboard image", subtitle: "From the clipboard" });
     expect(rows[0].subtitle).toBe("Finder selection and Clipboard");
-    clip = { kind: "files", files: [P("flat.png"), P("notes.txt"), P("gone.png")] };
+    clip = { kind: "files", files: [P("flat.png"), P("photo.png"), P("notes.txt"), P("gone.png")] };
     rows = await list("", { refresh: true });
     expect(rows.filter((r) => r.section === "Clipboard").map((r) => r.name)).toEqual(["flat.png"]);
     clip = null;
-    const sel = process.env.PAL_IMAGES_SELECTION;
-    process.env.PAL_IMAGES_SELECTION = "";
-    try {
-      // The host reads its env at spawn: an empty selection is a fresh host's; here the same is reached by narrowing to nothing.
-      const none = await list("nothing-matches-this", { refresh: true });
-      expect(none).toEqual([]);
-    } finally { process.env.PAL_IMAGES_SELECTION = sel; }
+    expect(await list("nothing-matches-this", { refresh: true })).toEqual([]);
   });
 
-  test.skipIf(!CAN_GEOM)("compress writes -compressed next to the source, copies the path and says the tool and the sizes in the HUD; the row then sits under Results with the saving; the pane says what made it", async () => {
+  test("the detail pane: the picture at 256 px over the info the stand-in sips answers", async () => {
+    const d = await host.detail("images", "images", P("photo.jpg"));
+    expect(d.markdown).toBe(`![](icon://localhost/file?path=${encodeURIComponent(P("photo.jpg"))}&size=256)`);
+    expect(d.metadata).toEqual([
+      { label: "Path", value: P("photo.jpg") }, { label: "Size", value: size(statSync(P("photo.jpg")).size) }, { label: "Dimensions", value: "1200 × 900 px" },
+      { label: "Format", value: "PNG, 8 bits, alpha" }, { label: "Colour", value: "RGB · sRGB IEC61966-2.1" }, { label: "Camera", value: "Canon EOS R5" },
+    ]);
+  });
+
+  test("compress writes -compressed next to the source, copies the path and says the tool and the sizes in the HUD; the row then sits under Results with the saving; the pane says what made it; a second time is -2", async () => {
+    const before = statSync(P("photo.png")).size;
     const e = await pick(P("photo.png"), "compress");
     expect(e.copy).toBe(P("photo-compressed.png"));
-    expect(existsSync(P("photo-compressed.png"))).toBe(true);
-    expect(e.hud).toMatch(/^Compressed photo\.png: [\d.]+ [KM]B → [\d.]+ [KM]?B \(−\d+%\), (pngquant|oxipng|optipng|magick) · path copied$/);
+    const after = statSync(P("photo-compressed.png")).size;
+    expect(after).toBe(Math.floor(before * 6 / 10));
+    expect(e.hud).toBe(`Compressed photo.png: ${size(before)} → ${size(after)} (${percent(before, after)}), pngquant · path copied`);
     const rows = await list();
     const r = rows.find((x) => x.id === P("photo-compressed.png"))!;
     expect(r.section).toBe("Results");
-    expect(r.subtitle).toMatch(/^Compressed with (pngquant|oxipng|optipng|magick)( \(lossless: no lossy encoder for it\))? · /);
-    expect(r.accessories![0]).toMatchObject({ color: "green" });
+    expect(r.subtitle).toBe(`Compressed with pngquant · ${size(before)} → ${size(after)}`);
+    expect(r.accessories).toEqual([{ tag: percent(before, after), color: "green" }, { text: size(after) }, { text: "1200×900" }]);
     expect(r.actions!.map((a) => a.id)).toContain("trash");
     expect(r.actions!.map((a) => a.id)).not.toContain("restore");
     const d = await host.detail("images", "images", P("photo-compressed.png"));
-    expect(d.metadata![0].label).toBe("Made by");
-    expect(d.metadata!.find((m) => m.label === "Dimensions")?.value).toBe("1200 × 900 px");
-    expect(d.markdown).toBe(`![](icon://localhost/file?path=${encodeURIComponent(P("photo-compressed.png"))}&size=256)`);
-    // Again: the name is taken, so -2.
+    expect(d.metadata!.slice(0, 3)).toEqual([{ label: "Made by", value: "Compressed with pngquant" }, { label: "From", value: `${P("photo.png")}, ${size(before)}, 1200×900` }, { label: "Saving", tags: [{ text: percent(before, after), color: "green" }] }]);
     expect((await pick(P("photo.png"), "compress")).copy).toBe(P("photo-compressed-2.png"));
+    // Lossless names the lossless tool; a JPEG goes through cjpeg (lossy) and jpegtran (lossless).
+    expect((await pick(P("photo.png"), "lossless")).hud).toContain("(−40%), oxipng · path copied");
+    expect((await pick(P("photo.jpg"), "compress")).hud).toContain(", cjpeg · path copied");
+    expect((await pick(P("photo.jpg"), "lossless")).hud).toContain(", jpegtran · path copied");
   });
 
-  test.skipIf(!CAN_GEOM)("an image that is already small: nothing is written, a failure toast says which tool tried", async () => {
-    // Compressing a compressor's own output converges within a few rounds: the round that gains nothing writes nothing.
-    let file = P("flat.png");
-    let e = await pick(file, "compress");
-    for (let i = 0; i < 4 && e.copy; i++) { file = e.copy as string; e = await pick(file, "compress"); }
-    expect(e.keep).toBe(true);
-    expect(e.toast).toMatchObject({ title: `${basename(file)} is already small`, style: "failure" });
-    expect(e.toast!.message).toMatch(/^(pngquant|oxipng|optipng|magick) could not make it smaller; nothing written$/);
-    expect(existsSync(file.replace(/\.png$/, "-compressed.png"))).toBe(false);
+  test("an image that is already small: nothing is written, a failure toast names the tool that tried", async () => {
+    const e = await pick(P("flat.png"), "compress");
+    expect(e).toEqual({ keep: true, toast: { title: "flat.png is already small", message: "pngquant could not make it smaller; nothing written", style: "failure" } });
+    expect(existsSync(P("flat-compressed.png"))).toBe(false);
   });
 
-  test.skipIf(!CAN_GEOM)("the operations by action: strip (the note gone, lossless), gray, and the level choices for resize, rotate, crop and pad, each named for the pixels it lands on", async () => {
+  test("the operations by action: strip (the note gone, lossless), gray, and the level choices for resize, rotate, crop and pad, each named for the pixels it lands on", async () => {
     const s = await pick(P("noted.png"), "strip");
     expect(s.copy).toBe(P("noted-stripped.png"));
     expect(new TextDecoder().decode(readFileSync(P("noted-stripped.png")))).not.toContain("nobody needs");
     expect(s.hud).toContain(", pal · path copied");
-    expect((await pick(P("photo.png"), "gray")).copy).toBe(P("photo-gray.png"));
+    expect((await pick(P("photo.png"), "gray")).hud).toMatch(/^Converted to grayscale photo\.png: .*, sips · path copied$/);
     const push = await pick(P("photo.png"), "resize");
     expect(push.push).toEqual({ extension: "images", palette: "images", args: { op: "resize", files: [P("photo.png")] }, title: "Resize photo.png" });
     const level = { args: push.push!.args };
     const presets = await list("", level);
     expect(presets[0]).toMatchObject({ id: 'resize:{"percent":50}', name: "Half size (@0.5x)", subtitle: "photo.png: 1200×900 → 600×450" });
-    expect(presets[0].detail!.metadata).toEqual([{ label: "Source", value: "photo.png, 1200×900" }, { label: "Result", value: "600×450" }, { label: "Writes", value: "photo@0.5x.png" }, { label: "Tool", value: SIPS ? "sips" : "magick" }]);
+    expect(presets[0].detail!.metadata).toEqual([{ label: "Source", value: "photo.png, 1200×900" }, { label: "Result", value: "600×450" }, { label: "Writes", value: "photo@0.5x.png" }, { label: "Tool", value: "sips" }]);
     expect(presets.map((r) => r.name)).toContain("Double size (@2x)");
     expect(presets.at(-1)).toMatchObject({ id: "hint:how", name: "Or type a size", actions: [] });
     const typed = await list("800x600", level);
@@ -411,46 +451,52 @@ describe("images: the palette", () => {
     expect((await list("banana", level)).map((r) => r.id)).toEqual(["hint:how"]);
     const r = await pick(typed[0].id, "run", level);
     expect(r.copy).toBe(P("photo-800x600.png"));
-    expect(r.hud).toContain("1200×900 → 800×600");
-    // The level lists its own results after the choices.
+    // The stand-in copies the pixels, so the HUD reports the sizes it can see; the level then lists the result after the choices.
+    expect(r.hud).toMatch(/^Resized photo\.png: .*, sips · path copied$/);
     expect((await list("", level)).at(-1)).toMatchObject({ id: P("photo-800x600.png"), section: "Results" });
     expect((await pick('resize:{"percent":200}', "run", level)).copy).toBe(P("photo@2x.png"));
     const rot = { args: { op: "rotate", files: [P("photo.png")] } };
     expect((await list("", rot)).map((r) => r.id)).toEqual(["rotate:90", "rotate:270", "rotate:180", "flip:horizontal", "flip:vertical"]);
-    expect((await pick("rotate:90", "run", rot)).hud).toContain("1200×900 → 900×1200");
+    expect((await list("", rot))[0].detail!.metadata).toEqual([{ label: "Source", value: "photo.png, 1200×900" }, { label: "Result", value: "900×1200" }, { label: "Writes", value: "photo-rotated90.png" }, { label: "Tool", value: "sips" }]);
+    expect((await pick("rotate:90", "run", rot)).copy).toBe(P("photo-rotated90.png"));
     const crop = { args: { op: "crop", files: [P("photo.png")] } };
     expect((await list("", crop)).map((r) => r.id)).toEqual(["crop:1:1", "crop:16:9", "crop:4:3", "crop:3:2", "crop:9:16", "pad"]);
+    expect((await list("", crop))[0].subtitle).toBe("photo.png: 1200×900 → 900×900, centred");
+    expect((await list("", crop))[5].subtitle).toBe("photo.png: 1200×900 → 1200×1200, #ffffff around it");
     expect((await pick("crop:1:1", "run", crop)).copy).toBe(P("photo-square.png"));
-    expect((await pick("pad", "run", crop)).hud).toContain("1200×900 → 1200×1200");
+    expect((await pick("pad", "run", crop)).copy).toBe(P("photo-padded.png"));
   });
 
-  test.skipIf(!CAN_GEOM)("convert: the formats with the tool that writes each, a missing one named and inert; the result carries the new extension", async () => {
+  test("convert: the formats with the tool that writes each, a missing one named and inert; the result carries the new extension", async () => {
     const level = { args: { op: "convert", files: [P("photo.png")] } };
     const rows = await list("", level);
-    expect(rows.map((r) => r.id)).toEqual(["convert:jpeg", "convert:webp", "convert:avif", "convert:heic", "convert:pdf", "convert:tiff", "convert:gif"]);
-    const jpeg = rows[0];
-    expect(jpeg.subtitle).toMatch(/^photo\.png as \.jpg with (cjpeg|mozjpeg|sips|magick), quality 80$/);
-    const e = await pick("convert:jpeg", "run", level);
-    expect(e.copy).toBe(P("photo.jpg") === P("photo.jpg") && existsSync(P("photo.jpg")) ? P("photo-2.jpg") : P("photo.jpg"));
+    expect(rows.map((r) => [r.id, r.subtitle])).toEqual([
+      ["convert:jpeg", "photo.png as .jpg with cjpeg, quality 80"], ["convert:webp", "photo.png as .webp with cwebp, quality 80"], ["convert:avif", "photo.png as .avif with avifenc, quality 80"],
+      ["convert:heic", "photo.png as .heic with sips, quality 80"], ["convert:pdf", "photo.png as .pdf with sips"], ["convert:tiff", "photo.png as .tiff with sips"], ["convert:gif", "photo.png as .gif with sips"],
+    ]);
+    const e = await pick("convert:webp", "run", level);
+    expect(e.copy).toBe(P("photo.webp"));
+    expect(e.hud).toMatch(/^Converted to WebP photo\.png: .*, cwebp · path copied$/);
     // With only sips listed, WebP has no writer: the row says what to install and takes no action.
     host.changeSettings("images", { settings: { tools: ["sips"], tinypng_api_key: "test-key" } });
     await Bun.sleep(50);
-    const only = await list("", level);
-    const webp = only.find((r) => r.id === "convert:webp")!;
-    if (SIPS) { expect(webp.actions).toEqual([]); expect(webp.subtitle).toBe("Install cwebp or magick: nothing writes WebP"); expect(webp.detail!.metadata!.at(-1)).toEqual({ label: "Needs", value: "cwebp (brew install webp) or magick (brew install imagemagick)" }); }
+    const webp = (await list("", level)).find((r) => r.id === "convert:webp")!;
+    expect(webp.actions).toEqual([]);
+    expect(webp.subtitle).toBe("Install cwebp or magick: nothing writes WebP");
+    expect(webp.detail!.metadata!.at(-1)).toEqual({ label: "Needs", value: "cwebp (brew install webp) or magick (brew install imagemagick)" });
     host.changeSettings("images", { settings: { tinypng_api_key: "test-key" } });
     await Bun.sleep(50);
   });
 
-  test.skipIf(!CAN_GEOM)("replace: the result takes the source's place, the original is kept in the cache and Restore puts it back", async () => {
+  test("replace: the result takes the source's place, the original is kept in the cache and Restore puts it back", async () => {
     writeFileSync(P("rep.png"), png(300, 300, gradient));
     const before = statSync(P("rep.png")).size;
     host.changeSettings("images", { settings: { replace: true, tinypng_api_key: "test-key" } });
     await Bun.sleep(50);
-    const e = await pick(P("rep.png"), "gray");
+    const e = await pick(P("rep.png"), "compress");
     expect(e.copy).toBe(P("rep.png"));
-    expect(e.hud).toContain("the original kept for Restore");
-    expect(statSync(P("rep.png")).size).not.toBe(before);
+    expect(e.hud).toContain("pngquant, the original kept for Restore · path copied");
+    expect(statSync(P("rep.png")).size).toBe(Math.floor(before * 6 / 10));
     const kept = readdirSync(P("cache/originals"));
     expect(kept).toHaveLength(1);
     expect(kept[0]).toEndWith("-rep.png");
@@ -465,7 +511,7 @@ describe("images: the palette", () => {
     await Bun.sleep(50);
   });
 
-  test.skipIf(!CAN_GEOM)("a clipboard image's result goes to the cache's clipboard folder and the image itself is what gets copied (or the file, where nothing can write the pasteboard)", async () => {
+  test("a clipboard image's result goes to the cache's clipboard folder and the image itself is what gets copied (or the file, where nothing can write the pasteboard)", async () => {
     clip = { kind: "image", image: P("clipdir/pasted.png") };
     await list("", { refresh: true });
     const e = await pick(P("clipdir/pasted.png"), "gray");
@@ -473,20 +519,19 @@ describe("images: the palette", () => {
     expect(out).toHaveLength(1);
     expect(out[0]).toMatch(/^clipboard-\d\d-\d\d-\d\d-gray\.png$/);
     expect(existsSync(P("clipdir/pasted-gray.png"))).toBe(false);
-    expect(e.hud).toMatch(/^Converted to grayscale the clipboard image: .* · (image|path) copied$/);
+    expect(e.hud).toMatch(/^Converted to grayscale the clipboard image: .*, sips · (image|path) copied$/);
     clip = null;
   });
 
-  test.skipIf(!CAN_GEOM)("the icon set: a folder with the iconset, the web sizes and favicon.ico; the .icns on macOS", async () => {
+  test("the icon set: a folder with the iconset, the web sizes, favicon.ico and the .icns", async () => {
     const e = await pick(P("photo.png"), "icons");
     expect(e.copy).toBe(P("photo-icons"));
-    const files = readdirSync(P("photo-icons")).sort();
-    expect(files).toEqual(expect.arrayContaining(["android-chrome-192.png", "android-chrome-512.png", "apple-touch-icon.png", "favicon-16.png", "favicon-32.png", "favicon.ico", "photo.iconset"]));
+    expect(e.hud).toMatch(/^Icon set photo\.png: [\d.]+ [KM]B in photo-icons, sips · path copied$/);
+    expect(readdirSync(P("photo-icons")).sort()).toEqual(["android-chrome-192.png", "android-chrome-512.png", "apple-touch-icon.png", "favicon-16.png", "favicon-32.png", "favicon.ico", "photo.icns", "photo.iconset"]);
     expect(readdirSync(P("photo-icons/photo.iconset")).sort()).toEqual(ICONSET.map(([, n]) => n).sort());
-    if (MAC && Bun.which("iconutil")) expect(files).toContain("photo.icns");
   });
 
-  test.skipIf(!CAN_GEOM)("optimise for web: a view with a row per image (thumbnail, sizes, the saving, a bar), the total at the foot; its picks copy the paths or the first image", async () => {
+  test("optimise for web: a view with a row per image (thumbnail, sizes, the saving, a bar; already small for one nothing shrinks), the total at the foot; its picks copy the paths or the first image", async () => {
     const e = await pick(P("photo.png"), "web", { ids: [P("photo.png"), P("flat.png")] });
     const v = e.view as View;
     expect(v.id).toBe("web:1");
@@ -497,20 +542,20 @@ describe("images: the palette", () => {
     expect(rows.map((r) => r.key)).toEqual([P("photo.png"), P("flat.png")]);
     expect(JSON.stringify(rows[0])).toContain('"type":"progress"');
     expect(JSON.stringify(rows[0])).toContain('"type":"image"');
-    expect(JSON.stringify(rows[1])).toMatch(/already small|"badge","text":"−\d+%"/);
+    expect(JSON.stringify(rows[0])).toContain('{"type":"badge","text":"−40%","color":"green"}');
+    expect(JSON.stringify(rows[1])).toContain("already small");
     const foot = tree.children.at(-1) as ViewNode & { value: string };
-    expect(foot.value).toMatch(/^Saved [\d.]+ [KM]?B \(−\d+%\) across [12] images?$/);
+    expect(foot.value).toMatch(/^Saved [\d.]+ [KM]?B \(−40%\) across 1 image$/);
     expect(existsSync(P("photo-web.png"))).toBe(true);
-    expect(String((await pick("web:1", "copy")).copy).split("\n")[0]).toBe(P("photo-web.png"));
+    expect((await pick("web:1", "copy")).copy).toBe(P("photo-web.png"));
     expect(effectsRun).toEqual([]);
   });
 
-  test.skipIf(!CAN_GEOM)("a batch: the All row runs the operation over every source, the HUD sums it up and every path is copied; marked rows the same", async () => {
+  test("a batch: the All row runs the operation over every source, the HUD sums it up and every path is copied; marked rows the same", async () => {
     await list("", { refresh: true });
     const e = await pick("all", "gray");
-    expect(e.hud).toMatch(/^Converted to grayscale 4 of 4 images: .* · paths copied$/);
-    expect(String(e.copy).split("\n")).toHaveLength(4);
-    expect(existsSync(P("shots/one-gray.png"))).toBe(true);
+    expect(e.hud).toMatch(/^Converted to grayscale 4 of 4 images: .* with sips · paths copied$/);
+    expect(String(e.copy).split("\n")).toEqual([P("photo-gray-2.png"), P("photo-gray.jpg"), P("shots/one-gray.png"), P("shots/two-gray.png")]);
     const m = await pick(P("shots/one.png"), "copy", { ids: [P("shots/one.png"), P("shots/two.png")] });
     expect(m.copy).toBe(`${P("shots/one.png")}\n${P("shots/two.png")}`);
   });
@@ -518,9 +563,9 @@ describe("images: the palette", () => {
   test("TinyPNG: the bytes posted with the key as basic auth, the output fetched and written as -compressed; a bad key is the service's message", async () => {
     const e = await pick(P("flat.png"), "tinypng");
     expect(tinyCalls).toBe(1);
-    expect(e.copy).toMatch(/\/flat-compressed(-\d)?\.png$/);
-    expect(e.hud).toContain("TinyPNG");
-    expect(statSync(e.copy as string).size).toBe(png(1, 1, flat).length);
+    expect(e.copy).toBe(P("flat-compressed.png"));
+    expect(e.hud).toContain(", TinyPNG · path copied");
+    expect(statSync(P("flat-compressed.png")).size).toBe(png(1, 1, flat).length);
     expect((await pick(P("notes.txt"), "tinypng")).toast?.message).toContain("TinyPNG takes PNG, JPEG, WebP and AVIF");
     host.changeSettings("images", { settings: { tinypng_api_key: "wrong" } });
     await Bun.sleep(50);
@@ -530,14 +575,13 @@ describe("images: the palette", () => {
     await Bun.sleep(50);
   });
 
-  test("OCR through the core, Copy info as lines, Copy path, Copy image falls back to the file where the pasteboard cannot take it", async () => {
+  test("OCR through the core, Copy info as lines, Copy path, Open", async () => {
     expect(await pick(P("flat.png"), "ocr")).toEqual({ copy: "text of flat.png", hud: "Copied text" });
     const info = await pick(P("flat.png"), "info");
     expect(info.hud).toBe("Copied info");
-    expect(info.copy).toStartWith(`Path: ${P("flat.png")}\nSize: `);
+    expect(info.copy).toBe(`Path: ${P("flat.png")}\nSize: ${size(statSync(P("flat.png")).size)}\nDimensions: 64 × 64 px\nFormat: PNG, 8 bits, alpha\nColour: RGB · sRGB IEC61966-2.1\nCamera: Canon EOS R5`);
     expect(await pick(P("flat.png"), "copy")).toEqual({ copy: P("flat.png") });
     expect(await pick(P("flat.png"), "open")).toEqual({ open: P("flat.png") });
-    if (!MAC && !Bun.which("wl-copy") && !Bun.which("xclip")) expect(await pick(P("flat.png"), "copy-image")).toEqual({ copy_files: [P("flat.png")] });
   });
 
   test("with TinyPNG's key unset its action is gone; with no encoders listed the hints name what to install", async () => {
@@ -559,5 +603,46 @@ describe("images: the palette", () => {
     } finally { bare.kill(); process.env.PAL_IMAGES_SELECTION = sel; }
     host.changeSettings("images", { settings: { tinypng_api_key: "test-key" } });
     await Bun.sleep(50);
+  });
+});
+
+// ---- the real tools, where they are -------------------------------------------------
+
+describe.skipIf(!MAGICK && !REAL_SIPS)("images: the real tools", () => {
+  let real: Host;
+  let rdir: string;
+  const R = (p: string) => join(rdir, p);
+  beforeAll(async () => {
+    rdir = mkdtempSync(join(tmpdir(), "pal-images-real-"));
+    writeFileSync(R("photo.png"), png(1200, 900, gradient));
+    const path = process.env.PAL_IMAGES_PATH;
+    delete process.env.PAL_IMAGES_PATH;
+    process.env.PAL_IMAGES_SELECTION = R("photo.png");
+    process.env.PAL_IMAGES_CACHE = R("cache");
+    try { real = await Host.bundled({ core: { "clipboard.current": () => null, "ocr.available": () => false } }); } finally { process.env.PAL_IMAGES_PATH = path; }
+  });
+  afterAll(() => { real?.kill(); if (rdir) rmSync(rdir, { recursive: true, force: true }); });
+
+  test("the drawn PNG's size and pixels are read by sips or identify", async () => {
+    const rows = await real.list("images", "images", "");
+    expect(rows[0].accessories).toEqual([{ text: size(statSync(R("photo.png")).size) }, { text: "1200×900" }]);
+  });
+
+  test.skipIf(!MAGICK)("compress through ImageMagick (or pngquant/oxipng when installed) writes a smaller, still-readable PNG", async () => {
+    const e = await real.pick("images", "images", R("photo.png"), "compress");
+    expect(e.copy).toBe(R("photo-compressed.png"));
+    expect(e.hud).toMatch(/^Compressed photo\.png: .* \(−\d+%\), (pngquant|oxipng|optipng|magick) · path copied$/);
+    expect(statSync(R("photo-compressed.png")).size).toBeLessThan(statSync(R("photo.png")).size);
+    const id = Bun.spawnSync([MAGICK!, ...(basename(MAGICK!) === "magick" ? ["identify"] : []), "-format", "%m %w %h", R("photo-compressed.png")]);
+    expect(id.stdout.toString()).toBe("PNG 1200 900");
+  });
+
+  test("a half-size resize lands on 600×450 through sips or ImageMagick", async () => {
+    const level = { args: { op: "resize", files: [R("photo.png")] } };
+    const e = await real.pick("images", "images", 'resize:{"percent":50}', "run", level);
+    expect(e.copy).toBe(R("photo@0.5x.png"));
+    expect(e.hud).toContain("1200×900 → 600×450");
+    const rows = await real.list("images", "images", "", level);
+    expect(rows.at(-1)).toMatchObject({ id: R("photo@0.5x.png"), section: "Results", accessories: [expect.objectContaining({ color: "green" }), expect.anything(), { text: "600×450" }] });
   });
 });
