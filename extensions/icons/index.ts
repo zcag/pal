@@ -3,9 +3,12 @@
 // the glyphs, sections are the sets. Copy the glyph, its code point, its
 // `nf-<set>-<name>` name or the CSS class. The last few picked lead the
 // list in a "Recent" section (storage). A second grid lists the
-// freedesktop icon names the SDK's `xdg()` knows, each with its glyph.
+// freedesktop icon names the SDK's `xdg()` knows, each with its glyph. A
+// third, `iconify` (iconify.ts), searches every set Iconify hosts over its
+// API and copies the SVG.
 import { settings, storage, XDG_ICONS, type Action, type Detail, type Extension, type Item } from "@zcag/pal";
 import data from "./data.json";
+import { ACTIONS as ICONIFY_ACTIONS, list as iconifyList, pick as iconifyPick } from "./iconify.ts";
 
 type Data = { version: string; sets: Record<string, [string, string][]> };
 /** `[palettes.icons]`, default in pal.json. */
@@ -119,6 +122,16 @@ export default {
           default: return { copy: id };
         }
       },
+    },
+    iconify: {
+      title: "Iconify Icons",
+      view: "grid",
+      input: true,
+      columns: settings.palette<PaletteSettings>("iconify").columns,
+      placeholder: "Search 200k icons: home, arrow left, github",
+      actions: ICONIFY_ACTIONS,
+      list: iconifyList,
+      pick: iconifyPick,
     },
   },
 } satisfies Extension;

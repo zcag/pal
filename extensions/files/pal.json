@@ -1,7 +1,7 @@
 {
   "name": "files",
   "title": "Files",
-  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; by contents too, as a second section or alone with a ' prefix; the recently used files before you type, and as a palette of their own. Enter on a folder browses it (sorted by name, date or size, `..` and `←` up). Open, open with another app, reveal, Quick Look, copy the path, the file or the text in an image (OCR), trash.",
+  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; by contents too, as a second section or alone with a ' prefix; the recently used files before you type, and as a palette of their own. Enter on a folder browses it (sorted by name, date or size, `..` and `←` up). Open, open with another app, reveal, Quick Look, open in a terminal, copy the path, the file or the text in an image (OCR), rename, move or copy to a folder, compress, trash.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -66,6 +66,14 @@
         "Library/Caches",
         "target"
       ]
+    },
+    {
+      "kind": "text",
+      "id": "terminal",
+      "label": "Terminal",
+      "description": "What Open in Terminal opens: `Terminal` (default), `iTerm`, `kitty`, `Alacritty`, `WezTerm`, `Ghostty`, or any app name (`open -na <name> --args -e ...`); on Linux a command name (`kitty`, `foot`, `alacritty`, `wezterm`, `ghostty`, ...), else `$TERMINAL`, else the first of those installed.",
+      "placeholder": "Terminal",
+      "default": ""
     }
   ],
   "store": {
@@ -79,8 +87,9 @@
       "Before you type: the files used in the last seven days; the same rows as the Recent Files palette",
       "Enter (or `→`) on a folder browses it as a level whose crumb is the folder: a `..` row (`←` or Backspace goes up from anywhere), the entries sorted by name, date or size from the dropdown, pictures with their thumbnails, `cmd+.` for hidden files; `~/` or `/` typed lists that folder the same way",
       "Open with… (`cmd+o`) lists the apps the OS registers for the file, the default tagged",
-      "Reveal (`cmd+enter`), Quick Look (`cmd+y`), Copy path (`cmd+c`), Copy file (`cmd+shift+c`), Move to Trash (`cmd+d`, asks first)",
-      "The detail pane: path, size, modified, kind, and the first 40 lines of a text file"
+      "Reveal (`cmd+enter`), Quick Look (`cmd+y`), Copy path (`cmd+c`), Copy file (`cmd+shift+c`), Open in Terminal (`cmd+t`, the folder or the file's), Move to Trash (`cmd+d`, asks first)",
+      "Rename (`cmd+shift+r`), Move to (`cmd+m`) and Copy to (`cmd+alt+c`) a folder, each a form; Compress (`cmd+shift+z`) zips the file, or every marked row, next to it",
+      "The detail pane: path, size, modified, kind, an image's pixel size and Finder's tags (Spotlight, macOS), and the first 40 lines of a text file"
     ],
     "permissions": [
       "automation"
@@ -109,6 +118,10 @@
       {
         "file": "5-browse.png",
         "caption": "Browsing ~/proj: the crumb is the folder, .. leads, the dropdown sorts by name, date or size"
+      },
+      {
+        "file": "6-rename.png",
+        "caption": "Rename, Move to and Copy to are forms; Compress zips the file next to itself"
       }
     ],
     "actions": [
@@ -145,6 +158,31 @@
         "title": "Copy file",
         "description": "The file itself onto the clipboard: a paste in Finder copies it.",
         "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Open in Terminal",
+        "description": "A terminal window in the folder (a file's folder), the app the `terminal` setting names.",
+        "keys": "cmd+t"
+      },
+      {
+        "title": "Rename…",
+        "description": "A form; the new name in the same folder.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Move to…",
+        "description": "A form; the folder it goes to, made when missing.",
+        "keys": "cmd+m"
+      },
+      {
+        "title": "Copy to…",
+        "description": "A form; a copy under the same name in that folder.",
+        "keys": "cmd+alt+c"
+      },
+      {
+        "title": "Compress",
+        "description": "A zip next to the file, or one zip of every marked row, named after the first.",
+        "keys": "cmd+shift+z"
       },
       {
         "title": "Move to Trash",
@@ -195,6 +233,26 @@
           "title": "Copy the file"
         },
         {
+          "keys": "cmd+t",
+          "title": "Open in a terminal"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Rename"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Move to a folder"
+        },
+        {
+          "keys": "cmd+alt+c",
+          "title": "Copy to a folder"
+        },
+        {
+          "keys": "cmd+shift+z",
+          "title": "Compress to a zip"
+        },
+        {
           "keys": "cmd+d",
           "title": "Move to Trash"
         }
@@ -241,6 +299,26 @@
           "title": "Copy the file"
         },
         {
+          "keys": "cmd+t",
+          "title": "Open in a terminal"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Rename"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Move to a folder"
+        },
+        {
+          "keys": "cmd+alt+c",
+          "title": "Copy to a folder"
+        },
+        {
+          "keys": "cmd+shift+z",
+          "title": "Compress to a zip"
+        },
+        {
           "keys": "cmd+d",
           "title": "Move to Trash"
         }
@@ -275,6 +353,26 @@
         {
           "keys": "cmd+shift+c",
           "title": "Copy the file"
+        },
+        {
+          "keys": "cmd+t",
+          "title": "Open in a terminal"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Rename"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Move to a folder"
+        },
+        {
+          "keys": "cmd+alt+c",
+          "title": "Copy to a folder"
+        },
+        {
+          "keys": "cmd+shift+z",
+          "title": "Compress to a zip"
         },
         {
           "keys": "cmd+d",

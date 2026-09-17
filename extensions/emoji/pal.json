@@ -3,7 +3,12 @@
   "title": "Emoji",
   "description": "An emoji picker: a grid of glyphs by category, recently used first, searched by name, keyword and :shortcode:. Copies or pastes the emoji (with your skin tone), or copies its :shortcode:.",
   "version": "0.2.0",
-  "icon": { "tile": { "glyph": "󰱱", "bg": "amber" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰱱",
+      "bg": "amber"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -48,6 +53,14 @@
       "text": "Enter pastes the emoji into the app in front; ⌘Enter copies it",
       "description": "Off, Enter copies and ⌘Enter pastes. Pasting needs Accessibility on macOS.",
       "default": false
+    },
+    {
+      "kind": "list",
+      "id": "keywords",
+      "label": "Your keywords",
+      "description": "Extra search words per emoji, one line each: a shortcode or the emoji, a colon, then the words (`rocket: ship deploy`, `🎉: party woo`). A line naming no emoji is ignored.",
+      "placeholder": "rocket: ship deploy",
+      "default": []
     }
   ],
   "store": {
@@ -56,6 +69,7 @@
     "features": [
       "Every emoji in the bundled list as a grid, Recently used first (the last 24 you copied or pasted), then Unicode's groups from Smileys & Emotion to Flags",
       "Search by name, keyword or shortcode: `thumbs`, `celebrate`, `:thumbs_up:`",
+      "Your own words too: the `keywords` setting adds `ship` and `deploy` to the rocket (`rocket: ship deploy`)",
       "`Enter` copies the emoji, `cmd+enter` pastes it into the app in front; `paste_by_default` swaps the two",
       "`cmd+shift+c` copies the `:shortcode:`",
       "A skin tone setting applied to the 329 emoji that take one, in the tile, on copy and on paste",

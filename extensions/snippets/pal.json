@@ -1,7 +1,7 @@
 {
   "name": "snippets",
   "title": "Snippets",
-  "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {date}, {time} and {uuid} filled in. Created and edited in the panel; imported and exported as JSON. On macOS a keyword typed in any app can expand in place.",
+  "description": "Short texts by keyword: Enter pastes one into the app in front, with {clipboard}, {selection}, {date}, {time}, {uuid} and {snippet name=} filled in (a date takes format= and offset=). Created and edited in the panel; imported and exported as JSON. On macOS a keyword typed in any app can expand in place.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -75,7 +75,7 @@
     "category": "productivity",
     "features": [
       "Enter pastes the snippet into the app that was in front; `cmd+c` copies it instead",
-      "`{clipboard}`, `{date}`, `{time}`, `{datetime}` and `{uuid}` are filled in on paste or copy; other braces stay, so code keeps its braces",
+      "`{clipboard}`, `{selection}`, `{date}`, `{time}`, `{datetime}` and `{uuid}` are filled in on paste or copy; a date or time takes `format=DD.MM.YYYY` (`YYYY YY MM DD HH mm ss ddd MMM`) and `offset=+1d` (`-2w`, `+3h`, `-90m`); `{snippet name=sig}` pastes another snippet inside this one; other braces stay, so code keeps its braces",
       "The keyword is a row keyword (typing `sig` finds the signature) and shows as a tag; a snippet with placeholders is tagged dynamic",
       "Create Snippet is a form (name, keyword, text); Edit (`cmd+e`) opens it filled in, a keyword with a space is refused",
       "The whole text is in the detail pane (`cmd+i`), the first line is the subtitle",
@@ -105,7 +105,7 @@
       },
       {
         "file": "4-form.png",
-        "caption": "Create Snippet: name, keyword and the text with its placeholders"
+        "caption": "Create Snippet: name, keyword and the text with its placeholders (format=, offset= and {snippet name=} named under the field)"
       }
     ],
     "actions": [

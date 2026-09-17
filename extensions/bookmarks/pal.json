@@ -1,7 +1,7 @@
 {
   "name": "bookmarks",
   "title": "Bookmarks",
-  "description": "Your browsers' bookmarks (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Safari, Firefox) and hand-picked links from a JSON file: open one, copy its address, or open it in the browser it came from.",
+  "description": "Your browsers' bookmarks (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Safari, Firefox) and hand-picked links from a JSON file: open one, copy its address, or open it in the browser it came from. A second palette searches the browsers' visit history.",
   "version": "0.2.0",
   "icon": { "tile": { "glyph": "󰃀", "bg": "orange" } },
   "author": "pal",
@@ -50,7 +50,8 @@
       "Safari's `Bookmarks.plist` and Firefox's `places.sqlite`, read on every listing so an edit shows at once",
       "A JSON file of hand-picked links with `name`, `url`, optional `subtitle`, `icon` and `keywords`",
       "The folder path on the right (`Bookmarks Bar / Dev`) and as keywords; a url two sources have is listed once",
-      "Open, copy the link, copy it as `[name](url)`, or open it in the browser it came from"
+      "Open, copy the link, copy it as `[name](url)`, or open it in the browser it came from",
+      "Browser History: a search over Chrome-family and Firefox visit history, newest first with when it was last visited; Enter opens the page in the browser it came from"
     ],
     "permissions": [
       "full-disk-access"
@@ -71,6 +72,10 @@
       {
         "file": "3-actions.png",
         "caption": "Open in browser, Copy link, Copy as markdown, Open in Chrome"
+      },
+      {
+        "file": "4-history.png",
+        "caption": "Browser History: a search over what the browsers visited, newest first, Enter opens it in the browser it came from"
       }
     ],
     "actions": [
@@ -91,6 +96,15 @@
       {
         "title": "Open in Chrome, Safari, Firefox",
         "description": "On a browser's row: the browser it came from."
+      },
+      {
+        "title": "Open in Chrome, Firefox (history)",
+        "description": "On a Browser History row: the page in the browser it came from.",
+        "keys": "enter"
+      },
+      {
+        "title": "Open in default browser (history)",
+        "keys": "cmd+o"
       }
     ]
   },
@@ -111,6 +125,24 @@
         {
           "keys": "cmd+shift+c",
           "title": "Copy as markdown"
+        }
+      ]
+    },
+    "history": {
+      "kind": "input",
+      "description": "What the browsers visited (Chrome, Brave, Edge, Chromium, Vivaldi, Arc, Firefox; every profile), searched by title and address on every keystroke, newest first; the last visit on the right. Each browser's history file is copied under pal's cache before it is read, since a running browser holds it locked; the copy follows the file, at most every 30 s. Safari's history needs Full Disk Access and is not read.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open in the browser it came from"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy the link"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open in the default browser"
         }
       ]
     }

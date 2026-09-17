@@ -1,11 +1,11 @@
 {
   "name": "window-management",
   "title": "Window Management",
-  "description": "Halves, thirds, quarters, maximize, larger and smaller, nudge by a step, center, fullscreen, minimize, the other display, restore: move and resize the focused window, or any window, from the keyboard.",
+  "description": "Halves, thirds, quarters, maximize, larger and smaller, resize to a size, nudge by a step, center, fullscreen, minimize, the other display, restore: move and resize the focused window, or any window, from the keyboard.",
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "\udb84\udcaa",
+      "glyph": "󱂪",
       "bg": "indigo"
     }
   },
@@ -56,18 +56,27 @@
       "step": 1,
       "unit": "px",
       "default": 32
+    },
+    {
+      "kind": "boolean",
+      "id": "cycle",
+      "label": "Cycle on repeat",
+      "text": "A half applied again steps to two thirds, then a third, then the half (left and right families), as Rectangle does",
+      "default": false
     }
   ],
   "store": {
     "tagline": "Halves, thirds, quarters, resize, nudge, fullscreen: any window",
     "category": "productivity",
     "features": [
-      "Thirty-one rows: Left Half, Right Third, Top Left Quarter, Maximize, Almost Maximize, Maximize Height, Maximize Width, Center, Reasonable Size, Larger, Smaller, Move Left / Right / Up / Down, Next Display, Toggle Fullscreen, Minimize, Unminimize, Restore",
+      "Thirty-two rows: Left Half, Right Third, Top Left Quarter, Maximize, Almost Maximize, Maximize Height, Maximize Width, Center, Reasonable Size, Larger, Smaller, Resize to…, Move Left / Right / Up / Down, Next Display, Toggle Fullscreen, Minimize, Unminimize, Restore",
       "Enter applies the layout to the window you were in: pal hides first, so the window behind the panel is the one moved, and the HUD names the layout",
-      "Apply to\u2026 (`cmd+enter`) picks a window from the open ones first; Arrange Window goes the other way round, a window then its layout",
+      "Apply to… (`cmd+enter`) picks a window from the open ones first; Arrange Window goes the other way round, a window then its layout",
       "Restore puts the window back where it was before a run of layouts; moving it by hand in between starts a new run",
       "`gap` keeps pixels between windows and the screen edge; the halves, thirds and quarters are equal cells with the gap between them; `step` is how far a Move nudges",
       "Larger and Smaller scale the window by 10% about its centre and keep it on screen; Toggle Fullscreen is the app's own full screen (a Space on macOS); Unminimize brings back the window Minimize last put away",
+      "Resize to… takes a size (`1280x720`, or one number for a square) and, when you want it, a place; the window keeps its centre otherwise and stays on its display",
+      "`cycle` makes a repeated Left Half step through two thirds and a third, so one hotkey pressed again cycles the sizes",
       "Per-layout global hotkeys in `[palettes.window-management.item_hotkeys]` move the focused window without showing pal"
     ],
     "permissions": [
@@ -97,6 +106,10 @@
       {
         "file": "5-verbs.png",
         "caption": "The moves by a step, Toggle Fullscreen, Minimize and Unminimize, each with its diagram"
+      },
+      {
+        "file": "6-resize.png",
+        "caption": "Resize to…: a size and, optionally, a place; blank keeps the window centred where it is"
       }
     ],
     "actions": [
@@ -106,9 +119,14 @@
         "keys": "enter"
       },
       {
-        "title": "Apply to\u2026",
+        "title": "Apply to…",
         "description": "Pick a window from the open ones, then the layout goes on that one.",
         "keys": "cmd+enter"
+      },
+      {
+        "title": "Resize",
+        "description": "In the Resize to… form: the size (and place) typed goes on the window; the HUD says the size.",
+        "keys": "enter"
       },
       {
         "title": "Arrange",
@@ -122,7 +140,7 @@
       "description": "Move the focused window to a layout",
       "params": {
         "name": {
-          "description": "left_half, right_half, maximize, larger, move_left, fullscreen, minimize, next_display, restore, ... (the row ids)",
+          "description": "left_half, right_half, maximize, larger, move_left, fullscreen, minimize, next_display, restore, ... (the row ids; Resize to… is a form, not a link)",
           "required": true
         }
       }

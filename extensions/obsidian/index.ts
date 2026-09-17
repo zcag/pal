@@ -11,8 +11,7 @@
 // parsing.
 import { readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { clipboard, home, selection, settings, storage, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
-import { expand } from "../snippets/placeholders.ts";
+import { clipboard, expand, home, selection, settings, storage, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Metadata, type View } from "@zcag/pal";
 import { render as renderMd } from "../tela/md.ts";
 import { DAILY_FORMAT, cut, dailyConfig, dayAfter, fileName, fillTemplate, firstVault, formatDate, frontMatter, obsidianSearchUrl, obsidianUrl, plainLine, resolve, unescapePipes, wikilink, type Note } from "./notes.ts";
 import { BACKEND, appendNote, dispose, exists, index, noteText, search, writeNote, type Index } from "./vault.ts";

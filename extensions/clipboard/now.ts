@@ -10,7 +10,7 @@
 // clipboard changes.
 import { stat } from "node:fs/promises";
 import { clipboard, home, ocr, settings, storage, type ClipboardEntry, type Effect, type Item, type ListPalette } from "@zcag/pal";
-import { analyzeText, desktopName, fetchTitle, privateArgv, qrSvg, rows, transform, type Analysis, type PathInfo } from "./rows.ts";
+import { analyzeText, desktopName, fetchTitle, privateArgv, qrSvg, QR_SHOW_PX, rows, transform, type Analysis, type PathInfo } from "./rows.ts";
 import { toHex, toHslString, toRgb } from "../colors/color.ts";
 
 const EXTENSION = "clipboard", PALETTE = "rows";
@@ -128,7 +128,7 @@ export async function pickRow(id: string, action?: string): Promise<Effect> {
         try { await Bun.write(target, decodeURIComponent(svg.slice("data:image/svg+xml;utf8,".length))); } catch (err) { return failed("save the QR code", err); }
         return { hud: `Saved to Desktop as ${target.slice(target.lastIndexOf("/") + 1)}` };
       }
-      return { show: { title: "QR code", markdown: `![](${qrSvg(a.url, 10)})\n\n\`${a.url}\`` } };
+      return { show: { title: "QR code", markdown: `![](${qrSvg(a.url, 10, QR_SHOW_PX)})\n\n\`${a.url}\`` } };
     }
     case "color": {
       if (!a.color) return changed;

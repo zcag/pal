@@ -120,6 +120,9 @@ pub struct Entry {
     /// Pixel size for images.
     pub width: Option<u32>,
     pub height: Option<u32>,
+    /// A name the user gave the entry ([`Clipboard::rename`]): the row's
+    /// title in place of the text, and searchable like it.
+    pub name: Option<String>,
 }
 
 /// What one copy carried, as the watcher reads it and `copy` writes it.
@@ -196,10 +199,30 @@ CREATE TABLE IF NOT EXISTS entries (
     width INTEGER,
     height INTEGER,
     pinned INTEGER NOT NULL DEFAULT 0,
-    hash TEXT NOT NULL UNIQUE
+    hash TEXT NOT NULL UNIQUE,
+    name TEXT
 );
 CREATE INDEX IF NOT EXISTS entries_order ON entries(pinned, at);
 ";
+
+/// Columns added after the first schema, each an `ALTER TABLE` the open
+/// runs when `PRAGMA table_info` lacks it: a database from before keeps
+/// working, one made today has them from `SCHEMA` already.
+const MIGRATIONS: &[(&str, &str)] = &[("name", "ALTER TABLE entries ADD COLUMN name TEXT")];
+
+fn migrate(db: &Connection) -> rusqlite::Result<()> {
+    let have: Vec<String> = {
+        let mut stmt = db.prepare("PRAGMA table_info(entries)")?;
+        let cols = stmt.query_map([], |r| r.get::<_, String>(1))?;
+        cols.collect::<rusqlite::Result<_>>()?
+    };
+    for (col, sql) in MIGRATIONS {
+        if !have.iter().any(|c| c == col) {
+            db.execute_batch(sql)?;
+        }
+    }
+    Ok(())
+}
 
 /// External-content FTS over `text` and the `files` JSON; the triggers keep it
 /// in step. Rows never change content, only `at` and `pinned`, so no update
@@ -214,7 +237,7 @@ CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries BEGIN
 END;
 ";
 
-const COLS: &str = "e.id, e.kind, e.text, e.image, e.files, e.source_app, e.at, e.bytes, e.width, e.height, e.pinned";
+const COLS: &str = "e.id, e.kind, e.text, e.image, e.files, e.source_app, e.at, e.bytes, e.width, e.height, e.pinned, e.name";
 
 impl Clipboard {
     /// The default location, see the module docs.
@@ -228,6 +251,7 @@ impl Clipboard {
         let db = Connection::open(dir.join("clipboard.db"))?;
         db.execute_batch("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;")?;
         db.execute_batch(SCHEMA)?;
+        migrate(&db)?;
         // The bundled SQLite has FTS5; a system one might not, and LIKE still works.
         let fts = db.execute_batch(SCHEMA_FTS).is_ok();
         Ok(Self(Arc::new(Inner { db: Mutex::new(db), images: dir.join("clipboard"), retention, fts })))
@@ -352,30 +376,32 @@ impl Clipboard {
         }
     }
 
-    /// Pinned first, then newest first. `query` matches text content and file
-    /// paths, every word as a prefix; empty lists everything.
+    /// Pinned first, then newest first. `query` matches text content, file
+    /// paths and the entry's name, every word as a prefix (the name as a
+    /// substring: it is outside the FTS table); empty lists everything.
     pub fn list(&self, query: &str, kind: Option<Kind>, limit: usize, offset: usize) -> Result<Vec<Entry>> {
         let db = self.0.db.lock().unwrap();
         let kind = kind.map(Kind::as_str);
         let order = "ORDER BY e.pinned DESC, e.at DESC LIMIT ?2 OFFSET ?3";
         let q = query.trim();
+        let like = format!("%{}%", q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
         let (sql, needle) = if q.is_empty() {
             (format!("SELECT {COLS} FROM entries e WHERE (?1 IS NULL OR e.kind = ?1) {order}"), None)
         } else if self.0.fts {
             (
-                format!("SELECT {COLS} FROM entries e JOIN entries_fts f ON f.rowid = e.id WHERE entries_fts MATCH ?4 AND (?1 IS NULL OR e.kind = ?1) {order}"),
+                format!("SELECT {COLS} FROM entries e WHERE (e.id IN (SELECT rowid FROM entries_fts WHERE entries_fts MATCH ?4) OR e.name LIKE ?5 ESCAPE '\\') AND (?1 IS NULL OR e.kind = ?1) {order}"),
                 Some(fts_query(q)),
             )
         } else {
             (
-                format!("SELECT {COLS} FROM entries e WHERE (e.text LIKE ?4 ESCAPE '\\' OR e.files LIKE ?4 ESCAPE '\\') AND (?1 IS NULL OR e.kind = ?1) {order}"),
-                Some(format!("%{}%", q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"))),
+                format!("SELECT {COLS} FROM entries e WHERE (e.text LIKE ?4 ESCAPE '\\' OR e.files LIKE ?4 ESCAPE '\\' OR e.name LIKE ?5 ESCAPE '\\') AND (?1 IS NULL OR e.kind = ?1) {order}"),
+                Some(like.clone()),
             )
         };
         let mut stmt = db.prepare_cached(&sql)?;
         let rows = match needle {
             None => stmt.query_map(params![kind, limit as i64, offset as i64], row_entry)?,
-            Some(n) => stmt.query_map(params![kind, limit as i64, offset as i64, n], row_entry)?,
+            Some(n) => stmt.query_map(params![kind, limit as i64, offset as i64, n, like], row_entry)?,
         };
         let entries: std::result::Result<Vec<_>, _> = rows.collect();
         Ok(entries?.into_iter().map(|e| self.resolve(e)).collect())
@@ -389,6 +415,17 @@ impl Clipboard {
     pub fn pin(&self, id: i64, pinned: bool) -> Result<()> {
         let db = self.0.db.lock().unwrap();
         let n = db.execute("UPDATE entries SET pinned = ?1 WHERE id = ?2", params![pinned as i64, id])?;
+        if n == 0 {
+            return Err(Error::NotFound(id));
+        }
+        Ok(())
+    }
+
+    /// Name the entry (its row title, searchable); `None` or blank clears it.
+    pub fn rename(&self, id: i64, name: Option<&str>) -> Result<()> {
+        let db = self.0.db.lock().unwrap();
+        let name = name.map(str::trim).filter(|n| !n.is_empty());
+        let n = db.execute("UPDATE entries SET name = ?1 WHERE id = ?2", params![name, id])?;
         if n == 0 {
             return Err(Error::NotFound(id));
         }
@@ -488,6 +525,7 @@ fn row_entry(r: &rusqlite::Row) -> rusqlite::Result<Entry> {
         width: r.get(8)?,
         height: r.get(9)?,
         pinned: r.get::<_, i64>(10)? != 0,
+        name: r.get(11)?,
     })
 }
 
@@ -1393,6 +1431,57 @@ mod tests {
         let cb = Clipboard(Arc::new(inner));
         assert_eq!(ids(&cb.list("% sure_", None, 10, 0).unwrap()), [note.id]);
         assert_eq!(ids(&cb.list("sure", Some(Kind::Image), 10, 0).unwrap()), Vec::<i64>::new());
+    }
+
+    #[test]
+    fn rename_titles_the_entry_and_is_searched() {
+        let dir = tempfile::tempdir().unwrap();
+        let cb = open(dir.path(), Retention::default());
+        let a = text(&cb, "kubectl get pods -n prod", 100);
+        let b = text(&cb, "unrelated", 200);
+        cb.rename(a.id, Some("  Deploy notes ")).unwrap();
+        assert_eq!(cb.get(a.id).unwrap().name.as_deref(), Some("Deploy notes"), "trimmed");
+        assert_eq!(cb.get(b.id).unwrap().name, None);
+        let find = |q: &str| ids(&cb.list(q, None, 10, 0).unwrap());
+        assert_eq!(find("deploy"), [a.id], "the name matches, case-insensitively");
+        assert_eq!(find("notes"), [a.id], "a word inside the name matches too");
+        assert_eq!(find("kubectl"), [a.id], "the text still matches");
+        assert_eq!(find("unrelated"), [b.id]);
+        assert_eq!(ids(&cb.list("deploy", Some(Kind::Image), 10, 0).unwrap()), Vec::<i64>::new(), "the kind filter still applies");
+        cb.rename(a.id, Some("")).unwrap();
+        assert_eq!(cb.get(a.id).unwrap().name, None, "blank clears");
+        cb.rename(b.id, Some("x")).unwrap();
+        cb.rename(b.id, None).unwrap();
+        assert_eq!(cb.get(b.id).unwrap().name, None, "None clears");
+        assert!(matches!(cb.rename(999, Some("x")), Err(Error::NotFound(999))));
+        // The LIKE path without FTS searches the name the same way.
+        cb.rename(a.id, Some("Deploy notes")).unwrap();
+        let mut inner = Arc::try_unwrap(cb.0).ok().expect("sole owner");
+        inner.fts = false;
+        let cb = Clipboard(Arc::new(inner));
+        assert_eq!(ids(&cb.list("deploy", None, 10, 0).unwrap()), [a.id]);
+    }
+
+    #[test]
+    fn an_older_database_gains_the_name_column_on_open() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let db = Connection::open(dir.path().join("clipboard.db")).unwrap();
+            // The first schema, before `name`, with one row in it.
+            db.execute_batch(&SCHEMA.replace(",\n    name TEXT", "")).unwrap();
+            db.execute("INSERT INTO entries (kind, text, at, bytes, hash) VALUES ('text', 'old row', 1000, 7, 'h1')", []).unwrap();
+            let cols: Vec<String> = db.prepare("PRAGMA table_info(entries)").unwrap().query_map([], |r| r.get(1)).unwrap().collect::<rusqlite::Result<_>>().unwrap();
+            assert!(!cols.iter().any(|c| c == "name"), "the fixture is the old shape: {cols:?}");
+        }
+        let cb = open(dir.path(), Retention::default());
+        let rows = cb.list("", None, 10, 0).unwrap();
+        assert_eq!((rows.len(), rows[0].text.as_deref(), rows[0].name.as_deref()), (1, Some("old row"), None));
+        cb.rename(rows[0].id, Some("kept")).unwrap();
+        assert_eq!(cb.get(rows[0].id).unwrap().name.as_deref(), Some("kept"));
+        // Opening again finds the column there and does nothing.
+        drop(cb);
+        let cb = open(dir.path(), Retention::default());
+        assert_eq!(cb.list("kept", None, 10, 0).unwrap().len(), 1);
     }
 
     #[test]

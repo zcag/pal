@@ -74,6 +74,7 @@ const text = {
   theme: { anchor: "general:theme", hint: "Appearance", label: "Theme", description: "System follows the OS appearance as it changes.", keywords: "dark light" },
   themeFile: { anchor: "general:theme-file", hint: "Appearance", label: "Theme file", description: "Colours, radii and fonts from a TOML file, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.", keywords: "tokens accent" },
   position: { anchor: "general:position", hint: "Appearance", label: "Window position", description: "On the screen with the pointer.", keywords: "top centre center last" },
+  backspace: { anchor: "general:backspace", hint: "Keyboard", label: "Backspace goes back", description: "With nothing typed, Backspace leaves the palette or level you are in, as cmd+backspace does; a row that uses Backspace itself (a folder's Go up) comes first.", keywords: "backspace back pop level keyboard escape" },
   login: { anchor: "general:login", hint: "Startup", label: "Launch at login", description: "The hotkey works from the moment you sign in. Either way pal relaunches itself after a crash; the report shows under About.", keywords: "autostart" },
   menubar: { anchor: "general:menubar", hint: "Startup", label: "Menu bar icon", description: "pal has no Dock icon. Without this, the hotkey and pal settings are the ways in.", keywords: "tray" },
   file: { anchor: "general:file", hint: "~/.config/pal/config.toml", label: "File", description: "Every setting in this window is a key in this file. Changing one here rewrites only that key, so your comments and formatting stay. Edit it by hand any time; pal picks the change up as you save.", keywords: "config toml edit reveal open editor" },
@@ -214,6 +215,12 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         {themeFile && <SettingsThemeFile {...themeFile} />}
         <SettingsRow anchor={text.position.anchor} label={text.position.label} description={text.position.description} htmlFor="pal-general-position">
           <SettingsSelect id="pal-general-position" value={value.position} options={positions} onChange={(v) => set("position", v as GeneralConfig["position"])} />
+        </SettingsRow>
+      </SettingsGroup>
+
+      <SettingsGroup title="Keyboard">
+        <SettingsRow anchor={text.backspace.anchor} label={text.backspace.label} description={text.backspace.description}>
+          <SettingsSwitch checked={value.backspaceBack} onChange={(v) => set("backspaceBack", v)} label="Backspace goes back" />
         </SettingsRow>
       </SettingsGroup>
 

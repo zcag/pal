@@ -1,5 +1,5 @@
-// Snippets: the placeholder expansion (placeholders.ts, pure, with the
-// clock and the clipboard pinned), then the extension over the wire
+// Snippets: the placeholder expansion (the SDK's placeholders.ts, pure,
+// with the clock and the clipboard pinned), then the extension over the wire
 // against the harness's in-memory storage and clipboard (its clock pinned
 // too, `PAL_NOW` through the harness, snippets/clock.ts): rows with the
 // keyword as a row keyword, paste and copy with placeholders filled, the
@@ -8,7 +8,8 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { asSnippets, badKeyword, expand, fromJson, hasPlaceholders, isoDate, isoTime, preview } from "../../../extensions/snippets/placeholders.ts";
+import { asSnippets, badKeyword, fromJson, preview } from "../../../extensions/snippets/placeholders.ts";
+import { expand, formatDate, hasPlaceholders, isoDate, isoTime, offsetDate } from "../../../sdk/src/placeholders.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import { Host, fixtures, stored } from "../harness.ts";
 
@@ -50,6 +51,23 @@ describe("placeholders", () => {
     expect(reads).toBe(0);
     expect(await expand("{clipboard}{clipboard}", s)).toBe("cc");
     expect(reads).toBe(1);
+  });
+  test("format= writes the date and time with the tokens, the rest as written; offset= moves by days, weeks, hours or minutes first", async () => {
+    expect(await expand('{date format=DD.MM.YYYY} {date format="ddd D MMM YY"} {time format=HH:mm:ss} {datetime format=YYYY-MM-DDTHH:mm}', pinned)).toBe("16.09.2026 Wed D Sep 26 09:05:00 2026-09-16T09:05");
+    expect(await expand("{date offset=+1d} {date offset=-2w} {time offset=+3h} {time offset=-90m} {datetime offset=+1d format=ddd}", pinned)).toBe("2026-09-17 2026-09-02 12:05 07:35 Thu");
+    expect(await expand("{date offset=soon} {date format=MMM}", pinned)).toBe("2026-09-16 Sep");
+    expect(formatDate(at, "YYYY/MM/DD HH:mm:ss ddd MMM")).toBe("2026/09/16 09:05:00 Wed Sep");
+    expect(isoDate(offsetDate(at, "+1w"))).toBe("2026-09-23");
+    expect(offsetDate(at, undefined)).toEqual(at);
+  });
+  test("{snippet name=...} is another snippet's text with its own placeholders filled, one level deep; unknown or without a source it stays as written", async () => {
+    const texts: Record<string, string> = { sig: "Best,\nAda ({date})", nested: "[{snippet name=sig}] {snippet name=x}" };
+    const s = { ...pinned, snippet: (name: string) => texts[name] };
+    expect(await expand("Hi\n{snippet name=sig}", s)).toBe("Hi\nBest,\nAda (2026-09-16)");
+    expect(await expand('{snippet name="sig"}!', s)).toBe("Best,\nAda (2026-09-16)!");
+    expect(await expand("{snippet name=nested}", s)).toBe("[{snippet name=sig}] {snippet name=x}");
+    expect(await expand("{snippet name=nope} {snippet}", s)).toBe("{snippet name=nope} {snippet}");
+    expect(await expand("{snippet name=sig}", pinned)).toBe("{snippet name=sig}");
   });
   test("a text without placeholders comes back as it is, without touching the sources", async () => {
     const s = { clipboard: () => { throw new Error("not asked"); } };
@@ -167,6 +185,12 @@ describe("snippets", () => {
     expect((await list()).map((i) => i.id)).not.toContain("stamp");
     expect((await host.call("pick", { extension: "snippets", palette: "snippets", id: "nope" })).error).toMatch(/no snippet nope/);
     expect((await host.hello()).pid).toBe(host.pid);
+  });
+  test("{snippet name=} reads another snippet by name or keyword through the extension", async () => {
+    await pick("create", "save", { values: { name: "Wrap", keyword: "", text: "<{snippet name=shrug}> <{snippet name=sign-off}>" } });
+    const wrap = (stored.get("snippets\0snippets") as { id: string; name: string }[]).find((x) => x.name === "Wrap")!;
+    expect(await pick(wrap.id, "copy")).toEqual({ copy: "<¯\\_(ツ)_/¯> <Cheers>" });
+    await pick(wrap.id, "delete");
   });
   test("{selection} asks the core for the app in front's selected text, and takes the clipboard when nothing is selected", async () => {
     await pick("create", "save", { values: { name: "Quote", keyword: "", text: "> {selection}" } });

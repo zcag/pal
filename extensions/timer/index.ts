@@ -20,14 +20,22 @@
 // directory pushes on every change the CLI makes, and a 1 Hz interval
 // pushes the countdown, running while a timer runs or the popover is up
 // (`bar.update` carries the popover's tree with the item, so both move).
+//
+// Pomodoro (pomodoro.ts) rides on the same timers: a session is one of the
+// CLI's timers at a time (`Pomodoro 2 of 4`, `Break 2 of 4`, `Long break`)
+// and the session record in storage; every read of the directory checks
+// whether the session's timer has landed and, if so, stops it and starts
+// the next phase's timer, so the cycle runs on the same watcher and tick
+// that draw the bar. Finished work rounds are tallied per day.
 import { watch, type FSWatcher } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { bar, home, settings, storage, view as liveView, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { bar, effects, home, settings, storage, view as liveView, type Action, type BarItem, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { KEY as POMODORO_KEY, STATS_KEY, asSession, dayOf, describe, minutesOf, nameOf, next as nextPhase, phaseWord, tally, type Config, type Phase, type Session, type Stats } from "./pomodoro.ts";
 import { DEFAULT_RECENT, MAX_RECENT, current, fmt, render, secsLeft as leftAt, type PopoverState, type State, type Timer } from "./view.ts";
 
 export { fmt };
-type Settings = { command: string; dir: string };
+type Settings = { command: string; dir: string } & Config;
 
 const EXTENSION = "timer", ITEM = "timer", PALETTE = "timers";
 /** nf-md-timer, drawn from the bundled Nerd Font; nf-md-plus for the New row, nf-md-alert for a missing CLI. */
@@ -37,8 +45,12 @@ const WARN = "\u{f0026}";
 /** The CLI's default `TIMER_DONE_TTL`: how long a landed timer's badge lingers. */
 const DONE_TTL = 300;
 const NEW = "new";
+const POMODORO = "pomodoro";
+const STATS_ROW = "pomodoro:today";
 const ADD = "5m";
 const CLI_MS = 5000;
+/** nf-md-food_apple: the pomodoro rows' glyph (the font has no tomato). */
+const TOMATO = "\u{f025b}";
 
 const conf = () => settings.get<Settings>(EXTENSION);
 const dirOf = () => home(conf().dir);
@@ -101,6 +113,108 @@ async function timer(...args: string[]): Promise<string> {
   } finally { clearTimeout(kill); }
 }
 
+// ---- pomodoro -------------------------------------------------------------------
+
+// The session in memory, loaded from storage once per process; `null` is
+// none. `advancing` keeps two reads (the tick and the watcher) from
+// starting the next phase twice.
+let session: Session | null = null;
+let sessionLoaded = false;
+let advancing: Promise<void> | undefined;
+let stats: Stats = {};
+
+async function loadSession() {
+  if (sessionLoaded) return;
+  sessionLoaded = true;
+  session = asSession(await storage.get<unknown>(POMODORO_KEY, EXTENSION).catch(() => null));
+  const st = await storage.get<unknown>(STATS_KEY, EXTENSION).catch(() => null);
+  stats = st && typeof st === "object" ? (st as Stats) : {};
+}
+const saveSession = async () => (session ? storage.set(POMODORO_KEY, session, EXTENSION) : storage.remove(POMODORO_KEY, EXTENSION)).catch(() => {});
+
+/** Finished work rounds today. */
+export const today = (): number => stats[dayOf(now())] ?? 0;
+
+/** The phase's timer through the CLI, found back by name in the directory (the id is the CLI's slug of it); the session record follows. */
+async function startPhase(phase: Phase, round: number, of: number, sessionStart: number): Promise<Timer> {
+  const name = nameOf(phase, round, of);
+  await timer(`${minutesOf(phase, conf())}m`, name);
+  const t = (await readTimers(dirOf())).find((x) => x.name === name && x.state === "running");
+  if (!t) throw new Error(`${name} did not start`);
+  session = { round, of, phase, timerId: t.id, timerName: name, startedAt: now(), sessionStart };
+  await saveSession();
+  return t;
+}
+
+/**
+ * The phase after `s`: its timer stopped, the next one started, the HUD
+ * told. One switch at a time (`advancing`): the watcher's push lands while
+ * the old file is gone and the new one is not yet there, and must not read
+ * that gap as the session ending.
+ */
+function switchPhase(s: Session, line: (n: { phase: Phase; round: number }) => string): Promise<void> {
+  advancing ??= (async () => {
+    const n = nextPhase(s);
+    await timer("stop", s.timerId).catch(() => {});
+    try {
+      await startPhase(n.phase, n.round, s.of, s.sessionStart);
+      await effects.run({ hud: `Pomodoro. ${line(n)}` }).catch(() => {});
+    } catch (e) {
+      session = null;
+      await saveSession();
+      await effects.run({ hud: `Pomodoro stopped: ${(e as Error).message}` }).catch(() => {});
+    }
+  })().finally(() => { advancing = undefined; });
+  return advancing;
+}
+
+/** A session's timer that landed: the round tallied, the next phase started. Missing altogether (stopped from the terminal): the session ends. */
+async function advance(ts: Timer[]): Promise<Timer[]> {
+  await loadSession();
+  if (advancing) { await advancing; return readTimers(dirOf()); }
+  const s = session;
+  if (!s) return ts;
+  const t = ts.find((x) => x.id === s.timerId);
+  if (!t) { session = null; await saveSession(); return ts; }
+  if (t.state !== "done") return ts;
+  if (s.phase === "work") { stats = tally(stats, dayOf(now())); await storage.set(STATS_KEY, stats, EXTENSION).catch(() => {}); }
+  await switchPhase(s, (n) => (n.phase === "work" ? `Round ${n.round} of ${s.of}: ${minutesOf("work", conf())} min` : `${n.phase === "long" ? "Long break" : "Break"}: ${minutesOf(n.phase, conf())} min`));
+  return readTimers(dirOf());
+}
+
+/** The directory as the palette and the bar read it: every timer, the pomodoro session moved on if its timer landed. */
+const timers = async (): Promise<Timer[]> => advance(await readTimers(dirOf()));
+
+async function startPomodoro(): Promise<Effect> {
+  await loadSession();
+  if (session) return { keep: true, toast: { title: "A pomodoro is running", message: describe(session) } };
+  const of = Math.max(1, Math.round(conf().pomodoro_rounds));
+  try { await startPhase("work", 1, of, now()); } catch (e) { return { keep: true, toast: { title: "Could not start the pomodoro", message: (e as Error).message, style: "failure" } }; }
+  pop.cursor = session!.timerId;
+  return { keep: true, hud: `Pomodoro. Round 1 of ${of}: ${minutesOf("work", conf())} min` };
+}
+
+/** Skip: the current phase's timer stopped and the next started (a skipped work round is not tallied). */
+async function skipPomodoro(): Promise<Effect> {
+  await loadSession();
+  const s = session;
+  if (!s) return { keep: true };
+  await switchPhase(s, () => describe(session!));
+  if (!session) return { keep: true, toast: { title: "Could not start the next phase", style: "failure" } };
+  pop.cursor = session.timerId;
+  return { keep: true };
+}
+
+async function stopPomodoro(): Promise<Effect> {
+  await loadSession();
+  const s = session;
+  if (!s) return { keep: true };
+  session = null;
+  await saveSession();
+  await timer("stop", s.timerId).catch(() => {});
+  return { keep: true, hud: "Pomodoro stopped" };
+}
+
 // ---- the bar item -------------------------------------------------------------
 
 // The popover's own state, in process: the card the keys act on, whether
@@ -122,7 +236,7 @@ async function remember(duration: string) {
 
 /** The popover's tree for these timers: no timer and no field opens the field at once, so typing a duration is the first thing to do. */
 export function popoverState(ts: Timer[]): PopoverState {
-  return { timers: ts, cursor: pop.cursor, field: pop.field || ts.length === 0, recent: pop.recent.length ? pop.recent : DEFAULT_RECENT, now: now() };
+  return { timers: ts, cursor: pop.cursor, field: pop.field || ts.length === 0, recent: pop.recent.length ? pop.recent : DEFAULT_RECENT, now: now(), ...(session && { pomodoro: session }), today: today() };
 }
 
 export function barItem(ts: Timer[]): BarItem {
@@ -134,7 +248,10 @@ export function barItem(ts: Timer[]): BarItem {
   const left = secsLeft(t);
   const pct = t.total > 0 ? Math.min(1, Math.max(0, (t.total - left) / t.total)) : 0;
   const color = t.state === "paused" ? "muted" : pct > 0.9 ? "red" : pct > 0.66 ? "amber" : "blue";
-  return { icon: GLYPH, title: fmt(left), progress: pct, color, tooltip: `${t.name}${t.state === "paused" ? ", paused" : ""}${more}`, menu };
+  // The pomodoro's timer says which phase it is in: `12:34 · 2/4` while working, `4:59 · break` on a break.
+  const p = session?.timerId === t.id ? session : undefined;
+  const title = p ? `${fmt(left)} · ${p.phase === "work" ? `${p.round}/${p.of}` : "break"}` : fmt(left);
+  return { icon: GLYPH, title, progress: pct, color, tooltip: `${p ? `Pomodoro: ${describe(p).toLowerCase()}` : t.name}${t.state === "paused" ? ", paused" : ""}${more}`, menu };
 }
 
 let tick: ReturnType<typeof setInterval> | undefined;
@@ -143,7 +260,7 @@ let pending: ReturnType<typeof setTimeout> | undefined;
 
 /** Reads and pushes the item, popover tree included (the page replaces the level in place, the field's text kept). */
 async function push() {
-  const ts = await readTimers(dirOf());
+  const ts = await timers();
   follow(ts);
   await bar.update(ITEM, barItem(ts), EXTENSION).catch(() => {});
 }
@@ -160,7 +277,7 @@ function hookViews() {
   if (hooked) return;
   hooked = true;
   liveView.onShown((ev) => { if (ev.bar === ITEM) { pop.open = true; push().catch(() => {}); } }, EXTENSION);
-  liveView.onHidden((ev) => { if (ev.bar === ITEM) { pop.open = false; pop.field = false; readTimers(dirOf()).then(follow).catch(() => {}); } }, EXTENSION);
+  liveView.onHidden((ev) => { if (ev.bar === ITEM) { pop.open = false; pop.field = false; timers().then(follow).catch(() => {}); } }, EXTENSION);
 }
 
 /** `25m tea`: the first word is the duration, the rest the name; `ring` at the end asks the phone. */
@@ -175,7 +292,7 @@ export function parseNew(input: string): { duration: string; name: string; ring:
 /** A key or a click in the popover: the CLI is asked, the popover state patched, and the item re-rendered (`keep`), which carries the new tree. */
 async function popoverAction(action: string, ctx: { values?: Record<string, string> }): Promise<Effect> {
   await loadRecent();
-  const ts = await readTimers(dirOf());
+  const ts = await timers();
   const st = popoverState(ts);
   const t = current(st);
   const fail = (what: string, e: unknown): Effect => ({ keep: true, toast: { title: `Could not ${what}`, message: (e as Error).message, style: "failure" } });
@@ -194,6 +311,9 @@ async function popoverAction(action: string, ctx: { values?: Record<string, stri
   if (action === "new") { pop.field = true; return { keep: true }; }
   if (action === "cancel") { pop.field = false; return { keep: true }; }
   if (action === "open") return { push: { extension: EXTENSION, palette: PALETTE } };
+  if (action === "pomodoro") return startPomodoro();
+  if (action === "skip") return skipPomodoro();
+  if (action === "stop-pomodoro") return stopPomodoro();
   if (action.startsWith("focus:")) { pop.cursor = action.slice(6); return { keep: true }; }
   if (action === "up" || action === "down") {
     const i = t ? ts.findIndex((x) => x.id === t.id) : -1;
@@ -227,7 +347,7 @@ async function renderBar(): Promise<BarItem> {
   hookViews();
   await watchDir();
   await loadRecent();
-  const ts = await readTimers(dirOf());
+  const ts = await timers();
   follow(ts);
   return barItem(ts);
 }
@@ -236,15 +356,22 @@ async function renderBar(): Promise<BarItem> {
 
 const STATE: Record<State, { tag: string; color: string }> = { running: { tag: "running", color: "blue" }, paused: { tag: "paused", color: "amber" }, done: { tag: "done", color: "red" } };
 
+/** The pomodoro session's own actions, on its timer's row: the next phase now, or the whole session off. */
+const POMODORO_ACTIONS: Action[] = [{ id: "skip", title: "Skip to the next phase", shortcut: "cmd+s" }, { id: "stop-pomodoro", title: "Stop pomodoro", shortcut: "cmd+shift+d", style: "destructive" }];
+
 function row(t: Timer): Item {
   const left = secsLeft(t);
-  const subtitle = t.state === "done" ? `Landed ${fmt(now() - t.fired)} ago` : t.state === "paused" ? `Paused at ${fmt(left)}` : `${fmt(left)} left, done at ${new Date(t.deadline * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  const when = t.state === "done" ? `Landed ${fmt(now() - t.fired)} ago` : t.state === "paused" ? `Paused at ${fmt(left)}` : `${fmt(left)} left, done at ${new Date(t.deadline * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  const p = session?.timerId === t.id ? session : undefined;
+  const subtitle = p ? `${describe(p)} · ${when}` : when;
   const first: Action = t.state === "done" ? { id: "done", title: "Dismiss" } : t.state === "paused" ? { id: "resume", title: "Resume" } : { id: "pause", title: "Pause" };
-  const actions: Action[] = [first, { id: "add", title: "Add 5 minutes", shortcut: "cmd++" }, { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive" }];
-  return { id: t.id, name: t.name, subtitle, icon: GLYPH, keywords: ["timer", t.state], accessories: [{ tag: STATE[t.state].tag, color: STATE[t.state].color }], actions };
+  const actions: Action[] = [first, { id: "add", title: "Add 5 minutes", shortcut: "cmd++" }, ...(p ? POMODORO_ACTIONS : []), { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive" }];
+  return { id: t.id, name: t.name, subtitle, icon: p ? TOMATO : GLYPH, keywords: ["timer", t.state, ...(p ? ["pomodoro", phaseWord(p.phase)] : [])], accessories: [...(p ? [{ tag: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" }] : []), { tag: STATE[t.state].tag, color: STATE[t.state].color }], actions };
 }
 
 const newRow: Item = { id: NEW, name: "New timer", subtitle: "A duration and a name", icon: PLUS, keywords: ["timer", "start", "countdown"], actions: [{ id: "new", title: "New timer" }] };
+const pomodoroRow = (c: Config): Item => ({ id: POMODORO, name: "Start Pomodoro", subtitle: `${minutesOf("work", c)} min of work, ${minutesOf("break", c)} of break, ${Math.max(1, Math.round(c.pomodoro_rounds))} rounds then ${minutesOf("long", c)} min off`, icon: TOMATO, keywords: ["pomodoro", "focus", "work", "break"], actions: [{ id: POMODORO, title: "Start pomodoro" }] });
+const statsRow = (n: number): Item => ({ id: STATS_ROW, name: `Pomodoros today: ${n}`, subtitle: n === 1 ? "One work round finished" : `${n} work rounds finished`, icon: TOMATO, keywords: ["pomodoro", "stats"], actions: [] });
 
 const form = (errors?: Record<string, string>): Form => ({
   id: NEW,
@@ -262,12 +389,17 @@ const form = (errors?: Record<string, string>): Form => ({
 const cliPath = () => { const c = conf().command; return Bun.which(c) ?? (Bun.file(home(c)).size > 0 ? home(c) : undefined); };
 
 async function list(): Promise<Item[]> {
-  const ts = await readTimers(dirOf());
+  const ts = await timers();
   if (!cliPath()) return [...ts.map(row), { id: "hint:cli", name: `${conf().command} is not installed`, subtitle: "Set timer command in Settings to the timer CLI; the rows above are read from its state directory", icon: WARN, actions: [] }];
-  return [...ts.map(row), newRow];
+  const n = today();
+  return [...ts.map(row), newRow, ...(session ? [] : [pomodoroRow(conf())]), ...(n ? [statsRow(n)] : [])];
 }
 
 async function pick(id: string, action?: string, ctx?: { values?: Record<string, string | boolean> }): Promise<Effect> {
+  if (id === POMODORO) return startPomodoro();
+  if (id === STATS_ROW) return { keep: true };
+  if (action === "skip") return skipPomodoro();
+  if (action === "stop-pomodoro") return stopPomodoro();
   if (id === NEW) {
     if (action !== "start") return { form: form() };
     const v = ctx?.values ?? {};
@@ -297,7 +429,7 @@ export default {
       placeholder: "Find a timer by name",
       list,
       // The empty root's Now section: the most urgent timer while one runs, is paused or just landed.
-      suggest: async () => readTimers(dirOf()).then((ts) => ts.slice(0, 1).map(row)),
+      suggest: async () => timers().then((ts) => ts.slice(0, 1).map(row)),
       pick,
     },
   },

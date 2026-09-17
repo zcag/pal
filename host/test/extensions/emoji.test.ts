@@ -30,7 +30,7 @@ describe("emoji", () => {
   test("meta: a live grid with a ttl and the palette setting's columns", () => {
     const l = host.loaded().find((l) => l.extension === "emoji")!;
     expect(l.palettes).toEqual([{ name: "emoji", title: "Emoji", live: true, input: false, icon: tile("amber", "\u{f0c71}"), view: "grid", placeholder: "Name, keyword or :shortcode:", columns: 10, ttl: 30, tier: "catalog" }]);
-    expect(l.manifest.settings?.map((s) => s.id)).toEqual(["skin_tone", "paste_by_default"]);
+    expect(l.manifest.settings?.map((s) => s.id)).toEqual(["skin_tone", "paste_by_default", "keywords"]);
   });
 
   test("1906 rows: the recents first in their own section (unknown ones dropped), then Unicode's categories in order; shortcode name, :shortcode: and keywords", async () => {
@@ -71,6 +71,19 @@ describe("emoji", () => {
     expect(await pick("👍", "shortcode")).toEqual({ copy: ":thumbs_up:" });
     host.changeSettings("emoji", {});
     expect((await list()).find((i) => i.id === "👍")!.icon).toBe("👍");
+  });
+
+  test("keywords: a line per emoji by shortcode or the glyph adds words (spaces or commas), a word the list has is not doubled, a bad line is ignored, a change reaches the next listing", async () => {
+    host.changeSettings("emoji", { settings: { keywords: ["rocket: blastoff yeet", "🎉: yay, woo", ":thumbs_up: yes", "rocket: launch", "nothing-here: zzqx", "rocket:", "no colon", 42] } });
+    const items = await list();
+    const rocket = items.find((i) => i.id === "🚀")!;
+    expect(rocket.keywords!.slice(-2)).toEqual(["blastoff", "yeet"]);
+    expect(rocket.keywords!.filter((k) => k === "launch")).toHaveLength(1);
+    expect(items.find((i) => i.id === "🎉")!.keywords!.slice(-2)).toEqual(["yay", "woo"]);
+    expect(items.find((i) => i.id === "👍")!.keywords).toContain("yes");
+    expect(items.every((i) => !i.keywords!.includes("zzqx"))).toBe(true);
+    host.changeSettings("emoji", {});
+    expect((await list()).find((i) => i.id === "🚀")!.keywords).not.toContain("yeet");
   });
 });
 

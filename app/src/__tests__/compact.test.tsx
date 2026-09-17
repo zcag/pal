@@ -23,7 +23,7 @@ const rows: Item[] = [
   { id: "b", name: "Beta", subtitle: "two", palette: "apps/apps", source: { extension: "apps", palette: "apps" } },
 ];
 const search = async (q: string): Promise<Hit[]> => rows.filter((r) => !q || r.name.toLowerCase().includes(q.toLowerCase())).map((item) => ({ item }));
-const prefs = (compact: boolean): Prefs => ({ aliasSpace: true, fallbacksAlways: false, searchHistory: true, now: [], compact });
+const prefs = (compact: boolean): Prefs => ({ aliasSpace: true, backspaceBack: true, fallbacksAlways: false, searchHistory: true, now: [], compact });
 const mount = async (compact: boolean) => {
   await act(async () => {
     root.render(<Launcher ref={launcher} sources={SOURCES} search={search} prefs={prefs(compact)} onPick={() => {}} onHide={() => {}} onCompact={() => { flips++; }} onSettings={() => {}} />);

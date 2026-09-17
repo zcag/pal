@@ -1,7 +1,8 @@
 // Quicklinks as data: the stored shape, the `{query}` placeholder, and the
 // url a query fills it into. Pure, so the tests need no host.
 
-export type Link = { id: string; name: string; url: string; keywords?: string[] };
+/** `app`: the browser or app that opens it (its name, `open -a` on macOS, a command on Linux); absent for the default. */
+export type Link = { id: string; name: string; url: string; keywords?: string[]; app?: string };
 
 /**
  * `{query}`, `{argument}` or `{argument name="Search"}` (Raycast's
@@ -41,7 +42,7 @@ export function badUrl(url: string): string | undefined {
 export const asLinks = (v: unknown): Link[] =>
   Array.isArray(v)
     ? v.filter((x): x is Link => !!x && typeof x === "object" && typeof (x as Link).id === "string" && typeof (x as Link).name === "string" && typeof (x as Link).url === "string")
-        .map((x) => ({ id: x.id, name: x.name, url: x.url, ...(Array.isArray(x.keywords) && x.keywords.length ? { keywords: x.keywords.map(String) } : {}) }))
+        .map((x) => ({ id: x.id, name: x.name, url: x.url, ...(Array.isArray(x.keywords) && x.keywords.length ? { keywords: x.keywords.map(String) } : {}), ...(typeof x.app === "string" && x.app ? { app: x.app } : {}) }))
     : [];
 
 /**

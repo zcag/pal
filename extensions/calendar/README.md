@@ -10,6 +10,9 @@ item over one source and one cache:
 - **My Schedule** (`calendar-schedule`): the week, sectioned Today /
   Tomorrow / This week / Later, the current event tagged `now` and the
   next one `in 12 min`; New event at the end (system calendar).
+- **Quick Add Event** (`calendar-quick`): one typed line, `standup
+  tomorrow 10:00`, read back as a row while you type and added on Enter;
+  a root query nothing matched offers it as a fallback row.
 - **Upcoming** (`calendar/upcoming`, the bar item): the next event as
   `Standup in 12m` on the menu bar or sketchybar, `now` while it runs,
   hidden when nothing starts within ten hours; muted far off, amber inside
@@ -113,6 +116,20 @@ are unwrapped; a Zoom marketing page or an agenda doc does not count.
 (`14:30`, `2pm`, `1430`; an end before the start is the next day), an
 all-day checkbox, the calendar, a location and notes.
 
+**Quick Add Event** is the same write from one line (`quick.ts`): a title
+first, then in any order a day (`tomorrow`, `fri`, `next tue`, `20 sep`,
+`2026-09-20`, `on monday`), a time or a range (`10:00`, `2pm-3pm`, `14:00
+to 15:30`, `9-10am`), `for 45m` (else `default_length`, 30 minutes), `at
+<place>` (free text at the end), `@ <calendar>` anywhere (`in <calendar>`
+too, when a writable calendar starts with the word; an `in` in a title
+stays), `all day`. No time makes it an all-day event; no day means today,
+or tomorrow once the time has passed (an amber `tomorrow` tag says so).
+The row reads it back (`Fri 18 Sep 14:00 to 15:00 · Room 4 · Home
+calendar`, the calendar's colour on the glyph, a `date` accessory); a line
+that is only a day, or nothing, is a hint row. A calendar name nothing
+matches falls to the default and the row says so. Works with the system
+source; a Google source refuses the write as the form does.
+
 ## The bar item
 
 `calendar/upcoming` speaks for the first event that has not ended, timed
@@ -186,6 +203,7 @@ Settings, `[extensions.calendar]`:
 | `warn_minutes` | number | `15` | The bar item turns amber this many minutes before the event. |
 | `urgent_minutes` | number | `5` | The bar item turns red this many minutes before the event. |
 | `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
+| `default_length` | number | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
 
 ## What it does not do
 

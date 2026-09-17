@@ -120,6 +120,33 @@ describe("the walk: root, palette, detail, action panel, back", () => {
     expect(crumb()).toBeUndefined();
   });
 
+  it("a bare Backspace with nothing typed goes back a level (general.backspace_back), never at the root, and stays the field's with text or with the key off", async () => {
+    await mount();
+    // At the root it is declined: nothing to leave.
+    const atRoot = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true });
+    await act(() => { field().dispatchEvent(atRoot); });
+    expect(atRoot.defaultPrevented).toBe(false);
+    expect(crumb()).toBeUndefined();
+    await key("Enter"); await flush();
+    expect(crumb()).toBe("Applications");
+    // With text it deletes a character, as always.
+    await type("sl"); await flush();
+    const typing = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true });
+    await act(() => { field().dispatchEvent(typing); });
+    expect(typing.defaultPrevented).toBe(false);
+    expect(crumb()).toBe("Applications");
+    // Emptied, the next Backspace leaves the palette.
+    await type(""); await flush();
+    await key("Backspace");
+    expect(crumb()).toBeUndefined();
+    // The key off: a bare Backspace in an empty box does nothing.
+    await mount({ prefs: { aliasSpace: true, backspaceBack: false, fallbacksAlways: false, searchHistory: true, now: [], compact: false } });
+    await key("Enter"); await flush();
+    expect(crumb()).toBe("Applications");
+    await key("Backspace");
+    expect(crumb()).toBe("Applications");
+  });
+
   it("cmd+1..9 jump to that row; a number past the list is declined", async () => {
     await mount();
     await cmd("3");

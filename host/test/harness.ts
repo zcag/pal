@@ -334,11 +334,17 @@ const CORE: CoreTable = {
   "storage.remove": ({ extension, key }: { extension: string; key: string }) => { stored.delete(`${extension}\0${key}`); return null; },
   "storage.keys": ({ extension }: { extension: string }) => [...stored.keys()].filter((k) => k.startsWith(`${extension}\0`)).map((k) => k.split("\0")[1]).sort(),
   "clipboard.list": ({ query = "", limit = 200 }: { query?: string; limit?: number } = {}) =>
-    fixtures.clipboard.filter((e) => !query || (e.text ?? e.files?.join(" ") ?? "").toLowerCase().includes(query.toLowerCase())).slice(0, limit),
+    fixtures.clipboard.filter((e) => !query || `${e.text ?? e.files?.join(" ") ?? ""} ${e.name ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, limit),
   "clipboard.get": ({ id }: { id: number }) => {
     const e = fixtures.clipboard.find((e) => e.id === id);
     if (!e) throw new Error(`no entry ${id}`);
     return e;
+  },
+  "clipboard.rename": ({ id, name }: { id: number; name: string | null }) => {
+    const e = fixtures.clipboard.find((e) => e.id === id);
+    if (!e) throw new Error(`no entry ${id}`);
+    e.name = name?.trim() || null;
+    return null;
   },
   "windows.list": () => fixtures.windows,
   "system.commands": () => fixtures.commands,
@@ -347,11 +353,11 @@ const CORE: CoreTable = {
 /** Canned OS state for the capability-backed extensions. */
 export const fixtures = {
   clipboard: [
-    { id: 1, kind: "text", text: "hello world", image: null, files: null, source_app: "com.google.Chrome", at: 1758000000000, bytes: 11, pinned: false, width: null, height: null },
-    { id: 2, kind: "text", text: "line one\nline two\nline three", image: null, files: null, source_app: "net.kovidgoyal.kitty", at: 1758000001000, bytes: 28, pinned: true, width: null, height: null },
-    { id: 3, kind: "image", text: null, image: "/tmp/clip-3.png", files: null, source_app: null, at: 1758000002000, bytes: 12345, pinned: false, width: 640, height: 480 },
-    { id: 4, kind: "files", text: null, image: null, files: ["/Users/x/a.txt", "/Users/x/b.txt"], source_app: "com.apple.finder", at: 1758000003000, bytes: 40, pinned: false, width: null, height: null },
-    { id: 5, kind: "text", text: "https://example.com/page", image: null, files: null, source_app: "com.apple.Safari", at: 1758000004000, bytes: 24, pinned: false, width: null, height: null },
+    { id: 1, kind: "text", text: "hello world", image: null, files: null, source_app: "com.google.Chrome", at: 1758000000000, bytes: 11, pinned: false, width: null, height: null, name: null },
+    { id: 2, kind: "text", text: "line one\nline two\nline three", image: null, files: null, source_app: "net.kovidgoyal.kitty", at: 1758000001000, bytes: 28, pinned: true, width: null, height: null, name: "Deploy notes" },
+    { id: 3, kind: "image", text: null, image: "/tmp/clip-3.png", files: null, source_app: null, at: 1758000002000, bytes: 12345, pinned: false, width: 640, height: 480, name: null },
+    { id: 4, kind: "files", text: null, image: null, files: ["/Users/x/a.txt", "/Users/x/b.txt"], source_app: "com.apple.finder", at: 1758000003000, bytes: 40, pinned: false, width: null, height: null, name: null },
+    { id: 5, kind: "text", text: "https://example.com/page", image: null, files: null, source_app: "com.apple.Safari", at: 1758000004000, bytes: 24, pinned: false, width: null, height: null, name: null },
   ] as ClipboardEntry[],
   windows: [
     { id: "w1", app: "kitty", title: "~/proj/pal", bundle_or_class: "net.kovidgoyal.kitty", pid: 11, minimized: false, on_screen: true, monitor: null, workspace: null, icon: "/Applications/kitty.app" },

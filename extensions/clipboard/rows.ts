@@ -255,16 +255,32 @@ const swatch = (hex: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<
 const wideSwatch = (hex: string) => `![](data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64"><rect width="320" height="64" rx="8" fill="${hex}"/></svg>`)})`;
 const item = (id: string, name: string, subtitle: string | undefined, icon: Item["icon"], actions: Action[], more: Partial<Item> = {}): Item => ({ id, name, subtitle, icon, section: SECTION, ...more, actions: [...actions, HIDE] });
 
-/** The QR code of `text` as an SVG data url (level M, quiet zone of 2), or nothing when it does not fit. */
-export function qrSvg(text: string, cell = 4): string | undefined {
+/** A file name for the entry: the text's first words as `.txt`, an image's size as `.png`, a file list as `paths.txt`. */
+export function fileNameFor(e: Pick<ClipboardEntry, "kind" | "text" | "name" | "width" | "height">): string {
+  const stem = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().split(" ").slice(0, 6).join(" ").slice(0, 60) || "Clipboard";
+  if (e.kind === "image") return `${e.name ? stem(e.name) : `Image ${e.width ?? "?"}x${e.height ?? "?"}`}.png`;
+  if (e.kind === "files") return `${e.name ? stem(e.name) : "paths"}.txt`;
+  return `${stem(e.name ?? e.text!)}.txt`;
+}
+
+/**
+ * The QR code of `text` as an SVG data url (level M, quiet zone of 2), or
+ * nothing when it does not fit. Scalable by default (a row icon takes its
+ * box); `size` pins the width and height in px, which is what a markdown
+ * image in a level wants, since the pane would otherwise draw it at its
+ * full width and cut the bottom off.
+ */
+export function qrSvg(text: string, cell = 4, size?: number): string | undefined {
   try {
     const qr = qrcode(0, "M");
     qr.addData(text);
     qr.make();
     const svg = qr.createSvgTag({ cellSize: cell, margin: cell * 2, scalable: true });
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(size ? svg.replace("<svg ", `<svg width="${size}" height="${size}" `) : svg)}`;
   } catch { return undefined; }
 }
+/** The size a QR code is drawn at in a `show` level. */
+export const QR_SHOW_PX = 320;
 
 export const KIND_EXT: Record<string, string[]> = {
   image: ["png", "jpg", "jpeg", "gif", "webp", "heic", "svg", "bmp", "tiff", "avif"],

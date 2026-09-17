@@ -15,6 +15,9 @@ const COMMANDS: SystemCommand[] = [
   { id: "empty-trash", title: "Empty Trash", subtitle: "Delete everything in the trash", icon: "⌫", keywords: ["bin"], destructive: true, available: true },
   { id: "dark-mode", title: "Toggle Dark Mode", subtitle: "Switch between light and dark appearance", icon: "◐", keywords: ["theme"], destructive: false, available: true },
   { id: "dnd", title: "Toggle Do Not Disturb", subtitle: "Focus", icon: "⊘", keywords: ["focus"], destructive: false, available: false },
+  { id: "quit-all", title: "Quit All Apps", subtitle: "Quit every open app but Finder and pal", icon: "⌧", keywords: ["close all"], destructive: true, available: true },
+  { id: "unhide-all", title: "Unhide All Apps", subtitle: "Show every hidden app again", icon: "◫", keywords: ["show all"], destructive: false, available: true },
+  { id: "dismiss-notifications", title: "Dismiss Notifications", subtitle: "Clear every notification on screen", icon: "⌦", keywords: ["clear all"], destructive: false, available: MAC },
 ];
 
 const trash = mkdtempSync(join(tmpdir(), "pal-trash-"));
@@ -39,7 +42,9 @@ describe("system", () => {
 
   test("only available commands, mapped one to one, one run action each", async () => {
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["sleep", "shutdown", "empty-trash", "dark-mode"]);
+    expect(items.map((i) => i.id)).toEqual(["sleep", "shutdown", "empty-trash", "dark-mode", "quit-all", "unhide-all", ...(MAC ? ["dismiss-notifications"] : [])]);
+    // The app commands wear their own glyphs too.
+    expect(items.slice(4).map((i) => i.icon)).toEqual(["\u{f0c5e}", "\u{f06d0}", ...(MAC ? ["\u{f039f}"] : [])]);
     // The row draws the extension's glyph for the id, not the core's text symbol.
     expect(items[0]).toEqual({ id: "sleep", name: "Sleep", subtitle: "Put the machine to sleep", icon: "\u{f0904}", keywords: ["suspend"], accessories: [], actions: [{ id: "run", title: "Sleep" }] });
   });
@@ -67,6 +72,8 @@ describe("system", () => {
     const on = await list();
     expect(on[1].actions).toEqual([{ id: "run", title: "Shut Down", style: "destructive", confirm: "Shut Down now?" }]);
     expect(on[2].actions![0].confirm).toBe("Empty Trash now?");
+    expect(on[4].actions![0]).toEqual({ id: "run", title: "Quit All Apps", style: "destructive", confirm: "Quit All Apps now?" });
+    expect(on[5].actions![0].confirm).toBeUndefined();
     expect(on[0].actions![0].confirm).toBeUndefined();
     host.changeSettings("system", { settings: { confirm_destructive: false } });
     const off = await list();
@@ -77,7 +84,7 @@ describe("system", () => {
   });
 
   test("the list ignores a query: matching is the index's", async () => {
-    expect((await list("shut")).map((i) => i.id)).toEqual(["sleep", "shutdown", "empty-trash", "dark-mode"]);
+    expect((await list("shut")).map((i) => i.id)).toEqual(["sleep", "shutdown", "empty-trash", "dark-mode", "quit-all", "unhide-all", ...(MAC ? ["dismiss-notifications"] : [])]);
   });
 
   test("pick runs through the core and hides; a refusal is a failure toast that keeps the palette", async () => {

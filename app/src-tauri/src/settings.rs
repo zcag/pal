@@ -837,7 +837,7 @@ pub fn settings_theme(st: State<'_, Settings>) -> pal_core::config::Theme {
 }
 
 /// `[general]` as loaded, for the panel's page (what it reads of it:
-/// `alias_space`, `fallbacks_always`, `now`, `search_history`); the page
+/// `alias_space`, `backspace_back`, `fallbacks_always`, `now`, `search_history`); the page
 /// follows `pal://config` for changes.
 #[tauri::command]
 pub fn settings_general(st: State<'_, Settings>) -> pal_core::config::General {

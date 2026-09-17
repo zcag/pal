@@ -224,19 +224,23 @@ export type ClipboardEntry = {
   pinned: boolean;
   width: number | null;
   height: number | null;
+  /** A name given through `clipboard.rename`: the row's title in place of the text, and searchable like it; null until set. */
+  name: string | null;
 };
 
-/** `clipboard.list` options: a prefix-word `query` over text and file paths, one `kind`, and a page. */
+/** `clipboard.list` options: a prefix-word `query` over text, file paths and names, one `kind`, and a page. */
 export type ClipboardListOpts = { query?: string; kind?: ClipboardEntry["kind"]; limit?: number; offset?: number };
 
 /** The clipboard history the core keeps (`pal_core::clipboard`). */
 export const clipboard = {
-  /** Pinned first, then newest; `query` is a prefix-word search over text and file paths. */
+  /** Pinned first, then newest; `query` is a prefix-word search over text and file paths, a substring one over names. */
   list: (opts: ClipboardListOpts = {}) => call<ClipboardEntry[]>("clipboard.list", opts),
   /** One entry by id; rejects when it is gone. */
   get: (id: number) => call<ClipboardEntry>("clipboard.get", { id }),
   /** Pin (or unpin with `false`): a pinned entry lists first and is exempt from retention (the age and count limits), not from `clear`. */
   pin: (id: number, pinned = true) => call<null>("clipboard.pin", { id, pinned }),
+  /** Name an entry (`ClipboardEntry.name`); `null` or blank clears the name. */
+  rename: (id: number, name: string | null) => call<null>("clipboard.rename", { id, name }),
   /** Remove one entry. */
   delete: (id: number) => call<null>("clipboard.delete", { id }),
   /** Everything, pinned included. */

@@ -1,15 +1,22 @@
 // Quicklinks: the placeholder and url helpers (links.ts, pure), then the
 // extension over the wire against the harness's in-memory storage: the
-// create form and its submit, the refusal round trip, edit, delete, the
-// drill-in for a `{query}` link, and an import file's read-only rows.
+// create form and its submit (filled from the tab in front, a browser to
+// open with), the refusal round trip, edit, delete, the drill-in for a
+// `{query}` link, `{selection}` filled without asking, the library, an
+// open tab preferred, and an import file's read-only rows. The browser
+// is a Bun server speaking the DevTools HTTP endpoints (browser-tabs'
+// `activeTab`/`findTab`); `PAL_QUICKLINKS_BROWSERS` names the installed
+// browsers and `PAL_QUICKLINKS_OPEN` a stand-in for `open -a` that logs.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { LIBRARY } from "../../../extensions/quicklinks/library.ts";
 import { asLinks, badUrl, fill, fromJson, placeholder, splitKeywords } from "../../../extensions/quicklinks/links.ts";
+import { samePage } from "../../../extensions/browser-tabs/index.ts";
 import type { Form } from "../../../sdk/src/protocol.ts";
 import type { Item } from "../../../sdk/src/index.ts";
-import { Host, stored } from "../harness.ts";
+import { Host, fixtures, stored } from "../harness.ts";
 
 describe("links", () => {
   test("placeholder: {query}, {argument}, a named argument, or none", () => {
@@ -37,25 +44,67 @@ describe("links", () => {
     expect(new Set(links.map((l) => l.id)).size).toBe(3);
     expect(() => fromJson({})).toThrow(/array/);
   });
-  test("asLinks drops what is not a link; splitKeywords splits on commas and spaces", () => {
-    expect(asLinks([{ id: "1", name: "a", url: "u", keywords: ["k", 2] }, { id: "2", name: "b" }, null, "x"])).toEqual([{ id: "1", name: "a", url: "u", keywords: ["k", "2"] }]);
+  test("asLinks drops what is not a link and keeps an app; splitKeywords splits on commas and spaces", () => {
+    expect(asLinks([{ id: "1", name: "a", url: "u", keywords: ["k", 2], app: "Safari" }, { id: "2", name: "b" }, null, "x"])).toEqual([{ id: "1", name: "a", url: "u", keywords: ["k", "2"], app: "Safari" }]);
     expect(asLinks(null)).toEqual([]);
     expect(splitKeywords(" gh, code  search ")).toEqual(["gh", "code", "search"]);
     expect(splitKeywords("  ")).toBeUndefined();
   });
+  test("samePage (browser-tabs): the origin and path, no query or fragment, no trailing slash, lower-cased", () => {
+    expect(samePage("https://GitHub.com/zcag/pal/?tab=x#top")).toBe("https://github.com/zcag/pal");
+    expect(samePage("https://github.com/zcag/pal")).toBe(samePage("https://github.com/zcag/pal/"));
+    expect(samePage("not a url")).toBe("not a url");
+  });
+});
+
+// ---- a browser: the DevTools endpoints browser-tabs reads, activation logged ----------------------
+
+const targets = [
+  { id: "T1", type: "page", title: "pal: a launcher", url: "https://github.com/zcag/pal?tab=readme" },
+  { id: "T2", type: "page", title: "Home Assistant", url: "http://ha.lan/" },
+];
+const activated: string[] = [];
+const browser = Bun.serve({
+  port: 0,
+  hostname: "127.0.0.1",
+  fetch(req, srv) {
+    const path = new URL(req.url).pathname;
+    if (path === "/json/version") return Response.json({ Browser: "Chrome/152.0.0.0", webSocketDebuggerUrl: `ws://127.0.0.1:${srv.port}/devtools/browser/x` });
+    if (path === "/json" || path === "/json/list") return Response.json(targets);
+    if (path.startsWith("/json/activate/")) { activated.push(path.slice(15)); return new Response("Target activated"); }
+    return new Response("not found", { status: 404 });
+  },
 });
 
 const dir = mkdtempSync(join(tmpdir(), "pal-ql-"));
 const importFile = join(dir, "links.json");
 writeFileSync(importFile, JSON.stringify([{ name: "Grafana", url: "http://grafana.lan", keywords: ["graphs"] }, { url: "http://bare" }, { name: "no url" }]));
 
+const openLog = join(dir, "open.log");
+writeFileSync(join(dir, "open"), `#!/bin/sh\necho "$1|$2" >> ${JSON.stringify(openLog)}\n`);
+chmodSync(join(dir, "open"), 0o755);
+const opened = () => { try { return readFileSync(openLog, "utf8").trim().split("\n"); } catch { return []; } };
+
 let host: Host;
+/** What the canned `core/selection.text` answers. */
+let selected: string | null = "kedi";
 beforeAll(async () => {
   stored.clear();
-  stored.set("quicklinks\0links", [{ id: "gh", name: "GitHub search", url: "https://github.com/search?q={query}", keywords: ["gh"] }, { id: "ha", name: "Home Assistant", url: "http://ha.lan" }]);
-  host = await Host.bundled({ settings: { quicklinks: { settings: { import: importFile } } } });
+  stored.set("quicklinks\0links", [
+    { id: "gh", name: "GitHub search", url: "https://github.com/search?q={query}", keywords: ["gh"] },
+    { id: "ha", name: "Home Assistant", url: "http://ha.lan" },
+    { id: "tr", name: "Translate selection", url: "https://translate.google.com/?text={selection}", app: "Firefox" },
+  ]);
+  process.env.PAL_QUICKLINKS_BROWSERS = "Safari,Firefox";
+  process.env.PAL_QUICKLINKS_OPEN = join(dir, "open");
+  try {
+    host = await Host.bundled({
+      settings: { quicklinks: { settings: { import: importFile } }, "browser-tabs": { settings: { port: browser.port, apps: [], firefox: false } } },
+      core: { "selection.text": () => selected },
+    });
+  } finally { delete process.env.PAL_QUICKLINKS_BROWSERS; delete process.env.PAL_QUICKLINKS_OPEN; }
 });
-afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host.kill(); browser.stop(true); rmSync(dir, { recursive: true, force: true }); });
 
 const list = () => host.list("quicklinks", "quicklinks");
 const pick = (id: string, action?: string, ctx?: Parameters<Host["pick"]>[4]) => host.pick("quicklinks", "quicklinks", id, action, ctx);
@@ -82,20 +131,92 @@ describe("quicklinks at the root", () => {
 describe("quicklinks", () => {
   test("rows: the create row first, then stored links (favicon from url, {query} as a tag, edit and delete), then the import file's, read-only, then Import and Export", async () => {
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["create", "gh", "ha", "import:http://grafana.lan", "import:http://bare", "import", "export"]);
-    expect(items[5]).toMatchObject({ name: "Import Quicklinks", actions: [{ id: "import", title: "Import…" }] });
-    expect(items[6]).toMatchObject({ name: "Export Quicklinks", actions: [{ id: "export", title: "Export…" }] });
+    expect(items.map((i) => i.id)).toEqual(["create", "library", "gh", "ha", "tr", "import:http://grafana.lan", "import:http://bare", "import", "export"]);
+    expect(items[7]).toMatchObject({ name: "Import Quicklinks", actions: [{ id: "import", title: "Import…" }] });
+    expect(items[8]).toMatchObject({ name: "Export Quicklinks", actions: [{ id: "export", title: "Export…" }] });
     expect(items[0]).toMatchObject({ name: "Create Quicklink", icon: "\u{f0c94}", actions: [{ id: "create", title: "Create quicklink" }] });
+    expect(items[1]).toMatchObject({ name: "Browse Library", icon: "\u{f0ba9}", actions: [{ id: "library", title: "Browse library" }] });
     for (const i of items) expect(i.icon || i.url).toBeTruthy();
-    expect(items[1]).toMatchObject({ name: "GitHub search", subtitle: "https://github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }] });
-    expect(items[1].icon).toBeUndefined();
-    expect(items[1].actions!.map((a) => a.id)).toEqual(["open", "copy", "edit", "delete"]);
-    expect(items[1].actions![3]).toMatchObject({ style: "destructive", confirm: "Delete this quicklink?" });
-    expect(items[1].detail!.markdown).toContain("https://github.com/search?q={query}");
-    expect(items[2].accessories).toBeUndefined();
-    expect(items[3]).toMatchObject({ name: "Grafana", url: "http://grafana.lan", keywords: ["graphs"] });
-    expect(items[3].actions!.map((a) => a.id)).toEqual(["open", "copy"]);
-    expect(items[4].name).toBe("http://bare");
+    expect(items[2]).toMatchObject({ name: "GitHub search", subtitle: "https://github.com/search?q={query}", url: "https://github.com/search?q={query}", keywords: ["gh"], accessories: [{ tag: "{query}" }] });
+    expect(items[2].icon).toBeUndefined();
+    expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "copy", "edit", "delete"]);
+    expect(items[2].actions![3]).toMatchObject({ style: "destructive", confirm: "Delete this quicklink?" });
+    expect(items[2].detail!.markdown).toContain("https://github.com/search?q={query}");
+    expect(items[3].accessories).toBeUndefined();
+    // The app it opens with is an accessory and a metadata line; `{selection}` is no tag (nothing is asked for).
+    expect(items[4].accessories).toEqual([{ text: "Firefox" }]);
+    expect(items[4].detail!.metadata).toContainEqual({ label: "Opens with", value: "Firefox" });
+    expect(items[5]).toMatchObject({ name: "Grafana", url: "http://grafana.lan", keywords: ["graphs"] });
+    expect(items[5].actions!.map((a) => a.id)).toEqual(["open", "copy"]);
+    expect(items[6].name).toBe("http://bare");
+  });
+
+  test("{selection} in a url is filled from the app in front's selected text (the newest clipboard text when nothing is selected), percent-encoded, and opens at once with the link's app", async () => {
+    expect(await pick("tr")).toEqual({ hide: true });
+    await host.until(() => opened().length === 1);
+    expect(opened()).toEqual(["Firefox|https://translate.google.com/?text=kedi"]);
+    selected = null;
+    expect(await pick("tr", "open")).toEqual({ hide: true });
+    await host.until(() => opened().length === 2);
+    expect(opened()[1]).toBe(`Firefox|https://translate.google.com/?text=${encodeURIComponent(fixtures.clipboard[0].text!)}`);
+    selected = "kedi";
+    expect(await pick("tr", "copy")).toEqual({ copy: "https://translate.google.com/?text={selection}" });
+  });
+
+  test("prefer_existing_tab: a link whose page a browser tab has (query and fragment aside) switches to that tab (activated in the browser, its window raised); a page no tab has opens as before", async () => {
+    host.changeSettings("quicklinks", { settings: { import: importFile, prefer_existing_tab: true } });
+    stored.set("quicklinks\0links", [...(stored.get("quicklinks\0links") as object[]), { id: "pal", name: "pal", url: "https://github.com/zcag/pal/" }]);
+    try {
+      // The canned windows carry a Chrome window (w2), which is the one raised.
+      expect(await pick("pal")).toEqual({ focus: "w2" });
+      expect(activated).toEqual(["T1"]);
+      expect(await pick("ha")).toEqual({ focus: "w2" });
+      expect(activated).toEqual(["T1", "T2"]);
+      expect(await pick("import:http://grafana.lan")).toEqual({ open: "http://grafana.lan" });
+      expect(activated).toHaveLength(2);
+    } finally {
+      host.changeSettings("quicklinks", { settings: { import: importFile } });
+      stored.set("quicklinks\0links", (stored.get("quicklinks\0links") as { id: string }[]).filter((l) => l.id !== "pal"));
+    }
+    expect(await pick("ha")).toEqual({ open: "http://ha.lan" });
+    expect(activated).toHaveLength(2);
+  });
+
+  test("the library: every ready-made search, the ones you have tagged added; Enter adds one (once), cmd+enter searches with it without saving, cmd+c copies", async () => {
+    expect(await pick("library")).toEqual({ push: { extension: "quicklinks", palette: "quicklinks", args: { library: true }, title: "Quicklink Library" } });
+    const rows = await host.list("quicklinks", "quicklinks", "", { args: { library: true } });
+    expect(rows).toHaveLength(LIBRARY.length);
+    expect(rows[0]).toMatchObject({ id: "library:0", name: "Google", url: "https://www.google.com/search?q={query}", keywords: ["g", "search", "web"] });
+    expect(rows[0].accessories).toBeUndefined();
+    expect(rows[0].actions!.map((a) => a.id)).toEqual(["add", "search", "copy"]);
+    const gh = rows.find((r) => r.name === "GitHub")!;
+    expect(gh.accessories).toEqual([{ tag: "added", color: "green" }]);
+    expect(gh.actions!.map((a) => a.id)).toEqual(["search", "add", "copy"]);
+    const ctx = { args: { library: true } };
+    expect(await pick("library:0", undefined, ctx)).toEqual({ keep: true, toast: { title: "Added", message: "Google" } });
+    const mine = stored.get("quicklinks\0links") as { name: string; url: string; keywords?: string[] }[];
+    expect(mine.at(-1)).toMatchObject({ name: "Google", url: "https://www.google.com/search?q={query}", keywords: ["g", "search", "web"] });
+    expect(await pick("library:0", "add", ctx)).toEqual({ keep: true, toast: { title: "Already there", message: "Google" } });
+    expect((await host.list("quicklinks", "quicklinks", "", ctx))[0].accessories).toEqual([{ tag: "added", color: "green" }]);
+    // Searching with one you have goes through your link; one you do not carries the entry along, so the drill-in lists without saving.
+    const google = (stored.get("quicklinks\0links") as { id: string; name: string }[]).find((l) => l.name === "Google")!;
+    expect(await pick("library:0", "search", ctx)).toEqual({ push: { extension: "quicklinks", palette: "quicklinks", args: { link: google.id }, title: "Google" } });
+    const wiki = rows.find((r) => r.name === "Wikipedia")!;
+    expect(await pick(wiki.id, "search", ctx)).toEqual({ push: { extension: "quicklinks", palette: "quicklinks", args: { link: wiki.id, library: wiki.id }, title: "Wikipedia" } });
+    const drill = await host.list("quicklinks", "quicklinks", "bun", { args: { link: wiki.id, library: wiki.id } });
+    expect(drill).toEqual([{ id: "https://en.wikipedia.org/w/index.php?search=bun", name: "Open Wikipedia", subtitle: "https://en.wikipedia.org/w/index.php?search=bun", url: "https://en.wikipedia.org/w/index.php?search=bun", actions: [{ id: "open", title: "Open" }, { id: "copy", title: "Copy URL", shortcut: "cmd+c" }] }]);
+    expect(await pick(drill[0].id, "open", { args: { link: wiki.id, library: wiki.id } })).toEqual({ open: "https://en.wikipedia.org/w/index.php?search=bun" });
+    expect(await pick(wiki.id, "copy", ctx)).toEqual({ copy: "https://en.wikipedia.org/w/index.php?search={query}" });
+    expect((stored.get("quicklinks\0links") as object[]).some((l) => (l as { name: string }).name === "Wikipedia")).toBe(false);
+    stored.set("quicklinks\0links", (stored.get("quicklinks\0links") as { name: string }[]).filter((l) => l.name !== "Google"));
+  });
+
+  test("a push with args.create is one row whose form comes filled with the link handed over", async () => {
+    const ctx = { args: { create: { name: "pal", url: "https://github.com/zcag/pal", keywords: ["launcher"] } } };
+    const rows = await host.list("quicklinks", "quicklinks", "", ctx);
+    expect(rows).toEqual([{ id: "create", name: "Create Quicklink for pal", subtitle: "https://github.com/zcag/pal", icon: "\u{f0c94}", actions: [{ id: "create", title: "Create quicklink" }] }]);
+    const form = (await pick("create", undefined, ctx)).form as Form;
+    expect(form.fields.map((f) => (f as { default?: unknown }).default)).toEqual(["pal", "https://github.com/zcag/pal", "launcher", "default"]);
   });
 
   test("a plain link opens on Enter and copies on cmd+c; an imported one too", async () => {
@@ -121,14 +242,24 @@ describe("quicklinks", () => {
     const r = await pick("create", "create");
     const form = r.form as Form;
     expect(form).toMatchObject({ id: "create", title: "Create Quicklink", submit: { id: "save", title: "Create" } });
-    expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["name", "text", true], ["url", "text", true], ["keywords", "text", false]]);
-    const saved = await pick("create", "save", { values: { name: "Docs", url: "https://docs.rs/{query}", keywords: "rust, crate" } });
+    expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["name", "text", true], ["url", "text", true], ["keywords", "text", false], ["app", "select", false]]);
+    // Filled from the tab in front (the DevTools browser's first target); the browsers found are the Open with choices after Default.
+    expect(form.fields.map((f) => (f as { default?: unknown }).default)).toEqual(["pal: a launcher", "https://github.com/zcag/pal?tab=readme", undefined, "default"]);
+    expect((form.fields[3] as { options: { id: string; title: string }[] }).options).toEqual([{ id: "default", title: "Default browser" }, { id: "Safari", title: "Safari" }, { id: "Firefox", title: "Firefox" }]);
+    const saved = await pick("create", "save", { values: { name: "Docs", url: "https://docs.rs/{query}", keywords: "rust, crate", app: "default" } });
     expect(saved).toEqual({ keep: true, toast: { title: "Created", message: "Docs" } });
-    const links = stored.get("quicklinks\0links") as { id: string; name: string; url: string; keywords?: string[] }[];
-    expect(links).toHaveLength(3);
-    expect(links[2]).toMatchObject({ name: "Docs", url: "https://docs.rs/{query}", keywords: ["rust", "crate"] });
-    expect(links[2].id).toMatch(/^[0-9a-f-]{36}$/);
+    const links = stored.get("quicklinks\0links") as { id: string; name: string; url: string; keywords?: string[]; app?: string }[];
+    expect(links).toHaveLength(4);
+    expect(links[3]).toEqual({ id: links[3].id, name: "Docs", url: "https://docs.rs/{query}", keywords: ["rust", "crate"] });
+    expect(links[3].id).toMatch(/^[0-9a-f-]{36}$/);
     expect((await list()).map((i) => i.name)).toContain("Docs");
+    // A browser chosen is stored and shown; the drill-in's Open then goes through it.
+    expect(await pick(links[3].id, "save", { values: { name: "Docs", url: "https://docs.rs/{query}", keywords: "rust", app: "Safari" } })).toEqual({ keep: true, toast: { title: "Saved", message: "Docs" } });
+    expect((stored.get("quicklinks\0links") as { app?: string }[])[3].app).toBe("Safari");
+    const before = opened().length;
+    expect(await pick("https://docs.rs/serde", "open", { args: { link: links[3].id } })).toEqual({ hide: true });
+    await host.until(() => opened().length === before + 1);
+    expect(opened().at(-1)).toBe("Safari|https://docs.rs/serde");
   });
 
   test("a submit without a usable url is refused: the form again with the message on the field, nothing stored", async () => {
@@ -144,10 +275,10 @@ describe("quicklinks", () => {
     const r = await pick("ha", "edit");
     const form = r.form as Form;
     expect(form).toMatchObject({ id: "ha", title: "Edit Home Assistant", submit: { id: "save", title: "Save" } });
-    expect(form.fields.map((f) => (f as { default?: unknown }).default)).toEqual(["Home Assistant", "http://ha.lan", undefined]);
+    expect(form.fields.map((f) => (f as { default?: unknown }).default)).toEqual(["Home Assistant", "http://ha.lan", undefined, "default"]);
     expect(await pick("ha", "save", { values: { name: "HA", url: "http://ha.lan:8123", keywords: "home" } })).toEqual({ keep: true, toast: { title: "Saved", message: "HA" } });
     const links = stored.get("quicklinks\0links") as { id: string; name: string; url: string; keywords?: string[] }[];
-    expect(links.map((l) => l.id)).toEqual(["gh", "ha", links[2].id]);
+    expect(links.map((l) => l.id)).toEqual(["gh", "ha", "tr", links[3].id]);
     expect(links[1]).toEqual({ id: "ha", name: "HA", url: "http://ha.lan:8123", keywords: ["home"] });
   });
 

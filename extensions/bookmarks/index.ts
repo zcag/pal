@@ -6,20 +6,16 @@
 // holds it locked. Every source is read on every list, so an edit shows
 // at once. Rows are deduplicated by url, the first source wins; the
 // section is the browser (and profile), the folder path an accessory.
-import { copyFile, readdir, stat, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+// A second palette, `history` (history.ts), searches the same browsers'
+// visit history; browsers.ts is what the two share.
 import { home, settings, xdg, type Action, type Extension, type Item } from "@zcag/pal";
+import { BROWSERS, HOME, MAC, chromiumProfiles, copied, exists, firefoxProfiles, openIn, spawnDetached, type Firefox } from "./browsers.ts";
+import { historyPalette } from "./history.ts";
 import { chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks, type FirefoxRow, type Found } from "./sources.ts";
 
 /** `[extensions.bookmarks]`, defaults in pal.json. */
 type Settings = { file: string; browsers: string[]; exclude_folders: string[] };
 type Row = { name?: string; url?: string; subtitle?: string; icon?: string; keywords?: string[] };
-
-const MAC = process.platform === "darwin";
-/** Tests point the profile roots at a temp home. */
-const HOME = process.env.PAL_BOOKMARKS_HOME || home("~");
-const APP_SUPPORT = `${HOME}/Library/Application Support`;
 
 // Open works on marked rows too (`multi`): every one in a tab of the default browser.
 const OPEN: Action = { id: "open", title: "Open in browser", multi: true };
@@ -28,47 +24,16 @@ const COPY_MD: Action = { id: "copy-markdown", title: "Copy as markdown", shortc
 
 // ---- browsers --------------------------------------------------------------
 
-type Chromium = { kind: "chromium"; title: string; mac: string; linux: string; app: string; bin: string };
-type Browser = Chromium | { kind: "safari"; title: string; app: string } | { kind: "firefox"; title: string; mac: string; linux: string; app: string; bin: string };
-
-/** The `browsers` setting's ids; `mac`/`linux` are the profile roots under the home. */
-const BROWSERS: Record<string, Browser> = {
-  chrome: { kind: "chromium", title: "Chrome", mac: `${APP_SUPPORT}/Google/Chrome`, linux: `${HOME}/.config/google-chrome`, app: "Google Chrome", bin: "google-chrome" },
-  chromium: { kind: "chromium", title: "Chromium", mac: `${APP_SUPPORT}/Chromium`, linux: `${HOME}/.config/chromium`, app: "Chromium", bin: "chromium" },
-  brave: { kind: "chromium", title: "Brave", mac: `${APP_SUPPORT}/BraveSoftware/Brave-Browser`, linux: `${HOME}/.config/BraveSoftware/Brave-Browser`, app: "Brave Browser", bin: "brave" },
-  edge: { kind: "chromium", title: "Edge", mac: `${APP_SUPPORT}/Microsoft Edge`, linux: `${HOME}/.config/microsoft-edge`, app: "Microsoft Edge", bin: "microsoft-edge" },
-  vivaldi: { kind: "chromium", title: "Vivaldi", mac: `${APP_SUPPORT}/Vivaldi`, linux: `${HOME}/.config/vivaldi`, app: "Vivaldi", bin: "vivaldi" },
-  arc: { kind: "chromium", title: "Arc", mac: `${APP_SUPPORT}/Arc/User Data`, linux: "", app: "Arc", bin: "" },
-  safari: { kind: "safari", title: "Safari", app: "Safari" },
-  firefox: { kind: "firefox", title: "Firefox", mac: `${APP_SUPPORT}/Firefox/Profiles`, linux: `${HOME}/.mozilla/firefox`, app: "Firefox", bin: "firefox" },
-};
-
 /** One source's rows: the section they list under, and how to open a url in that browser. */
 type Source = { section: string; browser?: string; found: Found[] };
 type Problem = { name: string; subtitle: string };
 
-const exists = (p: string) => stat(p).then(() => true, () => false);
-
-/** Chrome's profile names from `Local State`, by profile directory; the directory name otherwise. */
-async function chromeProfiles(root: string): Promise<Map<string, string>> {
-  const names = new Map<string, string>();
-  const state = await Bun.file(`${root}/Local State`).json().catch(() => undefined);
-  const cache = (state as { profile?: { info_cache?: Record<string, { name?: string }> } } | undefined)?.profile?.info_cache ?? {};
-  for (const [dir, info] of Object.entries(cache)) if (info?.name) names.set(dir, info.name);
-  return names;
-}
-
-async function readChromium(b: Chromium): Promise<Source[]> {
-  const root = MAC ? b.mac : b.linux;
-  if (!root || !(await exists(root))) return [];
-  const dirs = (await readdir(root, { withFileTypes: true }).catch(() => [])).filter((d) => d.isDirectory() && (d.name === "Default" || /^Profile \d+$/.test(d.name))).map((d) => d.name).sort();
-  const names = await chromeProfiles(root);
+/** Every profile's `Bookmarks` JSON. */
+async function readChromium(b: Extract<typeof BROWSERS[string], { kind: "chromium" }>): Promise<Source[]> {
   const sources: Source[] = [];
-  for (const dir of dirs) {
-    const json = await Bun.file(`${root}/${dir}/Bookmarks`).json().catch(() => undefined);
-    if (!json) continue;
-    const section = dirs.length > 1 ? `${b.title} (${names.get(dir) ?? dir})` : b.title;
-    sources.push({ section, browser: b.app, found: chromeBookmarks(json) });
+  for (const p of await chromiumProfiles(b, "Bookmarks")) {
+    const json = await Bun.file(`${p.dir}/Bookmarks`).json().catch(() => undefined);
+    if (json) sources.push({ section: p.section, browser: b.app, found: chromeBookmarks(json) });
   }
   return sources;
 }
@@ -86,29 +51,20 @@ async function readSafari(): Promise<{ sources: Source[]; problem?: Problem }> {
   return { sources: [{ section: "Safari", browser: "Safari", found: safariBookmarks(parsePlist(xml)) }] };
 }
 
-/** `places.sqlite`, copied first (the running browser holds the lock), then one query over folders and bookmarks. */
-async function readFirefox(b: Browser & { kind: "firefox" }): Promise<Source[]> {
-  const root = MAC ? b.mac : b.linux;
-  if (!(await exists(root))) return [];
+/** `places.sqlite`, copied first (the running browser holds the lock; the copy follows the file's mtime), then one query over folders and bookmarks. */
+async function readFirefox(b: Firefox): Promise<Source[]> {
   const { Database } = await import("bun:sqlite");
-  const dirs: string[] = [];
-  for (const dir of (await readdir(root).catch(() => [])).sort()) if (await exists(`${root}/${dir}/places.sqlite`)) dirs.push(dir);
   const sources: Source[] = [];
-  for (const dir of dirs) {
-    const db = `${root}/${dir}/places.sqlite`;
-    const copy = join(tmpdir(), `pal-places-${process.pid}.sqlite`);
+  for (const p of await firefoxProfiles(b)) {
+    const db = `${p.dir}/places.sqlite`;
     try {
-      await copyFile(db, copy);
-      const d = new Database(copy, { readonly: true });
+      const d = new Database(await copied(db), { readonly: true });
       try {
         const rows = d.query<FirefoxRow, []>("SELECT b.id, b.parent, b.type, b.title, p.url FROM moz_bookmarks b LEFT JOIN moz_places p ON b.fk = p.id").all();
-        // The profile directory is `<random>.<name>`; the name is what Firefox shows.
-        sources.push({ section: dirs.length > 1 ? `${b.title} (${dir.replace(/^[^.]*\./, "")})` : b.title, browser: b.app, found: firefoxBookmarks(rows) });
+        sources.push({ section: p.section, browser: b.app, found: firefoxBookmarks(rows) });
       } finally { d.close(); }
     } catch (e) {
       console.error(`[bookmarks] firefox ${db}: ${e instanceof Error ? e.message : e}`);
-    } finally {
-      await unlink(copy).catch(() => {});
     }
   }
   return sources;
@@ -184,15 +140,6 @@ async function list(): Promise<Item[]> {
   return items;
 }
 
-const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
-
-function openIn(url: string, app: string) {
-  if (MAC) return spawnDetached(["open", "-a", app, url]);
-  const bin = Object.values(BROWSERS).map((b) => ("bin" in b && b.app === app ? b.bin : "")).find(Boolean);
-  if (!bin || !Bun.which(bin)) throw new Error(`${app} is not on PATH`);
-  spawnDetached([bin, url]);
-}
-
 export default {
   palettes: {
     bookmarks: {
@@ -220,5 +167,6 @@ export default {
         }
       },
     },
+    history: historyPalette,
   },
 } satisfies Extension;

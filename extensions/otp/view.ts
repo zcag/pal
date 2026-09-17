@@ -26,6 +26,8 @@ export const COMPACT_W = 396;
 /** Codes drawn under the newest one. */
 export const PREVIOUS = 2;
 const DIGIT_H = 52;
+/** nf-md-message_text, the extension's own mark, drawn as a glyph text when there is no code to show. */
+const MESSAGE = "\u{f0369}";
 
 type Text = Extract<ViewNode, { type: "text" }>;
 type Stack = Extract<ViewNode, { type: "stack" }>;
@@ -104,7 +106,7 @@ function earlier(st: OtpState): ViewNode[] {
 
 function none(): ViewNode {
   return column(
-    [{ type: "tile", key: "none-tile", width: 56, height: 56, text: "···", color: "neutral", fill: "soft" }, text("No recent code", { style: "title", size: "lg" }), text("The newest code stays here for a minute after it arrives", { style: "muted", size: "sm", align: "center" })],
+    [text(MESSAGE, { key: "none-mark", style: "glyph", size: "xl", color: "faint" }), text("No recent code", { style: "title", size: "lg" }), text("The newest code stays here for a minute after it arrives", { style: "muted", size: "sm", align: "center" })],
     { key: "none", padding: 6, gap: 2, align: "center", justify: "center" },
   );
 }

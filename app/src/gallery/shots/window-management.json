@@ -6,7 +6,7 @@
       "input": false,
       "icon": {
         "tile": {
-          "glyph": "\udb84\udcaa",
+          "glyph": "󱂪",
           "bg": "indigo"
         }
       },
@@ -31,7 +31,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -54,7 +54,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -77,7 +77,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -100,7 +100,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -123,7 +123,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -146,7 +146,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -169,7 +169,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -192,7 +192,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -215,7 +215,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -239,7 +239,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -263,7 +263,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -287,7 +287,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -311,7 +311,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -335,7 +335,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -359,7 +359,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -382,7 +382,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -405,7 +405,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -427,7 +427,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -450,7 +450,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -474,7 +474,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -497,7 +497,34 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
+            }
+          ]
+        },
+        {
+          "id": "resize",
+          "name": "Resize to…",
+          "subtitle": "Focused window",
+          "icon": {
+            "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3Cpath%20d%3D%22M12.5%2012.5L19%2017.5M18.13%2014.84L19%2017.5L16.20%2017.34%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E"
+          },
+          "keywords": [
+            "size",
+            "pixels",
+            "width",
+            "height",
+            "exact",
+            "1280x720",
+            "1920x1080"
+          ],
+          "actions": [
+            {
+              "id": "apply",
+              "title": "Apply"
+            },
+            {
+              "id": "apply-to",
+              "title": "Apply to…"
             }
           ]
         },
@@ -520,7 +547,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -543,7 +570,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -567,7 +594,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -591,7 +618,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -615,7 +642,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -639,7 +666,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -662,7 +689,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -685,7 +712,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         },
@@ -729,7 +756,7 @@
             },
             {
               "id": "apply-to",
-              "title": "Apply to\u2026"
+              "title": "Apply to…"
             }
           ]
         }
@@ -739,7 +766,7 @@
           {
             "id": "left_half",
             "name": "Left Half",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -758,7 +785,7 @@
           {
             "id": "right_half",
             "name": "Right Half",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2212.00%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -777,7 +804,7 @@
           {
             "id": "top_half",
             "name": "Top Half",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%2217.50%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -796,7 +823,7 @@
           {
             "id": "bottom_half",
             "name": "Bottom Half",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%2212.00%22%20width%3D%2217.50%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -815,7 +842,7 @@
           {
             "id": "left_third",
             "name": "Left Third",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%225.83%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -834,7 +861,7 @@
           {
             "id": "center_third",
             "name": "Center Third",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%229.08%22%20y%3D%225.25%22%20width%3D%225.83%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -853,7 +880,7 @@
           {
             "id": "right_third",
             "name": "Right Third",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2214.92%22%20y%3D%225.25%22%20width%3D%225.83%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -872,7 +899,7 @@
           {
             "id": "left_two_thirds",
             "name": "Left Two Thirds",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%2211.67%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -891,7 +918,7 @@
           {
             "id": "right_two_thirds",
             "name": "Right Two Thirds",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%229.08%22%20y%3D%225.25%22%20width%3D%2211.67%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -910,7 +937,7 @@
           {
             "id": "top_left_quarter",
             "name": "Top Left Quarter",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -930,7 +957,7 @@
           {
             "id": "top_right_quarter",
             "name": "Top Right Quarter",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2212.00%22%20y%3D%225.25%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -950,7 +977,7 @@
           {
             "id": "bottom_left_quarter",
             "name": "Bottom Left Quarter",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%2212.00%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -970,7 +997,7 @@
           {
             "id": "bottom_right_quarter",
             "name": "Bottom Right Quarter",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2212.00%22%20y%3D%2212.00%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -990,7 +1017,7 @@
           {
             "id": "maximize",
             "name": "Maximize",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%223.25%22%20y%3D%225.25%22%20width%3D%2217.50%22%20height%3D%2213.50%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -1010,7 +1037,7 @@
           {
             "id": "almost_maximize",
             "name": "Almost Maximize",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%224.30%22%20y%3D%226.20%22%20width%3D%2215.40%22%20height%3D%2211.61%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -1030,7 +1057,7 @@
           {
             "id": "center",
             "name": "Center",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%227.63%22%20y%3D%228.63%22%20width%3D%228.75%22%20height%3D%226.75%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -1048,7 +1075,7 @@
           {
             "id": "reasonable_size",
             "name": "Reasonable Size",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%226.22%22%20y%3D%227.54%22%20width%3D%2211.55%22%20height%3D%228.91%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -1067,7 +1094,7 @@
           {
             "id": "next_display",
             "name": "Next Display",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%221.5%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2213%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2214.25%22%20y%3D%227.25%22%20width%3D%227%22%20height%3D%229.5%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -1087,7 +1114,7 @@
           {
             "id": "previous_display",
             "name": "Previous Display",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%221.5%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%2213%22%20y%3D%226%22%20width%3D%229.5%22%20height%3D%2212%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%222.75%22%20y%3D%227.25%22%20width%3D%227%22%20height%3D%229.5%22%20rx%3D%221%22%20fill%3D%22%236662E0%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -1107,7 +1134,7 @@
           {
             "id": "restore",
             "name": "Restore",
-            "subtitle": "Pull Request #42 \u00b7 acme/widgets",
+            "subtitle": "Pull Request #42 · acme/widgets",
             "icon": {
               "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%2220%22%20height%3D%2216%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%2F%3E%3Crect%20x%3D%226.5%22%20y%3D%227.5%22%20width%3D%2211%22%20height%3D%229%22%20rx%3D%222%22%20fill%3D%22none%22%20stroke%3D%22%236662E0%22%20stroke-width%3D%221.5%22%20stroke-dasharray%3D%222%201.5%22%2F%3E%3C%2Fsvg%3E"
             },
@@ -1133,7 +1160,7 @@
       "input": true,
       "icon": {
         "tile": {
-          "glyph": "\udb84\udcaa",
+          "glyph": "󱂪",
           "bg": "indigo"
         }
       },
@@ -1159,7 +1186,7 @@
         },
         {
           "id": "w3",
-          "name": "Pull Request #42 \u00b7 acme/widgets",
+          "name": "Pull Request #42 · acme/widgets",
           "subtitle": "Google Chrome",
           "keywords": [
             "com.google.Chrome"
@@ -1243,6 +1270,43 @@
         "palette": "window-management",
         "args": "w3"
       }
+    },
+    "window-management/resize": {
+      "form": {
+        "id": "resize",
+        "title": "Resize the focused window",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "size",
+            "label": "Size",
+            "placeholder": "1280x720",
+            "required": true,
+            "default": "",
+            "description": "Width x height in px; one number is a square. Common: 1280x720, 1440x900, 1920x1080."
+          },
+          {
+            "kind": "text",
+            "id": "x",
+            "label": "X",
+            "placeholder": "blank keeps it centred where it is",
+            "default": "",
+            "description": "The left edge, px from the screen's left; blank keeps the window centred on its current centre."
+          },
+          {
+            "kind": "text",
+            "id": "y",
+            "label": "Y",
+            "placeholder": "blank keeps it centred where it is",
+            "default": "",
+            "description": "The top edge, px from the screen's top."
+          }
+        ],
+        "submit": {
+          "id": "resize-submit",
+          "title": "Resize"
+        }
+      }
     }
   },
   "shots": {
@@ -1276,7 +1340,16 @@
     "5-verbs": {
       "palette": "window-management",
       "keys": [
-        "down*29"
+        "down*30"
+      ]
+    },
+    "6-resize": {
+      "palette": "window-management",
+      "keys": [
+        "down*21",
+        "enter",
+        "wait:300",
+        "type:1280x720"
       ]
     }
   }

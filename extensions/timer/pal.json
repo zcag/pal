@@ -1,11 +1,11 @@
 {
   "name": "timer",
   "title": "Timer",
-  "description": "Named countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette.",
+  "description": "Named countdown timers over the `timer` CLI: the soonest one on the bar with a fill and a red alarm when it lands, the list, pause, resume and stop in the palette; a pomodoro mode that cycles work and break timers and counts the rounds.",
   "version": "0.1.0",
   "icon": {
     "tile": {
-      "glyph": "\udb81\udd1b",
+      "glyph": "󰔛",
       "bg": "amber"
     }
   },
@@ -27,6 +27,46 @@
       "description": "Where the CLI keeps one file per timer (its TIMER_DIR). ~ is expanded.",
       "pick": "folder",
       "default": "~/.local/share/timer"
+    },
+    {
+      "kind": "number",
+      "id": "pomodoro_work",
+      "label": "Pomodoro work",
+      "description": "Minutes of work per round.",
+      "min": 1,
+      "max": 180,
+      "unit": "min",
+      "default": 25
+    },
+    {
+      "kind": "number",
+      "id": "pomodoro_break",
+      "label": "Pomodoro break",
+      "description": "Minutes of break after a round.",
+      "min": 1,
+      "max": 60,
+      "unit": "min",
+      "default": 5
+    },
+    {
+      "kind": "number",
+      "id": "pomodoro_long_break",
+      "label": "Pomodoro long break",
+      "description": "Minutes of break after the last round of a cycle.",
+      "min": 1,
+      "max": 120,
+      "unit": "min",
+      "default": 15
+    },
+    {
+      "kind": "number",
+      "id": "pomodoro_rounds",
+      "label": "Pomodoro rounds",
+      "description": "Work rounds per cycle before the long break.",
+      "min": 1,
+      "max": 12,
+      "unit": "rounds",
+      "default": 4
     }
   ],
   "links": {
@@ -50,7 +90,7 @@
   "palettes": {
     "timers": {
       "title": "Timers",
-      "description": "Every timer with what is left; New timer asks for a duration and a name.",
+      "description": "Every timer with what is left; New timer asks for a duration and a name; Start Pomodoro runs work and break timers in turn.",
       "kind": "live",
       "keys": [
         {
@@ -62,6 +102,14 @@
           "title": "Add five minutes"
         },
         {
+          "keys": "cmd+s",
+          "title": "Skip to the pomodoro's next phase"
+        },
+        {
+          "keys": "cmd+shift+d",
+          "title": "Stop the pomodoro"
+        },
+        {
           "keys": "cmd+d",
           "title": "Stop"
         }
@@ -71,7 +119,7 @@
   "bar": {
     "timer": {
       "title": "Timer",
-      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running. The popover: a card per timer with the time left and a bar, pause, add five minutes, stop, a field to start one.",
+      "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running. The popover: a card per timer with the time left and a bar, pause, add five minutes, stop, a field to start one, a pomodoro's phase and round on its card.",
       "refresh": {
         "every": 10,
         "on": [
@@ -100,6 +148,18 @@
           "title": "Start one: type 25m tea in the field, Enter"
         },
         {
+          "keys": "p",
+          "title": "Start a pomodoro"
+        },
+        {
+          "keys": "s",
+          "title": "Skip to the pomodoro's next phase"
+        },
+        {
+          "keys": "cmd+shift+d",
+          "title": "Stop the pomodoro"
+        },
+        {
           "keys": "o",
           "title": "Open the Timers palette"
         }
@@ -108,12 +168,13 @@
   },
   "license": "MIT",
   "store": {
-    "tagline": "Named countdowns, with an alarm on the bar when one lands",
+    "tagline": "Named countdowns and pomodoros, with an alarm on the bar",
     "category": "productivity",
     "features": [
       "One row per timer, most urgent first: `3:12 left, done at 04:41 PM`, `Paused at 41:05`, `Landed 1:35 ago`, with a state tag",
       "New timer is a form: `25m`, `90s`, `1h30m` or a bare number of minutes, an optional name, and a checkbox to ring the phone when it lands",
       "`enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+d` stops",
+      "Pomodoro: Start Pomodoro (or `p` in the popover) runs 25 minutes of work, 5 of break, 15 after the fourth round, each as a timer of its own that the next phase follows when it lands; the bar reads `12:34 · 2/4`, the card names the phase, `cmd+s` skips a phase, `cmd+shift+d` stops the cycle, and a Pomodoros today row counts the finished rounds",
       "The CLI keeps the timers, so one started in a terminal and one started here are the same list",
       "A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; its popover a card per timer with the time left, pause, add five minutes, stop, and a field that starts one (`25m tea`)"
     ],
@@ -136,6 +197,10 @@
       {
         "file": "3-actions.png",
         "caption": "Pause, add five minutes, or stop a running timer"
+      },
+      {
+        "file": "4-pomodoro.png",
+        "caption": "A pomodoro's round on its row: skip to the next phase or stop the cycle; the rounds finished today at the bottom"
       },
       {
         "file": "bar-menubar-dark.png",
@@ -166,6 +231,11 @@
         "file": "bar-sketchybar.png",
         "caption": "On sketchybar: the fill as a rule of box-drawing cells before the glyph, the countdown as the label",
         "kind": "bar"
+      },
+      {
+        "file": "bar-menubar-popover-pomodoro.png",
+        "caption": "A pomodoro on the popover: the phase and the round on its card, s skips to the break, 3 rounds finished today",
+        "kind": "bar"
       }
     ],
     "actions": [
@@ -187,6 +257,21 @@
         "title": "New timer",
         "description": "A form: duration, name, ring the phone.",
         "keys": "enter"
+      },
+      {
+        "title": "Start pomodoro",
+        "description": "The Start Pomodoro row: the first work round's timer, the breaks and the next rounds follow on their own.",
+        "keys": "enter"
+      },
+      {
+        "title": "Skip to the next phase",
+        "description": "On the pomodoro's timer: this phase's timer stopped, the next started.",
+        "keys": "cmd+s"
+      },
+      {
+        "title": "Stop pomodoro",
+        "description": "The cycle is over; the timer stopped.",
+        "keys": "cmd+shift+d"
       }
     ]
   }

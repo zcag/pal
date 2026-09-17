@@ -7,26 +7,27 @@
 // drills into `arrange`, which lists the open windows (`windows.list`) and
 // applies the chosen layout to the one picked; opened from the root,
 // `arrange` goes the other way round: pick a window, then its layout, the
-// same rows with the window's title as subtitle.
-import { settings, windows, xdg, type Action, type Effect, type Extension, type Item, type LinkParams, type Window, type WindowLayout, type WindowLayoutOptions } from "@zcag/pal";
+// same rows with the window's title as subtitle. "Resize to..." is the one
+// row that is not a core layout: a form takes a size (and a place), and
+// the frame is written from here (`windows.frame` / `set_frame`, kept
+// inside the window's display); pal's panel never activates, so the
+// focused window read on submit is still the one you were in.
+import { settings, windows, xdg, type Action, type Display, type Effect, type Extension, type Form, type FormValues, type Item, type LinkParams, type Rect, type Window, type WindowLayout, type WindowLayoutOptions } from "@zcag/pal";
 import { layoutIcon } from "./icons.ts";
 
-/** `[extensions.window-management]`, defaults in pal.json. `step` (px per move) is not in the SDK's options type yet (protocol.ts). */
-type Settings = WindowLayoutOptions & { step?: number };
+/** `[extensions.window-management]`, defaults in pal.json. */
+type Settings = WindowLayoutOptions;
 
-/**
- * The core's `Layout` names: `WindowLayout` plus the verbs added after it
- * (larger / smaller, the moves, maximize height / width, fullscreen, the
- * minimise pair), which protocol.ts does not list yet; the effect casts.
- */
-export type Verb = WindowLayout | "maximize_height" | "maximize_width" | "larger" | "smaller" | "move_left" | "move_right" | "move_up" | "move_down" | "fullscreen" | "minimize" | "unminimize";
+/** A row of the palette: a core layout, or the resize form. */
+export type RowId = WindowLayout | typeof RESIZE;
 
 const EXT = "window-management";
+const RESIZE = "resize";
 /** The picker row's glyph when the window has no artwork (md-window_maximize). */
 const WINDOW_GLYPH = xdg("window-new")!;
 
-/** One per `pal_core::windows::layout::Layout`, in its order; the icon is its diagram (icons.ts). */
-export const LAYOUTS: { id: Verb; title: string; keywords: string[] }[] = [
+/** One per `pal_core::windows::layout::Layout`, in its order, plus the resize form after Smaller; the icon is its diagram (icons.ts). */
+export const LAYOUTS: { id: RowId; title: string; keywords: string[] }[] = [
   { id: "left_half", title: "Left Half", keywords: ["half", "left", "split"] },
   { id: "right_half", title: "Right Half", keywords: ["half", "right", "split"] },
   { id: "top_half", title: "Top Half", keywords: ["half", "top", "up"] },
@@ -48,6 +49,7 @@ export const LAYOUTS: { id: Verb; title: string; keywords: string[] }[] = [
   { id: "reasonable_size", title: "Reasonable Size", keywords: ["small", "medium", "shrink"] },
   { id: "larger", title: "Larger", keywords: ["bigger", "grow", "resize", "enlarge"] },
   { id: "smaller", title: "Smaller", keywords: ["shrink", "resize", "reduce"] },
+  { id: RESIZE, title: "Resize to…", keywords: ["size", "pixels", "width", "height", "exact", "1280x720", "1920x1080"] },
   { id: "move_left", title: "Move Left", keywords: ["nudge", "step", "left"] },
   { id: "move_right", title: "Move Right", keywords: ["nudge", "step", "right"] },
   { id: "move_up", title: "Move Up", keywords: ["nudge", "step", "up", "top"] },
@@ -65,7 +67,7 @@ const APPLY: Action = { id: "apply", title: "Apply" };
 const APPLY_TO: Action = { id: "apply-to", title: "Apply to…" };
 
 /** What a level was opened with: `window-management` with a window, `arrange` with a layout. */
-type Args = { id?: string; title?: string; layout?: Verb };
+type Args = { id?: string; title?: string; layout?: RowId };
 
 const words = (query: string) => query.toLowerCase().split(/\s+/).filter(Boolean);
 const matches = (query: string, ...fields: (string | string[] | undefined)[]) => {
@@ -74,10 +76,84 @@ const matches = (query: string, ...fields: (string | string[] | undefined)[]) =>
 };
 
 /** The `layout` effect: the layout, the window (the focused one when absent), and the settings' knobs. */
-const effect = (name: Verb, id?: string): Effect => ({ layout: { name: name as WindowLayout, id, ...settings.get<Settings>(EXT) } });
+const effect = (name: WindowLayout, id?: string): Effect => ({ layout: { name, id, ...settings.get<Settings>(EXT) } });
 
 /** Picks its own window (the last one minimised): no Apply to…, and not offered for a picked window. */
-const noTarget = (id: Verb) => id === "unminimize";
+const noTarget = (id: RowId) => id === "unminimize";
+
+// ---- Resize to... -----------------------------------------------------------
+
+/** Common sizes, the form's hint. */
+const PRESETS = "1280x720, 1440x900, 1920x1080";
+const SIZE_RE = /^(\d{2,5})(?:(?:\s*[x×*,]\s*|\s+)(\d{2,5}))?$/i;
+
+/** `1280x720`, `1280 720`, `1280×720`, `1280*720`, `1280` (a square): width and height in px, or nothing. */
+export function parseSize(s: string): { w: number; h: number } | undefined {
+  const m = s.trim().match(SIZE_RE);
+  if (!m) return;
+  const w = Number(m[1]), h = m[2] ? Number(m[2]) : w;
+  return w > 0 && h > 0 ? { w, h } : undefined;
+}
+
+/** A blank field keeps the axis; a number is px. Nothing for anything else. */
+const parseCoord = (s: string): number | undefined | null => (s.trim() === "" ? undefined : /^-?\d{1,5}$/.test(s.trim()) ? Number(s.trim()) : null);
+
+/** The display holding the window's centre, else the one it overlaps most, else the primary, else the first. */
+export function displayOf(displays: Display[], w: Rect): Display | undefined {
+  const cx = w.x + w.w / 2, cy = w.y + w.h / 2;
+  const inside = (d: Rect) => cx >= d.x && cx < d.x + d.w && cy >= d.y && cy < d.y + d.h;
+  const overlap = (d: Rect) => Math.max(0, Math.min(w.x + w.w, d.x + d.w) - Math.max(w.x, d.x)) * Math.max(0, Math.min(w.y + w.h, d.y + d.h) - Math.max(w.y, d.y));
+  return displays.find((d) => inside(d.frame)) ?? displays.filter((d) => overlap(d.frame) > 0).sort((a, b) => overlap(b.frame) - overlap(a.frame))[0] ?? displays.find((d) => d.primary) ?? displays[0];
+}
+
+/**
+ * The frame a resize lands on: the size capped to the display's visible
+ * frame, the window kept centred where it was (or put at `x`/`y` where
+ * given), then pushed back inside the visible frame on each axis where
+ * it fits. Whole pixels.
+ */
+export function resizeFrame(from: Rect, size: { w: number; h: number }, at: { x?: number; y?: number }, area?: Rect): Rect {
+  const w = area ? Math.min(size.w, area.w) : size.w;
+  const h = area ? Math.min(size.h, area.h) : size.h;
+  let x = at.x ?? from.x + (from.w - w) / 2;
+  let y = at.y ?? from.y + (from.h - h) / 2;
+  if (area) {
+    if (w <= area.w) x = Math.min(Math.max(x, area.x), area.x + area.w - w);
+    if (h <= area.h) y = Math.min(Math.max(y, area.y), area.y + area.h - h);
+  }
+  return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+}
+
+/** The form; its id carries the picked window (`resize:<id>`), none for the focused one. */
+const resizeForm = (target?: Args, values: FormValues = {}, errors?: Form["errors"]): Form => ({
+  id: target?.id ? `${RESIZE}:${target.id}` : RESIZE,
+  title: target?.title ? `Resize ${target.title}` : "Resize the focused window",
+  fields: [
+    { kind: "text", id: "size", label: "Size", placeholder: "1280x720", required: true, default: String(values.size ?? ""), description: `Width x height in px; one number is a square. Common: ${PRESETS}.` },
+    { kind: "text", id: "x", label: "X", placeholder: "blank keeps it centred where it is", default: String(values.x ?? ""), description: "The left edge, px from the screen's left; blank keeps the window centred on its current centre." },
+    { kind: "text", id: "y", label: "Y", placeholder: "blank keeps it centred where it is", default: String(values.y ?? ""), description: "The top edge, px from the screen's top." },
+  ],
+  submit: { id: "resize-submit", title: "Resize" },
+  errors,
+});
+
+/** The submit: the size and place checked (the form again with the messages otherwise), the frame written, the panel down and the HUD saying the size. */
+async function resize(target: Args | undefined, values: FormValues): Promise<Effect> {
+  const size = parseSize(String(values.size ?? ""));
+  const x = parseCoord(String(values.x ?? "")), y = parseCoord(String(values.y ?? ""));
+  const errors: Record<string, string> = {};
+  if (!size) errors.size = `Width x height in px, like ${PRESETS.split(",")[0]}`;
+  if (x === null) errors.x = "A whole number of px, or blank";
+  if (y === null) errors.y = "A whole number of px, or blank";
+  if (Object.keys(errors).length || !size) return { form: resizeForm(target, values, errors) };
+  const id = target?.id ?? (await windows.focused())?.id;
+  if (!id) return { form: resizeForm(target, values, { size: "No window has focus: open one first, or pick one with Apply to…" }) };
+  const from = await windows.frame(id);
+  const area = displayOf(await windows.displays(), from)?.visible_frame;
+  const to = resizeFrame(from, size, { x: x ?? undefined, y: y ?? undefined }, area);
+  await windows.setFrame(id, to);
+  return { hide: true, hud: `Resized to ${to.w}x${to.h}` };
+}
 
 function row(l: (typeof LAYOUTS)[number], target?: Args): Item {
   return {
@@ -106,9 +182,10 @@ export default {
   // `pal://window-management/layout?name=left_half`: the focused window, as Enter on the row does.
   link: (route: string, params: LinkParams): Effect | void => {
     if (route !== "layout") return;
-    const name = String(params.name) as Verb;
-    if (!LAYOUTS.some((l) => l.id === name)) throw new Error(`no layout "${name}"; one of ${LAYOUTS.map((l) => l.id).join(", ")}`);
-    return effect(name);
+    const name = String(params.name);
+    const layouts = LAYOUTS.filter((l) => l.id !== RESIZE).map((l) => l.id as WindowLayout);
+    if (!layouts.includes(name as WindowLayout)) throw new Error(`no layout "${name}"; one of ${layouts.join(", ")}`);
+    return effect(name as WindowLayout);
   },
   palettes: {
     "window-management": {
@@ -122,10 +199,17 @@ export default {
         return LAYOUTS.filter((l) => !target || (!noTarget(l.id) && matches(query, l.title, l.keywords))).map((l) => row(l, target));
       },
       pick: (id, action, ctx) => {
-        const name = id as Verb;
+        const args = ctx?.args as Args | undefined;
+        // The resize form's submit: the window is in the form's id.
+        if (action === "resize-submit") {
+          const wid = id.startsWith(`${RESIZE}:`) ? id.slice(RESIZE.length + 1) : undefined;
+          return resize(wid ? { id: wid, title: args?.title } : undefined, ctx?.values ?? {});
+        }
+        const name = id as RowId;
         if (!LAYOUTS.some((l) => l.id === name)) return;
         if (action === "apply-to" && !noTarget(name)) return { push: { extension: EXT, palette: "arrange", args: { layout: name } } };
-        return effect(name, (ctx?.args as Args | undefined)?.id);
+        if (name === RESIZE) return { form: resizeForm(args?.id ? args : undefined) };
+        return effect(name, args?.id);
       },
     },
     arrange: {
@@ -133,10 +217,12 @@ export default {
       input: true,
       placeholder: "Which window?",
       list: async (query = "") => (await windows.list()).filter((w) => !w.minimized && matches(query, w.title, w.app, w.bundle_or_class)).map(windowRow),
-      pick: async (id, _action, ctx) => {
+      pick: async (id, action, ctx) => {
         const layout = (ctx?.args as Args | undefined)?.layout;
-        if (layout) return effect(layout, id);
+        if (action === "resize-submit") return resize({ id: id.slice(RESIZE.length + 1) }, ctx?.values ?? {});
         const w = (await windows.list()).find((w) => w.id === id);
+        if (layout === RESIZE) return { form: resizeForm({ id, title: w?.title ?? id }) };
+        if (layout) return effect(layout, id);
         return { push: { extension: EXT, palette: "window-management", args: { id, title: w?.title ?? id } } };
       },
     },

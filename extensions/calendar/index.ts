@@ -5,8 +5,10 @@
 // Today / Tomorrow / This week / Later in the week view; the current or
 // next event carries the tag; a row joins its call, opens in Calendar (a
 // browser link for a Google event), copies its details, or deletes it
-// (the system source); New event is a form. The permission is the
-// extension's own row while it is missing.
+// (the system source); New event is a form, and Quick Add (quick.ts) is
+// one line, `standup tomorrow 10:00`, parsed as you type and created on
+// Enter (a root query nothing matched offers it as a fallback row). The
+// permission is the extension's own row while it is missing.
 //
 // The bar item: the next event as `Standup in 12m` (`now` while it runs),
 // hidden when nothing starts inside `horizon_hours`, muted far off, amber
@@ -20,6 +22,7 @@
 // is clock.ts (`PAL_NOW` pins it for the tests).
 import { calendar, settings, tinted, view as liveView, type Accessory, type Action, type BarCtx, type BarItem, type Calendar, type CalendarEvent, type CalendarStatus, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { now as clock } from "./clock.ts";
+import { parseQuick, type Quick } from "./quick.ts";
 import { addDays, DAY, dayName, dayNameYear, details, nextQuarter, parseDay, parseTime, people, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "./schedule.ts";
 import { active, cached, calendars, chosenIds, conf, EXTENSION, forget, load, permission, type Loaded, type Settings } from "./source.ts";
 import { duration, ICON, ITEM, nextEvent, nextWords, onDay, state, stateColor, TODAY, upcomingItem } from "./today.ts";
@@ -29,6 +32,7 @@ import { focusable, freshPopover, listed, popover, rowId as viewRowId, words, ty
 const ROW = "\u{f00ee}";
 const CLEAR = "\u{f00ef}";
 const NEW = "new";
+const QUICK = "quick";
 const GRANT = "grant";
 const HINT = "hint";
 const NOTHING = "nothing";
@@ -178,12 +182,72 @@ async function create(values: Record<string, string | boolean>): Promise<Effect>
   const location = String(values.location ?? "").trim() || undefined;
   const notes = String(values.notes ?? "").trim() || undefined;
   try {
-    await calendar.create({ title, start, end, all_day: allDay, calendar: calendarId, location, notes });
+    return await add({ title, start, end, allDay, calendar: calendarId, location, notes });
   } catch (e) {
     return { form: await form(values, { title: e instanceof Error ? e.message : String(e) }) };
   }
+}
+
+/** The one write: the event created, the cache dropped, the toast; throws what the source said. */
+async function add(e: { title: string; start: number; end: number; allDay: boolean; calendar?: string; location?: string; notes?: string }): Promise<Effect> {
+  await calendar.create({ title: e.title, start: e.start, end: e.end, all_day: e.allDay, calendar: e.calendar, location: e.location, notes: e.notes });
   forget();
-  return { keep: true, toast: { title: "Added", message: allDay ? `${title}, ${dayNameYear(start)}` : `${title}, ${dayName(start)} ${timeRange({ start, end, all_day: false })}`, style: "success" } };
+  return { keep: true, toast: { title: "Added", message: e.allDay ? `${e.title}, ${dayNameYear(e.start)}` : `${e.title}, ${dayName(e.start)} ${timeRange({ start: e.start, end: e.end, all_day: false })}`, style: "success" } };
+}
+
+// ---- quick add ----------------------------------------------------------------------
+
+/** The last parse per line, for the pick (the row's id is the line). */
+const quick = new Map<string, Quick & { calendarId?: string }>();
+
+/** The writable calendars, or none when the source cannot say. */
+async function writable(): Promise<Calendar[]> {
+  try { return (await calendars()).filter((c) => c.writable); } catch { return []; }
+}
+
+/** `Tomorrow 10:00 to 10:30`, `Fri 18 Sep, all day`, `Today 17:00 to 17:30 (the time has passed, so tomorrow)`. */
+function quickWhen(q: Quick, now: number): string {
+  const today = startOfDay(now);
+  const dayWord = q.day === today ? "Today" : q.day === addDays(now, 1) ? "Tomorrow" : dayName(q.day);
+  return q.allDay ? `${dayWord}, all day` : `${dayWord} ${timeRange({ start: q.start, end: q.end, all_day: false }).replace(" – ", " to ")}`;
+}
+
+/**
+ * Quick Add's one row: the line parsed as you type, the calendar named
+ * matched by prefix against the writable ones, a hint row when the line
+ * cannot be read yet. Enter on the row creates the event.
+ */
+async function quickRows(query = ""): Promise<Item[]> {
+  const status = await permission();
+  if (status !== "granted") return statusRows(status);
+  const now = clock();
+  const cals = await writable();
+  const q = parseQuick(query, now, Number(conf().default_length) || 30, cals.map((c) => c.title));
+  if ("problem" in q) return [query.trim() ? hintRow("Not an event yet", q.problem) : hintRow("Type an event", "standup tomorrow 10:00, dentist fri 2pm-3pm, lunch 12:30 for 45m at Rest, retro next tue 3pm @ Work, birthday 20 sep")];
+  const cal = q.calendar ? cals.find((c) => c.title.toLowerCase().startsWith(q.calendar!.toLowerCase())) : undefined;
+  quick.clear();
+  quick.set(query, { ...q, calendarId: cal?.id });
+  const where = [quickWhen(q, now), q.location, cal ? `${cal.title} calendar` : q.calendar ? `no calendar named ${q.calendar}, so the default` : undefined].filter(Boolean).join(" · ");
+  const color = cal?.color && /^#[0-9a-f]{6}$/i.test(cal.color) ? (cal.color as `#${string}`) : undefined;
+  return [{
+    id: query,
+    name: q.title,
+    subtitle: where,
+    icon: color ? tinted(ROW, color) : "\u{f0415}",
+    accessories: [...(q.allDay ? [{ tag: "all day" }] : []), ...(q.assumedDay && !q.allDay && q.day !== startOfDay(now) ? [{ tag: "tomorrow", color: "amber" }] : []), { date: q.start }],
+    actions: [{ id: "add", title: "Add event" }],
+  }];
+}
+
+async function quickPick(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
+  if (id === HINT || id === NOTHING) return;
+  if (id === GRANT) return pick(id, action, ctx);
+  // A pick after a restart or a relist: parse the line again.
+  if (!quick.has(id)) await quickRows(id);
+  const q = quick.get(id);
+  if (!q) return { keep: true, toast: { title: "Not an event yet", message: "standup tomorrow 10:00", style: "failure" } };
+  try { return await add({ title: q.title, start: q.start, end: q.end, allDay: q.allDay, calendar: q.calendarId, location: q.location }); }
+  catch (e) { return failed("add the event", e); }
 }
 
 /** The event behind a row id, from the listing or fetched again after a restart. */
@@ -480,6 +544,15 @@ export default {
       suggest,
       pick,
       detail,
+    },
+    [QUICK]: {
+      title: "Quick Add Event",
+      input: true,
+      placeholder: "standup tomorrow 10:00",
+      // A root query nothing matched offers to add it.
+      fallback: "Add “{query}” to the calendar",
+      list: quickRows,
+      pick: quickPick,
     },
   },
   bar: {

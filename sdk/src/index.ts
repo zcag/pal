@@ -11,6 +11,8 @@ export { checkBarItem, checkEffect, checkForm, checkView, shortcutsOf, HEX_COLOR
 export { checkLinkEffect, checkLinkParams, checkLinks, checkPalettes, instanceTitle, stripInstance, isViewPalette, kindOf, LINK_EFFECT_REFUSED, LINK_PARAM_TYPES, PALETTE_KINDS, paletteMeta, VIEW_TRIGGERS } from "./manifest.ts";
 export type { ExtensionFor, ManifestLike, PaletteCheck, PaletteFor, PaletteKeys } from "./manifest.ts";
 export { xdg, XDG_ICONS } from "./icons.ts";
+export { expand, formatDate, hasPlaceholders, isoDate, isoTime, offsetDate, FORMAT_TOKENS, PLACEHOLDERS } from "./placeholders.ts";
+export type { Sources as PlaceholderSources } from "./placeholders.ts";
 export { badged, checkIcon, isTileIcon, isTintedIcon, tile, tinted, MAX_BADGE, MAX_TILE_SVG, TILE_COLORS } from "./icon.ts";
 export type { Tile, TileColor, TileIcon, TileMark, TintedIcon } from "./icon.ts";
 

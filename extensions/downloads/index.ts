@@ -12,9 +12,10 @@
 // older than 30 days and open the folder; the root's Now section gets
 // the newest download of the last ten minutes (`suggest`).
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, rename, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { home, settings, type Action, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { home, settings, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { intoFolderPick, moveForm, renameForm, renamePick, runTool, short } from "../files/ops.ts";
 import { browserDirsFrom, finalName, GLYPH, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, size, SUGGEST_MS, THUMBABLE, type Kind, type Section } from "./scan.ts";
 
 /** `[extensions.downloads]`, defaults in pal.json. */
@@ -32,10 +33,8 @@ const THUMB_PX = 64;
 const THUMB_MS = 4000;
 /** Thumbnail processes at once: ImageMagick takes 0.1 to 0.8 s per camera-sized file on Linux (sips 20 ms), so a cold listing of 24 ran 5 s in a row. */
 const THUMB_JOBS = 4;
-const TRASH_MS = 10_000;
 
 const S = () => settings.get<Settings>();
-const short = (p: string) => (p === HOME ? "~" : p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p);
 
 // ---- folders ------------------------------------------------------------------------
 
@@ -243,35 +242,10 @@ async function detail(path: string): Promise<Detail> {
 
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 
-/** Runs to completion or `ms`; rejects with stderr (or the exit code) on failure. */
-async function runTool(argv: string[], ms: number): Promise<void> {
-  const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "ignore", stderr: "pipe" });
-  const timer = setTimeout(() => proc.kill(), ms);
-  const [code, err] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-  clearTimeout(timer);
-  if (code !== 0) throw new Error(err.trim() || `${argv[0]} exited ${code}`);
-}
-
 /** Finder's delete (macOS) or `gio trash`; `PAL_DOWNLOADS_TRASH` names a stand-in taking the path (the tests). */
-const trash = (p: string) => runTool(process.env.PAL_DOWNLOADS_TRASH ? [process.env.PAL_DOWNLOADS_TRASH, p] : MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p], TRASH_MS);
+const trash = (p: string) => runTool(process.env.PAL_DOWNLOADS_TRASH ? [process.env.PAL_DOWNLOADS_TRASH, p] : MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p]);
 
 const failure = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: String((e as Error)?.message ?? e), style: "failure" } });
-
-const renameForm = (path: string, errors?: Form["errors"]): Form => ({
-  id: path, title: "Rename", fields: [{ kind: "text", id: "name", label: "Name", default: basename(path), required: true, description: "The new name, in the same folder; the extension is part of it." }], submit: { id: "rename-submit", title: "Rename" }, errors,
-});
-const moveForm = (path: string, errors?: Form["errors"]): Form => ({
-  id: path, title: `Move ${basename(path)}`, fields: [{ kind: "text", id: "folder", label: "Folder", placeholder: "~/Documents", default: "~/Documents", required: true, description: "Where it goes; ~ is expanded, a missing folder is created." }], submit: { id: "move-submit", title: "Move" }, errors,
-});
-
-async function moveTo(path: string, target: string): Promise<void> {
-  if (await stat(target).then(() => true).catch(() => false)) throw new Error(`${short(target)} exists already`);
-  try { await rename(path, target); } catch (e) {
-    // Across volumes rename fails: copy then remove.
-    if ((e as NodeJS.ErrnoException)?.code !== "EXDEV") throw e;
-    await runTool(["mv", "--", path, target], TRASH_MS);
-  }
-}
 
 async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   const s = S();
@@ -290,23 +264,8 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
     case "copy-path": return { copy: ids.join("\n") };
     case "rename": return { form: renameForm(id) };
     case "move": return { form: moveForm(id) };
-    case "rename-submit": {
-      const name = String(ctx?.values?.name ?? "").trim();
-      if (!name || name.includes("/") || name === "." || name === "..") return { form: renameForm(id, { name: "A file name, without a slash" }) };
-      const target = join(dirname(id), name);
-      if (target === id) return { keep: true };
-      try { await moveTo(id, target); } catch (e) { return { form: renameForm(id, { name: String((e as Error)?.message ?? e) }) }; }
-      return { keep: true, toast: { title: "Renamed", message: name } };
-    }
-    case "move-submit": {
-      const folder = home(String(ctx?.values?.folder ?? "").trim());
-      if (!folder) return { form: moveForm(id, { folder: "A folder path" }) };
-      try {
-        await mkdir(folder, { recursive: true });
-        await moveTo(id, join(folder, basename(id)));
-      } catch (e) { return { form: moveForm(id, { folder: String((e as Error)?.message ?? e) }) }; }
-      return { keep: true, toast: { title: "Moved", message: `${basename(id)} to ${short(folder)}` } };
-    }
+    case "rename-submit": return renamePick(id, ctx?.values);
+    case "move-submit": return intoFolderPick("move", id, ctx?.values);
     case "trash": {
       let n = 0;
       try { for (const p of ids) { await trash(p); n++; } } catch (e) { return failure(n ? `Moved ${n} to the Trash, then failed` : "Could not move to Trash", e); }

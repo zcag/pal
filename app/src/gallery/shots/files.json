@@ -55,6 +55,32 @@
                 "shortcut": "cmd+shift+c"
               },
               {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
+              },
+              {
                 "id": "trash",
                 "title": "Move to Trash",
                 "shortcut": "cmd+d",
@@ -105,6 +131,32 @@
                 "id": "copy-file",
                 "title": "Copy file",
                 "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
               },
               {
                 "id": "trash",
@@ -159,6 +211,32 @@
                 "shortcut": "cmd+shift+c"
               },
               {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
+              },
+              {
                 "id": "trash",
                 "title": "Move to Trash",
                 "shortcut": "cmd+d",
@@ -209,6 +287,32 @@
                 "id": "copy-file",
                 "title": "Copy file",
                 "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
               },
               {
                 "id": "trash",
@@ -263,6 +367,32 @@
                 "shortcut": "cmd+shift+c"
               },
               {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
+              },
+              {
                 "id": "trash",
                 "title": "Move to Trash",
                 "shortcut": "cmd+d",
@@ -315,6 +445,32 @@
                 "shortcut": "cmd+shift+c"
               },
               {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
+              },
+              {
                 "id": "trash",
                 "title": "Move to Trash",
                 "shortcut": "cmd+d",
@@ -365,6 +521,32 @@
                 "id": "copy-file",
                 "title": "Copy file",
                 "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
               },
               {
                 "id": "trash",
@@ -421,6 +603,32 @@
                 "shortcut": "cmd+shift+c"
               },
               {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
+              },
+              {
                 "id": "trash",
                 "title": "Move to Trash",
                 "shortcut": "cmd+d",
@@ -472,6 +680,32 @@
                 "shortcut": "cmd+shift+c"
               },
               {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
+              },
+              {
                 "id": "trash",
                 "title": "Move to Trash",
                 "shortcut": "cmd+d",
@@ -521,6 +755,32 @@
                 "id": "copy-file",
                 "title": "Copy file",
                 "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
               },
               {
                 "id": "trash",
@@ -576,6 +836,32 @@
                 "id": "copy-file",
                 "title": "Copy file",
                 "shortcut": "cmd+shift+c"
+              },
+              {
+                "id": "terminal",
+                "title": "Open in Terminal",
+                "shortcut": "cmd+t"
+              },
+              {
+                "id": "rename",
+                "title": "Rename…",
+                "shortcut": "cmd+shift+r"
+              },
+              {
+                "id": "move",
+                "title": "Move to…",
+                "shortcut": "cmd+m"
+              },
+              {
+                "id": "copy-to",
+                "title": "Copy to…",
+                "shortcut": "cmd+alt+c"
+              },
+              {
+                "id": "compress",
+                "title": "Compress",
+                "shortcut": "cmd+shift+z",
+                "multi": true
               },
               {
                 "id": "trash",
@@ -764,6 +1050,32 @@
               "shortcut": "cmd+shift+c"
             },
             {
+              "id": "terminal",
+              "title": "Open in Terminal",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "move",
+              "title": "Move to…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-to",
+              "title": "Copy to…",
+              "shortcut": "cmd+alt+c"
+            },
+            {
+              "id": "compress",
+              "title": "Compress",
+              "shortcut": "cmd+shift+z",
+              "multi": true
+            },
+            {
               "id": "trash",
               "title": "Move to Trash",
               "shortcut": "cmd+d",
@@ -813,6 +1125,32 @@
               "id": "copy-file",
               "title": "Copy file",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "terminal",
+              "title": "Open in Terminal",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "move",
+              "title": "Move to…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-to",
+              "title": "Copy to…",
+              "shortcut": "cmd+alt+c"
+            },
+            {
+              "id": "compress",
+              "title": "Compress",
+              "shortcut": "cmd+shift+z",
+              "multi": true
             },
             {
               "id": "trash",
@@ -866,6 +1204,32 @@
               "shortcut": "cmd+shift+c"
             },
             {
+              "id": "terminal",
+              "title": "Open in Terminal",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "move",
+              "title": "Move to…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-to",
+              "title": "Copy to…",
+              "shortcut": "cmd+alt+c"
+            },
+            {
+              "id": "compress",
+              "title": "Compress",
+              "shortcut": "cmd+shift+z",
+              "multi": true
+            },
+            {
               "id": "trash",
               "title": "Move to Trash",
               "shortcut": "cmd+d",
@@ -915,6 +1279,32 @@
               "id": "copy-file",
               "title": "Copy file",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "terminal",
+              "title": "Open in Terminal",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "move",
+              "title": "Move to…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-to",
+              "title": "Copy to…",
+              "shortcut": "cmd+alt+c"
+            },
+            {
+              "id": "compress",
+              "title": "Compress",
+              "shortcut": "cmd+shift+z",
+              "multi": true
             },
             {
               "id": "trash",
@@ -968,6 +1358,32 @@
               "shortcut": "cmd+shift+c"
             },
             {
+              "id": "terminal",
+              "title": "Open in Terminal",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "move",
+              "title": "Move to…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-to",
+              "title": "Copy to…",
+              "shortcut": "cmd+alt+c"
+            },
+            {
+              "id": "compress",
+              "title": "Compress",
+              "shortcut": "cmd+shift+z",
+              "multi": true
+            },
+            {
               "id": "trash",
               "title": "Move to Trash",
               "shortcut": "cmd+d",
@@ -1019,6 +1435,32 @@
               "shortcut": "cmd+shift+c"
             },
             {
+              "id": "terminal",
+              "title": "Open in Terminal",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "move",
+              "title": "Move to…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-to",
+              "title": "Copy to…",
+              "shortcut": "cmd+alt+c"
+            },
+            {
+              "id": "compress",
+              "title": "Compress",
+              "shortcut": "cmd+shift+z",
+              "multi": true
+            },
+            {
               "id": "trash",
               "title": "Move to Trash",
               "shortcut": "cmd+d",
@@ -1068,6 +1510,32 @@
               "id": "copy-file",
               "title": "Copy file",
               "shortcut": "cmd+shift+c"
+            },
+            {
+              "id": "terminal",
+              "title": "Open in Terminal",
+              "shortcut": "cmd+t"
+            },
+            {
+              "id": "rename",
+              "title": "Rename…",
+              "shortcut": "cmd+shift+r"
+            },
+            {
+              "id": "move",
+              "title": "Move to…",
+              "shortcut": "cmd+m"
+            },
+            {
+              "id": "copy-to",
+              "title": "Copy to…",
+              "shortcut": "cmd+alt+c"
+            },
+            {
+              "id": "compress",
+              "title": "Compress",
+              "shortcut": "cmd+shift+z",
+              "multi": true
             },
             {
               "id": "trash",
@@ -1659,6 +2127,26 @@
         "args": "browse:~/proj",
         "title": "~/proj"
       }
+    },
+    "files//Users/ada/proj/widgets/README.md:rename": {
+      "form": {
+        "id": "/Users/ada/proj/widgets/README.md",
+        "title": "Rename",
+        "fields": [
+          {
+            "kind": "text",
+            "id": "name",
+            "label": "Name",
+            "default": "README.md",
+            "required": true,
+            "description": "The new name, in the same folder; the extension is part of it."
+          }
+        ],
+        "submit": {
+          "id": "rename-submit",
+          "title": "Rename"
+        }
+      }
     }
   },
   "shots": {
@@ -1695,6 +2183,13 @@
         "enter",
         "wait:200",
         "down"
+      ]
+    },
+    "6-rename": {
+      "palette": "files",
+      "keys": [
+        "type:readme",
+        "cmd+shift+r"
       ]
     }
   }

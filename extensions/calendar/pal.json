@@ -1,7 +1,7 @@
 {
   "name": "calendar",
   "title": "Calendar",
-  "description": "Your next days of events with the current one tagged: join the call, open it in Calendar, copy its details, delete it; a form adds one. EventKit on macOS, khal on Linux.",
+  "description": "Your next days of events with the current one tagged: join the call, open it in Calendar, copy its details, delete it; a form adds one, or one typed line (`standup tomorrow 10:00`). EventKit on macOS, khal on Linux.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -107,6 +107,17 @@
       "label": "Skip all-day events on the bar",
       "text": "The bar item speaks for timed events only",
       "default": true
+    },
+    {
+      "kind": "number",
+      "id": "default_length",
+      "label": "Quick Add length",
+      "description": "How long an event typed without an end or a `for` lasts.",
+      "min": 5,
+      "max": 480,
+      "step": 5,
+      "unit": "min",
+      "default": 30
     }
   ],
   "store": {
@@ -121,6 +132,7 @@
       "The calendar's colour on the row, the head count and a `Join` tag on the right; a filter per calendar",
       "The detail pane: the description as text, when, where, the organizer, every attendee with their reply, whether it repeats",
       "New event as a form (system calendar): title, a day in words (`fri`, `next mon`, `20 sep`), start and end, all-day, the calendar, a location, notes",
+      "Quick Add Event: one line parsed as you type, `standup tomorrow 10:00`, `dentist fri 2pm-3pm`, `lunch 12:30 for 45m at Rest`, `retro next tue 3pm @ Work`, `birthday 20 sep` (all day); Enter adds it; a root query nothing matched offers it as a fallback row",
       "Delete an event, or one occurrence of a repeating one, after a confirmation (system calendar)",
       "Live with a 60 s ttl; the bar fetches every five minutes and on wake, renders from its cache on the minute"
     ],
@@ -147,6 +159,10 @@
       {
         "file": "4-today.png",
         "caption": "Today: the day in order, the running event with what is left of it, the rest with how long until they start"
+      },
+      {
+        "file": "5-quick.png",
+        "caption": "Quick Add: a line typed, the event read back with its day, time and calendar before Enter adds it"
       },
       {
         "file": "bar-menubar-dark.png",
@@ -210,6 +226,11 @@
         "keys": "enter"
       },
       {
+        "title": "Add event",
+        "description": "Quick Add: the line as typed becomes the event.",
+        "keys": "enter"
+      },
+      {
         "title": "Grant access",
         "description": "On the permission row: the system prompt, or System Settings when it was denied.",
         "keys": "enter"
@@ -262,6 +283,18 @@
         {
           "keys": "cmd+i",
           "title": "Details: the description, the attendees with their replies, the link"
+        }
+      ]
+    },
+    "quick": {
+      "title": "Quick Add Event",
+      "kind": "input",
+      "fallback": "Add “{query}” to the calendar",
+      "description": "One line into an event: a title, then a day (`tomorrow`, `fri`, `next tue`, `20 sep`, `2026-09-20`), a time or a range (`10:00`, `2pm-3pm`, `14:00 to 15:30`), `for 45m`, `at <place>`, `@ <calendar>` (or `in <calendar>` when one starts with the word), `all day`. No time: all day; no day: today, or tomorrow once the time has passed. The row shows the event read back as you type; Enter adds it. At the root a query nothing matched gets an Add fallback row.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Add the event as read"
         }
       ]
     }

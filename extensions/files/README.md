@@ -61,8 +61,13 @@ the answer (Spotlight, locate).
 | `cmd+o` | Open with…: a level listing the apps registered for the file, the default first with a `Default` tag; typing narrows them, Enter opens the file with that app |
 | `cmd+c` | Copy path |
 | `cmd+shift+c` | Copy file: the file itself onto the clipboard; a paste in Finder or a file manager copies it, a paste in a text field gets its path |
+| `cmd+t` | Open in Terminal: a terminal window in the folder (a file's folder), the app the `terminal` setting names (shell's table: Terminal, iTerm, kitty, Alacritty, WezTerm, Ghostty; Linux `$TERMINAL` or the first installed) |
+| `cmd+shift+r` | Rename…: a form with the name; the same folder, a taken name refused |
+| `cmd+m` | Move to…: a form with the folder (`~` expanded, made when missing); across volumes `mv` does it |
+| `cmd+alt+c` | Copy to…: the same form, a copy under the same name (a folder whole) |
+| `cmd+shift+z` | Compress: a zip next to the file named after it (`-2` when taken); with rows marked, one zip of them all named after the first (`ditto -c -k --sequesterRsrc --keepParent` on macOS, `zip -r` on Linux) |
 | `cmd+d` | Move to Trash: asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
-| `cmd+i` | The detail pane: path, size, modified time and kind; for a text file under 64 KB the first 40 lines in a code block |
+| `cmd+i` | The detail pane: path, size, modified time and kind, then on macOS what Spotlight knows (`mdls`): an image's pixel size and Finder's tags; for a text file under 64 KB the first 40 lines in a code block |
 
 Open with… lists Launch Services' apps on macOS (`NSWorkspace`, every
 role); on Linux the file's MIME type is looked up in the `mimeapps.list`
@@ -83,19 +88,23 @@ Settings, `[extensions.files]`:
 | `limit` | number, 1 to 500 | `50` | At most this many rows per query. |
 | `show_hidden` | bool | `false` | List files and folders whose name starts with a dot (below the configured folder; `~/.config` as a folder is fine either way). |
 | `exclude` | list of names | `["node_modules", ".cache", "Library/Caches", "target"]` | Folders skipped below the search folders, by name or a short path. |
+| `terminal` | string | `""` | What Open in Terminal opens: `Terminal` (the default), `iTerm`, `kitty`, `Alacritty`, `WezTerm`, `Ghostty`, or any app name; on Linux a command name, else `$TERMINAL`, else the first installed terminal. |
 
 ## What it does not do
 
-- Search file contents: it is a name search. Spotlight's content index
-  is not asked.
 - Preview images: the app's `icon://` scheme serves app icons, favicons
   and clipboard images only, so the pane shows text files and metadata.
-- Rename, move or copy files: Reveal and open the file manager.
+- Unzip: Compress makes archives; the Archive Utility or `unzip` opens
+  them.
 - Index anything itself: no fd, locate or Spotlight means no results
   (one hint row says which tool is missing), and fd stops eight levels
   down.
 
 ## Platforms
 
-macOS (Spotlight, Quick Look, Finder) and Linux (fd, locate or find; GTK's
-recently-used list; `gio trash` and `xdg-open`).
+macOS (Spotlight, Quick Look, Finder, `mdls`, `ditto`) and Linux (fd,
+locate or find; GTK's recently-used list; `gio trash`, `xdg-open`, `zip`;
+a PNG's size off its header, no tags).
+
+The rename, move and copy forms and the tool runner live in `ops.ts` and
+are the Downloads extension's too (`../files/ops.ts`).

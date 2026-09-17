@@ -14,6 +14,11 @@
 // up) and sorted by the filter dropdown (name, date, size); `cmd+.` flips
 // the `show_hidden` setting. A typed path ending in `/` lists that folder
 // the same way inside Files.
+// Every row carries the file actions: open, reveal, Quick Look, open
+// with, copy path or file, open in a terminal (shell's table), rename,
+// move and copy to a folder (forms, ops.ts, shared with Downloads),
+// compress (one zip, marked rows together), trash. The detail pane adds
+// what Spotlight knows on macOS: an image's pixel size, Finder's tags.
 // Contents too (content.ts): a query starting with `'` or `content:`
 // searches what files say instead of what they are called; a plain query
 // gets the content matches as a second section, "In files", under the
@@ -24,12 +29,15 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 import { apps as appsApi, conceal, dialog, home, ocr, settings, thumbnailUrl, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { terminalAt } from "../shell/run.ts";
 import { BROWSE_CAP, SORTS, filterEntries, hintRow, isRoot, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
+import { archive, copyForm, intoFolderPick, moveForm, renameForm, renamePick, runTool, short } from "./ops.ts";
+import { parseMdls, pngSize } from "./meta.ts";
 import { parseMdfindRecent, parseXbel, type Recent } from "./recent.ts";
 
 /** `[extensions.files]`, defaults in pal.json. */
-type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclude: string[]; content_search: boolean; ocr_concealed: boolean };
+type Settings = { folders: string[]; limit: number; show_hidden: boolean; exclude: string[]; content_search: boolean; ocr_concealed: boolean; terminal: string };
 /** The args of the level "Open with…" pushes: which file the rows open. */
 type OpenWith = { open_with: string };
 const openWithOf = (ctx?: Ctx): string | undefined => (ctx?.args as OpenWith | undefined)?.open_with;
@@ -44,8 +52,6 @@ const ICON = "\u{f0c7d}";
 const SEARCH_MS = 3000;
 /** How deep fd walks below a folder: with fewer than `limit` matches it would otherwise walk all of `~` (1.2 s on a full home). */
 const FD_MAX_DEPTH = 8;
-/** Finder's delete or `gio trash` waited on this long. */
-const TRASH_MS = 10_000;
 const TEXT_MAX = 64 * 1024;
 const TEXT_LINES = 40;
 
@@ -131,7 +137,6 @@ function argv(b: Backend, q: string, s: Settings, folders: string[]): string[] {
   }
 }
 
-const short = (p: string) => (p === HOME ? "~" : p.startsWith(HOME + "/") ? "~" + p.slice(HOME.length) : p);
 const under = (p: string, folders: string[]) => folders.find((f) => p === f || p.startsWith(f.endsWith("/") ? f : f + "/"));
 /** A dot segment below the configured folder (the folder itself may be `~/.config`). */
 const hidden = (p: string, folders: string[]) => /\/\./.test(p.slice(under(p, folders)?.length ?? 0));
@@ -207,6 +212,11 @@ const ACTIONS: Action[] = [
   { id: "open-with", title: "Open with…", shortcut: "cmd+o" },
   { id: "copy", title: "Copy path", shortcut: "cmd+c", multi: true },
   { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true },
+  { id: "terminal", title: "Open in Terminal", shortcut: "cmd+t" },
+  { id: "rename", title: "Rename…", shortcut: "cmd+shift+r" },
+  { id: "move", title: "Move to…", shortcut: "cmd+m" },
+  { id: "copy-to", title: "Copy to…", shortcut: "cmd+alt+c" },
+  { id: "compress", title: "Compress", shortcut: "cmd+shift+z", multi: true },
   { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?", multi: true },
 ];
 /** An image or a PDF gets OCR after Copy file: its text onto the clipboard. */
@@ -395,10 +405,31 @@ const appRow = (a: App): Item => ({
 /** Four backticks fence the text so a ``` inside cannot end it early. */
 const fence = (s: string, lang: string) => "````" + lang + "\n" + s.replace(/````/g, "```​`") + "\n````";
 
+/** What Spotlight knows of the file on macOS: an image's pixel size and Finder's tags, one `mdls` call; `PAL_FILES_MDLS` names a stand-in (the tests). Linux: a PNG's size off its header. */
+async function spotlightMeta(p: string, k: Kind): Promise<Metadata[]> {
+  const mdls = process.env.PAL_FILES_MDLS || (MAC ? "mdls" : undefined);
+  if (mdls) {
+    const proc = Bun.spawn([mdls, "-name", "kMDItemPixelWidth", "-name", "kMDItemPixelHeight", "-name", "kMDItemUserTags", "-raw", p], { stdin: "ignore", stdout: "pipe", stderr: "ignore" });
+    const timer = setTimeout(() => proc.kill(), CONTENT_MS);
+    const text = await new Response(proc.stdout).text().catch(() => "");
+    clearTimeout(timer);
+    const { width, height, tags } = parseMdls(text);
+    return [
+      ...(width && height ? [{ label: "Dimensions", value: `${width} x ${height} px` }] : []),
+      ...(tags.length ? [{ label: "Tags", tags: tags.map((text) => ({ text })) }] : []),
+    ];
+  }
+  if (k !== "image") return [];
+  const head = await readFile(p).then((b) => b.subarray(0, 32)).catch(() => undefined);
+  const dims = head && pngSize(head);
+  return dims ? [{ label: "Dimensions", value: `${dims.width} x ${dims.height} px` }] : [];
+}
+
 /**
- * Path, size, modified, kind; a text file's first lines under it. No image
- * preview: `icon://` serves app icons, favicons and clipboard images only
- * (app/src-tauri/src/icon.rs), not arbitrary files.
+ * Path, size, modified, kind, then an image's dimensions and Finder's
+ * tags where Spotlight has them; a text file's first lines under it. No
+ * image preview: `icon://` serves app icons, favicons and clipboard images
+ * only (app/src-tauri/src/icon.rs), not arbitrary files.
  */
 async function detail(p: string): Promise<Detail> {
   // The `..` row describes the folder it leads to; the cap's hint row has nothing to say.
@@ -413,6 +444,7 @@ async function detail(p: string): Promise<Detail> {
     ...(dir ? [] : [{ label: "Size", value: size(st.size) }]),
     { label: "Modified", value: new Date(st.mtimeMs).toLocaleString() },
     { label: "Kind", value: k === "file" ? (extname(p).slice(1) || "file") : k },
+    ...(dir ? [] : await spotlightMeta(p, k)),
   ];
   let markdown: string | undefined;
   if (!dir && st.size <= TEXT_MAX && k !== "image" && k !== "archive") {
@@ -429,23 +461,28 @@ async function detail(p: string): Promise<Detail> {
 
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 
-/** Runs to completion or `ms`; rejects with stderr (or the exit code) on failure. */
-async function run(argv: string[], ms: number): Promise<void> {
-  const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "ignore", stderr: "pipe" });
-  const timer = setTimeout(() => proc.kill(), ms);
-  const [code, err] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
-  clearTimeout(timer);
-  if (code !== 0) throw new Error(err.trim() || `${argv[0]} exited ${code}`);
-}
+const trash = (p: string) => runTool(MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p]);
+const failure = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: String((e as Error)?.message ?? e), style: "failure" } });
 
-const trash = (p: string) => run(MAC ? ["osascript", "-e", `tell application "Finder" to delete POSIX file ${JSON.stringify(p)}`] : ["gio", "trash", "--", p], TRASH_MS);
+/** A terminal in the folder (a file's folder), through shell's table; `PAL_FILES_TERMINAL` names a stand-in taking the folder (the tests). */
+async function openTerminal(p: string): Promise<Effect> {
+  const st = await stat(p).catch(() => undefined);
+  const cwd = st?.isDirectory() ? p : dirname(p);
+  const argv = process.env.PAL_FILES_TERMINAL ? [process.env.PAL_FILES_TERMINAL, cwd] : terminalAt(cwd, settings.get<Settings>().terminal);
+  if (!argv) return failure("No terminal", "Set the terminal setting, or $TERMINAL");
+  spawnDetached(argv);
+  return { hide: true };
+}
 
 /**
  * The shared actions of a file row; `open-with` needs the palette to push
- * on, the rest are the same everywhere. `ids` is every marked row of a
- * multi pick (the actions marked `multi` in `ACTIONS`), else the one.
+ * on, the rest are the same everywhere. `ctx.ids` is every marked row of a
+ * multi pick (the actions marked `multi` in `ACTIONS`), else the one;
+ * `ctx.values` a form's submit.
  */
-async function fileAction(id: string, action: string | undefined, palette: string, ids: string[] = [id]): Promise<Effect> {
+async function fileAction(id: string, action: string | undefined, palette: string, ctx?: Ctx): Promise<Effect> {
+  const ids = ctx?.ids ?? [id];
+  const values = ctx?.values;
   const browsed = await browseAction(id, action);
   if (browsed) return browsed;
   switch (action) {
@@ -455,6 +492,18 @@ async function fileAction(id: string, action: string | undefined, palette: strin
     case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith, title: `Open ${basename(id)} with` } };
     case "copy": return { copy: ids.join("\n") };
     case "copy-file": return { copy_files: ids };
+    case "terminal": return openTerminal(id);
+    case "rename": return { form: renameForm(id) };
+    case "move": return { form: moveForm(id) };
+    case "copy-to": return { form: copyForm(id) };
+    case "rename-submit": return renamePick(id, values);
+    case "move-submit": return intoFolderPick("move", id, values);
+    case "copy-submit": return intoFolderPick("copy", id, values);
+    case "compress": {
+      let out: string;
+      try { out = await archive(ids); } catch (e) { return failure("Could not compress", e); }
+      return { keep: true, toast: { title: "Compressed", message: short(out) } };
+    }
     case "copy-text": {
       let text: string;
       try { text = await ocr.image({ path: id }); } catch (e) { return { keep: true, toast: { title: "Could not read the text", message: String((e as Error)?.message ?? e), style: "failure" } }; }
@@ -462,7 +511,7 @@ async function fileAction(id: string, action: string | undefined, palette: strin
       return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
     }
     case "trash":
-      try { for (const p of ids) await trash(p); } catch (e) { return { keep: true, toast: { title: "Could not move to Trash", message: String((e as Error)?.message ?? e), style: "failure" } }; }
+      try { for (const p of ids) await trash(p); } catch (e) { return failure("Could not move to Trash", e); }
       return { keep: true, toast: { title: "Moved to Trash", message: ids.length === 1 ? basename(id) : `${ids.length} items` } };
     default:
       // Several: every one through the opener; the effect carries one, so the rest go here.
@@ -530,7 +579,7 @@ export default {
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "files", ctx?.ids);
+        return file ? openWithPick(file, id) : fileAction(id, action, "files", ctx);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);
@@ -552,7 +601,7 @@ export default {
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "browse", ctx?.ids);
+        return file ? openWithPick(file, id) : fileAction(id, action, "browse", ctx);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);
@@ -574,7 +623,7 @@ export default {
       },
       pick: (id, action, ctx) => {
         const file = openWithOf(ctx);
-        return file ? openWithPick(file, id) : fileAction(id, action, "recent", ctx?.ids);
+        return file ? openWithPick(file, id) : fileAction(id, action, "recent", ctx);
       },
       detail: (id, ctx) => {
         const file = openWithOf(ctx);

@@ -7,7 +7,10 @@
 // session file (read-only, so its tabs list but only its window can be
 // raised). Enter focuses: the tab is selected inside the browser, then the
 // browser window comes up through the `focus` effect so the panel hides
-// first. Order is the browser's, never a ranking.
+// first. Order is the browser's, never a ranking. `activeTab`, `findTab`
+// and `focusTab` are exported for quicklinks (a Create form filled from
+// the tab in front; a link that prefers a tab already open); they read
+// this extension's settings by name, since the caller is another one.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { home, settings, windows, type Accessory, type Action, type Extension, type Item, type Window } from "@zcag/pal";
@@ -19,8 +22,11 @@ type Settings = { port: number; apps: string[]; firefox: boolean; firefox_sessio
 type Source = "cdp" | "as" | "ff";
 type Tab = { id: string; src: Source; browser: string; title: string; url: string; window: number; index: number; active: boolean; media?: Media };
 
+const EXT = "browser-tabs";
 const MAC = process.platform === "darwin";
 const ICON = "◍";
+/** The most a caller from another extension waits for the tab in front (the Create form is on its way up). */
+const ACTIVE_MS = 400;
 const AUTOMATION_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation";
 /** One `osascript` run at most. */
 const OSA_MS = 8000;
@@ -226,8 +232,8 @@ const hint = (id: string, name: string, subtitle: string, actions: Action[] = []
 /** What `pick` needs per row, from the last listing. */
 const table = new Map<string, Tab>();
 
-async function list(filter = "all"): Promise<Item[]> {
-  const s = settings.get<Settings>();
+/** What the three sources answer right now: every tab (the picks' table refreshed), the DevTools browser's name, Firefox's front window, and the hint rows a failed source leaves. */
+async function gather(s: Settings): Promise<{ tabs: Tab[]; over?: { app: string }; front: Map<string, number>; hints: Item[] }> {
   const cdp = new Cdp(s.port);
   const [over, ff] = await Promise.all([cdpTabs(cdp), Promise.resolve().then(() => firefoxTabs(s)).catch((e) => { console.error("[browser-tabs] firefox:", String((e as Error)?.message ?? e)); return { tabs: [] as Tab[], front: 1 }; })]);
   const hints: Item[] = [];
@@ -238,11 +244,18 @@ async function list(filter = "all"): Promise<Item[]> {
       ? hint("automation", "Automation permission needed", "pal may not control the browser yet: allow it under Privacy & Security, Automation", [{ id: "settings", title: "Open System Settings" }])
       : hint("osascript", "Could not ask the browsers", msg));
   }
-  let tabs = [...(over?.tabs ?? []), ...scripted, ...ff.tabs];
+  const tabs = [...(over?.tabs ?? []), ...scripted, ...ff.tabs];
   table.clear();
   for (const t of tabs) table.set(t.id, t);
-  const total = tabs.length;
   const front = new Map<string, number>([...(over ? [[over.app, 1] as const] : []), ...s.apps.map((a) => [a, 1] as const), ["Firefox", ff.front] as const]);
+  return { tabs, over: over && { app: over.app }, front, hints };
+}
+
+async function list(filter = "all"): Promise<Item[]> {
+  const s = settings.get<Settings>(EXT);
+  const { tabs: every, over, front, hints } = await gather(s);
+  let tabs = every;
+  const total = tabs.length;
   if (filter === "audible") tabs = tabs.filter((t) => t.media?.audible);
   if (filter === "window") tabs = tabs.filter((t) => t.window === (front.get(t.browser) ?? 1));
   const browsers = new Set(tabs.map((t) => t.browser)).size;
@@ -254,6 +267,42 @@ async function list(filter = "all"): Promise<Item[]> {
     return [hint("none", "No browser tabs", over ? `${over.app} on :${s.port} has none, and ${where}` : `Nothing listens on :${s.port}, and ${where}`)];
   }
   return [...hints, ...tabs.map((t) => item(t, browsers, windowsOf.get(t.browser) ?? 1))];
+}
+
+/** A web tab another extension may name or raise: what `findTab` answers and `focusTab` takes. */
+export type OpenTab = { id: string; title: string; url: string; browser: string };
+const openTab = (t: Tab): OpenTab => ({ id: t.id, title: t.title, url: t.url, browser: t.browser });
+
+/**
+ * The tab in front: the DevTools browser's first target (its most recently
+ * used), else the active tab of the scripted browsers' front window, else
+ * Firefox's. Answers within `ms` or not at all (the sources keep running
+ * and are dropped), and never throws: a form must not wait on a browser.
+ */
+export async function activeTab(ms = ACTIVE_MS): Promise<OpenTab | undefined> {
+  const s = settings.get<Settings>(EXT);
+  const pick = gather(s).then(({ tabs, front }) => tabs.find((t) => t.active && t.window === (front.get(t.browser) ?? 1) && isWeb(t.url))).catch(() => undefined);
+  return Promise.race([pick, new Promise<undefined>((r) => setTimeout(() => r(undefined), ms))]).then((t) => t && openTab(t));
+}
+
+/** `url` without its query and fragment, the trailing slash dropped: what two tabs share when they are the same page. */
+export function samePage(url: string): string {
+  try { const u = new URL(url); return `${u.origin}${u.pathname.replace(/\/+$/, "")}`.toLowerCase(); } catch { return url.trim().toLowerCase(); }
+}
+
+/** An open tab on `url`'s page (`samePage`), the front one first; undefined when none or no browser answers. */
+export async function findTab(url: string): Promise<OpenTab | undefined> {
+  const want = samePage(url);
+  const { tabs } = await gather(settings.get<Settings>(EXT)).catch(() => ({ tabs: [] as Tab[] }));
+  const hit = tabs.find((t) => t.active && samePage(t.url) === want) ?? tabs.find((t) => samePage(t.url) === want);
+  return hit && openTab(hit);
+}
+
+/** Raises the tab as Enter on its row would (the browser window through the `focus` effect); the effect to answer, or a failure toast. */
+export async function focusTab(tab: OpenTab) {
+  const t = table.get(tab.id);
+  if (!t) return failed("focus the tab", new Error("the tab is gone"));
+  return focus(t, new Cdp(settings.get<Settings>(EXT).port));
 }
 
 // ---- picks --------------------------------------------------------------------------
@@ -294,7 +343,7 @@ export default {
         if (id === "automation") return { open: AUTOMATION_URL };
         const t = table.get(id);
         if (!t) return { keep: true };
-        const cdp = new Cdp(settings.get<Settings>().port);
+        const cdp = new Cdp(settings.get<Settings>(EXT).port);
         switch (action) {
           case "copy-url": return { copy: t.url };
           case "copy-markdown": return { copy: `[${t.title || t.url}](${t.url})` };

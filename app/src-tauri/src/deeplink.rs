@@ -83,8 +83,10 @@ pub enum Route {
     Toggle,
     Show,
     Hide,
-    /// The settings window, on a page when one is named.
-    Settings(Option<String>),
+    /// The settings window, on a page when one is named, landing on
+    /// `anchor` (a row's `data-anchor`: `extensions:gmail:token`) when
+    /// the link carries one.
+    Settings(Option<String>, Option<String>),
     Reload,
     Quit,
     /// One of pal's own rows (`commands.rs`).
@@ -219,13 +221,13 @@ pub const ROUTES: &[Spec] = &[
     Spec { pattern: "show", doc: "show the panel", build: |_| Ok(Route::Show) },
     Spec { pattern: "hide", doc: "hide the panel", build: |_| Ok(Route::Hide) },
     Spec { pattern: "toggle", doc: "show the panel if hidden, hide it if shown", build: |_| Ok(Route::Toggle) },
-    Spec { pattern: "settings", doc: "the settings window", build: |_| Ok(Route::Settings(None)) },
+    Spec { pattern: "settings", doc: "the settings window", build: |_| Ok(Route::Settings(None, None)) },
     Spec {
         pattern: "settings/{page}",
-        doc: "the settings window on a page: overview, general, palettes, extensions, bar, about",
-        build: |c| PAGES.contains(&c.part("page")).then(|| Route::Settings(Some(c.part("page").into()))).ok_or_else(|| format!("no settings page {:?}", c.part("page"))),
+        doc: "the settings window on a page: overview, general, palettes, extensions, bar, about (?anchor=extensions:<name>:<setting> lands on a row)",
+        build: |c| PAGES.contains(&c.part("page")).then(|| Route::Settings(Some(c.part("page").into()), c.query.get("anchor").filter(|a| !a.is_empty()))).ok_or_else(|| format!("no settings page {:?}", c.part("page"))),
     },
-    Spec { pattern: "extensions", doc: "settings/extensions (alias)", build: |_| Ok(Route::Settings(Some("extensions".into()))) },
+    Spec { pattern: "extensions", doc: "settings/extensions (alias)", build: |_| Ok(Route::Settings(Some("extensions".into()), None)) },
     Spec { pattern: "reload", doc: "restart the extension host", build: |_| Ok(Route::Reload) },
     Spec { pattern: "quit", doc: "quit the running instance", build: |_| Ok(Route::Quit) },
     Spec { pattern: "commands/{id}", doc: "one of pal's own rows (settings, store, refresh, updates, theme, ...)", build: |c| Ok(Route::Command { id: c.part("id").into() }) },
@@ -602,7 +604,7 @@ fn run(app: &AppHandle, route: Route, trusted: bool) {
         Route::Toggle => on_main(app, |app| if panel::is_visible(app) { panel::hide(app) } else { settled(app, crate::show) }),
         Route::Show => settled(app, crate::show),
         Route::Hide => on_main(app, panel::hide),
-        Route::Settings(page) => on_main(app, move |app| settings::open_page(app, page.as_deref())),
+        Route::Settings(page, anchor) => on_main(app, move |app| settings::open_at(app, page.as_deref(), anchor.as_deref())),
         Route::Reload => {
             if let Some(host) = app.try_state::<Arc<Host>>() {
                 let host = host.inner().clone();
@@ -1078,10 +1080,12 @@ mod tests {
 
     #[test]
     fn settings_routes() {
-        assert_eq!(parse("pal://settings"), Ok(Route::Settings(None)));
-        assert_eq!(parse("pal://settings/about"), Ok(Route::Settings(Some("about".into()))));
-        assert_eq!(parse("pal://settings/bar"), Ok(Route::Settings(Some("bar".into()))));
-        assert_eq!(parse("pal://extensions"), Ok(Route::Settings(Some("extensions".into()))), "the old spelling stays an alias");
+        assert_eq!(parse("pal://settings"), Ok(Route::Settings(None, None)));
+        assert_eq!(parse("pal://settings/about"), Ok(Route::Settings(Some("about".into()), None)));
+        assert_eq!(parse("pal://settings/bar"), Ok(Route::Settings(Some("bar".into()), None)));
+        assert_eq!(parse("pal://extensions"), Ok(Route::Settings(Some("extensions".into()), None)), "the old spelling stays an alias");
+        assert_eq!(parse("pal://settings/extensions?anchor=extensions:gmail:token"), Ok(Route::Settings(Some("extensions".into()), Some("extensions:gmail:token".into()))), "an extension's hint row lands on its own setting");
+        assert_eq!(parse("pal://settings/general?anchor="), Ok(Route::Settings(Some("general".into()), None)), "an empty anchor is none");
         assert!(parse("pal://settings/nope").is_err());
     }
 
@@ -1218,7 +1222,7 @@ mod tests {
     fn reserved_words_shadow_an_extension_of_that_name() {
         // `open/x` would be an extension `open` with route `x`; the table's `open` forms win.
         assert!(parse("pal://open/x").map(|r| matches!(r, Route::Ext { .. })).unwrap_or(false), "one extra part after a reserved word falls through to the catch-all");
-        assert!(matches!(parse("pal://settings/general"), Ok(Route::Settings(_))));
+        assert!(matches!(parse("pal://settings/general"), Ok(Route::Settings(..))));
         assert!(matches!(parse("pal://commands/quit"), Ok(Route::Command { .. })), "not the extension `commands`");
         for spec in ROUTES {
             let first = spec.pattern.split('/').next().unwrap_or_default();

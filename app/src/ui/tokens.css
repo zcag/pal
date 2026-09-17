@@ -134,6 +134,7 @@
   --pal-brand-ink: #24292F;
   --pal-tile-fg: #FFFFFF;
   --pal-tile-ring: rgba(26, 26, 31, 0.10);
+  --pal-icon-lift: brightness(1.04);
   --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
   --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   --pal-shadow-panel: 0 0 0 1px rgba(26, 26, 31, 0.10), 0 2px 6px rgba(26, 26, 31, 0.06), 0 28px 64px -16px rgba(26, 26, 31, 0.30);
@@ -197,6 +198,7 @@
     --pal-brand-ink: #30363D;
     --pal-tile-fg: #FFFFFF;
     --pal-tile-ring: rgba(255, 255, 255, 0.12);
+  --pal-icon-lift: brightness(1.12) saturate(1.05); /* an image icon on the selected row */
     --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
     --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.07);
     --pal-shadow-panel: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.30), 0 28px 64px -16px rgba(0, 0, 0, 0.65);
@@ -260,6 +262,7 @@
   --pal-brand-ink: #30363D;
   --pal-tile-fg: #FFFFFF;
   --pal-tile-ring: rgba(255, 255, 255, 0.12);
+  --pal-icon-lift: brightness(1.12) saturate(1.05); /* an image icon on the selected row */
   --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
   --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.07);
   --pal-shadow-panel: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.30), 0 28px 64px -16px rgba(0, 0, 0, 0.65);
@@ -322,6 +325,7 @@
   --pal-brand-ink: #24292F;
   --pal-tile-fg: #FFFFFF;
   --pal-tile-ring: rgba(26, 26, 31, 0.10);
+  --pal-icon-lift: brightness(1.04);
   --pal-ring: 0 0 0 1px var(--pal-accent), 0 0 0 4px var(--pal-accent-soft);
   --pal-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   --pal-shadow-panel: 0 0 0 1px rgba(26, 26, 31, 0.10), 0 2px 6px rgba(26, 26, 31, 0.06), 0 28px 64px -16px rgba(26, 26, 31, 0.30);

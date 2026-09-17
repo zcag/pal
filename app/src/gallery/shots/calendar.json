@@ -771,6 +771,50 @@
           ]
         }
       }
+    },
+    "quick": {
+      "title": "Quick Add Event",
+      "icon": {
+        "tile": {
+          "glyph": "󰃭",
+          "bg": "red"
+        }
+      },
+      "input": true,
+      "placeholder": "standup tomorrow 10:00",
+      "byQuery": {
+        "": [
+          {
+            "id": "hint",
+            "name": "Type an event",
+            "subtitle": "standup tomorrow 10:00, dentist fri 2pm-3pm, lunch 12:30 for 45m at Rest, retro next tue 3pm @ Work, birthday 20 sep",
+            "icon": "󰃭",
+            "actions": []
+          }
+        ],
+        "dentist fri 2pm-3pm at Room 4 @ home": [
+          {
+            "id": "dentist fri 2pm-3pm at Room 4 @ home",
+            "name": "dentist",
+            "subtitle": "Fri 18 Sep 14:00 to 15:00 · Room 4 · Home calendar",
+            "icon": {
+              "glyph": "󰃮",
+              "color": "#34aadc"
+            },
+            "accessories": [
+              {
+                "date": 1789740000000
+              }
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add event"
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "effects": {
@@ -890,6 +934,13 @@
       "palette": "today",
       "keys": [
         "down"
+      ]
+    },
+    "5-quick": {
+      "palette": "quick",
+      "keys": [
+        "type:dentist fri 2pm-3pm at Room 4 @ home",
+        "wait:300"
       ]
     }
   }

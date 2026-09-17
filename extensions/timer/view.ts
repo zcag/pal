@@ -8,13 +8,16 @@
 // the accent ring; a click on a card moves the ring there. A row of key
 // hints closes the tree. With the field open (`n`, or at once with no
 // timer) the search row is the field, the tree shows what to type and the
-// last durations used as tiles that start one on a click.
+// last durations used as tiles that start one on a click. A pomodoro
+// session (pomodoro.ts) marks its timer's card with the phase and the
+// round; `p` starts one, `s` skips to the next phase.
 import type { Action, TagColor, View, ViewNode } from "@zcag/pal";
+import { phaseWord, type Session } from "./pomodoro.ts";
 
 export type State = "running" | "paused" | "done";
 export type Timer = { id: string; name: string; total: number; deadline: number; left: number; state: State; fired: number; auto: boolean };
-/** What the popover draws: the timers, the card the keys are on, whether the field is open, the durations last used (for the tiles), the clock. */
-export type PopoverState = { timers: Timer[]; cursor?: string; field: boolean; recent: string[]; now: number };
+/** What the popover draws: the timers, the card the keys are on, whether the field is open, the durations last used (for the tiles), the clock, the pomodoro session and today's finished rounds. */
+export type PopoverState = { timers: Timer[]; cursor?: string; field: boolean; recent: string[]; now: number; pomodoro?: Pick<Session, "timerId" | "round" | "of" | "phase">; today?: number };
 
 /** The popover's content width: 420 less the view's padding (3 steps a side). */
 export const COMPACT_W = 396;
@@ -58,11 +61,13 @@ function card(t: Timer, st: PopoverState): ViewNode {
   const left = secsLeft(t, st.now);
   const color = colorOf(t, st.now);
   const selected = current(st)?.id === t.id;
-  // Under the name: when it lands, how long ago it did (with a red tag), or a paused tag alone.
+  // Under the name: when it lands, how long ago it did (with a red tag), or a paused tag alone; the pomodoro's card leads with its phase.
+  const p = st.pomodoro?.timerId === t.id ? st.pomodoro : undefined;
   const sub: ViewNode[] = t.state === "done"
     ? [text(`landed ${fmt(st.now - t.fired)} ago`, { style: "muted", size: "xs", key: "sub-done", transition: { enter: "fade", exit: "none" } }), { type: "badge", key: "done", text: "done", color: "red" }]
     : t.state === "paused" ? [{ type: "badge", key: "paused", text: "paused", color: "amber" }]
     : [text(`until ${clock(t.deadline)}`, { style: "muted", size: "xs", key: "sub-running", transition: { enter: "fade", exit: "none" } })];
+  if (p) sub.unshift({ type: "badge", key: "phase", text: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" });
   const big = t.state === "done" ? "0:00" : fmt(left);
   const kids: ViewNode[] = [
     row([
@@ -89,19 +94,25 @@ function fieldHelp(st: PopoverState): ViewNode {
   ], { key: "field", gap: 2, padding: 1 });
 }
 
-function hints(st: PopoverState): ViewNode {
+/** Two rows of key hints: the card's keys, then the popover's own (new, pomodoro or skip, all timers) with today's finished rounds at the far end. */
+function hints(st: PopoverState): ViewNode[] {
   const t = current(st);
-  const kids: ViewNode[] = [];
   // With the field open the bare keys type into it: only Enter and Escape apply.
-  if (st.field) return row([...hint(["enter"], "start", "start"), ...hint(["escape"], "close", "cancel")], { key: "hints", gap: 1, minHeight: 22 });
+  if (st.field) return [row([...hint(["enter"], "start", "start"), ...hint(["escape"], "close", "cancel")], { key: "hints", gap: 1, minHeight: 22 })];
+  const card: ViewNode[] = [];
   if (t) {
-    kids.push(...hint(["space"], t.state === "done" ? "dismiss" : t.state === "paused" ? "resume" : "pause", "toggle"));
-    if (t.state !== "done") kids.push(...hint(["+"], "5 min", "add"));
-    kids.push(...hint(["backspace"], "stop", "stop"));
-    if (st.timers.length > 1) kids.push(...hint(["up", "down"], "pick"));
+    card.push(...hint(["space"], t.state === "done" ? "dismiss" : t.state === "paused" ? "resume" : "pause", "toggle"));
+    if (t.state !== "done") card.push(...hint(["+"], "5 min", "add"));
+    card.push(...hint(["backspace"], "stop", "stop"));
+    if (st.timers.length > 1) card.push(...hint(["up", "down"], "pick"));
   }
-  kids.push(...hint(["n"], "new", "new"), ...hint(["o"], "all timers", "open"));
-  return row(kids, { key: "hints", gap: 1, minHeight: 22 });
+  const own: ViewNode[] = [
+    ...hint(["n"], "new", "new"),
+    ...(st.pomodoro ? hint(["s"], "skip phase", "skip") : hint(["p"], "pomodoro", "pomodoro")),
+    ...hint(["o"], "all timers", "open"),
+    ...(st.today ? [{ type: "spacer" } as ViewNode, text(`${st.today} today`, { style: "muted", size: "xs", key: "today" })] : []),
+  ];
+  return [...(card.length ? [row(card, { key: "hints", gap: 1, minHeight: 22 })] : []), row(own, { key: "hints-own", gap: 1, minHeight: 22 })];
 }
 
 /** Every action the popover answers to; the first listed is Enter (Start while the field is open). */
@@ -115,6 +126,7 @@ export function actions(st: PopoverState): Action[] {
     acts.push({ id: "stop", title: "Stop", shortcut: "backspace", style: "destructive" });
   }
   if (!st.field) acts.push({ id: "new", title: "New timer", shortcut: "n" });
+  if (!st.field) acts.push(...(st.pomodoro ? [{ id: "skip", title: "Skip to the next phase", shortcut: "s" }, { id: "stop-pomodoro", title: "Stop pomodoro", shortcut: "cmd+shift+d", style: "destructive" as const }] : [{ id: "pomodoro", title: "Start pomodoro", shortcut: "p" }]));
   acts.push({ id: "open", title: "All timers", shortcut: "o" });
   if (st.field) acts.push({ id: "cancel", title: "Close the field" });
   if (st.timers.length > 1) acts.push({ id: "up", title: "Previous timer", shortcut: "up", hidden: true }, { id: "down", title: "Next timer", shortcut: "down", hidden: true });
@@ -127,7 +139,7 @@ export function render(st: PopoverState): View {
   const kids: ViewNode[] = st.timers.map((t) => card(t, st));
   if (!st.timers.length && !st.field) kids.push(text("No timers", { style: "muted", key: "none" }));
   if (st.field) kids.push(fieldHelp(st));
-  kids.push(hints(st));
+  kids.push(...hints(st));
   const tree = column(kids, { key: "popover", padding: 3, gap: 2 });
   const t = current(st);
   const title = st.field ? "New timer" : t ? `${st.timers.length} timer${st.timers.length === 1 ? "" : "s"}` : "Timers";

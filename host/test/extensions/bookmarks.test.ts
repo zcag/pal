@@ -1,12 +1,15 @@
 // bookmarks: the pure readers (sources.ts) over canned files, then the
 // extension against a temp home (`PAL_BOOKMARKS_HOME`) holding a Chrome
 // profile pair, a Safari plist (XML; plutil reads that too) and a Firefox
-// places.sqlite made here, plus the JSON file named by the `file` setting.
+// places.sqlite made here, plus the JSON file named by the `file` setting;
+// then the history palette over a Chrome `History` and Firefox visits in
+// the same profiles.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { chromeTime, firefoxTime, like, merge, visits } from "../../../extensions/bookmarks/history.ts";
 import { chromeBookmarks, excludedFolder, firefoxBookmarks, markdownLink, parsePlist, safariBookmarks } from "../../../extensions/bookmarks/sources.ts";
 import { Host } from "../harness.ts";
 
@@ -89,6 +92,10 @@ const FIREFOX = [
   { id: 16, parent: 2, type: 3, title: null, url: null },
 ];
 
+/** 2026-09-16 10:30:00 UTC as unix ms; `chromeUs` spells it in Chrome's 1601 microseconds. */
+const T = 1_789_554_600_000;
+const chromeUs = (ms: number) => (ms + 11_644_473_600_000) * 1000;
+
 describe("sources", () => {
   test("chrome: the three roots with their folder paths, javascript: and the trash skipped", () => {
     expect(chromeBookmarks(CHROME)).toEqual([
@@ -123,6 +130,24 @@ describe("sources", () => {
     ]);
   });
 
+  test("history: Chrome's 1601 microseconds and Firefox's 1970 microseconds as unix ms, unvisited rows dropped, LIKE escaped, the merge newest first once per url", () => {
+    // 2026-09-16 10:30:00 UTC.
+    expect(chromeTime(13434028200000000)).toBe(T);
+    expect(chromeTime(0)).toBe(0);
+    expect(chromeTime(null)).toBe(0);
+    expect(firefoxTime(T * 1000)).toBe(T);
+    expect(visits([{ url: "https://a", title: " A ", last: 2_000_000, visits: 3 }, { url: "https://b", title: null, last: 1_000_000, visits: null }, { url: "https://never", title: "x", last: 0, visits: 0 }, { url: "", title: "x", last: 5, visits: 1 }], firefoxTime)).toEqual([
+      { url: "https://a", title: "A", at: 2000, visits: 3 },
+      { url: "https://b", title: "https://b", at: 1000, visits: 0 },
+    ]);
+    expect(like("50%_x\\y")).toBe("%50\\%\\_x\\\\y%");
+    const merged = merge([
+      { section: "Chrome", app: "Google Chrome", rows: [{ url: "https://a", title: "A", at: 10, visits: 1 }, { url: "https://c", title: "C", at: 5, visits: 1 }] },
+      { section: "Firefox", app: "Firefox", rows: [{ url: "https://a", title: "A again", at: 20, visits: 1 }, { url: "https://b", title: "B", at: 7, visits: 1 }] },
+    ]);
+    expect(merged.map((v) => [v.url, v.section])).toEqual([["https://a", "Firefox"], ["https://b", "Firefox"], ["https://c", "Chrome"]]);
+  });
+
   test("excludedFolder by name or short path, case-insensitive; markdownLink escapes brackets", () => {
     expect(excludedFolder(["Bookmarks Bar", "Old", "Deep"], ["old"])).toBe(true);
     expect(excludedFolder(["Bookmarks Bar", "Old"], ["Bookmarks Bar/Old"])).toBe(true);
@@ -150,19 +175,41 @@ writeFileSync(join(homeDir, "Library", "Safari", "Bookmarks.plist"), SAFARI);
 const ffRoot = MAC ? join(homeDir, "Library", "Application Support", "Firefox", "Profiles") : join(homeDir, ".mozilla", "firefox");
 mkdirSync(join(ffRoot, "abc123.default-release"), { recursive: true });
 {
+  // Chrome's History in the Default profile alone (Work has none): three visited pages and a never-visited one.
+  const db = new Database(join(chromeRoot, "Default", "History"));
+  db.run("CREATE TABLE urls (id INTEGER PRIMARY KEY, url TEXT, title TEXT, visit_count INTEGER, last_visit_time INTEGER, hidden INTEGER DEFAULT 0)");
+  const rows: [string, string | null, number, number, number][] = [
+    ["https://bun.sh/docs", "Bun docs", 4, chromeUs(T - 60_000), 0],
+    ["https://news.ycombinator.com/", "Hacker News", 30, chromeUs(T - 3_600_000), 0],
+    ["https://example.com/untitled", null, 1, chromeUs(T - 7_200_000), 0],
+    ["https://example.com/never", "Never", 0, 0, 0],
+    ["https://example.com/hidden", "Hidden redirect", 1, chromeUs(T), 1],
+  ];
+  for (const r of rows) db.run("INSERT INTO urls (url, title, visit_count, last_visit_time, hidden) VALUES (?, ?, ?, ?, ?)", r);
+  db.close();
+  const work = new Database(join(chromeRoot, "Profile 1", "History"));
+  work.run("CREATE TABLE urls (id INTEGER PRIMARY KEY, url TEXT, title TEXT, visit_count INTEGER, last_visit_time INTEGER, hidden INTEGER DEFAULT 0)");
+  work.run("INSERT INTO urls (url, title, visit_count, last_visit_time) VALUES ('https://wiki.example/onboarding', 'Onboarding', 2, ?)", [chromeUs(T - 1_800_000)]);
+  work.close();
+}
+{
   const db = new Database(join(ffRoot, "abc123.default-release", "places.sqlite"));
-  db.run("CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT)");
+  db.run("CREATE TABLE moz_places (id INTEGER PRIMARY KEY, url TEXT, title TEXT, visit_count INTEGER DEFAULT 0, last_visit_date INTEGER, hidden INTEGER DEFAULT 0)");
   db.run("CREATE TABLE moz_bookmarks (id INTEGER PRIMARY KEY, type INTEGER, fk INTEGER, parent INTEGER, title TEXT)");
   for (const r of FIREFOX) {
     if (r.url) db.run("INSERT INTO moz_places (id, url) VALUES (?, ?)", [r.id, r.url]);
     db.run("INSERT INTO moz_bookmarks (id, type, fk, parent, title) VALUES (?, ?, ?, ?, ?)", [r.id, r.type, r.url ? r.id : null, r.parent, r.title]);
   }
+  // Visits: Bun's docs here too (older than Chrome's), one of Firefox's own.
+  db.run("INSERT INTO moz_places (id, url, title, visit_count, last_visit_date) VALUES (100, 'https://bun.sh/docs', 'Bun documentation', 2, ?)", [(T - 120_000) * 1000]);
+  db.run("INSERT INTO moz_places (id, url, title, visit_count, last_visit_date) VALUES (101, 'https://developer.mozilla.org/', 'MDN', 9, ?)", [(T - 600_000) * 1000]);
   db.close();
 }
 
 let host: Host;
 beforeAll(async () => {
   process.env.PAL_BOOKMARKS_HOME = homeDir;
+  process.env.PAL_BOOKMARKS_CACHE = join(dir, "cache");
   host = await Host.bundled({ settings: { bookmarks: { settings: { file } } } });
 });
 afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
@@ -261,3 +308,67 @@ describe("bookmarks", () => {
     expect((await host.hello()).pid).toBe(host.pid);
   });
 });
+
+describe("history", () => {
+  const history = (q?: string) => host.list("bookmarks", "history", q);
+  const pick = (id: string, action?: string) => host.pick("bookmarks", "history", id, action);
+
+  test("meta: an input palette next to the bookmarks", () => {
+    const l = host.loaded().find((l) => l.extension === "bookmarks")!;
+    expect(l.palettes.map((p) => [p.name, p.input])).toEqual([["bookmarks", false], ["history", true]]);
+    expect(l.palettes[1]).toMatchObject({ title: "Browser History", placeholder: "Search browser history" });
+  });
+
+  test("the empty query lists every browser's visits newest first, a url once, the title (or the url), the visit as a date, the browser as the section", async () => {
+    host.changeSettings("bookmarks", { settings: { file } });
+    const items = await history();
+    expect(items.map((i) => [i.id, i.section])).toEqual([
+      ["https://bun.sh/docs", "Chrome (Default)"],
+      ["https://developer.mozilla.org/", "Firefox"],
+      ["https://wiki.example/onboarding", "Chrome (Work)"],
+      ["https://news.ycombinator.com/", "Chrome (Default)"],
+      ["https://example.com/untitled", "Chrome (Default)"],
+    ]);
+    expect(items[0]).toEqual({
+      id: "https://bun.sh/docs", name: "Bun docs", subtitle: "https://bun.sh/docs", url: "https://bun.sh/docs", accessories: [{ date: T - 60_000 }], section: "Chrome (Default)",
+      actions: [{ id: "open-in", title: "Open in Chrome" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }, { id: "open", title: "Open in default browser", shortcut: "cmd+o" }],
+    });
+    expect(items[1].actions![0].title).toBe("Open in Firefox");
+    expect(items[4].name).toBe("https://example.com/untitled");
+  });
+
+  test("a query matches the title or the address, case-insensitive; the browsers setting narrows the sources; none is one hint row", async () => {
+    expect((await history("MDN")).map((i) => i.id)).toEqual(["https://developer.mozilla.org/"]);
+    expect((await history("bun.sh")).map((i) => i.id)).toEqual(["https://bun.sh/docs"]);
+    expect((await history("%")).map((i) => i.id)).toEqual([]);
+    host.changeSettings("bookmarks", { settings: { file, browsers: ["firefox"] } });
+    expect((await history()).map((i) => i.section)).toEqual(["Firefox", "Firefox"]);
+    host.changeSettings("bookmarks", { settings: { file, browsers: ["safari"] } });
+    const [hint] = await history();
+    expect(hint).toMatchObject({ id: "hint:none", name: "No browser history found", actions: [] });
+    host.changeSettings("bookmarks", { settings: { file } });
+  });
+
+  test("pick: Enter opens in the browser it came from (the opener here, the panel hides), copy, and the default browser through the effect", async () => {
+    await history();
+    expect(await pick("https://bun.sh/docs", "copy")).toEqual({ copy: "https://bun.sh/docs" });
+    expect(await pick("https://bun.sh/docs", "open")).toEqual({ open: "https://bun.sh/docs" });
+    // A url the last listing did not have (a stale row) falls back to the default browser.
+    expect(await pick("https://nowhere.example")).toEqual({ open: "https://nowhere.example" });
+  });
+
+  test("the copy under the cache follows the file: a visit written to Chrome's History shows once the copy is older than the minimum", async () => {
+    const cached = readdirSync(join(dir, "cache")).filter((f) => f.endsWith("-History"));
+    expect(cached).toHaveLength(2);
+    const db = new Database(join(chromeRoot, "Default", "History"));
+    db.run("INSERT INTO urls (url, title, visit_count, last_visit_time) VALUES ('https://fresh.example/', 'Fresh', 1, ?)", [chromeUs(T + 1000)]);
+    db.close();
+    // Within the 30 s window the copy stands.
+    expect((await history("fresh")).map((i) => i.id)).toEqual([]);
+    // Past it (a host with no minimum) the moved mtime brings a fresh copy.
+    process.env.PAL_BOOKMARKS_COPY_MS = "0";
+    const fresh = await Host.bundled({ settings: { bookmarks: { settings: { file } } } });
+    try { expect((await fresh.list("bookmarks", "history", "fresh")).map((i) => i.id)).toEqual(["https://fresh.example/"]); } finally { fresh.kill(); delete process.env.PAL_BOOKMARKS_COPY_MS; }
+  });
+});
+

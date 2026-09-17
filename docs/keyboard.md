@@ -13,6 +13,7 @@ spelled `⌘K` in prose and `cmd+k` where a file or a manifest names them
 | `cmd+k` | Toggle the action panel |
 | `escape` | Close action panel, else clear the marks, else clear query, else pop a level, else hide |
 | `cmd+backspace` | Pop a level when the query is empty |
+| `backspace` | With nothing typed: the row's action carrying it (a folder's Go up), else pop a level, as `cmd+backspace` does (`general.backspace_back`, on by default; never at the root); with text it deletes as usual |
 | `tab`, `shift+tab` | Cycle the filter dropdown, when there is one |
 | `cmd+i` | Toggle the detail pane |
 | `cmd+1` | Jump to row 1..9 (cmd+1 to cmd+9) |
@@ -22,7 +23,7 @@ spelled `⌘K` in prose and `cmd+k` where a file or a manifest names them
 | `shift+↑`, `shift+↓` | A shifted arrow runs the action carrying it (a view's big step); in a list it marks the row under the cursor and moves |
 | `cmd`-click | Mark or unmark one row |
 | `tab`, `x` | In a palette that opts in (`multi`: Files, Windows, `pal pick --multi`; none has a filter dropdown), mark the row and step down; `x` only while nothing is typed, so a name can still be searched |
-| `→`, `←`, `backspace` | In a list while nothing is typed: the row's action carrying that key (a folder's Browse on `→`; `←` and `backspace` also reach the `..` row's Go up from anywhere in a browsed folder). With text in the box the arrows move the caret as usual |
+| `→`, `←`, `backspace` | In a list while nothing is typed: the row's action carrying that key (a folder's Browse on `→`; `←` and `backspace` also reach the `..` row's Go up from anywhere in a browsed folder). With text in the box the arrows move the caret as usual; a `backspace` no row claims goes back a level (above) |
 
 Notes from the same file:
 

@@ -1,9 +1,14 @@
 {
   "name": "system",
   "title": "System",
-  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake.",
+  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake, quit or unhide every app, dismiss notifications.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰐥", "bg": "slate" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰐥",
+      "bg": "slate"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -12,9 +17,9 @@
       "kind": "boolean",
       "id": "confirm_destructive",
       "label": "Ask first",
-      "text": "Confirm before logging out, restarting, shutting down or emptying the trash",
+      "text": "Confirm before logging out, restarting, shutting down, emptying the trash or quitting every app",
       "default": true,
-      "description": "Log Out, Restart, Shut Down and Empty Trash show a confirmation first; off runs them at once."
+      "description": "Log Out, Restart, Shut Down, Empty Trash and Quit All Apps show a confirmation first; off runs them at once."
     }
   ],
   "store": {
@@ -25,7 +30,8 @@
       "Only what this machine can run is listed: Brightness needs the `brightness` CLI on macOS, Do Not Disturb a Shortcut named \"Toggle Do Not Disturb\"",
       "Empty Trash shows what is in the Trash on the right (`3 items`, `empty`); Toggle Dark Mode carries the current appearance as a tag",
       "Keep Awake runs `caffeinate` (or `systemd-inhibit`) detached and the row flips to Allow Sleep while it runs",
-      "Log Out, Restart, Shut Down and Empty Trash ask first, unless `confirm_destructive` is off",
+      "Quit All Apps closes every open app but Finder and pal (each asked the way its Quit menu asks, so unsaved work still prompts), Unhide All Apps brings hidden ones back, Dismiss Notifications clears what is on screen (Notification Center over Accessibility on macOS; the daemon's CLI on Linux)",
+      "Log Out, Restart, Shut Down, Empty Trash and Quit All Apps ask first, unless `confirm_destructive` is off",
       "pal hides before running, so the command lands on the desktop, not on pal; a failure keeps the panel open with the tool's message"
     ],
     "permissions": [
@@ -48,12 +54,16 @@
       {
         "file": "3-confirm.png",
         "caption": "A destructive command asks first"
+      },
+      {
+        "file": "4-apps.png",
+        "caption": "Quit All Apps (asks first), Unhide All Apps and Dismiss Notifications"
       }
     ],
     "actions": [
       {
         "title": "Run",
-        "description": "The command; Log Out, Restart, Shut Down and Empty Trash ask first.",
+        "description": "The command; Log Out, Restart, Shut Down, Empty Trash and Quit All Apps ask first.",
         "keys": "enter"
       }
     ]
@@ -64,7 +74,7 @@
       "confirm": true,
       "params": {
         "id": {
-          "description": "sleep, lock, logout, restart, shutdown, empty-trash, dark-mode, volume-up, volume-down, volume-mute, brightness-up, brightness-down, dnd, eject-all, show-desktop, keep-awake",
+          "description": "sleep, lock, logout, restart, shutdown, empty-trash, dark-mode, volume-up, volume-down, volume-mute, brightness-up, brightness-down, dnd, eject-all, show-desktop, keep-awake, quit-all, unhide-all, dismiss-notifications",
           "required": true
         }
       }

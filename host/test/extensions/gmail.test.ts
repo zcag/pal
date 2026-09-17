@@ -436,9 +436,10 @@ describe("gmail", () => {
     try {
       const rows = await h2.list(P, "inbox");
       expect(rows).toEqual([{ id: "hint:token", name: "Token command failed", subtitle: "Token command exited 7: curl: (7) Failed to connect to 127.0.0.1 port 8776", icon: "\u{f0026}", actions: [{ id: "settings", title: "Open Gmail settings" }] }]);
-      expect(await h2.pick(P, "inbox", "hint:token")).toEqual({ open: "pal://settings/extensions" });
+      expect(await h2.pick(P, "inbox", "hint:token")).toEqual({ open: "pal://settings/extensions?anchor=extensions:gmail:token_command" });
       expect(await h2.render(P, "unread", { reason: "load" })).toEqual({ hidden: true });
       const none = await h2.list("gmail@none", "inbox");
+      expect(await h2.pick("gmail@none", "inbox", "hint:token")).toEqual({ open: "pal://settings/extensions?anchor=extensions:gmail@none:token_command" });
       expect(none[0]).toMatchObject({ id: "hint:token", name: "No token command set", subtitle: "Set one under Settings, Extensions, Gmail: a command that prints an access token" });
       expect((await h2.list("gmail@none", "labels"))[0].id).toBe("hint:token");
       expect(mock.seen.filter((s) => s.auth === "Bearer undefined")).toHaveLength(0);

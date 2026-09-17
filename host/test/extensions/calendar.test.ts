@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { addDays, DAY, dayName, details, parseDay, parseTime, plusMinutes, section, soonTag, startOfDay, timeRange, upcoming } from "../../../extensions/calendar/schedule.ts";
 import type { Settings } from "../../../extensions/calendar/source.ts";
 import { barTitle, escalation, nextEvent, nextWords, onDay, shortSpan, span, state, upcomingItem } from "../../../extensions/calendar/today.ts";
+import { parseLength, parseQuick, type Quick } from "../../../extensions/calendar/quick.ts";
 import { actions as popoverActions, focusable, freshPopover, listed, popover } from "../../../extensions/calendar/view.ts";
 import type { BarItem, Calendar, CalendarEvent, Form, View, ViewNode } from "../../../sdk/src/index.ts";
 import { checkView } from "../../../sdk/src/view.ts";
@@ -64,7 +65,7 @@ const core = (list: CalendarEvent[] = events) => ({
   "calendar.open_settings": () => { calls.push({ method: "open_settings", params: null }); return null; },
   "calendar.calendars": () => cals,
   "calendar.events": (p: any) => { calls.push({ method: "events", params: p }); return list.filter((e) => e.end > p.from && e.start < p.to && (!p.calendars || p.calendars.includes(e.calendar.id))); },
-  "calendar.create": (p: any) => { calls.push({ method: "create", params: p }); if (p.calendar === "cal-hol") throw new Error("Holidays does not take new events"); return "new-id"; },
+  "calendar.create": (p: any) => { calls.push({ method: "create", params: p }); if (p.calendar === "cal-hol" || p.title === "boom") throw new Error("Holidays does not take new events"); return "new-id"; },
   "calendar.delete": (p: any) => { calls.push({ method: "delete", params: p }); return null; },
   "calendar.open": (p: any) => { calls.push({ method: "open", params: p }); return null; },
 });
@@ -145,6 +146,60 @@ describe("schedule helpers", () => {
   });
 });
 
+describe("quick add grammar", () => {
+  // Wed 16 Sep 2026 10:30 (the pinned clock, UTC): today is the 16th, `fri` the 18th, `next tue` the 22nd.
+  const at = (d: number, h: number, m = 0) => addDays(now, d - 16) + h * H + m * MIN;
+  const q = (line: string, cals: string[] = ["Work", "Home"], len = 30) => parseQuick(line, now, len, cals) as Quick;
+  const problem = (line: string) => (parseQuick(line, now) as { problem: string }).problem;
+
+  test("lengths: minutes, hours, both, words", () => {
+    expect(parseLength("45m")).toBe(45);
+    expect(parseLength("1h")).toBe(60);
+    expect(parseLength("1h30m")).toBe(90);
+    expect(parseLength("2 hours")).toBe(120);
+    expect(parseLength("90 min")).toBe(90);
+    expect(parseLength("1.5h")).toBe(90);
+    expect(parseLength("soon")).toBeUndefined();
+    expect(parseLength("0m")).toBeUndefined();
+  });
+
+  test("a title, a day and a time: the default length; a range; the day words schedule.ts knows", () => {
+    expect(q("standup tomorrow 10:00")).toMatchObject({ title: "standup", day: at(17, 0), start: at(17, 10), end: at(17, 10, 30), allDay: false, assumedDay: false });
+    expect(q("dentist fri 2pm-3pm")).toMatchObject({ title: "dentist", start: at(18, 14), end: at(18, 15) });
+    expect(q("review next tue 14:00 to 15:30")).toMatchObject({ title: "review", start: at(22, 14), end: at(22, 15, 30) });
+    expect(q("trip 2026-09-20 9am")).toMatchObject({ title: "trip", start: at(20, 9) });
+    expect(q("x on monday noon")).toMatchObject({ title: "x", start: at(21, 12), end: at(21, 12, 30) });
+    expect(q("team sync 9-10am")).toMatchObject({ title: "team sync", start: at(17, 9), end: at(17, 10), assumedDay: true });
+    expect(q("standup tomorrow 10:00", [], 45)).toMatchObject({ end: at(17, 10, 45) });
+  });
+
+  test("no day: today, or tomorrow once the time has passed; no time: all day; for, at and @ come off the end in any order", () => {
+    expect(q("call mum 5pm")).toMatchObject({ title: "call mum", start: at(16, 17), assumedDay: true });
+    expect(q("call mum 9am")).toMatchObject({ title: "call mum", start: at(17, 9), assumedDay: true });
+    expect(q("lunch with ali 12:30 for 45m")).toMatchObject({ title: "lunch with ali", start: at(16, 12, 30), end: at(16, 13, 15) });
+    expect(q("retro next tue 15:00 at Room 4")).toMatchObject({ title: "retro", start: at(22, 15), location: "Room 4" });
+    expect(q("birthday 20 sep all day")).toMatchObject({ title: "birthday", day: at(20, 0), start: at(20, 0), end: at(21, 0), allDay: true });
+    expect(q("walk")).toMatchObject({ title: "walk", allDay: true, day: today, assumedDay: true });
+    expect(q("coffee with 2 people 3pm")).toMatchObject({ title: "coffee with 2 people", start: at(16, 15) });
+    expect(q("late 23:00-00:30")).toMatchObject({ start: at(16, 23), end: at(17, 0, 30) });
+  });
+
+  test("the calendar: @ anywhere, in only when a calendar starts with the word (an in in a title stays), two words when they name one", () => {
+    expect(q("1:1 mon 9am in Work")).toMatchObject({ title: "1:1", calendar: "Work", start: at(21, 9) });
+    expect(q("review @ Work 14:00 to 15:30")).toMatchObject({ title: "review", calendar: "Work" });
+    expect(q("@home gym 7am")).toMatchObject({ title: "gym", calendar: "home" });
+    expect(q("lunch in town 1pm")).toMatchObject({ title: "lunch in town", calendar: undefined });
+    expect(q("check in 3pm")).toMatchObject({ title: "check in" });
+    expect(q("planning in Work Stuff tue 3pm", ["Work Stuff"])).toMatchObject({ title: "planning", calendar: "Work Stuff" });
+  });
+
+  test("what cannot be read: an empty line, a line that is only a day", () => {
+    expect(problem("")).toBe("Type an event: standup tomorrow 10:00");
+    expect(problem("   ")).toBe("Type an event: standup tomorrow 10:00");
+    expect(problem("tomorrow 10:00")).toBe("A title first: dentist fri 2pm");
+  });
+});
+
 describe("today helpers", () => {
   const t0 = new Date(2026, 8, 16, 10, 0).getTime();
   const rules = { horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, hide_declined: true, hide_all_day: true };
@@ -216,7 +271,7 @@ describe("today helpers", () => {
     expect(nextWords(undefined, t0)).toBe("Nothing further in the days ahead");
   });
   test("upcomingItem: hidden, the colours, the dot, stale", () => {
-    const s: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5 };
+    const s: Settings = { source: "auto", accounts: [], calendars: [], days: 7, hide_declined: true, hide_all_day: true, horizon_hours: 10, warn_minutes: 15, urgent_minutes: 5, default_length: 30 };
     expect(upcomingItem([], t0, s)).toEqual({ hidden: true });
     const soon = ev("s", "Standup", t0 + 12 * MIN, t0 + 42 * MIN, { conference_url: ZOOM, calendar: cals[0] });
     const item = upcomingItem([soon], t0, s);
@@ -410,6 +465,35 @@ describe("calendar extension", () => {
     expect(await host.detail(E, P, "new")).toEqual({});
   });
 
+  test("Quick Add: the row reads the line back (day, time, calendar, place), hints until it can, Enter creates through the same write; a pick after a relist parses again", async () => {
+    const Q = "quick";
+    expect(await host.list(E, Q, "")).toEqual([{ id: "hint", name: "Type an event", subtitle: expect.stringContaining("standup tomorrow 10:00"), icon: expect.any(String), actions: [] }]);
+    expect(await host.list(E, Q, "tomorrow")).toEqual([expect.objectContaining({ id: "hint", name: "Not an event yet", subtitle: "A title first: dentist fri 2pm" })]);
+    const line = "dentist fri 2pm-3pm at Room 4 @ home";
+    const rows = await host.list(E, Q, line);
+    expect(rows).toEqual([{ id: line, name: "dentist", subtitle: "Fri 18 Sep 14:00 to 15:00 · Room 4 · Home calendar", icon: { glyph: "\u{f00ee}", color: "#34aadc" }, accessories: [{ date: addDays(now, 2) + 14 * H }], actions: [{ id: "add", title: "Add event" }] }]);
+    expect((await host.list(E, Q, "walk"))[0]).toMatchObject({ name: "walk", subtitle: "Today, all day", icon: "\u{f0415}", accessories: [{ tag: "all day" }, { date: today }] });
+    expect((await host.list(E, Q, "call mum 9am"))[0]).toMatchObject({ subtitle: "Tomorrow 09:00 to 09:30", accessories: [{ tag: "tomorrow", color: "amber" }, { date: addDays(now, 1) + 9 * H }] });
+    expect((await host.list(E, Q, "sync 3pm @ nope"))[0].subtitle).toBe("Today 15:00 to 15:30 · no calendar named nope, so the default");
+    // Enter on the row: the event through calendar.create, the toast, the palette kept.
+    const n = calls.length;
+    await host.list(E, Q, line);
+    expect(await host.pick(E, Q, line, "add")).toEqual({ keep: true, toast: { title: "Added", message: "dentist, Fri 18 Sep 14:00 – 15:00", style: "success" } });
+    expect(last()).toEqual({ method: "create", params: { title: "dentist", start: addDays(now, 2) + 14 * H, end: addDays(now, 2) + 15 * H, all_day: false, calendar: "cal-home", location: "Room 4", notes: undefined } });
+    expect(calls.length).toBe(n + 1);
+    // A pick for a line the last listing did not parse (a restart, the fallback row): parsed again.
+    expect(await host.pick(E, Q, "trip 20 sep", "add")).toMatchObject({ keep: true, toast: { title: "Added", message: "trip, Sun 20 Sep 2026" } });
+    expect(last().params).toMatchObject({ title: "trip", all_day: true, start: addDays(now, 4), end: addDays(now, 5) });
+    // The source's refusal is a toast, not a form.
+    expect(await host.pick(E, Q, "boom sat", "add")).toEqual({ keep: true, toast: { title: "Could not add the event", message: "Holidays does not take new events", style: "failure" } });
+    expect(await host.pick(E, Q, "", "add")).toMatchObject({ keep: true, toast: { title: "Not an event yet", style: "failure" } });
+    expect(await host.pick(E, Q, "hint")).toEqual({});
+    // Without the permission the palette shows the permission row like the others.
+    status = "not_determined";
+    expect((await host.list(E, Q, "x 3pm"))[0]).toMatchObject({ id: "grant", name: "Grant calendar access" });
+    status = "granted";
+  });
+
   test("New event: the form, a submit that creates, one that errs", async () => {
     const f = (await pick("new")).form as Form;
     expect(f.title).toBe("New event");
@@ -476,7 +560,8 @@ describe("today palette and the upcoming bar item", () => {
 
   test("meta: Today is live, the bar item refreshes every five minutes and on the minute, wake and network", () => {
     const l = host.loaded().find((l) => l.extension === E)!;
-    expect(l.palettes.map((p) => p.name)).toEqual(["schedule", "today"]);
+    expect(l.palettes.map((p) => p.name)).toEqual(["schedule", "today", "quick"]);
+    expect(l.palettes[2]).toMatchObject({ title: "Quick Add Event", input: true, placeholder: "standup tomorrow 10:00", fallback: "ask", fallbackTitle: "Add “{query}” to the calendar" });
     expect(l.palettes[1]).toMatchObject({ title: "Today", live: true, ttl: 60, detail: "lazy" });
     expect(l.bar).toEqual([{ id: "upcoming", title: "Upcoming", description: expect.any(String), refresh: { every: 300, on: ["minute", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "j", title: "Join the next call" }, { keys: "t", title: "Show or fold tomorrow" }]), source: true }]);
   });

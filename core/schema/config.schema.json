@@ -436,6 +436,11 @@
           "description": "macOS: ask for the Accessibility permission (the system prompt, and\nSystem Settings on that pane) the first time the panel shows on a\nprofile that has not hidden the Welcome tips yet. Paste and window\nswitching need it; `false` leaves the ask to the Welcome row and to\nSettings > General > Permissions.",
           "type": "boolean"
         },
+        "backspace_back": {
+          "default": true,
+          "description": "Backspace with nothing typed goes back a level, the way `cmd+backspace`\ndoes (never at the root; a row's own Backspace action, a folder's\nGo up, comes first; a view's keys are its own). `false` leaves it\nto the row alone.",
+          "type": "boolean"
+        },
         "check_updates": {
           "default": true,
           "description": "Look for a newer release 20 s after startup and once a day, in\nrelease builds (the GitHub release manifest; nothing is downloaded\nby the check). A found release shows on the Overview, the About\npage and as an \"Install Update\" row at the root; installing is\nalways your click. `false` turns the automatic check off; \"Check\nfor Updates\" still runs one on demand.",
@@ -722,6 +727,7 @@
       "default": {
         "alias_space": true,
         "ask_permissions_on_start": true,
+        "backspace_back": true,
         "check_updates": true,
         "compact": false,
         "deeplink_confirm": true,

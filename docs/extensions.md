@@ -381,7 +381,11 @@ is left to the load-time check.
     `section` names its section ("Clipboard"); rows without one go under
     "Now". `general.now` orders the palettes.
 - `Effect.push` may carry `query`: the level opens with that text in its
-  search box (a fallback row hands the root query in this way).
+  search box (a fallback row hands the root query in this way). A push
+  carrying `args: { create: ... }` into `snippets` (a string, the text)
+  or `quicklinks` (`{ name?, url?, keywords? }`) lists one row whose form
+  comes pre-filled with it: the way another extension hands a snippet or
+  a link over to be saved.
 - An `Item` has `id` (stable), `name`, `subtitle`, `icon`, `keywords`,
   `url`, `accessories`, `detail`, `actions` (first is Enter, second
   ⌘Enter; an empty list is an inert hint row). Any other key rides
@@ -522,7 +526,7 @@ The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key`,
 | node | fields | draws |
 | --- | --- | --- |
 | `stack` | `direction` row/column, `gap` and `padding` in 4 px steps (0..6), `align` start/center/end/stretch, `justify` start/center/end/between, `grow`, `minHeight` px, `surface` sunken/elevated (a well behind a board, a card behind stats; give it `padding`) or a hex colour of the extension's own (the box is that colour; black or white ink by contrast once its alpha is over 0.5, the panel's ink under a faint tint), `radius`, `children` | a flex box; with a hex surface a card in that colour: a room tile |
-| `text` | `value`, `style` title/body/muted/mono/number, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`), `width` / `minWidth` px (a column that lines up; a run with a `width` clips instead of wrapping), `align` start/center/end inside it | one run of text |
+| `text` | `value`, `style` title/body/muted/mono/number/glyph, `size` xs..xl, `weight` regular/medium/semibold, `color` (tag palette, `accent`, `success`, `destructive`, `muted`, `faint`), `width` / `minWidth` px (a column that lines up; a run with a `width` clips instead of wrapping), `align` start/center/end inside it | one run of text; `glyph` draws the value in the bundled symbols font, so a Nerd Font glyph (`\u{f0369}`) stands in a popover or a card as a mark next to text, at the size of `size`, never wrapped (OTP's empty popover carries its message mark this way) |
 | `image` | `src` (`icon://…` or `data:image/…`, anything else is not shown), `width`/`height` px, `mask` rounded/circle, `alt`, `dot` (a tag colour) | a picture the extension made or the app's icon scheme serves; with `dot` a presence dot on its bottom-right corner, ringed by the panel: an avatar (green active, grey away, red do not disturb) |
 | `tile` | `width`/`height` px, `text`, `sub` (small, under the text), `color` (tag palette, `neutral` (default), `accent`, or a hex colour of the extension's own: `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`), `fill` `solid` (the colour, the panel's background as ink; solid neutral is paper, the elevated surface), `soft` (the tint, the colour as ink; default), `outline` | a rounded box with the tokens' colours, so it follows the theme: a game tile, a keycap of an on-screen keyboard, a stat. The type is tabular, scales with the box, gets heavier as it grows and shrinks to fit the text; under 44 px the box takes the control radius. A hex colour paints the box with itself whatever the fill (a hairline in it for `outline`), takes black or white ink by contrast, and shows a checker through a translucent one: a swatch |
 | `gradient` | `width`/`height` px, `fill` (a hex colour under everything), `layers` (each `stops`: two or more hex colours, alpha allowed (`#ffffff00`), spread evenly along `direction` right (default), down, up or left; in paint order, a later layer composites over an earlier one), `marker` `{ x, y }` in 0..1 | a box of CSS linear gradients with the tile radius and, with `marker`, a ring at that point drawn to read on any colour: a hue strip (seven stops round the wheel), the classic saturation/value plane (`fill` the pure hue, white to transparent rightwards, black to transparent upwards) |
@@ -957,11 +961,17 @@ to the core.
   or a value of the wrong kind, rejects and nothing is written. What Hue
   does with the application key after pairing, so it lands in the
   keychain and under Settings › Extensions › Hue like a typed one.
+  A hint row that asks the user to set one opens Settings on that row:
+  `{ open: "pal://settings/extensions?anchor=extensions:<key>:<id>" }`
+  (`instance().key` for `<key>`, so a second account lands on its own
+  table; [Links](links.md)), the row lit as a search hit is.
 - `instance()`: which instance of the extension this code runs as,
   `{ key, name, title, isDefault }` ("Instances" above); the bare name as
   `key` and `isDefault: true` for an extension without `multi`.
 - `clipboard.list({ query, kind, limit, offset })`, `get(id)`,
   `current()` (the newest entry, or null), `pin(id, pinned = true)`,
+  `rename(id, name)` (a name that titles the entry and is searched like
+  its text, `ClipboardEntry.name`; `null` or blank clears it),
   `delete(id)`, `clear()`, `copy(id)` (back onto the clipboard),
   `imageUrl(id, size)` for an image entry.
 - `thumbnailUrl(path, size)`: an image file on disk as the webview loads
@@ -1057,6 +1067,20 @@ to the core.
   The Clipboard History and Files palettes offer it on images.
 - `conceal(text, clearAfter?)`: the `CopyText` for a secret (above);
   `CONCEAL_SECONDS` (30) is the default clear.
+- `expand(text, sources)`: the placeholder grammar every text pal fills
+  in shares (`sdk/src/placeholders.ts`): `{clipboard}`, `{selection}`,
+  `{date}`, `{time}`, `{datetime}` (each with `format=` over the tokens
+  `YYYY YY MM DD HH mm ss ddd MMM` and `offset=+1d` / `-2w` / `+3h` /
+  `-90m`), `{uuid}`, `{cursor}` (dropped), `{snippet name=...}` (one
+  level deep); anything else in braces stays. `sources`
+  (`PlaceholderSources`): `clipboard()` (read once, only when asked),
+  `selection?()` (the clipboard when null or throwing), `now?()`,
+  `uuid?()`, `snippet?(name)`; each optional one absent leaves its
+  placeholder as written. `hasPlaceholders(text)`, `formatDate(d,
+  format)`, `offsetDate(d, offset)`, `isoDate(d)`, `isoTime(d)`,
+  `FORMAT_TOKENS`, `PLACEHOLDERS` come with it. Snippets pastes with it,
+  Quicklinks fills a url with it (the values percent-encoded through the
+  sources), Obsidian appends with it.
 - `home(path)`: a leading `~` expanded. `core.call(method, params)`: the
   raw bridge.
 - `xdg(name)`: a freedesktop icon name as the glyph the app draws it with

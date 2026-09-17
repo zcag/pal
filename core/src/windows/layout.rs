@@ -197,11 +197,41 @@ pub struct Options {
     pub reasonable_size_percent: f64,
     /// Pixels a `move_*` nudges the window by.
     pub step: f64,
+    /// A half or a third applied to a window already at that frame steps
+    /// to the next size of its family ([`next_in_family`]), the way
+    /// Rectangle's repeated keypress does.
+    pub cycle: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0, step: 32.0 }
+        Self { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0, step: 32.0, cycle: false }
+    }
+}
+
+/// A frame read back within this of the one a layout gives counts as at it.
+pub const CYCLE_SLACK: f64 = 2.0;
+
+/// The sizes a repeated layout cycles through, in order: the left and the
+/// right families (half, two thirds, third). The other layouts have none.
+pub fn family(layout: Layout) -> Option<[Layout; 3]> {
+    match layout {
+        Layout::LeftHalf | Layout::LeftTwoThirds | Layout::LeftThird => Some([Layout::LeftHalf, Layout::LeftTwoThirds, Layout::LeftThird]),
+        Layout::RightHalf | Layout::RightTwoThirds | Layout::RightThird => Some([Layout::RightHalf, Layout::RightTwoThirds, Layout::RightThird]),
+        _ => None,
+    }
+}
+
+/// The layout to apply when `layout` is asked for a window at `from`
+/// with `cycle` on: `layout` itself unless the window is already at a
+/// member of its family, then the next member after that one (the
+/// family wraps). A layout with no family is itself.
+pub fn next_in_family(layout: Layout, from: &Rect, displays: &[Display], opts: &Options) -> Layout {
+    let Some(fam) = family(layout) else { return layout };
+    let at = |l: Layout| target(l, from, displays, opts).is_some_and(|t| t.about(from, CYCLE_SLACK));
+    match fam.iter().position(|&l| at(l)) {
+        Some(i) => fam[(i + 1) % fam.len()],
+        None => layout,
     }
 }
 
@@ -331,7 +361,7 @@ mod tests {
     }
 
     const WIN: Rect = Rect { x: 100.0, y: 100.0, w: 800.0, h: 600.0 };
-    const DEFAULTS: Options = Options { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0, step: 32.0 };
+    const DEFAULTS: Options = Options { gap: 0.0, almost_maximize_percent: 90.0, reasonable_size_percent: 60.0, step: 32.0, cycle: false };
 
     fn at(layout: Layout) -> Rect {
         target(layout, &WIN, &one(), &DEFAULTS).unwrap()
@@ -425,6 +455,31 @@ mod tests {
         let wide = rect(-100.0, 100.0, 2000.0, 600.0);
         assert_eq!(target(Layout::MoveLeft, &wide, &one(), &DEFAULTS).unwrap(), rect(-132.0, 100.0, 2000.0, 600.0), "wider than the area: no clamp on that axis");
         assert_eq!(target(Layout::MoveLeft, &WIN, &one(), &Options { step: -5.0, ..DEFAULTS }).unwrap(), WIN, "a negative step is no step");
+    }
+
+    #[test]
+    fn a_repeated_half_cycles_through_its_family_only_with_cycle_on() {
+        let d = one();
+        let on = Options { cycle: true, ..Options::default() };
+        let elsewhere = rect(100.0, 100.0, 600.0, 400.0);
+        assert_eq!(next_in_family(Layout::LeftHalf, &elsewhere, &d, &on), Layout::LeftHalf, "not at a family member: the layout asked for");
+        let half = target(Layout::LeftHalf, &elsewhere, &d, &on).unwrap();
+        assert_eq!(next_in_family(Layout::LeftHalf, &half, &d, &on), Layout::LeftTwoThirds);
+        let two = target(Layout::LeftTwoThirds, &half, &d, &on).unwrap();
+        assert_eq!(next_in_family(Layout::LeftHalf, &two, &d, &on), Layout::LeftThird);
+        let third = target(Layout::LeftThird, &two, &d, &on).unwrap();
+        assert_eq!(next_in_family(Layout::LeftHalf, &third, &d, &on), Layout::LeftHalf, "wraps");
+        // Within the slack counts as at the frame.
+        let near = Rect { x: half.x + 1.0, ..half };
+        assert_eq!(next_in_family(Layout::LeftHalf, &near, &d, &on), Layout::LeftTwoThirds);
+        // Asked for a third while at the half: the half's successor, since the window is at a member.
+        assert_eq!(next_in_family(Layout::RightThird, &target(Layout::RightHalf, &elsewhere, &d, &on).unwrap(), &d, &on), Layout::RightTwoThirds);
+        // No family: the layout itself, wherever the window is.
+        let top = target(Layout::TopHalf, &elsewhere, &d, &on).unwrap();
+        assert_eq!(next_in_family(Layout::TopHalf, &top, &d, &on), Layout::TopHalf);
+        assert_eq!(family(Layout::Maximize), None);
+        // The knob off: the caller never asks (`apply` checks `cycle`), but the function is honest about the frame.
+        assert_eq!(next_in_family(Layout::LeftHalf, &half, &d, &Options::default()), Layout::LeftTwoThirds);
     }
 
     #[test]

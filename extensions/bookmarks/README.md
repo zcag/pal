@@ -1,8 +1,8 @@
 # Bookmarks
 
 Hand-picked links from a JSON file and your browsers' bookmarks, in one
-indexed palette. Enter opens the link in the default browser; `⌘C` copies
-it. Every source is read on every listing (`⌘R`), so an edit in the
+indexed palette, and the browsers' visit history in a second (below).
+Enter opens the link in the default browser; `⌘C` copies it. Every source is read on every listing (`⌘R`), so an edit in the
 browser or the file shows at once. A url two sources have is listed once,
 the first wins: the file's rows come first, then each browser in the
 `browsers` setting's order.
@@ -40,6 +40,29 @@ site's favicon.
 | (action panel) | Open in Chrome, Safari, Firefox, ...: on a browser's row, the browser it came from (`open -a` on macOS, the browser's binary on Linux) |
 | `cmd+r` | Read every source again |
 
+## Browser History
+
+A second palette, input rather than indexed: every keystroke searches the
+visit history the same browsers keep (`browsers` setting; Safari's
+`History.db` is behind Full Disk Access and is not read), by title and
+address, newest first, fifty rows at most, a url once. The row is the
+page's title (the address when it has none), the address under it and as
+the favicon's source, when it was last visited on the right, the browser
+and profile as the section. Enter opens the page in the browser it came
+from, `⌘C` copies the link, `⌘O` opens it in the default browser.
+
+| browser | file read |
+| --- | --- |
+| Chrome, Brave, Edge, Chromium, Vivaldi, Arc | every profile's `History` (SQLite, `urls`; Chrome's clock counts microseconds from 1601) |
+| Firefox | every profile's `places.sqlite` (`moz_places`, microseconds from 1970) |
+
+A running browser holds its file locked, so each is copied under pal's
+cache (`~/Library/Caches/pal/bookmarks`, `~/.cache/pal/bookmarks` on
+Linux) before it is read; the copy is taken again when the file's mtime
+moved, at most every 30 seconds, so a keystroke never copies a large
+history twice. Hidden entries (a redirect Chrome keeps for autocomplete)
+and pages never visited are left out.
+
 ## Setup
 
 Nothing to install. A browser with no profile on the machine lists
@@ -52,7 +75,7 @@ Settings, `[extensions.bookmarks]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `file` | path | `~/.config/pal/data/bookmarks.json` | The bookmarks file. `~` is expanded. Not there: the browsers alone; unreadable: one hint row naming it. |
-| `browsers` | list | `["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"]` | Whose bookmarks to list, in order. `[]` is the file alone. |
+| `browsers` | list | `["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"]` | Whose bookmarks (and history) to list, in order. `[]` is the file alone, and no history. |
 | `exclude_folders` | list | `[]` | Bookmark folders skipped, by name (`Archive`) or a short path (`Bookmarks Bar/Old`), case-insensitive. |
 
 ## What it does not do
@@ -60,7 +83,8 @@ Settings, `[extensions.bookmarks]`:
 - Add, edit or delete a bookmark: the file is edited by hand, the
   browsers' bookmarks in the browser. The Quicklinks palette is the one
   edited in the panel.
-- Safari's Reading List, Firefox's tags and `place:` smart folders.
+- Safari's Reading List, Firefox's tags and `place:` smart folders, and
+  Safari's history (Full Disk Access).
 - Arc on Linux: it has no Linux build, so the entry has no profile root.
 - Favicons for the file's rows come from the url; a row without a url is
   skipped.

@@ -1,6 +1,6 @@
 //! System commands: sleep, lock, log out, restart, shut down, empty the
 //! trash, dark mode, volume, brightness, do not disturb, eject, show the
-//! desktop, keep awake.
+//! desktop, keep awake, quit or unhide every app, dismiss notifications.
 //!
 //! One catalogue ([`SPECS`]) on every platform; [`commands`] marks each entry
 //! `available` for this machine, so the palette only lists what will work,
@@ -13,7 +13,18 @@
 //! Some are not feasible everywhere and stay `available: false` rather than
 //! guess: brightness on macOS needs the `brightness` CLI, do not disturb on
 //! macOS a Shortcut named [`DND_SHORTCUT`] (Focus has no CLI), and Linux has
-//! no eject-all or show-desktop that every desktop understands.
+//! no eject-all, show-desktop, quit-all or unhide-all that every desktop
+//! understands (dismissing notifications goes through the daemon's CLI).
+//!
+//! **Quit All Apps** quits every regular (not background-only) app but
+//! Finder and pal itself through System Events, each app asked the way
+//! its Quit menu asks, so unsaved work still prompts. **Unhide All Apps**
+//! sets every hidden process visible. **Dismiss Notifications** performs
+//! the Clear All (else Close) action of every notification group in
+//! Notification Center's window over Accessibility, the same UI scripting
+//! the Lock Screen fallback uses; the window's tree has moved between
+//! macOS versions, so the script walks the shapes known (Sonoma through
+//! Tahoe) and reports what it found.
 //!
 //! **Keep awake** is a toggle: it starts `caffeinate -d -i` (Linux:
 //! `systemd-inhibit ... sleep infinity`) detached and remembers the pid in
@@ -89,6 +100,9 @@ const SPECS: &[Spec] = &[
     Spec { id: "eject-all", title: "Eject All Disks", subtitle: "Unmount every external disk and disk image", icon: "⏏", keywords: &["unmount", "usb", "drive", "volume"], destructive: false },
     Spec { id: "show-desktop", title: "Show Desktop", subtitle: "Move every window aside", icon: "▦", keywords: &["hide windows", "expose", "mission control"], destructive: false },
     Spec { id: "keep-awake", title: "Keep Awake", subtitle: "Stop the machine and display from sleeping until turned off", icon: "☕", keywords: &["caffeinate", "insomnia", "no sleep", "inhibit", "allow sleep"], destructive: false },
+    Spec { id: "quit-all", title: "Quit All Apps", subtitle: "Quit every open app but Finder and pal", icon: "⌧", keywords: &["close all", "quit everything", "apps", "clean"], destructive: true },
+    Spec { id: "unhide-all", title: "Unhide All Apps", subtitle: "Show every hidden app again", icon: "◫", keywords: &["show all", "hidden", "unhide", "apps"], destructive: false },
+    Spec { id: "dismiss-notifications", title: "Dismiss Notifications", subtitle: "Clear every notification on screen", icon: "⌦", keywords: &["clear all", "notification center", "banners", "alerts"], destructive: false },
 ];
 
 /// The catalogue, with what this machine can do marked `available`.
@@ -214,6 +228,61 @@ mod platform {
         }
     }
 
+    /// pal's own process name as System Events lists it (the bundle's
+    /// executable, `pal`; a scratch or dev binary under its own name).
+    fn own_name() -> String {
+        std::env::current_exe().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned())).unwrap_or_else(|| "pal".into())
+    }
+
+    /// Every regular app but Finder and pal asked to quit, one `quit`
+    /// each inside a `try` so an app that refuses (a save sheet, a hung
+    /// one) does not stop the rest; the names skipped are the script's own.
+    pub fn quit_all_script(own: &str) -> Vec<String> {
+        vec![
+            r#"tell application "System Events" to set procs to name of every process whose background only is false"#.into(),
+            format!(r#"set keep to {{"Finder", "{}"}}"#, own.replace('"', "")),
+            "repeat with p in procs".into(),
+            "if (p as text) is not in keep then".into(),
+            "try".into(),
+            "tell application (p as text) to quit".into(),
+            "end try".into(),
+            "end if".into(),
+            "end repeat".into(),
+        ]
+    }
+
+    /// The Clear All (else Close) action of every notification group,
+    /// performed until none is left. The groups sit under different
+    /// paths per macOS version (Sonoma: `group 1 of group 1 of window`;
+    /// Sequoia and Tahoe: `group 1 of UI element 1 of scroll area 1 of
+    /// group 1 of group 1 of window`), so every group under the window is
+    /// walked instead of one path; an action named Clear All in another
+    /// language is matched by its `AXClearAll` subrole where it has one.
+    pub const DISMISS_SCRIPT: &[&str] = &[
+        r#"tell application "System Events" to tell process "NotificationCenter""#,
+        "set n to 0",
+        "repeat 20 times",
+        "set found to false",
+        r#"set groups_ to every group of entire contents of window "Notification Center""#,
+        "repeat with g in groups_",
+        "try",
+        "set acts to actions of g",
+        "repeat with a in acts",
+        r#"if description of a is in {"Clear All", "Clear", "Close"} then"#,
+        "perform a",
+        "set found to true",
+        "set n to n + 1",
+        "exit repeat",
+        "end if",
+        "end repeat",
+        "end try",
+        "if found then exit repeat",
+        "end repeat",
+        "if not found then exit repeat",
+        "end repeat",
+        "end tell",
+    ];
+
     /// `SACLockScreenImmediate` from the private login framework is what
     /// the menu bar's Lock Screen calls: immediate, and no permission
     /// needed. Falls back to the Cmd+Ctrl+Q keystroke, which needs
@@ -262,6 +331,16 @@ mod platform {
             "eject-all" => osascript(&[r#"tell application "Finder" to eject (every disk whose ejectable is true)"#]),
             // Mission Control's binary takes the mode: 1 shows the desktop, 2 the app's windows.
             "show-desktop" => sh("/System/Applications/Mission Control.app/Contents/MacOS/Mission Control", &["1"]).map(drop),
+            "quit-all" => {
+                let lines = quit_all_script(&own_name());
+                osascript(&lines.iter().map(String::as_str).collect::<Vec<_>>())
+            }
+            "unhide-all" => osascript(&[r#"tell application "System Events" to set visible of every process whose visible is false and background only is false to true"#]),
+            // `whose` on a missing window errors ("Can't get window"): none on screen is nothing to do, not a failure.
+            "dismiss-notifications" => match osascript(DISMISS_SCRIPT) {
+                Err(Error::Failed(e)) if e.contains("Can’t get window") || e.contains("Can't get window") => Ok(()),
+                r => r,
+            },
             _ => Err(Error::Unknown(id.into())),
         }
     }
@@ -290,7 +369,7 @@ mod platform {
             "dark-mode" => has("gsettings"),
             "volume-up" | "volume-down" | "volume-mute" => has("wpctl") || has("pactl"),
             "brightness-up" | "brightness-down" => has("brightnessctl"),
-            "dnd" => dnd_tool().is_some(),
+            "dnd" | "dismiss-notifications" => dnd_tool().is_some(),
             "keep-awake" => has("systemd-inhibit"),
             _ => false,
         }
@@ -347,6 +426,12 @@ mod platform {
                 Some("dunstctl") => sh("dunstctl", &["set-paused", "toggle"]).map(drop),
                 _ => Err(Error::Unavailable("no notification daemon CLI".into())),
             },
+            "dismiss-notifications" => match dnd_tool() {
+                Some("swaync-client") => sh("swaync-client", &["--close-all"]).map(drop),
+                Some("makoctl") => sh("makoctl", &["dismiss", "--all"]).map(drop),
+                Some("dunstctl") => sh("dunstctl", &["close-all"]).map(drop),
+                _ => Err(Error::Unavailable("no notification daemon CLI".into())),
+            },
             _ => Err(Error::Unavailable(format!("{id} is not available on Linux"))),
         }
     }
@@ -375,7 +460,27 @@ mod tests {
         ids.dedup();
         assert_eq!(ids.len(), SPECS.len());
         let destructive: Vec<_> = SPECS.iter().filter(|s| s.destructive).map(|s| s.id).collect();
-        assert_eq!(destructive, ["logout", "restart", "shutdown", "empty-trash"]);
+        assert_eq!(destructive, ["logout", "restart", "shutdown", "empty-trash", "quit-all"]);
+    }
+
+    #[test]
+    fn the_app_commands_are_in_the_catalogue_and_available_on_macos() {
+        for id in ["quit-all", "unhide-all", "dismiss-notifications"] {
+            assert!(SPECS.iter().any(|s| s.id == id), "{id}");
+        }
+        assert_eq!(cfg!(target_os = "macos"), platform::available("quit-all"));
+        assert_eq!(cfg!(target_os = "macos"), platform::available("unhide-all"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn quit_all_keeps_finder_and_pal_and_asks_each_app_inside_a_try() {
+        let lines = platform::quit_all_script("pal");
+        assert!(lines[0].contains("background only is false"), "regular apps only");
+        assert_eq!(lines[1], r#"set keep to {"Finder", "pal"}"#);
+        assert!(lines.contains(&"try".to_string()) && lines.contains(&"tell application (p as text) to quit".to_string()));
+        assert_eq!(platform::quit_all_script(r#"x"y"#)[1], r#"set keep to {"Finder", "xy"}"#, "a quote in the name cannot end the string");
+        assert!(platform::DISMISS_SCRIPT.iter().any(|l| l.contains("Clear All")) && platform::DISMISS_SCRIPT.iter().any(|l| l.contains("perform a")));
     }
 
     #[test]

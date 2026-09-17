@@ -517,6 +517,331 @@
           "section": "Firefox"
         }
       ]
+    },
+    "history": {
+      "title": "Browser History",
+      "input": true,
+      "icon": {
+        "tile": {
+          "glyph": "󰃀",
+          "bg": "orange"
+        }
+      },
+      "placeholder": "Search browser history",
+      "items": [
+        {
+          "id": "https://bun.sh/docs/api/sqlite",
+          "name": "SQLite – Bun Docs",
+          "subtitle": "https://bun.sh/docs/api/sqlite",
+          "url": "https://bun.sh/docs/api/sqlite",
+          "accessories": [
+            {
+              "date": 1789616041441
+            }
+          ],
+          "section": "Chrome",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://github.com/zcag/pal/pulls",
+          "name": "Pull requests · zcag/pal",
+          "subtitle": "https://github.com/zcag/pal/pulls",
+          "url": "https://github.com/zcag/pal/pulls",
+          "accessories": [
+            {
+              "date": 1789615621441
+            }
+          ],
+          "section": "Chrome",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
+          "name": "KeyboardEvent: key property - Web APIs | MDN",
+          "subtitle": "https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key",
+          "accessories": [
+            {
+              "date": 1789614721441
+            }
+          ],
+          "section": "Firefox",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Firefox"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://news.ycombinator.com/",
+          "name": "Hacker News",
+          "subtitle": "https://news.ycombinator.com/",
+          "url": "https://news.ycombinator.com/",
+          "accessories": [
+            {
+              "date": 1789613401441
+            }
+          ],
+          "section": "Chrome",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://www.sqlite.org/lang_datefunc.html",
+          "name": "Date And Time Functions",
+          "subtitle": "https://www.sqlite.org/lang_datefunc.html",
+          "url": "https://www.sqlite.org/lang_datefunc.html",
+          "accessories": [
+            {
+              "date": 1789609081441
+            }
+          ],
+          "section": "Firefox",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Firefox"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://tauri.app/develop/",
+          "name": "Develop | Tauri",
+          "subtitle": "https://tauri.app/develop/",
+          "url": "https://tauri.app/develop/",
+          "accessories": [
+            {
+              "date": 1789605481441
+            }
+          ],
+          "section": "Chrome",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://en.wikipedia.org/wiki/Epoch_(computing)",
+          "name": "Epoch (computing) - Wikipedia",
+          "subtitle": "https://en.wikipedia.org/wiki/Epoch_(computing)",
+          "url": "https://en.wikipedia.org/wiki/Epoch_(computing)",
+          "accessories": [
+            {
+              "date": 1789598281441
+            }
+          ],
+          "section": "Chrome",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Chrome"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        },
+        {
+          "id": "https://docs.rs/rusqlite/latest/rusqlite/",
+          "name": "rusqlite - Rust",
+          "subtitle": "https://docs.rs/rusqlite/latest/rusqlite/",
+          "url": "https://docs.rs/rusqlite/latest/rusqlite/",
+          "accessories": [
+            {
+              "date": 1789522681441
+            }
+          ],
+          "section": "Firefox",
+          "actions": [
+            {
+              "id": "open-in",
+              "title": "Open in Firefox"
+            },
+            {
+              "id": "copy",
+              "title": "Copy link",
+              "shortcut": "cmd+c"
+            },
+            {
+              "id": "open",
+              "title": "Open in default browser",
+              "shortcut": "cmd+o"
+            }
+          ]
+        }
+      ],
+      "byQuery": {
+        "sqlite": [
+          {
+            "id": "https://bun.sh/docs/api/sqlite",
+            "name": "SQLite – Bun Docs",
+            "subtitle": "https://bun.sh/docs/api/sqlite",
+            "url": "https://bun.sh/docs/api/sqlite",
+            "accessories": [
+              {
+                "date": 1789616041441
+              }
+            ],
+            "section": "Chrome",
+            "actions": [
+              {
+                "id": "open-in",
+                "title": "Open in Chrome"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in default browser",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "https://www.sqlite.org/lang_datefunc.html",
+            "name": "Date And Time Functions",
+            "subtitle": "https://www.sqlite.org/lang_datefunc.html",
+            "url": "https://www.sqlite.org/lang_datefunc.html",
+            "accessories": [
+              {
+                "date": 1789609081441
+              }
+            ],
+            "section": "Firefox",
+            "actions": [
+              {
+                "id": "open-in",
+                "title": "Open in Firefox"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in default browser",
+                "shortcut": "cmd+o"
+              }
+            ]
+          },
+          {
+            "id": "https://docs.rs/rusqlite/latest/rusqlite/",
+            "name": "rusqlite - Rust",
+            "subtitle": "https://docs.rs/rusqlite/latest/rusqlite/",
+            "url": "https://docs.rs/rusqlite/latest/rusqlite/",
+            "accessories": [
+              {
+                "date": 1789522681441
+              }
+            ],
+            "section": "Firefox",
+            "actions": [
+              {
+                "id": "open-in",
+                "title": "Open in Firefox"
+              },
+              {
+                "id": "copy",
+                "title": "Copy link",
+                "shortcut": "cmd+c"
+              },
+              {
+                "id": "open",
+                "title": "Open in default browser",
+                "shortcut": "cmd+o"
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "shots": {
@@ -537,6 +862,13 @@
       "keys": [
         "down*3",
         "cmd+k"
+      ]
+    },
+    "4-history": {
+      "palette": "history",
+      "keys": [
+        "type:sqlite",
+        "wait:200"
       ]
     }
   }

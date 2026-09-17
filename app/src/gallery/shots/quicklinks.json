@@ -6,7 +6,7 @@
       "input": false,
       "icon": {
         "tile": {
-          "glyph": "󰌹",
+          "glyph": "\udb80\udf39",
           "bg": "orange"
         }
       },
@@ -15,7 +15,7 @@
           "id": "create",
           "name": "Create Quicklink",
           "subtitle": "A link, with {query} where what you type goes",
-          "icon": "󰲔",
+          "icon": "\udb83\udc94",
           "keywords": [
             "new",
             "add"
@@ -24,6 +24,23 @@
             {
               "id": "create",
               "title": "Create quicklink"
+            }
+          ]
+        },
+        {
+          "id": "library",
+          "name": "Browse Library",
+          "subtitle": "25 ready-made searches: Google, Wikipedia, GitHub, npm, MDN...",
+          "icon": "\udb82\udfa9",
+          "keywords": [
+            "library",
+            "search",
+            "engines"
+          ],
+          "actions": [
+            {
+              "id": "library",
+              "title": "Browse library"
             }
           ]
         },
@@ -171,6 +188,10 @@
                 ]
               },
               {
+                "label": "Opens with",
+                "value": "Safari"
+              },
+              {
                 "label": "Source",
                 "value": "Your quicklinks"
               }
@@ -197,6 +218,11 @@
               "shortcut": "ctrl+x",
               "style": "destructive",
               "confirm": "Delete this quicklink?"
+            }
+          ],
+          "accessories": [
+            {
+              "text": "Safari"
             }
           ]
         },
@@ -362,7 +388,7 @@
           "id": "import",
           "name": "Import Quicklinks",
           "subtitle": "From a JSON file",
-          "icon": "󰄠",
+          "icon": "\udb80\udd20",
           "keywords": [
             "json",
             "restore"
@@ -370,7 +396,7 @@
           "actions": [
             {
               "id": "import",
-              "title": "Import…"
+              "title": "Import\u2026"
             }
           ]
         },
@@ -378,7 +404,7 @@
           "id": "export",
           "name": "Export Quicklinks",
           "subtitle": "To a JSON file",
-          "icon": "󰄝",
+          "icon": "\udb80\udd1d",
           "keywords": [
             "json",
             "backup"
@@ -386,7 +412,7 @@
           "actions": [
             {
               "id": "export",
-              "title": "Export…"
+              "title": "Export\u2026"
             }
           ]
         }
@@ -402,6 +428,672 @@
               {
                 "id": "open",
                 "title": "Open"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          }
+        ],
+        "library": [
+          {
+            "id": "library:0",
+            "name": "Google",
+            "subtitle": "https://www.google.com/search?q={query}",
+            "url": "https://www.google.com/search?q={query}",
+            "keywords": [
+              "g",
+              "search",
+              "web"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:1",
+            "name": "DuckDuckGo",
+            "subtitle": "https://duckduckgo.com/?q={query}",
+            "url": "https://duckduckgo.com/?q={query}",
+            "keywords": [
+              "ddg",
+              "search",
+              "web"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:2",
+            "name": "Bing",
+            "subtitle": "https://www.bing.com/search?q={query}",
+            "url": "https://www.bing.com/search?q={query}",
+            "keywords": [
+              "search",
+              "web"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:3",
+            "name": "Wikipedia",
+            "subtitle": "https://en.wikipedia.org/w/index.php?search={query}",
+            "url": "https://en.wikipedia.org/w/index.php?search={query}",
+            "keywords": [
+              "wiki",
+              "encyclopedia"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:4",
+            "name": "YouTube",
+            "subtitle": "https://www.youtube.com/results?search_query={query}",
+            "url": "https://www.youtube.com/results?search_query={query}",
+            "keywords": [
+              "yt",
+              "video"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:5",
+            "name": "GitHub",
+            "subtitle": "https://github.com/search?q={query}",
+            "url": "https://github.com/search?q={query}",
+            "keywords": [
+              "gh",
+              "repo",
+              "repositories"
+            ],
+            "accessories": [
+              {
+                "tag": "added",
+                "color": "green"
+              }
+            ],
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:6",
+            "name": "GitHub code",
+            "subtitle": "https://github.com/search?type=code&q={query}",
+            "url": "https://github.com/search?type=code&q={query}",
+            "keywords": [
+              "gh",
+              "code",
+              "grep"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:7",
+            "name": "npm",
+            "subtitle": "https://www.npmjs.com/search?q={query}",
+            "url": "https://www.npmjs.com/search?q={query}",
+            "keywords": [
+              "node",
+              "package",
+              "js"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:8",
+            "name": "crates.io",
+            "subtitle": "https://crates.io/search?q={query}",
+            "url": "https://crates.io/search?q={query}",
+            "keywords": [
+              "rust",
+              "crate",
+              "cargo"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:9",
+            "name": "PyPI",
+            "subtitle": "https://pypi.org/search/?q={query}",
+            "url": "https://pypi.org/search/?q={query}",
+            "keywords": [
+              "python",
+              "pip",
+              "package"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:10",
+            "name": "MDN",
+            "subtitle": "https://developer.mozilla.org/en-US/search?q={query}",
+            "url": "https://developer.mozilla.org/en-US/search?q={query}",
+            "keywords": [
+              "web",
+              "docs",
+              "javascript",
+              "css",
+              "html"
+            ],
+            "accessories": [
+              {
+                "tag": "added",
+                "color": "green"
+              }
+            ],
+            "actions": [
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:11",
+            "name": "Stack Overflow",
+            "subtitle": "https://stackoverflow.com/search?q={query}",
+            "url": "https://stackoverflow.com/search?q={query}",
+            "keywords": [
+              "so",
+              "code",
+              "question"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:12",
+            "name": "Amazon",
+            "subtitle": "https://www.amazon.com/s?k={query}",
+            "url": "https://www.amazon.com/s?k={query}",
+            "keywords": [
+              "shop",
+              "buy"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:13",
+            "name": "Google Maps",
+            "subtitle": "https://www.google.com/maps/search/{query}",
+            "url": "https://www.google.com/maps/search/{query}",
+            "keywords": [
+              "map",
+              "place",
+              "directions"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:14",
+            "name": "Google Translate",
+            "subtitle": "https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate",
+            "url": "https://translate.google.com/?sl=auto&tl=en&text={query}&op=translate",
+            "keywords": [
+              "translate",
+              "language"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:15",
+            "name": "X",
+            "subtitle": "https://x.com/search?q={query}",
+            "url": "https://x.com/search?q={query}",
+            "keywords": [
+              "twitter",
+              "tweet",
+              "social"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:16",
+            "name": "Reddit",
+            "subtitle": "https://www.reddit.com/search/?q={query}",
+            "url": "https://www.reddit.com/search/?q={query}",
+            "keywords": [
+              "subreddit",
+              "forum"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:17",
+            "name": "Hacker News",
+            "subtitle": "https://hn.algolia.com/?q={query}",
+            "url": "https://hn.algolia.com/?q={query}",
+            "keywords": [
+              "hn",
+              "news",
+              "tech"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:18",
+            "name": "IMDb",
+            "subtitle": "https://www.imdb.com/find/?q={query}",
+            "url": "https://www.imdb.com/find/?q={query}",
+            "keywords": [
+              "movie",
+              "film",
+              "tv",
+              "series"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:19",
+            "name": "Spotify",
+            "subtitle": "https://open.spotify.com/search/{query}",
+            "url": "https://open.spotify.com/search/{query}",
+            "keywords": [
+              "music",
+              "song",
+              "artist",
+              "album"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:20",
+            "name": "Unsplash",
+            "subtitle": "https://unsplash.com/s/photos/{query}",
+            "url": "https://unsplash.com/s/photos/{query}",
+            "keywords": [
+              "photo",
+              "image",
+              "picture"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:21",
+            "name": "Can I use",
+            "subtitle": "https://caniuse.com/?search={query}",
+            "url": "https://caniuse.com/?search={query}",
+            "keywords": [
+              "browser",
+              "support",
+              "css",
+              "web"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:22",
+            "name": "Rust docs",
+            "subtitle": "https://docs.rs/releases/search?query={query}",
+            "url": "https://docs.rs/releases/search?query={query}",
+            "keywords": [
+              "rust",
+              "docs.rs",
+              "crate",
+              "api"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:23",
+            "name": "Homebrew",
+            "subtitle": "https://formulae.brew.sh/formula/{query}",
+            "url": "https://formulae.brew.sh/formula/{query}",
+            "keywords": [
+              "brew",
+              "formula",
+              "cask",
+              "mac"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
+              },
+              {
+                "id": "copy",
+                "title": "Copy URL",
+                "shortcut": "cmd+c"
+              }
+            ]
+          },
+          {
+            "id": "library:24",
+            "name": "Apple Developer",
+            "subtitle": "https://developer.apple.com/search/?q={query}",
+            "url": "https://developer.apple.com/search/?q={query}",
+            "keywords": [
+              "apple",
+              "swift",
+              "docs",
+              "api"
+            ],
+            "actions": [
+              {
+                "id": "add",
+                "title": "Add to my quicklinks"
+              },
+              {
+                "id": "search",
+                "title": "Search with it"
               },
               {
                 "id": "copy",
@@ -441,7 +1133,7 @@
             "label": "URL",
             "required": true,
             "placeholder": "https://github.com/search?q={query}",
-            "description": "{query} stands for what you type when opening it."
+            "description": "{query} stands for what you type when opening it; {selection} and {clipboard} are filled without asking."
           },
           {
             "kind": "text",
@@ -449,6 +1141,31 @@
             "label": "Keywords",
             "placeholder": "gh code",
             "description": "Extra words that find it, space separated."
+          },
+          {
+            "kind": "select",
+            "id": "app",
+            "label": "Open with",
+            "default": "default",
+            "options": [
+              {
+                "id": "default",
+                "title": "Default browser"
+              },
+              {
+                "id": "Safari",
+                "title": "Safari"
+              },
+              {
+                "id": "Google Chrome",
+                "title": "Google Chrome"
+              },
+              {
+                "id": "Firefox",
+                "title": "Firefox"
+              }
+            ],
+            "description": "The browser it opens in."
           }
         ],
         "submit": {
@@ -456,19 +1173,27 @@
           "title": "Create"
         }
       }
+    },
+    "quicklinks/library": {
+      "push": {
+        "extension": "",
+        "palette": "quicklinks",
+        "args": "library",
+        "title": "Quicklink Library"
+      }
     }
   },
   "shots": {
     "1-list": {
       "palette": "quicklinks",
       "keys": [
-        "down"
+        "down*2"
       ]
     },
     "2-query": {
       "palette": "quicklinks",
       "keys": [
-        "down",
+        "down*2",
         "enter",
         "wait:300",
         "type:rust async"
@@ -477,7 +1202,7 @@
     "3-actions": {
       "palette": "quicklinks",
       "keys": [
-        "down*3",
+        "down*4",
         "cmd+k"
       ]
     },
@@ -485,6 +1210,15 @@
       "palette": "quicklinks",
       "keys": [
         "enter"
+      ]
+    },
+    "5-library": {
+      "palette": "quicklinks",
+      "keys": [
+        "down",
+        "enter",
+        "wait:300",
+        "down*5"
       ]
     }
   }

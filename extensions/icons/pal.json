@@ -1,15 +1,37 @@
 {
   "name": "icons",
   "title": "Icons",
-  "description": "Every Nerd Font glyph (Material Design, Font Awesome, Codicons, Octicons, Devicons, Seti, Weather, Powerline and the rest) as a grid, searched by name; copies the glyph, its code point, its nf- name or CSS class. A second grid of the freedesktop icon names the app draws.",
+  "description": "Every Nerd Font glyph (Material Design, Font Awesome, Codicons, Octicons, Devicons, Seti, Weather, Powerline and the rest) as a grid, searched by name; copies the glyph, its code point, its nf- name or CSS class. A second grid of the freedesktop icon names the app draws. A third searches the 200k icons Iconify hosts across every set and copies the SVG.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰠱", "bg": "pink" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰠱",
+      "bg": "pink"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
-  "settings": [],
+  "settings": [
+    {
+      "kind": "list",
+      "id": "sets",
+      "label": "Iconify sets",
+      "description": "Set prefixes the Iconify search is limited to (mdi, tabler, lucide, phosphor, simple-icons). Empty: every set.",
+      "placeholder": "mdi",
+      "default": []
+    },
+    {
+      "kind": "path",
+      "id": "save_to",
+      "label": "Save SVGs to",
+      "description": "Where Save SVG puts an Iconify icon. ~ is expanded.",
+      "pick": "folder",
+      "default": "~/Downloads"
+    }
+  ],
   "store": {
-    "tagline": "All 11k Nerd Font glyphs: copy one, its code point or name",
+    "tagline": "All 11k Nerd Font glyphs, and Iconify's 200k as SVG",
     "category": "reference",
     "features": [
       "10995 glyphs of the Symbols Nerd Font the app bundles (Nerd Fonts 3.5.1), one section per set: Material Design, Font Awesome, Codicons, Octicons, Devicons, Seti, Weather, Powerline and the rest",
@@ -17,7 +39,8 @@
       "`Enter` copies the glyph itself, ready as an `icon` for a script or a bar; `cmd+enter` the code point (`U+F0009`)",
       "Copy name (`nf-md-account_circle`, `cmd+shift+n`) and Copy CSS class (`nf nf-md-account_circle`, `cmd+shift+c`)",
       "The last twelve picked lead in a Recent section",
-      "A second grid of the 114 freedesktop icon names pal draws, each with its glyph, for a script's `icon_xdg`"
+      "A second grid of the 114 freedesktop icon names pal draws, each with its glyph, for a script's `icon_xdg`",
+      "Iconify Icons: type a word and every set Iconify hosts answers (Material Design Icons, Tabler, Lucide, Phosphor, Simple Icons, 200k icons), each tile drawn from its SVG; `enter` copies the SVG, `cmd+enter` the `mdi:home` name, `cmd+shift+d` a data URL, `cmd+o` opens its page, `cmd+s` saves the file; the `sets` setting narrows the search"
     ],
     "permissions": [],
     "platforms": [
@@ -40,6 +63,10 @@
       {
         "file": "4-actions.png",
         "caption": "Copy the glyph, its code point, its nf- name or the CSS class"
+      },
+      {
+        "file": "5-iconify.png",
+        "caption": "Iconify Icons: `arrow` across Material Design Icons, Tabler, Lucide and the rest, each tile its SVG"
       }
     ],
     "actions": [
@@ -62,6 +89,26 @@
         "title": "Copy CSS class",
         "description": "`nf nf-md-account_circle`",
         "keys": "cmd+shift+c"
+      },
+      {
+        "title": "Copy SVG",
+        "description": "On an Iconify tile: the whole SVG, `currentColor` kept.",
+        "keys": "enter"
+      },
+      {
+        "title": "Copy as data URL",
+        "description": "On an Iconify tile: `data:image/svg+xml;utf8,...` for an `{ image }` icon or a CSS background.",
+        "keys": "cmd+shift+d"
+      },
+      {
+        "title": "Open on Iconify",
+        "description": "The icon's page on icon-sets.iconify.design.",
+        "keys": "cmd+o"
+      },
+      {
+        "title": "Save SVG",
+        "description": "The SVG into the `save_to` folder, `-2` when the name is taken.",
+        "keys": "cmd+s"
       }
     ]
   },
@@ -118,6 +165,45 @@
         {
           "keys": "cmd+shift+u",
           "title": "Copy code point"
+        }
+      ]
+    },
+    "iconify": {
+      "tier": "normal",
+      "title": "Iconify Icons",
+      "kind": "grid",
+      "description": "Every set Iconify hosts, searched over its API as you type; the tiles are the SVGs. Copy the SVG, the name, a data URL, open the icon's page or save the file.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Copy SVG"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Copy name (mdi:home)"
+        },
+        {
+          "keys": "cmd+shift+d",
+          "title": "Copy as data URL"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open on icon-sets.iconify.design"
+        },
+        {
+          "keys": "cmd+s",
+          "title": "Save the SVG to a folder"
+        }
+      ],
+      "settings": [
+        {
+          "kind": "number",
+          "id": "columns",
+          "label": "Columns",
+          "description": "Tiles per row in the grid.",
+          "min": 4,
+          "max": 16,
+          "default": 8
         }
       ]
     }

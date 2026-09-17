@@ -247,7 +247,8 @@ describe("the popover's tree (view.ts)", () => {
     const eight = checkView(render({ latest: { ...c, code: "12345678" }, previous: [], now: 1000, window: 60_000 }));
     expect((nodes(eight.tree).find((n) => n.type === "tile") as { width: number }).width).toBe(40);
     const none = checkView(render({ previous: [], now: 0, window: 60_000 }));
-    expect(texts(none)[0]).toBe("No recent code");
+    expect(nodes(none.tree).find((n) => n.type === "text")).toMatchObject({ style: "glyph", value: "\u{f0369}" });
+    expect(texts(none)[1]).toBe("No recent code");
     expect(none.actions.map((a) => a.id)).toEqual(["open"]);
   });
   test("ago: just now, seconds, minutes, hours", () => {

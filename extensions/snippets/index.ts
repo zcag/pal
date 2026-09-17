@@ -1,6 +1,6 @@
 // Snippets: short texts kept in the extension's storage and edited through
 // forms in the panel. Enter pastes one into the app in front with its
-// placeholders filled (placeholders.ts), cmd+c copies it instead. The
+// placeholders filled (the SDK's placeholders module), cmd+c copies it instead. The
 // keyword is a row keyword, so typing `sig` finds the signature. The Import
 // and Export rows move snippets in and out as JSON files. Expansion (the
 // keyword typed in any other app, `expand = true`, macOS) is the app's:
@@ -30,8 +30,10 @@ const all = async () => asSnippets(await storage.get(KEY));
 
 /** The newest text on the clipboard, for `{clipboard}`; empty when there is none. */
 const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text ?? "";
-/** The placeholders' sources: the clipboard, and the app in front's selected text for `{selection}` (the clipboard when nothing is selected). */
-const SOURCES = { clipboard: clipboardText, selection: selection.text, now };
+/** Another snippet's text by name or keyword (case-insensitive), for `{snippet name=sig}`. */
+const snippetText = async (name: string) => { const n = name.trim().toLowerCase(); const list = await all(); return (list.find((x) => x.name.toLowerCase() === n) ?? list.find((x) => x.keyword?.toLowerCase() === n))?.text; };
+/** The placeholders' sources: the clipboard, the app in front's selected text for `{selection}` (the clipboard when nothing is selected), the other snippets. */
+const SOURCES = { clipboard: clipboardText, selection: selection.text, now, snippet: snippetText };
 
 function row(s: Snippet): Item {
   return {
@@ -59,7 +61,7 @@ const form = (s?: Snippet, errors?: Record<string, string>, text?: string): Form
   fields: [
     { kind: "text", id: "name", label: "Name", required: true, default: s?.name, placeholder: "Email signature" },
     { kind: "text", id: "keyword", label: "Keyword", default: s?.keyword, placeholder: "sig", description: "One word that finds it." },
-    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "{clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} and {uuid} are filled in when pasted. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out." },
+    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "Filled in when pasted: {clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} (with format=DD.MM.YYYY and offset=+1d), {uuid}, {snippet name=sig}. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out." },
   ],
   submit: { id: "save", title: s ? "Save" : "Create" },
   errors,
@@ -117,11 +119,9 @@ export default {
   // `pal://snippets/paste?name=sig` pastes the snippet by name or keyword, `&copy=1` copies it.
   link: async (route: string, params: LinkParams): Promise<Effect | void> => {
     if (route !== "paste") return;
-    const n = String(params.name).trim().toLowerCase();
-    const snippets = await all();
-    const s = snippets.find((x) => x.name.toLowerCase() === n) ?? snippets.find((x) => x.keyword?.toLowerCase() === n);
-    if (!s) throw new Error(`no snippet "${params.name}"`);
-    const text = await expand(s.text, SOURCES);
+    const raw = await snippetText(String(params.name));
+    if (raw === undefined) throw new Error(`no snippet "${params.name}"`);
+    const text = await expand(raw, SOURCES);
     return params.copy === true ? { copy: text } : { paste: { text } };
   },
   palettes: {

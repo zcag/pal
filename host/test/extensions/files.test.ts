@@ -11,14 +11,17 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { BROWSE_CAP, filterEntries, hintRow, isRoot, parentOf, sortEntries, upRow, type Entry } from "../../../extensions/files/browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv } from "../../../extensions/files/content.ts";
+import { parseMdls, pngSize } from "../../../extensions/files/meta.ts";
+import { archiveArgv, archiveName, copyForm, moveForm, renameForm } from "../../../extensions/files/ops.ts";
 import { parseMdfindRecent, parseXbel } from "../../../extensions/files/recent.ts";
+import { terminalAt } from "../../../extensions/shell/run.ts";
 import type { Item } from "../../../sdk/src/index.ts";
 import { Host } from "../harness.ts";
 
 const HAS_FIND = Bun.which("find") !== null;
 const HAS_GREP = Bun.which("grep") !== null;
 const MAC = process.platform === "darwin";
-const FILE_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "open-with", "copy", "copy-file", "trash"];
+const FILE_ACTIONS = ["open", "reveal", ...(MAC ? ["quick-look"] : []), "open-with", "copy", "copy-file", "terminal", "rename", "move", "copy-to", "compress", "trash"];
 /** A folder: Browse leads, the file actions follow. */
 const FOLDER_ACTIONS = ["browse", ...FILE_ACTIONS];
 /** An image or a PDF: Copy text (OCR) before the trash. */
@@ -78,6 +81,33 @@ describe("browse helpers", () => {
   });
 });
 
+describe("ops and meta helpers", () => {
+  test("archive commands: ditto on macOS with every source, zip from the folder on Linux, the stand-in when set", () => {
+    expect(archiveArgv(["/a/x.txt", "/a/y"], "/a/x.zip", { PAL_FILES_ZIP: "/t/zip" })).toEqual({ argv: ["/t/zip", "/a/x.zip", "/a/x.txt", "/a/y"] });
+    expect(archiveArgv(["/a/x.txt", "/a/y"], "/a/x.zip", {})).toEqual(MAC ? { argv: ["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", "/a/x.txt", "/a/y", "/a/x.zip"] } : { argv: ["zip", "-r", "-q", "/a/x.zip", "x.txt", "y"], cwd: "/a" });
+  });
+  test("the archive is named after the first path, its extension dropped, next to it", async () => {
+    expect(await archiveName("/nonexistent-pal/report.final.txt")).toBe("/nonexistent-pal/report.final.zip");
+    expect(await archiveName("/nonexistent-pal/Makefile")).toBe("/nonexistent-pal/Makefile.zip");
+  });
+  test("mdls -raw: numbers, an array of tags with the colour index cut, (null) as nothing", () => {
+    expect(parseMdls('640\u0000480\u0000(\n    "Red\\n6",\n    "Work"\n)')).toEqual({ width: 640, height: 480, tags: ["Red", "Work"] });
+    expect(parseMdls("(null)\u0000(null)\u0000(null)")).toEqual({ width: undefined, height: undefined, tags: [] });
+    expect(parseMdls("")).toEqual({ width: undefined, height: undefined, tags: [] });
+  });
+  test("a PNG's size off its IHDR; anything else is nothing", () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0x02, 0x80, 0, 0, 0x01, 0xe0, 8, 6, 0, 0, 0]);
+    expect(pngSize(png)).toEqual({ width: 640, height: 480 });
+    expect(pngSize(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0]))).toBeUndefined();
+    expect(pngSize(new Uint8Array(30))).toBeUndefined();
+  });
+  test("a terminal at a folder: the shell alone after cd, per terminal (macOS table)", () => {
+    if (!MAC) return;
+    expect(terminalAt("/a/b c", "kitty", ["/bin/zsh"])).toEqual(["open", "-na", "kitty", "--args", "--directory", "/a/b c", "/bin/zsh", "-c", "exec /bin/zsh"]);
+    expect(terminalAt("/a", "", ["/bin/zsh"])).toEqual(["osascript", "-e", 'tell application "Terminal"', "-e", "activate", "-e", `do script "cd '/a' && exec /bin/zsh"`, "-e", "end tell"]);
+  });
+});
+
 describe("recent sources", () => {
   test("mdfind -attr lines: path and last-used date, newest first, other lines skipped", () => {
     expect(parseMdfindRecent("/a/b.txt   kMDItemLastUsedDate = 2026-09-15 17:40:59 +0000\n/c d.rtf   kMDItemLastUsedDate = 2026-09-16 10:30:07 +0200\nnoise\n")).toEqual([
@@ -99,6 +129,7 @@ describe("recent sources", () => {
 
 let host: Host;
 let dir: string;
+let tools: string;
 /** Canned `core/apps.for_file`: what LaunchServices would say for a text file; `open_with` refuses one app. */
 const APPS = [
   { name: "TextEdit", path: "/System/Applications/TextEdit.app", bundle_id: "com.apple.TextEdit", default: true },
@@ -135,6 +166,12 @@ beforeAll(async () => {
 </xbel>`);
   writeFileSync(join(dir, "notes.md"), "shopping\nthe Secret Phrase is here\n");
   writeFileSync(join(dir, "scan.pdf"), "%PDF-1.4\n");
+  // Stand-ins: a "zip" that writes the archive's name and its sources, a "terminal" that logs the folder, an "mdls" answering a fixed raw record.
+  tools = mkdtempSync(join(tmpdir(), "pal-files-tools-"));
+  const tool = (name: string, body: string) => { const p = join(tools, name); writeFileSync(p, `#!/bin/sh\n${body}\n`, { mode: 0o755 }); return p; };
+  process.env.PAL_FILES_ZIP = tool("zip", 'out="$1"; shift; printf "%s\\n" "$@" > "$out"');
+  process.env.PAL_FILES_TERMINAL = tool("term", `printf "%s\\n" "$1" >> "${join(tools, "terminal.log")}"`);
+  process.env.PAL_FILES_MDLS = tool("mdls", `case "$8" in *.png) printf '640\\000480\\000(\\n    "Red\\\\n6",\\n    "Work"\\n)';; *) printf '(null)\\000(null)\\000(null)';; esac`);
   process.env.PAL_FILES_BACKEND = "find";
   process.env.PAL_FILES_CONTENT = "grep";
   process.env.PAL_RECENT_XBEL = xbel;
@@ -149,7 +186,7 @@ beforeAll(async () => {
 });
 /** What the canned `core/dialog.current` answers: the open panel in front, or none. */
 let dialogUp: { app: string; pid: number; kind: "open" | "save"; title?: string } | null = null;
-afterAll(() => { host?.kill(); if (dir) rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { host?.kill(); if (dir) { rmSync(dir, { recursive: true, force: true }); rmSync(dir + "-ops", { recursive: true, force: true }); } if (tools) rmSync(tools, { recursive: true, force: true }); });
 
 const list = (q?: string) => host.list("files", "files", q);
 const pick = (id: string, action?: string) => host.pick("files", "files", id, action);
@@ -223,7 +260,8 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(alpha.actions!.at(-1)).toMatchObject({ id: "trash", style: "destructive", confirm: expect.any(String) });
     expect(alpha.actions!.find((a) => a.id === "copy-file")).toEqual({ id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true });
     // Open, reveal, both copies and the trash take marked rows; Quick Look and Open with are one file's.
-    expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy", "copy-file", "trash"]);
+    expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy", "copy-file", "compress", "trash"]);
+    expect(alpha.actions!.filter((a) => ["terminal", "rename", "move", "copy-to", "compress"].includes(a.id)).map((a) => a.shortcut)).toEqual(["cmd+t", "cmd+shift+r", "cmd+m", "cmd+alt+c", "cmd+shift+z"]);
     if (MAC) expect(alpha.actions!.find((a) => a.id === "quick-look")).toEqual({ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" });
     expect(items.find((i) => i.name === "report-gamma.txt")!.subtitle).toBe(join(dir, "reports"));
     expect(items.find((i) => i.name === "reports")).toMatchObject({ icon: "󰉖", accessories: [{ date: expect.any(Number) }] });
@@ -265,6 +303,9 @@ describe.skipIf(!HAS_FIND)("files", () => {
     const img = await host.detail("files", "files", join(dir, "photo.png"));
     expect(img.markdown).toBeUndefined();
     expect(img.metadata![3].value).toBe("image");
+    // What mdls knows (the stand-in): the pixel size and Finder's tags, their colour index dropped; nothing for the text file.
+    expect(img.metadata!.slice(4)).toEqual([{ label: "Dimensions", value: "640 x 480 px" }, { label: "Tags", tags: [{ text: "Red" }, { text: "Work" }] }]);
+    expect(d.metadata!.length).toBe(4);
     const folder = await host.detail("files", "files", join(dir, "reports"));
     expect(folder.metadata!.map((m) => m.label)).toEqual(["Path", "Modified", "Kind"]);
   });
@@ -324,6 +365,59 @@ describe.skipIf(!HAS_FIND)("files", () => {
     expect(await host.pick("files", "files", a, "copy", { ids: [a] })).toEqual({ copy: a });
     if (!(MAC ? Bun.which("osascript") : Bun.which("gio"))) return;
     expect(await host.pick("files", "files", join(dir, "nope-1"), "trash", { ids: [join(dir, "nope-1"), join(dir, "nope-2")] })).toMatchObject({ keep: true, toast: { title: "Could not move to Trash", style: "failure" } });
+  });
+
+  test("open in terminal: the folder itself, or a file's folder, through the terminal stand-in; the panel hides", async () => {
+    expect(await pick(join(dir, "reports"), "terminal")).toEqual({ hide: true });
+    expect(await pick(join(dir, "reports", "report-gamma.txt"), "terminal")).toEqual({ hide: true });
+    // The stand-in is detached; it lands within a moment.
+    const log = () => Bun.file(join(tools, "terminal.log")).text().then((t) => t.trim().split("\n")).catch(() => [] as string[]);
+    for (let i = 0; i < 40 && (await log()).length < 2; i++) await Bun.sleep(50);
+    expect(await log()).toEqual([join(dir, "reports"), join(dir, "reports")]);
+  });
+
+  /** A folder of its own for the operations, so the browse listings of `dir` stay as the other tests expect. */
+  const opsDir = () => { const d = join(dir, "..", basename(dir) + "-ops"); mkdirSync(d, { recursive: true }); return d; };
+
+  test("rename: the form with the name filled; a slash or a taken name is the form again with the message; the same name is a no-op; else the file moves", async () => {
+    const d = opsDir();
+    const p = join(d, "to-rename.txt");
+    writeFileSync(p, "x\n");
+    writeFileSync(join(d, "notes.md"), "n\n");
+    expect(await pick(p, "rename")).toEqual({ form: renameForm(p) });
+    expect(await pick(p, "rename")).toMatchObject({ form: { title: "Rename", fields: [{ id: "name", default: "to-rename.txt" }], submit: { id: "rename-submit" } } });
+    expect(await host.pick("files", "files", p, "rename-submit", { values: { name: "a/b" } })).toEqual({ form: renameForm(p, { name: "A file name, without a slash" }) });
+    expect(await host.pick("files", "files", p, "rename-submit", { values: { name: "notes.md" } })).toMatchObject({ form: { errors: { name: expect.stringContaining("exists already") } } });
+    expect(await host.pick("files", "files", p, "rename-submit", { values: { name: "to-rename.txt" } })).toEqual({ keep: true });
+    expect(await host.pick("files", "browse", p, "rename-submit", { values: { name: "renamed.txt" } })).toEqual({ keep: true, toast: { title: "Renamed", message: "renamed.txt" } });
+    expect(await Bun.file(join(d, "renamed.txt")).exists()).toBe(true);
+    expect(await Bun.file(p).exists()).toBe(false);
+  });
+
+  test("move to and copy to a folder: the forms, the folder made when missing, a taken name refused", async () => {
+    const d = opsDir();
+    const p = join(d, "to-move.txt");
+    writeFileSync(p, "m\n");
+    expect(await pick(p, "move")).toEqual({ form: moveForm(p) });
+    expect(await pick(p, "copy-to")).toEqual({ form: copyForm(p) });
+    expect(await host.pick("files", "files", p, "move-submit", { values: { folder: "  " } })).toEqual({ form: moveForm(p, { folder: "A folder path" }) });
+    const into = join(d, "moved", "deeper");
+    expect(await host.pick("files", "recent", p, "copy-submit", { values: { folder: into } })).toEqual({ keep: true, toast: { title: "Copied", message: `to-move.txt to ${into}` } });
+    expect(await Bun.file(join(into, "to-move.txt")).text()).toBe("m\n");
+    expect(await host.pick("files", "files", p, "move-submit", { values: { folder: into } })).toMatchObject({ form: { errors: { folder: expect.stringContaining("exists already") } } });
+    expect(await host.pick("files", "files", p, "move-submit", { values: { folder: join(d, "moved") } })).toEqual({ keep: true, toast: { title: "Moved", message: `to-move.txt to ${join(d, "moved")}` } });
+    expect(await Bun.file(p).exists()).toBe(false);
+    expect(await Bun.file(join(d, "moved", "to-move.txt")).exists()).toBe(true);
+  });
+
+  test("compress: one zip next to the file named after it (-2 when taken), the marked rows together into one named after the first", async () => {
+    const d = opsDir();
+    const a = join(d, "report-gamma.txt"), b = join(d, "notes.md");
+    writeFileSync(a, "g\n");
+    expect(await pick(a, "compress")).toEqual({ keep: true, toast: { title: "Compressed", message: join(d, "report-gamma.zip") } });
+    expect((await Bun.file(join(d, "report-gamma.zip")).text()).trim()).toBe(a);
+    expect(await host.pick("files", "files", a, "compress", { ids: [a, b] })).toEqual({ keep: true, toast: { title: "Compressed", message: join(d, "report-gamma-2.zip") } });
+    expect((await Bun.file(join(d, "report-gamma-2.zip")).text()).trim().split("\n")).toEqual([a, b]);
   });
 
   test("dialog jump: with an open or save panel in front (core/dialog.current, asked per listing) every row leads with Use in dialog, whose pick is the dialog effect", async () => {

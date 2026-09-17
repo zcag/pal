@@ -35,11 +35,13 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Audio](#audio-audio) | `audio` | live, normal | Set as the default output or input |
 | [Blackjack](#blackjack-blackjack) | `blackjack` | view, normal | Deal, or the next hand; declines insurance |
 | [Bluetooth](#bluetooth-bluetooth) | `bluetooth` | live, normal | Connect or disconnect |
-| [Bookmarks](#bookmarks-bookmarks) | `bookmarks` | indexed, primary | Open in the browser |
+| [Bookmarks](#bookmarks-bookmarks-bookmarks-history) | `bookmarks` | indexed, primary | Open in the browser |
+| [Browser History](#bookmarks-bookmarks-bookmarks-history) | `bookmarks-history` | input | Open in the browser it came from |
 | [Browser Tabs](#browser-tabs-browser-tabs-tabs) | `browser-tabs-tabs` | live, primary | Switch to the tab |
 | [Calculator](#calculator-calc) | `calc` | input, normal | Copy the result |
-| [My Schedule](#calendar-calendar-today-calendar-schedule-calendarupcoming) | `calendar-schedule` | live, normal | Join the call, else open in Calendar |
-| [Today](#calendar-calendar-today-calendar-schedule-calendarupcoming) | `calendar-today` | live, normal | Join the call, else open in Calendar |
+| [My Schedule](#calendar-calendar-today-calendar-schedule-calendar-quick-calendarupcoming) | `calendar-schedule` | live, normal | Join the call, else open in Calendar |
+| [Today](#calendar-calendar-today-calendar-schedule-calendar-quick-calendarupcoming) | `calendar-today` | live, normal | Join the call, else open in Calendar |
+| [Quick Add Event](#calendar-calendar-today-calendar-schedule-calendar-quick-calendarupcoming) | `calendar-quick` | input | Add the typed line as an event |
 | [Clipboard](#clipboard-clipboard-rows) | `clipboard-rows` | input, normal | What the row is for: open, call, paste as plain, copy the answer |
 | [Clipboard History](#clipboard-history-clipboard-history) | `clipboard-history` | input, normal | Paste into the app in front |
 | [Colour Picker](#colors-colors-picker-colors-colors-history-colors-convert) | `colors-picker` | view, normal | |
@@ -78,8 +80,9 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Hue Sensors](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-sensors` | live, normal | Copy the reading |
 | [Hue Automations](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-automations` | live, normal | Enable or disable |
 | [Hue Entertainment](#hue-hue-rooms-hue-lights-hue-scenes-hue-light-hue-setup-hue-sensors-hue-automations-hue-entertainment-huehome) | `hue-entertainment` | live, normal | Start streaming |
-| [Nerd Font icons](#icons-icons-icons-freedesktop) | `icons` | indexed, grid, catalog | Copy glyph |
-| [Freedesktop icon names](#icons-icons-icons-freedesktop) | `icons-freedesktop` | indexed, grid, catalog | Copy name |
+| [Nerd Font icons](#icons-icons-icons-freedesktop-icons-iconify) | `icons` | indexed, grid, catalog | Copy glyph |
+| [Freedesktop icon names](#icons-icons-icons-freedesktop-icons-iconify) | `icons-freedesktop` | indexed, grid, catalog | Copy name |
+| [Iconify Icons](#icons-icons-icons-freedesktop-icons-iconify) | `icons-iconify` | input, grid | Copy SVG |
 | [Images](#images-images) | `images` | input, normal | Compress |
 | [Makefile Targets](#makefile-targets-make) | `make` | indexed, normal | Run the target |
 | [Maps](#maps-maps) | `maps` | input, normal | Open the place or the route |
@@ -240,7 +243,7 @@ dealer_hits_soft_17 = false
 insurance = false
 ```
 
-## Bookmarks (`bookmarks`)
+## Bookmarks (`bookmarks`, `bookmarks-history`)
 
 Hand-picked links from a JSON file: a JSON array of objects with `name` and
 `url`, plus optional `subtitle` (the url when absent), `icon` (a glyph,
@@ -290,7 +293,7 @@ Settings, `[extensions.bookmarks]`, in addition to `file`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `browsers` | list | `["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"]` | Whose bookmarks to list, in order. A browser with no profile on the machine lists nothing. `[]` is the file alone. |
+| `browsers` | list | `["chrome", "brave", "edge", "chromium", "vivaldi", "arc", "safari", "firefox"]` | Whose bookmarks and history to list, in order. A browser with no profile on the machine lists nothing. `[]` is the file alone, and no history. |
 | `exclude_folders` | list | `[]` | Bookmark folders skipped, by name (`Archive`) or a short path (`Bookmarks Bar/Old`), case-insensitive. |
 
 Settings, `[extensions.bookmarks]`:
@@ -298,6 +301,30 @@ Settings, `[extensions.bookmarks]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `file` | path | `~/.config/pal/data/bookmarks.json` | The bookmarks file. `~` is expanded. |
+
+### Browser History (`bookmarks-history`)
+
+A second palette of the extension, input rather than indexed: every
+keystroke searches the visit history the same browsers keep (the
+`browsers` setting; Safari's `History.db` is behind Full Disk Access and
+is not read), by title and address, newest first, fifty rows at most, a
+url once. Chrome, Brave, Edge, Chromium, Vivaldi and Arc are every
+profile's `History` (SQLite, the `urls` table; Chrome's clock counts
+microseconds from 1601), Firefox every profile's `places.sqlite`
+(`moz_places`, microseconds from 1970). A running browser holds its file
+locked, so each is copied under pal's cache (`~/Library/Caches/pal/bookmarks`,
+`~/.cache/pal/bookmarks` on Linux) before it is read; the copy is taken
+again when the file's mtime moved, at most every 30 seconds, so a
+keystroke never copies a large history twice. Hidden entries (a redirect
+Chrome keeps for autocomplete) and pages never visited are left out; no
+browser with a history is one inert row saying which are read.
+
+- The row: the page's title (the address when it has none), the address
+  under it and as the favicon's source, when it was last visited on the
+  right, the browser and profile as the section (`Chrome (Work)`).
+- Actions: **Open in Chrome/Firefox/...** (`Enter`, the browser it came
+  from: `open -a` on macOS, the browser's binary on Linux), **Copy link**
+  (`⌘C`), **Open in default browser** (`⌘O`).
 
 ## Calculator (`calc`)
 
@@ -420,7 +447,10 @@ full-text search over the text, ordered pinned first, then newest. The
 palette opens with the detail pane showing: the full text (fenced), the
 image, or the file list, with kind, size, source app and time as metadata.
 A row that is a single url gets the site's favicon; the source app and the
-time are accessories, and a pinned entry carries a `pinned` tag.
+time are accessories, and a pinned entry carries a `pinned` tag. An entry
+you have named (`⌘⇧R`) is titled by its name from then on, with the text's
+preview as its subtitle, and a search finds it by the name as well as by
+the text (the name is matched as a substring, the text by prefix words).
 
 Actions:
 
@@ -429,7 +459,12 @@ Actions:
 | Paste | `Enter` | hides the panel and pastes the entry into the app that was in front |
 | Copy | `⌘Enter` | puts the entry back on the clipboard |
 | Copy text from image | `⌘⇧T` | on an image entry: the text in it read by OCR (the Vision framework on macOS, `tesseract` on Linux when installed) goes on the clipboard as a copy of its own, "Copied text" in the HUD; an image with no text is a toast |
+| Edit… | `⌘E` | on a text entry: a form with the text in a textarea; the submit copies the edited text, so it is the newest entry and the original stays as recorded; a box pastes it into the app in front as well |
 | Pin / Unpin | `⌘P` | pinned entries sort first and never expire |
+| Name… / Rename… | `⌘⇧R` | a one-field form: the name titles the row and is searched like the text; empty clears it |
+| Save as file… | `⌘S` | a form with a folder (the Desktop by default, `~` expanded, created when missing) and a name taken from the entry (the text's first words `.txt`, `Image 640x480.png`, `paths.txt`); the text as it is, an image's PNG copied, a file list as its paths one per line; a name already there is refused with the form again |
+| Save as snippet | `⌘⇧S` | on a text entry: the Snippets palette's create form, pre-filled with the text |
+| Show as QR code | `⌘⇧K` | on a text entry up to 2000 characters: the code large in a level with the text under it |
 | Delete | `⌘D` | removes the entry; asks first |
 | Clear history | `⌘⇧D` | removes every entry, pinned ones included; asks first |
 
@@ -477,6 +512,10 @@ clipboard, `0` (the default) the newest ([Links](links.md#extension-routes)).
   (`⌘⇧C`) on an image (the PNG the core keeps, as a file), **Delete all
   unpinned** (asks first; every unpinned entry deleted one by one, since
   the core's only bulk operation is Clear).
+- The detail pane's metadata leads with the entry's name when it has one.
+  Names live in the history database next to the entry (`name` column,
+  added on the first open of an older database), so they survive a
+  restart and go with the entry when it is deleted.
 
 Settings, `[extensions.clipboard]`:
 
@@ -577,6 +616,8 @@ Settings, per palette, `[palettes.emoji.settings]`:
   paste. The modifier goes after the first code point, which tones a
   single person and the first person of a family or profession sequence;
   a two-person sequence gets one tone, on its first person.
+- Your words: the `keywords` setting adds search words per emoji
+  (`rocket: ship deploy`), so a team's own names find them.
 
 Settings, `[extensions.emoji]`:
 
@@ -584,6 +625,7 @@ Settings, `[extensions.emoji]`:
 | --- | --- | --- | --- |
 | `skin_tone` | `none`, `light`, `medium-light`, `medium`, `medium-dark`, `dark` | `"none"` | The Fitzpatrick modifier applied where an emoji takes one. |
 | `paste_by_default` | bool | `false` | `Enter` pastes into the app in front (needs Accessibility on macOS), `⌘Enter` copies. |
+| `keywords` | list of lines | `[]` | Your own search words: `rocket: ship deploy`, `🎉: party, woo` (a shortcode or the emoji, a colon, the words, split on spaces and commas). A line naming no emoji is ignored; the words join the emoji's own for search, parsed once per settings change. |
 
 ## Processes (`processes`)
 
@@ -646,21 +688,43 @@ Enter on a link opens it. A link whose url has a `{query}` placeholder
 (`https://github.com/search?q={query}`; Raycast's `{argument}` and
 `{argument name="Repo"}` are read the same way) drills in instead: the
 input fills the placeholder as you type, percent-encoded, and Enter opens
-the filled url (⌘C copies it). The row shows the placeholder as a tag and
-the url as its subtitle; the icon is the site's favicon.
+the filled url (⌘C copies it). `{selection}` and `{clipboard}` in a url
+are filled without asking (the SDK's placeholders, [Snippets](#snippets-snippets)
+below has the grammar; each value percent-encoded), so
+`https://translate.google.com/?text={selection}` opens in one Enter. The
+row shows the placeholder as a tag, the browser it opens with when one
+is named, and the url as its subtitle; the icon is the site's favicon.
 
-The root row **Create Quicklink** opens a form (name, url, keywords);
-**Edit** (⌘E) opens the same form filled in, and a url the opener could
-not take (no scheme, not a path) is refused with the message under the
-field. **Delete** (⌃X) asks first. Keywords are extra words the search
-matches, space or comma separated.
+The root row **Create Quicklink** opens a form (name, url, keywords, and
+**Open with**: the default browser or one of the browsers installed:
+Safari, Chrome, Firefox, Arc, Brave, Edge, Chromium, Vivaldi, Zen; `open
+-a` on macOS, the command on Linux; a `mailto:` or an app's scheme goes to
+the system opener whatever the field says). The url and the name come
+filled from the tab in front when [Browser Tabs](#browser-tabs-browser-tabs-tabs)
+can name one within 400 ms (a DevTools port, a scriptable browser); an
+extension can push the palette with `args: { create: { name, url,
+keywords } }` and the form comes filled with that. **Edit** (⌘E) opens
+the same form filled in, and a url the opener could not take (no scheme,
+not a path) is refused with the message under the field. **Delete** (⌃X)
+asks first. Keywords are extra words the search matches, space or comma
+separated.
+
+**Browse Library** (the row after Create) is a level of 25 ready-made
+searches (Google, DuckDuckGo, Bing, Wikipedia, YouTube, GitHub, GitHub
+code, npm, crates.io, PyPI, MDN, Stack Overflow, Amazon, Google Maps,
+Google Translate, X, Reddit, Hacker News, IMDb, Spotify, Unsplash, Can I
+use, Rust docs, Homebrew, Apple Developer): Enter adds one to your links
+(once; the ones you have are tagged `added`), ⌘Enter searches with it
+without adding (the same drill-in), ⌘C copies its url.
 
 | action | shortcut | what |
 | --- | --- | --- |
-| Open | `Enter` | opens the url, or drills in to fill its `{query}` |
+| Open | `Enter` | opens the url (in the named browser, or a tab already on the page with `prefer_existing_tab`), or drills in to fill its `{query}` |
 | Copy URL | `⌘C` | copies the url as stored |
 | Edit | `⌘E` | the form, filled in |
 | Delete | `⌃X` | removes it, after a confirm |
+| Add to my quicklinks | `Enter` | in the library: the search saved to your links |
+| Search with it | `⌘Enter` | in the library: the drill-in, without saving |
 
 **Link**: `pal://quicklinks/open?name=<name>` opens a quicklink by name or
 keyword; a `{query}` link opens the panel to fill it, or `&query=<text>`
@@ -684,6 +748,7 @@ Settings, `[extensions.quicklinks]`:
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `import` | path | (none) | A JSON array of `{name, url, keywords?}` listed alongside your own links, read-only (Open and Copy URL only), read on every listing. `~` is expanded. A file that cannot be read lists nothing and says so in the log. |
+| `prefer_existing_tab` | boolean | `false` | Opening a link first asks the browsers (as Browser Tabs does) for a tab already on that page (origin and path; query and fragment aside) and switches to it, the front one first; a new tab when none has it. |
 
 The links themselves live in `<data dir>/pal/storage/quicklinks.json`
 (see Storage in [Extensions](extensions.md)), shared by every config
@@ -708,10 +773,24 @@ Placeholders in the text are filled in when it is pasted or copied:
 | `{datetime}` | both, with a space between |
 | `{uuid}` | a fresh UUID, a different one per occurrence |
 | `{selection}` | the text selected in the app in front (the clipboard when nothing is) |
+| `{snippet name=sig}` | another snippet's text, by name or keyword, its own placeholders filled; one level deep (a `{snippet}` inside it stays as written) |
 | `{cursor}` | where the caret lands after an expansion (below); dropped by a paste from the panel |
 
+`{date}`, `{time}` and `{datetime}` take two attributes. `format=` writes
+the moment with the tokens `YYYY` `YY` `MM` `DD` `HH` `mm` `ss` `ddd`
+(Wed) `MMM` (Sep), anything else in the format as it is: `{date
+format=DD.MM.YYYY}`, `{time format=HH:mm:ss}`, quotes around a format
+with spaces (`{date format="ddd D MMM"}`). `offset=` moves the moment
+first by a signed count of days, weeks, hours or minutes: `{date
+offset=+1d}`, `{date offset=-2w}`, `{time offset=+3h}`, `{datetime
+offset=-90m format=HH:mm}`.
+
 Anything else in braces is left as it is, so a snippet of code keeps its
-braces. A snippet with placeholders carries a "dynamic" accessory.
+braces. A snippet with placeholders carries a "dynamic" accessory. The
+grammar is the SDK's (`expand` in `@zcag/pal`, [Extensions](extensions.md#the-zcagpal-package)),
+the same one quicklinks fill a url with and Obsidian an appended line.
+An expansion by keyword (below) fills the plain forms only: `format=`,
+`offset=` and `{snippet}` are left as written there.
 
 The root row **Create snippet** opens a form (name, keyword, text);
 **Edit** (⌘E) opens it filled in; a keyword with a space in it is refused
@@ -890,9 +969,12 @@ subtitle. A file both searches find is listed once, as the name match.
 works.
 
 The detail pane (lazy, asked when the cursor rests on a row) shows the
-path, size, modified time and kind; for a text file under 64 KB the first
-40 lines in a code block. No image preview: the app's `icon://` scheme
-serves app icons, favicons and clipboard images only.
+path, size, modified time and kind, then on macOS what Spotlight knows of
+the file (one `mdls` call, only when the pane asks): an image's pixel
+size and its Finder tags (the names; the colour index is dropped). On
+Linux a PNG's size comes off its header. For a text file under 64 KB the
+first 40 lines follow in a code block. No image preview: the app's
+`icon://` scheme serves app icons, favicons and clipboard images only.
 
 Actions:
 
@@ -905,12 +987,18 @@ Actions:
 | Copy path | `⌘C` | copies the absolute path |
 | Copy file | `⌘⇧C` | the file itself onto the clipboard: a paste in Finder or a file manager copies it, a paste in a text field gets its path |
 | Copy text (OCR) | `⌘⇧T` | on an image or a PDF: the text in it (the PDF's first page) read by OCR onto the clipboard, "Copied text" in the HUD; the Vision framework on macOS, `tesseract` on Linux when installed (a toast otherwise). A PDF page is rendered by `pdftoppm` when installed, else `sips` on macOS |
+| Open in Terminal | `⌘T` | a terminal window in the folder (a file's folder): the app the `terminal` setting names, through the Shell extension's table (Terminal and iTerm over AppleScript; kitty, Alacritty, WezTerm, Ghostty by their flags; Linux `$TERMINAL` or the first installed) |
+| Rename… | `⌘⇧R` | a form with the name; the same folder, a slash or a taken name refused with the message under the field |
+| Move to… | `⌘M` | a form with the folder (`~` expanded, made when missing); across volumes `mv` does it |
+| Copy to… | `⌘⌥C` | the same form; a copy under the same name (a folder whole), an existing name refused |
+| Compress | `⌘⇧Z` | a zip next to the file named after it (`report.zip`, `report-2.zip` when taken); with rows marked, one zip of them all named after the first. `ditto -c -k --sequesterRsrc --keepParent` on macOS, `zip -r` on Linux |
 | Move to Trash | `⌘D` | asks first; Finder's delete on macOS, `gio trash` on Linux; the palette stays open with a toast |
 | Use in TextEdit's open panel | `⌘G` | only while the app in front has an Open or Save panel up: pal hides and types the path into it through its Go to Folder sheet (`ctrl+L` on a GTK chooser); listed first then, and the empty root leads with a "Dialog" hint into Files |
 
 Marked rows (`Tab` here, `x` while nothing is typed, `⇧↓`, `⌘`-click): Open,
-Reveal, Copy path (the paths one per line), Copy file and Move to Trash run over
-all of them as one pick; Quick Look and Open with… stay one file's.
+Reveal, Copy path (the paths one per line), Copy file, Compress (one
+archive) and Move to Trash run over all of them as one pick; Quick Look,
+Open with…, the terminal and the three forms stay one file's.
 
 ### Browsing folders
 
@@ -986,11 +1074,17 @@ Settings, `[extensions.files]`:
 | `exclude` | list of names | `["node_modules", ".cache", "Library/Caches", "target"]` | Folders skipped below the search folders, by name or a short path. |
 | `content_search` | bool | `true` | The "In files" section under the name matches. Off, only the `'` prefix searches contents. |
 | `ocr_concealed` | bool | `false` | Text read from an image (Copy text) is copied concealed, so it never enters the clipboard history. |
+| `terminal` | string | `""` | What Open in Terminal opens: `Terminal` (the default), `iTerm`, `kitty`, `Alacritty`, `WezTerm`, `Ghostty`, or any app name (`open -na <name> --args -e ...`); on Linux a command name, else `$TERMINAL`, else the first installed terminal (the same words as Shell's setting). |
+
+The rename, move and copy forms, the tool runner and the archive command
+live in `extensions/files/ops.ts`; Downloads imports them, so the two
+palettes rename and move the same way.
 
 ## System (`system`)
 
 Sleep, lock, log out, restart, shut down, empty the trash, dark mode,
-volume, brightness, do not disturb, eject, show desktop, keep awake. The
+volume, brightness, do not disturb, eject, show desktop, keep awake, quit
+or unhide every app, dismiss notifications. The
 rows are indexed, so `mute` or `sleep` at the root finds them (each
 carries keywords: `suspend`, `power off`, `bin`); live because the Keep
 Awake row flips to Allow Sleep while a keep-awake is running, and a live
@@ -1014,15 +1108,19 @@ Only commands this machine can run are listed:
 | Eject All Disks | Finder | not available |
 | Show Desktop | Mission Control | not available |
 | Keep Awake / Allow Sleep | `caffeinate -d -i`, detached; running it again stops it | `systemd-inhibit --what=idle:sleep ... sleep infinity`, the same toggle |
+| Quit All Apps | System Events: every regular app but Finder and pal asked to quit, one by one, so an app with unsaved work still shows its sheet | not available |
+| Unhide All Apps | System Events: every hidden app made visible | not available |
+| Dismiss Notifications | Notification Center over Accessibility: the Clear All (else Close) action of every notification group; nothing on screen is nothing to do | `swaync-client --close-all`, `makoctl dismiss --all` or `dunstctl close-all`; hidden with none |
 
-Log Out, Restart, Shut Down and Empty Trash are destructive: with
+Log Out, Restart, Shut Down, Empty Trash and Quit All Apps are destructive: with
 `confirm_destructive` on, `Enter` asks "(command) now?" first. A command
 that fails keeps the panel open with a toast carrying the tool's message.
 
 **Link**: `pal://system/run?id=<command>` runs one by its id (`sleep`,
 `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`,
 `volume-up`, `volume-down`, `volume-mute`, `brightness-up`,
-`brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`);
+`brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`, `quit-all`, `unhide-all`,
+`dismiss-notifications`);
 the route is declared with `confirm`, so a link always asks first
 ([Links](links.md#extension-routes)).
 
@@ -1040,7 +1138,7 @@ Settings, `[extensions.system]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `confirm_destructive` | bool | `true` | Confirm before logging out, restarting, shutting down or emptying the trash. |
+| `confirm_destructive` | bool | `true` | Confirm before logging out, restarting, shutting down, emptying the trash or quitting every app. |
 
 ## Windows (`windows`)
 
@@ -1098,7 +1196,8 @@ Settings, `[extensions.windows]`:
 
 Move and resize windows from the keyboard, Raycast's set: one row per
 layout (halves, thirds, quarters, the maximize family, larger and smaller,
-a nudge by a step, the other display, fullscreen, minimize, restore),
+a size typed in, a nudge by a step, the other display, fullscreen,
+minimize, restore),
 `Enter` applies it to the window you were in. pal hides its panel
 first, so the window with focus is the one behind the panel, not pal; the
 HUD then names the layout, or says why it did not happen ("Restore: nothing
@@ -1114,6 +1213,7 @@ to restore", "Next Display: only one display").
 | Maximize Height, Maximize Width | `maximize_height` `maximize_width` | the full height or width, the other side kept |
 | Center, Reasonable Size | `center` `reasonable_size` | centred as it is; `reasonable_size_percent` of the screen, centred |
 | Larger, Smaller | `larger` `smaller` | 10% bigger or smaller about the centre |
+| Resize to… | `resize` | a form: a size (`1280x720`, or one number for a square) and, optionally, X and Y; blank keeps the window centred on its current centre, and the size is capped to its screen |
 | Move Left, Right, Up, Down | `move_left` `move_right` `move_up` `move_down` | nudged by `step` pixels |
 | Next Display, Previous Display | `next_display` `previous_display` | the same place on the other display |
 | Toggle Fullscreen, Minimize, Unminimize | `fullscreen` `minimize` `unminimize` | window state, not a frame (below) |
@@ -1125,8 +1225,126 @@ These ids are what `item_hotkeys` (below) and the
 
 ### What it does not do
 
-No custom layouts: the thirty-one above are the set; `gap`, `step` and
-the two percentages are the knobs. Larger and Smaller are a fixed 10%.
+No custom layouts: the thirty-one layouts above plus the Resize to… form
+are the set; `gap`, `step`, `cycle` and the two percentages are the
+knobs. Larger and Smaller are a fixed 10%. Resize to… is a form, not a
+link: `pal://window-management/layout` takes the layout ids only.
+
+"The screen" is the display the window's centre is on (the one it overlaps
+most when the centre is off every display), minus the menu bar, Dock, or
+bars, minus `gap` on every side; the halves, thirds and quarters are equal
+cells with `gap` between them. Restore remembers, per window and in memory
+until pal quits, the frame a window had before a run of layouts started: a
+run is any sequence of pal layouts, and moving the window by hand in
+between starts a new one, so Restore goes back to where you had put it.
+
+With `cycle` on (a setting, off by default), a half applied to a window
+already at that half steps to the next size of its family, Rectangle's
+way: Left Half, then Left Two Thirds, then Left Third, then the half
+again (the right family likewise; the top and bottom halves have none).
+The HUD names the size the window landed on, and Restore still goes
+back to where the run started.
+
+Actions:
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Apply | `Enter` | the layout on the focused window |
+| Apply to… | `⌘Enter` | pick a window from the open ones (the Arrange Window palette), then the layout goes on that one |
+| Resize | `Enter` in the Resize to… form | the size (and place) typed goes on the window; the panel hides and the HUD says "Resized to 1280x720" |
+
+**Arrange Window** (`window-management-arrange`) is the same thing the
+other way round: an input palette of the open windows (minimised ones left
+out); `Enter` on one lists the layouts with that window's title as the
+subtitle, and `Enter` on a layout applies it there.
+
+Per-layout global hotkeys, which move the focused window without showing
+pal at all, are `item_hotkeys` under the palette in the config file (see
+[Config](config.md#palettesid)); the moves and the resizes are the ones
+worth a key, since they repeat:
+
+```toml
+[palettes.window-management.item_hotkeys]
+left_half = "ctrl+alt+left"
+right_half = "ctrl+alt+right"
+maximize = "ctrl+alt+enter"
+restore = "ctrl+alt+backspace"
+larger = "ctrl+alt+="
+smaller = "ctrl+alt+-"
+move_left = "ctrl+alt+shift+left"
+move_right = "ctrl+alt+shift+right"
+move_up = "ctrl+alt+shift+up"
+move_down = "ctrl+alt+shift+down"
+fullscreen = "ctrl+alt+f"
+minimize = "ctrl+alt+m"
+```
+
+Coming from Rectangle, its default keys as one block, with `cycle` on so
+a half pressed again steps through the thirds as it does there:
+
+```toml
+[extensions.window-management]
+cycle = true
+
+[palettes.window-management.item_hotkeys]
+left_half = "ctrl+alt+left"
+right_half = "ctrl+alt+right"
+top_half = "ctrl+alt+up"
+bottom_half = "ctrl+alt+down"
+top_left_quarter = "ctrl+alt+u"
+top_right_quarter = "ctrl+alt+i"
+bottom_left_quarter = "ctrl+alt+j"
+bottom_right_quarter = "ctrl+alt+k"
+left_third = "ctrl+alt+d"
+center_third = "ctrl+alt+f"
+right_third = "ctrl+alt+g"
+left_two_thirds = "ctrl+alt+e"
+right_two_thirds = "ctrl+alt+t"
+maximize = "ctrl+alt+enter"
+center = "ctrl+alt+c"
+restore = "ctrl+alt+backspace"
+larger = "ctrl+alt+="
+smaller = "ctrl+alt+-"
+next_display = "ctrl+alt+cmd+right"
+previous_display = "ctrl+alt+cmd+left"
+```
+
+Toggle Fullscreen, Minimize and Unminimize are window state, not a frame:
+Restore does not undo them, and Unminimize picks its own window (the one
+Minimize last put away while it is still minimised, else the frontmost
+minimised one), so it has no Apply to… and is not offered for a picked
+window. Larger and Smaller scale each side by 10% about the centre and
+are then pushed back inside the screen where they fit; the moves stop at
+the screen's edge; both leave a window larger than the screen where it is.
+
+- **macOS**: needs the Accessibility permission (the frame is set through
+  the window's `AXPosition` and `AXSize`); without it `Enter` shows the same
+  toast as paste and asks once. The displays are `NSScreen`'s frames with
+  `visibleFrame` for the usable part, so an auto-hidden menu bar or Dock
+  gives the whole screen. Apps keep their minimum size and may round.
+- **Linux**: Hyprland (`movewindowpixel exact` / `resizewindowpixel exact`;
+  a tiled window is floated first, since an exact frame means nothing
+  inside the tiling layout; the display is `monitors -j` with `reserved`
+  taken out; Toggle Fullscreen is `focuswindow` then `dispatch fullscreen
+  0`, since that dispatcher takes no window), Sway (`floating enable`,
+  `move absolute position`, `resize set`, `fullscreen toggle`; the
+  workspace rect is the usable part), or X11 (`wmctrl -i -r <id> -e`, `-b
+  toggle,fullscreen`; `xrandr --listmonitors` for the displays, `wmctrl
+  -d`'s work area for the usable part, `xprop -root _NET_ACTIVE_WINDOW` for
+  the focused window). Minimize is the Windows palette's (`special:minimized`,
+  the scratchpad, `xdotool`), Unminimize its focus. Sway and X11 are written
+  to the tools' documented shapes and unit-tested on fixtures, not run
+  against a live session yet.
+
+Settings, `[extensions.window-management]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `gap` | number (px) | `0` | Pixels between a window and the screen edge, and between two windows of a split. |
+| `almost_maximize_percent` | number (%) | `90` | How much of the screen Almost Maximize fills, centred. |
+| `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills, centred. |
+| `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
+| `cycle` | bool | `false` | A half applied to a window already at that half steps to the next size of its family (two thirds, a third, the half again). |
 
 ## Store (`store`)
 
@@ -1168,83 +1386,6 @@ with a list from before, the rows show under a "Showing the list from N
 min ago" note; with no list at all, one row says the site is not
 reachable. `PAL_STORE_API` points the palette at another server (the
 tests serve a fixture). No settings.
-
-"The screen" is the display the window's centre is on (the one it overlaps
-most when the centre is off every display), minus the menu bar, Dock, or
-bars, minus `gap` on every side; the halves, thirds and quarters are equal
-cells with `gap` between them. Restore remembers, per window and in memory
-until pal quits, the frame a window had before a run of layouts started: a
-run is any sequence of pal layouts, and moving the window by hand in
-between starts a new one, so Restore goes back to where you had put it.
-
-Actions:
-
-| action | shortcut | what |
-| --- | --- | --- |
-| Apply | `Enter` | the layout on the focused window |
-| Apply to… | `⌘Enter` | pick a window from the open ones (the Arrange Window palette), then the layout goes on that one |
-
-**Arrange Window** (`window-management-arrange`) is the same thing the
-other way round: an input palette of the open windows (minimised ones left
-out); `Enter` on one lists the layouts with that window's title as the
-subtitle, and `Enter` on a layout applies it there.
-
-Per-layout global hotkeys, which move the focused window without showing
-pal at all, are `item_hotkeys` under the palette in the config file (see
-[Config](config.md#palettesid)); the moves and the resizes are the ones
-worth a key, since they repeat:
-
-```toml
-[palettes.window-management.item_hotkeys]
-left_half = "ctrl+alt+left"
-right_half = "ctrl+alt+right"
-maximize = "ctrl+alt+enter"
-restore = "ctrl+alt+backspace"
-larger = "ctrl+alt+="
-smaller = "ctrl+alt+-"
-move_left = "ctrl+alt+shift+left"
-move_right = "ctrl+alt+shift+right"
-move_up = "ctrl+alt+shift+up"
-move_down = "ctrl+alt+shift+down"
-fullscreen = "ctrl+alt+f"
-minimize = "ctrl+alt+m"
-```
-
-Toggle Fullscreen, Minimize and Unminimize are window state, not a frame:
-Restore does not undo them, and Unminimize picks its own window (the one
-Minimize last put away while it is still minimised, else the frontmost
-minimised one), so it has no Apply to… and is not offered for a picked
-window. Larger and Smaller scale each side by 10% about the centre and
-are then pushed back inside the screen where they fit; the moves stop at
-the screen's edge; both leave a window larger than the screen where it is.
-
-- **macOS**: needs the Accessibility permission (the frame is set through
-  the window's `AXPosition` and `AXSize`); without it `Enter` shows the same
-  toast as paste and asks once. The displays are `NSScreen`'s frames with
-  `visibleFrame` for the usable part, so an auto-hidden menu bar or Dock
-  gives the whole screen. Apps keep their minimum size and may round.
-- **Linux**: Hyprland (`movewindowpixel exact` / `resizewindowpixel exact`;
-  a tiled window is floated first, since an exact frame means nothing
-  inside the tiling layout; the display is `monitors -j` with `reserved`
-  taken out; Toggle Fullscreen is `focuswindow` then `dispatch fullscreen
-  0`, since that dispatcher takes no window), Sway (`floating enable`,
-  `move absolute position`, `resize set`, `fullscreen toggle`; the
-  workspace rect is the usable part), or X11 (`wmctrl -i -r <id> -e`, `-b
-  toggle,fullscreen`; `xrandr --listmonitors` for the displays, `wmctrl
-  -d`'s work area for the usable part, `xprop -root _NET_ACTIVE_WINDOW` for
-  the focused window). Minimize is the Windows palette's (`special:minimized`,
-  the scratchpad, `xdotool`), Unminimize its focus. Sway and X11 are written
-  to the tools' documented shapes and unit-tested on fixtures, not run
-  against a live session yet.
-
-Settings, `[extensions.window-management]`:
-
-| key | type | default | what |
-| --- | --- | --- | --- |
-| `gap` | number (px) | `0` | Pixels between a window and the screen edge, and between two windows of a split. |
-| `almost_maximize_percent` | number (%) | `90` | How much of the screen Almost Maximize fills, centred. |
-| `reasonable_size_percent` | number (%) | `60` | How much of the screen Reasonable Size fills, centred. |
-| `step` | number (px) | `32` | How far Move Left, Right, Up and Down nudge the window. |
 
 ## Scripts and data files (`scripts`)
 
@@ -2138,9 +2279,9 @@ Per palette, `[palettes.colors.settings]`:
 | --- | --- | --- | --- |
 | `columns` | number, 4 to 16 | `8` | Tiles per row in the grid. Read once when the extension loads. |
 
-## Icons (`icons`, `icons-freedesktop`)
+## Icons (`icons`, `icons-freedesktop`, `icons-iconify`)
 
-Both palettes are `catalog`s at the root: three rows each there, the rest
+The two glyph grids are `catalog`s at the root: three rows each there, the rest
 behind the "more" row, and a glyph named exactly what was typed (`git`)
 sits under the primary rows that have the word, not above Google Chrome.
 **Nerd Font icons** is a grid of every glyph in the Symbols Nerd Font the
@@ -2172,6 +2313,27 @@ copies the name; the glyph (`⌘Enter`) and the code point (`⌘⇧U`) are the o
 actions. Only the names in that table are listed: pal draws no other, so a
 longer list would show names that render as nothing.
 
+**Iconify Icons** is a third grid, an input palette over Iconify's public
+API (`api.iconify.design`, no key): every set it hosts (Material Design
+Icons, Tabler, Lucide, Phosphor, Simple Icons, Heroicons and the rest,
+some 200k icons), searched by name 250 ms after the last keystroke:
+`/search?query=` answers the names and the sets, then one
+`/<prefix>.json?icons=` per set the SVG bodies, cached per word and per
+icon for the process. Each tile is the icon's own SVG, filled mid-grey so
+it reads on both themes (Iconify draws in `currentColor`, which a picture
+cannot inherit); the set's name is the section. Nothing typed lists
+nothing (the placeholder says what to type); no hit, a rate limit (429)
+or an unreachable API is one hint row, and a failed search is not cached
+so `⌘R` asks again.
+
+| action | shortcut | what |
+| --- | --- | --- |
+| Copy SVG | `Enter` | the whole file, `currentColor` kept |
+| Copy name | `⌘Enter` | `mdi:home` |
+| Copy as data URL | `⌘⇧D` | `data:image/svg+xml;utf8,...`, what an `{ image }` icon or a CSS background takes |
+| Open on Iconify | `⌘O` | the icon's page on icon-sets.iconify.design |
+| Save SVG… | `⌘S` | `<prefix>-<name>.svg` into the `save_to` folder, `-2` when the name is taken; the HUD names the path |
+
 The glyph table is generated: `bun run extensions/icons/build.ts` fetches
 `glyphnames.json` at the pinned release and writes `data.json` (282 KB,
 `[name, code]` pairs by set), committed; bump the version in the script
@@ -2179,11 +2341,18 @@ together with the font. A listing is eleven thousand rows (about 3.4 MB
 over the host's pipe) on every start, as the palette has no `ttl`; the
 rows carry the least they can for that.
 
-Settings, per palette, `[palettes.icons.settings]`:
+Settings, `[extensions.icons]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `columns` | number, 4 to 16 | `10` | Tiles per row in the grid. Read once when the extension loads. |
+| `sets` | list | `[]` | Set prefixes the Iconify search is limited to (`mdi`, `tabler`, `lucide`, `phosphor`, `simple-icons`). Empty: every set. |
+| `save_to` | path | `~/Downloads` | Where Save SVG puts an Iconify icon. `~` is expanded. |
+
+Per palette, `[palettes.icons.settings]` and `[palettes.icons-iconify.settings]`:
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `columns` | number, 4 to 16 | `10` (Iconify `8`) | Tiles per row in the grid. Read once when the extension loads. |
 
 ## Network (`network`)
 
@@ -2250,7 +2419,7 @@ or just landed) with its own actions, nothing when there is none.
 
 One row per timer, most urgent first (landed, then running soonest first,
 then paused): the name, what is left and when it lands (or "Paused at
-12:34", "Landed 0:42 ago"), a state tag. The last row is **New timer**, a
+12:34", "Landed 0:42 ago"), a state tag. Then **New timer**, a
 form: a duration (`25m`, `90s`, `1h30m`, `2:30`, a bare number is minutes;
 the CLI parses it and its complaint comes back under the field), an
 optional name (the duration otherwise; a name already taken restarts that
@@ -2258,13 +2427,30 @@ timer), and a checkbox to ring the phone out loud when it lands (`--ring`).
 The same from a link: `pal://timer/start?duration=25m&name=tea`
 (`&ring=1` rings; [Links](links.md#extension-routes)).
 
+**Start Pomodoro** is the last row while no pomodoro runs. It starts a
+work timer (`Pomodoro 1 of 4`, `pomodoro_work` minutes) and the cycle
+then runs itself: when that timer lands the extension stops it and
+starts the break's (`Break 1 of 4`, `pomodoro_break`), then the next
+round, after the last round the long break (`pomodoro_long_break`), then
+round 1 again, each a timer of the CLI's own (its chime and phone ping
+fire as for any timer), each announced on the HUD ("Pomodoro. Break: 5
+min"). The pomodoro's row wears an apple, the phase as a tag (`work`
+violet, `break` green) and "Round 2 of 4, work" before what is left; the
+bar item reads `18:27 · 2/4` while working and `4:59 · break` on a break.
+A finished work round counts toward **Pomodoros today: N**, an inert row
+at the bottom (sixty days of counts in storage); the session is in
+storage too, so a host restart picks it up. Stopping the pomodoro's
+timer (here, or `timer stop` in a terminal) ends the cycle; so does a
+landed one the CLI reaped while the host was down.
+
 Actions, by state:
 
-| row | `Enter` | `⌘+` | `⌘D` |
-| --- | --- | --- | --- |
-| running | Pause | Add 5 minutes | Stop |
-| paused | Resume | Add 5 minutes | Stop |
-| landed | Dismiss (the CLI's `done`) | Add 5 minutes (restarts it) | Stop |
+| row | `Enter` | `⌘+` | `⌘S` | `⌘⇧D` | `⌘D` |
+| --- | --- | --- | --- | --- | --- |
+| running | Pause | Add 5 minutes | | | Stop |
+| paused | Resume | Add 5 minutes | | | Stop |
+| landed | Dismiss (the CLI's `done`) | Add 5 minutes (restarts it) | | | Stop |
+| the pomodoro's timer | as above | as above | Skip to the next phase (this phase's timer stopped, the next started; a skipped round is not counted) | Stop pomodoro (the cycle over, the timer gone) | Stop |
 
 Every pick runs the CLI (`timer pause <id>`, `resume`, `add 5m <id>`,
 `stop <id>`, `done`) with the state directory as `TIMER_DIR` and lists
@@ -2290,7 +2476,13 @@ the cursor, a click sets it):
 | `backspace` | Stop |
 | `up` | Move the ring to another timer (or click a card) |
 | `n` | Start one: type 25m tea in the field, Enter |
+| `p` | Start a pomodoro (while none runs) |
+| `s` | Skip to the pomodoro's next phase (while one runs); `cmd+shift+d` stops the cycle |
 | `o` | Open the Timers palette |
+
+A pomodoro's card carries the phase as a tag next to when it lands. The
+key hints are two rows, the card's keys then the popover's own, and the
+second ends with today's finished rounds (`3 today`).
 
 Settings, `[extensions.timer]`:
 
@@ -2298,10 +2490,15 @@ Settings, `[extensions.timer]`:
 | --- | --- | --- | --- |
 | `command` | path | `timer` | The CLI, a name on PATH or a path. |
 | `dir` | path | `~/.local/share/timer` | Its state directory (`TIMER_DIR`); made if missing. `~` is expanded. |
+| `pomodoro_work` | number, minutes | `25` | A work round. |
+| `pomodoro_break` | number, minutes | `5` | The break after a round. |
+| `pomodoro_long_break` | number, minutes | `15` | The break after the last round of a cycle. |
+| `pomodoro_rounds` | number | `4` | Work rounds per cycle before the long break. |
 
-## Calendar (`calendar-today`, `calendar-schedule`, `calendar/upcoming`)
+## Calendar (`calendar-today`, `calendar-schedule`, `calendar-quick`, `calendar/upcoming`)
 
-Two live palettes and a bar item over one source and one cache; Today
+Two live palettes, one input palette (Quick Add) and a bar item over one
+source and one cache; Today
 also suggests the empty root's Now section its first row: the current
 event, else the next inside `horizon_hours` (the strip's rules), with
 Join first when it has a call, from the cache when that is under a minute
@@ -2354,6 +2551,7 @@ unescaped. A Zoom marketing page or a docs link does not count.
 | Copy event details | `⌘C` | title, when, where and the link as text; the primary action on Linux without a call |
 | Delete event / Delete this occurrence | `⌃X` | asks first; on a repeating event only that occurrence goes; macOS, system source only (khal has no delete; a Google token may be read-only) |
 | New event | `Enter` on the last row | the form below; system source only |
+| Add event | `Enter` | Quick Add: the typed line as the event (below) |
 | Grant access | `Enter` on the permission row | the system prompt, or System Settings when it was denied |
 
 The filter dropdown is one entry per calendar (read when the host loads,
@@ -2433,6 +2631,27 @@ default); a location; notes. A field that does not parse shows its
 complaint and keeps what was typed; the backend's refusal (a read-only
 calendar) comes back under the title.
 
+**Quick Add Event** (`calendar-quick`, an input palette) is the same
+write from one typed line, parsed as you type (`extensions/calendar/quick.ts`,
+pure, on `parseDay` and `parseTime`): a title first, then in any order a
+day (`tomorrow`, `fri`, `next tue`, `20 sep`, `2026-09-20`, `on monday`),
+a time or a range (`10:00`, `2pm-3pm`, `14:00 to 15:30`, `9-10am`), `for
+45m` (else `default_length`, 30 minutes), `at <place>` (free text at the
+end, unless a time follows the `at`), `@ <calendar>` anywhere (`in
+<calendar>` too when a writable calendar starts with the word; an `in`
+in a title stays), `all day`. No time makes it an all-day event; no day
+means today, or tomorrow once the time has passed (an amber `tomorrow`
+tag says so). The one row reads the event back, `dentist · Fri 18 Sep
+14:00 to 15:00 · Room 4 · Home calendar`, the calendar's colour on the
+glyph and the start as a `date` accessory; a line that is only a day, or
+nothing, is a hint row naming the grammar; a calendar name nothing
+matches falls to the default and the row says so. `Enter` creates it
+through the form's write (`calendar.create`, the cache dropped, the
+"Added" toast); a refusal is a failure toast. The palette declares
+`fallback: "Add “{query}” to the calendar"`, so a root query nothing
+matched offers the line as an Add row. The permission rows are the
+others'; a Google source refuses the write as the form does.
+
 **Permission.** macOS lists an app under Privacy & Security > Calendars
 only after it has asked once, so while the state is `not_determined` the
 palette is one row, **Grant calendar access**, whose Enter shows the
@@ -2457,6 +2676,7 @@ Settings, `[extensions.calendar]`:
 | `warn_minutes` | number | `15` | The bar item turns amber this many minutes before the event. |
 | `urgent_minutes` | number | `5` | The bar item turns red this many minutes before the event. |
 | `hide_all_day` | boolean | `true` | The bar item speaks for timed events only. |
+| `default_length` | number, 5 to 480 | `30` | How long a Quick Add event lasts when no end or `for` is typed (minutes). |
 
 Not built: accept and decline (EventKit has no public API to change a
 participant's status; Raycast does it through the private
@@ -3406,7 +3626,8 @@ Now section shows the newest download of the last ten minutes
 Open, reveal, both copies and the trash take marked rows (`multi`). Trash
 is Finder's delete on macOS, `gio trash` on Linux; for the tests,
 `PAL_DOWNLOADS_TRASH` names a stand-in and `PAL_DOWNLOADS_CACHE` the
-thumbnail directory.
+thumbnail directory. The rename and move forms are Files'
+(`extensions/files/ops.ts`).
 
 Settings, `[extensions.downloads]`:
 
@@ -3668,55 +3889,6 @@ Settings, `[extensions.screenshots]`:
 | `all_files` | boolean | `false` | Every image and recording in the folder, not only the ones named like macOS's captures (`Screenshot`, `Screen Shot`, `Screen Recording`, `grim-`). |
 | `limit` | 1 to 500 | `50` | At most this many recent rows. |
 | `ocr_concealed` | boolean | `false` | Text copied by OCR is concealed. |
-
-## Images (`images`)
-
-Compress, resize, convert, rotate, crop, strip metadata, make an icon
-set, read the text: the images selected in Finder, on the clipboard or at
-a typed path, with the tools on the machine (sips, pngquant, oxipng,
-mozjpeg, cwebp, avifenc, ImageMagick) and TinyPNG when you give it a key.
-An input palette: before you type it lists the images at hand (the Finder
-selection, a folder's images, an image or files on the clipboard); a
-typed path lists a file, a folder or the entries that complete it. Every
-result is written next to its source with a suffix (`-compressed`,
-`@0.5x`, `.webp`) and its path copied; `replace` writes over the source
-and keeps the original for Restore. Several at once: mark rows (`Tab`, or
-`x` while nothing is typed) or pick a folder.
-
-| action | shortcut | what |
-| --- | --- | --- |
-| Compress | `Enter` | the first tool in `tools` that takes the format; the row says which and the sizes |
-| Optimise for web | `⌘Enter` | the long side capped at `web_max`, encoded at `quality` as `web_format`, stripped; a view with before and after |
-| Compress losslessly | `⌘L` | |
-| Compress with TinyPNG | `⌘T` | with `tinypng_api_key` set |
-| Resize… | `⌘⇧R` | width, height, fit, percent, @2x and @1x |
-| Convert… | `⌘⇧V` | PNG, JPEG, WebP, AVIF, HEIC, PDF, TIFF, GIF |
-| Rotate or flip… | `⌘⇧O` | |
-| Crop or pad… | `⌘⇧A` | crop to an aspect, centred, or pad to a square in `pad_color` |
-| Strip metadata | `⌘⇧M` | lossless for PNG and JPEG |
-| Grayscale | `⌘G` | |
-| Make an icon set | `⌘⇧F` | the `.iconset`, the `.icns`, `favicon.ico`, the touch and Android sizes, in a folder next to the image |
-| Copy text (OCR) | `⌘⇧T` | Vision on macOS, `tesseract` on Linux |
-| Copy info | `⌘⇧I` | dimensions, format, colour profile, camera, exposure, date, location (`exiftool` when installed) |
-| Copy path | `⌘C` | |
-| Copy image | `⌘⇧P` | |
-| Open | `⌘O` | |
-| Reveal in Finder | `⌘⇧E` | |
-| Restore original | `⌘⇧Z` | a replaced result |
-| Move result to Trash | `⌘D` | |
-
-Settings, `[extensions.images]`:
-
-| key | type | default | what |
-| --- | --- | --- | --- |
-| `replace` | bool | `false` | Write over the original (kept for Restore) instead of next to it. |
-| `quality` | number | `80` | For the lossy encoders (JPEG, WebP, AVIF, HEIC; pngquant's floor is 25 below it). |
-| `web_format` | `keep`, `webp`, `avif` | `"keep"` | What Optimise for web writes: the source's format, or WebP or AVIF. |
-| `web_max` | number | `2000` | Optimise for web shrinks the long side to at most this many pixels; smaller images are left at their size. |
-| `thumbnails` | bool | `true` | Thumbnails on the rows. |
-| `pad_color` | text | `"#ffffff"` | What Pad to a square fills with, as hex. |
-| `tinypng_api_key` | secret | unset | From tinypng.com/developers (500 compressions a month free). Adds Compress with TinyPNG to every row. |
-| `tools` | list | `["pngquant", "oxipng", "optipng", "cjpeg", "jpegtran", "cwebp", "avifenc", "gifsicle", "exiftool", "magick", "sips"]` | The encoders in the order they are tried; one left out is never used. sips (macOS) and ImageMagick are the fallbacks for everything. |
 
 ## WhatsApp (`whatsapp-chats`, `whatsapp-unread`, `whatsapp-search`, `whatsapp-contacts`, `whatsapp/unread`)
 

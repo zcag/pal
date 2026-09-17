@@ -54,6 +54,11 @@ describe("View", () => {
     expect(html).toContain("still here");
   });
 
+  it("draws a glyph text: the style rides as data (ui.css binds the symbols font to it)", () => {
+    const html = render({ type: "stack", direction: "row", children: [{ type: "text", value: "\u{f0369}", style: "glyph", size: "xl", color: "muted" }, { type: "text", value: "Codes" }] });
+    expect(html).toContain('class="pal-view__node pal-view__text" data-style="glyph" data-size="xl" data-color="muted">\u{f0369}<');
+  });
+
   it("carries a transition as data-enter with a staggered delay in steps of the fast duration, capped", () => {
     const html = render({
       type: "stack",

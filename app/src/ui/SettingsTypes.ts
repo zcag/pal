@@ -150,6 +150,8 @@ export type GeneralConfig = {
   position: "top" | "centre" | "last";
   /** macOS: ask for Accessibility on the panel's first show of a fresh profile. */
   askPermissionsOnStart: boolean;
+  /** `general.backspace_back`: Backspace with nothing typed goes back a level. */
+  backspaceBack: boolean;
 };
 
 /** hotkey.rs `RootOutcome`: one entry of `general.hotkey` and how its registration went. */

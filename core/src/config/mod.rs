@@ -157,6 +157,11 @@ pub struct General {
     /// space at the root jumps into that palette with the rest typed:
     /// `calc 2+2`, `emoji cat`. `false` leaves the space as a character.
     pub alias_space: bool,
+    /// Backspace with nothing typed goes back a level, the way `cmd+backspace`
+    /// does (never at the root; a row's own Backspace action, a folder's
+    /// Go up, comes first; a view's keys are its own). `false` leaves it
+    /// to the row alone.
+    pub backspace_back: bool,
     /// Remember the last 20 root queries that led to a pick (never synced:
     /// `frecency.json` in the profile). Up at the top of an empty root
     /// list walks them; "Clear Search History" in pal's commands empties
@@ -196,6 +201,7 @@ impl Default for General {
             fallbacks_always: false,
             search_engine: DEFAULT_SEARCH_ENGINE.into(),
             alias_space: true,
+            backspace_back: true,
             search_history: true,
             pop_to_root: PopToRoot::default(),
             now: DEFAULT_NOW.iter().map(|s| s.to_string()).collect(),
@@ -1140,6 +1146,15 @@ token = "keychain:pal/github-token"
         assert_eq!(c.general.position, Position::Centre);
         assert_eq!(c.general.extension_dirs(), [dirs::home_dir().unwrap().join("dotfiles/pal"), PathBuf::from("/opt/pal-ext")], "tilde expanded, order kept");
         assert!(parse("[general]\nposition = \"middle\"\n").is_err(), "an unknown position is a parse error, not a warning");
+    }
+
+    #[test]
+    fn backspace_back_is_on_until_turned_off() {
+        let (c, _) = parse("").unwrap();
+        assert!(c.general.backspace_back);
+        let (c, d) = parse("[general]\nbackspace_back = false\n").unwrap();
+        assert!(d.is_empty());
+        assert!(!c.general.backspace_back);
     }
 
     #[test]

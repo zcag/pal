@@ -23,7 +23,7 @@ struct FrameParams {
     rect: Rect,
 }
 
-/// `{ name, id?, gap?, almost_maximize_percent?, reasonable_size_percent?, step? }`:
+/// `{ name, id?, gap?, almost_maximize_percent?, reasonable_size_percent?, step?, cycle? }`:
 /// the layout effect's payload and `windows.layout`'s params, one shape.
 #[derive(Deserialize)]
 pub struct LayoutParams {

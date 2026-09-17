@@ -84,6 +84,9 @@ struct IdParams {
     id: i64,
     #[serde(default)]
     pinned: bool,
+    /// `rename`: the name, `null` or blank to clear it.
+    #[serde(default)]
+    name: Option<String>,
 }
 
 fn arg<T: serde::de::DeserializeOwned>(v: Value) -> Result<T, String> {
@@ -107,6 +110,10 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
         "pin" => {
             let p: IdParams = arg(params)?;
             store.pin(p.id, p.pinned).map_err(err).map(|_| Value::Null)
+        }
+        "rename" => {
+            let p: IdParams = arg(params)?;
+            store.rename(p.id, p.name.as_deref()).map_err(err).map(|_| Value::Null)
         }
         "delete" => {
             let p: IdParams = arg(params)?;

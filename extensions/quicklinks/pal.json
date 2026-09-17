@@ -1,9 +1,14 @@
 {
   "name": "quicklinks",
   "title": "Quicklinks",
-  "description": "Your own links, with a {query} placeholder for search URLs: open one, fill it in, or copy it. Created and edited in the panel; imported and exported as JSON.",
+  "description": "Your own links, with a {query} placeholder for search URLs: open one, fill it in, or copy it. Created and edited in the panel (a browser to open with, the url filled from the tab in front), a library of ready-made searches, imported and exported as JSON.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰌹", "bg": "orange" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰌹",
+      "bg": "orange"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -15,6 +20,14 @@
       "pick": "file",
       "description": "A JSON array of {name, url, keywords?} listed alongside your own links, read-only; empty for none.",
       "default": ""
+    },
+    {
+      "kind": "boolean",
+      "id": "prefer_existing_tab",
+      "label": "Prefer an open tab",
+      "text": "Open a link by switching to a browser tab already on that page, when there is one",
+      "description": "Asks the browsers (as Browser Tabs does) before opening; a new tab when none has the page.",
+      "default": false
     }
   ],
   "store": {
@@ -22,10 +35,13 @@
     "category": "productivity",
     "features": [
       "Enter opens the link; one with `{query}` in its url (`https://github.com/search?q={query}`) drills in and fills it with what you type, percent-encoded",
-      "Create Quicklink is a form (name, url, keywords); Edit (`cmd+e`) opens it filled in, a url with no scheme is refused under the field",
+      "`{selection}` and `{clipboard}` in a url are filled without asking (the text selected in the app in front, the newest copy), so `https://translate.google.com/?text={selection}` opens in one Enter",
+      "Create Quicklink is a form (name, url, keywords, the browser to open with), its url and name filled from the tab in front; Edit (`cmd+e`) opens it filled in, a url with no scheme is refused under the field",
+      "Browse Library: 25 ready-made searches (Google, Wikipedia, GitHub, npm, MDN, Stack Overflow, Maps...) added to your links with Enter, or searched with at once (`cmd+enter`)",
       "Keywords are extra words the search matches; the placeholder shows as a tag, the favicon comes from the site",
+      "`prefer_existing_tab`: a link whose page is open in a browser tab switches to that tab instead of opening another",
       "Raycast's `{argument}` and `{argument name=\"Repo\"}` are read the same way as `{query}`",
-      "Import Quicklinks and Export Quicklinks move the list as a JSON array of `{name, url, keywords?}` (Raycast's export is read too)",
+      "Import Quicklinks and Export Quicklinks move the list as a JSON array of `{name, url, keywords?, app?}` (Raycast's export is read too)",
       "An `import` file adds read-only links next to your own, read on every listing"
     ],
     "permissions": [],
@@ -36,7 +52,7 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "Every quicklink by name; a {query} link carries the placeholder as a tag"
+        "caption": "Every quicklink by name; a {query} link carries the placeholder as a tag, one that opens in a named browser says so"
       },
       {
         "file": "2-query.png",
@@ -48,7 +64,11 @@
       },
       {
         "file": "4-form.png",
-        "caption": "Create Quicklink: name, url with {query}, keywords"
+        "caption": "Create Quicklink: name, url with {query}, keywords, the browser to open with"
+      },
+      {
+        "file": "5-library.png",
+        "caption": "The library: ready-made searches, the ones you already have tagged added, Enter adds one"
       }
     ],
     "actions": [
@@ -56,6 +76,16 @@
         "title": "Open",
         "description": "Opens the url, or drills in to fill its {query} first.",
         "keys": "enter"
+      },
+      {
+        "title": "Add to my quicklinks",
+        "description": "In the library: the search saved to your links, once.",
+        "keys": "enter"
+      },
+      {
+        "title": "Search with it",
+        "description": "In the library: the drill-in with the search, without saving it.",
+        "keys": "cmd+enter"
       },
       {
         "title": "Copy URL",
@@ -86,6 +116,11 @@
         "title": "Export…",
         "description": "Your links to a JSON file.",
         "keys": "enter"
+      },
+      {
+        "title": "Browse library",
+        "description": "The library level, on the Browse Library row.",
+        "keys": "enter"
       }
     ]
   },
@@ -110,11 +145,15 @@
       "inline": true,
       "match": "^\\s*([a-z][a-z0-9+.-]*://\\S+|(localhost|[a-z0-9-]+(\\.[a-z0-9-]+)*\\.[a-z]{2,})(:\\d+)?([/?#]\\S*)?)\\s*$",
       "fallback": true,
-      "description": "Every quicklink by name and keyword, plus Create Quicklink. At the root a typed web address gets an inline Open row; when nothing matches, every {query} link appears filled with what was typed.",
+      "description": "Every quicklink by name and keyword, plus Create Quicklink and Browse Library. At the root a typed web address gets an inline Open row; when nothing matches, every {query} link appears filled with what was typed.",
       "keys": [
         {
           "keys": "enter",
-          "title": "Open, or fill in the {query}"
+          "title": "Open, or fill in the {query}; in the library, add the search"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "In the library, search with it without adding"
         },
         {
           "keys": "cmd+c",

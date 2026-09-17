@@ -298,6 +298,65 @@
               "title": "Keep Awake"
             }
           ]
+        },
+        {
+          "id": "quit-all",
+          "name": "Quit All Apps",
+          "subtitle": "Quit every open app but Finder and pal",
+          "icon": "󰱞",
+          "keywords": [
+            "close all",
+            "quit everything",
+            "apps",
+            "clean"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Quit All Apps",
+              "style": "destructive",
+              "confirm": "Quit All Apps now?"
+            }
+          ]
+        },
+        {
+          "id": "unhide-all",
+          "name": "Unhide All Apps",
+          "subtitle": "Show every hidden app again",
+          "icon": "󰛐",
+          "keywords": [
+            "show all",
+            "hidden",
+            "unhide",
+            "apps"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Unhide All Apps"
+            }
+          ]
+        },
+        {
+          "id": "dismiss-notifications",
+          "name": "Dismiss Notifications",
+          "subtitle": "Clear every notification on screen",
+          "icon": "󰎟",
+          "keywords": [
+            "clear all",
+            "notification center",
+            "banners",
+            "alerts"
+          ],
+          "accessories": [],
+          "actions": [
+            {
+              "id": "run",
+              "title": "Dismiss Notifications"
+            }
+          ]
         }
       ]
     }
@@ -320,6 +379,13 @@
         "down*5",
         "enter"
       ]
+    },
+    "4-apps": {
+      "palette": "system",
+      "keys": [
+        "down*18"
+      ],
+      "caption": "Quit All Apps (asks first), Unhide All Apps and Dismiss Notifications at the end of the list"
     }
   }
 }

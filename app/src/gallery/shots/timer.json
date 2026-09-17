@@ -78,6 +78,56 @@
           ]
         },
         {
+          "id": "Pomodoro-2-of-4",
+          "name": "Pomodoro 2 of 4",
+          "subtitle": "Round 2 of 4, work · 18:27 left, done at 04:56 PM",
+          "icon": "󰉛",
+          "keywords": [
+            "timer",
+            "running",
+            "pomodoro",
+            "work"
+          ],
+          "accessories": [
+            {
+              "tag": "work",
+              "color": "violet"
+            },
+            {
+              "tag": "running",
+              "color": "blue"
+            }
+          ],
+          "actions": [
+            {
+              "id": "pause",
+              "title": "Pause"
+            },
+            {
+              "id": "add",
+              "title": "Add 5 minutes",
+              "shortcut": "cmd++"
+            },
+            {
+              "id": "skip",
+              "title": "Skip to the next phase",
+              "shortcut": "cmd+s"
+            },
+            {
+              "id": "stop-pomodoro",
+              "title": "Stop pomodoro",
+              "shortcut": "cmd+shift+d",
+              "style": "destructive"
+            },
+            {
+              "id": "stop",
+              "title": "Stop",
+              "shortcut": "cmd+d",
+              "style": "destructive"
+            }
+          ]
+        },
+        {
           "id": "standup",
           "name": "standup",
           "subtitle": "24:40 left, done at 05:03 PM",
@@ -159,6 +209,17 @@
               "title": "New timer"
             }
           ]
+        },
+        {
+          "id": "pomodoro:today",
+          "name": "Pomodoros today: 3",
+          "subtitle": "3 work rounds finished",
+          "icon": "󰉛",
+          "keywords": [
+            "pomodoro",
+            "stats"
+          ],
+          "actions": []
         }
       ]
     }
@@ -218,6 +279,13 @@
       "palette": "timers",
       "keys": [
         "down",
+        "cmd+k"
+      ]
+    },
+    "4-pomodoro": {
+      "palette": "timers",
+      "keys": [
+        "down*2",
         "cmd+k"
       ]
     }

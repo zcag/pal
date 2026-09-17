@@ -7,7 +7,7 @@
 //! - `core/audio.{devices, set_default, set_volume, set_mute}` (audio.rs)
 //! - `core/bar.{update, refresh}` (bar/mod.rs)
 //! - `core/bluetooth.{devices, connect, disconnect}` (bluetooth.rs)
-//! - `core/clipboard.{list, get, pin, delete, clear, copy}` (clipboard.rs)
+//! - `core/clipboard.{list, get, pin, rename, delete, clear, copy, current}` (clipboard.rs)
 //! - `core/color.sample` (color.rs)
 //! - `core/effects.run` (effects.rs)
 //! - `core/extensions.{list, install, update, remove}` (extensions.rs: the store palette)

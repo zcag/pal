@@ -1,6 +1,7 @@
 // System commands over the core's system capability: sleep, lock, log out,
 // power, trash, dark mode, volume, brightness, do not disturb, eject, show
-// desktop, keep awake. Static rows (the core says which this machine can
+// desktop, keep awake, quit or unhide every app, dismiss notifications.
+// Static rows (the core says which this machine can
 // do), indexed so `mute` and `sleep` are root results; `live` because the
 // keep-awake row flips its title, and a live palette lists again on every
 // show, which also keeps the two probes here current: what is in the
@@ -36,6 +37,9 @@ const GLYPHS: Record<string, string> = {
   "eject-all": "\u{f0b91}", // md-eject_outline
   "show-desktop": "\u{f0a1d}", // md-view_dashboard_outline
   "keep-awake": "\u{f06ca}", // md-coffee_outline
+  "quit-all": "\u{f0c5e}", // md-close_box_multiple_outline
+  "unhide-all": "\u{f06d0}", // md-eye_outline
+  "dismiss-notifications": "\u{f039f}", // md-notification_clear_all
 };
 
 async function output(argv: string[]): Promise<string | undefined> {

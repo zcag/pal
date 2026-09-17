@@ -2,8 +2,8 @@
 
 Move and resize windows from the keyboard, Raycast's set: one row per
 layout (halves, thirds, quarters, the maximize family, larger and smaller,
-a nudge by a step, the other display, fullscreen, minimize, restore),
-Enter applies it to the window you were in. pal hides its panel
+a size typed in, a nudge by a step, the other display, fullscreen,
+minimize, restore), Enter applies it to the window you were in. pal hides its panel
 first, so the window with focus is the one behind the panel, not pal; the
 HUD then names the layout, or says why it did not happen ("Restore:
 nothing to restore", "Next Display: only one display").
@@ -20,6 +20,7 @@ nothing to restore", "Next Display: only one display").
 | Center | `center` | the same size, centred |
 | Reasonable Size | `reasonable_size` | `reasonable_size_percent` of the screen, centred |
 | Larger, Smaller | `larger` `smaller` | 10% more (or less) on each side about the centre, kept on the screen |
+| Resize to… | `resize` | a form: a size (`1280x720`, or one number for a square) and, optionally, X and Y; blank keeps the window centred on its current centre, and the size is capped to its screen |
 | Move Left, Right, Up, Down | `move_left` `move_right` `move_up` `move_down` | nudged by `step` pixels, stopping at the screen's edge |
 | Next Display, Previous Display | `next_display` `previous_display` | the same place and proportions on the other display; refused with one |
 | Toggle Fullscreen | `fullscreen` | the app's own full screen on or off (a Space of its own on macOS) |
@@ -33,6 +34,13 @@ are equal cells with `gap` between them. Restore remembers, per window and
 in memory until pal quits, the frame a window had before a run of layouts
 started: moving the window by hand in between starts a new run, so Restore
 goes back to where you had put it.
+
+With `cycle` on (a setting, off by default), a half applied to a window
+already at that half steps to the next size of its family, Rectangle's
+way: Left Half, then Left Two Thirds, then Left Third, then the half again
+(the right family likewise; the top and bottom halves have none). The HUD
+names the size the window landed on. Restore still goes back to where the
+run started.
 
 Two palettes:
 
@@ -50,6 +58,7 @@ Two palettes:
 | --- | --- |
 | `enter` | Apply the layout to the focused window |
 | `cmd+enter` | Apply to…: pick a window from the open ones, then the layout goes on that one |
+| `enter` in Resize to… | Resize: the size (and place) typed goes on the window |
 | `enter` in Arrange Window | Arrange: the layouts for the picked window |
 
 Per-layout global hotkeys, which move the focused window without showing
@@ -70,6 +79,36 @@ move_up = "ctrl+alt+shift+up"
 move_down = "ctrl+alt+shift+down"
 fullscreen = "ctrl+alt+f"
 minimize = "ctrl+alt+m"
+```
+
+Coming from Rectangle, its default keys as one block, with `cycle` on so
+a half pressed again steps through the thirds as it does there:
+
+```toml
+[extensions.window-management]
+cycle = true
+
+[palettes.window-management.item_hotkeys]
+left_half = "ctrl+alt+left"
+right_half = "ctrl+alt+right"
+top_half = "ctrl+alt+up"
+bottom_half = "ctrl+alt+down"
+top_left_quarter = "ctrl+alt+u"
+top_right_quarter = "ctrl+alt+i"
+bottom_left_quarter = "ctrl+alt+j"
+bottom_right_quarter = "ctrl+alt+k"
+left_third = "ctrl+alt+d"
+center_third = "ctrl+alt+f"
+right_third = "ctrl+alt+g"
+left_two_thirds = "ctrl+alt+e"
+right_two_thirds = "ctrl+alt+t"
+maximize = "ctrl+alt+enter"
+center = "ctrl+alt+c"
+restore = "ctrl+alt+backspace"
+larger = "ctrl+alt+="
+smaller = "ctrl+alt+-"
+next_display = "ctrl+alt+cmd+right"
+previous_display = "ctrl+alt+cmd+left"
 ```
 
 ## Setup

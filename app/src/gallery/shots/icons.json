@@ -12001,6 +12001,809 @@
           ]
         }
       ]
+    },
+    "iconify": {
+      "title": "Iconify Icons",
+      "icon": {
+        "tile": {
+          "glyph": "󰠱",
+          "bg": "pink"
+        }
+      },
+      "view": "grid",
+      "columns": 8,
+      "input": true,
+      "placeholder": "Search 200k icons: home, arrow left, github",
+      "actions": [
+        {
+          "id": "svg",
+          "title": "Copy SVG"
+        },
+        {
+          "id": "name",
+          "title": "Copy name"
+        },
+        {
+          "id": "data",
+          "title": "Copy as data URL",
+          "shortcut": "cmd+shift+d"
+        },
+        {
+          "id": "open",
+          "title": "Open on Iconify",
+          "shortcut": "cmd+o"
+        },
+        {
+          "id": "save",
+          "title": "Save SVG…",
+          "shortcut": "cmd+s"
+        }
+      ],
+      "byQuery": {
+        "": [],
+        "arrow": [
+          {
+            "id": "mdi:arrow-left",
+            "name": "arrow-left",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M20%2011v2H8l5.5%205.5l-1.42%201.42L4.16%2012l7.92-7.92L13.5%205.5L8%2011z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-left",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "mdi:arrow-right",
+            "name": "arrow-right",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M4%2011v2h12l-5.5%205.5l1.42%201.42L19.84%2012l-7.92-7.92L10.5%205.5L16%2011z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-right",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "mdi:arrow-up",
+            "name": "arrow-up",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M13%2020h-2V8l-5.5%205.5l-1.42-1.42L12%204.16l7.92%207.92l-1.42%201.42L13%208z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-up",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "mdi:arrow-down",
+            "name": "arrow-down",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M11%204h2v12l5.5-5.5l1.42%201.42L12%2019.84l-7.92-7.92L5.5%2010.5L11%2016z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-down",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "mdi:arrow-left-bold",
+            "name": "arrow-left-bold",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M20%209v6h-8v4.84L4.16%2012L12%204.16V9z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-left-bold",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "mdi:arrow-u-left-top",
+            "name": "arrow-u-left-top",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M20%2013.5c0%203.59-2.91%206.5-6.5%206.5H6v-2h7.5c2.5%200%204.5-2%204.5-4.5S16%209%2013.5%209H7.83l3.08%203.09L9.5%2013.5L4%208l5.5-5.5l1.42%201.41L7.83%207h5.67c3.59%200%206.5%202.91%206.5%206.5%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-u-left-top",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "mdi:arrow-expand-all",
+            "name": "arrow-expand-all",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M9.5%2013.09L10.91%2014.5L6.41%2019H10v2H3v-7h2v3.59zm1.41-3.59L9.5%2010.91L5%206.41V10H3V3h7v2H6.41zm3.18%200L18.59%205H15V3h7v7h-2V6.41L15.5%2010.91zM14.5%2013.09L19%2017.59V14h2v7h-7v-2h3.59l-4.5-4.5z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-expand-all",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "mdi:arrow-collapse-all",
+            "name": "arrow-collapse-all",
+            "subtitle": "Material Design Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M19.5%203.09L15%207.59V4h-2v7h7V9h-3.59l4.5-4.5zM4%2013v2h3.59l-4.5%204.5L4.5%2020.91L9%2016.41V20h2v-7zm13%200v7h2v-3.59l4.5%204.5l1.41-1.41L20.41%2015H24v-2zM11%204H9v3.59L4.5%203.09L3.09%204.5L7.59%209H4v2h7z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "mdi:arrow-collapse-all",
+              "mdi"
+            ],
+            "section": "Material Design Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "tabler:arrow-left",
+            "name": "arrow-left",
+            "subtitle": "Tabler Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M5%2012h14M5%2012l6%206m-6-6l6-6%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "tabler:arrow-left",
+              "tabler"
+            ],
+            "section": "Tabler Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "tabler:arrow-right",
+            "name": "arrow-right",
+            "subtitle": "Tabler Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M5%2012h14m-6-6l6%206l-6%206%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "tabler:arrow-right",
+              "tabler"
+            ],
+            "section": "Tabler Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "tabler:arrow-up",
+            "name": "arrow-up",
+            "subtitle": "Tabler Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M12%205v14m6-8l-6-6l-6%206%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "tabler:arrow-up",
+              "tabler"
+            ],
+            "section": "Tabler Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "tabler:arrow-down",
+            "name": "arrow-down",
+            "subtitle": "Tabler Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M12%205v14m6-6l-6%206l-6-6%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "tabler:arrow-down",
+              "tabler"
+            ],
+            "section": "Tabler Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "tabler:arrow-back-up",
+            "name": "arrow-back-up",
+            "subtitle": "Tabler Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M9%2014l-4-4l4-4%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "tabler:arrow-back-up",
+              "tabler"
+            ],
+            "section": "Tabler Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "tabler:arrow-big-left",
+            "name": "arrow-big-left",
+            "subtitle": "Tabler Icons",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M20%2015h-8v3.586a1%201%200%200%201-1.707.707l-6.586-6.586a1%201%200%200%201%200-1.414l6.586-6.586A1%201%200%200%201%2012%205.414V9h8a1%201%200%200%201%201%201v4a1%201%200%200%201-1%201%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "tabler:arrow-big-left",
+              "tabler"
+            ],
+            "section": "Tabler Icons",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "lucide:arrow-left",
+            "name": "arrow-left",
+            "subtitle": "Lucide",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22m12%2019l-7-7l7-7m7%207H5%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "lucide:arrow-left",
+              "lucide"
+            ],
+            "section": "Lucide",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "lucide:arrow-right",
+            "name": "arrow-right",
+            "subtitle": "Lucide",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M5%2012h14m-7-7l7%207l-7%207%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "lucide:arrow-right",
+              "lucide"
+            ],
+            "section": "Lucide",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "lucide:arrow-up-right",
+            "name": "arrow-up-right",
+            "subtitle": "Lucide",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M7%207h10v10M7%2017L17%207%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "lucide:arrow-up-right",
+              "lucide"
+            ],
+            "section": "Lucide",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "lucide:arrow-down-to-line",
+            "name": "arrow-down-to-line",
+            "subtitle": "Lucide",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23888888%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M12%2017V3m6%208l-6%206l-6-6M19%2021H5%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "lucide:arrow-down-to-line",
+              "lucide"
+            ],
+            "section": "Lucide",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "ph:arrow-left",
+            "name": "arrow-left",
+            "subtitle": "Phosphor",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22256%22%20height%3D%22256%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M224%20128a8%208%200%200%201-8%208H59.31l58.35%2058.34a8%208%200%200%201-11.32%2011.32l-72-72a8%208%200%200%201%200-11.32l72-72a8%208%200%200%201%2011.32%2011.32L59.31%20120H216a8%208%200%200%201%208%208%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "ph:arrow-left",
+              "ph"
+            ],
+            "section": "Phosphor",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          },
+          {
+            "id": "ph:arrow-circle-right",
+            "name": "arrow-circle-right",
+            "subtitle": "Phosphor",
+            "icon": {
+              "image": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22256%22%20height%3D%22256%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%23888888%22%20d%3D%22M128%2024a104%20104%200%201%200%20104%20104A104.11%20104.11%200%200%200%20128%2024m0%20192a88%2088%200%201%201%2088-88a88.1%2088.1%200%200%201-88%2088m45.66-93.66a8%208%200%200%201%200%2011.32l-32%2032a8%208%200%200%201-11.32-11.32L148.69%20136H88a8%208%200%200%201%200-16h60.69l-18.35-18.34a8%208%200%200%201%2011.32-11.32Z%22%2F%3E%3C%2Fsvg%3E"
+            },
+            "keywords": [
+              "ph:arrow-circle-right",
+              "ph"
+            ],
+            "section": "Phosphor",
+            "actions": [
+              {
+                "id": "svg",
+                "title": "Copy SVG"
+              },
+              {
+                "id": "name",
+                "title": "Copy name"
+              },
+              {
+                "id": "data",
+                "title": "Copy as data URL",
+                "shortcut": "cmd+shift+d"
+              },
+              {
+                "id": "open",
+                "title": "Open on Iconify",
+                "shortcut": "cmd+o"
+              },
+              {
+                "id": "save",
+                "title": "Save SVG…",
+                "shortcut": "cmd+s"
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "shots": {
@@ -12030,6 +12833,14 @@
         "down",
         "right*3",
         "cmd+k"
+      ]
+    },
+    "5-iconify": {
+      "palette": "iconify",
+      "keys": [
+        "type:arrow",
+        "wait:400",
+        "right*2"
       ]
     }
   }

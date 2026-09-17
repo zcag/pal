@@ -8,7 +8,7 @@ line says what the Raycast one does and how it would fit pal. Status:
 | Raycast extension | What it does | pal | Notes |
 | --- | --- | --- | --- |
 | [Hue](https://www.raycast.com/pindab0ter/hue) | Philips Hue lights, scenes, rooms | todo | Cagdas (2026-09-16 22:20): not partial; wants native-Hue-app quality with every feature (bridge pairing, rooms/zones, colour/temperature/brightness, scenes, schedules, sensors). Building |
-| [Iconify](https://www.raycast.com/destiner/iconify) | Search 200k icons across sets, copy SVG | partial | Icons has Nerd Font and freedesktop; Iconify's API adds every set with SVG copy |
+| [Iconify](https://www.raycast.com/destiner/iconify) | Search 200k icons across sets, copy SVG | have | Icons' `iconify` palette (2026-09-17): the search API, every set, SVG copy / name / data url / save |
 | [Gmail](https://www.raycast.com/tonka3000/gmail) | Unread mail, search, compose, mark read | todo | His token broker mints Gmail for both accounts; read and mark-read only for the work account (never send from it) |
 | [TinyPNG](https://www.raycast.com/kawamataryo/tinypng) | Compress images from Finder selection or clipboard | todo | `images` extension: compress (pngquant/oxipng/mozjpeg local, TinyPNG API optional), resize, convert |
 | [Google Maps Search](https://www.raycast.com/ratoru/google-maps-search) | Search places, directions from home/work | todo | Quicklink-like with saved places and travel modes |
@@ -20,7 +20,7 @@ line says what the Raycast one does and how it would fit pal. Status:
 | [Downloads Manager](https://www.raycast.com/thomas/downloads-manager) | Latest downloads, open/reveal/delete, copy | partial | Files has recents; a Downloads palette newest first with size and quick actions |
 | [GIF Search](https://www.raycast.com/josephschmitt/gif-search) | Giphy/Tenor search, copy GIF | todo | Grid palette over Tenor (free key), copy file or URL |
 | [YouTube](https://www.raycast.com/tonka3000/youtube) | Search videos and channels | todo | Search rows with thumbnails, open; needs an API key or Invidious |
-| [Pomodoro](https://www.raycast.com/asubbotin/pomodoro) | Focus intervals with a menu bar countdown | partial | Timer has named timers and a bar item; a pomodoro mode (work/break cycles, stats) |
+| [Pomodoro](https://www.raycast.com/asubbotin/pomodoro) | Focus intervals with a menu bar countdown | have | Timer's pomodoro mode (2026-09-17): work/break/long-break cycle on the CLI's timers, skip and stop, a per-day count |
 | [Timers](https://www.raycast.com/ThatNerd/timers) | Named timers, presets, alarms | have | Timer extension |
 | [Google Search](https://www.raycast.com/mblode/google-search) | Suggestions as you type, open | todo | Fallback row exists (pit 2); suggestions API adds live rows |
 | [Obsidian](https://www.raycast.com/marcjulian/obsidian) | Search notes, daily note, append | todo | Vault at ~/Sync/vault; search, open in Obsidian or editor, append to daily, create |

@@ -400,7 +400,7 @@
             "label": "Text",
             "required": true,
             "placeholder": "Best,\nAda",
-            "description": "{clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} and {uuid} are filled in when pasted. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out."
+            "description": "Filled in when pasted: {clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} (with format=DD.MM.YYYY and offset=+1d), {uuid}, {snippet name=sig}. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out."
           }
         ],
         "submit": {

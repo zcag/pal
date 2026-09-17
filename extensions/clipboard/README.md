@@ -12,7 +12,9 @@ metadata. A row that is a single url gets the site's favicon and an Open
 link action; a row that is one colour (`#hex`, `rgb()`) has the colour
 itself as its icon. The source app and the time are accessories, an image
 row shows its size next to its dimensions, and a pinned entry carries a
-`pinned` tag.
+`pinned` tag. An entry you have named (`cmd+shift+r`) is titled by its
+name from then on, with the text's preview as the subtitle, and a search
+finds it by the name as well as by the text.
 
 The filter dropdown (Tab cycles it) narrows by kind: All, Text, Images,
 Files, Links (text that is one url) and Colors.
@@ -26,7 +28,13 @@ Files, Links (text that is one url) and Colors.
 | `cmd+o` | Open link, on an entry that is one url |
 | `cmd+shift+v` | Paste as plain text, on a text entry |
 | `cmd+shift+c` | Copy image file, on an image: the PNG the recorder keeps, as a file |
+| `cmd+shift+t` | Copy text from image (OCR), on an image |
+| `cmd+e` | Edit, on a text entry: the text in a textarea; the submit copies the edited text, so it is the newest entry (the original stays); a box pastes it as well |
 | `cmd+p` | Pin / Unpin: pinned entries sort first and never expire |
+| `cmd+shift+r` | Name / Rename: a one-field form; the name titles the row and is searched; empty clears it |
+| `cmd+s` | Save as file: a folder (the Desktop by default) and a name from the entry; the text as it is, an image's PNG copied, a file list as its paths one per line; an existing name is refused |
+| `cmd+shift+s` | Save as snippet, on a text entry: the Snippets form, pre-filled with the text |
+| `cmd+shift+k` | Show as QR code, on a text entry up to 2000 characters: the code large in a level, the text under it |
 | `cmd+d` | Delete the entry; asks first |
 | (action panel) | Delete all unpinned: every unpinned entry, one by one; asks first |
 | `cmd+shift+d` | Clear history: every entry, pinned ones included; asks first |
@@ -74,7 +82,10 @@ live.
 - Record while pal is not running: there is no background agent.
 - Sync between machines, or keep entries past the retention limits
   unless they are pinned.
-- Edit an entry's text: paste it and edit there.
+- Edit an entry in place: Edit copies the edited text as a new entry,
+  the original stays as it was recorded.
+- Share through the system share sheet: nothing reaches `NSSharingService`
+  from the host; Save as file and the file managers' own sharing stand in.
 - Know the source app on Linux: neither X11 nor the Wayland data-control
   protocol says who owns the selection, so `exclude_apps` has no effect
   there and the source accessory is absent.

@@ -52,7 +52,8 @@ function failure(e: unknown): Item[] {
   log(e instanceof Error ? e.message : String(e));
   return [hint("error", "Gmail did not answer", e instanceof Error ? e.message : String(e), [], ICON.alert)];
 }
-const pickHint = (id: string): Effect | void => (id === "hint:token" || id === "hint:auth" ? { open: "pal://settings/extensions" } : undefined);
+// The settings link lands on this instance's token command (`?anchor=`, docs/links.md), so a second account's hint opens its own row.
+const pickHint = (id: string): Effect | void => (id === "hint:token" || id === "hint:auth" ? { open: `pal://settings/extensions?anchor=extensions:${instance().key}:token_command` } : undefined);
 const guard = async (f: () => Promise<Item[]>): Promise<Item[]> => { try { return await f(); } catch (e) { return failure(e); } };
 const failToast = (title: string, e: unknown): Effect => ({ keep: true, toast: { title, message: e instanceof Error ? e.message : String(e), style: "failure" } });
 

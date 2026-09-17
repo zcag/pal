@@ -9,6 +9,7 @@ import { join } from "node:path";
 import type { BarItem, View, ViewNode } from "../../../sdk/src/index.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import { fmt, parseNew, readTimers, unquote } from "../../../extensions/timer/index.ts";
+import { asSession, next, tally, type Session } from "../../../extensions/timer/pomodoro.ts";
 import { DEFAULT_RECENT, actions, render as renderPopover, type PopoverState, type Timer } from "../../../extensions/timer/view.ts";
 import { Host } from "../harness.ts";
 
@@ -57,12 +58,13 @@ describe("timer", () => {
     expect(l.bar).toEqual([{ id: "timer", title: "Timer", description: expect.any(String), refresh: { every: 10, on: ["wake"] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }, { keys: "n", title: expect.any(String) }]), source: true }]);
   });
 
-  test("the state directory is made on the first render; no timers is hidden, and the palette has only the New row", async () => {
+  test("the state directory is made on the first render; no timers is hidden, and the palette has only the New and Start Pomodoro rows", async () => {
     expect(await render()).toEqual({ hidden: true });
     expect(existsSync(dir)).toBe(true);
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["new"]);
+    expect(items.map((i) => i.id)).toEqual(["new", "pomodoro"]);
     expect(items[0]).toMatchObject({ name: "New timer", icon: "\u{f0415}", actions: [{ id: "new", title: "New timer" }] });
+    expect(items[1]).toMatchObject({ name: "Start Pomodoro", subtitle: "25 min of work, 5 of break, 4 rounds then 15 min off", icon: "\u{f025b}", actions: [{ id: "pomodoro", title: "Start pomodoro" }] });
   });
 
   test("a command that is not installed is one hint row in place of New timer, and a pick says so", async () => {
@@ -114,7 +116,7 @@ describe("timer", () => {
     put("eggs", { state: "paused", left: 30 });
     put("pizza", { state: "done", fired: now() - 10 });
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["pizza", "tea", "eggs", "new"]);
+    expect(items.map((i) => i.id)).toEqual(["pizza", "tea", "eggs", "new", "pomodoro"]);
     expect(items[0]).toMatchObject({ name: "pizza", subtitle: "Landed 0:10 ago", accessories: [{ tag: "done", color: "red" }] });
     expect(items[0].actions!.map((a) => a.id)).toEqual(["done", "add", "stop"]);
     expect(items[1]).toMatchObject({ name: "tea", subtitle: expect.stringMatching(/^(10:00|9:59) left, done at /), accessories: [{ tag: "running", color: "blue" }] });
@@ -141,7 +143,7 @@ describe("timer", () => {
     expect(await pick("new", "start", { duration: "nope", name: "" })).toMatchObject({ form: { errors: { duration: "bad duration 'nope' (try 25m, 90s, 1h30m, 2:30)" } } });
     expect(await pick("new", "start", { duration: "25m", name: "tea", ring: true })).toEqual({ keep: true, toast: { title: "Timer started", message: "tea started" } });
     expect(asked().at(-1)).toBe("25m tea --ring");
-    expect((await list()).map((i) => i.id)).toEqual(["tea", "new"]);
+    expect((await list()).map((i) => i.id)).toEqual(["tea", "new", "pomodoro"]);
     expect(await pick("new", "start", { duration: "90s" })).toMatchObject({ keep: true });
     expect(asked().at(-1)).toBe("90s");
     unlinkSync(join(dir, "90s.state"));
@@ -174,8 +176,8 @@ describe("timer", () => {
     expect(all.some((n) => n.type === "badge" && n.text === "paused")).toBe(true);
     // The first card is the landed one: Enter dismisses; the keys of the hints row are the actions.
     expect(v.actions[0]).toEqual({ id: "toggle", title: "Dismiss", shortcut: ["space", "d"] });
-    expect(v.actions.map((a) => a.id)).toEqual(["toggle", "stop", "new", "open", "up", "down", "focus:pizza", "focus:tea", "focus:eggs"]);
-    expect(all.filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["space", "backspace", "up", "down", "n", "o"]);
+    expect(v.actions.map((a) => a.id)).toEqual(["toggle", "stop", "new", "pomodoro", "open", "up", "down", "focus:pizza", "focus:tea", "focus:eggs"]);
+    expect(all.filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["space", "backspace", "up", "down", "n", "p", "o"]);
     expect(v.input).toBeUndefined();
   });
 
@@ -253,6 +255,93 @@ describe("timer", () => {
   test("a stopped timer is a toast when the CLI refuses", async () => {
     expect(await pick("gone", "nope")).toMatchObject({ keep: true, toast: { title: "Could not nope the timer", style: "failure" } });
   });
+
+  // ---- pomodoro: the session rides on the CLI's timers, advanced on every read of the directory.
+  const huds = () => host.coreCalls.filter((c) => c.method === "effects.run").map((c) => (c.params as { effect: { hud?: string } }).effect.hud);
+  /** The CLI firing a timer: its file says done. */
+  const land = (id: string, name: string) => put(id, { state: "done", fired: now() - 1, name });
+  const ids = async () => (await list()).map((i) => i.id);
+  const sessionStored = () => host.coreCalls.filter((c) => c.method === "storage.set" && (c.params as { key: string }).key === "pomodoro").map((c) => (c.params as { value: Session }).value);
+
+  test("Start Pomodoro: the first round's timer through the CLI, the row marked with the phase and the round, the session in storage, the Start row gone", async () => {
+    clear();
+    host.changeSettings("timer", { settings: { command: cli, dir, pomodoro_rounds: 2 } });
+    expect(await pick("pomodoro")).toEqual({ keep: true, hud: "Pomodoro. Round 1 of 2: 25 min" });
+    expect(asked().at(-1)).toBe("25m Pomodoro 1 of 2");
+    expect(await ids()).toEqual(["Pomodoro-1-of-2", "new"]);
+    const r = (await list())[0];
+    expect(r).toMatchObject({ name: "Pomodoro 1 of 2", subtitle: expect.stringMatching(/^Round 1 of 2, work · (25:00|24:59) left/), icon: "\u{f025b}", keywords: ["timer", "running", "pomodoro", "work"], accessories: [{ tag: "work", color: "violet" }, { tag: "running", color: "blue" }] });
+    expect(r.actions!.map((a) => a.id)).toEqual(["pause", "add", "skip", "stop-pomodoro", "stop"]);
+    expect(sessionStored().at(-1)).toMatchObject({ round: 1, of: 2, phase: "work", timerId: "Pomodoro-1-of-2", timerName: "Pomodoro 1 of 2" });
+    expect(await pick("pomodoro")).toMatchObject({ keep: true, toast: { title: "A pomodoro is running", message: "Round 1 of 2, work" } });
+    // The strip names the round; the tooltip the phase.
+    expect(await render()).toMatchObject({ title: expect.stringMatching(/^(25:00|24:59) · 1\/2$/), tooltip: "Pomodoro: round 1 of 2, work" });
+  });
+
+  test("the work timer lands: stopped, the round tallied, the break started and the HUD told; the break lands: the next round; the last round lands: the long break; then round 1 again", async () => {
+    land("Pomodoro-1-of-2", "Pomodoro 1 of 2");
+    expect(await ids()).toEqual(["Break-1-of-2", "new", "pomodoro:today"]);
+    expect(asked().slice(-2)).toEqual(["stop Pomodoro-1-of-2", "5m Break 1 of 2"]);
+    expect(huds().at(-1)).toBe("Pomodoro. Break: 5 min");
+    expect((await list())[0]).toMatchObject({ subtitle: expect.stringMatching(/^Round 1 of 2, break · /), accessories: [{ tag: "break", color: "green" }, { tag: "running", color: "blue" }] });
+    expect((await list())[2]).toMatchObject({ id: "pomodoro:today", name: "Pomodoros today: 1", subtitle: "One work round finished", actions: [] });
+    expect(await render()).toMatchObject({ title: expect.stringMatching(/ · break$/) });
+    land("Break-1-of-2", "Break 1 of 2");
+    expect(await ids()).toEqual(["Pomodoro-2-of-2", "new", "pomodoro:today"]);
+    expect(huds().at(-1)).toBe("Pomodoro. Round 2 of 2: 25 min");
+    land("Pomodoro-2-of-2", "Pomodoro 2 of 2");
+    expect(await ids()).toEqual(["Long-break", "new", "pomodoro:today"]);
+    expect(asked().at(-1)).toBe("15m Long break");
+    expect(huds().at(-1)).toBe("Pomodoro. Long break: 15 min");
+    expect((await list())[0]).toMatchObject({ subtitle: expect.stringMatching(/^Long break · /), accessories: [{ tag: "long break", color: "green" }, { tag: "running", color: "blue" }] });
+    expect((await list())[2].name).toBe("Pomodoros today: 2");
+    land("Long-break", "Long break");
+    expect(await ids()).toEqual(["Pomodoro-1-of-2", "new", "pomodoro:today"]);
+    expect(sessionStored().at(-1)).toMatchObject({ round: 1, phase: "work" });
+  });
+
+  test("skip starts the next phase without a tally; stop ends the session, its timer gone and Start Pomodoro back", async () => {
+    expect(await pick("Pomodoro-1-of-2", "skip")).toEqual({ keep: true });
+    expect(asked().slice(-2)).toEqual(["stop Pomodoro-1-of-2", "5m Break 1 of 2"]);
+    expect(huds().at(-1)).toBe("Pomodoro. Round 1 of 2, break");
+    expect((await list())[2].name).toBe("Pomodoros today: 2");
+    expect(await pick("Break-1-of-2", "stop-pomodoro")).toEqual({ keep: true, hud: "Pomodoro stopped" });
+    expect(existsSync(join(dir, "Break-1-of-2.state"))).toBe(false);
+    expect(host.coreCalls.filter((c) => c.method === "storage.remove" && (c.params as { key: string }).key === "pomodoro")).toHaveLength(1);
+    expect(await ids()).toEqual(["new", "pomodoro", "pomodoro:today"]);
+  });
+
+  test("the popover: p starts one, the card names the phase and the round, s skips, the tally sits at the end of the hints; a session whose timer went away ends by itself", async () => {
+    expect(await act("pomodoro")).toEqual({ keep: true, hud: "Pomodoro. Round 1 of 2: 25 min" });
+    let v = menuView(await render());
+    const all = nodes(v.tree);
+    expect(all.find((n) => n.type === "badge" && n.key === "phase")).toMatchObject({ text: "work", color: "violet" });
+    expect(all.find((n) => n.type === "text" && n.key === "today")).toMatchObject({ value: "2 today" });
+    expect(all.filter((n) => n.type === "keycap").map((n) => (n as { keys: string }).keys)).toEqual(["space", "+", "backspace", "n", "s", "o"]);
+    expect(v.actions.map((a) => a.id)).toEqual(["toggle", "add", "stop", "new", "skip", "stop-pomodoro", "open", "focus:Pomodoro-1-of-2"]);
+    expect(checkView(v)).toBe(v);
+    expect(await act("skip")).toEqual({ keep: true });
+    expect(huds().at(-1)).toBe("Pomodoro. Round 1 of 2, break");
+    v = menuView(await render());
+    expect(nodes(v.tree).find((n) => n.type === "badge" && n.key === "phase")).toMatchObject({ text: "break", color: "green" });
+    // Stopped from the terminal: the file goes; the next read ends the session.
+    unlinkSync(join(dir, "Break-1-of-2.state"));
+    expect(await ids()).toEqual(["new", "pomodoro", "pomodoro:today"]);
+    expect(await render()).toEqual({ hidden: true });
+    host.changeSettings("timer", { settings: { command: cli, dir } });
+  });
+
+  test("a session survives a host restart: read back from storage with its timer", async () => {
+    expect(await pick("pomodoro")).toMatchObject({ keep: true });
+    const h = await Host.bundled({ settings: { timer: { settings: { command: cli, dir } } } });
+    try {
+      const items = await h.list("timer", "timers");
+      expect(items[0]).toMatchObject({ id: "Pomodoro-1-of-4", subtitle: expect.stringMatching(/^Round 1 of 4, work · /) });
+      expect(items.map((i) => i.id)).toEqual(["Pomodoro-1-of-4", "new", "pomodoro:today"]);
+      expect(await h.pick("timer", "timers", "Pomodoro-1-of-4", "stop-pomodoro")).toEqual({ keep: true, hud: "Pomodoro stopped" });
+    } finally { h.kill(); }
+    expect(await ids()).toEqual(["new", "pomodoro", "pomodoro:today"]);
+  });
 });
 
 describe("timer: the popover's tree", () => {
@@ -277,6 +366,19 @@ describe("timer: the popover's tree", () => {
     const one = actions(st([late]));
     expect(one.some((a) => a.id === "up")).toBe(false);
     expect(one[0]).toMatchObject({ id: "toggle", title: "Pause" });
+  });
+
+  test("pomodoro: the phase after each, the tally keeps sixty days, a stored session is read defensively", () => {
+    expect(next({ round: 1, of: 4, phase: "work" })).toEqual({ phase: "break", round: 1 });
+    expect(next({ round: 1, of: 4, phase: "break" })).toEqual({ phase: "work", round: 2 });
+    expect(next({ round: 4, of: 4, phase: "work" })).toEqual({ phase: "long", round: 4 });
+    expect(next({ round: 4, of: 4, phase: "long" })).toEqual({ phase: "work", round: 1 });
+    expect(next({ round: 1, of: 1, phase: "work" })).toEqual({ phase: "long", round: 1 });
+    expect(tally({ "2026-09-16": 3, "2026-07-01": 9, "2026-09-17": 0 }, "2026-09-17")).toEqual({ "2026-09-16": 3, "2026-09-17": 1 });
+    expect(tally({}, "2026-09-17")).toEqual({ "2026-09-17": 1 });
+    expect(asSession({ round: 2, of: 4, phase: "break", timerId: "b", timerName: "Break 2 of 4" })).toEqual({ round: 2, of: 4, phase: "break", timerId: "b", timerName: "Break 2 of 4", startedAt: 0, sessionStart: 0 });
+    expect(asSession({ round: 2, phase: "nap", timerId: "b", timerName: "x" })).toBeNull();
+    expect(asSession(null)).toBeNull();
   });
 
   test("parseNew: the first word is the duration, the rest the name, a trailing ring asks the phone", () => {

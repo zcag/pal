@@ -16,7 +16,7 @@ import * as google from "./google.ts";
 export type SourceName = "auto" | "system" | "google";
 export type Settings = {
   source: SourceName; accounts: unknown[]; calendars: string[]; days: number; hide_declined: boolean; hide_all_day: boolean;
-  horizon_hours: number; warn_minutes: number; urgent_minutes: number;
+  horizon_hours: number; warn_minutes: number; urgent_minutes: number; default_length: number;
 };
 export type Loaded = { events: CalendarEvent[]; at: number; stale: boolean; error?: string };
 

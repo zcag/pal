@@ -157,7 +157,7 @@ Paragraphs, *emphasis*, **strong**, ~~struck~~, \`code\`, and a [link](https://e
 /* Settings: four extensions as installed, their palettes as configured in config.toml. */
 import { lookDefaults, type BarConfig, type BarItem, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PermissionsStatus, type SettingSpec, type SettingsExtension } from "../ui/SettingsTypes";
 
-export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", askPermissionsOnStart: true };
+export const settingsGeneral: GeneralConfig = { hotkeys: ["ctrl+space"], theme: "system", launchAtLogin: true, menuBarIcon: true, position: "top", askPermissionsOnStart: true, backspaceBack: true };
 /** A stock Mac asking for ⌘Space: Spotlight holds it, the guidance shows. */
 /** Every entry's fate as the gallery's General page fakes it: ⌘Space is Spotlight's, anything else registers. */
 export const settingsHotkeyStatus = (hotkeys: string[]): HotkeyStatus => {

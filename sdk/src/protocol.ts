@@ -222,12 +222,14 @@ export type ViewNode =
   /**
    * One run of text. `style`: `title` (15 px semibold), `body` (13 px),
    * `muted` (13 px, muted colour), `mono` (12 px mono), `number` (tabular
-   * figures, semibold). `size`/`weight`/`color` refine it: colours are
+   * figures, semibold), `glyph` (the bundled symbols font, so a Nerd Font
+   * glyph draws in a popover or a card; the value is the glyph, alone or
+   * with a few characters). `size`/`weight`/`color` refine it: colours are
    * the tag palette plus `accent`, `success`, `destructive`, `muted`, `faint`.
    * `width` fixes the run's width in px (a column of labels that line up),
    * `minWidth` only its least; `align` places the text inside that width.
    */
-  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
+  | (NodeBase & { type: "text"; value: string; style?: "title" | "body" | "muted" | "mono" | "number" | "glyph"; weight?: "regular" | "medium" | "semibold"; size?: "xs" | "sm" | "md" | "lg" | "xl"; color?: TagColor | "accent" | "success" | "destructive" | "muted" | "faint"; width?: number; minWidth?: number; align?: "start" | "center" | "end" })
   /** An `icon://` url or a `data:image/...` the extension produced (an SVG it drew); anything else is not shown. Sized in px. `dot` is a small filled circle on the bottom-right corner in that colour, ringed by the panel: an avatar's presence (green active, grey away, red do not disturb). */
   | (NodeBase & { type: "image"; src: string; width?: number; height?: number; mask?: "circle" | "rounded"; alt?: string; dot?: TagColor })
   /**
@@ -375,11 +377,18 @@ export type WindowLayout =
   | "left_half" | "right_half" | "top_half" | "bottom_half"
   | "left_third" | "center_third" | "right_third" | "left_two_thirds" | "right_two_thirds"
   | "top_left_quarter" | "top_right_quarter" | "bottom_left_quarter" | "bottom_right_quarter"
-  | "maximize" | "almost_maximize" | "center" | "reasonable_size"
-  | "next_display" | "previous_display" | "restore";
+  | "maximize" | "almost_maximize" | "maximize_height" | "maximize_width" | "center" | "reasonable_size"
+  | "larger" | "smaller" | "move_left" | "move_right" | "move_up" | "move_down"
+  | "next_display" | "previous_display" | "fullscreen" | "minimize" | "unminimize" | "restore";
 
-/** `pal_core::windows::layout::Options`: the knobs, all optional (gap 0, 90%, 60%). */
-export type WindowLayoutOptions = { gap?: number; almost_maximize_percent?: number; reasonable_size_percent?: number };
+/**
+ * `pal_core::windows::layout::Options`: the knobs, all optional (gap 0,
+ * 90%, 60%, `step` 32 px per move). `cycle`: a half or a third applied to
+ * a window already at that frame steps to the next size of its family
+ * (left half, then left two thirds, then left third, then the half
+ * again), the way Rectangle's repeated keypress does.
+ */
+export type WindowLayoutOptions = { gap?: number; almost_maximize_percent?: number; reasonable_size_percent?: number; step?: number; cycle?: boolean };
 
 /** The `layout` effect's payload and `windows.layout`'s params, one shape. */
 export type WindowLayoutRequest = WindowLayoutOptions & { name: WindowLayout; id?: string };

@@ -1,9 +1,14 @@
 {
   "name": "clipboard",
   "title": "Clipboard",
-  "description": "What you copied, searchable, with images; pinned entries first, a filter by kind (text, images, files, links, colors). Enter pastes it back into the app in front.",
+  "description": "What you copied, searchable, with images; pinned entries first, a filter by kind (text, images, files, links, colors). Enter pastes it back into the app in front; an entry can be edited, named, saved as a file or a snippet, or shown as a QR code.",
   "version": "0.1.0",
-  "icon": { "tile": { "glyph": "󰅍", "bg": "violet" } },
+  "icon": {
+    "tile": {
+      "glyph": "󰅍",
+      "bg": "violet"
+    }
+  },
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
@@ -73,6 +78,7 @@
       "Pinned entries in a section at the top, never expiring; the rest newest first, kept for `max_age_days` and `max_entries`",
       "Filters: All, Text, Images, Files, Links (text that is one url) and Colors (a `#hex` or `rgb()`, drawn as a swatch)",
       "Paste (`enter`) or copy back (`cmd+enter`), paste as plain text (`cmd+shift+v`), open a link (`cmd+o`), copy an image as a file (`cmd+shift+c`), copy the text in an image (`cmd+shift+t`, OCR: the Vision framework on macOS, `tesseract` on Linux)",
+      "Edit a text entry (`cmd+e`, the edited text copied as the newest entry), name one (`cmd+shift+r`: the row's title, found by search), save it as a file (`cmd+s`), as a snippet (`cmd+shift+s`), or show it as a QR code (`cmd+shift+k`)",
       "Never recorded: what a password manager marks concealed (pal's own concealed copies too: a 1Password password, a verification code), copies over 10 MB, copies made in an excluded app"
     ],
     "permissions": [
@@ -85,7 +91,7 @@
     "screenshots": [
       {
         "file": "1-list.png",
-        "caption": "The history with the pane open: pinned first, then newest, the source app and the time on the right"
+        "caption": "The history with the pane open: pinned first (a named entry by its name), then newest, the source app and the time on the right"
       },
       {
         "file": "2-image.png",
@@ -97,7 +103,15 @@
       },
       {
         "file": "4-actions.png",
-        "caption": "Paste, Copy, Pin, Delete, Clear history"
+        "caption": "Paste, Copy, Open link, Edit, Pin, Name, Save as file, Save as snippet, Show as QR code, Delete, Clear history"
+      },
+      {
+        "file": "5-edit.png",
+        "caption": "Edit (cmd+E): the text in a textarea; the submit copies it, so the edited text is the newest entry"
+      },
+      {
+        "file": "6-qr.png",
+        "caption": "Show as QR code (cmd+shift+K): the entry's text as a code to scan, large in a level"
       }
     ],
     "actions": [
@@ -126,9 +140,39 @@
         "keys": "cmd+shift+c"
       },
       {
+        "title": "Copy text from image",
+        "description": "OCR over the image (Vision on macOS, tesseract on Linux); the text goes on the clipboard.",
+        "keys": "cmd+shift+t"
+      },
+      {
+        "title": "Edit…",
+        "description": "On a text entry: a textarea with the text; the submit copies the edited text (a box pastes it too), so it is the newest entry.",
+        "keys": "cmd+e"
+      },
+      {
         "title": "Pin / Unpin",
         "description": "Pinned entries sort first and never expire.",
         "keys": "cmd+p"
+      },
+      {
+        "title": "Name… / Rename…",
+        "description": "A name that titles the row and is searched like the text; empty clears it.",
+        "keys": "cmd+shift+r"
+      },
+      {
+        "title": "Save as file…",
+        "description": "A folder (the Desktop) and a name from the entry: the text, the image's PNG, or the file list as paths. An existing name is refused.",
+        "keys": "cmd+s"
+      },
+      {
+        "title": "Save as snippet",
+        "description": "On a text entry: the Snippets form, pre-filled.",
+        "keys": "cmd+shift+s"
+      },
+      {
+        "title": "Show as QR code",
+        "description": "On a text entry up to 2000 characters: the code large in a level.",
+        "keys": "cmd+shift+k"
       },
       {
         "title": "Delete",
@@ -188,11 +232,26 @@
         }
       ],
       "keys": [
-        { "keys": "enter", "title": "What the row is for: open, call, paste as plain, copy the answer" },
-        { "keys": "cmd+shift+h", "title": "Hide the section until the next copy" },
-        { "keys": "cmd+shift+o", "title": "Open the address in a private window" },
-        { "keys": "cmd+shift+m", "title": "Copy as a Markdown link, or minified JSON" },
-        { "keys": "cmd+s", "title": "Save the text as a snippet" }
+        {
+          "keys": "enter",
+          "title": "What the row is for: open, call, paste as plain, copy the answer"
+        },
+        {
+          "keys": "cmd+shift+h",
+          "title": "Hide the section until the next copy"
+        },
+        {
+          "keys": "cmd+shift+o",
+          "title": "Open the address in a private window"
+        },
+        {
+          "keys": "cmd+shift+m",
+          "title": "Copy as a Markdown link, or minified JSON"
+        },
+        {
+          "keys": "cmd+s",
+          "title": "Save the text as a snippet"
+        }
       ]
     },
     "history": {
@@ -220,8 +279,32 @@
           "title": "Copy an image as a file"
         },
         {
+          "keys": "cmd+shift+t",
+          "title": "Copy the text in an image (OCR)"
+        },
+        {
+          "keys": "cmd+e",
+          "title": "Edit a text entry; the edited text is copied"
+        },
+        {
           "keys": "cmd+p",
           "title": "Pin or unpin"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Name or rename the entry"
+        },
+        {
+          "keys": "cmd+s",
+          "title": "Save as a file"
+        },
+        {
+          "keys": "cmd+shift+s",
+          "title": "Save a text entry as a snippet"
+        },
+        {
+          "keys": "cmd+shift+k",
+          "title": "Show a text entry as a QR code"
         },
         {
           "keys": "cmd+d",

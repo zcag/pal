@@ -46,6 +46,7 @@ export const grammar: { keys: string[]; does: string }[] = [
   { keys: ["cmd+k"], does: "Toggle the action panel" },
   { keys: ["escape"], does: "Close action panel, else clear the marks, else clear query, else pop a level, else hide" },
   { keys: ["cmd+backspace"], does: "Pop a level when the query is empty" },
+  { keys: ["backspace"], does: "With nothing typed: the row's action carrying it, else pop a level (general.backspace_back)" },
   { keys: ["tab", "shift+tab"], does: "Cycle the filter dropdown, when there is one" },
   { keys: ["cmd+i"], does: "Toggle the detail pane" },
   { keys: ["cmd+1"], does: "Jump to row 1..9 (cmd+1 to cmd+9)" },

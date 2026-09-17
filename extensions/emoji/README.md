@@ -49,6 +49,7 @@ Settings, `[extensions.emoji]`:
 | --- | --- | --- | --- |
 | `skin_tone` | `none`, `light`, `medium-light`, `medium`, `medium-dark`, `dark` | `"none"` | The Fitzpatrick modifier applied where an emoji takes one (329 of them: hands, people), in the tile, on copy and on paste. |
 | `paste_by_default` | bool | `false` | `Enter` pastes into the app in front, `cmd+enter` copies. |
+| `keywords` | list of lines | `[]` | Your own search words: `rocket: ship deploy`, `🎉: party, woo` (a shortcode or the emoji, a colon, the words). A line naming no emoji is ignored; the words join the emoji's own for search. |
 
 The modifier goes after the first code point, which tones a single person
 and the first person of a family or profession sequence; a two-person

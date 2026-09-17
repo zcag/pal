@@ -134,7 +134,17 @@ const keepOpen = (cmd: string, shell: string[]) => `${cmd}; exec ${shell[0]}`;
  * shell it lands in; undefined when Linux has no terminal to name.
  */
 export function terminalArgv(cmd: string, cwd: string, shell: string[], terminal: string, env: Record<string, string | undefined> = process.env, has?: (name: string) => string | null): string[] | undefined {
-  const line = `cd ${q(cwd)} && ${keepOpen(cmd, shell)}`;
+  return terminalOn(keepOpen(cmd, shell), cwd, shell, terminal, env, has);
+}
+
+/** What opens a terminal in `cwd` with nothing run but the shell (Files' Open in Terminal); the same table as `terminalArgv`. */
+export function terminalAt(cwd: string, terminal: string, shell: string[] = [process.env.SHELL || "/bin/sh"], env: Record<string, string | undefined> = process.env, has?: (name: string) => string | null): string[] | undefined {
+  return terminalOn(`exec ${shell[0]}`, cwd, shell, terminal, env, has);
+}
+
+/** The terminal table: `tail` is what runs after `cd cwd` (a command kept open, or the shell alone). */
+function terminalOn(tail: string, cwd: string, shell: string[], terminal: string, env: Record<string, string | undefined>, has?: (name: string) => string | null): string[] | undefined {
+  const line = `cd ${q(cwd)} && ${tail}`;
   if (!MAC) {
     const term = terminal.trim() || linuxTerminal(env, has);
     return term ? linuxTerminalArgv(term, [shell[0], "-c", line]) : undefined;
@@ -143,10 +153,10 @@ export function terminalArgv(cmd: string, cwd: string, shell: string[], terminal
   switch (name.toLowerCase()) {
     case "terminal": case "terminal.app": return ["osascript", "-e", `tell application "Terminal"`, "-e", "activate", "-e", `do script ${JSON.stringify(line)}`, "-e", "end tell"];
     case "iterm": case "iterm2": case "iterm.app": return ["osascript", "-e", `tell application "iTerm"`, "-e", "activate", "-e", `set w to (create window with default profile)`, "-e", `tell current session of w to write text ${JSON.stringify(line)}`, "-e", "end tell"];
-    case "kitty": return ["open", "-na", "kitty", "--args", "--directory", cwd, shell[0], "-c", keepOpen(cmd, shell)];
-    case "alacritty": return ["open", "-na", "Alacritty", "--args", "--working-directory", cwd, "-e", shell[0], "-c", keepOpen(cmd, shell)];
-    case "wezterm": return ["open", "-na", "WezTerm", "--args", "start", "--cwd", cwd, "--", shell[0], "-c", keepOpen(cmd, shell)];
-    case "ghostty": return ["open", "-na", "Ghostty", "--args", `--working-directory=${cwd}`, `--command=${shell[0]} -c ${q(keepOpen(cmd, shell))}`];
+    case "kitty": return ["open", "-na", "kitty", "--args", "--directory", cwd, shell[0], "-c", tail];
+    case "alacritty": return ["open", "-na", "Alacritty", "--args", "--working-directory", cwd, "-e", shell[0], "-c", tail];
+    case "wezterm": return ["open", "-na", "WezTerm", "--args", "start", "--cwd", cwd, "--", shell[0], "-c", tail];
+    case "ghostty": return ["open", "-na", "Ghostty", "--args", `--working-directory=${cwd}`, `--command=${shell[0]} -c ${q(tail)}`];
     default: return ["open", "-na", name, "--args", "-e", shell[0], "-c", line];
   }
 }

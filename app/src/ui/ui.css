@@ -227,6 +227,9 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-icon__img[data-mask="rounded"] { border-radius: var(--pal-radius-icon, 6px); }
 /* A thumbnail or avatar keeps an edge on a panel of its own colour (a light screenshot on the light panel, a white cover on the dark one): the tile's hairline, drawn inside the mask. */
 .pal-icon__img[data-mask] { outline: 1px solid var(--pal-tile-ring, rgba(0, 0, 0, 0.1)); outline-offset: -1px; }
+/* The selected row brightens a glyph to `--pal-fg`; a picture (favicon, app icon, avatar, thumbnail) lifts the same way, a notch brighter and, on dark, a touch more saturated, its hairline with it. A tile does not change on selection (icons.css). */
+.pal-row[data-active] .pal-icon__img, .pal-action[data-active] .pal-icon__img { filter: var(--pal-icon-lift, brightness(1.08)); }
+.pal-row[data-active] .pal-icon__img[data-mask] { outline-color: color-mix(in srgb, var(--pal-tile-ring, rgba(0, 0, 0, 0.1)), var(--pal-fg, #ececf0) 25%); }
 
 /* Detail pane */
 .pal-detail { display: flex; flex-direction: column; min-height: 100%; }
@@ -528,6 +531,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view__text[data-style="muted"] { color: var(--pal-fg-muted, #a3a4ae); }
 .pal-view__text[data-style="mono"] { font-family: var(--pal-font-mono, ui-monospace, monospace); font-size: var(--pal-text-sm, 12px); }
 .pal-view__text[data-style="number"] { font-weight: var(--pal-weight-semibold, 600); font-variant-numeric: tabular-nums; }
+/* A Nerd Font glyph as text (a popover's mark, a card's symbol): the bundled symbols font, never wrapped, on the line of the text beside it. */
+.pal-view__text[data-style="glyph"] { font-family: var(--pal-font-symbols, "Symbols Nerd Font Mono"), var(--pal-font-mono, ui-monospace, monospace); white-space: nowrap; line-height: 1; }
 .pal-view__text[data-size="xs"] { font-size: var(--pal-text-xs, 11px); }
 .pal-view__text[data-size="sm"] { font-size: var(--pal-text-sm, 12px); }
 .pal-view__text[data-size="md"] { font-size: var(--pal-text-md, 13px); }

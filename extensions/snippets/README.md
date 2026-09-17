@@ -17,10 +17,21 @@ Placeholders in the text are filled in when it is pasted or copied:
 | `{time}` | now, `HH:MM` |
 | `{datetime}` | both, with a space between |
 | `{uuid}` | a fresh UUID, a different one per occurrence |
+| `{snippet name=sig}` | another snippet's text (by name or keyword), its own placeholders filled; one level deep |
 | `{cursor}` | where the caret lands after an expansion (below); dropped by a paste from the panel |
 
+`{date}`, `{time}` and `{datetime}` take two attributes: `format=`, with
+the tokens `YYYY` `YY` `MM` `DD` `HH` `mm` `ss` `ddd` (Wed) `MMM` (Sep) and
+anything else written as it is (`{date format=DD.MM.YYYY}`, `{time
+format=HH:mm:ss}`, quotes around a format with spaces: `{date format="ddd
+D MMM"}`), and `offset=`, a signed count of days, weeks, hours or minutes
+applied first (`{date offset=+1d}`, `{date offset=-2w}`, `{time
+offset=+3h}`, `{datetime offset=-90m format=HH:mm}`).
+
 Anything else in braces is left as it is, so a snippet of code keeps its
-braces. A snippet with placeholders carries a `dynamic` accessory.
+braces. A snippet with placeholders carries a `dynamic` accessory. The
+grammar is the SDK's (`expand` in `@zcag/pal`), shared with quicklinks
+(`{selection}` in a url) and obsidian (an appended line).
 
 The palette is indexed, so a snippet's name and keyword find it from the
 root, and the rows around the list are its tools:
@@ -69,8 +80,10 @@ An import file looks like this:
 
 With `expand = true` in `[extensions.snippets]`, a keyword typed in any
 other app is replaced by its snippet in place: `;sig` becomes the
-signature where it was typed, placeholders filled, the clipboard left as
-it was, `{cursor}` placing the caret. Off by default. pal watches the
+signature where it was typed, placeholders filled (the plain forms:
+`format=`, `offset=` and `{snippet}` are the panel's, an expansion
+leaves them as written), the clipboard left as it was, `{cursor}` placing
+the caret. Off by default. pal watches the
 keys typed in other apps (needs Input Monitoring) and types the
 replacement (needs Accessibility, like Paste). The prefix is a setting
 (`;`, `:`, or none for the bare keyword at a word start); terminals and

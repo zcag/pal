@@ -39,6 +39,7 @@ is one line in the HUD (`pal: unknown link`, `pal: text is required`).
 | `pal://toggle` | `pal toggle` | One or the other (a keybind's link) |
 | `pal://settings` | `pal settings` | The settings window |
 | `pal://settings/<page>` | `pal settings <page>` | On `overview`, `general`, `palettes`, `extensions`, `bar` or `about` |
+| `...?anchor=<row>` | | Landing on a row of that page, lit as a search hit is: `extensions:<name>` selects an extension, `extensions:<name>:<setting>` its setting (`pal://settings/extensions?anchor=extensions:gmail:token` is what a "Set the token" hint row opens), `general:hotkey` the recorder, `palettes:<id>` a palette |
 | `pal://reload` | `pal reload` | Restart the extension host |
 | `pal://quit` | `pal quit` | Quit pal |
 | `pal://commands/<id>` | `pal command <id>` | One of pal's own rows, by id (below); `pal://run/pal/commands/<id>` spells the same |
@@ -87,7 +88,7 @@ An extension can declare routes of its own; the bundled ones:
 | `pal://quicklinks/open?name=<name>` | Open the quicklink by name or keyword; a `{query}` link opens the panel to fill it, or `&query=<text>` fills it from the link |
 | `pal://snippets/paste?name=<name>` | Paste the snippet by name or keyword, placeholders filled; `&copy=1` copies it instead |
 | `pal://window-management/layout?name=<layout>` | Move the focused window: `left_half`, `right_half`, `top_half`, `bottom_half`, `left_third`, `center_third`, `right_third`, `left_two_thirds`, `right_two_thirds`, the four `*_quarter`s, `maximize`, `almost_maximize`, `center`, `reasonable_size`, `next_display`, `previous_display`, `restore` |
-| `pal://system/run?id=<command>` | A system command: `sleep`, `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`, `volume-up`, `volume-down`, `volume-mute`, `brightness-up`, `brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake` (always asks first) |
+| `pal://system/run?id=<command>` | A system command: `sleep`, `lock`, `logout`, `restart`, `shutdown`, `empty-trash`, `dark-mode`, `volume-up`, `volume-down`, `volume-mute`, `brightness-up`, `brightness-down`, `dnd`, `eject-all`, `show-desktop`, `keep-awake`, `quit-all`, `unhide-all`, `dismiss-notifications` (always asks first) |
 | `pal://timer/start?duration=25m&name=tea` | Start a timer (`&ring=1` rings the phone when it lands) |
 | `pal://clipboard/copy?index=0` | Put a history entry back on the clipboard, `0` the newest |
 | `pal://hue/toggle?room=<room>` | Toggle a room's lights (`&on=1` or `&on=0` sets them instead) |

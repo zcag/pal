@@ -10,7 +10,7 @@ import type { ClipboardEntry, Item } from "../../../sdk/src/index.ts";
 import { analyzeText, decode, evaluate, git, json, parseDate, privateArgv, qrSvg, relative, rows, slug, stats, titleCase, titleOf, tracking, transform, HIDE, SECTION } from "../../../extensions/clipboard/rows.ts";
 import { Host, stored } from "../harness.ts";
 
-const entry = (text: string, id = 1): ClipboardEntry => ({ id, kind: "text", text, image: null, files: null, source_app: null, at: 1758000000000, bytes: text.length, pinned: false, width: null, height: null });
+const entry = (text: string, id = 1): ClipboardEntry => ({ id, kind: "text", text, image: null, files: null, source_app: null, at: 1758000000000, bytes: text.length, pinned: false, width: null, height: null, name: null });
 const ids = (items: Item[]) => items.map((i) => i.id);
 const rowsOf = (text: string, paths: Parameters<typeof analyzeText>[2] = []) => rows(analyzeText(entry(text), text, paths), { now: 1758000000000 }, "/Users/u");
 
@@ -130,7 +130,7 @@ describe("the rows", () => {
     expect(text[0].detail!.metadata!.map((m) => m.label)).toEqual(["Words", "Characters", "Lines", "Copied"]);
   });
   test("an image: dimensions, save, copy as file, paste; the OCR row when the core can", () => {
-    const img: ClipboardEntry = { id: 9, kind: "image", text: null, image: "/tmp/x.png", files: null, source_app: null, at: 0, bytes: 4096, pinned: false, width: 640, height: 480 };
+    const img: ClipboardEntry = { id: 9, kind: "image", text: null, image: "/tmp/x.png", files: null, source_app: null, at: 0, bytes: 4096, pinned: false, width: 640, height: 480, name: null };
     const r = rows({ entry: img, paths: [], image: { width: 640, height: 480, bytes: 4096, ocr: true } }, { ocr: true });
     expect(ids(r)).toEqual(["image", "ocr"]);
     expect(r[0]).toMatchObject({ name: "Image 640 × 480", subtitle: "4.0 KB · PNG", icon: { image: "icon://localhost/clip?id=9&size=48" } });

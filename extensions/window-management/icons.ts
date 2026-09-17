@@ -3,7 +3,7 @@
 // weight (the Nerd Font has halves but no thirds or quarters). Drawn in
 // the extension's indigo (between the light and dark `--pal-brand-indigo`,
 // a data url cannot follow the theme), so the rows read as the tile's.
-import type { Verb } from "./index.ts";
+import type { RowId } from "./index.ts";
 
 const INK = "#6662E0";
 /** The screen in a 24 px box, and the area inside its outline the cells are cut from. */
@@ -25,7 +25,7 @@ const arrow = (x1: number, y1: number, x2: number, y2: number) => {
 const nudged = (cell_: Frac, a: [number, number, number, number]) => outline() + cell(cell_) + arrow(...a);
 
 /** The parts inside the 24 px box, per layout. */
-const SHAPES: Record<Verb, string> = {
+const SHAPES: Record<RowId, string> = {
   left_half: outline() + cell([0, 0, 0.5, 1]),
   right_half: outline() + cell([0.5, 0, 0.5, 1]),
   top_half: outline() + cell([0, 0, 1, 0.5]),
@@ -48,6 +48,8 @@ const SHAPES: Record<Verb, string> = {
   // A centred cell with arrows out of (larger) or into (smaller) two corners.
   larger: outline() + cell(centred(0.3, 0.3)) + arrow(14, 10.5, 19.5, 6) + arrow(10, 13.5, 4.5, 18),
   smaller: outline() + cell(centred(0.3, 0.3)) + arrow(19.5, 6, 14.5, 10) + arrow(4.5, 18, 9.5, 14),
+  // A cell anchored top-left with an arrow out of its far corner: a size typed in.
+  resize: outline() + cell([0, 0, 0.5, 0.5]) + arrow(12.5, 12.5, 19, 17.5),
   move_left: nudged([0.42, 0.25, 0.42, 0.5], [8.5, 12, 4.5, 12]),
   move_right: nudged([0.16, 0.25, 0.42, 0.5], [15.5, 12, 19.5, 12]),
   move_up: nudged([0.29, 0.42, 0.42, 0.45], [12, 10, 12, 6.5]),
@@ -64,10 +66,10 @@ const SHAPES: Record<Verb, string> = {
   restore: outline() + outline(6.5, 7.5, 11, 9, ` stroke-dasharray="2 1.5"`),
 };
 
-const cache = new Map<Verb, string>();
+const cache = new Map<RowId, string>();
 
 /** The layout's icon: `{ image }` with the diagram as a data url. */
-export function layoutIcon(id: Verb): { image: string } {
+export function layoutIcon(id: RowId): { image: string } {
   let url = cache.get(id);
   if (!url) {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${SHAPES[id]}</svg>`;

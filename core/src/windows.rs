@@ -229,7 +229,8 @@ pub fn focused() -> Result<Option<Window>> {
     platform::focused()
 }
 
-/// What [`apply`] did.
+/// What [`apply`] did: `layout` is the one applied, which with
+/// `Options::cycle` may be the next of the family asked for.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Applied {
     pub id: String,
@@ -301,17 +302,19 @@ pub fn apply(id: Option<&str>, layout: layout::Layout, opts: &layout::Options) -
         }
         return Ok(Applied { id, layout, from, to: from });
     }
-    let (to, remember) = if layout == L::Restore {
+    let (layout, to, remember) = if layout == L::Restore {
         let original = MOVES.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(&id).map(|m| m.original);
-        (original.ok_or_else(|| Error::Failed("nothing to restore: pal has not moved that window".into()))?, None)
+        (layout, original.ok_or_else(|| Error::Failed("nothing to restore: pal has not moved that window".into()))?, None)
     } else {
         let displays = displays()?;
         if layout.changes_display() && displays.len() < 2 {
             return Err(Error::Failed("only one display".into()));
         }
+        // With `cycle`, a half or a third asked for again steps to the next size of its family.
+        let layout = if opts.cycle { layout::next_in_family(layout, &from, &displays, opts) } else { layout };
         let to = layout::target(layout, &from, &displays, opts).ok_or_else(|| Error::Failed("no display to lay the window out on".into()))?;
         let original = original_of(&MOVES.lock().unwrap_or_else(std::sync::PoisonError::into_inner), &id, from);
-        (to, Some(Move { original, last: to }))
+        (layout, to, Some(Move { original, last: to }))
     };
     set_frame(&id, to)?;
     let mut moves = MOVES.lock().unwrap_or_else(std::sync::PoisonError::into_inner);

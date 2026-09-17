@@ -3,11 +3,17 @@
 // the matching, order is pinned first then newest; the pinned ones get a
 // section). The filter dropdown narrows by kind: the core's three, plus
 // links and colours, which are text entries this side recognises. Enter
-// pastes, the rest of the actions manage the entry. A second palette,
-// `rows` (now.ts), reads what is on the clipboard right now as the things
-// it could be and is the root's Clipboard section.
-import { clipboard, conceal, ocr, settings, type Action, type ClipboardEntry, type Detail, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
+// pastes, the rest of the actions manage the entry: edit it (a form whose
+// submit copies the new text, so it is the newest entry), save it as a
+// file or as a snippet, show it as a QR code, name it (the row's title
+// from then on, searched like the text). A second palette, `rows`
+// (now.ts), reads what is on the clipboard right now as the things it
+// could be and is the root's Clipboard section.
+import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { clipboard, conceal, home, ocr, settings, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { rowsPalette } from "./now.ts";
+import { fileNameFor, qrSvg, QR_SHOW_PX } from "./rows.ts";
 
 /** `[extensions.clipboard]`, defaults in pal.json. `max_entries` and `max_age_days` are the recorder's (app clipboard.rs); this side never reads them. */
 type Settings = { exclude_apps: string[]; primary_action: "paste" | "copy"; ocr_concealed: boolean };
@@ -17,6 +23,9 @@ const PAGE = 200;
 const PREVIEW = 100;
 const DETAIL_MAX = 20_000;
 const THUMB = 48;
+/** Longer than this and a QR code will not take it (version 40 at level M holds about 2.3 KB of bytes). */
+const QR_MAX = 2000;
+const SAVE_DIR = "~/Desktop";
 const URL_RE = /^https?:\/\/\S+$/;
 /** `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb(r, g, b)`, `rgba(r, g, b, a)`. */
 const HEX_RE = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -58,21 +67,25 @@ const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024)
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
+/** The text the entry is, one line, for a title: the first non-blank line. */
+const firstLine = (e: ClipboardEntry) => (e.text!.split("\n").find((l) => l.trim()) ?? "").trim();
+
 function title(e: ClipboardEntry): string {
+  if (e.name) return e.name;
   if (e.kind === "image") return `Image ${e.width ?? "?"} x ${e.height ?? "?"}`;
   if (e.kind === "files") return e.files!.map(basename).join(", ");
-  const first = e.text!.split("\n").find((l) => l.trim()) ?? "";
-  return clip(first.trim(), 120);
+  return clip(firstLine(e), 120);
 }
 
+/** Under a name the subtitle is what the entry is (the text's preview, the image's size, the files); else the multi-line preview or the files. */
 function subtitle(e: ClipboardEntry): string | undefined {
   if (e.kind === "text") {
     const rest = oneLine(e.text!);
     const lines = e.text!.split("\n").length;
-    return lines > 1 ? `${lines} lines · ${clip(rest, PREVIEW)}` : undefined;
+    return lines > 1 ? `${lines} lines · ${clip(rest, PREVIEW)}` : e.name ? clip(rest, PREVIEW) : undefined;
   }
   if (e.kind === "files") return e.files!.length === 1 ? e.files![0] : `${e.files!.length} files`;
-  return undefined;
+  return e.name ? `Image ${e.width ?? "?"} x ${e.height ?? "?"}` : undefined;
 }
 
 /** Four backticks fence the text so a ``` inside cannot end it early. */
@@ -88,6 +101,7 @@ function detail(e: ClipboardEntry, color?: string): Detail {
   return {
     markdown: body,
     metadata: [
+      ...(e.name ? [{ label: "Name", value: e.name }] : []),
       { label: "Kind", value: e.kind },
       { label: "Size", value: e.kind === "image" ? `${size(e.bytes)} · ${e.width} x ${e.height} px` : e.kind === "text" ? `${size(e.bytes)} · ${e.text!.length} chars` : size(e.bytes) },
       ...(e.source_app ? [{ label: "Source", value: appName(e.source_app) }] : []),
@@ -105,7 +119,12 @@ const actions = (e: ClipboardEntry, primary: Settings["primary_action"], url?: s
   ...(url ? [{ id: "open", title: "Open link", shortcut: "cmd+o" }] : []),
   ...(e.kind === "text" ? [{ id: "paste-plain", title: "Paste as plain text", shortcut: "cmd+shift+v" }] : []),
   ...(e.kind === "image" ? [{ id: "copy-file", title: "Copy image file", shortcut: "cmd+shift+c" }, { id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" }] : []),
+  ...(e.kind === "text" ? [{ id: "edit", title: "Edit…", shortcut: "cmd+e" }] : []),
   { id: "pin", title: e.pinned ? "Unpin" : "Pin", shortcut: "cmd+p" },
+  { id: "rename", title: e.name ? "Rename…" : "Name…", shortcut: "cmd+shift+r" },
+  { id: "save-file", title: "Save as file…", shortcut: "cmd+s" },
+  ...(e.kind === "text" ? [{ id: "snippet", title: "Save as snippet", shortcut: "cmd+shift+s" }] : []),
+  ...(e.kind === "text" && e.text!.length <= QR_MAX ? [{ id: "qr", title: "Show as QR code", shortcut: "cmd+shift+k" }] : []),
   { id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?", multi: true },
   { id: "delete-unpinned", title: "Delete all unpinned", style: "destructive", confirm: "Delete every unpinned entry? Pinned ones stay." },
   { id: "clear", title: "Clear history", shortcut: "cmd+shift+d", style: "destructive", confirm: "Delete every entry, pinned ones included?" },
@@ -130,6 +149,56 @@ function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
     detail: detail(e, color),
     actions: actions(e, primary, url),
   };
+}
+
+// ---- the forms -----------------------------------------------------------------
+
+/** Edit: the text in a textarea; the submit copies it, so the edited text is the newest entry (the original stays). */
+const editForm = (e: ClipboardEntry, errors?: Form["errors"]): Form => ({
+  id: String(e.id),
+  title: e.name ? `Edit ${e.name}` : "Edit entry",
+  fields: [
+    { kind: "textarea", id: "text", label: "Text", default: e.text!, required: true },
+    { kind: "checkbox", id: "paste", label: "Then", text: "Paste it into the app in front as well", default: false },
+  ],
+  submit: { id: "edit-submit", title: "Copy edited text" },
+  errors,
+});
+
+/** Name: one field, empty clears (the row goes back to its text). */
+const nameForm = (e: ClipboardEntry, errors?: Form["errors"]): Form => ({
+  id: String(e.id),
+  title: e.name ? `Rename ${e.name}` : "Name this entry",
+  fields: [{ kind: "text", id: "name", label: "Name", default: e.name ?? "", placeholder: "Deploy notes", description: "The row's title from now on, found by search like the text; empty clears it." }],
+  submit: { id: "rename-submit", title: e.name ? "Rename" : "Name" },
+  errors,
+});
+
+const saveForm = (e: ClipboardEntry, errors?: Form["errors"]): Form => ({
+  id: String(e.id),
+  title: "Save as file",
+  fields: [
+    { kind: "text", id: "folder", label: "Folder", default: SAVE_DIR, required: true, description: "~ is expanded; a missing folder is created." },
+    { kind: "text", id: "name", label: "Name", default: fileNameFor(e), required: true, description: e.kind === "image" ? "The PNG the recorder keeps, copied under this name." : e.kind === "files" ? "The paths, one per line." : "The text as it is." },
+  ],
+  submit: { id: "save-submit", title: "Save" },
+  errors,
+});
+
+/** The Save form's submit: the entry written under `folder/name`; an existing file is refused with the form again. */
+async function saveFile(e: ClipboardEntry, values: Ctx["values"]): Promise<Effect> {
+  const rawFolder = String(values?.folder ?? "").trim(), name = String(values?.name ?? "").trim();
+  if (!rawFolder) return { form: saveForm(e, { folder: "A folder path" }) };
+  if (!name || name.includes("/") || name === "." || name === "..") return { form: saveForm(e, { name: "A file name, without a slash" }) };
+  const folder = home(rawFolder);
+  const target = join(folder, name);
+  try {
+    await mkdir(folder, { recursive: true });
+    if (await stat(target).then(() => true).catch(() => false)) return { form: saveForm(e, { name: `${name} exists there already` }) };
+    if (e.kind === "image") await copyFile(e.image!, target);
+    else await writeFile(target, e.kind === "files" ? e.files!.join("\n") + "\n" : e.text!, { flag: "wx" });
+  } catch (err) { return { form: saveForm(e, { name: String((err as Error)?.message ?? err) }) }; }
+  return { keep: true, toast: { title: "Saved", message: target.replace(home("~"), "~") } };
 }
 
 /** The core's `kind` for a filter; `links` and `colors` are text narrowed here. */
@@ -201,6 +270,32 @@ export default {
             return { copy: settings.get<Settings>().ocr_concealed ? conceal(text, 0) : text, hud: "Copied text" };
           }
           case "pin": { const e = await clipboard.get(entry); await clipboard.pin(entry, !e.pinned); return { keep: true }; }
+          case "edit": { const e = await clipboard.get(entry); return e.kind === "text" ? { form: editForm(e) } : { paste: { entry } }; }
+          case "edit-submit": {
+            const e = await clipboard.get(entry);
+            const text = String(ctx?.values?.text ?? "");
+            if (!text.trim()) return { form: editForm(e, { text: "Nothing to copy" }) };
+            // The edited text goes on the clipboard (the watcher records it as the newest entry); with the box ticked it is pasted, which copies it on the way.
+            return ctx?.values?.paste ? { paste: { text } } : { copy: text };
+          }
+          case "rename": return { form: nameForm(await clipboard.get(entry)) };
+          case "rename-submit": {
+            const name = String(ctx?.values?.name ?? "").trim();
+            await clipboard.rename(entry, name || null);
+            return { keep: true, toast: { title: name ? "Named" : "Name cleared", message: name || undefined } };
+          }
+          case "save-file": return { form: saveForm(await clipboard.get(entry)) };
+          case "save-submit": return saveFile(await clipboard.get(entry), ctx?.values);
+          case "snippet": {
+            const e = await clipboard.get(entry);
+            return e.kind === "text" ? { push: { extension: "snippets", palette: "snippets", args: { create: e.text! } } } : { paste: { entry } };
+          }
+          case "qr": {
+            const e = await clipboard.get(entry);
+            const svg = e.kind === "text" ? qrSvg(e.text!, 10, QR_SHOW_PX) : undefined;
+            if (!svg) return { keep: true, toast: { title: "Too long for a QR code", message: `Up to ${QR_MAX} characters`, style: "failure" } };
+            return { show: { title: e.name ?? "QR code", markdown: `![](${svg})\n\n\`${e.text!.length > 200 ? e.text!.slice(0, 199) + "…" : e.text!}\`` } };
+          }
           case "delete": for (const i of ids) await clipboard.delete(i); return { keep: true };
           case "delete-unpinned": { const n = await deleteUnpinned(); return { keep: true, toast: { title: `Deleted ${n} unpinned ${n === 1 ? "entry" : "entries"}` } }; }
           case "clear": await clipboard.clear(); return { keep: true, toast: { title: "History cleared" } };

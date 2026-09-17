@@ -42,6 +42,8 @@ const isShell = (key: string) => key.startsWith("pal/");
 export type Prefs = {
   /** `alias_space`: a palette's alias (or name, or one-word title) and a space jump into it. */
   aliasSpace: boolean;
+  /** `backspace_back`: Backspace with nothing typed goes back a level, after the row's own Backspace action. */
+  backspaceBack: boolean;
   /** `fallbacks_always`: the fallback rows under the hits too, not only when nothing matched. */
   fallbacksAlways: boolean;
   /** `search_history`: Up at the top of an empty root recalls the last queries. */
@@ -51,7 +53,7 @@ export type Prefs = {
   /** `compact`: the narrow panel (560 px, 32 px rows), no detail pane, the footer folded into the search row. */
   compact: boolean;
 };
-const DEFAULT_PREFS: Prefs = { aliasSpace: true, fallbacksAlways: false, searchHistory: true, now: [], compact: false };
+const DEFAULT_PREFS: Prefs = { aliasSpace: true, backspaceBack: true, fallbacksAlways: false, searchHistory: true, now: [], compact: false };
 
 /**
  * The palette a typed word names for the alias-and-space jump: its config
@@ -871,6 +873,21 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     pickItem(row, a.id);
   };
 
+  /**
+   * A bare Backspace with nothing typed: the row's own action carrying it
+   * first (`rowKey`), else, with `prefs.backspaceBack`, back a level as
+   * `cmd+backspace` goes (never at the root; a show level goes back as Enter
+   * does; a view's keys are its own, and its text field types; a form's
+   * fields own it). With text in the box it is typing.
+   */
+  const backspace = (): boolean | void => {
+    if (query) return false;
+    if (isList) { const own = rowKey("backspace"); if (own !== false) return own; }
+    if (view.kind === "view") return viewInput ? false : viewCommand({ type: "key", key: "backspace" });
+    if (view.kind === "form" || !prefs.backspaceBack || nav.depth === 1) return false;
+    return pop();
+  };
+
   const move = (dir: "up" | "down" | "left" | "right"): boolean | void => {
     if (view.kind === "form") return false;
     // In a view's text field the arrows move the caret.
@@ -926,7 +943,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       key: ({ key }) => {
         if (isMenu && !query) { const a = menuShortcut(key); if (a) return run(a); }
         if (key === "x" && multiLevel && !query && current) { toggleAt(cur.cursor); cur.move(isGrid ? (list.current?.columns() ?? columns) : 1); return; }
-        if (key === "backspace" && isList) return rowKey(key);
+        if (key === "backspace") return backspace();
         return view.kind === "view" && !viewInput ? viewCommand({ type: "key", key }) : false;
       },
     },

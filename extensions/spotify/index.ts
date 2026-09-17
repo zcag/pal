@@ -91,7 +91,7 @@ function failure(e: unknown): Item[] {
 /** The hint rows' picks: the sign-in flow, the settings page. */
 async function pickHint(id: string): Promise<Effect> {
   if (id === "hint:signin") return startSignIn();
-  if (id === "hint:client_id") return { open: "pal://settings/extensions" };
+  if (id === "hint:client_id") return { open: "pal://settings/extensions?anchor=extensions:spotify:client_id" };
   return { keep: true };
 }
 

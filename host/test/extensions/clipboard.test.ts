@@ -1,15 +1,23 @@
 // clipboard against canned core/clipboard.* replies (harness fixtures).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { ClipboardEntry } from "../../../sdk/src/index.ts";
+import { fileNameFor } from "../../../extensions/clipboard/rows.ts";
 import { Host, fixtures } from "../harness.ts";
 
 let host: Host;
-const calls = { pin: [] as unknown[], del: [] as unknown[], copy: [] as unknown[], clear: 0 };
+const calls = { pin: [] as unknown[], del: [] as unknown[], copy: [] as unknown[], rename: [] as unknown[], clear: 0 };
+/** Where Save as file writes in the tests, and the image the recorder "keeps" for entry 3. */
+const dir = mkdtempSync(join(tmpdir(), "pal-clip-"));
+const PNG = join(dir, "clip-3.png");
+writeFileSync(PNG, Buffer.from("89504e470d0a1a0a", "hex"));
 /** The fixtures plus a colour, with the core's `kind` and `offset` honoured (the harness's default answers the query alone). */
 const ENTRIES: ClipboardEntry[] = [
-  ...fixtures.clipboard,
-  { id: 6, kind: "text", text: "rgb(255, 0, 128)", image: null, files: null, source_app: null, at: 1758000005000, bytes: 16, pinned: false, width: null, height: null },
+  ...fixtures.clipboard.map((e) => (e.id === 3 ? { ...e, image: PNG } : { ...e })),
+  { id: 6, kind: "text", text: "rgb(255, 0, 128)", image: null, files: null, source_app: null, at: 1758000005000, bytes: 16, pinned: false, width: null, height: null, name: null },
 ];
 let entries = ENTRIES;
 /** What the canned `core/ocr.image` reads; null makes it fail. */
@@ -18,9 +26,10 @@ beforeAll(async () => {
   host = await Host.bundled({
     core: {
       "clipboard.list": ({ query = "", kind, limit = 200, offset = 0 }: { query?: string; kind?: string; limit?: number; offset?: number } = {}) =>
-        entries.filter((e) => (!kind || e.kind === kind) && (!query || (e.text ?? e.files?.join(" ") ?? "").toLowerCase().includes(query.toLowerCase()))).slice(offset, offset + limit),
+        entries.filter((e) => (!kind || e.kind === kind) && (!query || `${e.text ?? e.files?.join(" ") ?? ""} ${e.name ?? ""}`.toLowerCase().includes(query.toLowerCase()))).slice(offset, offset + limit),
       "clipboard.get": ({ id }: { id: number }) => { const e = entries.find((e) => e.id === id); if (!e) throw new Error(`no entry ${id}`); return e; },
       "clipboard.pin": (p) => { calls.pin.push(p); return null; },
+      "clipboard.rename": (p: { id: number; name: string | null }) => { calls.rename.push(p); const e = entries.find((e) => e.id === p.id); if (!e) throw new Error(`no entry ${p.id}`); e.name = p.name; return null; },
       "clipboard.delete": (p: { id: number }) => { calls.del.push(p); entries = entries.filter((e) => e.id !== p.id); return null; },
       "clipboard.copy": (p) => { calls.copy.push(p); return null; },
       "clipboard.clear": () => { calls.clear++; return null; },
@@ -28,10 +37,10 @@ beforeAll(async () => {
     },
   });
 });
-afterAll(() => host.kill());
+afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
 
 const list = (q?: string, filter?: string) => host.list("clipboard", "history", q, filter ? { filter } : undefined);
-const pick = (id: string, action?: string) => host.pick("clipboard", "history", id, action);
+const pick = (id: string, action?: string, values?: Record<string, string | boolean>) => host.pick("clipboard", "history", id, action, values ? { values } : undefined);
 
 describe("clipboard", () => {
   test("meta: live input palette that opens with the detail pane, six kind filters", () => {
@@ -55,8 +64,10 @@ describe("clipboard", () => {
     expect(text).toMatchObject({ name: "hello world", icon: "\u{f09a8}", accessories: [{ text: "Chrome" }, { date: 1758000000000 }] });
     expect(text.subtitle).toBeUndefined();
     expect(text.section).toBeUndefined();
-    expect(multi).toMatchObject({ name: "line one", subtitle: "3 lines · line one line two line three", section: "Pinned", accessories: [{ text: "kitty" }, { date: 1758000001000 }, { tag: "pinned", color: "amber" }] });
+    // A named entry (fixture 2, "Deploy notes") is titled by its name; the text stays in the subtitle.
+    expect(multi).toMatchObject({ name: "Deploy notes", subtitle: "3 lines · line one line two line three", section: "Pinned", accessories: [{ text: "kitty" }, { date: 1758000001000 }, { tag: "pinned", color: "amber" }] });
     expect(image).toMatchObject({ name: "Image 640 x 480", icon: { image: "icon://localhost/clip?id=3&size=48" }, accessories: [{ text: "12.1 KB" }, { date: 1758000002000 }] });
+    expect(image.subtitle).toBeUndefined();
     expect(files).toMatchObject({ name: "a.txt, b.txt", subtitle: "2 files", icon: "\u{f1032}", accessories: [{ text: "Finder" }, { date: 1758000003000 }] });
     expect(url).toMatchObject({ name: "https://example.com/page", url: "https://example.com/page", accessories: [{ text: "Safari" }, { date: 1758000004000 }] });
     expect(url.icon).toBeUndefined();
@@ -88,18 +99,29 @@ describe("clipboard", () => {
     expect(image.detail!.metadata).toContainEqual({ label: "Size", value: "12.1 KB · 640 x 480 px" });
     expect(files.detail!.markdown).toBe("- `/Users/x/a.txt`\n- `/Users/x/b.txt`");
     const pinned = (await list())[1].detail!.metadata!;
+    expect(pinned[0]).toEqual({ label: "Name", value: "Deploy notes" });
     expect(pinned.at(-1)).toEqual({ label: "Pinned", tags: [{ text: "pinned", color: "amber" }] });
   });
 
   test("actions: paste first by default, plain-text paste on text, open on a link, the file copy on an image, pin/unpin by state, destructive ones confirm", async () => {
     const [text, multi, image, files, url] = await list();
-    expect(text.actions!.map((a) => a.id)).toEqual(["paste", "copy", "paste-plain", "pin", "delete", "delete-unpinned", "clear"]);
-    expect(text.actions![3].title).toBe("Pin");
-    expect(multi.actions![3].title).toBe("Unpin");
-    expect(url.actions!.map((a) => a.id)).toEqual(["paste", "copy", "open", "paste-plain", "pin", "delete", "delete-unpinned", "clear"]);
-    expect(image.actions!.map((a) => a.id)).toEqual(["paste", "copy", "copy-file", "copy-text", "pin", "delete", "delete-unpinned", "clear"]);
+    const MANAGE = ["pin", "rename", "save-file"];
+    expect(text.actions!.map((a) => a.id)).toEqual(["paste", "copy", "paste-plain", "edit", ...MANAGE, "snippet", "qr", "delete", "delete-unpinned", "clear"]);
+    const pin = (i: (typeof text)) => i.actions!.find((a) => a.id === "pin")!.title;
+    expect(pin(text)).toBe("Pin");
+    expect(pin(multi)).toBe("Unpin");
+    // Name… until the entry has one, Rename… after.
+    expect(text.actions!.find((a) => a.id === "rename")).toEqual({ id: "rename", title: "Name…", shortcut: "cmd+shift+r" });
+    expect(multi.actions!.find((a) => a.id === "rename")!.title).toBe("Rename…");
+    expect(text.actions!.find((a) => a.id === "edit")).toEqual({ id: "edit", title: "Edit…", shortcut: "cmd+e" });
+    expect(text.actions!.find((a) => a.id === "save-file")).toEqual({ id: "save-file", title: "Save as file…", shortcut: "cmd+s" });
+    expect(text.actions!.find((a) => a.id === "snippet")).toEqual({ id: "snippet", title: "Save as snippet", shortcut: "cmd+shift+s" });
+    expect(text.actions!.find((a) => a.id === "qr")).toEqual({ id: "qr", title: "Show as QR code", shortcut: "cmd+shift+k" });
+    expect(url.actions!.map((a) => a.id)).toEqual(["paste", "copy", "open", "paste-plain", "edit", ...MANAGE, "snippet", "qr", "delete", "delete-unpinned", "clear"]);
+    // Edit, snippet and QR are for text; an image and a file list keep the file save and the name.
+    expect(image.actions!.map((a) => a.id)).toEqual(["paste", "copy", "copy-file", "copy-text", ...MANAGE, "delete", "delete-unpinned", "clear"]);
     expect(image.actions![3]).toEqual({ id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" });
-    expect(files.actions!.map((a) => a.id)).toEqual(["paste", "copy", "pin", "delete", "delete-unpinned", "clear"]);
+    expect(files.actions!.map((a) => a.id)).toEqual(["paste", "copy", ...MANAGE, "delete", "delete-unpinned", "clear"]);
     const del = text.actions!.find((a) => a.id === "delete")!;
     expect(del).toEqual({ id: "delete", title: "Delete", shortcut: "cmd+d", style: "destructive", confirm: "Delete this entry from history?", multi: true });
     // Copy and Delete take marked rows; a paste is one entry.
@@ -111,7 +133,7 @@ describe("clipboard", () => {
   test("pick: open a link, paste text as plain text, copy an image's file", async () => {
     expect(await pick("5", "open")).toEqual({ open: "https://example.com/page" });
     expect(await pick("2", "paste-plain")).toEqual({ paste: { text: "line one\nline two\nline three" } });
-    expect(await pick("3", "copy-file")).toEqual({ copy_files: ["/tmp/clip-3.png"] });
+    expect(await pick("3", "copy-file")).toEqual({ copy_files: [PNG] });
     // The wrong kind falls back to the entry paste rather than failing.
     expect(await pick("1", "open")).toEqual({ paste: { entry: 1 } });
     expect(await pick("1", "copy-file")).toEqual({ paste: { entry: 1 } });
@@ -120,7 +142,7 @@ describe("clipboard", () => {
   test("pick: Copy text from image runs OCR over the core and copies what it read; concealed when the setting says so; failures and empties are toasts", async () => {
     ocrText = "Total 42.00";
     expect(await pick("3", "copy-text")).toEqual({ copy: "Total 42.00", hud: "Copied text" });
-    expect(host.coreCalls.at(-1)).toEqual({ method: "ocr.image", params: { path: "/tmp/clip-3.png" } });
+    expect(host.coreCalls.at(-1)).toEqual({ method: "ocr.image", params: { path: PNG } });
     host.changeSettings("clipboard", { settings: { ocr_concealed: true } });
     expect(await pick("3", "copy-text")).toEqual({ copy: { text: "Total 42.00", concealed: true }, hud: "Copied text" });
     host.changeSettings("clipboard", {});
@@ -154,6 +176,69 @@ describe("clipboard", () => {
     expect(calls.del.slice(1)).toEqual([{ id: 1 }, { id: 3 }, { id: 5 }, { id: 6 }]);
     expect((await list()).map((i) => i.id)).toEqual(["2"]);
     expect(await pick("2", "delete-unpinned")).toEqual({ keep: true, toast: { title: "Deleted 0 unpinned entries" } });
+    entries = ENTRIES;
+  });
+
+  test("edit: a form with the text in a textarea; the submit copies the edited text (or pastes it with the box ticked), an emptied text is refused", async () => {
+    const f = (await pick("1", "edit")) as { form: { id: string; title: string; fields: { id: string; kind: string; default?: unknown }[]; submit: { id: string } } };
+    expect(f.form).toMatchObject({ id: "1", title: "Edit entry", submit: { id: "edit-submit", title: "Copy edited text" } });
+    expect(f.form.fields.map((x) => [x.id, x.kind, x.default])).toEqual([["text", "textarea", "hello world"], ["paste", "checkbox", false]]);
+    expect(((await pick("2", "edit")) as { form: { title: string } }).form.title).toBe("Edit Deploy notes");
+    expect(await pick("1", "edit-submit", { text: "hello there", paste: false })).toEqual({ copy: "hello there" });
+    expect(await pick("1", "edit-submit", { text: "hello there", paste: true })).toEqual({ paste: { text: "hello there" } });
+    expect(await pick("1", "edit-submit", { text: "   ", paste: false })).toMatchObject({ form: { errors: { text: "Nothing to copy" } } });
+    // Not a text entry: the plain paste, as every wrong-kind action.
+    expect(await pick("3", "edit")).toEqual({ paste: { entry: 3 } });
+  });
+
+  test("name: the form's submit goes through clipboard.rename; empty clears; the row is then titled by it and found by it", async () => {
+    const f = (await pick("1", "rename")) as { form: { title: string; fields: { id: string; default?: unknown }[]; submit: { title: string } } };
+    expect(f.form).toMatchObject({ title: "Name this entry", submit: { title: "Name" } });
+    expect(f.form.fields[0]).toMatchObject({ id: "name", default: "" });
+    expect(await pick("1", "rename-submit", { name: "  Greeting " })).toEqual({ keep: true, toast: { title: "Named", message: "Greeting" } });
+    expect(calls.rename).toEqual([{ id: 1, name: "Greeting" }]);
+    const [row] = await list();
+    expect(row).toMatchObject({ name: "Greeting", subtitle: "hello world" });
+    expect(row.actions!.find((a) => a.id === "rename")!.title).toBe("Rename…");
+    expect((await list("greet")).map((i) => i.id)).toEqual(["1"]);
+    expect(((await pick("1", "rename")) as { form: { title: string; fields: { default?: unknown }[] } }).form).toMatchObject({ title: "Rename Greeting", fields: [{ default: "Greeting" }] });
+    expect(await pick("1", "rename-submit", { name: "" })).toEqual({ keep: true, toast: { title: "Name cleared", message: undefined } });
+    expect(calls.rename.at(-1)).toEqual({ id: 1, name: null });
+    expect((await list())[0]).toMatchObject({ name: "hello world" });
+    expect((await list())[0].subtitle).toBeUndefined();
+  });
+
+  test("save as file: the form defaults to the Desktop and a name from the entry; the submit writes the text, copies the PNG, refuses an existing name", async () => {
+    expect(fileNameFor({ kind: "text", text: "Hello: there, general Kenobi/Grievous and the rest of them all", name: null, width: null, height: null })).toBe("Hello there, general Kenobi Grievous and.txt");
+    expect(fileNameFor({ kind: "text", text: "\n  \n", name: null, width: null, height: null })).toBe("Clipboard.txt");
+    expect(fileNameFor({ kind: "image", text: null, name: null, width: 640, height: 480 })).toBe("Image 640x480.png");
+    expect(fileNameFor({ kind: "image", text: null, name: "Screenshot of the bug", width: 640, height: 480 })).toBe("Screenshot of the bug.png");
+    expect(fileNameFor({ kind: "files", text: null, name: null, width: null, height: null })).toBe("paths.txt");
+    const f = (await pick("1", "save-file")) as { form: { title: string; fields: { id: string; default?: unknown }[]; submit: { id: string } } };
+    expect(f.form).toMatchObject({ title: "Save as file", submit: { id: "save-submit" } });
+    expect(f.form.fields.map((x) => [x.id, x.default])).toEqual([["folder", "~/Desktop"], ["name", "hello world.txt"]]);
+    const out = join(dir, "saved");
+    expect(await pick("1", "save-submit", { folder: out, name: "hi.txt" })).toEqual({ keep: true, toast: { title: "Saved", message: join(out, "hi.txt") } });
+    expect(readFileSync(join(out, "hi.txt"), "utf8")).toBe("hello world");
+    expect(await pick("1", "save-submit", { folder: out, name: "hi.txt" })).toMatchObject({ form: { errors: { name: "hi.txt exists there already" } } });
+    expect(await pick("1", "save-submit", { folder: out, name: "a/b.txt" })).toMatchObject({ form: { errors: { name: "A file name, without a slash" } } });
+    expect(await pick("1", "save-submit", { folder: "  ", name: "x.txt" })).toMatchObject({ form: { errors: { folder: "A folder path" } } });
+    expect(await pick("3", "save-submit", { folder: out, name: "pic.png" })).toMatchObject({ keep: true, toast: { title: "Saved" } });
+    expect(readFileSync(join(out, "pic.png"))).toEqual(readFileSync(PNG));
+    expect(await pick("4", "save-submit", { folder: out, name: "list.txt" })).toMatchObject({ keep: true });
+    expect(readFileSync(join(out, "list.txt"), "utf8")).toBe("/Users/x/a.txt\n/Users/x/b.txt\n");
+  });
+
+  test("save as snippet pushes the snippets palette with the text to create; the QR action shows the code large, a too-long text is a toast", async () => {
+    expect(await pick("1", "snippet")).toEqual({ push: { extension: "snippets", palette: "snippets", args: { create: "hello world" } } });
+    expect(await pick("3", "snippet")).toEqual({ paste: { entry: 3 } });
+    const qr = (await pick("5", "qr")) as { show: { title: string; markdown: string } };
+    expect(qr.show.title).toBe("QR code");
+    expect(qr.show.markdown).toMatch(/^!\[\]\(data:image\/svg\+xml;utf8,.+\)\n\n`https:\/\/example\.com\/page`$/);
+    expect(((await pick("2", "qr")) as { show: { title: string } }).show.title).toBe("Deploy notes");
+    entries = [...ENTRIES, { id: 7, kind: "text", text: "x".repeat(3000), image: null, files: null, source_app: null, at: 1, bytes: 3000, pinned: false, width: null, height: null, name: null }];
+    expect((await list()).find((i) => i.id === "7")!.actions!.map((a) => a.id)).not.toContain("qr");
+    expect(await pick("7", "qr")).toMatchObject({ keep: true, toast: { title: "Too long for a QR code", style: "failure" } });
     entries = ENTRIES;
   });
 

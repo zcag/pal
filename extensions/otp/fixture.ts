@@ -29,6 +29,8 @@ const bar = {
   },
   states: [
     { id: "gcode", item: { title: "731064", tooltip: "Google: G-731064 is your Google verification code.", menu: { view: render(gcode) } } },
+    // Past the minute: the strip hides, the popover (reached by its hotkey) says so.
+    { id: "none", item: { hidden: true, menu: { view: render({ previous: [latest, ...previous], now: NOW + 120_000, window: 60_000 }) } } },
   ],
   shots: {
     "bar-menubar-dark": { target: "menubar", theme: "dark", caption: "On the menu bar: the code that just arrived, in green, for a minute" },
