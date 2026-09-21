@@ -16,7 +16,7 @@ check out, merge, close or mark read without leaving the keyboard.
 **Pull Requests** lists yours (`is:open author:@me`), the ones waiting on
 your review (`review-requested:@me`), and yours merged within
 `merged_days`, sectioned Mine, Review requested, Merged; the filter
-dropdown has the same three plus All. The row is the title with
+dropdown has the same three plus All and Muted. The row is the title with
 `owner/repo #n` under it, a state dot (green open, grey draft, violet
 merged, red closed) and tags for the checks (`checks ✓` / `✗` / `…`),
 the review decision (approved, changes requested, review), draft and
@@ -30,6 +30,12 @@ that order, an issue in two lists listed once. Rows carry the first two
 labels, the comment count and the updated date; the pane the body, the
 latest comments and the milestone. **Create issue** at the top is a form
 (repository, title, body) whose submit opens the new issue.
+
+**Mute** (`cmd+m` on a pull request or issue row, `m` in the bar
+popovers) keeps one out of every list, the bar counts and the popovers
+until you unmute it: the **Muted** filter of either palette lists what is
+muted, with Unmute on the row. The set is kept in pal's storage, not on
+GitHub, and a muted thing keeps its notifications.
 
 **Repositories** is yours (owner or collaborator, by push date), your
 `default_org`'s recently pushed, and your starred ones, sectioned so. Rows
@@ -64,6 +70,7 @@ their avatar. A keystroke waits 300 ms for the next before asking.
 | `cmd+shift+r` | Mark ready for review | a draft pull request |
 | `cmd+shift+m` | Merge, with `merge_method`; asks first | an open, mergeable pull request |
 | `cmd+shift+x` | Close issue; asks first | an open issue |
+| `cmd+m` | Mute / Unmute: out of the lists, counts and bar popovers | an open pull request or issue |
 | `cmd+e` | Open in editor (`code`, else the folder) | a repository with a local clone |
 | `cmd+o` | Open folder | a repository with a local clone |
 | `cmd+shift+c` | Copy clone URL (`clone_protocol`) | repositories |

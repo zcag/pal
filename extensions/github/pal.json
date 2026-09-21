@@ -266,6 +266,10 @@
           "title": "Copy the focused pull request's URL"
         },
         {
+          "keys": "m",
+          "title": "Mute the focused pull request: out of the lists, the count and this popover until unmuted from the palette's Muted filter"
+        },
+        {
           "keys": "r",
           "title": "Refresh pull requests"
         },
@@ -305,6 +309,10 @@
         {
           "keys": "c",
           "title": "Copy the focused issue's URL"
+        },
+        {
+          "keys": "m",
+          "title": "Mute the focused issue: out of the lists, the count and this popover until unmuted from the palette's Muted filter"
         },
         {
           "keys": "r",
@@ -474,6 +482,11 @@
       {
         "title": "Copy reference",
         "description": "owner/repo#n."
+      },
+      {
+        "title": "Mute / Unmute",
+        "description": "Keeps an open pull request or issue out of the lists, the counts and the bar popovers; the Muted filter lists them to unmute.",
+        "keys": "cmd+m"
       },
       {
         "title": "Mark ready for review",

@@ -10,10 +10,10 @@
 // caches; they deliberately do not make a combined GitHub cluster.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { clock, errorMessage, failed, hint, home, run, tinted, toast, truncate, when, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { bar, clock, errorMessage, failed, hint, home, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
-  TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs, search, splitId, starredRepos, viewer,
+  TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
   type Issue, type IssueDetail, type IssueLists, type Notification, type PR, type PRDetail, type PRLists, type Repo, type SearchKind, type User,
 } from "./data.ts";
 import { render as renderNotifs, renderIssues, renderPrs, shown as shownNotifs, shownIssues, shownPrs, type IssueState, type NotifState, type PrBucketed, type PrState } from "./view.ts";
@@ -72,6 +72,39 @@ function thread(body: string, entries: { author: string; at: string; body: strin
   return parts.join("\n\n");
 }
 
+// ---- muted ----------------------------------------------------------------
+// A muted PR or issue is one he has decided not to be nagged about: out of
+// every list, count and popover, until unmuted from the palette's Muted
+// filter (or the row's own action, wherever it still turns up: Search). The
+// ids are kept in storage (`owner/repo#n`, one set for both kinds), loaded
+// once: this worker is the only writer.
+
+const MUTED = "muted";
+let muted = new Set<string>();
+const mutedReady = storage.get<string[]>(MUTED).then((ids) => { muted = new Set(ids ?? []); }, (e) => log(`muted: ${errorMessage(e)}`));
+const setMuted = async (id: string, on: boolean) => { on ? muted.add(id) : muted.delete(id); await storage.set(MUTED, [...muted]); };
+
+/** The lists as every count and row sees them: the muted ones stripped. */
+async function prs(refresh?: boolean): Promise<PRLists> {
+  const [l] = await Promise.all([fetchPrs(refresh), mutedReady]);
+  const keep = (xs: PR[]) => xs.filter((pr) => !muted.has(pr.id));
+  return { mine: keep(l.mine), reviews: keep(l.reviews), merged: keep(l.merged) };
+}
+async function issues(refresh?: boolean): Promise<IssueLists> {
+  const [l] = await Promise.all([fetchIssues(refresh), mutedReady]);
+  const keep = (xs: Issue[]) => xs.filter((i) => !muted.has(i.id));
+  return { assigned: keep(l.assigned), mentioned: keep(l.mentioned), created: keep(l.created) };
+}
+
+/** The mute toggle as a row action, and its pick: the list re-lists (`keep`) and the bar item re-renders off the cache. */
+const muteAction = (id: string): Action => ({ id: "mute", title: muted.has(id) ? "Unmute" : "Mute", shortcut: "cmd+m" });
+async function pickMute(id: string, item: "prs" | "issues", what: string): Promise<Effect> {
+  const on = !muted.has(id);
+  await setMuted(id, on);
+  bar.refresh(item).catch(() => {});
+  return toast(on ? "Muted" : "Unmuted", what);
+}
+
 // ---- pull requests --------------------------------------------------------
 
 const prTable = new Map<string, PR>();
@@ -104,6 +137,7 @@ function prActions(pr: PR): Action[] {
     { id: "checks", title: "Open checks", shortcut: "cmd+shift+k" },
     { id: "files", title: "Open files changed", shortcut: "cmd+shift+f" },
     { id: "ref", title: "Copy reference" },
+    ...(open ? [muteAction(pr.id)] : []),
     ...(open && pr.draft ? [{ id: "ready", title: "Mark ready for review", shortcut: "cmd+shift+r" }] : []),
     ...(open && !pr.draft && pr.mergeable === "MERGEABLE" ? [{ id: "merge", title: "Merge", shortcut: "cmd+shift+m", confirm: `Merge #${pr.number} into ${pr.base}?` }] : []),
   ];
@@ -175,6 +209,7 @@ async function pickPR(pr: PR, action?: string): Promise<Effect> {
     case "copy": return { copy: pr.url };
     case "branch": return { copy: pr.head };
     case "ref": return { copy: pr.id };
+    case "mute": return pickMute(pr.id, "prs", `#${pr.number} ${truncate(pr.title, 60)}`);
     case "checks": return { open: `${pr.url}/checks` };
     case "files": return { open: `${pr.url}/files` };
     case "checkout": {
@@ -195,14 +230,19 @@ async function pickPR(pr: PR, action?: string): Promise<Effect> {
   }
 }
 
-const PR_FILTERS = [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "reviews", title: "Review requested" }, { id: "merged", title: "Merged" }];
+const PR_FILTERS = [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "reviews", title: "Review requested" }, { id: "merged", title: "Merged" }, { id: "muted", title: "Muted" }];
 
 async function prRows(ctx?: Ctx): Promise<Item[]> {
-  const lists = await prs(!!ctx?.refresh);
   const filter = ctx?.filter ?? "all";
   const seen = new Set<string>();
   const rows: Item[] = [];
   const add = (list: PR[], section: string) => { for (const pr of list) if (!seen.has(pr.id)) { seen.add(pr.id); rows.push(prRow(pr, section)); } };
+  if (filter === "muted") {
+    const l = await fetchPrs(!!ctx?.refresh);
+    add([...l.mine, ...l.reviews].filter((pr) => muted.has(pr.id)), "Muted");
+    return rows.length ? rows : [hint("none", "Nothing muted", "Mute on a pull request keeps it out of the lists, the count and the bar item")];
+  }
+  const lists = await prs(!!ctx?.refresh);
   if (filter === "all" || filter === "mine") add(lists.mine, "Mine");
   if (filter === "all" || filter === "reviews") add(lists.reviews, "Review requested");
   if (filter === "all" || filter === "merged") add(lists.merged, "Merged");
@@ -288,6 +328,14 @@ async function prsAction(action: string): Promise<Effect> {
   const focused = rows[st.focus];
   if (!focused) return { keep: true };
   if (action === "copy") return { copy: focused.url };
+  if (action === "mute") {
+    await setMuted(focused.id, true);
+    // The cursor stays at its index: the next PR slides under it.
+    const next = prBarState(await prs());
+    const at = Math.min(st.focus, Math.max(0, shownPrs(next).length - 1));
+    barFocus.prs = shownPrs(next)[at]?.id;
+    return { keep: true, view: renderPrs({ ...next, focus: at }) };
+  }
   return pickPR(focused);
 }
 
@@ -300,7 +348,7 @@ function issueActions(i: Issue): Action[] {
     { id: "open", title: "Open" },
     { id: "copy", title: "Copy URL", shortcut: "cmd+c" },
     { id: "ref", title: "Copy reference" },
-    ...(i.state === "open" ? [{ id: "close", title: "Close issue", shortcut: "cmd+shift+x", style: "destructive" as const, confirm: `Close #${i.number}?` }] : []),
+    ...(i.state === "open" ? [muteAction(i.id), { id: "close", title: "Close issue", shortcut: "cmd+shift+x", style: "destructive" as const, confirm: `Close #${i.number}?` }] : []),
   ];
 }
 
@@ -356,6 +404,7 @@ async function pickIssue(i: Issue, action?: string): Promise<Effect> {
   switch (action) {
     case "copy": return { copy: i.url };
     case "ref": return { copy: i.id };
+    case "mute": return pickMute(i.id, "issues", `#${i.number} ${truncate(i.title, 60)}`);
     case "close":
       try { await closeIssue(i); } catch (e) { return failed("close", e); }
       forget("issues");
@@ -405,15 +454,20 @@ async function saveIssue(values: Record<string, string | boolean>): Promise<Effe
   }
 }
 
-const ISSUE_FILTERS = [{ id: "all", title: "All" }, { id: "assigned", title: "Assigned" }, { id: "mentioned", title: "Mentioned" }, { id: "created", title: "Created" }];
+const ISSUE_FILTERS = [{ id: "all", title: "All" }, { id: "assigned", title: "Assigned" }, { id: "mentioned", title: "Mentioned" }, { id: "created", title: "Created" }, { id: "muted", title: "Muted" }];
 const createIssueRow: Item = { id: CREATE, name: "Create issue", subtitle: "A new issue in one of your repositories", icon: ICON.plus, keywords: ["new", "add"], actions: [{ id: CREATE, title: "Create issue" }] };
 
 async function issueRows(ctx?: Ctx): Promise<Item[]> {
-  const lists = await issues(!!ctx?.refresh);
   const filter = ctx?.filter ?? "all";
   const seen = new Set<string>();
   const rows: Item[] = [createIssueRow];
   const add = (list: Issue[], section: string) => { for (const i of list) if (!seen.has(i.id)) { seen.add(i.id); rows.push(issueRow(i, section)); } };
+  if (filter === "muted") {
+    const l = await fetchIssues(!!ctx?.refresh);
+    add([...l.assigned, ...l.mentioned, ...l.created].filter((i) => muted.has(i.id)), "Muted");
+    return rows.length > 1 ? rows.slice(1) : [hint("none", "Nothing muted", "Mute on an issue keeps it out of the lists, the count and the bar item")];
+  }
+  const lists = await issues(!!ctx?.refresh);
   if (filter === "all" || filter === "assigned") add(lists.assigned, "Assigned");
   if (filter === "all" || filter === "mentioned") add(lists.mentioned, "Mentioned");
   if (filter === "all" || filter === "created") add(lists.created, "Created");
@@ -480,6 +534,13 @@ async function issuesAction(action: string): Promise<Effect> {
   const focused = rows[st.focus]?.issue;
   if (!focused) return { keep: true };
   if (action === "copy") return { copy: focused.url };
+  if (action === "mute") {
+    await setMuted(focused.id, true);
+    const next = issueBarState(await issues());
+    const at = Math.min(st.focus, Math.max(0, shownIssues(next).length - 1));
+    barFocus.issues = shownIssues(next)[at]?.issue.id;
+    return { keep: true, view: renderIssues({ ...next, focus: at }) };
+  }
   return pickIssue(focused);
 }
 

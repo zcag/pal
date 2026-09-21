@@ -40,7 +40,7 @@ export const shownPrs = (st: PrState): PR[] => allPrs(st).slice(0, BAR_ROWS);
 export const shownIssues = (st: IssueState): IssueBucketed[] => st.rows.slice(0, BAR_ROWS);
 
 function barHints(): ViewNode {
-  return row([...keyHint("enter", "open"), ...keyHint("c", "copy"), ...keyHint("r", "refresh"), ...keyHint("p", "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
+  return row([...keyHint("enter", "open"), ...keyHint("c", "copy"), ...keyHint("m", "mute"), ...keyHint("r", "refresh"), ...keyHint("p", "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
 }
 
 function status(pr: PR): { text: string; color: TagColor } {
@@ -91,6 +91,7 @@ function prActions(st: PrState): Action[] {
   return [
     { id: "open", title: "Open on GitHub", shortcut: "enter" },
     { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"] },
+    { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"] },
     { id: "refresh", title: "Refresh", shortcut: "r" },
     { id: "pal", title: "Open Pull Requests palette", shortcut: "p" },
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
@@ -104,6 +105,7 @@ function issueActions(st: IssueState): Action[] {
   return [
     { id: "open", title: "Open on GitHub", shortcut: "enter" },
     { id: "copy", title: "Copy URL", shortcut: ["c", "cmd+c"] },
+    { id: "mute", title: "Mute", shortcut: ["m", "cmd+m"] },
     { id: "refresh", title: "Refresh", shortcut: "r" },
     { id: "pal", title: "Open Issues palette", shortcut: "p" },
     { id: "down", title: "Next row", shortcut: ["down", "j"], hidden: true },
