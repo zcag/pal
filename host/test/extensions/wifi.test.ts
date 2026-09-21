@@ -67,6 +67,10 @@ describe("wifi", () => {
     expect(items.find((i) => i.id === "known:Cafe Wifi")).toMatchObject({ subtitle: "Saved", accessories: [] });
     expect(bySection("Available")).toEqual(["net:Open Cafe", "net:Neighbour", "scan"]);
     expect(items.find((i) => i.id === "net:Open Cafe")).toMatchObject({ subtitle: "Open · channel 1", accessories: [{ text: "▂▄▆ 55%" }] });
+    // Only a secured network that is not saved takes a password in the bar: an open one has none, a known one has it saved.
+    expect(items.find((i) => i.id === "net:Neighbour")!.args).toEqual([{ id: "password", placeholder: "Password", kind: "password" }]);
+    expect(items.find((i) => i.id === "net:Open Cafe")!.args).toBeUndefined();
+    expect(marvin.args).toBeUndefined();
     expect(items.find((i) => i.id === "scan")!.subtitle).toBe(MAC ? "scanned 12 s ago · 2 nearby without a name · takes a few seconds" : "scanned 12 s ago · 2 nearby without a name");
     expect(items.at(-1)).toMatchObject({ id: "power", name: "Turn Wi-Fi Off", section: "Wi-Fi" });
     expect(calls.some((c) => c.method === "permission")).toBe(false);
@@ -124,10 +128,16 @@ describe("wifi", () => {
     }
   });
 
-  test("join: a known network joins at once, a secured new one gets a password form, a wrong password shows it again", async () => {
+  test("join: a known network joins at once, a secured new one joins with the bar's password or gets a password form, a wrong password shows the form", async () => {
     expect(await pick("known:marvin")).toEqual({ hud: "Joined marvin" });
     expect(calls.at(-1)).toEqual({ method: "join", params: { ssid: "marvin" } });
     expect(await pick("net:Open Cafe", "join")).toEqual({ hud: "Joined Open Cafe" });
+    expect(calls.at(-1)).toEqual({ method: "join", params: { ssid: "Open Cafe" } });
+    // The bar's field: typed, the join takes it and no form; wrong, the form comes up with the tool's message; left empty, the form asks.
+    expect(await pick("net:Neighbour", "join", { password: "hunter2" })).toEqual({ hud: "Joined Neighbour" });
+    expect(calls.at(-1)).toEqual({ method: "join", params: { ssid: "Neighbour", password: "hunter2" } });
+    expect((await pick("net:Neighbour", "join", { password: "wrong" })).form).toMatchObject({ id: "net:Neighbour", errors: { password: "networksetup: Failed to join network Neighbour" } });
+    expect((await pick("net:Neighbour", "join", { password: "" })).form).toMatchObject({ id: "net:Neighbour", title: "Join Neighbour" });
     const form = await pick("net:Neighbour");
     expect(form.form).toMatchObject({ id: "net:Neighbour", title: "Join Neighbour", submit: { id: "join_with", title: "Join" } });
     expect(form.form!.fields.map((f) => f.kind)).toEqual(["password"]);

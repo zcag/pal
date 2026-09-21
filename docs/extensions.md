@@ -712,9 +712,10 @@ and a name, a chat that takes a message for its Send.
 ```
 
 - An argument has `id`, `placeholder` (its label in the bar), and
-  optionally `kind` (`text`, `number`, `select` with `options`),
-  `required` (blocks the run while empty) and `default`. Values arrive
-  as strings (`select`: the option id), like a form's.
+  optionally `kind` (`text`, `number`, `select` with `options`,
+  `password`, drawn masked), `required` (blocks the run while empty) and
+  `default`. Values arrive as strings (`select`: the option id), like a
+  form's.
 - Which actions take the values: those marked `args: true`; when none
   is, the primary (the first listed, or the default pick). The rest run
   bare, so a chat row's Enter still opens the chat while its `Send
@@ -805,6 +806,20 @@ diffs it against the last one:
 - `hidden`: the rule. An item earns its slot by having something to say;
   `hidden: true` takes no space on any target, and `render` keeps
   running so it can come back.
+- `empty`: with `hidden`, the shape the user may keep on the strip anyway
+  (`{ icon?, title?, tooltip?, menu? }`: the glyph, an honest tooltip such
+  as "No unread mail", the same popover). The core's per-item
+  `[bar.items."ext/id"] show = "always"` (docs/config.md) draws it muted,
+  without badge or segments, in the hidden item's own frame (its
+  `icon_size`, `icon_width`, `position`); `auto`, the default, hides.
+  The extension never reads the setting: it answers
+  `{ hidden: true, empty: { icon, tooltip, menu } }` when it has nothing to
+  say and leaves the choice to the core, so every item gets the setting
+  without remembering it. Hidden without `empty` hides under either
+  setting: signed out, there is nothing to open a popover on. A setting
+  that widens what the item computes (slack's `unread`, media's
+  `running`) stays the extension's; keeping the item up at all times is
+  the core's.
 - `icon` (a glyph from the bundled Nerd Font, an emoji, `{ image }`, `{ app }`),
   `title` (short: 64 characters at most, the menu bar does not truncate),
   `segments` (up to 8 extra runs after the title, each `{ id, icon?, text?,
@@ -856,7 +871,7 @@ export default defineExtension({
     notifications: {
       render: async (ctx) => {                    // ctx.reason: load | every | show | wake | network | focus | minute | settings | update | cli | open
         const n = await notifications();          // the palette's own loader, one cache
-        if (n.length === 0) return { hidden: true };
+        if (n.length === 0) return { hidden: true, empty: { icon: "\u{f09b}", tooltip: "No unread notifications", menu: [] } };  // what `show = "always"` keeps
         return { icon: "\u{f09b}", badge: n.length, menu: [
           { type: "section", title: "Unread", children: n.slice(0, 5).map((x) => ({ type: "item", id: x.id, title: x.title, subtitle: x.repo })) },
           { type: "separator" },

@@ -1,8 +1,8 @@
 // Wi-Fi over the core's wifi capability: sections Current (the network
 // the machine is on, with signal, channel and IP), Known (the saved
 // networks) and Available (a scan), plus a row to turn the radio off or
-// on. Enter joins (a form asks for the password of a secured network that
-// is not saved); Forget asks first; Copy password reads the saved secret
+// on. Enter joins (a secured network that is not saved takes its password
+// in the bar's field, and a form asks when none was typed); Forget asks first; Copy password reads the saved secret
 // (the macOS keychain prompts, which is the user's own action). On macOS a
 // scan takes seconds, so Available shows the last scan and a "Scan"
 // row runs a fresh one; on Linux `nmcli` answers from its own cache.
@@ -51,6 +51,7 @@ function available(n: WifiNetwork): Item {
     keywords: ["wifi", "network"],
     accessories: signalAccessory(n.signal),
     actions: [joinAction, copyName],
+    args: n.security ? [{ id: "password", placeholder: "Password", kind: "password" }] : undefined,
     section: "Available",
   };
 }
@@ -186,18 +187,14 @@ export default {
             try { await wifi.forget(ssid); } catch (e) { return failed(`forget ${ssid}`, e); }
             return toast(`Forgot ${ssid}`);
           }
-          case "join_with": {
-            const password = String(ctx?.values?.password ?? "");
-            try { await wifi.join(ssid, password); } catch (e) { return { form: passwordForm(ssid, id, errorMessage(e)) }; }
-            return { hud: `Joined ${ssid}` };
-          }
           default: {
-            // A saved or open network joins at once; a secured new one is asked for its password.
-            if (id.startsWith("net:")) {
+            // A saved or open network joins at once; a secured new one joins with the password from the bar's field or the form, and is asked in a form when none was typed.
+            const password = String(ctx?.values?.password ?? "");
+            if (id.startsWith("net:") && !password) {
               const n = (await wifi.scan("cached").catch(() => ({ networks: [] as WifiNetwork[] }))).networks.find((n) => n.ssid === ssid);
               if (n?.security && !n.known) return { form: passwordForm(ssid, id) };
             }
-            try { await wifi.join(ssid); } catch (e) { return id.startsWith("net:") ? { form: passwordForm(ssid, id, errorMessage(e)) } : failed(`join ${ssid}`, e); }
+            try { await wifi.join(ssid, password || undefined); } catch (e) { return id.startsWith("net:") ? { form: passwordForm(ssid, id, errorMessage(e)) } : failed(`join ${ssid}`, e); }
             return { hud: `Joined ${ssid}` };
           }
         }

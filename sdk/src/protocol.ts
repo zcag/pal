@@ -106,8 +106,8 @@ export type Item = {
   [extra: string]: unknown;
 };
 
-/** One typed argument of a row (`Item.args`): `placeholder` is its label in the bar; `required` refuses an empty one; `select` draws its `options`; `number` takes digits. `default` prefills. */
-export type Arg = { id: string; placeholder: string; kind?: "text" | "number" | "select"; options?: { id: string; title: string }[]; required?: boolean; default?: string };
+/** One typed argument of a row (`Item.args`): `placeholder` is its label in the bar; `required` refuses an empty one; `select` draws its `options`; `number` takes digits; `password` is drawn masked. `default` prefills. */
+export type Arg = { id: string; placeholder: string; kind?: "text" | "number" | "select" | "password"; options?: { id: string; title: string }[]; required?: boolean; default?: string };
 
 /**
  * One thing a row can do. The first in `Item.actions` runs on Enter, the
@@ -689,6 +689,14 @@ export type BarSegment = { id: string; icon?: string; text?: string; color?: Bar
 export type BarItem = {
   /** The rule: true takes no space, on every target. `render` keeps running. */
   hidden?: boolean;
+  /**
+   * With `hidden`: the shape the user may keep on the strip anyway
+   * (`[bar.items."ext/id"] show = "always"`), drawn muted by the core, no
+   * badge or segments; its `menu` is the popover, so the item stays a way
+   * in. Absent, a hidden item hides under either setting (signed out:
+   * nothing to open a popover on). The extension never reads the setting.
+   */
+  empty?: BarEmpty;
   /** A glyph (drawn from the bundled Nerd Font), an emoji, `{ image }` (`icon://`, `data:image/`), `{ app }`. `Icon`'s image form gains `template?: boolean`. */
   icon?: Icon;
   /** Text beside the icon: a count, a code, a track. Short; the menu bar has no truncation of its own. */
@@ -725,6 +733,9 @@ export type BarItem = {
   /** What a click, the item's hotkey or a hover peek opens. Absent: the click is `bar/open` and the extension answers an Effect; hover does nothing. */
   menu?: BarMenu;
 };
+
+/** `BarItem.empty`: the glyph, a title (weather's reading), the honest tooltip ("No unread mail") and the popover of an item with nothing to say. */
+export type BarEmpty = { icon?: Icon; title?: string; tooltip?: string; menu?: BarMenu };
 
 /**
  * Always pal's popover, on every target. `nodes`: a menu level (rows with

@@ -25,6 +25,11 @@ const chat: Item = {
   actions: [{ id: "open", title: "Open" }, { id: "send", title: "Send message", shortcut: "cmd+s", args: true }],
   args: [{ id: "text", placeholder: "Message", required: true }],
 };
+const net: Item = {
+  id: "net:Neighbour", name: "Neighbour", palette: "wifi/wifi", source: { extension: "wifi", palette: "wifi" },
+  actions: [{ id: "join", title: "Join" }],
+  args: [{ id: "password", placeholder: "Password", kind: "password" }],
+};
 
 let root: Root, el: HTMLDivElement;
 const picks: { id: string; action?: string; ctx?: Ctx }[] = [];
@@ -103,5 +108,16 @@ describe("typed arguments", () => {
     await key("s", { ctrlKey: true });
     await flush();
     expect(picks[2]).toEqual({ id: "chat", action: "send", ctx: { values: { text: "hi" } } });
+  });
+
+  it("a `password` argument is drawn masked and arrives as a plain string", async () => {
+    rows = [net];
+    await mount();
+    expect(field("password").getAttribute("type")).toBe("password");
+    expect(field("password").getAttribute("autocomplete")).toBe("off");
+    await type("password", "hunter2");
+    await key("Enter");
+    await flush();
+    expect(picks).toEqual([{ id: "net:Neighbour", action: "join", ctx: { values: { password: "hunter2" } } }]);
   });
 });

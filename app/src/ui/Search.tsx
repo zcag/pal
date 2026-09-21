@@ -87,7 +87,7 @@ export function Search({ value, onChange, placeholder = "Search…", inputRef, b
                 {(f.options ?? []).map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
               </select>
             ) : (
-              <input key={f.id} {...common} ref={i === 0 ? (args.firstRef as RefObject<HTMLInputElement | null>) : undefined} type="text" inputMode={f.kind === "number" ? "decimal" : undefined} placeholder={f.placeholder} value={args.values[f.id] ?? ""} onChange={(e) => args.onChange(f.id, e.target.value)} spellCheck={false} autoComplete="off" size={Math.max(6, Math.min(24, f.placeholder.length + 2))} />
+              <input key={f.id} {...common} ref={i === 0 ? (args.firstRef as RefObject<HTMLInputElement | null>) : undefined} type={f.kind === "password" ? "password" : "text"} inputMode={f.kind === "number" ? "decimal" : undefined} placeholder={f.placeholder} value={args.values[f.id] ?? ""} onChange={(e) => args.onChange(f.id, e.target.value)} spellCheck={false} autoComplete="off" size={Math.max(6, Math.min(24, f.placeholder.length + 2))} />
             );
           })}
         </div>

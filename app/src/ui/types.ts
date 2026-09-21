@@ -51,7 +51,7 @@ export type Action = {
 };
 
 /** One typed argument of a row (`Arg` in sdk/src/protocol.ts): a field the search bar turns into before the pick. */
-export type Arg = { id: string; placeholder: string; kind?: "text" | "number" | "select"; options?: FilterOption[]; required?: boolean; default?: string };
+export type Arg = { id: string; placeholder: string; kind?: "text" | "number" | "select" | "password"; options?: FilterOption[]; required?: boolean; default?: string };
 
 export type Metadata = {
   label: string;

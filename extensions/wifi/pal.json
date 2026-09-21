@@ -12,7 +12,7 @@
     "category": "system",
     "features": [
       "Sections Current, Known and Available: the current network with its IP, channel, security and signal (`▂▄▆█ 92%`), saved networks tagged `in range` when a scan sees them",
-      "`enter` joins: a saved or open network at once, a secured new one after a password form",
+      "`enter` joins: a saved or open network at once, a secured new one with the password typed into the bar's field, or after a form when none was",
       "`cmd+shift+c` copies a saved network's password (the keychain prompts on macOS)",
       "`ctrl+x` forgets a network, after a confirm; `cmd+c` copies the IP or the network's name",
       "A Scan for Networks row on macOS, where a scan takes seconds; a Wi-Fi row turns the radio off or on",
@@ -48,7 +48,7 @@
     "actions": [
       {
         "title": "Join",
-        "description": "A saved or open network joins at once; a secured new one asks for its password.",
+        "description": "A saved or open network joins at once; a secured new one takes its password in the bar, or asks in a form.",
         "keys": "enter"
       },
       {

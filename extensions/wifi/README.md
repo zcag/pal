@@ -26,7 +26,7 @@ interface, or with no backend, the one row says so.
 
 | keys | action | on |
 | --- | --- | --- |
-| `enter` | Join: a saved or open network at once; a secured network that is not saved asks for its password in a form, and a refused join shows the form again with the tool's message | a known or available row |
+| `enter` | Join: a saved or open network at once; a secured network that is not saved has a masked Password field in the search bar (Tab into it, type, Enter), asks for it in a form when the field is left empty, and a refused join shows the form with the tool's message | a known or available row |
 | `cmd+shift+c` | Copy password: the saved password onto the clipboard | the current row and known rows |
 | `cmd+c` | Copy IP: the interface's IPv4 address | the current row |
 | `cmd+c` | Copy name: the network's name | a known or available row |
