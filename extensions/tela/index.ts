@@ -14,7 +14,7 @@ import {
   RESEARCH_LIMIT, RESEARCH_MAX, addComment, addressed, backlinks, catalog, createPage, deckCover, describe, favorites, findSpace, iso, markAllRead, markRead, notifications, page, pageCounts, recent, research, search, spaceName, spaceTree, spaces,
   type Notification, type Page, type PageRef, type Space,
 } from "./data.ts";
-import { BAR_ROWS, render as renderBar, type BarRow, type BarState } from "./view.ts";
+import { render as renderBar, type BarRow, type BarState } from "./view.ts";
 import { pageView, researchView, type ResearchState } from "./render.ts";
 
 /** Nerd Font `md-` glyphs: page, search, lightbulb (research), space (earth / lock), deck, sheet, comment, mention, reply, backlink, plus, note, star, alert, key, inbox, check, history. */
@@ -512,9 +512,9 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
 /** The row the keys act on, across renders. */
 let barFocus: string | undefined;
 
-/** The popover's rows from the notifications at hand: the newest `BAR_ROWS` addressed to you. */
+/** The popover's rows from the notifications at hand: every one addressed to you, newest first (the popover scrolls). */
 function barState(list: Notification[]): BarState {
-  const rows: BarRow[] = list.slice(0, BAR_ROWS).map((n) => {
+  const rows: BarRow[] = list.map((n) => {
     notifTable.set(n.id, n);
     return {
       id: String(n.id),
@@ -530,9 +530,9 @@ function barState(list: Notification[]): BarState {
 
 /**
  * The bar item: unread mentions and replies as the badge, hidden at
- * zero; the popover is a view of its own (view.ts): the newest five as
- * rows — the kind's glyph, what happened, the comment's snippet, the
- * time — with a cursor the arrows move and a click sets. Enter opens
+ * zero; the popover is a view of its own (view.ts): every one as a row
+ * (the kind's glyph, what happened, the comment's snippet, the time),
+ * with a cursor the arrows move and a click sets. Enter opens
  * the focused comment in tela, `m` marks it read, `a` marks them all,
  * `o` opens tela, `p` the Comments palette. The cursor lives here
  * between renders.

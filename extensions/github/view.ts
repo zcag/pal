@@ -3,8 +3,8 @@
 // tests pass in. Pull Requests and Issues show the same buckets their
 // strip segments count, all rows, the popover scrolls; the focused row
 // wears the accent ring and row clicks move it. Notifications keeps its
-// repository-grouped inbox: unread threads with a type rail, reason badge
-// and age, capped by a height budget. All three use the popover width
+// repository-grouped inbox: every unread thread with a type rail, reason
+// badge and age, the popover scrolls. All three use the popover width
 // constant and the same key-hint row pattern.
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Issue, Notification, PR } from "./data.ts";
@@ -27,8 +27,6 @@ export type NotifState = {
   account?: string;
 };
 
-/** What fits under the popover's 480 px cap, in rows: a thread is one, a repository header `HEADER` of one; six threads of one repository, five over five. The rest is one line and the palette. */
-export const ROWS = 6.5, HEADER = 0.45;
 /** A row's inside: the outer column's `padding: 3` (12px a side), a row's own `padding: 1`, the type rail, the age column and the gaps between them. */
 const OUTER_PAD = 12, RAIL_W = 4, RAIL_H = 30, AGE_W = 36, ROW_PAD = 8, GAP = 8;
 const INNER_W = POPOVER_W - 2 * OUTER_PAD - ROW_PAD;
@@ -119,9 +117,8 @@ export function renderPrs(st: PrState): View {
   const kids: ViewNode[] = [];
   let seen = 0;
   for (const b of st.buckets) {
-    const shown = b.rows.filter((pr) => rows.includes(pr));
-    if (!shown.length) continue;
-    kids.push(sectionHeader(b.key, b.title, b.rows.length, b.color), ...shown.map((pr) => prNode(pr, seen++ === focus, st)));
+    if (!b.rows.length) continue;
+    kids.push(sectionHeader(b.key, b.title, b.rows.length, b.color), ...b.rows.map((pr) => prNode(pr, seen++ === focus, st)));
   }
   if (!rows.length) kids.push(empty("No open pull requests", "None of yours, and no review asked of you"));
   kids.push({ type: "divider", key: "rule" }, barHints());
@@ -138,9 +135,8 @@ export function renderIssues(st: IssueState): View {
   let seen = 0;
   for (const kind of ["assigned", "mentioned", "created"] as const) {
     const bucket = st.rows.filter((x) => x.kind === kind);
-    const shown = bucket.filter((x) => rows.includes(x));
-    if (!shown.length) continue;
-    kids.push(sectionHeader(kind, label[kind], bucket.length, color[kind]), ...shown.map((x) => issueNode(x, seen++ === focus, st)));
+    if (!bucket.length) continue;
+    kids.push(sectionHeader(kind, label[kind], bucket.length, color[kind]), ...bucket.map((x) => issueNode(x, seen++ === focus, st)));
   }
   if (!rows.length) kids.push(empty("No open issues", "None assigned to you, mentioning you or opened by you"));
   kids.push({ type: "divider", key: "rule" }, barHints());
@@ -181,23 +177,15 @@ export const REASONS: Record<string, { text: string; color: TagColor }> = {
 
 /**
  * The threads the popover shows, in order: newest first, grouped by
- * repository in the order of each repository's newest thread, cut where
- * the rows and their headers would pass `ROWS`. The cursor and the
- * actions index into this.
+ * repository in the order of each repository's newest thread. Every
+ * thread is here (the popover scrolls); the cursor and the actions
+ * index into this.
  */
 export function shown(list: Notification[]): Notification[] {
   const newest = list.slice().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const repos: string[] = [];
   for (const n of newest) if (!repos.includes(n.repo)) repos.push(n.repo);
-  const out: Notification[] = [];
-  let cost = 0, repo = "";
-  for (const n of repos.flatMap((r) => newest.filter((x) => x.repo === r))) {
-    cost += 1 + (n.repo !== repo ? HEADER : 0);
-    if (cost > ROWS) break;
-    repo = n.repo;
-    out.push(n);
-  }
-  return out;
+  return repos.flatMap((r) => newest.filter((x) => x.repo === r));
 }
 
 function threadRow(n: Notification, focused: boolean, st: NotifState): ViewNode {
@@ -265,8 +253,6 @@ export function render(st: NotifState): View {
       if (n.repo !== repo) { repo = n.repo; kids.push(repoHeader(repo, st.list.filter((x) => x.repo === repo).length)); }
       kids.push(threadRow(n, i === cursor, st));
     });
-    const more = st.list.length - rows.length;
-    if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
   }
   kids.push({ type: "divider", key: "rule" }, hints());
   const n = st.list.length;

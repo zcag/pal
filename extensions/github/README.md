@@ -142,8 +142,8 @@ with a colour rail for the subject's type (pull request and issue green,
 release blue, discussion violet, commit grey, checks amber, security red),
 its title, a badge for the reason GitHub gives (`mention` red, `review`
 violet, `assigned` blue, `CI` and `state` amber, `security` red, `yours`
-and `subscribed` grey, and the rest) and its age. Six threads fit (five
-over five repositories); the rest is "and N more in pal". The ring is the
+and `subscribed` grey, and the rest) and its age. Every thread is a row;
+the popover scrolls. The ring is the
 cursor: `↑`/`↓` (or `k`/`j`) move it, a click on a thread puts it there.
 Keys: `Enter` (or `o`) marks the thread read and opens it on GitHub, `m`
 marks it read and the list redraws with the count, `a` (or `⌘⇧A`) marks

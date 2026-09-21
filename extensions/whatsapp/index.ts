@@ -12,7 +12,7 @@
 import { errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { ApiError, NoKey, RateLimited, SessionError, Unreachable, base, conf, log, markChatRead, markChatUnread, react as apiReact, reply as apiReply, reset as resetApi, sendText } from "./api.ts";
 import { PANE_MSGS, REACTIONS, RUN_MSGS, chat, chatLink, clock, contacts, conversation, conversationMarkdown, dropChats, isGroupId, loadChats, oneLine, currentOpener as opener, phoneOf, prettyPhone, resetData, search, vcard, type Chat, type Hit, type Person } from "./data.ts";
-import { SECTION_ROWS, initialIcon, render as renderBar, type BarRow, type BarState } from "./view.ts";
+import { RECENT_ROWS, initialIcon, render as renderBar, type BarRow, type BarState } from "./view.ts";
 
 /** Glyphs from the bundled Nerd Font's `md-` set: whatsapp, account-group, magnify, information, alert, check-all, message-text, reply, emoticon-outline, content-copy, open-in-new, card-account-details, phone. */
 const ICON = { whatsapp: "\u{f05a3}", group: "\u{f0849}", search: "\u{f0349}", alert: "\u{f0026}", read: "\u{f012d}", unread: "\u{f0369}", reply: "\u{f045a}", react: "\u{f01f2}", copy: "\u{f018f}", web: "\u{f03cc}", contact: "\u{f05d2}", phone: "\u{f03f2}" } as const;
@@ -319,9 +319,10 @@ async function pickPerson(id: string, action?: string): Promise<Effect> {
  */
 let barFocus: string | undefined, barReplying: string | undefined, barDraft: string | undefined;
 
+/** Every unread chat, direct messages then groups; at nothing unread the newest `RECENT_ROWS` chats instead. */
 async function barRows(list: Chat[]): Promise<BarRow[]> {
   const unread = list.filter((c) => c.unread > 0);
-  const picked = unread.length ? [...unread.filter((c) => !c.group).slice(0, SECTION_ROWS), ...unread.filter((c) => c.group).slice(0, SECTION_ROWS)] : list.slice(0, SECTION_ROWS);
+  const picked = unread.length ? [...unread.filter((c) => !c.group), ...unread.filter((c) => c.group)] : list.slice(0, RECENT_ROWS);
   return Promise.all(picked.map(async (c): Promise<BarRow> => ({
     id: c.id, name: c.name, group: c.group, text: c.last ? oneLine(c.last) : c.group ? "Group" : "", time: c.at ? clock(c.at) : undefined, n: c.unread,
     avatar: c.avatar ? await imageData(c.avatar) : undefined,

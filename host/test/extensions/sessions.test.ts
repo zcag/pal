@@ -702,7 +702,7 @@ describe("sessions: the bar", () => {
     expect((await host.detail("sessions", "sessions", key("claude", ID.claude))).markdown).toContain("> and the README");
   });
 
-  test("the mocks in pal.json pass checkBarItem; the popover over made-up sessions: six rows then 'and N more in pal'", () => {
+  test("the mocks in pal.json pass checkBarItem; the popover over made-up sessions: every session a row in section order (the popover scrolls)", () => {
     const mocks = host.manifests.get("sessions")!.bar!.sessions.mocks!;
     expect(Object.keys(mocks)).toEqual(["working", "attention", "mixed", "ended", "hidden"]);
     for (const m of Object.values(mocks)) expect(checkBarItem(m.item)).toBeTruthy();
@@ -711,9 +711,10 @@ describe("sessions: the bar", () => {
     const mk = (i: number, state: Session["state"]): Session => ({ key: `claude:${i}`, agent: "claude", id: String(i), cwd: `/x/${i}`, title: `Session ${i}`, file: "/x", started: T, last: T, turns: 1, tokens: {}, promptAt: T, state, stateAt: T - i * 1000 });
     const sessions = [mk(1, "working"), mk(2, "waiting"), mk(3, "blocked"), mk(4, "ended"), mk(5, "working"), mk(6, "working"), mk(7, "waiting"), mk(8, "working")];
     const v = checkView(renderPopover({ sessions, cursor: "claude:7", now: T }));
-    expect(shown(sessions).map((x) => x.key)).toEqual(["claude:3", "claude:2", "claude:7", "claude:1", "claude:5", "claude:6"]);
-    expect(texts(v)).toContain("and 2 more in pal");
+    expect(shown(sessions).map((x) => x.key)).toEqual(["claude:3", "claude:2", "claude:7", "claude:1", "claude:5", "claude:6", "claude:8", "claude:4"]);
+    expect(texts(v).join("\n")).not.toContain("more in pal");
+    for (const x of sessions) expect(nodes(v.tree).some((n) => n.key === x.key)).toBe(true);
     expect(nodes(v.tree).find((x) => x.selected)?.key).toBe("claude:7");
-    expect(actions({ sessions, cursor: "claude:7", now: T }).map((a) => a.id)).toEqual(["focus", "view", "transcript", "copy-resume", "kill", "pal", "down", "up", "focus:claude:3", "focus:claude:2", "focus:claude:7", "focus:claude:1", "focus:claude:5", "focus:claude:6"]);
+    expect(actions({ sessions, cursor: "claude:7", now: T }).map((a) => a.id)).toEqual(["focus", "view", "transcript", "copy-resume", "kill", "pal", "down", "up", "focus:claude:3", "focus:claude:2", "focus:claude:7", "focus:claude:1", "focus:claude:5", "focus:claude:6", "focus:claude:8", "focus:claude:4"]);
   });
 });

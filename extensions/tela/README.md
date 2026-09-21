@@ -121,8 +121,8 @@ the page in pal, `⌘⇧R` marks read, `⌘⇧A` marks everything read.
 **The bar item** `tela/inbox` counts unread mentions and replies as the
 badge, hidden at zero (tela's other notifications, sign-ups and Atlas
 runs among them, are not yours to answer); every 300 s and on show, wake
-and network. The popover is a view of its own: the newest five as rows
-— the kind's glyph, what happened, the comment's snippet, the time —
+and network. The popover is a view of its own: every one as a row
+(the kind's glyph, what happened, the comment's snippet, the time),
 with a cursor the arrows move and a click sets. Enter opens the focused
 comment in tela, `m` marks it read, `a` marks them all, `o` opens tela,
 `p` the Comments palette.

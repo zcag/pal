@@ -1765,8 +1765,8 @@ the repository's page). Enter marks the thread read and opens it, so the
 count is honest when you are back; Mark as read (`⌘⇧R`) does not open;
 Mark all as read (`⌘⇧A`) asks first. The bar item `github/notifications`
 shows the unread count as a badge (hidden at zero) over the same cache;
-its popover has the newest five, Open all (this palette) and Mark all
-read.
+its popover has every unread thread (it scrolls), Open all (this palette)
+and Mark all read.
 
 Popover keys of `github/notifications` (rendered every 300 s and on show, wake,
 network; the arrows move the cursor, a click sets it):
@@ -3079,8 +3079,8 @@ comments, unread first; Enter marks read and opens, `⌘⇧R` marks read,
 the row `⌘B` came from.
 
 **The bar item** `tela/inbox`: unread mentions and replies as the badge,
-hidden at zero; every 300 s and on show, wake, network. The popover: the
-newest five, Open in pal, Mark all read.
+hidden at zero; every 300 s and on show, wake, network. The popover:
+every one as a row (it scrolls), Open in pal, Mark all read.
 
 Not there: a daily page (tela has none; Quick Notes stands in), an append
 or any edit of a page's body (that is tela's MCP, not a launcher's job), a
@@ -3452,8 +3452,8 @@ discards after one.
 **The bar item** `gmail/unread`: the inbox's unread count as the badge,
 hidden at zero, the instance's title as the strip text when it has one
 ("Personal", "Work"), the address in the tooltip; every 120 s and on
-show, wake, network. The popover: the newest five unread, each a
-submenu (Open in Gmail, Mark as read), then Open in pal (the Inbox
+show, wake, network. The popover: every unread as a row (it scrolls), each
+a submenu (Open in Gmail, Mark as read), then Open in pal (the Inbox
 palette) and Open Gmail.
 
 Settings, `[extensions.gmail]` (and `[extensions."gmail@work"]`):

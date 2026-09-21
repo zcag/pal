@@ -151,7 +151,7 @@ stale bar item) instead of piling onto the limit.
 zero, urgent while a direct message waits. Refreshed every `refresh`
 seconds and when the panel shows, after a wake and when the network is
 back. The popover is a view of the item's own: a section per kind with
-the newest five rows, each the sender's picture (an initial in a colour
+every row (the popover scrolls), each the sender's picture (an initial in a colour
 while it is not fetched), the conversation, the message on one line,
 the time and a count (red for a direct message or a mention, blue for
 thread replies), a direct message's presence as a dot on the picture;

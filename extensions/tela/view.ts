@@ -24,15 +24,12 @@ export type BarState = {
   rows: BarRow[];
   /** Which row the keys act on. */
   focus: number;
-  /** Addressed notifications in all, which may be more than the rows listed. */
+  /** Addressed notifications in all, the title's count. */
   total: number;
 };
 
 /** A row's inner width (its own padding of one step a side), and the text column left after the glyph and the time. */
 const ROW_W = POPOVER_W - 8, GLYPH_W = 20, TIME_W = 52, TEXT_W = ROW_W - GLYPH_W - TIME_W - 2 * 8;
-/** Rows the popover lists; the rest stay a count. */
-export const BAR_ROWS = 5;
-
 const MENTION = "\u{f0016}", REPLY = "\u{f0179}";
 
 function rowNode(r: BarRow, focused: boolean): ViewNode {
@@ -84,10 +81,7 @@ export function render(st: BarState): View {
       { key: "compact", padding: 3, gap: 2, align: "center" },
     );
   } else {
-    const rest = st.total - st.rows.length;
     const kids: ViewNode[] = st.rows.map((r, i) => rowNode(r, i === st.focus));
-    // The count only earns a line when it says something the rows do not.
-    if (rest > 0) kids.push(text(`and ${rest} more`, { key: "more", size: "xs", color: "faint" }));
     tree = column([column(kids, { key: "rows", gap: 0 }), hints(st, st.rows[st.focus])], { key: "compact", padding: 3, gap: 2 });
   }
   return {

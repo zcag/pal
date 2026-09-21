@@ -535,18 +535,21 @@ describe("github", () => {
       for (const k of ["enter", "m", "a", "p", "up", "down"]) expect(s).toContain(`"type":"keycap","keys":"${k}"`);
     });
 
-    test("the view over a made-up inbox: the height budget cuts the rows with their headers, the ages read, every reason has a badge, nothing unread is All caught up", () => {
+    test("the view over a made-up inbox: every thread is a row, grouped by repository (the popover scrolls), the ages read, every reason has a badge, nothing unread is All caught up", () => {
       const now = Date.parse("2026-09-16T14:32:00Z");
       const n = (id: string, repo: string, minutes: number, reason = "subscribed"): Notification => ({ kind: "notification", id: `thread:${id}`, thread: id, title: `T${id}`, repo, reason, type: "Issue", url: `https://github.com/${repo}/issues/${id}`, updatedAt: new Date(now - minutes * 60_000).toISOString() });
-      // One repository: six rows fit; five repositories: five.
-      expect(shown(Array.from({ length: 9 }, (_, i) => n(String(i), "a/one", i))).map((x) => x.id)).toEqual(["thread:0", "thread:1", "thread:2", "thread:3", "thread:4", "thread:5"]);
-      expect(shown(Array.from({ length: 7 }, (_, i) => n(String(i), `a/r${i % 5}`, i))).map((x) => x.repo)).toEqual(["a/r0", "a/r0", "a/r1", "a/r1", "a/r2"]);
+      // Nine of one repository: all nine, newest first; seven over five repositories: all seven, each repository's threads together in the order of its newest.
+      expect(shown(Array.from({ length: 9 }, (_, i) => n(String(i), "a/one", i))).map((x) => x.id)).toEqual(Array.from({ length: 9 }, (_, i) => `thread:${i}`));
+      expect(shown(Array.from({ length: 7 }, (_, i) => n(String(i), `a/r${i % 5}`, i))).map((x) => x.repo)).toEqual(["a/r0", "a/r0", "a/r1", "a/r1", "a/r2", "a/r3", "a/r4"]);
       const many = Array.from({ length: 9 }, (_, i) => n(String(i), "a/one", i));
       const v = renderNotifs({ list: many, cursor: 2, now, account: "Work" });
       expect(checkView(v)).toBe(v);
       expect(v.title).toBe("9 unread (Work)");
-      expect(JSON.stringify(v.tree)).toContain('"value":"and 3 more in pal"');
-      expect(JSON.stringify(v.tree)).toContain('"action":"focus:thread:2","selected":true');
+      const s = JSON.stringify(v.tree);
+      expect(s).not.toContain("more in pal");
+      for (const x of many) expect(s).toContain(`"action":"focus:${x.id}"`);
+      expect(v.actions.filter((a) => a.id.startsWith("focus:"))).toHaveLength(9);
+      expect(s).toContain('"action":"focus:thread:2","selected":true');
       for (const r of ["mention", "team_mention", "review_requested", "assign", "author", "comment", "subscribed", "state_change", "ci_activity", "security_alert", "manual", "invitation", "member_feature_requested", "security_advisory_credit", "approval_requested"]) expect(REASONS[r]).toBeDefined();
       const empty = renderNotifs({ list: [], cursor: 0, now });
       expect(checkView(empty)).toBe(empty);

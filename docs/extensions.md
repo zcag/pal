@@ -838,7 +838,9 @@ diffs it against the last one:
   `{ view: View }` draws the tree as a **view level**: the same level
   as in the panel (`keys: "actions"`, the text field, the keyed `move`
   transitions), 420 px wide, the popover as tall as its content up to
-  480 px and the tree scrolling inside past that. A `{ palette }` naming a
+  480 px and the tree scrolling inside past that. Because it scrolls, a
+  popover never omits rows: every row the item knows is in the tree, no
+  row cap per section and no "and N more" line. A `{ palette }` naming a
   view palette opens as a view level too (`view(ctx)` asked with
   `ctx.compact`). Without a `menu` the click is `onOpen` and the extension
   answers an Effect. `click: "open"` takes that direct path even when the

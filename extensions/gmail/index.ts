@@ -10,7 +10,7 @@
 import { bytes, clock, dayNameYear, errorMessage, failed, hint, imageData, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
-import { BAR_ROWS, render as renderBar, type BarRow, type BarState } from "./view.ts";
+import { render as renderBar, type BarRow, type BarState } from "./view.ts";
 import { address, addressNow, archive, drafts, inbox, labelNames, labels, mail, markRead, markUnread, open, reset, search, star, type DraftRow, type Inbox, type Mail } from "./data.ts";
 import { buildRaw, displayName, draftUrl, gmailBase, labelQuery, labelTitle, labelUrl, mdEscape, messageText, quoted, replySubject, sectionOf, threadUrl, withSignature } from "./mail.ts";
 
@@ -329,13 +329,14 @@ async function pickDraft(id: string, action?: string): Promise<Effect> {
 let barFocus: string | undefined;
 
 /**
- * The popover's rows from the inbox: the newest `BAR_ROWS` unread, each
- * with the sender's mark. A view's `image` takes a data url only, so a
- * gravatar is fetched into one and a miss falls back to the initial's
- * tile (already a data url), as WhatsApp's rows do.
+ * The popover's rows from the inbox: every unread it fetched (the popover
+ * scrolls), each with the sender's mark. A view's `image` takes a data
+ * url only, so a gravatar is fetched into one, once per url (the sdk
+ * keeps it), and a miss falls back to the initial's tile (already a data
+ * url), as WhatsApp's rows do.
  */
 async function barState(i: Inbox): Promise<BarState> {
-  const rows: BarRow[] = await Promise.all(i.unread.slice(0, BAR_ROWS).map(async (m) => {
+  const rows: BarRow[] = await Promise.all(i.unread.map(async (m) => {
     const src = m.icon?.image;
     const data = src && !src.startsWith("data:") ? await imageData(src) : src;
     return {
@@ -355,9 +356,9 @@ async function barState(i: Inbox): Promise<BarState> {
 /**
  * The inbox's unread count as the badge, hidden at zero, the account's
  * title beside the glyph when it has one (two accounts read apart on
- * the strip); the popover is a view of the item's own (view.ts): the
- * newest five unread as rows — the sender's mark, who wrote it, the
- * subject and its snippet, the time, a star or a paperclip — a cursor
+ * the strip); the popover is a view of the item's own (view.ts): every
+ * unread as a row (the sender's mark, who wrote it, the subject and its
+ * snippet, the time, a star or a paperclip), a cursor
  * the arrows move and a click sets, the keys as hints. Enter opens the
  * focused message in Gmail, `m` marks it read, `s` stars it, `a` marks
  * every listed message read, `o` opens Gmail, `p` the Inbox palette.
@@ -393,7 +394,7 @@ async function unreadAction(action: string): Promise<Effect> {
   if (action.startsWith("focus:")) { barFocus = action.slice(6); return redrawBar(); }
   if (action === "read-all") {
     const i = await loadInbox();
-    const ids = i.unread.slice(0, BAR_ROWS).map((m) => m.id);
+    const ids = i.unread.map((m) => m.id);
     if (!ids.length) return { keep: true };
     try { await markRead(ids); } catch (e) { return failed("mark read", e); }
     dropInbox();

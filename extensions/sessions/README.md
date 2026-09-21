@@ -184,8 +184,8 @@ looked for on PATH and then in `/opt/homebrew/bin`, `/usr/local/bin`,
 while anything waits on you; hidden with no session at all (Settings can
 keep it as a muted glyph). The core asks every 10 s and on show and wake;
 the file watcher pushes sooner. The popover is a row per session under
-the same headers, six rows then "and N more in pal", the ring on the row
-the keys act on (a click moves it):
+the same headers, every session (the popover scrolls), the ring on the
+row the keys act on (a click moves it):
 
 | key | what |
 | --- | --- |

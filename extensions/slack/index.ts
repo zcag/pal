@@ -22,8 +22,6 @@ const ICON = { slack: "\u{f04b1}", dm: "\u{f0009}", mention: "\u{f0065}", thread
 /** How long an inbox is shared between the bar and the palette before either fetches again. */
 const INBOX_FRESH_MS = 30_000;
 const SEARCH_WAIT_MS = 300;
-/** Rows per section in the bar's popover. */
-const BAR_ROWS = 5;
 
 // ---- the inbox, shared ------------------------------------------------------------
 
@@ -373,7 +371,7 @@ async function pickStatus(id: string, action?: string, ctx?: Ctx): Promise<Effec
  * The count of what is addressed to you (direct messages, mentions, thread
  * replies) as the badge, hidden at zero, urgent while a direct message
  * waits (`dm_urgent`); the popover is a view of the item's own (view.ts):
- * a section per kind with the newest five rows, a cursor the arrows move
+ * a section per kind with every row (the popover scrolls), a cursor the arrows move
  * and a click sets, the channels that are only unread as badges, the keys
  * as hints. Enter opens the focused row in Slack, `r` turns the search row
  * into a reply field (Enter sends through `post`), `m` marks it read, `a`
@@ -386,9 +384,9 @@ const refreshSecs = () => Math.max(10, Number(conf().refresh) || 120);
 /** The row the keys act on, and the one a reply is being typed for, across renders. */
 let barFocus: string | undefined, barReplying: string | undefined, barDraft: string | undefined;
 
-/** The popover's rows from the inbox: the newest `BAR_ROWS` per kind, the avatars fetched once each (a miss is the initial's tile), a direct message's presence on its avatar. */
+/** The popover's rows from the inbox: everything addressed, a section per kind (the popover scrolls), the avatars fetched once each (a miss is the initial's tile), a direct message's presence on its avatar. */
 async function barState(i: Inbox): Promise<BarState> {
-  const picked = (["dm", "mention", "thread"] as const).flatMap((kind) => i.items.filter((u) => u.kind === kind).slice(0, BAR_ROWS));
+  const picked = (["dm", "mention", "thread"] as const).flatMap((kind) => i.items.filter((u) => u.kind === kind));
   const p = await dots(picked);
   const rows: BarRow[] = await Promise.all(picked.map(async (u) => {
     const ts = u.top?.ts ?? u.latest;

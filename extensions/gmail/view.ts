@@ -28,7 +28,7 @@ export type BarState = {
   rows: BarRow[];
   /** Which row the keys act on. */
   focus: number;
-  /** Unread messages in the mailbox, which may be more than the rows listed. */
+  /** Unread messages in the mailbox, which may be more than the page the rows came from. */
   total: number;
   /** The mailbox the rows came from, named in the title. */
   address?: string;
@@ -37,9 +37,6 @@ export type BarState = {
 const AVATAR = 28;
 /** A row's inner width (its own padding of one step a side), and the text column left after the avatar, the time and the marks with their gaps. */
 const ROW_W = POPOVER_W - 8, TIME_W = 52, MARK_W = 16, TEXT_W = ROW_W - AVATAR - TIME_W - MARK_W - 3 * 8;
-/** Rows the popover lists; the rest stay a count. */
-export const BAR_ROWS = 5;
-
 const STAR = "\u{f04ce}", CLIP = "\u{f0439}";
 
 function rowNode(r: BarRow, focused: boolean): ViewNode {
@@ -104,7 +101,7 @@ export function render(st: BarState): View {
   } else {
     const rest = st.total - st.rows.length;
     const kids: ViewNode[] = st.rows.map((r, i) => rowNode(r, i === st.focus));
-    // The count only earns a line when it says something the rows do not.
+    // Every unread the item fetched is a row (the popover scrolls); the count only earns a line past a full page, when the mailbox holds more than that.
     if (rest > 0) kids.push(text(`and ${rest} more unread`, { key: "more", size: "xs", color: "faint" }));
     tree = column([column(kids, { key: "rows", gap: 0 }), hints(st, st.rows[st.focus])], { key: "compact", padding: 3, gap: 2 });
   }

@@ -119,7 +119,7 @@
   "bar": {
     "unread": {
       "title": "Unread",
-      "description": "The unread count of the inbox as a badge, hidden at zero, the account's title beside the glyph when it has one; the popover lists the newest five as rows — the sender's mark, who wrote it, the subject and its snippet, the time, a star or a paperclip — with a cursor the arrows move and a click sets.",
+      "description": "The unread count of the inbox as a badge, hidden at zero, the account's title beside the glyph when it has one; the popover lists every unread as a row (the sender's mark, who wrote it, the subject and its snippet, the time, a star or a paperclip) with a cursor the arrows move and a click sets.",
       "refresh": { "every": 120, "on": ["show", "wake", "network"] },
       "mocks": {
         "unread": { "title": "Unread mail", "item": { "icon": "󰇮", "badge": 3, "tooltip": "3 unread messages in you@example.com" } },
@@ -172,7 +172,7 @@
       "Enter opens the message in Gmail at the thread; cmd+Enter marks it read; the pane shows the message as text with the quoted replies folded, the headers and the attachments listed",
       "Search Mail as you type with Gmail's own syntax (from:, subject:, has:attachment, newer_than:7d), the results sectioned by label",
       "Labels: every label, yours and Gmail's; open it in Gmail or search it here",
-      "The bar item: the unread count, hidden at zero, refreshed every two minutes and on wake; the popover lists the newest five with Open and Mark as read",
+      "The bar item: the unread count, hidden at zero, refreshed every two minutes and on wake; the popover lists every unread with Open and Mark as read",
       "Two accounts are two instances, each with its own token command, address, palettes and bar item, told apart by the title and the badge on the tile",
       "Sending is off per account until you turn it on: with it, Compose as a form, a quick Reply typed in the bar on a row (the full form without it), Drafts to send or discard, Archive and Star. A work account stays read and mark-read only",
       "No secret in pal: a command of yours prints the token (gcloud, a helper, a broker), pal keeps it in memory until it expires"
@@ -188,7 +188,7 @@
       { "file": "6-drafts.png", "caption": "Drafts: the recipient and the subject, send or discard after a confirmation" },
       { "file": "bar-menubar-dark.png", "caption": "On the menu bar: the envelope with the unread count, the account's title beside it", "kind": "bar" },
       { "file": "bar-menubar-light.png", "caption": "The same item on a light menu bar", "kind": "bar" },
-      { "file": "bar-menubar-popover.png", "caption": "A click opens the popover: the newest five unread, each with Open and Mark as read, then Open in pal and Open Gmail", "kind": "bar" },
+      { "file": "bar-menubar-popover.png", "caption": "A click opens the popover: every unread, each with Open and Mark as read, then Open in pal and Open Gmail", "kind": "bar" },
       { "file": "bar-sketchybar.png", "caption": "On sketchybar: the glyph, the title and the count", "kind": "bar" }
     ],
     "actions": [

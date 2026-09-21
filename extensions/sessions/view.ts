@@ -4,8 +4,8 @@
 // state (waiting on you, your turn, working, ended), the agent's glyph in
 // the agent's colour, the title clipped, the folder and branch under it,
 // the state badge and the age at the right. The row the keys act on wears
-// the accent ring; a click moves it. Six rows fit under the popover's cap;
-// the rest is one line and the palette. A key-hint row closes the tree.
+// the accent ring; a click moves it. Every session is a row, the popover
+// scrolls. A key-hint row closes the tree.
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import { AGENT_TITLE, type Agent, type Pending, type Tokens } from "./agents.ts";
 
@@ -60,16 +60,14 @@ export const STATE: Record<State, { title: string; tag: string; color: TagColor 
 export const AGENT_GLYPH: Record<Agent, string> = { claude: "", codex: "", copilot: "" };
 export const AGENT_COLOR: Record<Agent, TagColor> = { claude: "amber", codex: "teal", copilot: "violet" };
 
-/** How many rows the popover shows before "and N more in pal". */
-export const ROWS = 6;
 const OUTER_PAD = 12, GLYPH_W = 20, AGE_W = 36, ROW_PAD = 8, GAP = 8;
 const TITLE_W = POPOVER_W - 2 * OUTER_PAD - ROW_PAD - GLYPH_W - GAP - AGE_W - GAP - 96;
 
 /** The sessions in section order, each section as the list came (newest activity first). */
 export const ordered = (sessions: Session[]): Session[] => STATE_ORDER.flatMap((s) => sessions.filter((x) => x.state === s));
-/** The rows drawn: the first `ROWS` in section order. */
-export const shown = (sessions: Session[]): Session[] => ordered(sessions).slice(0, ROWS);
-/** The row the keys act on: the cursor's session when still shown, else the first. */
+/** The rows drawn: every session in section order (the popover scrolls). */
+export const shown = (sessions: Session[]): Session[] => ordered(sessions);
+/** The row the keys act on: the cursor's session when still listed, else the first. */
 export const current = (st: PopoverState): Session | undefined => { const rows = shown(st.sessions); return rows.find((s) => s.key === st.cursor) ?? rows[0]; };
 
 /** `blocked` reads with a question mark: the state that said so is a guess unless a hook confirmed it. A parent working through its subagents says how many. */
@@ -147,8 +145,6 @@ export function render(st: PopoverState): View {
       if (s.state !== state) { state = s.state; kids.push(header(state, st.sessions.filter((x) => x.state === state).length)); }
       kids.push(sessionRow(s, s.key === cur?.key, st));
     }
-    const more = st.sessions.length - rows.length;
-    if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
   }
   kids.push({ type: "divider", key: "rule" }, hints(cur));
   const n = st.sessions.length;

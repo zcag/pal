@@ -344,7 +344,7 @@
   "bar": {
     "inbox": {
       "title": "Inbox",
-      "description": "Unread mentions and replies as a badge, hidden at zero; the popover lists the newest five as rows — the kind's glyph, what happened, the comment's snippet, the time — with a cursor the arrows move and a click sets.",
+      "description": "Unread mentions and replies as a badge, hidden at zero; the popover lists every one as a row (the kind's glyph, what happened, the comment's snippet, the time) with a cursor the arrows move and a click sets.",
       "refresh": {
         "every": 300,
         "on": [

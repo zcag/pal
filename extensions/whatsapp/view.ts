@@ -41,8 +41,8 @@ export type BarState = {
 const AVATAR = 28;
 /** A row's inner width (its own padding of one step a side), and the text column left after the avatar, the time and a badge with their gaps. */
 const ROW_W = POPOVER_W - 8, TIME_W = 58, BADGE_W = 30, TEXT_W = ROW_W - AVATAR - TIME_W - BADGE_W - 3 * 8;
-/** Rows per section. */
-export const SECTION_ROWS = 5;
+/** Recent chats listed at nothing unread: a preview, not the inbox (every unread chat is a row, the popover scrolls). */
+export const RECENT_ROWS = 5;
 
 
 /** WhatsApp's own avatar greens and teals plus a few warm ones, one picked by the name's hash: the initial's tile while there is no picture. */
