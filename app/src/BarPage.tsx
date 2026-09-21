@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { barKey, Launcher, menuLevel, type LauncherHandle, type Level } from "./Launcher";
 import { menuKind, type BarPayload, type BarShow } from "./bar";
 import { mark, useCore, useLiveViews } from "./core";
@@ -59,6 +60,7 @@ export default function BarPage() {
   const page = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Named to this window: a listener on the default target (`Any`) hears every window's, and the sidebar's show would start a level in the popover too (core.ts does the same for `pal://view`).
     const un = listen<BarPayload>("pal://bar", (e) => {
       const p = e.payload;
       if ("hide" in p) { showing.current = null; setShow(null); return; }
@@ -69,7 +71,7 @@ export default function BarPage() {
       setShow(p);
       launcher.current?.start(levelOf(p), inPlace);
       if (inPlace && menuKind(p.menu) === "palette") core.bump();
-    });
+    }, { target: getCurrentWindow().label });
     return () => {
       un.then((f) => f());
     };
