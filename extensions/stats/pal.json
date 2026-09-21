@@ -1,0 +1,183 @@
+{
+  "name": "stats",
+  "title": "Stats",
+  "description": "CPU, memory, disk, network and load on the bar, each its own item that stays off the strip until it has something to say, with a popover of the breakdown: per-core bars, the memory segments, every volume, every interface, the busiest processes, and a sparkline of the last minutes. The same facts as rows in a palette.",
+  "version": "0.1.0",
+  "icon": { "tile": { "glyph": "󰄧", "bg": "slate" } },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": ["stats", "cpu", "memory", "ram", "disk", "network", "load", "top", "htop"],
+  "settings": [
+    { "kind": "number", "id": "interval", "label": "Sampling interval", "description": "Seconds between samples; the bar items, their popovers and the sparklines follow it. A sample costs about 5 ms (the process table, 20 ms, is read every 10 s and every tick while a popover is open).", "min": 1, "max": 60, "step": 1, "unit": "s", "default": 3 },
+    { "kind": "select", "id": "cpu_label", "label": "CPU label", "description": "What the strip says: the share, a sparkline of the last eight samples, one bar per core, or the share and the busiest process.", "bar": "cpu", "options": [{ "id": "percent", "title": "42%" }, { "id": "spark", "title": "▂▃▅▇▆ (sparkline)" }, { "id": "bars", "title": "▁▃▇▂ (one bar per core)" }, { "id": "top", "title": "42% · node" }], "default": "percent" },
+    { "kind": "select", "id": "memory_label", "label": "Memory label", "bar": "memory", "options": [{ "id": "percent", "title": "63%" }, { "id": "used", "title": "24.2 GB" }, { "id": "free", "title": "14.4 GB free" }, { "id": "spark", "title": "▂▃▅▇▆ (sparkline)" }], "default": "percent" },
+    { "kind": "select", "id": "disk_label", "label": "Disk label", "description": "The startup volume's figure; the popover has every volume.", "bar": "disk", "options": [{ "id": "percent", "title": "19%" }, { "id": "free", "title": "1.5 TB (free)" }, { "id": "used", "title": "392 GB (used)" }], "default": "free" },
+    { "kind": "select", "id": "network_label", "label": "Network label", "bar": "network", "options": [{ "id": "rate", "title": "↓1.2M ↑80K" }, { "id": "down", "title": "↓1.2M" }, { "id": "spark", "title": "▂▃▅▇▆ (download sparkline)" }], "default": "rate" },
+    { "kind": "select", "id": "load_label", "label": "Load label", "bar": "load", "options": [{ "id": "one", "title": "3.26 (1 min)" }, { "id": "three", "title": "3.26 3.25 2.91" }], "default": "one" },
+    { "kind": "list", "id": "disk_hide", "label": "Hidden volumes", "description": "Mount points or volume names to leave out of the disk item and the palette (a backup disk that is always nearly full).", "bar": "disk", "placeholder": "/Volumes/Backup", "default": [] }
+  ],
+  "store": {
+    "tagline": "CPU, memory, disk, network and load: quiet until they are not",
+    "category": "system",
+    "features": [
+      "Five bar items off one 3 s sampler, each hidden by its rules while quiet: CPU from 70%, memory from 80% or under pressure, a disk past 85% or under 20 GB free, the network past 1 MB/s, the load past the core count; amber, then red",
+      "Popovers with the breakdown: per-core bars and the five busiest processes with a Kill key, the memory segments (app, wired, compressed, cached) and the five largest, every volume with its bar and free space (Enter reveals it), every interface with its address and rates, the load tiles",
+      "A sparkline of the last three minutes in every popover and in the palette's detail pane, drawn in the theme's ink",
+      "The strip's label per item: a share, a sparkline of glyphs, one bar per core, the busiest process, the free space, the rates",
+      "A palette of the same facts as rows, Enter copies the value; Activity Monitor, the Processes palette, Reveal in Finder, Kill",
+      "`pal://stats/cpu` opens the popover, `?palette=1` the palette on that section",
+      "No root: os.cpus(), vm_stat and sysctl, netstat, df, ps on macOS; /proc on Linux"
+    ],
+    "permissions": [],
+    "platforms": ["macos", "linux"]
+  },
+  "palettes": {
+    "stats": {
+      "kind": "live",
+      "description": "CPU, load, memory, swap, every volume, every interface, the busiest and largest processes, uptime: one row each, the value as the name, Enter copies it.",
+      "keywords": ["stats", "top", "usage"],
+      "keys": [
+        { "keys": "enter", "title": "Copy the value (the mount point of a volume, the address of an interface, the pid of a process)" },
+        { "keys": "cmd+o", "title": "Open Activity Monitor (the Processes palette on Linux)" },
+        { "keys": "cmd+p", "title": "Open the row's bar popover" },
+        { "keys": "cmd+r", "title": "Reveal a volume in Finder" },
+        { "keys": "cmd+a", "title": "All addresses (the Network palette)" },
+        { "keys": "cmd+backspace", "title": "Kill a process (asks first)" }
+      ]
+    }
+  },
+  "states": {
+    "cpu": { "description": "CPU share, percent, over the last sample", "kind": "number" },
+    "cpu_top": { "description": "The busiest process's name", "kind": "string" },
+    "cores": { "description": "Logical cores", "kind": "number" },
+    "memory": { "description": "Memory used, percent (app + wired + compressed on macOS; total less available on Linux)", "kind": "number" },
+    "memory_pressure": { "description": "The kernel's memory pressure: normal, warn, critical", "kind": "string" },
+    "swap": { "description": "Swap used, percent of the swap total; 0 without swap", "kind": "number" },
+    "disk": { "description": "The startup volume used, percent", "kind": "number" },
+    "disk_free": { "description": "The startup volume's free space, GB", "kind": "number" },
+    "disk_worst": { "description": "The fullest writable volume, percent used", "kind": "number" },
+    "net_down": { "description": "Bytes in per second over the physical links, in KB/s", "kind": "number" },
+    "net_up": { "description": "Bytes out per second over the physical links, in KB/s", "kind": "number" },
+    "load1": { "description": "The 1 minute load average", "kind": "number" },
+    "load5": { "description": "The 5 minute load average", "kind": "number" },
+    "load15": { "description": "The 15 minute load average", "kind": "number" }
+  },
+  "links": {
+    "cpu": { "description": "Open the CPU popover, or the Stats palette on the processor rows", "params": { "palette": { "description": "The palette instead of the popover", "type": "boolean" } } },
+    "memory": { "description": "Open the Memory popover, or the palette on the memory rows", "params": { "palette": { "description": "The palette instead of the popover", "type": "boolean" } } },
+    "disk": { "description": "Open the Disk popover, or the palette on the volumes", "params": { "palette": { "description": "The palette instead of the popover", "type": "boolean" } } },
+    "network": { "description": "Open the Network popover, or the palette on the interfaces", "params": { "palette": { "description": "The palette instead of the popover", "type": "boolean" } } },
+    "load": { "description": "Open the Load popover, or the palette on the processor rows", "params": { "palette": { "description": "The palette instead of the popover", "type": "boolean" } } }
+  },
+  "bar": {
+    "cpu": {
+      "title": "CPU",
+      "description": "The CPU share over the last sample. Hidden by its rules under 70%, amber from there, red from 90%; `show = \"always\"` keeps it on the strip muted, or edit the `quiet` rule to keep it in colour. The popover: the share and load, a sparkline of the last three minutes, one bar per core, the five busiest processes with a Kill key.",
+      "refresh": { "every": 60, "on": ["wake"] },
+      "mocks": {
+        "idle": { "title": "Idle, hidden", "item": { "hidden": true, "empty": { "icon": "󰘚", "title": "12%", "tooltip": "CPU 12% · 18 cores · load 2.1 · busiest kitty 4%" } } },
+        "busy": { "title": "Busy", "item": { "icon": "󰘚", "title": "78%", "color": "amber", "tooltip": "CPU 78% · 18 cores · load 14.2 · busiest node 310%" } },
+        "critical": { "title": "Pinned", "item": { "icon": "󰘚", "title": "97% · ffmpeg", "color": "red", "tooltip": "CPU 97% · 18 cores · load 22.8 · busiest ffmpeg 1640%" } },
+        "spark": { "title": "The sparkline label", "item": { "icon": "󰘚", "title": "▂▂▃▅▇▇▆▅", "color": "amber", "tooltip": "CPU 74% · 18 cores" } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open Activity Monitor (the Processes palette on Linux)" },
+        { "keys": "x", "title": "Kill the focused process (asks first)" },
+        { "keys": "c", "title": "Copy the share" },
+        { "keys": "p", "title": "Open the Processes palette" },
+        { "keys": "s", "title": "Open the Stats palette" },
+        { "keys": "up / down", "title": "Move between the processes" }
+      ],
+      "rules": [
+        { "id": "quiet", "when": "stats.cpu < 70", "description": "Under 70%: nothing to say.", "hidden": true },
+        { "id": "high", "when": "stats.cpu >= 70", "description": "Busy.", "color": "amber" },
+        { "id": "critical", "when": "stats.cpu >= 90", "description": "Pinned.", "color": "red" }
+      ]
+    },
+    "memory": {
+      "title": "Memory",
+      "description": "Memory used as Activity Monitor counts it (app + wired + compressed on macOS, total less available on Linux). Hidden under 80% while the kernel reports no pressure; amber from 80% or under pressure, red from 90% or critical pressure. The popover: the segments (app, wired, compressed, cached, free), the swap, a sparkline, the five largest processes with a Kill key.",
+      "refresh": { "every": 60, "on": ["wake"] },
+      "mocks": {
+        "idle": { "title": "Room to spare, hidden", "item": { "hidden": true, "empty": { "icon": "󰍛", "title": "63%", "tooltip": "Memory 24.2 GB of 38.7 GB · pressure normal · swap 3.4 GB" } } },
+        "busy": { "title": "Filling up", "item": { "icon": "󰍛", "title": "84%", "color": "amber", "tooltip": "Memory 32.5 GB of 38.7 GB · pressure warn · swap 3.9 GB" } },
+        "critical": { "title": "Under pressure", "item": { "icon": "󰍛", "title": "36.1 GB", "color": "red", "tooltip": "Memory 36.1 GB of 38.7 GB · pressure critical · swap 4.0 GB" } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open Activity Monitor (the Processes palette on Linux)" },
+        { "keys": "x", "title": "Kill the focused process (asks first)" },
+        { "keys": "c", "title": "Copy the usage" },
+        { "keys": "p", "title": "Open the Processes palette" },
+        { "keys": "s", "title": "Open the Stats palette" },
+        { "keys": "up / down", "title": "Move between the processes" }
+      ],
+      "rules": [
+        { "id": "quiet", "when": "stats.memory < 80 and stats.memory_pressure == 'normal'", "description": "Under 80% and no pressure: nothing to say.", "hidden": true },
+        { "id": "high", "when": "stats.memory >= 80 or stats.memory_pressure == 'warn'", "description": "Filling up, or the kernel says so.", "color": "amber" },
+        { "id": "critical", "when": "stats.memory >= 90 or stats.memory_pressure == 'critical'", "description": "Nearly out, or critical pressure.", "color": "red" }
+      ]
+    },
+    "disk": {
+      "title": "Disk",
+      "description": "The startup volume's free space. Hidden while it has room; amber past 85% used or under 20 GB free, red past 95% or under 5 GB, on any writable volume. The popover: every volume with its bar, free space and mount point; Enter reveals the focused one in Finder.",
+      "refresh": { "every": 60, "on": ["wake"] },
+      "mocks": {
+        "idle": { "title": "Room, hidden", "item": { "hidden": true, "empty": { "icon": "󰋊", "title": "1.5 TB", "tooltip": "Macintosh HD · 392 GB of 1.9 TB used · 1.5 TB free · 2 more volumes" } } },
+        "filling": { "title": "Filling up", "item": { "icon": "󰋊", "title": "18.4 GB", "color": "amber", "tooltip": "Macintosh HD · 226 GB of 245 GB used · 18.4 GB free" } },
+        "full": { "title": "Nearly full", "item": { "icon": "󰋊", "title": "97%", "color": "red", "tooltip": "Macintosh HD · 238 GB of 245 GB used · 4.1 GB free" } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Reveal the focused volume in Finder" },
+        { "keys": "c", "title": "Copy its mount point" },
+        { "keys": "s", "title": "Open the Stats palette" },
+        { "keys": "up / down", "title": "Move between the volumes" }
+      ],
+      "rules": [
+        { "id": "quiet", "when": "stats.disk_free > 20 and stats.disk_worst < 85", "description": "Room on every volume: nothing to say.", "hidden": true },
+        { "id": "filling", "when": "stats.disk_free <= 20 or stats.disk_worst >= 85", "description": "Filling up.", "color": "amber" },
+        { "id": "full", "when": "stats.disk_free <= 5 or stats.disk_worst >= 95", "description": "Nearly full.", "color": "red" }
+      ]
+    },
+    "network": {
+      "title": "Network",
+      "description": "Bytes in and out per second over the physical links (tunnels ride on one of them and are not counted twice). Hidden under 1 MB/s either way, blue past 10 MB/s. The popover: the two rates, a sparkline of both, every interface with its kind, SSID, address and rates; Enter opens the Network palette for every address.",
+      "refresh": { "every": 60, "on": ["wake", "network"] },
+      "mocks": {
+        "idle": { "title": "Quiet, hidden", "item": { "hidden": true, "empty": { "icon": "󰓢", "title": "↓12K ↑3K", "tooltip": "↓ 12 KB/s ↑ 3.1 KB/s · en0 Wi-Fi Zaxxon 192.168.1.23" } } },
+        "download": { "title": "A download", "item": { "icon": "󰓢", "title": "↓24.6M ↑210K", "tooltip": "↓ 24.6 MB/s ↑ 210 KB/s · en0 Wi-Fi Zaxxon 192.168.1.23" } },
+        "busy": { "title": "Saturated", "item": { "icon": "󰓢", "title": "↓94.1M ↑1.2M", "color": "blue", "tooltip": "↓ 94.1 MB/s ↑ 1.2 MB/s · en7 192.168.1.40" } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "All addresses (the Network palette)" },
+        { "keys": "c", "title": "Copy the focused interface's address" },
+        { "keys": "s", "title": "Open the Stats palette" },
+        { "keys": "up / down", "title": "Move between the interfaces" }
+      ],
+      "rules": [
+        { "id": "quiet", "when": "stats.net_down < 1024 and stats.net_up < 1024", "description": "Under 1 MB/s either way: nothing to say.", "hidden": true },
+        { "id": "busy", "when": "stats.net_down >= 10240 or stats.net_up >= 10240", "description": "Past 10 MB/s.", "color": "blue" }
+      ]
+    },
+    "load": {
+      "title": "Load",
+      "description": "The 1 minute load average. Hidden under the core count, amber from there, red from twice it. The popover: the three averages as tiles, the per-core figure, a sparkline.",
+      "refresh": { "every": 60, "on": ["wake"] },
+      "mocks": {
+        "idle": { "title": "Fine, hidden", "item": { "hidden": true, "empty": { "icon": "󰓅", "title": "3.26", "tooltip": "Load 3.26 3.25 2.91 · 18 cores" } } },
+        "high": { "title": "Past the cores", "item": { "icon": "󰓅", "title": "21.4", "color": "amber", "tooltip": "Load 21.4 14.2 8.1 · 18 cores" } },
+        "critical": { "title": "Twice the cores", "item": { "icon": "󰓅", "title": "38.9 31.2 22.5", "color": "red", "tooltip": "Load 38.9 31.2 22.5 · 18 cores" } }
+      },
+      "keys": [
+        { "keys": "enter", "title": "Open Activity Monitor (the Processes palette on Linux)" },
+        { "keys": "c", "title": "Copy the three averages" },
+        { "keys": "s", "title": "Open the Stats palette" }
+      ],
+      "rules": [
+        { "id": "quiet", "when": "stats.load1 < stats.cores", "description": "Under the core count: nothing to say.", "hidden": true },
+        { "id": "high", "when": "stats.load1 >= stats.cores", "description": "More runnable work than cores.", "color": "amber" },
+        { "id": "critical", "when": "stats.load1 >= stats.cores * 2", "description": "Twice the cores.", "color": "red" }
+      ]
+    }
+  }
+}
