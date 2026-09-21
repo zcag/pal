@@ -298,7 +298,7 @@
       "mocks": {
         "attention": {
           "title": "Needs attention",
-          "item": { "icon": "", "segments": [{ "id": "blocked", "text": "×2", "color": "red" }, { "id": "waiting", "text": "·1", "color": "muted" }, { "id": "reviews", "icon": "", "text": "2", "color": "blue" }], "tooltip": "5 open pull requests" }
+          "item": { "icon": "", "segments": [{ "id": "blocked", "text": "×2", "color": "red" }, { "id": "waiting", "text": "·1", "color": "muted" }, { "id": "reviews", "icon": "", "text": "2", "color": "blue" }], "tooltip": "5 open pull requests" }
         },
         "ready": {
           "title": "Ready to merge",

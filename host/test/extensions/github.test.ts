@@ -613,7 +613,7 @@ describe("github", () => {
       expect(prs).toMatchObject({
         icon: "\uf407", tooltip: "3 open pull requests",
         // acme/api#9 has changes requested, but it is a review asked of me, not mine: its state is not my attention item.
-        segments: [{ id: "blocked", text: "×1", color: "red" }, { id: "waiting", text: "·1", color: "muted" }, { id: "reviews", icon: "\uf441", text: "1", color: "blue" }],
+        segments: [{ id: "blocked", text: "×1", color: "red" }, { id: "waiting", text: "·1", color: "muted" }, { id: "reviews", icon: "\uea70", text: "1", color: "blue" }],
       });
       const prView = viewOf(prs);
       expect(checkView(prView)).toBe(prView);
@@ -726,7 +726,7 @@ describe("github", () => {
       expect(ids(await list("prs"))).toEqual(["zcag/pal#72", "acme/api#9", "zcag/pal#50"]);
       expect(ids(await list("prs", "reviews"))).toEqual(["acme/api#9"]);
       const strip = await host.render("github", "prs", { reason: "update" });
-      expect(strip).toMatchObject({ tooltip: "2 open pull requests", segments: [{ id: "waiting", text: "·1" }, { id: "reviews", icon: "\uf441", text: "1" }] });
+      expect(strip).toMatchObject({ tooltip: "2 open pull requests", segments: [{ id: "waiting", text: "·1" }, { id: "reviews", icon: "\uea70", text: "1" }] });
       expect(texts(viewOf(strip))).not.toContain("Directory readiness");
       const mutedRows = await list("prs", "muted");
       expect(ids(mutedRows)).toEqual(["acme/widgets#71"]);
