@@ -18,8 +18,8 @@ import {
 } from "./data.ts";
 import { render as renderNotifs, renderIssues, renderPrs, shown as shownNotifs, shownIssues, shownPrs, type IssueState, type NotifState, type PrBucketed, type PrState } from "./view.ts";
 
-/** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, plus. */
-const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e" } as const;
+/** Octicons from the bundled Nerd Font (nf-oct-*): pull request (open, merged, closed, draft), issue (open, closed), repo, bell, search, person, plus, inbox, check, eye. */
+const ICON = { prs: "\uf407", merged: "\uf419", prClosed: "\uf4dc", draft: "\uf4dd", issues: "\uf41b", issueClosed: "\uf41d", repos: "\uf401", notifications: "\uf49a", search: "\uf422", user: "\uf415", plus: "\uf44d", inbox: "\uf48d", check: "\uf49e", eye: "\uf441" } as const;
 /** The bar's glyph (nf-fa-github). */
 const BAR_GLYPH = "\u{f09b}";
 /** A PR or issue row's mark: the state's octicon in the state's colour (GitHub's own: open green, merged violet, closed red, draft slate). */
@@ -250,7 +250,7 @@ async function prRows(ctx?: Ctx): Promise<Item[]> {
   return rows;
 }
 
-/** Open PRs occur in both searches when they overlap; a bar count must count a PR once. */
+/** Open PRs occur in both searches when they overlap; a bar count must count a PR once. Mine first: a review asked of me on my own PR is still mine. */
 function uniquePrs(lists: PRLists): PR[] {
   const seen = new Set<string>();
   return [...lists.mine, ...lists.reviews].filter((pr) => pr.state === "open" && !seen.has(pr.id) && (seen.add(pr.id), true));
@@ -260,12 +260,21 @@ const failedChecks = (pr: PR) => pr.checks === "FAILURE" || pr.checks === "ERROR
 const runningChecks = (pr: PR) => pr.checks === "PENDING" || pr.checks === "EXPECTED";
 const blockedPr = (pr: PR) => pr.mergeable === "CONFLICTING" || failedChecks(pr) || pr.review === "CHANGES_REQUESTED";
 
+/**
+ * The state buckets are for my own PRs: their checks, reviews and
+ * conflicts are mine to act on. A PR I am asked to review is information,
+ * not a task with a state (another reviewer's "changes requested" is not
+ * my attention item), so it sits in its own bucket whatever its state.
+ */
 function prBuckets(lists: PRLists): { list: PR[]; buckets: PrBucketed[] } {
   const list = uniquePrs(lists);
-  const blocked = list.filter(blockedPr);
-  const active = list.filter((pr) => !blockedPr(pr) && (runningChecks(pr) || pr.review === "REVIEW_REQUIRED"));
-  const ready = list.filter((pr) => !blockedPr(pr) && pr.checks === "SUCCESS" && pr.review === "APPROVED" && pr.mergeable === "MERGEABLE");
-  const waiting = list.filter((pr) => !blocked.includes(pr) && !active.includes(pr) && !ready.includes(pr));
+  const mine = new Set(lists.mine.map((pr) => pr.id));
+  const own = list.filter((pr) => mine.has(pr.id));
+  const reviews = list.filter((pr) => !mine.has(pr.id));
+  const blocked = own.filter(blockedPr);
+  const active = own.filter((pr) => !blockedPr(pr) && (runningChecks(pr) || pr.review === "REVIEW_REQUIRED"));
+  const ready = own.filter((pr) => !blockedPr(pr) && pr.checks === "SUCCESS" && pr.review === "APPROVED" && pr.mergeable === "MERGEABLE");
+  const waiting = own.filter((pr) => !blocked.includes(pr) && !active.includes(pr) && !ready.includes(pr));
   return {
     list,
     buckets: [
@@ -273,6 +282,7 @@ function prBuckets(lists: PRLists): { list: PR[]; buckets: PrBucketed[] } {
       { key: "active", title: "Active", color: "amber", rows: active },
       { key: "ready", title: "Ready to merge", color: "green", rows: ready },
       { key: "waiting", title: "Waiting", color: "grey", rows: waiting },
+      { key: "reviews", title: "Review requested", color: "blue", rows: reviews },
     ],
   };
 }
@@ -295,13 +305,14 @@ async function prsItem(ctx: BarCtx): Promise<BarItem> {
     throw e;
   }
   const { list, buckets } = prBuckets(lists);
-  if (!list.length) return { hidden: true };
-  const [blocked, active, ready, waiting] = buckets.map((b) => b.rows);
+  if (!list.length) return conf().bar_show_prs === "always" ? { icon: ICON.prs, color: "muted", tooltip: "No open pull requests", menu: { view: renderPrs(prBarState(lists)) } } : { hidden: true };
+  const [blocked, active, ready, waiting, reviews] = buckets.map((b) => b.rows);
   const segments = [
     ...(blocked.length ? [{ id: "blocked", text: `×${blocked.length}`, color: "red" as const, tooltip: `${blocked.length} PR${blocked.length === 1 ? "" : "s"} needs attention` }] : []),
     ...(active.length ? [{ id: "active", text: `…${active.length}`, color: "amber" as const, tooltip: `${active.length} PR${active.length === 1 ? "" : "s"} awaiting review or checks` }] : []),
     ...(ready.length ? [{ id: "ready", text: `✓${ready.length}`, color: "green" as const, tooltip: `${ready.length} PR${ready.length === 1 ? "" : "s"} ready to merge` }] : []),
     ...(waiting.length ? [{ id: "waiting", text: `·${waiting.length}`, color: "muted" as const, tooltip: `${waiting.length} PR${waiting.length === 1 ? "" : "s"} waiting` }] : []),
+    ...(reviews.length ? [{ id: "reviews", text: `${ICON.eye}${reviews.length}`, color: "blue" as const, tooltip: `${reviews.length} review${reviews.length === 1 ? "" : "s"} asked of you` }] : []),
   ];
   return {
     icon: ICON.prs,
@@ -503,7 +514,7 @@ async function issuesItem(ctx: BarCtx): Promise<BarItem> {
     throw e;
   }
   const list = uniqueIssues(lists);
-  if (!list.length) return { hidden: true };
+  if (!list.length) return conf().bar_show_issues === "always" ? { icon: ICON.issues, color: "muted", tooltip: "No open issues", menu: { view: renderIssues(issueBarState(lists)) } } : { hidden: true };
   const count = (kind: "assigned" | "mentioned" | "created") => list.filter((x) => x.kind === kind).length;
   const assigned = count("assigned"), mentioned = count("mentioned"), created = count("created");
   return {
@@ -780,9 +791,11 @@ async function pickNotif(id: string, action?: string): Promise<Effect> {
 }
 
 /**
- * The bar item: the unread count as a badge, hidden at zero, the popover
- * a view of the unread threads grouped by repository (view.ts) with the
- * keys' cursor kept here by thread id. The cache is the palette's
+ * The bar item: the unread count as a badge, hidden at zero (or, with
+ * `bar_show_notifications` at `always`, the glyph alone, muted, so the
+ * item stays a way into the popover), the popover a view of the unread
+ * threads grouped by repository (view.ts) with the keys' cursor kept
+ * here by thread id. The cache is the palette's
  * (`notifications`, ETag): a trigger from the bar (the panel shown, a
  * wake, the network back, the CLI) asks GitHub, which answers 304 for
  * free when nothing changed; the timer and a first render take what is
@@ -808,7 +821,7 @@ async function notifItem(ctx: BarCtx): Promise<BarItem> {
     if (e instanceof AuthError) return { hidden: true };
     throw e;
   }
-  if (list.length === 0) return { hidden: true };
+  if (list.length === 0) return conf().bar_show_notifications === "always" ? { icon: BAR_GLYPH, color: "muted", tooltip: "No unread notifications", menu: { view: renderNotifs(notifState(list)) } } : { hidden: true };
   return {
     icon: BAR_GLYPH,
     badge: list.length,

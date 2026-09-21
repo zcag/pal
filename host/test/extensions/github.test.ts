@@ -196,7 +196,7 @@ describe("github", () => {
     expect(metas[2]).toMatchObject({ title: "Repositories", ttl: 300, filters: [{ id: "all", title: "All" }, { id: "mine", title: "Mine" }, { id: "starred", title: "Starred" }, { id: "org", title: "Organisation" }] });
     expect(metas[3]).toMatchObject({ title: "Notifications", live: true, ttl: 60 });
     expect(metas[4]).toMatchObject({ title: "Search GitHub", input: true, detail: "lazy" });
-    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"]]);
+    expect(host.manifests.get("github")!.settings!.map((s) => [s.id, s.kind])).toEqual([["token", "secret"], ["default_org", "text"], ["repos_root", "path"], ["clone_protocol", "select"], ["merged_days", "number"], ["merge_method", "select"], ["bar_show_prs", "select"], ["bar_show_issues", "select"], ["bar_show_notifications", "select"]]);
   });
 
   test("multi: two accounts are two instances; the token is per instance (a secret), the rest inherits; the lone default runs in a worker, unmarked", () => {
@@ -496,7 +496,7 @@ describe("github", () => {
       expect(host.loaded().find((l) => l.extension === "github")!.bar).toEqual(expect.arrayContaining([
         { id: "prs", title: "Pull requests", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ attention: expect.any(Object), ready: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
         { id: "issues", title: "Issues", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ assigned: expect.any(Object), mine: expect.any(Object), clear: expect.any(Object) }), keys: expect.any(Array), source: true },
-        { id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: { unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, clear: { title: "All caught up", item: { hidden: true } } }, keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true },
+        { id: "notifications", title: "Notifications", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, mocks: expect.objectContaining({ unread: { title: "Unread notifications", item: { icon: "", badge: 4, tooltip: "4 unread notifications" } }, one: { title: "One notification", item: { icon: "", badge: 1, tooltip: "1 unread notification" } }, always: { title: expect.any(String), item: { icon: "", color: "muted", tooltip: "No unread notifications" } }, clear: { title: "All caught up", item: { hidden: true } } }), keys: expect.arrayContaining([{ keys: "m", title: expect.any(String) }]), source: true },
       ]));
     });
 
@@ -589,6 +589,22 @@ describe("github", () => {
         expect(await host.render("github", "notifications", { reason: "every" })).toEqual({ hidden: true });
       } finally { NOTIFICATIONS.forEach((n, i) => { n.unread = unread[i]; }); }
     });
+
+    test("bar_show_notifications at always: nothing unread is the glyph alone, muted, no badge, the popover saying so", async () => {
+      const unread = NOTIFICATIONS.map((n) => n.unread);
+      NOTIFICATIONS.forEach((n) => { n.unread = false; });
+      host.changeSettings("github", { settings: { bar_show_notifications: "always" } });
+      try {
+        const item = await host.render("github", "notifications", { reason: "every" });
+        expect(item).toMatchObject({ icon: "\u{f09b}", color: "muted", tooltip: "No unread notifications" });
+        expect(item.badge).toBeUndefined();
+        expect(texts(viewOf(item))).toContain("All caught up");
+      } finally {
+        NOTIFICATIONS.forEach((n, i) => { n.unread = unread[i]; });
+        host.changeSettings("github", { settings: {} });
+        await host.render("github", "notifications", { reason: "show" });
+      }
+    });
   });
 
   describe("bar: pull requests and issues", () => {
@@ -596,17 +612,19 @@ describe("github", () => {
       const prs = await host.render("github", "prs", { reason: "load" });
       expect(prs).toMatchObject({
         icon: "\uf407", tooltip: "3 open pull requests",
-        segments: [{ id: "blocked", text: "×2", color: "red" }, { id: "waiting", text: "·1", color: "muted" }],
+        // acme/api#9 has changes requested, but it is a review asked of me, not mine: its state is not my attention item.
+        segments: [{ id: "blocked", text: "×1", color: "red" }, { id: "waiting", text: "·1", color: "muted" }, { id: "reviews", text: "\uf4411", color: "blue" }],
       });
       const prView = viewOf(prs);
       expect(checkView(prView)).toBe(prView);
       expect(prView).toMatchObject({ title: "3 open pull requests", id: "prs", keys: "actions" });
-      expect(prView.actions.map((a) => a.id)).toEqual(["open", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#71", "focus:acme/api#9", "focus:zcag/pal#72"]);
+      expect(prView.actions.map((a) => a.id)).toEqual(["open", "copy", "mute", "refresh", "pal", "down", "up", "focus:acme/widgets#71", "focus:zcag/pal#72", "focus:acme/api#9"]);
       expect(prView.actions.filter((a) => !a.hidden).map((a) => a.id)).toEqual(["open", "copy", "mute", "refresh", "pal"]);
       expect(keycaps(prView)).toEqual(["enter", "c", "m", "r", "p", "up", "down"]);
-      expect(texts(prView)).toEqual(expect.arrayContaining(["Needs attention", "Waiting", "Directory readiness", "acme/widgets#71", "Fix the parser", "acme/api#9", "Draft thing", "zcag/pal#72"]));
+      expect(texts(prView)).toEqual(expect.arrayContaining(["Needs attention", "Waiting", "Review requested", "Directory readiness", "acme/widgets#71", "Fix the parser", "acme/api#9", "Draft thing", "zcag/pal#72"]));
       const ps = JSON.stringify(prView.tree);
       expect(ps.indexOf('"value":"Needs attention"')).toBeLessThan(ps.indexOf('"value":"Waiting"'));
+      expect(ps.indexOf('"value":"Waiting"')).toBeLessThan(ps.indexOf('"value":"Review requested"'));
       expect(ps).toContain('"text":"conflicting","color":"red"');
       expect(ps).toContain('"text":"checks failing","color":"red"');
       expect(ps).toContain('"text":"draft","color":"grey"');
@@ -682,7 +700,7 @@ describe("github", () => {
     test("actions: a click and arrows move focus; Enter opens the focused URL, c copies it, r refreshes, p opens the palette", async () => {
       const ctx = { reason: "open" as const, compact: true as const };
       const tree = (r: Record<string, unknown>) => JSON.stringify(viewOf(r).tree);
-      expect(tree(await host.barAction("github", "prs", "down", ctx))).toContain('"action":"focus:acme/api#9","selected":true');
+      expect(tree(await host.barAction("github", "prs", "down", ctx))).toContain('"action":"focus:zcag/pal#72","selected":true');
       expect(tree(await host.barAction("github", "prs", "focus:zcag/pal#72", ctx))).toContain('"action":"focus:zcag/pal#72","selected":true');
       expect(await host.barAction("github", "prs", "copy", ctx)).toEqual({ copy: "https://github.com/zcag/pal/pull/72" });
       expect(await host.barAction("github", "prs", "open", ctx)).toEqual({ open: "https://github.com/zcag/pal/pull/72" });
@@ -708,7 +726,7 @@ describe("github", () => {
       expect(ids(await list("prs"))).toEqual(["zcag/pal#72", "acme/api#9", "zcag/pal#50"]);
       expect(ids(await list("prs", "reviews"))).toEqual(["acme/api#9"]);
       const strip = await host.render("github", "prs", { reason: "update" });
-      expect(strip).toMatchObject({ tooltip: "2 open pull requests", segments: [{ id: "blocked", text: "×1" }, { id: "waiting", text: "·1" }] });
+      expect(strip).toMatchObject({ tooltip: "2 open pull requests", segments: [{ id: "waiting", text: "·1" }, { id: "reviews", text: "\uf4411" }] });
       expect(texts(viewOf(strip))).not.toContain("Directory readiness");
       const mutedRows = await list("prs", "muted");
       expect(ids(mutedRows)).toEqual(["acme/widgets#71"]);
@@ -733,6 +751,30 @@ describe("github", () => {
       expect(await list("prs", "muted")).toMatchObject([{ id: "hint:none", name: "Nothing muted" }]);
       expect(ops("PRs")).toHaveLength(before.prs);
       expect(ops("Issues")).toHaveLength(before.issues);
+    });
+
+    test("bar_show_prs and bar_show_issues at always: nothing open is the glyph alone, muted, no segments, the popover saying so", async () => {
+      const saved = { prs: { ...PRS }, issues: { ...ISSUES } };
+      PRS.mine = []; PRS.reviews = []; PRS.merged = [];
+      ISSUES.assigned = []; ISSUES.mentioned = []; ISSUES.created = [];
+      try {
+        expect(await host.render("github", "prs", { reason: "show" })).toEqual({ hidden: true });
+        expect(await host.render("github", "issues", { reason: "show" })).toEqual({ hidden: true });
+        host.changeSettings("github", { settings: { bar_show_prs: "always", bar_show_issues: "always" } });
+        const prs = await host.render("github", "prs", { reason: "update" });
+        expect(prs).toMatchObject({ icon: "\uf407", color: "muted", tooltip: "No open pull requests" });
+        expect(prs.segments).toBeUndefined();
+        expect(texts(viewOf(prs))).toContain("No open pull requests");
+        const issues = await host.render("github", "issues", { reason: "update" });
+        expect(issues).toMatchObject({ icon: "\uf41b", color: "muted", tooltip: "No open issues" });
+        expect(issues.segments).toBeUndefined();
+        expect(texts(viewOf(issues))).toContain("No open issues");
+      } finally {
+        Object.assign(PRS, saved.prs); Object.assign(ISSUES, saved.issues);
+        host.changeSettings("github", { settings: {} });
+        await host.render("github", "prs", { reason: "show" });
+        await host.render("github", "issues", { reason: "show" });
+      }
     });
   });
 

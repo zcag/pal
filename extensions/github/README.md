@@ -106,6 +106,9 @@ Settings, `[extensions.github]`:
 | `clone_protocol` | `ssh` / `https` | `ssh` | What Copy clone URL copies. |
 | `merged_days` | number (days) | `7` | How far back the Merged list reaches. |
 | `merge_method` | `merge` / `squash` / `rebase` | `merge` | How the Merge action merges. |
+| `bar_show_prs` | `auto` / `always` | `auto` | When the Pull requests item is drawn: with open pull requests, or always (the glyph alone, muted, with none). |
+| `bar_show_issues` | `auto` / `always` | `auto` | The same for Issues. |
+| `bar_show_notifications` | `auto` / `always` | `auto` | The same for Notifications: with something unread, or always (muted, no badge). |
 
 The bar item **Pull requests** is hidden at zero. When it has work, the
 strip is the bucket summary: red blocked (conflicts, failing checks or

@@ -9,7 +9,7 @@
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Issue, Notification, PR } from "./data.ts";
 
-export type PrBucket = "blocked" | "active" | "ready" | "waiting";
+export type PrBucket = "blocked" | "active" | "ready" | "waiting" | "reviews";
 export type PrBucketed = { key: PrBucket; title: string; color: TagColor; rows: PR[] };
 export type PrState = { buckets: PrBucketed[]; focus: number; now: number };
 export type IssueKind = "assigned" | "mentioned" | "created";
@@ -126,6 +126,7 @@ export function renderPrs(st: PrState): View {
   }
   const more = allPrs(st).length - rows.length;
   if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
+  if (!rows.length) kids.push(empty("No open pull requests", "None of yours, and no review asked of you"));
   kids.push({ type: "divider", key: "rule" }, barHints());
   const n = allPrs(st).length;
   return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: prActions(st), title: `${n} open ${n === 1 ? "pull request" : "pull requests"}`, id: "prs", keys: "actions" };
@@ -146,6 +147,7 @@ export function renderIssues(st: IssueState): View {
   }
   const more = st.rows.length - rows.length;
   if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
+  if (!rows.length) kids.push(empty("No open issues", "None assigned to you, mentioning you or opened by you"));
   kids.push({ type: "divider", key: "rule" }, barHints());
   const n = st.rows.length;
   return { tree: column(kids, { key: "compact", padding: 3, gap: 1 }), actions: issueActions(st), title: `${n} open ${n === 1 ? "issue" : "issues"}`, id: "issues", keys: "actions" };
@@ -227,12 +229,13 @@ function hints(): ViewNode {
   return row([...keyHint(["enter"], "open"), ...keyHint(["m"], "read"), ...keyHint(["a"], "all read"), ...keyHint(["p"], "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
 }
 
-function empty(): ViewNode {
+/** What a popover says with no rows; the PR and issue items reach it only by choice (`bar_show_*` at `always`), so it says why it is empty rather than showing bare hints. */
+function empty(title = "All caught up", sub = "Nothing unread on GitHub"): ViewNode {
   return column(
     [
       { type: "tile", key: "tile", width: 48, height: 48, text: "", color: "green", fill: "soft" },
-      text("All caught up", { style: "title", size: "lg" }),
-      text("Nothing unread on GitHub", { style: "muted", size: "sm", align: "center" }),
+      text(title, { style: "title", size: "lg" }),
+      text(sub, { style: "muted", size: "sm", align: "center" }),
     ],
     { key: "empty", padding: 5, gap: 2, align: "center", justify: "center" },
   );
