@@ -226,6 +226,7 @@ function Node({ node }: { node: ViewNode }) {
           data-size={node.size}
           data-color={node.color}
           data-align={node.align}
+          data-clip={width !== undefined || undefined}
           {...motion}
           style={{ ...mstyle, ...(width !== undefined ? { flex: "none", width } : undefined), ...(minWidth !== undefined ? { minWidth } : undefined) }}
         >

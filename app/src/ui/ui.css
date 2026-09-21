@@ -544,8 +544,8 @@ mark { background: var(--pal-match, rgba(255, 176, 32, 0.3)); color: inherit; bo
 .pal-view__text { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* A keycap's label ("↵ apply") never breaks: the row's other text gives way first. */
 .pal-kbd + .pal-view__text { flex: none; white-space: nowrap; }
-/* A text with a width is a column: it clips instead of wrapping, and `align` places the run inside it. */
-.pal-view__text[style*="width"] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A text with a width is a column: it clips instead of wrapping, and `align` places the run inside it. (`data-clip`, not `[style*="width"]`: a `minWidth` lands in the style attribute too and clipped every wrapping run.) */
+.pal-view__text[data-clip] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pal-view__text[data-align="center"] { text-align: center; }
 .pal-view__text[data-align="end"] { text-align: end; }
 .pal-view__text[data-style="title"] { font-size: var(--pal-text-lg, 15px); font-weight: var(--pal-weight-semibold, 600); }

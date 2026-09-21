@@ -106,7 +106,7 @@ describe("View", () => {
     });
     expect(html).toContain('data-surface="sunken" data-radius="true" style="padding:var(--pal-space-2)"');
     expect(html).toContain('data-surface="elevated"');
-    expect(html).toContain('class="pal-view__node pal-view__text" data-align="end" style="flex:none;width:8px">6<');
+    expect(html).toContain('class="pal-view__node pal-view__text" data-align="end" data-clip="true" style="flex:none;width:8px">6<');
     expect(html).toContain('style="min-width:40px">label<');
     expect(html).toContain('role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" data-color="grey" style="flex:none;width:96px"');
   });
