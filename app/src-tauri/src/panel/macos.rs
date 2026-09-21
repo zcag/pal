@@ -134,6 +134,7 @@ fn hide_now(app: &AppHandle) {
     }
     crate::pop::note_hidden();
     crate::pick::on_hidden(app);
+    crate::states::on_panel(app, false);
     crate::views::set_visible(app, WINDOW, false, false);
     p.set_ignores_mouse_events(true);
     p.set_alpha_value(0.0);

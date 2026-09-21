@@ -22,6 +22,7 @@ pub mod menubar;
 pub mod permission;
 pub mod selection;
 pub mod spotlight;
+pub mod states;
 pub mod storage;
 pub mod system;
 pub mod theme;

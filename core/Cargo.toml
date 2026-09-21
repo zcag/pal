@@ -26,6 +26,8 @@ url = "2"
 sha2 = "0.10"
 # media: the MediaRemote stream's artwork arrives base64
 base64 = "0.22"
+# states: the expression language of `[states]` and `show_when` (docs/design/states.md)
+minijinja = { version = "2", default-features = false, features = ["builtins", "serde"] }
 # extensions: the GitHub tarball, and staging inside the store
 tar = "0.4"
 flate2 = "1"

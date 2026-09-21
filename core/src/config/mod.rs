@@ -57,6 +57,10 @@ pub struct Config {
     /// instance) or by the bare name to title the default one
     /// (`docs/design/instances.md`).
     pub instances: BTreeMap<String, Instance>,
+    /// States: named variables bar items and extensions read
+    /// (`[states.working] expr = "hour >= 9 and hour < 18"`;
+    /// `docs/design/states.md`).
+    pub states: BTreeMap<String, crate::states::Decl>,
     /// Extension settings, keyed by extension name, or by instance key
     /// (`[extensions."gmail@work"]`, which inherits `[extensions.gmail]`
     /// except its secrets and `scope: "instance"` settings). Shape is
@@ -787,6 +791,13 @@ pub struct BarItemConfig {
     /// Order among pal's own items: ascending left to right on the menu
     /// bar and within a sketchybar position.
     pub order: Option<i64>,
+    /// A state expression (`working`, `hour >= 9 and not deep`): the item
+    /// is on the strip only while it is true. Read at draw time; no render
+    /// while hidden.
+    pub show_when: Option<String>,
+    /// The opposite: the item leaves the strip while this is true. Both
+    /// may be set.
+    pub hide_when: Option<String>,
     /// This item's appearance, each key over the target's default.
     #[serde(flatten)]
     pub look: BarLookOverride,
@@ -797,7 +808,7 @@ pub struct BarItemConfig {
 
 impl Default for BarItemConfig {
     fn default() -> Self {
-        Self { enabled: true, show: BarShow::Auto, target: None, position: None, hotkey: None, open_on_hover: None, order: None, look: BarLookOverride::default(), extra: BTreeMap::new() }
+        Self { enabled: true, show: BarShow::Auto, target: None, position: None, hotkey: None, open_on_hover: None, order: None, show_when: None, hide_when: None, look: BarLookOverride::default(), extra: BTreeMap::new() }
     }
 }
 
@@ -805,6 +816,11 @@ impl Bar {
     /// One item's settings, defaults when the file has no entry for it.
     pub fn item(&self, key: &str) -> std::borrow::Cow<'_, BarItemConfig> {
         self.items.get(key).map_or_else(|| std::borrow::Cow::Owned(BarItemConfig::default()), std::borrow::Cow::Borrowed)
+    }
+
+    /// Every item's `show_when`/`hide_when`, for `states::States::configure`.
+    pub fn conditions(&self) -> Vec<(String, Option<String>, Option<String>)> {
+        self.items.iter().filter(|(_, i)| i.show_when.is_some() || i.hide_when.is_some()).map(|(k, i)| (k.clone(), i.show_when.clone(), i.hide_when.clone())).collect()
     }
 
     /// The target an item draws on: its own, else the global one.
@@ -935,6 +951,9 @@ impl Config {
         out.extend(unknown("bar.sketchybar.", &self.bar.sketchybar.extra));
         for (key, i) in &self.bar.items {
             out.extend(unknown(&format!("bar.items.{key}."), &i.extra));
+        }
+        for (key, d) in &self.states {
+            out.extend(unknown(&format!("states.{key}."), &d.extra));
         }
         for (key, i) in &self.instances {
             if !(instance::is_key(key) || instance::valid_name(key)) {

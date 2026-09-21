@@ -335,6 +335,10 @@ export type BarItemConfig = {
   hotkey?: string;
   openOnHover?: boolean;
   order?: number;
+  /** A state expression (docs/design/states.md): on the strip only while true. */
+  showWhen?: string;
+  /** The opposite: off the strip while true. */
+  hideWhen?: string;
   look: BarLookOverride;
 };
 
@@ -366,6 +370,8 @@ export type BarItem = {
   /** Unix seconds of the last render. */
   renderedAt?: number;
   stale: boolean;
+  /** Off every target by its `show_when`/`hide_when`. */
+  held?: boolean;
   /** The last render's strip (settings.rs `BarItemState`): the state line and the preview read it. */
   state?: BarItemState;
   /** Optional, extension-declared states that replace only this pane's strip. */

@@ -153,6 +153,10 @@
           ],
           "description": "`system` or `mono` for this item. The target's when unset."
         },
+        "hide_when": {
+          "description": "The opposite: the item leaves the strip while this is true. Both\nmay be set.",
+          "type": "string"
+        },
         "hotkey": {
           "description": "Global hotkey that opens the item's popover engaged (or runs its open action).",
           "type": "string"
@@ -203,6 +207,10 @@
         "show_title": {
           "description": "Draw this item's title and segments. The target's when unset.",
           "type": "boolean"
+        },
+        "show_when": {
+          "description": "A state expression (`working`, `hour >= 9 and not deep`): the item\nis on the strip only while it is true. Read at draw time; no render\nwhile hidden.",
+          "type": "string"
         },
         "size": {
           "description": "Point size of the glyph and the text here. The target's when unset.",
@@ -526,6 +534,24 @@
         }
       ],
       "description": "`general.deeplink_confirm`: whether a link that acts shows the confirm\ncard. `true`/`false` for all, or the extensions whose links are trusted\n(the card is skipped for `run`, `form` and routes into them)."
+    },
+    "Decl": {
+      "additionalProperties": false,
+      "description": "One `[states.<name>]` table.",
+      "properties": {
+        "default": {
+          "description": "The value with nothing set and no expression; `false` when absent."
+        },
+        "description": {
+          "description": "What the States palette shows under the name.",
+          "type": "string"
+        },
+        "expr": {
+          "description": "A Jinja expression over other states (`hour >= 9 and hour < 18`);\nre-evaluated whenever a state it names changes. Without one the\nstate is only ever set by hand, from the CLI or by a publisher.",
+          "type": "string"
+        }
+      },
+      "type": "object"
     },
     "General": {
       "additionalProperties": false,
@@ -919,6 +945,14 @@
       },
       "default": {},
       "description": "Per-palette settings, keyed by palette id.",
+      "type": "object"
+    },
+    "states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Decl"
+      },
+      "default": {},
+      "description": "States: named variables bar items and extensions read\n(`[states.working] expr = \"hour >= 9 and hour < 18\"`;\n`docs/design/states.md`).",
       "type": "object"
     }
   },

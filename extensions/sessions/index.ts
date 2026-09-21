@@ -37,7 +37,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { ago, bar, clock, errorMessage, exec, failed, hint, home, mdEscape, now, run, settings, storage, terminal, tilde, tinted, toast, truncate, view as liveView, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
+import { ago, bar, clock, errorMessage, exec, failed, hint, home, mdEscape, now, run, settings, state, storage, terminal, tilde, tinted, toast, truncate, view as liveView, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { AGENTS, AGENT_TITLE, acc, claudeSlug, fmtTokens, fold, parseWorkspace, pending as pendingOf, title as titleOf, working as fileWorking, type Acc, type Agent } from "./agents.ts";
 import { agentOf, cwds, focus, log, paneOf, panes, sendKeys, table, tool, type Proc, type Terminal } from "./procs.ts";
 import { PAGE, render as renderTranscript, type TranscriptState } from "./transcript.ts";
@@ -643,7 +643,16 @@ export function barItem(sessions: Session[]): BarItem {
 const shownSessions = async (force = false) => (await scan(force)).filter((d) => !d.stale);
 
 async function renderBar(ctx: BarCtx): Promise<BarItem> {
-  return barItem(await shownSessions(ctx.reason === "update" || ctx.reason === "show" || ctx.reason === "wake"));
+  const sessions = await shownSessions(ctx.reason === "update" || ctx.reason === "show" || ctx.reason === "wake");
+  publish(sessions);
+  return barItem(sessions);
+}
+
+/** The counts as states (`sessions/working`, `sessions/waiting`: docs/design/states.md), for a `working` of the user's to compose; a render is where the counts are current. */
+function publish(sessions: Session[]) {
+  const n = (st: State) => sessions.filter((s) => s.state === st).length;
+  state.set("working", n("working"), EXTENSION).catch(() => {});
+  state.set("waiting", n("waiting") + n("blocked"), EXTENSION).catch(() => {});
 }
 
 /** A key or a click in the popover: the row under the ring goes through the palette's actions; the arrows and a click move the ring. */

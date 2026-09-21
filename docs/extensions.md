@@ -95,6 +95,9 @@ whose code fails to load.
 - `links.<route>`: a deep link route the code answers, with its
   `description`, `params` and `confirm` (below, "Links: routes of your
   own").
+- `states.<name>`: a state the code publishes with `state.set` (below,
+  "States"), its `description` and `kind` (`boolean`, `number`,
+  `string`), so the States palette shows it before it is ever set.
 - `multi`: `true` when the extension can run as several configured
   instances (two accounts, two homes; below, "Instances"). Without it a
   `[instances."<name>@<suffix>"]` in the config file is not loaded.
@@ -858,8 +861,13 @@ lists the item without running the code:
 
 `refresh.every` is seconds between renders (10 at least), `on` adds
 triggers: `show` (the panel shown), `wake`, `network` (back online),
-`focus` (the front app changed), `minute`. The core renders every item
-once at load and whenever the extension's settings change. `keys`, as on
+`focus` (the front app changed), `minute`, `state:<name>` (that state's
+value changed; `state:*` any state, or a hold or reset by hand: below,
+"States"). The core renders every item
+once at load and whenever the extension's settings change. The user's
+`[bar.items] show_when`/`hide_when` (docs/config.md) holds an item off
+the strip by a state expression without a render; the flip back renders
+once with reason `state`. `keys`, as on
 a palette (`[{ "keys": "space", "title": "Pause" }]`), is the key table
 of the item's own `{ view }` popover for the store and the settings
 window.
@@ -979,6 +987,38 @@ arrows move and a click sets, and the strip untouched:
   code as digit tiles with the sender and a bar counting the minute
   down, Enter copies (concealed), `p` pastes, the two before as rows a
   click copies. The item leaves when the minute ends.
+- **States, `forced`** (`extensions/states/`): the states held by hand
+  with the time left on the soonest to expire; hidden while none is.
+  `on: ["state:*"]`, so a hold or a reset redraws it at once.
+
+## States
+
+`state` in `@zcag/pal` reads and feeds the named variables of `[states]`
+(docs/config.md, `docs/design/states.md`): what the user declared,
+the built-ins (`hour`, `weekday`, `front_app`, `network`, `theme`,
+`locked`, `idle`, `panel`, ...), and what other extensions published.
+
+- `state.get(name)`: the resolved value (a JSON scalar; `null` unknown or
+  no such state); `state.get()` every state by name.
+- `state.set(name, value)`: publish `<me>/<name>` (`sessions/working`
+  from `sessions`; the instance key for an instance of a `multi`
+  extension). `null` withdraws it. An extension feeds only its own
+  prefix; the user composes it into a state of theirs with an expression
+  (`sessions.working > 0`). Declare what you publish under `states` in
+  `pal.json`. From a timer or a watcher pass the extension's name as the
+  last argument, as for `storage`.
+- `state.onChange(name, cb)`: `cb(value)` when that state's resolved
+  value changes; `state.onChange(cb)`: `cb({ name: value })` on every
+  change. Returns the unsubscribe. Only a resolved value moving fires
+  it; a hold at the value a state already had does not.
+- `state.list()`: every state as the palette lists it (`StateEntry`:
+  value, source, `until`, `expr`, `description`, `error`, `declared`,
+  `builtin`); `state.eval(expr)`: what a Jinja expression reads now.
+
+A bar item that follows a state re-renders on `state:<name>` in its
+`refresh.on`; the user's `show_when`/`hide_when` on the item hides it
+without a render. The bundled `sessions` publishes `working` and
+`waiting` (its counts) at every render.
 
 ## Storage
 
@@ -1155,6 +1195,8 @@ to the core.
   (`icon: xdg("dialog-error")`), undefined for a name it does not know.
 - `bar.update(id, item)`: push a bar item now (above, "Bar items");
   `bar.refresh(id)`: ask for a render.
+- `state.get(name?)`, `state.set(name, value)`, `state.onChange(name?,
+  cb)`, `state.list()`, `state.eval(expr)`: the states (above, "States").
 - `view.update(spec, { palette?, bar?, id? })`: push a tree into an open
   view level (above, "Live views"); `view.onShown(cb)` / `view.onHidden(cb)`:
   a level of yours came on top or left; `view.open()`: the levels open now;

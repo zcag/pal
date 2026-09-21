@@ -94,7 +94,7 @@ export const barIndex = (items: BarItem[], supported = true): SettingsIndexEntry
   ...(["menubar", "sketchybar"] as Target[]).flatMap((t) => lookFields.filter((f) => !f.itemOnly).map((f) => ({ page: "bar" as const, label: `${f.label} (${targetTitle[t]})`, hint: `Bar › Defaults › ${groups.find((g) => g.id === f.group)?.title}`, anchor: `bar:${t}:${f.key}`, keywords: `${f.key} ${f.description} appearance ${t}` }))),
   ...items.flatMap((b) => [
     { page: "bar" as const, label: `${b.extTitle} › ${b.title}`, hint: b.description ?? "Bar item", anchor: `bar:${b.key}`, keywords: `${b.key} bar item` },
-    ...["show", "target", "position", "order", "hotkey", "open_on_hover"].map((k) => ({ page: "bar" as const, label: `${b.title}: ${k.replace(/_/g, " ")}`, hint: `Bar › ${b.extTitle} › ${b.title}`, anchor: `bar:${b.key}:${k}`, keywords: `${b.key} ${k}` })),
+    ...["show", "show_when", "hide_when", "target", "position", "order", "hotkey", "open_on_hover"].map((k) => ({ page: "bar" as const, label: `${b.title}: ${k.replace(/_/g, " ")}`, hint: `Bar › ${b.extTitle} › ${b.title}`, anchor: `bar:${b.key}:${k}`, keywords: `${b.key} ${k}` })),
     ...lookFields.map((f) => ({ page: "bar" as const, label: `${b.title}: ${f.label}`, hint: `Bar › ${b.extTitle} › ${b.title}`, anchor: `bar:${b.key}:${f.key}`, keywords: `${b.key} ${f.key} ${f.description}` })),
   ]),
 ] : []);
@@ -117,7 +117,8 @@ export function itemState(b: BarItem): { text: string; level?: "warning" | "erro
   if (!b.config.enabled) return { text: "Off: no slot on any target, no timer." };
   const parts: string[] = [];
   const s = b.state && kept(b.state, b.config.show);
-  if (b.state?.hidden && !s?.hidden) parts.push("nothing to say, kept on the strip muted");
+  if (b.held) parts.push(`off the strip by ${b.config.showWhen ? `show_when "${b.config.showWhen}"` : `hide_when "${b.config.hideWhen}"`}`);
+  else if (b.state?.hidden && !s?.hidden) parts.push("nothing to say, kept on the strip muted");
   else if (s?.hidden) parts.push("hidden by the extension");
   else if (s?.badge !== undefined) parts.push(`badge ${s.badge}`);
   else if (s?.dot) parts.push("dot");
@@ -394,6 +395,20 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
               <p className="pal-setting__desc">{c.show === "always" ? "Kept on the strip with nothing to say: the glyph alone, muted, the same popover." : "The default: off the strip while the extension has nothing to say."}{quiet ? "" : " This item offers no quiet shape yet, so it hides either way."}</p>
             </div>
           </div>
+          <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:show_when`}>
+            <label className="pal-setting__label" htmlFor={`${anchor}-show-when`}>Show when<code className="pal-bar-field__key">show_when</code></label>
+            <div className="pal-setting__body">
+              <div className="pal-setting__control"><input id={`${anchor}-show-when`} className="pal-field__input" type="text" placeholder="working" value={c.showWhen ?? ""} spellCheck={false} onChange={(e) => put({ showWhen: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
+              <p className="pal-setting__desc">A state expression: the item is on the strip only while it is true (<code>working</code>, <code>hour &gt;= 9 and not deep</code>). Nothing renders while it holds the item off. The States palette lists what there is to read.</p>
+            </div>
+          </div>
+          <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:hide_when`}>
+            <label className="pal-setting__label" htmlFor={`${anchor}-hide-when`}>Hide when<code className="pal-bar-field__key">hide_when</code></label>
+            <div className="pal-setting__body">
+              <div className="pal-setting__control"><input id={`${anchor}-hide-when`} className="pal-field__input" type="text" placeholder="locked or idle > 600" value={c.hideWhen ?? ""} spellCheck={false} onChange={(e) => put({ hideWhen: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
+              <p className="pal-setting__desc">The opposite: off the strip while this is true. Both may be set.</p>
+            </div>
+          </div>
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:target`}>
             <label className="pal-setting__label" htmlFor={`${anchor}-target`}>Target</label>
             <div className="pal-setting__body">
@@ -450,7 +465,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
       </SettingsDisclosure>
 
       <div className="pal-button-row pal-bpane__reset">
-        <button type="button" className="pal-button" data-small disabled={!overridden && c.show === undefined && c.target === undefined && c.position === undefined && c.order === undefined && c.hotkey === undefined && c.openOnHover === undefined} onClick={() => onItem({ enabled: c.enabled, look: {} })}>Reset to defaults</button>
+        <button type="button" className="pal-button" data-small disabled={!overridden && c.show === undefined && c.showWhen === undefined && c.hideWhen === undefined && c.target === undefined && c.position === undefined && c.order === undefined && c.hotkey === undefined && c.openOnHover === undefined} onClick={() => onItem({ enabled: c.enabled, look: {} })}>Reset to defaults</button>
         <span className="pal-pane__note">Drops every key of this item but on/off; the defaults above apply again.</span>
       </div>
     </div>

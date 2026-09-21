@@ -225,6 +225,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     if prev.general.launch_at_login != loaded.config.general.launch_at_login {
         autostart::apply(app, &loaded.config);
     }
+    crate::states::apply_config(app, &prev, &loaded.config);
     crate::bar::apply_config(app, &prev, &loaded.config);
     crate::expansion::apply_config(app, &prev, &loaded.config);
     crate::theme::apply_config(app, &prev, &loaded.config);
@@ -727,6 +728,8 @@ pub struct BarItemView {
     rendered_at: Option<u64>,
     /// The last render failed or timed out: drawn muted.
     stale: bool,
+    /// Off every target by its `show_when`/`hide_when` (states.rs).
+    held: bool,
     /// The last rendered state, what the strip shows.
     #[serde(skip_serializing_if = "Option::is_none")]
     state: Option<BarItemState>,
@@ -829,6 +832,7 @@ fn bar_view(app: &AppHandle) -> BarView {
                     refresh_every: e.manifest.refresh.as_ref().and_then(|r| r.every),
                     rendered_at: e.rendered_unix,
                     stale: e.stale,
+                    held: e.held,
                 }
             })
             .collect(),

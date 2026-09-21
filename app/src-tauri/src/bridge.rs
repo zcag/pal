@@ -18,6 +18,7 @@
 //! - `core/permissions.{status, request {which}}` (permissions.rs)
 //! - `core/settings.{get {extension, manifest}, set {extension, palette?, values}}` (settings.rs)
 //! - `core/instances.get {extension}` (settings.rs: the configured instances of a `multi` extension)
+//! - `core/states.{get, set, list, eval, manual, reset, declare, undeclare}` (states.rs)
 //! - `core/storage.{get, set, remove, keys}` (storage.rs)
 //! - `core/system.{commands, run}` (system.rs)
 //! - `core/wifi.{status, known, scan, join, forget, password, set_power}` (wifi.rs)
@@ -52,6 +53,7 @@ pub fn call(app: &AppHandle, method: &str, params: Value) -> Result<Value, Strin
         "permissions" => crate::permissions::call(app, func, params),
         "settings" => crate::settings::call(app, func, params),
         "instances" => crate::settings::instances(app, func, params),
+        "states" => crate::states::call(app, func, params),
         "storage" => crate::storage::call(app, func, params),
         "system" => crate::system::call(app, func, params),
         "wifi" => crate::wifi::call(app, func, params),

@@ -21,6 +21,7 @@ import { barMetas, barMethods } from "./bar.ts";
 import { instanceInfo, instanceMeta, rewriteCall, type WorkerInit } from "./instances.ts";
 import { describe, log, paletteMethods, sections, timeout } from "./serve.ts";
 import { context, resolved, subscribe, update } from "./settings.ts";
+import { onStates, update as updateStates } from "./states.ts";
 import { onView, viewMethods, views } from "./views.ts";
 
 declare const self: Worker;
@@ -67,7 +68,7 @@ const instance = (): InstanceInfo => {
   return info;
 };
 
-bind({ call, caller, resolved, subscribe, update: (extension, s) => update({ [extension]: s }), instance, views, onView });
+bind({ call, caller, resolved, subscribe, update: (extension, s) => update({ [extension]: s }), instance, views, onView, onStates });
 
 // ---- messages -----------------------------------------------------------
 
@@ -135,6 +136,8 @@ self.onmessage = (ev: MessageEvent) => {
     init(m.id, m.init as WorkerInit);
   } else if (m?.req) {
     serve(m.id, String(m.req.method), m.req.params);
+  } else if (m?.states) {
+    updateStates(m.states);
   } else if (m?.settings) {
     update({ [key]: m.settings as ResolvedSettings });
   } else if (m?.stop) {

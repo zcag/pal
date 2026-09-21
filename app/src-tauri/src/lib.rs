@@ -35,6 +35,7 @@ mod ocr;
 mod registry;
 mod selection;
 mod settings;
+mod states;
 mod storage;
 mod system;
 mod theme;
@@ -161,6 +162,7 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     dialog::on_shown();
     index::on_shown(app);
     bar::on_shown(app);
+    states::on_panel(app, true);
     // A fresh profile's first show asks for Accessibility (once per run);
     // a missing permission is watched for while the panel is up.
     permissions::ask_on_first_show(app);
@@ -389,6 +391,7 @@ pub fn run() {
             updater::install_checks(app.handle());
             index::restore_cache(app.handle());
             views::install(app.handle());
+            states::install(app.handle());
             bar::install(app.handle());
             media::install(app.handle());
             host::Host::start(app.handle());
