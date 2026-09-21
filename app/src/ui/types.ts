@@ -46,7 +46,12 @@ export type Action = {
   hidden?: true;
   /** Runs over the marked rows as one pick (`ctx.ids`); the only actions listed while rows are marked. */
   multi?: true;
+  /** Takes the row's `Item.args` first, as the primary action does. */
+  args?: true;
 };
+
+/** One typed argument of a row (`Arg` in sdk/src/protocol.ts): a field the search bar turns into before the pick. */
+export type Arg = { id: string; placeholder: string; kind?: "text" | "number" | "select"; options?: FilterOption[]; required?: boolean; default?: string };
 
 export type Metadata = {
   label: string;
@@ -75,6 +80,8 @@ export type Item = {
   /** `detail` is what came inline; the rest is asked for when the pane rests on the item. */
   lazyDetail?: boolean;
   actions?: Action[];
+  /** Typed arguments taken in the search bar before the primary action (`Item.args` in the SDK); `ctx.values` carries them. */
+  args?: Arg[];
   /** Drawn greyed; a pick on it does nothing (a menu row). */
   disabled?: boolean;
   /** Drawn muted but live: the "N more in ..." row after a capped section at the root. */

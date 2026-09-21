@@ -93,9 +93,11 @@ pub enum Route {
     Command { id: String },
     /// The panel inside a palette, with `query` typed and `filter` chosen.
     Open { source: Source, query: Option<String>, filter: Option<String> },
-    /// A pick with the panel down, after the confirm card; `fill` (the
-    /// `form` route) prefills the form the pick answers with.
-    Run { source: Source, id: String, action: Option<String>, args: Option<Value>, fill: Option<BTreeMap<String, String>> },
+    /// A pick with the panel down, after the confirm card; `values` are
+    /// the row's typed arguments (`Item.args`) as `?name=value`, reaching
+    /// the pick as `ctx.values`; `fill` (the `form` route) prefills the
+    /// form the pick answers with.
+    Run { source: Source, id: String, action: Option<String>, args: Option<Value>, values: Option<BTreeMap<String, String>>, fill: Option<BTreeMap<String, String>> },
     /// `pal install <spec>` after the confirm card.
     Install { spec: String },
     /// `pal update [name]` after the confirm card.
@@ -240,13 +242,13 @@ pub const ROUTES: &[Spec] = &[
     Spec { pattern: "open", doc: "?url= a url, path or app for the OS opener", build: |c| Ok(Route::OpenUrl { target: c.query.get("url").or_else(|| c.query.get("path")).ok_or("url is required")? }) },
     Spec {
         pattern: "run/{extension}/{palette}/{id}",
-        doc: "run an item, the panel down; ?action= one of its actions, ?args= the level's args as JSON",
-        build: |c| Ok(Route::Run { source: c.source(), id: c.part("id").into(), action: c.query.get("action"), args: args_of(c.query)?, fill: None }),
+        doc: "run an item, the panel down; ?action= one of its actions, ?args= the level's args as JSON, every other ?name=value a typed argument (`Item.args`) by id",
+        build: |c| Ok(Route::Run { source: c.source(), id: c.part("id").into(), action: c.query.get("action"), args: args_of(c.query)?, values: Some(c.query.except(&["action", "args"])).filter(|v| !v.is_empty()), fill: None }),
     },
     Spec {
         pattern: "form/{extension}/{palette}/{id}",
         doc: "the form an item's pick answers, prefilled: ?action= the action, every other ?field=value fills that field",
-        build: |c| Ok(Route::Run { source: c.source(), id: c.part("id").into(), action: c.query.get("action"), args: args_of(c.query)?, fill: Some(c.query.except(&["action", "args"])) }),
+        build: |c| Ok(Route::Run { source: c.source(), id: c.part("id").into(), action: c.query.get("action"), args: args_of(c.query)?, values: None, fill: Some(c.query.except(&["action", "args"])) }),
     },
     Spec { pattern: "copy", doc: "?text= onto the clipboard", build: |c| Ok(Route::Copy { text: c.query.need("text")? }) },
     Spec { pattern: "paste", doc: "?text= pasted into the app in front", build: |c| Ok(Route::Paste { text: c.query.need("text")? }) },
@@ -820,7 +822,7 @@ pub fn prefill(mut envelope: Value, fill: &BTreeMap<String, String>) -> Value {
 }
 
 async fn run_item(app: &AppHandle, route: Route, trusted: bool) {
-    let Route::Run { source, id, action, args, fill } = &route else { return };
+    let Route::Run { source, id, action, args, values, fill } = &route else { return };
     let Some(host) = app.try_state::<Arc<Host>>().map(|h| h.inner().clone()) else { return };
     if !known_palette(app, source) {
         return hud::show(app, &format!("pal: no palette {}/{}", source.extension, source.palette));
@@ -840,7 +842,8 @@ async fn run_item(app: &AppHandle, route: Route, trusted: bool) {
             None => return eprintln!("deeplink\trun\tunanswered"),
         }
     }
-    match index::run_pick(app, &host, source, &index::Pick { id, action: action.as_deref(), args: args.as_ref(), ..Default::default() }).await {
+    let values = values.as_ref().map(|v| serde_json::to_value(v).unwrap_or(Value::Null));
+    match index::run_pick(app, &host, source, &index::Pick { id, action: action.as_deref(), args: args.as_ref(), values: values.as_ref(), ..Default::default() }).await {
         Ok(r) => {
             let r = fill.as_ref().map_or(r.clone(), |f| prefill(r, f));
             let name = item_name(app, source, id).unwrap_or_else(|| id.clone());
@@ -1064,7 +1067,7 @@ mod tests {
     }
 
     fn run_with(e: &str, p: &str, id: &str, action: Option<&str>, args: Option<Value>, fill: Option<BTreeMap<String, String>>) -> Route {
-        Route::Run { source: src(e, p), id: id.into(), action: action.map(String::from), args, fill }
+        Route::Run { source: src(e, p), id: id.into(), action: action.map(String::from), args, values: None, fill }
     }
 
     #[test]

@@ -638,7 +638,7 @@ mod tests {
             assert_eq!(&got, link, "{args:?}");
             assert!(parse(&got).is_ok(), "{got}: the parser reads what the twin spells");
         }
-        assert_eq!(parse(&cmd(&["run", "a/b/with/slash"]).link().unwrap()), Ok(Route::Run { source: pal_core::index::Source::new("a", "b"), id: "with/slash".into(), action: None, args: None, fill: None }), "a slash inside the id survives the round trip");
+        assert_eq!(parse(&cmd(&["run", "a/b/with/slash"]).link().unwrap()), Ok(Route::Run { source: pal_core::index::Source::new("a", "b"), id: "with/slash".into(), action: None, args: None, values: None, fill: None }), "a slash inside the id survives the round trip");
         assert!(cmd(&["toggle"]).link().is_none(), "the plain subcommands are not links");
         assert!(cmd(&["bar", "list"]).link().is_none());
         assert!(cmd(&["pick", "-m", "-t", "Branch"]).link().is_none());

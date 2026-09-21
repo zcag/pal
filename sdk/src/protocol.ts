@@ -85,12 +85,27 @@ export type Item = {
    */
   actions?: Action[];
   /**
+   * Typed arguments the row takes before it runs (Raycast's command
+   * arguments): Enter on the row turns the search bar into these fields,
+   * in order, the row pinned as the crumb; Tab moves between them, Enter
+   * runs the pick with `ctx.values` by id (a string each; a `select`'s
+   * option id), Escape backs out. They gate the primary action and any
+   * action marked `args: true`; the other actions (a copy, an open) run as
+   * they are. A pick that arrives without `values` (`pal run`, a link) is
+   * the extension's to handle: answer `{ form }` for the same fields, or
+   * run with the defaults.
+   */
+  args?: Arg[];
+  /**
    * Anything else rides along untouched (the core keeps unknown keys, the
    * UI ignores them). For a field of your own, a future version of the
    * shape cannot collide with; `pick` does not get it back.
    */
   [extra: string]: unknown;
 };
+
+/** One typed argument of a row (`Item.args`): `placeholder` is its label in the bar; `required` refuses an empty one; `select` draws its `options`; `number` takes digits. `default` prefills. */
+export type Arg = { id: string; placeholder: string; kind?: "text" | "number" | "select"; options?: { id: string; title: string }[]; required?: boolean; default?: string };
 
 /**
  * One thing a row can do. The first in `Item.actions` runs on Enter, the
@@ -114,6 +129,8 @@ export type Action = {
   style?: "destructive";
   /** Ask first; the question shown, with the action's title as the go-ahead. */
   confirm?: string;
+  /** Takes the row's `Item.args` first, as the primary action does; without it a secondary action runs without them. */
+  args?: true;
   /**
    * Works on several rows at once: with rows marked (cmd+click, shift+↑↓,
    * Tab or `x` in a `multi` palette) the action panel lists only the actions that

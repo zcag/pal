@@ -13,6 +13,8 @@ export type FormProps = {
   /** Called with the values once every `required` field has one; never while one is empty. */
   onSubmit: (values: FormValues) => void;
   onCancel: () => void;
+  /** A row's typed arguments in the search bar (`Item.args`): the fields side by side with their placeholders as labels, no title, no buttons; Enter runs, Escape backs out. */
+  inline?: boolean;
 };
 
 const initial = (fields: FormField[]): FormValues =>
@@ -57,7 +59,7 @@ export function useSubmitKey(root: RefObject<HTMLElement | null>): Shortcut {
  * focused, and the mark clears as it is typed in. `errors` from outside
  * (the extension refusing a value) show the same way.
  */
-export function Form({ title, fields, submitTitle = "Submit", cancelTitle = "Cancel", errors, onSubmit, onCancel }: FormProps) {
+export function Form({ title, fields, submitTitle = "Submit", cancelTitle = "Cancel", errors, onSubmit, onCancel, inline }: FormProps) {
   const root = useRef<HTMLFormElement>(null);
   const submitKey = useSubmitKey(root);
   const [values, setValues] = useState(() => initial(fields));
@@ -99,6 +101,24 @@ export function Form({ title, fields, submitTitle = "Submit", cancelTitle = "Can
     { scope: root },
   );
 
+  if (inline) {
+    return (
+      <form ref={root} className="pal-args" data-keyscope onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label={title} noValidate>
+        {fields.map((f) => {
+          const error = shown[f.id];
+          const common = { name: f.id, "aria-label": f.label, "aria-invalid": error ? true : undefined, "aria-required": f.required || undefined, title: error };
+          return f.kind === "select" ? (
+            <select key={f.id} {...common} className="pal-args__field" data-invalid={error ? "" : undefined} value={values[f.id] as string} onChange={(e) => set(f.id, e.target.value)}>
+              {f.options.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
+            </select>
+          ) : (
+            <input key={f.id} {...common} className="pal-args__field" data-invalid={error ? "" : undefined} type={f.kind === "password" ? "password" : "text"} placeholder={f.placeholder ?? f.label} value={values[f.id] as string} onChange={(e) => set(f.id, e.target.value)} spellCheck={false} autoComplete="off" size={Math.max(6, (f.placeholder ?? f.label).length + 2)} />
+          );
+        })}
+        <span className="pal-args__hint"><Kbd shortcut={submitKey} /></span>
+      </form>
+    );
+  }
   return (
     <form ref={root} className="pal-form" data-keyscope onSubmit={(e) => { e.preventDefault(); submit(); }} aria-labelledby={title ? "pal-form-title" : undefined} noValidate>
       {title && <h2 id="pal-form-title" className="pal-form__title">{title}</h2>}

@@ -46,7 +46,7 @@ is one line in the HUD (`pal: unknown link`, `pal: text is required`).
 | `pal://open/<ext>/<palette>` | `pal open <ext>/<palette>` | The panel inside that palette |
 | `...?q=<text>` | `-q <text>` | With that typed in the search box (never run) |
 | `...?filter=<id>` | `--filter <id>` | With that filter chosen |
-| `pal://run/<ext>/<palette>/<id>` | `pal run <ext>/<palette>/<id>` | Run that row as Enter would, the panel down |
+| `pal://run/<ext>/<palette>/<id>` | `pal run <ext>/<palette>/<id>` | Run that row as Enter would, the panel down; `?action=` one of its actions, any other `?name=value` a typed argument of the row (`Item.args`) |
 | `...?action=<id>` | `-a <id>` | One of the row's other actions |
 | `...?args=<json>` | `--args <json>` | For a row that only exists inside a drill-in |
 | `pal://form/<ext>/<palette>/<id>?<field>=<value>` | `pal form <ext>/<palette>/<id> field=value` | The form that row opens, those fields filled in, nothing submitted |

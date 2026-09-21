@@ -623,9 +623,10 @@
           "default": [
             "browser-tabs/tabs",
             "windows/windows",
-            "apps/apps"
+            "apps/apps",
+            "pal/palettes"
           ],
-          "description": "Palettes whose rows lead the others of their band at the root, in\nthis order: `[\"browser-tabs/tabs\", \"windows/windows\", \"apps/apps\"]`\n(a tab over a window over an app, all over the rest). Each gets\n`root_first_step` more than the next, on top of its tier, which\norders rows of equal standing and never lifts a row that only\nscatters the letters over one that has the typed word.",
+          "description": "Palettes whose rows lead the others of their band at the root, in\nthis order: `[\"browser-tabs/tabs\", \"windows/windows\", \"apps/apps\",\n\"pal/palettes\"]` (a tab over a window over an app over a palette\nrow, all over the rest). Each gets\n`root_first_step` more than the next, on top of its tier, which\norders rows of equal standing and never lifts a row that only\nscatters the letters over one that has the typed word.",
           "items": {
             "type": "string"
           },
@@ -873,7 +874,8 @@
         "root_first": [
           "browser-tabs/tabs",
           "windows/windows",
-          "apps/apps"
+          "apps/apps",
+          "pal/palettes"
         ],
         "root_first_step": 30.0,
         "search_engine": "https://www.google.com/search?q={query}",

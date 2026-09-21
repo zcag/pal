@@ -6,7 +6,7 @@
  */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, List, Panel, Presence, Search, Toast, View,
+  ActionPanel, Confirm, Detail, Empty, Footer, Form, Grid, Icon, List, Panel, Presence, Search, Toast, View, keepFocus,
   groupBySection, domId, graphemePositions, hasShortcut, isMac, shiftedArrow, useCursor, useKeys, useNavStack, useSubmitKey, type Command, type Hit, type ListHandle, type ToastSpec,
   isMarked, mark as markRow, markable, multiActions, pickIds, toggle, type Selection,
 } from "./ui";
@@ -131,7 +131,7 @@ export type Level =
   | { kind: "palette"; palette: string; args?: unknown; /** The crumb, when the push named one (`Effect.push.title`: the folder being browsed). */ title?: string }
   | { kind: "show"; detail: DetailSpec; title?: string; /** The palette the shown item came from: its tile in the crumb and the footer. */ palette?: string }
   | { kind: "view"; palette: string; args?: unknown; spec?: ViewSpec; /** The crumb, when `palette` is not a source (a bar item's key). */ title?: string }
-  | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number }
+  | { kind: "form"; palette: string; args?: unknown; spec: FormSpec; from: Item; action?: string; key: number; /** The row's typed arguments (`Item.args`) in the search bar, not a form page. */ inline?: true }
   | { kind: "menu"; key: string; title: string; rows: Item[]; submenus: Record<string, BarMenuNode[]>; pick?: { token: number; multi: boolean } };
 
 /** A menu level for a bar item's `nodes`. */
@@ -721,7 +721,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (view.kind !== "form" || busy) return;
     setBusy(true);
     const item: Item = { ...view.from, id: view.spec.id ?? view.from.id };
-    pickItem(item, view.spec.submit.id, { ...ctx, values }, true).finally(() => setBusy(false));
+    // An inline args form submits as the row's default pick when its action id is "" (`argsForm`).
+    pickItem(item, view.spec.submit.id || undefined, { ...ctx, values }, true).finally(() => setBusy(false));
   };
   /** Enter from outside the fields (the footer's hint): the form validates and submits as from inside. */
   const requestSubmit = () => formEl.current?.querySelector("form")?.requestSubmit();
@@ -786,6 +787,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     while (queue.current.length) if (viewCommand(queue.current.shift()!) !== false) break;
   });
 
+  /** The row's `args` as a form the search bar draws (`Form inline`): a text or select field per argument, the submit the action picked (`""` is the default pick). */
+  const argsForm = (item: Item, a: Action, action?: string): FormSpec => ({
+    title: item.name,
+    fields: (item.args ?? []).map((g) => (g.kind === "select" ? { id: g.id, label: g.placeholder, kind: "select" as const, options: g.options ?? [], required: g.required, value: g.default } : { id: g.id, label: g.placeholder, placeholder: g.placeholder, kind: "text" as const, required: g.required, value: g.default })),
+    submit: { id: action ?? "", title: a.title },
+  });
   /** `confirmed`: the user already said yes to `a.confirm`. */
   const run = (a: Action, confirmed = false) => {
     setActionsOpen(false);
@@ -829,6 +836,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
         if (current.push) { enter(sourceKey(current.push), current.push.args, current.push.query, current.push.title); return; }
         // A palette row drills in; the pick only records the choice.
         if (current.palette === PALETTES) enter(current.id);
+        // Typed arguments first: the primary action (and one marked `args`) turns the search bar into the row's fields; the pick follows with their values.
+        if (current.args?.length && (!current.actions || current.actions[0]?.id === a.id || a.args)) {
+          push({ kind: "form", inline: true, palette: current.palette!, args: ctx?.args, spec: argsForm(current, a, current.actions ? a.id : undefined), from: current, action: current.actions ? a.id : undefined, key: ++formSeq.current });
+          return;
+        }
         pickItem(current, current.actions ? a.id : undefined);
     }
   };
@@ -980,6 +992,9 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} /></div>
     : view.kind === "view"
     ? (spec ? <View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} /> : null)
+    : form?.inline
+    // The fields are in the search row; the body shows what the row is about.
+    ? (form.from.detail ? <div className="pal-show" role="document" aria-label={form.from.name}><Detail detail={form.from.detail} /></div> : <Empty icon={form.from.icon ?? { kind: "glyph", value: "›" }} title={form.from.name} hint={form.from.subtitle ?? `${form.spec.submit.title} with the arguments above`} />)
     : form
     // The title is the search row's (as for a view), so the form draws none of its own.
     ? <div ref={formEl} className="pal-form-level" aria-busy={busy || undefined}><Form key={form.key} fields={form.spec.fields} submitTitle={form.spec.submit.title} cancelTitle={form.spec.cancel} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} /></div>
@@ -999,7 +1014,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const onPrimary = () => (isShow ? pop() : form ? requestSubmit() : isView ? viewCommand({ type: "primary" }) : sel ? (listed[0]?.id === CLEAR ? noMulti() : run(listed[0])) : current && listed[0] && run(listed[0]));
   return (
     <Panel
-      search={<Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={isShow || isView || isForm ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? sel?.ids.length : undefined} />}
+      search={form?.inline
+        ? <div ref={formEl} className="pal-search pal-search--args" aria-busy={busy || undefined}>
+            <button type="button" className="pal-search__back" onClick={pop} onMouseDown={keepFocus} aria-label={`Back from ${form.from.name}`} tabIndex={-1}><span className="pal-search__chevron" aria-hidden>‹</span>{form.from.icon && <Icon icon={form.from.icon} size="sm" />}<span className="pal-search__crumb">{form.from.name}</span></button>
+            <Form key={form.key} inline title={form.from.name} fields={form.spec.fields} submitTitle={form.spec.submit.title} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} />
+          </div>
+        : <Search value={query} onChange={setQuery} inputRef={input} back={back} filter={filterSpec} listId={isShow || isView || isForm ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? sel?.ids.length : undefined} />}
       aside={!compact && showDetail && !isShow && !isView && !isForm && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={compact ? undefined :
         <Footer

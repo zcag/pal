@@ -141,8 +141,9 @@ pub struct General {
     /// and a palette's own level are never capped.
     pub root_caps: Caps,
     /// Palettes whose rows lead the others of their band at the root, in
-    /// this order: `["browser-tabs/tabs", "windows/windows", "apps/apps"]`
-    /// (a tab over a window over an app, all over the rest). Each gets
+    /// this order: `["browser-tabs/tabs", "windows/windows", "apps/apps",
+    /// "pal/palettes"]` (a tab over a window over an app over a palette
+    /// row, all over the rest). Each gets
     /// `root_first_step` more than the next, on top of its tier, which
     /// orders rows of equal standing and never lifts a row that only
     /// scatters the letters over one that has the typed word.
@@ -231,7 +232,7 @@ impl Default for General {
 /// `general.fallbacks` when unset: the shell's two rows, then the bundled palettes that opt in.
 pub const DEFAULT_FALLBACKS: [&str; 5] = ["web", "url", "quicklinks", "calc", "files"];
 /// `[general] root_first` unset: what is open, then what can be opened.
-pub const DEFAULT_ROOT_FIRST: [&str; 3] = ["browser-tabs/tabs", "windows/windows", "apps/apps"];
+pub const DEFAULT_ROOT_FIRST: [&str; 4] = ["browser-tabs/tabs", "windows/windows", "apps/apps", "pal/palettes"];
 /// `general.search_engine` when unset.
 pub const DEFAULT_SEARCH_ENGINE: &str = "https://www.google.com/search?q={query}";
 /// `general.now` when unset: the next event, the running timer, what plays, what is on the clipboard.

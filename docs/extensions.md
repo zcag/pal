@@ -692,6 +692,35 @@ pick: async (id, action, ctx) => {
   field of a kind the panel cannot draw, a submit id starting with `pal:`,
   or `errors` for a field that is not there.
 
+## Typed arguments: values in the search bar
+
+A form is a page; a row that just needs a word or two before it runs
+declares `args` instead, and the search bar takes them (Raycast's command
+arguments). Enter on the row pins it as the crumb and turns the bar into
+one field per argument, Tab moves between them, Enter runs the pick with
+`ctx.values` by id, Escape backs out. A row of `ssh` that takes a command,
+a timer that takes a duration and a name, a translation that takes the
+text.
+
+```ts
+{ id: "marko", name: "marko", subtitle: "cagdas@marko",
+  args: [{ id: "command", placeholder: "Command", required: true }, { id: "shell", placeholder: "Shell", kind: "select", options: [{ id: "zsh", title: "zsh" }, { id: "sh", title: "sh" }] }],
+  actions: [{ id: "connect", title: "Connect" }, { id: "copy", title: "Copy host", shortcut: "cmd+c" }, { id: "run", title: "Run there", shortcut: "cmd+r", args: true }] }
+// pick("marko", "connect", { values: { command: "uptime", shell: "zsh" } })
+```
+
+- An argument has `id`, `placeholder` (its label in the bar), and
+  optionally `kind` (`text`, `number`, `select` with `options`),
+  `required` (blocks the run while empty) and `default`. Values arrive
+  as strings (`select`: the option id), like a form's.
+- The fields gate the row's primary action (the first listed, or the
+  default pick) and any action marked `args: true`; a secondary `copy` or
+  `open` runs as it is.
+- A pick can still arrive without `values`: `pal run
+  ext/palette/id?command=uptime` fills them from the link's query, but a
+  bare `pal run`, an item hotkey or a pick from a script does not. Answer
+  `{ form }` with the same fields then, or run with the defaults.
+
 ## Links: routes of your own
 
 Every row already has a deep link (`pal://run/<ext>/<palette>/<id>`,

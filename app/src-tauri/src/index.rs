@@ -1227,7 +1227,7 @@ mod tests {
     #[test]
     fn apps_lead_palette_rows_lead_catalogs_on_a_typed_query_but_not_an_exact_name() {
         let mut fre = Frecency::in_memory();
-        // The app and the palette row both have the word and are primary; the app is on the `root_first` ladder and its name is shorter, so it leads. The icon (a catalog) is under both however short its name.
+        // The app and the palette row both have the word and are primary; the app's rung on the `root_first` ladder is above the palette row's, so it leads. The icon (a catalog) is under both however short its name.
         assert_eq!(ranked("clip", &fre)[..2], ["clipper.app", "clipboard/history"]);
         assert_eq!(ranked("clipboard", &fre)[0], "clipboard/history", "an exact keyword on the palette row too");
         // A hot icon row (the frecency maximum is 200) still loses to the palette row and to the app.
@@ -1246,7 +1246,7 @@ mod tests {
         let (max_frecency, exact, word) = (pal_core::frecency::MAX_SCORE * pal_core::frecency::BOOST_SCALE, pal_core::index::EXACT_BONUS, pal_core::index::WORD_BONUS);
         let r = Ranking::default();
         let top = r.bonus(&Source::new("browser-tabs", "tabs"));
-        assert_eq!((top, r.bonus(&Source::new("windows", "windows")), r.bonus(&Source::new("apps", "apps")), r.bonus(&Source::new("files", "files"))), (90.0, 60.0, 30.0, 0.0));
+        assert_eq!((top, r.bonus(&Source::new("windows", "windows")), r.bonus(&Source::new("apps", "apps")), r.bonus(&palettes_source()), r.bonus(&Source::new("files", "files"))), (120.0, 90.0, 60.0, 30.0, 0.0));
         assert!(Tier::Primary.bonus() + word + top + max_frecency < exact);
         assert!(top < word && top < Tier::Primary.bonus(), "a rung never lifts a scattered row over one that has the word, nor a normal row over a primary");
         // Off the ladder, the palette row and the app tie on the bonuses and the shorter name leads.
