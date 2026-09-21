@@ -1192,7 +1192,7 @@ one desktop): the hold-modifier switcher and the edge sidebar both shipped,
 built on what the tree had rather than as new surfaces. Spec:
 `docs/design/switcher.md`. Branch `switcher`, three agents in worktrees
 (`wt-mru`, `wt-hold`, `wt-side`) merged here, then the live pass with a
-scratch instance on hornet (`target/scratch-sw`, the recipe under Findings).
+scratch instance on hornet (`target/scratch-sw`, the recipe under How to run it).
 
 - **MRU order** (`pal_core::windows`): a bounded focus history
   (`note_focus`, 64 ids) sorts the macOS list most recently used first, the
