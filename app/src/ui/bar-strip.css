@@ -18,8 +18,8 @@
 .g-mb__image[data-progress] .g-mb__icon { font-size: 14px; margin-bottom: 4px; }
 .g-mb__seg-icon { font-size: 12px; }
 .g-mb__title { font-size: 13px; }
-.g-mb__dot { position: absolute; top: 0; right: -1px; width: 6px; height: 6px; border-radius: 50%; background: #ff3b30; }
-.g-mb__count { position: absolute; top: -3px; right: -6px; min-width: 11px; height: 11px; padding: 0 3px; border-radius: 6px; background: #ff3b30; color: #fff; font-size: 8px; font-weight: 700; line-height: 11px; text-align: center; letter-spacing: 0; }
+.g-mb__dot { position: absolute; top: 0; right: -1px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.g-mb__count { position: absolute; top: -3px; right: -6px; min-width: 11px; height: 11px; padding: 0 3px; border-radius: 6px; background: currentColor; color: #fff; font-size: 8px; font-weight: 700; line-height: 11px; text-align: center; letter-spacing: 0; }
 .g-mb__progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; }
 .g-mb__progress::before { content: ""; position: absolute; inset: 0; border-radius: 1px; background: currentColor; opacity: 0.25; }
 .g-mb__progress > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 1px; background: currentColor; }

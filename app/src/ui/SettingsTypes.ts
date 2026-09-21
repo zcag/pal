@@ -292,7 +292,7 @@ export function resolveLook(base: BarLookConfig, over: BarLookOverride): BarLook
 export const lookDefaults: BarLookConfig = defaultLook;
 
 /** The look keys: the page's camelCase to the file's snake_case. */
-export const LOOK_KEYS: [keyof BarLookConfig, string][] = [["dim", "dim"], ["size", "size"], ["spacing", "spacing"], ["showIcon", "show_icon"], ["showTitle", "show_title"], ["color", "color"], ["urgentColor", "urgent_color"], ["badgeStyle", "badge_style"], ["width", "width"], ["font", "font"], ["maxChars", "max_chars"]];
+export const LOOK_KEYS: [keyof BarLookConfig, string][] = [["dim", "dim"], ["opacity", "opacity"], ["size", "size"], ["iconSize", "icon_size"], ["textSize", "text_size"], ["spacing", "spacing"], ["showIcon", "show_icon"], ["icon", "icon"], ["showTitle", "show_title"], ["color", "color"], ["urgentColor", "urgent_color"], ["badgeColor", "badge_color"], ["badgeStyle", "badge_style"], ["width", "width"], ["font", "font"], ["maxChars", "max_chars"]];
 
 /** The file's look keys (a target table, an item table) as the page's override. */
 export function lookOf(raw: Record<string, unknown> | undefined): BarLookOverride {

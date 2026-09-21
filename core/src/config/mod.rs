@@ -576,13 +576,28 @@ pub struct BarLook {
     /// A muted item's strength, in percent: a stale item and an item the
     /// extension colours `muted` draw at this opacity.
     pub dim: u32,
+    /// The item's strength, in percent: every colour it draws (the icon,
+    /// the text, the segments, the badge) at this alpha. A muted item is
+    /// at `dim` of this (the two multiply: `opacity = 60`, `dim = 50` draws
+    /// a stale item at 30).
+    pub opacity: u32,
     /// Point size of the glyph and the text; `0` is the target's own (the
     /// menu bar's 13 pt text and 14 pt glyph, sketchybar's font).
     pub size: f64,
+    /// Point size of the glyph alone; `0` follows `size`.
+    pub icon_size: f64,
+    /// Point size of the title and the segments alone; `0` follows `size`.
+    pub text_size: f64,
     /// Points between the icon, the title and the segments.
     pub spacing: u32,
     /// Draw the icon.
     pub show_icon: bool,
+    /// A glyph, an emoji or a short text drawn as the icon in place of the
+    /// one the extension answers (what `BarItem.icon` takes as a string).
+    /// Only an item's own makes sense (every item the same icon is no
+    /// bar), so a target leaves it unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     /// Draw the title and the segments; off is a glyph-only item.
     pub show_title: bool,
     /// The tint: a colour name (`grey`, `blue`, `green`, `amber`, `red`,
@@ -593,6 +608,11 @@ pub struct BarLook {
     pub color: Option<String>,
     /// The colour of an urgent item, a name or `#rrggbb`.
     pub urgent_color: String,
+    /// The colour of a count badge and a dot, a name or `#rrggbb`. Unset
+    /// draws them in the item's own colour (the tint; `urgent_color` while
+    /// urgent), so a mail count is not red by default.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub badge_color: Option<String>,
     /// How a count badge is drawn: `count`, `dot` or `none`.
     pub badge_style: BadgeStyle,
     /// A fixed width in points, so a ticking timer does not jitter; `0`
@@ -608,7 +628,7 @@ pub struct BarLook {
 
 impl Default for BarLook {
     fn default() -> Self {
-        Self { dim: 50, size: 0.0, spacing: 4, show_icon: true, show_title: true, color: None, urgent_color: "destructive".into(), badge_style: BadgeStyle::Count, width: 0, font: BarFont::System, max_chars: 32 }
+        Self { dim: 50, opacity: 100, size: 0.0, icon_size: 0.0, text_size: 0.0, spacing: 4, show_icon: true, icon: None, show_title: true, color: None, urgent_color: "destructive".into(), badge_color: None, badge_style: BadgeStyle::Count, width: 0, font: BarFont::System, max_chars: 32 }
     }
 }
 
@@ -619,15 +639,27 @@ pub struct BarLookOverride {
     /// A muted item's strength here, percent. The target's when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dim: Option<u32>,
+    /// This item's strength, percent, on every colour it draws. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub opacity: Option<u32>,
     /// Point size of the glyph and the text here. The target's when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<f64>,
+    /// Point size of this item's glyph alone; `0` follows `size`. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon_size: Option<f64>,
+    /// Point size of this item's text alone; `0` follows `size`. The target's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_size: Option<f64>,
     /// Points between the icon, the title and the segments here. The target's when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spacing: Option<u32>,
     /// Draw this item's icon. The target's when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub show_icon: Option<bool>,
+    /// A glyph, an emoji or a short text drawn as this item's icon in place of the extension's. The extension's when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     /// Draw this item's title and segments. The target's when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub show_title: Option<bool>,
@@ -637,6 +669,9 @@ pub struct BarLookOverride {
     /// This item's colour when urgent. The target's when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub urgent_color: Option<String>,
+    /// The colour of this item's count badge and dot, a name or `#rrggbb`. The target's when unset (its own colour when that is too).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub badge_color: Option<String>,
     /// How this item's count badge is drawn. The target's when unset.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub badge_style: Option<BadgeStyle>,
@@ -656,12 +691,17 @@ impl BarLook {
     pub fn with(&self, o: &BarLookOverride) -> BarLook {
         BarLook {
             dim: o.dim.unwrap_or(self.dim).min(100),
+            opacity: o.opacity.unwrap_or(self.opacity).min(100),
             size: o.size.unwrap_or(self.size).max(0.0),
+            icon_size: o.icon_size.unwrap_or(self.icon_size).max(0.0),
+            text_size: o.text_size.unwrap_or(self.text_size).max(0.0),
             spacing: o.spacing.unwrap_or(self.spacing),
             show_icon: o.show_icon.unwrap_or(self.show_icon),
+            icon: o.icon.clone().or_else(|| self.icon.clone()).filter(|i| !i.trim().is_empty()),
             show_title: o.show_title.unwrap_or(self.show_title),
             color: o.color.clone().or_else(|| self.color.clone()).filter(|c| !c.is_empty()),
             urgent_color: o.urgent_color.clone().unwrap_or_else(|| self.urgent_color.clone()),
+            badge_color: o.badge_color.clone().or_else(|| self.badge_color.clone()).filter(|c| !c.is_empty()),
             badge_style: o.badge_style.unwrap_or(self.badge_style),
             width: o.width.unwrap_or(self.width),
             font: o.font.unwrap_or(self.font),
@@ -1247,6 +1287,8 @@ order = 20
         assert_eq!((l.dim, l.size, l.spacing, l.width, l.max_chars), (50, 0.0, 4, 0, 32));
         assert!(l.show_icon && l.show_title && l.color.is_none());
         assert_eq!((l.urgent_color.as_str(), l.badge_style, l.font), ("destructive", BadgeStyle::Count, BarFont::System));
+        assert_eq!((l.opacity, l.icon_size, l.text_size), (100, 0.0, 0.0));
+        assert!(l.icon.is_none() && l.badge_color.is_none(), "the badge follows the tint and the icon is the extension's");
         assert_eq!(c.bar.look("x/y", BarTarget::Sketchybar), l, "both targets start from the same look");
         let (c, d) = parse(
             r##"
@@ -1261,12 +1303,19 @@ color = "#ff8800"
 spacing = 6
 badge_style = "dot"
 urgent_color = "amber"
+badge_color = "grey"
+opacity = 80
 width = 90
 show_icon = false
 
 [bar.items."timer/timer"]
 size = 11
+icon_size = 16
+text_size = 9.5
+icon = "󰔛"
+opacity = 70
 color = "blue"
+badge_color = "#ff0000"
 badge_style = "none"
 show_title = false
 max_chars = 2
@@ -1280,16 +1329,20 @@ max_chars = 2
         let s = c.bar.look("x/y", BarTarget::Sketchybar);
         assert_eq!((s.spacing, s.badge_style, s.urgent_color.as_str(), s.width, s.show_icon), (6, BadgeStyle::Dot, "amber", 90, false));
         assert_eq!((s.dim, s.size, s.font), (50, 0.0, BarFont::System));
+        assert_eq!((s.badge_color.as_deref(), s.opacity, m.badge_color.as_deref(), m.opacity), (Some("grey"), 80, None, 100));
         let t = c.bar.look("timer/timer", BarTarget::Menubar);
         assert_eq!((t.size, t.color.as_deref(), t.badge_style, t.show_title), (11.0, Some("blue"), BadgeStyle::None, false), "the item's keys win");
+        assert_eq!((t.icon_size, t.text_size, t.icon.as_deref(), t.opacity, t.badge_color.as_deref()), (16.0, 9.5, Some("󰔛"), 70, Some("#ff0000")));
         assert_eq!((t.dim, t.font), (35, BarFont::Mono), "the rest come from the target");
         assert_eq!(t.max_chars, 4, "a floor under max_chars");
         let ts = c.bar.look("timer/timer", BarTarget::Sketchybar);
         assert_eq!((ts.size, ts.spacing, ts.badge_style), (11.0, 6, BadgeStyle::None), "the same overrides over sketchybar's defaults");
+        assert_eq!(ts.badge_color.as_deref(), Some("#ff0000"), "the item's badge colour over the target's");
         assert!(c.bar.look("x/y", BarTarget::Auto) == m && c.bar.look("x/y", BarTarget::Both) == m, "auto and both read the menu bar's");
-        let (c, _) = parse("[bar.menubar]\ndim = 300\n[bar.items.\"a/b\"]\nsize = -3\n").unwrap();
+        let (c, _) = parse("[bar.menubar]\ndim = 300\nopacity = 150\n[bar.items.\"a/b\"]\nsize = -3\nicon_size = -1\nicon = \" \"\nbadge_color = \"\"\n").unwrap();
         let l = c.bar.look("a/b", BarTarget::Menubar);
-        assert_eq!((l.dim, l.size), (100, 0.0), "clamped");
+        assert_eq!((l.dim, l.opacity, l.size, l.icon_size), (100, 100, 0.0, 0.0), "clamped");
+        assert!(l.icon.is_none() && l.badge_color.is_none(), "blank is unset");
         assert!(parse("[bar.menubar]\nbadge_style = \"pill\"\n").is_err(), "an unknown badge style is a parse error");
         assert!(parse("[bar.items.\"a/b\"]\nfont = \"serif\"\n").is_err());
         let (_, d) = parse("[bar.menubar]\nsizes = 1\n[bar.items.\"a/b\"]\ncolour = \"red\"\n").unwrap();

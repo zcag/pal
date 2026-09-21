@@ -223,19 +223,25 @@ target's caveat).
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `dim` | int, percent | `50` | A muted item's strength: a stale item, or one the extension colours `muted` (a paused timer), draws at this opacity. Menu bar: the template image's alpha (the title text keeps the bar's colour unless prerendered, below). sketchybar: the alpha of the `muted` colour. |
+| `opacity` | int, percent | `100` | The item's strength: every colour it draws (icon, text, segments, badge) at this alpha. A muted item is at `dim` of this (the two multiply: `opacity = 60`, `dim = 50` draws a stale item at 30). sketchybar: the alpha of every colour (an image icon keeps its own). Menu bar: the image's alpha; under 100 the text is prerendered into the image so it fades too. |
 | `size` | number, points | `0` | Point size of the glyph and the text; `0` is the target's own (the menu bar's 13 pt text and 14 pt glyph; sketchybar's icon and label font size). On the menu bar a size prerenders the text into the icon image. |
+| `icon_size` | number, points | `0` | Point size of the glyph alone; `0` follows `size`. |
+| `text_size` | number, points | `0` | Point size of the title and the segments alone; `0` follows `size`. |
 | `spacing` | int, points | `4` | Between the icon, the title and the segments. sketchybar: the paddings. Menu bar: only a prerendered strip takes it; Apple sets the gap otherwise. |
 | `show_icon` | bool | `true` | Draw the icon. |
+| `icon` | string | unset | A glyph, an emoji or a short text drawn as the icon in place of the one the extension answers (what an extension's `icon` takes as a string). Meant per item: every item the same icon is no bar, so a target leaves it unset. |
 | `show_title` | bool | `true` | Draw the title and the segments; off is a glyph-only item. An item with nothing left to draw takes no slot. |
 | `color` | string | unset | The tint: a colour name (`grey`, `blue`, `green`, `amber`, `red`, `violet`, `pink`, `teal`, `accent`, `text`, `muted`) or `#rrggbb`, drawn in place of the colour the extension answers (`muted` from the extension stays: it is a state). Unset keeps the extension's: a coloured item its own, the rest the bar's text colour. Menu bar: the glyph's ink; the title text keeps the bar's colour unless prerendered. |
 | `urgent_color` | string | `"destructive"` | The colour of an urgent item, a name or `#rrggbb`. |
-| `badge_style` | `"count"`, `"dot"`, `"none"` | `"count"` | How a count badge is drawn: the number (`·3` after the title on the menu bar, in red on sketchybar's label), a dot whatever the number, or nothing (the count stays in the tooltip). |
+| `badge_color` | string | unset | The colour of a count badge and a dot, a name or `#rrggbb`. Unset draws them in the item's own colour (the tint; `urgent_color` while urgent; `muted` while stale), so a mail count is not red by default; `"red"` on a target brings the old red back. Menu bar: the dot's colour, and a set colour prerenders the text into the image so the `·3` can wear it. sketchybar: the `.badge` item's colour, a dot's `icon.color`. |
+| `badge_style` | `"count"`, `"dot"`, `"none"` | `"count"` | How a count badge is drawn: the number (`·3` after the title on the menu bar, a `.badge` item after sketchybar's label), a dot whatever the number, or nothing (the count stays in the tooltip). |
 | `width` | int, points | `0` | A fixed width, so a ticking timer does not move its neighbours; `0` is the natural width. Text past it is cut. Menu bar: the prerendered image's width. sketchybar: `label.width`. |
 | `font` | `"system"`, `"mono"` | `"system"` | The text's face; `mono` for codes and times (SF Mono on the menu bar, prerendered; Menlo on sketchybar). |
 | `max_chars` | int | `32` | The longest title an item draws; longer text ends in an ellipsis, since Apple's bar hides whatever runs under the notch or off the left edge (sketchybar: `label.max_chars`). |
 
 The menu bar's title is a plain system-font string (tray-icon sets no
-attributes), so `size`, `font` and `width` make the renderer prerender the
+attributes), so `size` (`icon_size`, `text_size`), `font`, `width`,
+`opacity` under 100 and a set `badge_color` make the renderer prerender the
 title into the icon image next to the glyph (`bar/glyph.rs`, the system's
 own SF Pro or SF Mono read from `/System/Library/Fonts`); an emoji icon
 stays title text, an image icon keeps its picture and its title text.
@@ -253,7 +259,7 @@ Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
 | `hotkey` | string | unset | A global hotkey that opens the item's popover (or runs its open action). Same syntax as `general.hotkey`; the root and palette hotkeys win a clash. |
 | `open_on_hover` | bool | unset | This item's say on hovering; the target's default when unset. |
 | `order` | integer | `0` | Order among pal's own items, ascending left to right (on the menu bar, and within one sketchybar position). |
-| `dim`, `size`, `spacing`, `show_icon`, `show_title`, `color`, `urgent_color`, `badge_style`, `width`, `font`, `max_chars` | as above | unset | This item's say on each appearance key; the target's default when unset (the menu bar's for an item drawn there, sketchybar's for one drawn there). Settings > Bar marks each inherited field "from the menu bar default" and offers Reset on an overridden one. |
+| `dim`, `opacity`, `size`, `icon_size`, `text_size`, `spacing`, `show_icon`, `icon`, `show_title`, `color`, `urgent_color`, `badge_color`, `badge_style`, `width`, `font`, `max_chars` | as above | unset | This item's say on each appearance key; the target's default when unset (the menu bar's for an item drawn there, sketchybar's for one drawn there). Settings > Bar marks each inherited field "from the menu bar default" and offers Reset on an overridden one; `icon` is the one key its pane alone shows (a target-wide icon makes no sense). |
 
 A change re-targets, moves or removes items live. pal only ever touches
 sketchybar items named `pal.<extension>.<id>` (a segment is

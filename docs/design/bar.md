@@ -53,7 +53,7 @@ export type BarItem = {
   title?: string;
   /** Extra runs after the title, each its own colour: prs' four state counts. Menu bar: joined into the title text. */
   segments?: BarSegment[];
-  /** A count, or a dot: drawn as a small red mark on the icon (menu bar), a coloured count after the label (sketchybar). */
+  /** A count, or a dot: drawn as a small mark on the icon (menu bar), a count item after the label (sketchybar), in the item's colour unless the look's `badge_color` says. */
   badge?: number | "dot";
   /** Tints the icon and the title. Menu bar: the icon is a template image (system tint) unless a colour is set. */
   color?: BarColor;
@@ -231,10 +231,10 @@ re-renders an extension's items as it relists its palettes.
 | `hidden` | `remove_tray_by_id` (no slot) | `drawing=off`, `updates=on` always | `text: ""` (waybar collapses it) |
 | `icon` glyph | 36 px template PNG from the bundled Nerd Font (below) | `icon=<glyph>` in the bar's own `--default icon.font` (FiraCode Nerd Font on hornet) | the glyph in `text` |
 | `icon` emoji | the first run of the title text (Apple Color Emoji is on every Mac) | `icon=<emoji>` | in `text` |
-| `icon` `{ image }` / `{ app }` | decoded by `pal_core::icons` to 36 px, non-template; `{ image, template: true }` honoured | `background.image=<cached png>`, `icon.drawing=off` | dropped |
+| `icon` `{ image }` / `{ app }` | decoded by `pal_core::icons` to 36 px, non-template; `{ image, template: true }` honoured | `icon.background.image=<cached png>` in the icon slot (an empty icon text, drawing; the item's own `background.image` draws only with `background.drawing=on`, and behind the label), scale 0.5 of sketchybar's 32 pt (16 pt), the slot's paddings as the image's | dropped |
 | `title` | the button title (`ImageLeft` of it) | `label=`; empty: `label.drawing=off` and the icon takes the label's right padding (the owner's `icon_only`, lib.sh:45) | `text` |
 | `segments` | joined into the title as `glyph text` runs, two spaces apart; colour lost, so the glyph must carry the state | one item per segment (`pal.<ext>.<id>.<seg>`) with its own `icon.color`/`label.color`, in one bracket | joined into `text` |
-| `badge` | count appended as `·3` after the title; `dot` a 6 px red disc drawn into the icon's corner (`badge_style` in the look maps one to the other or drops it) | count as the number in red on the label; `dot` = `icon.color=red` | `text` suffix, `class: badge` |
+| `badge` | count appended as `·3` after the title; `dot` a 6 px disc drawn into the icon's corner, in the ink unless `badge_color` (`badge_style` in the look maps one to the other or drops it) | count as the number in a `.badge` item after the label, `dot` = `icon.color`, both in the item's colour unless `badge_color` | `text` suffix, `class: badge` |
 | `color`, `urgent` | the glyph PNG drawn in that colour, non-template; `text`/none stays template | `icon.color`/`label.color` from the map; every changed colour eases with `--animate sin 10` | `class: <color>`, `urgent` |
 | `stale` | the template icon at `dim` (50%), tooltip "(stale)" | icon, label and segments at the `muted` colour at `dim` (the owner's `stale_mark`, symmetric) | `class: stale` |
 | `progress` | a 2 px bar drawn into the bottom of the icon | `━━━───` (8 cells of heavy/light box drawing, the owner's timer rule) before the glyph | `percentage` |
@@ -318,12 +318,16 @@ hover_grace = 400          # ms after the pointer has left both the item and the
 open_on_hover = false      # Apple's bar has no hover convention
 # appearance, every item on this target unless it says otherwise (the section below)
 dim = 50
+opacity = 100              # every colour's alpha; a muted item at dim of it
 size = 0
+icon_size = 0              # the glyph alone; 0 follows size
+text_size = 0              # the text alone; 0 follows size
 spacing = 4
 show_icon = true
 show_title = true
 # color = "blue"           # unset: the extension's colour
 urgent_color = "destructive"
+# badge_color = "red"      # unset: the badge in the item's colour
 badge_style = "count"      # count | dot | none
 width = 0                  # 0: natural
 font = "system"            # system | mono
@@ -347,6 +351,7 @@ badge_style = "dot"        # any appearance key, this item only; default the tar
 [bar.items."timer/timer"]
 font = "mono"              # a countdown that does not jitter
 width = 72
+icon = "󰔛"                 # this item's own glyph in place of the extension's
 ```
 
 `pal_core::config::Config` gains `bar: Bar` (`core/src/config/mod.rs`, the
@@ -367,12 +372,16 @@ renderers. The keys, and what each target makes of them:
 | key | default | menu bar (`bar/menubar.rs`) | sketchybar (`bar/sketchybar.rs`) |
 | --- | --- | --- | --- |
 | `dim` (percent) | 50 | a muted item (stale, or `color = "muted"` from the extension) is the template image at this alpha, so the bar's own tint still applies; the title text cannot be dimmed unless prerendered | the `muted` colour (token or `[bar.sketchybar.colors]` override) at this alpha on icon, label and segments |
+| `opacity` (percent) | 100 | the whole image's alpha (`glyph::Style::opacity`, the dot included; a muted item's ink at `dim` of it); under 100 the text is prerendered so it fades too | the alpha of every colour (`colors::at`), the `muted` colour at `dim` of it; an image icon keeps its own |
 | `size` (pt) | 0 = the target's own | the glyph's em size in the 18 pt square (14 pt when 0); a size also prerenders the text at it (13 pt when 0) | `icon.font.size`, `label.font.size` |
+| `icon_size`, `text_size` (pt) | 0 = follows `size` | the glyph's and the text's sizes apart (`Draw::icon_size` / `label_size`; an item's own dynamic sizes still win) | `icon.font.size` / `label.font.size` apart |
 | `spacing` (pt) | 4 | the gap between the glyph square and the text in a prerendered strip; Apple's `ImageLeft` gap otherwise | `icon.padding_right` before a label or segment, a segment's `icon.padding_left` (its `label.padding_left` without an icon) |
 | `show_icon`, `show_title` | true | `BarItem::shaped` drops the icon, or the title and the segments, before either renderer sees the item; nothing left to draw is `hidden` (no slot) | the same |
+| `icon` | unset | `BarItem::shaped` puts it in place of the extension's icon (a glyph, an emoji or text, as `BarItem.icon` takes a string); per item, the one key Settings shows only in an item's pane | the same |
 | `color` | unset | the glyph's ink (a name through `Palette::resolve`, or hex); the title text keeps the bar's colour unless prerendered | `icon.color` and `label.color`, segments without a colour of their own included |
 | `urgent_color` | `destructive` | the ink of an urgent item | the same |
-| `badge_style` | `count` | `count` is `·3` in the title text, `dot` the red disc in the image's corner (a count becomes the dot), `none` drops the badge (`shaped`) | `count` the red `.badge` item, `dot` a red icon, `none` nothing |
+| `badge_color` | unset | the dot's colour and, prerendered (a set colour prerenders), the `·3` run's (`glyph::Text::badge`, `Style::badge`); unset is the ink's (`Draw::badge_tint`: the tint, `urgent_color` while urgent, `muted` while stale), so a dot rides a template image | the `.badge` item's colour and a dot's `icon.color`; unset the item's |
+| `badge_style` | `count` | `count` is `·3` in the title text, `dot` the disc in the image's corner (a count becomes the dot), `none` drops the badge (`shaped`) | `count` the `.badge` item, `dot` the icon in the badge colour, `none` nothing |
 | `width` (pt) | 0 = natural | a fixed prerendered image width (the tray keeps the aspect of an image scaled to 18 pt, so 2x pixels are half as many points); the text is clipped to it | `label.width` with `label.align=left` |
 | `font` | `system` | `mono` prerenders the text in SF Mono | `label.font.family=Menlo` |
 | `max_chars` | 32 | `menubar::clip`, an ellipsis on a word edge | the same word-edge clipping before `label.max_chars` |
@@ -380,8 +389,8 @@ renderers. The keys, and what each target makes of them:
 **Prerendering on the menu bar.** The title is a plain `NSString` (tray-icon
 0.24.2 `set_title` is `button.setTitle`,
 `src/platform_impl/macos/mod.rs:179-191`, no attributed string, no font), so
-`size`, `font` and `width` cannot be title attributes. `menubar::prerendered`
-then puts the whole item into the image: `glyph::strip` draws the glyph square
+`size`, `font`, `width`, `opacity` and `badge_color` cannot be title
+attributes. `menubar::prerendered` then puts the whole item into the image: `glyph::strip` draws the glyph square
 as before, the gap, and the text in the system's own face read from disk
 (`/System/Library/Fonts/SFNS.ttf` or `SFNSMono.ttf`; Helvetica and Menlo as
 fallbacks; a Nerd glyph inside the text, a segment's icon, from the bundled

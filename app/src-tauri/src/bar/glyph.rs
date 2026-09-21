@@ -5,13 +5,14 @@
 //! `ab_glyph` from the same Symbols Nerd Font the webview uses (the TTF,
 //! fetched by `scripts/fetch-font.sh`, embedded at build time), at 2x
 //! into a 36 px square, the size `tray.rs` ships its own icon at: the bar
-//! draws it at 18 pt. The badge dot, the progress rule and the stale
-//! dimming are drawn into the same image. Emoji are not in this font:
+//! draws it at 18 pt. The badge dot, the progress rule, the stale
+//! dimming and the look's opacity are drawn into the same image. Emoji are not in this font:
 //! `render` answers `None` for them and the renderer puts the emoji in
 //! the title text instead (Apple Color Emoji is on every Mac).
 //!
 //! An image is either a template (black on transparent, the system tints
-//! it for a light or dark bar) or coloured; `Style::color` decides.
+//! it for a light or dark bar) or coloured; `Style::color` and
+//! `Style::badge` decide.
 //!
 //! The title is a plain `NSString` too, so a look the title cannot carry
 //! (`font = "mono"`, a `size`, a fixed `width`) prerenders the whole item
@@ -54,7 +55,6 @@ const TEXT_PX: f32 = 26.0;
 const DOT: f32 = 12.0;
 /// The progress rule's height (2 pt at 2x).
 const RULE: u32 = 4;
-const RED: [u8; 3] = [0xff, 0x3b, 0x30];
 
 /// One RGBA image, row-major from the top.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,8 +87,8 @@ impl Rgba {
         self.data[i + 3] = (out_a * 255.0).round() as u8;
     }
 
-    /// Every alpha scaled by `f` (a stale icon at half strength).
-    fn fade(&mut self, f: f32) {
+    /// Every alpha scaled by `f` (a stale icon at half strength, the look's opacity).
+    pub fn fade(&mut self, f: f32) {
         for px in self.data.as_chunks_mut::<4>().0 {
             px[3] = (px[3] as f32 * f).round() as u8;
         }
@@ -111,30 +111,37 @@ impl Rgba {
 
 /// How a glyph is drawn. `color: None` is a template image (black; the
 /// system tints it), `Some` a colour of its own. `template` is what the
-/// renderer tells the tray: `color.is_none() && !dot`.
+/// renderer tells the tray: no colour of its own anywhere, the badge
+/// included.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     pub color: Option<[u8; 3]>,
-    /// The badge dot in the top-right corner (red; makes the image non-template).
+    /// The badge dot in the top-right corner.
     pub dot: bool,
+    /// The badge's own colour (the dot, a strip's count); `None` draws it
+    /// in the ink, so it rides a template.
+    pub badge: Option<[u8; 3]>,
     /// 0..1: a thin fill along the bottom edge.
     pub progress: Option<f32>,
-    /// 0..1: the ink's strength; a muted item at its `dim`.
+    /// 0..1: the ink's strength; a muted item at its `dim`. The dot is
+    /// drawn after it: an alarm mark is never dim.
     pub alpha: f32,
+    /// 0..1: the whole image's strength, the dot included; the look's `opacity`.
+    pub opacity: f32,
     /// The glyph's point size; `0` is the 14 pt default.
     pub size: f32,
 }
 
 impl Default for Style {
     fn default() -> Self {
-        Self { color: None, dot: false, progress: None, alpha: 1.0, size: 0.0 }
+        Self { color: None, dot: false, badge: None, progress: None, alpha: 1.0, opacity: 1.0, size: 0.0 }
     }
 }
 
 impl Style {
     /// Whether the tray should treat the image as a template.
     pub fn template(&self) -> bool {
-        self.color.is_none() && !self.dot
+        self.color.is_none() && self.badge.is_none()
     }
 
     /// The glyph's em size in pixels (2x), never past the square.
@@ -143,22 +150,23 @@ impl Style {
     }
 
     /// The cache key: progress at whole percents (a 1 Hz timer tick
-    /// redraws, a jitter of a pixel does not), alpha likewise, size at tenths.
-    fn key(&self) -> (Option<[u8; 3]>, bool, Option<u32>, u32, u32) {
-        (self.color, self.dot, self.progress.map(|p| (p.clamp(0.0, 1.0) * 100.0).round() as u32), (self.alpha.clamp(0.0, 1.0) * 100.0).round() as u32, (self.size.max(0.0) * 10.0).round() as u32)
+    /// redraws, a jitter of a pixel does not), alpha and opacity likewise, size at tenths.
+    fn key(&self) -> StyleKey {
+        let pct = |v: f32| (v.clamp(0.0, 1.0) * 100.0).round() as u32;
+        (self.color, self.dot, self.badge, self.progress.map(pct), pct(self.alpha), pct(self.opacity), (self.size.max(0.0) * 10.0).round() as u32)
     }
 }
 
-type CacheKey = (char, Option<[u8; 3]>, bool, Option<u32>, u32, u32);
-/// The glyph, the text and its face, spacing and width at tenths, the style.
-type StripKey = (Option<char>, String, bool, u32, u32, u32, CacheKey);
+type StyleKey = (Option<[u8; 3]>, bool, Option<[u8; 3]>, Option<u32>, u32, u32, u32);
+type CacheKey = (char, StyleKey);
+/// The glyph, the text and the badge text and their face, spacing and width at tenths, the style.
+type StripKey = (Option<char>, String, String, bool, u32, u32, u32, StyleKey);
 
 /// The glyph in `style`, from the cache. `None` when the font has no
 /// outline for it (an emoji, any code point outside the symbol ranges).
 pub fn render(glyph: char, style: &Style) -> Option<Arc<Rgba>> {
     static CACHE: LazyLock<Mutex<HashMap<CacheKey, Arc<Rgba>>>> = LazyLock::new(Mutex::default);
-    let (c, d, p, a, s) = style.key();
-    let key = (glyph, c, d, p, a, s);
+    let key = (glyph, style.key());
     if let Some(hit) = crate::lock(&CACHE).get(&key) {
         return Some(hit.clone());
     }
@@ -171,6 +179,8 @@ pub fn render(glyph: char, style: &Style) -> Option<Arc<Rgba>> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Text {
     pub text: String,
+    /// The count badge (` ·3`) after the text, in `Style::badge` when that is set.
+    pub badge: String,
     /// `font = "mono"`.
     pub mono: bool,
     /// Points between the glyph square and the text.
@@ -194,8 +204,7 @@ pub fn can_strip(mono: bool) -> bool {
 /// when no text face is on disk, or when nothing would be drawn.
 pub fn strip(glyph: Option<char>, text: &Text, style: &Style) -> Option<Arc<Rgba>> {
     static CACHE: LazyLock<Mutex<HashMap<StripKey, Arc<Rgba>>>> = LazyLock::new(Mutex::default);
-    let (c, d, p, a, s) = style.key();
-    let key = (glyph, text.text.clone(), text.mono, (text.spacing * 10.0) as u32, (text.size.max(0.0) * 10.0) as u32, (text.width * 10.0) as u32, (' ', c, d, p, a, s));
+    let key = (glyph, text.text.clone(), text.badge.clone(), text.mono, (text.spacing * 10.0) as u32, (text.size.max(0.0) * 10.0) as u32, (text.width * 10.0) as u32, style.key());
     if let Some(hit) = crate::lock(&CACHE).get(&key) {
         return Some(hit.clone());
     }
@@ -216,6 +225,9 @@ fn draw(glyph: char, style: &Style) -> Option<Rgba> {
     }
     let mut img = Rgba::blank(SIZE, SIZE);
     square(&mut img, 0, Some(glyph), style, SIZE);
+    if style.opacity < 1.0 {
+        img.fade(style.opacity.max(0.0));
+    }
     Some(img)
 }
 
@@ -253,11 +265,12 @@ fn square(img: &mut Rgba, x0: i32, glyph: Option<char>, style: &Style, rule_w: u
         // Top-right of the whole image, drawn after the fade: an alarm mark is never dim.
         let (cx, cy, r) = (img.width as f32 - DOT / 2.0, DOT / 2.0, DOT / 2.0);
         let (x_from, x_to) = ((cx - DOT) as i32, img.width as i32);
+        let ink = style.badge.unwrap_or(rgb);
         for y in 0..DOT as i32 + 1 {
             for x in x_from..x_to {
                 let d = ((x as f32 + 0.5 - cx).powi(2) + (y as f32 + 0.5 - cy).powi(2)).sqrt();
                 let a = (r - d + 0.5).clamp(0.0, 1.0);
-                img.blend(x, y, RED, a);
+                img.blend(x, y, ink, a);
             }
         }
     }
@@ -294,11 +307,13 @@ fn draw_strip(glyph: Option<char>, text: &Text, style: &Style) -> Option<Rgba> {
     let has_glyph = glyph.is_some_and(|c| FONT.as_ref().is_some_and(|f| f.glyph_id(c).0 != 0));
     let px = if text.size > 0.0 { text.size * 2.0 } else if style.size > 0.0 { style.size * 2.0 } else { TEXT_PX };
     let text_w = if text.text.is_empty() { 0.0 } else { text_run(&text.text, text.mono, px, None)? };
-    if !has_glyph && text_w == 0.0 {
+    let badge_w = if text.badge.is_empty() { 0.0 } else { text_run(&text.badge, text.mono, px, None)? };
+    let run_w = text_w + badge_w;
+    if !has_glyph && run_w == 0.0 {
         return None;
     }
-    let gap = if has_glyph && text_w > 0.0 { (text.spacing * 2.0).round() } else { 0.0 };
-    let natural = (if has_glyph { SIZE as f32 } else { 0.0 }) + gap + text_w.ceil();
+    let gap = if has_glyph && run_w > 0.0 { (text.spacing * 2.0).round() } else { 0.0 };
+    let natural = (if has_glyph { SIZE as f32 } else { 0.0 }) + gap + run_w.ceil();
     let width = if text.width > 0.0 { (text.width * 2.0).round().max(4.0) } else { natural };
     let mut img = Rgba::blank(width as u32, SIZE);
     let rgb = style.color.unwrap_or([0, 0, 0]);
@@ -306,11 +321,17 @@ fn draw_strip(glyph: Option<char>, text: &Text, style: &Style) -> Option<Rgba> {
     if text_w > 0.0 {
         text_run(&text.text, text.mono, px, Some((&mut img, text_x, rgb)));
     }
+    if badge_w > 0.0 {
+        text_run(&text.badge, text.mono, px, Some((&mut img, text_x + text_w.round() as i32, style.badge.unwrap_or(rgb))));
+    }
     // The marks: the square's rule spans the glyph, or the whole width without one; the dot rides the image's corner.
     let marks = Style { dot: false, ..*style };
     square(&mut img, 0, glyph.filter(|_| has_glyph), &marks, if has_glyph { SIZE } else { width as u32 });
     if style.dot {
         square(&mut img, 0, None, &Style { progress: None, alpha: 1.0, ..*style }, 0);
+    }
+    if style.opacity < 1.0 {
+        img.fade(style.opacity.max(0.0));
     }
     Some(img)
 }
@@ -394,11 +415,19 @@ mod tests {
         assert!(!red.template());
         let coloured = render('\u{f09b}', &red).unwrap();
         assert!(coloured.data.as_chunks::<4>().0.iter().any(|p| p[3] > 200 && p[0] == 0xe7), "the colour is in the ink");
-        let dotted = render('\u{f09b}', &Style { dot: true, ..Default::default() }).unwrap();
-        assert!(!Style { dot: true, ..Default::default() }.template(), "a red dot cannot ride a template image");
+        const RED: [u8; 3] = [0xff, 0x3b, 0x30];
+        let dotted = render('\u{f09b}', &Style { dot: true, badge: Some(RED), ..Default::default() }).unwrap();
+        assert!(!Style { dot: true, badge: Some(RED), ..Default::default() }.template(), "a red dot cannot ride a template image");
         let corner = |img: &Rgba| { let i = ((2 * SIZE + SIZE - 3) * 4) as usize; [img.data[i], img.data[i + 1], img.data[i + 3]] };
         assert_eq!(corner(&plain)[2], 0, "nothing in the corner without a badge");
         assert_eq!(corner(&dotted), [RED[0], RED[1], 255], "the dot fills the top-right corner");
+        let inked_dot = Style { dot: true, ..Default::default() };
+        assert!(inked_dot.template(), "a dot in the ink rides the template");
+        assert_eq!(corner(&render('\u{f09b}', &inked_dot).unwrap()), [0, 0, 255], "black, for the system to tint");
+        let faint = render('\u{f09b}', &Style { dot: true, opacity: 0.5, ..Default::default() }).unwrap();
+        assert!(corner(&faint)[2] <= 128 && corner(&faint)[2] > 100, "opacity fades the dot too: {}", corner(&faint)[2]);
+        let full_dot = render('\u{f09b}', &Style { dot: true, alpha: 0.5, ..Default::default() }).unwrap();
+        assert_eq!(corner(&full_dot)[2], 255, "dim does not: an alarm mark is never dim");
         let half = render('\u{f09b}', &Style { progress: Some(0.5), ..Default::default() }).unwrap();
         let bottom = |img: &Rgba, x: u32| img.data[(((SIZE - 1) * SIZE + x) * 4 + 3) as usize];
         assert_eq!(bottom(&half, 2), 255, "filled to the left of the mark");
@@ -421,7 +450,7 @@ mod tests {
             eprintln!("no system text face here: the strip is a menu bar thing");
             return;
         }
-        let text = Text { text: "3:12".into(), mono: false, spacing: 4.0, size: 0.0, width: 0.0 };
+        let text = Text { text: "3:12".into(), badge: String::new(), mono: false, spacing: 4.0, size: 0.0, width: 0.0 };
         let img = strip(Some('\u{f09b}'), &text, &Style::default()).expect("a strip");
         assert_eq!(img.height, SIZE);
         assert!(img.width > SIZE + 8 + 30, "the glyph square, the gap and four characters: {}", img.width);
@@ -438,10 +467,21 @@ mod tests {
         assert_eq!(fixed.width, 80, "a fixed width in points, at 2x");
         let ticked = strip(Some('\u{f09b}'), &Text { text: "3:11".into(), width: 40.0, ..text.clone() }, &Style::default()).unwrap();
         assert_eq!(ticked.width, fixed.width, "a tick does not move the neighbours");
-        let text_only = strip(None, &text, &Style { dot: true, progress: Some(0.5), ..Default::default() }).unwrap();
+        let text_only = strip(None, &text, &Style { dot: true, badge: Some([0xff, 0x3b, 0x30]), progress: Some(0.5), ..Default::default() }).unwrap();
         assert!(text_only.width < img.width, "no glyph square");
         let corner = text_only.data[((2 * text_only.width + text_only.width - 3) * 4) as usize..][..4].to_vec();
-        assert_eq!((corner[0], corner[3]), (RED[0], 255), "the dot rides the image's corner");
+        assert_eq!((corner[0], corner[3]), (0xff, 255), "the dot rides the image's corner");
+        // The count after the text, in the badge colour; the same width as the text with it.
+        let counted = strip(Some('\u{f09b}'), &Text { badge: " ·3".into(), ..text.clone() }, &Style { badge: Some([0xff, 0, 0]), ..Default::default() }).unwrap();
+        let joined = strip(Some('\u{f09b}'), &Text { text: "3:12 ·3".into(), ..text.clone() }, &Style::default()).unwrap();
+        assert_eq!(counted.width, joined.width, "the badge run takes the space the text would");
+        assert!(counted.data.as_chunks::<4>().0.iter().any(|p| p[3] > 200 && p[0] == 0xff && p[1] == 0), "the count is red");
+        assert!(counted.data.as_chunks::<4>().0.iter().any(|p| p[3] > 200 && p[0] == 0 && p[1] == 0), "the text is still the ink");
+        let count_only = strip(None, &Text { text: String::new(), badge: "·3".into(), ..text.clone() }, &Style::default()).unwrap();
+        assert!(count_only.width > 4 && count_only.width < img.width, "a count alone is a strip too");
+        let faint = strip(Some('\u{f09b}'), &text, &Style { opacity: 0.5, ..Default::default() }).unwrap();
+        let max = |img: &Rgba| img.data.as_chunks::<4>().0.iter().map(|p| p[3]).max().unwrap();
+        assert!(max(&faint) <= max(&img) / 2 + 1, "opacity fades the whole strip");
         let bottom = |x: u32| text_only.data[(((SIZE - 1) * text_only.width + x) * 4 + 3) as usize];
         assert_eq!(bottom(1), 255, "the rule spans the text without a glyph");
         assert!(bottom(text_only.width - 2) < 100);

@@ -52,12 +52,15 @@
             "badge_style": "count",
             "dim": 50,
             "font": "system",
+            "icon_size": 0.0,
             "max_chars": 32,
+            "opacity": 100,
             "open_on_hover": false,
             "show_icon": true,
             "show_title": true,
             "size": 0.0,
             "spacing": 4,
+            "text_size": 0.0,
             "urgent_color": "destructive",
             "width": 0
           }
@@ -68,13 +71,16 @@
             "badge_style": "count",
             "dim": 50,
             "font": "system",
+            "icon_size": 0.0,
             "max_chars": 32,
+            "opacity": 100,
             "open_on_hover": false,
             "position": "right",
             "show_icon": true,
             "show_title": true,
             "size": 0.0,
             "spacing": 4,
+            "text_size": 0.0,
             "urgent_color": "destructive",
             "width": 0
           }
@@ -106,6 +112,10 @@
       "additionalProperties": false,
       "description": "`[bar.items.\"<extension>/<id>\"]`: one item's settings; absent keys mean\nthe target's defaults.",
       "properties": {
+        "badge_color": {
+          "description": "The colour of this item's count badge and dot, a name or `#rrggbb`. The target's when unset (its own colour when that is too).",
+          "type": "string"
+        },
         "badge_style": {
           "anyOf": [
             {
@@ -147,9 +157,24 @@
           "description": "Global hotkey that opens the item's popover engaged (or runs its open action).",
           "type": "string"
         },
+        "icon": {
+          "description": "A glyph, an emoji or a short text drawn as this item's icon in place of the extension's. The extension's when unset.",
+          "type": "string"
+        },
+        "icon_size": {
+          "description": "Point size of this item's glyph alone; `0` follows `size`. The target's when unset.",
+          "format": "double",
+          "type": "number"
+        },
         "max_chars": {
           "description": "This item's longest title, in characters. The target's when unset.",
           "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "opacity": {
+          "description": "This item's strength, percent, on every colour it draws. The target's when unset.",
+          "format": "uint32",
           "minimum": 0,
           "type": "integer"
         },
@@ -196,6 +221,11 @@
           ],
           "description": "This item's target; the global `[bar] target` when unset."
         },
+        "text_size": {
+          "description": "Point size of this item's text alone; `0` follows `size`. The target's when unset.",
+          "format": "double",
+          "type": "number"
+        },
         "urgent_color": {
           "description": "This item's colour when urgent. The target's when unset.",
           "type": "string"
@@ -213,6 +243,10 @@
       "additionalProperties": false,
       "description": "`[bar.menubar]`: the macOS menu bar target. Hover off: Apple's bar has no hover convention.",
       "properties": {
+        "badge_color": {
+          "description": "The colour of a count badge and a dot, a name or `#rrggbb`. Unset\ndraws them in the item's own colour (the tint; `urgent_color` while\nurgent), so a mail count is not red by default.",
+          "type": "string"
+        },
         "badge_style": {
           "$ref": "#/$defs/BadgeStyle",
           "default": "count",
@@ -234,10 +268,27 @@
           "default": "system",
           "description": "`system` or `mono`."
         },
+        "icon": {
+          "description": "A glyph, an emoji or a short text drawn as the icon in place of the\none the extension answers (what `BarItem.icon` takes as a string).\nOnly an item's own makes sense (every item the same icon is no\nbar), so a target leaves it unset.",
+          "type": "string"
+        },
+        "icon_size": {
+          "default": 0.0,
+          "description": "Point size of the glyph alone; `0` follows `size`.",
+          "format": "double",
+          "type": "number"
+        },
         "max_chars": {
           "default": 32,
           "description": "Longest title an item draws, in characters; longer text ends in an\nellipsis. Apple's bar hides whatever runs into the notch or past the\nleft edge, so a lyric line or a track title must stop short.",
           "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "opacity": {
+          "default": 100,
+          "description": "The item's strength, in percent: every colour it draws (the icon,\nthe text, the segments, the badge) at this alpha. A muted item is\nat `dim` of this (the two multiply: `opacity = 60`, `dim = 50` draws\na stale item at 30).",
+          "format": "uint32",
           "minimum": 0,
           "type": "integer"
         },
@@ -269,6 +320,12 @@
           "minimum": 0,
           "type": "integer"
         },
+        "text_size": {
+          "default": 0.0,
+          "description": "Point size of the title and the segments alone; `0` follows `size`.",
+          "format": "double",
+          "type": "number"
+        },
         "urgent_color": {
           "default": "destructive",
           "description": "The colour of an urgent item, a name or `#rrggbb`.",
@@ -288,6 +345,10 @@
       "additionalProperties": false,
       "description": "`[bar.sketchybar]`: the sketchybar target. Hover off too: a popover opens on a click, its hotkey, or a hover the owner asks for.",
       "properties": {
+        "badge_color": {
+          "description": "The colour of a count badge and a dot, a name or `#rrggbb`. Unset\ndraws them in the item's own colour (the tint; `urgent_color` while\nurgent), so a mail count is not red by default.",
+          "type": "string"
+        },
         "badge_style": {
           "$ref": "#/$defs/BadgeStyle",
           "default": "count",
@@ -316,10 +377,27 @@
           "default": "system",
           "description": "`system` or `mono`."
         },
+        "icon": {
+          "description": "A glyph, an emoji or a short text drawn as the icon in place of the\none the extension answers (what `BarItem.icon` takes as a string).\nOnly an item's own makes sense (every item the same icon is no\nbar), so a target leaves it unset.",
+          "type": "string"
+        },
+        "icon_size": {
+          "default": 0.0,
+          "description": "Point size of the glyph alone; `0` follows `size`.",
+          "format": "double",
+          "type": "number"
+        },
         "max_chars": {
           "default": 32,
           "description": "Longest title an item draws, in characters; longer text ends in an\nellipsis. Apple's bar hides whatever runs into the notch or past the\nleft edge, so a lyric line or a track title must stop short.",
           "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "opacity": {
+          "default": 100,
+          "description": "The item's strength, in percent: every colour it draws (the icon,\nthe text, the segments, the badge) at this alpha. A muted item is\nat `dim` of this (the two multiply: `opacity = 60`, `dim = 50` draws\na stale item at 30).",
+          "format": "uint32",
           "minimum": 0,
           "type": "integer"
         },
@@ -356,6 +434,12 @@
           "minimum": 0,
           "type": "integer"
         },
+        "text_size": {
+          "default": 0.0,
+          "description": "Point size of the title and the segments alone; `0` follows `size`.",
+          "format": "double",
+          "type": "number"
+        },
         "urgent_color": {
           "default": "destructive",
           "description": "The colour of an urgent item, a name or `#rrggbb`.",
@@ -384,7 +468,7 @@
     },
     "Caps": {
       "additionalProperties": false,
-      "description": "How many rows one source may put in a typed query's answer, by tier.\nThe rest of its matches are counted in [`Ranked::more`], for a row that\ndrills into the palette (where nothing is capped). `[general]\nroot_caps` in the config file.",
+      "description": "How many rows one source may put in a typed query's answer, by tier.\nThe rest of its matches are counted in [`Ranked::more`], for a row that\ndrills into the palette (where nothing is capped). `[general]\nroot_caps` in the config file. Before the cap, a source with a row that\nhas the typed word loses its rows that only scatter the letters (the\nsame `more` row keeps them reachable): `spo` is Spotify, not Spotify and\nsix apps that spell it out of their bundle ids; `sp` still lists every\napp whose name starts with it, up to the cap, so fuzzy typing is intact.",
       "properties": {
         "catalog": {
           "default": 3,
@@ -709,12 +793,15 @@
           "badge_style": "count",
           "dim": 50,
           "font": "system",
+          "icon_size": 0.0,
           "max_chars": 32,
+          "opacity": 100,
           "open_on_hover": false,
           "show_icon": true,
           "show_title": true,
           "size": 0.0,
           "spacing": 4,
+          "text_size": 0.0,
           "urgent_color": "destructive",
           "width": 0
         },
@@ -722,13 +809,16 @@
           "badge_style": "count",
           "dim": 50,
           "font": "system",
+          "icon_size": 0.0,
           "max_chars": 32,
+          "opacity": 100,
           "open_on_hover": false,
           "position": "right",
           "show_icon": true,
           "show_title": true,
           "size": 0.0,
           "spacing": 4,
+          "text_size": 0.0,
           "urgent_color": "destructive",
           "width": 0
         },

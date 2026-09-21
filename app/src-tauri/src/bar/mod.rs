@@ -167,11 +167,15 @@ impl BarItem {
         !self.urgent && (self.stale || self.color.as_deref() == Some("muted"))
     }
 
-    /// The item with `look` applied: the icon and the text dropped where
-    /// `show_icon` / `show_title` say so, the badge in `badge_style`, the
-    /// tint over the extension's colour (`muted` stays: it is a state, not
-    /// a colour), and hidden when nothing is left to draw.
+    /// The item with `look` applied: the look's own `icon` in place of the
+    /// extension's, the icon and the text dropped where `show_icon` /
+    /// `show_title` say so, the badge in `badge_style`, the tint over the
+    /// extension's colour (`muted` stays: it is a state, not a colour), and
+    /// hidden when nothing is left to draw.
     pub fn shaped(mut self, look: &BarLook) -> BarItem {
+        if let Some(icon) = &look.icon {
+            self.icon = Some(Value::String(icon.clone()));
+        }
         if !look.show_icon {
             self.icon = None;
         }
@@ -384,14 +388,16 @@ pub struct Draw {
 }
 
 impl Draw {
-    /// A dynamic glyph size wins over the item's configured appearance.
+    /// A dynamic glyph size wins over the item's configured appearance:
+    /// the look's `icon_size`, else its `size`.
     pub fn icon_size(&self) -> f64 {
-        self.item.icon_size.unwrap_or(self.look.size)
+        self.item.icon_size.unwrap_or(if self.look.icon_size > 0.0 { self.look.icon_size } else { self.look.size })
     }
 
-    /// A dynamic label size wins over the item's configured appearance.
+    /// A dynamic label size wins over the item's configured appearance:
+    /// the look's `text_size`, else its `size`.
     pub fn label_size(&self) -> f64 {
-        self.item.label_size.unwrap_or(self.look.size)
+        self.item.label_size.unwrap_or(if self.look.text_size > 0.0 { self.look.text_size } else { self.look.size })
     }
 
     /// The colour spec the item is drawn in: `urgent_color` when urgent,
@@ -404,6 +410,17 @@ impl Draw {
             Some("muted")
         } else {
             self.item.color.as_deref()
+        }
+    }
+
+    /// The colour spec of the count badge and the dot: the look's
+    /// `badge_color`, else the item's [`tint`](Self::tint); a stale item's
+    /// is muted like the rest of it.
+    pub fn badge_tint(&self) -> Option<&str> {
+        if self.item.stale && !self.item.urgent {
+            Some("muted")
+        } else {
+            self.look.badge_color.as_deref().or_else(|| self.tint())
         }
     }
 }
@@ -1140,6 +1157,31 @@ mod tests {
     }
 
     #[test]
+    fn badge_tint_follows_the_item_unless_the_look_says() {
+        let draw = |item: BarItem, look: BarLook| Draw { item, order: 0, position: "right".into(), hover: false, look };
+        let green = BarItem { color: Some("green".into()), badge: Some(Badge::Count(3)), ..Default::default() };
+        assert_eq!(draw(green.clone(), BarLook::default()).badge_tint(), Some("green"), "unset: the tint");
+        assert_eq!(draw(BarItem::default(), BarLook::default()).badge_tint(), None, "no colour: the bar's text colour, not red");
+        assert_eq!(draw(green.clone(), BarLook { badge_color: Some("red".into()), ..Default::default() }).badge_tint(), Some("red"));
+        assert_eq!(draw(BarItem { urgent: true, ..green.clone() }, BarLook::default()).badge_tint(), Some("destructive"), "urgent: the urgent colour");
+        assert_eq!(draw(BarItem { urgent: true, ..green.clone() }, BarLook { badge_color: Some("grey".into()), ..Default::default() }).badge_tint(), Some("grey"), "a set colour holds while urgent");
+        assert_eq!(draw(BarItem { stale: true, ..green }, BarLook { badge_color: Some("red".into()), ..Default::default() }).badge_tint(), Some("muted"), "stale mutes the badge with the rest");
+    }
+
+    #[test]
+    fn sizes_split_then_follow_size_then_the_item() {
+        let draw = |item: BarItem, look: BarLook| Draw { item, order: 0, position: "right".into(), hover: false, look };
+        let d = draw(BarItem::default(), BarLook { size: 12.0, ..Default::default() });
+        assert_eq!((d.icon_size(), d.label_size()), (12.0, 12.0), "size sets both");
+        let d = draw(BarItem::default(), BarLook { size: 12.0, icon_size: 16.0, ..Default::default() });
+        assert_eq!((d.icon_size(), d.label_size()), (16.0, 12.0), "icon_size the glyph alone");
+        let d = draw(BarItem::default(), BarLook { text_size: 9.0, ..Default::default() });
+        assert_eq!((d.icon_size(), d.label_size()), (0.0, 9.0), "text_size the text alone, the glyph at the bar's own");
+        let d = draw(BarItem { icon_size: Some(18.0), label_size: Some(11.0), ..Default::default() }, BarLook { size: 12.0, icon_size: 16.0, text_size: 9.0, ..Default::default() });
+        assert_eq!((d.icon_size(), d.label_size()), (18.0, 11.0), "the item's dynamic sizes still win");
+    }
+
+    #[test]
     fn shaped_applies_the_look() {
         let item: BarItem = serde_json::from_value(json!({ "icon": "\u{f09b}", "title": "prs", "badge": 3, "color": "green", "segments": [{ "id": "a", "text": "1" }] })).unwrap();
         let same = item.clone().shaped(&BarLook::default());
@@ -1153,6 +1195,11 @@ mod tests {
         assert_eq!(item.clone().shaped(&BarLook { color: Some("blue".into()), ..Default::default() }).color.as_deref(), Some("blue"), "the tint replaces the extension's colour");
         let paused = BarItem { color: Some("muted".into()), ..item.clone() }.shaped(&BarLook { color: Some("blue".into()), ..Default::default() });
         assert_eq!(paused.color.as_deref(), Some("muted"), "muted is a state and stays");
+        let own = item.clone().shaped(&BarLook { icon: Some("🔔".into()), ..Default::default() });
+        assert_eq!(own.icon, Some(json!("🔔")), "the look's icon replaces the extension's");
+        assert_eq!(own.icon_kind(), Some(IconKind::Text("🔔".into())));
+        assert!(BarItem::default().shaped(&BarLook { icon: Some("\u{f09b}".into()), ..Default::default() }).icon.is_some(), "and gives an item without one an icon");
+        assert!(item.clone().shaped(&BarLook { icon: Some("🔔".into()), show_icon: false, ..Default::default() }).icon.is_none(), "show_icon off drops it all the same");
         let gone = item.shaped(&BarLook { show_icon: false, show_title: false, badge_style: BadgeStyle::None, ..Default::default() });
         assert!(gone.hidden, "nothing left to draw takes no slot");
     }

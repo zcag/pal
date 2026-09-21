@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
 import { SettingsBar, barIndex, effectiveTarget, previewItem, previewState } from "../SettingsBar";
-import { clipText, shapeItem } from "../BarStrip";
+import { BarStrip, clipText, shapeItem, type BarLook, type BarStripItem } from "../BarStrip";
 import { lookDefaults, resolveLook, type BarConfig, type BarItemConfig } from "../SettingsTypes";
 import { barItems } from "./settings-fixtures";
 
@@ -29,12 +29,18 @@ describe("SettingsBar", () => {
     const html = page();
     for (const g of ["Placement", "Text", "Colour", "Behaviour"]) expect(html).toContain(`>${g}</legend>`);
     // The menu bar's defaults are shown first (sketchybar is not running); every field carries its file key and an anchor.
-    for (const k of ["spacing", "width", "font", "size", "max_chars", "show_icon", "show_title", "color", "urgent_color", "dim", "badge_style"]) {
+    for (const k of ["spacing", "width", "font", "size", "icon_size", "text_size", "max_chars", "show_icon", "show_title", "color", "urgent_color", "badge_color", "opacity", "dim", "badge_style"]) {
       expect(html).toContain(`data-anchor="bar:menubar:${k}"`);
     }
+    // A custom icon is an item's own: no target-wide default, so no field here.
+    expect(html).not.toContain('data-anchor="bar:menubar:icon"');
+    expect(barIndex(barItems).some((e) => e.anchor === "bar:menubar:icon")).toBe(false);
+    expect(barIndex(barItems).some((e) => e.anchor === "bar:github/notifications:icon")).toBe(true);
     // Only a key you could not have guessed from the label earns a chip: "Spacing" does not print `spacing`.
-    for (const k of ["max_chars", "show_icon", "show_title", "color", "urgent_color", "badge_style"]) expect(html).toContain(`<code class="pal-bar-field__key">${k}</code>`);
-    for (const k of ["spacing", "width", "font", "size", "dim"]) expect(html).not.toContain(`<code class="pal-bar-field__key">${k}</code>`);
+    for (const k of ["max_chars", "show_icon", "show_title", "color", "urgent_color", "badge_color", "badge_style"]) expect(html).toContain(`<code class="pal-bar-field__key">${k}</code>`);
+    for (const k of ["spacing", "width", "font", "size", "icon_size", "text_size", "opacity", "dim"]) expect(html).not.toContain(`<code class="pal-bar-field__key">${k}</code>`);
+    expect(html).toContain('aria-label="Opacity (menu bar)" value="100"');
+    expect(html).toContain('placeholder="the item&#x27;s"');
     expect(html).toContain("Points between the icon, the title and the segments.");
     expect(html).toContain("Apple sets the gap otherwise.");
     expect(html).toContain('aria-label="Dim (menu bar)" value="50"');
@@ -70,7 +76,10 @@ describe("SettingsBar", () => {
     expect(html.match(/class="g-bar" data-theme="dark" data-target="menubar"/g)?.length).toBe(1);
     expect(html.match(/class="g-bar" data-theme="light" data-target="menubar"/g)?.length).toBe(1);
     expect(html).toContain("menu bar, dark");
-    expect(html).toContain('class="g-mb__count">3</span>');
+    expect(html).toContain('class="g-mb__count" style="background:currentColor">3</span>');
+    // The item's pane has the custom icon field, the extension's own icon as its placeholder.
+    expect(html).toContain('data-inherited="true" data-anchor="bar:github/notifications:icon"');
+    expect(html).toMatch(/id="bar:github\/notifications-icon"[^>]*placeholder="\u{f09b}"/u);
     expect(html).toContain('data-anchor="bar:github/notifications:target"');
     expect(html).toContain('data-anchor="bar:github/notifications:order"');
     expect(html).toContain('data-anchor="bar:github/notifications:hotkey"');
@@ -93,7 +102,7 @@ describe("SettingsBar", () => {
     expect(html).toContain("over the sketchybar default");
     expect(html).toMatch(/data-inherited="true" data-anchor="bar:timer\/running:spacing"/);
     expect(html).toContain('aria-label="Spacing (sketchybar)" value="6"');
-    expect(html.match(/from the sketchybar default/g)?.length).toBe(9);
+    expect(html.match(/from the sketchybar default/g)?.length).toBe(14);
     expect(html).not.toMatch(/data-inherited="true" data-anchor="bar:timer\/running:font"/);
     expect(html).toMatch(/data-anchor="bar:timer\/running:font"[\s\S]*?title="Back to the sketchybar default">Reset<\/button>/);
     expect(html).toMatch(/id="bar:timer\/running-position"[^>]*value="left"/);
@@ -116,6 +125,9 @@ describe("SettingsBar", () => {
     expect(shapeItem({ icon: "x", title: "t", badge: 4 }, { ...lookDefaults, badgeStyle: "none", showTitle: false }).hidden).toBeUndefined();
     expect(shapeItem({ title: "t" }, { ...lookDefaults, showTitle: false }).hidden).toBe(true);
     expect(shapeItem({ icon: "x", color: "muted" }, { ...lookDefaults, color: "blue" }).color).toBe("muted");
+    expect(shapeItem({ icon: "x", title: "t" }, { ...lookDefaults, icon: "🔔" }).icon).toBe("🔔");
+    expect(shapeItem({ icon: "x", title: "t" }, { ...lookDefaults, icon: "🔔", showIcon: false }).icon).toBeUndefined();
+    expect(shapeItem({ icon: "x" }, { ...lookDefaults, icon: "  " }).icon).toBe("x");
     expect(clipText("With a coat that smells of rain and the radio playing", 32)).toBe("With a coat that smells of rain…");
     expect(previewItem(barItems[1])).toMatchObject({ icon: "\u{f0954}", title: "tea 12:00", progress: 0.4, color: "amber", stale: true });
     expect(previewState(barItems[1].mocks?.[0].item, barItems[1].title)).toMatchObject({ icon: "\u{f0954}", title: "tea done", urgent: true, color: "red" });
@@ -124,6 +136,24 @@ describe("SettingsBar", () => {
     expect(effectiveTarget(barItems[0], config, true)).toBe("sketchybar");
     expect(effectiveTarget(barItems[1], config, false)).toBe("sketchybar");
     expect(effectiveTarget(barItems[0], { ...config, target: "both" }, false)).toBe("both");
+  });
+  it("draws the badge in the item's colour unless the look says, fades at opacity, and sizes the glyph and the text apart", () => {
+    const strip = (item: BarStripItem, look: Partial<BarLook>, target: "menubar" | "sketchybar" = "menubar") => renderToStaticMarkup(<BarStrip items={[item]} target={target} theme="dark" look={{ ...lookDefaults, ...look }} bare />);
+    // Menu bar: the dot and the count ride the ink; a badge colour is their own.
+    expect(strip({ icon: "\u{f09b}", badge: "dot" }, {})).toContain('class="g-mb__dot" style="background:currentColor"');
+    expect(strip({ icon: "\u{f09b}", badge: "dot", color: "green" }, {})).toContain('class="g-mb__dot" style="background:var(--pal-tag-green)"');
+    expect(strip({ icon: "\u{f09b}", badge: 3 }, { badgeColor: "red" })).toContain('class="g-mb__count" style="background:var(--pal-tag-red)"');
+    expect(strip({ icon: "\u{f09b}", badge: "dot", stale: true }, { badgeColor: "red" })).toContain('class="g-mb__dot" style="background:currentColor"');
+    expect(strip({ icon: "\u{f09b}", title: "x" }, { opacity: 40 })).toMatch(/class="g-mb__item g-mb__pal"[^>]*style="opacity:0\.4"/);
+    expect(strip({ icon: "\u{f09b}", title: "x" }, { size: 12, iconSize: 16, textSize: 9 })).toContain("font-size:18px");
+    expect(strip({ icon: "\u{f09b}", title: "x" }, { size: 12, iconSize: 16, textSize: 9 })).toContain("font-size:9px");
+    // sketchybar: the same rules on the map's colours.
+    expect(strip({ icon: "\u{f09b}", badge: 3, color: "green" }, {}, "sketchybar")).toContain('<span style="color:#a6d189">3</span>');
+    expect(strip({ icon: "\u{f09b}", badge: 3, color: "green" }, { badgeColor: "red" }, "sketchybar")).toContain('<span style="color:#e78284">3</span>');
+    expect(strip({ icon: "\u{f09b}", badge: "dot" }, { badgeColor: "#ff8800" }, "sketchybar")).toContain("color:#ff8800");
+    expect(strip({ icon: "\u{f09b}", title: "x" }, { opacity: 50 }, "sketchybar")).toMatch(/class="g-sb__group" style="opacity:0\.5"/);
+    expect(strip({ icon: "\u{f09b}", title: "x" }, { textSize: 9 }, "sketchybar")).toContain("font-size:9px");
+    expect(strip({ icon: "\u{f09b}", title: "x" }, { textSize: 9 }, "sketchybar")).not.toContain("font-size:10px");
   });
   it("has an empty state and an index with an anchor for every field", () => {
     expect(page({ items: [] })).toContain("No bar items");

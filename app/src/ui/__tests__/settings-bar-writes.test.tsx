@@ -110,6 +110,9 @@ describe("SettingsBar writes", () => {
     expect(lookWrites({ spacing: 6 }, { spacing: 6 }, lookDefaults)).toEqual([]);
     expect(lookWrites({}, { spacing: 6, showIcon: false, maxChars: 20 }, { ...lookDefaults, spacing: 6 })).toEqual([["show_icon", false], ["max_chars", 20]]);
     expect(lookOf({ dim: 30, show_icon: false, badge_style: "dot", max_chars: 20, other: 1 })).toEqual({ dim: 30, showIcon: false, badgeStyle: "dot", maxChars: 20 });
+    expect(lookOf({ badge_color: "grey", icon: "🔔", opacity: 70, icon_size: 16, text_size: 9 })).toEqual({ badgeColor: "grey", icon: "🔔", opacity: 70, iconSize: 16, textSize: 9 });
+    expect(lookWrites({}, { badgeColor: "grey", icon: "🔔", opacity: 100, iconSize: 16 }, lookDefaults)).toEqual([["icon_size", 16], ["icon", "🔔"], ["badge_color", "grey"]]);
+    expect(lookWrites({ icon: "🔔", badgeColor: "grey" }, { icon: "", badgeColor: "" }, lookDefaults)).toEqual([["icon", undefined], ["badge_color", undefined]]);
     expect(lookOf(undefined)).toEqual({});
   });
 });

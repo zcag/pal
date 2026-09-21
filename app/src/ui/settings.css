@@ -902,6 +902,8 @@ html[data-vibrancy] .pal-settings { background: var(--pal-bg-glass, rgba(28, 28,
 /* A position or an order is a few characters; the stacked layout drops the shared max-width (line 185), so these say their own. Both beat `.pal-setting__control > .pal-field__input` only at the same specificity. */
 .pal-setting__control > .pal-bar__position { width: 160px; }
 .pal-setting__control > .pal-bar__order { width: 88px; }
+/* A custom icon is one glyph or emoji; the symbols font shows a Nerd glyph as itself rather than tofu. */
+.pal-setting__control > .pal-bar-field__text { width: 144px; font-family: var(--pal-font-symbols, "Symbols Nerd Font Mono"), var(--pal-font, system-ui); }
 .pal-bar-defaults__groups { padding: 0 var(--pal-space-4, 16px) var(--pal-space-4, 16px); }
 .pal-bar-defaults__look.pal-setting { padding-bottom: var(--pal-space-2, 8px); }
 .pal-bar-group { min-width: 0; margin: 0; padding: var(--pal-space-2, 8px) var(--pal-space-3, 12px) var(--pal-space-3, 12px); border: 0; border-radius: var(--pal-radius-tile, 10px); background: var(--pal-bg-sunken, rgba(0, 0, 0, 0.3)); }

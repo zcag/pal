@@ -58,9 +58,11 @@ type LookField = {
   label: string;
   group: Group;
   description: string;
-  control: { kind: "number"; unit: string; min: number; max?: number; step?: number; zero?: string } | { kind: "select"; options: { id: string; title: string }[] } | { kind: "switch" } | { kind: "color" };
+  control: { kind: "number"; unit: string; min: number; max?: number; step?: number; zero?: string } | { kind: "select"; options: { id: string; title: string }[] } | { kind: "switch" } | { kind: "color"; placeholder: string } | { kind: "text"; placeholder: string };
   /** What the target does with it, when it differs from the description. */
   targets?: Partial<Record<Target, string>>;
+  /** Only an item's pane shows it: a target-wide value makes no sense (`icon`). */
+  itemOnly?: boolean;
 };
 
 export const lookFields: LookField[] = [
@@ -68,11 +70,16 @@ export const lookFields: LookField[] = [
   { id: "width", key: "width", label: "Width", group: "placement", description: "A fixed width in points, so a ticking timer does not move its neighbours; text past it is cut.", control: { kind: "number", unit: "pt", min: 0, max: 600, zero: "natural" } },
   { id: "font", key: "font", label: "Font", group: "text", description: "The text's face: the bar's own, or a monospace for codes and times.", control: { kind: "select", options: [{ id: "system", title: "System" }, { id: "mono", title: "Mono" }] }, targets: { menubar: "Mono prerenders the text into the icon image in SF Mono.", sketchybar: "Mono is Menlo." } },
   { id: "size", key: "size", label: "Size", group: "text", description: "Point size of the glyph and the text.", control: { kind: "number", unit: "pt", min: 0, max: 24, step: 0.5, zero: "the bar's own" }, targets: { menubar: "The bar's own is 13 pt text and a 14 pt glyph; a size prerenders the text into the icon image.", sketchybar: "The bar's own is its icon and label font size." } },
+  { id: "iconSize", key: "icon_size", label: "Icon size", group: "text", description: "Point size of the glyph alone; 0 follows Size.", control: { kind: "number", unit: "pt", min: 0, max: 24, step: 0.5, zero: "follows size" } },
+  { id: "textSize", key: "text_size", label: "Text size", group: "text", description: "Point size of the title and the segments alone; 0 follows Size.", control: { kind: "number", unit: "pt", min: 0, max: 24, step: 0.5, zero: "follows size" } },
   { id: "maxChars", key: "max_chars", label: "Longest title", group: "text", description: "Characters a title may run to; longer text ends in an ellipsis. Apple's bar hides whatever runs under the notch or off the left edge.", control: { kind: "number", unit: "chars", min: 4, max: 200 } },
   { id: "showIcon", key: "show_icon", label: "Icon", group: "text", description: "Draw the icon.", control: { kind: "switch" } },
+  { id: "icon", key: "icon", label: "Custom icon", group: "text", description: "A glyph, an emoji or a short text drawn as the icon in place of the extension's own. Empty keeps the extension's.", control: { kind: "text", placeholder: "extension's" }, itemOnly: true },
   { id: "showTitle", key: "show_title", label: "Title", group: "text", description: "Draw the title and the segments; off is a glyph-only item.", control: { kind: "switch" } },
-  { id: "color", key: "color", label: "Tint", group: "colour", description: "A colour name or #rrggbb drawn in place of the colour the extension answers. Empty keeps the extension's: a coloured item its own, the rest the bar's text colour.", control: { kind: "color" }, targets: { menubar: "The glyph's ink; the title text keeps the bar's colour unless prerendered." } },
-  { id: "urgentColor", key: "urgent_color", label: "Urgent", group: "colour", description: "The colour of an urgent item (a landed timer, an alarm).", control: { kind: "color" } },
+  { id: "color", key: "color", label: "Tint", group: "colour", description: "A colour name or #rrggbb drawn in place of the colour the extension answers. Empty keeps the extension's: a coloured item its own, the rest the bar's text colour.", control: { kind: "color", placeholder: "extension's" }, targets: { menubar: "The glyph's ink; the title text keeps the bar's colour unless prerendered." } },
+  { id: "urgentColor", key: "urgent_color", label: "Urgent", group: "colour", description: "The colour of an urgent item (a landed timer, an alarm).", control: { kind: "color", placeholder: "destructive" } },
+  { id: "badgeColor", key: "badge_color", label: "Badge colour", group: "colour", description: "The colour of a count badge and a dot. Empty draws them in the item's own colour (the tint; the urgent colour while urgent), so a mail count is not red by default.", control: { kind: "color", placeholder: "the item's" }, targets: { menubar: "A colour prerenders the text into the icon image, so the count can wear it." } },
+  { id: "opacity", key: "opacity", label: "Opacity", group: "colour", description: "The item's strength: every colour it draws (icon, text, segments, badge) at this alpha. A muted item is at Dim of this.", control: { kind: "number", unit: "%", min: 0, max: 100, step: 5 }, targets: { menubar: "Under 100 prerenders the text into the icon image, so it fades with the glyph." } },
   { id: "dim", key: "dim", label: "Dim", group: "colour", description: "A muted item's strength: a stale item, or one the extension colours muted (a paused timer), draws at this opacity.", control: { kind: "number", unit: "%", min: 0, max: 100, step: 5 } },
   { id: "badgeStyle", key: "badge_style", label: "Badge", group: "behaviour", description: "How a count badge is drawn: the number, a dot whatever the number, or nothing (the count stays in the tooltip).", control: { kind: "select", options: [{ id: "count", title: "Count" }, { id: "dot", title: "Dot" }, { id: "none", title: "None" }] } },
 ];
@@ -82,7 +89,7 @@ export const barIndex = (items: BarItem[], supported = true): SettingsIndexEntry
   { page: "bar", label: "Hover delay", hint: "Bar › Defaults", anchor: "bar:hover", keywords: "peek grace popover" },
   { page: "bar", label: "Open on hover", hint: "Bar › Defaults", anchor: "bar:hover-targets", keywords: "peek menu bar sketchybar" },
   { page: "bar", label: "sketchybar position", hint: "Bar › Defaults", anchor: "bar:position", keywords: "left right center before after" },
-  ...(["menubar", "sketchybar"] as Target[]).flatMap((t) => lookFields.map((f) => ({ page: "bar" as const, label: `${f.label} (${targetTitle[t]})`, hint: `Bar › Defaults › ${groups.find((g) => g.id === f.group)?.title}`, anchor: `bar:${t}:${f.key}`, keywords: `${f.key} ${f.description} appearance ${t}` }))),
+  ...(["menubar", "sketchybar"] as Target[]).flatMap((t) => lookFields.filter((f) => !f.itemOnly).map((f) => ({ page: "bar" as const, label: `${f.label} (${targetTitle[t]})`, hint: `Bar › Defaults › ${groups.find((g) => g.id === f.group)?.title}`, anchor: `bar:${t}:${f.key}`, keywords: `${f.key} ${f.description} appearance ${t}` }))),
   ...items.flatMap((b) => [
     { page: "bar" as const, label: `${b.extTitle} › ${b.title}`, hint: b.description ?? "Bar item", anchor: `bar:${b.key}`, keywords: `${b.key} bar item` },
     ...["target", "position", "order", "hotkey", "open_on_hover"].map((k) => ({ page: "bar" as const, label: `${b.title}: ${k.replace(/_/g, " ")}`, hint: `Bar › ${b.extTitle} › ${b.title}`, anchor: `bar:${b.key}:${k}`, keywords: `${b.key} ${k}` })),
@@ -143,12 +150,15 @@ const num = (v: string, d: number) => { const n = Number(v); return Number.isFin
  * description, and (in an item's pane) where the value comes from: "from
  * the menu bar default" while inherited, Reset once overridden.
  */
-function LookControl({ field, value, inherited, from, onChange, target, anchor }: { field: LookField; value: BarLookConfig[keyof BarLookConfig]; inherited?: boolean; from?: string; onChange: (v: BarLookConfig[keyof BarLookConfig] | undefined) => void; target: Target; anchor: string }) {
+function LookControl({ field, value, inherited, from, onChange, target, anchor, placeholder }: { field: LookField; value: BarLookConfig[keyof BarLookConfig]; inherited?: boolean; from?: string; onChange: (v: BarLookConfig[keyof BarLookConfig] | undefined) => void; target: Target; anchor: string; placeholder?: string }) {
   const c = field.control;
   const id = `${anchor}-${field.key}`;
   const note = field.targets?.[target];
   let control: ReactNode;
   switch (c.kind) {
+    case "text":
+      control = <input id={id} className="pal-field__input pal-bar-field__text" type="text" placeholder={placeholder ?? c.placeholder} value={(value as string) ?? ""} spellCheck={false} aria-label={`${field.label} (${targetTitle[target]})`} onChange={(e) => onChange(e.target.value)} />;
+      break;
     case "number":
       control = (
         <span className="pal-number">
@@ -167,7 +177,7 @@ function LookControl({ field, value, inherited, from, onChange, target, anchor }
       control = (
         <span className="pal-bar-color">
           <span className="pal-bar-color__swatch" data-color={(value as string) || undefined} style={swatch(value as string | undefined)} aria-hidden />
-          <input id={id} className="pal-field__input" type="text" list="pal-bar-colors" placeholder={field.id === "color" ? "extension's" : "destructive"} value={(value as string) ?? ""} spellCheck={false} aria-label={`${field.label} (${targetTitle[target]})`} onChange={(e) => onChange(e.target.value)} />
+          <input id={id} className="pal-field__input" type="text" list="pal-bar-colors" placeholder={c.placeholder} value={(value as string) ?? ""} spellCheck={false} aria-label={`${field.label} (${targetTitle[target]})`} onChange={(e) => onChange(e.target.value)} />
         </span>
       );
       break;
@@ -198,15 +208,15 @@ function swatch(v: string | undefined): CSSProperties | undefined {
   return { background: "transparent", boxShadow: "inset 0 0 0 1px var(--pal-destructive)" };
 }
 
-/** The four groups of appearance fields for one target, each field on `look` (with `over` marking what the item set itself). */
-function LookGroups({ target, look, over, base, onChange, anchor, from }: { target: Target; look: BarLookConfig; over?: BarLookOverride; base?: BarLookConfig; onChange: (id: keyof BarLookConfig, v: unknown) => void; anchor: string; from?: string }) {
+/** The four groups of appearance fields for one target, each field on `look` (with `over` marking what the item set itself; an item-only field shows only then). `placeholders` are an item's own (its extension's icon). */
+function LookGroups({ target, look, over, base, onChange, anchor, from, placeholders }: { target: Target; look: BarLookConfig; over?: BarLookOverride; base?: BarLookConfig; onChange: (id: keyof BarLookConfig, v: unknown) => void; anchor: string; from?: string; placeholders?: Partial<Record<keyof BarLookConfig, string>> }) {
   return (
     <div className="pal-bar-groups">
       {groups.map((g) => (
         <fieldset key={g.id} className="pal-bar-group" data-group={g.id}>
           <legend className="pal-bar-group__title">{g.title}</legend>
-          {lookFields.filter((f) => f.group === g.id).map((f) => (
-            <LookControl key={f.id} field={f} target={target} anchor={anchor} value={look[f.id]} inherited={over ? over[f.id] === undefined : undefined} from={from} onChange={(v) => onChange(f.id, v === undefined ? undefined : base && v === base[f.id] ? undefined : v)} />
+          {lookFields.filter((f) => f.group === g.id && (over || !f.itemOnly)).map((f) => (
+            <LookControl key={f.id} field={f} target={target} anchor={anchor} value={look[f.id]} inherited={over ? over[f.id] === undefined : undefined} from={from} placeholder={placeholders?.[f.id]} onChange={(v) => onChange(f.id, v === undefined ? undefined : base && v === base[f.id] ? undefined : v)} />
           ))}
         </fieldset>
       ))}
@@ -301,7 +311,8 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
   const lookTarget: Target = eff === "sketchybar" ? "sketchybar" : "menubar";
   const base = config[lookTarget];
   const look: BarLook = resolveLook(base, c.look);
-  const [mockId, setMockId] = useState("");
+  // A hidden (or never rendered) item previews as its first visible mock, not as an empty strip: what it looks like when it shows is the question the pane answers.
+  const [mockId, setMockId] = useState(() => ((!b.state || b.state.hidden) && b.mocks?.find((m) => !m.item.hidden)?.id) || "");
   const mock = b.mocks?.find((m) => m.id === mockId);
   const item = mock ? previewState(mock.item, b.title) : previewItem(b);
   const overrides = Object.values(c.look).filter((v) => v !== undefined).length;
@@ -395,7 +406,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension }: { b: BarIt
         hint={overrides ? `over the ${targetTitle[lookTarget]} default` : `all from the ${targetTitle[lookTarget]} default`}
         aside={<p className="pal-bpane__override-note">Every key here is set once on the Defaults row and inherited by every item. Change one below and this item alone departs from it.</p>}
       >
-        <LookGroups target={lookTarget} look={look} over={c.look} base={base} onChange={(id, v) => put({ look: { ...c.look, [id]: v } })} anchor={anchor} from={targetTitle[lookTarget]} />
+        <LookGroups target={lookTarget} look={look} over={c.look} base={base} onChange={(id, v) => put({ look: { ...c.look, [id]: v } })} anchor={anchor} from={targetTitle[lookTarget]} placeholders={{ icon: typeof b.state?.icon === "string" ? b.state.icon : undefined }} />
       </SettingsDisclosure>
 
       <div className="pal-button-row pal-bpane__reset">

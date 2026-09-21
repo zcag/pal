@@ -22,11 +22,13 @@
 //! `label.font.size`, `font = "mono"` is `label.font.family=Menlo`,
 //! `width` is `label.width` (points), `max_chars` is `label.max_chars`,
 //! `spacing` the paddings between icon, label and segments, `dim` the
-//! alpha of a muted item's colour, `color` / `urgent_color` the
-//! `icon.color` / `label.color`. A property the bar has and the look no
-//! longer sets (a size back to the bar's own) has no "unset" in
-//! sketchybar, so the item is removed and added afresh, which gives it
-//! the bar's `--default`s again.
+//! alpha of a muted item's colour, `opacity` the alpha of every colour,
+//! `color` / `urgent_color` the `icon.color` / `label.color`,
+//! `badge_color` the `.badge` item's and a dot's (the item's colour when
+//! unset), `icon_size` / `text_size` the two font sizes apart. A
+//! property the bar has and the look no longer sets (a size back to the
+//! bar's own) has no "unset" in sketchybar, so the item is removed and
+//! added afresh, which gives it the bar's `--default`s again.
 
 use std::collections::BTreeMap;
 use std::process::Command;
@@ -37,7 +39,7 @@ use tauri::{AppHandle, Manager};
 
 use pal_core::config::BarFont;
 
-use super::colors::Palette;
+use super::colors::{self, Palette};
 use super::{glyph, Bar, BarItem, Draw, IconKind, Rect, Target};
 use crate::{lock, settings};
 
@@ -102,11 +104,15 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     let look = &draw.look;
     let main = name_of(key);
     let mut out = Rendered { position: draw.position.clone(), order: vec![main.clone()], props: BTreeMap::new() };
-    let text = palette.hex("text").unwrap_or_default();
-    let color = |spec: Option<&str>| match spec {
-        Some("muted") => palette.muted_hex(look.dim),
-        Some(spec) => palette.hex_of(spec).unwrap_or_else(|| text.clone()),
-        None => text.clone(),
+    let text = palette.argb("text").unwrap_or_default();
+    // Every colour the item draws is at the look's opacity; a muted one at dim of that.
+    let color = |spec: Option<&str>| {
+        let c = match spec {
+            Some("muted") => palette.muted(look.dim),
+            Some(spec) => palette.resolve(spec).unwrap_or(text),
+            None => text,
+        };
+        colors::spell(colors::at(c, look.opacity))
     };
     let item_color = color(draw.tint());
     let spacing = look.spacing.to_string();
@@ -122,25 +128,39 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     if let Some(pr) = item.progress {
         icon_text = format!("{} {icon_text}", rule(pr, RULE_CELLS)).trim_end().to_string();
     }
-    match &icon {
-        Some(IconKind::Image { value, .. }) => {
+    // An image is the icon's own `background.image`, not the item's: the
+    // item's is drawn only with `background.drawing=on` (`background_draw`,
+    // src/background.c) and then behind the label, from the item's left edge
+    // (`bar_item_get_length`, src/bar_item.c); the icon's widens the icon
+    // slot to the image plus the image's paddings (`text_get_length`,
+    // src/text.c; the icon's own paddings do not count then) and needs the
+    // empty icon text drawing. Checked against v2.24.0.
+    let image = match &icon {
+        Some(IconKind::Image { value, .. }) => glyph::image_file(value),
+        _ => None,
+    };
+    match (&icon, &image) {
+        (Some(IconKind::Image { .. }), Some(file)) => {
+            set(&mut p, "icon", "");
+            set(&mut p, "icon.drawing", "on");
+            set(&mut p, "icon.background.drawing", "on");
+            set(&mut p, "icon.background.image", file.to_string_lossy());
+            set(&mut p, "icon.background.image.drawing", "on");
+            // sketchybar sizes any image to 32 pt before `scale`: 16 pt, the menu bar's 18 pt icon nearer the bar's 15 pt glyphs.
+            set(&mut p, "icon.background.image.scale", "0.5");
+        }
+        (Some(IconKind::Image { .. }), None) => {
+            set(&mut p, "icon", "");
             set(&mut p, "icon.drawing", "off");
-            match glyph::image_file(value) {
-                Some(file) => {
-                    set(&mut p, "background.image", file.to_string_lossy());
-                    set(&mut p, "background.image.drawing", "on");
-                    set(&mut p, "background.image.scale", "0.5");
-                }
-                None => set(&mut p, "background.image.drawing", "off"),
-            }
+            set(&mut p, "icon.background.drawing", "off");
         }
         _ => {
             set(&mut p, "icon", icon_text.clone());
             set(&mut p, "icon.drawing", if icon_text.is_empty() { "off" } else { "on" });
-            set(&mut p, "background.image.drawing", "off");
+            set(&mut p, "icon.background.drawing", "off");
         }
     }
-    set(&mut p, "icon.color", if item.dot() { palette.hex("red").unwrap_or_default() } else { item_color.clone() });
+    set(&mut p, "icon.color", if item.dot() { color(draw.badge_tint()) } else { item_color.clone() });
     let title = super::menubar::clip(item.title.as_deref().unwrap_or_default(), look.max_chars);
     set(&mut p, "label", title.clone());
     set(&mut p, "label.drawing", if title.is_empty() { "off" } else { "on" });
@@ -148,12 +168,17 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     set(&mut p, "label.max_chars", look.max_chars.to_string());
     set(&mut p, "background.drawing", if item.background.is_some() { "on" } else { "off" });
     if let Some(background) = &item.background {
-        set(&mut p, "background.color", palette.hex_of(background).unwrap_or_else(|| text.clone()));
+        set(&mut p, "background.color", palette.hex_of(background).unwrap_or_else(|| colors::spell(text)));
     }
     let trailing = item.segments.is_empty() && item.count().is_none();
     // Icon only: the icon takes the label's right padding (the owner's `icon_only`); the look's spacing before whatever follows it.
+    let icon_right = if title.is_empty() && trailing { "8".to_string() } else { spacing.clone() };
     set(&mut p, "icon.padding_left", "8");
-    set(&mut p, "icon.padding_right", if title.is_empty() && trailing { "8".to_string() } else { spacing.clone() });
+    set(&mut p, "icon.padding_right", icon_right.clone());
+    if image.is_some() {
+        set(&mut p, "icon.background.image.padding_left", "8");
+        set(&mut p, "icon.background.image.padding_right", icon_right);
+    }
     set(&mut p, "label.padding_left", "0");
     set(&mut p, "label.padding_right", if trailing { "8" } else { "2" });
     if draw.icon_size() > 0.0 {
@@ -179,7 +204,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         .segments
         .iter()
         .map(|s| (format!("{main}.{}", s.id), s.icon.clone(), s.text.clone(), if item.stale && !item.urgent { color(Some("muted")) } else { color(s.color.as_deref().or(draw.tint())) }))
-        .chain(item.count().map(|n| (format!("{main}.badge"), None, Some(n.to_string()), palette.hex("red").unwrap_or_default())))
+        .chain(item.count().map(|n| (format!("{main}.badge"), None, Some(n.to_string()), color(draw.badge_tint()))))
         .collect();
     let last = extras.len().saturating_sub(1);
     for (i, (name, icon, text, col)) in extras.into_iter().enumerate() {
@@ -574,7 +599,7 @@ mod tests {
         assert!(m["script"].contains("mouse.entered) sketchybar --animate sin 8 --set pal.github.prs background.drawing=on"));
         assert!(m["script"].contains("bar hover github/prs --anchor sketchybar --state $SENDER"));
         let b = &r.props["pal.github.prs.badge"];
-        assert_eq!((b["label"].as_str(), b["label.color"].as_str(), b["icon.drawing"].as_str()), ("3", "0xffff8a82", "off"));
+        assert_eq!((b["label"].as_str(), b["label.color"].as_str(), b["icon.drawing"].as_str()), ("3", "0xff5ccb8e", "off"), "the badge in the item's colour, not red");
         // Hidden: drawing off everywhere, the item stays.
         let h = props("x/y", &draw(json!({ "hidden": true, "segments": [{ "id": "a", "text": "1" }] }), "left", false), &pal(), "pal");
         assert!(h.props.values().all(|p| p["drawing"] == "off"));
@@ -597,7 +622,9 @@ mod tests {
         // Urgent, dot, emoji, title only.
         let u = props("x/y", &draw(json!({ "icon": "🔔", "title": "Ring", "urgent": true, "badge": "dot" }), "right", false), &pal(), "pal");
         let m = &u.props["pal.x.y"];
-        assert_eq!((m["icon"].as_str(), m["icon.color"].as_str(), m["label.color"].as_str()), ("🔔", "0xffff8a82", "0xffff6e66"));
+        assert_eq!((m["icon"].as_str(), m["icon.color"].as_str(), m["label.color"].as_str()), ("🔔", "0xffff6e66", "0xffff6e66"), "an urgent dot is the urgent colour");
+        let plain_dot = props("x/y", &draw(json!({ "icon": "\u{f09b}", "badge": "dot" }), "right", false), &pal(), "pal");
+        assert_eq!(plain_dot.props["pal.x.y"]["icon.color"], "0xffececf0", "a dot on an uncoloured item is the text colour");
         assert_eq!((m["label"].as_str(), m["label.padding_right"].as_str()), ("Ring", "8"));
         let t = props("x/y", &draw(json!({ "title": "12:00" }), "right", false), &pal(), "pal");
         assert_eq!(t.props["pal.x.y"]["icon.drawing"], "off");
@@ -624,7 +651,7 @@ mod tests {
         assert_eq!(no_icon.props["pal.x.y"]["icon.drawing"], "off");
         let dot = props("x/y", &with(item.clone(), BarLook { badge_style: BadgeStyle::Dot, ..Default::default() }), &pal(), "pal");
         assert_eq!(dot.order, ["pal.x.y", "pal.x.y.a"], "a count drawn as a dot has no badge item");
-        assert_eq!(dot.props["pal.x.y"]["icon.color"], "0xffff8a82", "the dot is the red icon");
+        assert_eq!(dot.props["pal.x.y"]["icon.color"], "0xff5ccb8e", "the dot is the icon in the item's colour");
         let none = props("x/y", &with(item.clone(), BarLook { badge_style: BadgeStyle::None, ..Default::default() }), &pal(), "pal");
         assert_eq!(none.order, ["pal.x.y", "pal.x.y.a"]);
         assert_eq!(none.props["pal.x.y"]["icon.color"], "0xff5ccb8e", "and no dot either");
@@ -634,8 +661,52 @@ mod tests {
         assert_eq!(urgent.props["pal.x.y"]["icon.color"], "0xfff0b25a");
         let dim = props("x/y", &with(json!({ "icon": "\u{f09b}", "stale": true }), BarLook { dim: 25, ..Default::default() }), &pal(), "pal");
         assert_eq!(dim.props["pal.x.y"]["icon.color"], "0x40a3a4ae", "dim is the muted colour's alpha");
+        // badge_color: the badge item and the dot, its own colour; stale mutes it with the rest.
+        let badge = props("x/y", &with(item.clone(), BarLook { badge_color: Some("red".into()), ..Default::default() }), &pal(), "pal");
+        assert_eq!((badge.props["pal.x.y.badge"]["label.color"].as_str(), badge.props["pal.x.y"]["icon.color"].as_str()), ("0xffff8a82", "0xff5ccb8e"), "the badge red, the item still green");
+        let badge_dot = props("x/y", &with(item.clone(), BarLook { badge_color: Some("#ff8800".into()), badge_style: BadgeStyle::Dot, ..Default::default() }), &pal(), "pal");
+        assert_eq!(badge_dot.props["pal.x.y"]["icon.color"], "0xffff8800", "the dot in the badge colour");
+        let stale_badge = props("x/y", &with(json!({ "icon": "\u{f09b}", "badge": 3, "stale": true }), BarLook { badge_color: Some("red".into()), ..Default::default() }), &pal(), "pal");
+        assert_eq!(stale_badge.props["pal.x.y.badge"]["label.color"], "0x80a3a4ae", "stale mutes the badge too");
+        // opacity: every colour's alpha, a muted item at dim of it.
+        let faint = props("x/y", &with(item.clone(), BarLook { opacity: 50, badge_color: Some("red".into()), ..Default::default() }), &pal(), "pal");
+        assert_eq!((faint.props["pal.x.y"]["icon.color"].as_str(), faint.props["pal.x.y"]["label.color"].as_str(), faint.props["pal.x.y.a"]["label.color"].as_str(), faint.props["pal.x.y.badge"]["label.color"].as_str()), ("0x805ccb8e", "0x805ccb8e", "0x805ccb8e", "0x80ff8a82"));
+        let faint_stale = props("x/y", &with(json!({ "icon": "\u{f09b}", "stale": true }), BarLook { opacity: 50, ..Default::default() }), &pal(), "pal");
+        assert_eq!(faint_stale.props["pal.x.y"]["icon.color"], "0x40a3a4ae", "dim 50 of opacity 50");
+        // icon_size / text_size apart from size; the icon override.
+        let split = props("x/y", &with(item.clone(), BarLook { size: 11.5, icon_size: 16.0, ..Default::default() }), &pal(), "pal");
+        assert_eq!((split.props["pal.x.y"]["icon.font.size"].as_str(), split.props["pal.x.y"]["label.font.size"].as_str(), split.props["pal.x.y.a"]["label.font.size"].as_str()), ("16", "11.5", "11.5"));
+        let text_only = props("x/y", &with(item.clone(), BarLook { text_size: 9.0, ..Default::default() }), &pal(), "pal");
+        assert!(!text_only.props["pal.x.y"].contains_key("icon.font.size") && text_only.props["pal.x.y"]["label.font.size"] == "9", "text_size leaves the glyph at the bar's own");
+        let own_icon = props("x/y", &with(item.clone(), BarLook { icon: Some("🔔".into()), ..Default::default() }), &pal(), "pal");
+        assert_eq!(own_icon.props["pal.x.y"]["icon"], "🔔", "the look's icon in place of the extension's");
         let gone = props("x/y", &with(item, BarLook { show_icon: false, show_title: false, badge_style: BadgeStyle::None, ..Default::default() }), &pal(), "pal");
         assert!(gone.props.values().all(|p| p["drawing"] == "off"), "nothing left to draw: hidden");
+    }
+
+    #[test]
+    fn an_image_icon_is_the_icon_slots_background() {
+        use base64::Engine;
+        let png = glyph::render('\u{f09b}', &glyph::Style::default()).unwrap().png();
+        let uri = format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(&png));
+        let r = props("hue/home", &draw(json!({ "icon": { "image": uri }, "title": "5 on" }), "right", false), &pal(), "pal");
+        let m = &r.props["pal.hue.home"];
+        assert_eq!((m["icon"].as_str(), m["icon.drawing"].as_str()), ("", "on"), "the empty icon text stays drawing: its background is where the image is");
+        assert_eq!((m["icon.background.drawing"].as_str(), m["icon.background.image.drawing"].as_str(), m["icon.background.image.scale"].as_str()), ("on", "on", "0.5"));
+        assert!(m["icon.background.image"].ends_with(".png") && std::path::Path::new(&m["icon.background.image"]).is_file(), "the cached file: {}", m["icon.background.image"]);
+        assert_eq!((m["icon.background.image.padding_left"].as_str(), m["icon.background.image.padding_right"].as_str()), ("8", "4"), "the slot's paddings ride the image");
+        assert_eq!(m["background.drawing"], "off", "no background of the item's own");
+        assert!(!m.contains_key("background.image"), "not the item's background image: never drawn without background.drawing, and behind the label");
+        let alone = props("hue/home", &draw(json!({ "icon": { "image": uri } }), "right", false), &pal(), "pal");
+        assert_eq!(alone.props["pal.hue.home"]["icon.background.image.padding_right"], "8", "icon only: the trailing padding");
+        let broken = props("hue/home", &draw(json!({ "icon": { "image": "https://x/y.png" }, "title": "5 on" }), "right", false), &pal(), "pal");
+        let b = &broken.props["pal.hue.home"];
+        assert_eq!((b["icon.drawing"].as_str(), b["icon.background.drawing"].as_str()), ("off", "off"), "no file: no icon");
+        assert!(!b.contains_key("icon.background.image.padding_left"));
+        let glyph_item = props("hue/home", &draw(json!({ "icon": "\u{f09b}", "title": "5 on" }), "right", false), &pal(), "pal");
+        assert_eq!(glyph_item.props["pal.hue.home"]["icon.background.drawing"], "off", "a glyph turns the slot's background off again");
+        let back = diff(Some(&r), Some(&glyph_item), true, None).join(" ");
+        assert!(back.starts_with("--remove pal.hue.home --add item pal.hue.home right "), "image to glyph loses the image properties: added afresh: {back}");
     }
 
     #[test]
