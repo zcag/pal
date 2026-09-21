@@ -100,7 +100,7 @@ describe("make", () => {
     await list();
     expect(await pick(id("test", pal))).toEqual({ hud: "make test" });
     const argv = JSON.parse(readFileSync(join(root, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[];
-    // kitty takes the script as its last argument; Terminal.app (the CI runner) wraps it in an AppleScript `do script` line with its own quoting.
+    // The log holds the command the terminal runs, whatever terminal the machine has: the script is its last word.
     const script = argv.find((a) => a.includes("make test"))!;
     expect(script).toContain(`cd ${pal} && exec sh -c `);
     expect(script).toContain("make test; s=$?;");
