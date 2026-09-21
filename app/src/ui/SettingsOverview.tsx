@@ -4,7 +4,7 @@ import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { comboLabel, combosLabel } from "./SettingsGeneral";
 import { installing, progressLine, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
-import { needsSetup, permissionRows, type BarItem, type Diagnostic, type HotkeyStatus, type PermissionId, type PermissionsStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage } from "./SettingsTypes";
+import { holdOf, needsSetup, permissionRows, type BarItem, type Diagnostic, type HotkeyStatus, type PermissionId, type PermissionsStatus, type SettingsExtension, type SettingsIndexEntry, type SettingsPage } from "./SettingsTypes";
 import { relativeDate } from "./format";
 import type { Icon as IconSpec } from "./types";
 
@@ -41,6 +41,10 @@ export type OverviewInput = {
   /** An install under way (`pal://update`), for the update row's text. */
   progress?: UpdateProgress;
   checks?: OverviewChecks;
+  /** The Windows palette's switcher chord as it applies (`holdOf`); `""` is off, absent means no Windows palette and no fact. */
+  switcher?: string;
+  /** `[sidebar]` in one line (`sidebarSummary`): "Windows on the right edge", or "off"; absent where none is built. */
+  sidebar?: string;
 };
 
 /** One thing to do, or one fact, as a row with its action inline. */
@@ -194,11 +198,14 @@ export function overviewFacts(v: OverviewInput): { label: string; value: ReactNo
   const palettes = v.extensions.flatMap((e) => e.palettes);
   const on = palettes.filter((p) => p.config.enabled).length;
   const withHotkey = palettes.filter((p) => p.config.hotkey).length;
+  const withHold = palettes.filter((p) => holdOf(p)).length;
   const itemHotkeys = palettes.reduce((n, p) => n + Object.keys(p.config.itemHotkeys ?? {}).length, 0);
   const barOn = (v.bar ?? []).filter((b) => b.config.enabled && b.source).length;
-  const hotkeys = [withHotkey ? `${withHotkey} with a hotkey` : "", itemHotkeys ? `${plural(itemHotkeys, "item hotkey")}` : ""].filter(Boolean).join(", ");
+  const hotkeys = [withHotkey ? `${withHotkey} with a hotkey` : "", withHold ? `${withHold} with a switcher chord` : "", itemHotkeys ? `${plural(itemHotkeys, "item hotkey")}` : ""].filter(Boolean).join(", ");
   return [
     { label: "Hotkey", value: v.hotkey?.hotkeys.length ? <span className="pal-overview__hotkeys" aria-label={combosLabel(v.hotkey.hotkeys.map((h) => h.wanted))}>{v.hotkey.hotkeys.map((h, i) => <span key={i}>{i ? ", " : ""}<Kbd shortcut={h.wanted} /></span>)}</span> : "none", go: { page: "general", anchor: "general:hotkey" } },
+    ...(v.switcher === undefined ? [] : [{ label: "Switcher", value: v.switcher ? <span className="pal-overview__hotkeys" aria-label={comboLabel(v.switcher)}><Kbd shortcut={v.switcher} /></span> : "off", go: { page: "general" as const, anchor: "general:switcher" } }]),
+    ...(v.sidebar === undefined ? [] : [{ label: "Sidebar", value: v.sidebar, go: { page: "general" as const, anchor: "general:sidebar" } }]),
     { label: "Extensions", value: `${plural(names.size - failedNames.size, "extension")} loaded${failedNames.size ? `, ${failedNames.size} failed` : ""}${instances ? `, ${plural(instances, "extra instance")}` : ""}`, go: { page: "extensions" } },
     { label: "Palettes", value: `${on} of ${palettes.length} on${hotkeys ? `, ${hotkeys}` : ""}`, go: { page: "palettes" } },
     ...(v.barSupported === false ? [] : [{ label: "Bar", value: v.bar?.length ? `${barOn} of ${plural(v.bar.length, "item")} on` : "no items declared", go: { page: "bar" as const } }]),

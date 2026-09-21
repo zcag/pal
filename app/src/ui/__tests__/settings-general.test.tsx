@@ -7,7 +7,7 @@ import { SettingsGeneral, comboLabel, generalIndex, hotkeyPresets } from "../Set
 import type { ThemeFileStatus } from "../SettingsTheme";
 
 const settingsThemeFile: ThemeFileStatus = { setting: "", diagnostics: [], dir: "~/.config/pal/themes", themes: [] };
-import { permissionRows, type GeneralConfig, type HotkeyStatus } from "../SettingsTypes";
+import { permissionRows, sidebarDefaults, type GeneralConfig, type HotkeyStatus } from "../SettingsTypes";
 import { allGranted, nothingGranted } from "./settings-fixtures";
 
 const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", launchAtLogin: false, menuBarIcon: true, position: "top", askPermissionsOnStart: true, backspaceBack: true };
@@ -116,13 +116,13 @@ describe("SettingsGeneral permissions", () => {
   });
   it("is found by any word of a row's description, not only its label, and every indexed anchor is on the page", () => {
     const find = (q: string) => generalIndex.filter((e) => `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""}`.toLowerCase().includes(q)).map((e) => e.label);
-    expect(find("dock")).toEqual(["Menu bar icon"]);
+    expect(find("dock")).toEqual(["Menu bar icon", "Sidebar", "Sidebar: edge"]);
     expect(find("crash")).toEqual(["Launch at login"]);
     expect(find("pop level")).toEqual(["Backspace goes back"]);
     expect(find("welcome tips")).toEqual(["Ask on first launch"]);
     expect(find("comments")).toEqual(["Config file"]);
     expect(find("catppuccin")).toEqual(["Theme file"]);
-    const html = page({ hotkey: status({ wanted: "cmd+space", registered: true }), permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
+    const html = page({ hotkey: status({ wanted: "cmd+space", registered: true }), permissions: { accessibility: true, input_monitoring: true }, onResetFrecency: noop, onRestartHost: noop, onRefreshListings: noop, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }, switcher: { suggested: "alt+tab", onChange: noop }, sidebar: { value: sidebarDefaults, onChange: noop } });
     for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
   });
   it("Reset Ranking asks once before it forgets everything", () => {

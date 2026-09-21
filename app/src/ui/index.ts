@@ -35,9 +35,10 @@ export { SettingsWindow, settingsPages, pageTitle, flashAnchor } from "./Setting
 export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type OverviewInput, type OverviewItem } from "./SettingsOverview";
 export { SettingsGeneral, generalIndex } from "./SettingsGeneral";
 export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileStatus } from "./SettingsTheme";
-export { SettingsPalettes, palettesIndex, paletteIcon, type PaletteItem } from "./SettingsPalettes";
+export { SettingsPalettes, palettesIndex, paletteIcon, HoldControl, HOLD_HELP, type PaletteItem } from "./SettingsPalettes";
+export { SettingsSidebar, sidebarIndex, sidebarSummary, SIDEBAR_HELP, type SettingsSidebarProps } from "./SettingsSidebar";
 export { SettingsExtensions, extensionsIndex, byName } from "./SettingsExtensions";
-export { SettingsBar, barIndex, BAR_DEFAULTS } from "./SettingsBar";
+export { SettingsBar, barIndex, BAR_DEFAULTS, BAR_SIDEBAR } from "./SettingsBar";
 export { SettingsAbout, aboutIndex, copyText, installing, progressLine, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 export { SettingsList, type SettingsListItem } from "./SettingsList";
 export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsDisclosure, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect } from "./SettingsField";
@@ -46,7 +47,7 @@ export { describeDefault, hotkeyList, isModified, leavesFile, needsSetup, permis
 export type {
   SettingSpec, SettingValue, SettingValues, SettingOption, PaletteConfig, PaletteTier, PaletteKey, Screenshot, SettingsPalette, SettingsExtension,
   GeneralConfig, HotkeyStatus, PermissionsStatus, PermissionId, PermissionRow, PromptPermission, ConfigFileInfo, Diagnostic, SettingsPage, SettingsIndexEntry,
-  BarTarget, BarShow, BarConfig, BarItemConfig, BarItem, BarRuleEffect, BarRuleView, BarStateView, BarLookConfig, BarLookOverride, BarBadgeStyle, BarFont,
+  BarTarget, BarShow, BarConfig, BarItemConfig, BarItem, BarRuleEffect, BarRuleView, BarStateView, BarLookConfig, BarLookOverride, BarBadgeStyle, BarFont, SidebarConfig, SidebarEdge,
 } from "./SettingsTypes";
-export { resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS } from "./SettingsTypes";
+export { resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, SIDEBAR_WINDOWS } from "./SettingsTypes";
 export { badgedIcon, instanceBadge, instanceTint, instancesOf, resolveInstance, slugSuffix, suffixProblem, suffixTitle, validSuffix, type InstanceInfo, type RawInstance, type SettingsInstance } from "./SettingsTypes";

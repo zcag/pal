@@ -149,6 +149,14 @@ describe("SettingsOverview", () => {
     expect(overviewFacts({ ...ok, extensions: oneItem })[2].value).toBe("8 of 10 on, 1 item hotkey");
     expect(facts[3].value).toBe("no items declared");
     expect(overviewFacts({ ...ok, barSupported: false }).map((f) => f.label)).toEqual(["Hotkey", "Extensions", "Palettes"]);
+    // The switcher and the sidebar, as facts of their own when the page is told about them; a palette with a chord counts in the Palettes line.
+    const both = overviewFacts({ ...ok, switcher: "alt+tab", sidebar: "Windows on the right edge" });
+    expect(both.map((f) => [f.label, f.go.anchor])).toEqual([["Hotkey", "general:hotkey"], ["Switcher", "general:switcher"], ["Sidebar", "general:sidebar"], ["Extensions", undefined], ["Palettes", undefined], ["Bar", undefined]]);
+    expect(renderToStaticMarkup(<>{both[1].value}</>)).toContain(`aria-label="${comboLabel("alt+tab")}"`);
+    expect(both[2].value).toBe("Windows on the right edge");
+    expect(overviewFacts({ ...ok, switcher: "", sidebar: "off" })[1].value).toBe("off");
+    const held = bare.map((e, i) => (i ? e : { ...e, palettes: e.palettes.map((p, j) => (j ? p : { ...p, hold: "alt+tab" })) }));
+    expect(overviewFacts({ ...ok, extensions: held })[2].value).toBe("8 of 10 on, 1 with a switcher chord");
   });
   it("lists what needs attention with the action inline", () => {
     const html = renderToStaticMarkup(<SettingsOverview {...ok} permissions={nothingGranted} extensions={[{ ...homeAssistant, bundled: false, repo: "github.com/x/ha" }]} onGo={noop} onRequestPermission={noop} />);
