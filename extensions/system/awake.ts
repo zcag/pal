@@ -55,10 +55,12 @@ export function parseTarget(input: string, now: number): Target | undefined {
   return secs ? { until: now + secs * 1000, how: "for" } : undefined;
 }
 
-/** `2h 40m`, `40m`, `45s`: the bar's countdown. */
+/** `2h 40m`, `40m`, `45s`: the bar's countdown, rounded up to the minute (the seconds only under one), so it reads "less than this left" and changes right after each whole minute, where `nextTick` fires. */
 export function fmtLeft(ms: number): string {
-  const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
-  return h ? `${h}h ${m}m` : m ? `${m}m` : `${s}s`;
+  ms = Math.max(0, ms);
+  if (ms < 60_000) return `${Math.ceil(ms / 1000)}s`;
+  const m = Math.ceil(ms / 60_000), h = Math.floor(m / 60);
+  return h ? `${h}h${m % 60 ? ` ${m % 60}m` : ""}` : `${m}m`;
 }
 
 /** `2:40:12`, `40:12`, `0:45`: the popover's big figure. */

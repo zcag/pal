@@ -153,6 +153,8 @@ describe("keep awake: the spellings and the texts", () => {
 
   test("the countdown texts: the bar's short form, the popover's clock, the sentence's span", () => {
     expect([fmtLeft(2 * 3_600_000 + 40 * 60_000), fmtLeft(12 * 60_000), fmtLeft(45_000), fmtLeft(60_000), fmtLeft(0)]).toEqual(["2h 40m", "12m", "45s", "1m", "0s"]);
+    // Rounded up to the minute: 2h 39m 30s reads 2h 40m, a whole two hours reads 2h.
+    expect([fmtLeft(2 * 3_600_000 + 39 * 60_000 + 30_000), fmtLeft(2 * 3_600_000), fmtLeft(59_999)]).toEqual(["2h 40m", "2h", "60s"]);
     expect([fmtClock(2 * 3_600_000 + 40 * 60_000 + 12_000), fmtClock(45_000), fmtClock(0)]).toEqual(["2:40:12", "0:45", "0:00"]);
     expect([fmtSpan(3_600_000), fmtSpan(90 * 60_000), fmtSpan(45 * 60_000), fmtSpan(90_000), fmtSpan(20_000)]).toEqual(["1 h", "1 h 30 min", "45 min", "2 min", "20 s"]);
   });
