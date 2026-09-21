@@ -9,14 +9,13 @@
 //! hides is the HUD's (hud.rs): "Copied" after a `copy` or `copy_files` that hides
 //! ("Copied, clears in N s" for a concealed copy with `clear_after`), an
 //! extension's own `hud` text, the once-per-run note when a `focus`
-//! could only bring the app forward, the layout's name (or why it
+//! could only bring the app forward (`windows::raise`), the layout's name (or why it
 //! failed) after a `layout`, and which panel took the path after a
 //! `dialog` (the Files row's "Use in dialog": the panel hides, the path is
 //! typed into the front app's open or save panel through its Go to Folder
 //! sheet, `pal_core::dialog::go`).
 
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use serde_json::{json, Value};
@@ -38,14 +37,6 @@ fn accessibility_blocked(app: &AppHandle, what: &str) -> Option<Value> {
     }
     permissions::request_once(app, "accessibility");
     Some(accessibility_toast(what))
-}
-
-/// What the HUD says after a `focus`: nothing with Accessibility (the
-/// window coming up is the feedback), and without it, once per run, which
-/// app came forward and why only the app. A toast cannot carry this: the
-/// activation makes the panel resign key, which hides it (panel/macos.rs).
-fn focus_feedback(trusted: bool, first: bool, app: &str) -> Option<String> {
-    (!trusted && first).then(|| format!("Switched to {app}; per-window switching needs Accessibility"))
 }
 
 /// Whether the webview keeps the panel up for this envelope (`staysOpen`
@@ -170,22 +161,9 @@ pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Resul
         blocking(move || clipboard::paste(&handle, what)).await?;
     }
     if let Some(id) = envelope.get("focus").and_then(Value::as_str) {
-        static HINTED: AtomicBool = AtomicBool::new(false);
-        let trusted = pal_core::ax::trusted();
         hide_first(app, window).await?;
-        let id = id.to_string();
-        if trusted {
-            blocking(move || pal_core::windows::focus(&id).map_err(|e| e.to_string())).await?;
-        } else {
-            // Without the permission the core can still bring the app
-            // forward, just not the window asked for: do that, say so once,
-            // and ask once.
-            let name = blocking(move || pal_core::windows::activate(&id).map_err(|e| e.to_string())).await?;
-            if let Some(text) = focus_feedback(trusted, !HINTED.swap(true, Ordering::Relaxed), &name) {
-                hud::show(app, &text);
-            }
-            permissions::request_once(app, "accessibility");
-        }
+        let (handle, id) = (app.clone(), id.to_string());
+        blocking(move || windows::raise(&handle, &id)).await?;
     }
     if let Some(what) = envelope.get("layout") {
         let p: windows::LayoutParams = serde_json::from_value(what.clone()).map_err(|e| format!("bad layout effect: {e}"))?;
@@ -267,13 +245,6 @@ mod tests {
         assert_eq!(t.as_object().unwrap().len(), 1, "a toast and nothing else: the pick's own effects are dropped");
     }
 
-    #[test]
-    fn focus_feedback_names_the_app_once_and_only_without_accessibility() {
-        assert_eq!(focus_feedback(true, true, "Safari"), None, "with the permission the window itself is the feedback");
-        assert_eq!(focus_feedback(true, false, "Safari"), None);
-        assert_eq!(focus_feedback(false, true, "Safari").as_deref(), Some("Switched to Safari; per-window switching needs Accessibility"));
-        assert_eq!(focus_feedback(false, false, "Safari"), None, "the reason is said once per run");
-    }
 
     #[test]
     fn layout_feedback_is_the_title_or_the_reason() {

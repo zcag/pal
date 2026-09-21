@@ -2,15 +2,21 @@
 //! (`windows.list` / `activate` / `close` / `minimize` / `unminimize` /
 //! `fullscreen` / `frame` / `set_frame` / `displays` / `focused` /
 //! `layout`) and as the `focus` and `layout` effects (effects.rs), which
-//! hide the panel before touching the window.
+//! hide the panel before touching the window. [`raise`] is the focus
+//! itself, shared by the effect and the switcher's tap (switcher.rs):
+//! the window with Accessibility, else the app forward with a note.
 //! Each listed row carries `icon`, the `.app` / `.desktop` path the webview
 //! renders through `icon://app`. [`stamp_focused`] feeds the core's focus
 //! history, which orders the macOS list most recently used first.
+
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use pal_core::windows::{self, layout, Rect};
 use serde::Deserialize;
 use serde_json::Value;
 use tauri::AppHandle;
+
+use crate::{hud, permissions};
 
 #[derive(Deserialize)]
 struct IdParams {
@@ -80,13 +86,39 @@ static STAMP: std::sync::LazyLock<(std::sync::Mutex<u32>, std::sync::Condvar)> =
 
 /// Wait for a stamp in flight, briefly (an AX read of a napping app can
 /// take longer; the list then goes ahead with what the history has).
-fn await_stamp() {
+pub(crate) fn await_stamp() {
     #[cfg(target_os = "macos")]
     {
         let (lock, cv) = &*STAMP;
         let pending = lock.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let _ = cv.wait_timeout_while(pending, std::time::Duration::from_millis(150), |n| *n > 0);
     }
+}
+
+/// What the HUD says after a raise: nothing with Accessibility (the
+/// window coming up is the feedback), and without it, once per run, which
+/// app came forward and why only the app. A toast cannot carry this: the
+/// activation makes the panel resign key, which hides it (panel/macos.rs).
+fn focus_feedback(trusted: bool, first: bool, app: &str) -> Option<String> {
+    (!trusted && first).then(|| format!("Switched to {app}; per-window switching needs Accessibility"))
+}
+
+/// Raise window `id`: the window itself with Accessibility, else the app
+/// forward (the core's `activate` can do without the permission, just not
+/// pick the window), said once on the HUD and asked once. Blocking (AX
+/// calls): a blocking thread, never the main one. The panel, if up, is
+/// hidden by the caller first.
+pub fn raise(app: &AppHandle, id: &str) -> Result<(), String> {
+    static HINTED: AtomicBool = AtomicBool::new(false);
+    if pal_core::ax::trusted() {
+        return windows::focus(id).map_err(err);
+    }
+    let name = windows::activate(id).map_err(err)?;
+    if let Some(text) = focus_feedback(false, !HINTED.swap(true, Ordering::Relaxed), &name) {
+        hud::show(app, &text);
+    }
+    permissions::request_once(app, "accessibility");
+    Ok(())
 }
 
 /// Run a named layout; the core's `Applied` on success.
@@ -128,5 +160,18 @@ pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String
         "focused" => Ok(windows::focused().map_err(err)?.as_ref().map_or(Value::Null, row)),
         "layout" => Ok(serde_json::to_value(apply_layout(&parse(params)?)?).unwrap()),
         _ => Err(format!("unknown windows.{func}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn focus_feedback_names_the_app_once_and_only_without_accessibility() {
+        assert_eq!(focus_feedback(true, true, "Safari"), None, "with the permission the window itself is the feedback");
+        assert_eq!(focus_feedback(true, false, "Safari"), None);
+        assert_eq!(focus_feedback(false, true, "Safari").as_deref(), Some("Switched to Safari; per-window switching needs Accessibility"));
+        assert_eq!(focus_feedback(false, false, "Safari"), None, "the reason is said once per run");
     }
 }
