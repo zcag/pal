@@ -98,6 +98,11 @@ pub struct PaletteMeta {
     /// against `pal://trigger`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on: Option<Vec<String>>,
+    /// The switcher chord the manifest suggests (`alt+tab` for Windows);
+    /// `palettes.<id>.hold` in the config wins, `""` there turns it off
+    /// (`hotkey::apply`, switcher.rs).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hold: Option<String>,
 }
 
 impl PaletteMeta {
@@ -190,6 +195,11 @@ pub fn palette_id(source: &Source) -> String {
 /// Every palette the host reported, enabled or not, with its config id.
 pub fn registered_palettes(app: &AppHandle) -> Vec<(String, Source)> {
     Palettes::with(app, |reg| reg.iter().map(|r| (palette_id(&r.source), r.source.clone())).collect())
+}
+
+/// The same with the switcher chord each manifest suggests (`PaletteMeta::hold`).
+pub fn registered_holds(app: &AppHandle) -> Vec<(String, Source, Option<String>)> {
+    Palettes::with(app, |reg| reg.iter().map(|r| (palette_id(&r.source), r.source.clone(), r.meta.hold.clone())).collect())
 }
 
 /// The source whose items are the palettes; its ids are `extension/palette`.

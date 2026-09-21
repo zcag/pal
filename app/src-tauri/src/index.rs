@@ -143,6 +143,15 @@ fn load_plan(m: &PaletteMeta, stale: bool, listed_at: Option<u64>, now: u64, sho
 /// `LIVE_RELIST_GAP`. A few entries: a Vec, so the static is const.
 static RELISTED: Mutex<Vec<(Source, Instant)>> = Mutex::new(Vec::new());
 
+/// The live palettes a show relist is still running for: the switcher's
+/// commit waits on the one it holds (`relist_pending`), briefly.
+static IN_FLIGHT: Mutex<Vec<Source>> = Mutex::new(Vec::new());
+
+/// Whether a show relist for `source` is in flight.
+pub fn relist_pending(source: &Source) -> bool {
+    lock(&IN_FLIGHT).contains(source)
+}
+
 /// Whether a live palette lists again on this show: not within
 /// `LIVE_RELIST_GAP` of its last show relist (`since_relist`, `None` for
 /// never this run), and with a `ttl` only once its rows (`listed_at`, unix
@@ -492,8 +501,9 @@ async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &Pa
 /// `LIVE_RELIST_TIMEOUT`, and the page is told once. Spawned, so the show
 /// never waits on it; the paint has the old rows, the next keystroke (or
 /// the `pal://index` re-query) the new ones. A lazy live palette on its
-/// first show goes the lazy way only.
-pub fn on_shown(app: &AppHandle) {
+/// first show goes the lazy way only. `held` (`extension/palette`, the
+/// switcher's) is due whatever the gap says: its order is the point.
+pub fn on_shown(app: &AppHandle, held: Option<&str>) {
     SHOWN.store(true, Ordering::SeqCst);
     // The welcome rows follow the permission and the marker; a no-op once hidden.
     welcome::sync(app);
@@ -526,7 +536,7 @@ pub fn on_shown(app: &AppHandle) {
     let mut relisted = lock(&RELISTED);
     let (live, skipped): (Vec<_>, Vec<_>) = live.into_iter().zip(ages).partition(|((source, m), listed_at)| {
         let since = relisted.iter().find(|(s, _)| s == source).map(|(_, t)| t.elapsed());
-        relist_due(m, since, *listed_at, now)
+        relist_due(m, since, *listed_at, now) || held == Some(format!("{}/{}", source.extension, source.palette).as_str())
     });
     for ((source, _), _) in &live {
         relisted.retain(|(s, _)| s != source);
@@ -540,6 +550,7 @@ pub fn on_shown(app: &AppHandle) {
     if live.is_empty() {
         return;
     }
+    lock(&IN_FLIGHT).extend(live.iter().map(|(s, _)| s.clone()));
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let t0 = Instant::now();
@@ -570,6 +581,7 @@ pub fn on_shown(app: &AppHandle) {
         }
         eprintln!("index\tshow relist\t{:.1}ms\t{}", ms(t0), lines.join(", "));
         events::emit(&app, events::INDEX, ());
+        lock(&IN_FLIGHT).retain(|s| !live.iter().any(|(l, _)| l == s));
     });
 }
 

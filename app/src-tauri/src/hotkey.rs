@@ -2,8 +2,12 @@
 //! shows it straight inside that palette, `palettes.<id>.item_hotkeys`
 //! (`<item id> = "<keys>"`) run one item of the palette with the panel down,
 //! as if picked (`index::run_pick`: the host's `pick`, then its effects),
-//! and `bar.items.<key>.hotkey` opens a bar item's popover engaged (or runs
-//! its open action, `bar::popover::on_hotkey`).
+//! `bar.items.<key>.hotkey` opens a bar item's popover engaged (or runs
+//! its open action, `bar::popover::on_hotkey`), and `palettes.<id>.hold`
+//! (or the chord the palette's manifest suggests) is the switcher's chord:
+//! it and its `shift+` variant both register, every press goes to
+//! `switcher::press` (begin, then step; the release is the switcher's own
+//! poll).
 //! All come from the config file and are swapped live when it changes
 //! (`settings::on_reload`) or a palette arrives (`index::sync_extension`). An empty `general.hotkey` means none
 //! (a compositor keybind runs `pal toggle` instead). On Linux this only
@@ -36,7 +40,7 @@ use pal_core::config::{Config, Hotkeys};
 use pal_core::index::Source;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Modifiers, Shortcut};
 
 use crate::host::Host;
 use crate::{events, index, lock, settings};
@@ -46,14 +50,17 @@ const POLL: Duration = Duration::from_secs(2);
 
 /// What a registered shortcut does: toggle the panel, open it in a
 /// palette (by its `extension/palette` key, what the UI scopes on), pick
-/// one item of a palette without the panel, or open a bar item's popover
-/// (by its `extension/id` key).
+/// one item of a palette without the panel, open a bar item's popover
+/// (by its `extension/id` key), or drive the switcher over a palette
+/// (`mods` are the chord's own, what the release poll watches; `back`
+/// for the `shift+` variant, which steps up).
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Target {
     Root,
     Palette(String),
     Item(Source, String),
     Bar(String),
+    Hold { source: Source, mods: Modifiers, back: bool },
 }
 
 /// One entry of `general.hotkey` and how its registration went.
@@ -189,6 +196,7 @@ pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
     match target {
         Some(Target::Root) => crate::toggle(app),
         Some(Target::Palette(key)) => crate::show_in(app, Some(key)),
+        Some(Target::Hold { source, mods, back }) => crate::switcher::press(app, &source, mods, back),
         // Off the main thread: the anchor is a `sketchybar --query`.
         Some(Target::Bar(key)) => {
             let app = app.clone();
@@ -205,6 +213,21 @@ pub fn pressed(app: &AppHandle, shortcut: &Shortcut) {
         }
         None => {}
     }
+}
+
+/// The palette a hold chord is registered for (`Target::Hold`; any one,
+/// should several have a chord), for `pal switch` beginning from idle.
+pub fn hold_target(app: &AppHandle) -> Option<Source> {
+    lock(&app.state::<Registered>().map).values().find_map(|t| match t {
+        Target::Hold { source, .. } => Some(source.clone()),
+        _ => None,
+    })
+}
+
+/// A hold chord's `shift+` variant, the one that steps back: `None` when
+/// the chord has shift already (it registers alone and only steps down).
+fn shifted(s: &Shortcut) -> Option<Shortcut> {
+    (!s.mods.contains(Modifiers::SHIFT)).then(|| Shortcut::new(Some(s.mods | Modifiers::SHIFT), s.key))
 }
 
 /// One entry of `general.hotkey` as parsed: its key, or the parse error.
@@ -312,9 +335,11 @@ fn judge(roots: &[Root], map: &HashMap<Shortcut, Target>, failed: &HashMap<Short
 /// palette's hotkeys are only registered once the palette exists, a bar
 /// item's whatever its state (the item may be hidden or not yet
 /// rendered; its hotkey still opens it). In a clash the root hotkeys win
-/// over a palette's, a palette's over a bar item's, a bar item's over a
-/// palette item's; a hotkey another app holds is reported and skipped,
-/// the rest still apply.
+/// over a palette's, a palette's over a hold chord, a hold chord over a
+/// bar item's, a bar item's over a palette item's; a hotkey another app
+/// holds is reported and skipped, the rest still apply. A hold chord is
+/// the config's `hold`, else the one the manifest suggests; `""` in the
+/// config is off.
 pub fn apply(app: &AppHandle, config: &Config) {
     let mut wanted: HashMap<Shortcut, Target> = HashMap::new();
     let parse = |what: String, h: &str| match h.trim().parse::<Shortcut>() {
@@ -337,6 +362,16 @@ pub fn apply(app: &AppHandle, config: &Config) {
             if let Some(s) = parse(format!("bar.items.{key}.hotkey"), h) {
                 wanted.insert(s, Target::Bar(key.clone()));
             }
+        }
+    }
+    for (id, source, suggested) in crate::registry::registered_holds(app) {
+        let p = config.palette(&id);
+        let Some(h) = p.hold.as_deref().or(suggested.as_deref()).map(str::trim).filter(|h| !h.is_empty()) else { continue };
+        if let Some(s) = parse(format!("palettes.{id}.hold"), h) {
+            if let Some(back) = shifted(&s) {
+                wanted.insert(back, Target::Hold { source: source.clone(), mods: s.mods, back: true });
+            }
+            wanted.insert(s, Target::Hold { source, mods: s.mods, back: false });
         }
     }
     for (id, source) in &palettes {
@@ -397,6 +432,14 @@ mod tests {
         assert_eq!(ok, root("ctrl+space"));
         assert_eq!(junk.key, None, "junk next to a good entry gets no fallback");
         assert!(junk.error.unwrap().contains("does not parse"));
+    }
+
+    #[test]
+    fn a_hold_chord_gets_its_shift_variant_unless_it_has_shift() {
+        assert_eq!(shifted(&key("alt+tab")), Some(key("shift+alt+tab")));
+        assert_eq!(shifted(&key("cmd+ctrl+space")), Some(key("cmd+ctrl+shift+space")));
+        assert_eq!(shifted(&key("shift+f13")), None, "shift already: the one chord, no variant");
+        assert_eq!(shifted(&key("f13")), Some(key("shift+f13")), "no modifier still gets a back step");
     }
 
     #[test]
