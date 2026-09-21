@@ -359,6 +359,7 @@ pub fn run() {
             dialog::dialog_detect,
             large::large_hide,
             large::large_show,
+            keycast::keycast_state,
             theme::theme_current,
             theme::theme_status,
             theme::theme_open,

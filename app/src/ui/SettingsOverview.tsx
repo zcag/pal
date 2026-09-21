@@ -45,6 +45,8 @@ export type OverviewInput = {
   switcher?: string;
   /** `[sidebar]` in one line (`sidebarSummary`): "Windows on the right edge", or "off"; absent where none is built. */
   sidebar?: string;
+  /** The keycast overlay is on (keycast.rs): Input Monitoring matters while it is. */
+  keycast?: boolean;
 };
 
 /** One thing to do, or one fact, as a row with its action inline. */
@@ -104,17 +106,17 @@ export function overviewItems(v: OverviewInput): OverviewItem[] {
   // A permission is a row when it is refused and nothing else will ask for
   // it: Accessibility (asked on the first show; the one every paste needs),
   // Full Disk Access (no prompt exists, so this row is the only telling),
-  // Input Monitoring once expansion is on (pal asked when it was switched
-  // on; a bar peek only degrades without it), and Calendars or Location
+  // Input Monitoring once expansion or keycast is on (pal asked when it
+  // was switched on; a bar peek only degrades without it), and Calendars or Location
   // once the prompt was answered no. One the OS has not asked about yet
   // (`not_determined`) is not: the extension prompts from its own row the
   // first time it is used, and a fresh install must not open on a list of
   // grants for palettes never opened.
-  for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0, wifi: names.has("wifi"), expand })) {
+  for (const p of permissionRows(v.permissions, { otp: names.has("otp"), calendar: names.has("calendar"), bar: (v.bar?.length ?? 0) > 0, wifi: names.has("wifi"), expand, keycast: v.keycast })) {
     if (p.state !== "missing") continue;
     if (p.id === "full_disk_access" && !names.has("otp")) continue;
     if (p.id === "calendar" && (!names.has("calendar") || v.permissions?.calendar === "not_determined")) continue;
-    if (p.id === "input_monitoring" && !expand) continue;
+    if (p.id === "input_monitoring" && !expand && !v.keycast) continue;
     if (p.id === "location" && (!names.has("wifi") || v.permissions?.location === "not_determined")) continue;
     items.push({ id: `permission:${p.id}`, level: "attention", title: p.title, detail: `${p.needs}. ${p.where.startsWith("Privacy") ? `Switch it on under ${p.where}` : `Granted in ${p.where}`}.`, action: { label: p.id === "full_disk_access" ? "Open the pane" : "Grant…", permission: p.id } });
   }

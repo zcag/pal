@@ -181,6 +181,10 @@ enum Payload<'a> {
     Keys { entries: Vec<Entry> },
     Cursor { x: f64, y: f64 },
     Click { button: &'static str, x: f64, y: f64, down: bool },
+    /// The display the window now covers: the work area's insets from its
+    /// edges (top, right, bottom, left; the menu bar, the Dock), CSS pixels,
+    /// so the strip keeps clear of them.
+    Display { inset: [f64; 4] },
 }
 
 /// Startup: the settings as loaded, the window (macOS), nothing watched yet.
@@ -373,7 +377,18 @@ fn follow(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let _ = w.set_size(*m.size());
     let _ = w.set_position(PhysicalPosition::new(m.position().x, m.position().y));
-    eprintln!("keycast\tdisplay\t{name}\t{}x{}", m.size().width, m.size().height);
+    let (p, size, wa, scale) = (m.position(), m.size(), m.work_area(), m.scale_factor());
+    let px = |v: i32| v as f64 / scale;
+    let inset = [px(wa.position.y - p.y), px(p.x + size.width as i32 - wa.position.x - wa.size.width as i32), px(p.y + size.height as i32 - wa.position.y - wa.size.height as i32), px(wa.position.x - p.x)];
+    eprintln!("keycast\tdisplay\t{name}\t{}x{}\tinset {inset:?}", size.width, size.height);
+    events::emit_to(app, WINDOW, events::KEYCAST, Payload::Display { inset });
+}
+
+/// The page's first question on load: where things stand, so a page that
+/// loads (or reloads) while the overlay is on draws it at once.
+#[tauri::command]
+pub fn keycast_state(app: AppHandle) -> Status {
+    status(&app)
 }
 
 /// The shared monitor's delivery (main thread): keys and modified clicks
