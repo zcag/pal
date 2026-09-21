@@ -261,7 +261,7 @@ describe("over the wire against the mock bridge", () => {
     expect(l.palettes.map((p) => p.name)).toEqual(["rooms", "lights", "scenes", "light", "setup", "sensors", "automations", "entertainment"]);
     expect(l.palettes.find((p) => p.name === "rooms")).toMatchObject({ live: true, tier: "primary", icon: { tile: { bg: "amber" } } });
     expect(l.palettes.find((p) => p.name === "light")).toMatchObject({ view: "view", input: true });
-    expect(l.bar).toEqual([{ id: "home", title: "Home", description: expect.any(String), refresh: { every: 60, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "x", title: "All off" }]), source: true }]);
+    expect(l.bar).toEqual([{ id: "home", title: "Home", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 60, on: ["show", "wake", "network"] }, keys: expect.arrayContaining([{ keys: "x", title: "All off" }]), source: true }]);
     expect(Object.keys(l.manifest.links!)).toEqual(["toggle", "scene", "off"]);
   });
 

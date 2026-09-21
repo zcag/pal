@@ -54,10 +54,12 @@ Settings, `[extensions.otp]`:
 | `senders` | list | `[]` | Senders never listed, as Messages shows them (`AKBANK`, a number, an email); case does not matter. |
 | `db` | path | `~/Library/Messages/chat.db` | The database to read. `~` is expanded. |
 | `contacts` | path | empty | An `AddressBook-v22.abcddb` for names; empty reads every source under `~/Library/Application Support/AddressBook`. |
+| `bar_show` | `recent` / `always` | `recent` | When the bar item is drawn: for a minute after a code arrives, or always (the glyph alone, muted, between codes; its popover says so and opens the palette). |
 
 The bar item **Latest code** puts the newest code on the strip for a
 minute after it arrives (green, the sender and the message as its
-tooltip). Hidden the rest of the time. A click opens its popover: the
+tooltip). Hidden the rest of the time, unless `bar_show` keeps the glyph.
+A click opens its popover: the
 code as a row of digit tiles (grouped as a form shows it), the sender
 and when it arrived, the message, a thin amber bar counting the minute
 down (ticking every second while the popover shows, from the last read),

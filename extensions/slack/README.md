@@ -133,6 +133,7 @@ stale bar item) instead of piling onto the limit.
 | `dm_urgent` | boolean | `true` | Draw the bar item as urgent (red) while a direct message is unread. |
 | `presence` | boolean | `true` | A presence dot on each direct message row (green active, grey away), one `users.getPresence` per person, remembered a minute; off makes no such call. |
 | `refresh` | number (s) | `120` | Seconds between refreshes of the bar item (10 at least). |
+| `bar_show` | `auto` / `unread` / `always` | `auto` | When the bar item is drawn: with something addressed to you, also while a channel is merely unread, or always (the glyph alone, muted, without a badge). |
 
 ## The bar item
 

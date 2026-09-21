@@ -532,7 +532,8 @@ async function inboxItem(ctx: BarCtx): Promise<BarItem> {
     if (e instanceof AuthError) return { hidden: true };
     throw e;
   }
-  if (!list.length) return { hidden: true };
+  // At zero the item leaves the strip, unless `bar_show` keeps it: the glyph alone, muted, still a way into the popover.
+  if (!list.length) return conf().bar_show === "always" ? { icon: BAR_GLYPH, color: "muted", tooltip: "Nothing addressed to you", menu: { view: renderBar(barState(list)) } } : { hidden: true };
   const mentions = list.filter((n) => n.type === "mention").length, replies = list.length - mentions;
   return {
     icon: BAR_GLYPH,

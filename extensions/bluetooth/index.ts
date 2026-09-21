@@ -6,7 +6,8 @@
 import { bluetooth, errorMessage, failed, hint, settings, toast, truncate, xdg, type Accessory, type Action, type BarItem, type BluetoothDevice, type Effect, type Extension, type Item } from "@zcag/pal";
 import { GLYPH, KIND, batteries, levelColor, render as renderBattery, rows as batteryRows, type BarState } from "./view.ts";
 
-type Settings = { low_threshold: number };
+/** `bar_show`: `low` is the alert alone; `connected` and `always` keep the strip up between alerts as a muted Bluetooth glyph, still a way into the popover. */
+type Settings = { low_threshold: number; bar_show?: "low" | "connected" | "always" };
 const EXTENSION = "bluetooth";
 const MAC = process.platform === "darwin";
 const MAC_SETTINGS_URL = "x-apple.systempreferences:com.apple.BluetoothSettings";
@@ -41,13 +42,18 @@ function barState(devices: BluetoothDevice[], threshold: number): BarState {
   return st;
 }
 
-/** An interruption-only Bluetooth battery strip: the lowest connected device, or hidden. */
+/** An interruption-only Bluetooth battery strip: the lowest connected device, or hidden (or, by `bar_show`, a muted glyph naming what is connected). */
 async function batteryBar(): Promise<BarItem> {
   try {
-    const threshold = settings.get<Settings>(EXTENSION).low_threshold;
+    const { low_threshold: threshold, bar_show: show } = settings.get<Settings>(EXTENSION);
     const devices = await bluetooth.devices();
     const low = batteries(devices).filter((d) => d.battery! <= threshold);
-    if (!low.length) return { hidden: true };
+    if (!low.length) {
+      const connected = devices.filter((d) => d.connected);
+      if (!(show === "always" || (show === "connected" && connected.length))) return { hidden: true };
+      const detail = connected.map((d) => `${d.name}${d.battery === null ? "" : ` ${d.battery}%`}`).join(" · ");
+      return { icon: xdg(connected.length ? "bluetooth-connected" : "bluetooth")!, color: "muted", tooltip: connected.length ? `Bluetooth · ${detail}` : "No connected devices", click: "open", menu: { view: renderBattery(barState(devices, threshold)) } };
+    }
     const first = low[0];
     const detail = low.map((d) => `${d.name} ${d.battery}%${d.battery_detail ? ` (${d.battery_detail})` : ""}`).join(" · ");
     return {

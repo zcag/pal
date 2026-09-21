@@ -94,7 +94,8 @@ same view in a compact layout, fed the same way.
 `spotify/playing`: the track playing (`title · artist`) beside the
 Spotify mark, or, with **Lyrics on the bar** (`bar_lyrics`, on), the
 lyric line playing when lrclib has synced lyrics for the track; hidden
-while nothing plays. A click opens the lyrics view in the popover, in a
+while nothing plays (unless `bar_show` keeps it: the track muted while
+paused, or the glyph alone). A click opens the lyrics view in the popover, in a
 compact layout: the cover with the track, the artist and the album
 beside it, the progress bar with the times, the line playing large with
 one before and two after, the transport as key hints (`space` pause or
@@ -155,6 +156,7 @@ Settings, `[extensions.spotify]`:
 | `client_id` | text | unset | Your app's client id. |
 | `redirect_port` | number | `27182` | The loopback port for the sign-in redirect; must match the app's redirect URI. |
 | `bar_lyrics` | boolean | `true` | The lyric line on the bar strip instead of the track name (when lrclib has synced lyrics). |
+| `bar_show` | `playing` / `paused` / `always` | `playing` | When the bar item is drawn: while something plays, also while a track sits paused (muted), or always (the glyph alone, muted, with nothing; its popover still offers play, sign in and the devices). |
 | `pinned` | list | `[]` | Playlist names or `spotify:playlist:` links, each a "Play <name>" root row. |
 
 ## Limits and failures

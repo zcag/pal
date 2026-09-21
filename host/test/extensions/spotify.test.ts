@@ -182,7 +182,7 @@ describe("spotify", () => {
       id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }]), source: true,
       mocks: expect.objectContaining({ lyrics: expect.objectContaining({ title: "Synced lyric line" }), track: expect.objectContaining({ title: "No synced lyrics" }), paused: expect.objectContaining({ item: { hidden: true } }) }),
     })]);
-    expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["pinned", "list"]]);
+    expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["bar_show", "select"], ["pinned", "list"]]);
   });
 
   describe("sign-in", () => {
@@ -508,7 +508,23 @@ describe("spotify, signed in", () => {
       expect(calls("GET", "/v1/me/player/queue").length).toBeGreaterThan(before);
       state.player = { ...state.player, is_playing: false };
       expect(await h.render("spotify", "playing", { reason: "media" as never })).toEqual({ hidden: true });
-      state.player = { ...state.player, is_playing: true };
+      // bar_show: paused keeps the track on the strip, muted, the popover offering Play; always keeps the glyph with no player, the popover saying nothing plays.
+      h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_show: "paused" } });
+      await Bun.sleep(50);
+      const paused = await h.render("spotify", "playing", { reason: "media" as never });
+      expect(paused).toMatchObject({ icon: "\u{f04c7}", title: "Weird Fishes/ Arpeggi · Radiohead", color: "muted", tooltip: "Radiohead - Weird Fishes/ Arpeggi, paused", scroll: { up: "next", down: "previous" } });
+      expect((paused.menu as { view: any }).view.actions[0]).toMatchObject({ id: "toggle", title: "Play" });
+      const held = state.player;
+      state.player = null;
+      expect(await h.render("spotify", "playing", { reason: "media" as never })).toEqual({ hidden: true });
+      h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_show: "always" } });
+      await Bun.sleep(50);
+      const none = await h.render("spotify", "playing", { reason: "media" as never });
+      expect(none).toMatchObject({ icon: "\u{f04c7}", color: "muted", tooltip: "Nothing playing" });
+      expect(none.title).toBeUndefined();
+      expect(texts((none.menu as { view: any }).view.tree)).toContain("Nothing playing");
+      expect((none.menu as { view: any }).view.actions[0]).toMatchObject({ id: "open-app" });
+      state.player = { ...held, is_playing: true };
       h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_lyrics: false } });
       await Bun.sleep(50);
       expect((await h.render("spotify", "playing", { reason: "update" })).title).toBe("Weird Fishes/ Arpeggi · Radiohead");

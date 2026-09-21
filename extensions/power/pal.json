@@ -150,11 +150,27 @@
           }
         },
         "draining": {
-          "title": "Low battery",
+          "title": "Getting low, the time left beside it",
           "item": {
-            "icon": "󰁽",
-            "title": "31% · 2:57",
+            "icon": "󰁻",
+            "title": "24% · 2:57",
             "tooltip": "Battery Power · Discharging · 2:57 remaining · 7.2 W draw"
+          }
+        },
+        "shown": {
+          "title": "Below the show threshold, nothing wrong",
+          "item": {
+            "icon": "󰁿",
+            "title": "42%",
+            "tooltip": "Battery Power · Discharging · 3:40 remaining · 6.1 W draw"
+          }
+        },
+        "full": {
+          "title": "Charged, kept on the bar (Always show battery)",
+          "item": {
+            "icon": "󰂄",
+            "title": "100%",
+            "tooltip": "Power Adapter · Charged"
           }
         },
         "charging": {
@@ -162,17 +178,16 @@
           "item": {
             "icon": "󰂄",
             "title": "14%",
-            "color": "green",
             "tooltip": "Power Adapter · Charging · 48m remaining"
           }
         },
         "warning": {
           "title": "Power warning",
           "item": {
-            "icon": "󰁽",
+            "icon": "󰁿",
             "title": "42% · 18.9W · background-burn",
             "color": "amber",
-            "tooltip": "Battery Power · background-burn: copilot is using power in the background"
+            "tooltip": "Battery Power · Discharging · 1:12 remaining · 18.9 W draw · copilot is using power in the background"
           }
         },
         "critical": {
@@ -181,7 +196,7 @@
             "icon": "󰁺",
             "title": "8% · 0:22",
             "color": "red",
-            "tooltip": "Battery Power · 22m remaining"
+            "tooltip": "Battery Power · Discharging · 0:22 remaining"
           }
         }
       },

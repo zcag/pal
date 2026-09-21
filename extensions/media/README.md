@@ -33,13 +33,17 @@ actions.
 
 ## Setup
 
-Two settings. **Cover on the bar** (`bar_artwork`, off): the cover instead
+Three settings. **Cover on the bar** (`bar_artwork`, off): the cover instead
 of the note on the menu bar strip, only when the cover is square (a 24 pt
 picture of anything else is a smudge); the popover shows the cover
 either way. **Leave to another extension** (`exclude`, empty): players
 this extension leaves to another, by app name or player id (`Spotify`,
 `music`): the bar item and the root's Now row skip them (the Spotify
-extension shows its own); the palette still lists them. What is listed depends on what the core's media
+extension shows its own); the palette still lists them. **Bar item**
+(`bar_show`, `playing`): when the strip is drawn: while something plays,
+`running` while a player is there at all (a paused track stays, muted),
+`always` (the glyph alone, muted, with no player; its popover says
+nothing plays). What is listed depends on what the core's media
 capability can see:
 
 - **macOS**: Spotify and Music through AppleScript, only while the app is
@@ -62,7 +66,7 @@ capability can see:
   one row says to install it.
 
 The bar item **Now Playing** puts the playing track on the strip (hidden
-while nothing plays). Its popover is a card: the cover large at the left
+while nothing plays, unless `bar_show` keeps it). Its popover is a card: the cover large at the left
 (the stream's picture; a cover the player names by url is fetched once
 into the picture, 2 MB at most; the app's own icon without one; a note
 tile without even that), the title, the artist and the album beside it

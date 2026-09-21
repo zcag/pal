@@ -160,6 +160,7 @@ without one) and every call until then refused locally.
 | `labels` | list | `[]` | Labels whose unread mail Inbox lists besides the inbox, by name. |
 | `send` | boolean, per instance | `false` | Compose, reply, drafts, archive, star. Off: read and mark-read only. |
 | `signature` | text | (none) | Under the body of a composed or replied message. |
+| `bar_show` | `auto` / `always` | `auto` | When the bar item is drawn: with unread mail, or always (the glyph alone, muted, with none). |
 
 For the tests, `PAL_GMAIL_API` replaces the API host and
 `PAL_GMAIL_AVATARS` the Gravatar host (empty turns the probe off).

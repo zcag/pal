@@ -67,6 +67,23 @@
       "max": 12,
       "unit": "rounds",
       "default": 4
+    },
+    {
+      "kind": "select",
+      "id": "bar_show",
+      "label": "Bar item",
+      "description": "When the Timer item is drawn. Always keeps the glyph on the strip with no timer, muted; its popover opens on the field, so a click starts one.",
+      "options": [
+        {
+          "id": "running",
+          "title": "While there is a timer"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        }
+      ],
+      "default": "running"
     }
   ],
   "links": {
@@ -121,20 +138,40 @@
       "title": "Timer",
       "description": "The soonest timer's remaining time with a fill; an alarm once it lands; hidden with none running. The popover: a card per timer with the time left and a bar, pause, add five minutes, stop, a field to start one, a pomodoro's phase and round on its card.",
       "mocks": {
-        "running": {
-          "title": "Running timer",
+        "plain": {
+          "title": "A timer running",
           "item": {
-            "icon": "󰔛",
+            "icon": "󰥔",
+            "title": "8:12",
+            "progress": 0.18,
+            "color": "blue",
+            "tooltip": "Tea"
+          }
+        },
+        "running": {
+          "title": "A pomodoro round running",
+          "item": {
+            "icon": "󰥔",
             "title": "12:34 · 2/4",
             "progress": 0.58,
             "color": "blue",
-            "tooltip": "Pomodoro: Round 2 of 4"
+            "tooltip": "Pomodoro: round 2 of 4, work"
+          }
+        },
+        "ending": {
+          "title": "Nearly landed, another timer behind it",
+          "item": {
+            "icon": "󰥔",
+            "title": "0:41",
+            "progress": 0.95,
+            "color": "red",
+            "tooltip": "Tea (+1 more)"
           }
         },
         "paused": {
           "title": "Paused timer",
           "item": {
-            "icon": "󰔛",
+            "icon": "󰥔",
             "title": "41:05",
             "progress": 0.32,
             "color": "muted",
@@ -144,11 +181,25 @@
         "landed": {
           "title": "Timer landed",
           "item": {
-            "icon": "󰔛",
+            "icon": "󰥔",
             "title": "Tea",
             "urgent": true,
             "progress": 1,
-            "tooltip": "Tea landed just now"
+            "tooltip": "Tea landed 0:03 ago"
+          }
+        },
+        "always": {
+          "title": "No timers, kept on the bar (Always)",
+          "item": {
+            "icon": "󰥔",
+            "color": "muted",
+            "tooltip": "No timers"
+          }
+        },
+        "idle": {
+          "title": "No timers",
+          "item": {
+            "hidden": true
           }
         }
       },

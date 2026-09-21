@@ -400,7 +400,7 @@ describe("whatsapp", () => {
     host.changeSettings(X, { settings: settings({ send: true, unread_only_bar: false }) });
     await host.until(() => host.coreCalls.length > 0);
     const stays = await host.render(X, "unread", { reason: "settings" });
-    expect(stays).toMatchObject({ icon: "\u{f05a3}", urgent: false, tooltip: "Nothing unread" });
+    expect(stays).toMatchObject({ icon: "\u{f05a3}", urgent: false, color: "muted", tooltip: "Nothing unread" });
     expect(stays.badge).toBeUndefined();
     expect(texts(checkView(viewOf(stays)))).toEqual(expect.arrayContaining(["Recent", "Mara Lind", "Weekend hike"]));
     host.changeSettings(X, { settings: settings({ send: true }) });

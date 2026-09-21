@@ -365,9 +365,10 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
     if (e instanceof TokenError) return { hidden: true };
     throw e;
   }
-  if (i.count === 0) return { hidden: true };
   const title = ctx.instance?.title?.trim();
   const addr = addressNow();
+  // At zero the item leaves the strip, unless `bar_show` keeps it: the glyph alone, muted, still a way into the popover.
+  if (i.count === 0) return conf().bar_show === "always" ? { icon: ICON.mail, ...(title && { title }), color: "muted", tooltip: `No unread mail${addr ? ` in ${addr}` : ""}`, menu: { view: renderBar(await barState(i)) } } : { hidden: true };
   return {
     icon: ICON.mail,
     ...(title && { title }),

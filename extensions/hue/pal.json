@@ -454,6 +454,32 @@
           "network"
         ]
       },
+      "mocks": {
+        "on": {
+          "title": "Lights on, the main room's colour as a dot",
+          "item": {
+            "icon": { "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAA6UlEQVR4nM2YzQ2EIBCFOVgJHVgJnXCeEx3QiSV4nyIoZjYmmKALLIZF3uFdjJAv8z8oYVJI6jmshckIkxUmF2XjN/0W0CpMXpiCMMkPhfjvOgLouHRrgChpawVrgXEdIHe5HqCl0yo1ay1PgY4D+wCYU3sJqgQ0wjI5SzUB/TNmHsdULpvkZV2yb4arqq6bbZ0vK6VAfiKQzwG1tINRCncgPRHmlE6BDACQSYEsAJBNgd4shtUiCQsE5zK4oIZLe7jCCNk64Jor3PgBOaDBjbCQQz7kGgS3KEKu0rCPDZDPMSojiAer4foA2Biuf8n9LKYAAAAASUVORK5CYII=" },
+            "title": "5 on",
+            "tooltip": "5 of 12 lights on · Living room 72%"
+          }
+        },
+        "off": {
+          "title": "All lights off",
+          "item": { "icon": "󰌶", "color": "muted", "tooltip": "All lights off" }
+        },
+        "away": {
+          "title": "Bridge not answering, last state kept",
+          "item": { "icon": "󰌶", "color": "muted", "stale": true, "tooltip": "All lights off" }
+        },
+        "unpaired": {
+          "title": "Bridge not paired",
+          "item": { "icon": "󰌶", "color": "muted", "stale": true, "tooltip": "Hue: the bridge did not answer" }
+        },
+        "none": {
+          "title": "No bridge configured",
+          "item": { "hidden": true }
+        }
+      },
       "keys": [
         {
           "keys": "up",

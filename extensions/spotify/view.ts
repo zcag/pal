@@ -190,7 +190,7 @@ function queueRows(st: NowState): ViewNode[] {
 }
 
 /** What the view says instead of a track: how to sign in, that nothing plays, that Spotify is away. */
-const STATUS_TEXT: Record<Status["kind"], [string, string]> = {
+export const STATUS_TEXT: Record<Status["kind"], [string, string]> = {
   client_id: ["Client id is not set", "Settings › Extensions › Spotify: the README tells how to create the app at developer.spotify.com"],
   signed_out: ["Sign in to Spotify", "Enter opens Spotify in the browser; pal listens for the redirect"],
   nothing: ["Nothing playing", "Start something in Spotify on any device; Enter opens the app"],

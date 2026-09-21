@@ -58,6 +58,32 @@ describe("audio", () => {
     devices = devices.map((d) => d.kind === "input" ? { ...d, muted: false } : d);
   });
 
+  test("bar_show_microphone: muted leaves a missing input quiet, always keeps a live mic as a muted glyph whose click opens the popover; bar_show_volume at always keeps a muted glyph with no output", async () => {
+    const saved = devices;
+    try {
+      host.changeSettings("audio", { settings: { level: "flash", bar_show_microphone: "always" } });
+      const live = await host.render("audio", "microphone");
+      expect(live).toMatchObject({ icon: "\u{f036c}", color: "muted", tooltip: "MacBook Pro Microphone · 57%" });
+      expect(live.click).toBeUndefined();
+      expect(viewOf(live)).toMatchObject({ id: "microphone", title: "Input: MacBook Pro Microphone" });
+      devices = devices.filter((d) => d.kind !== "input");
+      expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036e}", color: "red", tooltip: "No input device" });
+      host.changeSettings("audio", { settings: { level: "flash", bar_show_microphone: "muted" } });
+      expect(await host.render("audio", "microphone")).toEqual({ hidden: true });
+      devices = saved.map((d) => d.kind === "input" ? { ...d, muted: true } : d);
+      expect(await host.render("audio", "microphone")).toMatchObject({ icon: "\u{f036d}", color: "red", click: "open" });
+      devices = saved.filter((d) => d.kind !== "output");
+      expect(await host.render("audio", "volume")).toEqual({ hidden: true });
+      host.changeSettings("audio", { settings: { level: "flash", bar_show_volume: "always" } });
+      const none = await host.render("audio", "volume");
+      expect(none).toMatchObject({ icon: "\u{f075f}", color: "muted", tooltip: "No output device" });
+      expect(viewOf(none)).toMatchObject({ id: "volume", title: "No output" });
+    } finally {
+      devices = saved;
+      host.changeSettings("audio", { settings: { level: "flash" } });
+    }
+  });
+
   test("the popover: the output in use on a card with a slider and a mute switch, the others as rows, the input in a line; the keys act on the default, the cursor on a row", async () => {
     const v = viewOf(await host.render("audio", "volume"));
     expect(v).toMatchObject({ id: "volume", title: "Output: MacBook Pro Speakers", keys: "actions" });

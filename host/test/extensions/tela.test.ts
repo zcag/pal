@@ -44,8 +44,8 @@ describe("tela", () => {
       ["decks", false, false, 3600], ["sheets", false, false, 3600], ["comments", false, true, 60], ["backlinks", false, false, 300],
     ]);
     expect(l.palettes.find((m) => m.name === "search")!.detail).toBe("lazy");
-    expect(l.bar).toEqual([{ id: "inbox", title: "Inbox", description: expect.any(String), refresh: { every: 300, on: ["show", "wake", "network"] }, keys: expect.any(Array), source: true }]);
-    expect(host.manifests.get("tela")!.settings!.map((s) => [s.id, s.kind])).toEqual([["base_url", "text"], ["token", "secret"], ["default_space", "text"], ["research", "boolean"]]);
+    expect(l.bar).toEqual([{ id: "inbox", title: "Inbox", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 300, on: ["show", "wake", "network"] }, keys: expect.any(Array), source: true }]);
+    expect(host.manifests.get("tela")!.settings!.map((s) => [s.id, s.kind])).toEqual([["base_url", "text"], ["token", "secret"], ["default_space", "text"], ["research", "boolean"], ["bar_show", "select"]]);
   });
 
   describe("pages", () => {
@@ -347,6 +347,20 @@ describe("tela", () => {
       expect(await host.barAction("tela", "inbox", "read-all")).toEqual({ keep: true, hud: "Marked read" });
       expect(calls("POST", "/api/notifications/read-all")).toHaveLength(1);
       expect(await host.render("tela", "inbox", { reason: "every" })).toEqual({ hidden: true });
+    });
+
+    test("bar_show at always: nothing addressed to you is the glyph alone, muted, no badge, the popover saying so", async () => {
+      host.changeSettings("tela", { settings: { ...SETTINGS, bar_show: "always" } });
+      await Bun.sleep(50);
+      try {
+        const item = await host.render("tela", "inbox", { reason: "every" });
+        expect(item).toMatchObject({ icon: "\u{f05da}", color: "muted", tooltip: "Nothing addressed to you" });
+        expect(item.badge).toBeUndefined();
+        expect(texts(viewOf(item).tree)).toContain("Nothing addressed to you");
+      } finally {
+        host.changeSettings("tela", { settings: SETTINGS });
+        await Bun.sleep(50);
+      }
     });
   });
 

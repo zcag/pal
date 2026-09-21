@@ -22,6 +22,27 @@
       "max": 100,
       "unit": "%",
       "default": 25
+    },
+    {
+      "kind": "select",
+      "id": "bar_show",
+      "label": "Bar item",
+      "description": "When the Bluetooth Battery item is drawn. Low is the alert alone; the other two keep a muted Bluetooth glyph on the strip between alerts, the tooltip naming what is connected, the popover the same.",
+      "options": [
+        {
+          "id": "low",
+          "title": "When a connected device's battery is low"
+        },
+        {
+          "id": "connected",
+          "title": "When a device is connected"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        }
+      ],
+      "default": "low"
     }
   ],
   "store": {
@@ -152,6 +173,22 @@
             "title": "2 low",
             "color": "red",
             "tooltip": "Bluetooth battery · Corne 8% · AirPods Pro 14%"
+          }
+        },
+        "connected": {
+          "title": "All healthy, the connected devices kept on the bar (Connected)",
+          "item": {
+            "icon": "󰂱",
+            "color": "muted",
+            "tooltip": "Bluetooth · AirPods Pro 84% · Corne 91%"
+          }
+        },
+        "always": {
+          "title": "Nothing connected, kept on the bar (Always)",
+          "item": {
+            "icon": "󰂯",
+            "color": "muted",
+            "tooltip": "No connected devices"
           }
         },
         "clear": {

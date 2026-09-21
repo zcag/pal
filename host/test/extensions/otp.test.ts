@@ -156,13 +156,27 @@ describe.skipIf(!MAC)("otp bar: latest-code", () => {
   const remove = (id: number) => { const c = new Database(db); c.run("DELETE FROM message WHERE ROWID = ?", [id]); c.run("DELETE FROM chat_message_join WHERE message_id = ?", [id]); c.close(); };
 
   test("meta: the manifest entry with a 10 s refresh and the popover's keys", () => {
-    expect(host.loaded().find((l) => l.extension === "otp")!.bar).toEqual([{ id: "latest-code", title: "Latest code", description: expect.any(String), refresh: { every: 10 }, keys: expect.any(Array), source: true }]);
+    expect(host.loaded().find((l) => l.extension === "otp")!.bar).toEqual([{ id: "latest-code", title: "Latest code", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 10 }, keys: expect.any(Array), source: true }]);
   });
 
   test("the newest code of the fixture is a minute old: hidden; open says there is none, so does a popover key", async () => {
     expect(await host.render("otp", "latest-code")).toEqual({ hidden: true });
     expect(await host.barOpen("otp", "latest-code")).toEqual({ hud: "No recent code" });
     expect(await host.barAction("otp", "latest-code", "copy", { reason: "open", compact: true })).toEqual({ keep: true, hud: "No recent code" });
+  });
+
+  test("bar_show at always: no recent code is the glyph alone, muted, the popover saying so with All codes as its key", async () => {
+    host.changeSettings("otp", { settings: { db, contacts, senders: ["spamco"], hours: 48, bar_show: "always" } });
+    try {
+      const item = await host.render("otp", "latest-code");
+      expect(item).toMatchObject({ icon: "\u{f084}", color: "muted", tooltip: "No recent code" });
+      expect(item.title).toBeUndefined();
+      const v = viewOf(item);
+      expect(texts(v)).toContain("No recent code");
+      expect(v.actions).toEqual([{ id: "open", title: "All codes", shortcut: "o" }]);
+    } finally {
+      host.changeSettings("otp", { settings: { db, contacts, senders: ["spamco"], hours: 48 } });
+    }
   });
 
   test("a code that just arrived is the title, green, with the sender in the tooltip and a refresh that lands at the minute; the popover has the digits, the sender, the countdown and the two before it; a click copies", async () => {

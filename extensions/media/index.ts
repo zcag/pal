@@ -53,7 +53,9 @@ const ARTWORK_TIMEOUT_MS = 3000;
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
 type Player = MediaPlayer & { artwork_id?: string | null };
 type Playing = NowPlaying & { stream?: boolean };
-type Settings = { bar_artwork?: boolean; exclude?: string[] };
+/** `bar_show`: `playing` is the strip's rule; `running` keeps a paused (or idle) player on it, muted; `always` keeps the glyph even with no player. */
+type BarShow = "playing" | "running" | "always";
+type Settings = { bar_artwork?: boolean; exclude?: string[]; bar_show?: BarShow };
 /** `core/media.artwork`: the cover as a data url, and its own size (square or not). */
 type Artwork = { data: string; width: number; height: number };
 type Cover = { id: string; image: string; square: boolean };
@@ -153,6 +155,9 @@ const excluded = (p: Player) => {
 };
 /** The playing player the bar and the Now row show: the first playing one that is not excluded. */
 const playingForBar = (np: { players: Player[] }) => np.players.find((p) => p.state === "playing" && !excluded(p));
+const barShow = (): BarShow => settings.get<Settings>(EXTENSION).bar_show ?? "playing";
+/** The player the strip follows: the playing one, or (`bar_show` past `playing`) the first that is not excluded, paused or idle. */
+const playerForBar = (np: { players: Player[] }) => playingForBar(np) ?? (barShow() === "playing" ? undefined : np.players.find((p) => !excluded(p)));
 
 /** The cover a player names by url, as a data url for the popover: fetched or read once per url, the last one kept. Nothing for a picture too large, unreachable or not an image. */
 let fetched: { url: string; data?: string } | undefined;
@@ -204,14 +209,18 @@ const stateOf = (p: Player, cover: string | undefined, at: number, now = Date.no
 /**
  * What the strip shows for a playing player: the track (else the app) as
  * the title and the glyph (the cover instead when `bar_artwork` is on and
- * it is square), the popover's tree (view.ts) as the menu.
+ * it is square), the popover's tree (view.ts) as the menu. A player that
+ * is not playing (there by `bar_show`) is the same, muted; no player at
+ * all is the glyph alone with the popover saying nothing plays.
  */
-export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = Date.now()): BarItem {
-  if (!p) return { hidden: true };
+export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = Date.now(), always = false): BarItem {
+  if (!p) return always ? { icon: BAR_GLYPH, color: "muted", tooltip: "Nothing playing", menu: { view: render({ canOpen: false }) } } : { hidden: true };
+  const playing = p.state === "playing";
   return {
     icon: barArtwork && c?.square ? { image: c.image } : BAR_GLYPH,
     title: (p.title ? [p.title, p.artist].filter(Boolean).join(" · ") : p.name).slice(0, 40),
-    tooltip: p.title ? `${trackText(p)} (${p.name})` : `Playing in ${p.name}`,
+    ...(playing ? {} : { color: "muted" as const }),
+    tooltip: p.title ? `${trackText(p)} (${p.name})${playing ? "" : `, ${p.state}`}` : playing ? `Playing in ${p.name}` : `${p.name}, ${p.state}`,
     menu: { view: render(stateOf(p, cover, at)) },
   };
 }
@@ -223,13 +232,13 @@ let poll: ReturnType<typeof setInterval> | undefined;
 
 const barArtwork = () => settings.get<Settings>(EXTENSION).bar_artwork === true;
 
-/** The item for the playing player, its cover fetched; the look remembered for the popover's tick. */
+/** The item for the strip's player, its cover fetched; the look remembered for the popover's tick. */
 async function playingItem(np: Playing): Promise<BarItem> {
-  const p = playingForBar(np);
+  const p = playerForBar(np);
   const c = p ? await coverOf(p) : undefined;
   const cover = p ? await popoverCover(p, c) : undefined;
   snap = { p, cover, at: Date.now() };
-  return barItem(p, c, barArtwork(), cover, snap.at);
+  return barItem(p, c, barArtwork(), cover, snap.at, barShow() === "always");
 }
 
 // ---- the popover's tick -----------------------------------------------------------
@@ -254,18 +263,19 @@ function listen() {
 }
 
 /**
- * Polls while a player was playing at the last look and the core does not
- * stream (a streaming core fires the `media` trigger itself); stops once
- * none is, and the core's own timer restarts it when one comes back.
+ * Polls while the strip had a player at the last look (playing, or paused
+ * with `bar_show` past `playing`) and the core does not stream (a
+ * streaming core fires the `media` trigger itself); stops once it has
+ * none, and the core's own timer restarts it when one comes back.
  */
 function follow(np: Playing | undefined) {
-  const p = np && playingForBar(np);
+  const p = np && playerForBar(np);
   last = signature(p);
   if (!p || np?.stream) { clearInterval(poll); poll = undefined; return; }
   poll ??= setInterval(async () => {
     let now: Playing;
     try { now = await media.nowPlaying(); } catch { return; }
-    if (signature(playingForBar(now)) === last) return;
+    if (signature(playerForBar(now)) === last) return;
     follow(now);
     playingItem(now).then((item) => bar.update(ITEM, item, EXTENSION)).catch(() => {});
   }, POLL_MS);
@@ -276,11 +286,11 @@ async function renderBar(): Promise<BarItem> {
   let np: Playing | undefined;
   try { np = await media.nowPlaying(); } catch { np = undefined; }
   follow(np);
-  return np ? playingItem(np) : barItem(undefined, undefined, false);
+  return np ? playingItem(np) : barItem(undefined, undefined, false, undefined, Date.now(), barShow() === "always");
 }
 
 async function barAction(action: string): Promise<Effect> {
-  const p = playingForBar(await media.nowPlaying());
+  const p = playerForBar(await media.nowPlaying());
   if (!p) return { keep: true, hud: "Nothing playing" };
   if (action === "refresh") return { keep: true };
   if (action === "copy") return p.title ? { copy: trackText(p) } : { keep: true, hud: "No track title" };

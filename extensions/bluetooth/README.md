@@ -61,9 +61,13 @@ row's id (the address):
 
 ## Setup
 
-Nothing to install. **Low battery alert** is the only setting; it is the
+Nothing to install. **Low battery alert** (`low_threshold`, 25) is the
 percentage at which connected, battery-reporting devices become visible on
-the bar. The palette itself always lists every paired device.
+the bar. **Bar item** (`bar_show`, `low`) says when the strip is drawn at
+all: `low` is the alert alone, `connected` keeps a muted Bluetooth glyph
+up while any device is connected, `always` keeps it up at all times; either
+way the tooltip names what is connected and the popover is the same. The
+palette itself always lists every paired device.
 
 - **macOS**: the list is `system_profiler SPBluetoothDataType -json`, the
   one unprivileged source with the device type and the battery levels
@@ -74,8 +78,8 @@ the bar. The palette itself always lists every paired device.
   adapter under `/sys/class/bluetooth`; without one `bluetoothctl` would
   hang rather than answer empty, so the palette does not ask.
 
-No settings. No permission prompt: reading the paired list and
-connecting need nothing beyond the panel on either platform.
+No permission prompt: reading the paired list and connecting need
+nothing beyond the panel on either platform.
 
 ## What it does not do
 

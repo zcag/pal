@@ -177,9 +177,9 @@ describe("slack", () => {
     expect(loaded.palettes[1]).toMatchObject({ title: "Channels", ttl: 3600, tier: "catalog", live: false });
     expect(loaded.palettes[2]).toMatchObject({ title: "Search Slack", input: true });
     expect(loaded.palettes[3]).toMatchObject({ title: "Status", live: true });
-    expect(loaded.bar).toEqual([{ id: "unreads", title: "Unreads", description: expect.any(String), refresh: { every: 120, on: ["show", "wake", "network"] }, keys: expect.any(Array), source: true }]);
+    expect(loaded.bar).toEqual([{ id: "unreads", title: "Unreads", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 120, on: ["show", "wake", "network"] }, keys: expect.any(Array), source: true }]);
     expect(loaded.bar[0].keys!.map((k) => k.keys)).toEqual(["enter", "up", "r", "m", "a", "o", "p", "cmd+shift+o", "cmd+c"]);
-    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["dm_urgent", "boolean"], ["presence", "boolean"], ["refresh", "number"]]);
+    expect(host.manifests.get("slack")!.settings!.map((s) => [s.id, s.kind])).toEqual([["auth", "select"], ["token", "secret"], ["workspace", "text"], ["statuses", "list"], ["dm_urgent", "boolean"], ["presence", "boolean"], ["refresh", "number"], ["bar_show", "select"]]);
   });
 
   test("multi: a workspace is an instance; `workspace` and the token never inherit from the default", () => {
@@ -462,6 +462,30 @@ describe("slack", () => {
       expect(v.actions[0]).toEqual({ id: "open", title: "Open Slack" });
       counts = NONE;
       expect(await host.render("slack", "unreads", { reason: "update" })).toEqual({ hidden: true, refresh: 120 });
+    });
+
+    test("bar_show: unread keeps the glyph while a channel is merely unread, always keeps it at all times; muted, no badge, the popover is inbox zero", async () => {
+      try {
+        counts = QUIET;
+        host.changeSettings("slack", { settings: { ...BASE, bar_show: "unread" } });
+        await Bun.sleep(50);
+        const quiet = await host.render("slack", "unreads", { reason: "cli" });
+        expect(quiet).toMatchObject({ icon: "\u{f04b1}", color: "muted", tooltip: "1 channel unread", refresh: 120 });
+        expect(quiet.badge).toBeUndefined();
+        expect(quiet.urgent).toBeUndefined();
+        expect(texts(checkView(viewOf(quiet)))).toEqual(expect.arrayContaining(["Inbox zero", "Nothing addressed to you; 1 channel is unread"]));
+        counts = NONE;
+        expect(await host.render("slack", "unreads", { reason: "update" })).toEqual({ hidden: true, refresh: 120 });
+        host.changeSettings("slack", { settings: { ...BASE, bar_show: "always" } });
+        await Bun.sleep(50);
+        const none = await host.render("slack", "unreads", { reason: "cli" });
+        expect(none).toMatchObject({ icon: "\u{f04b1}", color: "muted", tooltip: "Nothing unread", refresh: 120 });
+        expect(none.badge).toBeUndefined();
+        expect(texts(checkView(viewOf(none)))).toContain("Inbox zero");
+      } finally {
+        host.changeSettings("slack", { settings: BASE });
+        await Bun.sleep(50);
+      }
     });
   });
 

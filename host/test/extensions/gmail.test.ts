@@ -395,6 +395,22 @@ describe("gmail", () => {
     await host.pick(W, "inbox", "w1", "unread", { ids: ["w1", "w2"] });
   });
 
+  test("bar_show at always: nothing unread keeps the glyph and the instance's title on the strip, muted, no badge, the popover saying so", async () => {
+    await host.barAction(W, "unread", "read-all");
+    host.changeSettings(W, { settings: { token_command: join(dir, "tok-work.sh"), address: "someone@example.org", send: false, bar_show: "always" } });
+    await Bun.sleep(50);
+    try {
+      const item = await host.render(W, "unread", { reason: "update", instance: { key: W, name: P, title: "Work", isDefault: false } });
+      expect(item).toMatchObject({ icon: "\u{f01ee}", title: "Work", color: "muted", tooltip: "No unread mail in someone@example.org" });
+      expect(item.badge).toBeUndefined();
+      expect(texts(viewOf(item))).toContain("Nothing unread");
+    } finally {
+      host.changeSettings(W, { settings: { token_command: join(dir, "tok-work.sh"), address: "someone@example.org", send: false } });
+      await Bun.sleep(50);
+      await host.pick(W, "inbox", "w1", "unread", { ids: ["w1", "w2"] });
+    }
+  });
+
   test("send turned off on the personal instance hides every write at once", async () => {
     host.changeSettings(P, { settings: { token_command: join(dir, "tok-personal.sh"), send: false, signature: "Cagdas" } });
     await Bun.sleep(50);

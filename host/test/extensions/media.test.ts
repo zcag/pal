@@ -145,7 +145,7 @@ describe("media", () => {
   describe("bar: now-playing", () => {
     test("meta and render: the playing track as the title, the popover a view with the titles, the progress row, the transport and copy/open as keycaps; the core's media trigger declared", async () => {
       // `as unknown`: `BarRefresh.on` in sdk/src/protocol.ts does not list the core's `media` trigger yet; the host passes any name through.
-      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "media"] }, keys: expect.any(Array), source: true }]);
+      expect(host.loaded().find((l) => l.extension === "media")!.bar as unknown).toEqual([{ id: "now-playing", title: "Now Playing", description: expect.any(String), mocks: expect.any(Object), refresh: { every: 30, on: ["show", "wake", "media"] }, keys: expect.any(Array), source: true }]);
       const item = await host.render("media", "now-playing");
       expect(item).toMatchObject({ icon: "\uf001", title: "Blue Monday · New Order", tooltip: "New Order - Blue Monday (Spotify)" });
       const v = viewOf(item);
@@ -268,6 +268,30 @@ describe("media", () => {
       expect(await host.render("media", "now-playing")).toEqual({ hidden: true });
       expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true, hud: "Nothing playing" });
       np = { players: [spotify, music, idle], system_wide: true };
+    });
+
+    test("bar_show: running keeps a paused player on the strip, muted, and its actions reach it; always keeps the glyph with no player, the popover saying nothing plays", async () => {
+      try {
+        np = { players: [music, idle], system_wide: true };
+        host.changeSettings("media", { settings: { bar_show: "running" } });
+        const paused = await host.render("media", "now-playing");
+        expect(paused).toMatchObject({ icon: "\uf001", title: "Song 2 · Blur", color: "muted", tooltip: "Blur - Song 2 (Music), paused" });
+        expect(viewOf(paused).actions[0]).toEqual({ id: "play_pause", title: "Play", shortcut: "space" });
+        calls.length = 0;
+        expect(await host.barAction("media", "now-playing", "play_pause")).toEqual({ keep: true });
+        expect(calls).toEqual([{ player: "music", command: "play_pause" }]);
+        np = { players: [], system_wide: true };
+        expect(await host.render("media", "now-playing")).toEqual({ hidden: true });
+        host.changeSettings("media", { settings: { bar_show: "always" } });
+        const none = await host.render("media", "now-playing");
+        expect(none).toMatchObject({ icon: "\uf001", color: "muted", tooltip: "Nothing playing" });
+        expect(none.title).toBeUndefined();
+        expect(texts(viewOf(none))[0]).toBe("Nothing playing");
+        expect(await host.barAction("media", "now-playing", "next")).toEqual({ keep: true, hud: "Nothing playing" });
+      } finally {
+        host.changeSettings("media", { settings: {} });
+        np = { players: [spotify, music, idle], system_wide: true };
+      }
     });
   });
 

@@ -86,6 +86,27 @@
       "max": 3600,
       "unit": "s",
       "default": 120
+    },
+    {
+      "kind": "select",
+      "id": "bar_show",
+      "label": "Bar item",
+      "description": "When the Unreads item is drawn. The count is always what is addressed to you; the other choices keep the glyph on the strip, muted and without a badge, while a channel is merely unread or at all times.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "When something is addressed to you"
+        },
+        {
+          "id": "unread",
+          "title": "Also while a channel is unread"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        }
+      ],
+      "default": "auto"
     }
   ],
   "palettes": {
@@ -178,6 +199,32 @@
           "wake",
           "network"
         ]
+      },
+      "mocks": {
+        "mentions": {
+          "title": "Mentions and thread replies",
+          "item": { "icon": "󰒱", "badge": 3, "urgent": false, "tooltip": "2 mentions, 1 thread reply; 4 channels unread" }
+        },
+        "dm": {
+          "title": "A direct message waits",
+          "item": { "icon": "󰒱", "badge": 2, "urgent": true, "tooltip": "1 direct message, 1 mention" }
+        },
+        "one": {
+          "title": "One mention",
+          "item": { "icon": "󰒱", "badge": 1, "urgent": false, "tooltip": "1 mention" }
+        },
+        "channels": {
+          "title": "Only channels unread, kept on the bar (Bar item: unread)",
+          "item": { "icon": "󰒱", "color": "muted", "tooltip": "4 channels unread" }
+        },
+        "always": {
+          "title": "Nothing unread, kept on the bar (Always)",
+          "item": { "icon": "󰒱", "color": "muted", "tooltip": "Nothing unread" }
+        },
+        "clear": {
+          "title": "Nothing addressed to you, or signed out",
+          "item": { "hidden": true }
+        }
       },
       "keys": [
         {

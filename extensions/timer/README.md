@@ -79,13 +79,15 @@ Settings, `[extensions.timer]`:
 | `pomodoro_break` | number, minutes | `5` | The break after a round. |
 | `pomodoro_long_break` | number, minutes | `15` | The break after the last round of a cycle. |
 | `pomodoro_rounds` | number | `4` | Work rounds per cycle. |
+| `bar_show` | `running` / `always` | `running` | When the bar item is drawn: while there is a timer, or always (the glyph alone, muted, with none; its popover opens on the field to start one). |
 
 ## The bar item
 
 **Timer** shows the soonest timer's remaining time with a fill for how
 far along it is (blue, amber past two thirds, red past 90 %, muted while
 paused), the name and the count of the others as its tooltip, and a red
-alarm with the timer's name once it lands; hidden with no timer at all.
+alarm with the timer's name once it lands; hidden with no timer at all
+(unless `bar_show` keeps the glyph, muted).
 
 A click opens the popover: a card per timer, most urgent first, with the
 name and when it lands (`until 02:35 PM`; a `paused` tag; `landed 0:35

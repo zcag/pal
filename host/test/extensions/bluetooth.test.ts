@@ -96,6 +96,31 @@ describe("bluetooth", () => {
     }
   });
 
+  test("bar_show: connected keeps a muted glyph up while a device is connected, always at all times; the tooltip names what is connected and the popover is the same", async () => {
+    const original = devices;
+    try {
+      expect(await host.render("bluetooth", "battery")).toEqual({ hidden: true });
+      host.changeSettings("bluetooth", { settings: { low_threshold: 25, bar_show: "connected" } });
+      const item = await host.render("bluetooth", "battery");
+      expect(item).toMatchObject({ icon: "\u{f00b1}", color: "muted", tooltip: "Bluetooth · AirPods Pro 75% · Pebble M350s 55%", click: "open" });
+      expect(item.title).toBeUndefined();
+      expect(viewOf(item)).toMatchObject({ id: "battery", title: "Bluetooth batteries" });
+      expect(texts(viewOf(item))).toContain("AirPods Pro");
+      devices = devices.map((d) => ({ ...d, connected: false }));
+      expect(await host.render("bluetooth", "battery")).toEqual({ hidden: true });
+      host.changeSettings("bluetooth", { settings: { low_threshold: 25, bar_show: "always" } });
+      const none = await host.render("bluetooth", "battery");
+      expect(none).toMatchObject({ icon: "\u{f00af}", color: "muted", tooltip: "No connected devices", click: "open" });
+      expect(texts(viewOf(none))).toContain("No connected devices");
+      // A low battery is still the alert, whatever the setting.
+      devices = original.map((d) => d.name === "Pebble M350s" ? { ...d, battery: 12 } : d);
+      expect(await host.render("bluetooth", "battery")).toMatchObject({ icon: "\u{f0083}", title: "Pebble M350s 12%", color: "red" });
+    } finally {
+      devices = original;
+      host.changeSettings("bluetooth", { settings: { low_threshold: 25 } });
+    }
+  });
+
   test("rows in the core's order with kind glyphs, battery and the connected tag", async () => {
     const items = await list();
     expect(items.map((i) => i.id)).toEqual(devices.map((d) => d.address));

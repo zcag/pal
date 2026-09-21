@@ -55,7 +55,7 @@ describe("timer", () => {
   test("meta: the palette is live, the bar entry refreshes every 10 s and on wake", () => {
     const l = host.loaded().find((l) => l.extension === "timer")!;
     expect(l.palettes).toMatchObject([{ name: "timers", title: "Timers", live: true, input: false }]);
-    expect(l.bar).toEqual([{ id: "timer", title: "Timer", description: expect.any(String), refresh: { every: 10, on: ["wake"] }, mocks: { running: { title: "Running timer", item: expect.objectContaining({ progress: 0.58 }) }, paused: { title: "Paused timer", item: expect.objectContaining({ color: "muted" }) }, landed: { title: "Timer landed", item: expect.objectContaining({ urgent: true }) } }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }, { keys: "n", title: expect.any(String) }]), source: true }]);
+    expect(l.bar).toEqual([{ id: "timer", title: "Timer", description: expect.any(String), refresh: { every: 10, on: ["wake"] }, mocks: expect.objectContaining({ plain: { title: "A timer running", item: expect.objectContaining({ color: "blue" }) }, running: { title: "A pomodoro round running", item: expect.objectContaining({ progress: 0.58 }) }, ending: { title: expect.any(String), item: expect.objectContaining({ color: "red" }) }, paused: { title: "Paused timer", item: expect.objectContaining({ color: "muted" }) }, landed: { title: "Timer landed", item: expect.objectContaining({ urgent: true }) }, idle: { title: "No timers", item: { hidden: true } } }), keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }, { keys: "n", title: expect.any(String) }]), source: true }]);
   });
 
   test("the state directory is made on the first render; no timers is hidden, and the palette has only the New and Start Pomodoro rows", async () => {
@@ -154,6 +154,23 @@ describe("timer", () => {
   const nodes = (n: ViewNode): ViewNode[] => [n, ...(n.type === "stack" ? n.children.flatMap(nodes) : [])];
   const menuView = (item: BarItem) => (item.menu as { view: View }).view;
   const act = (action: string, values?: Record<string, string>) => host.barAction("timer", "timer", action, { reason: "open", compact: true, ...(values && { values }) });
+
+  test("bar_show at always: no timer is the glyph alone, muted, the popover open on the field to start one", async () => {
+    host.changeSettings("timer", { settings: { command: cli, dir, bar_show: "always" } });
+    try {
+      const item = await render();
+      expect(item).toMatchObject({ icon: "\u{f0954}", color: "muted", tooltip: "No timers" });
+      expect(item.title).toBeUndefined();
+      expect(item.progress).toBeUndefined();
+      const v = checkView(menuView(item));
+      expect(v).toMatchObject({ id: "timer", keys: "actions" });
+      expect(v.input).toBeDefined();
+      expect(v.actions.map((a) => a.id)).toContain("start");
+    } finally {
+      host.changeSettings("timer", { settings: { command: cli, dir } });
+    }
+    expect(await render()).toEqual({ hidden: true });
+  });
 
   test("the popover: a card per timer with the time left, a bar in the strip's colour and the ring on the first; the tree passes the check; the keys are the actions", async () => {
     put("tea", { state: "running", deadline: now() + 600 });

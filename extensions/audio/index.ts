@@ -30,8 +30,8 @@ const VOLUME_ITEM = "volume";
 /** How long the level stays up after a change, his `VOL_FLASH_SEC`. */
 const FLASH_MS = 3000;
 
-/** `[extensions.audio]`, default in pal.json. */
-type Settings = { level: "flash" | "always" | "never" };
+/** `[extensions.audio]`, defaults in pal.json. `bar_show_*`: when each strip is drawn; `always` keeps a muted glyph with nothing to say. */
+type Settings = { level: "flash" | "always" | "never"; bar_show_volume?: "auto" | "always"; bar_show_microphone?: "auto" | "muted" | "always" };
 
 let flashUntil = 0;
 let collapse: ReturnType<typeof setTimeout> | undefined;
@@ -103,7 +103,7 @@ function outputGlyph(d: AudioDevice): string {
 }
 
 function outputBar(d: AudioDevice | undefined, menu: View): BarItem {
-  if (!d) return { hidden: true };
+  if (!d) return settings.get<Settings>().bar_show_volume === "always" ? { icon: VOLUME.muted, color: "muted", icon_size: 18, icon_width: 31, tooltip: "No output device", menu: { view: menu } } : { hidden: true };
   const muted = d.muted === true;
   // The number changes only when you change it, so it is feedback rather than a
   // reading: permanently on screen it is one you stop seeing. It appears for the
@@ -128,14 +128,22 @@ async function renderVolume(): Promise<BarItem> {
   try { const st = await barState("output"); return outputBar(st.devices.find((d) => d.default), renderBar(st)); } catch { return { hidden: true }; }
 }
 
-/** Mic only interrupts the bar when it needs attention: muted or absent. */
+/**
+ * Mic only interrupts the bar when it needs attention: muted or absent.
+ * `bar_show_microphone` narrows that to muted alone, or widens it to
+ * always: a live mic is then the glyph, muted, whose click only opens
+ * the popover (the direct click restores the level, which a live mic
+ * does not want).
+ */
 async function renderMic(): Promise<BarItem> {
   try {
     const st = await barState("input");
     const d = st.devices.find((x) => x.default);
-    if (!d) return { icon: MIC_OFF, color: "red", tooltip: "No input device", click: "open", menu: { view: renderBar(st) } };
-    if (!d.muted) return { hidden: true };
-    return { icon: MIC_MUTED, color: "red", tooltip: `${d.name}, muted`, click: "open", menu: { view: renderBar(st) } };
+    const show = settings.get<Settings>().bar_show_microphone ?? "auto";
+    const menu = { view: renderBar(st) };
+    if (!d) return show === "muted" ? { hidden: true } : { icon: MIC_OFF, color: "red", tooltip: "No input device", click: "open", menu };
+    if (!d.muted) return show === "always" ? { icon: MIC, color: "muted", tooltip: `${d.name}${d.volume === null ? "" : ` · ${d.volume}%`}`, menu } : { hidden: true };
+    return { icon: MIC_MUTED, color: "red", tooltip: `${d.name}, muted`, click: "open", menu };
   } catch { return { hidden: true }; }
 }
 

@@ -142,6 +142,7 @@ comment in tela, `m` marks it read, `a` marks them all, `o` opens tela,
 | `token` | secret | (none) | A personal access token from Settings, API Keys. |
 | `default_space` | text | (none) | The space New tela page offers first: name, slug or id. |
 | `research` | boolean | `true` | Show Ask tela. |
+| `bar_show` | `auto` / `always` | `auto` | When the bar item is drawn: with an unread mention or reply, or always (the glyph alone, muted, with none). |
 
 For the tests, `PAL_TELA_URL` and `PAL_TELA_TOKEN` replace the two
 settings; `host/test/extensions/tela-mock.ts` is a mock instance the tests

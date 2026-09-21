@@ -38,6 +38,27 @@
       "default": true
     },
     {
+      "kind": "select",
+      "id": "bar_show",
+      "label": "Bar item",
+      "description": "When the Spotify item is drawn. Paused keeps a loaded track on the strip, muted; Always keeps the glyph with nothing at all, its popover still offering play, sign in and the devices.",
+      "options": [
+        {
+          "id": "playing",
+          "title": "While something plays"
+        },
+        {
+          "id": "paused",
+          "title": "While a track is loaded, paused too"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        }
+      ],
+      "default": "playing"
+    },
+    {
       "kind": "list",
       "id": "pinned",
       "label": "Pinned playlists",
@@ -284,6 +305,23 @@
             "icon": "󰓇",
             "title": "Weird Fishes/ Arpeggi · Radiohead",
             "tooltip": "Radiohead - Weird Fishes/ Arpeggi (hornet)"
+          }
+        },
+        "held": {
+          "title": "Paused, kept on the bar (While a track is loaded)",
+          "item": {
+            "icon": "󰓇",
+            "title": "Weird Fishes/ Arpeggi · Radiohead",
+            "color": "muted",
+            "tooltip": "Radiohead - Weird Fishes/ Arpeggi, paused"
+          }
+        },
+        "always": {
+          "title": "Nothing playing, kept on the bar (Always)",
+          "item": {
+            "icon": "󰓇",
+            "color": "muted",
+            "tooltip": "Nothing playing"
           }
         },
         "paused": {

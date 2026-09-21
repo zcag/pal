@@ -35,7 +35,8 @@ import { KEY as POMODORO_KEY, STATS_KEY, asSession, dayOf, describe, minutesOf, 
 import { DEFAULT_RECENT, MAX_RECENT, current, fmt, render, secsLeft as leftAt, type PopoverState, type State, type Timer } from "./view.ts";
 
 export { fmt };
-type Settings = { command: string; dir: string } & Config;
+/** `bar_show`: `running` is the strip's rule (a timer of any state); `always` keeps the glyph, muted, with none, its popover the field to start one. */
+type Settings = { command: string; dir: string; bar_show?: "running" | "always" } & Config;
 
 const EXTENSION = "timer", ITEM = "timer", PALETTE = "timers";
 /** nf-md-timer, drawn from the bundled Nerd Font; nf-md-plus for the New row, nf-md-alert for a missing CLI. */
@@ -236,9 +237,9 @@ export function popoverState(ts: Timer[]): PopoverState {
 
 export function barItem(ts: Timer[]): BarItem {
   const t = ts[0];
-  if (!t) return { hidden: true };
-  const more = ts.length > 1 ? ` (+${ts.length - 1} more)` : "";
   const menu = { view: render(popoverState(ts)) };
+  if (!t) return conf().bar_show === "always" ? { icon: GLYPH, color: "muted", tooltip: "No timers", menu } : { hidden: true };
+  const more = ts.length > 1 ? ` (+${ts.length - 1} more)` : "";
   if (t.state === "done") return { icon: GLYPH, title: (t.auto ? "Done" : t.name).slice(0, 24), urgent: true, progress: 1, tooltip: `${t.name} landed ${fmt(now() - t.fired)} ago${more}`, menu };
   const left = secsLeft(t);
   const pct = t.total > 0 ? Math.min(1, Math.max(0, (t.total - left) / t.total)) : 0;

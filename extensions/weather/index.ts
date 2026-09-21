@@ -4,7 +4,8 @@
 import { errorMessage, hint, settings, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 import { fmt, fold, label, placeLabel, render as renderPopover, type Current, type Place, type Reading } from "./view.ts";
 
-type Settings = { location: string; low: number; high: number; notable_conditions: unknown[] };
+/** `bar_show`: `notable` is the strip's rule; `always` draws the reading in ordinary weather too, muted, so the forecast stays a click away. */
+type Settings = { location: string; low: number; high: number; notable_conditions: unknown[]; bar_show?: "notable" | "always" };
 const GEOCODE = () => process.env.PAL_WEATHER_GEOCODE ?? "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST = () => process.env.PAL_WEATHER_FORECAST ?? "https://api.open-meteo.com/v1/forecast";
 const placeCache = new Map<string, Place>();
@@ -71,7 +72,13 @@ function tint(r: Reading): "muted" | "amber" | "blue" | "teal" | "red" {
   const s = settings.get<Settings>(); if (r.current.temperature_2m < (Number(s.low) || 10)) return "blue"; if (r.current.temperature_2m > (Number(s.high) || 30)) return "red"; return label(r)[2];
 }
 async function bar(): Promise<BarItem> {
-  try { const r = await read(); if (!r || !isNotable(r)) return { hidden: true }; const [condition, glyph] = label(r); return { icon: glyph, title: `${fmt(r.current.temperature_2m)}${r.unit}`, color: tint(r), tooltip: `${condition} in ${r.place.name}`, menu: { view: renderPopover(r) } }; }
+  try {
+    const r = await read(); if (!r) return { hidden: true };
+    const notable = isNotable(r);
+    if (!notable && settings.get<Settings>().bar_show !== "always") return { hidden: true };
+    const [condition, glyph] = label(r);
+    return { icon: glyph, title: `${fmt(r.current.temperature_2m)}${r.unit}`, color: notable ? tint(r) : "muted", tooltip: `${condition} in ${r.place.name}`, menu: { view: renderPopover(r) } };
+  }
   catch (e) { const message = errorMessage(e); return { icon: "󰖪", title: "Weather", color: "red", stale: true, tooltip: message }; }
 }
 async function rows(): Promise<Item[]> {

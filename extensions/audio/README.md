@@ -48,15 +48,20 @@ Audio palette for the searchable list. A device the backend reports no level for
 **Microphone** stays out of the way while the default input is usable; it appears
 red when that input is muted or absent, and a click restores an available input
 to 75%. Its popover is the same shape the other way round: the microphone in use
-on the card, the other inputs as rows, the output in the line beneath. Both poll
-every five seconds until the core has a native audio-change event. Their Bar
-settings offer representative mock states.
+on the card, the other inputs as rows, the output in the line beneath.
+`bar_show_microphone` narrows that to muted alone (a missing input stays
+quiet) or keeps the strip up always, the live microphone as a muted glyph
+whose click opens the popover. Both poll every five seconds until the core
+has a native audio-change event. Their Bar settings offer representative
+mock states.
 
 Settings, `[extensions.audio]`:
 
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `level` | select | `flash` | Where the percentage lives: `flash` for three seconds after a change, `always`, or `never`. |
+| `bar_show_volume` | `auto` / `always` | `auto` | When the Volume strip is drawn: with an output device in use, or always (a muted glyph without one). |
+| `bar_show_microphone` | `auto` / `muted` / `always` | `auto` | When the Microphone strip is drawn: muted or missing, muted only, or always (a live mic is the glyph alone, muted, its click opening the popover). |
 
 ## Rows
 

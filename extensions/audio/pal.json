@@ -33,6 +33,44 @@
         }
       ],
       "default": "flash"
+    },
+    {
+      "kind": "select",
+      "id": "bar_show_volume",
+      "label": "Volume on the bar",
+      "description": "When the Volume strip is drawn. It leaves the bar only when no output device is in use; Always keeps a muted glyph there even then.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "When an output device is in use"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        }
+      ],
+      "default": "auto"
+    },
+    {
+      "kind": "select",
+      "id": "bar_show_microphone",
+      "label": "Microphone on the bar",
+      "description": "When the Microphone strip is drawn. By default it interrupts only when the input is muted or missing; Muted leaves a missing input quiet; Always keeps the strip up, a live microphone as a muted glyph whose click opens the popover instead of restoring the level.",
+      "options": [
+        {
+          "id": "auto",
+          "title": "When the microphone is muted or missing"
+        },
+        {
+          "id": "muted",
+          "title": "When the microphone is muted"
+        },
+        {
+          "id": "always",
+          "title": "Always"
+        }
+      ],
+      "default": "auto"
     }
   ],
   "store": {
@@ -211,6 +249,22 @@
             "icon_width": 31,
             "tooltip": "MacBook Pro Speakers, muted"
           }
+        },
+        "always": {
+          "title": "No output device, kept on the bar (Always)",
+          "item": {
+            "icon": "󰝟",
+            "color": "muted",
+            "icon_size": 18,
+            "icon_width": 31,
+            "tooltip": "No output device"
+          }
+        },
+        "missing": {
+          "title": "No output device, or no audio backend",
+          "item": {
+            "hidden": true
+          }
         }
       }
     },
@@ -264,6 +318,14 @@
             "icon": "󰍮",
             "color": "red",
             "tooltip": "No input device"
+          }
+        },
+        "live": {
+          "title": "Live microphone, kept on the bar (Always)",
+          "item": {
+            "icon": "󰍬",
+            "color": "muted",
+            "tooltip": "MacBook Pro Microphone · 75%"
           }
         },
         "normal": {

@@ -117,6 +117,24 @@ describe("weather", () => {
     expect(await host.render("weather", "weather")).toMatchObject({ color: "red", stale: true, tooltip: "No place named “Nowhereville”" });
   });
 
+  test("bar_show at always: ordinary weather is the reading too, muted; notable weather keeps its colour", async () => {
+    const quiet = { ...forecastWithOutlook, current: { ...forecastWithOutlook.current, temperature_2m: 21, weather_code: 1 } };
+    try {
+      forecast = quiet;
+      host.changeSettings("weather", configured("Istanbul, Turkey"));
+      expect(await host.render("weather", "weather")).toEqual({ hidden: true });
+      host.changeSettings("weather", { settings: { ...configured("Istanbul, Turkey").settings, bar_show: "always" } });
+      const item = await host.render("weather", "weather");
+      expect(item).toMatchObject({ icon: "󰖕", title: "21°C", color: "muted", tooltip: "Mostly clear in Istanbul" });
+      expect(viewOf(item).title).toBe("Istanbul, Republic of Türkiye");
+      forecast = forecastWithOutlook;
+      expect(await host.render("weather", "weather")).toMatchObject({ icon: "󰖗", title: "14°C", color: "blue", tooltip: "Rain in Istanbul" });
+    } finally {
+      forecast = forecastWithOutlook;
+      host.changeSettings("weather", configured("Istanbul, Turkey"));
+    }
+  });
+
   test("an empty location stays quiet and the manifest provides settings previews", async () => {
     host.changeSettings("weather", configured(""));
     expect(await host.render("weather", "weather")).toEqual({ hidden: true });

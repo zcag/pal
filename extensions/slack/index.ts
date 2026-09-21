@@ -358,7 +358,12 @@ async function unreadsItem(ctx: BarCtx): Promise<BarItem> {
   }
   const attn = i.dm + i.mention + i.thread;
   const refresh = refreshSecs();
-  if (attn === 0) return { hidden: true, refresh };
+  if (attn === 0) {
+    // The count is what is addressed to you; `bar_show` can keep the glyph for channels that are merely unread (`unread`) or at all times (`always`), muted and without a badge.
+    const show = conf().bar_show;
+    if (show === "always" || (show === "unread" && i.channels > 0)) return { icon: ICON.slack, color: "muted", tooltip: i.channels ? `${plural(i.channels, "channel")} unread` : "Nothing unread", refresh, menu: { view: renderBar(await barState(i)) } };
+    return { hidden: true, refresh };
+  }
   const parts = [i.dm ? plural(i.dm, "direct message") : "", i.mention ? plural(i.mention, "mention") : "", i.thread ? plural(i.thread, "thread reply", "thread replies") : ""].filter(Boolean);
   return {
     icon: ICON.slack,

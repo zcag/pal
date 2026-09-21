@@ -337,7 +337,7 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   const parts = [direct ? plural(direct, "direct message") : "", groups ? plural(groups, "group") : ""].filter(Boolean);
   return {
     icon: ICON.whatsapp,
-    ...(unread.length && { badge: unread.length }),
+    ...(unread.length ? { badge: unread.length } : { color: "muted" as const }),
     urgent: conf().dm_urgent !== false && direct > 0,
     tooltip: unread.length ? `${plural(unread.length, "chat")} unread: ${parts.join(", ")}` : "Nothing unread",
     menu: { view: renderBar(await barState(list)) },

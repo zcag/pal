@@ -33,7 +33,7 @@ import { EXTENSION, ITEM, NotSignedIn, conf, log, signIn, signOut, signedIn, sto
 import { ApiError, Offline, RateLimited, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
 import { tintOf, type Tint } from "./color.ts";
 import { cachedLyrics, currentLine, lyricsFor, searchUrl, type Lyrics } from "./lyrics.ts";
-import { QUEUE_ROWS, clock, render, type Layout, type NowState, type QueueTrack, type Status } from "./view.ts";
+import { QUEUE_ROWS, STATUS_TEXT, clock, render, type Layout, type NowState, type QueueTrack, type Status } from "./view.ts";
 
 /** Nerd Font glyphs (nf-md-*, nf-fa-spotify for the bar). */
 const G = {
@@ -324,10 +324,20 @@ let viewOpen = false;
 /** The wide tree last pushed, serialised: the next tick pushes only a different one. */
 let lastPushed: string | undefined;
 
-/** The strip and the popover for the state: hidden unless something plays. */
+/**
+ * The strip and the popover for the state: hidden unless something plays,
+ * or, by `bar_show`, the track muted while paused (`paused`) or the glyph
+ * alone with nothing at all (`always`); the popover is the same view, so
+ * play, sign in and the devices stay a click away.
+ */
 function barItem(l: Live, st: NowState): BarItem {
   const p = l.player, t = p?.track;
-  if (!p || !t || !p.playing) return { hidden: true };
+  if (!p || !t || !p.playing) {
+    const show = conf().bar_show ?? "playing";
+    if (show === "playing" || (show === "paused" && !t)) return { hidden: true };
+    const tooltip = t ? `${trackText(t)}, paused` : STATUS_TEXT[st.status?.kind ?? "nothing"][0];
+    return { icon: G.spotify, ...(t && { title: `${t.name} · ${t.artist}`.slice(0, 64) }), color: "muted", tooltip, scroll: { up: "next", down: "previous" }, menu: { view: render(st) } };
+  }
   const synced = st.lyrics?.synced;
   const line = synced?.length && conf().bar_lyrics !== false ? currentLine(synced, st.position) : undefined;
   const title = (line ?? `${t.name} · ${t.artist}`).slice(0, 64);
@@ -390,10 +400,16 @@ function followLyricsWhenReady(l: Live, st: NowState) {
   }).catch(() => {}).finally(() => lyricLookup.delete(t.id));
 }
 
+/** The item while nothing plays: hidden by default; with `bar_show` past `playing` the state is fetched (a paused track wants its cover) and drawn by `barItem`. */
+async function quietItem(l: Live): Promise<BarItem> {
+  if ((conf().bar_show ?? "playing") === "playing") return { hidden: true };
+  return barItem(l, l.player?.track ? await fullState(l, "compact", 400) : stateOf(l, "compact"));
+}
+
 async function renderBar(ctx: BarCtx): Promise<BarItem> {
   // The timer reads the clock; a `keep` after an action (`update`) takes the patched state; anything else (a show, a wake, the media trigger) asks the API afresh.
   const l = await readLive(ctx.reason === "every" ? SYNC_MS : 0, ctx.reason !== "update" && ctx.reason !== "every");
-  if (!l.player?.playing) { stopTick(); stopLyricTick(); return { hidden: true }; }
+  if (!l.player?.playing) { stopTick(); stopLyricTick(); return quietItem(l); }
   const st = await fullState(l, "compact", ctx.reason === "load" ? FIRST_PAINT_MS : 400);
   followLyricsWhenReady(l, st);
   return barItem(l, st);
@@ -410,7 +426,7 @@ function startTick() {
     try {
       const l = await readLive(SYNC_MS);
       if (popover) {
-        if (!l.player?.playing) { tickUntil = 0; stopLyricTick(); await bar.update(ITEM, { hidden: true }, EXTENSION); }
+        if (!l.player?.playing) { tickUntil = 0; stopLyricTick(); await bar.update(ITEM, await quietItem(l), EXTENSION); }
         else {
           const st = await fullState(l, "compact", 200);
           followLyrics(l, st);
