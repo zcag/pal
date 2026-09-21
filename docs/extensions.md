@@ -1281,6 +1281,14 @@ to the core.
   Playing as the `system` player on macOS (a title-less player with a
   state is one that reports no track, Chrome for one), `playerctl` on
   Linux.
+- Keycast, through the raw bridge (no typed wrapper; the bundled
+  `keycast` extension is its one caller): `core.call("keycast.status")`
+  answers `{ available, reason?, active, mode, input_monitoring,
+  settings }`, `core.call("keycast.start", { mode? })`, `"keycast.stop"`
+  and `"keycast.toggle", { mode? }` (`keys`, `cursor`, `both`) drive the
+  overlay (`app/src-tauri/src/keycast.rs`) and answer the same status.
+  The shell publishes `keycast/active` and `keycast/mode` as states.
+  Off macOS `available` is false and `start` rejects with the reason.
 
 ### Shared helpers
 

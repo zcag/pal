@@ -1290,3 +1290,93 @@ drivable from the UI": nothing may exist only as a config line.
   Bluetooth/Location prompt from `permissions.request`), so the panel
   resigns and hides mid-hold. A daily profile answered those long ago; a
   first-run pal should defer such prompts until the panel is down.
+
+## Decided: keycast (2026-09-22)
+
+A keystroke and cursor visualiser for recordings and screen shares
+(KeyCastr, Keyviz, Raycast's keystroke overlays as the references), built
+as an extension whose rows drive a core capability plus an overlay
+window in the app.
+
+- **One key monitor for the whole app** (`app/src-tauri/src/keytap.rs`).
+  Expansion's `NSEvent` global monitor was the only tap pal had for other
+  apps' keys; it is now a shared source with a pure, tested registry:
+  each subscriber says what it wants (`Wants { keys, clicks, moves }`),
+  the monitor's mask is the union, it is installed with the first
+  subscriber, re-made when the union moves and removed with the last, so
+  expansion and keycast on together cost one monitor. Every `Event`
+  carries the key code, `characters` and `charactersIgnoringModifiers`,
+  the modifiers as `pal_core::keycast::Mods`, the front app (keys only)
+  and `secure` (`IsSecureEventInputEnabled`), read once; handlers run on
+  the main thread inside the block. Expansion's `monitor` module went;
+  its `classify` now reads an `Event` and its test moved with it.
+- **The pure part is the core** (`core/src/keycast.rs`): `caps` (the
+  glyphs in macOS's order then the key: a named key by virtual key code,
+  a typed key as what it typed, inside a combo the key's own face so
+  `⌘⇧S` reads as the shortcut; shift shows only inside a combo or on a
+  named key), `click_caps` (a click with modifiers, the one kind the
+  strip shows), and `Feed` (a repeat of the newest entry within the hold
+  bumps its count and time, `max` entries, `prune` by hold). Seven tests.
+- **The shell** (`app/src-tauri/src/keycast.rs`): `core/keycast.{status,
+  start, stop, toggle}` over the bridge; the state (on, mode, the feed)
+  behind one mutex never held across a main-thread hop; the overlay
+  window made in code like the popover, an NSPanel like the HUD's
+  (never key, mouse ignored, all Spaces, status level, alpha 0 when off),
+  sized to the whole display under the cursor and moved when the cursor
+  crosses to another (checked on every key and click, every 250 ms on
+  moves); the page gets the feed after every key, the cursor at most
+  every 20 ms, every click, and the display's work-area insets so the
+  strip clears the Dock and the menu bar, all in window CSS pixels
+  (`cursor_position` less the window's origin over its scale). Settings
+  are the extension's manifest compiled in, read the way expansion reads
+  snippets' (`Settings::from`, re-read on every config reload). Whether
+  it is on is runtime state, not config; the shell publishes
+  `keycast/active` and `keycast/mode` (off the calling thread, as the
+  built-ins are) and the bar item re-renders on `state:keycast/active`.
+  Start asks for Input Monitoring once (`request_once`, as expansion).
+  Hard rules kept: nothing while `secure`, nothing typed into pal itself
+  (a global monitor never sees the active app), `shortcuts_only` drops
+  plain typing (a combo, or a function or navigation key, passes; shift
+  alone is typing). Linux: `SUPPORTED` is false, the window is never
+  made, `status` says `available: false` with the reason and `start`
+  rejects; no X11 backend exists to build on, so nothing is faked.
+- **The page** (`app/src/KeycastPage.tsx`, `keycast.ts`, `keycast.css`):
+  a reducer over the payloads (tested: off clears what is drawn and
+  keeps the settings, a click ripples only while the setting is on, a
+  storm keeps the newest twelve), the strip in a HUD capsule with the
+  panel's own `.pal-kbd` caps at 36 px, a repeat remounting its entry
+  (the key carries the count) so it pops again and its fade clock
+  restarts, the fade a CSS animation delayed by `hold` and the DOM pruned
+  every 250 ms; the ring rides the cursor through a 40 ms transform
+  transition and shrinks while a button is down; a ripple is a disc in
+  the ring's colour for the left button, a hollow amber ring for the
+  right, grey for the middle, gone on `animationend`. The strip's five
+  corners are `data-position` rules with the scale's origin at the
+  anchor; the newest entry is nearest the anchored edge.
+- **The extension** (`extensions/keycast/`): a live palette (Start / Stop
+  flipping, the three modes with `current` and `default` tags, Shortcuts
+  only through `settings.set`, the Input Monitoring row asking on Enter,
+  one honest row off macOS), Start and Stop answering `{ hud }` so the
+  panel is never in the recording, the Stop row in the root's Now
+  section while on; `pal://keycast/{toggle,start,stop}?mode=`; the bar
+  item `active` (a red dot with the mode, a rule `on` for the colour,
+  hidden with an `empty` shape, four `mocks`), its popover the three
+  modes as tiles with the ring on the one on, the shortcuts-only switch
+  and the hints (`view.ts`, pure). Thirteen host tests against an
+  in-memory shell. The Overview's Input Monitoring row shows while
+  keycast is on (`settings_get` carries `keycast`).
+- **Not built, on purpose**: held modifiers shown before the key
+  (`FlagsChanged`), a per-key filter list, entry and exit animation
+  presets, a second window for the strip alone (one full-screen
+  pass-through window serves both modes; keys-only pays for a
+  transparent full-screen layer it barely draws into). X11 capture on
+  Linux waits for a key backend.
+- **Verified**: `cargo clippy --workspace --all-targets -D warnings` and
+  `cargo test --workspace` clean (core 7, app 4 new, expansion's 5
+  still), `tsc` and `vitest` (8 new) in the app, `tsc` and `bun test`
+  in the host (13 new, 1306 pass). The overlay itself was not seen in a
+  running instance from this lane (no scratch build was run); the
+  window arrangement is the HUD's line for line, the placement maths
+  and the page are covered by tests, and the first live run should
+  check the ring's offset on a Retina display and the strip's clearance
+  of the Dock.
