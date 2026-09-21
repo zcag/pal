@@ -1,7 +1,7 @@
 {
   "name": "spotify",
   "title": "Spotify",
-  "description": "Search, play, queue and like on Spotify from the panel, with a lyrics view that follows the song and a bar item that shows the line playing.",
+  "description": "Search, play, queue, like and add to a playlist on Spotify from the panel, with a lyrics view that follows the song and a bar item that shows the line playing.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -41,7 +41,7 @@
       "kind": "select",
       "id": "bar_show",
       "label": "Bar item",
-      "description": "When the Spotify item is drawn. Paused keeps a loaded track on the strip, muted; Always keeps the glyph with nothing at all, its popover still offering play, sign in and the devices.",
+      "description": "When the Spotify item is drawn. Paused keeps a loaded track on the strip, muted.",
       "options": [
         {
           "id": "playing",
@@ -50,10 +50,6 @@
         {
           "id": "paused",
           "title": "While a track is loaded, paused too"
-        },
-        {
-          "id": "always",
-          "title": "Always"
         }
       ],
       "default": "playing"
@@ -142,6 +138,10 @@
           "title": "Like or unlike a track"
         },
         {
+          "keys": "cmd+p",
+          "title": "Add a track to the playlist picked in the bar's field"
+        },
+        {
           "keys": "cmd+s",
           "title": "Play a playlist shuffled"
         },
@@ -178,6 +178,10 @@
           "title": "Like or unlike a track of a listed playlist"
         },
         {
+          "keys": "cmd+p",
+          "title": "Add a listed track to the playlist picked in the bar's field"
+        },
+        {
           "keys": "cmd+o",
           "title": "Open in Spotify"
         },
@@ -209,6 +213,10 @@
         {
           "keys": "cmd+l",
           "title": "Like or unlike"
+        },
+        {
+          "keys": "cmd+p",
+          "title": "Add to the playlist picked in the bar's field"
         },
         {
           "keys": "cmd+o",
@@ -253,6 +261,10 @@
         {
           "keys": "cmd+l",
           "title": "Like or unlike"
+        },
+        {
+          "keys": "cmd+p",
+          "title": "Add to the playlist picked in the bar's field"
         },
         {
           "keys": "cmd+o",
@@ -316,18 +328,11 @@
             "tooltip": "Radiohead - Weird Fishes/ Arpeggi, paused"
           }
         },
-        "always": {
-          "title": "Nothing playing, kept on the bar (Always)",
-          "item": {
-            "icon": "󰓇",
-            "color": "muted",
-            "tooltip": "Nothing playing"
-          }
-        },
         "paused": {
           "title": "Paused or nothing playing",
           "item": {
-            "hidden": true
+            "hidden": true,
+            "empty": { "icon": "󰓇", "tooltip": "Nothing playing" }
           }
         }
       },
@@ -406,7 +411,7 @@
     "category": "media",
     "features": [
       "Signs in to your own Spotify app with PKCE: no secret, the refresh token kept by pal",
-      "Search as you type: tracks, artists, albums, playlists, podcasts and episodes in sections with their cover art; Enter plays, cmd+enter queues, cmd+l likes, cmd+o opens in Spotify",
+      "Search as you type: tracks, artists, albums, playlists, podcasts and episodes in sections with their cover art; Enter plays, cmd+enter queues, cmd+l likes, cmd+p adds to the playlist picked in the bar, cmd+o opens in Spotify",
       "Playlists (yours and followed, with a drill-in per playlist), Library (Liked Songs, recently played, top tracks and artists), Devices (transfer, volume steps or a level typed in the bar) and the Queue (skip to a row)",
       "A lyrics view: the cover, a ticking progress bar, shuffle, repeat and like, and lrclib's synced lyrics around the line playing, the cover's colour as a tint; space, arrows, l, s, r, q, d",
       "Root rows for play or pause, next, previous, like, and \"Play <playlist>\" for each pinned playlist",
@@ -495,6 +500,11 @@
         "title": "Like",
         "description": "Adds to or removes from Liked Songs.",
         "keys": "cmd+l"
+      },
+      {
+        "title": "Add to playlist",
+        "description": "On any track row: the playlist (yours or a collaborative one) picked in the bar's field; a form with the same select from a hotkey.",
+        "keys": "cmd+p"
       },
       {
         "title": "Open in Spotify",

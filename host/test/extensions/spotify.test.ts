@@ -3,9 +3,10 @@
 // checking S256 of the verifier against the challenge the authorize url
 // carried) and lrclib.net (`PAL_LRCLIB`). The sign-in flow end to end
 // through the extension's loopback listener, the token refresh on a 401,
-// a 429 honoured, search sectioning, playlists and the drill-in, the
-// library filters, devices, the queue, the root commands, the lyrics view
-// and its keys, and the bar item with its popover ticking.
+// a 429 honoured, search sectioning, playlists and the drill-in, a track
+// added to one from the bar's select, the library filters, devices, the
+// queue, the root commands, the lyrics view and its keys, and the bar item
+// with its popover ticking.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { encode } from "../../../extensions/spotify/node_modules/jpeg-js/index.js";
 import { challenge } from "../../../extensions/spotify/auth.ts";
@@ -51,6 +52,7 @@ const api = Bun.serve({
       return json({ tracks: { items: [WEIRD, NUDE] }, artists: { items: [ARTIST] }, albums: { items: [ALBUM] }, playlists: { items: [PLAYLISTS[0], null] }, shows: { items: [SHOW] }, episodes: { items: [EPISODE] } });
     }
     if (p === "/v1/me/playlists") return json({ items: PLAYLISTS, next: null });
+    if (/^\/v1\/playlists\/[^/]+\/tracks$/.test(p) && req.method === "POST") return state.forbid ? spotifyError(403, "Insufficient client scope") : json({ snapshot_id: "snap" }, { status: 201 });
     if (p === "/v1/playlists/p1/tracks") return json({ items: [{ added_at: "2026-09-01T00:00:00Z", track: NUDE }, { added_at: "2026-09-02T00:00:00Z", track: RECKONER }, { track: null }], next: null });
     if (p === "/v1/albums/al1") return json({ ...ALBUM, tracks: { items: [{ id: "t1", uri: "spotify:track:t1", type: "track", name: "Weird Fishes/ Arpeggi", duration_ms: 318_000, artists: [{ name: "Radiohead" }] }] } });
     if (p === "/v1/me/tracks" && req.method === "GET") return json({ items: [{ added_at: "2026-09-10T10:00:00Z", track: NUDE }, { added_at: "2026-08-01T10:00:00Z", track: BLUE }], next: null });
@@ -79,6 +81,7 @@ const ALBUM = { id: "al1", uri: "spotify:album:al1", name: "In Rainbows", type: 
 const PLAYLISTS = [
   { id: "p1", uri: "spotify:playlist:p1", name: "Focus", owner: { id: "zcag", display_name: "Cagdas" }, tracks: { total: 42 }, images: img("focus"), description: "Deep work", collaborative: false, external_urls: { spotify: "https://open.spotify.com/playlist/p1" } },
   { id: "p2", uri: "spotify:playlist:p2", name: "Discover Weekly", owner: { id: "spotify", display_name: "Spotify" }, tracks: { total: 30 }, images: img("discover"), description: "", collaborative: false, external_urls: { spotify: "https://open.spotify.com/playlist/p2" } },
+  { id: "p3", uri: "spotify:playlist:p3", name: "Road Trip", owner: { id: "ayse", display_name: "Ayse" }, tracks: { total: 12 }, images: [], description: "", collaborative: true, external_urls: { spotify: "https://open.spotify.com/playlist/p3" } },
 ];
 const SHOW = { id: "s1", uri: "spotify:show:s1", name: "Conan O'Brien Needs A Friend", type: "show", publisher: "Team Coco", images: img("conan"), external_urls: { spotify: "https://open.spotify.com/show/s1" } };
 const EPISODE = { id: "e1", uri: "spotify:episode:e1", name: "Taylor Tomlinson", type: "episode", duration_ms: 3_963_000, images: img("conan"), external_urls: { spotify: "https://open.spotify.com/episode/e1" } };
@@ -97,7 +100,7 @@ const COVERS: Record<string, Uint8Array> = { inrainbows: jpeg([230, 120, 20]), p
 type Seen = { method: string; path: string; body?: any; auth?: string | null };
 const seen: Seen[] = [];
 const calls = (method: string, prefix: string) => seen.filter((s) => s.method === method && s.path.startsWith(prefix));
-let state: { player: any | null; access: string; refresh: string; limit: number; queue: any[]; liked: Set<string>; challenge?: string; issued: number; advanceFrom?: number } = { player: null, access: "access-1", refresh: "refresh-1", limit: 0, queue: [], liked: new Set(["t2"]), issued: 0 };
+let state: { player: any | null; access: string; refresh: string; limit: number; queue: any[]; liked: Set<string>; challenge?: string; issued: number; advanceFrom?: number; forbid?: boolean } = { player: null, access: "access-1", refresh: "refresh-1", limit: 0, queue: [], liked: new Set(["t2"]), issued: 0 };
 const json = (data: unknown, init: ResponseInit = {}) => Response.json(data, init);
 const spotifyError = (status: number, message: string, reason?: string) => json({ error: { status, message, reason } }, { status });
 
@@ -180,7 +183,7 @@ describe("spotify", () => {
     expect(l.palettes.find((m) => m.name === "now-playing")).toMatchObject({ title: "Lyrics", suggest: true });
     expect(l.bar).toEqual([expect.objectContaining({
       id: "playing", title: "Spotify", description: expect.any(String), refresh: { every: 30, on: ["show", "wake", "network", "media" as never] }, keys: expect.arrayContaining([{ keys: "space", title: expect.any(String) }]), source: true,
-      mocks: expect.objectContaining({ lyrics: expect.objectContaining({ title: "Synced lyric line" }), track: expect.objectContaining({ title: "No synced lyrics" }), paused: expect.objectContaining({ item: { hidden: true } }) }),
+      mocks: expect.objectContaining({ lyrics: expect.objectContaining({ title: "Synced lyric line" }), track: expect.objectContaining({ title: "No synced lyrics" }), paused: expect.objectContaining({ item: { hidden: true, empty: { icon: "\u{f04c7}", tooltip: "Nothing playing" } } }) }),
     })]);
     expect(host.manifests.get("spotify")!.settings!.map((s) => [s.id, s.kind])).toEqual([["client_id", "text"], ["redirect_port", "number"], ["bar_lyrics", "boolean"], ["bar_show", "select"], ["pinned", "list"]]);
   });
@@ -194,7 +197,8 @@ describe("spotify", () => {
       const v = await host.request<any>("view", { extension: "spotify", palette: "now-playing" });
       expect(v.actions[0]).toMatchObject({ id: "signin" });
       expect(texts(v.tree)).toContain("Sign in to Spotify");
-      expect(await host.render("spotify", "playing")).toEqual({ hidden: true });
+      // Signed out: hidden, the glyph and the popover's sign-in row its empty shape (no API call for it).
+      expect(await host.render("spotify", "playing")).toMatchObject({ hidden: true, empty: { icon: "\u{f04c7}", tooltip: "Sign in to Spotify" } });
       expect(seen.filter((s) => s.path.startsWith("/v1"))).toHaveLength(0);
       // The root commands still list (they need no token); the pinned rows and Sign out do not.
       expect(ids(await list("commands"))).toEqual(["toggle", "next", "previous", "like", "lyrics"]);
@@ -232,7 +236,7 @@ describe("spotify", () => {
       seen.length = 0;
       state.access = "access-expired-on-server";
       const items = await list("playlists");
-      expect(ids(items)).toEqual(["playlist:p1", "playlist:p2"]);
+      expect(ids(items)).toEqual(["playlist:p1", "playlist:p2", "playlist:p3"]);
       const refresh = seen.find((s) => s.path === "/api/token")!;
       expect(refresh.body).toMatchObject({ grant_type: "refresh_token", refresh_token: "refresh-1", client_id: "client-abc" });
       expect(stored.get("spotify\0auth")).toMatchObject({ access: state.access, refresh: state.refresh });
@@ -276,8 +280,12 @@ describe("spotify, signed in", () => {
       expect(ids(items)).toEqual(["track:t1", "track:t2", "artist:ar1", "album:al1", "playlist:p1", "show:s1", "episode:e1"]);
       const [weird, nude, artist, album, playlist, show, episode] = items;
       expect(weird).toMatchObject({ name: "Weird Fishes/ Arpeggi", subtitle: "Radiohead · In Rainbows", icon: { image: `${apiBase()}/cover/inrainbows-64.jpg` }, accessories: [{ text: "5:18" }] });
-      expect(weird.actions!.map((a) => [a.id, a.shortcut])).toEqual([["play", undefined], ["queue", "cmd+enter"], ["like", "cmd+l"], ["open", "cmd+o"], ["copy", "cmd+c"]]);
+      expect(weird.actions!.map((a) => [a.id, a.shortcut, a.args])).toEqual([["play", undefined, undefined], ["queue", "cmd+enter", undefined], ["like", "cmd+l", undefined], ["add", "cmd+p", true], ["open", "cmd+o", undefined], ["copy", "cmd+c", undefined]]);
       expect(weird.actions![2].title).toBe("Like");
+      // The playlist select on every track row: the user's own and the collaborative one, not the followed one; fetched alongside the search, once.
+      expect(weird.args).toEqual([{ id: "playlist", placeholder: "Playlist", kind: "select", required: true, options: [{ id: "p1", title: "Focus" }, { id: "p3", title: "Road Trip" }] }]);
+      expect(episode.args).toEqual(weird.args);
+      expect(calls("GET", "/v1/me/playlists")).toHaveLength(1);
       expect(nude.actions![2].title).toBe("Unlike");
       expect(artist).toMatchObject({ name: "Radiohead", subtitle: "art rock, alternative", accessories: [{ text: "12.3M followers" }] });
       expect(album).toMatchObject({ subtitle: "Radiohead · 2007", accessories: [{ text: "10 tracks" }] });
@@ -285,7 +293,7 @@ describe("spotify, signed in", () => {
       expect(playlist).toMatchObject({ name: "Focus", subtitle: "Cagdas · Deep work", accessories: [{ text: "42 tracks" }] });
       expect(playlist.actions!.map((a) => a.id)).toEqual(["play", "tracks", "shuffle", "open", "copy"]);
       expect(show).toMatchObject({ name: "Conan O'Brien Needs A Friend", subtitle: "Team Coco" });
-      expect(episode.actions!.map((a) => a.id)).toEqual(["play", "queue", "open", "copy"]);
+      expect(episode.actions!.map((a) => a.id)).toEqual(["play", "queue", "add", "open", "copy"]);
       expect(calls("GET", "/v1/search")).toHaveLength(1);
       expect(calls("GET", "/v1/me/tracks/contains")).toHaveLength(1);
       expect((await list("search", "nothing"))[0]).toMatchObject({ id: "hint:empty", name: "No results" });
@@ -310,12 +318,36 @@ describe("spotify, signed in", () => {
       // A row the table never saw (a restart) still plays: the id says what it is.
       expect(await pick("search", "track:zz")).toEqual({ hud: "Playing track" });
     });
+
+    test("Add to playlist: the playlist picked in the bar gets the uri posted; without values a form with the same select; a placeholder option and a 403 are failure toasts", async () => {
+      expect(await pick("search", "track:t1", "add", { values: { playlist: "p3" } })).toMatchObject({ keep: true, toast: { title: "Added to Road Trip", message: "Weird Fishes/ Arpeggi" } });
+      const posted = calls("POST", "/v1/playlists/p3/tracks");
+      expect(posted).toHaveLength(1);
+      expect(posted[0].body).toEqual({ uris: ["spotify:track:t1"] });
+      expect(calls("POST", "/v1/playlists/p1/tracks")).toHaveLength(0);
+      // The count follows without another read of the playlists.
+      expect((await list("playlists")).find((p) => p.id === "playlist:p3")!.accessories![0]).toEqual({ text: "13 tracks" });
+      expect(calls("GET", "/v1/me/playlists")).toHaveLength(1);
+      const form = (await pick("search", "track:t1", "add")).form!;
+      expect(form).toMatchObject({ title: "Add Weird Fishes/ Arpeggi", submit: { id: "add", title: "Add" } });
+      expect(form.fields).toEqual([{ kind: "select", id: "playlist", label: "Playlist", options: [{ id: "p1", title: "Focus" }, { id: "p3", title: "Road Trip" }], required: true, default: undefined }]);
+      // A followed playlist is not offered, so its id is refused before any request.
+      expect(await pick("search", "track:t1", "add", { values: { playlist: "p2" } })).toMatchObject({ toast: { title: "Pick a playlist", style: "failure" } });
+      expect(calls("POST", "/v1/playlists/p2/tracks")).toHaveLength(0);
+      state.forbid = true;
+      const r = await pick("search", "track:t1", "add", { values: { playlist: "p1" } });
+      expect(r.toast).toMatchObject({ title: "Could not add to the playlist", style: "failure" });
+      expect(r.toast!.message).toMatch(/Insufficient client scope.*Sign out and in again/);
+      state.forbid = false;
+      // An artist row has no playlist to go into.
+      expect(await pick("search", "artist:ar1", "add", { values: { playlist: "p1" } })).toEqual({ keep: true });
+    });
   });
 
   describe("playlists", () => {
     test("yours and followed by owner, the drill-in lists the tracks and plays from one inside the playlist; an album's tracks too", async () => {
       const items = await list("playlists");
-      expect(items.map((i) => [i.id, i.section])).toEqual([["playlist:p1", "Yours"], ["playlist:p2", "Followed"]]);
+      expect(items.map((i) => [i.id, i.section])).toEqual([["playlist:p1", "Yours"], ["playlist:p2", "Followed"], ["playlist:p3", "Followed"]]);
       expect(await pick("playlists", "playlist:p1", "tracks")).toEqual({ push: { extension: "spotify", palette: "playlists", args: { playlist: "p1", name: "Focus" } } });
       const tracks = await list("playlists", undefined, { args: { playlist: "p1" } });
       expect(ids(tracks)).toEqual(["track:t2", "track:t3"]);
@@ -386,6 +418,13 @@ describe("spotify, signed in", () => {
       expect(items[1]).toMatchObject({ section: "Up next", accessories: [{ text: "#1" }, { text: "4:15" }] });
       expect(items[1].actions![0].title).toBe("Skip to it");
       expect(items[3].actions![0].title).toBe("Skip 3 ahead");
+      // The playing row and the queued ones take a playlist in the bar too, and the pick lands on the track.
+      expect(items[0].actions!.map((a) => a.id)).toEqual(["toggle", "like", "add", "open", "copy"]);
+      expect(items[1].actions!.map((a) => a.id)).toEqual(["skip", "like", "add", "open", "copy"]);
+      expect(items[0].args![0].options!.map((o) => o.id)).toEqual(["p1", "p3"]);
+      expect(await pick("queue", "q:0:t2", "add", { values: { playlist: "p1" } })).toMatchObject({ toast: { title: "Added to Focus", message: "Nude" } });
+      expect(calls("POST", "/v1/playlists/p1/tracks").at(-1)!.body).toEqual({ uris: ["spotify:track:t2"] });
+      expect(await pick("queue", "now:t1", "add", { values: { playlist: "p1" } })).toMatchObject({ toast: { title: "Added to Focus", message: "Weird Fishes/ Arpeggi" } });
       const before = calls("POST", "/v1/me/player/next").length;
       expect(await pick("queue", "q:2:t4", "skip")).toMatchObject({ keep: true, toast: { title: "Skipped 3 tracks" } });
       expect(calls("POST", "/v1/me/player/next")).toHaveLength(before + 3);
@@ -402,7 +441,9 @@ describe("spotify, signed in", () => {
     test("the five commands, a Play row per pinned playlist (by name and by uri, a missing one as a hint) and Sign out; the commands answer with the HUD", async () => {
       const items = await list("commands");
       expect(ids(items)).toEqual(["toggle", "next", "previous", "like", "lyrics", "pin:p1", "pin:p2", "hint:pin:No Such List", "signout"]);
-      expect(items[5]).toMatchObject({ name: "Play Focus", subtitle: "Cagdas · 42 tracks", icon: { image: `${apiBase()}/cover/focus-64.jpg` } });
+      // 44: the pinned rows read the same playlist cache the queue's two adds bumped, no second read of the playlists.
+      expect(items[5]).toMatchObject({ name: "Play Focus", subtitle: "Cagdas · 44 tracks", icon: { image: `${apiBase()}/cover/focus-64.jpg` } });
+      expect(calls("GET", "/v1/me/playlists")).toHaveLength(1);
       expect(items[6].name).toBe("Play Discover Weekly");
       expect(items[7].actions).toEqual([]);
       expect(await pick("commands", "pin:p1")).toEqual({ hud: "Playing Focus" });
@@ -520,23 +561,26 @@ describe("spotify, signed in", () => {
       expect(calls("POST", "/v1/me/player/next").length).toBe(nexts + 2);
       expect(calls("GET", "/v1/me/player/queue").length).toBeGreaterThan(before);
       state.player = { ...state.player, is_playing: false };
-      expect(await h.render("spotify", "playing", { reason: "media" as never })).toEqual({ hidden: true });
-      // bar_show: paused keeps the track on the strip, muted, the popover offering Play; always keeps the glyph with no player, the popover saying nothing plays.
+      // Paused: hidden, the glyph with the paused track as its tooltip and the popover offering Play the empty shape for the core's show = always.
+      const quiet = await h.render("spotify", "playing", { reason: "media" as never });
+      expect(quiet).toMatchObject({ hidden: true, empty: { icon: "\u{f04c7}", tooltip: "Radiohead - Weird Fishes/ Arpeggi, paused" } });
+      expect(quiet.empty!.title).toBeUndefined();
+      expect((quiet.empty!.menu as { view: any }).view.actions[0]).toMatchObject({ id: "toggle", title: "Play" });
+      // bar_show: paused keeps the track on the strip itself, muted, the popover offering Play.
       h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_show: "paused" } });
       await Bun.sleep(50);
       const paused = await h.render("spotify", "playing", { reason: "media" as never });
       expect(paused).toMatchObject({ icon: "\u{f04c7}", title: "Weird Fishes/ Arpeggi · Radiohead", color: "muted", tooltip: "Radiohead - Weird Fishes/ Arpeggi, paused", scroll: { up: "next", down: "previous" } });
+      expect(paused.empty).toBeUndefined();
       expect((paused.menu as { view: any }).view.actions[0]).toMatchObject({ id: "toggle", title: "Play" });
       const held = state.player;
       state.player = null;
-      expect(await h.render("spotify", "playing", { reason: "media" as never })).toEqual({ hidden: true });
-      h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_show: "always" } });
-      await Bun.sleep(50);
+      // No player at all: hidden either way, the glyph and the popover saying nothing plays the empty shape.
       const none = await h.render("spotify", "playing", { reason: "media" as never });
-      expect(none).toMatchObject({ icon: "\u{f04c7}", color: "muted", tooltip: "Nothing playing" });
-      expect(none.title).toBeUndefined();
-      expect(texts((none.menu as { view: any }).view.tree)).toContain("Nothing playing");
-      expect((none.menu as { view: any }).view.actions[0]).toMatchObject({ id: "open-app" });
+      expect(none).toMatchObject({ hidden: true, empty: { icon: "\u{f04c7}", tooltip: "Nothing playing" } });
+      expect(none.empty!.title).toBeUndefined();
+      expect(texts((none.empty!.menu as { view: any }).view.tree)).toContain("Nothing playing");
+      expect((none.empty!.menu as { view: any }).view.actions[0]).toMatchObject({ id: "open-app" });
       state.player = { ...held, is_playing: true };
       h.changeSettings("spotify", { settings: { client_id: "client-abc", redirect_port: REDIRECT_PORT, bar_lyrics: false } });
       await Bun.sleep(50);
@@ -627,6 +671,6 @@ describe("spotify, signed in", () => {
     expect(await pick("commands", "signout")).toMatchObject({ keep: true, toast: { title: "Signed out of Spotify" } });
     expect(stored.get("spotify\0auth")).toBeNull();
     expect((await list("playlists", undefined, { refresh: true }))[0].id).toBe("hint:signin");
-    expect(await h.render("spotify", "playing", { reason: "show" })).toEqual({ hidden: true });
+    expect(await h.render("spotify", "playing", { reason: "show" })).toMatchObject({ hidden: true, empty: { tooltip: "Sign in to Spotify" } });
   });
 });

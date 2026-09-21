@@ -1,12 +1,12 @@
 # Spotify
 
-Spotify from the panel over the Web API: search as you type, play, queue
-and like; your playlists and library; the devices and the queue; a
-lyrics view that follows the song; a bar item with the line playing. On
-sketchybar, scrolling that item skips next/previous like the existing lirik
-item. It needs a Spotify app of your own (two minutes at
-developer.spotify.com, below) and signs in with PKCE, so there is no secret
-anywhere.
+Spotify from the panel over the Web API: search as you type, play, queue,
+like and add to a playlist; your playlists and library; the devices and
+the queue; a lyrics view that follows the song; a bar item with the line
+playing. On sketchybar, scrolling that item skips next/previous like the
+existing lirik item. It needs a Spotify app of your own (two minutes at
+developer.spotify.com, below) and signs in with PKCE, so there is no
+secret anywhere.
 
 ## Palettes
 
@@ -23,11 +23,24 @@ anywhere.
 **Search** lists Tracks, Artists, Albums, Playlists, Podcasts and
 Episodes as sections, five each, with the cover as the row's icon. A
 track row: `enter` plays it alone, `cmd+enter` adds it to the queue,
-`cmd+l` likes or unlikes it, `cmd+o` opens it in Spotify, `cmd+c` copies
-the link. A playlist or album: `enter` plays it, `cmd+enter` lists its
-tracks (a level whose rows play from that point inside the playlist, so
-the rest follows), `cmd+s` plays a playlist shuffled. The search waits
-300 ms for the typing to settle and asks Spotify once per query.
+`cmd+l` likes or unlikes it, `cmd+p` adds it to a playlist, `cmd+o`
+opens it in Spotify, `cmd+c` copies the link. A playlist or album:
+`enter` plays it, `cmd+enter` lists its tracks (a level whose rows play
+from that point inside the playlist, so the rest follows), `cmd+s` plays
+a playlist shuffled. The search waits 300 ms for the typing to settle
+and asks Spotify once per query.
+
+**Add to playlist** is on every track row (search, a playlist's or
+album's tracks, the library, the queue and its Now playing row) as a
+typed argument: with the cursor on the row the bar shows a Playlist
+select of the playlists a track can go into (your own and the
+collaborative ones; a followed one is not offered), Tab into it, pick,
+`cmd+p` posts the track there. `enter` still plays the row. The select
+is filled from one read of your playlists, kept for five minutes and
+shared with the Playlists palette and the pinned rows; before that read
+lands the select says "Loading playlists" and with none to offer "No
+playlists", and `cmd+p` then says so instead of posting. A pick without
+the value (a hotkey, `pal run`) asks in a form with the same select.
 
 **Library** has four filters on `Tab`: Liked Songs (newest first, with
 the date), Recently played (the time, each track once), Top tracks and
@@ -97,8 +110,9 @@ same view in a compact layout, fed the same way.
 `spotify/playing`: the track playing (`title · artist`) beside the
 Spotify mark, or, with **Lyrics on the bar** (`bar_lyrics`, on), the
 lyric line playing when lrclib has synced lyrics for the track; hidden
-while nothing plays (unless `bar_show` keeps it: the track muted while
-paused, or the glyph alone). A click opens the lyrics view in the popover, in a
+while nothing plays (unless `bar_show` keeps the track muted while
+paused, or the core's `show = "always"` under `[bar.items."spotify/playing"]`
+keeps the glyph alone, muted; docs/config.md). A click opens the lyrics view in the popover, in a
 compact layout: the cover with the track, the artist and the album
 beside it, the progress bar with the times, the line playing large with
 one before and two after, the transport as key hints (`space` pause or
@@ -140,6 +154,16 @@ Playback control (play, pause, seek, volume, transfer) needs Spotify
 Premium; Spotify answers `403 Premium required` otherwise and the panel
 says so. Search, the library and the lyrics work on any account.
 
+**Sign in again** if Add to playlist answers "Could not add to the
+playlist: Insufficient client scope". The scopes pal asks for
+(`playlist-read-private`, `playlist-read-collaborative`,
+`playlist-modify-public`, `playlist-modify-private`, and
+`user-library-modify` for likes) have been in the consent page since the
+extension's first version, so a token from it has them; a token granted
+to a narrower list (a sign-in from an older build, or a consent trimmed
+at spotify.com/account/apps) does not, and Spotify answers the add with
+a 403 the toast relays. Sign Out of Spotify, then sign in once more.
+
 **Where the tokens live.** The refresh token and the current access
 token are kept in the extension's storage file,
 `<data dir>/pal/storage/spotify.json` (`~/Library/Application
@@ -159,7 +183,7 @@ Settings, `[extensions.spotify]`:
 | `client_id` | text | unset | Your app's client id. |
 | `redirect_port` | number | `27182` | The loopback port for the sign-in redirect; must match the app's redirect URI. |
 | `bar_lyrics` | boolean | `true` | The lyric line on the bar strip instead of the track name (when lrclib has synced lyrics). |
-| `bar_show` | `playing` / `paused` / `always` | `playing` | When the bar item is drawn: while something plays, also while a track sits paused (muted), or always (the glyph alone, muted, with nothing; its popover still offers play, sign in and the devices). |
+| `bar_show` | `playing` / `paused` | `playing` | When the bar item is drawn: while something plays, or also while a track sits paused (muted). Keeping the glyph with nothing at all (its popover still offering play, sign in and the devices) is the core's `show = "always"` under `[bar.items."spotify/playing"]`. |
 | `pinned` | list | `[]` | Playlist names or `spotify:playlist:` links, each a "Play <name>" root row. |
 
 ## Limits and failures
@@ -172,5 +196,9 @@ Settings, `[extensions.spotify]`:
   (it has no room for a hint) and comes back on the next render.
 - No active device: playing from a row is a toast naming the fix; the
   view says "No active device" with `d` for the devices.
+- Add to playlist refused: a `403` is "Could not add to the playlist"
+  with Spotify's reason (the scope, above, or a playlist that is not
+  yours to edit); a followed playlist never reaches the request, the
+  select does not offer it.
 - lrclib down: the view says "Looking for lyrics" and asks again on the
   next key; a miss is remembered for the run, a failure is not.

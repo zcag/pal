@@ -1,8 +1,9 @@
 // Spotify over the Web API (api.ts) with PKCE sign-in (auth.ts): six
 // palettes and one bar item over one playback state. `search` (input)
 // lists tracks, artists, albums, playlists, podcasts and episodes as
-// sections with their cover art; `playlists` (yours, followed; a drill-in
-// lists a playlist's tracks); `library` (Liked Songs newest first, recently
+// sections with their cover art; every track row takes a playlist in the
+// bar (`args`) for its "Add to playlist" action; `playlists` (yours,
+// followed; a drill-in lists a playlist's tracks); `library` (Liked Songs newest first, recently
 // played, top tracks and artists this month) under filters; `devices`
 // (live: transfer playback, volume rows, a level typed in the bar); `queue` (live: the queue, skip to
 // a row); `commands` (play/pause, skip, like, and a "Play <playlist>" row
@@ -30,7 +31,7 @@
 // without a poll.
 import { argsForm, bar, errorMessage, failed, hint, toast, view as liveView, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { EXTENSION, ITEM, NotSignedIn, conf, log, signIn, signOut, signedIn, stopListener } from "./auth.ts";
-import { ApiError, Offline, RateLimited, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
+import { ApiError, Offline, RateLimited, addToPlaylist, api, contains, devices as listDevices, enqueue, like, liked as likedTracks, me, next, pause, play, player, playlistTracks, playlists as myPlaylists, positionOf, previous, queue as readQueue, recent, search as apiSearch, seek, setRepeat, setShuffle, setVolume, toTrack, topArtists, topTracks, transfer, unlike, type Artist, type Album, type Player, type Playlist, type Show, type Track } from "./api.ts";
 import { tintOf, type Tint } from "./color.ts";
 import { cachedLyrics, currentLine, lyricsFor, searchUrl, type Lyrics } from "./lyrics.ts";
 import { QUEUE_ROWS, STATUS_TEXT, clock, render, type Layout, type NowState, type QueueTrack, type Status } from "./view.ts";
@@ -326,17 +327,18 @@ let lastPushed: string | undefined;
 
 /**
  * The strip and the popover for the state: hidden unless something plays,
- * or, by `bar_show`, the track muted while paused (`paused`) or the glyph
- * alone with nothing at all (`always`); the popover is the same view, so
- * play, sign in and the devices stay a click away.
+ * or, by `bar_show`, the track muted while paused (`paused`). Hidden, the
+ * glyph alone (the paused track or the status as its tooltip) is the
+ * `empty` shape a `show = "always"` config keeps; the popover is the
+ * same view either way, so play, sign in and the devices stay a click
+ * away.
  */
 function barItem(l: Live, st: NowState): BarItem {
   const p = l.player, t = p?.track;
   if (!p || !t || !p.playing) {
-    const show = conf().bar_show ?? "playing";
-    if (show === "playing" || (show === "paused" && !t)) return { hidden: true };
-    const tooltip = t ? `${trackText(t)}, paused` : STATUS_TEXT[st.status?.kind ?? "nothing"][0];
-    return { icon: G.spotify, ...(t && { title: `${t.name} · ${t.artist}`.slice(0, 64) }), color: "muted", tooltip, scroll: { up: "next", down: "previous" }, menu: { view: render(st) } };
+    const menu = { view: render(st) };
+    if (t && conf().bar_show === "paused") return { icon: G.spotify, title: `${t.name} · ${t.artist}`.slice(0, 64), color: "muted", tooltip: `${trackText(t)}, paused`, scroll: { up: "next", down: "previous" }, menu };
+    return { hidden: true, empty: { icon: G.spotify, tooltip: t ? `${trackText(t)}, paused` : STATUS_TEXT[st.status?.kind ?? "nothing"][0], menu } };
   }
   const synced = st.lyrics?.synced;
   const line = synced?.length && conf().bar_lyrics !== false ? currentLine(synced, st.position) : undefined;
@@ -400,10 +402,9 @@ function followLyricsWhenReady(l: Live, st: NowState) {
   }).catch(() => {}).finally(() => lyricLookup.delete(t.id));
 }
 
-/** The item while nothing plays: hidden by default; with `bar_show` past `playing` the state is fetched (a paused track wants its cover) and drawn by `barItem`. */
+/** The item while nothing plays: a paused track `bar_show` keeps on the strip wants its cover, so the state is fetched; hidden otherwise, the cheap state drawing the popover the `empty` shape carries. */
 async function quietItem(l: Live): Promise<BarItem> {
-  if ((conf().bar_show ?? "playing") === "playing") return { hidden: true };
-  return barItem(l, l.player?.track ? await fullState(l, "compact", 400) : stateOf(l, "compact"));
+  return barItem(l, l.player?.track && conf().bar_show === "paused" ? await fullState(l, "compact", 400) : stateOf(l, "compact"));
 }
 
 async function renderBar(ctx: BarCtx): Promise<BarItem> {
@@ -480,21 +481,32 @@ const ms = (d: number) => clock(d / 1000);
 const acc = (t: Track, ...more: Accessory[]): Accessory[] => [{ text: ms(t.duration) }, ...(t.explicit ? [{ tag: "E", color: "grey" }] : []), ...more];
 const picture = (e: { thumb?: string; cover?: string }, fallback: string) => (e.thumb || e.cover ? { image: (e.thumb ?? e.cover)! } : fallback);
 
-const TRACK_ACTIONS = (t: Track, liked?: boolean, context?: string): Action[] => [
-  { id: "play", title: context ? "Play from here" : "Play" },
-  { id: "queue", title: "Add to queue", shortcut: "cmd+enter" },
-  ...(t.kind === "track" ? [{ id: "like", title: liked ? "Unlike" : "Like", shortcut: "cmd+l" }] : []),
+/** The tail every track row shares, whatever its primary: the playlist picked in the bar (`args: true` takes the row's select), open, copy. */
+const TRACK_TAIL: Action[] = [
+  { id: "add", title: "Add to playlist", shortcut: "cmd+p", args: true },
   { id: "open", title: "Open in Spotify", shortcut: "cmd+o" },
   { id: "copy", title: "Copy link", shortcut: "cmd+c" },
 ];
+const LIKE = (t: Track): Action[] => (t.kind === "track" ? [{ id: "like", title: likes.get(t.id) ? "Unlike" : "Like", shortcut: "cmd+l" }] : []);
+const TRACK_ACTIONS = (t: Track, context?: string): Action[] => [
+  { id: "play", title: context ? "Play from here" : "Play" },
+  { id: "queue", title: "Add to queue", shortcut: "cmd+enter" },
+  ...LIKE(t), ...TRACK_TAIL,
+];
+
+/** The row's select of the playlists a track can go into; one placeholder option while they are unknown or there are none (the pick says so). */
+const PLAYLIST_ARGS = (lists: Playlist[] | undefined): Arg[] => [{
+  id: "playlist", placeholder: "Playlist", kind: "select", required: true,
+  options: !lists ? [{ id: "loading", title: "Loading playlists" }] : lists.length ? lists.map((p) => ({ id: p.id, title: p.name })) : [{ id: "none", title: "No playlists" }],
+}];
 
 function trackRow(t: Track, section?: string, extra: Partial<Item> = {}, context?: string): Item {
   table.set(idOf(t), t);
   return {
     id: idOf(t), name: t.name, subtitle: [t.artist, t.album].filter(Boolean).join(" · "), icon: picture(t, G.note), url: t.url,
     keywords: [t.artist, t.album, "spotify"].filter(Boolean), section,
-    accessories: acc(t),
-    actions: TRACK_ACTIONS(t, likes.get(t.id), context), ...extra,
+    accessories: acc(t), args: PLAYLIST_ARGS(editableNow()),
+    actions: TRACK_ACTIONS(t, context), ...extra,
   };
 }
 
@@ -533,6 +545,17 @@ async function pickEntity(id: string, action = "play", ctx?: Ctx): Promise<Effec
   const playable = e.kind === "track" || e.kind === "episode";
   try {
     switch (action) {
+      case "add": {
+        if (!playable) return { keep: true };
+        const mine = (await playlistsOf().catch(() => undefined))?.mine;
+        // Without the bar's values (a hotkey, `pal run`): the same select as a form.
+        if (!ctx?.values) return { form: argsForm(PLAYLIST_ARGS(mine), `Add ${known?.name ?? "to playlist"}`, { id: "add", title: "Add" }) };
+        const to = mine?.find((p) => p.id === String(ctx.values!.playlist));
+        if (!to) return toast(mine ? (mine.length ? "Pick a playlist" : "No playlist to add to") : "Playlists are still loading", mine?.length ? undefined : "Only your own and collaborative playlists take a track", "failure");
+        await addToPlaylist(to.id, e.uri);
+        to.tracks++;
+        return { keep: true, toast: { title: `Added to ${to.name}`, message: known?.name } };
+      }
       case "play":
         // A track from a playlist or album level plays inside that context, so the rest follows.
         if (playable && args?.playlist) await play({ context: `spotify:playlist:${args.playlist}`, offset: { uri: e.uri } });
@@ -566,7 +589,9 @@ async function pickEntity(id: string, action = "play", ctx?: Ctx): Promise<Effec
   } catch (err) {
     const s = statusOf(err);
     if (s.kind === "no_device") return { keep: true, toast: { title: "No active device", message: "Open Spotify on a device first, or pick one in Devices", style: "failure" } };
-    return failed(action === "queue" ? "add to the queue" : action, err);
+    // A 403 on the add: the token has no playlist scope (one from before they were asked for), or the playlist is not the user's to edit.
+    if (action === "add" && err instanceof ApiError && err.status === 403) return toast("Could not add to the playlist", `${err.message}. Sign out and in again if the token predates playlist access`, "failure");
+    return failed({ queue: "add to the queue", add: "add to the playlist" }[action] ?? action, err);
   }
   return { keep: true };
 }
@@ -585,7 +610,7 @@ async function searchRows(query = ""): Promise<Item[]> {
   const seq = ++searchSeq;
   await Bun.sleep(SEARCH_WAIT_MS);
   if (seq !== searchSeq) return lastSearch;
-  const r = await apiSearch(q);
+  const r = await withPlaylists(apiSearch(q));
   const ids = r.tracks.map((t) => t.id).filter((id) => !likes.has(id));
   if (ids.length) try { (await contains(ids)).forEach((v, i) => likes.set(ids[i], v)); } catch {}
   const rows = [
@@ -608,18 +633,41 @@ async function searchRows(query = ""): Promise<Item[]> {
 let meId: Promise<string> | undefined;
 const myId = () => (meId ??= me().then((m) => m?.id ?? "").catch((e) => { meId = undefined; throw e; }));
 
+/** The user's playlists are asked at most this often (the palette's own ttl); Refresh and a sign-out forget them. */
+const PLAYLISTS_MS = 5 * 60_000;
+/** `all`: own and followed, the Playlists palette's rows; `mine`: own or collaborative, the ones a track can go into. */
+type Lists = { all: Playlist[]; mine: Playlist[] };
+let listsCache: ({ at: number } & Lists) | undefined;
+let listsFetch: Promise<Lists> | undefined;
+
+/** The playlists from the cache while it is under `PLAYLISTS_MS` old, else asked once for every caller in flight (the pinned rows, the palette and every track row share it). */
+function playlistsOf(fresh = false): Promise<Lists> {
+  if (!fresh && listsCache && Date.now() - listsCache.at <= PLAYLISTS_MS) return Promise.resolve(listsCache);
+  return (listsFetch ??= Promise.all([myPlaylists(), myId()])
+    .then(([all, id]) => (listsCache = { at: Date.now(), all, mine: all.filter((p) => p.ownerId === id || p.collaborative) }))
+    .finally(() => { listsFetch = undefined; }));
+}
+/** What a row can offer now: the cached editable playlists, the stale ones while a fresh read runs, undefined before the first (started here, so the next listing has them). */
+function editableNow(): Playlist[] | undefined {
+  if (!listsCache || Date.now() - listsCache.at > PLAYLISTS_MS) playlistsOf().catch((e) => log(`playlists: ${errorMessage(e)}`));
+  return listsCache?.mine;
+}
+/** A listing of track rows fetches the playlists alongside, so the rows' selects are filled on the first paint; a failure there is the rows' to show, not this one's. */
+const withPlaylists = <T,>(p: Promise<T>): Promise<T> => Promise.all([p, playlistsOf().catch(() => undefined)]).then(([x]) => x);
+const forgetPlaylists = () => { listsCache = undefined; };
+
 async function playlistRows(ctx?: Ctx): Promise<Item[]> {
   const args = ctx?.args as { playlist?: string; album?: string; name?: string } | undefined;
   if (args?.playlist) {
-    const tracks = await playlistTracks(args.playlist);
+    const tracks = await withPlaylists(playlistTracks(args.playlist));
     return tracks.length ? tracks.map((t) => trackRow(t, undefined, {}, `spotify:playlist:${args.playlist}`)) : [hint("empty", "An empty playlist", "Nothing to play here", { icon: G.playlist })];
   }
   if (args?.album) {
-    const tracks = await albumTracks(args.album);
+    const tracks = await withPlaylists(albumTracks(args.album));
     return tracks.length ? tracks.map((t) => trackRow(t, undefined, {}, `spotify:album:${args.album}`)) : [hint("empty", "An empty album", "Nothing to play here", { icon: G.album })];
   }
-  const [lists, id] = await Promise.all([myPlaylists(), myId()]);
-  return lists.map((p) => playlistRow(p, p.ownerId === id ? "Yours" : "Followed"));
+  const [{ all }, id] = await Promise.all([playlistsOf(!!ctx?.refresh), myId()]);
+  return all.map((p) => playlistRow(p, p.ownerId === id ? "Yours" : "Followed"));
 }
 
 /** The album's tracks: `/albums/{id}` carries them simplified (no album on each), so the album's name and cover are filled in. */
@@ -636,14 +684,14 @@ const LIBRARY_FILTERS = [{ id: "liked", title: "Liked Songs" }, { id: "recent", 
 async function libraryRows(ctx?: Ctx): Promise<Item[]> {
   switch (ctx?.filter ?? "liked") {
     case "recent": {
-      const rows = await recent();
+      const rows = await withPlaylists(recent());
       const seen = new Set<string>();
       return rows.filter((t) => !seen.has(t.id) && seen.add(t.id)).map((t) => trackRow(t, undefined, { accessories: acc(t, { date: t.playedAt }) }));
     }
-    case "top-tracks": return (await topTracks()).map((t, i) => trackRow(t, undefined, { accessories: [{ text: `#${i + 1}` }, ...acc(t)] }));
+    case "top-tracks": return (await withPlaylists(topTracks())).map((t, i) => trackRow(t, undefined, { accessories: [{ text: `#${i + 1}` }, ...acc(t)] }));
     case "top-artists": return (await topArtists()).map((a, i) => artistRow(a, undefined, { accessories: [{ text: `#${i + 1}` }] }));
     default: {
-      const rows = await likedTracks();
+      const rows = await withPlaylists(likedTracks());
       for (const t of rows) likes.set(t.id, true);
       return rows.length ? rows.map((t) => trackRow(t, undefined, { accessories: acc(t, { date: t.addedAt }) })) : [hint("empty", "No liked songs yet", "cmd+l on a track adds it", { icon: G.heartOutline })];
     }
@@ -707,29 +755,28 @@ async function pickDevice(id: string, action?: string, ctx?: Ctx): Promise<Effec
 // ---- queue -----------------------------------------------------------------------
 
 async function queueRows(): Promise<Item[]> {
-  const q = await readQueue();
+  const q = await withPlaylists(readQueue());
   const rows: Item[] = [];
-  if (q.current) rows.push(trackRow(q.current, "Now playing", { id: `now:${q.current.id}`, actions: [{ id: "toggle", title: "Play or pause" }, { id: "open", title: "Open in Spotify", shortcut: "cmd+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }] }));
+  if (q.current) rows.push(trackRow(q.current, "Now playing", { id: `now:${q.current.id}`, actions: [{ id: "toggle", title: "Play or pause" }, ...LIKE(q.current), ...TRACK_TAIL] }));
   q.queue.forEach((t, i) => {
-    table.set(idOf(t), t);
     rows.push({
       ...trackRow(t, "Up next"), id: `q:${i}:${t.id}`, accessories: [{ text: `#${i + 1}` }, ...acc(t)],
-      actions: [{ id: "skip", title: i === 0 ? "Skip to it" : `Skip ${i + 1} ahead` }, { id: "like", title: likes.get(t.id) ? "Unlike" : "Like", shortcut: "cmd+l" }, { id: "open", title: "Open in Spotify", shortcut: "cmd+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
+      actions: [{ id: "skip", title: i === 0 ? "Skip to it" : `Skip ${i + 1} ahead` }, ...LIKE(t), ...TRACK_TAIL],
     });
   });
   if (!rows.length) rows.push(hint("empty", "The queue is empty", "Nothing is playing; cmd+enter on a track queues it", { icon: G.playlist }));
   return rows;
 }
 
-async function pickQueue(id: string, action?: string): Promise<Effect> {
+async function pickQueue(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
   if (id.startsWith("hint:")) return { keep: true };
   if (id.startsWith("now:")) {
     if (action === "toggle") { const r = await act("toggle", "wide"); return r.toast ? { keep: true, toast: r.toast } : { keep: true }; }
-    return pickEntity(`track:${id.slice(4)}`, action);
+    return pickEntity(`${table.get(`track:${id.slice(4)}`)?.kind ?? "track"}:${id.slice(4)}`, action, ctx);
   }
   const m = /^q:(\d+):(.+)$/.exec(id);
   if (!m) throw new Error(`no row ${id}`);
-  if (action !== "skip") return pickEntity(`${table.get(`track:${m[2]}`)?.kind ?? "track"}:${m[2]}`, action);
+  if (action !== "skip") return pickEntity(`${table.get(`track:${m[2]}`)?.kind ?? "track"}:${m[2]}`, action, ctx);
   const n = Math.min(MAX_SKIP, Number(m[1]) + 1);
   try { for (let i = 0; i < n; i++) await next(); } catch (e) { return failed("skip", e); }
   forgetQueue();
@@ -752,7 +799,7 @@ async function pinnedRows(): Promise<Item[]> {
   const pins = (conf().pinned ?? []).map((s) => String(s).trim()).filter(Boolean);
   if (!pins.length) return [];
   let lists: Playlist[];
-  try { lists = await myPlaylists(); } catch { return []; }
+  try { lists = (await playlistsOf()).all; } catch { return []; }
   const rows: Item[] = [];
   for (const pin of pins) {
     const id = pin.replace(/^spotify:playlist:/, "").replace(/^https:\/\/open\.spotify\.com\/playlist\//, "").split("?")[0];
@@ -771,7 +818,7 @@ async function pickCommand(id: string, action?: string): Promise<Effect> {
   if (id.startsWith("hint:")) return pickHint(id);
   if (id.startsWith("pin:")) return pickEntity(`playlist:${id.slice(4)}`, action === "shuffle" ? "shuffle" : action === "open" ? "open" : "play");
   if (id === "lyrics") return { view: await viewOf(await readLive(0, true), "wide") };
-  if (id === "signout") { await signOut(); stopTick(); live = undefined; likes.clear(); return { keep: true, toast: { title: "Signed out of Spotify" } }; }
+  if (id === "signout") { await signOut(); stopTick(); live = undefined; likes.clear(); forgetPlaylists(); return { keep: true, toast: { title: "Signed out of Spotify" } }; }
   const r = await act(id, "wide");
   if (r.toast?.style === "failure") return { keep: true, toast: r.toast };
   if (!r.view) return r;

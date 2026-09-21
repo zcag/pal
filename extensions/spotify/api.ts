@@ -195,6 +195,8 @@ async function pages<T>(path: string, query: Record<string, string | number>, ma
 }
 
 export const playlists = async (max = 200): Promise<Playlist[]> => (await pages<any>("/me/playlists", {}, max)).filter(Boolean).map(toPlaylist);
+/** Appends the track (or episode) to a playlist of the user's own or a collaborative one; a 403 otherwise, or with a token that predates the playlist scopes. */
+export const addToPlaylist = (id: string, uri: string) => api("POST", `/playlists/${id}/tracks`, { body: { uris: [uri] } });
 export const playlistTracks = async (id: string, max = 200): Promise<Track[]> =>
   (await pages<any>(`/playlists/${id}/tracks`, { fields: "items(added_at,track(id,uri,name,type,duration_ms,explicit,external_urls,artists(name),album(name,images))),next" }, max)).map((i) => toTrack(i?.track)).filter((t): t is Track => !!t);
 export const liked = async (max = 100): Promise<(Track & { addedAt: string })[]> =>
