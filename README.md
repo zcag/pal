@@ -139,12 +139,12 @@ The layout of the repo:
 ## Contributing
 
 Issues and pull requests are welcome at
-[github.com/zcag/pal](https://github.com/zcag/pal). The checks CI runs on
-every push (`.github/workflows/ci.yml`, macOS and Ubuntu): `cargo clippy
---all-targets` from the repo root, `npx tsc --noEmit` in `app/`, `bunx tsc
---noEmit` in `host/` (which covers `sdk/`, `extensions/` and `examples/`)
-and in `sdk/`, and `make test` (the Rust workspace, the app's vitest, the
-host's bun test). Docs are linted with `npx markdownlint-cli2 "docs/**/*.md"
+[github.com/zcag/pal](https://github.com/zcag/pal). `make test` runs what CI
+runs on every push (`.github/workflows/ci.yml`, macOS and Ubuntu): `cargo
+clippy --workspace --all-targets -- -D warnings`, the Rust workspace's tests,
+the SDK's build, `npx tsc --noEmit` and vitest in `app/`, `bunx tsc --noEmit`
+(which covers `sdk/`, `extensions/` and `examples/`) and `bun test` in
+`host/`, and `npm pack --dry-run` in `sdk/`. Docs are linted with `npx markdownlint-cli2 "docs/**/*.md"
 README.md`. An extension of your own does not need a pull request against
 the app: publish it on GitHub and anyone can `pal install
 github:you/repo`; the store lists community extensions from a

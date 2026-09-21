@@ -1,9 +1,16 @@
-# Runs every test suite: the Rust workspace, the app's vitest, the host's bun test.
+# What CI runs (.github/workflows/ci.yml, the check job), in its order, so
+# a green `make test` is a green push: clippy with warnings as errors, the
+# Rust workspace, the SDK's declarations (the app's typecheck reads them),
+# the app's typecheck and vitest, the host's typecheck (which covers the
+# extensions and the examples) and bun test, the SDK's pack.
 .PHONY: test
 test:
+	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace
-	cd app && npx vitest run
-	cd host && bun test
+	npm --prefix sdk run build
+	cd app && npx tsc --noEmit && npx vitest run
+	cd host && bunx tsc --noEmit && bun test
+	cd sdk && npm pack --dry-run
 
 # Sets one version everywhere it is written (tauri.conf.json is what the
 # bundle and the tag guard in release.yml read; the two Cargo.toml,

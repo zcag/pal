@@ -727,6 +727,15 @@ fn send(identifier: &str, args: &[String], cwd: &str) -> zbus::Result<()> {
     Ok(())
 }
 
+/// `2 h 40 m`, `12 m`, `40 s` for the table's time-left column.
+fn left_text(secs: u64) -> String {
+    match (secs / 3600, secs % 3600 / 60, secs % 60) {
+        (0, 0, s) => format!("{s} s"),
+        (0, m, _) => format!("{m} m"),
+        (h, m, _) => format!("{h} h {m} m"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -808,14 +817,5 @@ mod tests {
         assert_eq!(cmd(&["link", "--list"]).run_compat(), Some(0));
         assert!(Cli::try_parse_from(["pal", "link"]).is_err(), "a url or --list");
         assert!(Cli::try_parse_from(["pal", "open"]).is_err(), "a palette or --url");
-    }
-}
-
-/// `2 h 40 m`, `12 m`, `40 s` for the table's time-left column.
-fn left_text(secs: u64) -> String {
-    match (secs / 3600, secs % 3600 / 60, secs % 60) {
-        (0, 0, s) => format!("{s} s"),
-        (0, m, _) => format!("{m} m"),
-        (h, m, _) => format!("{h} h {m} m"),
     }
 }
