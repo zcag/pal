@@ -497,9 +497,10 @@ mod strip {
             let Some(mtm) = MainThreadMarker::new() else { return };
             STRIPS.with(|s| {
                 let mut s = s.borrow_mut();
-                for p in s.drain(rects.len()..) {
+                for p in s.iter().skip(rects.len()) {
                     p.orderOut(None);
                 }
+                s.truncate(rects.len());
                 for (i, rect) in rects.into_iter().enumerate() {
                     let frame = flip(mtm, rect);
                     match s.get(i) {
