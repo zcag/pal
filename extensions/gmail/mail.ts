@@ -207,8 +207,15 @@ export const withSignature = (text: string, signature: string): string => (signa
 
 // ---- links ----------------------------------------------------------------------------------
 
-/** The account's Gmail, or the account-less one when the address is not known yet. */
-export const gmailBase = (address: string): string => `https://mail.google.com/mail/u/${address ? encodeURIComponent(address) : "0"}/`;
+/**
+ * The account's Gmail by address, as `?authuser=<address>`: Gmail answers it
+ * with a redirect to that account's numeric slot (`/u/1/`), and the fragment
+ * (the thread, the label) rides along. `/mail/u/<address>/` is not a path
+ * Gmail has (a 404 page, "your account is temporarily unavailable"), and a
+ * numeric slot on its own names whatever account happens to sit there. No
+ * address yet: slot 0.
+ */
+export const gmailBase = (address: string): string => (address ? `https://mail.google.com/mail/?authuser=${encodeURIComponent(address)}` : "https://mail.google.com/mail/u/0/");
 
 /** A thread in the account's Gmail: under `#inbox` while it is in the inbox, else under `#all`. */
 export const threadUrl = (address: string, threadId: string, inInbox: boolean): string => `${gmailBase(address)}#${inInbox ? "inbox" : "all"}/${threadId}`;

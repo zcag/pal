@@ -79,11 +79,11 @@ describe("mail helpers", () => {
   });
 
   test("links and labels: the account in the url, inbox or all, the system anchors, the search spelling, the section of a hit", () => {
-    expect(threadUrl("someone@gmail.com", "t1", true)).toBe("https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t1");
+    expect(threadUrl("someone@gmail.com", "t1", true)).toBe("https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1");
     expect(threadUrl("", "t1", false)).toBe("https://mail.google.com/mail/u/0/#all/t1");
-    expect(labelUrl("a@b", "INBOX", "INBOX")).toBe("https://mail.google.com/mail/u/a%40b/#inbox");
-    expect(labelUrl("a@b", "Label_3", "Family/Trips")).toBe("https://mail.google.com/mail/u/a%40b/#label/Family/Trips");
-    expect(labelUrl("a@b", "CATEGORY_PROMOTIONS", "CATEGORY_PROMOTIONS")).toBe("https://mail.google.com/mail/u/a%40b/#category/promotions");
+    expect(labelUrl("a@b", "INBOX", "INBOX")).toBe("https://mail.google.com/mail/?authuser=a%40b#inbox");
+    expect(labelUrl("a@b", "Label_3", "Family/Trips")).toBe("https://mail.google.com/mail/?authuser=a%40b#label/Family/Trips");
+    expect(labelUrl("a@b", "CATEGORY_PROMOTIONS", "CATEGORY_PROMOTIONS")).toBe("https://mail.google.com/mail/?authuser=a%40b#category/promotions");
     expect(labelQuery("INBOX", "INBOX")).toBe("in:inbox");
     expect(labelQuery("Label_1", "GitHub")).toBe("label:GitHub");
     expect(labelQuery("Label_9", "Two Words")).toBe('label:"Two Words"');
@@ -214,7 +214,7 @@ describe("gmail", () => {
       { label: "From", value: "Mara Lind <mara@example.com>" },
       { label: "To", value: "someone@gmail.com" },
       { label: "Date", value: expect.stringMatching(/2026/) },
-      { label: "Thread", link: { text: "Open in Gmail", href: "https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t1" } },
+      { label: "Thread", link: { text: "Open in Gmail", href: "https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1" } },
     ]);
     const d2 = await host.detail(P, "inbox", "m2");
     expect(d2.markdown).toBe("tomas-r requested your review on \\#81 (https://github.com/zcag/pal/pull/81).\n\\- Settings page\n\\- Bar rows\n\n_quoted text folded_\n\n© GitHub");
@@ -234,9 +234,9 @@ describe("gmail", () => {
   });
 
   test("picks: open at the thread, copy, mark read and unread through batchModify, several at once", async () => {
-    expect(await host.pick(P, "inbox", "m1")).toEqual({ open: "https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t1" });
-    expect(await host.pick(P, "inbox", "m8", "open")).toEqual({ open: "https://mail.google.com/mail/u/someone%40gmail.com/#all/t8" });
-    expect(await host.pick(P, "inbox", "m1", "copy")).toEqual({ copy: "https://mail.google.com/mail/u/someone%40gmail.com/#inbox/t1" });
+    expect(await host.pick(P, "inbox", "m1")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1" });
+    expect(await host.pick(P, "inbox", "m8", "open")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#all/t8" });
+    expect(await host.pick(P, "inbox", "m1", "copy")).toEqual({ copy: "https://mail.google.com/mail/?authuser=someone%40gmail.com#inbox/t1" });
     expect(await host.pick(P, "inbox", "m1", "read")).toEqual({ keep: true, toast: { title: "Marked read", message: "Parser review before standup?" } });
     expect(modifies().at(-1)).toEqual({ ids: ["m1"], removeLabelIds: ["UNREAD"] });
     // The next listing (the cache dropped) has it under Recent; the count fell.
@@ -298,7 +298,7 @@ describe("gmail", () => {
     expect((await list(P, "search", "in:sent")).map((r) => [r.id, r.section])).toEqual([["m9", "Sent"]]);
     expect((await list(P, "search", "has:attachment cabin")).map((r) => r.id)).toEqual(["m4"]);
     expect((await list(P, "search", "zzzz"))[0]).toMatchObject({ id: "hint:empty", name: "No messages found", subtitle: 'Nothing matches "zzzz"' });
-    expect(await host.pick(P, "search", "m9")).toEqual({ open: "https://mail.google.com/mail/u/someone%40gmail.com/#all/t9" });
+    expect(await host.pick(P, "search", "m9")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#all/t9" });
   });
 
   test("labels: yours first by name, then Gmail's in order and the categories; open, search here, copy; the table persisted", async () => {
@@ -310,7 +310,7 @@ describe("gmail", () => {
     ]);
     expect(rows[0].icon).toBe("\u{f0316}");
     expect(rows[3].icon).toBe("\u{f0687}");
-    expect(await host.pick(P, "labels", "label:Label_3")).toEqual({ open: "https://mail.google.com/mail/u/someone%40gmail.com/#label/Family/Trips" });
+    expect(await host.pick(P, "labels", "label:Label_3")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#label/Family/Trips" });
     expect(await host.pick(P, "labels", "label:Label_1", "search")).toEqual({ push: { extension: "gmail", palette: "search", query: "label:GitHub " } });
     expect(await host.pick(P, "labels", "label:DRAFT", "search")).toEqual({ push: { extension: "gmail", palette: "search", query: "in:draft " } });
     expect(await host.pick(P, "labels", "label:Label_2", "copy")).toEqual({ copy: "Receipts" });
@@ -347,7 +347,7 @@ describe("gmail", () => {
       { id: "send", title: "Send draft", shortcut: "cmd+enter", confirm: 'Send "Packing list" to Ola Berg?' },
       { id: "discard", title: "Discard draft", shortcut: "cmd+d", style: "destructive", confirm: 'Discard "Packing list"?' },
     ]);
-    expect(await host.pick(P, "drafts", "r1")).toEqual({ open: "https://mail.google.com/mail/u/someone%40gmail.com/#drafts/td1" });
+    expect(await host.pick(P, "drafts", "r1")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40gmail.com#drafts/td1" });
     expect(await host.pick(P, "drafts", "r1", "send")).toEqual({ keep: true, toast: { title: "Sent", message: "Packing list" } });
     expect(mock.calls("/users/me/drafts/send").at(-1)!.body).toEqual({ id: "r1" });
     expect(await host.pick(P, "drafts", "r2", "discard")).toEqual({ keep: true, toast: { title: "Discarded", message: "(no subject)" } });
@@ -381,9 +381,9 @@ describe("gmail", () => {
     expect(mock.calls("/users/me/messages").length).toBe(n + 3);
     const w = await host.render(W, "unread", { reason: "every", instance: { key: W, name: P, title: "Work", isDefault: false } });
     expect(w).toMatchObject({ title: "Work", badge: 2, tooltip: "2 unread messages in someone@example.org" });
-    expect(await host.barAction(W, "unread", "open-gmail")).toEqual({ open: "https://mail.google.com/mail/u/someone%40example.org/#inbox" });
+    expect(await host.barAction(W, "unread", "open-gmail")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40example.org#inbox" });
     expect(await host.barAction(W, "unread", "open-pal")).toEqual({ push: { extension: W, palette: "inbox" } });
-    expect(await host.barAction(W, "unread", "open:w2")).toEqual({ open: "https://mail.google.com/mail/u/someone%40example.org/#inbox/wt2" });
+    expect(await host.barAction(W, "unread", "open:w2")).toEqual({ open: "https://mail.google.com/mail/?authuser=someone%40example.org#inbox/wt2" });
     expect(await host.barAction(W, "unread", "read:w2")).toEqual({ keep: true, hud: "Marked read" });
     expect(modifies().at(-1)).toEqual({ ids: ["w2"], removeLabelIds: ["UNREAD"] });
     // The cursor moves and redraws, and the keys act on the row it is on.

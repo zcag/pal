@@ -119,7 +119,7 @@ Archive and Star join the row's actions.
 
 | action | shortcut | when |
 | --- | --- | --- |
-| Open in Gmail | `Enter` | `https://mail.google.com/mail/u/<address>/#inbox/<threadId>` (`#all/` off the inbox) |
+| Open in Gmail | `Enter` | `https://mail.google.com/mail/?authuser=<address>#inbox/<threadId>` (`#all/` off the inbox; Gmail redirects to the account's `/u/N/` slot with the fragment kept) |
 | Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify`; works over marked rows too |
 | Archive | `⌘E` | send on; out of the inbox |
 | Star / Unstar | `⌘S` | send on |
