@@ -1,7 +1,7 @@
 {
   "name": "system",
   "title": "System",
-  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake, quit or unhide every app, dismiss notifications.",
+  "description": "Sleep, lock, log out, restart, shut down, empty the trash, dark mode, volume, brightness, do not disturb, eject, show desktop, keep awake, quit or unhide every app, dismiss notifications. Quick Look on the Finder selection.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -32,6 +32,7 @@
       "Keep Awake runs `caffeinate` (or `systemd-inhibit`) detached and the row flips to Allow Sleep while it runs",
       "Quit All Apps closes every open app but Finder and pal (each asked the way its Quit menu asks, so unsaved work still prompts), Unhide All Apps brings hidden ones back, Dismiss Notifications clears what is on screen (Notification Center over Accessibility on macOS; the daemon's CLI on Linux)",
       "Log Out, Restart, Shut Down, Empty Trash and Quit All Apps ask first, unless `confirm_destructive` is off",
+      "Quick Look Finder Selection (macOS): the Quick Look panel over what is marked in Finder, the names as the subtitle; the row is inert and says why while nothing is selected or Finder is not in front. `pal://system/run?id=quick-look-selection` for a hotkey",
       "pal hides before running, so the command lands on the desktop, not on pal; a failure keeps the panel open with the tool's message"
     ],
     "permissions": [
@@ -74,7 +75,7 @@
       "confirm": true,
       "params": {
         "id": {
-          "description": "sleep, lock, logout, restart, shutdown, empty-trash, dark-mode, volume-up, volume-down, volume-mute, brightness-up, brightness-down, dnd, eject-all, show-desktop, keep-awake, quit-all, unhide-all, dismiss-notifications",
+          "description": "sleep, lock, logout, restart, shutdown, empty-trash, dark-mode, volume-up, volume-down, volume-mute, brightness-up, brightness-down, dnd, eject-all, show-desktop, keep-awake, quit-all, unhide-all, dismiss-notifications, quick-look-selection (macOS)",
           "required": true
         }
       }

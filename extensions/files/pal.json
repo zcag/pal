@@ -1,7 +1,7 @@
 {
   "name": "files",
   "title": "Files",
-  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; by contents too, as a second section or alone with a ' prefix; the recently used files before you type, and as a palette of their own. Enter on a folder browses it (sorted by name, date or size, `..` and `←` up). Open, open with another app, reveal, Quick Look, open in a terminal, copy the path, the file or the text in an image (OCR), rename, move or copy to a folder, compress, trash.",
+  "description": "Search files by name through the system's index: Spotlight on macOS, fd, locate or find on Linux; by contents too, as a second section or alone with a ' prefix; the recently used files before you type, and as a palette of their own; what is selected in Finder, on the empty root and as a palette of its own. Enter on a folder browses it (sorted by name, date or size, `..` and `←` up). Open, open with another app, reveal, Quick Look, open in a terminal, copy the path, the file or the text in an image (OCR), rename, move or copy to a folder, compress, trash.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -85,6 +85,7 @@
       "Contents too: files whose text has the query as a second section, the first matching line as the subtitle (Spotlight's text index on macOS, `rg` or `grep` on Linux, 1 s at most); `'query` or `content:query` searches contents only",
       "Copy text (OCR, `cmd+shift+t`) on an image or a PDF's first page: the Vision framework on macOS, `tesseract` on Linux",
       "Before you type: the files used in the last seven days; the same rows as the Recent Files palette",
+      "Selected in Finder: open pal over a Finder window (or the Desktop) with files marked and they lead the empty root under \"Selected in Finder\", every file action on each; an \"N items\" row runs Open, Reveal, Quick Look, Copy paths, Copy files, Compress and Trash on all of them at once. The Finder Selection palette lists the whole selection with a filter (macOS; the palette says why when Finder is not in front)",
       "Enter (or `→`) on a folder browses it as a level whose crumb is the folder: a `..` row (`←` or Backspace goes up from anywhere), the entries sorted by name, date or size from the dropdown, pictures with their thumbnails, `cmd+.` for hidden files; `~/` or `/` typed lists that folder the same way",
       "Open with… (`cmd+o`) lists the apps the OS registers for the file, the default tagged",
       "Reveal (`cmd+enter`), Quick Look (`cmd+y`), Copy path (`cmd+c`), Copy file (`cmd+shift+c`), Open in Terminal (`cmd+t`, the folder or the file's), Move to Trash (`cmd+d`, asks first)",
@@ -142,7 +143,7 @@
       },
       {
         "title": "Quick Look",
-        "description": "macOS only.",
+        "description": "macOS only; every marked row at once, arrows between them.",
         "keys": "cmd+y"
       },
       {
@@ -285,6 +286,61 @@
         {
           "keys": "cmd+enter",
           "title": "Reveal in Finder"
+        },
+        {
+          "keys": "cmd+o",
+          "title": "Open with another app"
+        },
+        {
+          "keys": "cmd+c",
+          "title": "Copy path"
+        },
+        {
+          "keys": "cmd+shift+c",
+          "title": "Copy the file"
+        },
+        {
+          "keys": "cmd+t",
+          "title": "Open in a terminal"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Rename to the name typed in the bar"
+        },
+        {
+          "keys": "cmd+m",
+          "title": "Move to a folder"
+        },
+        {
+          "keys": "cmd+alt+c",
+          "title": "Copy to a folder"
+        },
+        {
+          "keys": "cmd+shift+z",
+          "title": "Compress to a zip"
+        },
+        {
+          "keys": "cmd+d",
+          "title": "Move to Trash"
+        }
+      ]
+    },
+    "selection": {
+      "title": "Finder Selection",
+      "kind": "input",
+      "description": "The files selected in Finder (the front window's, or the Desktop's), each with the file actions; several are led by an \"N items\" row whose actions run on all of them. The same rows lead the empty root under \"Selected in Finder\" whenever pal opens over Finder with something marked. macOS only; the palette says why when Finder is not in front or nothing is selected.",
+      "keys": [
+        {
+          "keys": "enter",
+          "title": "Open the file, browse a folder"
+        },
+        {
+          "keys": "cmd+enter",
+          "title": "Reveal in Finder"
+        },
+        {
+          "keys": "cmd+y",
+          "title": "Quick Look (macOS)"
         },
         {
           "keys": "cmd+o",

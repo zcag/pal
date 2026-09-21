@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { copyFile, mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { exec, home, thumbnailUrl } from "@zcag/pal";
+import { exec, home, selection, thumbnailUrl } from "@zcag/pal";
 import { fmtOf, identifyFormat, parseExiftool, parseIdentify, parseSips, strip, TOOL_ORDER, type Avail, type Dims, type Fmt, type Info, type Plan, type Step, type ToolName } from "./ops.ts";
 
 export const MAC = process.platform === "darwin";
@@ -186,15 +186,10 @@ export async function thumbnail(p: string, px: number): Promise<string | undefin
 
 // ---- the Finder selection ---------------------------------------------------------
 
-const FINDER_MS = 3000;
-/** The files selected in the front Finder window, as POSIX paths (AppleScript; Finder is always running on macOS). Empty off macOS or when nothing is selected. `PAL_IMAGES_SELECTION` (newline-separated paths) stands in for the tests. */
+/** The files selected in Finder while it is the app in front (the core's `selection.files()`: one read per panel show, empty off macOS, when nothing is selected or when another app is in front). `PAL_IMAGES_SELECTION` (newline-separated paths) stands in for the tests. */
 export async function finderSelection(): Promise<string[]> {
   if (process.env.PAL_IMAGES_SELECTION !== undefined) return process.env.PAL_IMAGES_SELECTION.split("\n").filter(Boolean);
-  if (!MAC) return [];
-  try {
-    const out = await run(["osascript", "-e", 'tell application "Finder" to set sel to selection as alias list', "-e", 'set out to ""', "-e", "repeat with a in sel", "-e", "set out to out & POSIX path of a & linefeed", "-e", "end repeat", "-e", "out"], FINDER_MS);
-    return out.split("\n").map((l) => l.replace(/\/$/, "")).filter(Boolean);
-  } catch { return []; }
+  return selection.files().catch(() => []);
 }
 
 // ---- the clipboard ------------------------------------------------------------------

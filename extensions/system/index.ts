@@ -7,9 +7,14 @@
 // show, which also keeps the two probes here current: what is in the
 // Trash, and whether the appearance is dark or light. The destructive ones
 // ask first unless the setting turns that off. The core hides the panel
-// before running, so the command lands on the desktop, not on pal.
+// before running, so the command lands on the desktop, not on pal. One
+// row is the extension's own: Quick Look on the Finder selection
+// (`selection.files()`, read once per show), inert with the reason while
+// nothing is selected; `pal://system/run?id=quick-look-selection` is its
+// twin for a hotkey.
 import { readdir } from "node:fs/promises";
-import { errorMessage, home, settings, system, toast, type Accessory, type Effect, type Extension, type Item, type LinkParams, type SystemCommand } from "@zcag/pal";
+import { basename } from "node:path";
+import { errorMessage, files, home, selection, settings, state, system, toast, truncate, type Accessory, type Effect, type Extension, type Item, type LinkParams, type SystemCommand } from "@zcag/pal";
 
 /** `[extensions.system]`, defaults in pal.json. */
 type Settings = { confirm_destructive: boolean };
@@ -60,6 +65,40 @@ async function appearance(): Promise<"dark" | "light" | undefined> {
   return scheme === undefined ? undefined : scheme.includes("prefer-dark") ? "dark" : "light";
 }
 
+/** The Quick Look row's id, on the manifest's `run` route too. */
+const QUICK_LOOK = "quick-look-selection";
+const FINDER = "com.apple.finder";
+
+/**
+ * Quick Look on what is selected in Finder (macOS): the names as the
+ * subtitle and Enter while something is marked; otherwise an inert row
+ * saying why (the palette is live, so a show over Finder makes it live
+ * again). `front_app` is the built-in state, a bundle id.
+ */
+async function quickLookRow(): Promise<Item | undefined> {
+  if (!MAC) return;
+  const paths = await selection.files().catch(() => [] as string[]);
+  const n = paths.length;
+  const front = n ? FINDER : await state.get("front_app").catch(() => null);
+  return {
+    id: QUICK_LOOK,
+    name: "Quick Look Finder Selection",
+    subtitle: n ? truncate(paths.map((p) => basename(p)).join(", "), 80) : front === FINDER ? "Nothing is selected in Finder" : "Finder is not in front",
+    icon: "\u{f0dcb}", // md-file_eye_outline
+    keywords: ["ql", "preview", "finder", "selection"],
+    accessories: n ? [{ text: n === 1 ? "1 item" : `${n} items` }] : [],
+    actions: n ? [{ id: "run", title: "Quick Look" }] : [],
+  };
+}
+
+/** The Quick Look panel over the selection; a throw names why not (the HUD's line from a link). */
+async function quickLook(): Promise<Effect> {
+  const paths = await selection.files().catch(() => [] as string[]);
+  if (!paths.length) throw new Error("nothing is selected in Finder");
+  files.quickLook(paths);
+  return { hide: true };
+}
+
 /** What the two probed rows show on the right. */
 type Probes = { trash?: number; appearance?: "dark" | "light" };
 
@@ -79,6 +118,7 @@ export default {
   link: async (route: string, params: LinkParams): Promise<Effect | void> => {
     if (route !== "run") return;
     const id = String(params.id);
+    if (id === QUICK_LOOK && MAC) return quickLook();
     if (!(await system.commands()).some((c) => c.id === id && c.available)) throw new Error(`no system command "${id}" on this machine`);
     await system.run(id);
   },
@@ -95,10 +135,12 @@ export default {
           trash: commands.some((c) => c.id === "empty-trash") ? await trashCount() : undefined,
           appearance: commands.some((c) => c.id === "dark-mode") ? await appearance() : undefined,
         };
-        return commands.map((c) => item(c, confirm, probes));
+        const ql = await quickLookRow();
+        return [...commands.map((c) => item(c, confirm, probes)), ...(ql ? [ql] : [])];
       },
       pick: async (id) => {
         try {
+          if (id === QUICK_LOOK) return await quickLook();
           await system.run(id);
         } catch (e) {
           return toast("Command failed", errorMessage(e), "failure");

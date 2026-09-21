@@ -1,7 +1,8 @@
 # Files
 
-Three palettes: two over the operating system's own file index, never a
-walk pal indexes itself, and one that browses a folder.
+Four palettes: two over the operating system's own file index, never a
+walk pal indexes itself, one that browses a folder, and one that lists
+what is selected in Finder.
 
 **Files** is an input palette: what you type is a name search on every
 keystroke. The row is the file name; the parent folder is the subtitle
@@ -31,6 +32,20 @@ a row counting the rest. File rows have the same actions as search rows.
 Inside Files a typed path ending in `/` (`~/`, `/usr/local/`) lists that
 folder the same way; without the slash it completes the last segment.
 
+**Finder Selection** (macOS) is what is marked in Finder, the front
+window's items or the Desktop's, as file rows with the same actions; with
+two or more, an **N items** row leads (the names, the total size) whose
+actions run on all of them at once: Open all, Reveal all, Quick Look all,
+Copy paths, Copy files, Compress together, Move all to Trash. The same
+rows lead the empty root under **Selected in Finder** the moment pal opens
+over Finder with something marked (four item rows at most there; the
+N items row's Enter opens the palette with the whole selection). With
+nothing to list the palette says why: nothing is selected, Finder is not
+in front, or Linux (no file manager exposes its selection). The selection
+is the core's `selection.files()`: read once per panel show, so it is what
+was marked when the panel came up, and only while Finder is the app in
+front.
+
 ## Backends
 
 Picked once when the extension loads and logged (`[files] backend: fd`):
@@ -57,7 +72,7 @@ the answer (Spotlight, locate).
 | `tab` | In a browsed folder: cycle the sort (name, date, size) |
 | `cmd+.` | In a browsed folder: show or hide hidden files |
 | `cmd+enter` | Reveal in Finder (`open -R`), Show in file manager on Linux (`xdg-open` on the parent folder) |
-| `cmd+y` | Quick Look (`qlmanage -p`), macOS only |
+| `cmd+y` | Quick Look (`qlmanage -p`), macOS only; every marked row in one panel, arrows between them |
 | `cmd+o` | Open with…: a level listing the apps registered for the file, the default first with a `Default` tag; typing narrows them, Enter opens the file with that app |
 | `cmd+c` | Copy path |
 | `cmd+shift+c` | Copy file: the file itself onto the clipboard; a paste in Finder or a file manager copies it, a paste in a text field gets its path |
