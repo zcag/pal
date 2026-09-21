@@ -1205,7 +1205,7 @@ scratch instance on hornet (`target/scratch-sw`, the recipe under How to run it)
   (`isHidden` per pid) tells a hidden app from another space; `Show app`
   (`cmd+shift+h`) is `activate`, which already unhid.
 - **Switcher**: `palettes.<id>.hold` (the windows manifest suggests
-  `alt+tab`; `opt` is not a modifier the parser knows, so the spec's
+  `alt+tab`; the parser takes `alt` and `option`, not `opt`, so the spec's
   `opt+tab` is spelled `alt+tab`), `Target::Hold` registers the chord and
   its `shift+` variant, `switcher.rs` begins on the first press (`show_hold`,
   `hold: true` in `pal://shown`), steps on every further press (the OS
