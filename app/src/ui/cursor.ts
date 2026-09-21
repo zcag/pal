@@ -15,3 +15,17 @@ export function useCursor(count: number, initial = 0) {
 }
 
 export type Cursor = ReturnType<typeof useCursor>;
+
+/**
+ * Where the switcher's cursor goes when the rows change under it (a relist,
+ * a filter typed): the row it was on (`id`) where that still is, else
+ * `fallback` clamped (the same index after a relist, row 0 after typing).
+ * With no row yet followed (the hold just began) it is row 2, or the only
+ * row: "row 2 is where I just was".
+ */
+export function followCursor(rows: { item: { id: string } }[], id: string | undefined, fallback: number): number {
+  if (!rows.length) return 0;
+  if (id === undefined) return Math.min(1, rows.length - 1);
+  const i = rows.findIndex((r) => r.item.id === id);
+  return i >= 0 ? i : Math.max(0, Math.min(fallback, rows.length - 1));
+}
