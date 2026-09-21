@@ -1,5 +1,6 @@
 // windows against canned core/windows.* replies: the harness fixtures plus
-// a second kitty window, so the per-app actions have a set to act on.
+// a second kitty window, so the per-app actions have a set to act on, and
+// a hidden app's window.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
 import type { Window } from "../../../sdk/src/index.ts";
@@ -8,18 +9,21 @@ import { Host, fixtures } from "../harness.ts";
 const MAC = process.platform === "darwin";
 const WINDOWS: Window[] = [
   ...fixtures.windows,
-  { id: "w4", app: "kitty", title: "~/notes", bundle_or_class: "net.kovidgoyal.kitty", pid: 11, minimized: true, on_screen: false, monitor: null, workspace: null, icon: "/Applications/kitty.app" },
+  { id: "w4", app: "kitty", title: "~/notes", bundle_or_class: "net.kovidgoyal.kitty", pid: 11, minimized: true, hidden: false, on_screen: false, monitor: null, workspace: null, icon: "/Applications/kitty.app" },
+  { id: "w5", app: "Slack", title: "pal", bundle_or_class: "com.tinyspeck.slackmacgap", pid: 55, minimized: false, hidden: true, on_screen: false, monitor: null, workspace: null, icon: null },
 ];
 
 let host: Host;
 const closed: unknown[] = [];
 const minimized: unknown[] = [];
+const activated: unknown[] = [];
 beforeAll(async () => {
   host = await Host.bundled({
     core: {
       "windows.list": () => WINDOWS,
       "windows.close": (p) => { if (p.id === "w3") throw new Error("Finder refused"); closed.push(p); return null; },
       "windows.minimize": (p) => { minimized.push(p); return null; },
+      "windows.activate": (p) => { activated.push(p); return "Slack"; },
     },
   });
 });
@@ -36,7 +40,7 @@ describe("windows", () => {
 
   test("rows in the core's order: title, app as subtitle, section and keyword, app icon or a glyph, state accessories", async () => {
     const items = await list();
-    expect(items.map((i) => i.id)).toEqual(["w1", "w2", "w3", "w4"]);
+    expect(items.map((i) => i.id)).toEqual(["w1", "w2", "w3", "w4", "w5"]);
     expect(items[0]).toEqual({
       id: "w1", name: "~/proj/pal", subtitle: "kitty", keywords: ["net.kovidgoyal.kitty", "kitty"], icon: { app: "/Applications/kitty.app" }, accessories: [], section: "kitty",
       actions: [
@@ -51,6 +55,15 @@ describe("windows", () => {
     expect(items[1].actions!.map((a) => a.id)).toEqual(["focus", "close", ...(MAC ? ["hide-app"] : [])]);
     expect(items[2].accessories).toEqual([{ text: "ws 3" }]);
     expect(items[3].actions!.map((a) => a.id)).toEqual(["focus", "close", ...perApp]);
+    // A hidden app's window is `hidden`, not `other space`; Show app replaces Hide app on it.
+    expect(items[4].accessories).toEqual([{ tag: "hidden" }]);
+    expect(items[4].actions!.map((a) => a.id)).toEqual(["focus", "close", "minimize", ...(MAC ? ["show-app"] : [])]);
+    if (MAC) expect(items[4].actions!.find((a) => a.id === "show-app")).toEqual({ id: "show-app", title: "Show app", shortcut: "cmd+shift+h" });
+  });
+
+  test.if(MAC)("show app activates the window's app through the core and lets the panel hide", async () => {
+    expect(await pick("w5", "show-app")).toEqual({});
+    expect(activated).toEqual([{ id: "w5" }]);
   });
 
   test("pick focuses by default; close and minimize go to the core and keep the palette", async () => {
@@ -89,8 +102,8 @@ describe("windows", () => {
 
   test("include_minimized off hides the minimised rows", async () => {
     host.changeSettings("windows", { settings: { include_minimized: false } });
-    expect((await list()).map((i) => i.id)).toEqual(["w1", "w3"]);
+    expect((await list()).map((i) => i.id)).toEqual(["w1", "w3", "w5"]);
     host.changeSettings("windows", {});
-    expect(await list()).toHaveLength(4);
+    expect(await list()).toHaveLength(5);
   });
 });

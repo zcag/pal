@@ -1145,11 +1145,15 @@ Settings, `[extensions.system]`:
 
 ## Windows (`windows`)
 
-Every open window with its app's icon, in the desktop's order (front to
-back on macOS, most recently focused first on Hyprland), never ranked by
-use. A live palette: the list runs on every show, so window titles are
-root results. The app name is the subtitle; the bundle id or window class
-is a keyword; a minimised window carries a `minimized` tag, one on another
+Every open window with its app's icon, most recently used first on macOS
+and Hyprland (front to back on Sway and X11), never ranked by how often
+it was picked: row 1 is the window you came from, row 2 the one before
+it. Hyprland keeps that history; on macOS pal does, stamped on every app
+activation, when the panel shows, and by Focus, so a focus change inside
+one app shows up on the next activation. A live palette: the list runs on
+every show, so window titles are root results. The app name is the
+subtitle; the bundle id or window class is a keyword; a hidden app's
+window carries a `hidden` tag, a minimised one `minimized`, one on another
 workspace or space `ws <n>` or `other space`, and the monitor when known.
 
 Actions:
@@ -1185,9 +1189,10 @@ Minimize run over all of them; Focus is one window.
   window of each gives); the app name is a keyword as well as the
   subtitle.
 - More actions: **Hide app** (`⌘H`, macOS: System Events hides the
-  window's process), and on an app with more than one window **Minimize
-  all of this app** (`⌘⇧M`) and **Close all of this app** (`⌘⇧W`, asks
-  first).
+  window's process), **Show app** in its place on a hidden app's window
+  (`⌘⇧H`, macOS: the app comes forward with every window it had, and the
+  panel hides), and on an app with more than one window **Minimize all of
+  this app** (`⌘⇧M`) and **Close all of this app** (`⌘⇧W`, asks first).
 
 Settings, `[extensions.windows]`:
 

@@ -1,12 +1,13 @@
 // Window switcher over the core's windows capability. A live palette:
 // `windows.list` runs every time the panel shows, so the rows are what is
 // open right now, in the index (window titles are root results, as in
-// Raycast), and the order is the desktop's (front to back on macOS, most
-// recently focused first on Hyprland), never a ranking; the section is the
-// app, so an app's windows sit together in the order its front window
-// gives. Enter focuses (a `focus` effect: the panel hides, then the window
-// comes up), the rest of the actions close or minimise, one window or the
-// app's whole set, without leaving the palette; Hide app is macOS's hide.
+// Raycast), and the order is the core's: most recently used first (macOS
+// from pal's own focus history, Hyprland from the compositor's), never a
+// ranking; the section is the app, so an app's windows sit together in
+// the order its most recent window gives. Enter focuses (a `focus` effect:
+// the panel hides, then the window comes up), the rest of the actions
+// close or minimise, one window or the app's whole set, without leaving
+// the palette; Hide app is macOS's hide, Show app undoes it.
 import { failed, settings, windows, xdg, type Accessory, type Action, type Extension, type Item, type Window } from "@zcag/pal";
 
 /** `[extensions.windows]`, defaults in pal.json. */
@@ -21,12 +22,15 @@ const FOCUS: Action = { id: "focus", title: "Focus" };
 const CLOSE: Action = { id: "close", title: "Close", shortcut: "cmd+w", style: "destructive", multi: true };
 const MINIMIZE: Action = { id: "minimize", title: "Minimize", shortcut: "cmd+m", multi: true };
 const HIDE_APP: Action = { id: "hide-app", title: "Hide app", shortcut: "cmd+h" };
+const SHOW_APP: Action = { id: "show-app", title: "Show app", shortcut: "cmd+shift+h" };
 const MINIMIZE_ALL: Action = { id: "minimize-all", title: "Minimize all of this app", shortcut: "cmd+shift+m" };
 const CLOSE_ALL: Action = { id: "close-all", title: "Close all of this app", shortcut: "cmd+shift+w", style: "destructive", confirm: "Close every window of this app?" };
 
 function item(w: Window, siblings: number): Item {
   const accessories: Accessory[] = [];
-  if (w.minimized) accessories.push({ tag: "minimized" });
+  // Hidden is its own state: a hidden app's windows are off screen too, but they are not on another space.
+  if (w.hidden) accessories.push({ tag: "hidden" });
+  else if (w.minimized) accessories.push({ tag: "minimized" });
   else if (!w.on_screen) accessories.push({ text: w.workspace ? `ws ${w.workspace}` : "other space" });
   if (w.monitor) accessories.push({ text: w.monitor });
   return {
@@ -37,7 +41,7 @@ function item(w: Window, siblings: number): Item {
     icon: w.icon ? { app: w.icon } : WINDOW_GLYPH,
     accessories,
     section: w.app,
-    actions: [FOCUS, CLOSE, ...(w.minimized ? [] : [MINIMIZE]), ...(MAC ? [HIDE_APP] : []), ...(siblings > 1 ? [MINIMIZE_ALL, CLOSE_ALL] : [])],
+    actions: [FOCUS, CLOSE, ...(w.minimized ? [] : [MINIMIZE]), ...(MAC ? [w.hidden ? SHOW_APP : HIDE_APP] : []), ...(siblings > 1 ? [MINIMIZE_ALL, CLOSE_ALL] : [])],
   };
 }
 
@@ -91,6 +95,10 @@ export default {
             if (!w) return failed("hide the app", "the window is gone");
             try { await hideApp(w.pid); } catch (e) { return failed(`hide ${w.app}`, e); }
             return { keep: true };
+          // The app forward, unhidden, every window back: the panel hides as it comes up.
+          case "show-app":
+            try { await windows.activate(id); } catch (e) { return failed("show the app", e); }
+            return {};
           default:
             return { focus: id };
         }
