@@ -30,6 +30,8 @@ pub const BOOST: f32 = 1e9;
 
 pub const ABOUT: &str = "about";
 pub const HOTKEY: &str = "hotkey";
+pub const SWITCHER: &str = "switcher";
+pub const SIDEBAR: &str = "sidebar";
 pub const EXTENSIONS: &str = "extensions";
 pub const GITHUB: &str = "github";
 pub const ACCESSIBILITY: &str = "accessibility";
@@ -72,11 +74,19 @@ pub struct Env {
     pub hotkey: String,
     /// Off macOS always true: the Accessibility row is for macOS only.
     pub ax_trusted: bool,
+    /// The Windows palette's switcher chord as it applies: `palettes.windows.hold`,
+    /// else what its manifest suggests (`""` when turned off); `None` while
+    /// neither is known (the host not up yet).
+    pub hold: Option<String>,
+    /// This platform builds a sidebar (`bar::SUPPORTED`): the row is for macOS only.
+    pub sidebar: bool,
 }
 
 impl Env {
     fn read(app: &AppHandle) -> Self {
-        Self { hotkey: settings::config(app).general.hotkey.first().unwrap_or_default().into(), ax_trusted: !cfg!(target_os = "macos") || pal_core::ax::trusted() }
+        let config = settings::config(app);
+        let hold = config.palette("windows").hold.clone().or_else(|| crate::registry::registered_holds(app).into_iter().find(|(id, _, _)| id == "windows").and_then(|(_, _, h)| h));
+        Self { hotkey: config.general.hotkey.first().unwrap_or_default().into(), ax_trusted: !cfg!(target_os = "macos") || pal_core::ax::trusted(), hold, sidebar: crate::bar::SUPPORTED }
     }
 }
 
@@ -158,6 +168,29 @@ pub fn rows(env: &Env) -> Vec<Item> {
             "\u{f030c}",
             format!("# Change the hotkey\n\npal opens with **{hk}**. Enter opens the recorder under Settings › General: press another combination, or pick a preset. Every palette can have its own hotkey too, on its row under Settings › Palettes."),
         ),
+    ]);
+    // The switcher: named by its chord while one applies, generic while off or not yet known.
+    let (name, sub) = match env.hold.as_deref().map(str::trim).filter(|h| !h.is_empty()) {
+        Some(h) => (format!("{} switches windows; hold it to pick", hotkey_label(h)), "Let go on a row to go there; Enter opens the recorder in Settings".to_string()),
+        None => ("Switch windows with a held chord".to_string(), format!("{}; Enter opens the recorder in Settings", if env.hold.is_some() { "Off now" } else { "Set one" })),
+    };
+    rows.push(row(
+        SWITCHER,
+        &name,
+        &sub,
+        "\u{f04e1}",
+        "# Switch windows\n\nTap the chord to go back to the window you were in. Hold its modifier and press again to step down the list (with Shift, up), let go to switch, type to filter. Windows lists most recently used first.\n\nEnter here opens the recorder under Settings › General › Window switcher, where the chord is changed or turned off. Any palette can be held the same way: Switcher chord under Settings › Palettes.".to_string(),
+    ));
+    if env.sidebar {
+        rows.push(row(
+            SIDEBAR,
+            "A sidebar at the screen edge: Settings › General",
+            "One palette docked to an edge, every row numbered so a number chord runs it",
+            "\u{f10ab}",
+            format!("# Sidebar\n\nA live palette docked to the left or right edge of a display. It peeks when the pointer rests at the edge; a click, a key or its hotkey engages it, and every row wears its number so **{}** runs row 3. Off until you switch it on: Enter here opens the switch under Settings › General › Sidebar.", hotkey_label("cmdorctrl+3")),
+        ));
+    }
+    rows.extend([
         row(
             EXTENSIONS,
             "Add your own palettes",
@@ -226,6 +259,10 @@ pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
             settings::open_at(app, Some("general"), Some("general:hotkey"));
             Ok(json!({ "hide": true }))
         }
+        SWITCHER | SIDEBAR => {
+            settings::open_at(app, Some("general"), Some(if id == SWITCHER { "general:switcher" } else { "general:sidebar" }));
+            Ok(json!({ "hide": true }))
+        }
         EXTENSIONS => effects::apply(app, json!({ "open": EXTENSIONS_GUIDE })).await,
         GITHUB => effects::apply(app, json!({ "open": REPO })).await,
         ACCESSIBILITY => {
@@ -264,7 +301,7 @@ mod tests {
     use super::*;
 
     fn env(ax_trusted: bool) -> Env {
-        Env { hotkey: "ctrl+space".into(), ax_trusted }
+        Env { hotkey: "ctrl+space".into(), ax_trusted, hold: Some("alt+tab".into()), sidebar: true }
     }
 
     #[test]
@@ -285,8 +322,23 @@ mod tests {
     #[test]
     fn rows_in_order_with_accessibility_only_while_untrusted() {
         let ids = |rows: &[Item]| rows.iter().map(|r| r.id.clone()).collect::<Vec<_>>();
-        assert_eq!(ids(&rows(&env(false))), [ACCESSIBILITY, ABOUT, HOTKEY, EXTENSIONS, GITHUB, HIDE], "the permission leads until granted");
-        assert_eq!(ids(&rows(&env(true))), [ABOUT, HOTKEY, EXTENSIONS, GITHUB, HIDE]);
+        assert_eq!(ids(&rows(&env(false))), [ACCESSIBILITY, ABOUT, HOTKEY, SWITCHER, SIDEBAR, EXTENSIONS, GITHUB, HIDE], "the permission leads until granted");
+        assert_eq!(ids(&rows(&env(true))), [ABOUT, HOTKEY, SWITCHER, SIDEBAR, EXTENSIONS, GITHUB, HIDE]);
+        assert_eq!(ids(&rows(&Env { sidebar: false, ..env(true) })), [ABOUT, HOTKEY, SWITCHER, EXTENSIONS, GITHUB, HIDE], "no sidebar row where none is built");
+    }
+
+    #[test]
+    fn the_switcher_row_names_the_chord_that_applies() {
+        let name = |hold: Option<&str>| rows(&Env { hold: hold.map(String::from), ..env(true) }).into_iter().find(|r| r.id == SWITCHER).unwrap();
+        let on = name(Some("alt+tab"));
+        assert_eq!(on.name, format!("{} switches windows; hold it to pick", hotkey_label("alt+tab")));
+        let off = name(Some(""));
+        assert_eq!(off.name, "Switch windows with a held chord");
+        assert!(off.subtitle.as_deref().unwrap().starts_with("Off now"), "{:?}", off.subtitle);
+        assert!(name(None).subtitle.as_deref().unwrap().starts_with("Set one"));
+        let sidebar = rows(&env(true)).into_iter().find(|r| r.id == SIDEBAR).unwrap();
+        assert!(sidebar.name.contains("Settings › General"));
+        assert!(sidebar.extra["detail"]["markdown"].as_str().unwrap().contains(&hotkey_label("cmdorctrl+3")));
     }
 
     #[test]
@@ -302,8 +354,8 @@ mod tests {
         assert!(rows.iter().skip(1).all(|r| r.extra.get("actions").is_none()));
         let about = rows[0].extra["detail"]["markdown"].as_str().unwrap();
         assert!(about.contains(&hotkey_label("ctrl+space")), "the detail names the hotkey");
-        assert!(rows[2].extra["detail"]["markdown"].as_str().unwrap().contains(EXTENSIONS_GUIDE));
-        assert!(rows[3].extra["detail"]["markdown"].as_str().unwrap().contains(REPO));
+        assert!(rows[4].extra["detail"]["markdown"].as_str().unwrap().contains(EXTENSIONS_GUIDE));
+        assert!(rows[5].extra["detail"]["markdown"].as_str().unwrap().contains(REPO));
     }
 
     #[test]

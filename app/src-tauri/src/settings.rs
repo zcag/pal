@@ -916,6 +916,9 @@ pub struct View {
     bar: BarView,
     /// The update checks as last run (`settings_check_updates`).
     checks: Checks,
+    /// Every display's name as the OS reports it, the primary first
+    /// (`popover::displays`): what `[sidebar] display` may name.
+    displays: Vec<String>,
 }
 
 /// Off the main thread: `permissions::status` probes the OS (~85 ms on
@@ -938,6 +941,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         permissions: permissions::status(),
         bar: bar_view(&app, &l.config),
         checks: lock(&st.checks).clone(),
+        displays: crate::bar::popover::displays(&app).0.into_iter().map(|d| d.name).collect(),
     }
 }
 
