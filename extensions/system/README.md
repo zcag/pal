@@ -28,6 +28,7 @@ Only commands this machine can run are listed:
 | Quit All Apps | System Events: every regular app but Finder and pal asked to quit, one by one, so an app with unsaved work still shows its sheet | not available |
 | Unhide All Apps | System Events: every hidden app made visible | not available |
 | Dismiss Notifications | Notification Center over Accessibility: the Clear All (else Close) action of every notification group; nothing on screen is nothing to do | `swaync-client --close-all`, `makoctl dismiss --all` or `dunstctl close-all`; hidden with none |
+| Quick Look Finder Selection | `qlmanage -p` over what is marked in Finder (the core's `selection.files()`, read once per show), the names as the subtitle and the count on the right; inert with the reason while nothing is marked or Finder is not in front. `pal://system/run?id=quick-look-selection` for a hotkey | not available |
 
 Two rows carry state on the right: Empty Trash shows what is in the Trash
 (`3 items`, `empty`), and Toggle Dark Mode carries the current appearance

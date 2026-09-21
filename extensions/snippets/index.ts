@@ -31,8 +31,8 @@ const all = async () => asSnippets(await storage.get(KEY));
 const clipboardText = async () => (await clipboard.list({ kind: "text", limit: 1 }))[0]?.text ?? "";
 /** Another snippet's text by name or keyword (case-insensitive), for `{snippet name=sig}`. */
 const snippetText = async (name: string) => { const n = name.trim().toLowerCase(); const list = await all(); return (list.find((x) => x.name.toLowerCase() === n) ?? list.find((x) => x.keyword?.toLowerCase() === n))?.text; };
-/** The placeholders' sources: the clipboard, the app in front's selected text for `{selection}` (the clipboard when nothing is selected), the other snippets. */
-const SOURCES = { clipboard: clipboardText, selection: selection.text, now: () => new Date(now()), snippet: snippetText };
+/** The placeholders' sources: the clipboard, the app in front's selected text for `{selection}` (the clipboard when nothing is selected), the Finder selection for `{files}`, the other snippets. */
+const SOURCES = { clipboard: clipboardText, selection: selection.text, files: selection.files, now: () => new Date(now()), snippet: snippetText };
 
 function row(s: Snippet): Item {
   return {
@@ -60,7 +60,7 @@ const form = (s?: Snippet, errors?: Record<string, string>, text?: string): Form
   fields: [
     { kind: "text", id: "name", label: "Name", required: true, default: s?.name, placeholder: "Email signature" },
     { kind: "text", id: "keyword", label: "Keyword", default: s?.keyword, placeholder: "sig", description: "One word that finds it." },
-    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "Filled in when pasted: {clipboard}, {selection} (the text selected in the app in front), {date}, {time}, {datetime} (with format=DD.MM.YYYY and offset=+1d), {uuid}, {snippet name=sig}. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out." },
+    { kind: "textarea", id: "text", label: "Text", required: true, default: s?.text ?? text, placeholder: "Best,\nAda", description: "Filled in when pasted: {clipboard}, {selection} (the text selected in the app in front), {files} (the paths selected in Finder, one per line, or sep=\", \"), {date}, {time}, {datetime} (with format=DD.MM.YYYY and offset=+1d), {uuid}, {snippet name=sig}. {cursor} places the caret when a keyword expands as you type (macOS, the Expand setting); a paste from here leaves it out." },
   ],
   submit: { id: "save", title: s ? "Save" : "Create" },
   errors,

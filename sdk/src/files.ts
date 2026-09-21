@@ -1,8 +1,9 @@
-// File operations a row can do (Files, Downloads): the rename, move and
-// copy forms and their submits, the archive command. The forms are pure;
-// the submits touch the file system (rename across volumes falls to `mv`,
-// a copy is `fs.cp`), and every refusal is the form again with the
-// message under the field, the typed value kept. `files` on `@zcag/pal`.
+// File operations a row can do (Files, Downloads, System): the rename,
+// move and copy forms and their submits, the archive command, Quick Look.
+// The forms are pure; the submits touch the file system (rename across
+// volumes falls to `mv`, a copy is `fs.cp`), and every refusal is the form
+// again with the message under the field, the typed value kept. `files`
+// on `@zcag/pal`.
 import { cp, mkdir, rename, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { home, tilde } from "./api.ts";
@@ -93,4 +94,19 @@ export async function archive(paths: string[]): Promise<string> {
   const { argv, cwd } = archiveArgv(paths, out);
   await run(argv, { cwd, ms: EXEC_MS * 6 });
   return out;
+}
+
+// ---- Quick Look -----------------------------------------------------------------
+
+/**
+ * The Quick Look panel over `paths` (arrows step between several), macOS
+ * only: `qlmanage -p` detached, the caller hides the panel. False where
+ * there is no Quick Look. `PAL_FILES_QUICKLOOK` names a stand-in taking
+ * the paths (the tests).
+ */
+export function quickLook(paths: string[]): boolean {
+  const bin = process.env.PAL_FILES_QUICKLOOK || (MAC ? "qlmanage" : undefined);
+  if (!bin || !paths.length) return false;
+  Bun.spawn([bin, ...(process.env.PAL_FILES_QUICKLOOK ? [] : ["-p"]), ...paths], { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
+  return true;
 }

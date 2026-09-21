@@ -13,6 +13,7 @@ Placeholders in the text are filled in when it is pasted or copied:
 | --- | --- |
 | `{clipboard}` | the newest text on the clipboard |
 | `{selection}` | the text selected in the app in front (the clipboard when nothing is) |
+| `{files}` | the files selected in Finder, one path per line (`{files sep=", "}` joins them otherwise); nothing when Finder is not in front or nothing is selected |
 | `{date}` | today, `YYYY-MM-DD` |
 | `{time}` | now, `HH:MM` |
 | `{datetime}` | both, with a space between |

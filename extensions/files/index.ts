@@ -19,6 +19,11 @@
 // move and copy to a folder (forms, the SDK's `files`, shared with Downloads),
 // compress (one zip, marked rows together), trash. The detail pane adds
 // what Spotlight knows on macOS: an image's pixel size, Finder's tags.
+// The Finder selection (`selection.files()`, read once per show) is the
+// `selection` palette: the marked items as rows with the same actions, an
+// "N items" row leading them whose actions run on every one, and a
+// `suggest` that puts them on the empty root under "Selected in Finder"
+// the moment the panel opens over Finder, nothing typed.
 // Contents too (content.ts): a query starting with `'` or `content:`
 // searches what files say instead of what they are called; a plain query
 // gets the content matches as a second section, "In files", under the
@@ -28,7 +33,7 @@
 // `grep` on their temp folder).
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { apps as appsApi, bytes, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, when, type Action, type App, type Arg, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, bytes, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, selection, settings, state, terminal, thumbnailUrl, tilde, toast, truncate, when, type Action, type App, type Arg, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { BROWSE_CAP, SORTS, UP, filterEntries, isRoot, moreRow, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
 import { parseMdls } from "./meta.ts";
@@ -204,7 +209,7 @@ const hiddenAction = (s: Settings): Action => ({ id: "toggle-hidden", title: s.s
 const ACTIONS: Action[] = [
   { id: "open", title: "Open", multi: true },
   { id: "reveal", title: MAC ? "Reveal in Finder" : "Show in file manager", multi: true },
-  ...(MAC ? [{ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" }] : []),
+  ...(MAC ? [{ id: "quick-look", title: "Quick Look", shortcut: "cmd+y", multi: true as const }] : []),
   { id: "open-with", title: "Open with…", shortcut: "cmd+o" },
   { id: "copy", title: "Copy path", shortcut: "cmd+c", multi: true },
   { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true },
@@ -234,11 +239,16 @@ const actionsFor = (p: string, k: Kind): Action[] => {
   return dialogUp ? [DIALOG_ACTION(dialogUp), ...base] : base;
 };
 
+/** `path` stat'ed as an entry, or nothing when it is gone. */
+async function entryOf(path: string, name = basename(path) || path): Promise<Entry | undefined> {
+  const st = await stat(path).catch(() => undefined);
+  return st && { path, name, dir: st.isDirectory(), size: st.size, mtime: st.mtimeMs };
+}
+
 /** A row for a path that still exists; `usedAt` (a recent file) replaces the modified date on the right. */
 async function item(p: string, usedAt?: number, section?: string): Promise<Item | undefined> {
-  const st = await stat(p).catch(() => undefined);
-  if (!st) return;
-  return entryRow({ path: p, name: basename(p) || p, dir: st.isDirectory(), size: st.size, mtime: st.mtimeMs }, usedAt, section);
+  const e = await entryOf(p);
+  return e && entryRow(e, usedAt, section);
 }
 
 /** The row's one field in the bar, a new name; only Rename reads it, and blank falls back to the form with the current name filled. */
@@ -268,12 +278,12 @@ const browsePush = (folder: string): Effect => ({ push: { extension: "files", pa
 async function entries(folder: string): Promise<Entry[]> {
   let names: string[];
   try { names = await readdir(folder); } catch { return []; }
-  const all = await Promise.all(names.map(async (name) => {
-    const path = join(folder, name);
-    const st = await stat(path).catch(() => undefined);
-    return st && { path, name, dir: st.isDirectory(), size: st.size, mtime: st.mtimeMs };
-  }));
-  return all.filter((e): e is Entry => !!e);
+  return entriesOf(names.map((name) => join(folder, name)));
+}
+
+/** `paths` stat'ed, in order, the gone ones skipped. */
+async function entriesOf(paths: string[]): Promise<Entry[]> {
+  return (await Promise.all(paths.map((p) => entryOf(p)))).filter((e): e is Entry => !!e);
 }
 
 /**
@@ -306,6 +316,43 @@ async function browseAction(id: string, action: string | undefined): Promise<Eff
     return { keep: true };
   }
   return undefined;
+}
+
+// ---- the Finder selection ----------------------------------------------------
+
+/** The empty root's section for the selection, and how many item rows it shows there (the "N items" row leads and opens the palette for the rest). */
+const SELECTION_SECTION = "Selected in Finder";
+const SELECTION_MAX = 4;
+/** The row standing for the whole selection; its actions run on every item. */
+const ALL = "selection:all";
+const FINDER = "com.apple.finder";
+/** md-file_multiple_outline: the "N items" row. */
+const ALL_GLYPH = "\u{f1032}";
+
+/** The Finder selection as entries (`selection.files()`: one read per show, empty when Finder is not in front), the gone ones skipped. */
+const selectedEntries = () => selection.files().catch(() => [] as string[]).then(entriesOf);
+
+const totalSize = (es: Entry[]) => bytes(es.reduce((n, e) => n + (e.dir ? 0 : e.size), 0));
+
+/** The "N items" row: names and total size, the multi actions of `ACTIONS` over every item; at the root Enter opens the palette, inside it Enter opens them all. */
+function allRow(es: Entry[], atRoot: boolean): Item {
+  const titles: Record<string, string> = { open: "Open all", reveal: MAC ? "Reveal all in Finder" : "Show all in file manager", "quick-look": "Quick Look all", copy: "Copy paths", "copy-file": "Copy files", compress: "Compress together", trash: "Move all to Trash" };
+  const actions = ACTIONS.filter((a) => a.multi).map((a) => ({ ...a, title: titles[a.id] ?? a.title, ...(a.id === "trash" && { confirm: `Move ${es.length} items to the Trash?` }) }));
+  return {
+    id: ALL,
+    name: `${es.length} items`,
+    subtitle: truncate(es.map((e) => e.name).join(", "), 80),
+    icon: ALL_GLYPH,
+    accessories: [{ text: totalSize(es) }],
+    actions: atRoot ? [{ id: "show", title: "Show in Finder Selection" }, ...actions] : actions,
+  };
+}
+
+/** The palette with nothing to list: why, so the user knows what to do (the front app is the `front_app` state, a bundle id on macOS). */
+async function noSelection(): Promise<Item> {
+  if (!MAC) return hint("Not available on Linux", "No file manager exposes its selection; browse a folder instead");
+  const front = await state.get("front_app").catch(() => null);
+  return front === FINDER ? hint("Nothing is selected in Finder", "Select files in Finder, then open pal") : hint("Finder is not in front", "Select files in a Finder window or on the Desktop, then open pal");
 }
 
 // ---- a typed path ----------------------------------------------------------
@@ -487,7 +534,7 @@ async function fileAction(id: string, action: string | undefined, palette: strin
   switch (action) {
     case "dialog": return { dialog: id };
     case "reveal": spawnDetached(MAC ? ["open", "-R", ...ids] : ["xdg-open", dirname(id)]); return { hide: true };
-    case "quick-look": spawnDetached(["qlmanage", "-p", id]); return { hide: true };
+    case "quick-look": files.quickLook(ids); return { hide: true };
     case "open-with": return { push: { extension: "files", palette, args: { open_with: id } satisfies OpenWith, title: `Open ${basename(id)} with` } };
     case "copy": return { copy: ids.join("\n") };
     case "copy-file": return { copy_files: ids };
@@ -606,6 +653,43 @@ export default {
       detail: (id, ctx) => {
         const file = openWithOf(ctx);
         return file ? openWithDetail(file, id) : detail(id);
+      },
+    },
+    selection: {
+      title: "Finder Selection",
+      input: true,
+      multi: true,
+      placeholder: "Filter the selection",
+      // The empty root: the selection under "Selected in Finder" the moment the panel opens over Finder; the "N items" row leads several.
+      suggest: async () => {
+        const es = await selectedEntries();
+        const rows = es.slice(0, SELECTION_MAX).map((e) => entryRow(e, undefined, SELECTION_SECTION, true));
+        return es.length > 1 ? [{ ...allRow(es, true), section: SELECTION_SECTION }, ...rows] : rows;
+      },
+      list: async (query = "", ctx) => {
+        const file = openWithOf(ctx);
+        if (file) return appRows(file, query);
+        await refreshDialog();
+        const es = await selectedEntries();
+        if (!es.length) return [await noSelection()];
+        // A selected dot file is a choice: listed whatever `show_hidden` says.
+        const rows = filterEntries(es, query, true).map((e) => entryRow(e, undefined, undefined, true));
+        return es.length > 1 && !query.trim() ? [allRow(es, false), ...rows] : rows;
+      },
+      pick: async (id, action, ctx) => {
+        const file = openWithOf(ctx);
+        if (file) return openWithPick(file, id);
+        if (id !== ALL) return fileAction(id, action, "selection", ctx);
+        if (action === "show") return { push: { extension: "files", palette: "selection" } };
+        const ids = (await selectedEntries()).map((e) => e.path);
+        return ids.length ? fileAction(ids[0], action, "selection", { ...ctx, ids }) : toast("Nothing is selected in Finder", "Select files in Finder, then open pal", "failure");
+      },
+      detail: async (id, ctx) => {
+        const file = openWithOf(ctx);
+        if (file) return openWithDetail(file, id);
+        if (id !== ALL) return detail(id);
+        const es = await selectedEntries();
+        return { metadata: [{ label: "Items", value: String(es.length) }, { label: "Size", value: totalSize(es) }, ...es.slice(0, 20).map((e) => ({ label: e.dir ? "Folder" : "File", value: tilde(e.path) }))] };
       },
     },
     recent: {

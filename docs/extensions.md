@@ -1168,8 +1168,6 @@ to the core.
   and an install reopens the root with the name typed. What the Store
   palette is built on.
 - `selection.text()`: the text selected in the app in front, or null.
-- `dialog.current()`: the open or save panel in front, or null (the
-  `dialog` effect types a path into it).
   The accessibility API first (`AXSelectedText` of the focused element on
   macOS, the primary selection on Linux); when that answers nothing and
   `general.selection_snapshot` allows (the default), the copy shortcut is
@@ -1178,6 +1176,21 @@ to the core.
   prompt is shown once per run). Reading it from `pick` works: the panel
   does not take the selection from the app behind it. The Snippets
   palette fills `{selection}` with it.
+- `selection.files()`: the files selected in the file manager in front,
+  as absolute paths in its order (`string[]`, never rejects). macOS:
+  Finder's marked items, the front window's or the Desktop's, over
+  `osascript`, and only while Finder is the app in front; a folder shown
+  with nothing marked is nothing, not the folder. Empty otherwise, and on
+  Linux, where no file manager exposes its selection portably. Read once
+  per panel show and cached like `dialog.current()` (~190 ms on hornet,
+  1 ms when Finder is not in front), so a `suggest`, a listing on every
+  keystroke and a `pick` inside the palette share one read and all see
+  what was marked when the panel came up. The Files palette's
+  "Selected in Finder" section, System's Quick Look row and the Images
+  palette's inputs read it; `{files}` in a snippet or a quicklink fills
+  it in.
+- `dialog.current()`: the open or save panel in front, or null (the
+  `dialog` effect types a path into it).
 - `permissions.status()` (`Permissions`: `accessibility`, `calendar`,
   `full_disk_access`, `input_monitoring`, `location`; a boolean or a
   `granted` / `denied` / `not_determined` / `restricted` / `unavailable`
@@ -1213,14 +1226,15 @@ to the core.
   `CONCEAL_SECONDS` (30) is the default clear.
 - `expand(text, sources)`: the placeholder grammar every text pal fills
   in shares (`sdk/src/placeholders.ts`): `{clipboard}`, `{selection}`,
-  `{date}`, `{time}`, `{datetime}` (each with `format=` over the tokens
-  `YYYY YY MM DD HH mm ss ddd MMM` and `offset=+1d` / `-2w` / `+3h` /
-  `-90m`), `{uuid}`, `{cursor}` (dropped), `{snippet name=...}` (one
-  level deep); anything else in braces stays. `sources`
+  `{files}` (the Finder selection's paths one per line, or joined by
+  `sep=`), `{date}`, `{time}`, `{datetime}` (each with `format=` over the
+  tokens `YYYY YY MM DD HH mm ss ddd MMM` and `offset=+1d` / `-2w` /
+  `+3h` / `-90m`), `{uuid}`, `{cursor}` (dropped), `{snippet name=...}`
+  (one level deep); anything else in braces stays. `sources`
   (`PlaceholderSources`): `clipboard()` (read once, only when asked),
-  `selection?()` (the clipboard when null or throwing), `now?()`,
-  `uuid?()`, `snippet?(name)`; each optional one absent leaves its
-  placeholder as written. `hasPlaceholders(text)`, `formatDate(d,
+  `selection?()` (the clipboard when null or throwing), `files?()` (empty
+  when throwing), `now?()`, `uuid?()`, `snippet?(name)`; each optional
+  one absent leaves its placeholder as written. `hasPlaceholders(text)`, `formatDate(d,
   format)`, `offsetDate(d, offset)`, `isoDate(d)`, `isoTime(d)`,
   `FORMAT_TOKENS`, `PLACEHOLDERS` come with it. Snippets pastes with it,
   Quicklinks fills a url with it (the values percent-encoded through the
@@ -1338,7 +1352,8 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   folder; `terminal.linux()`, `terminal.linuxArgv()`, `terminal.quote()`.
 - `files`: the rename, move and copy forms and their submits
   (`renameForm`, `moveForm`, `copyForm`, `renamePick`, `intoFolderPick`,
-  `moveTo`, `copyTo`), `archive(paths)` (`ditto` / `zip`).
+  `moveTo`, `copyTo`), `archive(paths)` (`ditto` / `zip`),
+  `quickLook(paths)` (`qlmanage -p` detached, macOS; false elsewhere).
 - `md`: markdown to the view tree: `md.render(text, { width?, maxNodes?,
   padding?, shift?, dropTitle?, where? })`, `md.parseBlocks`, `md.inline`,
   `md.frontmatter`, `md.outline`, `md.plain`, `md.excerpt`.

@@ -13,7 +13,7 @@ Before you type, the palette lists:
 
 | section | rows |
 | --- | --- |
-| Finder selection | the image files selected in the front Finder window (AppleScript, 100 ms); a selected folder lists its images (200 at most, not recursive). macOS only |
+| Finder selection | the image files selected in Finder while it is the app in front (the core's `selection.files()`, read once per panel show); a selected folder lists its images (200 at most, not recursive). macOS only |
 | Clipboard | an image on the clipboard (the file pal's history keeps for it, as "Clipboard image"), or the images of a copied file list |
 | Results | what this session wrote, newest first, with the saving as a tag; a result is a file row too, so it can be worked on again |
 
