@@ -92,6 +92,7 @@
       "tier": "primary",
       "kind": "live",
       "description": "What is open right now, front to back.",
+      "hold": "alt+tab",
       "keys": [
         {
           "keys": "enter",

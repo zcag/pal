@@ -29,6 +29,9 @@ extension_dirs = ["~/dotfiles/pal-extensions"]   # extra extension roots, loaded
 alias = "cb"               # extra keyword on the palette's row at the root
 hotkey = "ctrl+shift+v"    # opens pal straight inside this palette
 
+[palettes.windows]
+hold = "alt+tab"           # the switcher chord (the manifest suggests this one; "" turns it off)
+
 [palettes.calc]
 icon = "∑"                 # replaces the extension's icon on the palette row
 
@@ -185,6 +188,7 @@ them. A palette absent from the file gets the defaults.
 | `enabled` | bool | `true` | `false` removes the palette's rows from the index and its row from the root. The palette stays known, so re-enabling is immediate. The settings view unsets the key rather than writing `true`. |
 | `alias` | string | unset | A short name for the palette. It is added as a keyword on the palette's row at the root, so typing it finds the palette; `Enter` opens it. |
 | `hotkey` | string | unset | A global hotkey that opens pal directly in this palette. Same syntax as `general.hotkey`; the root hotkey wins a clash. Registered once the palette exists. |
+| `hold` | string | unset, or what the manifest suggests | The switcher chord ([Keyboard](keyboard.md#switcher)): held, it shows the palette flat (no sections, the index's order) with the cursor on row 2, every further press steps down, its `shift+` variant up, and letting go of the modifier runs the row under the cursor. Same syntax as `hotkey`; the chord and its `shift+` variant both register, after the root and palette hotkeys in a clash, before a bar item's or an item's. An extension may suggest one in its manifest (`palettes.<name>.hold` in `pal.json`: Windows suggests `alt+tab`), which applies when the file has no `hold` line; `hold = ""` turns it off. A chord with no modifier (`f13`) has no release: presses step, Enter runs. On Linux the compositor drives the same machine with [`pal switch`](cli.md#pal-switch). |
 | `item_hotkeys` | table of strings | `{}` | Global hotkeys that run one item of the palette without showing the panel, keyed by the item's id: the item's primary action runs as if you had pressed `Enter` on it, and whatever it shows after hiding (the HUD) still shows. `[palettes.window-management.item_hotkeys]` with `left_half = "ctrl+alt+left"` is the case it exists for ([Window Management](palettes.md#window-management-window-management-window-management-arrange)); any palette's item ids work, an indexed palette's being the stable ones. Same syntax and registration as `hotkey`; in a clash the root hotkey wins, then a palette's, then an item's. Settings › Palettes edits them too: the selected palette's pane has an Item hotkeys table (the id typed, or picked from the palette's indexed rows; a recorder per row; Remove), written one key at a time so a hand-written table keeps its other lines, and the Overview counts them. |
 | `icon` | string | unset | Icon override for the palette's row; the extension's own icon when unset. A glyph, an emoji or a hex colour. |
 | `tier` | `primary`, `normal`, `catalog` | unset | The palette's tier at the root over what its manifest says: `primary` is ranked up and capped at `root_caps.primary` rows, `catalog` ranked down and capped at `root_caps.catalog` ([Extensions](extensions.md#tier-what-the-rows-are-at-the-root)). `tier = "catalog"` on a data-file palette whose rows flood the root; `tier = "primary"` on one you reach for by name; Settings › Palettes has it as "At the root". |
@@ -344,7 +348,7 @@ identifies the account) and one declared `scope: "instance"` (Slack's
 `workspace`, Home Assistant's `url`); those fall to the manifest default
 until set for the instance. `[palettes."github@work-prs"].settings`
 inherits `[palettes.github-prs].settings` the same way; the pal-provided
-palette keys (`enabled`, `alias`, `hotkey`, `icon`, `tier`,
+palette keys (`enabled`, `alias`, `hotkey`, `hold`, `icon`, `tier`,
 `item_hotkeys`) never inherit, since a hotkey cannot be shared and an
 alias or icon is what tells the two apart. A secret reference is looked
 up per instance, so `keychain:pal/github@work-token` is its own keychain

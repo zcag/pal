@@ -737,6 +737,10 @@
           "default": true,
           "type": "boolean"
         },
+        "hold": {
+          "description": "The switcher chord: held, it shows this palette flat with the cursor\non row 2, every press steps (its `shift+` variant back), letting go\nof the modifier runs the row (`alt+tab` on Windows). `\"\"` turns off\nthe default the extension's manifest suggests.",
+          "type": "string"
+        },
         "hotkey": {
           "description": "Hotkey that opens pal directly in this palette.",
           "type": "string"

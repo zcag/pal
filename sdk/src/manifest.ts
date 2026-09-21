@@ -115,6 +115,7 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     ...(matchSource(p, m) !== undefined && { match: matchSource(p, m) }),
     ...(fallbackOf(p, m)),
     ...(typeof p.suggest === "function" && { suggest: true as const }),
+    ...(typeof m?.hold === "string" && m.hold.trim() && { hold: m.hold.trim() }),
     ...(p.multi === true && { multi: true as const }),
     ...(keywords.length && { keywords }),
   };

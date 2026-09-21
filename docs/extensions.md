@@ -171,9 +171,11 @@ A palette is described in two files, and each fact has one home:
 - **`pal.json` holds what is static and author-facing**: `title`,
   `description`, `kind`, `ttl`, `lazy`, `tier` (below), `keys` (what each key
   does, as `[{ "keys": "cmd+c", "title": "Copy the link" }]`), `keywords`
-  (the words the palette's root row answers to), `rank`, `settings`, and
-  the extension's `icon` and `keywords`. The store and the settings
-  window read these without running the code.
+  (the words the palette's root row answers to), `hold` (the switcher
+  chord to suggest, `"alt+tab"` on Windows: applied while the user's
+  config has no `hold` line, [Keyboard](keyboard.md#switcher)), `rank`,
+  `settings`, and the extension's `icon` and `keywords`. The store and
+  the settings window read these without running the code.
 - **The code holds the behaviour and what only it can know**: `list`,
   `pick`, `detail`, `view`, `filters`, `placeholder`, `showDetail`,
   `columns`, and the flags `live` and `input`.
