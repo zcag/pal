@@ -9,8 +9,11 @@ import type { Item } from "./ui/types";
 
 const hide = () => invoke("bar_hide");
 
-/** The popover's height for what it shows: the search row, the footer and the content, up to the window's maximum (bar/popover.rs clamps too). */
-const MAX_HEIGHT = 480;
+/** `index.html?bar&sidebar`: the sidebar's window (sidebar.rs), the same page with the rows numbered and cmd+N a pick. */
+const sidebar = new URLSearchParams(location.search).has("sidebar");
+
+/** The popover's height for what it shows: the search row, the footer and the content, up to the window's maximum (bar/popover.rs clamps too; the sidebar's is its work area, sidebar.rs). */
+const MAX_HEIGHT = sidebar ? Infinity : 480;
 const CHROME = 52 + 36;
 
 /**
@@ -41,6 +44,12 @@ function levelOf(p: BarShow): Level {
  * Escape hides it, the whole grammar applies; a pick on a menu row or a
  * view action is `bar/action` on the item, a pick in a palette level the
  * usual one. The window follows the content's height.
+ *
+ * The `sidebar` window (`?bar&sidebar`) is this page too: its level is
+ * the configured palette (the payload's `menu`), every row wears its
+ * number and cmd+N runs it (`Launcher.ordinals`), a click into a peek
+ * engages it (`bar_engage`), and the same commands reach sidebar.rs by
+ * the window's label.
  */
 export default function BarPage() {
   const core = useCore(hide);
@@ -53,7 +62,7 @@ export default function BarPage() {
     const un = listen<BarPayload>("pal://bar", (e) => {
       const p = e.payload;
       if ("hide" in p) { showing.current = null; setShow(null); return; }
-      if ("engage" in p) { (page.current?.querySelector(".pal-search__input") as HTMLInputElement | null)?.focus(); return; }
+      if ("engage" in p) { if (showing.current) showing.current.engaged = true; (page.current?.querySelector(".pal-search__input") as HTMLInputElement | null)?.focus(); return; }
       // The same item rendered again while showing: its level is replaced in place; another item starts over.
       const inPlace = showing.current?.key === p.key && menuKind(showing.current.menu) === menuKind(p.menu) && !!showing.current.effect === !!p.effect;
       showing.current = p;
@@ -86,6 +95,9 @@ export default function BarPage() {
   // Live views in the popover: the same push, trigger and on-top report as the panel's (views.rs marks them `compact`).
   const viewOpen = useLiveViews(launcher);
 
+  // A click into a peeking sidebar engages it (the popover's peek engages from its item, never from here).
+  const engage = useCallback(() => { if (sidebar && showing.current && !showing.current.engaged) { showing.current.engaged = true; invoke("bar_engage"); } }, []);
+
   // A row of the item's own level (a menu row, a view action, a form's submit) is `bar/action`; a palette level's rows are the usual pick.
   const pick = useCallback(async (item: Item, query: string, action?: string, ctx?: Ctx) => {
     const key = showing.current?.key;
@@ -105,8 +117,8 @@ export default function BarPage() {
   }, [core.refresh]);
 
   return (
-    <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} title={show?.tooltip}>
-      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} />
+    <div ref={page} className="pal-bar-page" data-urgent={show?.urgent || undefined} data-sidebar={sidebar || undefined} title={show?.tooltip} onMouseDownCapture={engage}>
+      <Launcher ref={launcher} sources={core.sources} search={core.search} detail={core.detail} view={core.view} version={core.version} mark={mark} start={menuLevel("pal/none", "pal", [])} onHide={hide} onPick={pick} onRefresh={refresh} onViewOpen={viewOpen} ordinals={sidebar} />
     </div>
   );
 }

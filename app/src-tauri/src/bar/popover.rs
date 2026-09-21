@@ -58,16 +58,23 @@ pub const GAP: f64 = 8.0;
 
 // ---- placement (pure) ----------------------------------------------------
 
-/// A display's work area in logical points, top-left origin.
-#[derive(Debug, Clone, Copy, PartialEq)]
+/// A display's work area in logical points, top-left origin, and the
+/// OS's name for it (`[sidebar] display` picks one by it).
+#[derive(Debug, Clone, PartialEq)]
 pub struct Display {
     pub x: f64,
     pub y: f64,
     pub w: f64,
     pub h: f64,
+    pub name: String,
 }
 
 impl Display {
+    #[cfg(test)]
+    pub fn at(x: f64, y: f64, w: f64, h: f64) -> Self {
+        Self { x, y, w, h, name: String::new() }
+    }
+
     fn contains(&self, x: f64, y: f64) -> bool {
         x >= self.x && x < self.x + self.w && y >= self.y && y < self.y + self.h
     }
@@ -308,10 +315,11 @@ pub struct Popover {
 }
 
 /// What the page gets on `pal://bar`: the item to show on one level, or
-/// `engage` / `hide`.
+/// `engage` / `hide`. The sidebar sends the same shape to its window
+/// (`sidebar: true`, its palette as the menu).
 #[derive(Clone, Serialize)]
 #[serde(untagged)]
-enum Payload {
+pub(crate) enum Payload {
     Show {
         key: String,
         title: String,
@@ -323,6 +331,8 @@ enum Payload {
         item: Value,
         #[serde(skip_serializing_if = "Option::is_none")]
         effect: Option<Value>,
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
+        sidebar: bool,
     },
     Engage {
         engage: bool,
@@ -372,21 +382,32 @@ fn feed(app: &AppHandle, input: Input) {
 }
 
 fn run(app: &AppHandle, action: Action) {
-    let config = settings::config(app);
     match action {
-        Action::ArmDelay(_, gen) => arm(app, Duration::from_millis(config.bar.hover_delay), Input::Delay(gen)),
-        Action::ArmGrace(gen) => arm(app, Duration::from_millis(config.bar.hover_grace), Input::Grace(gen)),
+        Action::ArmDelay(_, gen) => arm(app, hover_delay(app), move |app| feed(app, Input::Delay(gen))),
+        Action::ArmGrace(gen) => arm(app, hover_grace(app), move |app| feed(app, Input::Grace(gen))),
         Action::Show(key, engaged) => show(app, &key, engaged, None),
         Action::Engage(key) => engage(app, &key),
         Action::Hide => hide_now(app),
     }
 }
 
-fn arm(app: &AppHandle, after: Duration, then: Input) {
+/// `[bar] hover_delay`: the pointer resting before a peek (the sidebar's too).
+pub(crate) fn hover_delay(app: &AppHandle) -> Duration {
+    Duration::from_millis(settings::config(app).bar.hover_delay)
+}
+
+/// `[bar] hover_grace`: the pointer gone before a peek closes.
+pub(crate) fn hover_grace(app: &AppHandle) -> Duration {
+    Duration::from_millis(settings::config(app).bar.hover_grace)
+}
+
+/// A machine's timer: `then` runs `after` (on the runtime), feeding the
+/// generation it was armed with.
+pub(crate) fn arm(app: &AppHandle, after: Duration, then: impl FnOnce(&AppHandle) + Send + 'static) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(after).await;
-        feed(&app, then);
+        then(&app);
     });
 }
 
@@ -410,6 +431,7 @@ fn payload(app: &AppHandle, key: &str, engaged: bool, effect: Option<&Value>) ->
         menu: item.menu.clone().unwrap_or(Value::Null),
         item: serde_json::to_value(&item).unwrap_or(Value::Null),
         effect: effect.cloned(),
+        sidebar: false,
     })
 }
 
@@ -432,12 +454,11 @@ fn show(app: &AppHandle, key: &str, engaged: bool, effect: Option<Value>) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         place_window(&handle);
+        panel::bar_show(&handle, WINDOW, engaged);
         if engaged {
-            panel::bar_show(&handle, true);
-            keys::stop(&handle);
+            keys::stop(WINDOW);
         } else {
-            panel::bar_show(&handle, false);
-            keys::start(&handle);
+            keys::start(WINDOW, |app| feed(app, Input::Key), &handle);
         }
     });
     eprintln!("bar\tpopover\t{}\t{key}", if engaged { "engaged" } else { "peek" });
@@ -453,8 +474,8 @@ fn engage(app: &AppHandle, key: &str) {
     events::emit_to(app, WINDOW, events::BAR, Payload::Engage { engage: true });
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
-        keys::stop(&handle);
-        panel::bar_show(&handle, true);
+        keys::stop(WINDOW);
+        panel::bar_show(&handle, WINDOW, true);
     });
     eprintln!("bar\tpopover\tengaged\t{key}");
 }
@@ -465,17 +486,17 @@ fn hide_now(app: &AppHandle) {
     events::emit_to(app, WINDOW, events::BAR, Payload::Hide { hide: true });
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
-        keys::stop(&handle);
-        panel::bar_hide(&handle);
+        keys::stop(WINDOW);
+        panel::bar_hide(&handle, WINDOW);
     });
     if let Some(s) = was {
         eprintln!("bar\tpopover\thidden\t{}", s.key);
     }
 }
 
-/// Every display's work area in logical points, and the index of the one
-/// under the cursor.
-fn displays(app: &AppHandle) -> (Vec<Display>, usize) {
+/// Every display's work area in logical points (the primary first, as
+/// AppKit lists them), and the index of the one under the cursor.
+pub(crate) fn displays(app: &AppHandle) -> (Vec<Display>, usize) {
     let all = app.available_monitors().unwrap_or_default();
     let cursor = app.cursor_position().ok();
     let mut under = 0;
@@ -491,7 +512,7 @@ fn displays(app: &AppHandle) -> (Vec<Display>, usize) {
                     under = i;
                 }
             }
-            Display { x: a.position.x as f64 / s, y: a.position.y as f64 / s, w: a.size.width as f64 / s, h: a.size.height as f64 / s }
+            Display { x: a.position.x as f64 / s, y: a.position.y as f64 / s, w: a.size.width as f64 / s, h: a.size.height as f64 / s, name: m.name().cloned().unwrap_or_default() }
         })
         .collect();
     (out, under)
@@ -503,9 +524,14 @@ fn place_window(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let anchor = lock(&st.showing).as_ref().and_then(|s| s.anchor);
     let h = lock(&st.height).clamp(80.0, MAX_HEIGHT);
-    let _ = w.set_size(LogicalSize::new(WIDTH, h));
     let (ds, under) = displays(app);
     let (x, y) = place(anchor, (WIDTH, h), &ds, under);
+    set_frame(&w, (x, y, WIDTH, h));
+}
+
+/// Size and position a popover-kind window (main thread).
+pub(crate) fn set_frame(w: &tauri::WebviewWindow, (x, y, width, h): (f64, f64, f64, f64)) {
+    let _ = w.set_size(LogicalSize::new(width, h));
     let _ = w.set_position(LogicalPosition::new(x, y));
 }
 
@@ -635,36 +661,74 @@ pub fn set_height(app: &AppHandle, height: f64) {
 }
 
 // ---- commands ------------------------------------------------------------
+//
+// The popover page runs in two windows (`bar`, and the sidebar's
+// `sidebar`); each command goes to the one that called by its label.
 
-#[tauri::command]
-pub fn bar_hide(app: AppHandle) {
-    hide(&app);
+/// Whether the calling window is the sidebar's (else the popover).
+fn from_sidebar(window: &tauri::Window) -> bool {
+    window.label() == crate::sidebar::WINDOW
 }
 
 #[tauri::command]
-pub fn bar_size(app: AppHandle, height: f64) {
-    set_height(&app, height);
+pub fn bar_hide(app: AppHandle, window: tauri::Window) {
+    if from_sidebar(&window) {
+        crate::sidebar::hide(&app);
+    } else {
+        hide(&app);
+    }
+}
+
+#[tauri::command]
+pub fn bar_size(app: AppHandle, window: tauri::Window, height: f64) {
+    if from_sidebar(&window) {
+        crate::sidebar::set_height(&app, height);
+    } else {
+        set_height(&app, height);
+    }
+}
+
+/// A click into a peeking sidebar: engaged (the popover's peek engages
+/// from its item, never from the page).
+#[tauri::command]
+pub fn bar_engage(app: AppHandle, window: tauri::Window) {
+    if from_sidebar(&window) {
+        crate::sidebar::on_click(&app);
+    }
 }
 
 /// A row picked in the popover's menu level, a view action,
 /// a form's submit: `bar/action`. `values` is what a control read (the
 /// view's text field, a form's fields, a slider's fraction), on the ctx.
+/// The sidebar has no item: its rows are a palette level's, picked the
+/// usual way (`index::pick`), so nothing of its reaches here.
 #[tauri::command]
-pub async fn bar_action(app: AppHandle, key: String, action: String, values: Option<Value>) -> Result<Value, String> {
+pub async fn bar_action(app: AppHandle, window: tauri::Window, key: String, action: String, values: Option<Value>) -> Result<Value, String> {
+    if from_sidebar(&window) {
+        return Err(format!("{key}: the sidebar has no bar item to act on"));
+    }
     let anchor = lock(&app.state::<Popover>().anchors).get(&key).map_or("hotkey", |(_, a)| a);
     super::action(&app, &key, &action, anchor, WINDOW, values).await
 }
 
-/// `cmd+r` in the popover: render the item again.
+/// `cmd+r` in the popover: render the item again; in the sidebar, list
+/// its palette again.
 #[tauri::command]
-pub fn bar_refresh(app: AppHandle, key: String) {
-    super::render(&app, &key, "update");
+pub fn bar_refresh(app: AppHandle, window: tauri::Window, key: String) {
+    if from_sidebar(&window) {
+        crate::sidebar::refresh(&app);
+    } else {
+        super::render(&app, &key, "update");
+    }
 }
 
 // ---- the key that engages a peek ------------------------------------------
 
+/// The monitors a peek installs, one set per peeking window (`owner`: the
+/// popover's label, the sidebar's), so one peek closing never drops the
+/// other's; `on_key` is what a key feeds (`Input::Key` to that machine).
 #[cfg(target_os = "macos")]
-mod keys {
+pub(crate) mod keys {
     use std::cell::RefCell;
     use std::ptr::NonNull;
 
@@ -674,54 +738,57 @@ mod keys {
     use tauri::AppHandle;
 
     thread_local! {
-        static MONITORS: RefCell<Vec<Retained<AnyObject>>> = const { RefCell::new(Vec::new()) };
+        static MONITORS: RefCell<Vec<(&'static str, Retained<AnyObject>)>> = const { RefCell::new(Vec::new()) };
     }
 
     use crate::permissions::input_monitoring;
 
     /// Install the monitors for a peek (main thread). Both the global and
     /// the local one are tried; the log says which delivered.
-    pub fn start(app: &AppHandle) {
-        stop(app);
+    pub fn start(owner: &'static str, on_key: fn(&AppHandle), app: &AppHandle) {
+        stop(owner);
         let listen = input_monitoring();
         let h = app.clone();
         let global = block2::RcBlock::new(move |_: NonNull<NSEvent>| {
-            eprintln!("bar\tpopover\tkey via global monitor");
-            super::feed(&h, super::Input::Key);
+            eprintln!("bar\t{owner}\tkey via global monitor");
+            on_key(&h);
         });
         let h = app.clone();
         let local = block2::RcBlock::new(move |e: NonNull<NSEvent>| -> *mut NSEvent {
-            eprintln!("bar\tpopover\tkey via local monitor");
-            super::feed(&h, super::Input::Key);
+            eprintln!("bar\t{owner}\tkey via local monitor");
+            on_key(&h);
             e.as_ptr()
         });
         let mut got = Vec::new();
         unsafe {
             if let Some(m) = NSEvent::addGlobalMonitorForEventsMatchingMask_handler(NSEventMask::KeyDown, &global) {
-                got.push(m);
+                got.push((owner, m));
             }
             if let Some(m) = NSEvent::addLocalMonitorForEventsMatchingMask_handler(NSEventMask::KeyDown, &local) {
-                got.push(m);
+                got.push((owner, m));
             }
         }
-        eprintln!("bar\tpopover\tkey monitors\t{} installed\tinput_monitoring={listen}", got.len());
-        MONITORS.with(|m| *m.borrow_mut() = got);
+        eprintln!("bar\t{owner}\tkey monitors\t{} installed\tinput_monitoring={listen}", got.len());
+        MONITORS.with(|m| m.borrow_mut().extend(got));
     }
 
-    pub fn stop(_app: &AppHandle) {
+    pub fn stop(owner: &'static str) {
         MONITORS.with(|m| {
-            for mon in m.borrow_mut().drain(..) {
-                unsafe { NSEvent::removeMonitor(&mon) };
-            }
+            m.borrow_mut().retain(|(o, mon)| {
+                if *o == owner {
+                    unsafe { NSEvent::removeMonitor(mon) };
+                }
+                *o != owner
+            });
         });
     }
 }
 
 #[cfg(not(target_os = "macos"))]
-mod keys {
+pub(crate) mod keys {
     use tauri::AppHandle;
-    pub fn start(_app: &AppHandle) {}
-    pub fn stop(_app: &AppHandle) {}
+    pub fn start(_owner: &'static str, _on_key: fn(&AppHandle), _app: &AppHandle) {}
+    pub fn stop(_owner: &'static str) {}
 }
 
 #[cfg(test)]
@@ -810,9 +877,7 @@ mod tests {
 
     #[test]
     fn placement_centres_under_the_anchor_and_clamps_per_display() {
-        let main = Display { x: 0.0, y: 25.0, w: 1512.0, h: 957.0 };
-        let right = Display { x: 1512.0, y: 0.0, w: 2560.0, h: 1440.0 };
-        let ds = [main, right];
+        let ds = [Display::at(0.0, 25.0, 1512.0, 957.0), Display::at(1512.0, 0.0, 2560.0, 1440.0)];
         let size = (WIDTH, 300.0);
         // Centred under a mid-bar icon, GAP below it.
         assert_eq!(place(Some(Rect { x: 700.0, y: 0.0, w: 24.0, h: 24.0 }), size, &ds, 0), (700.0 + 12.0 - WIDTH / 2.0, 24.0 + GAP));

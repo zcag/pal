@@ -20,6 +20,8 @@ export type GridProps = {
   columns?: number;
   /** Tile width / height. */
   aspect?: number;
+  /** Every tile wears its number whether or not cmd is held (List's `ordinals`). */
+  ordinals?: boolean;
   label?: string;
 };
 
@@ -31,7 +33,7 @@ export type GridProps = {
  * be close; a change of column count renews the item keys, which drops the
  * virtualiser's size cache so every row measures again.
  */
-export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, marked, onToggle, columns = 6, aspect = 1, label }, ref) {
+export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, marked, onToggle, columns = 6, aspect = 1, ordinals, label }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
   const metrics = useMetrics(scroller);
   const cols = useGridColumns(scroller, metrics, columns);
@@ -98,7 +100,7 @@ export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, 
                   <div key={i} id={domId(id, i)} role="gridcell" aria-selected={i === cursor} aria-checked={isMarked || undefined} className="pal-tile" data-active={i === cursor || undefined} data-marked={isMarked || undefined} onMouseMove={hover(i)} onMouseDown={keepFocus} onClick={(e) => (onToggle && clickWithModifier(e) ? onToggle(i) : onPick?.(i))}>
                     <div className="pal-tile__box" style={{ aspectRatio: aspect }}>
                       <Icon icon={item.icon} size="lg" />
-                      {cmdHeld && i < 9 && <kbd className="pal-row__ordinal pal-tile__ordinal" aria-hidden>{i + 1}</kbd>}
+                      {(ordinals || cmdHeld) && i < 9 && <kbd className="pal-row__ordinal pal-tile__ordinal" aria-hidden>{i + 1}</kbd>}
                       {isMarked && <span className="pal-tile__check" aria-hidden>{CHECK}</span>}
                     </div>
                     <span className="pal-tile__label"><Highlight text={item.name} positions={hits[i].match?.name} /></span>

@@ -35,6 +35,7 @@ mod ocr;
 mod registry;
 mod selection;
 mod settings;
+mod sidebar;
 mod storage;
 mod system;
 mod theme;
@@ -315,6 +316,7 @@ pub fn run() {
             permissions::open_system_settings,
             bar::popover::bar_hide,
             bar::popover::bar_size,
+            bar::popover::bar_engage,
             bar::popover::bar_action,
             bar::popover::bar_refresh,
             views::view_open,
@@ -352,6 +354,7 @@ pub fn run() {
             //   9. updater: the daily check (release builds)
             //  10. cache restore: last run's listings, so the root answers now
             //      bar: the popover window, the strip targets and their probes
+            //      sidebar: its window and edge strips (macOS)
             //      media: where the bundled MediaRemote adapter is (macOS)
             //  11. host: spawned last, its notifications need everything above
             // Every step logs its own failure and the next one still runs:
@@ -392,6 +395,7 @@ pub fn run() {
             index::restore_cache(app.handle());
             views::install(app.handle());
             bar::install(app.handle());
+            sidebar::install(app.handle());
             media::install(app.handle());
             host::Host::start(app.handle());
             // Icons and favicons are cached forever otherwise; a month is

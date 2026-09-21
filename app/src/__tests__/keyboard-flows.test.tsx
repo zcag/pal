@@ -157,6 +157,28 @@ describe("the walk: root, palette, detail, action panel, back", () => {
     await act(() => { field().dispatchEvent(e); });
     expect(activeName()).toBe("Applications");
   });
+
+  it("with ordinals (the sidebar) every row wears its number and cmd+N runs row N, the cursor moved or not", async () => {
+    await mount({ ordinals: true, start: { kind: "palette", palette: "apps/apps" } });
+    expect([...el.querySelectorAll(".pal-row__ordinal")].map((k) => k.textContent)).toEqual(["1", "2"]);
+    expect(activeName()).toBe("Slack");
+    await cmd("2"); await flush();
+    expect(picks).toEqual([{ id: "safari", action: "open" }]);
+    expect(activeName()).toBe("Safari");
+    // The row under the cursor already: run at once.
+    await cmd("2"); await flush();
+    expect(picks).toHaveLength(2);
+    // Past the list: declined, nothing runs.
+    await cmd("9"); await flush();
+    expect(picks).toHaveLength(2);
+    // Without the flag the numbers wait for cmd (let go above) and cmd+N only moves.
+    await mount({ start: { kind: "palette", palette: "apps/apps" } });
+    await act(() => { window.dispatchEvent(new KeyboardEvent("keyup", { key: "Control", bubbles: true })); });
+    expect(el.querySelector(".pal-row__ordinal")).toBeNull();
+    await cmd("1");
+    expect(activeName()).toBe("Slack");
+    expect(picks).toHaveLength(2);
+  });
 });
 
 describe("Tab", () => {
