@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 // The switcher's hold (docs/design/switcher.md, switcher.rs): `open` with
 // `hold` lists the palette flat with the cursor on row 2, `switch` steps
-// with wrap and commits the row under the cursor, the cursor follows its
-// row by id across a relist (`version`), typing keeps it while listed, and
-// Escape hides outright.
+// with wrap and commits the row under the cursor, the cursor keeps its
+// index across a relist (`version`; the fresh MRU order is the point),
+// typing keeps its row by id while listed, and Escape hides outright.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -79,16 +79,17 @@ describe("the switcher's hold", () => {
     expect(cursor()).toBe("safari-1");
   });
 
-  it("keeps its row by id across a relist, clamps when the row went", async () => {
+  it("keeps its index across a relist (row 1 plus the steps, in the fresh order), clamped to the rows left", async () => {
     await render();
     await act(() => { launcher.current!.open(WINDOWS, { hold: true }); });
     await flush();
     await sw({ step: 1 });
     expect(cursor()).toBe("safari-2");
-    rows = [win("kitty-1", "kitty"), win("mail-1", "Mail"), win("safari-2", "Safari"), win("safari-1", "Safari")];
+    // The fresh MRU order lands: the cursor is still the third row, whichever window that is now.
+    rows = [win("mail-1", "Mail"), win("kitty-1", "kitty"), win("safari-1", "Safari"), win("safari-2", "Safari")];
     await render(1);
     await flush();
-    expect(cursor()).toBe("safari-2");
+    expect(cursor()).toBe("safari-1");
     rows = [win("kitty-1", "kitty"), win("mail-1", "Mail")];
     await render(2);
     await flush();

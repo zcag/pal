@@ -499,22 +499,23 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   }, [found, extra, suggested, dialogUp, query, menuHits, view.kind, byKey, prefs.fallbacksAlways, hold]);
 
   const cur = useCursor(hits.length);
-  // Under a hold the cursor is a row, not an index: the rows the hold began
-  // over are the level before (`live: false`, never followed), the first
-  // fresh ones put it on row 2, and from then on it keeps its row by id
-  // across a relist (`pal://index`) or a filter typed (`followCursor`);
-  // the same rows with the cursor moved just note the new row.
-  const holdRows = useRef<{ found: Hit[]; id?: string; live: boolean } | null>(null);
-  const typed = useRef(false);
+  // Under a hold the cursor is Cmd+Tab's: row 2 once the level's rows are
+  // in, then an index (row 1 plus the steps), which a relist (`pal://index`
+  // with the fresh MRU order) keeps, since the stale rows on screen at the
+  // begin are the last show's and their row 2 is not the previous window.
+  // A typed filter is the one change that follows the row by id
+  // (`followCursor`; row 0 when the row left the filter). The rows the hold
+  // began over are the level before: seen, never placed on.
+  const holdRows = useRef<{ found: Hit[]; id?: string; placed: boolean } | null>(null);
   useEffect(() => {
     if (!hold) return;
     const t = holdRows.current;
-    if (t && t.found === found) { if (t.live) t.id = hits[cur.cursor]?.item.id; return; }
-    const idx = followCursor(hits, t?.live ? t.id : undefined, typed.current ? 0 : cur.cursor);
-    typed.current = false;
+    if (t && t.found === found) { if (t.placed) t.id = hits[cur.cursor]?.item.id; return; }
+    const placed = t?.placed ?? false;
+    const idx = !placed ? Math.min(1, Math.max(0, hits.length - 1)) : query ? followCursor(hits, t?.id, 0) : Math.min(cur.cursor, Math.max(0, hits.length - 1));
     if (idx !== cur.cursor) cur.set(idx);
-    holdRows.current = { found, id: hits[idx]?.item.id, live: true };
-  }, [hold, found, hits, cur.cursor]);
+    holdRows.current = { found, id: hits[idx]?.item.id, placed: placed || hits.length > 0 };
+  }, [hold, found, hits, cur.cursor, query]);
   const current: Item | undefined = hits[cur.cursor]?.item;
   /** A list level: rows to mark and pick (the root, a palette, a menu). */
   const isList = view.kind === "root" || view.kind === "palette" || view.kind === "menu";
@@ -622,9 +623,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       if (target) { enter(sourceKey(target), undefined, m[2]); return; }
     }
     nav.setQuery(q);
-    // Under a hold the cursor keeps its row while the filter lists it (row 0 else), so it stays until the rows arrive.
-    if (hold) typed.current = true;
-    else cur.reset();
+    // Under a hold the cursor follows its row once the filtered rows arrive (the effect above); elsewhere it goes back to the top.
+    if (!hold) cur.reset();
   };
   const closeActions = () => { setActionsOpen(false); focus(); };
   const closeConfirm = () => { setConfirming(null); focus(); };
@@ -637,7 +637,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     // After the push's `setHold(false)` in the same batch. The rows on screen are the level before: seen, not followed.
     setHold(true);
     setSearchSeq((n) => n + 1);
-    holdRows.current = { found, live: false };
+    holdRows.current = { found, placed: false };
   };
   /** `pal://switch` while a hold is on; nothing once the level left the hold (the shell forgets its side on any hide). */
   const switchTo = (cmd: { step?: number; commit?: boolean }) => {

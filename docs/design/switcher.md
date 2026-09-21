@@ -94,8 +94,10 @@ with a root or palette hotkey loses to them, in the existing order.
   `pal://switch { commit: true }`. The page runs the primary action of
   the row under the cursor (`focus`, which hides the panel and raises).
   A commit waits for a live relist in flight for that palette (up to
-  300 ms) so the row committed is the fresh one; the page keeps the
-  cursor on the row it showed (by id) across the relist.
+  300 ms) so the row committed is the fresh one. The cursor is an index
+  (row 1 plus the steps) across that relist, never a row followed by id:
+  the rows on screen at the begin are the last show's, and their row 2
+  is not the previous window. Only a typed filter follows the row by id.
 - A chord with no modifier (`f13`) has no release: presses step, Enter
   commits.
 - Escape, a click outside, any hide: cancel; the poll stops on the
