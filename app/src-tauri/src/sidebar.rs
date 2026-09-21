@@ -228,6 +228,8 @@ fn show(app: &AppHandle, engaged: bool) {
         }
     });
     eprintln!("sidebar\t{}\t{key}", if engaged { "engaged" } else { "peek" });
+    // The window in front when the sidebar came up: first in the windows palette, as on the panel's show (the bridge's `list` waits for the stamp).
+    crate::windows::stamp_focused();
     index::relist_live(app, key);
 }
 
