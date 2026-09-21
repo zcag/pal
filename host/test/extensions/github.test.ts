@@ -649,7 +649,7 @@ describe("github", () => {
       expect(is).toContain('"action":"focus:acme/widgets#5","selected":true');
     });
 
-    test("view helpers: bucket order, row cap, more line and all PR states", () => {
+    test("view helpers: bucket order and all PR states", () => {
       const now = Date.parse("2026-09-16T14:00:00Z");
       const blocked = [barPr(1, { mergeable: "CONFLICTING", title: "Conflicts" }), barPr(2, { checks: "FAILURE", title: "Bad checks" })];
       const active = [barPr(3, { checks: "PENDING", title: "Running checks" }), barPr(4, { review: "REVIEW_REQUIRED", title: "Needs review" })];
@@ -663,11 +663,12 @@ describe("github", () => {
       ] satisfies Parameters<typeof renderPrs>[0]["buckets"];
       const v = renderPrs({ now, focus: 4, buckets });
       expect(checkView(v)).toBe(v);
-      expect(shownPrs({ now, focus: 0, buckets }).map((x) => x.id)).toEqual(["acme/repo#1", "acme/repo#2", "acme/repo#3", "acme/repo#4", "acme/repo#5", "acme/repo#6"]);
+      expect(shownPrs({ now, focus: 0, buckets }).map((x) => x.id)).toEqual(["acme/repo#1", "acme/repo#2", "acme/repo#3", "acme/repo#4", "acme/repo#5", "acme/repo#6", "acme/repo#7", "acme/repo#8"]);
       const s = JSON.stringify(v.tree);
       expect(s.indexOf('"value":"Needs attention"')).toBeLessThan(s.indexOf('"value":"Active"'));
       expect(s.indexOf('"value":"Active"')).toBeLessThan(s.indexOf('"value":"Ready to merge"'));
-      expect(s).toContain('"value":"and 2 more in pal"');
+      expect(s).not.toContain("more in pal");
+      expect(s).toContain('"action":"focus:acme/repo#8"');
       expect(s).toContain('"action":"focus:acme/repo#5","selected":true');
       expect(s).toContain('"text":"conflicting","color":"red"');
       expect(s).toContain('"text":"checks running","color":"amber"');
@@ -675,7 +676,7 @@ describe("github", () => {
       expect(s).toContain('"text":"approved","color":"green"');
     });
 
-    test("view helpers: issue bucket order, row cap, more line and labels/comments", () => {
+    test("view helpers: issue bucket order and labels/comments", () => {
       const now = Date.parse("2026-09-16T14:00:00Z");
       const rows = [
         { kind: "assigned" as const, issue: barIssue(1, { labels: [{ name: "bug", color: "" }], comments: 2 }) },
@@ -688,9 +689,11 @@ describe("github", () => {
       ];
       const v = renderIssues({ rows, focus: 5, now });
       expect(checkView(v)).toBe(v);
-      expect(shownIssues({ rows, focus: 0, now }).map((x) => x.issue.id)).toEqual(["acme/repo#1", "acme/repo#2", "acme/repo#3", "acme/repo#4", "acme/repo#5", "acme/repo#6"]);
-      expect(texts(v)).toEqual(expect.arrayContaining(["Assigned to you", "Mentioning you", "Opened by you", "Issue 1", "acme/repo#1", "2 comments", "and 1 more in pal"]));
+      expect(shownIssues({ rows, focus: 0, now }).map((x) => x.issue.id)).toEqual(["acme/repo#1", "acme/repo#2", "acme/repo#3", "acme/repo#4", "acme/repo#5", "acme/repo#6", "acme/repo#7"]);
+      expect(texts(v)).toEqual(expect.arrayContaining(["Assigned to you", "Mentioning you", "Opened by you", "Issue 1", "acme/repo#1", "2 comments"]));
       const s = JSON.stringify(v.tree);
+      expect(s).not.toContain("more in pal");
+      expect(s).toContain('"action":"focus:acme/repo#7"');
       expect(s.indexOf('"value":"Assigned to you"')).toBeLessThan(s.indexOf('"value":"Mentioning you"'));
       expect(s.indexOf('"value":"Mentioning you"')).toBeLessThan(s.indexOf('"value":"Opened by you"'));
       expect(s).toContain('"text":"bug","color":"grey"');

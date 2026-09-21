@@ -1,11 +1,11 @@
 // GitHub's bar popovers as render trees (`View` in `@zcag/pal`), pure:
 // index.ts fetches and classifies, this module only draws the state the
 // tests pass in. Pull Requests and Issues show the same buckets their
-// strip segments count, capped to six rows with a muted "and N more in
-// pal"; the focused row wears the accent ring and row clicks move it.
-// Notifications keeps its repository-grouped inbox: unread threads with
-// a type rail, reason badge and age, capped by a height budget. All three
-// use the popover width constant and the same key-hint row pattern.
+// strip segments count, all rows, the popover scrolls; the focused row
+// wears the accent ring and row clicks move it. Notifications keeps its
+// repository-grouped inbox: unread threads with a type rail, reason badge
+// and age, capped by a height budget. All three use the popover width
+// constant and the same key-hint row pattern.
 import { POPOVER_W, ago, column, keyHint, row, text, type Action, type TagColor, type View, type ViewNode } from "@zcag/pal";
 import type { Issue, Notification, PR } from "./data.ts";
 
@@ -33,11 +33,10 @@ export const ROWS = 6.5, HEADER = 0.45;
 const OUTER_PAD = 12, RAIL_W = 4, RAIL_H = 30, AGE_W = 36, ROW_PAD = 8, GAP = 8;
 const INNER_W = POPOVER_W - 2 * OUTER_PAD - ROW_PAD;
 const TITLE_W = INNER_W - RAIL_W - GAP - AGE_W - GAP;
-const BAR_ROWS = 6;
 
 const allPrs = (st: PrState) => st.buckets.flatMap((b) => b.rows);
-export const shownPrs = (st: PrState): PR[] => allPrs(st).slice(0, BAR_ROWS);
-export const shownIssues = (st: IssueState): IssueBucketed[] => st.rows.slice(0, BAR_ROWS);
+export const shownPrs = (st: PrState): PR[] => allPrs(st);
+export const shownIssues = (st: IssueState): IssueBucketed[] => st.rows;
 
 function barHints(): ViewNode {
   return row([...keyHint("enter", "open"), ...keyHint("c", "copy"), ...keyHint("m", "mute"), ...keyHint("r", "refresh"), ...keyHint("p", "in pal"), ...keyHint(["up", "down"], "move")], { key: "hints", gap: 1, minHeight: 22 });
@@ -124,8 +123,6 @@ export function renderPrs(st: PrState): View {
     if (!shown.length) continue;
     kids.push(sectionHeader(b.key, b.title, b.rows.length, b.color), ...shown.map((pr) => prNode(pr, seen++ === focus, st)));
   }
-  const more = allPrs(st).length - rows.length;
-  if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
   if (!rows.length) kids.push(empty("No open pull requests", "None of yours, and no review asked of you"));
   kids.push({ type: "divider", key: "rule" }, barHints());
   const n = allPrs(st).length;
@@ -145,8 +142,6 @@ export function renderIssues(st: IssueState): View {
     if (!shown.length) continue;
     kids.push(sectionHeader(kind, label[kind], bucket.length, color[kind]), ...shown.map((x) => issueNode(x, seen++ === focus, st)));
   }
-  const more = st.rows.length - rows.length;
-  if (more > 0) kids.push(text(`and ${more} more in pal`, { key: "more", style: "muted", size: "xs", align: "center" }));
   if (!rows.length) kids.push(empty("No open issues", "None assigned to you, mentioning you or opened by you"));
   kids.push({ type: "divider", key: "rule" }, barHints());
   const n = st.rows.length;
