@@ -12,4 +12,7 @@ Settings, `[extensions.weather]`:
 | `low` | number (°C) | `10` | Cold below: the bar surfaces under it. |
 | `high` | number (°C) | `30` | Hot above: the bar surfaces over it. |
 | `notable_conditions` | list | `[]` | Extra WMO weather codes that surface even inside the band. |
-| `bar_show` | `notable` / `always` | `notable` | When the bar item is drawn: in notable weather, or always (the reading in ordinary weather too, muted). |
+
+The bar item is hidden in ordinary weather; `show = "always"` under
+`[bar.items."weather/weather"]` keeps the reading on the strip then too,
+muted, so the forecast stays a click away (docs/config.md).

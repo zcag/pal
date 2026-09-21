@@ -395,6 +395,16 @@ export default {
     expect(await refused(null)).toMatch(/not an object/);
   });
 
+  test("a hidden item's empty shape (what show = always keeps) passes through with its menu checked like the item's", async () => {
+    const quiet = { hidden: true, empty: { icon: "x", tooltip: "Nothing here", menu: [{ type: "item", id: "open", title: "Open" }] } };
+    expect(await host.render("ext", "echo", { reason: "load", item: quiet } as never)).toEqual(quiet as BarItem);
+    const refused = async (item: unknown) => (await host.call("bar/render", { extension: "ext", id: "echo", ctx: { reason: "load", item } })).error;
+    expect(await refused({ hidden: true, empty: "glyph" })).toBe("ext/echo: render: empty must be an object");
+    expect(await refused({ hidden: true, empty: { title: "x".repeat(65) } })).toBe("ext/echo: render: empty title longer than 64 chars");
+    expect(await refused({ hidden: true, empty: { menu: [{ type: "item", id: "pal:x", title: "x" }] } })).toMatch(/render empty: action id "pal:x" is the shell's/);
+    expect(await refused({ hidden: true, empty: { menu: { view: { tree: { type: "text", value: "v" }, actions: [] } } } })).toBeUndefined();
+  });
+
   test("bar/action and bar/open reach the handlers with the action and ctx; a throw is an error reply; a bad effect is refused; no handler answers {}", async () => {
     expect(await host.barAction("ext", "a", "one", { reason: "open", anchor: "sketchybar" })).toEqual({ action: "one", ctx: { reason: "open", anchor: "sketchybar" } });
     expect((await host.call("bar/action", { extension: "ext", id: "a", action: "throw", ctx: { reason: "open" } })).error).toBe("nope");

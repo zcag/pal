@@ -25,7 +25,7 @@ describe("media bar poll", () => {
     np = { players: [{ ...spotify, title: "Ceremony" }], system_wide: true };
     expect((await host.nextUpdate("media", "now-playing")).title).toBe("Ceremony · New Order");
     np = { players: [{ ...spotify, title: "Ceremony", state: "paused" }], system_wide: true };
-    expect(await host.nextUpdate("media", "now-playing")).toEqual({ hidden: true });
+    expect(await host.nextUpdate("media", "now-playing")).toMatchObject({ hidden: true, empty: { tooltip: "Nothing playing" } });
     const n = asked;
     await Bun.sleep(350);
     expect(asked).toBe(n);

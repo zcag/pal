@@ -752,6 +752,19 @@ impl Default for BarSketchybar {
     }
 }
 
+/// `show`: what an item with nothing to say does with its slot.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum BarShow {
+    /// Off the strip while `render` answers `hidden` (the rule: an item earns its slot).
+    #[default]
+    Auto,
+    /// Kept on the strip as the quiet shape its render offers (`BarItem.empty`:
+    /// the glyph, an honest tooltip, the same popover), muted, without a badge.
+    /// An item whose render offers none hides either way.
+    Always,
+}
+
 /// `[bar.items."<extension>/<id>"]`: one item's settings; absent keys mean
 /// the target's defaults.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -760,6 +773,9 @@ impl Default for BarSketchybar {
 pub struct BarItemConfig {
     /// `false`: no slot on any target and no refresh timer.
     pub enabled: bool,
+    /// `always` keeps the item on the strip when it has nothing to say, as
+    /// the muted quiet shape its render offers; `auto` hides it then.
+    pub show: BarShow,
     /// This item's target; the global `[bar] target` when unset.
     pub target: Option<BarTarget>,
     /// sketchybar position for this item (as `[bar.sketchybar] position`).
@@ -781,7 +797,7 @@ pub struct BarItemConfig {
 
 impl Default for BarItemConfig {
     fn default() -> Self {
-        Self { enabled: true, target: None, position: None, hotkey: None, open_on_hover: None, order: None, look: BarLookOverride::default(), extra: BTreeMap::new() }
+        Self { enabled: true, show: BarShow::Auto, target: None, position: None, hotkey: None, open_on_hover: None, order: None, look: BarLookOverride::default(), extra: BTreeMap::new() }
     }
 }
 
@@ -1228,6 +1244,7 @@ token = "keychain:pal/github-token"
         assert!(!c.bar.sketchybar.open_on_hover, "click to open and close on every target; hover is opt-in");
         assert_eq!(c.bar.sketchybar.position, "right");
         assert!(c.bar.item("github/notifications").enabled);
+        assert_eq!(c.bar.item("github/notifications").show, BarShow::Auto, "an item earns its slot unless told otherwise");
         assert_eq!(c.bar.target_of("github/notifications"), BarTarget::Auto);
         assert!(!c.bar.open_on_hover("x/y", BarTarget::Sketchybar));
         assert!(!c.bar.open_on_hover("x/y", BarTarget::Menubar));
@@ -1251,6 +1268,7 @@ position = "after:pal.github.prs"
 hotkey = "ctrl+alt+n"
 open_on_hover = false
 order = 20
+show = "always"
 "#,
         )
         .unwrap();
@@ -1263,6 +1281,8 @@ order = 20
         assert!(!n.enabled);
         assert_eq!(n.hotkey.as_deref(), Some("ctrl+alt+n"));
         assert_eq!(n.order, Some(20));
+        assert_eq!(n.show, BarShow::Always);
+        assert!(parse("[bar.items.\"a/b\"]\nshow = \"never\"\n").is_err(), "show is auto or always");
         assert_eq!(c.bar.target_of("github/notifications"), BarTarget::Menubar);
         assert!(!c.bar.open_on_hover("github/notifications", BarTarget::Menubar), "the item's say beats the target's");
         assert!(c.bar.open_on_hover("other/item", BarTarget::Menubar), "the target's default for the rest");

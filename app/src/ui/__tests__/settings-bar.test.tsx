@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; });
-import { SettingsBar, barIndex, effectiveTarget, previewItem, previewState } from "../SettingsBar";
+import { SettingsBar, barIndex, effectiveTarget, kept, previewItem, previewState } from "../SettingsBar";
 import { BarStrip, clipText, shapeItem, type BarLook, type BarStripItem } from "../BarStrip";
 import { lookDefaults, resolveLook, type BarConfig, type BarItemConfig } from "../SettingsTypes";
-import { barItems } from "./settings-fixtures";
+import { barItems, quietItem } from "./settings-fixtures";
 
 const noop = () => {};
 const config: BarConfig = { target: "auto", hoverDelay: 250, hoverGrace: 400, menubarHover: false, sketchybarHover: true, sketchybarPosition: "right", menubar: { ...lookDefaults }, sketchybar: { ...lookDefaults, spacing: 6 } };
@@ -80,6 +80,8 @@ describe("SettingsBar", () => {
     // The item's pane has the custom icon field, the extension's own icon as its placeholder.
     expect(html).toContain('data-inherited="true" data-anchor="bar:github/notifications:icon"');
     expect(html).toMatch(/id="bar:github\/notifications-icon"[^>]*placeholder="\u{f09b}"/u);
+    expect(html).toContain('data-anchor="bar:github/notifications:show"');
+    expect(html).toContain("The default: off the strip while the extension has nothing to say. This item offers no quiet shape yet, so it hides either way.");
     expect(html).toContain('data-anchor="bar:github/notifications:target"');
     expect(html).toContain('data-anchor="bar:github/notifications:order"');
     expect(html).toContain('data-anchor="bar:github/notifications:hotkey"');
@@ -87,6 +89,27 @@ describe("SettingsBar", () => {
     expect(html).toContain("The default: off on the menu bar.");
     expect(html).toContain(">Reset to defaults</button>");
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Reset to defaults<\/button>/);
+  });
+  it("show = always keeps a hidden item's empty shape on the preview strip, muted, and the state line and the row say so", () => {
+    const html = page({ items: [...barItems, quietItem], selected: "gmail/unread" });
+    expect(html).toContain("nothing to say, kept on the strip muted, every 2 min, rendered 1m ago.");
+    expect(html).toContain("Kept on the strip with nothing to say: the glyph alone, muted, the same popover.");
+    expect(html).not.toContain("This item offers no quiet shape yet");
+    expect(html).not.toContain(">hidden</span>");
+    expect(html).toContain("the last render, as the strip draws it");
+    expect(html).not.toContain(", hidden now");
+    expect(html).toMatch(/<button[^>]*(?<!disabled="")>Reset to defaults<\/button>/);
+    // The default hides it: the row wears the tag and the preview falls back to the first visible mock.
+    const auto = page({ items: [...barItems, { ...quietItem, config: { enabled: true, look: {} } }], selected: "gmail/unread" });
+    expect(auto).toContain(">hidden</span>");
+    expect(auto).toContain("hidden by the extension, every 2 min");
+    expect(auto).toContain("3 unread");
+    expect(kept(quietItem.state!, "always")).toEqual({ hidden: false, urgent: false, icon: "\u{f01ee}", title: undefined, tooltip: "No unread mail", color: "muted" });
+    expect(kept(quietItem.state!, undefined)).toBe(quietItem.state);
+    expect(kept({ hidden: true, urgent: false }, "always").hidden).toBe(true);
+    expect(kept(barItems[0].state!, "always")).toBe(barItems[0].state);
+    expect(previewState(quietItem.state, "Unread", false, "always")).toMatchObject({ hidden: false, icon: "\u{f01ee}", color: "muted", tooltip: "No unread mail" });
+    expect(previewState(quietItem.state, "Unread", false, "auto").hidden).toBe(true);
   });
   it("marks inherited appearance fields with the target they come from and offers Reset on an overridden one", () => {
     const html = page({ selected: "timer/running" });
@@ -165,6 +188,7 @@ describe("SettingsBar", () => {
     expect(idx.find((e) => e.label === "Timer › Running timers")?.anchor).toBe("bar:timer/running");
     expect(idx.find((e) => e.anchor === "bar:timer/running:width")?.label).toBe("Running timers: Width");
     expect(idx.find((e) => e.anchor === "bar:timer/running:hotkey")).toBeTruthy();
+    expect(idx.find((e) => e.anchor === "bar:timer/running:show")?.label).toBe("Running timers: show");
   });
   it("says not on Linux yet where the platform draws nothing, with no list and no index", () => {
     const html = page({ supported: false });

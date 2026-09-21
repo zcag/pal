@@ -52,23 +52,6 @@
       "description": "Appended under the body of a message composed or replied here, after a blank line.",
       "placeholder": "Cagdas",
       "default": ""
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Unread item is drawn. Always keeps the glyph on the strip with nothing unread, muted and without a badge, so the popover stays a click away.",
-      "options": [
-        {
-          "id": "auto",
-          "title": "When there is unread mail"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "auto"
     }
   ],
   "palettes": {
@@ -142,8 +125,8 @@
         "unread": { "title": "Unread mail", "item": { "icon": "󰇮", "badge": 3, "tooltip": "3 unread messages in you@example.com" } },
         "one": { "title": "One unread message", "item": { "icon": "󰇮", "badge": 1, "tooltip": "1 unread message in you@example.com" } },
         "named": { "title": "A named account", "item": { "icon": "󰇮", "title": "Work", "badge": 7, "tooltip": "7 unread messages in you@work.example" } },
-        "always": { "title": "Nothing unread, kept on the bar (Always)", "item": { "icon": "󰇮", "color": "muted", "tooltip": "No unread mail in you@example.com" } },
-        "clear": { "title": "Nothing unread, or signed out", "item": { "hidden": true } }
+        "clear": { "title": "Nothing unread", "item": { "hidden": true, "empty": { "icon": "󰇮", "tooltip": "No unread mail in you@example.com" } } },
+        "out": { "title": "Signed out", "item": { "hidden": true } }
       },
       "keys": [
         {

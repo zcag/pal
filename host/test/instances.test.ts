@@ -247,6 +247,7 @@ describe("rewrites", () => {
     expect(fx(undefined)).toBeUndefined();
     expect(item({ title: "t", menu: { palette: "p" } })).toEqual({ title: "t", menu: { palette: "p", extension: "g@w" } });
     expect(item({ title: "t", menu: [{ type: "separator" }] })).toEqual({ title: "t", menu: [{ type: "separator" }] });
+    expect(item({ hidden: true, empty: { icon: "x", menu: { palette: "p" } } })).toEqual({ hidden: true, empty: { icon: "x", menu: { palette: "p", extension: "g@w" } } });
     expect(rewriteCall("effects.run", { effect: { push: { palette: "p" } } }, "g@w")).toEqual({ effect: { push: { palette: "p", extension: "g@w" } } });
     expect(rewriteCall("bar.update", { extension: "g@w", id: "i", item: { title: "t", menu: { palette: "p" } } }, "g@w")).toEqual({ extension: "g@w", id: "i", item: { title: "t", menu: { palette: "p", extension: "g@w" } } });
     expect(rewriteCall("storage.get", { extension: "g@w", key: "k" }, "g@w")).toEqual({ extension: "g@w", key: "k" });

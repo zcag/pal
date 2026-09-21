@@ -373,8 +373,8 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   }
   const title = ctx.instance?.title?.trim();
   const addr = addressNow();
-  // At zero the item leaves the strip, unless `bar_show` keeps it: the glyph alone, muted, still a way into the popover.
-  if (i.count === 0) return conf().bar_show === "always" ? { icon: ICON.mail, ...(title && { title }), color: "muted", tooltip: `No unread mail${addr ? ` in ${addr}` : ""}`, menu: { view: renderBar(await barState(i)) } } : { hidden: true };
+  // At zero the item leaves the strip; the glyph, the account's title and the popover are the `empty` shape a `show = "always"` config keeps, muted.
+  if (i.count === 0) return { hidden: true, empty: { icon: ICON.mail, ...(title && { title }), tooltip: `No unread mail${addr ? ` in ${addr}` : ""}`, menu: { view: renderBar(await barState(i)) } } };
   return {
     icon: ICON.mail,
     ...(title && { title }),

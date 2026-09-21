@@ -18,7 +18,7 @@ const PROTOCOL = "2025-06-18";
 export const log = (...a: unknown[]) => console.error("[tela]", ...a);
 
 /** `[extensions.tela]`, defaults in pal.json. */
-export type Settings = { base_url: string; token: string; default_space: string; research: boolean; bar_show?: "auto" | "always" };
+export type Settings = { base_url: string; token: string; default_space: string; research: boolean };
 export const conf = () => settings.get<Settings>(EXTENSION);
 
 /** The instance origin, no trailing slash; empty when unset. */

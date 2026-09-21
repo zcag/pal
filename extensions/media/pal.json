@@ -32,7 +32,7 @@
       "kind": "select",
       "id": "bar_show",
       "label": "Bar item",
-      "description": "When the Now Playing strip is drawn. While a player runs keeps a paused track on the strip, muted; Always keeps the glyph even with no player, its popover saying nothing plays.",
+      "description": "When the Now Playing strip is drawn. While a player runs keeps a paused track on the strip, muted.",
       "options": [
         {
           "id": "playing",
@@ -41,10 +41,6 @@
         {
           "id": "running",
           "title": "While a player runs, paused too"
-        },
-        {
-          "id": "always",
-          "title": "Always"
         }
       ],
       "default": "playing"
@@ -107,13 +103,9 @@
           "title": "Paused, kept on the bar (While a player runs)",
           "item": { "icon": "", "title": "Weird Fishes/ Arpeggi · Radiohead", "color": "muted", "tooltip": "Radiohead - Weird Fishes/ Arpeggi (Music), paused" }
         },
-        "always": {
-          "title": "No player, kept on the bar (Always)",
-          "item": { "icon": "", "color": "muted", "tooltip": "Nothing playing" }
-        },
         "silent": {
           "title": "Nothing playing",
-          "item": { "hidden": true }
+          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "Nothing playing" } }
         }
       },
       "keys": [

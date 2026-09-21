@@ -46,23 +46,6 @@
       "description": "An AddressBook-v22.abcddb whose names replace phone numbers; empty means every source under ~/Library/Application Support/AddressBook.",
       "pick": "file",
       "default": ""
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Latest code item is drawn. Always keeps the glyph on the strip between codes, muted; its popover says there is none and opens the palette.",
-      "options": [
-        {
-          "id": "recent",
-          "title": "For a minute after a code arrives"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "recent"
     }
   ],
   "palettes": {
@@ -102,13 +85,9 @@
           "title": "Forty seconds in, the minute nearly up",
           "item": { "icon": "", "title": "731064", "color": "green", "tooltip": "Google: G-731064 is your Google verification code." }
         },
-        "always": {
-          "title": "No recent code, kept on the bar (Always)",
-          "item": { "icon": "", "color": "muted", "tooltip": "No recent code" }
-        },
         "quiet": {
           "title": "No code in the last minute",
-          "item": { "hidden": true }
+          "item": { "hidden": true, "empty": { "icon": "", "tooltip": "No recent code" } }
         }
       },
       "keys": [

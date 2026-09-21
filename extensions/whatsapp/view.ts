@@ -7,7 +7,7 @@
 // arrows move and a click sets; the keys as keycap hints. Replying turns
 // the search row into a text field (`View.input`) and the hints into
 // Send / Cancel. Nothing unread is one calm line, with the recent chats
-// as rows when the item stays on the bar (`unread_only_bar` off).
+// as rows when the item stays on the bar (the core's `show = "always"`).
 import { POPOVER_W, column, keyHint, row, text, type Action, type HexColor, type View, type ViewNode } from "@zcag/pal";
 
 /** One row of the popover, everything already formatted (the time in the user's locale, the text on one line). */

@@ -44,23 +44,6 @@
       "text": "Show Ask tela (semantic research)",
       "description": "Needs an embedder configured on the instance; Search works without one.",
       "default": true
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Inbox item is drawn. Always keeps the glyph on the strip with nothing addressed to you, muted and without a badge, so the popover stays a click away.",
-      "options": [
-        {
-          "id": "auto",
-          "title": "When a mention or reply is unread"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "auto"
     }
   ],
   "palettes": {
@@ -379,12 +362,12 @@
           "title": "One reply",
           "item": { "icon": "󰗚", "badge": 1, "tooltip": "1 reply" }
         },
-        "always": {
-          "title": "Nothing unread, kept on the bar (Always)",
-          "item": { "icon": "󰗚", "color": "muted", "tooltip": "Nothing addressed to you" }
-        },
         "clear": {
-          "title": "Nothing unread, or signed out",
+          "title": "Nothing unread",
+          "item": { "hidden": true, "empty": { "icon": "󰗚", "tooltip": "Nothing addressed to you" } }
+        },
+        "out": {
+          "title": "Signed out",
           "item": { "hidden": true }
         }
       },

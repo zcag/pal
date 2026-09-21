@@ -254,6 +254,7 @@ Per item, `[bar.items."<extension>/<id>"]` (the key needs quoting):
 | key | type | default | what |
 | --- | --- | --- | --- |
 | `enabled` | bool | `true` | `false` takes the item off every target and stops its refresh. |
+| `show` | `"auto"`, `"always"` | `"auto"` | What the item does with its slot when its render says `hidden`: `auto` takes it off the strip; `always` keeps the quiet shape the render offers (`BarItem.empty`: the glyph, an honest tooltip such as "No unread mail", the same popover; weather's reading as the title), muted, without a badge or segments, in the item's own frame. An item whose render offers no such shape (signed out) hides either way. Read at draw time, so a flip needs no re-render. |
 | `target` | as above | unset | This item's target; the global one when unset. |
 | `position` | string | unset | This item's sketchybar position; `sketchybar.position` when unset. |
 | `hotkey` | string | unset | A global hotkey that opens the item's popover (or runs its open action). Same syntax as `general.hotkey`; the root and palette hotkeys win a clash. |

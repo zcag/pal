@@ -47,14 +47,6 @@
       "default": 15
     },
     {
-      "kind": "boolean",
-      "id": "always_show",
-      "bar": "battery",
-      "label": "Always show battery",
-      "text": "Keep the battery item visible even when it is healthy.",
-      "default": false
-    },
-    {
       "kind": "path",
       "id": "power_state_file",
       "label": "Power watcher state",
@@ -150,7 +142,8 @@
         "healthy": {
           "title": "Healthy, hidden",
           "item": {
-            "hidden": true
+            "hidden": true,
+            "empty": { "icon": "󰂄", "title": "100%", "tooltip": "Power Adapter · Charged" }
           }
         },
         "draining": {
@@ -167,14 +160,6 @@
             "icon": "󰁿",
             "title": "42%",
             "tooltip": "Battery Power · Discharging · 3:40 remaining · 6.1 W draw"
-          }
-        },
-        "full": {
-          "title": "Charged, kept on the bar (Always show battery)",
-          "item": {
-            "icon": "󰂄",
-            "title": "100%",
-            "tooltip": "Power Adapter · Charged"
           }
         },
         "charging": {

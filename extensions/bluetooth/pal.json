@@ -28,7 +28,7 @@
       "kind": "select",
       "id": "bar_show",
       "label": "Bar item",
-      "description": "When the Bluetooth Battery item is drawn. Low is the alert alone; the other two keep a muted Bluetooth glyph on the strip between alerts, the tooltip naming what is connected, the popover the same.",
+      "description": "When the Bluetooth Battery item is drawn. Low is the alert alone; Connected keeps a muted Bluetooth glyph on the strip while a device is connected, the tooltip naming what, the popover the same.",
       "options": [
         {
           "id": "low",
@@ -37,10 +37,6 @@
         {
           "id": "connected",
           "title": "When a device is connected"
-        },
-        {
-          "id": "always",
-          "title": "Always"
         }
       ],
       "default": "low"
@@ -184,18 +180,11 @@
             "tooltip": "Bluetooth · AirPods Pro 84% · Corne 91%"
           }
         },
-        "always": {
-          "title": "Nothing connected, kept on the bar (Always)",
-          "item": {
-            "icon": "󰂯",
-            "color": "muted",
-            "tooltip": "No connected devices"
-          }
-        },
         "clear": {
           "title": "All healthy",
           "item": {
-            "hidden": true
+            "hidden": true,
+            "empty": { "icon": "󰂯", "tooltip": "No connected devices" }
           }
         }
       }

@@ -10,7 +10,7 @@
 import { clock, mintToken, settings, TokenError } from "@zcag/pal";
 import type { Message, Part } from "./mail.ts";
 
-export type Conf = { token_command?: string; address?: string; labels?: string[]; send?: boolean; signature?: string; bar_show?: "auto" | "always" };
+export type Conf = { token_command?: string; address?: string; labels?: string[]; send?: boolean; signature?: string };
 export const conf = (): Conf => settings.get<Conf>();
 
 export const API = (process.env.PAL_GMAIL_API || "https://gmail.googleapis.com/gmail/v1").replace(/\/+$/, "");

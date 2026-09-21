@@ -231,6 +231,14 @@ export function checkBarItem(v: unknown, where = "bar"): BarItem {
     }
   }
   if (item.menu !== undefined) checkBarMenu(item.menu, where);
+  // The shape `show = "always"` draws while hidden: the same title and menu limits, since it lands on the strip as an item.
+  if (item.empty !== undefined) {
+    const e = item.empty;
+    if (!e || typeof e !== "object") throw new Error(`${where}: empty must be an object`);
+    if (e.title !== undefined && typeof e.title !== "string") throw new Error(`${where}: empty title must be a string`);
+    if (e.title && e.title.length > MAX_BAR_TITLE) throw new Error(`${where}: empty title longer than ${MAX_BAR_TITLE} chars`);
+    if (e.menu !== undefined) checkBarMenu(e.menu, `${where} empty`);
+  }
   return item;
 }
 

@@ -12,7 +12,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsOverview, SettingsPalettes, SettingsWindow,
   aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, flashAnchor, settingsPages, BAR_DEFAULTS,
-  resolveLook, lookDefaults, lookOf, lookWrites, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
+  resolveLook, lookDefaults, lookOf, lookWrites, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
   useThemeFile,
@@ -26,7 +26,7 @@ import { iconOf } from "./items";
 type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; icon?: string; tier?: PaletteTier; item_hotkeys?: Record<string, string>; settings?: Record<string, unknown> };
 /** core `BarLook` as the file spells it. */
 type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: number; text_size?: number; spacing?: number; show_icon?: boolean; icon?: string; show_title?: boolean; color?: string; urgent_color?: string; badge_color?: string; badge_style?: BarBadgeStyle; width?: number; font?: BarFont; max_chars?: number };
-type RawBarItem = RawLook & { enabled?: boolean; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number };
+type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
   general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; ask_permissions_on_start: boolean; backspace_back?: boolean; check_updates: boolean };
@@ -187,7 +187,7 @@ function toBarItem(b: RawBarView, config: RawConfig, extensions: SettingsExtensi
     stale: b.stale,
     state: b.state,
     mocks: b.mocks,
-    config: { enabled: raw.enabled ?? true, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, look: lookOf(raw) },
+    config: { enabled: raw.enabled ?? true, show: raw.show === "always" ? "always" : undefined, target: raw.target, position: raw.position, hotkey: raw.hotkey, openOnHover: raw.open_on_hover, order: raw.order, look: lookOf(raw) },
     settings: (ext?.settings ?? []).filter((s) => (s.bar ? s.bar === b.id : s.id.startsWith("bar_"))).map((spec) => {
       const own = ext!.values[spec.id], inherited = ext!.inherited?.[spec.id];
       return { spec, value: own ?? inherited ?? spec.default, base: ext!.inherited ? inherited : undefined, note: own === undefined && inherited !== undefined ? `From ${ext!.inheritedFrom ?? ext!.title}` : undefined };
@@ -478,6 +478,7 @@ export default function Settings() {
     const cur = barItems.find((b) => b.key === key)?.config;
     if (!cur) return;
     if (next.enabled !== cur.enabled) write(["bar", "items", key, "enabled"], next.enabled ? undefined : false);
+    if (next.show !== cur.show) write(["bar", "items", key, "show"], next.show === "always" ? "always" : undefined);
     if (next.target !== cur.target) write(["bar", "items", key, "target"], next.target);
     if ((next.position ?? "") !== (cur.position ?? "")) write(["bar", "items", key, "position"], next.position?.trim() || undefined);
     if ((next.hotkey ?? "") !== (cur.hotkey ?? "")) write(["bar", "items", key, "hotkey"], next.hotkey || undefined);

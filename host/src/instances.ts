@@ -95,9 +95,13 @@ export function rewriteEffect<T>(r: T, key: string): T {
   return r;
 }
 
+/** The item's `menu` and its `empty.menu` (what `show = "always"` opens) alike. */
 export function rewriteBarItem<T>(item: T, key: string): T {
-  const menu = (item as { menu?: { palette?: unknown; extension?: unknown } } | undefined)?.menu;
-  if (menu && typeof menu === "object" && !Array.isArray(menu) && typeof menu.palette === "string" && (menu.extension === undefined || menu.extension === nameOf(key))) menu.extension = key;
+  type Menu = { palette?: unknown; extension?: unknown };
+  const i = item as { menu?: Menu; empty?: { menu?: Menu } } | undefined;
+  for (const menu of [i?.menu, i?.empty?.menu]) {
+    if (menu && typeof menu === "object" && !Array.isArray(menu) && typeof menu.palette === "string" && (menu.extension === undefined || menu.extension === nameOf(key))) menu.extension = key;
+  }
   return item;
 }
 

@@ -67,23 +67,6 @@
       "max": 12,
       "unit": "rounds",
       "default": 4
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Timer item is drawn. Always keeps the glyph on the strip with no timer, muted; its popover opens on the field, so a click starts one.",
-      "options": [
-        {
-          "id": "running",
-          "title": "While there is a timer"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "running"
     }
   ],
   "links": {
@@ -188,18 +171,11 @@
             "tooltip": "Tea landed 0:03 ago"
           }
         },
-        "always": {
-          "title": "No timers, kept on the bar (Always)",
-          "item": {
-            "icon": "󰥔",
-            "color": "muted",
-            "tooltip": "No timers"
-          }
-        },
         "idle": {
           "title": "No timers",
           "item": {
-            "hidden": true
+            "hidden": true,
+            "empty": { "icon": "󰥔", "tooltip": "No timers" }
           }
         }
       },

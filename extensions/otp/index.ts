@@ -27,8 +27,7 @@ import { conceal, CONCEAL_SECONDS, errorMessage, hint, home, settings, toast, tr
 import { PREVIOUS, render } from "./view.ts";
 
 /** `[extensions.otp]`, defaults in pal.json. */
-/** `bar_show`: `recent` is the strip's rule (a minute after a code arrives); `always` keeps the glyph, muted, between codes. */
-type Settings = { hours: number; senders: string[]; db: string; contacts: string; bar_show?: "recent" | "always" };
+type Settings = { hours: number; senders: string[]; db: string; contacts: string };
 
 type Row = { id: number; text: string | null; body: Uint8Array | null; date: number; sender: string | null; chat: string | null; chat_name: string | null };
 type Code = { id: string; code: string; sender: string; name: string; text: string; at: number };
@@ -274,14 +273,14 @@ let snap: { latest?: Code; previous: Code[]; at: number } = { previous: [], at: 
 
 const popover = (now = Date.now()) => render({ latest: inWindow(snap.latest, now), previous: snap.previous, now, window: BAR_WINDOW_MS });
 
-/** The code as the title, green, for a minute: `refresh` asks for the render that hides it once the minute is up (or, with `bar_show` at `always`, leaves the glyph muted); the popover's tree as the menu. Not on Linux, where nothing can be read. */
+/** The code as the title, green, for a minute: `refresh` asks for the render that hides it once the minute is up; the popover's tree as the menu. Between codes the glyph and the popover are the `empty` shape a `show = "always"` config keeps, muted. Not on Linux, where nothing can be read. */
 function renderBar(): BarItem {
   listen();
   const found = recentCodes();
   const now = Date.now();
   const c = inWindow(found[0], now);
   snap = { latest: c, previous: found.slice(1, 1 + PREVIOUS), at: now };
-  if (!c) return MAC && settings.get<Settings>().bar_show === "always" ? { icon: BAR_GLYPH, color: "muted", tooltip: "No recent code", menu: { view: popover(now) } } : { hidden: true };
+  if (!c) return MAC ? { hidden: true, empty: { icon: BAR_GLYPH, tooltip: "No recent code", menu: { view: popover(now) } } } : { hidden: true };
   return { icon: BAR_GLYPH, title: c.code, color: "green", tooltip: `${c.name}: ${truncate(c.text, 80)}`, refresh: Math.max(1, Math.ceil((BAR_WINDOW_MS - (now - c.at)) / 1000)), menu: { view: popover(now) } };
 }
 

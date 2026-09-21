@@ -306,9 +306,9 @@ async function pickPerson(id: string, action?: string): Promise<Effect> {
 
 /**
  * The count of unread chats as the badge, urgent while a direct chat is
- * among them (`dm_urgent`), hidden at zero unless `unread_only_bar` is
- * off (then the glyph stays as a way into the popover, which lists the
- * recent chats). The popover is a view of the item's own (view.ts):
+ * among them (`dm_urgent`), hidden at zero, the glyph and the popover
+ * (which then lists the recent chats) its `empty` shape for a `show =
+ * "always"` config. The popover is a view of the item's own (view.ts):
  * direct messages then groups, a cursor the arrows move and a click
  * sets, the keys as hints; Enter opens the focused chat, `m` marks it
  * read, `a` every listed one, `r` (send on) turns the search row into a
@@ -344,14 +344,15 @@ async function unreadItem(ctx: BarCtx): Promise<BarItem> {
   }
   const unread = list.filter((c) => c.unread > 0);
   const direct = unread.filter((c) => !c.group).length, groups = unread.length - direct;
-  if (!unread.length && conf().unread_only_bar !== false) return { hidden: true };
+  const menu = { view: renderBar(await barState(list)) };
+  if (!unread.length) return { hidden: true, empty: { icon: ICON.whatsapp, tooltip: "Nothing unread", menu } };
   const parts = [direct ? plural(direct, "direct message") : "", groups ? plural(groups, "group") : ""].filter(Boolean);
   return {
     icon: ICON.whatsapp,
-    ...(unread.length ? { badge: unread.length } : { color: "muted" as const }),
+    badge: unread.length,
     urgent: conf().dm_urgent !== false && direct > 0,
-    tooltip: unread.length ? `${plural(unread.length, "chat")} unread: ${parts.join(", ")}` : "Nothing unread",
-    menu: { view: renderBar(await barState(list)) },
+    tooltip: `${plural(unread.length, "chat")} unread: ${parts.join(", ")}`,
+    menu,
   };
 }
 

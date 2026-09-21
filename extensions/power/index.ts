@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { errorMessage, exec, hint, home, settings, toast, truncate, type Accessory, type BarItem, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { renderPowerPopover, type PowerPopover } from "./view.ts";
 
-type Settings = { show_below: number; show_charging_below: number; show_draw_watts: number; always_show: boolean; power_state_file: string };
+type Settings = { show_below: number; show_charging_below: number; show_draw_watts: number; power_state_file: string };
 type Battery = { percent: number; source: "Battery Power" | "Power Adapter"; status: "charging" | "discharging" | "charged" | "unknown"; remaining?: string; eta?: string };
 type WatchState = { ts?: number; w?: number; ext?: boolean; chg?: boolean; eta?: number; level?: string; alerts?: unknown; blame?: unknown; temp?: number; locks?: unknown; today?: unknown };
 type Snapshot = Battery & { watch?: WatchState; alerts: PowerPopover["alerts"]; blame: PowerPopover["blame"] };
@@ -133,17 +133,20 @@ function title(s: Snapshot): string {
 
 function shouldShow(s: Snapshot): boolean {
   const c = settingsOf();
-  if (c.always_show || loud(s)) return true;
+  if (loud(s)) return true;
   return s.source === "Battery Power" ? s.percent < c.show_below : s.percent <= c.show_charging_below;
 }
 function popover(s: Snapshot) {
   return renderPowerPopover({ percent: s.percent, source: s.source, status: stateLabel(s), remaining: s.remaining, watts: s.watch?.w, alerts: s.alerts, blame: s.blame });
 }
+/** Hidden while healthy; the level and the popover are then the `empty` shape a `show = "always"` config keeps, muted. No battery at all is hidden either way. */
 async function barItem(): Promise<BarItem> {
   const s = await snapshot().catch(() => undefined);
-  if (!s || !shouldShow(s)) return { hidden: true };
+  if (!s) return { hidden: true };
   const tooltip = [s.source, stateLabel(s), s.remaining, watchFresh(s), s.alerts[0]?.message].filter(Boolean).join(" · ");
-  return { icon: glyph(s), title: title(s), color: severity(s), tooltip, click: "open", menu: { view: popover(s) } };
+  const menu = { view: popover(s) };
+  if (!shouldShow(s)) return { hidden: true, empty: { icon: glyph(s), title: title(s), tooltip, menu } };
+  return { icon: glyph(s), title: title(s), color: severity(s), tooltip, click: "open", menu };
 }
 
 const meta = (pairs: [string, string | undefined][]): Metadata[] => pairs.filter((x): x is [string, string] => !!x[1]).map(([label, value]) => ({ label, value }));

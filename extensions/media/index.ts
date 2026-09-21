@@ -53,8 +53,8 @@ const ARTWORK_TIMEOUT_MS = 3000;
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up. */
 type Player = MediaPlayer & { artwork_id?: string | null };
 type Playing = NowPlaying & { stream?: boolean };
-/** `bar_show`: `playing` is the strip's rule; `running` keeps a paused (or idle) player on it, muted; `always` keeps the glyph even with no player. */
-type BarShow = "playing" | "running" | "always";
+/** `bar_show`: `playing` is the strip's rule; `running` keeps a paused (or idle) player on it, muted. */
+type BarShow = "playing" | "running";
 type Settings = { bar_artwork?: boolean; exclude?: string[]; bar_show?: BarShow };
 /** `core/media.artwork`: the cover as a data url, and its own size (square or not). */
 type Artwork = { data: string; width: number; height: number };
@@ -211,10 +211,11 @@ const stateOf = (p: Player, cover: string | undefined, at: number, now = Date.no
  * the title and the glyph (the cover instead when `bar_artwork` is on and
  * it is square), the popover's tree (view.ts) as the menu. A player that
  * is not playing (there by `bar_show`) is the same, muted; no player at
- * all is the glyph alone with the popover saying nothing plays.
+ * all is hidden, the glyph alone with the popover saying nothing plays
+ * its `empty` shape for a `show = "always"` config.
  */
-export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = Date.now(), always = false): BarItem {
-  if (!p) return always ? { icon: BAR_GLYPH, color: "muted", tooltip: "Nothing playing", menu: { view: render({ canOpen: false }) } } : { hidden: true };
+export function barItem(p: Player | undefined, c: Cover | undefined, barArtwork: boolean, cover: string | undefined = c?.image, at = Date.now()): BarItem {
+  if (!p) return { hidden: true, empty: { icon: BAR_GLYPH, tooltip: "Nothing playing", menu: { view: render({ canOpen: false }) } } };
   const playing = p.state === "playing";
   return {
     icon: barArtwork && c?.square ? { image: c.image } : BAR_GLYPH,
@@ -238,7 +239,7 @@ async function playingItem(np: Playing): Promise<BarItem> {
   const c = p ? await coverOf(p) : undefined;
   const cover = p ? await popoverCover(p, c) : undefined;
   snap = { p, cover, at: Date.now() };
-  return barItem(p, c, barArtwork(), cover, snap.at, barShow() === "always");
+  return barItem(p, c, barArtwork(), cover, snap.at);
 }
 
 // ---- the popover's tick -----------------------------------------------------------
@@ -286,7 +287,7 @@ async function renderBar(): Promise<BarItem> {
   let np: Playing | undefined;
   try { np = await media.nowPlaying(); } catch { np = undefined; }
   follow(np);
-  return np ? playingItem(np) : barItem(undefined, undefined, false, undefined, Date.now(), barShow() === "always");
+  return np ? playingItem(np) : barItem(undefined, undefined, false);
 }
 
 async function barAction(action: string): Promise<Effect> {

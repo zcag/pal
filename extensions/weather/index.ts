@@ -4,8 +4,8 @@
 import { errorMessage, hint, settings, type BarItem, type Effect, type Extension, type Item } from "@zcag/pal";
 import { fmt, fold, label, placeLabel, render as renderPopover, type Current, type Place, type Reading } from "./view.ts";
 
-/** `bar_show`: `notable` is the strip's rule; `always` draws the reading in ordinary weather too, muted, so the forecast stays a click away. */
-type Settings = { location: string; low: number; high: number; notable_conditions: unknown[]; bar_show?: "notable" | "always" };
+/** `[extensions.weather]`, defaults in pal.json. */
+type Settings = { location: string; low: number; high: number; notable_conditions: unknown[] };
 const GEOCODE = () => process.env.PAL_WEATHER_GEOCODE ?? "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST = () => process.env.PAL_WEATHER_FORECAST ?? "https://api.open-meteo.com/v1/forecast";
 const placeCache = new Map<string, Place>();
@@ -74,10 +74,10 @@ function tint(r: Reading): "muted" | "amber" | "blue" | "teal" | "red" {
 async function bar(): Promise<BarItem> {
   try {
     const r = await read(); if (!r) return { hidden: true };
-    const notable = isNotable(r);
-    if (!notable && settings.get<Settings>().bar_show !== "always") return { hidden: true };
     const [condition, glyph] = label(r);
-    return { icon: glyph, title: `${fmt(r.current.temperature_2m)}${r.unit}`, color: notable ? tint(r) : "muted", tooltip: `${condition} in ${r.place.name}`, menu: { view: renderPopover(r) } };
+    const item = { icon: glyph, title: `${fmt(r.current.temperature_2m)}${r.unit}`, tooltip: `${condition} in ${r.place.name}`, menu: { view: renderPopover(r) } };
+    // Ordinary weather is hidden; the reading is the `empty` shape a `show = "always"` config keeps, muted, so the forecast stays a click away.
+    return isNotable(r) ? { ...item, color: tint(r) } : { hidden: true, empty: item };
   }
   catch (e) { const message = errorMessage(e); return { icon: "󰖪", title: "Weather", color: "red", stale: true, tooltip: message }; }
 }

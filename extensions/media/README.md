@@ -41,10 +41,11 @@ this extension leaves to another, by app name or player id (`Spotify`,
 `music`): the bar item and the root's Now row skip them (the Spotify
 extension shows its own); the palette still lists them. **Bar item**
 (`bar_show`, `playing`): when the strip is drawn: while something plays,
-`running` while a player is there at all (a paused track stays, muted),
-`always` (the glyph alone, muted, with no player; its popover says
-nothing plays). What is listed depends on what the core's media
-capability can see:
+`running` while a player is there at all (a paused track stays, muted).
+Keeping the glyph with no player at all (muted, its popover saying
+nothing plays) is the core's `show = "always"` under
+`[bar.items."media/now-playing"]` (docs/config.md). What is listed
+depends on what the core's media capability can see:
 
 - **macOS**: Spotify and Music through AppleScript, only while the app is
   running (the check is `NSRunningApplication`, so pal never launches one
@@ -66,7 +67,7 @@ capability can see:
   one row says to install it.
 
 The bar item **Now Playing** puts the playing track on the strip (hidden
-while nothing plays, unless `bar_show` keeps it). Its popover is a card: the cover large at the left
+while nothing plays, unless `bar_show` or the core's `show` keeps it). Its popover is a card: the cover large at the left
 (the stream's picture; a cover the player names by url is fetched once
 into the picture, 2 MB at most; the app's own icon without one; a note
 tile without even that), the title, the artist and the album beside it

@@ -80,6 +80,11 @@ describe("SettingsBar writes", () => {
     expect(writes.at(-1)?.[1].openOnHover).toBeUndefined();
     set(byId<HTMLSelectElement>("bar:timer/running-target"), "");
     expect(writes.at(-1)?.[1].target).toBeUndefined();
+    // Show: always is the one value written; back to auto unsets the key.
+    set(byId<HTMLSelectElement>("bar:timer/running-show"), "always");
+    expect(writes.at(-1)?.[1].show).toBe("always");
+    set(byId<HTMLSelectElement>("bar:timer/running-show"), "auto");
+    expect(writes.at(-1)?.[1].show).toBeUndefined();
     // Reset to defaults keeps only on/off.
     click([...el.querySelectorAll("button")].find((b) => b.textContent === "Reset to defaults"));
     expect(writes.at(-1)).toEqual(["timer/running", { enabled: true, look: {} }]);

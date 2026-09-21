@@ -24,7 +24,7 @@ beforeAll(async () => {
   const saved = process.env.PATH;
   process.env.PATH = `${bin}:${dirname(process.execPath)}`;
   process.env.PAL_POWER_OS = "darwin";
-  try { host = await Host.bundled({ settings: { power: { settings: { show_below: 50, show_charging_below: 20, show_draw_watts: 15, always_show: false, power_state_file: state } } } }); }
+  try { host = await Host.bundled({ settings: { power: { settings: { show_below: 50, show_charging_below: 20, show_draw_watts: 15, power_state_file: state } } } }); }
   finally { process.env.PATH = saved; delete process.env.PAL_POWER_OS; }
 });
 afterAll(() => { host.kill(); rmSync(dir, { recursive: true, force: true }); });
@@ -33,7 +33,7 @@ describe("power", () => {
   test("metadata exposes the live palette and preview states", () => {
     const loaded = host.loaded().find((x) => x.extension === "power")!;
     expect(loaded.palettes).toEqual([{ name: "power", title: "Battery & Power", live: true, input: false, icon: tile("green", "\u{f0079}"), showDetail: true, placeholder: "Battery, draw, or a process" }]);
-    expect(loaded.bar).toMatchObject([{ id: "battery", title: "Battery", refresh: { every: 30, on: ["wake"] }, mocks: { healthy: { item: { hidden: true } }, critical: { item: { color: "red" } } }, source: true }]);
+    expect(loaded.bar).toMatchObject([{ id: "battery", title: "Battery", refresh: { every: 30, on: ["wake"] }, mocks: { healthy: { item: { hidden: true, empty: { title: "100%" } } }, critical: { item: { color: "red" } } }, source: true }]);
   });
 
   test("bar: low battery uses the watcher warning and opens Battery Settings", async () => {
@@ -72,13 +72,12 @@ describe("power", () => {
     expect(await host.pick("power", "power", "battery")).toEqual({ open: "x-apple.systempreferences:com.apple.Battery-Settings.extension" });
   });
 
-  test("healthy battery hides unless always-show is enabled", async () => {
+  test("healthy battery hides, the level and the popover its empty shape for the core's show = always", async () => {
     writeFileSync(state, JSON.stringify({ ...STATE, ts: Math.floor(Date.now() / 1000), alerts: [], w: 7.21 }));
-    host.changeSettings("power", { settings: { show_below: 20, show_charging_below: 20, show_draw_watts: 15, always_show: false, power_state_file: state } });
-    expect(await host.render("power", "battery")).toEqual({ hidden: true });
-    host.changeSettings("power", { settings: { show_below: 20, show_charging_below: 20, show_draw_watts: 15, always_show: true, power_state_file: state } });
-    const shown = await host.render("power", "battery");
-    expect(shown).toMatchObject({ title: "31%" });
-    expect(shown).not.toHaveProperty("color");
+    host.changeSettings("power", { settings: { show_below: 20, show_charging_below: 20, show_draw_watts: 15, power_state_file: state } });
+    const hidden = await host.render("power", "battery");
+    expect(hidden).toMatchObject({ hidden: true, empty: { title: "31%", tooltip: expect.stringContaining("Battery Power · Discharging · 2:57 remaining") } });
+    expect(hidden).not.toHaveProperty("color");
+    expect(hidden).not.toHaveProperty("title");
   });
 });

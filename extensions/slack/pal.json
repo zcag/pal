@@ -92,7 +92,7 @@
       "kind": "select",
       "id": "bar_show",
       "label": "Bar item",
-      "description": "When the Unreads item is drawn. The count is always what is addressed to you; the other choices keep the glyph on the strip, muted and without a badge, while a channel is merely unread or at all times.",
+      "description": "When the Unreads item is drawn. The count is always what is addressed to you; the other choice keeps the glyph on the strip, muted and without a badge, while a channel is merely unread.",
       "options": [
         {
           "id": "auto",
@@ -101,10 +101,6 @@
         {
           "id": "unread",
           "title": "Also while a channel is unread"
-        },
-        {
-          "id": "always",
-          "title": "Always"
         }
       ],
       "default": "auto"
@@ -226,12 +222,12 @@
           "title": "Only channels unread, kept on the bar (Bar item: unread)",
           "item": { "icon": "󰒱", "color": "muted", "tooltip": "4 channels unread" }
         },
-        "always": {
-          "title": "Nothing unread, kept on the bar (Always)",
-          "item": { "icon": "󰒱", "color": "muted", "tooltip": "Nothing unread" }
-        },
         "clear": {
-          "title": "Nothing addressed to you, or signed out",
+          "title": "Nothing addressed to you",
+          "item": { "hidden": true, "empty": { "icon": "󰒱", "tooltip": "Nothing unread" } }
+        },
+        "out": {
+          "title": "Signed out",
           "item": { "hidden": true }
         }
       },

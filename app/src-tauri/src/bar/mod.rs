@@ -37,7 +37,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use pal_core::config::{BadgeStyle, BarLook, BarTarget, Config};
+use pal_core::config::{BadgeStyle, BarLook, BarShow, BarTarget, Config};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
@@ -100,6 +100,21 @@ pub struct Scroll {
     pub down: String,
 }
 
+/// `BarItem.empty`: what a hidden item draws when `[bar.items] show =
+/// "always"` keeps it ([`BarItem::kept`]): the glyph, a title, the honest
+/// tooltip and the popover. The extension offers it; the core decides.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct Empty {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tooltip: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub menu: Option<Value>,
+}
+
 /// `BarItem` in sdk/src/protocol.ts: the item's whole state as `render`
 /// answered it. `menu` stays opaque here (nodes, `{ palette }` or
 /// `{ view }`): the popover page draws it.
@@ -107,6 +122,8 @@ pub struct Scroll {
 pub struct BarItem {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub empty: Option<Empty>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -165,6 +182,43 @@ impl BarItem {
     /// extension (a paused timer); never while urgent.
     pub fn muted(&self) -> bool {
         !self.urgent && (self.stale || self.color.as_deref() == Some("muted"))
+    }
+
+    /// The item as `[bar.items] show` keeps it: hidden with an `empty`
+    /// shape under `always` is that shape on the strip, muted, no badge or
+    /// segments, its menu the popover, in the hidden item's own frame (its
+    /// per-render `icon_size`, `label_size`, `icon_width`, `position` and
+    /// `refresh` stay, so the kept glyph sits where and as large as the
+    /// item's other renders); anything else is itself (hidden without a
+    /// shape hides either way). Read at draw time, not at render, so a
+    /// config flip needs no re-render.
+    pub fn kept(self, show: BarShow) -> BarItem {
+        match (self.hidden, show, self.empty) {
+            (true, BarShow::Always, Some(e)) => BarItem {
+                icon: e.icon,
+                title: e.title,
+                tooltip: e.tooltip,
+                menu: e.menu,
+                color: Some("muted".into()),
+                icon_size: self.icon_size,
+                label_size: self.label_size,
+                icon_width: self.icon_width,
+                position: self.position,
+                refresh: self.refresh,
+                ..Default::default()
+            },
+            (_, _, empty) => BarItem { empty, ..self },
+        }
+    }
+
+    /// The instance's label on the tooltips ("No unread mail (Work)"),
+    /// the `empty` one too; a label already there is not stacked.
+    fn label(&mut self, label: Option<&str>) {
+        let relabel = |t: Option<&str>| labelled(t.and_then(|t| strip_label(t, label)), label);
+        self.tooltip = relabel(self.tooltip.as_deref());
+        if let Some(e) = self.empty.as_mut() {
+            e.tooltip = relabel(e.tooltip.as_deref());
+        }
     }
 
     /// The item with `look` applied: the look's own `icon` in place of the
@@ -545,7 +599,7 @@ pub fn on_extension_loaded(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, i
             entry.instance = instance.clone();
             // A label that changed (the second instance appeared) shows on the next draw.
             if let Some(last) = entry.last.as_mut() {
-                last.tooltip = labelled(last.tooltip.as_deref().and_then(|t| strip_label(t, entry.instance.as_deref())), entry.instance.as_deref());
+                last.label(entry.instance.as_deref());
             }
             added.push(key);
         }
@@ -608,6 +662,15 @@ pub fn snapshot(app: &AppHandle) -> Vec<(String, Entry)> {
 
 pub fn entry(app: &AppHandle, key: &str) -> Option<Entry> {
     Bar::with(app, |e| e.get(key).cloned())
+}
+
+/// The last rendered item as the strip shows it ([`BarItem::kept`] under
+/// the config's `show`): what a click, a hover or the popover reads, so
+/// an item kept on the strip opens its `empty` menu. `None` while it has
+/// never rendered.
+pub fn drawn(app: &AppHandle, key: &str) -> Option<BarItem> {
+    let item = entry(app, key)?.last?;
+    Some(item.kept(settings::config(app).bar.item(key).show))
 }
 
 // ---- render --------------------------------------------------------------
@@ -736,7 +799,7 @@ fn strip_label<'a>(t: &'a str, label: Option<&str>) -> Option<&'a str> {
 fn set(app: &AppHandle, key: &str, mut item: BarItem, push: bool) {
     let changed = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
-        item.tooltip = labelled(item.tooltip.as_deref(), entry.instance.as_deref());
+        item.label(entry.instance.as_deref());
         let same = entry.last.as_ref() == Some(&item) && !entry.stale;
         entry.last = Some(item);
         entry.stale = false;
@@ -757,12 +820,13 @@ fn set(app: &AppHandle, key: &str, mut item: BarItem, push: bool) {
     }
 }
 
-/// The item as drawn: the last state with `stale` from the registry, and
-/// the config that places it. `None` while it has never rendered.
+/// The item as drawn: the last state as `show` keeps it, with `stale`
+/// from the registry, and the config that places it. `None` while it has
+/// never rendered.
 fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind) -> Option<Draw> {
-    let mut item = entry.last.clone()?;
-    item.stale = item.stale || entry.stale;
     let cfg = config.bar.item(key);
+    let mut item = entry.last.clone()?.kept(cfg.show);
+    item.stale = item.stale || entry.stale;
     let target = match kind {
         Kind::Sketchybar => BarTarget::Sketchybar,
         Kind::Menubar => BarTarget::Menubar,
@@ -1005,8 +1069,10 @@ pub struct Feed {
     pub items: BTreeMap<String, FeedEntry>,
 }
 
+/// The feed says what the strip shows: an item `show = "always"` keeps is its kept shape here too.
 fn write_feed(app: &AppHandle) {
-    let feed = Feed { items: snapshot(app).into_iter().map(|(k, e)| (k, FeedEntry { title: e.manifest.title, stale: e.stale, rendered_at: e.rendered_unix, item: e.last })).collect() };
+    let config = settings::config(app);
+    let feed = Feed { items: snapshot(app).into_iter().map(|(k, e)| { let item = e.last.map(|i| i.kept(config.bar.item(&k).show)); (k, FeedEntry { title: e.manifest.title, stale: e.stale, rendered_at: e.rendered_unix, item }) }).collect() };
     let path = feed_path();
     tauri::async_runtime::spawn_blocking(move || {
         if let Some(dir) = path.parent() {
@@ -1280,5 +1346,41 @@ mod tests {
         assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap().hover);
         let no_menu = Entry { last: Some(BarItem::default()), ..entry };
         assert!(!draw_for(&config, "x/y", &no_menu, Kind::Sketchybar).unwrap().hover, "an item with no menu never peeks");
+    }
+
+    #[test]
+    fn show_always_keeps_the_empty_shape_muted() {
+        let quiet: BarItem = serde_json::from_value(json!({ "hidden": true, "empty": { "icon": "\u{f09b}", "tooltip": "No unread mail", "menu": { "palette": "mail" } } })).unwrap();
+        assert_eq!(serde_json::to_value(&quiet).unwrap()["empty"]["tooltip"], "No unread mail", "the shape rides the wire and the feed");
+        assert_eq!(quiet.clone().kept(BarShow::Auto), quiet, "auto: hidden, the shape kept for a later flip");
+        let kept = quiet.clone().kept(BarShow::Always);
+        assert!(!kept.hidden && kept.empty.is_none());
+        assert_eq!((kept.icon.as_ref(), kept.tooltip.as_deref(), kept.color.as_deref()), (Some(&json!("\u{f09b}")), Some("No unread mail"), Some("muted")), "the empty shape, muted");
+        assert!(kept.has_menu() && kept.badge.is_none() && kept.segments.is_empty() && kept.title.is_none(), "no badge, no segments, no title unless the shape gives one");
+        let bare: BarItem = serde_json::from_value(json!({ "hidden": true, "menu": { "palette": "mail" } })).unwrap();
+        assert!(bare.clone().kept(BarShow::Always).hidden, "no shape to draw: hidden either way (signed out)");
+        let loud: BarItem = serde_json::from_value(json!({ "icon": "\u{f09b}", "badge": 3, "empty": { "icon": "\u{f09b}" } })).unwrap();
+        assert_eq!(loud.clone().kept(BarShow::Always), loud, "an item with something to say is itself");
+        let reading: BarItem = serde_json::from_value(json!({ "hidden": true, "empty": { "icon": "\u{e30d}", "title": "12°" } })).unwrap();
+        assert_eq!(reading.kept(BarShow::Always).title.as_deref(), Some("12°"), "a title the shape gives is drawn (weather's reading)");
+        let framed: BarItem = serde_json::from_value(json!({ "hidden": true, "icon_size": 18, "icon_width": 31, "position": "q", "scroll": { "up": "u", "down": "d" }, "click": "open", "empty": { "icon": "\u{f057f}" } })).unwrap();
+        let framed = framed.kept(BarShow::Always);
+        assert_eq!((framed.icon_size, framed.icon_width, framed.position.as_deref()), (Some(18.0), Some(31.0), Some("q")), "the hidden item's frame stays (audio's glyph slot)");
+        assert!(framed.scroll.is_none() && framed.click.is_none(), "its actions do not: nothing to act on");
+
+        let (config, _) = pal_core::config::parse("[bar.items.\"x/y\"]\nshow = \"always\"\n[bar.items.\"x/z\"]\nbadge_style = \"dot\"\n").unwrap();
+        let entry = Entry { manifest: ManifestBar::default(), last: Some(quiet.clone()), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, instance: None };
+        let d = draw_for(&config, "x/y", &entry, Kind::Menubar).unwrap();
+        assert!(!d.item.hidden && d.item.muted(), "the config keeps it on the strip, dim");
+        assert_eq!(d.tint(), Some("muted"));
+        assert!(draw_for(&config, "x/z", &entry, Kind::Menubar).unwrap().item.hidden, "auto is the default: off the strip");
+        let stale = Entry { stale: true, ..entry };
+        assert!(draw_for(&config, "x/y", &stale, Kind::Menubar).unwrap().item.stale, "the registry's stale rides on the kept shape too");
+
+        let mut labelled = quiet;
+        labelled.label(Some("Work"));
+        assert_eq!(labelled.empty.as_ref().unwrap().tooltip.as_deref(), Some("No unread mail (Work)"), "the instance's label reaches the empty tooltip");
+        labelled.label(Some("Work"));
+        assert_eq!(labelled.empty.as_ref().unwrap().tooltip.as_deref(), Some("No unread mail (Work)"), "and is not stacked on a re-registration");
     }
 }

@@ -48,23 +48,6 @@
       "label": "Additional notable weather codes",
       "description": "Optional WMO weather codes that should surface even within the temperature band.",
       "default": []
-    },
-    {
-      "kind": "select",
-      "id": "bar_show",
-      "label": "Bar item",
-      "description": "When the Weather item is drawn. Always draws the reading in ordinary weather too, muted, so the forecast stays a click away; notable conditions keep their colour.",
-      "options": [
-        {
-          "id": "notable",
-          "title": "In notable weather"
-        },
-        {
-          "id": "always",
-          "title": "Always"
-        }
-      ],
-      "default": "notable"
     }
   ],
   "palettes": {
@@ -130,19 +113,11 @@
             "tooltip": "Fog in Istanbul"
           }
         },
-        "always": {
-          "title": "Ordinary weather, kept on the bar (Always)",
-          "item": {
-            "icon": "󰖕",
-            "title": "19°C",
-            "color": "muted",
-            "tooltip": "Partly cloudy in Istanbul"
-          }
-        },
         "quiet": {
           "title": "Ordinary weather",
           "item": {
-            "hidden": true
+            "hidden": true,
+            "empty": { "icon": "󰖕", "title": "19°C", "tooltip": "Partly cloudy in Istanbul" }
           }
         },
         "unavailable": {

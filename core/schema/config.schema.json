@@ -191,6 +191,11 @@
           "description": "sketchybar position for this item (as `[bar.sketchybar] position`).",
           "type": "string"
         },
+        "show": {
+          "$ref": "#/$defs/BarShow",
+          "default": "auto",
+          "description": "`always` keeps the item on the strip when it has nothing to say, as\nthe muted quiet shape its render offers; `auto` hides it then."
+        },
         "show_icon": {
           "description": "Draw this item's icon. The target's when unset.",
           "type": "boolean"
@@ -340,6 +345,21 @@
         }
       },
       "type": "object"
+    },
+    "BarShow": {
+      "description": "`show`: what an item with nothing to say does with its slot.",
+      "oneOf": [
+        {
+          "const": "auto",
+          "description": "Off the strip while `render` answers `hidden` (the rule: an item earns its slot).",
+          "type": "string"
+        },
+        {
+          "const": "always",
+          "description": "Kept on the strip as the quiet shape its render offers (`BarItem.empty`:\nthe glyph, an honest tooltip, the same popover), muted, without a badge.\nAn item whose render offers none hides either way.",
+          "type": "string"
+        }
+      ]
     },
     "BarSketchybar": {
       "additionalProperties": false,

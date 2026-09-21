@@ -43,15 +43,6 @@
     },
     {
       "kind": "boolean",
-      "id": "unread_only_bar",
-      "bar": "unread",
-      "label": "Bar item",
-      "text": "Show the bar item only while a chat is unread",
-      "description": "Off keeps the WhatsApp glyph on the bar with no count, muted, as a way into the popover, which then lists the recent chats.",
-      "default": true
-    },
-    {
-      "kind": "boolean",
       "id": "dm_urgent",
       "bar": "unread",
       "label": "Direct messages",
@@ -136,8 +127,8 @@
         "groups": { "title": "Unread groups only", "item": { "icon": "󰖣", "badge": 2, "urgent": false, "tooltip": "2 chats unread: 2 groups" } },
         "direct": { "title": "A direct chat waits", "item": { "icon": "󰖣", "badge": 3, "urgent": true, "tooltip": "3 chats unread: 1 direct message, 2 groups" } },
         "one": { "title": "One unread chat", "item": { "icon": "󰖣", "badge": 1, "urgent": true, "tooltip": "1 chat unread: 1 direct message" } },
-        "always": { "title": "Nothing unread, kept on the bar (Bar item off)", "item": { "icon": "󰖣", "urgent": false, "tooltip": "Nothing unread" } },
-        "clear": { "title": "Nothing unread, or no gateway key", "item": { "hidden": true } }
+        "clear": { "title": "Nothing unread", "item": { "hidden": true, "empty": { "icon": "󰖣", "tooltip": "Nothing unread" } } },
+        "out": { "title": "No gateway key", "item": { "hidden": true } }
       },
       "keys": [
         { "keys": "enter", "title": "Open the row's chat" },

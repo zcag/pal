@@ -757,6 +757,21 @@ pub struct BarItemState {
     progress: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tooltip: Option<String>,
+    /// `BarItem.empty`, what `show = "always"` keeps of a hidden item: the
+    /// page previews it under that setting and offers the setting on it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    empty: Option<BarEmptyState>,
+}
+
+/// The strip's part of `BarItem.empty` (the menu stays out, as above).
+#[derive(Serialize)]
+pub struct BarEmptyState {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icon: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tooltip: Option<String>,
 }
 
 /// One `bar.<id>.mocks.<id>` entry, reduced to exactly what the Settings
@@ -772,6 +787,7 @@ fn bar_item_state(item: &crate::bar::BarItem) -> BarItemState {
     BarItemState {
         title: item.title.clone(),
         hidden: item.hidden,
+        empty: item.empty.as_ref().map(|e| BarEmptyState { icon: e.icon.clone(), title: e.title.clone(), tooltip: e.tooltip.clone() }),
         badge: item.count(),
         dot: item.dot(),
         urgent: item.urgent,

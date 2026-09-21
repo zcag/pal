@@ -322,9 +322,14 @@ export function lookWrites(cur: BarLookOverride, next: BarLookOverride, base: Ba
   return out;
 }
 
+/** `[bar.items] show`: what an item with nothing to say does with its slot (core `BarShow`). */
+export type BarShow = "auto" | "always";
+
 /** `[bar.items."<key>"]`: absent keys mean the target's defaults. */
 export type BarItemConfig = {
   enabled: boolean;
+  /** Unset is `auto`: hidden while the render says so; `always` keeps the render's `empty` shape, muted. */
+  show?: BarShow;
   target?: BarTarget;
   position?: string;
   hotkey?: string;
@@ -342,8 +347,8 @@ export type BarItemMock = {
   item: BarItemState;
 };
 
-/** The compact render state settings.rs exposes for the live and mock strips. */
-export type BarItemState = { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean; icon?: unknown; segments?: { id: string; icon?: string; text?: string; color?: string }[]; color?: string; progress?: number; tooltip?: string };
+/** The compact render state settings.rs exposes for the live and mock strips. `empty` is what `show = "always"` keeps of a hidden item (`BarItem.empty`, the menu left out). */
+export type BarItemState = { title?: string; hidden: boolean; badge?: number; dot?: boolean; urgent: boolean; icon?: unknown; segments?: { id: string; icon?: string; text?: string; color?: string }[]; color?: string; progress?: number; tooltip?: string; empty?: { icon?: unknown; title?: string; tooltip?: string } };
 
 /** One declared bar item (settings.rs `BarItemView`) with its extension and its config. */
 export type BarItem = {

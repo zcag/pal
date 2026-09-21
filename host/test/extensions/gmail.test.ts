@@ -405,22 +405,18 @@ describe("gmail", () => {
     expect(await host.barAction(W, "unread", "star")).toMatchObject({ view: { id: "unread" } });
     expect(modifies().at(-1)).toEqual({ ids: ["w1"], addLabelIds: ["STARRED"] });
     await host.barAction(W, "unread", "read:w1");
-    expect(await host.render(W, "unread", { reason: "update" })).toEqual({ hidden: true });
+    expect(await host.render(W, "unread", { reason: "update" })).toMatchObject({ hidden: true, empty: { icon: "\u{f01ee}" } });
     await host.pick(W, "inbox", "w1", "unread", { ids: ["w1", "w2"] });
   });
 
-  test("bar_show at always: nothing unread keeps the glyph and the instance's title on the strip, muted, no badge, the popover saying so", async () => {
+  test("nothing unread: hidden, the empty shape (the glyph, the instance's title, no badge, the popover saying so) offered for the core's show = always", async () => {
     await host.barAction(W, "unread", "read-all");
-    host.changeSettings(W, { settings: { token_command: join(dir, "tok-work.sh"), address: "someone@example.org", send: false, bar_show: "always" } });
-    await Bun.sleep(50);
     try {
       const item = await host.render(W, "unread", { reason: "update", instance: { key: W, name: P, title: "Work", isDefault: false } });
-      expect(item).toMatchObject({ icon: "\u{f01ee}", title: "Work", color: "muted", tooltip: "No unread mail in someone@example.org" });
+      expect(item).toMatchObject({ hidden: true, empty: { icon: "\u{f01ee}", title: "Work", tooltip: "No unread mail in someone@example.org" } });
       expect(item.badge).toBeUndefined();
-      expect(texts(viewOf(item))).toContain("Nothing unread");
+      expect(texts(viewOf(item.empty!))).toContain("Nothing unread");
     } finally {
-      host.changeSettings(W, { settings: { token_command: join(dir, "tok-work.sh"), address: "someone@example.org", send: false } });
-      await Bun.sleep(50);
       await host.pick(W, "inbox", "w1", "unread", { ids: ["w1", "w2"] });
     }
   });
@@ -476,6 +472,7 @@ describe("gmail", () => {
       const rows = await h2.list(P, "inbox");
       expect(rows).toEqual([{ id: "hint:token", name: "Token command failed", subtitle: "Token command exited 7: curl: (7) Failed to connect to 127.0.0.1 port 8776", icon: "\u{f0026}", actions: [{ id: "settings", title: "Open Gmail settings" }] }]);
       expect(await h2.pick(P, "inbox", "hint:token")).toEqual({ open: "pal://settings/extensions?anchor=extensions:gmail:token_command" });
+      // Signed out: no empty shape, so the item hides under either `show`.
       expect(await h2.render(P, "unread", { reason: "load" })).toEqual({ hidden: true });
       const none = await h2.list("gmail@none", "inbox");
       expect(await h2.pick("gmail@none", "inbox", "hint:token")).toEqual({ open: "pal://settings/extensions?anchor=extensions:gmail@none:token_command" });

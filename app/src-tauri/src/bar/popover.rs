@@ -47,7 +47,7 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use super::{entry, split_key, Rect};
+use super::{drawn, entry, split_key, Rect};
 use crate::{events, lock, panel, settings};
 
 pub const WINDOW: &str = "bar";
@@ -399,8 +399,8 @@ fn title_of(app: &AppHandle, key: &str) -> String {
 }
 
 fn payload(app: &AppHandle, key: &str, engaged: bool, effect: Option<&Value>) -> Option<Payload> {
-    let e = entry(app, key)?;
-    let item = e.last.unwrap_or_default();
+    entry(app, key)?;
+    let item = drawn(app, key).unwrap_or_default();
     Some(Payload::Show {
         key: key.to_string(),
         title: title_of(app, key),
@@ -520,7 +520,7 @@ fn remember(app: &AppHandle, key: &str, rect: Option<Rect>, anchor: &'static str
 
 fn hoverable(app: &AppHandle, key: &str) -> bool {
     let config = settings::config(app);
-    config.bar.item(key).enabled && entry(app, key).and_then(|e| e.last).is_some_and(|i| i.has_menu() && !i.hidden)
+    config.bar.item(key).enabled && drawn(app, key).is_some_and(|i| i.has_menu() && !i.hidden)
 }
 
 /// A click on the item: opens its popover engaged, or `bar/open` when it
@@ -528,8 +528,10 @@ fn hoverable(app: &AppHandle, key: &str) -> bool {
 /// target for the extension's ctx.
 pub fn on_click(app: &AppHandle, key: &str, rect: Option<Rect>, anchor: &'static str) {
     remember(app, key, rect, anchor);
-    let Some(e) = entry(app, key) else { return eprintln!("bar\tclick\t{key}\tunknown item") };
-    if e.last.as_ref().is_some_and(|i| i.has_menu() && !i.opens_directly()) {
+    if entry(app, key).is_none() {
+        return eprintln!("bar\tclick\t{key}\tunknown item");
+    }
+    if drawn(app, key).is_some_and(|i| i.has_menu() && !i.opens_directly()) {
         feed(app, Input::Click(key.to_string()));
     } else {
         let (app, key) = (app.clone(), key.to_string());
@@ -562,8 +564,10 @@ pub fn on_hotkey(app: &AppHandle, key: &str) {
     if let Some(r) = rect {
         remember(app, key, Some(r), "hotkey");
     }
-    let Some(e) = entry(app, key) else { return };
-    if e.last.as_ref().is_some_and(|i| i.has_menu() && !i.opens_directly()) {
+    if entry(app, key).is_none() {
+        return;
+    }
+    if drawn(app, key).is_some_and(|i| i.has_menu() && !i.opens_directly()) {
         feed(app, Input::Hotkey(key.to_string()));
     } else {
         let (app, key) = (app.clone(), key.to_string());

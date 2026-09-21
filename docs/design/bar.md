@@ -47,6 +47,8 @@ export type BarSegment = { id: string; icon?: string; text?: string; color?: Bar
 export type BarItem = {
   /** The rule: true takes no space, on every target. `render` keeps running. */
   hidden?: boolean;
+  /** With `hidden`: what `[bar.items] show = "always"` keeps on the strip (the glyph, a title, an honest tooltip, the same popover), drawn muted by the core. Absent, hidden hides either way. */
+  empty?: { icon?: Icon; title?: string; tooltip?: string; menu?: BarMenu };
   /** A glyph (drawn from the bundled Nerd Font), an emoji, `{ image }` (`icon://`, `data:image/`), `{ app }`. `Icon`'s image form gains `template?: boolean`. */
   icon?: Icon;
   /** Text beside the icon: a count, a code, a track. Short; the menu bar has no truncation of its own. */
@@ -443,7 +445,23 @@ value has a reader-facing `title` such as "Starts in 4 min" and an ordinary
 that item's strips. Its selected mock replaces only those strips, after the
 current appearance settings are applied; it never writes config, calls the
 extension, or changes the live bar. Items without mocks keep the last-render
-preview alone.
+preview alone. A hidden mock (or render) carrying `empty` previews as that
+shape, muted, once the pane's **Show** select is at Always: the same
+`kept` rule as the strip's (`BarItem::kept` in bar/mod.rs, `kept` in
+SettingsBar.tsx).
+
+**Show** (`[bar.items."<key>"] show`, `auto` | `always`, core-owned): every
+hide-by-condition item used to carry its own `bar_show` select with an
+`always` option and the same `if (nothing) return always ? muted glyph :
+hidden` branch, ten times over. The rule now lives once in the core: the
+extension answers `{ hidden: true, empty: { icon, tooltip, menu } }` and
+`draw_for` (and the popover's reads, through `bar::drawn`) apply the
+config at draw time, so a flip needs no re-render. Options that change
+what the item computes (slack's `unread`, media's `running`, spotify's
+`paused`, bluetooth's `connected`, audio's `muted`) stay extension
+settings; "always" is never one of them any more. The pane always offers
+the select, since the key is the core's and any item may offer a shape on
+its next render; its line says when this item offers none.
 
 ```json
 {

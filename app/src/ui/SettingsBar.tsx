@@ -5,7 +5,7 @@ import { Icon } from "./Icon";
 import { SettingsDisclosure, SettingsField, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
 import { SettingsList, type SettingsListItem } from "./SettingsList";
 import { Tag } from "./Row";
-import { lookDefaults, resolveLook, type BarConfig, type BarItem, type BarItemConfig, type BarLookConfig, type BarLookOverride, type BarTarget, type SettingsIndexEntry } from "./SettingsTypes";
+import { lookDefaults, resolveLook, type BarConfig, type BarItem, type BarItemConfig, type BarItemState, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate } from "./format";
 
 export type SettingsBarProps = {
@@ -94,22 +94,34 @@ export const barIndex = (items: BarItem[], supported = true): SettingsIndexEntry
   ...(["menubar", "sketchybar"] as Target[]).flatMap((t) => lookFields.filter((f) => !f.itemOnly).map((f) => ({ page: "bar" as const, label: `${f.label} (${targetTitle[t]})`, hint: `Bar › Defaults › ${groups.find((g) => g.id === f.group)?.title}`, anchor: `bar:${t}:${f.key}`, keywords: `${f.key} ${f.description} appearance ${t}` }))),
   ...items.flatMap((b) => [
     { page: "bar" as const, label: `${b.extTitle} › ${b.title}`, hint: b.description ?? "Bar item", anchor: `bar:${b.key}`, keywords: `${b.key} bar item` },
-    ...["target", "position", "order", "hotkey", "open_on_hover"].map((k) => ({ page: "bar" as const, label: `${b.title}: ${k.replace(/_/g, " ")}`, hint: `Bar › ${b.extTitle} › ${b.title}`, anchor: `bar:${b.key}:${k}`, keywords: `${b.key} ${k}` })),
+    ...["show", "target", "position", "order", "hotkey", "open_on_hover"].map((k) => ({ page: "bar" as const, label: `${b.title}: ${k.replace(/_/g, " ")}`, hint: `Bar › ${b.extTitle} › ${b.title}`, anchor: `bar:${b.key}:${k}`, keywords: `${b.key} ${k}` })),
     ...lookFields.map((f) => ({ page: "bar" as const, label: `${b.title}: ${f.label}`, hint: `Bar › ${b.extTitle} › ${b.title}`, anchor: `bar:${b.key}:${f.key}`, keywords: `${b.key} ${f.key} ${f.description}` })),
   ]),
 ] : []);
 
 const every = (s: number) => (s >= 3600 ? `${Math.round(s / 3600)} h` : s >= 60 ? `${Math.round(s / 60)} min` : `${s} s`);
 
+/**
+ * A state as the strip draws it under `show` (bar/mod.rs `BarItem::kept`):
+ * hidden with an `empty` shape under `always` is that shape, muted, no
+ * badge; anything else is itself.
+ */
+export function kept(s: BarItemState, show: BarShow | undefined): BarItemState {
+  if (!s.hidden || show !== "always" || !s.empty) return s;
+  return { hidden: false, urgent: false, icon: s.empty.icon, title: s.empty.title, tooltip: s.empty.tooltip, color: "muted" };
+}
+
 /** One line under the item's name: how it refreshes and how it is doing. */
 export function itemState(b: BarItem): { text: string; level?: "warning" | "error" } {
   if (!b.source) return { text: "Declared, but the code has no render for it; never drawn.", level: "error" };
   if (!b.config.enabled) return { text: "Off: no slot on any target, no timer." };
   const parts: string[] = [];
-  if (b.state?.hidden) parts.push("hidden by the extension");
-  else if (b.state?.badge !== undefined) parts.push(`badge ${b.state.badge}`);
-  else if (b.state?.dot) parts.push("dot");
-  if (b.state?.title) parts.push(`shows "${b.state.title}"`);
+  const s = b.state && kept(b.state, b.config.show);
+  if (b.state?.hidden && !s?.hidden) parts.push("nothing to say, kept on the strip muted");
+  else if (s?.hidden) parts.push("hidden by the extension");
+  else if (s?.badge !== undefined) parts.push(`badge ${s.badge}`);
+  else if (s?.dot) parts.push("dot");
+  if (s?.title) parts.push(`shows "${s.title}"`);
   parts.push(b.refreshEvery ? `every ${every(b.refreshEvery)}` : "no poll");
   if (b.renderedAt) parts.push(`rendered ${relativeDate(b.renderedAt * 1000)} ago`);
   else parts.push("not rendered yet");
@@ -125,12 +137,13 @@ export function effectiveTarget(b: BarItem, config: BarConfig, sketchybar: boole
 
 /** The last render as the strip draws it; a placeholder from the manifest while it never has. */
 export function previewItem(b: BarItem): BarStripItem {
-  return previewState(b.state, b.title, b.stale);
+  return previewState(b.state, b.title, b.stale, b.config.show);
 }
 
-/** A live or declared mock state, as the strip draws it. Mocks are never stale: they are static examples. */
-export function previewState(s: BarItem["state"] | undefined, fallback: string, stale = false): BarStripItem {
-  if (!s) return { icon: "\u{f0a9c}", title: fallback, stale };
+/** A live or declared mock state, as the strip draws it under `show`. Mocks are never stale: they are static examples. */
+export function previewState(state: BarItem["state"] | undefined, fallback: string, stale = false, show?: BarShow): BarStripItem {
+  if (!state) return { icon: "\u{f0a9c}", title: fallback, stale };
+  const s = kept(state, show);
   return {
     hidden: s.hidden,
     icon: typeof s.icon === "string" ? s.icon : s.icon ? "\u{f0976}" : undefined,
@@ -294,15 +307,17 @@ function Defaults({ config, onChange, sketchybar, items }: { config: BarConfig; 
 
 /** The short state a list row wears on its right: only what is wrong or off, so a healthy list is quiet. */
 function rowTag(b: BarItem): ReactNode {
+  const s = b.state && kept(b.state, b.config.show);
   if (!b.source) return <Tag text="no code" color="red" />;
   if (!b.config.enabled) return <Tag text="off" color="grey" />;
   if (b.stale) return <Tag text="stale" color="amber" />;
-  if (b.state?.urgent) return <Tag text="urgent" color="red" />;
-  if (b.state?.hidden) return <Tag text="hidden" color="grey" />;
+  if (s?.urgent) return <Tag text="urgent" color="red" />;
+  if (s?.hidden) return <Tag text="hidden" color="grey" />;
   return undefined;
 }
 
 const hovers = [{ id: "", title: "Default" }, { id: "on", title: "On" }, { id: "off", title: "Off" }];
+const shows: { id: BarShow; title: string }[] = [{ id: "auto", title: "When there is something" }, { id: "always", title: "Always" }];
 
 /** The selected item: description, preview, placement, appearance with inheritance, hotkey, peek, Reset. */
 function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }: { b: BarItem; config: BarConfig; sketchybar: boolean; onItem: (c: BarItemConfig) => void; onOpenExtension?: (name: string) => void; onSetting?: (extension: string, id: string, value: unknown) => void }) {
@@ -314,9 +329,11 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
   const base = config[lookTarget];
   const look: BarLook = resolveLook(base, c.look);
   // A hidden (or never rendered) item previews as its first visible mock, not as an empty strip: what it looks like when it shows is the question the pane answers.
-  const [mockId, setMockId] = useState(() => ((!b.state || b.state.hidden) && b.mocks?.find((m) => !m.item.hidden)?.id) || "");
+  const [mockId, setMockId] = useState(() => ((!b.state || kept(b.state, c.show).hidden) && b.mocks?.find((m) => !m.item.hidden)?.id) || "");
   const mock = b.mocks?.find((m) => m.id === mockId);
-  const item = mock ? previewState(mock.item, b.title) : previewItem(b);
+  const item = mock ? previewState(mock.item, b.title, false, c.show) : previewItem(b);
+  // Whether the render (or a mock) offers a quiet shape: the Show select is always there, since the key is the core's and any item may offer one on its next render; the line under it says what this one does.
+  const quiet = !!(b.state?.empty || b.mocks?.some((m) => m.item.empty));
   const overrides = Object.values(c.look).filter((v) => v !== undefined).length;
   const overridden = overrides > 0;
   const st = itemState(b);
@@ -370,6 +387,13 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
       <section className="pal-ppane__section" aria-label="Placement">
         <h4 className="pal-ppane__h">Placement <span className="pal-ppane__h-note">bar.items."{b.key}"</span></h4>
         <div className="pal-bar-groups pal-bar-groups--flat">
+          <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:show`}>
+            <label className="pal-setting__label" htmlFor={`${anchor}-show`}>Show</label>
+            <div className="pal-setting__body">
+              <div className="pal-setting__control"><SettingsSelect id={`${anchor}-show`} value={c.show ?? "auto"} options={shows} onChange={(v) => put({ show: v === "always" ? "always" : undefined })} /></div>
+              <p className="pal-setting__desc">{c.show === "always" ? "Kept on the strip with nothing to say: the glyph alone, muted, the same popover." : "The default: off the strip while the extension has nothing to say."}{quiet ? "" : " This item offers no quiet shape yet, so it hides either way."}</p>
+            </div>
+          </div>
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:target`}>
             <label className="pal-setting__label" htmlFor={`${anchor}-target`}>Target</label>
             <div className="pal-setting__body">
@@ -426,7 +450,7 @@ function ItemPane({ b, config, sketchybar, onItem, onOpenExtension, onSetting }:
       </SettingsDisclosure>
 
       <div className="pal-button-row pal-bpane__reset">
-        <button type="button" className="pal-button" data-small disabled={!overridden && c.target === undefined && c.position === undefined && c.order === undefined && c.hotkey === undefined && c.openOnHover === undefined} onClick={() => onItem({ enabled: c.enabled, look: {} })}>Reset to defaults</button>
+        <button type="button" className="pal-button" data-small disabled={!overridden && c.show === undefined && c.target === undefined && c.position === undefined && c.order === undefined && c.hotkey === undefined && c.openOnHover === undefined} onClick={() => onItem({ enabled: c.enabled, look: {} })}>Reset to defaults</button>
         <span className="pal-pane__note">Drops every key of this item but on/off; the defaults above apply again.</span>
       </div>
     </div>

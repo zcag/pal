@@ -60,9 +60,10 @@ picture, the newest message and the time, and a cursor the arrows move
 and a click sets: `Enter` opens the chat, `m` marks it read, `a` every
 listed one, `o` opens WhatsApp, `p` the Unread palette, `⌘⇧O` the web
 client; with `send` on, `r` turns the search row into a message field
-whose `Enter` sends to the focused chat. With `unread_only_bar` off the
-glyph stays on the bar while nothing is unread, muted, and the popover
-lists the recent chats instead.
+whose `Enter` sends to the focused chat. With `show = "always"` under
+`[bar.items."whatsapp/unread"]` (docs/config.md) the glyph stays on the
+bar while nothing is unread, muted, and the popover lists the recent
+chats instead.
 
 ## What it reads, and what it writes
 
@@ -111,7 +112,6 @@ gateway answered.
 | `api_key` | secret | (none) | Sent as `x-api-key`. |
 | `session` | text | `main` | The session's name; its UUID is resolved and cached. |
 | `send` | boolean | `false` | Send a message, React, the popover's reply field. |
-| `unread_only_bar` | boolean | `true` | Hide the bar item at zero; off keeps the glyph as a way into the popover, muted while nothing is unread. |
 | `dm_urgent` | boolean | `true` | The bar item red while a direct chat is unread. |
 | `open` | select | `auto` | `auto` (the desktop app when installed on macOS, else the web client), `app`, `web`. |
 

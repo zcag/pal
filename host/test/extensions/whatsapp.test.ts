@@ -164,7 +164,7 @@ describe("whatsapp", () => {
     ]);
     expect(loaded.bar.map((b) => [b.id, b.refresh?.every])).toEqual([["unread", 120]]);
     expect(Object.keys(loaded.manifest.links ?? {})).toEqual(["open", "search"]);
-    expect(loaded.manifest.settings!.map((s) => [s.id, s.kind, s.default])).toEqual([["base_url", "text", "http://wp.lan"], ["api_key", "secret", ""], ["session", "text", "main"], ["send", "boolean", false], ["unread_only_bar", "boolean", true], ["dm_urgent", "boolean", true], ["open", "select", "auto"]]);
+    expect(loaded.manifest.settings!.map((s) => [s.id, s.kind, s.default])).toEqual([["base_url", "text", "http://wp.lan"], ["api_key", "secret", ""], ["session", "text", "main"], ["send", "boolean", false], ["dm_urgent", "boolean", true], ["open", "select", "auto"]]);
     for (const p of Object.values(loaded.manifest.palettes ?? {})) for (const k of p.keys ?? []) expect(["cmd+i", "cmd+r", "cmd+k", "cmd+backspace"]).not.toContain(k.keys);
   });
 
@@ -406,16 +406,11 @@ describe("whatsapp", () => {
     expect(await host.barAction(X, "unread", "open-pal", ctx)).toEqual({ push: { extension: X, palette: "unread" } });
     expect(await host.barAction(X, "unread", "open-whatsapp", ctx)).toEqual({ open: "https://web.whatsapp.com/" });
     expect(await host.barAction(X, "unread", MARA)).toEqual({ open: "https://web.whatsapp.com/send?phone=905551234567" });
-    // Everything read: hidden at zero; with unread_only_bar off the glyph stays and the popover lists the recent chats.
-    expect(await host.render(X, "unread", { reason: "cli" })).toEqual({ hidden: true });
-    host.changeSettings(X, { settings: settings({ send: true, unread_only_bar: false }) });
-    await host.until(() => host.coreCalls.length > 0);
-    const stays = await host.render(X, "unread", { reason: "settings" });
-    expect(stays).toMatchObject({ icon: "\u{f05a3}", urgent: false, color: "muted", tooltip: "Nothing unread" });
+    // Everything read: hidden at zero, the glyph and the popover listing the recent chats its empty shape for the core's show = always.
+    const stays = await host.render(X, "unread", { reason: "cli" });
+    expect(stays).toMatchObject({ hidden: true, empty: { icon: "\u{f05a3}", tooltip: "Nothing unread" } });
     expect(stays.badge).toBeUndefined();
-    expect(texts(checkView(viewOf(stays)))).toEqual(expect.arrayContaining(["Recent", "Mara Lind", "Weekend hike"]));
-    host.changeSettings(X, { settings: settings({ send: true }) });
-    await host.until(() => host.coreCalls.length > 0);
+    expect(texts(checkView(viewOf(stays.empty!)))).toEqual(expect.arrayContaining(["Recent", "Mara Lind", "Weekend hike"]));
     for (const [id, n] of [[MARA, 3], [HIKE, 5], [TOMAS, 1]] as const) mock.chat(id)!.unread = n;
     await list("chats", "", { refresh: true });
   });
