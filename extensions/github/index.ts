@@ -312,7 +312,7 @@ async function prsItem(ctx: BarCtx): Promise<BarItem> {
     ...(active.length ? [{ id: "active", text: `…${active.length}`, color: "amber" as const, tooltip: `${active.length} PR${active.length === 1 ? "" : "s"} awaiting review or checks` }] : []),
     ...(ready.length ? [{ id: "ready", text: `✓${ready.length}`, color: "green" as const, tooltip: `${ready.length} PR${ready.length === 1 ? "" : "s"} ready to merge` }] : []),
     ...(waiting.length ? [{ id: "waiting", text: `·${waiting.length}`, color: "muted" as const, tooltip: `${waiting.length} PR${waiting.length === 1 ? "" : "s"} waiting` }] : []),
-    ...(reviews.length ? [{ id: "reviews", text: `${ICON.eye}${reviews.length}`, color: "blue" as const, tooltip: `${reviews.length} review${reviews.length === 1 ? "" : "s"} asked of you` }] : []),
+    ...(reviews.length ? [{ id: "reviews", icon: ICON.eye, text: String(reviews.length), color: "blue" as const, tooltip: `${reviews.length} review${reviews.length === 1 ? "" : "s"} asked of you` }] : []),
   ];
   return {
     icon: ICON.prs,
