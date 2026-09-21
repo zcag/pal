@@ -26,7 +26,12 @@
 //!   written through `AXPosition` / `AXSize`; the displays are `NSScreen`'s
 //!   `frame` and `visibleFrame` (menu bar and Dock taken out) flipped into
 //!   the same top-left space; the focused window is the frontmost app's
-//!   `AXFocusedWindow`.
+//!   `AXFocusedWindow`. `hidden` is the app's `isHidden`. The order is
+//!   most recently used: a focus history ([`note_focus`], newest first,
+//!   bounded) that [`focus`] stamps with its target and the app stamps
+//!   with [`focused`] on every activation and on the panel's show; the
+//!   windows in it come first by recency, the rest follow in
+//!   CoreGraphics' front to back order ([`order_by_history`]).
 //! - **Linux**: Hyprland (`hyprctl clients -j`, `dispatch focuswindow` /
 //!   `closewindow`, minimise = move to the `special:minimized` workspace,
 //!   full screen = `focuswindow` then `dispatch fullscreen 0`, which only
@@ -51,9 +56,10 @@
 //! window's class.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
+use std::time::Instant;
 
 pub mod layout;
 
@@ -88,6 +94,9 @@ pub struct Window {
     pub bundle_or_class: String,
     pub pid: i32,
     pub minimized: bool,
+    /// The app is hidden (macOS `NSRunningApplication.isHidden`, the
+    /// state Hide app puts it in); always false on Linux.
+    pub hidden: bool,
     /// Visible right now (not minimised, hidden, or on another space).
     pub on_screen: bool,
     /// Which display, only when there is more than one.
@@ -158,15 +167,45 @@ pub fn backend() -> &'static str {
     platform::backend()
 }
 
-/// Every window of every regular app, front to back (macOS) or most recently
-/// focused first (Hyprland); minimised ones included.
+/// Every window of every regular app, most recently used first where the
+/// backend knows (Hyprland's focus history; pal's own on macOS, the rest
+/// front to back); minimised ones included.
 pub fn list() -> Result<Vec<Window>> {
     platform::list()
 }
 
-/// Bring the window to the front, restoring it when minimised.
+/// Bring the window to the front, restoring it when minimised. Stamps the
+/// focus history, so the window picked is the next "previous".
 pub fn focus(id: &str) -> Result<()> {
-    platform::focus(id)
+    platform::focus(id)?;
+    note_focus(id);
+    Ok(())
+}
+
+/// The focus history behind the macOS order: window ids newest first, one
+/// entry each, with when they took focus. Stamped by [`focus`] and by the
+/// app ([`note_focus`]); bounded, so a long session keeps it small.
+static HISTORY: LazyLock<Mutex<VecDeque<(String, Instant)>>> = LazyLock::new(Default::default);
+const HISTORY_CAP: usize = 64;
+
+/// Record that `id` just took focus: the app calls this with what
+/// [`focused`] returns on every app activation and when the panel shows
+/// (the window the user was in when they pressed the hotkey).
+pub fn note_focus(id: &str) {
+    let mut h = HISTORY.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    h.retain(|(i, _)| i != id);
+    h.push_front((id.to_string(), Instant::now()));
+    h.truncate(HISTORY_CAP);
+}
+
+/// `windows` reordered by `history`: the ones in it first, the most recent
+/// stamp first, then the rest in the order given (a stable sort, so the
+/// backend's front to back order holds among them).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn order_by_history(mut windows: Vec<Window>, history: &VecDeque<(String, Instant)>) -> Vec<Window> {
+    let stamp = |w: &Window| history.iter().find(|(id, _)| *id == w.id).map(|(_, at)| *at);
+    windows.sort_by_key(|w| std::cmp::Reverse(stamp(w)));
+    windows
 }
 
 /// Bring the window's application to the front, not the window itself:
@@ -255,8 +294,9 @@ static MOVES: LazyLock<Mutex<HashMap<String, Move>>> = LazyLock::new(Default::de
 static MINIMIZED: LazyLock<Mutex<Option<String>>> = LazyLock::new(Default::default);
 
 /// The window `unminimize` brings back: the one pal's `minimize` last put
-/// away while it is still minimised, else the frontmost minimised window in
-/// `all` (the list is front to back, so the most recently active one).
+/// away while it is still minimised, else the first minimised window in
+/// `all` (most recently used first, or front to back: the most recently
+/// active one either way).
 fn to_unminimize(last: Option<&str>, all: &[Window]) -> Option<String> {
     let still = |id: &str| all.iter().any(|w| w.id == id && w.minimized);
     last.filter(|id| still(id)).map(str::to_string).or_else(|| all.iter().find(|w| w.minimized).map(|w| w.id.clone()))
@@ -330,12 +370,12 @@ pub fn apply(id: Option<&str>, layout: layout::Layout, opts: &layout::Options) -
 }
 
 #[cfg(test)]
-mod restore_tests {
+mod state_tests {
     use super::*;
 
     #[test]
     fn unminimize_takes_the_last_one_pal_minimised_else_the_front_minimised_window() {
-        let w = |id: &str, minimized: bool| Window { id: id.into(), app: "a".into(), title: "t".into(), bundle_or_class: "b".into(), pid: 1, minimized, on_screen: !minimized, monitor: None, workspace: None };
+        let w = |id: &str, minimized: bool| Window { id: id.into(), app: "a".into(), title: "t".into(), bundle_or_class: "b".into(), pid: 1, minimized, hidden: false, on_screen: !minimized, monitor: None, workspace: None };
         let all = vec![w("1", false), w("2", true), w("3", true)];
         assert_eq!(to_unminimize(Some("3"), &all).as_deref(), Some("3"), "pal's own, still minimised");
         assert_eq!(to_unminimize(Some("1"), &all).as_deref(), Some("2"), "pal's own was restored by hand since: the front minimised one");
@@ -353,6 +393,19 @@ mod restore_tests {
         assert_eq!(original_of(&moves, "w", r(501.0)), r(10.0), "still where pal put it (within slack): the run goes on");
         assert_eq!(original_of(&moves, "w", r(300.0)), r(300.0), "moved by hand since: a new run from here");
         assert_eq!(original_of(&moves, "other", r(7.0)), r(7.0));
+    }
+
+    #[test]
+    fn history_orders_by_recency_and_leaves_the_rest_in_the_backend_order() {
+        let w = |id: &str| Window { id: id.into(), app: "a".into(), title: "t".into(), bundle_or_class: "b".into(), pid: 1, minimized: false, hidden: false, on_screen: true, monitor: None, workspace: None };
+        let ids = |ws: &[Window]| ws.iter().map(|w| w.id.clone()).collect::<Vec<_>>();
+        let t0 = Instant::now();
+        let at = |ms: u64| t0 + std::time::Duration::from_millis(ms);
+        let front_to_back = vec![w("1"), w("2"), w("3"), w("4"), w("5")];
+        assert_eq!(ids(&order_by_history(front_to_back.clone(), &VecDeque::new())), ["1", "2", "3", "4", "5"], "no history: the backend's order");
+        // Newest first, as `note_focus` keeps it; a stamp for a window that is gone is ignored.
+        let history: VecDeque<_> = [("4", at(30)), ("gone", at(20)), ("2", at(10))].into_iter().map(|(id, at)| (id.to_string(), at)).collect();
+        assert_eq!(ids(&order_by_history(front_to_back, &history)), ["4", "2", "1", "3", "5"]);
     }
 }
 
@@ -505,7 +558,7 @@ mod platform {
 
     /// One row: the AX title when there is one, else CoreGraphics' name,
     /// else the app's.
-    fn row(cg: &CgWindow, app: &NSRunningApplication, title: String, minimized: bool, displays: &[Display]) -> Window {
+    fn row(cg: &CgWindow, app: &NSRunningApplication, title: String, minimized: bool, hidden: bool, displays: &[Display]) -> Window {
         let name = app.localizedName().map(|s| s.to_string()).unwrap_or_default();
         Window {
             id: cg.id.to_string(),
@@ -514,6 +567,7 @@ mod platform {
             bundle_or_class: app.bundleIdentifier().map(|s| s.to_string()).unwrap_or_default(),
             pid: cg.pid,
             minimized,
+            hidden,
             on_screen: cg.on_screen,
             monitor: monitor_of(displays, &cg.frame),
             workspace: None,
@@ -523,16 +577,18 @@ mod platform {
     pub fn list() -> Result<Vec<Window>> {
         let displays = displays().unwrap_or_default();
         let cg = cg_windows();
-        // Per app: its AX windows still unmatched. Each AX read is a round
-        // trip to that app's main thread, 10-30 ms for a napping one, so
-        // the apps are asked side by side.
-        let mut apps: Vec<(i32, Retained<NSRunningApplication>, Vec<AxWindow>)> = vec![];
+        // Per app: whether it is hidden (read once), and its AX windows
+        // still unmatched. Each AX read is a round trip to that app's main
+        // thread, 10-30 ms for a napping one, so the apps are asked side
+        // by side.
+        let mut apps: Vec<(i32, Retained<NSRunningApplication>, bool, Vec<AxWindow>)> = vec![];
         let mut pids: Vec<i32> = vec![];
         for w in &cg {
             if !pids.contains(&w.pid) {
                 if let Some(app) = running(w.pid) {
                     pids.push(w.pid);
-                    apps.push((w.pid, app, vec![]));
+                    let hidden = app.isHidden();
+                    apps.push((w.pid, app, hidden, vec![]));
                 }
             }
         }
@@ -542,13 +598,13 @@ mod platform {
                 handles.into_iter().map(|h| h.join().unwrap_or_default()).collect()
             });
             for (entry, ax) in apps.iter_mut().zip(ax) {
-                entry.2 = ax;
+                entry.3 = ax;
             }
         }
         let mut out = vec![];
         for cg in cg {
             let Some(i) = apps.iter().position(|(p, ..)| *p == cg.pid) else { continue };
-            let (_, app, pool) = &mut apps[i];
+            let (_, app, hidden, pool) = &mut apps[i];
             let (title, minimized) = match take_match(pool, &cg) {
                 Some(ax) => (if ax.title.is_empty() { cg.name.clone() } else { ax.title }, ax.minimized),
                 // No AX window for it: on another Space (`AXWindows` only
@@ -558,9 +614,9 @@ mod platform {
                 None if (cg.name.is_empty() && !cg.on_screen) || cg.frame.w < MIN_SIDE || cg.frame.h < MIN_SIDE => continue,
                 None => (cg.name.clone(), false),
             };
-            out.push(row(&cg, app, title, minimized, &displays));
+            out.push(row(&cg, app, title, minimized, *hidden, &displays));
         }
-        Ok(out)
+        Ok(order_by_history(out, &HISTORY.lock().unwrap_or_else(std::sync::PoisonError::into_inner)))
     }
 
     /// The frontmost app's focused window: over AX when pal may look, else
@@ -593,7 +649,7 @@ mod platform {
                 None => return Ok(None),
             },
         };
-        Ok(Some(row(cg, &app, title, minimized, &displays)))
+        Ok(Some(row(cg, &app, title, minimized, app.isHidden(), &displays)))
     }
 
     pub fn frame(id: &str) -> Result<Rect> {
@@ -1064,6 +1120,7 @@ mod platform {
                     bundle_or_class: class,
                     pid: c["pid"].as_i64().unwrap_or_default() as i32,
                     minimized: ws.starts_with("special:"),
+                    hidden: false,
                     on_screen: c["visible"].as_bool() == Some(true),
                     monitor: if monitors.len() > 1 { c["monitor"].as_i64().and_then(monitor_name) } else { None },
                     workspace: Some(ws),
@@ -1096,6 +1153,7 @@ mod platform {
                     bundle_or_class: class,
                     pid: pid as i32,
                     minimized: scratch,
+                    hidden: false,
                     on_screen: n["visible"].as_bool() == Some(true),
                     monitor: if many && !scratch { output.map(str::to_string) } else { None },
                     workspace: workspace.filter(|_| !scratch).map(str::to_string),
@@ -1138,6 +1196,7 @@ mod platform {
                     bundle_or_class: class,
                     pid,
                     minimized: false,
+                    hidden: false,
                     on_screen: true,
                     monitor: None,
                     workspace: Some(desktop.to_string()).filter(|d| d != "-1"),

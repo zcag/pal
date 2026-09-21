@@ -17,7 +17,7 @@ let host: Host;
 beforeAll(async () => {
   host = await Host.bundled({
     core: {
-      "windows.focused": () => ({ id: "w1", app: "kitty", title: "~/proj/pal", bundle_or_class: "net.kovidgoyal.kitty", pid: 11, minimized: false, on_screen: true, monitor: null, workspace: null, icon: null }),
+      "windows.focused": () => ({ id: "w1", app: "kitty", title: "~/proj/pal", bundle_or_class: "net.kovidgoyal.kitty", pid: 11, minimized: false, hidden: false, on_screen: true, monitor: null, workspace: null, icon: null }),
       "windows.frame": ({ id }: { id: string }) => frames[id],
       "windows.displays": () => DISPLAYS,
       "windows.set_frame": (p: unknown) => { set.push(p); return null; },

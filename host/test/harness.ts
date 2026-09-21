@@ -360,9 +360,9 @@ export const fixtures = {
     { id: 5, kind: "text", text: "https://example.com/page", image: null, files: null, source_app: "com.apple.Safari", at: 1758000004000, bytes: 24, pinned: false, width: null, height: null, name: null },
   ] as ClipboardEntry[],
   windows: [
-    { id: "w1", app: "kitty", title: "~/proj/pal", bundle_or_class: "net.kovidgoyal.kitty", pid: 11, minimized: false, on_screen: true, monitor: null, workspace: null, icon: "/Applications/kitty.app" },
-    { id: "w2", app: "Google Chrome", title: "GitHub", bundle_or_class: "com.google.Chrome", pid: 22, minimized: true, on_screen: false, monitor: "Display 2", workspace: null, icon: null },
-    { id: "w3", app: "Finder", title: "Downloads", bundle_or_class: "com.apple.finder", pid: 33, minimized: false, on_screen: false, monitor: null, workspace: "3", icon: null },
+    { id: "w1", app: "kitty", title: "~/proj/pal", bundle_or_class: "net.kovidgoyal.kitty", pid: 11, minimized: false, hidden: false, on_screen: true, monitor: null, workspace: null, icon: "/Applications/kitty.app" },
+    { id: "w2", app: "Google Chrome", title: "GitHub", bundle_or_class: "com.google.Chrome", pid: 22, minimized: true, hidden: false, on_screen: false, monitor: "Display 2", workspace: null, icon: null },
+    { id: "w3", app: "Finder", title: "Downloads", bundle_or_class: "com.apple.finder", pid: 33, minimized: false, hidden: false, on_screen: false, monitor: null, workspace: "3", icon: null },
   ] as Window[],
   commands: [
     { id: "sleep", title: "Sleep", subtitle: "Put the machine to sleep", icon: "⏾", keywords: ["suspend"], destructive: false, available: true },

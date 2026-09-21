@@ -149,6 +149,8 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
     let t0 = now_ms();
     let keep = pop::keep(&settings::config(app).general.pop_to_root);
     if !panel::is_visible(app) {
+        // The window the user was in when they pressed the hotkey: first in the windows palette (the list below runs after the stamp is under way).
+        windows::stamp_focused();
         place(app);
         panel::show(app);
     } else if palette.is_none() {

@@ -282,6 +282,8 @@ export type Window = {
   bundle_or_class: string;
   pid: number;
   minimized: boolean;
+  /** The app is hidden (macOS Hide app); always false on Linux. */
+  hidden: boolean;
   /** Visible right now: not minimised, hidden, or on another space. */
   on_screen: boolean;
   /** Only when there is more than one display. */
@@ -302,10 +304,12 @@ export type Applied = { id: string; layout: string; from: Rect; to: Rect };
 
 /** Windows of every app, over the OS's accessibility API (`pal_core::windows`). */
 export const windows = {
-  /** Every window of every regular app, front to back; minimised ones included. */
+  /** Every window of every regular app, most recently used first (macOS, Hyprland); minimised ones included. */
   list: () => call<Window[]>("windows.list"),
   /** Focus is not here: return `{ focus: id }` from `pick`, so the panel hides first. */
   close: (id: string) => call<null>("windows.close", { id }),
+  /** The window's app to the front, unhidden, with whichever window it last had up (Show app); the app's name. The panel hides as the app comes forward. */
+  activate: (id: string) => call<string>("windows.activate", { id }),
   minimize: (id: string) => call<null>("windows.minimize", { id }),
   frame: (id: string) => call<Rect>("windows.frame", { id }),
   /** Move and resize; needs Accessibility on macOS. A tiled window on Hyprland or Sway is floated first. */

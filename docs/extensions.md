@@ -1047,10 +1047,13 @@ to the core.
   file itself for 0 (a PNG or a JPEG). PNG, JPEG and GIF by extension,
   absolute paths only; anything else is a 404 and the row keeps its
   glyph. A screenshot's row, a browsed folder's pictures.
-- `windows.list()` (every window, front to back, `Window`: `id`, `app`,
-  `title`, `bundle_or_class`, `pid`, `minimized`, `on_screen`, `monitor`,
-  `workspace`, `icon`), `focused()` (the window with keyboard focus, the
-  app behind the panel), `close(id)`, `minimize(id)`, `frame(id)` (a
+- `windows.list()` (every window, most recently used first on macOS and
+  Hyprland, `Window`: `id`, `app`, `title`, `bundle_or_class`, `pid`,
+  `minimized`, `hidden` (the app is hidden, macOS), `on_screen`,
+  `monitor`, `workspace`, `icon`), `focused()` (the window with keyboard
+  focus, the app behind the panel), `activate(id)` (the window's app to
+  the front, unhidden, the panel hiding as it comes up; its name),
+  `close(id)`, `minimize(id)`, `frame(id)` (a
   `Rect`: `x`, `y`, `w`, `h`), `setFrame(id, rect)`, `displays()`
   (`Display[]`: `id`, `frame`, `visible_frame`, `primary`), `layout(req)`
   (a `WindowLayoutRequest` run now, the panel up; from `pick` prefer the

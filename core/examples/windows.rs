@@ -1,5 +1,5 @@
 //! Exercise the window switcher and the layouts from a terminal:
-//! `cargo run -p pal-core --example windows -- list`             every window, front to back
+//! `cargo run -p pal-core --example windows -- list`             every window, most recently used first (a fresh process has no history: front to back)
 //! `cargo run -p pal-core --example windows -- focus <id>`       raise it (restores a minimised one)
 //! `cargo run -p pal-core --example windows -- activate <id>`    its app to the front only (the no-Accessibility fallback)
 //! `cargo run -p pal-core --example windows -- minimize <id>`
@@ -31,7 +31,7 @@ fn main() {
             });
             println!("backend {} accessibility {} ({} windows, {:.1} ms)", windows::backend(), pal_core::ax::trusted(), ws.len(), t0.elapsed().as_secs_f64() * 1000.0);
             for w in &ws {
-                let state = if w.minimized { "min" } else if w.on_screen { "on " } else { "off" };
+                let state = if w.hidden { "hid" } else if w.minimized { "min" } else if w.on_screen { "on " } else { "off" };
                 let place = [w.monitor.as_deref(), w.workspace.as_deref()].into_iter().flatten().collect::<Vec<_>>().join(" ");
                 println!("{:>14} {state} {:>7} {:<22} {:<40} {:<8} {}", w.id, w.pid, w.app.chars().take(22).collect::<String>(), w.title.chars().take(40).collect::<String>(), place, w.bundle_or_class);
             }

@@ -1,10 +1,11 @@
 //! The windows capability: `pal_core::windows` over the bridge
-//! (`windows.list` / `close` / `minimize` / `unminimize` / `fullscreen` /
-//! `frame` / `set_frame` / `displays` / `focused` / `layout`) and as the
-//! `focus` and `layout` effects (effects.rs), which hide the panel before
-//! touching the window.
+//! (`windows.list` / `activate` / `close` / `minimize` / `unminimize` /
+//! `fullscreen` / `frame` / `set_frame` / `displays` / `focused` /
+//! `layout`) and as the `focus` and `layout` effects (effects.rs), which
+//! hide the panel before touching the window.
 //! Each listed row carries `icon`, the `.app` / `.desktop` path the webview
-//! renders through `icon://app`.
+//! renders through `icon://app`. [`stamp_focused`] feeds the core's focus
+//! history, which orders the macOS list most recently used first.
 
 use pal_core::windows::{self, layout, Rect};
 use serde::Deserialize;
@@ -49,6 +50,22 @@ fn row(w: &windows::Window) -> Value {
     v
 }
 
+/// Stamp the front window into the core's focus history
+/// (`windows::note_focus`): on every app activation (the bar's observer)
+/// and when the panel shows, so the windows palette lists the window the
+/// user came from first. On a thread of its own: `focused()` asks the
+/// front app over AX, tens of ms when it naps, and neither caller (the
+/// main thread, the show) may wait for that. Only macOS keeps a history;
+/// Hyprland's order is its own and the other backends have none.
+pub fn stamp_focused() {
+    #[cfg(target_os = "macos")]
+    std::thread::spawn(|| {
+        if let Ok(Some(w)) = windows::focused() {
+            windows::note_focus(&w.id);
+        }
+    });
+}
+
 /// Run a named layout; the core's `Applied` on success.
 pub fn apply_layout(p: &LayoutParams) -> Result<windows::Applied, String> {
     let l = layout::Layout::parse(&p.name).ok_or_else(|| format!("no layout {:?}", p.name))?;
@@ -58,6 +75,11 @@ pub fn apply_layout(p: &LayoutParams) -> Result<windows::Applied, String> {
 pub fn call(_app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
     match func {
         "list" => Ok(Value::Array(windows::list().map_err(err)?.iter().map(row).collect())),
+        // The app forward (unhidden), not one window: Show app. Its name.
+        "activate" => {
+            let p: IdParams = parse(params)?;
+            windows::activate(&p.id).map_err(err).map(Value::String)
+        }
         "close" | "minimize" | "unminimize" | "fullscreen" => {
             let p: IdParams = parse(params)?;
             let r = match func {
