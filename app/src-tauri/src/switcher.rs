@@ -37,7 +37,8 @@ use tauri_plugin_global_shortcut::Modifiers;
 
 use crate::{events, index, lock};
 
-/// How often the modifiers are read while a hold is on.
+/// How often the modifiers are read while a hold is on (the poll is macOS's: `NSEvent.modifierFlags`).
+#[cfg(target_os = "macos")]
 const POLL: Duration = Duration::from_millis(40);
 /// The most a commit waits for the held palette's show relist.
 const RELIST_WAIT: Duration = Duration::from_millis(300);
@@ -48,6 +49,8 @@ const RELIST_TICK: Duration = Duration::from_millis(10);
 /// only reader; a chord without any, or a CLI begin, has no poll.
 struct Active {
     source: Source,
+    /// Read by the macOS poll alone; a Linux hold has none.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     generation: u64,
 }
 
