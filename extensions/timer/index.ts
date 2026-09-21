@@ -48,7 +48,13 @@ const DONE_TTL = 300;
 const NEW = "new";
 const POMODORO = "pomodoro";
 const STATS_ROW = "pomodoro:today";
-const ADD = "5m";
+/** What Add puts on a timer when the bar's field is blank (or a pick has no values: a hotkey). */
+const ADD_MINUTES = 5;
+const ADD = `${ADD_MINUTES}m`;
+/** A timer row's one field in the bar, minutes to add; only Add reads it. */
+const ADD_ARGS: Arg[] = [{ id: "add", placeholder: "Minutes to add", kind: "number", default: String(ADD_MINUTES) }];
+/** The bar's minutes as the CLI's duration, `5m` when blank or not a count. */
+const addDuration = (values?: Record<string, string | boolean>) => { const n = Math.round(Number(values?.add)); return n > 0 ? `${n}m` : ADD; };
 const CLI_MS = 5000;
 /** nf-md-food_apple: the pomodoro rows' glyph (the font has no tomato). */
 const TOMATO = "\u{f025b}";
@@ -360,8 +366,8 @@ function row(t: Timer): Item {
   const p = session?.timerId === t.id ? session : undefined;
   const subtitle = p ? `${describe(p)} · ${when}` : when;
   const first: Action = t.state === "done" ? { id: "done", title: "Dismiss" } : t.state === "paused" ? { id: "resume", title: "Resume" } : { id: "pause", title: "Pause" };
-  const actions: Action[] = [first, { id: "add", title: "Add 5 minutes", shortcut: "cmd++" }, ...(p ? POMODORO_ACTIONS : []), { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive" }];
-  return { id: t.id, name: t.name, subtitle, icon: p ? TOMATO : GLYPH, keywords: ["timer", t.state, ...(p ? ["pomodoro", phaseWord(p.phase)] : [])], accessories: [...(p ? [{ tag: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" }] : []), { tag: STATE[t.state].tag, color: STATE[t.state].color }], actions };
+  const actions: Action[] = [first, { id: "add", title: "Add minutes", shortcut: "cmd++", args: true }, ...(p ? POMODORO_ACTIONS : []), { id: "stop", title: "Stop", shortcut: "cmd+d", style: "destructive" }];
+  return { id: t.id, name: t.name, subtitle, icon: p ? TOMATO : GLYPH, keywords: ["timer", t.state, ...(p ? ["pomodoro", phaseWord(p.phase)] : [])], accessories: [...(p ? [{ tag: phaseWord(p.phase), color: p.phase === "work" ? "violet" : "green" }] : []), { tag: STATE[t.state].tag, color: STATE[t.state].color }], args: ADD_ARGS, actions };
 }
 
 /** The New row's arguments, typed in the bar: the duration, a name, and whether the phone rings (a select, since the bar has no checkbox). */
@@ -402,7 +408,7 @@ async function pick(id: string, action?: string, ctx?: { values?: Record<string,
     try { out = await timer(duration, ...(name ? [name] : []), ...(v.ring === "yes" || v.ring === true ? ["--ring"] : [])); } catch (e) { return { form: form({ duration: errorMessage(e) }) }; }
     return toast("Timer started", out);
   }
-  const args = action === "add" ? ["add", ADD, id] : action === "done" ? ["done"] : [action ?? "pause", id];
+  const args = action === "add" ? ["add", addDuration(ctx?.values), id] : action === "done" ? ["done"] : [action ?? "pause", id];
   try { await timer(...args); } catch (e) { return failed(`${action ?? "pause"} the timer`, e); }
   return { keep: true };
 }

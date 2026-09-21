@@ -1,10 +1,10 @@
 // Audio devices over the core's audio capability: one row per output and
 // per input (sections Output / Input), the default tagged, the volume as
 // an accessory. Enter makes the row the default for its direction; the
-// other actions set a preset volume (a pushed level with 0/25/50/75/100)
-// or toggle mute without leaving the palette. Live: the defaults and
-// volumes are read again on every show.
-import { audio, bar, errorMessage, failed, hint, settings, xdg, type Accessory, type Action, type AudioDevice, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
+// other actions set the volume to the percent typed in the search bar
+// (a form for a pick without it) or toggle mute without leaving the
+// palette. Live: the defaults and volumes are read again on every show.
+import { argsForm, audio, bar, errorMessage, failed, hint, settings, xdg, type Accessory, type Action, type Arg, type AudioDevice, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type View } from "@zcag/pal";
 import { PRESETS as VIEW_PRESETS, render as renderBar, type BarKind, type BarState } from "./view.ts";
 
 export const PRESETS = VIEW_PRESETS;
@@ -72,13 +72,17 @@ function icon(d: AudioDevice): string {
   return xdg("audio-speakers")!;
 }
 
+/** The row's one field in the bar, a percent; only Set volume reads it (a device with no volume control has neither). */
+const VOLUME_ARGS: Arg[] = [{ id: "volume", placeholder: "Volume %", kind: "number" }];
+
 function item(d: AudioDevice): Item {
   const dir = d.kind === "output" ? "Output" : "Input";
   const accessories: Accessory[] = [];
   if (d.muted) accessories.push({ tag: "muted", color: "amber" });
   if (d.volume !== null) accessories.push({ text: `${d.volume}%` });
   if (d.default) accessories.push({ tag: "default", color: "green" });
-  const actions: Action[] = [{ id: "default", title: `Set as ${d.kind}` }, { id: "volume", title: "Set volume…", shortcut: "cmd+shift+v" }];
+  const actions: Action[] = [{ id: "default", title: `Set as ${d.kind}` }];
+  if (d.volume !== null) actions.push({ id: "volume", title: "Set volume", shortcut: "cmd+shift+v", args: true });
   if (d.muted !== null) actions.push({ id: "mute", title: d.muted ? "Unmute" : "Mute", shortcut: "cmd+m" });
   return {
     id: rowId(d),
@@ -87,6 +91,7 @@ function item(d: AudioDevice): Item {
     icon: icon(d),
     keywords: [d.kind, ...(d.transport ? [d.transport] : [])],
     accessories,
+    ...(d.volume !== null && { args: VOLUME_ARGS }),
     actions,
     section: dir,
   };
@@ -221,18 +226,15 @@ async function micAction(): Promise<Effect> {
 }
 
 
-/** The preset level: `args.volume` is the row the presets are for. */
-async function presets(row: string): Promise<Item[]> {
+/** Set volume: the bar's percent to the device; no values (a hotkey, `pal run`) is the field as a form, anything but 0..100 comes back on it. */
+async function setVolume(row: string, values: Ctx["values"] | undefined): Promise<Effect> {
   const { kind, id } = parse(row);
-  const d = (await audio.devices()).find((d) => d.kind === kind && d.id === id);
-  return PRESETS.map((p) => ({
-    id: `${p}`,
-    name: `${p}%`,
-    subtitle: d?.name,
-    icon: p === 0 ? xdg("audio-volume-muted")! : xdg("audio-volume-high")!,
-    accessories: d?.volume === p ? [{ tag: "current", color: "green" }] : [],
-    actions: [{ id: "set", title: `Set volume to ${p}%` }],
-  }));
+  const form = (errors?: Record<string, string>): Effect => ({ form: { ...argsForm(VOLUME_ARGS, "Set volume", { id: "volume", title: "Set volume" }, errors), id: row } });
+  if (!values) return form();
+  const raw = String(values.volume ?? "").trim(), v = Number(raw);
+  if (!raw || Number.isNaN(v) || v < 0 || v > 100) return form({ volume: "A percent, 0 to 100" });
+  try { await audio.setVolume(id, kind, Math.round(v)); } catch (e) { return failed("set the volume", e); }
+  return { hud: `Volume ${Math.round(v)}%` };
 }
 
 export default {
@@ -241,9 +243,7 @@ export default {
       title: "Audio",
       live: true,
       placeholder: "Switch output or input, set the volume",
-      list: async (_query, ctx?: Ctx) => {
-        const args = ctx?.args as { volume?: string } | undefined;
-        if (args?.volume) return presets(args.volume);
+      list: async () => {
         try {
           return (await audio.devices()).map(item);
         } catch (e) {
@@ -251,21 +251,11 @@ export default {
         }
       },
       pick: async (id, action, ctx?: Ctx) => {
-        const args = ctx?.args as { volume?: string } | undefined;
-        if (args?.volume) {
-          const { kind, id: dev } = parse(args.volume);
-          try {
-            await audio.setVolume(dev, kind, Number(id));
-          } catch (e) {
-            return failed("set the volume", e);
-          }
-          return { hud: `Volume ${id}%` };
-        }
         if (id === "hint:error") return { keep: true };
         const { kind, id: dev } = parse(id);
         switch (action) {
           case "volume":
-            return { push: { extension: "audio", palette: "audio", args: { volume: id } } };
+            return setVolume(id, ctx?.values);
           case "mute": {
             try { await audio.setMute(dev, kind); } catch (e) { return failed("change mute", e); }
             return { keep: true };

@@ -310,7 +310,7 @@ describe("script commands: the palette", () => {
     expect(by["deploy.sh"]).toMatchObject({ name: "Deploy site", subtitle: "Push the site to production", icon: "🚀", keywords: ["deploy", "ship"] });
     expect(by["deploy.sh"].accessories).toBeUndefined();
     // The header's arguments are the row's, typed in the bar before Run (and Copy output, which runs it too); no confirm on top of them.
-    expect(by["deploy.sh"].actions).toEqual([{ id: "run", title: "Run" }, { id: "open", title: "Open script", shortcut: "cmd+o" }, { id: "copy_output", title: "Copy output", shortcut: "cmd+c", args: true }, { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c" }]);
+    expect(by["deploy.sh"].actions).toEqual([{ id: "run", title: "Run", args: true }, { id: "open", title: "Open script", shortcut: "cmd+o" }, { id: "copy_output", title: "Copy output", shortcut: "cmd+c", args: true }, { id: "copy_path", title: "Copy path", shortcut: "cmd+shift+c" }]);
     expect(by["deploy.sh"].args).toEqual([{ id: "target", placeholder: "Environment (staging or prod)", required: true }, { id: "note", placeholder: "Release note (optional)", required: false }]);
     expect(by["ray.sh"].args).toEqual([{ id: "argument1", placeholder: "Name", required: true }]);
     expect(by["quiet.sh"].args).toBeUndefined();

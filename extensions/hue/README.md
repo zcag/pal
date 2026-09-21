@@ -83,13 +83,20 @@ with a tile of its lit lights' colours as stripes (faded with the
 brightness; an outline when off), how many of its lights are on, the
 grouped brightness, an `on`/`off` tag. Enter toggles the grouped light,
 `cmd+enter` opens the room under the keys, `cmd+s` its scenes, `cmd+l`
-its lights. `living room` at the root and Enter toggles it.
+its lights. `living room` at the root and Enter toggles it. The row's
+fields in the bar, a brightness in % and (when a light in the room tunes
+white) a colour temperature in K, go with `cmd+shift+b` only: one PUT on
+the grouped light with the transition, `0` turns it off, the kelvin lands
+inside the lights' range; a pick without the fields asks in a form.
 
 **Hue Lights** (`hue-lights`, live): every light under its room's section,
 a swatch of its colour (the bulb-off glyph when off), the room, the
 archetype, the temperature in kelvin, `unreachable` in red when Zigbee
 lost it, the running effect, the brightness. Enter toggles, `cmd+enter`
-opens it, `cmd+b` blinks it (`alert: breathe`), `cmd+c` copies its hex.
+opens it, `cmd+b` blinks it (`alert: breathe`), `cmd+c` copies its hex,
+`cmd+shift+b` sets the brightness (%) and, on a white-tuning light, the
+colour temperature (K) typed into the bar's fields (arguments
+`brightness`, `kelvin`; `0` is off; the rest of the actions ignore them).
 The detail pane has the xy, the gamut, the effects and the reachability.
 
 **Hue Scenes** (`hue-scenes`, live, primary tier): by room, each a strip

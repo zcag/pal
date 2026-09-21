@@ -5,7 +5,8 @@
 // one fetch); Channels is an hourly catalog; Search Slack is an input
 // palette over `search.messages`; Status is live and lists what is set now
 // before the presets, then a status and a snooze typed in the bar (the
-// rows' `args`). Row ids carry the workspace (`<team>/<conversation>`),
+// rows' `args`); an unread row's Reply and a conversation's Send take the
+// message the same way. Row ids carry the workspace (`<team>/<conversation>`),
 // so a workspace signed in twice over never collides.
 import { argsForm, clock, errorMessage, failed, hint, imageData, settings, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 import { ApiError, NotSignedIn, RateLimited, conf, log, sessions } from "./api.ts";
@@ -90,10 +91,13 @@ function unreadAccessories(u: Unread, dot?: Presence): Accessory[] {
   return a;
 }
 
+/** The message typed in the bar, for an unread row's Reply and a conversation's Send; Enter on either row still opens it. */
+const MESSAGE_ARGS: Arg[] = [{ id: "text", placeholder: "Message", required: true }];
+
 function unreadActions(u: Unread): Action[] {
   return [
     { id: "open", title: "Open in Slack" },
-    ...(u.kind !== "thread" ? [{ id: "reply", title: "Reply" }] : []),
+    ...(u.kind !== "thread" ? [{ id: "reply", title: "Reply", args: true as const }] : []),
     ...(u.kind !== "thread" && u.latest ? [{ id: "read", title: "Mark as read", shortcut: "cmd+shift+r" }] : []),
     { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" },
     { id: "copy", title: "Copy link", shortcut: "cmd+c" },
@@ -109,6 +113,7 @@ function unreadRow(u: Unread, dot?: Presence): Item {
     keywords: [u.where.replace(/^#/, ""), u.top?.who ?? "", u.kind === "dm" ? "dm" : u.kind].filter(Boolean),
     section: SECTION[u.kind],
     accessories: unreadAccessories(u, dot),
+    ...(u.kind !== "thread" && { args: MESSAGE_ARGS }),
     actions: unreadActions(u),
   };
 }
@@ -166,9 +171,10 @@ async function pickUnread(u: Unread, action?: string, ctx?: Ctx): Promise<Effect
   switch (action) {
     case "browser": return { open: webLink(u.domain, u.cid, ts) };
     case "copy": return { copy: webLink(u.domain, u.cid, ts) };
-    case "reply": return { form: replyForm(u) };
-    case "send": {
-      const text = String(ctx?.values?.text ?? "").trim();
+    // The bar's values ("reply"), or the form's on the way back ("send"); a bare pick (a hotkey, `pal run`) gets the form.
+    case "reply": case "send": {
+      if (!ctx?.values) return { form: replyForm(u) };
+      const text = String(ctx.values.text ?? "").trim();
       if (!text) return { form: replyForm(u, { text: "Required" }) };
       try { await post(u.team, u.cid, text, u.top?.thread_ts); } catch (e) { return { form: replyForm(u, { text: errorMessage(e) }, text) }; }
       return toast("Sent", `${u.where}: ${truncate(text, 60)}`);
@@ -200,7 +206,8 @@ function convRow(c: Conversation, multi: boolean): Item {
       ...(c.kind === "private" ? [{ tag: "private", color: "amber" }] : c.kind === "mpim" ? [{ tag: "group", color: "grey" }] : c.kind === "im" ? [{ tag: "DM", color: "grey" }] : []),
       ...(c.members > 2 ? [{ text: plural(c.members, "member") }] : []),
     ],
-    actions: [{ id: "open", title: "Open in Slack" }, { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
+    args: MESSAGE_ARGS,
+    actions: [{ id: "open", title: "Open in Slack" }, { id: "send", title: "Send a message", shortcut: "cmd+shift+r", args: true }, { id: "browser", title: "Open in browser", shortcut: "cmd+shift+o" }, { id: "copy", title: "Copy link", shortcut: "cmd+c" }],
   };
 }
 
@@ -212,7 +219,23 @@ async function convRows(ctx?: Ctx): Promise<Item[]> {
   return out.length ? out : [hint("none", "No conversations", "You are in no channel or direct message")];
 }
 
-const pickConv = (c: Conversation, action?: string): Effect => (action === "browser" ? { open: webLink(c.domain, c.id) } : action === "copy" ? { copy: webLink(c.domain, c.id) } : { open: deepLink(c.team, c.id) });
+const sendForm = (c: Conversation, errors?: Record<string, string>): Effect => ({ form: argsForm(MESSAGE_ARGS, `Message ${c.name}`, { id: "send", title: "Send" }, errors) });
+
+async function pickConv(c: Conversation, action?: string, ctx?: Ctx): Promise<Effect> {
+  switch (action) {
+    case "browser": return { open: webLink(c.domain, c.id) };
+    case "copy": return { copy: webLink(c.domain, c.id) };
+    case "send": {
+      // Posted through the same `post` a reply goes through; the text from the bar, or from the form a bare pick gets.
+      if (!ctx?.values) return sendForm(c);
+      const text = String(ctx.values.text ?? "").trim();
+      if (!text) return sendForm(c, { text: "Required" });
+      try { await post(c.team, c.id, text); } catch (e) { return sendForm(c, { text: errorMessage(e) }); }
+      return toast("Sent", `${c.name}: ${truncate(text, 60)}`);
+    }
+    default: return { open: deepLink(c.team, c.id) };
+  }
+}
 
 // ---- search ------------------------------------------------------------------------
 
@@ -468,12 +491,12 @@ export default {
     channels: {
       title: "Channels",
       list: (_q, ctx) => guard(() => convRows(ctx)),
-      pick: async (id, action) => {
+      pick: async (id, action, ctx) => {
         if (id.startsWith("hint:")) return pickHint(id);
         if (!convs.has(id)) await convRows();
         const c = convs.get(id);
         if (!c) throw new Error(`no conversation ${id}`);
-        return pickConv(c, action);
+        return pickConv(c, action, ctx);
       },
     },
     search: {

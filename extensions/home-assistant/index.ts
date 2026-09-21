@@ -1,16 +1,16 @@
 // Home Assistant: entities as rows (live, so the states at the root are
-// current; a thermostat takes its temperature and mode in the search
-// bar), services as forms, areas as drill-ins. Everything is the REST
+// current; a thermostat takes its temperature and mode, a light its
+// brightness and a media player its volume in the search bar), services
+// as forms, areas as drill-ins. Everything is the REST
 // API in ha.ts with the settings' URL, token and timeout; a request that
 // fails is one hint row with the fix, never an error.
 import { argsForm, errorMessage, hint, settings, toast, when, type Ctx, type Detail, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
-import { actions, asText, attributeRows, Client, climateArgs, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, icon, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
+import { actions, asText, attributeRows, Client, climateArgs, coerce, domainOf, flatFields, HaError, HOUSE, haUrl, LEVEL_ARGS, name, order, row, selectorKind, SERVICE, serviceFormField, serviceRows, stateText, targets, titleCase, unconfigured, type Service, type ServiceDomain, type Settings, type State } from "./ha.ts";
 
 const EXTENSION = "home-assistant";
 /** `ctx.args` of the entities palette's drill-ins. */
-type Args = { attributes?: string; brightness?: string; volume?: string; area?: string };
+type Args = { attributes?: string; area?: string };
 const AREAS_TTL = 10 * 60_000;
-const PRESETS = [10, 25, 50, 75, 100];
 
 let areaCache: { at: number; map: Record<string, string> } | undefined;
 
@@ -47,14 +47,18 @@ async function call(c: Client, id: string, service: string, data: Record<string,
   }
 }
 
-/** The preset rows of a brightness or volume level: the current value tagged. */
-function presetRows(s: State, kind: "brightness" | "volume"): Item[] {
-  const raw = kind === "brightness" ? (typeof s.attributes.brightness === "number" ? Math.round((s.attributes.brightness / 255) * 100) : s.state === "off" ? 0 : undefined) : typeof s.attributes.volume_level === "number" ? Math.round(s.attributes.volume_level * 100) : undefined;
-  const rows: Item[] = PRESETS.map((p) => ({ id: String(p), name: `${p}%`, icon: kind === "brightness" ? "\u{f00df}" : "\u{f057e}", accessories: raw !== undefined && Math.abs(raw - p) < 5 ? [{ tag: "current", color: "blue" }] : undefined, actions: [{ id: "set", title: kind === "brightness" ? "Set brightness" : "Set volume" }] }));
-  return [
-    { id: "current", name: name(s), subtitle: raw === undefined ? stateText(s) : `${kind === "brightness" ? "Brightness" : "Volume"} ${raw}%`, icon: icon(s), actions: [] },
-    ...rows,
-  ];
+/**
+ * A light's brightness or a media player's volume from the bar's field:
+ * the service called with the percent; no values (a hotkey, `pal run`) is
+ * the field as a form, and anything but 0..100 comes back on it.
+ */
+async function setLevel(c: Client, s: State, kind: "brightness" | "volume", values: Ctx["values"] | undefined): Promise<Effect> {
+  const args = LEVEL_ARGS[domainOf(s.entity_id)];
+  const form = (errors?: Record<string, string>): Effect => ({ form: { ...argsForm(args, `Set ${name(s)}`, { id: kind, title: kind === "brightness" ? "Set brightness" : "Set volume" }, errors), id: s.entity_id } });
+  if (!values) return form();
+  const raw = String(values[kind] ?? "").trim(), v = Number(raw);
+  if (!raw || Number.isNaN(v) || v < 0 || v > 100) return form({ [kind]: "A percent, 0 to 100" });
+  return kind === "brightness" ? call(c, s.entity_id, "turn_on", { brightness_pct: Math.round(v) }) : call(c, s.entity_id, "volume_set", { volume_level: Math.round(v) / 100 });
 }
 
 /** The thermostat's bar arguments as a page: for a pick without values (a hotkey, `pal run`), and for a value that is not a number (the message under the field). */
@@ -113,12 +117,10 @@ async function pickEntity(id: string, action: string | undefined, ctx: Ctx | und
     const s = await c.state(args.attributes);
     return { copy: action === "copy_key" ? id : id === "state" ? s.state : asText(s.attributes[id]) };
   }
-  if (args.brightness) return id === "current" ? undefined : call(c, args.brightness, "turn_on", { brightness_pct: Number(id) });
-  if (args.volume) return id === "current" ? undefined : call(c, args.volume, "volume_set", { volume_level: Number(id) / 100 });
   // No action id (an item hotkey, a bare pick): the row's primary action.
   const act = action ?? actions(await c.state(id))[0].id;
   /** A drill-in level, its crumb the entity's name. */
-  const drill = async (args: Args, suffix = "") => ({ push: { extension: EXTENSION, palette: "entities", args, title: `${name(await c.state(id))}${suffix}` } });
+  const drill = async (args: Args) => ({ push: { extension: EXTENSION, palette: "entities", args, title: name(await c.state(id)) } });
   switch (act) {
     // The bar's values (or the form's, submitted back as `temperature`; `set_temperature` was the form's submit id before, a saved hotkey may carry it).
     case "temperature": case "set_temperature": {
@@ -128,8 +130,7 @@ async function pickEntity(id: string, action: string | undefined, ctx: Ctx | und
       if (!String(v.temperature ?? "").trim() || Number.isNaN(t)) return { form: temperatureForm(await c.state(id), { temperature: "Not a number" }) };
       return call(c, id, "set_temperature", { temperature: t, ...(v.hvac_mode ? { hvac_mode: v.hvac_mode } : {}) });
     }
-    case "brightness": return drill({ brightness: id }, " brightness");
-    case "volume": return drill({ volume: id }, " volume");
+    case "brightness": case "volume": return setLevel(c, await c.state(id), act, ctx?.values);
     case "attributes": return drill({ attributes: id });
     case "copy_id": return { copy: id };
     case "copy_value": return { copy: (await c.state(id)).state };
@@ -157,8 +158,6 @@ export default {
         try { c = client(); } catch (e) { return problem(e); }
         try {
           if (args.attributes) return attributeRows(await c.state(args.attributes));
-          if (args.brightness) return presetRows(await c.state(args.brightness), "brightness");
-          if (args.volume) return presetRows(await c.state(args.volume), "volume");
           const [states, map] = await Promise.all([c.states(), areas(c, ctx?.refresh)]);
           const s = settings.get<Settings>();
           if (args.area) return states.filter((x) => map[x.entity_id] === args.area).sort((a, b) => name(a).localeCompare(name(b))).map((x) => row(x, args.area));
@@ -171,7 +170,7 @@ export default {
         try { return await pickEntity(id, action, ctx); } catch (e) { return failed(`reach Home Assistant for ${id}`, e); }
       },
       detail: async (id, ctx): Promise<Detail | void> => {
-        if ((ctx?.args as Args | undefined)?.attributes || id === "hint:setup" || /^\d+$/.test(id) || id === "current") return;
+        if ((ctx?.args as Args | undefined)?.attributes || id === "hint:setup") return;
         let s: State;
         try { s = await client().state(id); } catch { return; }
         const shown = Object.entries(s.attributes).filter(([k]) => k !== "friendly_name").slice(0, 12);

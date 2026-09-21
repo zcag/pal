@@ -34,8 +34,8 @@ the date), Recently played (the time, each track once), Top tracks and
 Top artists of the last weeks (ranked). **Devices** shows every device
 Spotify is open on with its kind's glyph, its volume and an `active`
 tag; the three Volume rows step the active device by 10 or mute it, and
-Set volume… takes a level (0 to 100) as its typed argument: Enter turns
-the search bar into the field, Enter again sets it (a pick without the
+Set volume… takes a level (0 to 100) as its typed argument: with the
+cursor on it the bar shows the field, Tab into it, Enter sets it (a pick without the
 value, from `pal run` or a hotkey, asks in a form with the same field).
 **Queue** lists what plays now and what comes next, numbered; the Web
 API has no way to remove a row from the queue, so the row's Enter skips

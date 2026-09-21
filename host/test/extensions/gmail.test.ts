@@ -170,9 +170,11 @@ describe("gmail", () => {
       { id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true },
       { id: "archive", title: "Archive", shortcut: "cmd+e", multi: true },
       { id: "star", title: "Star", shortcut: "cmd+s" },
-      { id: "reply", title: "Reply", shortcut: "cmd+shift+r" },
+      { id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true },
       { id: "copy", title: "Copy link", shortcut: "cmd+c" },
     ]);
+    // The quick reply's text is the row's typed argument (send on for this account only).
+    expect(m1.args).toEqual([{ id: "body", placeholder: "Quick reply", required: true }]);
     // No Gravatar for GitHub: the initial on a tile. The chips are the user labels, the star and the paperclip.
     expect(rows[1].icon).toEqual(initialIcon("GitHub", "notifications@github.com"));
     expect(tags(rows[1])).toEqual(["GitHub"]);
@@ -193,10 +195,11 @@ describe("gmail", () => {
     expect(mock.calls("/users/me/labels/INBOX")).toHaveLength(0);
   });
 
-  test("inbox (work): its own token, its own two unread, no archive, star or reply with send off", async () => {
+  test("inbox (work): its own token, its own two unread, no archive, star or reply with send off, and no reply field", async () => {
     const rows = await list(W, "inbox");
     expect(rows.map((r) => [r.id, r.section])).toEqual([["w1", "Unread"], ["w2", "Unread"], ["w3", "Recent"]]);
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "copy"]);
+    expect(rows[0].args).toBeUndefined();
     expect(rows[2].actions!.map((a) => a.id)).toEqual(["open", "unread", "copy"]);
     expect(tags(rows[0])).toEqual(["Reports"]);
     expect(rows[0].keywords).toContain("Work");
@@ -271,6 +274,17 @@ describe("gmail", () => {
     expect(await host.pick(W, "inbox", "w1", "read")).toMatchObject({ toast: { title: "Marked read" } });
     expect(modifies().at(-1)).toEqual({ ids: ["w1"], removeLabelIds: ["UNREAD"] });
     await host.pick(W, "inbox", "w1", "unread");
+  });
+
+  test("quick reply: the text from the bar goes to the sender under the reply subject, in the thread, quoted and signed; an empty one is the form with the message", async () => {
+    expect(await host.pick(P, "inbox", "m1", "reply", { values: { body: "On it." } })).toEqual({ keep: true, toast: { title: "Sent", message: "Reply to Mara Lind: Re: Parser review before standup?" } });
+    expect(mock.sent).toHaveLength(1);
+    expect(mock.sent[0].threadId).toBe("t1");
+    expect(decodeRaw(mock.sent[0].raw)).toContain("To: Mara Lind <mara@example.com>\r\nSubject: Re: Parser review before standup?\r\nIn-Reply-To: <m1@example.com>\r\n");
+    expect(bodyText(mock.sent[0].raw)).toMatch(/^On it\.\n\nCagdas\n\nOn Wed, 16 Sep 2026 09:12:00 \+0000, Mara Lind <mara@example.com> wrote:\n> Can you look/);
+    mock.sent.length = 0;
+    expect((await host.pick(P, "inbox", "m1", "reply", { values: { body: " " } }))!.form!.errors).toEqual({ body: "Required" });
+    expect(mock.sent).toHaveLength(0);
   });
 
   test("reply: the form with the defaults, a missing body kept with the error, the send in the thread with the quote and the signature", async () => {

@@ -20,12 +20,12 @@ name finds the container from the root. The detail pane lists id, image,
 command, status, created, ports, mounts, networks and project.
 
 **Docker Images** (`images`): `repository:tag` (the id for an untagged
-image), the id as subtitle, size and age on the right. Enter turns the
-search bar into two fields, the name and the ports (`host:container`
-pairs, comma separated), both optional: Enter again runs `docker run -d
-[--name] [-p …] <image>`; a malformed port is refused under the field. A
-pick that arrives without the fields (a hotkey, a bare `pal run`) asks for
-them in a form instead.
+image), the id as subtitle, size and age on the right. While the cursor
+is on an image the search bar shows two fields after the query, the name
+and the ports (`host:container` pairs, comma separated; Tab into them),
+both optional: Enter runs `docker run -d [--name] [-p …] <image>`; a
+malformed port is refused under the field. A pick that arrives without
+the fields (a hotkey, a bare `pal run`) asks for them in a form instead.
 
 **Compose Projects** (`compose`): every project docker knows of, its
 folder as subtitle, the status text and a tag (running green, a mix amber,
@@ -44,8 +44,8 @@ Containers:
 | keys | action |
 | --- | --- |
 | `enter` | Stop a running container (asks first), Start a stopped one |
-| `cmd+l` | Logs: `docker logs --tail 200`, stdout and stderr, in the panel |
-| `cmd+t` | Shell: a terminal running `docker exec -it <id>` (bash when the image has it, sh otherwise); running containers only |
+| `cmd+l` | Logs: `docker logs --tail <lines>`, stdout and stderr, in the panel; argument `lines` from the bar (200 when blank) |
+| `cmd+t` | Shell: a terminal running `docker exec -it <id>` (bash when the image has it, sh otherwise); argument `command` from the bar runs that instead, the window kept until Enter; running containers only |
 | `cmd+shift+r` | Restart |
 | `cmd+d` | Remove: `docker rm -f`, after a confirm |
 | `cmd+c` | Copy the short id |
@@ -92,8 +92,8 @@ Settings, `[extensions.docker]`:
 - Pull, build or push: only what is already on the machine is listed.
 - Remote hosts and contexts beyond what the CLI's own default context
   points at.
-- Stream logs: Logs is a snapshot of the last 200 lines, read again on the
-  next `cmd+l`.
+- Stream logs: Logs is a snapshot of the last 200 lines (or the count in
+  the bar), read again on the next `cmd+l`.
 - Wait for a slow command: after 8 s it goes on alone and the toast says
   so.
 

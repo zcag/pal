@@ -4,9 +4,10 @@ Your own links, kept in the extension's storage and edited in the panel.
 Enter on a link opens it. A link whose url has a `{query}` placeholder
 (`https://github.com/search?q={query}`; Raycast's `{argument}` and
 `{argument name="Repo"}` are read the same way) takes it as a typed
-argument instead: Enter turns the search bar into one field per
-placeholder name (`Query`, or the name given), Enter again opens the url
-with them filled in, percent-encoded. A pick that arrives without the
+argument instead: with the cursor on the row, the search bar shows one
+field per placeholder name (`Query`, or the name given) after the query;
+Tab into them, and Enter opens the url with them filled in,
+percent-encoded. A pick that arrives without the
 values (`pal run`, an item hotkey) asks for them in a form with the same
 fields. `{selection}` and `{clipboard}` in a
 url are filled without asking (the text selected in the app in front, or
@@ -35,7 +36,7 @@ link asks for, its keywords and where it came from.
 
 | keys | action |
 | --- | --- |
-| `enter` | Open the url; on a `{query}` link, type the argument(s) in the bar first (one field per placeholder name), then Enter opens the filled url; in the library, add the search to your links |
+| `enter` | Open the url; on a `{query}` link, with the argument(s) typed in the bar's field(s) (Tab into them; one per placeholder name); in the library, add the search to your links |
 | `cmd+enter` | In the library, search with it without adding |
 | `cmd+c` | Copy URL, as stored (placeholder included); inside the library's drill-in, the filled url |
 | `cmd+e` | Edit: the form, filled in |

@@ -33,7 +33,7 @@ message came) and a link into the web client.
 | --- | --- | --- |
 | Open chat | `Enter` | `whatsapp://send?phone=` in the desktop app, `https://web.whatsapp.com/send?phone=` on the web, per `open`. A group has no link of its own on either, so it opens WhatsApp at the top and the HUD says so |
 | Mark as read / Mark as unread | `⌘Enter` | works on marked rows too |
-| Send a message | `⌘⇧R` | `send` on. A form: the text, and a box to quote the chat's latest message (a reply) |
+| Send a message | `⌘⇧R` | `send` on. The message is the row's typed argument: with the cursor on the chat, Tab into the Message field in the bar (and a Reply choice that quotes the chat's latest incoming message, when the listing knows one), `⌘⇧R` sends; Enter on the row still opens the chat. A pick without the values (`pal run`, a hotkey) is a form: the text, and a box to quote |
 | React to the latest message | `⌘⇧E` | `send` on. WhatsApp's six quick reactions, or remove yours |
 | Open in the web client | `⌘⇧O` | |
 | Copy number / Copy name | `⌘C` | the number as `+905...`; a group's name |

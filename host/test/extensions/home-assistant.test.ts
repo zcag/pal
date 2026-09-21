@@ -165,7 +165,8 @@ describe("entities", () => {
       { id: "temperature", placeholder: "Temperature 7..30 °C", required: true, default: "21" },
       { id: "hvac_mode", placeholder: "Mode", kind: "select", options: [{ id: "off", title: "Off" }, { id: "heat", title: "Heat" }], default: "heat" },
     ]);
-    expect(items.filter((i) => i.args).map((i) => i.id)).toEqual(["climate.living"]);
+    // Lights and media players carry their percent field too; nothing else takes arguments.
+    expect(items.filter((i) => i.args).map((i) => i.id)).toEqual(["light.hall", "light.kitchen", "climate.living", "media_player.tv"]);
     expect(ids("cover.blind")).toEqual(["close", "open", "stop", "copy_id", "attributes", "open_ha"]);
     expect(ids("lock.front")).toEqual(["unlock", "lock", "copy_id", "attributes", "open_ha"]);
     expect(items.find((i) => i.id === "lock.front")!.actions![0]).toMatchObject({ title: "Unlock", confirm: "Unlock Front door?" });
@@ -233,20 +234,20 @@ describe("entities", () => {
     expect(await pick("state", "copy", { args: { attributes: "light.kitchen" } })).toEqual({ copy: "on" });
     expect(await pick("brightness", "copy_key", { args: { attributes: "light.kitchen" } })).toEqual({ copy: "brightness" });
   });
-  test("brightness and volume drill into presets; a preset posts the level", async () => {
-    expect(await pick("light.kitchen", "brightness")).toEqual({ push: { extension: E, palette: "entities", args: { brightness: "light.kitchen" }, title: "Kitchen brightness" } });
-    const rows = await list({ args: { brightness: "light.kitchen" } });
-    expect(rows.map((i) => i.id)).toEqual(["current", "10", "25", "50", "75", "100"]);
-    expect(rows[0]).toMatchObject({ name: "Kitchen", subtitle: "Brightness 50%", actions: [] });
-    expect(rows[3].accessories).toEqual([{ tag: "current", color: "blue" }]);
-    expect(rows[1].accessories).toBeUndefined();
-    expect(await pick("75", "set", { args: { brightness: "light.kitchen" } })).toMatchObject({ keep: true });
+  test("brightness and volume come from the bar's percent field (only those actions read it); a pick without it is the field as a form; out of range comes back on it", async () => {
+    const items = await list();
+    expect(items.find((i) => i.id === "light.kitchen")!.args).toEqual([{ id: "brightness", placeholder: "Brightness %", kind: "number" }]);
+    expect(items.find((i) => i.id === "light.kitchen")!.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["brightness"]);
+    expect(items.find((i) => i.id === "media_player.tv")!.args).toEqual([{ id: "volume", placeholder: "Volume %", kind: "number" }]);
+    expect(items.find((i) => i.id === "switch.fan")!.args).toBeUndefined();
+    expect(await pick("light.kitchen", "brightness", { values: { brightness: "75" } })).toMatchObject({ keep: true });
     expect(lastCall()).toEqual({ path: "light.turn_on", body: { entity_id: "light.kitchen", brightness_pct: 75 } });
-    expect(await pick("current", "set", { args: { brightness: "light.kitchen" } })).toEqual({});
-    const vol = await list({ args: { volume: "media_player.tv" } });
-    expect(vol[0].subtitle).toBe("Volume 30%");
-    await pick("50", "set", { args: { volume: "media_player.tv" } });
+    expect((await pick("light.kitchen", "brightness")).form).toMatchObject({ id: "light.kitchen", title: "Set Kitchen", submit: { id: "brightness", title: "Set brightness" }, fields: [{ id: "brightness", kind: "text" }] });
+    expect(((await pick("light.kitchen", "brightness", { values: { brightness: "150" } })).form as Form).errors).toEqual({ brightness: "A percent, 0 to 100" });
+    expect(((await pick("light.kitchen", "brightness", { values: { brightness: "" } })).form as Form).errors).toEqual({ brightness: "A percent, 0 to 100" });
+    expect(await pick("media_player.tv", "volume", { values: { volume: "50" } })).toMatchObject({ keep: true });
     expect(lastCall()).toEqual({ path: "media_player.volume_set", body: { entity_id: "media_player.tv", volume_level: 0.5 } });
+    expect((await pick("media_player.tv", "volume")).form).toMatchObject({ submit: { id: "volume", title: "Set volume" }, fields: [{ id: "volume" }] });
   });
   test("climate: Set temperature with the bar's values posts set_temperature; a pick without them is the same fields as a form; a non-number comes back on the field", async () => {
     const r = await pick("climate.living", "temperature");

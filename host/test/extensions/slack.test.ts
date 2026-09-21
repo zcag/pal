@@ -207,6 +207,10 @@ describe("slack", () => {
       expect(dm).toMatchObject({ name: "mara", subtitle: "and the doc is up", icon: { image: USERS.U_MARA.avatar } });
       expect(dm.accessories).toEqual([{ tag: "2", color: "red" }, { tag: "●", color: "green" }, { date: 1789580400000 }]);
       expect(dm.actions!.map((a) => a.id)).toEqual(["open", "reply", "read", "browser", "copy"]);
+      // The reply is the row's typed argument (Enter still opens); a thread row has neither.
+      expect(dm.actions![1]).toEqual({ id: "reply", title: "Reply", args: true });
+      expect(dm.args).toEqual([{ id: "text", placeholder: "Message", required: true }]);
+      expect((await list("unreads")).find((i) => i.id.startsWith("thread:"))!.args).toBeUndefined();
       expect(dm.keywords).toEqual(expect.arrayContaining(["mara", "dm"]));
     });
 
@@ -261,7 +265,10 @@ describe("slack", () => {
       expect(calls("client.counts")).toHaveLength(before + 1);
     });
 
-    test("reply: a one-field form; the submit posts to the conversation, in the thread for a threaded mention; empty text stays in the form", async () => {
+    test("reply: the text from the bar posts to the conversation, in the thread for a threaded mention; without values a one-field form whose submit does the same; empty text stays in the form", async () => {
+      expect(await pick("unreads", "dm:T1/D_MARA", "reply", { values: { text: "ten minutes" } })).toMatchObject({ keep: true, toast: { title: "Sent", message: "mara: ten minutes" } });
+      expect(calls("chat.postMessage").at(-1)!.body).toEqual({ token: TOKEN, channel: "D_MARA", text: "ten minutes", as_user: "true" });
+      expect(await pick("unreads", "dm:T1/D_MARA", "reply", { values: { text: " " } })).toMatchObject({ form: { errors: { text: "Required" } } });
       const f = (await pick("unreads", "dm:T1/D_MARA", "reply")).form as Form;
       expect(f).toMatchObject({ id: "dm:T1/D_MARA", title: "Reply to mara", submit: { id: "send", title: "Send" } });
       expect(f.fields.map((x) => [x.kind, x.id, x.required])).toEqual([["text", "text", true]]);
@@ -539,6 +546,15 @@ describe("slack", () => {
       expect(items[5]).toMatchObject({ name: "mara", subtitle: "Direct message", icon: "\u{f0004}", accessories: [{ tag: "DM", color: "grey" }] });
       expect(items.every((i) => i.section === undefined)).toBe(true);
       expect(await pick("channels", "T1/C_GEN")).toEqual({ open: "slack://channel?team=T1&id=C_GEN" });
+      // Send a message takes the row's typed argument through the same post a reply uses; a bare pick is a form.
+      expect(items[1].args).toEqual([{ id: "text", placeholder: "Message", required: true }]);
+      expect(items[1].actions![1]).toEqual({ id: "send", title: "Send a message", shortcut: "cmd+shift+r", args: true });
+      expect(await pick("channels", "T1/C_GEN", "send", { values: { text: "lunch at 1?" } })).toMatchObject({ keep: true, toast: { title: "Sent", message: "#general: lunch at 1?" } });
+      expect(calls("chat.postMessage").at(-1)!.body).toEqual({ token: TOKEN, channel: "C_GEN", text: "lunch at 1?", as_user: "true" });
+      const sendForm = (await pick("channels", "T1/C_GEN", "send")).form as Form;
+      expect(sendForm).toMatchObject({ title: "Message #general", submit: { id: "send", title: "Send" } });
+      expect(sendForm.fields.map((x) => [x.id, x.kind, !!x.required])).toEqual([["text", "text", true]]);
+      expect(((await pick("channels", "T1/C_GEN", "send", { values: { text: "" } })).form as Form).errors).toEqual({ text: "Required" });
       expect(await pick("channels", "T1/C_GEN", "browser")).toEqual({ open: "https://acme.slack.com/archives/C_GEN" });
     });
   });

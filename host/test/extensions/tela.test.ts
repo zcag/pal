@@ -69,7 +69,7 @@ describe("tela", () => {
       expect(await pick("pages", "cmd:search")).toEqual({ push: { extension: "tela", palette: "search" } });
       const askRow = (await list("pages")).find((i) => i.id === "cmd:ask")!;
       expect(askRow.args).toEqual([{ id: "question", placeholder: "Question", required: true }]);
-      expect(askRow.actions).toEqual([{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter", args: true }]);
+      expect(askRow.actions).toEqual([{ id: "ask", title: "Ask", args: true }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter", args: true }]);
       const form = (await pick("pages", "cmd:ask")).form as Form;
       expect(form).toMatchObject({ title: "Ask tela", submit: { id: "ask", title: "Ask" } });
       expect(form.fields.map((x) => [x.id, x.kind, !!x.required])).toEqual([["question", "text", true]]);

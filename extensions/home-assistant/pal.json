@@ -75,7 +75,7 @@
     "category": "integration",
     "features": [
       "Every entity of the chosen domains at the root with its state as a tag (`on`, `locked`, `playing`) and when it last changed; favourites first, a filter per domain",
-      "Actions by domain: Toggle, Turn on, Turn off, Brightness (`cmd+b`) for a light; Set temperature for a thermostat, the temperature and mode typed in the bar; Open, Close, Stop for a cover; Lock and Unlock (asking first); play, next, volume for a media player; Activate, Run, Trigger for scenes, scripts and automations",
+      "Actions by domain: Toggle, Turn on, Turn off, Set brightness (`cmd+b`, the percent typed in the bar) for a light; Set temperature for a thermostat, the temperature and mode typed in the bar; Open, Close, Stop for a cover; Lock and Unlock (asking first); play, next, Set volume (the percent typed in the bar) for a media player; Activate, Run, Trigger for scenes, scripts and automations",
       "`cmd+c` copies the entity id, `cmd+shift+a` lists its attributes, `cmd+o` opens it in Home Assistant",
       "Every service as a form: the target entity as a select, then the service's fields from its description",
       "Areas as drill-ins: `enter` on an area lists its entities",
@@ -96,7 +96,7 @@
       },
       {
         "file": "2-actions.png",
-        "caption": "What a light can do: toggle, on, off, brightness, and the rows every entity has"
+        "caption": "What a light can do: toggle, on, off, set brightness, and the rows every entity has"
       },
       {
         "file": "3-detail.png",
@@ -118,8 +118,8 @@
         "keys": "cmd+enter"
       },
       {
-        "title": "Brightness",
-        "description": "Presets of 10, 25, 50, 75 and 100 % for a light.",
+        "title": "Set brightness",
+        "description": "A light: the percent typed in the bar, light.turn_on with brightness_pct.",
         "keys": "cmd+b"
       },
       {
@@ -140,8 +140,8 @@
         "description": "Media players."
       },
       {
-        "title": "Volume",
-        "description": "Presets for a media player.",
+        "title": "Set volume",
+        "description": "A media player: the percent typed in the bar, media_player.volume_set.",
         "keys": "cmd+u"
       },
       {
@@ -207,11 +207,11 @@
         },
         {
           "keys": "cmd+b",
-          "title": "Brightness presets for a light"
+          "title": "Set a light's brightness to the percent typed in the bar"
         },
         {
           "keys": "cmd+u",
-          "title": "Volume presets for a media player"
+          "title": "Set a media player's volume to the percent typed in the bar"
         },
         {
           "keys": "cmd+c",

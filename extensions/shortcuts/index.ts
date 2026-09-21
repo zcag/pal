@@ -1,7 +1,8 @@
 // Apple Shortcuts: every shortcut from Shortcuts.app as a row, its folder
 // as the section, over the `shortcuts` command line tool (macOS 12 and
 // later). Enter runs it; cmd+Enter runs it with the clipboard's text as
-// its input, "Run with text" asks for the input in a form. A run may take
+// its input, "Run with input" (cmd+t) with the text typed in the search
+// bar (the row's `args`; a bare pick gets it as a form). A run may take
 // as long as the shortcut does (it can show UI and wait for you), so pick
 // returns at once and the result reaches the HUD afterwards through
 // `effects.run`: "Done", or the first line of what the shortcut output.
@@ -11,7 +12,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { clipboard, effects, errorMessage, hint, toast, truncate, type Action, type Ctx, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
+import { clipboard, effects, errorMessage, hint, toast, truncate, type Action, type Arg, type Ctx, type Effect, type Extension, type Form, type Item } from "@zcag/pal";
 
 const MAC = process.platform === "darwin";
 /** Tests point this at a stand-in; the real tool is in /usr/bin on every Mac that has it. */
@@ -24,7 +25,9 @@ const ID_LINE = /^(.*) \(([0-9A-Fa-f-]{36})\)$/;
 
 const RUN: Action = { id: "run", title: "Run" };
 const RUN_CLIPBOARD: Action = { id: "clipboard", title: "Run with clipboard" };
-const RUN_TEXT: Action = { id: "text", title: "Run with text…", shortcut: "cmd+t" };
+const RUN_TEXT: Action = { id: "text", title: "Run with input", shortcut: "cmd+t", args: true };
+/** The input typed in the bar for "Run with input"; the CLI cannot say which shortcuts take one, so every row offers it and Enter runs bare. */
+const INPUT_ARGS: Arg[] = [{ id: "input", placeholder: "Input", required: true }];
 const OPEN: Action = { id: "open", title: "Open in Shortcuts", shortcut: "cmd+o" };
 const COPY_NAME: Action = { id: "copy", title: "Copy name", shortcut: "cmd+c" };
 
@@ -75,6 +78,7 @@ function row(s: Shortcut): Item {
     section: s.folder || "No folder",
     keywords: s.folder ? [s.folder] : undefined,
     detail: { metadata: [{ label: "Name", value: s.name }, ...(s.folder ? [{ label: "Folder", value: s.folder }] : []), { label: "Identifier", value: s.identifier }] },
+    args: INPUT_ARGS,
     actions: [RUN, RUN_CLIPBOARD, RUN_TEXT, OPEN, COPY_NAME],
   };
 }
@@ -125,9 +129,10 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect | vo
   switch (action) {
     case "open": return { open: `shortcuts://open-shortcut?name=${encodeURIComponent(s.name)}` };
     case "copy": return { copy: s.name };
-    case "text": return { form: textForm(s) };
-    case "run_text": {
-      const input = String(ctx?.values?.input ?? "");
+    // The bar's input ("text"), or the form's on the way back ("run_text"); a bare pick gets the form, whose textarea takes a longer input than the bar.
+    case "text": case "run_text": {
+      if (!ctx?.values) return { form: textForm(s) };
+      const input = String(ctx.values.input ?? "");
       if (!input.trim()) return { form: textForm(s, { input: "Required" }) };
       void run(s, input);
       return { hide: true };

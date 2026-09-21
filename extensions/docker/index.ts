@@ -1,7 +1,7 @@
 // Docker: three live palettes over the docker CLI's `--format '{{json .}}'` output. Containers, running
 // first (Enter starts a stopped one and stops a running one, after a
-// confirm); images, run with a name and ports typed in the bar; Compose
-// projects. Podman works
+// confirm; Logs takes a line count and Shell a command from the bar);
+// images, run with a name and ports typed in the bar; Compose projects. Podman works
 // through the same commands (`binary = "podman"`, or its `docker` alias).
 // Without the binary, or with the daemon down, one inert hint row says so.
 // Logs open as a `show` level; Shell opens a terminal (the SDK's `terminal`).
@@ -102,17 +102,20 @@ const running = new Map<string, boolean>();
 
 const project = (labels = "") => labels.split(",").find((l) => l.startsWith("com.docker.compose.project="))?.split("=")[1];
 
+/** The bar's fields on a container row: how many log lines, and a command for Shell (blank: a shell); only Logs and Shell read them. */
+const LINES_ARG: Arg = { id: "lines", placeholder: "Log lines", kind: "number", default: String(LOG_LINES) };
+const COMMAND_ARG: Arg = { id: "command", placeholder: "Command for Shell (blank: a shell)" };
 const RUNNING: Action[] = [
   { id: "stop", title: "Stop", confirm: "Stop this container?" },
-  { id: "logs", title: "Logs", shortcut: "cmd+l" },
-  { id: "shell", title: "Shell", shortcut: "cmd+t" },
+  { id: "logs", title: "Logs", shortcut: "cmd+l", args: true },
+  { id: "shell", title: "Shell", shortcut: "cmd+t", args: true },
   { id: "restart", title: "Restart", shortcut: "cmd+shift+r" },
   { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? It is stopped first; its writable layer is lost." },
   { id: "copy-id", title: "Copy id", shortcut: "cmd+c" },
 ];
 const STOPPED: Action[] = [
   { id: "start", title: "Start" },
-  { id: "logs", title: "Logs", shortcut: "cmd+l" },
+  { id: "logs", title: "Logs", shortcut: "cmd+l", args: true },
   { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this container? Its writable layer is lost." },
   { id: "copy-id", title: "Copy id", shortcut: "cmd+c" },
 ];
@@ -147,6 +150,7 @@ function container(r: PsRow): Item {
     accessories,
     detail: { metadata },
     section: up ? "Running" : "Stopped",
+    args: up ? [LINES_ARG, COMMAND_ARG] : [LINES_ARG],
     actions: up ? RUNNING : STOPPED,
     state: r.State,
   };
@@ -161,15 +165,22 @@ async function listContainers(): Promise<Item[]> {
   return [...items.filter((i) => i.section === "Running"), ...items.filter((i) => i.section !== "Running")];
 }
 
-async function pickContainer(id: string, action?: string) {
+/** The bar's line count, else the default (a blank field, a pick without values, a value that is not a count). */
+const lineCount = (values?: Record<string, string | boolean>) => { const n = Math.round(Number(values?.lines)); return n > 0 ? n : LOG_LINES; };
+
+async function pickContainer(id: string, action?: string, values?: Record<string, string | boolean>) {
   action ??= running.get(id) ? "stop" : "start";
   switch (action) {
     case "copy-id": return { copy: id };
-    case "logs": return logs(`Logs ${id}`, ["logs", "--tail", String(LOG_LINES), id]);
+    case "logs": return logs(`Logs ${id}`, ["logs", "--tail", String(lineCount(values)), id]);
     case "shell": {
       const bin = S().binary || "docker";
-      // bash when the image has it, sh otherwise.
-      const why = terminal.open([bin, "exec", "-it", id, "sh", "-c", "command -v bash >/dev/null 2>&1 && exec bash; exec sh"], S().terminal);
+      const command = String(values?.command ?? "").trim();
+      // A command from the bar runs over a tty and the window waits for Enter, as ssh's does; blank is bash when the image has it, sh otherwise.
+      const argv = command
+        ? ["sh", "-c", `${terminal.quote(bin)} exec -it ${terminal.quote(id)} sh -c ${terminal.quote(command)}; s=$?; printf '\\n[%s exited %s] Enter closes ' ${terminal.quote(command)} "$s"; read -r _`]
+        : [bin, "exec", "-it", id, "sh", "-c", "command -v bash >/dev/null 2>&1 && exec bash; exec sh"];
+      const why = terminal.open(argv, S().terminal);
       return why ? toast("Could not open a terminal", why, "failure") : {};
     }
     case "remove": {
@@ -194,7 +205,7 @@ const IMAGE_ACTIONS: Action[] = [
   { id: "copy-id", title: "Copy id", shortcut: "cmd+c" },
   { id: "remove", title: "Remove", shortcut: "cmd+d", style: "destructive", confirm: "Remove this image? A container still using it keeps docker from removing it." },
 ];
-/** Run's arguments, typed in the bar: both optional (docker picks a name, no port published), so Enter twice runs the image bare. */
+/** Run's arguments, typed in the bar: both optional (docker picks a name, no port published), so Enter with them blank runs the image bare. */
 const RUN_ARGS: Arg[] = [
   { id: "name", placeholder: "Name (docker picks one when blank)" },
   { id: "ports", placeholder: "Ports: 8080:80, 443:443" },
@@ -312,7 +323,7 @@ export default {
       ttl: TTL,
       placeholder: "Search containers",
       list: listContainers,
-      pick: (id, action) => pickContainer(id, action),
+      pick: (id, action, ctx) => pickContainer(id, action, ctx?.values),
     },
     images: {
       title: "Docker Images",

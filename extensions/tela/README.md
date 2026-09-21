@@ -74,9 +74,9 @@ row: Open in tela (`Enter`), Read in pal (`⌘Enter`: the page drawn in the
 panel), Copy link (`⌘C`), Outline (`⌘⇧O`, the headings), Backlinks
 (`⌘B`), Comment on page (`⌘⇧M`).
 
-The Ask tela row takes the question as a typed argument: Enter turns
-the search bar into a Question field, Enter again opens the answer view
-(`⌘Enter` takes the question to tela's Ask page instead); a pick without
+The Ask tela row takes the question as a typed argument: with the cursor
+on it the bar shows a Question field (Tab into it), Enter opens the
+answer view (`⌘Enter` takes the question to tela's Ask page instead); a pick without
 the value (`pal run`, a hotkey) asks for it in a form. The Ask tela
 palette still lists your recent questions.
 

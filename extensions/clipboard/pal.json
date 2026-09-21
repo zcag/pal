@@ -155,8 +155,8 @@
         "keys": "cmd+p"
       },
       {
-        "title": "Name… / Rename…",
-        "description": "A name that titles the row and is searched like the text; empty clears it.",
+        "title": "Name / Rename",
+        "description": "The name typed in the bar titles the row and is searched like the text; blank clears it.",
         "keys": "cmd+shift+r"
       },
       {
@@ -292,7 +292,7 @@
         },
         {
           "keys": "cmd+shift+r",
-          "title": "Name or rename the entry"
+          "title": "Name or rename the entry to what is typed in the bar"
         },
         {
           "keys": "cmd+s",

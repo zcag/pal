@@ -149,7 +149,7 @@
       "keys": [
         {
           "keys": "enter",
-          "title": "Open, the {query} typed in the bar first; in the library, add the search"
+          "title": "Open, with the {query} typed in the bar's field; in the library, add the search"
         },
         {
           "keys": "cmd+enter",

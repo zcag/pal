@@ -102,7 +102,7 @@ export function parse(text: string): Target[] {
 
 // ---- rows ---------------------------------------------------------------------
 
-/** Run's one argument in the bar: the words after the target, split on spaces. Optional, so Enter twice (or a bare pick) is the plain `make <target>`. */
+/** Run's one argument in the bar: the words after the target, split on spaces. Optional, so Enter with it blank (or a bare pick) is the plain `make <target>`. */
 const ARGS: Arg[] = [{ id: "extra", placeholder: "Variables or flags: VERBOSE=1 -j4 (optional)" }];
 const extraWords = (ctx?: Ctx) => String(ctx?.values?.extra ?? "").trim().split(/\s+/).filter(Boolean);
 

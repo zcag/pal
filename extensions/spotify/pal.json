@@ -228,7 +228,7 @@
       "keys": [
         {
           "keys": "enter",
-          "title": "Play here (a device); volume up, down, mute (the volume rows); on Set volume…, the level typed in the bar first"
+          "title": "Play here (a device); volume up, down, mute (the volume rows); on Set volume…, the level typed in the bar's field"
         },
         {
           "keys": "cmd+enter",

@@ -7,14 +7,15 @@
 // rate, or Safari's own percentage. Sections Today, Yesterday, This week,
 // Older. Enter opens, cmd+Enter reveals, cmd+c copies the file, cmd+shift+c
 // its path, cmd+d moves to the Trash (asks first), cmd+m moves it to a
-// folder (a form), cmd+shift+r renames it (a form); open, reveal, the
+// folder (a form), cmd+shift+r renames it to the name typed in the bar
+// (a form when blank); open, reveal, the
 // copies and the trash take marked rows. The last rows clear what is
 // older than 30 days and open the folder; the root's Now section gets
 // the newest download of the last ten minutes (`suggest`).
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { bytes, errorMessage, files, hint as hintRow, home, run, settings, tilde, toast, when, type Action, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
+import { bytes, errorMessage, files, hint as hintRow, home, run, settings, tilde, toast, when, type Action, type Arg, type Ctx, type Detail, type Effect, type Extension, type Item } from "@zcag/pal";
 import { browserDirsFrom, finalName, GLYPH, inProgress, kindOf, olderThan, rate, safariProgress, sectionOf, SUGGEST_MS, THUMBABLE, type Kind, type Section } from "./scan.ts";
 
 /** `[extensions.downloads]`, defaults in pal.json. */
@@ -157,7 +158,9 @@ const QUICK_LOOK: Action = { id: "quick-look", title: "Quick Look", shortcut: "c
 const COPY_FILE: Action = { id: "copy-file", title: "Copy file", shortcut: "cmd+c", multi: true };
 const COPY_PATH: Action = { id: "copy-path", title: "Copy path", shortcut: "cmd+shift+c", multi: true };
 const MOVE: Action = { id: "move", title: "Move to folder…", shortcut: "cmd+m" };
-const RENAME: Action = { id: "rename", title: "Rename…", shortcut: "cmd+shift+r" };
+const RENAME: Action = { id: "rename", title: "Rename", shortcut: "cmd+shift+r", args: true };
+/** The row's one field in the bar, a new name; only Rename reads it, and blank falls back to the form with the current name filled. */
+const RENAME_ARGS: Arg[] = [{ id: "name", placeholder: "Rename to" }];
 const TRASH: Action = { id: "trash", title: "Move to Trash", shortcut: "cmd+d", style: "destructive", confirm: "Move this to the Trash?", multi: true };
 const FILE_ACTIONS: Action[] = [OPEN, REVEAL, ...(MAC ? [QUICK_LOOK] : []), COPY_FILE, COPY_PATH, MOVE, RENAME, TRASH];
 const PARTIAL_ACTIONS: Action[] = [REVEAL, COPY_PATH];
@@ -177,6 +180,7 @@ async function item(e: Entry, several: boolean, thumb: boolean, section?: Sectio
     id: e.path, name: e.name, subtitle: `${kind}${where}`, icon: typeof icon === "string" && icon.startsWith("data:") ? { image: icon } : icon, keywords: [e.name],
     section: section ?? sectionOf(e.mtime),
     accessories: [...(e.dir ? [] : [{ text: bytes(e.size) }]), { date: e.mtime }],
+    args: RENAME_ARGS,
     // No actions of its own: the palette's (`FILE_ACTIONS`, said once), so
     // eight objects do not ride on every row of every listing and show.
   };
@@ -260,7 +264,8 @@ async function pick(id: string, action?: string, ctx?: Ctx): Promise<Effect> {
     case "quick-look": spawnDetached(["qlmanage", "-p", id]); return { hide: true };
     case "copy-file": return { copy_files: ids };
     case "copy-path": return { copy: ids.join("\n") };
-    case "rename": return { form: files.renameForm(id) };
+    // The bar's name; blank (or a pick without values) is the form with the current name filled, as `rename-submit` (the form's submit) comes back.
+    case "rename": return String(ctx?.values?.name ?? "").trim() ? files.renamePick(id, ctx?.values) : { form: files.renameForm(id) };
     case "move": return { form: files.moveForm(id) };
     case "rename-submit": return files.renamePick(id, ctx?.values);
     case "move-submit": return files.intoFolderPick("move", id, ctx?.values);

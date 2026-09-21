@@ -74,6 +74,7 @@ their avatar. A keystroke waits 300 ms for the next before asking.
 | `cmd+e` | Open in editor (`code`, else the folder) | a repository with a local clone |
 | `cmd+o` | Open folder | a repository with a local clone |
 | `cmd+shift+c` | Copy clone URL (`clone_protocol`) | repositories |
+| `cmd+p` | Open path: the path typed in the bar's field (the row's argument, `src/main.rs` or `docs`) on the default branch; a form when picked without it | repositories |
 | `cmd+shift+r` | Mark as read, without opening | notifications |
 | `cmd+shift+a` | Mark all as read; asks first | notifications |
 | `cmd+k` | Copy reference (`owner/repo#n`), Copy owner/name, Open issues, Open pull requests, Open repositories | the rest, without a shortcut |

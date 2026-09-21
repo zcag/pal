@@ -65,7 +65,7 @@
     "category": "developer",
     "features": [
       "Every container, running ones first: the image under the name, the published ports (`8080:80`), docker's status (`Up 27 hours`) and a coloured state tag on the right",
-      "`enter` stops a running container (after a confirm) or starts a stopped one; `cmd+l` opens its last 200 log lines in the panel; `cmd+t` opens a terminal with a shell inside it",
+      "`enter` stops a running container (after a confirm) or starts a stopped one; `cmd+l` opens its last 200 log lines (or the count typed in the bar) in the panel; `cmd+t` opens a terminal with a shell inside it, or runs the command typed in the bar",
       "Images: `enter` takes a name and `host:container` ports in the search bar (both optional), then `docker run -d`",
       "Compose projects docker knows of: `up -d`, `down`, `restart`, logs, open the project folder",
       "Podman works through the same commands: set `binary = \"podman\"`",
@@ -110,12 +110,12 @@
       },
       {
         "title": "Logs",
-        "description": "The last 200 lines, stdout and stderr, in the panel.",
+        "description": "The last 200 lines (or the count typed in the bar), stdout and stderr, in the panel.",
         "keys": "cmd+l"
       },
       {
         "title": "Shell",
-        "description": "A terminal running docker exec (bash when the image has it, sh otherwise).",
+        "description": "A terminal running docker exec (bash when the image has it, sh otherwise), or the command typed in the bar, kept open until Enter.",
         "keys": "cmd+t"
       },
       {
@@ -164,11 +164,11 @@
         },
         {
           "keys": "cmd+l",
-          "title": "Logs"
+          "title": "Logs (the line count typed in the bar; 200 when blank)"
         },
         {
           "keys": "cmd+t",
-          "title": "Shell in a terminal"
+          "title": "Shell in a terminal, or the command typed in the bar"
         },
         {
           "keys": "cmd+shift+r",

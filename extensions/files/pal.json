@@ -88,7 +88,7 @@
       "Enter (or `→`) on a folder browses it as a level whose crumb is the folder: a `..` row (`←` or Backspace goes up from anywhere), the entries sorted by name, date or size from the dropdown, pictures with their thumbnails, `cmd+.` for hidden files; `~/` or `/` typed lists that folder the same way",
       "Open with… (`cmd+o`) lists the apps the OS registers for the file, the default tagged",
       "Reveal (`cmd+enter`), Quick Look (`cmd+y`), Copy path (`cmd+c`), Copy file (`cmd+shift+c`), Open in Terminal (`cmd+t`, the folder or the file's), Move to Trash (`cmd+d`, asks first)",
-      "Rename (`cmd+shift+r`), Move to (`cmd+m`) and Copy to (`cmd+alt+c`) a folder, each a form; Compress (`cmd+shift+z`) zips the file, or every marked row, next to it",
+      "Rename (`cmd+shift+r`, the name typed in the bar), Move to (`cmd+m`) and Copy to (`cmd+alt+c`) a folder, each a form; Compress (`cmd+shift+z`) zips the file, or every marked row, next to it",
       "The detail pane: path, size, modified, kind, an image's pixel size and Finder's tags (Spotlight, macOS), and the first 40 lines of a text file"
     ],
     "permissions": [
@@ -121,7 +121,7 @@
       },
       {
         "file": "6-rename.png",
-        "caption": "Rename, Move to and Copy to are forms; Compress zips the file next to itself"
+        "caption": "Rename takes the bar's name, Move to and Copy to are forms; Compress zips the file next to itself"
       }
     ],
     "actions": [
@@ -165,8 +165,8 @@
         "keys": "cmd+t"
       },
       {
-        "title": "Rename…",
-        "description": "A form; the new name in the same folder.",
+        "title": "Rename",
+        "description": "The name typed in the bar, in the same folder; a form with the current name when blank.",
         "keys": "cmd+shift+r"
       },
       {
@@ -238,7 +238,7 @@
         },
         {
           "keys": "cmd+shift+r",
-          "title": "Rename"
+          "title": "Rename to the name typed in the bar"
         },
         {
           "keys": "cmd+m",
@@ -304,7 +304,7 @@
         },
         {
           "keys": "cmd+shift+r",
-          "title": "Rename"
+          "title": "Rename to the name typed in the bar"
         },
         {
           "keys": "cmd+m",
@@ -360,7 +360,7 @@
         },
         {
           "keys": "cmd+shift+r",
-          "title": "Rename"
+          "title": "Rename to the name typed in the bar"
         },
         {
           "keys": "cmd+m",

@@ -4,9 +4,10 @@
 // the panel showing and the bar refreshing on it cost one read); Search
 // Mail is an input palette over Gmail's own query syntax; Labels is an
 // hourly catalog; Compose and Drafts exist only where `send` is on for
-// the account. Every row id is the message id, so a pick after a restart
-// still finds it with one `messages.get`.
-import { bytes, clock, dayNameYear, errorMessage, failed, hint, imageData, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+// the account, and so does a mail row's quick reply (the text typed in
+// the search bar, the row's `args`). Every row id is the message id, so a
+// pick after a restart still finds it with one `messages.get`.
+import { bytes, clock, dayNameYear, errorMessage, failed, hint, imageData, instance, settings, toast, TokenError, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, RateLimited, conf, log, send as apiSend, draftDelete, draftSend } from "./api.ts";
 import { initialIcon } from "./avatar.ts";
 import { BAR_ROWS, render as renderBar, type BarRow, type BarState } from "./view.ts";
@@ -81,10 +82,14 @@ function mailActions(m: Mail): Action[] {
     m.unread ? { id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true } : { id: "unread", title: "Mark as unread", shortcut: "cmd+enter", multi: true },
     ...(send && m.inInbox ? [{ id: "archive", title: "Archive", shortcut: "cmd+e", multi: true } as Action] : []),
     ...(send ? [{ id: m.starred ? "unstar" : "star", title: m.starred ? "Unstar" : "Star", shortcut: "cmd+s" } as Action] : []),
-    ...(send ? [{ id: "reply", title: "Reply", shortcut: "cmd+shift+r" } as Action] : []),
+    // The quick reply takes the row's typed argument (the text; the sender and the reply subject are implied); Enter on the row still opens the thread.
+    ...(send ? [{ id: "reply", title: "Reply", shortcut: "cmd+shift+r", args: true } as Action] : []),
     { id: "copy", title: "Copy link", shortcut: "cmd+c" },
   ];
 }
+
+/** With `send` on for the account, the quick reply's text, typed in the bar. */
+const REPLY_ARGS: Arg[] = [{ id: "body", placeholder: "Quick reply", required: true }];
 
 /** The instance's title rides in the keywords, so `work invoice` finds the row at the root; the root's section header names it, so no chip repeats it. */
 function mailRow(m: Mail, section?: string): Item {
@@ -97,6 +102,7 @@ function mailRow(m: Mail, section?: string): Item {
     keywords: [m.from.name, m.from.email, ...userLabels(m), ...(title ? [title] : [])].filter(Boolean),
     section,
     accessories: mailAccessories(m),
+    ...(canSend() && { args: REPLY_ARGS }),
     actions: mailActions(m),
   };
 }
@@ -156,12 +162,12 @@ async function pickMail(m: Mail, action: string | undefined, ctx?: Ctx): Promise
       try { await star([m.id], action === "star"); } catch (e) { return failed(action === "star" ? "star" : "unstar", e); }
       dropInbox();
       return toast(action === "star" ? "Starred" : "Unstarred", m.subject || "(no subject)");
-    case "reply":
+    case "reply": case "send": {
       if (!canSend()) return toast("Reply is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
-      return { form: replyForm(m) };
-    case "send": {
-      if (!canSend()) return toast("Reply is off", "Turn on send for this account under Settings › Extensions › Gmail", "failure");
+      // "reply" with the bar's one field is a quick reply to the sender under the reply subject; "send" is the form's four fields; neither: the form.
+      if (!ctx?.values) return { form: replyForm(m) };
       const v = values(ctx);
+      if (action === "reply") { v.to ||= addrLine(m.replyTo); v.subject ||= replySubject(m.subject); }
       const errors: Record<string, string> = {};
       if (!v.to) errors.to = "Required";
       if (!v.subject) errors.subject = "Required";

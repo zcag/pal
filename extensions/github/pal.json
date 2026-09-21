@@ -237,6 +237,10 @@
           "title": "Copy the clone URL"
         },
         {
+          "keys": "cmd+p",
+          "title": "Open the path typed in the bar"
+        },
+        {
           "keys": "cmd+c",
           "title": "Copy the URL"
         },
@@ -603,6 +607,11 @@
       },
       {
         "title": "Open pull requests"
+      },
+      {
+        "title": "Open path",
+        "description": "The path typed in the bar (the repository row's argument) on the default branch; a form when picked without it.",
+        "keys": "cmd+p"
       },
       {
         "title": "Create repository",

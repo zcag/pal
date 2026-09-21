@@ -1,7 +1,7 @@
 {
   "name": "shortcuts",
   "title": "Shortcuts",
-  "description": "Every shortcut from the Shortcuts app, its folder as the section: Enter runs it, cmd+Enter runs it with the clipboard as input, a form takes typed input, cmd+O opens it in Shortcuts. The result shows in the HUD.",
+  "description": "Every shortcut from the Shortcuts app, its folder as the section: Enter runs it, cmd+Enter runs it with the clipboard as input, cmd+T with the input typed in the bar, cmd+O opens it in Shortcuts. The result shows in the HUD.",
   "version": "0.1.0",
   "icon": { "tile": { "svg": "M8 1.5 13.5 5 8 8.5 2.5 5Zm0 6.3 2.9 1.8L8 11.4 5.1 9.6Zm-5.5 3.2L8 7.5l5.5 3.5L8 14.5Zm2.6 0L8 12.7l2.9-1.7L8 9.3Z", "bg": "violet" } },
   "author": "pal",
@@ -13,7 +13,7 @@
     "features": [
       "Every shortcut from Shortcuts.app as an indexed row, so its name at the root finds it; the folder is the section and a keyword",
       "Enter runs it; the panel hides and the HUD shows Done or the first line of the shortcut's output when it ends, however long it takes",
-      "cmd+Enter runs it with the newest clipboard text as its input; Run with text (cmd+t) asks for the input in a form",
+      "cmd+Enter runs it with the newest clipboard text as its input; Run with input (cmd+t) takes the text typed in the bar (a form when picked without it)",
       "cmd+O opens the shortcut in the Shortcuts app for editing, cmd+C copies its name",
       "A global hotkey per shortcut through `[palettes.shortcuts.item_hotkeys]`, keyed by the shortcut's name",
       "Listed through the `shortcuts` command line tool (macOS 12 and later), refreshed every five minutes and on cmd+r; on Linux one row says it is not available"
@@ -22,14 +22,14 @@
     "platforms": ["macos"],
     "screenshots": [
       { "file": "1-list.png", "caption": "The shortcuts by folder, the ones in no folder first" },
-      { "file": "2-actions.png", "caption": "Run, Run with clipboard, Run with text, Open in Shortcuts, Copy name" },
+      { "file": "2-actions.png", "caption": "Run, Run with clipboard, Run with input, Open in Shortcuts, Copy name" },
       { "file": "3-root.png", "caption": "A shortcut's name typed at the root finds it" },
-      { "file": "4-form.png", "caption": "Run with text: the input the shortcut receives" }
+      { "file": "4-form.png", "caption": "Run with input: the input the shortcut receives, typed in the bar" }
     ],
     "actions": [
       { "title": "Run", "description": "Runs the shortcut; the HUD shows Done or its output's first line.", "keys": "enter" },
       { "title": "Run with clipboard", "description": "The newest clipboard text as the shortcut's input.", "keys": "cmd+enter" },
-      { "title": "Run with text…", "description": "A form for the input, then the run.", "keys": "cmd+t" },
+      { "title": "Run with input", "description": "The input typed in the bar (the row's argument), then the run; a form when picked without it.", "keys": "cmd+t" },
       { "title": "Open in Shortcuts", "description": "The shortcut in the Shortcuts app.", "keys": "cmd+o" },
       { "title": "Copy name", "description": "The shortcut's name onto the clipboard.", "keys": "cmd+c" }
     ]
@@ -43,7 +43,7 @@
       "keys": [
         { "keys": "enter", "title": "Run the shortcut" },
         { "keys": "cmd+enter", "title": "Run it with the clipboard as input" },
-        { "keys": "cmd+t", "title": "Run it with typed text as input" },
+        { "keys": "cmd+t", "title": "Run it with the input typed in the bar" },
         { "keys": "cmd+o", "title": "Open it in Shortcuts" },
         { "keys": "cmd+c", "title": "Copy its name" }
       ]

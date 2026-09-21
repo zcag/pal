@@ -177,13 +177,16 @@ describe("downloads", () => {
     expect(await pick("open-folder")).toEqual({ open: folder });
   });
 
-  test("rename: a form with the name; the submit renames in place, a name in use or with a slash shows the form again with the error", async () => {
+  test("rename: the bar's name renames in place (blank, or a pick without it, is the form with the name filled); a name in use or with a slash shows the form with the error", async () => {
+    const rows = await list();
+    expect(rows.find((i) => i.id === notes)!.args).toEqual([{ id: "name", placeholder: "Rename to" }]);
     const f = (await pick(notes, "rename")).form as Form;
     expect(f).toMatchObject({ id: notes, title: "Rename", submit: { id: "rename-submit", title: "Rename" } });
     expect(f.fields[0]).toMatchObject({ kind: "text", id: "name", default: "notes.txt", required: true });
-    expect(await pick(notes, "rename-submit", { values: { name: "report.pdf" } })).toMatchObject({ form: { errors: { name: expect.stringContaining("exists already") } } });
+    expect((await pick(notes, "rename", { values: { name: "  " } })).form).toMatchObject({ fields: [{ default: "notes.txt" }] });
+    expect(await pick(notes, "rename", { values: { name: "report.pdf" } })).toMatchObject({ form: { errors: { name: expect.stringContaining("exists already") } } });
     expect(await pick(notes, "rename-submit", { values: { name: "a/b" } })).toMatchObject({ form: { errors: { name: "A file name, without a slash" } } });
-    expect(await pick(notes, "rename-submit", { values: { name: "notes-renamed.txt" } })).toEqual({ keep: true, toast: { title: "Renamed", message: "notes-renamed.txt" } });
+    expect(await pick(notes, "rename", { values: { name: "notes-renamed.txt" } })).toEqual({ keep: true, toast: { title: "Renamed", message: "notes-renamed.txt" } });
     expect(existsSync(join(folder, "notes-renamed.txt"))).toBe(true);
     expect(existsSync(notes)).toBe(false);
   });

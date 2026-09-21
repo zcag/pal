@@ -31,7 +31,7 @@ Files, Links (text that is one url) and Colors.
 | `cmd+shift+t` | Copy text from image (OCR), on an image |
 | `cmd+e` | Edit, on a text entry: the text in a textarea; the submit copies the edited text, so it is the newest entry (the original stays); a box pastes it as well |
 | `cmd+p` | Pin / Unpin: pinned entries sort first and never expire |
-| `cmd+shift+r` | Name / Rename: a one-field form; the name titles the row and is searched; empty clears it |
+| `cmd+shift+r` | Name / Rename: argument `name` typed in the bar (prefilled with the name the row has); the name titles the row and is searched; blank clears it; a pick without the field asks in a form |
 | `cmd+s` | Save as file: a folder (the Desktop by default) and a name from the entry; the text as it is, an image's PNG copied, a file list as its paths one per line; an existing name is refused |
 | `cmd+shift+s` | Save as snippet, on a text entry: the Snippets form, pre-filled with the text |
 | `cmd+shift+k` | Show as QR code, on a text entry up to 2000 characters: the code large in a level, the text under it |

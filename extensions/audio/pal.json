@@ -81,7 +81,7 @@
     "features": [
       "Every output and input in two sections, the default of each direction tagged `default`, the volume on the right, `muted` where it is",
       "`enter` makes the row the default for its direction; a headset shows once under Output and once under Input",
-      "`cmd+shift+v` drills into presets of 0, 25, 50, 75 and 100 %, the current one tagged",
+      "`cmd+shift+v` sets the volume to the percent typed in the bar",
       "`cmd+m` toggles mute and stays in the list",
       "The transport (`bluetooth`, `usb`, `builtin`, `hdmi`) in the subtitle when the OS reports it",
       "Live: the defaults and volumes are read again on every show"
@@ -102,7 +102,7 @@
       },
       {
         "file": "3-volume.png",
-        "caption": "The volume presets for one device, the current level tagged"
+        "caption": "The volume for one device, the percent typed in the bar"
       },
       {
         "file": "bar-menubar-dark.png",
@@ -137,8 +137,8 @@
         "keys": "enter"
       },
       {
-        "title": "Set volume…",
-        "description": "A level of presets, 0 to 100 %.",
+        "title": "Set volume",
+        "description": "The percent typed in the bar, 0 to 100, on a device with a volume control.",
         "keys": "cmd+shift+v"
       },
       {
@@ -159,7 +159,7 @@
         },
         {
           "keys": "cmd+shift+v",
-          "title": "Set the volume"
+          "title": "Set the volume to the percent typed in the bar"
         },
         {
           "keys": "cmd+m",

@@ -168,6 +168,11 @@
         "title": "Turn on / Turn off"
       },
       {
+        "title": "Set brightness or temperature",
+        "description": "The bar's fields on a room or light row: a brightness in % (0 is off) and, where the light tunes white, a colour temperature in K; one PUT with the transition.",
+        "keys": "cmd+shift+b"
+      },
+      {
         "title": "Scenes of the room",
         "keys": "cmd+s"
       },
@@ -237,6 +242,10 @@
           "title": "Open the room under the keys"
         },
         {
+          "keys": "cmd+shift+b",
+          "title": "Set the brightness (%) and colour temperature (K) typed in the bar"
+        },
+        {
           "keys": "cmd+s",
           "title": "The room's scenes"
         },
@@ -262,6 +271,10 @@
         {
           "keys": "cmd+enter",
           "title": "Open the light under the keys"
+        },
+        {
+          "keys": "cmd+shift+b",
+          "title": "Set the brightness (%) and colour temperature (K) typed in the bar"
         },
         {
           "keys": "cmd+b",

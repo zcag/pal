@@ -18,7 +18,7 @@ import type { Item } from "../../../sdk/src/index.ts";
 import { Host, stored } from "../harness.ts";
 
 const HAS_RG = Bun.which("rg") !== null;
-const NOTE_ACTIONS = ["obsidian", "editor", "copy-link", "read", "backlinks", "outgoing", "copy-path"];
+const NOTE_ACTIONS = ["obsidian", "editor", "copy-link", "read", "backlinks", "outgoing", "copy-path", "append"];
 
 // ---- pure ----------------------------------------------------------------------
 
@@ -231,6 +231,19 @@ describe("the extension", () => {
     expect(await pick("notes", "note:infra/theater.md", "copy-link")).toEqual({ copy: "[[theater]]" });
     expect(await pick("notes", "note:infra/theater.md", "copy-path")).toEqual({ copy: join(vault, "infra/theater.md") });
     expect(stored.get("obsidian\0last")).toBe("infra/theater.md");
+    // Append a line takes the row's typed argument (Enter still opens); placeholders filled; a bare pick is a form, an empty line refused in it.
+    const theater = (await list("notes")).find((r) => r.id === "note:infra/theater.md")!;
+    expect(theater.args).toEqual([{ id: "text", placeholder: "A line to append", required: true }]);
+    expect(theater.actions!.at(-1)).toEqual({ id: "append", title: "Append a line", shortcut: "cmd+shift+a", args: true });
+    const original = await Bun.file(join(vault, "infra/theater.md")).text();
+    try {
+      expect(await pick("notes", "note:infra/theater.md", "append", { values: { text: "- rebooted on {date}" } })).toEqual({ hud: "Appended to theater" });
+      expect(await Bun.file(join(vault, "infra/theater.md")).text()).toBe(`${original}- rebooted on ${iso(today)}\n`);
+      const form = (await pick("notes", "note:infra/theater.md", "append")).form!;
+      expect(form).toMatchObject({ title: "Append to theater", submit: { id: "append", title: "Append" } });
+      expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["text", "text", true]]);
+      expect((await pick("notes", "note:infra/theater.md", "append", { values: { text: " " } })).form!.errors).toEqual({ text: "Required" });
+    } finally { w("infra/theater.md", original); }
   });
 
   test("open_with = editor swaps the pair: Enter runs the editor, cmd+Enter opens Obsidian; an editor off PATH is a failure toast naming the setting", async () => {

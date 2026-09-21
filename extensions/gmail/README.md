@@ -110,8 +110,12 @@ the one the account's policy allows. Draft the answer and hand it over;
 send it from Gmail yourself.
 
 With `send` on for an account (a personal one), Compose is a form (to,
-cc, subject, body; the `signature` under the body), Reply on a row is a
-form with the original quoted under the answer and sent in its thread,
+cc, subject, body; the `signature` under the body), Reply on a row takes
+the answer as the row's typed argument (Tab into the Quick reply field in
+the bar, `⌘⇧R` sends it to the sender under the `Re:` subject, the
+original quoted under it, in its thread; Enter still opens the thread; a
+pick without the text, from `pal run` or a hotkey, is the full form with
+to, cc, subject and body),
 Drafts lists Gmail's drafts to send or discard after a confirmation,
 Archive and Star join the row's actions.
 
@@ -123,7 +127,7 @@ Archive and Star join the row's actions.
 | Mark as read / Mark as unread | `⌘Enter` | `messages.batchModify`; works over marked rows too |
 | Archive | `⌘E` | send on; out of the inbox |
 | Star / Unstar | `⌘S` | send on |
-| Reply | `⌘⇧R` | send on; the form, then `messages.send` in the thread |
+| Reply | `⌘⇧R` | send on; the text typed in the bar's field (the sender and the `Re:` subject implied) or, without it, the form; then `messages.send` in the thread |
 | Copy link | `⌘C` | |
 | Search label | `⌘Enter` | on a label row: Search Mail with `label:<name>` typed |
 | Send draft / Discard draft | `⌘Enter` / `⌘D` | send on; each asks first |

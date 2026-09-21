@@ -10,7 +10,7 @@
 // caches; they deliberately do not make a combined GitHub cluster.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { bar, clock, errorMessage, failed, hint, home, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
+import { argsForm, bar, clock, errorMessage, failed, hint, home, run, storage, tinted, toast, truncate, when, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type Metadata } from "@zcag/pal";
 import { ApiError, AuthError, conf, forget, hasGh, log, rateLimit } from "./api.ts";
 import {
   TTL, closeIssue, createIssue, createRepo, findIssue, findPR, issueDetail, issues as fetchIssues, markAllRead, markRead, markReady, mergePR, myRepos, notifications, orgRepos, prDetail, prs as fetchPrs, search, splitId, starredRepos, viewer,
@@ -571,8 +571,13 @@ function repoActions(r: Repo): Action[] {
     { id: "name", title: "Copy owner/name" },
     { id: "issues", title: "Open issues" },
     { id: "pulls", title: "Open pull requests" },
+    // Takes the row's typed argument, a path inside the repository; Enter on the row still opens its front page.
+    { id: "path", title: "Open path", shortcut: "cmd+p", args: true },
   ];
 }
+
+/** A path in the repository, typed in the bar for "Open path": `src/main.rs`, `docs`. */
+const PATH_ARGS: Arg[] = [{ id: "path", placeholder: "Path in the repo", required: true }];
 
 function repoRow(r: Repo, section?: string): Item {
   repoTable.set(r.id, r);
@@ -606,14 +611,21 @@ function repoRow(r: Repo, section?: string): Item {
         ...(r.pushedAt ? [{ label: "Pushed", value: when(r.pushedAt) }] : []),
       ],
     },
+    args: PATH_ARGS,
     actions: repoActions(r),
   };
 }
 
 const spawnDetached = (argv: string[]) => Bun.spawn(argv, { stdio: ["ignore", "ignore", "ignore"], detached: true }).unref();
 
-async function pickRepo(r: Repo, action?: string): Promise<Effect> {
+async function pickRepo(r: Repo, action?: string, ctx?: Ctx): Promise<Effect> {
   switch (action) {
+    case "path": {
+      // A bare pick (a hotkey, `pal run`) gets the field as a form. GitHub's blob url answers a directory too (it redirects to tree).
+      const path = String(ctx?.values?.path ?? "").trim().replace(/^\/+/, "");
+      if (!ctx?.values || !path) return { form: argsForm(PATH_ARGS, `Open a path in ${r.id}`, { id: "path", title: "Open path" }, ctx?.values && { path: "Required" }) };
+      return { open: `${r.url}/blob/${r.defaultBranch}/${path.split("/").map(encodeURIComponent).join("/")}` };
+    }
     case "editor": {
       const dir = clonePath(r.id);
       if (!dir) return toast("No local clone", `Nothing under repos_root for ${r.id}`, "failure");
@@ -903,14 +915,14 @@ async function searchRows(query = "", ctx?: Ctx): Promise<Item[]> {
 }
 
 /** A pick from the search level: the row's kind is in its table, or in the shape of its id. */
-async function pickAny(id: string, action?: string): Promise<Effect | void> {
+async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   if (id.startsWith("hint:")) return pickHint(id);
   const pr = prTable.get(id);
   if (pr) return pickPR(pr, action);
   const issue = issueTable.get(id);
   if (issue) return pickIssue(issue, action);
   const repo = repoTable.get(id);
-  if (repo) return pickRepo(repo, action);
+  if (repo) return pickRepo(repo, action, ctx);
   const user = userTable.get(id);
   if (user) return pickUser(user, action);
   if (splitId(id)) {
@@ -919,7 +931,7 @@ async function pickAny(id: string, action?: string): Promise<Effect | void> {
     return pickIssue(await findIss(id), action);
   }
   if (id.startsWith("@")) return pickUser({ kind: "user", id, login: id.slice(1), name: "", url: `https://github.com/${id.slice(1)}`, avatar: "", bio: "", org: false }, action);
-  if (/^[^/\s]+\/[^/\s]+$/.test(id)) return pickRepo((await findRepo(id)) ?? { kind: "repo", id, name: id.split("/")[1], owner: id.split("/")[0], url: `https://github.com/${id}`, description: "", language: null, stars: 0, forks: 0, issues: 0, private: false, fork: false, archived: false, defaultBranch: "main", pushedAt: "", ssh: `git@github.com:${id}.git`, https: `https://github.com/${id}.git` }, action);
+  if (/^[^/\s]+\/[^/\s]+$/.test(id)) return pickRepo((await findRepo(id)) ?? { kind: "repo", id, name: id.split("/")[1], owner: id.split("/")[0], url: `https://github.com/${id}`, description: "", language: null, stars: 0, forks: 0, issues: 0, private: false, fork: false, archived: false, defaultBranch: "main", pushedAt: "", ssh: `git@github.com:${id}.git`, https: `https://github.com/${id}.git` }, action, ctx);
   throw new Error(`no row ${id}`);
 }
 
@@ -962,7 +974,7 @@ export default {
         if (id === CREATE) return action === "save" ? saveRepo(ctx?.values ?? {}) : { form: await repoForm() };
         const r = await findRepo(id);
         if (!r) throw new Error(`no repository ${id}`);
-        return pickRepo(r, action);
+        return pickRepo(r, action, ctx);
       },
     },
     notifications: {

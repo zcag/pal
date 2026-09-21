@@ -10,7 +10,9 @@ line tool that ships with macOS 12 and later.
 long it took (a shortcut can show its own UI and wait for you), the HUD
 shows `<name>: Done`, or the first line of what the shortcut output, or
 the tool's message when it failed. `cmd+enter` runs it with the newest
-clipboard text as its input; `cmd+t` asks for the input in a form. `cmd+o`
+clipboard text as its input; `cmd+t` runs it with the input typed in the
+bar's field (the row's argument; a pick without it, from `pal run` or a
+hotkey, asks in a form whose textarea takes a longer text). `cmd+o`
 opens the shortcut in the Shortcuts app.
 
 ## Keyboard
@@ -19,7 +21,7 @@ opens the shortcut in the Shortcuts app.
 | --- | --- |
 | `enter` | Run the shortcut |
 | `cmd+enter` | Run it with the clipboard's text as its input |
-| `cmd+t` | Run with text: a form for the input, then the run |
+| `cmd+t` | Run with input: the text typed in the bar's field as the input file; a form when picked without it |
 | `cmd+o` | Open it in Shortcuts |
 | `cmd+c` | Copy its name |
 | `cmd+i` | The detail pane: name, folder, identifier |

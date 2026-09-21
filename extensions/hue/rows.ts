@@ -3,7 +3,7 @@
 // five-swatch strip), sensors, automations, entertainment areas, and the
 // hint rows for a home with nothing paired or a bridge away. Pure: the
 // fixture renders the same rows.
-import { errorMessage, hint as hintRow, tinted, type Accessory, type Action, type Item } from "@zcag/pal";
+import { errorMessage, hint as hintRow, tinted, type Accessory, type Action, type Arg, type Item } from "@zcag/pal";
 import { toHex, dim, lux as _lux } from "./color.ts";
 import { HueError } from "./api.ts";
 import { aggregate, lightColor, lightHex, pct, type Automation, type Entertainment, type Light, type Room, type Scene, type Sensor } from "./model.ts";
@@ -39,11 +39,16 @@ const tag = (text: string, color: string): Accessory => ({ tag: text, color });
 const onTag = (on: boolean) => (on ? tag("on", "green") : tag("off", "grey"));
 
 
+/** The row's fields in the bar: a brightness (0 is off) and, on a light that has white tuning, a colour temperature; only Set takes them. */
+export const BRIGHTNESS_ARG: Arg = { id: "brightness", placeholder: "Brightness %", kind: "number" };
+export const KELVIN_ARG: Arg = { id: "kelvin", placeholder: "Colour temperature K", kind: "number" };
+export const SET: Action = { id: "set", title: "Set brightness or temperature", shortcut: "cmd+shift+b", args: true };
 export const ROOM_ACTIONS: Action[] = [
   { id: "toggle", title: "Toggle", shortcut: "enter" },
   { id: "open", title: "Open room", shortcut: "cmd+enter" },
   { id: "on", title: "Turn on" },
   { id: "off", title: "Turn off" },
+  SET,
   { id: "scenes", title: "Scenes of the room", shortcut: "cmd+s" },
   { id: "lights", title: "Lights in the room", shortcut: "cmd+l" },
   { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
@@ -53,6 +58,7 @@ export const LIGHT_ACTIONS: Action[] = [
   { id: "open", title: "Open light", shortcut: "cmd+enter" },
   { id: "on", title: "Turn on" },
   { id: "off", title: "Turn off" },
+  SET,
   { id: "identify", title: "Blink to find it", shortcut: "cmd+b" },
   { id: "copy_hex", title: "Copy colour", shortcut: "cmd+c" },
   { id: "copy_id", title: "Copy id", shortcut: "cmd+shift+c" },
@@ -90,6 +96,8 @@ export function roomRow(r: Room, several: boolean, bridgeName: string): Item {
     icon: { image: roomTile(a.anyOn ? a.colors : [], (bri ?? 100) / 100) },
     keywords: [r.kind, r.id.slice(r.id.indexOf(":") + 1), ...r.lights.map((l) => l.name)],
     accessories: [...(a.anyOn && bri !== undefined ? [{ text: `${bri}%` }] : []), onTag(a.anyOn)],
+    // A room's grouped light takes a temperature too when any of its lights has white tuning.
+    args: r.lights.some((l) => l.mirekRange) ? [BRIGHTNESS_ARG, KELVIN_ARG] : [BRIGHTNESS_ARG],
     actions: a.anyOn ? ROOM_ACTIONS : ROOM_ACTIONS.map((x) => (x.id === "on" ? { ...x, title: "Turn on" } : x)),
   };
 }
@@ -109,6 +117,7 @@ export function lightRow(l: Light, several: boolean, bridgeName: string): Item {
     section: l.room?.name ?? "No room",
     keywords: [l.id.slice(6), l.room?.name ?? "", "light"].filter(Boolean),
     accessories: acc,
+    args: l.mirekRange ? [BRIGHTNESS_ARG, KELVIN_ARG] : [BRIGHTNESS_ARG],
     actions: LIGHT_ACTIONS,
     /** The brightness, for the detail pane and the fixture; the UI ignores it. */
     brightness: bri,

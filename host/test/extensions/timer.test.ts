@@ -129,14 +129,19 @@ describe("timer", () => {
     expect(items[1].actions!.map((a) => a.id)).toEqual(["pause", "add", "stop"]);
     expect(items[2]).toMatchObject({ name: "eggs", subtitle: "Paused at 0:30", accessories: [{ tag: "paused", color: "amber" }] });
     expect(items[2].actions!.map((a) => a.id)).toEqual(["resume", "add", "stop"]);
+    // The bar's field on a timer row: minutes for Add only; five when blank or absent (a hotkey).
+    expect(items[1].args).toEqual([{ id: "add", placeholder: "Minutes to add", kind: "number", default: "5" }]);
+    expect(items[1].actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["add"]);
     expect(await pick("tea", "pause")).toEqual({ keep: true });
     expect(readFileSync(join(dir, "tea.state"), "utf8")).toContain("state=paused");
     expect(await pick("tea", "resume")).toEqual({ keep: true });
     expect(await pick("tea", "add")).toEqual({ keep: true });
+    expect(await pick("tea", "add", { add: "15" })).toEqual({ keep: true });
+    expect(await pick("tea", "add", { add: "" })).toEqual({ keep: true });
     expect(await pick("pizza", "done")).toEqual({ keep: true });
     expect(await pick("eggs", "stop")).toEqual({ keep: true });
     expect(existsSync(join(dir, "eggs.state"))).toBe(false);
-    expect(asked()).toEqual(["pause tea", "resume tea", "add 5m tea", "done", "stop eggs"]);
+    expect(asked()).toEqual(["pause tea", "resume tea", "add 5m tea", "add 15m tea", "add 5m tea", "done", "stop eggs"]);
     clear();
   });
 

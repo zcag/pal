@@ -22,11 +22,11 @@ cursor rests on a row) shows the recipe as a code block and, in its
 metadata, the project, the Makefile's name, the description and whether it
 is phony.
 
-Enter on a target first turns the search bar into one field, the words to
-put after the target (`VERBOSE=1`, `-j4`, split on spaces; blank runs it
-plain, so Enter twice is `make <target>`; a pick that arrives without the
-field, a hotkey or a bare `pal run`, runs it plain too). Run opens a
-terminal in the project folder running `make <target> <words>`; the
+While the cursor is on a target the search bar shows one field after the
+query, the words to put after the target (`VERBOSE=1`, `-j4`, split on
+spaces; Tab into it, Escape back); left blank, Enter runs it plain, as
+does a pick that arrives without the field (a hotkey, a bare `pal run`).
+Run opens a terminal in the project folder running `make <target> <words>`; the
 window stays open until Enter is pressed, so a quick target's output is
 not gone with it, and the HUD names the command. With `terminal =
 "background"` make runs unseen instead: a toast carries the exit status

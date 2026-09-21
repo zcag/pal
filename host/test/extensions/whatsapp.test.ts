@@ -189,8 +189,9 @@ describe("whatsapp", () => {
     expect(rows[3]).toMatchObject({ name: "Family", subtitle: "Dinner at eight on Sunday?", icon: "\u{f0849}" });
     expect(rows[6]).toMatchObject({ name: "pal beta", subtitle: "Group" });
     expect(rows.find((r) => r.name === "Status")).toBeUndefined();
-    // Read chats: Open, Mark as unread, web, copy; with send off no message or reaction.
+    // Read chats: Open, Mark as unread, web, copy; with send off no message or reaction, and no message field.
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "web", "copy-number"]);
+    expect(rows[0].args).toBeUndefined();
     expect(rows[3].actions!.map((a) => a.id)).toEqual(["open", "unread", "web", "copy-name"]);
     expect(rows[0].actions![1]).toEqual({ id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true });
     // One session lookup, kept in storage; the histories only for the unread three, sized to their count (5 at most); one picture batch.
@@ -287,6 +288,16 @@ describe("whatsapp", () => {
     await host.until(() => host.coreCalls.length > 0);
     const rows = await list("chats", "", { refresh: true });
     expect(rows[0].actions!.map((a) => a.id)).toEqual(["open", "read", "reply", "react", "web", "copy-number"]);
+    // The message is the row's typed argument for Send (Enter still opens the chat); a quote choice when the latest message is theirs.
+    expect(rows[0].actions![2]).toEqual({ id: "reply", title: "Send a message", shortcut: "cmd+shift+r", args: true });
+    expect(rows[0].args).toEqual([{ id: "text", placeholder: "Message", required: true }, { id: "quote", placeholder: "Reply", kind: "select", default: "", options: [{ id: "", title: "New message" }, { id: "quote", title: "Quote “standup in 20?”" }] }]);
+    expect(rows[3].args).toEqual([{ id: "text", placeholder: "Message", required: true }]);
+    expect(await host.pick(X, "chats", MARA, "reply", { values: { text: "see you there", quote: "" } })).toEqual({ keep: true, toast: { title: "Sent", message: "Mara Lind: see you there" } });
+    expect(await host.pick(X, "chats", MARA, "reply", { values: { text: "yes", quote: "quote" } })).toMatchObject({ toast: { title: "Sent" } });
+    expect(mock.sent).toEqual([{ chatId: MARA, text: "see you there" }, { chatId: MARA, text: "yes", quoted: "false_254011223344556@lid_A5" }]);
+    mock.sent.length = 0;
+    expect(await host.pick(X, "chats", MARA, "reply", { values: { text: " ", quote: "" } })).toMatchObject({ form: { errors: { text: "Required" } } });
+    // Without values (a hotkey, `pal run`): the form, the quote as a checkbox.
     const form = (await host.pick(X, "chats", MARA, "reply")).form!;
     expect(form).toMatchObject({ id: MARA, title: "Message Mara Lind", submit: { id: "send", title: "Send" } });
     expect(form.fields.map((f) => [f.id, f.kind])).toEqual([["text", "textarea"], ["quote", "checkbox"]]);

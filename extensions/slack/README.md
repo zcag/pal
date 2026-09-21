@@ -30,17 +30,21 @@ is longer than a page), a presence dot for a direct message (green while
 the person is active, grey while away; in a group message, whoever wrote
 the message shown) and how long ago. The detail pane (`⌘I`, or rest
 on the row) is the unread run itself, oldest first, up to eight
-messages. Actions: Open in Slack (`Enter`), Reply (`⌘Enter`, a
-one-field form that posts to the conversation, or into the thread for a
-threaded mention), Mark as read (`⌘⇧R`, up to the latest message), Open
+messages. Actions: Open in Slack (`Enter`), Reply (`⌘Enter`; the message
+is the row's typed argument: Tab into the Message field in the bar, and
+`⌘Enter` posts it to the conversation, or into the thread for a threaded
+mention; a pick without it, from `pal run` or a hotkey, is a one-field
+form), Mark as read (`⌘⇧R`, up to the latest message), Open
 in browser (`⌘⇧O`, the archive page), Copy link (`⌘C`). Thread rows have
 no message text (Slack's counts name the channel, not the thread) and no
 Reply or Mark as read.
 
 **Channels** is every channel, private channel, group message and direct
 message you are in, channels first, then by name, with the topic or
-purpose, the member count and a tag for private, group and DM. Listed
-once an hour (`⌘R` for now). **Search Slack** sends what you type to
+purpose, the member count and a tag for private, group and DM. Enter
+opens it; Send a message (`⌘⇧R`) posts the message typed in the bar's
+field (the same `chat.postMessage` a reply uses; a form when picked
+without it). Listed once an hour (`⌘R` for now). **Search Slack** sends what you type to
 `search.messages` as is, so Slack's own syntax works: free text,
 `from:@name`, `in:#channel`, `has:link`, `before:yesterday`, `on:` a
 date; rows are the message, who said it where, and when. **Status** lists
@@ -117,8 +121,9 @@ stale bar item) instead of piling onto the limit.
 | keys | action | where |
 | --- | --- | --- |
 | `enter` | Open in Slack (the app, at the message when one is known) | Unreads, Channels, Search |
-| `cmd+enter` | Reply (a form; posts to the conversation, into the thread for a threaded mention) | Unreads, not a thread row |
+| `cmd+enter` | Reply: the message typed in the bar's field posts to the conversation, into the thread for a threaded mention (a form when picked without it) | Unreads, not a thread row |
 | `cmd+shift+r` | Mark as read, up to the latest message | Unreads, not a thread row |
+| `cmd+shift+r` | Send a message: the message typed in the bar's field, posted to the conversation (a form when picked without it) | Channels |
 | `cmd+shift+o` | Open in browser (the web client's archive page) | Unreads, Channels, Search |
 | `cmd+c` | Copy link (Copy text on a search hit) | Unreads, Channels, Search |
 | `enter` | Set status, Clear status, Pause notifications, End Do Not Disturb, Set away / active; on "Set a status…" the bar takes the status text, the emoji (`:speech_balloon:` unless you say) and the expiry (none, 30m, 1h, 2h, 4h, tomorrow), on "Do Not Disturb for…" the minutes | Status |

@@ -54,8 +54,8 @@ Three things, each on your action and nowhere else:
   Create today's note (which asks first) and the file is missing; also
   before an append when it is missing.
 - **A line at the end of today's note**: Append to today (the line is
-  the row's typed argument: Enter turns the search bar into the field,
-  Enter again appends; `{selection}`, `{clipboard}`, `{date}`, `{time}`
+  the row's typed argument: with the cursor on the row the bar shows the
+  field, Tab into it, Enter appends; `{selection}`, `{clipboard}`, `{date}`, `{time}`
   filled in) and the `append-today` link. Today's note's `⌘Enter`, and a
   pick without the value (`pal run`, a hotkey), ask in a form with the
   same field, prefilled from the clipboard.
@@ -92,7 +92,10 @@ draws the note as a view through the same markdown renderer tela's pages
 use: headings, lists, tasks, callouts as tinted cards, quotes and code on
 sunken wells, tables as aligned columns, links under their paragraph.
 Backlinks (`⌘B`) and Outgoing links (`⌘L`) push those palettes with the
-row; Copy path (`⌘⇧C`) is the absolute path. The pane (`⌘I`) is the note
+row; Copy path (`⌘⇧C`) is the absolute path. Append a line (`⌘⇧A`) takes
+the line as the row's typed argument (Tab into the field in the bar;
+`{clipboard}`, `{selection}`, `{date}`, `{time}` filled in) and lands it
+at the end of the note; a pick without it asks in a form. The pane (`⌘I`) is the note
 as markdown with the front matter off, callouts as a bold lead, wikilinks
 as links into Obsidian (a link to nothing yet says so), then the path,
 the modified time, the words, the tags, the aliases, the links (an

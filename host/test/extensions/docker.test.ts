@@ -101,16 +101,32 @@ describe("docker", () => {
     expect(Date.now() - t0).toBeLessThan(9500);
   }, 12_000);
 
-  test("logs: a show level with the last 200 lines fenced, stderr included", async () => {
+  test("logs: a show level with the last 200 lines fenced, stderr included; the bar's count instead when it is one", async () => {
     const r = await pick("b5d74103f8fe", "logs");
     expect(r.show).toEqual({ title: "Logs b5d74103f8fe", markdown: "````\nline one\nline two\nwarn: on stderr\n````" });
     expect(called().at(-1)).toBe("logs --tail 200 b5d74103f8fe");
+    // The row's fields: the line count on every container, a Shell command on a running one; only Logs and Shell read them.
+    const items = await list();
+    expect(items.find((i) => i.id === "b5d74103f8fe")!.args).toEqual([{ id: "lines", placeholder: "Log lines", kind: "number", default: "200" }, { id: "command", placeholder: "Command for Shell (blank: a shell)" }]);
+    expect(items.find((i) => i.id === "aa11bb22cc33")!.args!.map((a) => a.id)).toEqual(["lines"]);
+    expect(items.find((i) => i.id === "b5d74103f8fe")!.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["logs", "shell"]);
+    expect(items.find((i) => i.id === "aa11bb22cc33")!.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["logs"]);
+    await pick("aa11bb22cc33", "logs", "docker", { lines: "50", command: "" });
+    expect(called().at(-1)).toBe("logs --tail 50 aa11bb22cc33");
+    await pick("aa11bb22cc33", "logs", "docker", { lines: "lots" });
+    expect(called().at(-1)).toBe("logs --tail 200 aa11bb22cc33");
   });
 
-  test("shell opens a terminal running docker exec -it; remove forces; copy id", async () => {
+  test("shell opens a terminal running docker exec -it, or the bar's command kept open until Enter; remove forces; copy id", async () => {
     expect(await pick("b5d74103f8fe", "shell")).toEqual({});
-    const argv = JSON.parse(readFileSync(join(dir, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[];
-    expect(argv.join(" ")).toContain("docker exec -it b5d74103f8fe sh -c");
+    const opened = () => JSON.parse(readFileSync(join(dir, "terminal"), "utf8").trim().split("\n").at(-1)!) as string[];
+    expect(opened().join(" ")).toContain("docker exec -it b5d74103f8fe sh -c");
+    expect(await pick("b5d74103f8fe", "shell", "docker", { lines: "200", command: "" })).toEqual({});
+    expect(opened().join(" ")).toContain("docker exec -it b5d74103f8fe sh -c command -v bash");
+    expect(await pick("b5d74103f8fe", "shell", "docker", { lines: "200", command: "cat /etc/os-release" })).toEqual({});
+    const argv = opened();
+    expect(argv.slice(-3, -1)).toEqual(["sh", "-c"]);
+    expect(argv.at(-1)).toMatch(/^docker exec -it b5d74103f8fe sh -c 'cat \/etc\/os-release'; s=\$\?; printf .*read -r _$/);
     expect(await pick("b5d74103f8fe", "remove")).toEqual({ keep: true, toast: { title: "Removed b5d74103f8fe" } });
     expect(called().at(-1)).toBe("rm -f b5d74103f8fe");
     expect(await pick("b5d74103f8fe", "copy-id")).toEqual({ copy: "b5d74103f8fe" });

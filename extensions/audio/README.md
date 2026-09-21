@@ -74,10 +74,10 @@ Settings, `[extensions.audio]`:
 | keywords | the direction and the transport, so `bluetooth` or `input` finds the rows |
 | section | Output, then Input |
 
-The volume level pushed by Set volume… has one row per preset with the
-device's name as the subtitle and a `current` tag on the level the device
-is at exactly; its icon is the muted speaker for 0 % and the
-loud one for the rest.
+A device with a volume control carries one field in the bar, the percent
+(argument `volume`); only Set volume reads it, Enter and Mute run as they
+are. A pick without the field (a hotkey, a bare `pal run`) asks for it in
+a form, and anything but 0 to 100 comes back on the field.
 
 A hotkey can open the palette straight away, and an item hotkey can make
 one device the default without showing pal, keyed on the row's id
@@ -96,7 +96,7 @@ hotkey = "ctrl+alt+a"
 | keys | action |
 | --- | --- |
 | `enter` | Set as output / Set as input: makes the row the default for its direction; the HUD names it |
-| `cmd+shift+v` | Set volume…: drills into a level of presets, 0 / 25 / 50 / 75 / 100 %, the current one tagged; a pick sets it and the HUD says so |
+| `cmd+shift+v` | Set volume: the percent typed in the bar (argument `volume`) goes to the device; the HUD says so |
 | `cmd+m` | Mute / Unmute: toggles mute and stays in the list |
 
 A digital output without a volume control has no volume accessory and no
@@ -120,8 +120,6 @@ platform.
 
 - No per-app volume, no balance, no sample rate: the capability exposes
   the default, the main volume and mute of each device, nothing finer.
-- No arbitrary level: the presets are the five steps; use the system's
-  volume keys for anything in between.
 - No AirPlay or Bluetooth pairing from here: the Bluetooth palette
   connects a paired device, the OS pairs it.
 

@@ -369,8 +369,11 @@ describe("github", () => {
       expect(tags(items[4])).toContain("archived");
       // The clone under repos_root shows in the pane and adds the editor actions.
       expect(pal.detail!.metadata!.find((m) => m.label === "Local clone")!.value).toBe(join(dir, "pal"));
-      expect(pal.actions!.map((a) => a.id)).toEqual(["open", "editor", "folder", "clone", "copy", "name", "issues", "pulls"]);
-      expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "clone", "copy", "name", "issues", "pulls"]);
+      expect(pal.actions!.map((a) => a.id)).toEqual(["open", "editor", "folder", "clone", "copy", "name", "issues", "pulls", "path"]);
+      expect(items[2].actions!.map((a) => a.id)).toEqual(["open", "clone", "copy", "name", "issues", "pulls", "path"]);
+      // Open path takes the row's typed argument; Enter still opens the front page.
+      expect(pal.actions!.at(-1)).toEqual({ id: "path", title: "Open path", shortcut: "cmd+p", args: true });
+      expect(pal.args).toEqual([{ id: "path", placeholder: "Path in the repo", required: true }]);
     });
 
     test("filters: mine, starred, org; the org filter without an org is a hint", async () => {
@@ -410,6 +413,15 @@ describe("github", () => {
       expect(await pick("repos", "zcag/pal", "folder")).toEqual({ open: join(dir, "pal") });
       expect(await pick("repos", "zcag/dotty", "editor")).toMatchObject({ keep: true, toast: { title: "No local clone", style: "failure" } });
       expect((await host.call("pick", { extension: "github", palette: "repos", id: "nope/nope" })).error).toMatch(/no repository/);
+    });
+
+    test("Open path: the path typed in the bar under the default branch, each segment encoded; without values a form with the same field, an empty path refused in it", async () => {
+      expect(await pick("repos", "zcag/pal", "path", { values: { path: "/docs/links.md" } })).toEqual({ open: "https://github.com/zcag/pal/blob/main/docs/links.md" });
+      expect(await pick("repos", "zcag/pal", "path", { values: { path: "a b/c#d" } })).toEqual({ open: "https://github.com/zcag/pal/blob/main/a%20b/c%23d" });
+      const form = (await pick("repos", "zcag/pal", "path")).form!;
+      expect(form).toMatchObject({ title: "Open a path in zcag/pal", submit: { id: "path", title: "Open path" } });
+      expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["path", "text", true]]);
+      expect((await pick("repos", "zcag/pal", "path", { values: { path: " " } })).form!.errors).toEqual({ path: "Required" });
     });
 
     test("create: owner select (me and the org), name, description, private; the submit posts to the owner's endpoint", async () => {

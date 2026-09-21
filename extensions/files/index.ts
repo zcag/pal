@@ -28,7 +28,7 @@
 // `grep` on their temp folder).
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
-import { apps as appsApi, bytes, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, when, type Action, type App, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
+import { apps as appsApi, bytes, conceal, dialog, failed, files, hint as hintRow, home, ocr, pngSize, run, settings, terminal, thumbnailUrl, tilde, toast, when, type Action, type App, type Arg, type Ctx, type Detail, type Dialog, type Effect, type Extension, type Item, type Metadata } from "@zcag/pal";
 import { BROWSE_CAP, SORTS, UP, filterEntries, isRoot, moreRow, sortEntries, upRow, type Browse, type Entry, type Sort } from "./browse.ts";
 import { contentArgv, parseQuery, snippet, snippetArgv, type ContentBackend } from "./content.ts";
 import { parseMdls } from "./meta.ts";
@@ -209,7 +209,7 @@ const ACTIONS: Action[] = [
   { id: "copy", title: "Copy path", shortcut: "cmd+c", multi: true },
   { id: "copy-file", title: "Copy file", shortcut: "cmd+shift+c", multi: true },
   { id: "terminal", title: "Open in Terminal", shortcut: "cmd+t" },
-  { id: "rename", title: "Rename…", shortcut: "cmd+shift+r" },
+  { id: "rename", title: "Rename", shortcut: "cmd+shift+r", args: true },
   { id: "move", title: "Move to…", shortcut: "cmd+m" },
   { id: "copy-to", title: "Copy to…", shortcut: "cmd+alt+c" },
   { id: "compress", title: "Compress", shortcut: "cmd+shift+z", multi: true },
@@ -241,6 +241,9 @@ async function item(p: string, usedAt?: number, section?: string): Promise<Item 
   return entryRow({ path: p, name: basename(p) || p, dir: st.isDirectory(), size: st.size, mtime: st.mtimeMs }, usedAt, section);
 }
 
+/** The row's one field in the bar, a new name; only Rename reads it, and blank falls back to the form with the current name filled. */
+const RENAME_ARGS: Arg[] = [{ id: "name", placeholder: "Rename to" }];
+
 /** The row of a stat'ed entry: `thumbs` draws an image's own thumbnail in place of the glyph (a browsed folder, where the pictures are the point). */
 function entryRow(e: Entry, usedAt?: number, section?: string, thumbs = false, extra: Action[] = []): Item {
   const k = kind(e.path, e.dir);
@@ -251,6 +254,7 @@ function entryRow(e: Entry, usedAt?: number, section?: string, thumbs = false, e
     icon: MAC && e.path.endsWith(".app") ? { app: e.path } : thumbs && k === "image" ? { image: thumbnailUrl(e.path, 24) } : GLYPH[k],
     accessories: [...(k === "folder" ? [] : [{ text: bytes(e.size) }]), { date: usedAt ?? e.mtime }],
     ...(section && { section }),
+    args: RENAME_ARGS,
     actions: [...actionsFor(e.path, k), ...extra],
   };
 }
@@ -488,7 +492,8 @@ async function fileAction(id: string, action: string | undefined, palette: strin
     case "copy": return { copy: ids.join("\n") };
     case "copy-file": return { copy_files: ids };
     case "terminal": return openTerminal(id);
-    case "rename": return { form: files.renameForm(id) };
+    // The bar's name; blank (or a pick without values) is the form with the current name filled, as `rename-submit` (the form's submit) comes back.
+    case "rename": return String(values?.name ?? "").trim() ? files.renamePick(id, values) : { form: files.renameForm(id) };
     case "move": return { form: files.moveForm(id) };
     case "copy-to": return { form: files.copyForm(id) };
     case "rename-submit": return files.renamePick(id, values);

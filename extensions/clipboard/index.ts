@@ -11,7 +11,7 @@
 // could be and is the root's Clipboard section.
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { bytes, clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, bytes, clipboard, conceal, errorMessage, failed, home, ocr, settings, when, type Action, type Arg, type ClipboardEntry, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams } from "@zcag/pal";
 import { rowsPalette } from "./now.ts";
 import { fileNameFor, qrSvg, QR_SHOW_PX } from "./rows.ts";
 
@@ -120,7 +120,7 @@ const actions = (e: ClipboardEntry, primary: Settings["primary_action"], url?: s
   ...(e.kind === "image" ? [{ id: "copy-file", title: "Copy image file", shortcut: "cmd+shift+c" }, { id: "copy-text", title: "Copy text from image", shortcut: "cmd+shift+t" }] : []),
   ...(e.kind === "text" ? [{ id: "edit", title: "Edit…", shortcut: "cmd+e" }] : []),
   { id: "pin", title: e.pinned ? "Unpin" : "Pin", shortcut: "cmd+p" },
-  { id: "rename", title: e.name ? "Rename…" : "Name…", shortcut: "cmd+shift+r" },
+  { id: "rename", title: e.name ? "Rename" : "Name", shortcut: "cmd+shift+r", args: true },
   { id: "save-file", title: "Save as file…", shortcut: "cmd+s" },
   ...(e.kind === "text" ? [{ id: "snippet", title: "Save as snippet", shortcut: "cmd+shift+s" }] : []),
   ...(e.kind === "text" && e.text!.length <= QR_MAX ? [{ id: "qr", title: "Show as QR code", shortcut: "cmd+shift+k" }] : []),
@@ -128,6 +128,9 @@ const actions = (e: ClipboardEntry, primary: Settings["primary_action"], url?: s
   { id: "delete-unpinned", title: "Delete all unpinned", style: "destructive", confirm: "Delete every unpinned entry? Pinned ones stay." },
   { id: "clear", title: "Clear history", shortcut: "cmd+shift+d", style: "destructive", confirm: "Delete every entry, pinned ones included?" },
 ];
+
+/** The row's one field in the bar, its name; only Name / Rename reads it, and blank clears a name it has. */
+const nameArgs = (e: ClipboardEntry): Arg[] => [{ id: "name", placeholder: e.name ? "New name (blank clears it)" : "Name", ...(e.name && { default: e.name }) }];
 
 function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
   const url = urlOf(e);
@@ -146,6 +149,7 @@ function item(e: ClipboardEntry, primary: Settings["primary_action"]): Item {
     ],
     ...(e.pinned && { section: "Pinned" }),
     detail: detail(e, color),
+    args: nameArgs(e),
     actions: actions(e, primary, url),
   };
 }
@@ -164,14 +168,8 @@ const editForm = (e: ClipboardEntry, errors?: Form["errors"]): Form => ({
   errors,
 });
 
-/** Name: one field, empty clears (the row goes back to its text). */
-const nameForm = (e: ClipboardEntry, errors?: Form["errors"]): Form => ({
-  id: String(e.id),
-  title: e.name ? `Rename ${e.name}` : "Name this entry",
-  fields: [{ kind: "text", id: "name", label: "Name", default: e.name ?? "", placeholder: "Deploy notes", description: "The row's title from now on, found by search like the text; empty clears it." }],
-  submit: { id: "rename-submit", title: e.name ? "Rename" : "Name" },
-  errors,
-});
+/** The name field as a page, for a pick without values (a hotkey, `pal run`): empty clears (the row goes back to its text). */
+const nameForm = (e: ClipboardEntry): Form => ({ ...argsForm(nameArgs(e), e.name ? `Rename ${e.name}` : "Name this entry", { id: "rename", title: e.name ? "Rename" : "Name" }), id: String(e.id) });
 
 const saveForm = (e: ClipboardEntry, errors?: Form["errors"]): Form => ({
   id: String(e.id),
@@ -278,9 +276,10 @@ export default {
             // The edited text goes on the clipboard (the watcher records it as the newest entry); with the box ticked it is pasted, which copies it on the way.
             return ctx?.values?.paste ? { paste: { text } } : { copy: text };
           }
-          case "rename": return { form: nameForm(await clipboard.get(entry)) };
-          case "rename-submit": {
-            const name = String(ctx?.values?.name ?? "").trim();
+          // The bar's name, or the form's (`rename-submit` was its submit id before; a saved hotkey may carry it).
+          case "rename": case "rename-submit": {
+            if (!ctx?.values) return { form: nameForm(await clipboard.get(entry)) };
+            const name = String(ctx.values.name ?? "").trim();
             await clipboard.rename(entry, name || null);
             return { keep: true, toast: { title: name ? "Named" : "Name cleared", message: name || undefined } };
           }

@@ -6,9 +6,9 @@
 // A note opens in Obsidian (`obsidian://open`) or an editor, reads inside
 // the panel through the SDK's markdown renderer (`md`), and the pane
 // shows it with its links, tags and backlinks. Writes: a daily note from
-// its template, a line appended to it, a new note (the line, the title
-// and the folder typed in the search bar: the rows' `args`); nothing else
-// is changed. vault.ts owns the index and the file system, notes.ts the
+// its template, a line appended to it or to any note, a new note (the
+// line, the title and the folder typed in the search bar: the rows'
+// `args`); nothing else is changed. vault.ts owns the index and the file system, notes.ts the
 // parsing.
 import { readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
@@ -117,8 +117,13 @@ function noteActions(): Action[] {
     { id: "backlinks", title: "Backlinks", shortcut: "cmd+b" },
     { id: "outgoing", title: "Outgoing links", shortcut: "cmd+l" },
     { id: "copy-path", title: "Copy path", shortcut: "cmd+shift+c" },
+    // Takes the row's typed argument (the line); Enter on the row still opens the note.
+    { id: "append", title: "Append a line", shortcut: "cmd+shift+a", args: true },
   ];
 }
+
+/** The line typed in the bar for a note row's "Append a line"; the same placeholders as Append to today are filled in. */
+const LINE_ARGS: Arg[] = [{ id: "text", placeholder: "A line to append", required: true }];
 
 function noteRow(n: Note, actions: Action[], extra: Partial<Item> = {}): Item {
   return {
@@ -129,6 +134,7 @@ function noteRow(n: Note, actions: Action[], extra: Partial<Item> = {}): Item {
     keywords: [...(n.name !== n.title ? [n.name] : []), ...n.aliases, ...n.tags.map((t) => `#${t}`), ...(n.folder ? [n.folder] : [])],
     section: n.folder || "Vault",
     accessories: [...n.tags.slice(0, TAGS_ON_ROW).map((t) => ({ tag: t })), { date: Math.round(n.mtime) }],
+    args: LINE_ARGS,
     actions,
     ...extra,
   };
@@ -274,11 +280,18 @@ async function noteView(i: Index, n: Note): Promise<View> {
   };
 }
 
-async function pickNote(path: string, action?: string): Promise<Effect | void> {
+async function pickNote(path: string, action?: string, ctx?: Ctx): Promise<Effect | void> {
   const i = await ix();
   const n = i.byPath.get(path);
   if (!n) throw new Error(`no note ${path}`);
   switch (action) {
+    case "append": {
+      // A bare pick (a hotkey, `pal run`) gets the field as a form.
+      const raw = str(ctx?.values?.text);
+      if (!ctx?.values || !raw.trim()) return { form: argsForm(LINE_ARGS, `Append to ${cut(n.title, 40)}`, { id: "append", title: "Append" }, ctx?.values && { text: "Required" }) };
+      await appendNote(i.root, path, await expand(raw, SOURCES));
+      return { hud: `Appended to ${n.title}` };
+    }
     case "editor": await remember(path); return open(i, path, "editor");
     case "obsidian": await remember(path); return open(i, path, "obsidian");
     case "copy-link": return { copy: wikilink(n, i.notes) };
@@ -484,7 +497,7 @@ async function pickAny(id: string, action?: string, ctx?: Ctx): Promise<Effect |
     return { ...open(await ix(true), path), hud: `Created ${basename(l)}` };
   }
   const path = pathOf(id);
-  if (path !== undefined) return pickNote(path, action);
+  if (path !== undefined) return pickNote(path, action, ctx);
   throw new Error(`no row ${id}`);
 }
 

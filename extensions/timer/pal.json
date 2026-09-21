@@ -116,7 +116,7 @@
         },
         {
           "keys": "cmd++",
-          "title": "Add five minutes"
+          "title": "Add the minutes typed in the bar (five when blank)"
         },
         {
           "keys": "cmd+s",
@@ -256,7 +256,7 @@
     "features": [
       "One row per timer, most urgent first: `3:12 left, done at 04:41 PM`, `Paused at 41:05`, `Landed 1:35 ago`, with a state tag",
       "New timer takes its fields in the search bar: `25m`, `90s`, `1h30m` or a bare number of minutes, an optional name, and Silent or Ring the phone when it lands",
-      "`enter` pauses, resumes or dismisses; `cmd++` adds five minutes; `cmd+d` stops",
+      "`enter` pauses, resumes or dismisses; `cmd++` adds the minutes typed in the bar (five when blank); `cmd+d` stops",
       "Pomodoro: Start Pomodoro (or `p` in the popover) runs 25 minutes of work, 5 of break, 15 after the fourth round, each as a timer of its own that the next phase follows when it lands; the bar reads `12:34 · 2/4`, the card names the phase, `cmd+s` skips a phase, `cmd+shift+d` stops the cycle, and a Pomodoros today row counts the finished rounds",
       "The CLI keeps the timers, so one started in a terminal and one started here are the same list",
       "A bar item with the soonest timer's countdown and a fill, blue to amber to red, an alarm once it lands; its popover a card per timer with the time left, pause, add five minutes, stop, and a field that starts one (`25m tea`)"
@@ -328,7 +328,8 @@
         "keys": "enter"
       },
       {
-        "title": "Add 5 minutes",
+        "title": "Add minutes",
+        "description": "The minutes typed in the bar, five when blank.",
         "keys": "cmd++"
       },
       {

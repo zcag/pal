@@ -62,7 +62,7 @@ the answer (Spotlight, locate).
 | `cmd+c` | Copy path |
 | `cmd+shift+c` | Copy file: the file itself onto the clipboard; a paste in Finder or a file manager copies it, a paste in a text field gets its path |
 | `cmd+t` | Open in Terminal: a terminal window in the folder (a file's folder), the app the `terminal` setting names (Terminal, iTerm, kitty, Alacritty, WezTerm, Ghostty; Linux `$TERMINAL` or the first installed) |
-| `cmd+shift+r` | Rename…: a form with the name; the same folder, a taken name refused |
+| `cmd+shift+r` | Rename: argument `name` typed in the bar, the same folder, a taken name refused; blank (or a pick without the field) opens the form with the current name filled |
 | `cmd+m` | Move to…: a form with the folder (`~` expanded, made when missing); across volumes `mv` does it |
 | `cmd+alt+c` | Copy to…: the same form, a copy under the same name (a folder whole) |
 | `cmd+shift+z` | Compress: a zip next to the file named after it (`-2` when taken); with rows marked, one zip of them all named after the first (`ditto -c -k --sequesterRsrc --keepParent` on macOS, `zip -r` on Linux) |
@@ -107,4 +107,5 @@ locate or find; GTK's recently-used list; `gio trash`, `xdg-open`, `zip`;
 a PNG's size off its header, no tags).
 
 The rename, move and copy forms are `@zcag/pal`'s `files` helpers, shared
-with the Downloads extension.
+with the Downloads extension; Rename takes its name from the bar first
+and falls back to the form when that is blank.

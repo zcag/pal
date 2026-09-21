@@ -18,7 +18,7 @@ type HostEntry = { name: string; file: string; hostname?: string; user?: string;
 const LINUX = process.platform === "linux";
 const ICON = xdg("network-server") ?? "⌁";
 const CONNECT: Action = { id: "connect", title: "Connect" };
-/** Connect's one argument: blank is a shell, a command runs there and the window waits for Enter. Optional, so a bare pick (a hotkey, `pal run`) still connects. */
+/** Connect's one argument in the bar: blank is a shell, a command runs there and the window waits for Enter. Optional, so a bare pick (a hotkey, `pal run`) still connects. */
 const ARGS: Arg[] = [{ id: "command", placeholder: "Command (blank: a shell)" }];
 const COPY_HOST: Action = { id: "copy-host", title: "Copy host", shortcut: "cmd+c" };
 const COPY_COMMAND: Action = { id: "copy-command", title: "Copy ssh command", shortcut: "cmd+shift+c" };

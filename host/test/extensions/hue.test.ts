@@ -339,6 +339,14 @@ describe("over the wire against the mock bridge", () => {
     expect(await host.pick(E, "rooms", "room:living-room", "copy_id")).toEqual({ copy: "room:living-room" });
     const d = await host.detail(E, "rooms", "room:living-room");
     expect(d.metadata!.map((m) => m.label)).toEqual(["Room", "Lights", "State", "Id"]);
+    // Set takes the bar's brightness (and a temperature when a light in the room tunes white): one PUT on the grouped light; the primary Toggle runs bare.
+    expect(living.args!.map((a) => a.id)).toEqual(["brightness", "kelvin"]);
+    expect(living.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["set"]);
+    await Bun.sleep(1100);
+    expect(await host.pick(E, "rooms", "room:living-room", "set", { values: { brightness: "40", kelvin: "" } })).toEqual({ keep: true, hud: "Living room: 40%" });
+    expect(lastPut()).toEqual({ type: "grouped_light", id: "gl-living", body: { on: { on: true }, dimming: { brightness: 40 }, dynamics: { duration: 400 } } });
+    expect(await host.pick(E, "rooms", "room:living-room", "set", { values: { brightness: "", kelvin: "" } })).toMatchObject({ keep: true, toast: { title: "Nothing to set", style: "failure" } });
+    expect((await host.pick(E, "rooms", "room:living-room", "set")).form).toMatchObject({ title: "Set Living room", submit: { id: "set" }, fields: [{ id: "brightness" }, { id: "kelvin" }] });
   });
 
   test("lights: by room with sections and swatches; a room's lights through args; toggle, identify, copy", async () => {
@@ -355,6 +363,23 @@ describe("over the wire against the mock bridge", () => {
     expect(await host.pick(E, "lights", "light:bedside", "identify")).toMatchObject({ toast: { title: "Bedside is blinking" } });
     expect(lastPut().body).toEqual({ alert: { action: "breathe" } });
     expect(await host.pick(E, "lights", "light:tv-strip", "copy_hex")).toEqual({ copy: expect.stringMatching(/^#[0-3][0-9a-f]00ff$/) });
+    // The bar's fields: brightness on every light, a temperature only where the light tunes white; Set puts them, 0 is off, kelvin lands as mirek inside the range.
+    expect(sofa.args!.map((a) => a.id)).toEqual(["brightness", "kelvin"]);
+    expect(items.find((i) => i.id === "light:wardrobe")!.args!.map((a) => a.id)).toEqual(["brightness"]);
+    await Bun.sleep(150);
+    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "55", kelvin: "2700" } })).toEqual({ keep: true, hud: "Sofa lamp: 55%, 2703 K" });
+    expect(lastPut()).toEqual({ type: "light", id: "light-1", body: { on: { on: true }, dimming: { brightness: 55 }, color_temperature: { mirek: 370 }, dynamics: { duration: 400 } } });
+    await Bun.sleep(150);
+    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "0", kelvin: "" } })).toEqual({ keep: true, hud: "Sofa lamp: off" });
+    expect(lastPut().body).toEqual({ on: { on: false }, dynamics: { duration: 400 } });
+    await Bun.sleep(150);
+    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "", kelvin: "9000" } })).toEqual({ keep: true, hud: "Sofa lamp: 6536 K" });
+    expect(lastPut().body).toEqual({ on: { on: true }, color_temperature: { mirek: 153 }, dynamics: { duration: 400 } });
+    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "bright", kelvin: "" } })).toMatchObject({ keep: true, toast: { title: "Not a brightness: bright", style: "failure" } });
+    expect((await host.pick(E, "lights", "light:wardrobe", "set")).form).toMatchObject({ title: "Set Wardrobe", submit: { id: "set", title: "Set brightness or temperature" }, fields: [{ id: "brightness" }] });
+    // Back to the sample's state (72 %, 2732 K) for the detail below.
+    await Bun.sleep(150);
+    expect(await host.pick(E, "lights", "light:sofa-lamp", "set", { values: { brightness: "72", kelvin: "2732" } })).toEqual({ keep: true, hud: "Sofa lamp: 72%, 2732 K" });
     const d = await host.detail(E, "lights", "light:sofa-lamp");
     expect(d.metadata!.find((m) => m.label === "Temperature")!.value).toBe("2732 K (366 mirek)");
     expect(d.metadata!.find((m) => m.label === "Effects")!.value).toBe("candle, fire, sparkle");

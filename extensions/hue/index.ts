@@ -14,13 +14,13 @@
 // certificate, the entertainment client key) in storage (`bridges`); a
 // second bridge, while the settings hold one, keeps its key in storage.
 import { hostname } from "node:os";
-import { bar, effects, errorMessage, failed as failedRow, settings, storage, toast, view as liveView, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
+import { argsForm, bar, effects, errorMessage, failed as failedRow, settings, storage, toast, view as liveView, type BarCtx, type BarItem, type Ctx, type Effect, type Extension, type Item, type LinkParams } from "@zcag/pal";
 import { Client, GROUP_GAP_MS, HueError, LIGHT_GAP_MS, PAIR_WINDOW_MS, config, devicetype, discoverCloud, discoverMdns, peekCertificate, pressLink, type Bridge, type Found, type HueEvent } from "./api.ts";
-import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, toHex, xyToHs } from "./color.ts";
+import { MIREK_MAX, MIREK_MIN, clamp, hsToXy, mirekOf, toHex, xyToHs } from "./color.ts";
 import { Home, aggregate, automationsOf, entertainmentOf, lightColor, lightsOf, roomsOf, scenesOf, sensorsOf, type Light, type Room, type Scene } from "./model.ts";
 import { freshPopover, gridRooms, moveCursor, renderPopover, type PopoverData, type PopoverState } from "./popover.ts";
 import { DURATIONS, EFFECTS, FOCUS, PRESETS, fresh, render, renderSetup, shown, type SetupState, type Target, type ViewState } from "./render.ts";
-import { G, NAME, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
+import { BRIGHTNESS_ARG, G, KELVIN_ARG, NAME, SET, SETUP_ROW, automationRow, entertainmentRow, hint, lightDetail, lightRow, roomRow, sceneRow, sensorRows } from "./rows.ts";
 
 /** `[extensions.hue]`, defaults in pal.json. */
 type Settings = { bridge: string; application_key: string; insecure: boolean; timeout: number; main_room: string; bar_scenes: string[]; transition: number };
@@ -612,8 +612,36 @@ async function rows(make: () => Item[], ctx?: Ctx): Promise<Item[]> {
   return away.length ? [...hint(away[0]), ...list] : list;
 }
 
-/** Enter on a room row toggles it; the other actions open, list or copy. */
-async function pickRoom(id: string, action: string | undefined): Promise<Effect> {
+/**
+ * The Set action's values from the bar (`brightness` %, `kelvin`), as the
+ * body of one PUT: 0 % is off, a brightness turns the light on, a kelvin
+ * lands inside `range` as mirek. Nothing typed is a failure toast; no
+ * values at all (a hotkey, `pal run`) is the fields as a form.
+ */
+function setBody(values: Ctx["values"] | undefined, range: [number, number] | undefined, title: string): { body: Record<string, unknown>; said: string } | Effect {
+  if (!values) return { form: argsForm(range ? [BRIGHTNESS_ARG, KELVIN_ARG] : [BRIGHTNESS_ARG], title, { id: SET.id, title: SET.title }) };
+  const bri = String(values.brightness ?? "").trim(), k = String(values.kelvin ?? "").trim();
+  if (!bri && !k) return toast("Nothing to set", "Type a brightness (%) or a colour temperature (K) first", "failure");
+  const body: Record<string, unknown> = {}, said: string[] = [];
+  if (bri) {
+    const v = Number(bri);
+    if (Number.isNaN(v)) return toast(`Not a brightness: ${bri}`, "0 to 100", "failure");
+    if (v <= 0) { body.on = { on: false }; said.push("off"); }
+    else { body.on = { on: true }; body.dimming = { brightness: clamp(Math.round(v), 1, 100) }; said.push(`${clamp(Math.round(v), 1, 100)}%`); }
+  }
+  if (k && range) {
+    const v = Number(k);
+    if (Number.isNaN(v) || v <= 0) return toast(`Not a colour temperature: ${k}`, "In kelvin, 2000 to 6500", "failure");
+    const mirek = clamp(mirekOf(v), range[0], range[1]);
+    body.on ??= { on: true };
+    body.color_temperature = { mirek };
+    said.push(`${Math.round(1_000_000 / mirek)} K`);
+  }
+  return { body, said: said.join(", ") };
+}
+
+/** Enter on a room row toggles it; the other actions open, list, copy, or set a level typed in the bar. */
+async function pickRoom(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
   if (id === "hint:error") return { keep: true };
   const r = findRoom(id);
@@ -624,6 +652,13 @@ async function pickRoom(id: string, action: string | undefined): Promise<Effect>
       case "toggle": await setRoom(r, { on: { on: !a.anyOn } }, current().transition); return { keep: true, hud: `${r.name}: ${a.anyOn ? "off" : "on"}` };
       case "on": await setRoom(r, { on: { on: true } }, current().transition); return { keep: true };
       case "off": await setRoom(r, { on: { on: false } }, current().transition); return { keep: true };
+      case "set": {
+        const ranged = r.lights.find((l) => l.mirekRange)?.mirekRange;
+        const s = setBody(ctx?.values, ranged, `Set ${r.name}`);
+        if (!("body" in s)) return s;
+        await setRoom(r, s.body, current().transition);
+        return { keep: true, hud: `${r.name}: ${s.said}` };
+      }
       case "open": return { push: { extension: NAME, palette: "light", args: { room: r.id } } };
       case "scenes": return { push: { extension: NAME, palette: "scenes", args: { scenes: r.id } } };
       case "lights": return { push: { extension: NAME, palette: "lights", args: { lights: r.id } } };
@@ -633,7 +668,7 @@ async function pickRoom(id: string, action: string | undefined): Promise<Effect>
   return { keep: true };
 }
 
-async function pickLight(id: string, action: string | undefined): Promise<Effect> {
+async function pickLight(id: string, action: string | undefined, ctx?: Ctx): Promise<Effect> {
   if (id === "setup") return { push: { extension: NAME, palette: "setup" } };
   if (id === "hint:error") return { keep: true };
   const l = findLight(id);
@@ -644,6 +679,12 @@ async function pickLight(id: string, action: string | undefined): Promise<Effect
       case "toggle": await put(l.bridge, "light", l.rid, { on: { on: !l.on } }, current().transition); return { keep: true, hud: `${l.name}: ${l.on ? "off" : "on"}` };
       case "on": await put(l.bridge, "light", l.rid, { on: { on: true } }, current().transition); return { keep: true };
       case "off": await put(l.bridge, "light", l.rid, { on: { on: false } }, current().transition); return { keep: true };
+      case "set": {
+        const s = setBody(ctx?.values, l.mirekRange, `Set ${l.name}`);
+        if (!("body" in s)) return s;
+        await put(l.bridge, "light", l.rid, s.body, current().transition);
+        return { keep: true, hud: `${l.name}: ${s.said}` };
+      }
       case "open": return { push: { extension: NAME, palette: "light", args: { light: l.id } } };
       case "identify": await c.put("light", l.rid, { alert: { action: "breathe" } }); return toast(`${l.name} is blinking`);
       case "copy_hex": return { copy: toHex(lightColor(l)) };
@@ -674,7 +715,7 @@ export default {
       live: true,
       placeholder: "Search rooms and zones",
       list: (_q, ctx) => rows(() => roomsOf(home).map((r) => roomRow(r, several(), bridgeName(r.bridge))), ctx),
-      pick: (id, action) => pickRoom(id, action),
+      pick: (id, action, ctx) => pickRoom(id, action, ctx),
       detail: (id) => { const r = findRoom(id); if (!r) return; const a = aggregate(r); return { metadata: [{ label: r.kind === "zone" ? "Zone" : "Room", value: r.name }, { label: "Lights", value: r.lights.map((l) => `${l.name}${l.on ? " (on)" : ""}`).join(", ") || "None" }, { label: "State", value: a.on ? `${a.on} of ${a.total} on${a.brightness !== undefined ? `, ${Math.round(a.brightness)}%` : ""}` : "Off" }, { label: "Id", value: r.id }] }; },
     },
     lights: {
@@ -687,7 +728,7 @@ export default {
         const order = roomsOf(home, false).map((r) => r.name);
         return all.sort((a, b) => (a.room ? order.indexOf(a.room.name) : 99) - (b.room ? order.indexOf(b.room.name) : 99) || a.name.localeCompare(b.name)).map((l) => lightRow(l, several(), bridgeName(l.bridge)));
       }, ctx),
-      pick: (id, action) => pickLight(id, action),
+      pick: (id, action, ctx) => pickLight(id, action, ctx),
       detail: (id) => { const l = findLight(id); return l ? lightDetail(l) : undefined; },
     },
     scenes: {

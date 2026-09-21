@@ -43,12 +43,12 @@ has them all. By domain on an entity row:
 
 | domain | actions |
 | --- | --- |
-| light | Toggle, Turn on, Turn off, Brightness (`cmd+b`: presets of 10 / 25 / 50 / 75 / 100 %, the current one tagged) |
+| light | Toggle, Turn on, Turn off, Set brightness (`cmd+b`: argument `brightness`, a percent typed in the bar, `light.turn_on` with `brightness_pct`; a pick without it asks in a form) |
 | switch, fan, input_boolean, humidifier | Toggle, Turn on, Turn off |
 | climate | Set temperature (arguments in the bar: `temperature`, the current one prefilled and the entity's range as the hint; `hvac_mode`, a select from its `hvac_modes`; a pick without them asks in a form), Turn on, Turn off |
 | cover | Open, Close, Stop (Close first while open) |
 | lock | Lock, Unlock (both ask first; the one that changes the state comes first) |
-| media_player | Play or Pause, Next track, Previous track, Volume (`cmd+u`: presets), Turn off |
+| media_player | Play or Pause, Next track, Previous track, Set volume (`cmd+u`: argument `volume`, a percent typed in the bar, `media_player.volume_set`), Turn off |
 | scene | Activate |
 | script | Run |
 | automation | Trigger, Enable or Disable |
@@ -111,8 +111,6 @@ Needs the network: every request goes to the URL you set, nothing else.
   made elsewhere shows on the next show or `cmd+r`.
 - No entity editing, no dashboards, no history graphs: `cmd+o` opens the
   right page in Home Assistant for those.
-- No arbitrary brightness or volume: the presets are the five steps; the
-  service form (`light.turn_on` with `brightness_pct`) takes any value.
 - A collapsed group in a service's description (HA's "advanced" section)
   is left out of the form.
 

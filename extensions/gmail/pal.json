@@ -83,7 +83,7 @@
         { "keys": "cmd+enter", "title": "Mark as read (Mark as unread on a read row)" },
         { "keys": "cmd+e", "title": "Archive (send on)" },
         { "keys": "cmd+s", "title": "Star or unstar (send on)" },
-        { "keys": "cmd+shift+r", "title": "Reply (send on)" },
+        { "keys": "cmd+shift+r", "title": "Reply with the text typed in the bar (send on)" },
         { "keys": "cmd+c", "title": "Copy the link" }
       ]
     },
@@ -96,7 +96,7 @@
         { "keys": "cmd+enter", "title": "Mark as read (Mark as unread on a read row)" },
         { "keys": "cmd+e", "title": "Archive (send on)" },
         { "keys": "cmd+s", "title": "Star or unstar (send on)" },
-        { "keys": "cmd+shift+r", "title": "Reply (send on)" },
+        { "keys": "cmd+shift+r", "title": "Reply with the text typed in the bar (send on)" },
         { "keys": "cmd+c", "title": "Copy the link" }
       ]
     },
@@ -191,7 +191,7 @@
       "Labels: every label, yours and Gmail's; open it in Gmail or search it here",
       "The bar item: the unread count, hidden at zero, refreshed every two minutes and on wake; the popover lists the newest five with Open and Mark as read",
       "Two accounts are two instances, each with its own token command, address, palettes and bar item, told apart by the title and the badge on the tile",
-      "Sending is off per account until you turn it on: with it, Compose and Reply as forms, Drafts to send or discard, Archive and Star on a row. A work account stays read and mark-read only",
+      "Sending is off per account until you turn it on: with it, Compose as a form, a quick Reply typed in the bar on a row (the full form without it), Drafts to send or discard, Archive and Star. A work account stays read and mark-read only",
       "No secret in pal: a command of yours prints the token (gcloud, a helper, a broker), pal keeps it in memory until it expires"
     ],
     "permissions": ["network", "token"],
@@ -213,7 +213,7 @@
       { "title": "Mark as read", "description": "On an unread row; Mark as unread on a read one.", "keys": "cmd+enter" },
       { "title": "Archive", "description": "Out of the inbox; send on only.", "keys": "cmd+e" },
       { "title": "Star", "description": "Star or unstar; send on only.", "keys": "cmd+s" },
-      { "title": "Reply", "description": "A form with the body; the original quoted under it; send on only.", "keys": "cmd+shift+r" },
+      { "title": "Reply", "description": "The text typed in the bar goes to the sender under the Re: subject, the original quoted under it; a form with to, cc, subject and body when picked without it; send on only.", "keys": "cmd+shift+r" },
       { "title": "Copy link", "keys": "cmd+c" },
       { "title": "Search label", "description": "On a label row: the search palette with label:<name> typed.", "keys": "cmd+enter" },
       { "title": "Copy name", "description": "On a label row.", "keys": "cmd+c" },

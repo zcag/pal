@@ -75,6 +75,9 @@ describe("shortcuts", () => {
     expect(items[2]).toMatchObject({ name: "Lights on", icon: "\u{f040b}", keywords: ["Home"], detail: { metadata: [{ label: "Name", value: "Lights on" }, { label: "Folder", value: "Home" }, { label: "Identifier", value: "A60321F9-5380-4AC8-BFF0-D736CE80DD10" }] } });
     expect(items[0].keywords).toBeUndefined();
     expect(items[0].actions!.map((a) => [a.id, a.shortcut])).toEqual([["run", undefined], ["clipboard", undefined], ["text", "cmd+t"], ["open", "cmd+o"], ["copy", "cmd+c"]]);
+    // Run with input takes the row's typed argument; Enter still runs the shortcut bare.
+    expect(items[0].actions![2]).toEqual({ id: "text", title: "Run with input", shortcut: "cmd+t", args: true });
+    expect(items[0].args).toEqual([{ id: "input", placeholder: "Input", required: true }]);
     expect(host.coreCalls.filter((c) => c.method === "clipboard.list")).toHaveLength(0);
   });
 
@@ -100,8 +103,11 @@ describe("shortcuts", () => {
     h.kill();
   });
 
-  test.skipIf(!MAC)("Run with text is a form; its submit runs with the text, an empty one is refused", async () => {
+  test.skipIf(!MAC)("Run with input: the text typed in the bar is the input file; without it a form whose submit runs the same way; an empty one is refused", async () => {
     await list();
+    expect(await pick("Adjust Clipboard", "text", { values: { input: "from the bar" } })).toEqual({ hide: true });
+    expect(await nextHud()).toBe("Adjust Clipboard: got: from the bar");
+    expect(((await pick("Adjust Clipboard", "text", { values: { input: " " } })).form as Form).errors).toEqual({ input: "Required" });
     const form = (await pick("Adjust Clipboard", "text")).form as Form;
     expect(form).toMatchObject({ id: "Adjust Clipboard", title: "Run Adjust Clipboard", submit: { id: "run_text", title: "Run" } });
     expect(form.fields.map((f) => [f.id, f.kind, !!f.required])).toEqual([["input", "textarea", true]]);

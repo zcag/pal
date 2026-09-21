@@ -111,8 +111,11 @@ describe("clipboard", () => {
     expect(pin(text)).toBe("Pin");
     expect(pin(multi)).toBe("Unpin");
     // Name… until the entry has one, Rename… after.
-    expect(text.actions!.find((a) => a.id === "rename")).toEqual({ id: "rename", title: "Name…", shortcut: "cmd+shift+r" });
-    expect(multi.actions!.find((a) => a.id === "rename")!.title).toBe("Rename…");
+    expect(text.actions!.find((a) => a.id === "rename")).toEqual({ id: "rename", title: "Name", shortcut: "cmd+shift+r", args: true });
+    expect(multi.actions!.find((a) => a.id === "rename")!.title).toBe("Rename");
+    // The name field in the bar: only Name / Rename reads it, prefilled with the name the row has.
+    expect(text.args).toEqual([{ id: "name", placeholder: "Name" }]);
+    expect(multi.args).toEqual([{ id: "name", placeholder: "New name (blank clears it)", default: multi.name }]);
     expect(text.actions!.find((a) => a.id === "edit")).toEqual({ id: "edit", title: "Edit…", shortcut: "cmd+e" });
     expect(text.actions!.find((a) => a.id === "save-file")).toEqual({ id: "save-file", title: "Save as file…", shortcut: "cmd+s" });
     expect(text.actions!.find((a) => a.id === "snippet")).toEqual({ id: "snippet", title: "Save as snippet", shortcut: "cmd+shift+s" });
@@ -191,17 +194,18 @@ describe("clipboard", () => {
     expect(await pick("3", "edit")).toEqual({ paste: { entry: 3 } });
   });
 
-  test("name: the form's submit goes through clipboard.rename; empty clears; the row is then titled by it and found by it", async () => {
-    const f = (await pick("1", "rename")) as { form: { title: string; fields: { id: string; default?: unknown }[]; submit: { title: string } } };
-    expect(f.form).toMatchObject({ title: "Name this entry", submit: { title: "Name" } });
-    expect(f.form.fields[0]).toMatchObject({ id: "name", default: "" });
-    expect(await pick("1", "rename-submit", { name: "  Greeting " })).toEqual({ keep: true, toast: { title: "Named", message: "Greeting" } });
+  test("name: the bar's field goes through clipboard.rename (a pick without it is the field as a form); empty clears; the row is then titled by it and found by it", async () => {
+    const f = (await pick("1", "rename")) as { form: { title: string; fields: { id: string; default?: unknown }[]; submit: { id: string; title: string } } };
+    expect(f.form).toMatchObject({ title: "Name this entry", submit: { id: "rename", title: "Name" } });
+    expect(f.form.fields[0]).toMatchObject({ id: "name" });
+    expect(await pick("1", "rename", { name: "  Greeting " })).toEqual({ keep: true, toast: { title: "Named", message: "Greeting" } });
     expect(calls.rename).toEqual([{ id: 1, name: "Greeting" }]);
     const [row] = await list();
-    expect(row).toMatchObject({ name: "Greeting", subtitle: "hello world" });
-    expect(row.actions!.find((a) => a.id === "rename")!.title).toBe("Rename…");
+    expect(row).toMatchObject({ name: "Greeting", subtitle: "hello world", args: [{ id: "name", placeholder: "New name (blank clears it)", default: "Greeting" }] });
+    expect(row.actions!.find((a) => a.id === "rename")!.title).toBe("Rename");
     expect((await list("greet")).map((i) => i.id)).toEqual(["1"]);
     expect(((await pick("1", "rename")) as { form: { title: string; fields: { default?: unknown }[] } }).form).toMatchObject({ title: "Rename Greeting", fields: [{ default: "Greeting" }] });
+    // The form's old submit id still lands (a saved hotkey may carry it).
     expect(await pick("1", "rename-submit", { name: "" })).toEqual({ keep: true, toast: { title: "Name cleared", message: undefined } });
     expect(calls.rename.at(-1)).toEqual({ id: 1, name: null });
     expect((await list())[0]).toMatchObject({ name: "hello world" });

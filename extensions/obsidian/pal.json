@@ -110,6 +110,7 @@
       { "title": "Backlinks", "description": "The notes that link to it.", "keys": "cmd+b" },
       { "title": "Outgoing links", "description": "The notes it links to; a link to nothing yet offers Create the note.", "keys": "cmd+l" },
       { "title": "Copy path", "description": "The file's absolute path.", "keys": "cmd+shift+c" },
+      { "title": "Append a line", "description": "The line typed in the bar (the note row's argument) lands at the end of the note, placeholders filled; a form when picked without it.", "keys": "cmd+shift+a" },
       { "title": "Create today's note", "description": "From the daily template; asks first.", "keys": "enter" },
       { "title": "Append to today", "description": "The line typed in the bar lands on its own line at the end of today's note; from Today's note's cmd+enter, a form.", "keys": "enter" },
       { "title": "New note", "description": "The title and the folder typed in the bar; the body from the template or your selection.", "keys": "enter" },
@@ -153,7 +154,8 @@
         { "keys": "cmd+shift+r", "title": "Read the note in pal" },
         { "keys": "cmd+b", "title": "What links to the note" },
         { "keys": "cmd+l", "title": "What the note links to" },
-        { "keys": "cmd+shift+c", "title": "Copy the path" }
+        { "keys": "cmd+shift+c", "title": "Copy the path" },
+        { "keys": "cmd+shift+a", "title": "Append the line typed in the bar" }
       ]
     },
     "search": {
@@ -167,7 +169,8 @@
         { "keys": "cmd+shift+r", "title": "Read the note in pal" },
         { "keys": "cmd+b", "title": "What links to the note" },
         { "keys": "cmd+l", "title": "What the note links to" },
-        { "keys": "cmd+shift+c", "title": "Copy the path" }
+        { "keys": "cmd+shift+c", "title": "Copy the path" },
+        { "keys": "cmd+shift+a", "title": "Append the line typed in the bar" }
       ]
     },
     "daily": {
@@ -175,13 +178,14 @@
       "description": "Today's note (created from the template when missing), yesterday's, this week's; Append to today and New note, their values typed in the bar.",
       "kind": "live",
       "keys": [
-        { "keys": "enter", "title": "Open the note; on Create today's note, create it (asks first); on Append to today and New note, type the line, or the title and folder, then Enter again" },
+        { "keys": "enter", "title": "Open the note; on Create today's note, create it (asks first); on Append to today and New note, with the line, or the title and folder, typed in the bar's fields" },
         { "keys": "cmd+enter", "title": "Open in the editor (or Obsidian)" },
         { "keys": "cmd+c", "title": "Copy the wikilink" },
         { "keys": "cmd+shift+r", "title": "Read the note in pal" },
         { "keys": "cmd+b", "title": "What links to the note" },
         { "keys": "cmd+l", "title": "What the note links to" },
-        { "keys": "cmd+shift+c", "title": "Copy the path" }
+        { "keys": "cmd+shift+c", "title": "Copy the path" },
+        { "keys": "cmd+shift+a", "title": "Append the line typed in the bar" }
       ]
     },
     "tags": {
@@ -206,7 +210,8 @@
         { "keys": "cmd+shift+r", "title": "Read the note in pal" },
         { "keys": "cmd+b", "title": "What links to the note" },
         { "keys": "cmd+l", "title": "What the note links to" },
-        { "keys": "cmd+shift+c", "title": "Copy the path" }
+        { "keys": "cmd+shift+c", "title": "Copy the path" },
+        { "keys": "cmd+shift+a", "title": "Append the line typed in the bar" }
       ]
     },
     "backlinks": {
@@ -221,7 +226,8 @@
         { "keys": "cmd+shift+r", "title": "Read the note in pal" },
         { "keys": "cmd+b", "title": "What links to the note" },
         { "keys": "cmd+l", "title": "What the note links to" },
-        { "keys": "cmd+shift+c", "title": "Copy the path" }
+        { "keys": "cmd+shift+c", "title": "Copy the path" },
+        { "keys": "cmd+shift+a", "title": "Append the line typed in the bar" }
       ]
     },
     "outgoing": {
@@ -236,7 +242,8 @@
         { "keys": "cmd+shift+r", "title": "Read the note in pal" },
         { "keys": "cmd+b", "title": "What links to the note" },
         { "keys": "cmd+l", "title": "What the note links to" },
-        { "keys": "cmd+shift+c", "title": "Copy the path" }
+        { "keys": "cmd+shift+c", "title": "Copy the path" },
+        { "keys": "cmd+shift+a", "title": "Append the line typed in the bar" }
       ]
     }
   }

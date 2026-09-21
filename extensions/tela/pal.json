@@ -519,12 +519,12 @@
       },
       {
         "title": "Ask",
-        "description": "Research the question (on the Pages row, typed in the bar first); on a source in the answer, open it.",
+        "description": "Research the question (on the Pages row, typed in the bar's field); on a source in the answer, open it.",
         "keys": "enter"
       },
       {
         "title": "Ask in the browser",
-        "description": "tela's Ask page with the question (on the Pages row, typed in the bar first).",
+        "description": "tela's Ask page with the question (on the Pages row, typed in the bar's field).",
         "keys": "cmd+enter"
       },
       {

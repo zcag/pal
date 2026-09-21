@@ -251,6 +251,9 @@ describe.skipIf(!HAS_FIND)("files", () => {
     // Open, reveal, both copies and the trash take marked rows; Quick Look and Open with are one file's.
     expect(alpha.actions!.filter((a) => a.multi).map((a) => a.id)).toEqual(["open", "reveal", "copy", "copy-file", "compress", "trash"]);
     expect(alpha.actions!.filter((a) => ["terminal", "rename", "move", "copy-to", "compress"].includes(a.id)).map((a) => a.shortcut)).toEqual(["cmd+t", "cmd+shift+r", "cmd+m", "cmd+alt+c", "cmd+shift+z"]);
+    // The bar's one field on every file row, a new name: only Rename reads it.
+    expect(alpha.args).toEqual([{ id: "name", placeholder: "Rename to" }]);
+    expect(alpha.actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["rename"]);
     if (MAC) expect(alpha.actions!.find((a) => a.id === "quick-look")).toEqual({ id: "quick-look", title: "Quick Look", shortcut: "cmd+y" });
     expect(items.find((i) => i.name === "report-gamma.txt")!.subtitle).toBe(join(dir, "reports"));
     expect(items.find((i) => i.name === "reports")).toMatchObject({ icon: "󰉖", accessories: [{ date: expect.any(Number) }] });
@@ -368,17 +371,18 @@ describe.skipIf(!HAS_FIND)("files", () => {
   /** A folder of its own for the operations, so the browse listings of `dir` stay as the other tests expect. */
   const opsDir = () => { const d = join(dir, "..", basename(dir) + "-ops"); mkdirSync(d, { recursive: true }); return d; };
 
-  test("rename: the form with the name filled; a slash or a taken name is the form again with the message; the same name is a no-op; else the file moves", async () => {
+  test("rename: the bar's name moves the file (blank, or a pick without it, is the form with the name filled); a slash or a taken name is the form with the message; the same name is a no-op", async () => {
     const d = opsDir();
     const p = join(d, "to-rename.txt");
     writeFileSync(p, "x\n");
     writeFileSync(join(d, "notes.md"), "n\n");
     expect(await pick(p, "rename")).toEqual({ form: renameForm(p) });
     expect(await pick(p, "rename")).toMatchObject({ form: { title: "Rename", fields: [{ id: "name", default: "to-rename.txt" }], submit: { id: "rename-submit" } } });
-    expect(await host.pick("files", "files", p, "rename-submit", { values: { name: "a/b" } })).toEqual({ form: renameForm(p, { name: "A file name, without a slash" }) });
+    expect(await host.pick("files", "files", p, "rename", { values: { name: " " } })).toEqual({ form: renameForm(p) });
+    expect(await host.pick("files", "files", p, "rename", { values: { name: "a/b" } })).toEqual({ form: renameForm(p, { name: "A file name, without a slash" }) });
     expect(await host.pick("files", "files", p, "rename-submit", { values: { name: "notes.md" } })).toMatchObject({ form: { errors: { name: expect.stringContaining("exists already") } } });
-    expect(await host.pick("files", "files", p, "rename-submit", { values: { name: "to-rename.txt" } })).toEqual({ keep: true });
-    expect(await host.pick("files", "browse", p, "rename-submit", { values: { name: "renamed.txt" } })).toEqual({ keep: true, toast: { title: "Renamed", message: "renamed.txt" } });
+    expect(await host.pick("files", "files", p, "rename", { values: { name: "to-rename.txt" } })).toEqual({ keep: true });
+    expect(await host.pick("files", "browse", p, "rename", { values: { name: "renamed.txt" } })).toEqual({ keep: true, toast: { title: "Renamed", message: "renamed.txt" } });
     expect(await Bun.file(join(d, "renamed.txt")).exists()).toBe(true);
     expect(await Bun.file(p).exists()).toBe(false);
   });

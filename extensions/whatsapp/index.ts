@@ -7,7 +7,9 @@
 // is shared between the bar and the palettes for CHATS_FRESH_MS. Reading
 // and mark-read are always on; with `send` off there is no reply, no
 // reaction and no message field anywhere, whatever the key could do.
-import { errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
+// With it on, a chat row takes the message in the search bar (`args`)
+// for "Send a message"; a bare pick gets the same as a form.
+import { errorMessage, failed, hint, imageData, settings, toast, truncate, type Accessory, type Action, type Arg, type BarCtx, type BarItem, type Ctx, type Detail, type Effect, type Extension, type Form, type Item, type LinkParams, type Metadata } from "@zcag/pal";
 import { ApiError, NoKey, RateLimited, SessionError, Unreachable, base, conf, log, markChatRead, markChatUnread, react as apiReact, reply as apiReply, reset as resetApi, sendText } from "./api.ts";
 import { PANE_MSGS, REACTIONS, RUN_MSGS, chat, chatLink, clock, contacts, conversation, conversationMarkdown, dropChats, isGroupId, loadChats, oneLine, currentOpener as opener, phoneOf, prettyPhone, resetData, search, vcard, type Chat, type Hit, type Person } from "./data.ts";
 import { SECTION_ROWS, initialIcon, render as renderBar, type BarRow, type BarState } from "./view.ts";
@@ -50,9 +52,19 @@ function chatActions(c: Chat): Action[] {
   return [
     { id: "open", title: c.group ? "Open WhatsApp" : "Open chat" },
     c.unread > 0 ? { id: "read", title: "Mark as read", shortcut: "cmd+enter", multi: true } : { id: "unread", title: "Mark as unread", shortcut: "cmd+enter", multi: true },
-    ...(send ? [{ id: "reply", title: "Send a message", shortcut: "cmd+shift+r" }, { id: "react", title: "React to the latest message", shortcut: "cmd+shift+e" }] : []),
+    // Send takes the row's typed arguments (the message, and whether it quotes); Enter on the row still opens the chat.
+    ...(send ? [{ id: "reply", title: "Send a message", shortcut: "cmd+shift+r", args: true as const }, { id: "react", title: "React to the latest message", shortcut: "cmd+shift+e" }] : []),
     { id: "web", title: "Open in the web client", shortcut: "cmd+shift+o" },
     c.group ? { id: "copy-name", title: "Copy name", shortcut: "cmd+c" } : { id: "copy-number", title: "Copy number", shortcut: "cmd+c" },
+  ];
+}
+
+/** With `send` on, the message typed in the bar for "Send a message", and a quote choice when the listing knows an incoming latest message. */
+function chatArgs(c: Chat): Arg[] | undefined {
+  if (!canSend()) return;
+  return [
+    { id: "text", placeholder: "Message", required: true },
+    ...(c.latestId && !c.latestFromMe ? [{ id: "quote", placeholder: "Reply", kind: "select" as const, default: "", options: [{ id: "", title: "New message" }, { id: "quote", title: `Quote “${truncate(oneLine(c.last ?? ""), 40)}”` }] }] : []),
   ];
 }
 
@@ -74,6 +86,7 @@ function chatRow(c: Chat, section?: string): Item {
     keywords: [c.group ? "group" : "chat", ...(c.who && c.who !== "You" && c.who !== c.name ? [c.who] : [])],
     section,
     accessories: chatAccessories(c),
+    args: chatArgs(c),
     actions: chatActions(c),
   };
 }
@@ -154,14 +167,12 @@ async function pickChat(c: Chat, action: string | undefined, ctx?: Ctx): Promise
       if (refused.length) return failed("mark unread", refused.join(", "));
       return toast("Marked unread", n > 1 ? plural(n, "chat") : c.name);
     }
-    case "reply":
+    case "reply": case "send": {
       if (!canSend()) return toast("Sending is off", SEND_OFF, "failure");
-      await latestOf(c).catch(() => undefined);
-      return { form: messageForm(c) };
-    case "send": {
-      if (!canSend()) return toast("Sending is off", SEND_OFF, "failure");
-      const text = String(ctx?.values?.text ?? "").trim();
-      const quote = ctx?.values?.quote === true;
+      // The bar's values ("reply"), or the form's on the way back ("send"); a bare pick (a hotkey, `pal run`) gets the form, the latest message fetched so it can be quoted.
+      if (!ctx?.values) { await latestOf(c).catch(() => undefined); return { form: messageForm(c) }; }
+      const text = String(ctx.values.text ?? "").trim();
+      const quote = ctx.values.quote === true || ctx.values.quote === "quote";
       if (!text) return { form: messageForm(c, { text: "Required" }, "", quote) };
       try {
         if (quote && c.latestId && !c.latestFromMe) await apiReply(c.id, c.latestId, text);

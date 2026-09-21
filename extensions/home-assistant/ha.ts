@@ -149,14 +149,14 @@ export function actions(s: State): Action[] {
   const d = domainOf(s.entity_id);
   let own: Action[];
   switch (d) {
-    case "light": own = [...TOGGLE, A("brightness", "Brightness", { shortcut: "cmd+b" })]; break;
+    case "light": own = [...TOGGLE, A("brightness", "Set brightness", { shortcut: "cmd+b", args: true })]; break;
     case "switch": case "fan": case "input_boolean": case "humidifier": own = TOGGLE; break;
     case "climate": own = [A("temperature", "Set temperature"), A("on", "Turn on"), A("off", "Turn off")]; break;
     case "cover": own = s.state === "open" ? [A("close", "Close"), A("open", "Open"), A("stop", "Stop")] : [A("open", "Open"), A("close", "Close"), A("stop", "Stop")]; break;
     case "lock": own = s.state === "locked"
       ? [A("unlock", "Unlock", { confirm: `Unlock ${name(s)}?` }), A("lock", "Lock", { confirm: `Lock ${name(s)}?` })]
       : [A("lock", "Lock", { confirm: `Lock ${name(s)}?` }), A("unlock", "Unlock", { confirm: `Unlock ${name(s)}?` })]; break;
-    case "media_player": own = [A("play_pause", s.state === "playing" ? "Pause" : "Play"), A("next", "Next track"), A("previous", "Previous track"), A("volume", "Volume", { shortcut: "cmd+u" }), A("off", "Turn off")]; break;
+    case "media_player": own = [A("play_pause", s.state === "playing" ? "Pause" : "Play"), A("next", "Next track"), A("previous", "Previous track"), A("volume", "Set volume", { shortcut: "cmd+u", args: true }), A("off", "Turn off")]; break;
     case "scene": own = [A("activate", "Activate")]; break;
     case "script": own = [A("run", "Run")]; break;
     case "automation": own = [A("trigger", "Trigger"), s.state === "on" ? A("off", "Disable") : A("on", "Enable")]; break;
@@ -188,6 +188,12 @@ export function climateArgs(s: State): Arg[] {
   ];
 }
 
+/** A light's or a media player's one argument in the bar, a percent; only Set brightness / Set volume read it. */
+export const LEVEL_ARGS: Record<string, Arg[]> = {
+  light: [{ id: "brightness", placeholder: "Brightness %", kind: "number" }],
+  media_player: [{ id: "volume", placeholder: "Volume %", kind: "number" }],
+};
+
 export function row(s: State, area?: string): Item {
   const d = domainOf(s.entity_id);
   return {
@@ -198,6 +204,7 @@ export function row(s: State, area?: string): Item {
     keywords: [s.entity_id, d, ...(area ? [area] : [])],
     accessories: accessories(s),
     ...(d === "climate" && { args: climateArgs(s) }),
+    ...(LEVEL_ARGS[d] && { args: LEVEL_ARGS[d] }),
     actions: actions(s),
   };
 }

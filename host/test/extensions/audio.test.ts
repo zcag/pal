@@ -34,8 +34,8 @@ beforeAll(async () => {
 });
 afterAll(() => host.kill());
 
-const list = (args?: unknown) => host.list("audio", "audio", undefined, args ? { args } : undefined);
-const pick = (id: string, action?: string, args?: unknown) => host.pick("audio", "audio", id, action, args ? { args } : undefined);
+const list = () => host.list("audio", "audio");
+const pick = (id: string, action?: string, ctx?: { values?: Record<string, string> }) => host.pick("audio", "audio", id, action, ctx);
 
 describe("audio", () => {
   test("meta: live", () => {
@@ -184,9 +184,9 @@ describe("audio", () => {
     expect(items[0].actions![0].title).toBe("Set as output");
     expect(items[1].accessories).toEqual([{ tag: "muted", color: "amber" }, { text: "25%" }]);
     expect(items[1].actions!.find((a) => a.id === "mute")!.title).toBe("Unmute");
-    // No volume control: no accessory and no Mute action.
+    // No volume control: no accessory, no Set volume, no Mute action.
     expect(items[2].accessories).toEqual([]);
-    expect(items[2].actions!.map((a) => a.id)).toEqual(["default", "volume"]);
+    expect(items[2].actions!.map((a) => a.id)).toEqual(["default"]);
     expect(items[3]).toMatchObject({ section: "Input", subtitle: "Input · builtin" });
     expect(items[3].actions![0].title).toBe("Set as input");
   });
@@ -203,18 +203,21 @@ describe("audio", () => {
     expect(calls.at(-1)).toEqual({ method: "set_mute", params: { id: "BuiltInSpeakerDevice", kind: "output" } });
   });
 
-  test("volume pushes a preset level for the row; a preset sets it", async () => {
-    expect(await pick("output:20-18-5B:output", "volume")).toEqual({ push: { extension: "audio", palette: "audio", args: { volume: "output:20-18-5B:output" } } });
-    const presets = await list({ volume: "output:20-18-5B:output" });
-    expect(presets.map((i) => i.name)).toEqual(["0%", "25%", "50%", "75%", "100%"]);
-    expect(presets[1]).toMatchObject({ subtitle: "HK Aura Studio 4", accessories: [{ tag: "current", color: "green" }] });
-    expect(presets[2].accessories).toEqual([]);
-    expect(await pick("75", "set", { volume: "output:20-18-5B:output" })).toEqual({ hud: "Volume 75%" });
+  test("Set volume takes the bar's percent (only that action reads it); a pick without it is the field as a form; out of range comes back on it", async () => {
+    const items = await list();
+    expect(items[1].args).toEqual([{ id: "volume", placeholder: "Volume %", kind: "number" }]);
+    expect(items[1].actions!.filter((a) => a.args).map((a) => a.id)).toEqual(["volume"]);
+    // Optical Out has no volume control: no field, no Set volume.
+    expect(items[2].args).toBeUndefined();
+    expect(await pick("output:20-18-5B:output", "volume", { values: { volume: "75" } })).toEqual({ hud: "Volume 75%" });
     expect(calls.at(-1)).toEqual({ method: "set_volume", params: { id: "20-18-5B:output", kind: "output", volume: 75 } });
+    expect((await pick("output:20-18-5B:output", "volume")).form).toMatchObject({ id: "output:20-18-5B:output", title: "Set volume", submit: { id: "volume", title: "Set volume" }, fields: [{ id: "volume", kind: "text" }] });
+    expect((await pick("output:20-18-5B:output", "volume", { values: { volume: "loud" } })).form).toMatchObject({ errors: { volume: "A percent, 0 to 100" } });
+    expect((await pick("output:20-18-5B:output", "volume", { values: { volume: "" } })).form).toMatchObject({ errors: { volume: "A percent, 0 to 100" } });
   });
 
   test("a core refusal is a failure toast, palette kept", async () => {
-    expect(await pick("50", "set", { volume: "output:Digital" })).toEqual({ keep: true, toast: { title: "Could not set the volume", message: "Digital has no volume control", style: "failure" } });
+    expect(await pick("output:Digital", "volume", { values: { volume: "50" } })).toEqual({ keep: true, toast: { title: "Could not set the volume", message: "Digital has no volume control", style: "failure" } });
   });
 
   test("no backend: one inert row that says why", async () => {

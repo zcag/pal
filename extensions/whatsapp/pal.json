@@ -38,7 +38,7 @@
       "id": "send",
       "label": "Send",
       "text": "Send messages, reply and react from pal",
-      "description": "Off (the default) leaves WhatsApp read and mark-read only: no message field, no reply, no reaction, whatever the key could do. On adds Send a message and React to a chat row and the reply field to the bar popover; every send is a form you submit.",
+      "description": "Off (the default) leaves WhatsApp read and mark-read only: no message field, no reply, no reaction, whatever the key could do. On adds Send a message (the text typed in the bar, or a form) and React to a chat row and the reply field to the bar popover; nothing is sent without your text.",
       "default": false
     },
     {
@@ -82,7 +82,7 @@
       "keys": [
         { "keys": "enter", "title": "Open the chat (a group opens WhatsApp at the top)" },
         { "keys": "cmd+enter", "title": "Mark as read (Mark as unread on a read chat)" },
-        { "keys": "cmd+shift+r", "title": "Send a message (send on)" },
+        { "keys": "cmd+shift+r", "title": "Send a message typed in the bar (send on)" },
         { "keys": "cmd+shift+e", "title": "React to the latest message (send on)" },
         { "keys": "cmd+shift+o", "title": "Open in the web client" },
         { "keys": "cmd+c", "title": "Copy the number (the name of a group)" }
@@ -96,7 +96,7 @@
       "keys": [
         { "keys": "enter", "title": "Open the chat" },
         { "keys": "cmd+enter", "title": "Mark as read" },
-        { "keys": "cmd+shift+r", "title": "Send a message (send on)" },
+        { "keys": "cmd+shift+r", "title": "Send a message typed in the bar (send on)" },
         { "keys": "cmd+shift+e", "title": "React to the latest message (send on)" },
         { "keys": "cmd+shift+o", "title": "Open in the web client" },
         { "keys": "cmd+c", "title": "Copy the number (the name of a group)" }
@@ -174,7 +174,7 @@
       "Search WhatsApp as you type: full-text over the whole archive, the matching line with who said it where and when",
       "Contacts: every saved contact with the number; open a chat, copy the number, copy a vCard",
       "The bar item: the number of unread chats, hidden at zero, red while a direct chat waits; the popover opens, marks read and replies from the keys",
-      "Sending is off until you turn it on: with it, Send a message and React on a chat row, a reply field in the popover, every one a form you submit",
+      "Sending is off until you turn it on: with it, Send a message on a chat row (the text typed in the bar, a quote choice for the latest message), React, a reply field in the popover",
       "Reads a self-hosted OpenWA gateway over its HTTP API with an API key; nothing else sees your chats"
     ],
     "permissions": ["network", "token"],
@@ -185,7 +185,7 @@
       { "file": "3-unread.png", "caption": "Unread: direct messages then groups, the same keys" },
       { "file": "4-search.png", "caption": "Search WhatsApp: the matching line, who said it where, when" },
       { "file": "5-contacts.png", "caption": "Contacts: the number under the name; copy it or a vCard" },
-      { "file": "6-message.png", "caption": "Send a message (send on): the form, with the latest message quotable" },
+      { "file": "6-message.png", "caption": "Send a message (send on): the message typed in the bar, the latest message quotable" },
       { "file": "bar-menubar-dark.png", "caption": "On the menu bar: the WhatsApp glyph with the count of unread chats, red while a direct chat waits", "kind": "bar" },
       { "file": "bar-menubar-light.png", "caption": "The same item on a light menu bar", "kind": "bar" },
       { "file": "bar-menubar-popover.png", "caption": "A click opens the popover: direct messages then groups with the picture, the newest message and the time, the keys", "kind": "bar" },
@@ -196,7 +196,7 @@
     "actions": [
       { "title": "Open chat", "description": "In the desktop app (whatsapp://send?phone=) or the web client; a group opens WhatsApp at the top.", "keys": "enter" },
       { "title": "Mark as read", "description": "Mark as unread on a read chat; works on marked rows too.", "keys": "cmd+enter" },
-      { "title": "Send a message", "description": "A form; the latest message quotable; send on only.", "keys": "cmd+shift+r" },
+      { "title": "Send a message", "description": "The text typed in the bar (the row's argument), a Reply choice quoting the latest message; a form when picked without it; send on only.", "keys": "cmd+shift+r" },
       { "title": "React to the latest message", "description": "One of WhatsApp's six quick reactions, or remove yours; send on only.", "keys": "cmd+shift+e" },
       { "title": "Open in the web client", "keys": "cmd+shift+o" },
       { "title": "Copy number", "description": "Copy name on a group.", "keys": "cmd+c" },

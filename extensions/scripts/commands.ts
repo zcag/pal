@@ -198,9 +198,9 @@ function row(c: Command, subtitle: string | undefined): Item {
     section: c.section,
     accessories: c.mode !== "hud" ? [{ text: c.mode }] : undefined,
     detail: { metadata: [{ label: "File", value: c.path }, { label: "Mode", value: c.mode }, ...(c.args.length ? [{ label: "Arguments", value: c.args.map((a) => a.name).join(", ") }] : []), ...(c.confirm ? [{ label: "Confirm", value: "yes" }] : []), { label: "Runs in", value: c.cwd }] },
-    // Copy output runs the script too, so it takes the same values.
+    // Run and Copy output both run the script, so both take the values (marking one alone would leave the other bare).
     ...(c.args.length && { args: barArgs(c) }),
-    actions: [run, OPEN, c.args.length ? { ...COPY_OUTPUT, args: true } : COPY_OUTPUT, COPY_PATH],
+    actions: c.args.length ? [{ ...run, args: true }, OPEN, { ...COPY_OUTPUT, args: true }, COPY_PATH] : [run, OPEN, COPY_OUTPUT, COPY_PATH],
   };
 }
 

@@ -16,12 +16,12 @@ on every show, so the numbers are current, and the timers are root
 results (type the name). A landed timer stays listed for five minutes,
 then drops out as the CLI reaps it.
 
-**New timer** is next to last: Enter turns the search bar into its three
-fields, the duration (`25m`, `90s`, `1h30m`, `2:30`; a bare number is
-minutes), an optional name (the duration otherwise; a name already taken
-restarts that timer) and a Silent / Ring the phone choice (the CLI's
-`--ring`, out loud when it lands). Enter again runs the CLI and toasts
-what it printed; a duration the CLI refuses comes back under the field
+**New timer** is next to last: with the cursor on it the search bar shows
+its three fields after the query (Tab into them), the duration (`25m`,
+`90s`, `1h30m`, `2:30`; a bare number is minutes), an optional name (the
+duration otherwise; a name already taken restarts that timer) and a
+Silent / Ring the phone choice (the CLI's `--ring`, out loud when it
+lands). Enter runs the CLI and toasts what it printed; a duration the CLI refuses comes back under the field
 with its message. A pick that arrives without the fields (a hotkey, a
 bare `pal run`) asks for the same three in a form.
 
@@ -48,11 +48,11 @@ is in storage, so a restart of the host picks it up where it was.
 | keys | action | what |
 | --- | --- | --- |
 | `enter` | Pause / Resume / Dismiss | pause a running timer, resume a paused one, dismiss a landed one (`timer done`) |
-| `cmd++` | Add 5 minutes | `timer add 5m <id>` |
+| `cmd++` | Add minutes | `timer add <n>m <id>`, `n` the row's `add` argument in the bar (5 when blank, or on a pick without it) |
 | `cmd+s` | Skip to the next phase | on the pomodoro's timer: `timer stop <id>`, then the next phase's timer |
 | `cmd+shift+d` | Stop pomodoro | on the pomodoro's timer: the cycle over |
 | `cmd+d` | Stop | `timer stop <id>`, the timer is gone |
-| `enter` on New timer | Start | arguments `duration` (required), `name`, `ring` (Silent / Ring the phone) in the bar; `enter` again starts it |
+| `enter` on New timer | Start | arguments `duration` (required), `name`, `ring` (Silent / Ring the phone) in the bar |
 | `enter` on Start Pomodoro | Start pomodoro | the first round's timer |
 
 Without the CLI (the `command` setting names nothing on PATH or on disk)

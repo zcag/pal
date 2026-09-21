@@ -228,8 +228,8 @@ const ASK_ARGS: Arg[] = [{ id: "question", placeholder: "Question", required: tr
 const COMMANDS: Item[] = [
   { id: "cmd:new", name: "New tela page", subtitle: "A page in a space, the body from your selection or the clipboard", icon: ICON.plus, keywords: ["create", "write", "wiki"], actions: [{ id: "new", title: "New page" }] },
   { id: "cmd:search", name: "Search tela", subtitle: "Full-text over every page you can see", icon: ICON.search, keywords: ["find", "wiki"], actions: [{ id: "search", title: "Search" }, { id: "browser", title: "Search in the browser", shortcut: "cmd+enter" }] },
-  // The question is typed in the bar (the row's `args`); cmd+enter takes it to the browser instead. The Ask tela palette still lists past questions.
-  { id: "cmd:ask", name: "Ask tela", subtitle: "A question answered from the pages that matter, typed in the bar", icon: ICON.research, keywords: ["research", "question", "wiki"], args: ASK_ARGS, actions: [{ id: "ask", title: "Ask" }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter", args: true }] },
+  // The question is typed in the bar (the row's `args`); both actions take it (once one says `args`, only the marked ones do), cmd+enter to the browser. The Ask tela palette still lists past questions.
+  { id: "cmd:ask", name: "Ask tela", subtitle: "A question answered from the pages that matter, typed in the bar", icon: ICON.research, keywords: ["research", "question", "wiki"], args: ASK_ARGS, actions: [{ id: "ask", title: "Ask", args: true }, { id: "browser", title: "Ask in the browser", shortcut: "cmd+enter", args: true }] },
   { id: "cmd:notes", name: "Quick Notes", subtitle: "Your scratchpad page on tela", icon: ICON.note, keywords: ["scratch", "journal", "daily"], actions: [{ id: "open", title: "Open Quick Notes" }] },
 ];
 

@@ -122,6 +122,10 @@
           "title": "Open the conversation in Slack"
         },
         {
+          "keys": "cmd+enter",
+          "title": "Reply with the message typed in the bar"
+        },
+        {
           "keys": "cmd+shift+r",
           "title": "Mark as read"
         },
@@ -137,7 +141,7 @@
     },
     "channels": {
       "title": "Channels",
-      "description": "Every channel, group and direct message you are in, with the topic and the member count.",
+      "description": "Every channel, group and direct message you are in, with the topic and the member count; a message typed in the bar is sent with cmd+shift+r.",
       "kind": "list",
       "lazy": true,
       "ttl": 3600,
@@ -146,6 +150,10 @@
         {
           "keys": "enter",
           "title": "Open in Slack"
+        },
+        {
+          "keys": "cmd+shift+r",
+          "title": "Send the message typed in the bar"
         },
         {
           "keys": "cmd+shift+o",
@@ -184,7 +192,7 @@
       "keys": [
         {
           "keys": "enter",
-          "title": "Set it; Set a status… and Do Not Disturb for… take their values in the bar first"
+          "title": "Set it; Set a status… and Do Not Disturb for… take their values from the bar's fields"
         }
       ]
     }
@@ -272,7 +280,7 @@
     "category": "integration",
     "features": [
       "Unreads: direct messages, mentions and thread replies as rows with the sender's avatar, the message and how long ago; the channels that are merely unread named under them",
-      "Enter opens the conversation in the Slack app at the message; Reply is a one-field form that posts from the panel; Mark as read from the row",
+      "Enter opens the conversation in the Slack app at the message; Reply posts the message typed in the bar from the panel (a form without it); Mark as read from the row",
       "The bar item counts only what is addressed to you, so it is usually hidden and worth reading when it is not; red while a direct message waits",
       "Channels: every channel, group and direct message you are in, with the topic and the member count",
       "Search Slack as you type with Slack's own syntax: from:@name, in:#channel, has:link",
@@ -343,8 +351,13 @@
       },
       {
         "title": "Reply",
-        "description": "A one-field form; posts to the conversation (into the thread for a threaded mention).",
+        "description": "The message typed in the bar (the row's argument) posts to the conversation (into the thread for a threaded mention); a one-field form when picked without it.",
         "keys": "cmd+enter"
+      },
+      {
+        "title": "Send a message",
+        "description": "In Channels: the message typed in the bar posts to the conversation; a form when picked without it.",
+        "keys": "cmd+shift+r"
       },
       {
         "title": "Mark as read",

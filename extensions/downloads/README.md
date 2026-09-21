@@ -45,7 +45,7 @@ the last ten minutes as `Downloaded: <name>` with the same actions.
 | `cmd+c` | Copy the file itself: a paste in Finder copies it (marked rows together) |
 | `cmd+shift+c` | Copy the path (marked rows: one per line) |
 | `cmd+m` | Move to a folder: a form with the target; `~` is expanded, a missing folder is created, a file of the same name there refuses |
-| `cmd+shift+r` | Rename: a form with the name; a name in use refuses |
+| `cmd+shift+r` | Rename: argument `name` typed in the bar; blank (or a pick without the field) opens the form with the current name; a name in use refuses |
 | `cmd+d` | Move to the Trash (asks first; marked rows together) |
 | `tab`, `shift+↓`, `cmd+click` | Mark rows for a multi pick |
 | `cmd+i` | The detail pane |
