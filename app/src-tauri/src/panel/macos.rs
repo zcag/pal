@@ -28,7 +28,22 @@ tauri_panel! {
     })
 }
 
+/// The blur behind a window comes from AppKit, not CSS: a `backdrop-filter`
+/// in WKWebView samples only the page's own layers, never what is behind the
+/// window, so the page's translucent background showed the desktop straight
+/// through and read as "sometimes transparent" (solid over a dark window,
+/// see-through over a bright one). An NSVisualEffectView under the webview
+/// blurs what is really there, the same on every background; the Popover
+/// material follows the appearance. Best effort: a failure is logged and
+/// the page's flat colour stands.
+pub fn vibrancy(window: &WebviewWindow, radius: f64) {
+    if let Err(e) = window_vibrancy::apply_vibrancy(window, window_vibrancy::NSVisualEffectMaterial::Popover, Some(window_vibrancy::NSVisualEffectState::Active), Some(radius)) {
+        eprintln!("panel\tvibrancy failed\t{e}");
+    }
+}
+
 pub fn install(window: &WebviewWindow) {
+    vibrancy(window, 14.0);
     let panel = window.to_panel::<PalPanel>().expect("to_panel");
     panel.set_level(PanelLevel::Floating.into());
     panel.set_style_mask(StyleMask::empty().borderless().nonactivating_panel().into());
@@ -301,6 +316,7 @@ mod bar {
     /// non-activating, all Spaces, never ordered out, hidden = alpha 0
     /// and the mouse passing through, occlusion detection off.
     pub fn install(window: &WebviewWindow) {
+        super::vibrancy(window, 12.0);
         let panel = window.to_panel::<BarPanel>().expect("to_panel");
         panel.set_level(PanelLevel::Floating.into());
         panel.set_style_mask(StyleMask::empty().borderless().nonactivating_panel().into());

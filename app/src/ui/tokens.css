@@ -84,7 +84,7 @@
 
   /* light-begin */
   --pal-bg: #F4F4F6;
-  --pal-bg-glass: rgba(244, 244, 246, 0.84);
+  --pal-bg-glass: rgba(244, 244, 246, 0.78);
   --pal-bg-elevated: #FFFFFF;
   --pal-bg-sunken: #EAEAEE;
   --pal-fg: #1A1A1F;
@@ -149,7 +149,7 @@
   :root:not([data-theme="light"]) {
     /* dark-begin */
     --pal-bg: #1C1C21;
-    --pal-bg-glass: rgba(28, 28, 33, 0.80);
+    --pal-bg-glass: rgba(28, 28, 33, 0.72);
     --pal-bg-elevated: #26262D;
     --pal-bg-sunken: #141417;
     --pal-fg: #ECECF0;
@@ -213,7 +213,7 @@
 :root[data-theme="dark"],
 [data-theme="dark"] {
   --pal-bg: #1C1C21;
-  --pal-bg-glass: rgba(28, 28, 33, 0.80);
+  --pal-bg-glass: rgba(28, 28, 33, 0.72);
   --pal-bg-elevated: #26262D;
   --pal-bg-sunken: #141417;
   --pal-fg: #ECECF0;
@@ -275,7 +275,7 @@
 :root[data-theme="light"],
 [data-theme="light"] {
   --pal-bg: #F4F4F6;
-  --pal-bg-glass: rgba(244, 244, 246, 0.84);
+  --pal-bg-glass: rgba(244, 244, 246, 0.78);
   --pal-bg-elevated: #FFFFFF;
   --pal-bg-sunken: #EAEAEE;
   --pal-fg: #1A1A1F;
