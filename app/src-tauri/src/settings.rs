@@ -254,6 +254,14 @@ pub fn root_caps(app: &AppHandle) -> pal_core::index::Caps {
     lock(&app.state::<Settings>().loaded).config.general.root_caps
 }
 
+/// The root's ranking knobs (`[general] root_first`, `root_first_step`, `root_cut`), read per keystroke like the caps.
+pub fn root_ranking(app: &AppHandle) -> crate::index::Ranking {
+    let st = app.state::<Settings>();
+    let loaded = lock(&st.loaded);
+    let g = &loaded.config.general;
+    crate::index::Ranking { first: g.root_first.iter().filter_map(|k| k.split_once('/').map(|(e, p)| pal_core::index::Source::new(e, p))).collect(), step: g.root_first_step as f32, cut: g.root_cut }
+}
+
 /// The config file itself (its path, profile and data dir).
 pub fn file(app: &AppHandle) -> ConfigFile {
     app.state::<Settings>().file.clone()

@@ -530,6 +530,29 @@
           },
           "description": "How many rows one palette may show at the root for a typed query,\nby its tier: `{ primary = 8, normal = 6, catalog = 3 }`. The rest\nis a \"N more in ...\" row that opens the palette. The empty query\nand a palette's own level are never capped."
         },
+        "root_cut": {
+          "default": true,
+          "description": "At the root, a palette with a row that has the typed word shows\nonly those rows: `spo` is Spotify, not Spotify and six apps that\nspell it out of their bundle ids (they stay in the \"N more\" row).\n`false` leaves every match to the cap.",
+          "type": "boolean"
+        },
+        "root_first": {
+          "default": [
+            "browser-tabs/tabs",
+            "windows/windows",
+            "apps/apps"
+          ],
+          "description": "Palettes whose rows lead the others of their band at the root, in\nthis order: `[\"browser-tabs/tabs\", \"windows/windows\", \"apps/apps\"]`\n(a tab over a window over an app, all over the rest). Each gets\n`root_first_step` more than the next, on top of its tier, which\norders rows of equal standing and never lifts a row that only\nscatters the letters over one that has the typed word.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "root_first_step": {
+          "default": 30.0,
+          "description": "Points between two `root_first` palettes; `30` keeps the whole\nladder under the word bonus (300) and the tier spread (150).",
+          "format": "double",
+          "type": "number"
+        },
         "search_engine": {
           "default": "https://www.google.com/search?q={query}",
           "description": "The \"Search the web\" fallback's URL, `{query}` percent-encoded into it.",
@@ -756,6 +779,13 @@
           "normal": 6,
           "primary": 8
         },
+        "root_cut": true,
+        "root_first": [
+          "browser-tabs/tabs",
+          "windows/windows",
+          "apps/apps"
+        ],
+        "root_first_step": 30.0,
         "search_engine": "https://www.google.com/search?q={query}",
         "search_history": true,
         "selection_snapshot": true,

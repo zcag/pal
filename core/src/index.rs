@@ -4,8 +4,9 @@
 //! (notes/matching.md): name, keywords and subtitle are separate
 //! nucleo-matcher fields, one thread, synchronous. On top of the match:
 //! a source's [`Tier`] (primary up, catalog down), a bonus for a row
-//! that has the typed word, the exact-name bonus, and a per-source cap so
-//! no catalog crowds the top N; the ladder is under [`EXACT_BONUS`].
+//! that has the typed word, the exact-name bonus, and per source a cut of
+//! the rows that only scatter the query once one has the word, then a cap,
+//! so no source crowds the top N; the ladder is under [`EXACT_BONUS`].
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -136,7 +137,11 @@ pub const CATALOG_EXACT_BONUS: f32 = 250.0;
 /// How many rows one source may put in a typed query's answer, by tier.
 /// The rest of its matches are counted in [`Ranked::more`], for a row that
 /// drills into the palette (where nothing is capped). `[general]
-/// root_caps` in the config file.
+/// root_caps` in the config file. Before the cap, a source with a row that
+/// has the typed word loses its rows that only scatter the letters (the
+/// same `more` row keeps them reachable): `spo` is Spotify, not Spotify and
+/// six apps that spell it out of their bundle ids; `sp` still lists every
+/// app whose name starts with it, up to the cap, so fuzzy typing is intact.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 #[schemars(extend("additionalProperties" = false))]
@@ -182,11 +187,14 @@ pub struct QueryOpts<'a> {
     /// palette's own level lists everything). The empty query is never
     /// capped.
     pub caps: Option<Caps>,
+    /// With `caps`: a source with a row that has the typed word keeps only
+    /// those rows ([`Caps`]). `[general] root_cut`; off, the cap alone.
+    pub cut: bool,
 }
 
 impl Default for QueryOpts<'_> {
     fn default() -> Self {
-        Self { limit: 200, sources: None, boost: None, tier: None, caps: None }
+        Self { limit: 200, sources: None, boost: None, tier: None, caps: None, cut: true }
     }
 }
 
@@ -443,9 +451,10 @@ impl Index {
     /// findable). An item named what was typed (or with a keyword saying
     /// so) gets [`EXACT_BONUS`] and leads. With `opts.tier` every matched
     /// row carries its source's tier bonus ([`Tier::bonus`]); with
-    /// `opts.caps` a source keeps at most its cap's worth of hits, the
-    /// best ones, chosen before the top-N select so a catalog cannot
-    /// crowd the rest out, and the count it lost is in [`Ranked::more`].
+    /// `opts.caps` a source that has a row with the word keeps only those
+    /// ([`Caps`]), then keeps at most its cap's worth of hits, the best
+    /// ones, chosen before the top-N select so a catalog cannot crowd the
+    /// rest out, and the count it lost is in [`Ranked::more`].
     pub fn query(&mut self, q: &str, opts: QueryOpts) -> Ranked {
         self.pat = Pattern::new(q, CaseMatching::Smart, Normalization::Smart, AtomKind::Fuzzy);
         let matching = !self.pat.atoms.is_empty();
@@ -475,7 +484,8 @@ impl Index {
                 };
                 let boost = if bucket.live { None } else { opts.boost };
                 let mut score = score + boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id)) + bonus;
-                if matching && entry.starts_words(&typed) {
+                let word = matching && entry.starts_words(&typed);
+                if word {
                     score += WORD_BONUS;
                     if entry.is_exactly(&typed) {
                         score += tier.exact_bonus();
@@ -484,17 +494,25 @@ impl Index {
                 // Name length only breaks ties between matches; the empty
                 // query keeps insertion order.
                 let len = if matching { entry.name.len() as u32 } else { 0 };
-                cands.push(Cand { score, len, b: b as u32, e: e as u32 });
+                cands.push(Cand { score, len, word, b: b as u32, e: e as u32 });
             }
             spans.push((b, start..cands.len(), tier));
         }
-        // The cap: each source's best `cap` candidates, the rest dropped
-        // here so the top-N below is chosen among what may show.
+        // The cut and the cap: a source with a row that has the word keeps
+        // only those, then its best `cap` of them; the rest is dropped here
+        // so the top-N below is chosen among what may show.
         let caps = if matching { opts.caps } else { None };
         if let Some(caps) = caps {
             let mut kept = Vec::with_capacity(cands.len());
             for (_, range, tier) in &spans {
                 let (cap, slice) = (caps.of(*tier), &mut cands[range.clone()]);
+                let at = if opts.cut && slice.iter().any(|c| c.word) {
+                    slice.sort_unstable_by_key(|c| !c.word);
+                    slice.iter().position(|c| !c.word).unwrap_or(slice.len())
+                } else {
+                    slice.len()
+                };
+                let slice = &mut slice[..at];
                 if slice.len() > cap {
                     if cap > 0 {
                         slice.select_nth_unstable_by(cap, Cand::cmp);
@@ -569,17 +587,20 @@ impl Index {
 /// | --- | ---: | ---: |
 /// | exact primary | 1450 | 1650 |
 /// | exact normal (name, or a keyword alias) | 1300 | 1500 |
-/// | palette row, has the word (primary tier plus the app's `PALETTE_BONUS` 150) | 600 | 800 |
-/// | primary, has the word | 450 | 650 |
+/// | primary, has the word (a palette row too) | 450 | 650 |
 /// | exact catalog | 400 | 600 |
-/// | normal, has the word; palette row, scattered | 300 | 500 |
+/// | normal, has the word | 300 | 500 |
 /// | primary, scattered; catalog, has the word | 150 | 350 |
 /// | normal, scattered | 0 | 200 |
 /// | catalog, scattered | -150 | 50 |
 ///
+/// The app adds a small ladder on top of a few primary sources it wants
+/// first among equals (`[general] root_first`: tabs, windows, apps, at
+/// most 90), which orders rows of one band and never crosses one.
+///
 /// "Has the word": every query word starts a word of the name or a
 /// keyword ([`WORD_BONUS`]). So: an exact name wins across tiers (1300
-/// against a hot palette row's 800, the closest), except a catalog's,
+/// against a hot primary row's 650, the closest), except a catalog's,
 /// which is one glyph among thousands of short names and sits under the
 /// primary hits that have the word; a primary hit that has the word is
 /// above every catalog hit however hot (450 against 350); a catalog row
@@ -609,6 +630,8 @@ pub const EXACT_BONUS: f32 = 1000.0;
 struct Cand {
     score: f32,
     len: u32,
+    /// Has the typed word (`WORD_BONUS`): what the per-source cut keeps.
+    word: bool,
     b: u32,
     e: u32,
 }
@@ -910,6 +933,31 @@ mod tests {
         assert_eq!(all.len(), ix.len());
         assert!(all.more.is_empty());
         assert_eq!(Caps::default(), Caps { primary: 8, normal: 6, catalog: 3 });
+    }
+
+    #[test]
+    fn the_cut_keeps_the_rows_that_have_the_word_once_one_does() {
+        let mut ix = index();
+        // Spotify has the word; Spotlight too; the rest spell `spo` out of a bundle id or across a title.
+        ix.extend(src("apps"), vec![
+            item("spotify.app", "Spotify", None, &["com.spotify.client"]),
+            item("spotlight.app", "Spotlight", None, &[]),
+            item("sposter.app", "Screen Poster", None, &["com.sp.poster"]),
+            item("scripts.app", "Script Editor", None, &["com.apple.ScriptEditor2", "osascript"]),
+        ]);
+        let opts = |cut| QueryOpts { tier: Some(&tier), caps: Some(Caps::default()), cut, ..Default::default() };
+        let r = ix.query("spo", opts(true));
+        assert_eq!(ids(&r), ["spotify.app", "spotlight.app"], "only the rows that have the word");
+        assert_eq!(r.more, [More { source: src("apps"), count: 2 }], "the scattered ones are still counted for the drill row");
+        let r = ix.query("spo", opts(false));
+        assert_eq!(ids(&r)[..2], ["spotify.app", "spotlight.app"]);
+        assert_eq!(r.len(), 4, "off, the cap alone decides");
+        // No row has the word: fuzzy matching is untouched.
+        let r = ix.query("scpt", opts(true));
+        assert_eq!(ids(&r), ["scripts.app", "sposter.app"], "both scatter it (`com.sp.poster`), both stay");
+        assert!(r.more.is_empty());
+        // The cut is the root's (with caps); a palette's own level lists everything.
+        assert_eq!(ix.query("spo", QueryOpts { tier: Some(&tier), sources: Some(&[src("apps")]), ..Default::default() }).len(), 4);
     }
 
     #[test]

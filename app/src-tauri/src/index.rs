@@ -14,10 +14,12 @@
 //! re-applies all three when the file changes.
 //!
 //! A typed root query ranks with each palette's tier (`Registered::tier`,
-//! the palette rows primary plus `PALETTE_BONUS`) and caps every source at
-//! `[general] root_caps` rows; what a cap left out is a "N more in X" row
-//! after the section (`more_row`), which a pick turns into a `push` into
-//! the palette.
+//! the palette rows primary), a small ladder over the palettes `[general]
+//! root_first` names (`Ranking`), cuts a source that has a row with the
+//! word to those rows (`root_cut`) and caps every source at `[general]
+//! root_caps` rows; what the cut and the cap left out is a "N more in X"
+//! row after the section (`more_row`), which a pick turns into a `push`
+//! into the palette.
 //!
 //! A live palette (`live`, not `input`) is listed again every time the panel
 //! shows (`on_shown`), after the paint, so its rows are current at the root;
@@ -722,7 +724,29 @@ pub struct SourceView {
 /// bonus by far: a row named what was typed keeps its lead over a hot
 /// palette row by 500. The empty query is untouched: it is ordered by
 /// insertion and use, and the palettes are inserted first anyway.
-pub const PALETTE_BONUS: f32 = 150.0;
+/// `[general] root_first`, `root_first_step` and `root_cut` as the query
+/// reads them (`settings::root_ranking`): the palettes that lead their
+/// band, `step` points apart, and whether a source with a row that has
+/// the word shows only those.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Ranking {
+    pub first: Vec<Source>,
+    pub step: f32,
+    pub cut: bool,
+}
+
+impl Default for Ranking {
+    fn default() -> Self {
+        Self { first: pal_core::config::DEFAULT_ROOT_FIRST.iter().filter_map(|k| k.split_once('/').map(|(e, p)| Source::new(e, p))).collect(), step: 30.0, cut: true }
+    }
+}
+
+impl Ranking {
+    /// What `source` gets on a typed query: `step` for the last of `first`, twice that for the one before, nothing for the rest.
+    pub fn bonus(&self, source: &Source) -> f32 {
+        self.first.iter().position(|s| s == source).map_or(0.0, |i| self.step * (self.first.len() - i) as f32)
+    }
+}
 
 /// The id of the row the root appends after a capped source's hits ("12
 /// more in Emoji", `more_row`): a pick on it opens the palette, nothing is
@@ -731,27 +755,26 @@ pub const PALETTE_BONUS: f32 = 150.0;
 pub const MORE_ID: &str = "pal:more";
 
 /// The root's boost over `fre_boost` (a frecency, `Frecency::boost`): the
-/// welcome rows lead the empty query outright, palette rows get
-/// [`PALETTE_BONUS`] on a typed one, everything else is its frecency.
-fn root_boost<'a>(q: &str, fre_boost: &'a dyn Fn(&Source, &str) -> f32) -> impl Fn(&Source, &str) -> f32 + 'a {
+/// welcome rows lead the empty query outright, the `root_first` palettes
+/// get their ladder (`Ranking::bonus`) on a typed one, everything else is
+/// its frecency. A palette row has no bonus of its own any more: the
+/// palettes are primary, so one that has the word sits with the apps that
+/// do, under the app named for it (shorter name, then the apps' rung).
+fn root_boost<'a>(q: &str, ranking: &'a Ranking, fre_boost: &'a dyn Fn(&Source, &str) -> f32) -> impl Fn(&Source, &str) -> f32 + 'a {
     let welcome = welcome::source();
-    let palettes = palettes_source();
-    let palette_bonus = if q.trim().is_empty() { 0.0 } else { PALETTE_BONUS };
+    let typed = !q.trim().is_empty();
     move |s: &Source, id: &str| {
         if *s == welcome {
             welcome::BOOST
-        } else if *s == palettes {
-            palette_bonus + fre_boost(s, id)
         } else {
-            fre_boost(s, id)
+            (if typed { ranking.bonus(s) } else { 0.0 }) + fre_boost(s, id)
         }
     }
 }
 
 /// The root's tiers: each registered palette's (`Registered::tier`), the
 /// palette rows and pal's own commands (`crate::commands`) primary (they
-/// are reached by name, and `PALETTE_BONUS` comes on top of the palette
-/// rows), anything else normal.
+/// are reached by name), anything else normal.
 fn root_tier(tiers: &[(Source, Tier)]) -> impl Fn(&Source) -> Tier + '_ {
     let (palettes, commands) = (palettes_source(), commands::source());
     move |s: &Source| if *s == palettes || *s == commands { Tier::Primary } else { tiers.iter().find(|(t, _)| t == s).map_or(Tier::Normal, |(_, t)| *t) }
@@ -817,9 +840,10 @@ pub fn query(
     let tier = root_tier(&tiers);
     // Caps at the root only: a palette's own level lists everything.
     let caps = sources.is_none().then(|| settings::root_caps(&app));
+    let ranking = settings::root_ranking(&app);
     let fre = lock(&frecency);
     let fre_boost = fre.boost(&q, SystemTime::now());
-    let boost = root_boost(&q, &fre_boost);
+    let boost = root_boost(&q, &ranking, &fre_boost);
     let welcome = welcome::source();
     let mut ix = lock(&index);
     let sources = match sources {
@@ -830,7 +854,7 @@ pub fn query(
     let empty_root = sources.is_none() && q.trim().is_empty();
     let frequent = if empty_root { frequent(&ix, &fre, SystemTime::now()) } else { Vec::new() };
     let attention = if empty_root { attention(&ix) } else { Vec::new() };
-    let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps };
+    let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps, cut: ranking.cut };
     let ranked = ix.query(&q, opts);
     let mut hits = views(&ix, ranked, &titles);
     if sources.is_none() {
@@ -1174,7 +1198,8 @@ mod tests {
         let tiers = [(Source::new("iconnerd", "icons"), Tier::Catalog), (Source::new("apps", "apps"), Tier::Primary)];
         let tier = root_tier(&tiers);
         let fre_boost = fre.boost(q, SystemTime::now());
-        let boost = root_boost(q, &fre_boost);
+        let ranking = Ranking::default();
+        let boost = root_boost(q, &ranking, &fre_boost);
         let ranked = ix.query(q, QueryOpts { boost: Some(&boost), tier: Some(&tier), caps, ..Default::default() });
         views(&ix, ranked, &[(Source::new("iconnerd", "icons"), "Nerd Icons".into())]).into_iter().map(|h| h.item.id).collect()
     }
@@ -1184,29 +1209,33 @@ mod tests {
     }
 
     #[test]
-    fn palette_rows_lead_a_typed_query_but_not_an_exact_name() {
+    fn apps_lead_palette_rows_lead_catalogs_on_a_typed_query_but_not_an_exact_name() {
         let mut fre = Frecency::in_memory();
-        // Shorter names win ties otherwise: `clipboard` (9) over `Clipboard History` (17); the app is primary and has the word too.
-        assert_eq!(ranked("clip", &fre)[..2], ["clipboard/history", "clipper.app"]);
+        // The app and the palette row both have the word and are primary; the app is on the `root_first` ladder and its name is shorter, so it leads. The icon (a catalog) is under both however short its name.
+        assert_eq!(ranked("clip", &fre)[..2], ["clipper.app", "clipboard/history"]);
         assert_eq!(ranked("clipboard", &fre)[0], "clipboard/history", "an exact keyword on the palette row too");
         // A hot icon row (the frecency maximum is 200) still loses to the palette row and to the app.
         let now = SystemTime::now();
         for _ in 0..20 {
             fre.record(&Key::new("iconnerd", "icons", "nf-clip"), now);
         }
-        assert_eq!(ranked("clip", &fre)[..3], ["clipboard/history", "clipper.app", "nf-clip"]);
-        // An item named what was typed keeps its lead (EXACT_BONUS over PALETTE_BONUS plus a frecency and the tier).
+        assert_eq!(ranked("clip", &fre)[..3], ["clipper.app", "clipboard/history", "nf-clip"]);
+        // An item named what was typed keeps its lead (EXACT_BONUS over the ladder plus a frecency and the tier).
         assert_eq!(ranked("Clipper", &fre)[0], "clipper.app");
         // Both exact (`history` is the palette row's keyword): the palette row's full exact bonus over the catalog's.
         assert_eq!(ranked("history", &fre)[0], "clipboard/history");
         // The empty query is ordered by use, no bonus: the hot icon row leads there.
         assert_eq!(ranked("", &fre)[0], "nf-clip");
-        // The sizing the doc comment on PALETTE_BONUS relies on (constants, so a plain comparison).
-        let (max_frecency, exact) = (pal_core::frecency::MAX_SCORE * pal_core::frecency::BOOST_SCALE, pal_core::index::EXACT_BONUS);
-        let palette_row = PALETTE_BONUS + Tier::Primary.bonus() + pal_core::index::WORD_BONUS;
-        assert!(palette_row + max_frecency < exact, "{palette_row} + {max_frecency} vs {exact}");
-        assert!(palette_row > Tier::Primary.bonus() + pal_core::index::WORD_BONUS, "a palette row that has the word over a primary row that does");
-        assert!(PALETTE_BONUS + Tier::Primary.bonus() < Tier::Primary.bonus() + pal_core::index::WORD_BONUS, "a palette row that scatters the letters under a primary row that has the word");
+        // The sizing the ladder relies on: its top rung plus a hot row stays under an exact name, and under the word bonus on its own.
+        let (max_frecency, exact, word) = (pal_core::frecency::MAX_SCORE * pal_core::frecency::BOOST_SCALE, pal_core::index::EXACT_BONUS, pal_core::index::WORD_BONUS);
+        let r = Ranking::default();
+        let top = r.bonus(&Source::new("browser-tabs", "tabs"));
+        assert_eq!((top, r.bonus(&Source::new("windows", "windows")), r.bonus(&Source::new("apps", "apps")), r.bonus(&Source::new("files", "files"))), (90.0, 60.0, 30.0, 0.0));
+        assert!(Tier::Primary.bonus() + word + top + max_frecency < exact);
+        assert!(top < word && top < Tier::Primary.bonus(), "a rung never lifts a scattered row over one that has the word, nor a normal row over a primary");
+        // Off the ladder, the palette row and the app tie on the bonuses and the shorter name leads.
+        let flat = Ranking { first: Vec::new(), ..r };
+        assert_eq!(flat.bonus(&Source::new("apps", "apps")), 0.0);
     }
 
     #[test]
@@ -1241,8 +1270,8 @@ mod tests {
     fn capped_sections_end_in_a_more_row() {
         let fre = Frecency::in_memory();
         let caps = Some(Caps { primary: 8, normal: 6, catalog: 2 });
-        // Four icons match `clip`; two show, then the row into the palette, after the palette row and the app.
-        assert_eq!(root("clip", &fre, caps), ["clipboard/history", "clipper.app", "nf-clip", "nf-clipper", MORE_ID]);
+        // Three icons match `clip`, all with the word; the catalog cap shows two, then the row into the palette, after the app and the palette row.
+        assert_eq!(root("clip", &fre, caps), ["clipper.app", "clipboard/history", "nf-clip", "nf-clipper", MORE_ID]);
         assert_eq!(root("clip", &fre, None).len(), 5, "uncapped: everything");
         assert_eq!(root("", &fre, caps).len(), 6, "the empty query is never capped");
         let m = more_row(&Source::new("iconnerd", "icons"), "Nerd Icons", 12);

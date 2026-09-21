@@ -140,6 +140,21 @@ pub struct General {
     /// is a "N more in ..." row that opens the palette. The empty query
     /// and a palette's own level are never capped.
     pub root_caps: Caps,
+    /// Palettes whose rows lead the others of their band at the root, in
+    /// this order: `["browser-tabs/tabs", "windows/windows", "apps/apps"]`
+    /// (a tab over a window over an app, all over the rest). Each gets
+    /// `root_first_step` more than the next, on top of its tier, which
+    /// orders rows of equal standing and never lifts a row that only
+    /// scatters the letters over one that has the typed word.
+    pub root_first: Vec<String>,
+    /// Points between two `root_first` palettes; `30` keeps the whole
+    /// ladder under the word bonus (300) and the tier spread (150).
+    pub root_first_step: f64,
+    /// At the root, a palette with a row that has the typed word shows
+    /// only those rows: `spo` is Spotify, not Spotify and six apps that
+    /// spell it out of their bundle ids (they stay in the "N more" row).
+    /// `false` leaves every match to the cap.
+    pub root_cut: bool,
     /// The rows offered when a typed query matches nothing, in this order:
     /// `web` (Search the web, `search_engine`), `url` (Open as URL, when the
     /// query looks like one), then palette ids that opted in (`quicklinks`
@@ -197,6 +212,9 @@ impl Default for General {
             selection_snapshot: true,
             deeplink_confirm: Confirm::default(),
             root_caps: Caps::default(),
+            root_first: DEFAULT_ROOT_FIRST.iter().map(|s| s.to_string()).collect(),
+            root_first_step: 30.0,
+            root_cut: true,
             fallbacks: DEFAULT_FALLBACKS.iter().map(|s| s.to_string()).collect(),
             fallbacks_always: false,
             search_engine: DEFAULT_SEARCH_ENGINE.into(),
@@ -212,6 +230,8 @@ impl Default for General {
 
 /// `general.fallbacks` when unset: the shell's two rows, then the bundled palettes that opt in.
 pub const DEFAULT_FALLBACKS: [&str; 5] = ["web", "url", "quicklinks", "calc", "files"];
+/// `[general] root_first` unset: what is open, then what can be opened.
+pub const DEFAULT_ROOT_FIRST: [&str; 3] = ["browser-tabs/tabs", "windows/windows", "apps/apps"];
 /// `general.search_engine` when unset.
 pub const DEFAULT_SEARCH_ENGINE: &str = "https://www.google.com/search?q={query}";
 /// `general.now` when unset: the next event, the running timer, what plays, what is on the clipboard.
